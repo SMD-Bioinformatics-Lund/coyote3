@@ -1,0 +1,31 @@
+{% set curr_page = request.path.lstrip('/').split("/")[-1] %}
+<!doctype html>
+<html>
+<head>
+  <title>Prärievarg med ritningar</title>
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+</head>
+
+<body>
+
+<div id='pageheader'>
+  <div class='logo'>
+    <span class='logo'>
+      <a href="{{ url_for('main_bp.main_screen') }}">
+	    PRÄRIEVARG med ritningar
+      </a>
+    </span>
+  </div>
+  <div id='menu_row'>
+
+    </div>
+  </div>
+</div>
+
+<div class="page">
+  {% block body %}{% endblock %}
+</div>
+
+</body>
+</html>

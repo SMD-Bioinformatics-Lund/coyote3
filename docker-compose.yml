@@ -1,0 +1,32 @@
+version: '3.9'
+# usage:
+# docker-compose up -d
+# docker-compose down
+services:
+  coyote_app:
+    build:
+      context: .
+      network: host
+      target: coyote_app
+    image: coyote:dev
+    network_mode: host
+    ports:
+      - "8815:5000"
+    environment:
+      - PYHTONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - FLASK_APP=wsgi.py
+      - FLASK_MONGO_HOST=localhost
+      - FLASK_MONGO_PORT=27017
+      - FLASK_DEBUG=1
+      - SCRIPT_NAME=''
+      - TZ=Europe/Stockholm
+    restart: always
+    volumes:
+      - ".git:/app/.git"
+      - "./coyote:/app/coyote"
+      - "./config:/app/config"
+      - "./config.py:/app/config.py"
+      - "./wsgi.py:/app/wsgi.py"
+    command: "python3 wsgi.py"
+
