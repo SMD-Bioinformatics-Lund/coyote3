@@ -36,7 +36,7 @@ def init_app(testing: bool = False) -> Flask:
         init_db(app)
         init_store(app)
         register_blueprints(app)
-    init_ldap(app)
+        init_ldap(app)
 
     app.logger.info("App initialization finished. Returning app.")
     return app

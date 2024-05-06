@@ -1,6 +1,6 @@
-FROM python:3.11.0-slim as coyote_app
+FROM python:3.8.0-slim as coyote_app
 
-LABEL base_image="python:3.11.0-slim"
+LABEL base_image="python:3.8.0-slim"
 LABEL about.home="https://github.com/Clinical-Genomics-Lund/cmd-data-management"
     
 EXPOSE 8000

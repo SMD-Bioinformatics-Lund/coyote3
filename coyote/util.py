@@ -52,12 +52,7 @@ def assays_in_assay_group(assay_name: str) -> list:
     return assay_config(assay_name).get("include_assays")
 
 
-def assay_groups() -> dict[str, list]:
-    group_data = assay_config()
-    assay_groups = {}
-    for group_name in group_data.keys():
-        assay_groups[group_name] = group_data[group_name].get("include_assays")
-    return assay_groups
+
 
 
 def has_subtypes(assay_name) -> bool:

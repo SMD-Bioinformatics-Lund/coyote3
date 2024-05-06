@@ -1,8 +1,9 @@
 import pymongo
 
 from coyote.db.samples import SampleHandler
+from coyote.db.users import UsersHandler
 
-class MongoAdapter(SampleHandler):
+class MongoAdapter(SampleHandler,UsersHandler):
     def __init__(self, client: pymongo.MongoClient = None):
         if client:
             self._setup_dbs(client)
@@ -22,3 +23,4 @@ class MongoAdapter(SampleHandler):
     def setup(self) -> None:
         # coyote
         self.samples_collection = self.coyote_db["samples"]
+        self.users_collection = self.coyote_db["users"]

@@ -6,10 +6,8 @@ from flask_login import login_user, logout_user
 
 from coyote.blueprints.login import login_bp
 from coyote.blueprints.login.login import LoginForm, User
-from coyote.extensions import login_manager, mongo
-from flask_ldapconn import LDAPConn
+from coyote.extensions import login_manager, mongo, ldap_manager, store
 
-ldap_manager = LDAPConn(app)
 
 users_collection = mongo.cx["coyote"]["users"]
 
@@ -24,8 +22,10 @@ def login():
         password = str(form.password.data)
         if ldap_authenticate(username, password):
             app.logger.info("anything?")
-            session['username'] = username
-            return redirect(url_for('home'))
+            user_obj = store.user(username)
+            user_obj = User(user_obj["_id"], user_obj["groups"])
+            login_user(user_obj)
+            return redirect(url_for("main_bp.main_screen"))
         else:
             app.logger.info("yes?")
             return render_template('login.html',form=form, error="Invalid credentials")
@@ -48,14 +48,14 @@ def load_user(username):
 
 def ldap_authenticate(username, password):
     authorized = False
+
     try:
-        ldap_manager.authenticate(
-            username="test",
-            password="tesiter",
+        authorized = ldap_manager.authenticate(
+            username=username,
+            password=password,
             base_dn=app.config.get("LDAP_BASE_DN") or app.config.get("LDAP_BINDDN"),
             attribute=app.config.get("LDAP_USER_LOGIN_ATTR")
         )
-        app.logger.info(f"am I? {authorized}")
     except Exception as ex:
         flash(ex, "danger")
 
