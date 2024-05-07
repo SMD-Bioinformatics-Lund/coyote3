@@ -1,4 +1,4 @@
-{% set curr_page = request.path.lstrip('/').split("/")[-1] %}
+{% set curr_page = request.path.split("/")[-1] %}
 <!doctype html>
 <html>
 <head>
@@ -8,20 +8,78 @@
 </head>
 
 <body>
-
-<div id='pageheader'>
-  <div class='logo'>
-    <span class='logo'>
-      <a href="{{ url_for('main_bp.main_screen') }}">
-	    PRÄRIEVARG med ritningar
-      </a>
-    </span>
-  </div>
-  <div id='menu_row'>
-
+  <div id='pageheader'>
+    <div class='logo'>
+      <span class='logo'>
+        <a href="{{ url_for('main_bp.main_screen') }}">
+        COYOTE
+        </a>
+      </span>
+      <span id='logo_version'>{{config['APP_VERSION']}}</span>
+    </div>
+    <div id='menu_row'>
+      <div class="tab" style="">
+        <ul id='navbar'>
+          {%
+          set navbar = {
+            'panels' : 'PANELS',
+            'tumwgs' : 'TUMWGS',
+            'rna' : 'RNA'
+          }
+          %}
+          {% if "/panels" in request.path %}
+            {%
+            set navbar = {
+              'home' : 'Home',
+              'myeloid_GMSv1' :  'MYELOID',
+              'solid_GMSv3' :  'SOLID',
+              'PARP_inhib' :  'PARP',
+              }
+            %}
+          {% elif "/rna" in request.path %}
+            {%
+            set navbar = {
+              'home' : 'Home',
+              'fusion' :  'MYELOID',
+              'solidRNA_GMSv5' :  'SOLID',
+              }
+            %}
+          {% endif %}
+  
+          {% for name, menu_label in navbar.items() %}
+  
+          {% if name == 'home' %}
+            {% set url = url_for('main_bp.main_screen', assay=name) %}
+          {% elif '/panels' in request.path %}
+            {% set url = url_for('main_bp.panels_screen', assay=name) %}
+          {% elif '/rna' in request.path %}
+            {% set url = url_for('main_bp.rna_screen', assay=name) %}
+          {% else %}
+            {% set url = url_for('main_bp.main_screen', assay=name) %}
+          {% endif %}
+          <li>
+            {% if name == curr_page %}
+            <a class='active' "{{url}}">{{menu_label}}</a>
+            {% else %}
+            <a href="{{url}}">{{menu_label}}</a>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div id='login'>
+        {% if current_user.is_authenticated %}
+        Logged in as <span id='logged_in_user'>{{ current_user.get_id() }}</span><br>
+        <span id='login_menu_selection'>
+        <a href="{{ url_for('login_bp.logout') }}">Logout</a>
+        {% else %}
+        <span id='login_menu_selection'>
+        <a href="{{ url_for('login_bp.login') }}">Login</a>
+        {% endif %}
+        </span>
+      </div>
     </div>
   </div>
-</div>
 
 <div class="page">
   {% block body %}{% endblock %}

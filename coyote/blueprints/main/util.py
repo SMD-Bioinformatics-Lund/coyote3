@@ -1,5 +1,10 @@
-from collections import defaultdict
+from flask_wtf import FlaskForm
+from wtforms import StringField, validators
 
-from coyote.util import assay_config
+
+
+class SampleSearchForm(FlaskForm):
+    """Sample search form"""
+    sample_search = StringField( 'Search sample', validators=[validators.DataRequired()] )
 
 
