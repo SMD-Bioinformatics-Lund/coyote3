@@ -68,8 +68,12 @@ def register_blueprints(app) -> None:
     # Login stuff
     bp_debug_msg("login_bp")
     from coyote.blueprints.login import login_bp
-
     app.register_blueprint(login_bp)
+
+    # Show Case Variants
+    bp_debug_msg("varaints_bp")
+    from coyote.blueprints.variants import variants_bp
+    app.register_blueprint(variants_bp)
 
 
 def init_login_manager(app) -> None:

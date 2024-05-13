@@ -24,8 +24,8 @@
   <tbody>
     {% for sample in live_samples %}
     <tr>
-      <td>
-        <a href="sample/{{ sample.name }}">{{ sample.name }}</a> {% if
+      <td> 
+        <a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}">{{ sample.name }}</a> {% if
         sample.comments|selectattr('hidden', 'equalto', 0)|list|length > 0 %}*{%
         endif %}
       </td>
@@ -88,7 +88,7 @@
     {% for sample in done_samples|sort(attribute="last_report_time_created",
     reverse=True) %}
     <tr>
-      <td><a href="sample/{{ sample.name }}">{{ sample.name }}</a></td>
+      <td><a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}">{{ sample.name }}</a></td>
       <td>
         {% if "num_samples" in sample %}{%for n in range(sample.num_samples)
         %}&#9679;{% endfor %}{% endif %}

@@ -2,8 +2,11 @@ import pymongo
 
 from coyote.db.samples import SampleHandler
 from coyote.db.users import UsersHandler
+from coyote.db.group import GroupsHandler
+from coyote.db.panels import PanelsHandler
+from coyote.db.variants import VariantsHandler
 
-class MongoAdapter(SampleHandler,UsersHandler):
+class MongoAdapter(SampleHandler,UsersHandler,GroupsHandler,PanelsHandler,VariantsHandler):
     def __init__(self, client: pymongo.MongoClient = None):
         if client:
             self._setup_dbs(client)
@@ -24,3 +27,9 @@ class MongoAdapter(SampleHandler,UsersHandler):
         # coyote
         self.samples_collection = self.coyote_db["samples"]
         self.users_collection = self.coyote_db["users"]
+        self.groups_collection = self.coyote_db["groups"]
+        self.panels_collection = self.coyote_db["panels"]
+        self.variants_collection = self.coyote_db["variants_idref"]
+        self.canonical_collection = self.coyote_db["refseq_canonical"]
+        self.annotations_collection = self.coyote_db["annotation"]
+        

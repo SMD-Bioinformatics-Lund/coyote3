@@ -22,3 +22,17 @@ class SampleHandler:
             return len(gt.get("GT"))
         else:
             return 0
+    def get_sample( self, name: str):
+        """
+        get sample by name
+        """
+        sample = self.samples_collection.find_one( { "name": name } )
+        return sample
+    
+    def get_sample_ids(self, sample_id: str):
+        a_var = self.samples_collection.find_one( { 'SAMPLE_ID': sample_id }, {'GT':1} )
+        ids = {}
+        if a_var:
+            for gt in a_var["GT"]:
+                ids[gt.get('type')] = gt.get('sample')
+        return ids
