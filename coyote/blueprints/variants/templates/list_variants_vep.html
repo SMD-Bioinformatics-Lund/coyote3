@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 
 {% block body %}
+{% set translation=config["TRANS"] %}
 <style>
   .fusoion_filters {
     display: none;
@@ -705,108 +706,6 @@
                 </div>
               </td>
             </tr>
-
-
-
-
-
-
-            <tr class="fusion_filters">
-              <td colspan=2><b>Fusion filters</b></td>
-            </tr>
-            <tr class="fusion_filters">
-              <td><label class="control-label">Spanning pairs</label>
-                {% for error in form.min_spanpairs.errors %}
-                <span style="color: red;">{{ error }}</span>
-                {% endfor %}
-              </td>
-              <td>&gt; {{ form.min_spanpairs( size=1, default=sample.filter_min_spanpairs ) }}</td>
-            </tr>
-            <tr class="fusion_filters">
-              <td><label class="control-label">Spanning reads</label>
-                {% for error in form.min_spanreads.errors %}
-                <span style="color: red;">{{ error }}</span>
-                {% endfor %}
-              </td>
-              <td>&gt; {{ form.min_spanreads( size=1, default=sample.filter_min_spanreads ) }}</td>
-            </tr>
-
-            <tr class="fusion_filters">
-              <td colspan=2>
-                <div class="multiselect">
-                  <div class="selectBox" onclick="showCheckboxes('fusionlists_checkboxes')">
-                    <select>
-                      <option>
-                        Fusion gene lists
-                      </option>
-                    </select>
-                    <div class="overSelect"></div>
-                  </div>
-                  <div id="fusionlists_checkboxes" class="checkboxes">
-                    {% for panel in genelists_assay %}
-                    {% if panel.type == 'fusionlist' %}
-                    {% set show=False %}
-                    {% if assay == 'solid' %}
-                    {% if sample_list.name == panel.name %}
-                    {% set show=True %}
-                    {% endif %}
-                    {% endif %}
-                    <label for={{panel.name}}>{{ form['fusionlist_' ~ panel.name](checked=show) }} {{panel.displayname}}
-                    </label>
-                    {% endif %}
-                    {% endfor %}
-                    <label for="FCknown">{{ form.fusionlist_FCknown(checked=False) }} FusionCatcher 'known'</label>
-                    <label for="mitelman">{{ form.fusionlist_mitelman(checked=False) }} Mitelman</label>
-                  </div>
-                </div>
-              </td>
-
-            </tr>
-
-
-            <tr class="fusion_filters">
-              <td colspan=2>
-                <div class="multiselect">
-                  <div class="selectBox" onclick="showCheckboxes('fusioncallers_checkboxes')">
-                    <select>
-                      <option>
-                        Fusion callers
-                      </option>
-                    </select>
-                    <div class="overSelect"></div>
-                  </div>
-                  <div id="fusioncallers_checkboxes" class="checkboxes">
-                    <label for="arriba">{{ form.fusioncaller_arriba(checked=False) }} Arriba</label>
-                    <label for="fusioncatcher">{{ form.fusioncaller_fusioncatcher(checked=False) }}
-                      FusionCatcher</label>
-                    <label for="starfusion">{{ form.fusioncaller_starfusion(checked=False) }} StarFusion</label>
-                  </div>
-                </div>
-              </td>
-            </tr>
-
-
-
-            <tr class="fusion_filters">
-              <td colspan=2>
-                <div class="multiselect">
-                  <div class="selectBox" onclick="showCheckboxes('fusioneffect_checkboxes')">
-                    <select>
-                      <option>
-                        Fusion effects
-                      </option>
-                    </select>
-                    <div class="overSelect"></div>
-                  </div>
-                  <div id="fusioneffect_checkboxes" class="checkboxes">
-                    <label for="inframe">{{ form.fusioneffect_inframe(checked=False) }} In-frame</label>
-                    <label for="outframe">{{ form.fusioneffect_outframe(checked=False) }} Out-of-frame</label>
-                  </div>
-                </div>
-              </td>
-            </tr>
-
-
             <tr>
               <td colspan=3>
                 <button class="btn btn-default" name="apply" value="apply" type="submit">Apply</button>

@@ -26,6 +26,7 @@ COPY requirements.txt ./
 RUN pip install --verbose --no-cache-dir --upgrade pip &&                 \
     pip install --verbose --no-cache-dir --requirement requirements.txt   
 
+COPY config/ ./config/
 COPY config.py wsgi.py ./
 COPY coyote/ ./coyote/
     

@@ -1,40 +1,44 @@
+from flask import current_app as app
 from collections import defaultdict
+import re
 
-def get_sample_filters_or_defaults(sample,group):
+def get_group_defaults(group):
     """
     Return Default dict (either group defaults or coyote defaults) and setting per sample
     """
-    sample_settings = {}
-    settings = {'warn_cov':500, 'error_cov':100, 'default_popfreq': 1.0, 'default_mindepth': 100, 'default_spanreads':2, 'default_spanpairs':0, 'default_min_freq':0.05, 'default_min_reads':10, 'default_max_freq':0.05, 'default_min_cnv_size':100,'default_max_cnv_size':100000000}    
+    settings = app.config["GROUP_FILTERS"]
     # Get group specific settings
     if group is not None:
-        settings['error_cov'] = int(group.get('error_cov', 500))
-        settings['warn_cov'] = int(group.get('warn_cov', 100))
-        settings['default_popfreq'] = float(group.get('default_popfreq', 1))
-        settings['default_mindepth'] = int(group.get('default_mindepth', 100))
-        settings['default_spanreads'] = int(group.get('default_spanreads', 2))
-        settings['default_spanpairs'] = int(group.get('default_spanpairs', 0))
-        settings['default_min_freq'] = float(group.get('default_min_freq', 0.05))
-        settings['default_min_reads'] = int(group.get('default_min_reads', 10))
-        settings['default_max_freq'] = float(group.get('default_max_freq', 0.05))
-        settings['default_min_cnv_size'] = int(group.get('default_min_cnv_size', 100))
-        settings['default_max_cnv_size'] = int(group.get('default_max_cnv_size', 1000000))
+        settings['error_cov']              = int(group.get('error_cov', settings["error_cov"]))
+        settings['warn_cov']               = int(group.get('warn_cov', settings["warn_cov"]))
+        settings['default_popfreq']        = float(group.get('default_popfreq', settings["default_popfreq"]))
+        settings['default_mindepth']       = int(group.get('default_mindepth', settings["default_mindepth"]))
+        settings['default_spanreads']      = int(group.get('default_spanreads', settings["default_spanreads"]))
+        settings['default_spanpairs']      = int(group.get('default_spanpairs', settings["default_spanpairs"]))
+        settings['default_min_freq']       = float(group.get('default_min_freq', settings["default_min_freq"]))
+        settings['default_min_reads']      = int(group.get('default_min_reads', settings["default_min_reads"]))
+        settings['default_max_freq']       = float(group.get('default_max_freq', settings["default_max_freq"]))
+        settings['default_min_cnv_size']   = int(group.get('default_min_cnv_size', settings["default_min_cnv_size"]))
+        settings['default_max_cnv_size']   = int(group.get('default_max_cnv_size', settings["default_max_cnv_size"]))
+        settings['default_checked_conseq'] = (group.get('default_checked_conseq', settings["default_checked_conseq"]))
+    return settings
 
-    # Get filter values or set to the defaults
-    # added validation to forms, old values in db are strings for all values. Need to make old '6.0' strings -> float -> int for integers. 
-    # These should never be true floats, 6.5 is not valid for reads
-    default_checked_conseq = { 'splicing': 1, 'stop_gained':1, 'frameshift':1, 'stop_lost':1, 'start_lost':1, 'inframe_indel': 1, 'missense':1, 'other_coding':1 }
+def get_sample_settings(sample,settings):
+    """
+    get sample settings or use default
+    """
+    sample_settings = {}
     sample_settings["min_freq"]            = float(sample.get("filter_min_freq", settings["default_min_freq"]))
     sample_settings["min_reads"]           = int(float(sample.get("filter_min_reads", settings["default_min_reads"])))
     sample_settings["max_freq"]            = float(sample.get("filter_max_freq", settings["default_max_freq"]))
     sample_settings["min_depth"]           = int(float(sample.get("filter_min_depth", settings["default_mindepth"])))
     sample_settings["max_popfreq"]         = float(sample.get("filter_max_popfreq", settings["default_popfreq"]))
-    sample_settings["csq_filter"]          = sample.get("checked_csq", default_checked_conseq)
+    sample_settings["csq_filter"]          = sample.get("checked_csq", settings["default_checked_conseq"])
     sample_settings["min_spanreads"]       = int(float(sample.get("filter_min_spanreads", settings["default_spanreads"])))
     sample_settings["min_spanpairs"]       = int(float(sample.get("filter_min_spanpairs", settings["default_spanpairs"])))
     sample_settings["min_cnv_size"]        = int(float(sample.get("min_cnv_size", settings["default_min_cnv_size"])))
     sample_settings["max_cnv_size"]        = int(float(sample.get("max_cnv_size", settings["default_max_cnv_size"])))
-    return sample_settings,settings
+    return sample_settings
 
 def get_assay_from_sample( smp ):
     if "exome_trio" in smp["groups"]:
@@ -683,3 +687,30 @@ def generate_ai_text( assay, variants, incl_genes, genelists, group ):
         conclusion = "\nFör ytterligare information om utförd analys och beskrivning av somatiskt förvärvade varianter, var god se bifogad rapport. "+accredited
             
     return text, conclusion
+
+def cnvtype_variant( cnvs, checked_effects ):
+    filtered_cnvs = []
+    for var in cnvs:
+        if var['ratio'] > 0:
+            effect = "AMP"
+        if var['ratio'] < 0:
+            effect = "DEL"
+        if effect in checked_effects:   
+            filtered_cnvs.append(var)
+    return filtered_cnvs
+
+
+def cnv_organizegenes( cnvs ):
+    fixed_cnvs_genes = []
+    for var in cnvs:
+        var['other_genes'] = []
+        for gene in var['genes']:
+            if 'class' in gene:
+                if 'panel_gene' in var:
+                    var['panel_gene'].append(gene['gene'])
+                else:
+                    var['panel_gene'] = [gene['gene']]
+            else:
+                var['other_genes'].append(gene['gene'])
+        fixed_cnvs_genes.append(var)
+    return fixed_cnvs_genes

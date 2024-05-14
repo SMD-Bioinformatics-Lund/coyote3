@@ -5,8 +5,12 @@ from coyote.db.users import UsersHandler
 from coyote.db.group import GroupsHandler
 from coyote.db.panels import PanelsHandler
 from coyote.db.variants import VariantsHandler
+from coyote.db.cnvs import CNVsHandler
+from coyote.db.translocs import TranslocsHandler
+from coyote.db.other import OtherHandler
 
-class MongoAdapter(SampleHandler,UsersHandler,GroupsHandler,PanelsHandler,VariantsHandler):
+
+class MongoAdapter(SampleHandler,UsersHandler,GroupsHandler,PanelsHandler,VariantsHandler,CNVsHandler,TranslocsHandler,OtherHandler):
     def __init__(self, client: pymongo.MongoClient = None):
         if client:
             self._setup_dbs(client)
@@ -32,4 +36,7 @@ class MongoAdapter(SampleHandler,UsersHandler,GroupsHandler,PanelsHandler,Varian
         self.variants_collection = self.coyote_db["variants_idref"]
         self.canonical_collection = self.coyote_db["refseq_canonical"]
         self.annotations_collection = self.coyote_db["annotation"]
+        self.cnvs_collection = self.coyote_db["cnvs_wgs"]
+        self.transloc_collection = self.coyote_db["transloc"]
+        self.biomarkers_collection = self.coyote_db["biomarkers"]
         
