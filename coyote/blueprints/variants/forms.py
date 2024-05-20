@@ -5,8 +5,8 @@ from wtforms.validators import InputRequired, NumberRange, Optional
 class FilterForm(FlaskForm):
     """Filter form"""
 
-    min_reads    = IntegerField('Min var reads', validators=[InputRequired(),NumberRange(min=0)])
-    min_depth    = IntegerField('Min depth', validators=[InputRequired(),NumberRange(min=0)])
+    min_reads    = IntegerField('minreads', validators=[InputRequired(),NumberRange(min=0)])
+    min_depth    = IntegerField('mindepth', validators=[InputRequired(),NumberRange(min=0)])
     min_freq     = FloatField('Min freq', validators=[InputRequired(),NumberRange(min=0,max=1)])
     max_freq     = FloatField('Max freq', validators=[InputRequired(),NumberRange(min=0,max=1)])
     max_popfreq  = FloatField('Population freq', validators=[InputRequired(),NumberRange(min=0,max=1)])

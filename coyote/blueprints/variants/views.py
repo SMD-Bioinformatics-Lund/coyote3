@@ -6,6 +6,7 @@ from flask import abort
 from flask import current_app as app
 from flask import redirect, render_template, request, url_for, send_from_directory
 from flask_login import current_user, login_required
+from pprint import pformat
 
 from coyote.blueprints.variants.forms import FilterForm
 from wtforms import BooleanField
@@ -13,6 +14,7 @@ from wtforms.validators import Optional
 from coyote.extensions import store
 from coyote.blueprints.variants import variants_bp
 from coyote.blueprints.variants.varqueries import build_query
+from coyote.blueprints.variants import varqueries_notbad
 from coyote.blueprints.variants import util
 from coyote.blueprints.variants import filters
 
@@ -95,7 +97,32 @@ def list_variants(id):
     ## SNV FILTRATION STARTS HERE ! ##
     ################################## 
     ## The query should really be constructed according to some configed rules for a specific assay
-    query = build_query( assay, {"id":str(sample["_id"]), "max_freq":sample_settings["max_freq"], "min_freq":sample_settings["min_freq"], "min_depth":sample_settings["min_depth"], "min_reads":sample_settings["min_reads"], "max_popfreq":sample_settings["max_popfreq"], "filter_conseq":filter_conseq} )
+    query = build_query(
+        assay,
+        {
+            "id": str(sample["_id"]),
+            "max_freq": sample_settings["max_freq"],
+            "min_freq": sample_settings["min_freq"],
+            "min_depth": sample_settings["min_depth"],
+            "min_reads": sample_settings["min_reads"],
+            "max_popfreq": sample_settings["max_popfreq"],
+            "filter_conseq": filter_conseq,
+        },
+    )
+    query2 = varqueries_notbad.build_query(
+        {
+            "id": str(sample["_id"]),
+            "max_freq": sample_settings["max_freq"],
+            "min_freq": sample_settings["min_freq"],
+            "min_depth": sample_settings["min_depth"],
+            "min_reads": sample_settings["min_reads"],
+            "max_popfreq": sample_settings["max_popfreq"],
+            "filter_conseq": filter_conseq,
+        },
+        group
+    )
+    app.logger.info("this is the old varquery: %s", pformat(query))
+    app.logger.info("this is the new varquery: %s", pformat(query2))
     variants_iter = store.get_case_variants( query )
     # Find all genes matching the query
     variants, genes = util.get_protein_coding_genes( variants_iter )

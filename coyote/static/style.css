@@ -916,3 +916,13 @@ a.menu_button_link {
     text-decoration: none;
 }
 
+.no-spin::-webkit-inner-spin-button,
+.no-spin::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.no-spin {
+    /* Firefox */
+    -moz-appearance: textfield;
+}

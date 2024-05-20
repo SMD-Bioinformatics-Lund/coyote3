@@ -599,7 +599,7 @@
 
   <div id=right_div>
     <div id=filter_div>
-      <form action="" method="POST" name="form">
+      <form action="" method="POST" name="form" class="no-spin">
         {{ form.hidden_tag() }}
         <table>
           <thead>
@@ -615,7 +615,7 @@
                 <span style="color: red;">{{ error }}</span>
                 {% endfor %}
               </td>
-              <td>&gt; {{ form.min_depth( size=1, default=sample.filter_min_depth ) }}</td>
+              <td>&gt; {{ form.min_depth( size=2, default=sample.filter_min_depth, class="no-spin" ) }}</td>
             </tr>
             <tr>
               <td><label class="control-label">Frequency</label>
@@ -631,7 +631,7 @@
                 <span style="color: red;">{{ error }}</span>
                 {% endfor %}
               </td>
-              <td>&gt; {{ form.min_reads( size=1, default=sample.filter_min_reads ) }}</td>
+              <td>&gt; {{ form.min_reads( size=1, default=sample.filter_min_reads, class="no-spin" ) }}</td>
             </tr>
             <tr {%if assay=="swea" %}style="display:none" {%endif%}>
               <td><label class="control-label">Control freq.</label>
@@ -725,7 +725,7 @@
               <span style="color: red;">{{ error }}</span>
               {% endfor %}
             </td>
-            <td>&lt; {{ form.max_cnv_size( size=7, default=sample.max_cnv_size ) }}</td>
+            <td>&lt; {{ form.max_cnv_size( size=7, default=sample.max_cnv_size, class="no-spin" ) }}</td>
           </tr>
           <tr>
             <td><label class="control-label">Min size</label>
@@ -733,7 +733,7 @@
               <span style="color: red;">{{ error }}</span>
               {% endfor %}
             </td>
-            <td>&gt; {{ form.min_cnv_size( size=7, default=sample.min_cnv_size ) }}</td>
+            <td>&gt; {{ form.min_cnv_size( size=7, default=sample.min_cnv_size, class="no-spin" ) }}</td>
           </tr>
           <tr class="fusion_filters">
             <td colspan=2>
