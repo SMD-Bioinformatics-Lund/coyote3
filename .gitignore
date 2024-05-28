@@ -136,3 +136,5 @@ dmypy.json
 config.git.hash
 /config/
 .dir-locals.el
+run_dev.py
+*.backup

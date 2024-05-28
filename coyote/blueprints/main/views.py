@@ -6,6 +6,7 @@ from flask import abort
 from flask import current_app as app
 from flask import redirect, render_template, request, url_for
 from flask_login import current_user
+import traceback
 
 # Legacy main-screen:
 from flask_login import login_required
@@ -83,3 +84,15 @@ def rna_screen(assay=None):
         return redirect(url_for("main_bp.rna_screen", assay="fusion"))
 
     return main_screen(assay)
+
+@main_bp.route("/errors/")
+def error_screen():
+    """
+    Error screen
+    """
+    # TODO Example Error Code, should be removed later /modified
+    try:
+        error = 1 / 0
+    except ZeroDivisionError as e:
+        error = traceback.format_exc()
+    return render_template('error.html', error=error)

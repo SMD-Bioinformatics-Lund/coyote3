@@ -341,7 +341,7 @@ body            { margin: 0em; background: #fff; font-family:Calibri; font-size:
 a               { color: #377BA8; }
 a:link#header_link { text-decoration: none; }
 span.title      { font-family: 'Georgia'; font-size: 65px; color: #0D507B; margin: 15px; font-weight:bold; position:relative; top:-18px; left:-10px; }
-.page           { margin: 0.0em auto; width: 96%; float:left; border-top: 1px solid #d2d2e2; border-bottom: 1px solid #d2d2e2; border-right: 1px solid #d2d2e2;
+.page           { margin: 0.0em auto; width: 95%; float:left; border-top: 1px solid #d2d2e2; border-bottom: 1px solid #d2d2e2; border-right: 1px solid #d2d2e2;
                   padding: 1.5em; padding-top:0.0em; background: #efeff7; }
 
 
@@ -815,7 +815,7 @@ div#login a:hover {
 }
 
 div#pageheader {
-    width: 100%;
+    width: 99%;
     float:left;
     background-color:#035;
     border-bottom: 3px solid #07a;
