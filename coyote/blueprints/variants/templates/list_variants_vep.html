@@ -295,8 +295,8 @@
             </tr>
           </thead>
 
-          {% for cnv in cnvwgs if (cnv.ratio < -0.3 or cnv.ratio> 0.3 ) and ( (cnv.size|abs < (sizefilter|int) and cnv.size|abs >
-              (sizefilter_min|int)) or cnv.ratio > 3 ) and ( cnv.panel_gene|intersect(dispgenes) or dispgenes|length ==
+          {% for cnv in cnvwgs if (cnv.ratio|float < -0.3 or cnv.ratio|float > 0.3 ) and ( (cnv.size|abs < (sizefilter|int) and cnv.size|abs >
+              (sizefilter_min|int)) or cnv.ratio|float > 3 ) and ( cnv.panel_gene|intersect(dispgenes) or dispgenes|length ==
               0 or assay == "tumwgs" ) %}
               <tr {% if cnv.interesting %}class=include{% elif cnv.ratio> 3 and cnv.size > (sizefilter|int)
                 %}class=includelargeamp{% endif %}>
@@ -370,7 +370,7 @@
               </tr>
             </thead>
 
-            {% for cnv in cnvwgs_n if (cnv.ratio < -0.4 or cnv.ratio > 0.4) and cnv.size < (sizefilter|int) and cnv.size>
+            {% for cnv in cnvwgs_n if (cnv.ratio|float < -0.4 or cnv.ratio|float > 0.4) and cnv.size < (sizefilter|int) and cnv.size>
                 (sizefilter_min|int) %}
                 <tr {% if cnv.interesting %}class=include{% endif %}>
                   {% set non_panel_genes = [0] %}

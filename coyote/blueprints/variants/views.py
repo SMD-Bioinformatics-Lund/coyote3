@@ -18,84 +18,88 @@ from coyote.blueprints.variants import varqueries_notbad
 from coyote.blueprints.variants import util
 from coyote.blueprints.variants import filters
 
-@variants_bp.route('/sample/<string:id>', methods=['GET', 'POST'])
+
+@variants_bp.route("/sample/<string:id>", methods=["GET", "POST"])
 @login_required
 def list_variants(id):
 
     # Find sample data by name
-    sample     = store.get_sample(id)
+    sample = store.get_sample(id)
     sample_ids = store.get_sample_ids(str(sample["_id"]))
-    smp_grp    = sample["groups"][0]
-    group      = app.config["GROUP_CONFIGS"].get( smp_grp )
-    settings   = util.get_group_defaults( group )
-    assay      = util.get_assay_from_sample( sample )
-    subpanel   = sample.get('subpanel')
+    smp_grp = sample["groups"][0]
+    group = app.config["GROUP_CONFIGS"].get(smp_grp)
+    settings = util.get_group_defaults(group)
+    assay = util.get_assay_from_sample(sample)
+    subpanel = sample.get("subpanel")
 
-    app.logger.info(app.config["GROUP_CONFIGS"]) # get group config from app config instead
+    app.logger.info(app.config["GROUP_CONFIGS"])  # get group config from app config instead
     app.logger.info(f"the sample has these groups {smp_grp}")
     app.logger.info(f"this is the group from collection {group}")
-    #group = store.get_sample_groups( sample["groups"][0] ) # this is the old way of getting group config from mongodb
+    # group = store.get_sample_groups( sample["groups"][0] ) # this is the old way of getting group config from mongodb
 
     ## GENEPANELS ##
     ## send over all defined gene panels per assay, to matching template ##
     gene_lists, genelists_assay = store.get_assay_panels(assay)
-    ## Default gene list. For samples with default_genelis_set=1 add a gene list to specific subtypes lunga, hjärna etc etc. Will fetch genelist from mongo collection. 
+    ## Default gene list. For samples with default_genelis_set=1 add a gene list to specific subtypes lunga, hjärna etc etc. Will fetch genelist from mongo collection.
     # this only for assays that should have a default gene list. Will always be added to sample if not explicitely removed from form
     if "default_genelist_set" in group:
         if "subpanel" in sample:
-            panel_genelist = store.get_panel( subpanel=sample['subpanel'], type='genelist')
+            panel_genelist = store.get_panel(subpanel=sample["subpanel"], type="genelist")
             if panel_genelist:
-                settings["default_checked_genelists"] = { "genelist_"+sample['subpanel']:1 }
+                settings["default_checked_genelists"] = {"genelist_" + sample["subpanel"]: 1}
+
     # Save new filter settings if submitted
     # Inherit FilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
     class GeneForm(FilterForm):
         pass
+
     for panel in genelists_assay:
-        if panel['type'] == 'genelist':
-            setattr(GeneForm, "genelist_"+panel['name'], BooleanField())
+        if panel["type"] == "genelist":
+            setattr(GeneForm, "genelist_" + panel["name"], BooleanField())
     form = GeneForm()
     ###########################################################################
 
     ## FORM FILTERS ##
     # Either reset sample to default filters or add the new filters from form.
-    if request.method == 'POST' and form.validate_on_submit():
+    if request.method == "POST" and form.validate_on_submit():
         # Reset filters to defaults
         if form.reset.data == True:
-            store.reset_sample_settings(id,settings)
+            store.reset_sample_settings(id, settings)
         # Change filters
         else:
-            store.update_sample_settings(id,form)
+            store.update_sample_settings(id, form)
         ## get sample again to recieve updated forms!
-        sample = store.get_sample(id) 
+        sample = store.get_sample(id)
     ############################################################################
-        
+
     # Check if sample has hidden comments
     has_hidden_comments = 0
-    if 'comments' in sample:
+    if "comments" in sample:
         for comm in sample["comments"]:
             if comm["hidden"] == 1:
-                has_hidden_comments = 1      
-  
+                has_hidden_comments = 1
+
     ## get sample settings
-    sample_settings         = util.get_sample_settings(sample,settings)
-    # sample filters, either set, or default 
-    cnv_effects             = sample.get("checked_cnveffects", settings["default_checked_cnveffects"])
-    genelist_filter         = sample.get("checked_genelists", settings["default_checked_genelists"])
-    filter_conseq           = util.get_filter_conseq_terms( sample_settings["csq_filter"].keys() )
-    filter_genes            = util.create_genelist( genelist_filter, gene_lists )
-    filter_cnveffects       = util.create_cnveffectlist( cnv_effects )
+    sample_settings = util.get_sample_settings(sample, settings)
+    print(sample)
+    # sample filters, either set, or default
+    cnv_effects = sample.get("checked_cnveffects", settings["default_checked_cnveffects"])
+    genelist_filter = sample.get("checked_genelists", settings["default_checked_genelists"])
+    filter_conseq = util.get_filter_conseq_terms(sample_settings["csq_filter"].keys())
+    filter_genes = util.create_genelist(genelist_filter, gene_lists)
+    filter_cnveffects = util.create_cnveffectlist(cnv_effects)
 
     # Add them to the form
-    form.min_freq.data      = sample_settings["min_freq"]
-    form.max_freq.data      = sample_settings["max_freq"]
-    form.min_depth.data     = sample_settings["min_depth"]
-    form.min_reads.data     = sample_settings["min_reads"]
-    form.max_popfreq.data   = sample_settings["max_popfreq"]
-    form.min_cnv_size.data  = sample_settings["min_cnv_size"]
-    form.max_cnv_size.data  = sample_settings["max_cnv_size"]
-   
+    form.min_freq.data = sample_settings["min_freq"]
+    form.max_freq.data = sample_settings["max_freq"]
+    form.min_depth.data = sample_settings["min_depth"]
+    form.min_reads.data = sample_settings["min_reads"]
+    form.max_popfreq.data = sample_settings["max_popfreq"]
+    form.min_cnv_size.data = sample_settings["min_cnv_size"]
+    form.max_cnv_size.data = sample_settings["max_cnv_size"]
+
     ## SNV FILTRATION STARTS HERE ! ##
-    ################################## 
+    ##################################
     ## The query should really be constructed according to some configed rules for a specific assay
     query = build_query(
         assay,
@@ -119,34 +123,41 @@ def list_variants(id):
             "max_popfreq": sample_settings["max_popfreq"],
             "filter_conseq": filter_conseq,
         },
-        group
+        group,
     )
     app.logger.info("this is the old varquery: %s", pformat(query))
     app.logger.info("this is the new varquery: %s", pformat(query2))
-    variants_iter = store.get_case_variants( query )
+    variants_iter = store.get_case_variants(query)
     # Find all genes matching the query
-    variants, genes = util.get_protein_coding_genes( variants_iter )
+    variants, genes = util.get_protein_coding_genes(variants_iter)
     # Add blacklist data, ADD ALL variants_iter via the store please...
-    #util.add_blacklist_data( variants, assay )
+    # util.add_blacklist_data( variants, assay )
     # Get canonical transcripts for the genes from database
-    canonical_dict = store.get_canonical( list(genes.keys()) )
+    canonical_dict = store.get_canonical(list(genes.keys()))
     # Select a VEP consequence for each variant
     for var_idx, var in enumerate(variants):
-        variants[var_idx]["INFO"]["selected_CSQ"], variants[var_idx]["INFO"]["selected_CSQ_criteria"] = util.select_csq( var["INFO"]["CSQ"], canonical_dict )
-        variants[var_idx]["global_annotations"], variants[var_idx]["classification"], variants[var_idx]["other_classification"], variants[var_idx]["annotations_interesting"] = store.get_global_annotations( variants[var_idx], assay, subpanel ) 
+        (
+            variants[var_idx]["INFO"]["selected_CSQ"],
+            variants[var_idx]["INFO"]["selected_CSQ_criteria"],
+        ) = util.select_csq(var["INFO"]["CSQ"], canonical_dict)
+        (
+            variants[var_idx]["global_annotations"],
+            variants[var_idx]["classification"],
+            variants[var_idx]["other_classification"],
+            variants[var_idx]["annotations_interesting"],
+        ) = store.get_global_annotations(variants[var_idx], assay, subpanel)
     # Filter by population frequency
-    variants = util.popfreq_filter( variants, float(sample_settings["max_popfreq"]) )
+    variants = util.popfreq_filter(variants, float(sample_settings["max_popfreq"]))
     variants = util.hotspot_variant(variants)
     ### SNV FILTRATION ENDS HERE ###
 
     # LOWCOV data, very computationally intense for samples with many regions
     low_cov = {}
-    #low_cov = app.config['COV_COLL'].find( { 'sample': id } )
+    # low_cov = app.config['COV_COLL'].find( { 'sample': id } )
     ## add cosmic to lowcov regions. Too many lowcov regions and this becomes very slow
     # this could maybe be something else than cosmic? config important regions?
-    #if assay != "solid":
+    # if assay != "solid":
     #    low_cov = cosmic_variants_in_regions( low_cov )
-
 
     ## GET CNVs TRANSLOCS and OTHER BIOMARKERS ##
     cnvwgs_iter = False
@@ -157,28 +168,32 @@ def list_variants(id):
         if group["DNA"]["CNV"]:
             cnvwgs_iter = list(store.get_sample_cnvs(sample_id=str(sample["_id"])))
             if filter_cnveffects:
-                cnvwgs_iter = util.cnvtype_variant(cnvwgs_iter, filter_cnveffects )
-            cnvwgs_iter = util.cnv_organizegenes( cnvwgs_iter )
-            cnvwgs_iter_n = list(store.get_sample_cnvs(sample_id=str(sample["_id"]),normal=True))
+                cnvwgs_iter = util.cnvtype_variant(cnvwgs_iter, filter_cnveffects)
+            cnvwgs_iter = util.cnv_organizegenes(cnvwgs_iter)
+            cnvwgs_iter_n = list(store.get_sample_cnvs(sample_id=str(sample["_id"]), normal=True))
         if group["DNA"]["OTHER"]:
-            biomarkers_iter = store.get_sample_other( sample_id=str(sample["_id"] ))
+            biomarkers_iter = store.get_sample_other(sample_id=str(sample["_id"]))
         if group["DNA"]["FUSIONS"]:
-            transloc_iter = store.get_sample_translocations( sample_id=str(sample["_id"] ))
+            transloc_iter = store.get_sample_translocations(sample_id=str(sample["_id"]))
     #################################################
 
     ## "AI"-text depending on what analysis has been done. Add translocs and cnvs if marked as interesting (HRD and MSI?)
     ## SNVs, non-optional. Though only has rules for PARP + myeloid and solid
     ai_text = ""
     conclusion = ""
-    #ai_text, conclusion = util.generate_ai_text( assay, variants, filter_genes, genelist_filter, sample["groups"][0] )
+    # ai_text, conclusion = util.generate_ai_text( assay, variants, filter_genes, genelist_filter, sample["groups"][0] )
     ## translocations (DNA fusions) and copy number variation. Works for solid so far, should work for myeloid, lymphoid
-    if (assay == "solid" ):
-        transloc_iter_ai   = store.get_sample_translocations( sample_id=str(sample["_id"] ))
-        biomarkers_iter_ai = store.get_sample_other( sample_id=str(sample["_id"] ))
-        ai_text_transloc   = util.generate_ai_text_nonsnv( assay, transloc_iter_ai, sample["groups"][0], "transloc" )
-        ai_text_cnv        = util.generate_ai_text_nonsnv( assay, cnvwgs_iter, sample["groups"][0], "cnv" )
-        ai_text_bio        = util.generate_ai_text_nonsnv( assay, biomarkers_iter_ai, sample["groups"][0], "bio" )
-        ai_text            = ai_text+ai_text_transloc+ai_text_cnv+ai_text_bio+conclusion
+    if assay == "solid":
+        transloc_iter_ai = store.get_sample_translocations(sample_id=str(sample["_id"]))
+        biomarkers_iter_ai = store.get_sample_other(sample_id=str(sample["_id"]))
+        ai_text_transloc = util.generate_ai_text_nonsnv(
+            assay, transloc_iter_ai, sample["groups"][0], "transloc"
+        )
+        ai_text_cnv = util.generate_ai_text_nonsnv(assay, cnvwgs_iter, sample["groups"][0], "cnv")
+        ai_text_bio = util.generate_ai_text_nonsnv(
+            assay, biomarkers_iter_ai, sample["groups"][0], "bio"
+        )
+        ai_text = ai_text + ai_text_transloc + ai_text_cnv + ai_text_bio + conclusion
     else:
         ai_text = ai_text + conclusion
 
@@ -189,8 +204,8 @@ def list_variants(id):
             disp_pos = group["verif_samples"][sample["name"]]
     # this is to allow old samples to view plots, cnv + cnvprofile clash. Old assays used cnv as the entry for the plot, newer assays use cnv for path to cnv-file that was loaded.
     if "cnv" in sample:
-        if sample["cnv"].lower().endswith(('.png', '.jpg', '.jpeg')):
-            sample["cnvprofile"] = sample["cnv"]                                      
+        if sample["cnv"].lower().endswith((".png", ".jpg", ".jpeg")):
+            sample["cnvprofile"] = sample["cnv"]
 
     return render_template(
         "list_variants_vep.html",
@@ -216,11 +231,11 @@ def list_variants(id):
     )
 
 
-@app.route('/plot/<string:fn>/<string:assay>/<string:build>')
-def show_any_plot(fn,assay,build):
+@app.route("/plot/<string:fn>/<string:assay>/<string:build>")
+def show_any_plot(fn, assay, build):
     if assay == "myeloid":
         if build == "38":
-            return send_from_directory("/access/myeloid38/plots", fn)        
+            return send_from_directory("/access/myeloid38/plots", fn)
         else:
             return send_from_directory("/access/myeloid/plots", fn)
     elif assay == "lymphoid":
@@ -231,9 +246,9 @@ def show_any_plot(fn,assay,build):
         return send_from_directory("/access/tumwgs/cov", fn)
     elif assay == "solid":
         return send_from_directory("/access/solid_hg38/plots", fn)
-    
 
-@app.route('/sample/sample_comment/<string:id>', methods=['POST'])
+
+@app.route("/sample/sample_comment/<string:id>", methods=["POST"])
 @login_required
 def add_sample_comment(id):
     """
@@ -242,4 +257,140 @@ def add_sample_comment(id):
     # app.config['SAMPLES_COLL'].update(
     #     { '_id': ObjectId(id) },
     #     { "$push": { 'comments': { '_id':ObjectId(), 'hidden':0, 'text':request.form['sample_comment'], 'author':current_user.get_id(), 'time_created':datetime.now() }}} )
-    return redirect(url_for('list_variants', id=id))
+    return redirect(url_for("list_variants", id=id))
+
+
+# TODO CHECK AGAIN AND MODIFY THE CODE AS PER THE REQUIREMENT
+@app.route("/var/<string:id>")
+@login_required
+def show_variant(id):
+
+    variant = store.get_variant(id)
+    in_other = store.get_variant_in_other_samples(variant)
+    sample = store.get_sample_with_id(variant["SAMPLE_ID"])
+
+    assay = util.get_assay_from_sample(sample)
+    subpanel = sample.get("subpanel")
+
+    cosm_ids = {}
+    rs_ids = {}
+    genes = {}
+    transcripts = {}
+
+    # Parse variation IDs and get all gene names
+    for csq in variant["INFO"]["CSQ"]:
+        ev_ids = csq["Existing_variation"].split("&")
+        for ev_id in ev_ids:
+            if ev_id.startswith("COSM"):
+                cosm_ids[ev_id] = 1
+            if ev_id.startswith("rs"):
+                rs_ids[ev_id] = 1
+
+        if csq["BIOTYPE"] == "protein_coding":
+            genes[csq["SYMBOL"]] = 1
+            transcripts[csq["Feature"]] = 1
+
+    variant["INFO"]["rs_ids"] = rs_ids.keys()
+    variant["INFO"]["cosm_ids"] = cosm_ids.keys()
+
+    # Check if variant has hidden comments
+    has_hidden_comments = 0
+    if "comments" in variant:
+        for comm in variant["comments"]:
+            if comm["hidden"] == 1:
+                has_hidden_comments = 1
+
+    expression = store.get_expression_data(list(transcripts.keys()))
+
+    variant = store.add_blacklist_data([variant], assay)
+
+    # Get canonical transcripts for all genes annotated for the variant
+    canonical_dict = store.get_canonical(list(genes.keys()))
+
+    # Select a transcript
+    (variant["INFO"]["selected_CSQ"], variant["INFO"]["selected_CSQ_criteria"]) = util.select_csq(
+        variant["INFO"]["CSQ"], canonical_dict
+    )
+
+    # Find civic data
+    hgvsc_str = variant["INFO"]["selected_CSQ"]["HGVSc"]
+
+    variant_desc = "NOTHING_IN_HERE"
+    if (
+        variant["INFO"]["selected_CSQ"]["SYMBOL"] == "CALR"
+        and variant["INFO"]["selected_CSQ"]["EXON"] == "9/9"
+        and "frameshift_variant" in variant["INFO"]["selected_CSQ"]["Consequence"]
+    ):
+        variant_desc = "EXON 9 FRAMESHIFT"
+    if (
+        variant["INFO"]["selected_CSQ"]["SYMBOL"] == "FLT3"
+        and "SVLEN" in variant["INFO"]
+        and variant["INFO"]["SVLEN"] > 10
+    ):
+        variant_desc = "ITD"
+
+    civic = store.get_civic_data(variant, variant_desc)
+
+    civic_gene = store.get_civic_gene(variant["INFO"]["selected_CSQ"]["SYMBOL"])
+
+    # Find OncoKB data
+    oncokb_hgvsp = []
+    if len(variant["INFO"]["selected_CSQ"]["HGVSp"]) > 0:
+        hgvsp = filters.one_letter_p(variant["INFO"]["selected_CSQ"]["HGVSp"]).split(":")[1]
+        hgvsp = hgvsp.replace("p.", "")
+        oncokb_hgvsp.append(hgvsp)
+
+    if variant["INFO"]["selected_CSQ"]["Consequence"] in [
+        "frameshift_variant",
+        "stop_gained",
+        "frameshift_deletion",
+        "frameshift_insertion",
+    ]:
+        oncokb_hgvsp.append("Truncating Mutations")
+
+    oncokb = store.get_oncokb_anno(variant, oncokb_hgvsp)
+    oncokb_action = store.get_oncokb_action(variant, oncokb_hgvsp)
+    oncokb_gene = store.get_oncokb_gene(variant["INFO"]["selected_CSQ"]["SYMBOL"])
+
+    # Find BRCA-exchange data
+    brca_exchange = store.get_brca_exchange_data(variant, assay)
+
+    # Find IARC TP53 data
+    iarc_tp53 = store.find_iarc_tp53(variant)
+
+    # Get bams
+    sample_ids = store.get_sample_ids(str(sample["_id"]))
+    bam_id = store.get_bams(sample_ids)
+
+    # Format PON (panel of normals) data
+    pon = util.format_pon(variant)
+
+    # Get global annotations for the variant
+    annotations, classification, other_classifications, annotations_interesting = (
+        store.get_global_annotations(variant, assay, subpanel)
+    )
+
+    return render_template(
+        "show_variant_vep.html",
+        variant=variant,
+        in_other=in_other,
+        annotations=annotations,
+        hidden_comments=has_hidden_comments,
+        classification=classification,
+        expression=expression,
+        civic=civic,
+        civic_gene=civic_gene,
+        oncokb=oncokb,
+        oncokb_action=oncokb_action,
+        oncokb_gene=oncokb_gene,
+        sample=sample,
+        brca_exchange=brca_exchange,
+        iarc_tp53=iarc_tp53,
+        assay=assay,
+        pon=pon,
+        other_classifications=other_classifications,
+        subpanel=subpanel,
+        sample_ids=sample_ids,
+        bam_id=bam_id,
+        annotations_interesting=annotations_interesting,
+    )

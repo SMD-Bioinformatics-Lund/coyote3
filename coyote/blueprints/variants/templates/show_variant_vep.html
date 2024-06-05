@@ -1,0 +1,813 @@
+{% extends "layout.html" %}
+
+{% block body %}
+{% set type = variant.INFO.TYPE %}
+Variant in sample <a href="{{ url_for('variants_bp.list_variants', id=sample.name ) }}">{{ sample.name }}</a> Type:{{subpanel}}<p>
+<div id="var_main">
+  
+  <div id="var_info">  
+
+    {% set sel_csq = variant.INFO.selected_CSQ %}
+    <span class="table_header">Variant annotation</span>    
+    <table class="variant">
+      <thead><tr><th>Key</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Gene:</td><td><a href="/coyote/gene_simple/{{ sel_csq.SYMBOL }}">{{ sel_csq.SYMBOL }}</a></td></tr>
+  <tr><td>Variant class:</td><td>{{ sel_csq.VARIANT_CLASS }}</td></tr>
+  {% if type == "DEL" or type == "DUP" %}
+  <tr><td>Size:</td><td>{{ variant.INFO.END-variant.POS }} bp</td></tr>
+  <tr><td>Region:</td><td>{{variant.CHROM}}:{{ variant.POS }}-{{ variant.INFO.END }}</td></tr>
+  {% endif %}
+        <tr><td>Canonical transcript:</td><td>{{ sel_csq.Feature }}</td></tr>
+    <tr><td>Protein change:</td><td>{{ sel_csq.HGVSp|no_transid|unesc|ellipsify(35)|safe }}<br>{{ sel_csq.HGVSp|no_transid|one_letter_p|unesc|ellipsify(35)|safe }}</td></tr>
+  {% set c_hgvs = sel_csq.HGVSc.split(':') %}
+        <tr><td>CDS change:</td><td>{{ c_hgvs[1]|ellipsify(35)|safe }}</td></tr>
+
+  {% set indel_size = variant.ALT|length - variant.REF|length %}
+  {% if indel_size != 0 %}
+        <tr><td>Indel size:</td><td>{{ indel_size }} bp {% if indel_size < 0 %}DEL{% else %}INS{% endif %}</td></tr>
+        {% endif %}
+
+    <tr><td>Consequence:</td><td>{{ sel_csq.Consequence|multirow|safe }}</td></tr>
+
+  {% if sel_csq.EXON|length > 0 %}
+  <tr><td>Exon number:</td><td>{{ sel_csq.EXON }}</td></tr>
+  {% endif %}
+    
+  {% if sel_csq.INTRON|length > 0 %}
+  <tr><td>Intron number:</td><td>{{ sel_csq.INTRON }}</td></tr>
+  {% endif %}
+
+  {% set genomic_change =  variant.CHROM ~ ":" ~ variant.POS ~ ", " ~  variant.REF ~ " / " ~ variant.ALT %}
+        <tr><td>Genomic change:</td><td>{{ genomic_change|ellipsify(35)|safe }}</td></tr>
+    
+  <tr><td>CADD PHRED:</td><td>{{ sel_csq.CADD_PHRED }}</td></tr>
+  <tr><td>SIFT:</td><td>{{ sel_csq.SIFT }}</td></tr>
+  <tr><td>Polyphen:</td><td>{{ sel_csq.PolyPhen }}</td></tr>
+    
+  <tr>
+    <td>dbSNP:</td>
+    <td>
+    {% for rs_id in variant.INFO.rs_ids %}
+      {% set rs_num = rs_id.split("s") %}
+        <a target="_blank" href="https://www.ncbi.nlm.nih.gov/projects/SNP/snp_ref.cgi?rs={{ rs_num[1]}}">{{ rs_id }}</a>
+    {% endfor %}
+    </td>
+  </tr>
+
+  <tr>
+    <td>COSMIC:</td>
+    <td>
+    {% if variant.INFO.cosm_ids|length > 0 %}
+        {% for cosm_id in variant.INFO.cosm_ids %}
+        {% set cosm_num = cosm_id.split("M") %}
+        <a target="_blank" href="https://cancer.sanger.ac.uk/cosmic/mutation/overview?genome=37&id={{ cosm_num[1]}}">{{ cosm_id }}</a><br>
+      {% endfor %}
+    {% elif sel_csq.COSMIC %}
+      {% set cosm_ids = sel_csq.COSMIC.split("&") %}
+        {% for cosm_id in cosm_ids|array_uniq %}
+        <a target="_blank" href="https://cancer.sanger.ac.uk/cosmic/search?q={{ cosm_id }}">{{ cosm_id }}</a><br>
+      {% endfor %}
+          {% else %}
+          {% endif %}
+        
+    </td>
+  </tr> 
+
+  <tr><td>ClinVar:</td><td>{{ sel_csq.CLIN_SIG|multirow|safe }}</td></tr>
+
+  <tr>
+    <td>cBioPortal</td>
+    <td><a target="_blank" href="http://www.cbioportal.org/ln?q={{sel_csq.SYMBOL}}">{{sel_csq.SYMBOL}}</a>
+  </tr>
+
+  <tr>
+    <td>OncoKB</td>
+    <td><a target="_blank" href="http://oncokb.org/#/gene/{{sel_csq.SYMBOL}}">{{sel_csq.SYMBOL}}</a></td>
+  </tr>
+
+  {% if sel_csq.SYMBOL == "TP53" %}
+  <tr>
+    <td>Seshat</td>
+    <td><a target="_blank" href="http://vps338341.ovh.net/search?mutation={{ sel_csq.HGVSp|no_transid|one_letter_p|unesc|ellipsify(35)|safe }}&sampleid=">{{sel_csq.SYMBOL}}</a></td>
+  </tr>
+        {% endif %}
+  <tr>
+    <td>LitVar:</td>
+    <td>
+    {% for rs_id in variant.INFO.rs_ids %}
+        <a target="_blank" href="https://www.ncbi.nlm.nih.gov/CBBresearch/Lu/Demo/LitVar/#!?query={{ rs_id }} ">{{ rs_id }}</a>
+    {% endfor %}
+    </td>
+  </tr>
+  {% if type == "DEL" or type == "DUP" %}
+  <tr>
+    <td>DECIPHER:</td>
+    <td>
+        <a target="_blank" href="https://decipher.sanger.ac.uk/browser#q/{{variant.CHROM}}:{{variant.POS}}-{{variant.INFO.END}}%20/location/{{variant.CHROM}}:{{variant.POS}}-{{variant.INFO.END}}">link</a>
+    </td>
+  </tr>
+  {% endif %}
+  <tr>
+    <td>Alamut:</td>
+    <td>
+    {% for rs_id in variant.INFO.rs_ids %}
+        <a target="_blank" href="http://localhost:10000/show?request={{variant.CHROM}}:{{variant.POS}}{{variant.REF}}&gt;{{variant.ALT}}">open</a>
+    {% endfor %}
+    </td>
+
+  </tr>
+  {% set subfolder = {'dir': "None"} %}
+  {% for sample_id,bam_path in bam_id.items() %}
+    
+  <tr>
+    <td>
+      IGV({{sample_id}}):
+    </td>
+    <td> 
+      {% for path in bam_path %}
+      {% set list1 = path.split('/') %}
+      {% if subfolder.update( { 'dir': list1[0] } ) %} {% endif %}
+      <a href="http://localhost:60151/load?file=/R:{{path}}&locus={{variant.CHROM}}:{{variant.POS}}">{{list1[0]}}</a>
+      {% endfor %}
+    </td>
+  </tr>
+  {% endfor %}
+  {% if assay == "tumwgs" or assay == "fusion" %}
+  {% else %}
+  <tr>
+    <td>
+      Design-BED
+    </td>
+    <td>
+      {% if subfolder.dir != "None" %}
+      <a href="http://localhost:60151/load?file=/R:{{subfolder.dir}}/BED/design.bed">open</a>
+      {% endif %}
+    </td>
+  </tr>
+  {% endif %}
+      </tbody>
+    </table>
+
+  {% if current_user.get_role() != "readonly" %}
+  <div id="var_actions">
+    {% if variant.blacklist is defined and variant.override_blacklist != true %}
+      <form action="{#{ url_for('override_blacklist', id=variant._id) }#}" method="post">
+        <input class='inv' type="submit" name="override_blacklist" value="Override blacklist">
+      </form>    
+    {% endif %}
+    
+    {% if variant.fp == true %}
+      <form action="{# TODO {{ url_for('unmark_false_variant', id=variant._id) }} TODO #}" method="post">
+        <input class='inv' type="submit" name="mark_fp" value="Unmark false positive">
+      </form>    
+    {% else %}
+      <form action="{# TODO {{ url_for('mark_false_variant', id=variant._id) }} TODO #}" method="post">
+        <input type="submit" name="mark_fp" value="Mark as false positive">
+      </form>
+    {% endif %}
+
+
+    {% if variant.interesting == true %}
+      <form action="{# TODO {{ url_for('unmark_interesting_variant', id=variant._id) }} TODO #}" method="post">
+        <input class='inv' type="submit" name="mark_int" value="Unmark interesting">
+      </form>
+    {% else %}
+      <form action="{# TODO {{ url_for('mark_interesting_variant', id=variant._id) }} TODO #}" method="post">
+        <input type="submit" name="mark_int" value="Mark as interesting">
+      </form>      
+    {% endif %}
+
+    {% if variant.irrelevant == true %}
+      <form action="{# TODO {{ url_for('unmark_irrelevant_variant', id=variant._id) }} TODO #}" method="post">
+        <input class='inv' type="submit" name="mark_irr" value="Unmark irrelevant">
+      </form>
+    {% else %}
+      <form action="{# TODO {{ url_for('mark_irrelevant_variant', id=variant._id) }} TODO #}" method="post">
+        <input type="submit" name="mark_irr" value="Mark as irrelevant">
+      </form>      
+    {% endif %}
+
+    {% if variant.blacklist != true %}
+      <form action="{# TODO {{ url_for('add_variant_to_blacklist', id=variant._id) }} TODO #}" method="post">
+        <input type="submit" name="blacklist" value="Add variant to blacklist"  onclick="return confirm('This permanently adds the variant to the blacklist, affecting all samples of this type. Do this only if you are certain it is a recurring false positive. Proceed?')" >
+      </form>
+    {% endif %}
+
+    {% if assay=="swea" %}
+      <form action="{# TODO {{ url_for('order_sanger', id=variant._id) }} TODO #}" method="post">
+        <input type="submit" name="sanger" value="Request sanger">
+      </form>      
+    {% endif %} 
+  </div>  
+  {% endif %}
+
+    
+  </div>
+  <div id="var_moreinfo">
+    <span class="table_header">Variant data for all transcripts {% if assay=="swea" or assay == "gmsonco" %}<a href="javascript:void(0)" onclick="switchVisibility_noncanonicaltranscripts('noncanonical_transcript')">Show/hide</a>{% endif %}</span>
+    <table class="variant" id="transcript_info">
+      <thead><tr><th>Gene</th><th>Transcript</th><th>Exon</th><th>Prot change</th><th>CDS change</th></tr></thead>
+      <tbody>
+        {% for csq in variant.INFO.CSQ %}
+    {% if csq.BIOTYPE == "protein_coding" and (csq.HGVSp|length > 0 or csq.HGVSc|length > 0)  %}
+      {% set p_dat = csq.HGVSp.split(':') %}
+      {% set c_dat = csq.HGVSc.split(':') %}
+      {% if csq.Feature == sel_csq.Feature  %}
+  <tr class="canonical_transcript">
+      {% else %}
+        <tr {% if assay=="swea" or assay=="gmsonco" %}class="noncanonical_transcript collapsed"{% endif %}>
+      {% endif %}
+    <td>
+      {{ csq.SYMBOL }}
+    </td>
+    <td>
+      {{ csq.Feature }}
+    </td>
+    <td>
+      {{ csq.EXON }}
+    </td>
+    <td>
+      {{ p_dat[1]|unesc|ellipsify(20)|safe }}
+    </td>
+    <td>
+      {{ c_dat[1]|unesc|ellipsify(20)|safe }}
+    </td>
+    <!--td>
+      {#% if csq.Feature in expression %#}
+      {#% set max_key = expression[csq.Feature]|max_key %#}
+      {#{ max_key }} - {{ expression[csq.Feature][max_key]|round(1) }#}
+      {#% endif %#}
+    </td-->    
+  </tr>
+
+    {% endif %}  
+        {% endfor %}
+      </tbody>
+    </table>
+
+  {% if "MELT" in variant.INFO.variant_callers %}
+    <span class="table_header">MELT-specific annotations</span>
+    <table class="variant", id="sample_info">
+      <thead><tr><th>Type</th><th>Annotation</th></tr></thead>
+      <tbody>
+      {% if "custom" in variant.INFO %}
+      {% set melt_anno = variant.INFO.custom.split(",") %}
+      {% for ma in melt_anno %}
+        {% set keyval = ma.split("|") %}
+        <tr>
+        <td>{{keyval[0]}}</td><td>{{keyval[1]}}</td>
+        </tr>
+      {% endfor %}
+    {% endif %}
+      </tbody>
+    </table>
+  {% endif %}
+
+    <span class="table_header">Sample-specific data</span>
+    <table class="variant", id="sample_info">
+      <thead><tr><th>Sample</th><th>Sample type</th><th>Variant freq.</th><th>UMI families</th></tr></thead>
+      <tbody>
+        {% for gt in variant.GT %}  
+        <tr><td>{{ gt.sample}}</td><td> {{ gt.type }} </td><td>{{'%0.1f'| format(100*gt.AF|float) }}% ({{ gt.VD|int }} / {{ gt.DP|int }})</td>
+    <td>{% if "UMI" in gt %}{{gt.UMI|format_umi|safe}}{% else %}N/A{% endif %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    
+
+    
+    <span class="table_header">Population frequencies</span>    
+    <table class="variant" id="population_info">
+      <thead><tr><th>Database</th><th>Population frequency</th></tr></thead>
+      <tbody>
+  <tr><td>gnomAD exomes</td><td>{{ sel_csq.gnomAD_AF|format_gnomad }}</td></tr>
+        {% if sel_csq.gnomADg_AF %}
+  <tr><td>gnomAD genomes</td><td>{{ sel_csq.gnomADg_AF|format_gnomad }}</td></tr>
+  {% endif %}
+  {% if sel_csq.gnomAD_AF %}
+    <tr><td>gnomAD European</td><td>{{ sel_csq.gnomAD_NFE_AF|format_gnomad }}</td></tr>
+    <tr><td>gnomAD Finnish</td><td>{{ sel_csq.gnomAD_FIN_AF|format_gnomad }}</td></tr>
+    <tr><td>gnomAD African</td><td>{{ sel_csq.gnomAD_AFR_AF|format_gnomad }}</td></tr>
+    <tr><td>gnomAD Latino</td><td>{{ sel_csq.gnomAD_AMR_AF|format_gnomad }}</td></tr>
+    <tr><td>gnomAD African</td><td>{{ sel_csq.gnomAD_AFR_AF|format_gnomad }}</td></tr>
+    <tr><td>gnomAD East Asian</td><td>{{ sel_csq.gnomAD_EAS_AF|format_gnomad }}</td></tr>
+    <tr><td>gnomAD South Asian</td><td>{{ sel_csq.gnomAD_SAS_AF|format_gnomad }}</td></tr>
+    <tr><td>gnomAD Ashkenazi Jewish</td><td>{{ sel_csq.gnomAD_ASJ_AF|format_gnomad }}</td></tr>
+    
+    {% elif sel_csq.ExAC_MAF %}
+        <tr>
+    <td>ExAC all</td>
+    <td>
+      {#{ sel_csq.ExAC_MAF|multirow|safe }#}
+      {{ sel_csq.ExAC_MAF|format_pop_freq(variant.ALT)|safe }}
+    </td>
+  </tr>
+  <tr>
+
+    <td>
+      {#{ sel_csq.ExAC_NFE_MAF|multirow|safe }#}
+      {{ sel_csq.ExAC_NFE_MAF|format_pop_freq(variant.ALT)|safe }}
+    </td>
+  </tr>
+  <tr>
+    <td>ExAC Finnish</td>
+    <td>
+      {#{ sel_csq.ExAC_FIN_MAF|multirow|safe }#}
+      {{ sel_csq.ExAC_FIN_MAF|format_pop_freq(variant.ALT)|safe }}
+    </td>
+  </tr>
+  <tr>
+    <td>ExAC African</td>
+    <td>
+      {#{ sel_csq.ExAC_AFR_MAF|multirow|safe }#}
+      {{ sel_csq.ExAC_AFR_MAF|format_pop_freq(variant.ALT)|safe }}
+    </td>
+  </tr>
+  <tr>
+    <td>ExAC Latino</td>
+    <td>
+      {#{ sel_csq.ExAC_AMR_MAF|multirow|safe }#}
+      {{ sel_csq.ExAC_AMR_MAF|format_pop_freq(variant.ALT)|safe }}      
+    </td>
+  </tr>
+  <tr>
+    <td>ExAC East Asian</td>
+    <td>
+      {#{ sel_csq.ExAC_EAS_MAF|multirow|safe }#}
+      {{ sel_csq.ExAC_EAS_MAF|format_pop_freq(variant.ALT)|safe }}      
+    </td>
+  </tr>
+  <tr>
+    <td>ExAC South Asian</td>
+    <td>
+      {#{ sel_csq.ExAC_SAS_MAF|multirow|safe }#}
+      {{ sel_csq.ExAC_SAS_MAF|format_pop_freq(variant.ALT)|safe }}      
+    </td>
+  </tr>   
+  {% endif %}
+        <tr><td>1000 G</td><td>{{ sel_csq.AF|format_gnomad }}{{ sel_csq.GMAF|format_pop_freq(variant.ALT)}}</td></tr>
+
+  {% if "swegenAF" in variant.INFO %}
+  <tr>
+    <td>SweGen <img src="{{ url_for('static', filename='sweflag.png') }}"></td>
+    <td>
+        {{ variant.INFO.swegenAF|three_dec }}%
+    </td>
+  </tr>
+  {% endif %}
+    
+      </tbody>
+    </table>
+
+
+    {% if in_other|length > 0 %}
+    <span class="table_header">Variant in other samples</span>    
+    <table class="variant" id="other_samples">
+      <thead><tr><th>Sample</th><th>Comments</th><th>Marked</th></tr></thead>
+      <tbody>
+    
+  {% for other in in_other %}
+        <tr>
+    <td><a href="{{ url_for('show_variant', id=other._id) }}">{{other.sample_name}}</a></td>
+    <td>{{other.comments|length}}</td>
+    <td>
+      {% if other.fp == True %}
+        <img width=16 title="Marked as false positive" src="{{ url_for('static', filename='redcross.png') }}">
+      {% endif %}
+      {% if other.interesting == True %}
+        <img width=16 title="Marked as interesting" src="{{ url_for('static', filename='interesting.png') }}">
+      {% endif %}
+      {% if other.irrelevant == True %}
+        <img width=16 title="Marked as irrelevant" src="{{ url_for('static', filename='irrelevant.png') }}">
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+    
+      </tbody>
+    </table>
+    {% endif %}
+
+    {% if pon is not none and pon|length > 0 %}
+    <span class="table_header">Panel of normals</span>
+    <table class="variant" id="pon_data">
+      <thead><tr><th>Variant caller</th><th># detected</th><th>Variant frequencies</th></tr></thead>
+      <tbody>
+  {% for vc in pon %}
+  <tr>
+    <td>{{vc}}</td>
+    <td>{{pon[vc].NUM}}</td>
+    <td>{% for vaf in (pon[vc].VAFS|string).split(",") %}<span class="ponfreq">{{'%0.1f'| format(100*vaf|float) }}%</span> {% endfor %} </td>
+  </tr>
+  {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    
+    
+  </div>
+
+
+  <div id="var_comments">
+    <span class="table_header">Variant classification</span><br>
+    <div id="classification">
+    
+      {#% if classification.class != 999 %#}
+  <div class="class_desc" id="desc{{ classification.class }}">
+    {% if classification.class == 1 %}
+      Variant with strong clinical significance
+    {% elif classification.class == 2 %}
+      Variant with potential clinical significance
+    {% elif classification.class == 3 %}
+      Variant of unknown clinical significance
+    {% elif classification.class == 4 %}
+    Variant deemed benign or likely benign
+    {% elif classification.class == 999 %}
+    The variant has not been classified
+    {% endif %}
+  </div>
+      {#% endif %#}
+    
+      {% if current_user.get_role() != "readonly" %}
+      <form id="form" action="{# TODO {{ url_for('classify_variant', id=variant._id) }} TODO #}" method="post" class="class_form" >
+
+    <input type="hidden" name="assay" value="{{ assay }}">
+    <input type="hidden" name="subpanel" value="{{ subpanel }}">
+  {% if sel_csq.HGVSc is defined %}
+  <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">
+        <input type="hidden" name="transcript" value="{{ sel_csq.Feature }}">
+        <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|no_transid }}">
+        <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|no_transid }}">
+        {% endif %}
+        <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
+  <div class="class_label">Tier:</div>
+    
+  <button id="tier1" class="tier {% if classification.class == 999 %}a{% elif classification.class == 1 %}selected_tier{% else %}unselected_tier{% endif %}" title="Variants with strong clinical significance" type="submit" name="tier1">I</button>
+  <button id="tier2" class="tier {% if classification.class == 999 %}a{% elif classification.class == 2 %}selected_tier{% else %}unselected_tier{% endif %}" title="Variants with potential clinical significance" type="submit" name="tier2">II</button>
+  <button id="tier3" class="tier {% if classification.class == 999 %}a{% elif classification.class == 3 %}selected_tier{% else %}unselected_tier{% endif %}" title="Variants of unknown clinical significance" type="submit" name="tier3">III</button>
+  <button id="tier4" class="tier {% if classification.class == 999 %}a{% elif classification.class == 4 %}selected_tier{% else %}unselected_tier{% endif %}" title="Variants deemed benign or likely benign" type="submit" name="tier4">IV</button>
+  </form>
+    
+  <form id="form" action="{# TODO {{ url_for('remove_classified_variant', id=variant._id) }} TODO #}" method="post" class="class_form" >
+    <input type="hidden" name="assay" value="{{ assay }}">
+    <input type="hidden" name="subpanel" value="{{ subpanel }}">
+    {% if sel_csq.HGVSc is defined %}
+      <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">
+      <input type="hidden" name="transcript" value="{{ sel_csq.Feature }}">
+      <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|no_transid }}">
+      <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|no_transid }}">
+        {% endif %}
+          <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
+    {% if 'assay' in classification %}
+      <button id="remove" class="del" title="Remove {{assay}} classifications" type="submit" onclick="return confirm('This will remove all tiering for {{assay}}, proceed?')">❌</button>
+    {% elif 'admin' in current_user.get_groups() %}
+      <button id="remove" class="del" title="Remove historic non-assay classifications" type="submit" onclick="return confirm('This will remove all tiering for historic tiering without assays assigned, proceed?')">❌</button>
+    {% endif %}
+    </form>
+  
+  {% endif %}
+    </div>
+
+
+  <div style='clear:left;'>
+    <span class="table_header">Other tiering</span><br>
+      <table>
+        <thead><tr><th>Assay</th><th>Diagnosis</th><th>Tier</th></tr></thead>
+    {% for var in other_classifications %}
+      <tr>
+        <td>{{var.assay}}</td>
+        {% if "subpanel" in var %}
+        <td>{{var.subpanel}}</td>
+        {% else %}
+        <td>-</td>
+        {% endif %}
+        <td>{{var.class}}</td>
+      </tr>
+    {% endfor %}
+  </table>
+  </div>
+
+    {% if current_user.get_role() != "readonly" %}
+    <span class="table_header">Add new comment/annotation</span>
+    <div id="commenting_box">
+      <form action="{# TODO {{ url_for('add_variant_comment', id=variant._id) }} TODO #}" method="post">
+  <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..."></textarea><br>
+    
+  {% if sel_csq.HGVSc is defined %}
+  <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">      
+  <input type="hidden" name="transcript" value="{{ sel_csq.Feature }}">
+  <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|no_transid }}">
+  <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|no_transid }}">
+  {% endif %}
+  <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
+  <input type="submit" value="Save">&nbsp;&nbsp;
+  <input type="checkbox" name="global" value="global"> Use as global annotation
+  <input type="hidden" name="assay" value="{{ assay }}">
+  <input type="hidden" name="subpanel" value="{{ subpanel }}">
+      </form>
+    </div>
+    {% endif %}
+
+    {% if variant.comments|length > 0 and current_user.get_role() != "readonly" %}
+      <div style='clear:left;'>    
+      <span class="table_header">Sample-specific variant comments</span>    
+      <table class="comments" id="variant_comments">
+      <thead><tr><th>Who</th><th>Comment</th><th></th></tr></thead>
+      <tbody>
+      {% for comment in variant.comments|sort(attribute='time_created', reverse=True) %}
+        {% if comment.hidden != 1 %}
+        <tr>
+  {% else %}
+  <tr class="hidden_comment hidden">
+  {% endif %}
+    <td class="comment" style="white-space: nowrap"><b>{{ comment.author }}</b><br><small>{{ comment.time_created|human_date }}</small></td>
+    <td class="comment" onclick="addText(event)">{{ comment.text|format_comment|safe }}</td>
+          <td class="comment">
+      {% if comment.hidden != 1 %}
+            <form action="{{ url_for('hide_variant_comment', var_id=variant._id) }}" method="post">
+              <input type="hidden" name="comment_id" value="{{ comment._id }}">
+              <input id="hide_comment" type="image" width=15 src="{{ url_for('static', filename='delete.png') }}">
+            </form>
+      {% else %}
+            <form action="{{ url_for('unhide_variant_comment', var_id=variant._id) }}" method="post">
+              <input type="hidden" name="comment_id" value="{{ comment._id }}">
+              <input id="unhide_comment" type="image" width=15 src="{{ url_for('static', filename='unhide.png') }}">
+            </form>
+      {% endif %}
+          </td>
+  </tr>
+      {% endfor %}
+  {% if hidden_comments != 0 %}
+        <tr>
+    <td colspan=4 style='border-top:1px solid #ccc; font-size:10px; padding-bottom:2px; padding-top:2px; text-align:center;'>
+            <a href="javascript:void(0)" onclick="switchVisibility_comments('hidden_comment')"><b>Show/hide deleted comments</b></a>
+          </td>
+        </tr>
+  {% endif %}
+    
+      </tbody>
+      </table>
+      </div>
+    {% endif %}
+
+
+    {% if annotations_interesting|length > 0 %}
+      <div style='clear:left;'>
+      <span class="table_header">Variant annotations (assay)</span>          
+      <table class="annotatations" id="variant_annotations">
+      <thead><tr><th>Who</th><th>Annotation</th><th>Assay</th></tr></thead>
+      <tbody>
+    
+    {% for assay_sub, key in annotations_interesting.items() %}
+    <tr class=highlightannotation>
+    <td class="annotation" style="white-space: nowrap"><b>{{ key.author }}</b><br><small>{{ key.time_created|human_date }}</small></td>
+    <td class="annotation" onclick="addText(event)">{{ key.text|format_comment|safe }}</td>
+    {% if "assay" in key %}
+        <td>{{key.assay}}<br><small>{{key.subpanel}}</small></td>
+      {% else %}
+      <td>historic</td>
+    {% endif %}
+     </tr>
+    {% endfor %}
+       </tbody>
+       </table>
+       </div>
+    {% endif %}
+
+
+    {% if annotations|length > 0 %}
+      <div style='clear:left;'>
+      <span class="table_header">Variant annotations (all)</span>          
+      <table class="annotatations" id="variant_annotations">
+      <thead><tr><th>Who</th><th>Annotation</th><th>Assay</th></tr></thead>
+      <tbody>
+    {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
+      {% if current_user.get_role() != "readonly" or loop.first == True %}
+          <tr>
+        <td class="annotation" style="white-space: nowrap"><b>{{ anno.author }}</b><br><small>{{ anno.time_created|human_date }}</small></td>
+        <td class="annotation" onclick="addText(event)">{{ anno.text|format_comment|safe }}</td>
+      {% if "assay" in anno %}
+        <td>{{anno.assay}}<br><small>{{anno.subpanel}}</small></td>
+      {% else %}
+      <td>historic</td>
+      {% endif %}
+        </tr>
+    {% endif %}
+    {% endfor %}
+      </tbody>
+      </table>
+      </div>
+    {% endif %}
+      
+    {% if current_user.get_role() != "readonly" %}
+      <div id="var_callers">
+  <span class="table_header">Variant caller details</span>              
+  <table class="variant">
+    {% if variant.INFO.FOUND_IN %}
+    <thead><tr><th>Variant caller</th><th>File</th></tr></thead>
+    {% for vc in variant.INFO.FOUND_IN %}
+    <tr><td style="white-space: nowrap">{{vc[0] }}</td><td><small>{{ vc[1] }}</small></td></tr>
+    {% endfor %}
+    {% elif variant.INFO.variant_callers %}
+    <tr>
+    {% for vc in variant.INFO.variant_callers %}
+    <td>{{ vc }}</td>
+    {% endfor %}
+    </tr>
+    {% endif %}
+  </table>
+      </div>
+    {% endif %}
+
+
+      <div style='clear:left;'>
+  <span class="table_header">KnowledgeSpace</span>
+  <table class="variant">
+    <thead><tr><th>Variant/Gene</th><th>Summary</th></tr></thead>
+    {% if iarc_tp53 is defined and iarc_tp53 is not none  %}
+    <tr>  
+            <td style='vertical-align:top'>
+              <img width=64 alt="IARC TP53" src="{{ url_for('static', filename='iarctp53_logo.png') }}"><br>BETA!<br><b>Var:</b> <a href="http://p53.iarc.fr/TP53GeneVariations.aspx">link</a>
+            </td>
+            <td>
+        Somatic count: <b>{{ iarc_tp53.n_somatic }}</b><br>
+        Germline count: <b>{{ iarc_tp53.n_germline }}</b><br><br>
+
+        Structural motif: <b>{{ iarc_tp53.motif }}</b><br>
+        Domain function: <b>{{ iarc_tp53.domain_func }}</b><br>
+        Residue function: <b>{{ iarc_tp53.residue_func }}</b><br><br>
+
+        Transactivation class: <b>{{ iarc_tp53.transactivation_class }}</b><br>
+        AGVGD class: <b>{{ iarc_tp53.AGVGD_class }}</b><br>
+        Splicing: <b>{{ iarc_tp53.splice }}</b><br>
+        CpG site: <b>{{ iarc_tp53.cpg }}</b><br>
+        Polymorphism: <b>{{ iarc_tp53.polymorphism }}</b>
+
+        {% if "topology_count" in iarc_tp53 and iarc_tp53["topology_count"] is mapping%}
+          <br><br><table class="tiny">
+      <tr class="tiny"><th class="tiny">Topology</th><th class="tiny">Count</th></tr>
+            {% for top,count in iarc_tp53.topology_count.iteritems() %}
+            <tr class="tiny"><td class="tiny">{{ top }}</td><td class="tiny">{{ count }}</td></tr>
+            {% endfor %}
+    </table>  
+        {% endif %}
+      </td>
+    </tr>
+    {% endif %}
+    
+    {% if brca_exchange is defined and brca_exchange is not none %}
+    <tr>
+            <td style='vertical-align:top'>
+              <img width=68 alt="BRCA Exchange" src="{{ url_for('static', filename='brcaexchange_logo.jpg') }}"><br><b>Var:</b> <a href="http://brcaexchange.org/variant/{{brca_exchange.id}}">link</a>
+            </td>
+            <td>
+        Clinical significance (ENIGMA): <b>{{brca_exchange.enigma_clinsig}}</b><p>
+    {{brca_exchange.enigma_clinsig_comment}}</b><p>
+                {% if brca_exchange.enigma_clinsig_refs != "-" %}
+    Citations: {{brca_exchange.enigma_clinsig_refs|pubmed_links|safe}}
+    {% endif %}
+      </td>
+    </tr>
+
+    {% endif %}
+    {% if oncokb is defined and oncokb is not none %}
+    <tr>
+            <td style='vertical-align:top'>
+              <img width=62 alt="OncoKB" src="{{ url_for('static', filename='oncokb_logo.png') }}"><br><b>Var:</b> <a href="http://oncokb.org/#/gene/{{sel_csq.SYMBOL}}">{{ oncokb.Alteration }}</a>
+            </td>
+            <td>
+        Oncogenicity: <b>{{ oncokb.Oncogenicity }}</b><br>
+        Mutation effect: <b>{{ oncokb['Mutation Effect'] }}</b> {{ oncokb['PMIDs for Mutation Effect']|pubmed_links|safe }}<br><br>
+
+        {% if oncokb_action.count() > 0 %}
+        <b>Actions:</b>
+        <table class='tiny'>
+    <tr><th class='tiny'>Cancer</th><th class='tiny'>Drug(s)</th><th class='tiny'>Level</th><th class='tiny'>Refs</th></tr>
+    {% for oncokb_act in oncokb_action %}
+        {% if oncokb_act.Alteration != "Oncogenic Mutations" or oncokb.Oncogenicity == "Oncogenic" %}
+                <tr>                     
+      <td class='tiny'>{{ oncokb_act['Cancer Type'] }}</td>
+            <td class='tiny'>{{ oncokb_act['Drugs(s)'] }}</td>
+      <td class='tiny'>{{ oncokb_act['Level'] }}</td>
+      <td class='tiny'>{{ oncokb_act['PMIDs for drug']|pubmed_links|safe }}</td>
+    </tr>
+        {% endif %}
+        {% endfor %}
+    
+        </table>
+        {% endif %}
+            </td>
+          </tr>
+    {% endif %}
+    
+    
+    {% for civ in civic %}
+    <tr>
+      <td style='vertical-align:top'>
+        <img width=58 alt="CIViC" src="{{ url_for('static', filename='civic_logo.png') }}"><br><b>Var:</b> <a href="{{ civ.variant_civic_url }}">{{ civ.variant }}</a>
+      </td>
+      <td>
+        {% set civ_types = civ.variant_types.split(',') %}
+        <b>
+        {% for type in civ_types %}
+        {{ type|replace("_", " ") }}<br>
+        {% endfor %}
+        </b><p>
+    
+        {{ civ.summary }}
+      </td>
+    </tr>
+    {% endfor %}
+
+    
+    {% if oncokb_gene is defined and oncokb_gene is not none %}
+    <tr>
+      <td style='vertical-align:top'>
+        <img width=62 alt="OncoKB" src="{{ url_for('static', filename='oncokb_logo.png') }}"><br><b>Gene:</b><a target="_blank" href="http://oncokb.org/#/gene/{{sel_csq.SYMBOL}}">{{sel_csq.SYMBOL}}</a>
+      </td>
+      <td>
+        {% if oncokb_gene.description is defined %}
+        {{ oncokb_gene.description|format_oncokbtext|safe }}
+        {% endif %}
+      </td>
+    </tr>
+    {% endif %}
+
+    {% if civic_gene is defined and civic_gene is not none %}
+    <tr>
+      <td style='vertical-align:top'>
+        <img width=58 alt="OncoKB" src="{{ url_for('static', filename='civic_logo.png') }}"><br><b>Gene:</b> <a href="{{ civic_gene.gene_civic_url }}">{{ civic_gene.name }}</a>
+      </td>
+      <td>
+        {{ civic_gene.description }}
+      </td>
+    </tr>
+    {% endif %}
+
+          </td>
+          </tr>
+
+
+  </table>
+      </div>
+  </div>
+
+
+  <script type="text/javascript">
+    $("#test").select2();
+
+    window.onload = function() {
+      $('[data-autoclick="true"]').click();
+      $('[data-autoclick="true"]').click();
+    };
+    
+  function switchVisibility_comments(class_name) {
+    var hide_class = "hidden";
+
+    var elems = document.getElementsByClassName(class_name);
+
+    for (var i = 0; i < elems.length; i++) {
+      if( elems[i].classList.contains(hide_class) ) {
+        elems[i].classList.remove(hide_class);
+      }
+      else {
+        elems[i].classList.add(hide_class);
+      }
+    }
+  }
+
+  function switchVisibility_noncanonicaltranscripts(class_name) {
+    var hide_class = "collapsed";
+
+    var elems = document.getElementsByClassName(class_name);
+
+    for (var i = 0; i < elems.length; i++) {
+
+      if( elems[i].classList.contains(hide_class) ) {
+        elems[i].classList.remove(hide_class);
+      }
+      else {
+        elems[i].classList.add(hide_class);
+      }
+    }
+  }     
+
+
+  function addText(event) {
+    var targ = event.target || event.srcElement;
+    document.getElementById("comment_textarea").value = targ.textContent || targ.innerText;
+  }
+      
+  </script>
+
+
+{% endblock %} 
+
+{% macro complement(base) -%}
+  {% if base == "A" %}T{% endif %}
+  {% if base == "T" %}A{% endif %}
+  {% if base == "C" %}G{% endif %}
+  {% if base == "G" %}C{% endif %}
+{%- endmacro %}

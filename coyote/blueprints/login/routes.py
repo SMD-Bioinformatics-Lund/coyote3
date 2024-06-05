@@ -13,6 +13,7 @@ users_collection = mongo.cx["coyote"]["users"]
 
 # Login routes:
 
+
 @login_bp.route("/login", methods=["GET", "POST"])
 def login():
     form = LoginForm()
@@ -28,7 +29,7 @@ def login():
             return redirect(url_for("main_bp.main_screen"))
         else:
             app.logger.info("yes?")
-            return render_template('login.html',form=form, error="Invalid credentials")
+            return render_template("login.html", form=form, error="Invalid credentials")
 
     return render_template("login.html", title="login", form=form)
 
@@ -44,7 +45,8 @@ def load_user(username):
     user = users_collection.find_one({"_id": username})
     if not user:
         return None
-    return User(user["_id"], user["groups"])
+    return User(user["_id"], user["groups"], user.get("role", None))
+
 
 def ldap_authenticate(username, password):
     authorized = False
@@ -54,7 +56,7 @@ def ldap_authenticate(username, password):
             username=username,
             password=password,
             base_dn=app.config.get("LDAP_BASE_DN") or app.config.get("LDAP_BINDDN"),
-            attribute=app.config.get("LDAP_USER_LOGIN_ATTR")
+            attribute=app.config.get("LDAP_USER_LOGIN_ATTR"),
         )
     except Exception as ex:
         flash(ex, "danger")

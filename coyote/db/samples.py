@@ -1,8 +1,13 @@
 import pymongo
+from bson.objectid import ObjectId
 from flask import current_app as app
 
 
 class SampleHandler:
+    """
+    Sample handler from coyote["samples"]
+    """
+
     def get_samples(self, user_groups: list = [], report: bool = False, search_str: str = ""):
         query = {"groups": {"$in": user_groups}}
         if report:
@@ -29,6 +34,13 @@ class SampleHandler:
         get sample by name
         """
         sample = self.samples_collection.find_one({"name": name})
+        return sample
+
+    def get_sample_with_id(self, id: str):
+        """
+        get sample by name
+        """
+        sample = self.samples_collection.find_one({"_id": ObjectId(id)})
         return sample
 
     def get_sample_ids(self, sample_id: str):

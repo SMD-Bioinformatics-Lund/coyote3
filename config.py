@@ -27,7 +27,9 @@ class DefaultConfig:
 
     MONGO_HOST = os.getenv("FLASK_MONGO_HOST") or "localhost"
     MONGO_PORT = os.getenv("FLASK_MONGO_PORT") or 27017
-    MONGO_DB_NAME = "coyote"
+    # MONGO_DB_NAME = "coyote"
+    MONGO_DB_NAME = "coyote_dev"
+    BAM_SERVICE_DB_NAME = "BAM_Service"
 
     LDAP_HOST = "ldap://mtlucmds1.lund.skane.se"
     LDAP_BASE_DN = "dc=skane,dc=se"
@@ -77,6 +79,45 @@ class DefaultConfig:
         "missense_variant": "missense variant",
         "feature_truncation": "feature truncation",
         "frameshift_variant": "frameshift variant",
+    }
+
+    ASSAY_MAPPER = {
+        "exome": ["exome_trio"],
+        "myeloid": [
+            "myeloid",
+            "myeloid_vep",
+            "random",
+            "gms_myeloid",
+            "myeloid_GMSv1",
+            "myeloid_GMSv1_hg38",
+            "lymphoid_GMSv1",
+        ],
+        "solid": ["solid_GMSv3"],
+        "swea": ["swea_ovarial"],
+        "devel": ["devel"],
+        "tumwgs": ["tumwgs"],
+        "tumor_exome": ["gisselsson", "mertens"],
+        "fusion": ["fusion", "fusion_validation_nf"],
+        "gmsonco": ["gmsonco", "PARP_inhib"],
+        "fusionrna": ["solidRNA_GMSv5"],
+    }
+
+    CONSEQ_TERMS_MAPPER = {
+        "splicing": ["splice_acceptor_variant", "splice_donor_variant", "splice_region_variant"],
+        "stop_gained": ["stop_gained"],
+        "frameshift": ["frameshift_variant"],
+        "stop_lost": ["stop_lost"],
+        "start_lost": ["start_lost"],
+        "inframe_indel": ["inframe_insertion", "inframe_deletion"],
+        "missense": ["missense_variant", "protein_altering_variant"],
+        "synonymous": ["stop_retained_variant", "synonymous_variant"],
+        "other_coding": ["coding_sequence_variant"],
+        "UTR": ["5_prime_UTR_variant", "3_prime_UTR_variant"],
+        "non_coding": ["non_coding_transcript_exon_variant", "non_coding_transcript_variant"],
+        "intronic": ["intron_variant"],
+        "intergenic": ["intergenic_variant", "downstream_gene_variant", "upstream_gene_variant"],
+        "regulatory": ["regulatory_region_variant", "TF_binding_site_variant"],
+        "feature_elon_trunc": ["feature_elongation", "feature_truncation"],
     }
 
     @property

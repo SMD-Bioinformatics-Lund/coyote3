@@ -1,9 +1,11 @@
 """Initialize Flask app."""
+
 from flask import Flask
 from flask_cors import CORS
 
 import config
 from . import extensions
+
 
 def init_app(testing: bool = False) -> Flask:
     """Create Flask application."""
@@ -63,16 +65,19 @@ def register_blueprints(app) -> None:
     # Coyote main:
     bp_debug_msg("main_bp")
     from coyote.blueprints.main import main_bp
+
     app.register_blueprint(main_bp)
 
     # Login stuff
     bp_debug_msg("login_bp")
     from coyote.blueprints.login import login_bp
+
     app.register_blueprint(login_bp)
 
     # Show Case Variants
     bp_debug_msg("varaints_bp")
     from coyote.blueprints.variants import variants_bp
+
     app.register_blueprint(variants_bp)
 
 
@@ -80,6 +85,7 @@ def init_login_manager(app) -> None:
     app.logger.debug("Initializing login_manager")
     extensions.login_manager.init_app(app)
     extensions.login_manager.login_view = "login_bp.login"
+
 
 def init_ldap(app):
     app.logger.debug("Initializing ldap login_manager")
