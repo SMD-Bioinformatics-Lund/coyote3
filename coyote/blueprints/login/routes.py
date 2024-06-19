@@ -24,7 +24,8 @@ def login():
         if ldap_authenticate(username, password):
             app.logger.info("anything?")
             user_obj = store.user(username)
-            user_obj = User(user_obj["_id"], user_obj["groups"])
+            role = user_obj.get("role", None)
+            user_obj = User(user_obj["_id"], user_obj["groups"], role)
             login_user(user_obj)
             return redirect(url_for("main_bp.main_screen"))
         else:

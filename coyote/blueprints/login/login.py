@@ -32,7 +32,9 @@ class User:
         return self.groups
 
     def get_role(self):
-        return self.role
+        if self.role:
+            return self.role
+        return "admin" if "admin" in self.groups else "user"
 
     @staticmethod
     def validate_login(password_hash, password):
