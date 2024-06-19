@@ -126,7 +126,7 @@ def intersect(l1, l2):
 
 @app.template_filter()
 def unesc(st):
-    if len(st) > 0:
+    if st and len(st) > 0:
         return urllib.parse.unquote(st)
     else:
         return ""
@@ -289,7 +289,10 @@ def format_hotspot(filters):
 
 
 @app.template_filter()
-def one_letter_p(st):
+def one_letter_p(st: str) -> str | None:
+    """
+    Convert three-letter amino acid code to one-letter code.
+    """
     aa = {
         "Cys": "C",
         "Asp": "D",
@@ -315,8 +318,10 @@ def one_letter_p(st):
     }
 
     pattern = re.compile("|".join(aa.keys()))
-    new = pattern.sub(lambda x: aa[x.group()], st)
-    return new
+    if st:
+        return pattern.sub(lambda x: aa[x.group()], st)
+
+    return ""
 
 
 @app.template_filter()

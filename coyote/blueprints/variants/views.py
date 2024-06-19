@@ -81,7 +81,6 @@ def list_variants(id):
 
     ## get sample settings
     sample_settings = util.get_sample_settings(sample, settings)
-    print(sample)
     # sample filters, either set, or default
     cnv_effects = sample.get("checked_cnveffects", settings["default_checked_cnveffects"])
     genelist_filter = sample.get("checked_genelists", settings["default_checked_genelists"])
