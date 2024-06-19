@@ -14,7 +14,7 @@ class VariantsHandler:
         """
         return self.variants_collection.find(query)
 
-    def get_canonical(self, genes_arr) -> dict:
+    def get_canonical(self, genes_arr: list) -> dict:
         """
         find canonical transcript for genes
         """
@@ -121,4 +121,29 @@ class VariantsHandler:
                 hgvsc = hgvsc_parts[1]
                 return self.iarc_tp53_collection.find_one({"var": hgvsc})
 
+        return None
+
+    def is_false_positive(self, variant_id: str, fp: bool) -> None:
+        """
+        Update variant false positive status
+        """
+        self.variants_collection.update_one({"_id": ObjectId(variant_id)}, {"$set": {"fp": fp}})
+        return None
+
+    def is_interesting(self, variant_id: str, interesting: bool) -> None:
+        """
+        Update if the variant is interesting or not
+        """
+        self.variants_collection.update_one(
+            {"_id": ObjectId(variant_id)}, {"$set": {"interesting": interesting}}
+        )
+        return None
+
+    def is_irrelevant(self, variant_id: str, irrelevant: bool) -> None:
+        """
+        Update if the variant is irrelevant or not
+        """
+        self.variants_collection.update_one(
+            {"_id": ObjectId(variant_id)}, {"$set": {"irrelevant": irrelevant}}
+        )
         return None

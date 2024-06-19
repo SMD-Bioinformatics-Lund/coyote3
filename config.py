@@ -120,6 +120,39 @@ class DefaultConfig:
         "feature_elon_trunc": ["feature_elongation", "feature_truncation"],
     }
 
+    NCBI_CHR = {
+        "1": "NC_000001",
+        "2": "NC_000002",
+        "3": "NC_000003",
+        "4": "NC_000004",
+        "5": "NC_000005",
+        "6": "NC_000006",
+        "7": "NC_000007",
+        "8": "NC_000008",
+        "9": "NC_000009",
+        "10": "NC_000010",
+        "11": "NC_000011",
+        "12": "NC_000012",
+        "13": "NC_000013",
+        "14": "NC_000014",
+        "15": "NC_000015",
+        "16": "NC_000016",
+        "17": "NC_000017",
+        "18": "NC_000018",
+        "19": "NC_000019",
+        "20": "NC_000020",
+        "21": "NC_000021",
+        "22": "NC_000022",
+        "X": "NC_000023",
+        "Y": "NC_000024",
+    }
+
+    # UTILITY EXTERNAL SCRIPTS
+    HG38_POS_SCRIPT = "/data/bnf/scripts/hg38_pos.pl"
+    SANGER_EMAIL_SCRIPT = "/data/bnf/scripts/email_sanger.pl"
+    SANGER_EMAIL_RECEPIENTS = "ram.nanduri@skane.se, bjorn.hallstrom@skane.se"
+    SANGER_URL = "http://10.0.224.63/coyote/var/"
+
     @property
     def MONGO_URI(self):
         """

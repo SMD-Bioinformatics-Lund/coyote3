@@ -158,44 +158,45 @@ Variant in sample <a href="{{ url_for('variants_bp.list_variants', id=sample.nam
     {% endif %}
     
     {% if variant.fp == true %}
-      <form action="{# TODO {{ url_for('unmark_false_variant', id=variant._id) }} TODO #}" method="post">
+      <form action="{{ url_for('unmark_false_variant', id=variant._id) }}" method="post">
         <input class='inv' type="submit" name="mark_fp" value="Unmark false positive">
       </form>    
     {% else %}
-      <form action="{# TODO {{ url_for('mark_false_variant', id=variant._id) }} TODO #}" method="post">
+      <form action="{{ url_for('mark_false_variant', id=variant._id) }}" method="post">
         <input type="submit" name="mark_fp" value="Mark as false positive">
       </form>
     {% endif %}
 
 
     {% if variant.interesting == true %}
-      <form action="{# TODO {{ url_for('unmark_interesting_variant', id=variant._id) }} TODO #}" method="post">
+      <form action="{{ url_for('unmark_interesting_variant', id=variant._id) }}" method="post">
         <input class='inv' type="submit" name="mark_int" value="Unmark interesting">
       </form>
     {% else %}
-      <form action="{# TODO {{ url_for('mark_interesting_variant', id=variant._id) }} TODO #}" method="post">
+      <form action="{{ url_for('mark_interesting_variant', id=variant._id) }}" method="post">
         <input type="submit" name="mark_int" value="Mark as interesting">
       </form>      
     {% endif %}
 
     {% if variant.irrelevant == true %}
-      <form action="{# TODO {{ url_for('unmark_irrelevant_variant', id=variant._id) }} TODO #}" method="post">
+      <form action="{{ url_for('unmark_irrelevant_variant', id=variant._id) }}" method="post">
         <input class='inv' type="submit" name="mark_irr" value="Unmark irrelevant">
       </form>
     {% else %}
-      <form action="{# TODO {{ url_for('mark_irrelevant_variant', id=variant._id) }} TODO #}" method="post">
+      <form action="{{ url_for('mark_irrelevant_variant', id=variant._id) }}" method="post">
         <input type="submit" name="mark_irr" value="Mark as irrelevant">
       </form>      
     {% endif %}
 
     {% if variant.blacklist != true %}
-      <form action="{# TODO {{ url_for('add_variant_to_blacklist', id=variant._id) }} TODO #}" method="post">
+      <form action="{{ url_for('add_variant_to_blacklist', id=variant._id) }}" method="post">
         <input type="submit" name="blacklist" value="Add variant to blacklist"  onclick="return confirm('This permanently adds the variant to the blacklist, affecting all samples of this type. Do this only if you are certain it is a recurring false positive. Proceed?')" >
       </form>
     {% endif %}
+    
 
     {% if assay=="swea" %}
-      <form action="{# TODO {{ url_for('order_sanger', id=variant._id) }} TODO #}" method="post">
+      <form action="{{ url_for('order_sanger', id=variant._id) }}" method="post">
         <input type="submit" name="sanger" value="Request sanger">
       </form>      
     {% endif %} 

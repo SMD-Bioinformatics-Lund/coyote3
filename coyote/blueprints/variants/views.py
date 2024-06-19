@@ -260,6 +260,7 @@ def add_sample_comment(id):
 
 
 # TODO CHECK AGAIN AND MODIFY THE CODE AS PER THE REQUIREMENT
+## Individual variant view ##
 @app.route("/var/<string:id>")
 @login_required
 def show_variant(id):
@@ -393,3 +394,108 @@ def show_variant(id):
         bam_id=bam_id,
         annotations_interesting=annotations_interesting,
     )
+
+
+@app.route("/var/unfp/<string:id>", methods=["POST"])
+@login_required
+def unmark_false_variant(id):
+    """
+    Unmark False Positive status of a variant in the database
+    """
+    store.is_false_positive(id, False)
+
+    return redirect(url_for("show_variant", id=id))
+
+
+@app.route("/var/fp/<string:id>", methods=["POST"])
+@login_required
+def mark_false_variant(id):
+    """
+    Mark False Positive status of a variant in the database
+    """
+    store.is_false_positive(id, True)
+    return redirect(url_for("show_variant", id=id))
+
+
+@app.route("/var/uninterest/<string:id>", methods=["POST"])
+@login_required
+def unmark_interesting_variant(id):
+    """
+    Unmark interesting status of a variant in the database
+    """
+    store.is_interesting(id, False)
+
+    return redirect(url_for("show_variant", id=id))
+
+
+@app.route("/var/interest/<string:id>", methods=["POST"])
+@login_required
+def mark_interesting_variant(id):
+    """
+    Mark interesting status of a variant in the database
+    """
+    store.is_interesting(id, True)
+
+    return redirect(url_for("show_variant", id=id))
+
+
+@app.route("/var/unirrelevant/<string:id>", methods=["POST"])
+@login_required
+def unmark_irrelevant_variant(id):
+    """
+    Unmark irrelevant status of a variant in the database
+    """
+    store.is_irrelevant(id, False)
+
+    return redirect(url_for("show_variant", id=id))
+
+
+@app.route("/var/irrelevant/<string:id>", methods=["POST"])
+@login_required
+def mark_irrelevant_variant(id):
+    """
+    Mark irrelevant status of a variant in the database
+    """
+    store.is_irrelevant(id, True)
+
+    return redirect(url_for("show_variant", id=id))
+
+
+@app.route("/var/blacklist/<string:id>", methods=["POST"])
+@login_required
+def add_variant_to_blacklist(id):
+
+    var = store.get_variant(id)
+    sample = store.get_sample_with_id(var["SAMPLE_ID"])
+    assay = util.get_assay_from_sample(sample)
+    store.blacklist_variant(var, assay)
+
+    return redirect(url_for("show_variant", id=id))
+
+
+@app.route("/var/ordersanger/<string:id>", methods=["POST"])
+@login_required
+def order_sanger(id):
+    variant = store.get_variant(id)
+    variants, genes = util.get_protein_coding_genes([variant])
+    var = variants[0]
+    sample = store.get_sample_with_id(var["SAMPLE_ID"])
+    canonical_dict = store.get_canonical(list(genes.keys()))
+
+    var["INFO"]["selected_CSQ"], var["INFO"]["selected_CSQ_criteria"] = util.select_csq(
+        var["INFO"]["CSQ"], canonical_dict
+    )
+
+    hg38_chr, hg38_pos = util.get_hg38_pos(str(var["CHROM"]), str(var["POS"]))
+    ncbi_link = util.get_ncbi_link(hg38_chr, hg38_pos)
+    thermo_link = util.get_thermo_link(hg38_chr, hg38_pos)
+
+    gtcalls = util.get_gt_calls(var)
+
+    html, tx_info = util.compose_sanger_email(
+        var, sample["name"], gtcalls, hg38_chr, hg38_pos, ncbi_link, thermo_link
+    )
+
+    email_status = util.send_sanger_email(html, tx_info["SYMBOL"])
+
+    return redirect(url_for("show_variant", id=id))

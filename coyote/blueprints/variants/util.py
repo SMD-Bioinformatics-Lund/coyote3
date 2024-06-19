@@ -2,6 +2,7 @@ from flask import current_app as app
 from collections import defaultdict
 import re
 from math import floor, log10
+import subprocess
 
 
 def get_group_defaults(group):
@@ -855,3 +856,105 @@ def cnv_organizegenes(cnvs):
                 var["other_genes"].append(gene["gene"])
         fixed_cnvs_genes.append(var)
     return fixed_cnvs_genes
+
+
+def get_hg38_pos(chr: str, pos: str) -> tuple:
+    """
+    Function to get hg38 position
+    """
+
+    hg38 = subprocess.check_output([app.config["HG38_POS_SCRIPT"], chr, pos]).decode("utf-8")
+    hg38_chr, hg38_pos = hg38.split(":")
+
+    return hg38_chr, hg38_pos
+
+
+def get_ncbi_link(chr: str, pos: str) -> str:
+    """
+    Function to generate a link to NCBI genomic region
+    """
+    _chr = app.config["NCBI_CHR"].get("chr")
+    return f'<a href="https://www.ncbi.nlm.nih.gov/nuccore/{_chr}?report=fasta&from={int(pos) - 500}&to={int(pos) + 500}">NCBI genomic region</a>'
+
+
+def get_thermo_link(chr: str, pos: str) -> str:
+    """
+    Function to generate a link to ThermoFisher genomic region
+    """
+    return f'<a href="https://www.thermofisher.com/order/genome-database/searchResults?searchMode=keyword&CID=&ICID=&productTypeSelect=ceprimer&targetTypeSelect=ceprimer_all&alternateTargetTypeSelect=&alternateProductTypeSelect=&originalCount=0&species=Homo+sapiens&otherSpecies=&additionalFilter=ceprimer-human-exome&keyword=&sequenceInput=&selectedInputType=&chromosome={chr}&chromStart={pos}&chromStop={pos}&vcfUpload=&multiChromoSome=&batchText=&batchUpload=&sequenceUpload=&multiSequence=&multiSequenceNames=&priorSearchTerms=%28NR%29">Order primers from ThermoFisher</a>'
+
+
+def get_gt_calls(variant: dict) -> list:
+    """
+    Get GT call data for the variant
+    """
+
+    gtcalls = []
+    for gt in variant["GT"]:
+        gtcalls.append(f"<li>{gt['sample']} : {gt['GT']} ({str(gt['AF'])})</li>")
+    return gtcalls
+
+
+def compose_sanger_email(
+    var: dict,
+    sample_name: str,
+    gtcalls: list,
+    hg38_chr: str,
+    hg38_pos: str,
+    ncbi_link: str,
+    thermo_link: str,
+) -> str:
+    """
+    Compose an email for the sanger order
+    """
+
+    tx_info = var["INFO"]["selected_CSQ"]
+    varid = f"{str(var['CHROM'])}_{str(var['POS'])}_{var['REF']}_{var['ALT']}"
+
+    hgvsc = "-"
+    hgvsp = "-"
+    exon = "-"
+    if len(tx_info.get("HGVSc")) > 0:
+        hgvsc = tx_info.get("HGVSc", "-:-").split(":")[1]
+
+    if len(tx_info.get("EXON")) > 0:
+        exon = tx_info.get("EXON", "-:-").split("/")[0]
+
+    if len(tx_info.get("HGVSp")) > 0:
+        hgvsp = tx_info.get("HGVSp", "-:-").split(":")[1]
+
+    tx_changes = (
+        f"<li>{tx_info['SYMBOL']} : {tx_info['Feature']} : exon{exon} : {hgvsc} : {hgvsp}</li>"
+    )
+
+    html = f"""
+    <ul>
+        <li><strong>Case {sample_name}</strong>: <a href="{app.config["SANGER_URL"]}/{var["_id"]}</a>{varid}</li>
+        <li><strong>HGNC symbols</strong>: {tx_info["SYMBOL"]}</li>
+        <li><strong>GT call</strong></li>{"".join(gtcalls)}
+        <li><strong>Amino acid changes</strong></li>
+        {tx_changes}
+        <li><strong>hg19</strong>: {var["CHROM"]}:{var["POS"]}</li>
+        <li><strong>hg38</strong>: {hg38_chr}:{hg38_pos}</li>
+        <li>{ncbi_link}</li>
+        <li>{thermo_link}</li>
+        <li><strong>Ordered by</strong>: Björn</li>
+    </ul>
+    """
+
+    return html, tx_info
+
+
+def send_sanger_email(html: str, gene: str) -> bool:
+    """
+    Send Sanger Email
+    """
+
+    return subprocess.check_output(
+        [
+            app.config["SANGER_EMAIL_SCRIPT"],
+            app.config["SANGER_EMAIL_RECEPIENTS"],
+            gene,
+            html,
+        ]
+    ).decode("utf-8")

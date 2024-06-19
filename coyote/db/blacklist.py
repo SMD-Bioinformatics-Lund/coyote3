@@ -26,3 +26,16 @@ class BlacklistHandler:
                 var["blacklist"] = black_dict[pos]
 
         return variants[0]
+
+    def blacklist_variant(self, var: dict, assay: str) -> str:
+        """
+        Add a variant to the blacklist collection
+        """
+        short_pos = f"{str(var['CHROM'])}_{str(var['POS'])}_{var['REF']}_{var['ALT']}"
+
+        if self.blacklist_collection.insert_one(
+            {"assay": assay, "in_normal_perc": 1, "pos": short_pos}
+        ):
+            return True
+        else:
+            return False
