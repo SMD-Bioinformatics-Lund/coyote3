@@ -22,6 +22,7 @@ def login():
         password = str(form.password.data)
         if ldap_authenticate(username, password):
             app.logger.info("anything?")
+            app.logger.info(username)
             user_obj = store.user(username)
             user_obj = User(user_obj["_id"], user_obj["groups"])
             login_user(user_obj)

@@ -18,7 +18,7 @@ from coyote.blueprints.variants import varqueries_notbad
 from coyote.blueprints.variants import util
 from coyote.blueprints.variants import filters
 
-@variants_bp.route('/sample/<string:id>', methods=['GET', 'POST'])
+@variants_bp.route('/dna/sample/<string:id>', methods=['GET', 'POST'])
 @login_required
 def list_variants(id):
 
@@ -30,6 +30,7 @@ def list_variants(id):
     settings   = util.get_group_defaults( group )
     assay      = util.get_assay_from_sample( sample )
     subpanel   = sample.get('subpanel')
+    
 
     app.logger.info(app.config["GROUP_CONFIGS"]) # get group config from app config instead
     app.logger.info(f"the sample has these groups {smp_grp}")
@@ -39,6 +40,8 @@ def list_variants(id):
     ## GENEPANELS ##
     ## send over all defined gene panels per assay, to matching template ##
     gene_lists, genelists_assay = store.get_assay_panels(assay)
+    
+    app.logger.info(f"this is the gene_lists, genelists_assay {gene_lists},{genelists_assay}")
     ## Default gene list. For samples with default_genelis_set=1 add a gene list to specific subtypes lunga, hjärna etc etc. Will fetch genelist from mongo collection. 
     # this only for assays that should have a default gene list. Will always be added to sample if not explicitely removed from form
     if "default_genelist_set" in group:
@@ -93,7 +96,6 @@ def list_variants(id):
     form.max_popfreq.data   = sample_settings["max_popfreq"]
     form.min_cnv_size.data  = sample_settings["min_cnv_size"]
     form.max_cnv_size.data  = sample_settings["max_cnv_size"]
-   
     ## SNV FILTRATION STARTS HERE ! ##
     ################################## 
     ## The query should really be constructed according to some configed rules for a specific assay

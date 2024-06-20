@@ -1,5 +1,6 @@
 from flask import current_app as app
 import os
+from urllib.parse import unquote
 
 @app.template_filter()
 def format_panel_flag_snv(panel_str):
@@ -24,7 +25,6 @@ def format_panel_flag_snv(panel_str):
             html = html + "<span class='filterwarn fusion-bad'>"+vartype.upper()+"</span>"
 
     return html
-
 
 @app.template_filter()
 def format_filter(filters):
@@ -94,10 +94,28 @@ def intersect(l1, l2):
 @app.template_filter()
 def unesc(st):
     if( len(st) > 0 ):
-        return urllib.unquote(st)
+        return unquote(st)
     else:
         return ""
     
+@app.template_filter()
+def no_transid(nom):
+    a = nom.split(":")
+    if 1 < len(a):
+        return a[1]
+    return nom
+
+
+@app.template_filter()
+def format_comment(st):
+    st = st.replace('\n', '<br />')
+    return st
+
+@app.template_filter()
+def basename(path):
+    return os.path.basename(path)
+
+
 
 @app.template_filter()
 def format_fusion_desc(st):
@@ -106,16 +124,14 @@ def format_fusion_desc(st):
     good_terms = [
         "mitelman","18cancers", "known", "oncogene", "cgp", "cancer", "cosmic", "gliomas", "oesophagus","tumor",
         "pancreases", "prostates", "tcga", "ticdb"
-    ]
-                  
+    ]        
     verybad_terms = [
         "1000genomes", "banned", "bodymap2", "cacg", "conjoing", "cortex", "cta", "ctb",
         "ctc", "ctd", "distance1000bp", "ensembl_fully_overlapping", "ensembl_same_strand_overlapping",
         "gtex", "hpa", "matched-normal", "mt", "non_cancer_tissues", "non_tumor_cells", "pair_pseudo_genes",
         "paralogs", "readthrough", "refseq_fully_overlapping", "rp11", "rp", "rrna", "similar_reads",
         "similar_symbols", "ucsc_fully_overlapping", "ucsc_same_strand_overlapping"
-    ]
-                  
+    ]       
     bad_terms = [
         "distance100kbp","distance10kbp","duplicates", "ensembl_partially_overlapping","fragments", "healthy",
         "short_repeats", "long_repeats", "partial-matched-normal", "refseq_partially_overlapping", "short_distance"
@@ -148,11 +164,3 @@ def uniq_callers(calls):
         callers.append(c["caller"])
     return set(callers)
 
-@app.template_filter()
-def format_comment(st):
-    st = st.replace('\n', '<br />')
-    return st
-
-@app.template_filter()
-def basename(path):
-    return os.path.basename(path)

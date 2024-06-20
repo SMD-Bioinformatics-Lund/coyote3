@@ -1,8 +1,7 @@
 {% extends "layout.html" %} {% block body %}
 <div class="searchbox">
   <form action="" method="POST" name="form">
-    {{ form.hidden_tag() }}
-    {{ form.sample_search(size=33) }}
+    {{ form.hidden_tag() }} {{ form.sample_search(size=33) }}
     <input type="submit" value="Search samples" />
   </form>
 </div>
@@ -23,10 +22,15 @@
   <tbody>
     {% for sample in live_samples %}
     <tr>
-      <td> 
-        <a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}">{{ sample.name }}</a> {% if
-        sample.comments|selectattr('hidden', 'equalto', 0)|list|length > 0 %}*{%
-        endif %}
+      <td>
+        {% if sample.groups|join('') == 'fusion' or sample.groups|join('') == 'solidRNA_GMSv5' %}
+          <a href="{{ url_for('fusions_bp.list_fusions', id=sample.name) }}">{{ sample.name }}</a>
+        {% else %}
+          <a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}">{{ sample.name }}</a>
+        {% endif %}
+
+        {% if sample.comments|selectattr('hidden', 'equalto', 0)|list|length > 0
+        %}*{% endif %}
       </td>
       <td>
         {% if "num_samples" in sample %}{%for n in range(sample.num_samples)
@@ -45,13 +49,9 @@
         {% if sample.QC is defined %} {% for qc in
         sample.QC|sort(attribute='sample_id') %} {% if "500" in qc.pct_above_x
         %}
-        <a href="sampleqc/{{ sample._id }}"
-          >{{'%0.0f'| format(qc.pct_above_x["500"]|float) }}%</a
-        >
+        <a href="sampleqc/{{ sample._id }}">{{'%0.0f'| format(qc.pct_above_x["500"]|float) }}%</a>
         {% elif "tot_reads" in qc and "mapped_pct" in qc %}
-        <a href="sampleqc/{{ sample._id }}"
-          >{{'%0.0f'| format((qc.tot_reads/1000000)|float) }} M</a
-        >
+        <a href="sampleqc/{{ sample._id }}">{{'%0.0f'| format((qc.tot_reads/1000000)|float) }} M</a>
         {% else %}
         <a href="sampleqc/{{ sample._id }}">0%</a>
         {% endif %} {% endfor %} {% endif %}
@@ -64,10 +64,7 @@
   </tbody>
 </table>
 
-
-<span class="table_header"
-  >Reported samples (<a href="?all=1">show all</a>)</span
->
+<span class="table_header">Reported samples (<a href="?all=1">show all</a>)</span>
 <table class="samples">
   <thead>
     <tr>
@@ -87,7 +84,9 @@
     {% for sample in done_samples|sort(attribute="last_report_time_created",
     reverse=True) %}
     <tr>
-      <td><a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}">{{ sample.name }}</a></td>
+      <td>
+        <a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}">{{ sample.name }}</a>
+      </td>
       <td>
         {% if "num_samples" in sample %}{%for n in range(sample.num_samples)
         %}&#9679;{% endfor %}{% endif %}
@@ -106,13 +105,9 @@
         {% if sample.QC is defined %} {% for qc in
         sample.QC|sort(attribute='sample_id') %} {% if "500" in qc.pct_above_x
         %}
-        <a href="sampleqc/{{ sample._id }}"
-          >{{'%0.0f'| format(qc.pct_above_x["500"]|float) }}%</a
-        >
+        <a href="sampleqc/{{ sample._id }}">{{'%0.0f'| format(qc.pct_above_x["500"]|float) }}%</a>
         {% elif "tot_reads" in qc and "mapped_pct" in qc %}
-        <a href="sampleqc/{{ sample._id }}"
-          >{{'%0.0f'| format((qc.tot_reads/1000000)|float) }} M</a
-        >
+        <a href="sampleqc/{{ sample._id }}">{{'%0.0f'| format((qc.tot_reads/1000000)|float) }} M</a>
         {% else %}
         <a href="sampleqc/{{ sample._id }}">0% </a>
         {% endif %} {% endfor %} {% endif %}

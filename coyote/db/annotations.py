@@ -1,13 +1,18 @@
-
-
 class AnnotationsHandler:
+
+    def __init__(self, variant, assay, subpanel, nom):
+        self.variant = variant
+        self.assay = assay
+        self.subpanel = subpanel
+        self.nom = nom
+
 
     def get_global_annotations( self, variant, assay, subpanel ):
         genomic_location = str(variant["CHROM"]) + ":" + str(variant["POS"]) + ":" + variant["REF"] + "/" + variant["ALT"]
         if len( variant["INFO"]["selected_CSQ"]["HGVSp"] ) > 0:
             annotations = self.annotations_collection.find( { 'gene': variant["INFO"]["selected_CSQ"]["SYMBOL"], '$or': [
-                { 'nomenclature': 'p', 'variant': no_transid( variant["INFO"]["selected_CSQ"]["HGVSp"] ) },
-                { 'nomenclature': 'c', 'variant': no_transid( variant["INFO"]["selected_CSQ"]["HGVSc"] ) },
+                { 'nomenclature': 'p', 'variant': self.no_transid( variant["INFO"]["selected_CSQ"]["HGVSp"] ) },
+                { 'nomenclature': 'c', 'variant': self.no_transid( variant["INFO"]["selected_CSQ"]["HGVSc"] ) },
                 { 'nomenclature': 'g', 'variant': genomic_location } ]
             }).sort( 'time_created', 1 )
         elif len( variant["INFO"]["selected_CSQ"]["HGVSc"] ) > 0:
@@ -74,6 +79,7 @@ class AnnotationsHandler:
 
         return annotations_arr, latest_classification, latest_other_arr, annotations_interesting
     
+
     def no_transid(self, nom):
         a = nom.split(':')
         if 1 < len(a):

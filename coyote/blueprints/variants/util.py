@@ -34,10 +34,10 @@ def get_sample_settings(sample,settings):
     sample_settings["min_depth"]           = int(float(sample.get("filter_min_depth", settings["default_mindepth"])))
     sample_settings["max_popfreq"]         = float(sample.get("filter_max_popfreq", settings["default_popfreq"]))
     sample_settings["csq_filter"]          = sample.get("checked_csq", settings["default_checked_conseq"])
-    sample_settings["min_spanreads"]       = int(float(sample.get("filter_min_spanreads", settings["default_spanreads"])))
-    sample_settings["min_spanpairs"]       = int(float(sample.get("filter_min_spanpairs", settings["default_spanpairs"])))
     sample_settings["min_cnv_size"]        = int(float(sample.get("min_cnv_size", settings["default_min_cnv_size"])))
     sample_settings["max_cnv_size"]        = int(float(sample.get("max_cnv_size", settings["default_max_cnv_size"])))
+    sample_settings["min_spanreads"]       = int(float(sample.get("filter_min_spanreads", settings.get("default_spanreads", 0))))
+    sample_settings["min_spanpairs"]       = int(float(sample.get("filter_min_spanpairs", settings.get("default_spanpairs", 0))))
     return sample_settings
 
 def get_assay_from_sample( smp ):
@@ -226,6 +226,18 @@ def add_blacklist_data( variants, assay ):
         pos = str(var["CHROM"])+"_"+str(var["POS"])+"_"+var["REF"]+"_"+var["ALT"]
         if pos in black_dict:
             var["blacklist"] = black_dict[ pos ]
+
+
+def parse_allele_freq(freq_str, allele):
+
+    if freq_str:
+        all_alleles = freq_str.split("&")
+        for allele_frq in all_alleles:
+            a = allele_frq.split(":")
+            if a[0] == allele:
+                return float(a[1])
+
+    return -1
 
 def popfreq_filter(variants, max_freq):
 
@@ -714,3 +726,4 @@ def cnv_organizegenes( cnvs ):
                 var['other_genes'].append(gene['gene'])
         fixed_cnvs_genes.append(var)
     return fixed_cnvs_genes
+

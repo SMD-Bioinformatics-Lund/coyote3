@@ -41,4 +41,4 @@ EXPOSE 27017/tcp
 #    mongorestore mongodump; \
 #    mongod --shutdown;
 
-CMD docker-entrypoint.sh mongod
+# CMD docker-entrypoint.sh mongod

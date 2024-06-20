@@ -25,7 +25,7 @@ def main_screen(assay=None):
 
     # if no assay chosen, show all available samples to user
     # else only show samples if the user is part of assay
-    user_groups = current_user.get_groups()
+    user_groups = current_user.get_groups() 
     if assay:
         if assay in user_groups:
             user_groups = [assay]
@@ -57,8 +57,6 @@ def main_screen(assay=None):
         live_samples.append(samp)
       
     return render_template('main_screen.html', live_samples=live_samples, done_samples=done_samples, form=form )
-
-
 
 @main_bp.route("/panels/<string:assay>",methods=['GET', 'POST'])
 @main_bp.route("/panels/",methods=['GET', 'POST'])

@@ -7,43 +7,44 @@
     display: none;
   }
 </style>
-<span class="genefilter_generic">Sample:</span><a href="{{ url_for('variants_bp.list_variants', id=sample.name ) }}"> {{ sample.name
+<span class="genefilter_generic">Sample:</span><a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}"> {{
+  sample.name
   }}</a> |
 {% if "subpanel" in sample %}
-  Type:<b> {{ sample.subpanel }}</b> |
+Type:<b> {{ sample.subpanel }}</b> |
 {% endif %}
 {% if assay == "solid" %}
-  {% if "purity" in sample %}
-    Purity:<b> {{sample.purity * 100}}%</b> |
-  {% endif %}
-  {% if biomarker and biomarker.count() > 0 %}
-    {% for bio in biomarker %}  
-      {% if "MSIS" in bio %}
-        <div class="tooltip">MSI(Single):<span class="tooltiptext">Total: {{bio.MSIS.tot}} Somatic: {{bio.MSIS.som}}</span>
-        </div> <b>{{bio.MSIS.perc}}%</b> |
-      {% endif %}
-      {% if "MSIP" in bio %}
-        <div class="tooltip">MSI(Paired):<span class="tooltiptext">Total: {{bio.MSIP.tot}} Somatic: {{bio.MSIP.som}}</span>
-        </div> <b>{{bio.MSIP.perc}}%</b> |
-      {% endif %}
-      {% if "HRD" in bio %}
-        <div class="tooltip">HRD:<span class="tooltiptext">TAI: {{bio.HRD.tai}} HRD: {{bio.HRD.hrd}} LST: {{bio.HRD.lst}}</span>
-        </div><b> {{bio.HRD.sum}}</b> |
-      {% endif %}
-    {% endfor %}
-  {% endif %}
+{% if "purity" in sample %}
+Purity:<b> {{sample.purity * 100}}%</b> |
+{% endif %}
+{% if biomarker and biomarker.count() > 0 %}
+{% for bio in biomarker %}
+{% if "MSIS" in bio %}
+<div class="tooltip">MSI(Single):<span class="tooltiptext">Total: {{bio.MSIS.tot}} Somatic: {{bio.MSIS.som}}</span>
+</div> <b>{{bio.MSIS.perc}}%</b> |
+{% endif %}
+{% if "MSIP" in bio %}
+<div class="tooltip">MSI(Paired):<span class="tooltiptext">Total: {{bio.MSIP.tot}} Somatic: {{bio.MSIP.som}}</span>
+</div> <b>{{bio.MSIP.perc}}%</b> |
+{% endif %}
+{% if "HRD" in bio %}
+<div class="tooltip">HRD:<span class="tooltiptext">TAI: {{bio.HRD.tai}} HRD: {{bio.HRD.hrd}} LST: {{bio.HRD.lst}}</span>
+</div><b> {{bio.HRD.sum}}</b> |
+{% endif %}
+{% endfor %}
+{% endif %}
 {% endif %}
 
 {% if dispgenes %}
-  {% if checked_genelists %}
-    Gene Panel(s):
-    {% for list in checked_genelists %}
-      <span class="genefilter_name">{{list.replace("genelist_","")}}</span>
-    {% endfor %}
-    {{dispgenes|length}} genes:
-  {% endif %}
+{% if checked_genelists %}
+Gene Panel(s):
+{% for list in checked_genelists %}
+<span class="genefilter_name">{{list.replace("genelist_","")}}</span>
+{% endfor %}
+{{dispgenes|length}} genes:
+{% endif %}
 {% else %}
-  Gene Panel(s): <b>No genefilter applied</b>
+Gene Panel(s): <b>No genefilter applied</b>
 {% endif %}
 
 <p>
@@ -295,7 +296,8 @@
             </tr>
           </thead>
 
-          {% for cnv in cnvwgs if (cnv.ratio < -0.3 or cnv.ratio> 0.3 ) and ( (cnv.size|abs < (sizefilter|int) and cnv.size|abs >
+          {% for cnv in cnvwgs if (cnv.ratio < -0.3 or cnv.ratio> 0.3 ) and ( (cnv.size|abs < (sizefilter|int) and
+              cnv.size|abs>
               (sizefilter_min|int)) or cnv.ratio > 3 ) and ( cnv.panel_gene|intersect(dispgenes) or dispgenes|length ==
               0 or assay == "tumwgs" ) %}
               <tr {% if cnv.interesting %}class=include{% elif cnv.ratio> 3 and cnv.size > (sizefilter|int)
@@ -319,22 +321,22 @@
                 {% if assay == "solid" or assay == "gmsonco" %}
                 <td>{{cnv.callers}}</td>
                 {% if "gatk" in cnv.callers or "cnvkit" in cnv.callers %}
-                  <td>{{2*(2**cnv.ratio)|round(2)}} ({{cnv.ratio}})</td>
-                  {% if sample.purity %}
-                    {% if cnv.ratio > 0 %}
-                      <td>{{(2*(2**cnv.ratio)*1/sample.purity)|round(2)}}</td>
-                    {% else %}
-                      <td>{{(2*(2**cnv.ratio)*sample.purity)|round(2)}}</td>
-                    {% endif %}
-                  {% endif %}
-                {% if "manta" in cnv.callers %}
-                  <td>{{cnv.PR}}</td>
+                <td>{{2*(2**cnv.ratio)|round(2)}} ({{cnv.ratio}})</td>
+                {% if sample.purity %}
+                {% if cnv.ratio > 0 %}
+                <td>{{(2*(2**cnv.ratio)*1/sample.purity)|round(2)}}</td>
                 {% else %}
-                  <td>-</td>
+                <td>{{(2*(2**cnv.ratio)*sample.purity)|round(2)}}</td>
+                {% endif %}
+                {% endif %}
+                {% if "manta" in cnv.callers %}
+                <td>{{cnv.PR}}</td>
+                {% else %}
+                <td>-</td>
                 {% endif %}
                 {% else %}
                 {% if assay == "solid" %}
-                  <td>-</td> 
+                <td>-</td>
                 {% endif %}
                 <td>-</td>
                 <td>{{cnv.PR}}</td>
@@ -370,7 +372,7 @@
               </tr>
             </thead>
 
-            {% for cnv in cnvwgs_n if (cnv.ratio < -0.4 or cnv.ratio > 0.4) and cnv.size < (sizefilter|int) and cnv.size>
+            {% for cnv in cnvwgs_n if (cnv.ratio < -0.4 or cnv.ratio> 0.4) and cnv.size < (sizefilter|int) and cnv.size>
                 (sizefilter_min|int) %}
                 <tr {% if cnv.interesting %}class=include{% endif %}>
                   {% set non_panel_genes = [0] %}
@@ -391,15 +393,15 @@
                   <td>{{cnv.size}} bp</td>
                   <td>{{cnv.callers}}</td>
                   {% if "gatk" in cnv.callers or "cnvkit" in cnv.callers %}
-                   {%if cnv.ratio == "DEL" or cnv.ratio == "DUP" %}
-                    <td> cnv.ratio </td>
-                   {% else %}
-                   <td>{{2*(2**cnv.ratio)|round(2)}} ({{cnv.ratio}})</td>
-                   {% endif %}
-                  
+                  {%if cnv.ratio == "DEL" or cnv.ratio == "DUP" %}
+                  <td> cnv.ratio </td>
                   {% else %}
-                   <td> - </td>
-                   {% endif %}
+                  <td>{{2*(2**cnv.ratio)|round(2)}} ({{cnv.ratio}})</td>
+                  {% endif %}
+
+                  {% else %}
+                  <td> - </td>
+                  {% endif %}
                   <td>{% if cnv.interesting %}report{% endif %}</td>
                   <td><a href="../cnvwgs/{{ cnv._id }}">view</a></td>
                 </tr>
@@ -448,19 +450,20 @@
     {% endif %}
 
     {% if sample.cnvprofile %}
-      {% set build = 37 %}
-      {% if "genome_build" in sample %}
-        {% set build = sample.genome_build %}
-      {% endif %}
-      <a href="{{ url_for('show_any_plot', fn=sample.cnvprofile|basename , assay=assay, build=build|int ) }}"><img style='width:800px' class="cnv_plot"
-            src="{{ url_for('show_any_plot', fn=sample.cnvprofile|basename , assay=assay, build=build|int ) }}"></a><br>
-      {% if build|int == 38 %}
-        {% for type, sample_id in sample_ids.items() %}
-          <br><a href="http://10.231.229.34/gens/{{sample_id}}?hg_type=38">Open <b>{{sample_id}}</b> ({{type}}) in Gens</a>
-        {% endfor %}
-      {% else %}
-        <br><a href="http://10.231.229.21/gens/{{ sample.name }}?region=1">Show in Gens</a></b>
-      {% endif %}
+    {% set build = 37 %}
+    {% if "genome_build" in sample %}
+    {% set build = sample.genome_build %}
+    {% endif %}
+    <a href="{{ url_for('show_any_plot', fn=sample.cnvprofile|basename , assay=assay, build=build|int ) }}"><img
+        style='width:800px' class="cnv_plot"
+        src="{{ url_for('show_any_plot', fn=sample.cnvprofile|basename , assay=assay, build=build|int ) }}"></a><br>
+    {% if build|int == 38 %}
+    {% for type, sample_id in sample_ids.items() %}
+    <br><a href="http://10.231.229.34/gens/{{sample_id}}?hg_type=38">Open <b>{{sample_id}}</b> ({{type}}) in Gens</a>
+    {% endfor %}
+    {% else %}
+    <br><a href="http://10.231.229.21/gens/{{ sample.name }}?region=1">Show in Gens</a></b>
+    {% endif %}
     {% endif %}
 
 
@@ -789,19 +792,6 @@
   </div>
 </div>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 <div id="sample_comments">
 
   {% if sample.comments|length > 0 %}
@@ -863,8 +853,6 @@
   <div id="suggestion" style="display: none;">{{ai_text}}</div>
 </div>
 
-
-
 <div id="lowcovlist_div" style="display:none; clear:left;">
   <table class="sortable">
     <thead>
@@ -901,8 +889,6 @@
     </tbody>
   </table>
 </div>
-
-
 
 <script>
 

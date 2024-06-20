@@ -71,9 +71,14 @@ def register_blueprints(app) -> None:
     app.register_blueprint(login_bp)
 
     # Show Case Variants
-    bp_debug_msg("varaints_bp")
+    bp_debug_msg("variants_bp")
     from coyote.blueprints.variants import variants_bp
     app.register_blueprint(variants_bp)
+
+    # Show Case fusions
+    bp_debug_msg("fusions_bp")
+    from coyote.blueprints.fusions import fusions_bp
+    app.register_blueprint(fusions_bp)
 
 
 def init_login_manager(app) -> None:
