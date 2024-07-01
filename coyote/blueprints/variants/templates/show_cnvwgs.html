@@ -1,0 +1,238 @@
+{% extends "layout.html" %}
+
+{% block body %}
+
+{% set gens_id = sample.name|replace("-wgs","",1) %}
+
+Variant in sample <a href="{{ url_for('variants_bp.list_variants', id=sample.name ) }}">{{ sample.name }}</a><p>
+<div id="var_main">
+
+  <div id="var_info">  
+
+    <span class="table_header">Variant annotation</span>
+    <table class="variant">
+      <thead><tr><th>Key</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>CNV type:</td><td>{% if cnv.ratio > 0 %}AMP{% else %}DEL{% endif %}</td></tr>
+        <tr><td>CNV size:</td><td>{{ cnv.size }} bp</td></tr>
+        {% if "gatk" in cnv.callers or "cnvkit" in cnv.callers or 'callers' not in cnv %}
+        <tr><td>CN call:</td><td>{{ 2*(2**cnv.ratio)|round(2) }} copies</td></tr>  
+        <tr><td>Log2 ratio:</td><td>{{ cnv.ratio|round(2) }}</td></tr>
+        {% endif %}
+        {% if cnv.PR %}
+        <tr><td>Spanning Paired Reads:</td><td>{{ cnv.PR }}</td></tr>
+        {% endif %}
+        {% if cnv.SR %}
+        <tr><td>Split Reads:</td><td>{{ cnv.SR }}</td></tr>
+        {% endif %}
+        {% if cnv.callers %}
+        <tr><td>Callers:</td><td>{{ cnv.callers }}</td></tr>
+        {% endif %}
+        <tr><td>Genes from panel:</td><td>{% for gene in cnv.genes %}{% if gene.class %}<b>{{gene.gene}}</b> (CNV type: {{ gene.cnv_type }})<br>{% endif %}{% endfor %}</td></tr>
+        <tr><td>Other overlapping genes:</td><td>{% for gene in cnv.genes %}{% if not gene.class %}{{gene.gene}}<br>{% endif %}{% endfor %}</td></tr>
+
+        {% if "tumwgs" in sample.groups %}
+          {% if sample.gensNorm %}
+          <tr><td colspan=2><a href="http://10.231.229.34/gens/{{ sample.gens }}?region={{cnv.chr}}:{{cnv.start-1000}}-{{cnv.end+1000}}" target='_blank'>Show in Gens case </a>
+            <br><a href="http://10.231.229.34/gens/{{ sample.gensNorm }}?region={{cnv.chr}}:{{cnv.start-1000}}-{{cnv.end+1000}}" target='_blank'> Show in Gens control </a></td></tr>
+          {% else %}
+          <tr><td colspan=2><br><a href="http://10.231.229.34/gens/{{gens_id}}?region=1">Show in Gens</a></b></td></tr>
+          {% endif %}
+        {% else %}
+          {% for type, sample_id in sample_ids.items() %}
+            <tr><td colspan=2><a href="http://10.231.229.34/gens/{{sample_id}}?region={{cnv.chr}}:{{cnv.start-1000}}-{{cnv.end+1000}}" target='_blank'><b>Show {{type}} in Gens</b></a></td></tr>
+          {% endfor %}
+        {% endif %}
+
+
+        {% set subfolder = {'dir': "None"} %}
+        {% for sample_id,bam_path in bam_id.items() %}
+        <tr>
+          <td>
+            IGV({{sample_id}}):
+          </td>
+          <td> 
+            {% for path in bam_path %}
+            {% set list1 = path.split('/') %}
+            {% if subfolder.update( { 'dir': list1[0] } ) %} {% endif %}
+            <a href="http://localhost:60151/load?file=/R:{{path}}&locus={{cnv.chr}}:{{cnv.start}}-{{cnv.end}}">{{list1[0]}}</a>
+            <a href="http://localhost:60151/load?file=/R:{{path}}&locus={{cnv.chr}}:{{cnv.start-50}}-{{cnv.start+50}}">[left]</a>
+            <a href="http://localhost:60151/load?file=/R:{{path}}&locus={{cnv.chr}}:{{cnv.end-50}}-{{cnv.end+50}}">[right]</a>
+            {% endfor %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% if assay == "tumwgs" or assay == "fusion" %}
+        {% else %}
+        <tr>
+          <td>
+            Design-BED
+          </td>
+          <td>
+            {% if subfolder.dir != "None" %}
+            <a href="http://localhost:60151/load?file=/R:{{subfolder.dir}}/BED/design.bed">open</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+  {% if current_user.get_role() != "readonly" %}
+  <div id="var_actions">
+
+    {% if cnv.interesting == true %}
+      <form action="{{ url_for('unmark_interesting_cnv', id=cnv._id) }}" method="post">
+        <input class='inv' type="submit" name="mark_int" value="Exclude from report">
+      </form>
+    {% else %}
+      <form action="{{ url_for('mark_interesting_cnv', id=cnv._id) }}" method="post">
+        <input type="submit" name="mark_int" value="Include in report">
+      </form>      
+    {% endif %}
+
+
+    
+    {% if cnv.fp == true %}
+      <form action="{{ url_for('unmark_false_cnv', id=cnv._id) }}" method="post">
+        <input class='inv' type="submit" name="mark_fp" value="Unmark false positive">
+      </form>    
+    {% else %}
+      <form action="{{ url_for('mark_false_cnv', id=cnv._id) }}" method="post">
+        <input type="submit" name="mark_fp" value="Mark as false positive">
+      </form>
+    {% endif %}
+
+  </div>  
+  {% endif %}
+  </div>
+  <div id="var_comments">
+    {% if current_user.get_role() != "readonly" %}
+    <span class="table_header">Add new comment/annotation</span>
+    <div id="commenting_box">
+      <form action="{{ url_for('add_variant_comment', id=cnv._id) }}" method="post">
+	<textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..."></textarea><br>
+
+	<input type="hidden" name="cnvvar" value="{{cnv.chr}}:{{cnv.start}}-{{cnv.end}}">
+
+	<input type="submit" value="Save">&nbsp;&nbsp;
+	<input type="checkbox" name="global" value="global"> Use as global annotation
+
+      </form>
+    </div>
+    {% endif %}
+
+    {% if cnv.comments|length > 0 and current_user.get_role() != "readonly" %}
+    <div style='clear:left;'>
+      <span class="table_header">Sample-specific variant comments</span>
+      <table class="comments" id="variant_comments">
+	<thead><tr><th>Who</th><th>Comment</th><th></th></tr></thead>
+	<tbody>
+    {% for comment in cnv.comments|sort(attribute='time_created', reverse=True) %}
+    {% if comment.hidden != 1 %}
+    <tr>
+      {% else %}
+    <tr class="hidden_comment hidden">
+      {% endif %}
+      <td class="comment" style="white-space: nowrap"><b>{{ comment.author }}</b><br><small>{{ comment.time_created|human_date }}</small></td>
+      <td class="comment" onclick="addText(event)">{{ comment.text|format_comment|safe }}</td>
+      <td class="comment">
+        {% if comment.hidden != 1 %}
+        <form action="{{ url_for('hide_cnv_comment', cnv_id=cnv._id) }}" method="post">
+		<input type="hidden" name="comment_id" value="{{ comment._id }}">
+		<input id="hide_comment" type="image" width=15 src="{{ url_for('static', filename='delete.png') }}">
+        </form>
+        {% else %}
+        <form action="{{ url_for('unhide_cnv_comment', cnv_id=cnv._id) }}" method="post">
+		<input type="hidden" name="comment_id" value="{{ comment._id }}">
+		<input id="unhide_comment" type="image" width=15 src="{{ url_for('static', filename='unhide.png') }}">
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    {% if hidden_comments != 0 %}
+    <tr>
+      <td colspan=4 style='border-top:1px solid #ccc; font-size:10px; padding-bottom:2px; padding-top:2px; text-align:center;'>
+        <a href="javascript:void(0)" onclick="switchVisibility_comments('hidden_comment')"><b>Show/hide deleted comments</b></a>
+      </td>
+    </tr>
+    {% endif %}
+
+	</tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if annotations|length > 0 %}
+    <div style='clear:left;'>
+      <span class="table_header">Variant annotations</span>
+      <table class="annotatations" id="variant_annotations">
+	<thead><tr><th>Who</th><th>Annotation</th></tr></thead>
+	<tbody>
+    {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
+    {% if current_user.get_role() != "readonly" or loop.first == True %}
+    <tr>
+      <td class="annotation" style="white-space: nowrap"><b>{{ anno.author }}</b><br><small>{{ anno.time_created|human_date }}</small></td>
+      <td class="annotation" onclick="addText(event)">{{ anno.text|format_comment|safe }}</td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+
+	</tbody>
+      </table>
+    </div>
+    {% endif %}
+
+  </div>
+  
+  </div>
+
+
+  <script type="text/javascript">
+    $("#test").select2();
+
+    window.onload = function() {
+      $('[data-autoclick="true"]').click();
+      $('[data-autoclick="true"]').click();
+    };
+
+    function switchVisibility(class_name) {
+      var hide_class = "hidden";
+      var elems = document.getElementsByClassName(class_name);
+
+      for (var i = 0; i < elems.length; i++) {
+        if( elems[i].classList.contains(hide_class) ) {
+    elems[i].classList.remove(hide_class);
+	}
+	else {
+    elems[i].classList.add(hide_class);
+	}
+      }
+    }
+			
+  function switchVisibility_comments(class_name) {
+    var hide_class = "hidden";
+
+    var elems = document.getElementsByClassName(class_name);
+
+    for (var i = 0; i < elems.length; i++) {
+      if( elems[i].classList.contains(hide_class) ) {
+        elems[i].classList.remove(hide_class);
+      }
+      else {
+        elems[i].classList.add(hide_class);
+      }
+    }
+  }
+
+
+  function addText(event) {
+    var targ = event.target || event.srcElement;
+    document.getElementById("comment_textarea").value = targ.textContent || targ.innerText;
+  }
+			
+  </script>
+
+
+{% endblock %} 

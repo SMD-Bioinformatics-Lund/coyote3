@@ -391,15 +391,15 @@
                   <td>{{cnv.size}} bp</td>
                   <td>{{cnv.callers}}</td>
                   {% if "gatk" in cnv.callers or "cnvkit" in cnv.callers %}
-                   {%if cnv.ratio == "DEL" or cnv.ratio == "DUP" %}
+                    {%if cnv.ratio == "DEL" or cnv.ratio == "DUP" %}
                     <td> cnv.ratio </td>
-                   {% else %}
-                   <td>{{2*(2**cnv.ratio)|round(2)}} ({{cnv.ratio}})</td>
-                   {% endif %}
-                  
+                    {% else %}
+                    <td>{{2*(2**cnv.ratio)|round(2)}} ({{cnv.ratio}})</td>
+                    {% endif %}
+                    
                   {% else %}
-                   <td> - </td>
-                   {% endif %}
+                  <td> - </td>
+                  {% endif %}
                   <td>{% if cnv.interesting %}report{% endif %}</td>
                   <td><a href="../cnvwgs/{{ cnv._id }}">view</a></td>
                 </tr>

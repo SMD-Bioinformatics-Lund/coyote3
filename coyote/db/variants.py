@@ -1,6 +1,8 @@
 import pymongo
 from bson.objectid import ObjectId
 from flask import current_app as app
+from flask_login import current_user
+from datetime import datetime
 
 
 class VariantsHandler:
@@ -145,5 +147,116 @@ class VariantsHandler:
         """
         self.variants_collection.update_one(
             {"_id": ObjectId(variant_id)}, {"$set": {"irrelevant": irrelevant}}
+        )
+        return None
+
+    def insert_classified_variant(
+        self, variant: str, nomenclature: str, class_num: int, variant_data: dict
+    ) -> None:
+        """
+        Insert Classified variant
+        """
+        if nomenclature != "f":
+            self.annotations_collection.insert_one(
+                {
+                    "class": class_num,
+                    "author": current_user.get_id(),
+                    "time_created": datetime.now(),
+                    "variant": variant,
+                    "nomenclature": nomenclature,
+                    "transcript": variant_data.get("transcript", None),
+                    "gene": variant_data.get("gene", None),
+                    "assay": variant_data.get("assay", None),
+                    "subpanel": variant_data.get("subpanel", None),
+                }
+            )
+        else:
+            self.annotations_collection.insert_one(
+                {
+                    "class": class_num,
+                    "author": current_user.get_id(),
+                    "time_created": datetime.now(),
+                    "variant": variant,
+                    "nomenclature": nomenclature,
+                    "gene1": variant_data.get("gene1", None),
+                    "gene2": variant_data.get("gene2", None),
+                    "assay": variant_data.get("assay", None),
+                    "subpanel": variant_data.get("subpanel", None),
+                }
+            )
+        return None
+
+    def delete_classified_variant(
+        self, variant: str, nomenclature: str, variant_data: dict
+    ) -> list | pymongo.results.DeleteResult:
+        """
+        Delete Classified variant
+        """
+        num_assay = list(
+            self.annotations_collection.find(
+                {
+                    "class": {"$exists": True},
+                    "variant": variant,
+                    "assay": variant_data.get("assay", None),
+                    "gene": variant_data.get("gene", None),
+                    "nomenclature": nomenclature,
+                    "subpanel": variant_data.get("subpanel", None),
+                }
+            )
+        )
+        user_groups = current_user.get_groups()
+        ## If variant has no match to current assay, it has an historical variant, i.e. not assigned to an assay. THIS IS DANGEROUS, maybe limit to admin?
+        if len(num_assay) == 0 and "admin" in user_groups:
+            per_assay = list(
+                self.annotations_collection.find(
+                    {
+                        "class": {"$exists": True},
+                        "variant": variant,
+                        "gene": variant_data.get("gene", None),
+                        "nomenclature": nomenclature,
+                    }
+                )
+            )
+        else:
+            per_assay = self.annotations_collection.delete_many(
+                {
+                    "class": {"$exists": True},
+                    "variant": variant,
+                    "assay": variant_data.get("assay", None),
+                    "gene": variant_data.get("gene", None),
+                    "nomenclature": nomenclature,
+                    "subpanel": variant_data.get("subpanel", None),
+                }
+            )
+
+        return per_assay
+
+    def hide_var_comment(self, id: str, comment_id: str) -> None:
+        """
+        Hide variant comment
+        """
+        self.variants_collection.update_one(
+            {"_id": ObjectId(id), "comments._id": ObjectId(comment_id)},
+            {
+                "$set": {
+                    "comments.$.hidden": 1,
+                    "comments.$.hidden_by": current_user.get_id(),
+                    "comments.$.time_hidden": datetime.now(),
+                }
+            },
+        )
+        return None
+
+    def unhide_variant_comment(self, id: str, comment_id: str) -> None:
+        """
+        Unhide variant comment
+        """
+        self.variants_collection.update_one(
+            {"_id": ObjectId(id), "comments._id": ObjectId(comment_id)},
+            {
+                "$set": {
+                    "comments.$.hidden": 0,
+                }
+            },
         )
         return None

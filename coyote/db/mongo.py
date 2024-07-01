@@ -59,6 +59,7 @@ class MongoAdapter(
         self.canonical_collection = self.coyote_db["refseq_canonical"]
         self.annotations_collection = self.coyote_db["annotation"]
         self.cnvs_collection = self.coyote_db["cnvs_wgs"]
+        self.fusion_collection = self.coyote_db["fusions"]
         self.transloc_collection = self.coyote_db["transloc"]
         self.biomarkers_collection = self.coyote_db["biomarkers"]
         self.expression_collection = self.coyote_db["hpaexpr"]

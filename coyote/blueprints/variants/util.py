@@ -3,6 +3,10 @@ from collections import defaultdict
 import re
 from math import floor, log10
 import subprocess
+from datetime import datetime
+from flask_login import current_user
+from bson.objectid import ObjectId
+from coyote.extensions import store
 
 
 def get_group_defaults(group):
@@ -949,7 +953,6 @@ def send_sanger_email(html: str, gene: str) -> bool:
     """
     Send Sanger Email
     """
-
     return subprocess.check_output(
         [
             app.config["SANGER_EMAIL_SCRIPT"],
@@ -958,3 +961,98 @@ def send_sanger_email(html: str, gene: str) -> bool:
             html,
         ]
     ).decode("utf-8")
+
+
+def get_tier_classification(data: dict) -> int:
+    """
+    Get the tier classification for the variant
+    """
+    tiers = {"tier1": 1, "tier2": 2, "tier3": 3, "tier4": 4}
+    class_num = 0
+    for key, value in tiers.items():
+        if data.get(key, None) is not None:
+            class_num = value
+
+    return class_num
+
+
+def get_variant_nomenclature(data: dict) -> str:
+    """
+    Get the nomenclature for the variant
+    """
+    nomenclature = "p"
+    var_nomenclature = {
+        "var_p": "p",
+        "var_c": "c",
+        "fusionpoints": "f",
+        "var_g": "g",
+        "translocpoints": "t",
+        "cnvvar": "cn",
+    }
+    for key, value in var_nomenclature.items():
+        if key in data:
+            variant = data.get(key, None)
+            nomenclature = value
+            break
+
+    return nomenclature, variant
+
+
+def create_var_comment_doc(nomenclature: str, variant: str, data: dict) -> dict:
+    """
+    Create a variant comment document
+    """
+    if data.get("global", None) == "global":
+        doc = {
+            "text": data.get("text"),  # common
+            "author": current_user.get_id(),  # common
+            "time_created": datetime.now(),  # common
+            "variant": variant,  # common
+            "nomenclature": nomenclature,  # common
+            "assay": data.get("assay", None),  # common
+            "subpanel": data.get("subpanel", None),  # common
+        }
+        if nomenclature not in ["f", "t", "cn"]:
+            doc["gene"] = data.get("gene", None)
+            doc["transcript"] = data.get("transcript", None)
+        elif nomenclature == "f":
+            doc["gene1"] = data.get("gene1", None)
+            doc["gene2"] = data.get("gene2", None)
+        elif nomenclature == "t":
+            doc["gene1"] = data.get("gene1", None)
+            doc["gene2"] = data.get("gene2", None)
+        elif nomenclature == "cn":
+            pass
+    else:
+        doc = {
+            "$push": {
+                "comments": {
+                    "_id": ObjectId(),
+                    "hidden": 0,
+                    "text": data.get("text"),
+                    "author": current_user.get_id(),
+                    "time_created": datetime.now(),
+                }
+            }
+        }
+
+    return doc
+
+
+def insert_var_comment(id: str, nomenclature: str, doc: dict, _type: str) -> None:
+    """
+    Insert variant comment
+    """
+    if _type == "global":
+        store.annotations_collection.insert_one(doc)
+    else:
+        if nomenclature == "f":
+            store.fusion_collection.update({"_id": ObjectId(id)}, doc)
+        elif nomenclature == "t":
+            store.transloc_collection.update({"_id": ObjectId(id)}, doc)
+        elif nomenclature == "cn":
+            store.cnvs_collection.update({"_id": ObjectId(id)}, doc)
+        else:
+            store.variants_collection.update({"_id": ObjectId(id)}, doc)
+
+    return None

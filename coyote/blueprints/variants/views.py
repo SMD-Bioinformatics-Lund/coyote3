@@ -499,3 +499,187 @@ def order_sanger(id):
     email_status = util.send_sanger_email(html, tx_info["SYMBOL"])
 
     return redirect(url_for("show_variant", id=id))
+
+
+@app.route("/var/classify/<string:id>", methods=["POST"])
+@login_required
+def classify_variant(id):
+    form_data = request.form.to_dict()
+    class_num = util.get_tier_classification(form_data)
+
+    nomenclature, variant = util.get_variant_nomenclature(form_data)
+    if class_num != 0:
+        store.insert_classified_variant(variant, nomenclature, class_num, form_data)
+
+    if class_num != 0:
+        if nomenclature == "f":
+            return redirect(url_for("show_fusion", id=id))
+
+    return redirect(url_for("show_variant", id=id))
+
+
+@app.route("/var/rmclassify/<string:id>", methods=["POST"])
+@login_required
+def remove_classified_variant(id):
+    form_data = request.form.to_dict()
+    nomenclature, variant = util.get_variant_nomenclature(form_data)
+    per_assay = store.delete_classified_variant(variant, nomenclature, form_data)
+    app.logger.debug(per_assay)
+    return redirect(url_for("show_variant", id=id))
+
+
+@app.route("/var/comment/<string:id>", methods=["POST"])
+@login_required
+def add_variant_comment(id):
+    """
+    Add a comment to a variant
+    """
+
+    # If global checkbox. Save variant with the protein, coding och genomic nomenclature in decreasing priority
+    form_data = request.form.to_dict()
+    nomenclature, variant = util.get_variant_nomenclature(form_data)
+    doc = util.create_var_comment_doc(nomenclature, variant, form_data)
+    _type = form_data.get("global", None)
+    util.insert_var_comment(
+        id,
+        nomenclature,
+        doc,
+        _type,
+    )
+
+    if nomenclature == "f":
+        return redirect(url_for("show_fusion", id=id))
+    elif nomenclature == "t":
+        return redirect(url_for("show_transloc", id=id))
+    elif nomenclature == "cn":
+        return redirect(url_for("show_cnvwgs", id=id))
+
+    return redirect(url_for("show_variant", id=id))
+
+
+@app.route("/var/hide_variant_comment/<string:var_id>", methods=["POST"])
+@login_required
+def hide_variant_comment(var_id):
+    comment_id = request.form.get("comment_id", "MISSING_ID")
+    store.hide_var_comment(var_id, comment_id)
+    return redirect(url_for("show_variant", id=var_id))
+
+
+@app.route("/var/unhide_variant_comment/<string:var_id>", methods=["POST"])
+@login_required
+def unhide_variant_comment(var_id):
+    comment_id = request.form.get("comment_id", "MISSING_ID")
+    store.unhide_variant_comment(var_id, comment_id)
+    return redirect(url_for("show_variant", id=var_id))
+
+
+###### CNVS VIEW PAGE #######
+@app.route("/cnvwgs/<string:id>")
+@login_required
+def show_cnvwgs(id):
+    """
+    Show CNVs view page
+    """
+    cnv = store.get_cnv(id)
+    sample = store.get_sample_with_id((cnv["SAMPLE_ID"]))
+    assay = util.get_assay_from_sample(sample)
+    sample_ids = store.get_sample_ids(str(sample["_id"]))
+    bam_id = store.get_bams(sample_ids)
+
+    annotations = store.get_cnv_annotations(cnv)
+    return render_template(
+        "show_cnvwgs.html",
+        cnv=cnv,
+        sample=sample,
+        classification=999,
+        annotations=annotations,
+        sample_ids=sample_ids,
+        bam_id=bam_id,
+    )
+
+
+@app.route("/var/uninterestcnv/<string:id>", methods=["POST"])
+@login_required
+def unmark_interesting_cnv(id):
+    """
+    Unmark CNV as interesting
+    """
+
+    store.is_intresting_cnv(id, False)
+    return redirect(url_for("show_cnvwgs", id=id))
+
+
+@app.route("/var/interestcnv/<string:id>", methods=["POST"])
+@login_required
+def mark_interesting_cnv(id):
+    """
+    Mark CNV as interesting
+    """
+    store.is_intresting_cnv(id, True)
+    return redirect(url_for("show_cnvwgs", id=id))
+
+
+@app.route("/var/fpcnv/<string:id>", methods=["POST"])
+@login_required
+def mark_false_cnv(id):
+    """
+    Mark CNV as false positive
+    """
+    store.mark_false_positive_cnv(id, True)
+    return redirect(url_for("show_cnvwgs", id=id))
+
+
+@app.route("/var/unfpcnv/<string:id>", methods=["POST"])
+@login_required
+def unmark_false_cnv(id):
+    """
+    Unmark CNV as false positive
+    """
+    store.mark_false_positive_cnv(id, False)
+    return redirect(url_for("show_cnvwgs", id=id))
+
+
+@app.route("/cnvwgs/hide_variant_comment/<string:cnv_id>", methods=["POST"])
+@login_required
+def hide_cnv_comment(cnv_id):
+    """
+    Hide CNV comment
+    """
+    comment_id = request.form.get("comment_id", "MISSING_ID")
+    store.hide_cnvs_comment(cnv_id, comment_id)
+    return redirect(url_for("show_cnvwgs", id=cnv_id))
+
+
+@app.route("/cnvwgs/unhide_variant_comment/<string:cnv_id>", methods=["POST"])
+@login_required
+def unhide_cnv_comment(cnv_id):
+    """
+    Un Hide CNV comment
+    """
+    comment_id = request.form.get("comment_id", "MISSING_ID")
+    store.unhide_cnvs_comment(cnv_id, comment_id)
+    return redirect(url_for("show_cnvwgs", id=cnv_id))
+
+
+###### TRANSLOCATIONS VIEW PAGE #######
+@app.route("/transloc/<string:id>")
+@login_required
+def show_transloc(id):
+    """
+    Show Translocation view page
+    """
+    transloc = app.config["TRANSLOC_COLL"].find_one({"_id": ObjectId(id)})
+    sample = app.config["SAMPLES_COLL"].find_one({"_id": ObjectId(transloc["SAMPLE_ID"])})
+    assay = get_assay_from_sample(sample)
+    sample_ids = get_sample_ids(str(sample["_id"]))
+    bam_id = get_bams(sample_ids)
+
+    annotations = get_transloc_annotations(transloc)
+    return render_template(
+        "show_transloc.html",
+        tl=transloc,
+        sample=sample,
+        classification=999,
+        annotations=annotations,
+        bam_id=bam_id,
+    )

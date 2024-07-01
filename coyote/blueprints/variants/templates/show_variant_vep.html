@@ -432,7 +432,7 @@ Variant in sample <a href="{{ url_for('variants_bp.list_variants', id=sample.nam
       {#% endif %#}
     
       {% if current_user.get_role() != "readonly" %}
-      <form id="form" action="{# TODO {{ url_for('classify_variant', id=variant._id) }} TODO #}" method="post" class="class_form" >
+      <form id="form" action="{{ url_for('classify_variant', id=variant._id) }}" method="post" class="class_form" >
 
     <input type="hidden" name="assay" value="{{ assay }}">
     <input type="hidden" name="subpanel" value="{{ subpanel }}">
@@ -451,7 +451,7 @@ Variant in sample <a href="{{ url_for('variants_bp.list_variants', id=sample.nam
   <button id="tier4" class="tier {% if classification.class == 999 %}a{% elif classification.class == 4 %}selected_tier{% else %}unselected_tier{% endif %}" title="Variants deemed benign or likely benign" type="submit" name="tier4">IV</button>
   </form>
     
-  <form id="form" action="{# TODO {{ url_for('remove_classified_variant', id=variant._id) }} TODO #}" method="post" class="class_form" >
+  <form id="form" action="{{ url_for('remove_classified_variant', id=variant._id) }}" method="post" class="class_form" >
     <input type="hidden" name="assay" value="{{ assay }}">
     <input type="hidden" name="subpanel" value="{{ subpanel }}">
     {% if sel_csq.HGVSc is defined %}
@@ -493,7 +493,7 @@ Variant in sample <a href="{{ url_for('variants_bp.list_variants', id=sample.nam
     {% if current_user.get_role() != "readonly" %}
     <span class="table_header">Add new comment/annotation</span>
     <div id="commenting_box">
-      <form action="{# TODO {{ url_for('add_variant_comment', id=variant._id) }} TODO #}" method="post">
+      <form action="{{ url_for('add_variant_comment', id=variant._id) }}" method="post">
   <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..."></textarea><br>
     
   {% if sel_csq.HGVSc is defined %}
@@ -547,7 +547,6 @@ Variant in sample <a href="{{ url_for('variants_bp.list_variants', id=sample.nam
           </td>
         </tr>
   {% endif %}
-    
       </tbody>
       </table>
       </div>
