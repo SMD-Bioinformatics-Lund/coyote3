@@ -1,0 +1,273 @@
+{% extends "layout.html" %}
+
+{% block body %}
+
+Variant in sample <a href="{{ url_for('variants_bp.list_variants', id=sample.name ) }}">{{ sample.name }}</a><p>
+<div id="var_main">
+
+  <div id="var_info">  
+    {% set sel_ann = tl.INFO.MANE_ANN or tl.INFO.ANN[0] %}
+    {% set genes = sel_ann.Gene_Name.split('&') %}
+    <span class="table_header">Variant annotation</span>
+    <table class="variant">
+      <thead><tr><th>Key</th><th>Value</th></tr></thead>
+      <tbody>
+	<tr><td>Genomic junction:</td><td>{{tl.CHROM}}:{{tl.POS}} - {{tl.ALT}}</td></tr>
+	<tr><td>Gene 1:</td><td>{{genes[0]}}</td></tr>
+	<tr><td>Gene 2:</td><td>{{genes[1]}}</td></tr>
+	<tr><td>Consequence:</td><td>{% for annot in sel_ann.Annotation%}{{annot}}<br>{% endfor %}</td></tr>
+	<tr><td>HGVS.c</td><td>{{sel_ann.HGVSc|unesc}}</td></tr>
+        <tr><td>HGVS.p</td><td>{{sel_ann.HGVSp|unesc}}</td></tr>
+	<tr><td>Exon rank</td><td>{{sel_ann.Rank}}</td></tr>
+	<tr><td>Panel info</td><td>{{tl.INFO.PANEL}}</td></tr>
+  {% for sample_id,bam_path in bam_id.items() %}
+    {% set gene2 = tl.ALT.split(':') %}
+    {% set gene2_chr = gene2[0]|regex_replace("\D+","") %}
+    {% set gene2_pos = gene2[1]|regex_replace("\D+","") %}
+      <tr>
+        <td>IGV({{sample_id}}):</td>
+          <td> 
+            {% for path in bam_path %}
+            {% set list1 = path.split('/') %}
+            <a href="http://localhost:60151/load?file=/R:{{path}}&locus={{tl.CHROM}}:{{tl.POS}}">{{list1[0]}}[{{genes[0]}}]</a>
+            <a href="http://localhost:60151/load?file=/R:{{path}}&locus={{gene2_chr}}:{{gene2_pos}}">[{{genes[1]}}]</a>
+            {% endfor %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  {% if current_user.get_role() != "readonly" %}
+  <div id="var_actions">
+
+    {% if tl.interesting == true %}
+      <form action="{{ url_for('unmark_interesting_transloc', id=tl._id) }}" method="post">
+        <input class='inv' type="submit" name="mark_int" value="Exclude from report">
+      </form>
+    {% else %}
+      <form action="{{ url_for('mark_interesting_transloc', id=tl._id) }}" method="post">
+        <input type="submit" name="mark_int" value="Include in report">
+      </form>      
+    {% endif %}
+
+
+    
+    {% if tl.fp == true %}
+      <form action="{{ url_for('unmark_false_transloc', id=tl._id) }}" method="post">
+        <input class='inv' type="submit" name="mark_fp" value="Unmark false positive">
+      </form>    
+    {% else %}
+      <form action="{{ url_for('mark_false_transloc', id=tl._id) }}" method="post">
+        <input type="submit" name="mark_fp" value="Mark as false positive">
+      </form>
+    {% endif %}
+
+  </div>  
+  {% endif %}
+  </div>
+
+  <div id='var_moreinfo'>
+    <span class="table_header">Sample-specific data</span>
+    <table>
+      <thead>
+        <tr>
+          <th>Sample ID</th>
+          <th># spanning reads</th>
+          <th>%</th>
+          <th># split reads</th>
+          <th>%</th>
+          {% if tl.INFO.UR %}
+          <th>unique reads</th>
+          {% endif %}
+          {% if tl.INFO.set %}
+          <th>callers</th>
+          {% endif %}
+        </tr></thead>
+      {% for gt in tl.GT %}
+      {% if gt.PR %}
+      {% set PR = gt.PR.split(',') %}
+      {% set PR_sum = PR[0]|int+PR[1]|int %}
+      {% endif %}
+      {% if gt.SR %}
+        {% set SR = gt.SR.split(',') %}
+        {% set SR_sum = SR[0]|int+SR[1]|int %}
+      {% endif %}
+      <tr>
+	<td>{{gt.sample}}</td>
+  {% if gt.PR %}
+	<td>{{PR[1]}}/{{PR_sum}}</td>
+	<td>{{(100*PR[1]|float/PR_sum|float)|round(2)}} %</td>
+	{% else %}
+	<td>N/A</td>
+	<td>N/A</td>
+  {% endif %}
+	{% if gt.SR %}
+	<td>{{SR[1]}}/{{SR_sum}}</td>
+	<td>{{(100*SR[1]|float/SR_sum|float)|round(2)}} %</td>
+	{% else %}
+	<td>N/A</td>
+	<td>N/A</td>
+	{% endif %}
+  {% if tl.INFO.UR %}
+  <td>{{tl.INFO.UR}}</td>
+  {% endif %}
+  {% if tl.INFO.set %}
+  {% if tl.INFO.set == "Intersection" %}
+  <td>manta&genefuse</td>
+  {% else %}
+  <td>{{tl.INFO.set}}</td>
+  {% endif %}
+  {% endif %}
+      </tr>
+      {% endfor %}
+    </table>
+
+    <span class="table_header">Annotations for all transcript combinations</span>
+    <table>
+      <thead><tr><th>Gene 1</th><th>Gene 2</th><th>HGVS.c</th><th>HGVS.p</th><th>Consequence</th></tr></thead>
+      {% for ann in tl.INFO.ANN %}
+      {% set genes = ann.Gene_Name.split('&') %}
+      <tr {% if ann.HGVSp == sel_ann.HGVSp %} class="canonical_transcript"<{%endif%}>
+	<td>{{genes[0]}}</td>
+	<td>{{genes[1]}}</td>
+	<td>{{ann.HGVSc|unesc}}</td>
+	<td>{{ann.HGVSp|unesc|replace(";","-")}}</td>
+	<td>{% for annot in ann.Annotation%}{{annot}}<br>{% endfor %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+<div id="var_comments">
+  {% if current_user.get_role() != "readonly" %}
+  <span class="table_header">Add new comment/annotation</span>
+  <div id="commenting_box">
+    <form action="{{ url_for('add_variant_comment', id=tl._id) }}" method="post">
+      <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..."></textarea><br>
+
+      <input type="hidden" name="gene1" value="{{ genes[0] }}">
+      <input type="hidden" name="gene2" value="{{ genes[1] }}">
+      <input type="hidden" name="translocpoints" value="{{tl.CHROM}}:{{tl.POS}}^{{tl.ALT}}">
+
+      <input type="submit" value="Save">&nbsp;&nbsp;
+      <input type="checkbox" name="global" value="global"> Use as global annotation
+
+    </form>
+  </div>
+  {% endif %}
+
+  {% if tl.comments|length > 0 and current_user.get_role() != "readonly" %}
+	<div style='clear:left;'>
+    <span class="table_header">Sample-specific variant comments</span>
+    <table class="comments" id="variant_comments">
+      <thead><tr><th>Who</th><th>Comment</th><th></th></tr></thead>
+      <tbody>
+        {% for comment in tl.comments|sort(attribute='time_created', reverse=True) %}
+        {% if comment.hidden != 1 %}
+        <tr>
+		{% else %}
+        <tr class="hidden_comment hidden">
+		{% endif %}
+		<td class="comment" style="white-space: nowrap"><b>{{ comment.author }}</b><br><small>{{ comment.time_created|human_date }}</small></td>
+		<td class="comment" onclick="addText(event)">{{ comment.text|format_comment|safe }}</td>
+		<td class="comment">
+      {% if comment.hidden != 1 %}
+      <form action="{{ url_for('hide_transloc_comment', var_id=tl._id) }}" method="post">
+        <input type="hidden" name="comment_id" value="{{ comment._id }}">
+        <input id="hide_comment" type="image" width=15 src="{{ url_for('static', filename='delete.png') }}">
+      </form>
+      {% else %}
+      <form action="{{ url_for('unhide_transloc_comment', var_id=tl._id) }}" method="post">
+        <input type="hidden" name="comment_id" value="{{ comment._id }}">
+        <input id="unhide_comment" type="image" width=15 src="{{ url_for('static', filename='unhide.png') }}">
+      </form>
+      {% endif %}
+		</td>
+        </tr>
+        {% endfor %}
+        {% if hidden_comments != 0 %}
+        <tr>
+		<td colspan=4 style='border-top:1px solid #ccc; font-size:10px; padding-bottom:2px; padding-top:2px; text-align:center;'>
+      <a href="javascript:void(0)" onclick="switchVisibility_comments('hidden_comment')"><b>Show/hide deleted comments</b></a>
+		</td>
+        </tr>
+        {% endif %}
+
+      </tbody>
+    </table>
+	</div>
+	{% endif %}
+
+	{% if annotations|length > 0 %}
+	<div style='clear:left;'>
+    <span class="table_header">Variant annotations</span>
+    <table class="annotatations" id="variant_annotations">
+      <thead><tr><th>Who</th><th>Annotation</th></tr></thead>
+      <tbody>
+        {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
+        {% if current_user.get_role() != "readonly" or loop.first == True %}
+        <tr>
+		<td class="annotation" style="white-space: nowrap"><b>{{ anno.author }}</b><br><small>{{ anno.time_created|human_date }}</small></td>
+		<td class="annotation" onclick="addText(event)">{{ anno.text|format_comment|safe }}</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+
+      </tbody>
+    </table>
+	</div>
+	{% endif %}
+	
+</div>
+  
+  </div>
+
+
+  <script type="text/javascript">
+    $("#test").select2();
+
+    window.onload = function() {
+      $('[data-autoclick="true"]').click();
+      $('[data-autoclick="true"]').click();
+    };
+
+    function switchVisibility(class_name) {
+      var hide_class = "hidden";
+      var elems = document.getElementsByClassName(class_name);
+
+      for (var i = 0; i < elems.length; i++) {
+        if( elems[i].classList.contains(hide_class) ) {
+    elems[i].classList.remove(hide_class);
+	}
+	else {
+    elems[i].classList.add(hide_class);
+	}
+      }
+    }
+			
+  function switchVisibility_comments(class_name) {
+    var hide_class = "hidden";
+
+    var elems = document.getElementsByClassName(class_name);
+
+    for (var i = 0; i < elems.length; i++) {
+      if( elems[i].classList.contains(hide_class) ) {
+        elems[i].classList.remove(hide_class);
+      }
+      else {
+        elems[i].classList.add(hide_class);
+      }
+    }
+  }
+
+
+  function addText(event) {
+    var targ = event.target || event.srcElement;
+    document.getElementById("comment_textarea").value = targ.textContent || targ.innerText;
+  }
+			
+  </script>
+
+
+{% endblock %} 

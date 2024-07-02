@@ -668,13 +668,13 @@ def show_transloc(id):
     """
     Show Translocation view page
     """
-    transloc = app.config["TRANSLOC_COLL"].find_one({"_id": ObjectId(id)})
-    sample = app.config["SAMPLES_COLL"].find_one({"_id": ObjectId(transloc["SAMPLE_ID"])})
-    assay = get_assay_from_sample(sample)
-    sample_ids = get_sample_ids(str(sample["_id"]))
-    bam_id = get_bams(sample_ids)
+    transloc = store.get_transloc(id)
+    sample = store.get_sample_with_id((transloc["SAMPLE_ID"]))
+    assay = util.get_assay_from_sample(sample)
+    sample_ids = store.get_sample_ids(str(sample["_id"]))
+    bam_id = store.get_bams(sample_ids)
 
-    annotations = get_transloc_annotations(transloc)
+    annotations = store.get_transloc_annotations(transloc)
     return render_template(
         "show_transloc.html",
         tl=transloc,
@@ -683,3 +683,47 @@ def show_transloc(id):
         annotations=annotations,
         bam_id=bam_id,
     )
+
+
+@app.route("/var/interesttransloc/<string:id>", methods=["POST"])
+@login_required
+def mark_interesting_transloc(id):
+    store.is_intresting_transloc(id, True)
+    return redirect(url_for("show_transloc", id=id))
+
+
+@app.route("/var/uninteresttransloc/<string:id>", methods=["POST"])
+@login_required
+def unmark_interesting_transloc(id):
+    store.is_intresting_transloc(id, False)
+    return redirect(url_for("show_transloc", id=id))
+
+
+@app.route("/var/fptransloc/<string:id>", methods=["POST"])
+@login_required
+def mark_false_transloc(id):
+    store.mark_false_positive_transloc(id, True)
+    return redirect(url_for("show_transloc", id=id))
+
+
+@app.route("/var/unfptransloc/<string:id>", methods=["POST"])
+@login_required
+def unmark_false_transloc(id):
+    store.mark_false_positive_transloc(id, False)
+    return redirect(url_for("show_transloc", id=id))
+
+
+@app.route("/tl/hide_variant_comment/<string:var_id>", methods=["POST"])
+@login_required
+def hide_transloc_comment(var_id):
+    comment_id = request.form.get("comment_id", "MISSING_ID")
+    store.hide_transloc_comment(var_id, comment_id, store.transloc_collection)
+    return redirect(url_for("show_transloc", id=var_id))
+
+
+@app.route("/tl/unhide_variant_comment/<string:var_id>", methods=["POST"])
+@login_required
+def unhide_transloc_comment(var_id):
+    comment_id = request.form.get("comment_id", "MISSING_ID")
+    store.unhide_transloc_comment(var_id, comment_id, store.transloc_collection)
+    return redirect(url_for("show_transloc", id=var_id))

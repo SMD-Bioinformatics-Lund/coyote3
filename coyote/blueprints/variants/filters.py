@@ -411,3 +411,8 @@ def format_oncokbtext(st):
         st = st.replace(a, "<b>[" + linked_str + "]</b>")
 
     return st
+
+
+@app.template_filter()
+def regex_replace(s, find, replace):
+    return re.sub(find, replace, s)
