@@ -22,8 +22,6 @@ class MongoAdapter(
     GroupsHandler,
     PanelsHandler,
     VariantsHandler,
-    CNVsHandler,
-    TranslocsHandler,
     OtherHandler,
     AnnotationsHandler,
     ExpressionHandler,
@@ -32,14 +30,18 @@ class MongoAdapter(
     BamServiceHandler,
 ):
     def __init__(self, client: pymongo.MongoClient = None):
-        if client:
-            self._setup_dbs(client)
+        self.client = client
+        if self.client:
+            # self._setup_dbs(self.client)
+            # self._setup_handlers()  # Initialize handlers here only if client is provided
+            pass
 
     def init_from_app(self, app) -> None:
-        client = self._get_mongoclient(app.config["MONGO_URI"])
+        self.client = self._get_mongoclient(app.config["MONGO_URI"])
         self.app = app
-        self._setup_dbs(client)
+        self._setup_dbs(self.client)
         self.setup()
+        self._setup_handlers()
 
     def _get_mongoclient(self, mongo_uri: str) -> pymongo.MongoClient:
         return pymongo.MongoClient(mongo_uri)
@@ -71,3 +73,9 @@ class MongoAdapter(
         self.brcaexchange_collection = self.coyote_db["brcaexchange"]
         self.iarc_tp53_collection = self.coyote_db["iarc_tp53"]
         self.bam_samples = self.bam_db["samples"]
+
+    def _setup_handlers(self):
+        self.transloc_handler = TranslocsHandler(self)
+        self.cnv_handler = CNVsHandler(self)
+        self.variant_handler = VariantsHandler(self)
+        # help(self.transloc_handler)

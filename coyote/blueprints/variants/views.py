@@ -265,8 +265,8 @@ def add_sample_comment(id):
 @login_required
 def show_variant(id):
 
-    variant = store.get_variant(id)
-    in_other = store.get_variant_in_other_samples(variant)
+    variant = store.variant_handler.get_variant(id)
+    in_other = store.variant_handler.get_variant_in_other_samples(variant)
     sample = store.get_sample_with_id(variant["SAMPLE_ID"])
 
     assay = util.get_assay_from_sample(sample)
@@ -305,7 +305,7 @@ def show_variant(id):
     variant = store.add_blacklist_data([variant], assay)
 
     # Get canonical transcripts for all genes annotated for the variant
-    canonical_dict = store.get_canonical(list(genes.keys()))
+    canonical_dict = store.variant_handler.get_canonical(list(genes.keys()))
 
     # Select a transcript
     (variant["INFO"]["selected_CSQ"], variant["INFO"]["selected_CSQ_criteria"]) = util.select_csq(
@@ -329,9 +329,9 @@ def show_variant(id):
     ):
         variant_desc = "ITD"
 
-    civic = store.get_civic_data(variant, variant_desc)
+    civic = store.variant_handler.get_civic_data(variant, variant_desc)
 
-    civic_gene = store.get_civic_gene(variant["INFO"]["selected_CSQ"]["SYMBOL"])
+    civic_gene = store.variant_handler.get_civic_gene(variant["INFO"]["selected_CSQ"]["SYMBOL"])
 
     # Find OncoKB data
     oncokb_hgvsp = []
@@ -353,10 +353,10 @@ def show_variant(id):
     oncokb_gene = store.get_oncokb_gene(variant["INFO"]["selected_CSQ"]["SYMBOL"])
 
     # Find BRCA-exchange data
-    brca_exchange = store.get_brca_exchange_data(variant, assay)
+    brca_exchange = store.variant_handler.get_brca_exchange_data(variant, assay)
 
     # Find IARC TP53 data
-    iarc_tp53 = store.find_iarc_tp53(variant)
+    iarc_tp53 = store.variant_handler.find_iarc_tp53(variant)
 
     # Get bams
     sample_ids = store.get_sample_ids(str(sample["_id"]))
@@ -402,8 +402,7 @@ def unmark_false_variant(id):
     """
     Unmark False Positive status of a variant in the database
     """
-    store.is_false_positive(id, False)
-
+    store.variant_handler.unmark_false_positive_var(id)
     return redirect(url_for("show_variant", id=id))
 
 
@@ -413,7 +412,7 @@ def mark_false_variant(id):
     """
     Mark False Positive status of a variant in the database
     """
-    store.is_false_positive(id, True)
+    store.variant_handler.mark_false_positive_var(id)
     return redirect(url_for("show_variant", id=id))
 
 
@@ -423,8 +422,7 @@ def unmark_interesting_variant(id):
     """
     Unmark interesting status of a variant in the database
     """
-    store.is_interesting(id, False)
-
+    store.variant_handler.unmark_interesting_var(id)
     return redirect(url_for("show_variant", id=id))
 
 
@@ -434,8 +432,7 @@ def mark_interesting_variant(id):
     """
     Mark interesting status of a variant in the database
     """
-    store.is_interesting(id, True)
-
+    store.variant_handler.mark_interesting_var(id)
     return redirect(url_for("show_variant", id=id))
 
 
@@ -445,8 +442,7 @@ def unmark_irrelevant_variant(id):
     """
     Unmark irrelevant status of a variant in the database
     """
-    store.is_irrelevant(id, False)
-
+    store.variant_handler.unmark_irrelevant_var(id)
     return redirect(url_for("show_variant", id=id))
 
 
@@ -456,8 +452,7 @@ def mark_irrelevant_variant(id):
     """
     Mark irrelevant status of a variant in the database
     """
-    store.is_irrelevant(id, True)
-
+    store.variant_handler.mark_irrelevant_var(id)
     return redirect(url_for("show_variant", id=id))
 
 
@@ -580,13 +575,13 @@ def show_cnvwgs(id):
     """
     Show CNVs view page
     """
-    cnv = store.get_cnv(id)
+    cnv = store.cnv_handler.get_cnv(id)
     sample = store.get_sample_with_id((cnv["SAMPLE_ID"]))
     assay = util.get_assay_from_sample(sample)
     sample_ids = store.get_sample_ids(str(sample["_id"]))
     bam_id = store.get_bams(sample_ids)
 
-    annotations = store.get_cnv_annotations(cnv)
+    annotations = store.cnv_handler.get_cnv_annotations(cnv)
     return render_template(
         "show_cnvwgs.html",
         cnv=cnv,
@@ -604,8 +599,7 @@ def unmark_interesting_cnv(id):
     """
     Unmark CNV as interesting
     """
-
-    store.is_intresting_cnv(id, False)
+    store.cnv_handler.unmark_interesting_cnv(id)
     return redirect(url_for("show_cnvwgs", id=id))
 
 
@@ -615,7 +609,7 @@ def mark_interesting_cnv(id):
     """
     Mark CNV as interesting
     """
-    store.is_intresting_cnv(id, True)
+    store.cnv_handler.mark_interesting_cnv(id)
     return redirect(url_for("show_cnvwgs", id=id))
 
 
@@ -625,7 +619,7 @@ def mark_false_cnv(id):
     """
     Mark CNV as false positive
     """
-    store.mark_false_positive_cnv(id, True)
+    store.cnv_handler.mark_false_positive_cnv(id)
     return redirect(url_for("show_cnvwgs", id=id))
 
 
@@ -635,7 +629,7 @@ def unmark_false_cnv(id):
     """
     Unmark CNV as false positive
     """
-    store.mark_false_positive_cnv(id, False)
+    store.cnv_handler.unmark_false_positive_cnv(id)
     return redirect(url_for("show_cnvwgs", id=id))
 
 
@@ -646,7 +640,7 @@ def hide_cnv_comment(cnv_id):
     Hide CNV comment
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.hide_cnvs_comment(cnv_id, comment_id)
+    store.cnv_handler.hide_cnvs_comment(cnv_id, comment_id)
     return redirect(url_for("show_cnvwgs", id=cnv_id))
 
 
@@ -657,7 +651,7 @@ def unhide_cnv_comment(cnv_id):
     Un Hide CNV comment
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.unhide_cnvs_comment(cnv_id, comment_id)
+    store.cnv_handler.unhide_cnvs_comment(cnv_id, comment_id)
     return redirect(url_for("show_cnvwgs", id=cnv_id))
 
 
@@ -668,13 +662,13 @@ def show_transloc(id):
     """
     Show Translocation view page
     """
-    transloc = store.get_transloc(id)
+    transloc = store.transloc_handler.get_transloc(id)
     sample = store.get_sample_with_id((transloc["SAMPLE_ID"]))
     assay = util.get_assay_from_sample(sample)
     sample_ids = store.get_sample_ids(str(sample["_id"]))
     bam_id = store.get_bams(sample_ids)
 
-    annotations = store.get_transloc_annotations(transloc)
+    annotations = store.transloc_handler.get_transloc_annotations(transloc)
     return render_template(
         "show_transloc.html",
         tl=transloc,
@@ -688,28 +682,28 @@ def show_transloc(id):
 @app.route("/var/interesttransloc/<string:id>", methods=["POST"])
 @login_required
 def mark_interesting_transloc(id):
-    store.is_intresting_transloc(id, True)
+    store.transloc_handler.mark_interesting_transloc(id)
     return redirect(url_for("show_transloc", id=id))
 
 
 @app.route("/var/uninteresttransloc/<string:id>", methods=["POST"])
 @login_required
 def unmark_interesting_transloc(id):
-    store.is_intresting_transloc(id, False)
+    store.transloc_handler.unmark_interesting_transloc(id)
     return redirect(url_for("show_transloc", id=id))
 
 
 @app.route("/var/fptransloc/<string:id>", methods=["POST"])
 @login_required
 def mark_false_transloc(id):
-    store.mark_false_positive_transloc(id, True)
+    store.transloc_handler.mark_false_positive_transloc(id)
     return redirect(url_for("show_transloc", id=id))
 
 
 @app.route("/var/unfptransloc/<string:id>", methods=["POST"])
 @login_required
 def unmark_false_transloc(id):
-    store.mark_false_positive_transloc(id, False)
+    store.transloc_handler.unmark_false_positive_transloc(id)
     return redirect(url_for("show_transloc", id=id))
 
 
@@ -717,7 +711,7 @@ def unmark_false_transloc(id):
 @login_required
 def hide_transloc_comment(var_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.hide_transloc_comment(var_id, comment_id, store.transloc_collection)
+    store.transloc_handler.hide_transloc_comment(var_id, comment_id)
     return redirect(url_for("show_transloc", id=var_id))
 
 
@@ -725,5 +719,5 @@ def hide_transloc_comment(var_id):
 @login_required
 def unhide_transloc_comment(var_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.unhide_transloc_comment(var_id, comment_id, store.transloc_collection)
+    store.transloc_handler.unhide_transloc_comment(var_id, comment_id)
     return redirect(url_for("show_transloc", id=var_id))

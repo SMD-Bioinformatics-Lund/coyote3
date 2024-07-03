@@ -1,30 +1,33 @@
 from bson.objectid import ObjectId
-from flask_login import current_user
-from datetime import datetime
+from coyote.db.base import BaseHandler
 
+class CNVsHandler(BaseHandler):
 
-class CNVsHandler:
+    def __init__(self, adapter):
+        super().__init__(adapter)
+        print(f"Inside CNVs: {self.adapter}")
+        print(f"Inside CNVs: {self.adapter.client}")
+        print(f"Inside CNVs: {self.adapter.cnvs_collection}")
+        self.handler_collection = self.adapter.cnvs_collection
 
     def get_sample_cnvs(self, sample_id: str, normal: bool = False):
         """
         Get CNVs for a sample
         """
-        cnv_iter = self.cnvs_collection.find({"SAMPLE_ID": sample_id})
-        return cnv_iter
+        return self.handler_collection.find({"SAMPLE_ID": sample_id})
 
     def get_cnv(self, cnv_id: str):
         """
         Get CNV by ID
         """
-        cnv = self.cnvs_collection.find_one({"_id": ObjectId(cnv_id)})
-        return cnv
+        return self.handler_collection.find_one({"_id": ObjectId(cnv_id)})
 
     def get_cnv_annotations(self, cnv: str) -> list:
         """
         Get annotations for a CNV
         """
         var = f"{str(cnv["chr"])}:{str(cnv["start"])}-{str(cnv["end"])}"
-        annotations = self.annotations_collection.find(
+        annotations = self.adapter.annotations_collection.find(
             {"variant": var}
         ).sort("time_created", 1)
 
@@ -38,52 +41,38 @@ class CNVsHandler:
 
         return annotations_arr  # , latest_classification
 
-    def is_intresting_cnv(self, cnv_id: str, intresting: bool) -> None:
+    def mark_interesting_cnv(self, cnv_id: str, interesting: bool = True) -> None:
         """
-        Mark/Unmark CNV as interesting 
+        Mark CNV as interesting 
         """
-        self.cnvs_collection.update_one(
-            {"_id": ObjectId(cnv_id)},
-            {"$set": {"interesting": intresting}},
-        )
-        return None
+        self.mark_interesting(cnv_id, interesting)
 
-    def mark_false_positive_cnv(self, cnv_id: str, fp: bool) -> None:
+    def unmark_interesting_cnv(self, cnv_id: str, interesting: bool = False) -> None:
         """
-        Mark CNV as false
+        Unmark CNV as interesting 
         """
-        self.cnvs_collection.update_one(
-            {"_id": ObjectId(cnv_id)},
-            {"$set": {"fp": fp}},
-        )
-        return None
+        self.mark_interesting(cnv_id, interesting)
+
+    def mark_false_positive_cnv(self, cnv_id: str, fp: bool = True) -> None:
+        """
+        Mark CNV as false positive
+        """
+        self.mark_false_positive(cnv_id, fp)
+
+    def unmark_false_positive_cnv(self, cnv_id: str, fp: bool = False) -> None:
+        """
+        UnMark CNV as false positive
+        """
+        self.mark_false_positive(cnv_id, fp)
 
     def hide_cnvs_comment(self, cnv_id: str, comment_id: str) -> None:
         """
         Hide CNVs comment
         """
-        self.cnvs_collection.update_one(
-            {"_id": ObjectId(cnv_id), "comments._id": ObjectId(comment_id)},
-            {
-                "$set": {
-                    "comments.$.hidden": 1,
-                    "comments.$.hidden_by": current_user.get_id(),
-                    "comments.$.time_hidden": datetime.now(),
-                }
-            },
-        )
-        return None
+        self.hide_comment(cnv_id, comment_id)
 
     def unhide_cnvs_comment(self, cnv_id: str, comment_id: str) -> None:
         """
         Unhide CNVs comment
         """
-        self.cnvs_collection.update_one(
-            {"_id": ObjectId(cnv_id), "comments._id": ObjectId(comment_id)},
-            {
-                "$set": {
-                    "comments.$.hidden": 0,
-                }
-            },
-        )
-        return None
+        self.unhide_comment(cnv_id, comment_id)
