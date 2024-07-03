@@ -3,18 +3,26 @@ from bson.objectid import ObjectId
 from flask import current_app as app
 from flask_login import current_user
 from datetime import datetime
+from coyote.db.base import BaseHandler
 
 
-class VariantsHandler:
+class VariantsHandler(BaseHandler):
     """
     Variants handler from coyote["variants_idref"]
     """
+
+    def __init__(self, adapter):
+        super().__init__(adapter)
+        print(f"Inside SNVs: {self.adapter}")
+        print(f"Inside SNVs: {self.adapter.client}")
+        print(f"Inside SNVs: {self.adapter.variants_collection}")
+        self.handler_collection = self.adapter.variants_collection
 
     def get_case_variants(self, query: dict):
         """
         Return variants with according to a constructed varquery
         """
-        return self.variants_collection.find(query)
+        return self.handler_collection.find(query)
 
     def get_canonical(self, genes_arr: list) -> dict:
         """
@@ -22,7 +30,7 @@ class VariantsHandler:
         """
         app.logger.info(f"this is my search string: {genes_arr}")
         canonical_dict = {}
-        canonical = self.canonical_collection.find({"gene": {"$in": genes_arr}})
+        canonical = self.adapter.canonical_collection.find({"gene": {"$in": genes_arr}})
 
         for c in canonical:
             canonical_dict[c["gene"]] = c["canonical"]
@@ -33,7 +41,7 @@ class VariantsHandler:
         """
         Return variant with variant ID
         """
-        return self.variants_collection.find_one({"_id": ObjectId(id)})
+        return self.handler_collection.find_one({"_id": ObjectId(id)})
 
     def get_variant_in_other_samples(self, variant, assay=None) -> dict:
         """
@@ -47,9 +55,9 @@ class VariantsHandler:
             "SAMPLE_ID": {"$ne": variant["SAMPLE_ID"]},
         }
 
-        other_variants = self.variants_collection.find(query).limit(20)
+        other_variants = self.handler_collection.find(query).limit(20)
 
-        sample_names = self.samples_collection.find({}, {"_id": 1, "name": 1, "groups": 1})
+        sample_names = self.adapter.samples_collection.find({}, {"_id": 1, "name": 1, "groups": 1})
         name = {}
         for samp in sample_names:
             name[str(samp["_id"])] = samp["name"]
@@ -66,7 +74,7 @@ class VariantsHandler:
         Return civic variant data for the s
         """
 
-        civic = self.civic_variants_collection.find(
+        civic = self.adapter.civic_variants_collection.find(
             {
                 "$or": [
                     {
@@ -86,14 +94,14 @@ class VariantsHandler:
         return civic
 
     def get_civic_gene(self, gene_smbl) -> dict:
-        return self.civic_variants_collection.find_one({"name": gene_smbl})
+        return self.adapter.civic_variants_collection.find_one({"name": gene_smbl})
 
     def get_brca_exchange_data(self, variant, assay) -> dict:
         """
         Return brca data for the variant
         """
         if assay == "gmsonco":
-            brca = self.brcaexchange_collection.find_one(
+            brca = self.adapter.brcaexchange_collection.find_one(
                 {
                     "chr38": str(variant["CHROM"]),
                     "pos38": str(variant["POS"]),
@@ -102,7 +110,7 @@ class VariantsHandler:
                 }
             )
         else:
-            brca = self.brcaexchange_collection.find_one(
+            brca = self.adapter.brcaexchange_collection.find_one(
                 {
                     "chr": str(variant["CHROM"]),
                     "pos": str(variant["POS"]),
@@ -121,33 +129,8 @@ class VariantsHandler:
             hgvsc_parts = variant["INFO"]["selected_CSQ"]["HGVSc"].split(":")
             if len(hgvsc_parts) >= 2:
                 hgvsc = hgvsc_parts[1]
-                return self.iarc_tp53_collection.find_one({"var": hgvsc})
+                return self.adapter.iarc_tp53_collection.find_one({"var": hgvsc})
 
-        return None
-
-    def is_false_positive(self, variant_id: str, fp: bool) -> None:
-        """
-        Update variant false positive status
-        """
-        self.variants_collection.update_one({"_id": ObjectId(variant_id)}, {"$set": {"fp": fp}})
-        return None
-
-    def is_interesting(self, variant_id: str, interesting: bool) -> None:
-        """
-        Update if the variant is interesting or not
-        """
-        self.variants_collection.update_one(
-            {"_id": ObjectId(variant_id)}, {"$set": {"interesting": interesting}}
-        )
-        return None
-
-    def is_irrelevant(self, variant_id: str, irrelevant: bool) -> None:
-        """
-        Update if the variant is irrelevant or not
-        """
-        self.variants_collection.update_one(
-            {"_id": ObjectId(variant_id)}, {"$set": {"irrelevant": irrelevant}}
-        )
         return None
 
     def insert_classified_variant(
@@ -157,7 +140,7 @@ class VariantsHandler:
         Insert Classified variant
         """
         if nomenclature != "f":
-            self.annotations_collection.insert_one(
+            self.adapter.annotations_collection.insert_one(
                 {
                     "class": class_num,
                     "author": current_user.get_id(),
@@ -171,7 +154,7 @@ class VariantsHandler:
                 }
             )
         else:
-            self.annotations_collection.insert_one(
+            self.adapter.annotations_collection.insert_one(
                 {
                     "class": class_num,
                     "author": current_user.get_id(),
@@ -193,7 +176,7 @@ class VariantsHandler:
         Delete Classified variant
         """
         num_assay = list(
-            self.annotations_collection.find(
+            self.adapter.annotations_collection.find(
                 {
                     "class": {"$exists": True},
                     "variant": variant,
@@ -208,7 +191,7 @@ class VariantsHandler:
         ## If variant has no match to current assay, it has an historical variant, i.e. not assigned to an assay. THIS IS DANGEROUS, maybe limit to admin?
         if len(num_assay) == 0 and "admin" in user_groups:
             per_assay = list(
-                self.annotations_collection.find(
+                self.adapter.annotations_collection.find(
                     {
                         "class": {"$exists": True},
                         "variant": variant,
@@ -218,7 +201,7 @@ class VariantsHandler:
                 )
             )
         else:
-            per_assay = self.annotations_collection.delete_many(
+            per_assay = self.adapter.annotations_collection.delete_many(
                 {
                     "class": {"$exists": True},
                     "variant": variant,
@@ -231,32 +214,50 @@ class VariantsHandler:
 
         return per_assay
 
+    def mark_false_positive_var(self, variant_id: str, fp: bool = True) -> None:
+        """
+        Mark variant false positive status
+        """
+        self.mark_false_positive(variant_id, fp)
+
+    def unmark_false_positive_var(self, variant_id: str, fp: bool = False) -> None:
+        """
+        Unmark variant false positive status
+        """
+        self.mark_false_positive(variant_id, fp)
+
+    def mark_interesting_var(self, variant_id: str, interesting: bool = True) -> None:
+        """
+        Mark if the variant is interesting
+        """
+        self.mark_irrelevant(variant_id, interesting)
+
+    def unmark_interesting_var(self, variant_id: str, interesting: bool = False) -> None:
+        """
+        Unmark if the variant is not interesting
+        """
+        self.mark_irrelevant(variant_id, interesting)
+
+    def mark_irrelevant_var(self, variant_id: str, irrelevant: bool = True) -> None:
+        """
+        Mark if the variant is irrelevant
+        """
+        self.mark_irrelevant(variant_id, irrelevant)
+
+    def unmark_irrelevant_var(self, variant_id: str, irrelevant: bool = False) -> None:
+        """
+        Unmark if the variant is relevant
+        """
+        self.mark_irrelevant(variant_id, irrelevant)
+
     def hide_var_comment(self, id: str, comment_id: str) -> None:
         """
         Hide variant comment
         """
-        self.variants_collection.update_one(
-            {"_id": ObjectId(id), "comments._id": ObjectId(comment_id)},
-            {
-                "$set": {
-                    "comments.$.hidden": 1,
-                    "comments.$.hidden_by": current_user.get_id(),
-                    "comments.$.time_hidden": datetime.now(),
-                }
-            },
-        )
-        return None
+        self.hide_comment(id, comment_id)
 
     def unhide_variant_comment(self, id: str, comment_id: str) -> None:
         """
         Unhide variant comment
         """
-        self.variants_collection.update_one(
-            {"_id": ObjectId(id), "comments._id": ObjectId(comment_id)},
-            {
-                "$set": {
-                    "comments.$.hidden": 0,
-                }
-            },
-        )
-        return None
+        self.unhide_comment(id, comment_id)

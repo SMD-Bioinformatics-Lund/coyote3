@@ -12,13 +12,13 @@ class TranslocsHandler(BaseHandler):
         self.handler_collection = self.adapter.transloc_collection
 
     def get_sample_translocations(self, sample_id: str):
-        return self.collection.find({"SAMPLE_ID": sample_id})
+        return self.handler_collection.find({"SAMPLE_ID": sample_id})
 
     def get_transloc(self, transloc_id: str) -> dict:
         """
         Get Tranlocation by ID
         """
-        return self.collection.find_one({"_id": ObjectId(transloc_id)})
+        return self.handler_collection.find_one({"_id": ObjectId(transloc_id)})
 
     def get_transloc_annotations(self, tl: dict) -> dict:
         var = f'{str(tl["CHROM"])}:{str(tl["POS"])}^{tl["ALT"]}'

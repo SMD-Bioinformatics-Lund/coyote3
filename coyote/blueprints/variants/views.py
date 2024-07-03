@@ -126,13 +126,13 @@ def list_variants(id):
     )
     app.logger.info("this is the old varquery: %s", pformat(query))
     app.logger.info("this is the new varquery: %s", pformat(query2))
-    variants_iter = store.get_case_variants(query)
+    variants_iter = store.variant_handler.get_case_variants(query)
     # Find all genes matching the query
     variants, genes = util.get_protein_coding_genes(variants_iter)
     # Add blacklist data, ADD ALL variants_iter via the store please...
     # util.add_blacklist_data( variants, assay )
     # Get canonical transcripts for the genes from database
-    canonical_dict = store.get_canonical(list(genes.keys()))
+    canonical_dict = store.variant_handler.get_canonical(list(genes.keys()))
     # Select a VEP consequence for each variant
     for var_idx, var in enumerate(variants):
         (
@@ -165,15 +165,19 @@ def list_variants(id):
     transloc_iter = False
     if group != None and "DNA" in group:
         if group["DNA"]["CNV"]:
-            cnvwgs_iter = list(store.get_sample_cnvs(sample_id=str(sample["_id"])))
+            cnvwgs_iter = list(store.cnv_handler.get_sample_cnvs(sample_id=str(sample["_id"])))
             if filter_cnveffects:
                 cnvwgs_iter = util.cnvtype_variant(cnvwgs_iter, filter_cnveffects)
             cnvwgs_iter = util.cnv_organizegenes(cnvwgs_iter)
-            cnvwgs_iter_n = list(store.get_sample_cnvs(sample_id=str(sample["_id"]), normal=True))
+            cnvwgs_iter_n = list(
+                store.cnv_handler.get_sample_cnvs(sample_id=str(sample["_id"]), normal=True)
+            )
         if group["DNA"]["OTHER"]:
             biomarkers_iter = store.get_sample_other(sample_id=str(sample["_id"]))
         if group["DNA"]["FUSIONS"]:
-            transloc_iter = store.get_sample_translocations(sample_id=str(sample["_id"]))
+            transloc_iter = store.transloc_handler.get_sample_translocations(
+                sample_id=str(sample["_id"])
+            )
     #################################################
 
     ## "AI"-text depending on what analysis has been done. Add translocs and cnvs if marked as interesting (HRD and MSI?)
@@ -183,7 +187,9 @@ def list_variants(id):
     # ai_text, conclusion = util.generate_ai_text( assay, variants, filter_genes, genelist_filter, sample["groups"][0] )
     ## translocations (DNA fusions) and copy number variation. Works for solid so far, should work for myeloid, lymphoid
     if assay == "solid":
-        transloc_iter_ai = store.get_sample_translocations(sample_id=str(sample["_id"]))
+        transloc_iter_ai = store.transloc_handler.get_sample_translocations(
+            sample_id=str(sample["_id"])
+        )
         biomarkers_iter_ai = store.get_sample_other(sample_id=str(sample["_id"]))
         ai_text_transloc = util.generate_ai_text_nonsnv(
             assay, transloc_iter_ai, sample["groups"][0], "transloc"
