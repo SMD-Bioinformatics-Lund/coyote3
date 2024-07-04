@@ -1,24 +1,22 @@
 from bson.objectid import ObjectId
 from coyote.db.base import BaseHandler
+from pymongo.collection import Collection
 
 
 class TranslocsHandler(BaseHandler):
 
     def __init__(self, adapter):
         super().__init__(adapter)
-        print(f"Inside Translocs: {self.adapter}")
-        print(f"Inside Translocs: {self.adapter.client}")
-        print(f"Inside Translocs: {self.adapter.transloc_collection}")
-        self.handler_collection = self.adapter.transloc_collection
+        self.set_collection(self.adapter.transloc_collection)
 
     def get_sample_translocations(self, sample_id: str):
-        return self.handler_collection.find({"SAMPLE_ID": sample_id})
+        return self.get_collection().find({"SAMPLE_ID": sample_id})
 
     def get_transloc(self, transloc_id: str) -> dict:
         """
         Get Tranlocation by ID
         """
-        return self.handler_collection.find_one({"_id": ObjectId(transloc_id)})
+        return self.get_collection().find_one({"_id": ObjectId(transloc_id)})
 
     def get_transloc_annotations(self, tl: dict) -> dict:
         var = f'{str(tl["CHROM"])}:{str(tl["POS"])}^{tl["ALT"]}'

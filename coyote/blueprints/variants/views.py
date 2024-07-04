@@ -24,27 +24,29 @@ from coyote.blueprints.variants import filters
 def list_variants(id):
 
     # Find sample data by name
-    sample = store.get_sample(id)
-    sample_ids = store.get_sample_ids(str(sample["_id"]))
+    sample = store.sample_handler.get_sample(id)
+    sample_ids = store.sample_handler.get_sample_ids(str(sample["_id"]))
     smp_grp = sample["groups"][0]
-    group = app.config["GROUP_CONFIGS"].get(smp_grp)
-    settings = util.get_group_defaults(group)
+    group_params = util.get_group_parameters(smp_grp)
+    settings = util.get_group_defaults(group_params)
     assay = util.get_assay_from_sample(sample)
     subpanel = sample.get("subpanel")
 
     app.logger.info(app.config["GROUP_CONFIGS"])  # get group config from app config instead
     app.logger.info(f"the sample has these groups {smp_grp}")
-    app.logger.info(f"this is the group from collection {group}")
-    # group = store.get_sample_groups( sample["groups"][0] ) # this is the old way of getting group config from mongodb
+    app.logger.info(f"this is the group from collection {group_params}")
+    # group = store.group_handler.get_sample_groups( sample["groups"][0] ) # this is the old way of getting group config from mongodb
 
     ## GENEPANELS ##
     ## send over all defined gene panels per assay, to matching template ##
-    gene_lists, genelists_assay = store.get_assay_panels(assay)
+    gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
     ## Default gene list. For samples with default_genelis_set=1 add a gene list to specific subtypes lunga, hjärna etc etc. Will fetch genelist from mongo collection.
     # this only for assays that should have a default gene list. Will always be added to sample if not explicitely removed from form
-    if "default_genelist_set" in group:
+    if "default_genelist_set" in group_params:
         if "subpanel" in sample:
-            panel_genelist = store.get_panel(subpanel=sample["subpanel"], type="genelist")
+            panel_genelist = store.panel_handler.get_panel(
+                subpanel=sample["subpanel"], type="genelist"
+            )
             if panel_genelist:
                 settings["default_checked_genelists"] = {"genelist_" + sample["subpanel"]: 1}
 
@@ -64,12 +66,12 @@ def list_variants(id):
     if request.method == "POST" and form.validate_on_submit():
         # Reset filters to defaults
         if form.reset.data == True:
-            store.reset_sample_settings(id, settings)
+            store.sample_handler.reset_sample_settings(id, settings)
         # Change filters
         else:
-            store.update_sample_settings(id, form)
+            store.sample_handler.update_sample_settings(id, form)
         ## get sample again to recieve updated forms!
-        sample = store.get_sample(id)
+        sample = store.sample_handler.get_sample(id)
     ############################################################################
 
     # Check if sample has hidden comments
@@ -122,7 +124,7 @@ def list_variants(id):
             "max_popfreq": sample_settings["max_popfreq"],
             "filter_conseq": filter_conseq,
         },
-        group,
+        group_params,
     )
     app.logger.info("this is the old varquery: %s", pformat(query))
     app.logger.info("this is the new varquery: %s", pformat(query2))
@@ -132,7 +134,7 @@ def list_variants(id):
     # Add blacklist data, ADD ALL variants_iter via the store please...
     # util.add_blacklist_data( variants, assay )
     # Get canonical transcripts for the genes from database
-    canonical_dict = store.variant_handler.get_canonical(list(genes.keys()))
+    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(genes.keys()))
     # Select a VEP consequence for each variant
     for var_idx, var in enumerate(variants):
         (
@@ -144,7 +146,7 @@ def list_variants(id):
             variants[var_idx]["classification"],
             variants[var_idx]["other_classification"],
             variants[var_idx]["annotations_interesting"],
-        ) = store.get_global_annotations(variants[var_idx], assay, subpanel)
+        ) = store.annotation_handler.get_global_annotations(variants[var_idx], assay, subpanel)
     # Filter by population frequency
     variants = util.popfreq_filter(variants, float(sample_settings["max_popfreq"]))
     variants = util.hotspot_variant(variants)
@@ -163,8 +165,8 @@ def list_variants(id):
     cnvwgs_iter_n = False
     biomarkers_iter = False
     transloc_iter = False
-    if group != None and "DNA" in group:
-        if group["DNA"]["CNV"]:
+    if group_params != None and "DNA" in group_params:
+        if group_params["DNA"]["CNV"]:
             cnvwgs_iter = list(store.cnv_handler.get_sample_cnvs(sample_id=str(sample["_id"])))
             if filter_cnveffects:
                 cnvwgs_iter = util.cnvtype_variant(cnvwgs_iter, filter_cnveffects)
@@ -172,9 +174,9 @@ def list_variants(id):
             cnvwgs_iter_n = list(
                 store.cnv_handler.get_sample_cnvs(sample_id=str(sample["_id"]), normal=True)
             )
-        if group["DNA"]["OTHER"]:
-            biomarkers_iter = store.get_sample_other(sample_id=str(sample["_id"]))
-        if group["DNA"]["FUSIONS"]:
+        if group_params["DNA"]["OTHER"]:
+            biomarkers_iter = store.other_handler.get_sample_other(sample_id=str(sample["_id"]))
+        if group_params["DNA"]["FUSIONS"]:
             transloc_iter = store.transloc_handler.get_sample_translocations(
                 sample_id=str(sample["_id"])
             )
@@ -190,7 +192,7 @@ def list_variants(id):
         transloc_iter_ai = store.transloc_handler.get_sample_translocations(
             sample_id=str(sample["_id"])
         )
-        biomarkers_iter_ai = store.get_sample_other(sample_id=str(sample["_id"]))
+        biomarkers_iter_ai = store.other_handler.get_sample_other(sample_id=str(sample["_id"]))
         ai_text_transloc = util.generate_ai_text_nonsnv(
             assay, transloc_iter_ai, sample["groups"][0], "transloc"
         )
@@ -204,9 +206,9 @@ def list_variants(id):
 
     # this is in config, but needs to be tested (2024-05-14) with a HD-sample of relevant name
     disp_pos = []
-    if "verif_samples" in group:
-        if sample["name"] in group["verif_samples"]:
-            disp_pos = group["verif_samples"][sample["name"]]
+    if "verif_samples" in group_params:
+        if sample["name"] in group_params["verif_samples"]:
+            disp_pos = group_params["verif_samples"][sample["name"]]
     # this is to allow old samples to view plots, cnv + cnvprofile clash. Old assays used cnv as the entry for the plot, newer assays use cnv for path to cnv-file that was loaded.
     if "cnv" in sample:
         if sample["cnv"].lower().endswith((".png", ".jpg", ".jpeg")):
@@ -273,7 +275,7 @@ def show_variant(id):
 
     variant = store.variant_handler.get_variant(id)
     in_other = store.variant_handler.get_variant_in_other_samples(variant)
-    sample = store.get_sample_with_id(variant["SAMPLE_ID"])
+    sample = store.sample_handler.get_sample_with_id(variant["SAMPLE_ID"])
 
     assay = util.get_assay_from_sample(sample)
     subpanel = sample.get("subpanel")
@@ -306,12 +308,12 @@ def show_variant(id):
             if comm["hidden"] == 1:
                 has_hidden_comments = 1
 
-    expression = store.get_expression_data(list(transcripts.keys()))
+    expression = store.expression_handler.get_expression_data(list(transcripts.keys()))
 
-    variant = store.add_blacklist_data([variant], assay)
+    variant = store.blacklist_handler.add_blacklist_data([variant], assay)
 
     # Get canonical transcripts for all genes annotated for the variant
-    canonical_dict = store.variant_handler.get_canonical(list(genes.keys()))
+    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(genes.keys()))
 
     # Select a transcript
     (variant["INFO"]["selected_CSQ"], variant["INFO"]["selected_CSQ_criteria"]) = util.select_csq(
@@ -335,9 +337,9 @@ def show_variant(id):
     ):
         variant_desc = "ITD"
 
-    civic = store.variant_handler.get_civic_data(variant, variant_desc)
+    civic = store.civic_handler.get_civic_data(variant, variant_desc)
 
-    civic_gene = store.variant_handler.get_civic_gene(variant["INFO"]["selected_CSQ"]["SYMBOL"])
+    civic_gene = store.civic_handler.get_civic_gene_info(variant["INFO"]["selected_CSQ"]["SYMBOL"])
 
     # Find OncoKB data
     oncokb_hgvsp = []
@@ -354,26 +356,26 @@ def show_variant(id):
     ]:
         oncokb_hgvsp.append("Truncating Mutations")
 
-    oncokb = store.get_oncokb_anno(variant, oncokb_hgvsp)
-    oncokb_action = store.get_oncokb_action(variant, oncokb_hgvsp)
-    oncokb_gene = store.get_oncokb_gene(variant["INFO"]["selected_CSQ"]["SYMBOL"])
+    oncokb = store.oncokb_handler.get_oncokb_anno(variant, oncokb_hgvsp)
+    oncokb_action = store.oncokb_handler.get_oncokb_action(variant, oncokb_hgvsp)
+    oncokb_gene = store.oncokb_handler.get_oncokb_gene(variant["INFO"]["selected_CSQ"]["SYMBOL"])
 
     # Find BRCA-exchange data
-    brca_exchange = store.variant_handler.get_brca_exchange_data(variant, assay)
+    brca_exchange = store.brca_handler.get_brca_data(variant, assay)
 
     # Find IARC TP53 data
-    iarc_tp53 = store.variant_handler.find_iarc_tp53(variant)
+    iarc_tp53 = store.iarc_tp53_handler.find_iarc_tp53(variant)
 
     # Get bams
-    sample_ids = store.get_sample_ids(str(sample["_id"]))
-    bam_id = store.get_bams(sample_ids)
+    sample_ids = store.sample_handler.get_sample_ids(str(sample["_id"]))
+    bam_id = store.bam_service_handler.get_bams(sample_ids)
 
     # Format PON (panel of normals) data
     pon = util.format_pon(variant)
 
     # Get global annotations for the variant
     annotations, classification, other_classifications, annotations_interesting = (
-        store.get_global_annotations(variant, assay, subpanel)
+        store.annotation_handler.get_global_annotations(variant, assay, subpanel)
     )
 
     return render_template(
@@ -469,7 +471,7 @@ def add_variant_to_blacklist(id):
     var = store.get_variant(id)
     sample = store.get_sample_with_id(var["SAMPLE_ID"])
     assay = util.get_assay_from_sample(sample)
-    store.blacklist_variant(var, assay)
+    store.blacklist_handler.blacklist_variant(var, assay)
 
     return redirect(url_for("show_variant", id=id))
 
@@ -481,7 +483,7 @@ def order_sanger(id):
     variants, genes = util.get_protein_coding_genes([variant])
     var = variants[0]
     sample = store.get_sample_with_id(var["SAMPLE_ID"])
-    canonical_dict = store.get_canonical(list(genes.keys()))
+    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(genes.keys()))
 
     var["INFO"]["selected_CSQ"], var["INFO"]["selected_CSQ_criteria"] = util.select_csq(
         var["INFO"]["CSQ"], canonical_dict
@@ -510,7 +512,9 @@ def classify_variant(id):
 
     nomenclature, variant = util.get_variant_nomenclature(form_data)
     if class_num != 0:
-        store.insert_classified_variant(variant, nomenclature, class_num, form_data)
+        store.annotation_handler.insert_classified_variant(
+            variant, nomenclature, class_num, form_data
+        )
 
     if class_num != 0:
         if nomenclature == "f":
@@ -524,7 +528,7 @@ def classify_variant(id):
 def remove_classified_variant(id):
     form_data = request.form.to_dict()
     nomenclature, variant = util.get_variant_nomenclature(form_data)
-    per_assay = store.delete_classified_variant(variant, nomenclature, form_data)
+    per_assay = store.annotation_handler.delete_classified_variant(variant, nomenclature, form_data)
     app.logger.debug(per_assay)
     return redirect(url_for("show_variant", id=id))
 
@@ -562,7 +566,7 @@ def add_variant_comment(id):
 @login_required
 def hide_variant_comment(var_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.hide_var_comment(var_id, comment_id)
+    store.variant_handler.hide_var_comment(var_id, comment_id)
     return redirect(url_for("show_variant", id=var_id))
 
 
@@ -570,7 +574,7 @@ def hide_variant_comment(var_id):
 @login_required
 def unhide_variant_comment(var_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.unhide_variant_comment(var_id, comment_id)
+    store.variant_handler.unhide_variant_comment(var_id, comment_id)
     return redirect(url_for("show_variant", id=var_id))
 
 
@@ -582,10 +586,10 @@ def show_cnvwgs(id):
     Show CNVs view page
     """
     cnv = store.cnv_handler.get_cnv(id)
-    sample = store.get_sample_with_id((cnv["SAMPLE_ID"]))
+    sample = store.sample_handler.get_sample_with_id((cnv["SAMPLE_ID"]))
     assay = util.get_assay_from_sample(sample)
-    sample_ids = store.get_sample_ids(str(sample["_id"]))
-    bam_id = store.get_bams(sample_ids)
+    sample_ids = store.sample_handler.get_sample_ids(str(sample["_id"]))
+    bam_id = store.bam_service_handler.get_bams(sample_ids)
 
     annotations = store.cnv_handler.get_cnv_annotations(cnv)
     return render_template(
@@ -669,10 +673,10 @@ def show_transloc(id):
     Show Translocation view page
     """
     transloc = store.transloc_handler.get_transloc(id)
-    sample = store.get_sample_with_id((transloc["SAMPLE_ID"]))
+    sample = store.sample_handler.get_sample_with_id((transloc["SAMPLE_ID"]))
     assay = util.get_assay_from_sample(sample)
-    sample_ids = store.get_sample_ids(str(sample["_id"]))
-    bam_id = store.get_bams(sample_ids)
+    sample_ids = store.sample_handler.get_sample_ids(str(sample["_id"]))
+    bam_id = store.bam_service_handler.get_bams(sample_ids)
 
     annotations = store.transloc_handler.get_transloc_annotations(transloc)
     return render_template(

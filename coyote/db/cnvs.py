@@ -2,25 +2,26 @@ from bson.objectid import ObjectId
 from coyote.db.base import BaseHandler
 
 class CNVsHandler(BaseHandler):
+    """
+    CNVs handler from coyote["cnvs"]
+    """
+    
 
     def __init__(self, adapter):
         super().__init__(adapter)
-        print(f"Inside CNVs: {self.adapter}")
-        print(f"Inside CNVs: {self.adapter.client}")
-        print(f"Inside CNVs: {self.adapter.cnvs_collection}")
-        self.handler_collection = self.adapter.cnvs_collection
+        self.set_collection(self.adapter.cnvs_collection)
 
     def get_sample_cnvs(self, sample_id: str, normal: bool = False):
         """
         Get CNVs for a sample
         """
-        return self.handler_collection.find({"SAMPLE_ID": sample_id})
+        return self.get_collection().find({"SAMPLE_ID": sample_id})
 
     def get_cnv(self, cnv_id: str):
         """
         Get CNV by ID
         """
-        return self.handler_collection.find_one({"_id": ObjectId(cnv_id)})
+        return self.get_collection().find_one({"_id": ObjectId(cnv_id)})
 
     def get_cnv_annotations(self, cnv: str) -> list:
         """

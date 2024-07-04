@@ -9,6 +9,13 @@ from bson.objectid import ObjectId
 from coyote.extensions import store
 
 
+def get_group_parameters(group: str) -> dict:
+    """
+    Get group paramters data
+    """
+    return app.config["GROUP_CONFIGS"].get(group)
+
+
 def get_group_defaults(group):
     """
     Return Default dict (either group defaults or coyote defaults) and setting per sample

@@ -1,15 +1,21 @@
-import pymongo
-from bson.objectid import ObjectId
-from flask import current_app as app
+from coyote.db.base import BaseHandler
 
 
-class ExpressionHandler:
+class ExpressionHandler(BaseHandler):
     """
     Expression Data handler from coyote["hpaexpr"]
     """
 
-    def get_expression_data(self, transcripts):
-        expression = self.expression_collection.find({"tid": {"$in": transcripts}})
+    def __init__(self, adapter):
+        super().__init__(adapter)
+        self.set_collection(self.adapter.expression_collection)
+
+    def get_expression_data(self, transcripts: list) -> dict:
+        """
+        Get expression data for a list of transcripts
+        """
+
+        expression = self.get_collection().find({"tid": {"$in": transcripts}})
 
         expression_dict = {}
         for transcript_expression in expression:

@@ -1,12 +1,15 @@
-import pymongo
 from bson.objectid import ObjectId
-from flask import current_app as app
+from coyote.db.base import BaseHandler
 
 
-class SampleHandler:
+class SampleHandler(BaseHandler):
     """
     Sample handler from coyote["samples"]
     """
+
+    def __init__(self, adapter):
+        super().__init__(adapter)
+        self.set_collection(self.adapter.samples_collection)
 
     def get_samples(self, user_groups: list = [], report: bool = False, search_str: str = ""):
         query = {"groups": {"$in": user_groups}}
@@ -15,15 +18,15 @@ class SampleHandler:
         else:
             query["$or"] = [{"report_num": {"$exists": False}}, {"report_num": 0}]
 
-        app.logger.info(f"this is my search string: {search_str}")
+        self.app.logger.info(f"this is my search string: {search_str}")
         if len(search_str) > 0:
             query["name"] = {"$regex": search_str}
-        app.logger.info(query)
-        samples = self.samples_collection.find(query).sort("time_added", -1)
+        self.app.logger.info(query)
+        samples = self.get_collection().find(query).sort("time_added", -1)
         return samples
 
     def get_num_samples(self, sample_id: str) -> int:
-        gt = self.samples_collection.find_one({"SAMPLE_ID": sample_id}, {"GT": 1})
+        gt = self.get_collection().find_one({"SAMPLE_ID": sample_id}, {"GT": 1})
         if gt:
             return len(gt.get("GT"))
         else:
@@ -33,18 +36,18 @@ class SampleHandler:
         """
         get sample by name
         """
-        sample = self.samples_collection.find_one({"name": name})
+        sample = self.get_collection().find_one({"name": name})
         return sample
 
     def get_sample_with_id(self, id: str):
         """
         get sample by name
         """
-        sample = self.samples_collection.find_one({"_id": ObjectId(id)})
+        sample = self.get_collection().find_one({"_id": ObjectId(id)})
         return sample
 
     def get_sample_ids(self, sample_id: str):
-        a_var = self.samples_collection.find_one({"SAMPLE_ID": sample_id}, {"GT": 1})
+        a_var = self.get_collection().find_one({"SAMPLE_ID": sample_id}, {"GT": 1})
         ids = {}
         if a_var:
             for gt in a_var["GT"]:
@@ -55,7 +58,7 @@ class SampleHandler:
         """
         reset sample to default settings
         """
-        self.samples_collection.update(
+        self.get_collection().update(
             {"name": sample_id},
             {
                 "$set": {
@@ -103,7 +106,7 @@ class SampleHandler:
                 else:
                     checked_conseq[fieldname] = 1
 
-        self.samples_collection.update(
+        self.get_collection().update(
             {"name": sample_str},
             {
                 "$set": {

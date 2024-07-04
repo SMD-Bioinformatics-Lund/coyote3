@@ -1,20 +1,22 @@
-import pymongo
-from bson.objectid import ObjectId
-from flask import current_app as app
+from coyote.db.base import BaseHandler
 
 
-class BlacklistHandler:
+class BlacklistHandler(BaseHandler):
     """
     Blacklist handler from coyote["blacklist"]
     """
 
-    def add_blacklist_data(self, variants, assay):
+    def __init__(self, adapter):
+        super().__init__(adapter)
+        self.set_collection(self.adapter.blacklist_collection)
+
+    def add_blacklist_data(self, variants: list, assay: str) -> dict:
         short_pos = []
 
         for var in variants:
             short_pos.append(f"{str(var['CHROM'])}_{str(var['POS'])}_{var['REF']}_{var['ALT']}")
 
-        black_listed = self.blacklist_collection.find({"assay": assay, "pos": {"$in": short_pos}})
+        black_listed = self.get_collection().find({"assay": assay, "pos": {"$in": short_pos}})
         black_dict = {}
 
         for black_var in black_listed:
@@ -33,7 +35,7 @@ class BlacklistHandler:
         """
         short_pos = f"{str(var['CHROM'])}_{str(var['POS'])}_{var['REF']}_{var['ALT']}"
 
-        if self.blacklist_collection.insert_one(
+        if self.get_collection().insert_one(
             {"assay": assay, "in_normal_perc": 1, "pos": short_pos}
         ):
             return True

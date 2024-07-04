@@ -1,6 +1,10 @@
 from bson.objectid import ObjectId
 from flask_login import current_user
+from flask import current_app as app
 from datetime import datetime
+import pymongo
+
+# from coyote.db.mongo import MongoAdapter
 
 
 class BaseHandler:
@@ -11,11 +15,19 @@ class BaseHandler:
     def __init__(self, adapter):
         self.adapter = adapter
         self.current_user = current_user
+        self.app = app
 
         # default collection for a given handler, must be set from inside the handler class
         self.handler_collection = None
-        print(f"Inside Base: {self.adapter}")
-        print(f"Inside Base: {self.adapter.client}")
+
+    def set_collection(self, collection: pymongo.collection.Collection) -> None:
+        self.handler_collection = collection
+
+    def get_collection(self) -> pymongo.collection.Collection:
+        if self.handler_collection:
+            return self.handler_collection
+        else:
+            raise NotImplementedError("get_collection or set_collection must be implemented")
 
     def hide_comment(self, var_id: str, comment_id: str) -> None:
         self.handler_collection.update_one(
@@ -33,7 +45,7 @@ class BaseHandler:
         """
         Unhide variant comment
         """
-        self.handler_collection.update_one(
+        self.get_collection().update_one(
             {"_id": ObjectId(var_id), "comments._id": ObjectId(comment_id)},
             {
                 "$set": {
@@ -46,7 +58,7 @@ class BaseHandler:
         """
         Mark / Unmark variant as false
         """
-        self.handler_collection.update_one(
+        self.get_collection().update_one(
             {"_id": ObjectId(var_id)},
             {"$set": {"fp": fp}},
         )
@@ -55,7 +67,7 @@ class BaseHandler:
         """
         Mark variant as interesting
         """
-        self.handler_collection.update_one(
+        self.get_collection().update_one(
             {"_id": ObjectId(var_id)},
             {"$set": {"interesting": interesting}},
         )
@@ -64,7 +76,7 @@ class BaseHandler:
         """
         Mark / Unmark variant as irrelevant
         """
-        self.handler_collection.update_one(
+        self.get_collection().update_one(
             {"_id": ObjectId(var_id)},
             {"$set": {"irrelevant": irrelevant}},
         )

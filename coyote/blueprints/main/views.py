@@ -16,6 +16,7 @@ from coyote.blueprints.main.util import SampleSearchForm
 
 
 @main_bp.route("/", methods=["GET", "POST"])
+@main_bp.route("/home", methods=["GET", "POST"])
 @main_bp.route("/<string:assay>", methods=["GET", "POST"])
 @login_required
 def main_screen(assay=None):
@@ -34,8 +35,10 @@ def main_screen(assay=None):
         else:
             user_groups = []
 
-    live_samples_iter = store.get_samples(user_groups=user_groups, search_str=search_str)
-    done_samples_iter = store.get_samples(
+    live_samples_iter = store.sample_handler.get_samples(
+        user_groups=user_groups, search_str=search_str
+    )
+    done_samples_iter = store.sample_handler.get_samples(
         user_groups=user_groups, search_str=search_str, report=True
     )
 
@@ -52,12 +55,12 @@ def main_screen(assay=None):
         else:
             samp["last_report_time_created"] = 0
         if limit_done_samples != 0:
-            samp["num_samples"] = store.get_num_samples(str(samp["_id"]))
+            samp["num_samples"] = store.sample_handler.get_num_samples(str(samp["_id"]))
         done_samples.append(samp)
 
     live_samples = []
     for samp in live_samples_iter:
-        samp["num_samples"] = store.get_num_samples(str(samp["_id"]))
+        samp["num_samples"] = store.sample_handler.get_num_samples(str(samp["_id"]))
         live_samples.append(samp)
 
     return render_template(

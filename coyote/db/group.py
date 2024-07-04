@@ -1,8 +1,18 @@
-import pymongo
-from flask import current_app as app
+from coyote.db.base import BaseHandler
 
-class GroupsHandler:
+
+class GroupsHandler(BaseHandler):
+    """
+    Groups handler from Groups["groups"]
+    """
+
+    def __init__(self, adapter):
+        super().__init__(adapter)
+        self.set_collection(self.adapter.groups_collection)
 
     def get_sample_groups(self, group: str):
-        group = self.groups_collection.find_one( { '_id':group } )
+        """
+        Get groups for a sample
+        """
+        group = self.get_collection().find_one({"_id": group})
         return group
