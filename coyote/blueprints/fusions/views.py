@@ -37,7 +37,7 @@ def list_fusions(id):
         pass
     
     form = FusionForm()
-    sample_settings = util.get_sample_settings(sample,settings)
+    sample_settings = util.get_fusions_settings(sample,settings)
     app.logger.info(f"this is the sample and settings  {settings}")
     app.logger.info(f"this is the sample_settings {sample_settings}")
 

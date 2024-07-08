@@ -36,9 +36,23 @@ def get_sample_settings(sample,settings):
     sample_settings["csq_filter"]          = sample.get("checked_csq", settings["default_checked_conseq"])
     sample_settings["min_cnv_size"]        = int(float(sample.get("min_cnv_size", settings["default_min_cnv_size"])))
     sample_settings["max_cnv_size"]        = int(float(sample.get("max_cnv_size", settings["default_max_cnv_size"])))
+    #sample_settings["min_spanreads"]       = int(float(sample.get("filter_min_spanreads", settings.get("default_spanreads", 0))))
+    #sample_settings["min_spanpairs"]       = int(float(sample.get("filter_min_spanpairs", settings.get("default_spanpairs", 0))))
+    return sample_settings
+
+def get_fusions_settings(sample,settings):
+    """
+    get sample fusion setting or use default
+
+    Args:
+        sample (_type_): sample string 
+        settings (_type_): dictionary of the default sample settings 
+    """
+    sample_settings = {}
     sample_settings["min_spanreads"]       = int(float(sample.get("filter_min_spanreads", settings.get("default_spanreads", 0))))
     sample_settings["min_spanpairs"]       = int(float(sample.get("filter_min_spanpairs", settings.get("default_spanpairs", 0))))
     return sample_settings
+
 
 def get_assay_from_sample( smp ):
     if "exome_trio" in smp["groups"]:
