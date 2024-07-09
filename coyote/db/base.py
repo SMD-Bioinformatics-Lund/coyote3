@@ -89,8 +89,8 @@ class BaseHandler:
         """
         self.get_collection().insert_one(comment_doc)
 
-    def update_comment(self, var_id: str, comment_doc: dict) -> None:
+    def update_comment(self, id: str, comment_doc: dict) -> None:
         """
         Update comment for a variant
         """
-        self.get_collection().update({"_id": ObjectId(var_id)}, comment_doc)
+        self.get_collection().update({"_id": ObjectId(id)}, comment_doc)

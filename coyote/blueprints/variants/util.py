@@ -13,7 +13,6 @@ class VariantUtility:
     """
     Utility class for variants blueprint
     """
-    
 
     @staticmethod
     def get_filter_conseq_terms(checked):
@@ -794,13 +793,15 @@ class VariantUtility:
         return nomenclature, variant
 
     @staticmethod
-    def create_var_comment_doc(nomenclature: str, variant: str, data: dict) -> dict:
+    def create_comment_doc(
+        data: dict, nomenclature: str = "", variant: str = "", key: str = "text"
+    ) -> dict:
         """
         Create a variant comment document
         """
         if data.get("global", None) == "global":
             doc = {
-                "text": data.get("text"),  # common
+                "text": data.get(key),  # common
                 "author": current_user.get_id(),  # common
                 "time_created": datetime.now(),  # common
                 "variant": variant,  # common
@@ -825,7 +826,7 @@ class VariantUtility:
                     "comments": {
                         "_id": ObjectId(),
                         "hidden": 0,
-                        "text": data.get("text"),
+                        "text": data.get(key),
                         "author": current_user.get_id(),
                         "time_created": datetime.now(),
                     }

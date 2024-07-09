@@ -36,8 +36,7 @@ class SampleHandler(BaseHandler):
         """
         get sample by name
         """
-        sample = self.get_collection().find_one({"name": name})
-        return sample
+        return self.get_collection().find_one({"name": name})
 
     def get_sample_with_id(self, id: str):
         """
@@ -128,3 +127,21 @@ class SampleHandler(BaseHandler):
                 }
             },
         )
+
+    def add_sample_comment(self, sample_id: str, comment_doc: dict) -> None:
+        """
+        add comment to sample
+        """
+        self.update_comment(sample_id, comment_doc)
+
+    def hide_sample_comment(self, id: str, comment_id: str) -> None:
+        """
+        Hide Sample comment
+        """
+        self.hide_comment(id, comment_id)
+
+    def unhide_sample_comment(self, id: str, comment_id: str) -> None:
+        """
+        Unhide Sample comment
+        """
+        self.unhide_comment(id, comment_id)

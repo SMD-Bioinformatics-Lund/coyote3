@@ -24,6 +24,11 @@ def list_variants(id):
 
     # Find sample data by name
     sample = store.sample_handler.get_sample(id)
+
+    # Get sample data by id if name is none
+    if sample is None:
+        sample = store.sample_handler.get_sample_with_id(id)
+
     sample_ids = store.sample_handler.get_sample_ids(str(sample["_id"]))
     smp_grp = sample["groups"][0]
     group_params = util.common.get_group_parameters(smp_grp)
@@ -260,12 +265,28 @@ def show_any_plot(fn, assay, build):
 @login_required
 def add_sample_comment(id):
     """
-    rewrite to use app.store instead
+    Add Sample comment
     """
-    # app.config['SAMPLES_COLL'].update(
-    #     { '_id': ObjectId(id) },
-    #     { "$push": { 'comments': { '_id':ObjectId(), 'hidden':0, 'text':request.form['sample_comment'], 'author':current_user.get_id(), 'time_created':datetime.now() }}} )
-    return redirect(url_for("list_variants", id=id))
+    data = request.form.to_dict()
+    doc = util.variant.create_comment_doc(data, key="sample_comment")
+    store.sample_handler.add_sample_comment(id, doc)
+    return redirect(url_for("variants_bp.list_variants", id=id))
+
+
+@app.route("/sample/hide_sample_comment/<string:sample_id>", methods=["POST"])
+@login_required
+def hide_sample_comment(sample_id):
+    comment_id = request.form.get("comment_id", "MISSING_ID")
+    store.sample_handler.hide_sample_comment(sample_id, comment_id)
+    return redirect(url_for("variants_bp.list_variants", id=sample_id))
+
+
+@app.route("/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"])
+@login_required
+def unhide_sample_comment(sample_id):
+    comment_id = request.form.get("comment_id", "MISSING_ID")
+    store.sample_handler.unhide_sample_comment(sample_id, comment_id)
+    return redirect(url_for("variants_bp.list_variants", id=sample_id))
 
 
 # TODO CHECK AGAIN AND MODIFY THE CODE AS PER THE REQUIREMENT
@@ -536,7 +557,7 @@ def add_variant_comment(id):
     # If global checkbox. Save variant with the protein, coding och genomic nomenclature in decreasing priority
     form_data = request.form.to_dict()
     nomenclature, variant = util.variant.get_variant_nomenclature(form_data)
-    doc = util.create_var_comment_doc(nomenclature, variant, form_data)
+    doc = util.variant.create_comment_doc(form_data, nomenclature=nomenclature, variant=variant)
     _type = form_data.get("global", None)
     if _type == "global":
         store.annotation_handler.add_anno_comment(doc)
