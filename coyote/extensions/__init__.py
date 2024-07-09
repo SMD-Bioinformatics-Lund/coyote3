@@ -7,8 +7,10 @@ from flask_login import LoginManager
 from flask_pymongo import PyMongo
 from coyote.db.mongo import MongoAdapter
 from .ldap_extension import LdapManager
+from coyote.util import Utility
 
 login_manager = LoginManager()
 mongo = PyMongo()
 store = MongoAdapter()
 ldap_manager = LdapManager()
+util = Utility()

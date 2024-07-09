@@ -1,5 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, validators
+from flask import current_app as app
 
 
 class SampleSearchForm(FlaskForm):
@@ -8,5 +9,9 @@ class SampleSearchForm(FlaskForm):
     sample_search = StringField("Search sample", validators=[validators.DataRequired()])
 
 
-class BaseUtilityFunctions:
+class MainUtility:
+    """
+    Utility class for Main blueprint
+    """
+
     pass

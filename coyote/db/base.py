@@ -4,8 +4,6 @@ from flask import current_app as app
 from datetime import datetime
 import pymongo
 
-# from coyote.db.mongo import MongoAdapter
-
 
 class BaseHandler:
     """
@@ -30,6 +28,10 @@ class BaseHandler:
             raise NotImplementedError("get_collection or set_collection must be implemented")
 
     def hide_comment(self, var_id: str, comment_id: str) -> None:
+        """
+        Hide comment for a variant or a translocation or a cnv etc
+        """
+
         self.handler_collection.update_one(
             {"_id": ObjectId(var_id), "comments._id": ObjectId(comment_id)},
             {
@@ -43,7 +45,7 @@ class BaseHandler:
 
     def unhide_comment(self, var_id: str, comment_id: str) -> None:
         """
-        Unhide variant comment
+        Unhide comment for a variant or a translocation or a cnv etc
         """
         self.get_collection().update_one(
             {"_id": ObjectId(var_id), "comments._id": ObjectId(comment_id)},
@@ -80,3 +82,15 @@ class BaseHandler:
             {"_id": ObjectId(var_id)},
             {"$set": {"irrelevant": irrelevant}},
         )
+
+    def add_comment(self, comment_doc: dict) -> None:
+        """
+        Add comment to a variant
+        """
+        self.get_collection().insert_one(comment_doc)
+
+    def update_comment(self, var_id: str, comment_doc: dict) -> None:
+        """
+        Update comment for a variant
+        """
+        self.get_collection().update({"_id": ObjectId(var_id)}, comment_doc)

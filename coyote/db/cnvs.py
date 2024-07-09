@@ -77,3 +77,41 @@ class CNVsHandler(BaseHandler):
         Unhide CNVs comment
         """
         self.unhide_comment(cnv_id, comment_id)
+
+    def add_cnv_comment(self, cnv_id: str, comment_doc: dict) -> None:
+        """
+        Add comment to a CNV
+        """
+        self.update_comment(cnv_id, comment_doc)
+
+    def cnvtype_variant(self, cnvs: list, checked_effects: list) -> list:
+        """
+        Filter CNVs by type
+        """
+        filtered_cnvs = []
+        for var in cnvs:
+            if var["ratio"] > 0:
+                effect = "AMP"
+            if var["ratio"] < 0:
+                effect = "DEL"
+            if effect in checked_effects:
+                filtered_cnvs.append(var)
+        return filtered_cnvs
+
+    def cnv_organizegenes(self, cnvs: list) -> list:
+        """
+        Organize CNV genes
+        """
+        fixed_cnvs_genes = []
+        for var in cnvs:
+            var["other_genes"] = []
+            for gene in var["genes"]:
+                if "class" in gene:
+                    if "panel_gene" in var:
+                        var["panel_gene"].append(gene["gene"])
+                    else:
+                        var["panel_gene"] = [gene["gene"]]
+                else:
+                    var["other_genes"].append(gene["gene"])
+            fixed_cnvs_genes.append(var)
+        return fixed_cnvs_genes

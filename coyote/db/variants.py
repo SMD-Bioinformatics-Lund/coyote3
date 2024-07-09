@@ -1,6 +1,5 @@
-import pymongo
 from bson.objectid import ObjectId
-from datetime import datetime
+import re
 from coyote.db.base import BaseHandler
 
 
@@ -51,6 +50,38 @@ class VariantsHandler(BaseHandler):
 
         return other
 
+    def get_protein_coding_genes(self, var_iter: list) -> tuple[list, dict]:
+        """
+        Get protein coding genes from a variant list
+        """
+        genes = {}
+        variants = []
+        for var in var_iter:
+            for csq in var["INFO"]["CSQ"]:
+                if csq["BIOTYPE"] == "protein_coding":
+                    genes[csq["SYMBOL"]] = 1
+            variants.append(var)
+
+        return variants, genes
+
+    def hotspot_variant(self, variants: list) -> list[str]:
+        """
+        Return variants that are hotspots
+        """
+        hotspots = []
+        for variant in variants:
+            for csq in variant["INFO"]["selected_CSQ"]:
+                if "hotspot_OID" in csq:
+                    if "COS" in variant["INFO"]["selected_CSQ"][csq]:
+                        csq1 = csq.split("_")
+                        csq2 = re.sub(r"hotspot", r"", csq1[0])
+                        hotspot = variant["INFO"].get("HOTSPOT", [])
+                        hotspot.append(csq2)
+                        variant["INFO"]["HOTSPOT"] = hotspot
+            hotspots.append(variant)
+
+        return hotspots
+
     def mark_false_positive_var(self, variant_id: str, fp: bool = True) -> None:
         """
         Mark variant false positive status
@@ -98,3 +129,9 @@ class VariantsHandler(BaseHandler):
         Unhide variant comment
         """
         self.unhide_comment(id, comment_id)
+
+    def add_var_comment(self, id: str, comment: dict) -> None:
+        """
+        Add variant comment
+        """
+        self.update_comment(id, comment)

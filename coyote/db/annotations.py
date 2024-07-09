@@ -220,3 +220,9 @@ class AnnotationsHandler(BaseHandler):
             )
 
         return per_assay
+
+    def add_anno_comment(self, comment: dict) -> None:
+        """
+        Add comment to a variant
+        """
+        self.add_comment(comment)

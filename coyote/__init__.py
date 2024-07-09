@@ -39,6 +39,7 @@ def init_app(testing: bool = False) -> Flask:
         init_store(app)
         register_blueprints(app)
         init_ldap(app)
+        init_utility(app)
 
     app.logger.info("App initialization finished. Returning app.")
     return app
@@ -54,6 +55,11 @@ def init_db(app) -> None:
 def init_store(app) -> None:
     app.logger.info("Initializing MongoAdapter at: " f"{app.config['MONGO_URI']}")
     extensions.store.init_from_app(app)
+
+
+def init_utility(app) -> None:
+    app.logger.info("Initializing Utility")
+    extensions.util.init_util()
 
 
 def register_blueprints(app) -> None:

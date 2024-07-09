@@ -5,7 +5,7 @@ import ssl
 import toml
 
 from coyote.__version__ import __version__ as app_version
-from coyote.util import get_active_branch_name
+from coyote.util.common_utility import CommonUtility
 
 # # Implement in the future?
 # from dotenv import load_dotenv
@@ -167,7 +167,7 @@ class DefaultConfig:
 
 class DevelopmentConfig(DefaultConfig):
     SECRET_KEY = "traskbatfluga"
-    APP_VERSION = f"{app_version}-DEV (git: {get_active_branch_name()})"
+    APP_VERSION = f"{app_version}-DEV (git: {CommonUtility.get_active_branch_name()})"
 
 
 class TestConfig(DefaultConfig):

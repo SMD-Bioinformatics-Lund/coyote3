@@ -16,6 +16,7 @@ from coyote.db.canonical import CanonicalHandler
 from coyote.db.civic import CivicHandler
 from coyote.db.iarc_tp53 import IARCTP53Handler
 from coyote.db.brcaexchange import BRCAHandler
+from coyote.db.fusions import FusionHandler
 
 
 class MongoAdapter:
@@ -93,3 +94,4 @@ class MongoAdapter:
         self.other_handler = OtherHandler(self)
         self.group_handler = GroupsHandler(self)
         self.user_handler = UsersHandler(self)
+        self.fusion_handler = FusionHandler(self)

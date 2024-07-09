@@ -1,6 +1,5 @@
 from bson.objectid import ObjectId
 from coyote.db.base import BaseHandler
-from pymongo.collection import Collection
 
 
 class TranslocsHandler(BaseHandler):
@@ -69,3 +68,9 @@ class TranslocsHandler(BaseHandler):
         Unhide Translocation comment
         """
         self.unhide_comment(transloc_id, comment_id)
+
+    def add_transloc_comment(self, transloc_id: str, comment: str) -> None:
+        """
+        Add comment to a Translocation
+        """
+        self.update_comment(transloc_id, comment)
