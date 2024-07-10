@@ -19,7 +19,7 @@ from coyote.blueprints.variants import util
 from coyote.blueprints.variants import filters
 
 
-@variants_bp.route("/sample/<string:id>", methods=["GET", "POST"])
+@variants_bp.route("/dna/sample/<string:id>", methods=["GET", "POST"])
 @login_required
 def list_variants(id):
 
