@@ -94,3 +94,12 @@ class BaseHandler:
         Update comment for a variant
         """
         self.get_collection().update({"_id": ObjectId(id)}, comment_doc)
+
+    def hidden_comments(self, id: str) -> bool:
+        """
+        Get hidden comments for a document, example sample comments, variant comments etc
+        """
+        data = self.get_collection().find_one({"_id": ObjectId(id)}).get("comments")
+        if data:
+            return any(comment.get("hidden") for comment in data)
+        return False

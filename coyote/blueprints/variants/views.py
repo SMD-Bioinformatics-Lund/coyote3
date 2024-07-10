@@ -52,7 +52,7 @@ def list_variants(id):
                 subpanel=sample["subpanel"], type="genelist"
             )
             if panel_genelist:
-                settings["default_checked_genelists"] = {"genelist_" + sample["subpanel"]: 1}
+                settings["default_checked_genelists"] = {f"genelist_{sample['subpanel']}": 1}
 
     # Save new filter settings if submitted
     # Inherit FilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
@@ -79,11 +79,7 @@ def list_variants(id):
     ############################################################################
 
     # Check if sample has hidden comments
-    has_hidden_comments = 0
-    if "comments" in sample:
-        for comm in sample["comments"]:
-            if comm["hidden"] == 1:
-                has_hidden_comments = 1
+    has_hidden_comments = 1 if store.sample_handler.hidden_sample_comments(sample.get("_id")) else 0
 
     ## get sample settings
     sample_settings = util.common.get_sample_settings(sample, settings)
@@ -179,7 +175,7 @@ def list_variants(id):
                 store.cnv_handler.get_sample_cnvs(sample_id=str(sample["_id"]), normal=True)
             )
         if group_params["DNA"]["OTHER"]:
-            biomarkers_iter = store.other_handler.get_sample_other(sample_id=str(sample["_id"]))
+            biomarkers_iter = store.biomarker_handler.get_sample_other(sample_id=str(sample["_id"]))
         if group_params["DNA"]["FUSIONS"]:
             transloc_iter = store.transloc_handler.get_sample_translocations(
                 sample_id=str(sample["_id"])
@@ -196,7 +192,7 @@ def list_variants(id):
         transloc_iter_ai = store.transloc_handler.get_sample_translocations(
             sample_id=str(sample["_id"])
         )
-        biomarkers_iter_ai = store.other_handler.get_sample_other(sample_id=str(sample["_id"]))
+        biomarkers_iter_ai = store.biomarker_handler.get_sample_other(sample_id=str(sample["_id"]))
         ai_text_transloc = util.variant.generate_ai_text_nonsnv(
             assay, transloc_iter_ai, sample["groups"][0], "transloc"
         )
@@ -289,7 +285,6 @@ def unhide_sample_comment(sample_id):
     return redirect(url_for("variants_bp.list_variants", id=sample_id))
 
 
-# TODO CHECK AGAIN AND MODIFY THE CODE AS PER THE REQUIREMENT
 ## Individual variant view ##
 @app.route("/var/<string:id>")
 @login_required

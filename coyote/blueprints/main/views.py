@@ -104,4 +104,8 @@ def error_screen():
         error = 1 / 0
     except ZeroDivisionError as e:
         error = traceback.format_exc()
-    return render_template("error.html", error=error)
+
+    if current_user.is_admin():
+        return render_template("error.html", error=error)
+    else:
+        return render_template("error.html", error=[])

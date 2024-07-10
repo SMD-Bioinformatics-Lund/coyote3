@@ -135,3 +135,9 @@ class VariantsHandler(BaseHandler):
         Add variant comment
         """
         self.update_comment(id, comment)
+
+    def hidden_var_comments(self, id: str) -> bool:
+        """
+        Return True if hidden variant comments else False
+        """
+        return self.hidden_comments(id)

@@ -36,6 +36,9 @@ class User:
             return self.role
         return "admin" if "admin" in self.groups else "user"
 
+    def is_admin(self):
+        return "admin" in self.groups
+
     @staticmethod
     def validate_login(password_hash, password):
         return check_password_hash(password_hash, password)

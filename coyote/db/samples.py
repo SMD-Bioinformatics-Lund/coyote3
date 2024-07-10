@@ -145,3 +145,9 @@ class SampleHandler(BaseHandler):
         Unhide Sample comment
         """
         self.unhide_comment(id, comment_id)
+
+    def hidden_sample_comments(self, id: str) -> bool:
+        """
+        Return True if hidden comments for sample else False
+        """
+        return self.hidden_comments(id)
