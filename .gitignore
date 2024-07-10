@@ -138,3 +138,4 @@ config.git.hash
 .dir-locals.el
 run_dev.py
 *.backup
+app.log

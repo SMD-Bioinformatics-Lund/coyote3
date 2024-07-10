@@ -46,7 +46,7 @@ class DefaultConfig:
         "error_cov": 100,
         "default_popfreq": 1.0,
         "default_mindepth": 100,
-        "default_spanreads": 2,
+        "default_spanreads": 0,
         "default_spanpairs": 0,
         "default_min_freq": 0.05,
         "default_min_reads": 10,

@@ -73,6 +73,7 @@ class MongoAdapter:
         self.brcaexchange_collection = self.coyote_db["brcaexchange"]
         self.iarc_tp53_collection = self.coyote_db["iarc_tp53"]
         self.bam_samples = self.bam_db["samples"]
+        self.fusions_collection = self.coyote_db["fusions"]
 
     def _setup_handlers(self):
         """
