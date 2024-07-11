@@ -13,6 +13,7 @@ from wtforms.validators import Optional
 from coyote.extensions import store
 from coyote.blueprints.fusions import fusions_bp
 from coyote.blueprints.variants import util
+from coyote.extensions import util
 
 
 @fusions_bp.route("/rna/sample/<string:id>", methods=["GET", "POST"])
@@ -21,14 +22,14 @@ def list_fusions(id):
     sample = store.sample_handler.get_sample(id)
     sample_ids = store.sample_handler.get_sample_ids(str(sample["_id"]))
     smp_grp = sample["groups"][0]
-    group = app.config["GROUP_CONFIGS"].get(smp_grp)
-    settings = util.get_group_defaults(group)
-    assay = util.get_assay_from_sample(sample)
+    group_params = util.common.get_group_parameters(smp_grp)
+    settings = util.common.get_group_defaults(group_params)
+    assay = util.common.get_assay_from_sample(sample)
     subpanel = sample.get("subpanel")
 
     app.logger.info(app.config["GROUP_CONFIGS"])  # get group config from app config instead
     app.logger.info(f"the sample has these groups {smp_grp}")
-    app.logger.info(f"this is the group from collection {group}")
+    app.logger.info(f"this is the group from collection {group_params}")
 
     gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
     app.logger.info(f"this is the gene_lists, genelists_assay {gene_lists},{genelists_assay}")
@@ -37,7 +38,7 @@ def list_fusions(id):
         pass
 
     form = FusionForm()
-    sample_settings = util.get_fusions_settings(sample, settings)
+    sample_settings = util.common.get_fusions_settings(sample, settings)
     app.logger.info(f"this is the sample and settings  {settings}")
     app.logger.info(f"this is the sample_settings {sample_settings}")
 
