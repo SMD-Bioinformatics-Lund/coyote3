@@ -1,135 +1,163 @@
-{% extends "layout.html" %} {% block body %}
-<div class="searchbox">
-  <form action="" method="POST" name="form">
-    {{ form.hidden_tag() }}
-    {{ form.sample_search(size=33) }}
-    <input type="submit" value="Search samples" />
-  </form>
+{% extends "layout.html" %}
+{% block title %}Main Screen{% endblock %}
+{% block search %}
+<form action="" method="POST" class="relative">
+  {{ form.hidden_tag() }}
+  <div class="absolute inset-y-0 right-0 flex items-center pr-7">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700 cursor-pointer" viewBox="0 0 20 20" fill="currentColor" onclick="document.getElementById('search-input').focus()">
+      <path fill-rule="evenodd" d="M12.9 14.32a8 8 0 111.414-1.414l5.386 5.386a1 1 0 01-1.414 1.414l-5.386-5.386zM8 14A6 6 0 108 2a6 6 0 000 12z" clip-rule="evenodd" />
+    </svg>
+  </div>
+  <input type="text" name="sample_search" id="search-input" class="search-bar border border-gray-300 rounded py-2 pl-3 pr-8 mr-4 focus:outline-none focus:border-blue-500" placeholder="Search samples" size="33">
+</form>
+{% endblock %}
+{% block body %}
+<div class="side-buttons">
+  <div class="side-button analysed">
+      Analysed
+  </div>
+  <div class="side-button pending">
+      Pending
+  </div>
 </div>
-<span class="table_header">Samples without reports</span>
-<table class="samples">
-  <thead>
-    <tr>
-      <th>Sample ID</th>
-      <th></th>
-      <th>Group</th>
-      <th>Diagnosis</th>
-      <th>BAM</th>
-      <th>QC</th>
-      <th>When added</th>
-    </tr>
-  </thead>
+<div class="container mx-auto ml-8 p-5">
+  <div class="flex justify-start">
+    <div class="w-4/5 ml-15%">
+      <div class="overflow-x-auto">
+        <span class="text-lg font-semibold">Samples without reports</span>
+        <table class="min-w-full bg-white shadow-md rounded my-4 text-sm">
+          <thead>
+            <tr>
+              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Sample ID</th>
+              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Group</th>
+              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Diagnosis</th>
+              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">BAM</th>
+              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">QC</th>
+              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">When added</th>
+            </tr>
+          </thead>
+          <tbody class="text-gray-700">
+            {% for sample in live_samples %}
+              <tr>
+                <td class="py-2 px-4 border-b border-gray-300">
+                  <a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                  {% if sample.comments|selectattr('hidden', 'equalto', 0)|list|length > 0 %}
+                    *
+                  {% endif %}
+                </td>
+                <td class="py-2 px-4 border-b border-gray-300">
+                  {% for grp in sample.groups %}
+                    {{ grp }}
+                  {% endfor %}
+                </td>
+                <td class="py-2 px-4 border-b border-gray-300">
+                  {% if "subpanel" in sample %}
+                    {{ sample.subpanel }}
+                  {% endif %}
+                </td>
+                <td class="py-2 px-4 border-b border-gray-300">
+                  {% if sample.bam is defined %}
+                    <a href="{{ sample.bam }}" class="text-blue-500 hover:underline">BAM</a>
+                    <a href="{{ sample.bam }}.bai" class="text-blue-500 hover:underline">BAI</a>
+                  {% endif %}
+                </td>
+                <td class="py-2 px-4 border-b border-gray-300">
+                  {% if sample.QC is defined %}
+                    {% for qc in sample.QC|sort(attribute='sample_id') %}
+                      {% if "500" in qc.pct_above_x %}
+                        <a href="sampleqc/{{ sample._id }}" class="text-blue-500 hover:underline">{{ '%0.0f'|format(qc.pct_above_x["500"]|float) }}%</a>
+                      {% elif "tot_reads" in qc and "mapped_pct" in qc %}
+                        <a href="sampleqc/{{ sample._id }}" class="text-blue-500 hover:underline">{{ '%0.0f'|format((qc.tot_reads/1000000)|float) }} M</a>
+                      {% else %}
+                        <a href="sampleqc/{{ sample._id }}" class="text-blue-500 hover:underline">0%</a>
+                      {% endif %}
+                    {% endfor %}
+                  {% endif %}
+                </td>
+                <td class="py-2 px-4 border-b border-gray-300">
+                  {{ sample.time_added|human_date }}
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="6" class="py-2 px-4 border-b border-gray-300 text-center">No live samples.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
-  <tbody>
-    {% for sample in live_samples %}
-    <tr>
-      <td> 
-        <a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}">{{ sample.name }}</a> {% if
-        sample.comments|selectattr('hidden', 'equalto', 0)|list|length > 0 %}*{%
-        endif %}
-      </td>
-      <td>
-        {% if "num_samples" in sample %}{%for n in range(sample.num_samples)
-        %}&#9679;{% endfor %}{% endif %}
-      </td>
-      <td>{% for grp in sample.groups %} {{ grp }} {% endfor %}</td>
-      <td>{% if "subpanel" in sample %}{{sample.subpanel}}{% endif %}</td>
-      <td>
-        {% if sample.bam is defined %}
-        <a href="{{ sample.bam }}">BAM</a>
-        <a href="{{ sample.bam }}.bai">BAI</a>
-        {% endif %}
-      </td>
-
-      <td>
-        {% if sample.QC is defined %} {% for qc in
-        sample.QC|sort(attribute='sample_id') %} {% if "500" in qc.pct_above_x
-        %}
-        <a href="sampleqc/{{ sample._id }}"
-          >{{'%0.0f'| format(qc.pct_above_x["500"]|float) }}%</a
-        >
-        {% elif "tot_reads" in qc and "mapped_pct" in qc %}
-        <a href="sampleqc/{{ sample._id }}"
-          >{{'%0.0f'| format((qc.tot_reads/1000000)|float) }} M</a
-        >
-        {% else %}
-        <a href="sampleqc/{{ sample._id }}">0%</a>
-        {% endif %} {% endfor %} {% endif %}
-      </td>
-      <td>{{ sample.time_added }}</td>
-    </tr>
-    {% else %}
-    <em>No live samples.</em>
-    {% endfor %}
-  </tbody>
-</table>
-
-
-<span class="table_header"
-  >Reported samples (<a href="?all=1">show all</a>)</span
->
-<table class="samples">
-  <thead>
-    <tr>
-      <th>Sample ID</th>
-      <th></th>
-      <th>Group</th>
-      <th>Diagnosis</th>
-      <th>When added</th>
-      <th>Last report</th>
-      <th>BAM</th>
-      <th>QC</th>
-      <th>Reports</th>
-    </tr>
-  </thead>
-
-  <tbody>
-    {% for sample in done_samples|sort(attribute="last_report_time_created",
-    reverse=True) %}
-    <tr>
-      <td><a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}">{{ sample.name }}</a></td>
-      <td>
-        {% if "num_samples" in sample %}{%for n in range(sample.num_samples)
-        %}&#9679;{% endfor %}{% endif %}
-      </td>
-      <td>{% for grp in sample.groups %} {{ grp }} {% endfor %}</td>
-      <td>{% if "subpanel" in sample %}{{sample.subpanel}}{% endif %}</td>
-      <td>{{ sample.time_added }}</td>
-      <td>{{ sample.last_report_time_created }}</td>
-      <td>
-        {% if sample.bam is defined %}
-        <a href="{{ sample.bam }}">BAM</a>
-        <a href="{{ sample.bam }}.bai">BAI</a>
-        {% endif %}
-      </td>
-      <td>
-        {% if sample.QC is defined %} {% for qc in
-        sample.QC|sort(attribute='sample_id') %} {% if "500" in qc.pct_above_x
-        %}
-        <a href="sampleqc/{{ sample._id }}"
-          >{{'%0.0f'| format(qc.pct_above_x["500"]|float) }}%</a
-        >
-        {% elif "tot_reads" in qc and "mapped_pct" in qc %}
-        <a href="sampleqc/{{ sample._id }}"
-          >{{'%0.0f'| format((qc.tot_reads/1000000)|float) }} M</a
-        >
-        {% else %}
-        <a href="sampleqc/{{ sample._id }}">0% </a>
-        {% endif %} {% endfor %} {% endif %}
-      </td>
-
-      <td>
-        {% for rep in sample.reports %}
-        <a href="{{rep.filepath}}">{{ rep.report_num }}</a>
-        {% endfor %}
-      </td>
-    </tr>
-    {% else %}
-    <tr>
-      <td colspan="7">No samples.</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
+      <div class="overflow-x-auto mt-6">
+        <span class="text-lg font-semibold">Reported samples (<a href="?all=1" class="text-blue-500 hover:underline">show all</a>)</span>
+        <table class="min-w-full bg-white shadow-md rounded my-4 text-s">
+          <thead>
+            <tr>
+              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Sample ID</th>
+              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Group</th>
+              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Diagnosis</th>
+              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">When added</th>
+              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Last report</th>
+              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">BAM</th>
+              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">QC</th>
+              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Reports</th>
+            </tr>
+          </thead>
+          <tbody class="text-gray-700">
+            {% for sample in done_samples|sort(attribute="last_report_time_created", reverse=True) %}
+              <tr>
+                <td class="py-2 px-4 border-b border-gray-300">
+                  <a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                </td>
+                <td class="py-2 px-4 border-b border-gray-300">
+                  {% for grp in sample.groups %}
+                    {{ grp }} 
+                  {% endfor %}
+                </td>
+                <td class="py-2 px-4 border-b border-gray-300">
+                  {% if "subpanel" in sample %}
+                    {{ sample.subpanel }}
+                  {% endif %}
+                </td>
+                <td class="py-2 px-4 border-b border-gray-300">
+                  {{ sample.time_added|human_date }}
+                </td>
+                <td class="py-2 px-4 border-b border-gray-300">
+                  {{ sample.last_report_time_created|human_date }}
+                </td>
+                <td class="py-2 px-4 border-b border-gray-300">
+                  {% if sample.bam is defined %}
+                    <a href="{{ sample.bam }}" class="text-blue-500 hover:underline">BAM</a>
+                    <a href="{{ sample.bam }}.bai" class="text-blue-500 hover:underline">BAI</a>
+                  {% endif %}
+                </td>
+                <td class="py-2 px-4 border-b border-gray-300">
+                  {% if sample.QC is defined %}
+                    {% for qc in sample.QC|sort(attribute='sample_id') %}
+                      {% if "500" in qc.pct_above_x %}
+                        <a href="sampleqc/{{ sample._id }}" class="text-blue-500 hover:underline">{{ '%0.0f'|format(qc.pct_above_x["500"]|float) }}%</a>
+                      {% elif "tot_reads" in qc and "mapped_pct" in qc %}
+                        <a href="sampleqc/{{ sample._id }}" class="text-blue-500 hover:underline">{{ '%0.0f'|format((qc.tot_reads/1000000)|float) }} M</a>
+                      {% else %}
+                        <a href="sampleqc/{{ sample._id }}" class="text-blue-500 hover:underline">0%</a>
+                      {% endif %}
+                    {% endfor %}
+                  {% endif %}
+                </td>
+                <td class="py-2 px-4 border-b border-gray-300">
+                  {% for rep in sample.reports %}
+                    <a href="{{rep.filepath}}" class="text-blue-500 hover:underline">{{ rep.report_num }}</a>
+                  {% endfor %}
+                </td>
+            </tr>
+            {% else %}
+              <tr>
+                  <td colspan="8" class="py-2 px-4 border-b border-gray-300 text-center">No samples.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

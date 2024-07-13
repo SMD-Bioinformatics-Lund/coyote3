@@ -12,6 +12,15 @@ class VariantsHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.variants_collection)
 
+    def get_sample_ids(self, sample_id: str):
+        a_var = self.get_collection().find_one({"SAMPLE_ID": sample_id}, {"GT": 1})
+        print(a_var)
+        ids = {}
+        if a_var:
+            for gt in a_var["GT"]:
+                ids[gt.get("type")] = gt.get("sample")
+        return ids
+
     def get_case_variants(self, query: dict):
         """
         Return variants with according to a constructed varquery
