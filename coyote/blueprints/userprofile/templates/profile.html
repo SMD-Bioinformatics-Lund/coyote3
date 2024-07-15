@@ -1,0 +1,104 @@
+{% extends "layout.html" %}
+{% block title %}Profile{% endblock %}
+{% block body %}
+<div class="flex justify-center items-center mt-10 min-h-screen bg-white">
+    <div class="w-full max-w-lg">
+        <div class="bg-white shadow-xl rounded-lg p-8">
+            <h1 class="text-4xl font-semibold text-center text-gray-900 mb-8">Profile</h1>
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-gray-700 text-sm font-medium mb-1">Full Name</label>
+                    <input type="text" id="fullname" value="{{ fullname }}" class="bg-white shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-medium mb-1">Username</label>
+                    <p class="bg-gray-100 shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-500">{{ username }}</p>
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-medium mb-1">Email</label>
+                    <p class="bg-gray-100 shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-500">{{ email }}</p>
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-medium mb-1">Role</label>
+                    <p class="bg-gray-100 shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-500">{{ role }}</p>
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-medium mb-1">Groups</label>
+                    <div class="bg-white shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900 flex flex-wrap gap-2" id="group-container">
+                        {% for group in groups %}
+                            <div class="bg-gray-200 rounded-md py-2 px-2 mt-1 flex items-center group-item">
+                                <span class="text-gray-800 font-semibold py-1 px-2 rounded-lg">{{ group }}</span>
+                                {% if current_user.is_admin() %}
+                                    <button type="button" class="ml-2 text-red-500" onclick="removeGroup(this)">x</button>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% if current_user.is_admin() %}
+                        <input type="text" id="group-input" class="mt-2 shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900" placeholder="Add new group and press Enter" onkeydown="addGroup(event)">
+                    {% endif %}
+                </div>
+                <div class="mt-8 text-center flex justify-between">
+                    <a href="{{ url_for('profile_bp.change_password', username=username) }}" class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">Change Password</a>
+                    <button class="inline-block bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300" onclick="updateInfo()">Update Information</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function removeGroup(element) {
+        element.parentElement.remove();
+    }
+
+    function addGroup(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            const groupInput = document.getElementById('group-input');
+            const groupName = groupInput.value.trim();
+            if (groupName) {
+                const groupContainer = document.getElementById('group-container');
+                const newGroup = document.createElement('div');
+                newGroup.className = 'bg-gray-200 rounded-md py-2 px-2 mt-1 flex items-center group-item';
+                newGroup.innerHTML = `
+                    <span class="text-gray-800 font-semibold py-1 px-2 rounded-lg">${groupName}</span>
+                    <button type="button" class="ml-2 text-red-500" onclick="removeGroup(this)">x</button>
+                `;
+                groupContainer.appendChild(newGroup);
+                groupInput.value = '';
+            }
+        }
+    }
+
+    function updateInfo() {
+        const fullname = document.getElementById('fullname').value.trim();
+        let groups = [];
+        {% if current_user.is_admin() %}
+            groups = Array.from(document.getElementsByClassName('group-item')).map(item => {
+                return item.querySelector('span').textContent.trim();
+            });
+        {% else %}
+            groups = {{ groups | tojson }};
+        {% endif %}
+        const data = {
+            groups: groups,
+            fullname: fullname
+        };
+        fetch('{{ url_for("profile_bp.update_info") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(data)
+        }).then(response => {
+            if (response.ok) {
+                alert('Information updated successfully');
+            } else {
+                alert('Failed to update information');
+            }
+        });
+    }
+</script>
+{% endblock %}

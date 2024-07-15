@@ -11,10 +11,12 @@ from wtforms.validators import DataRequired
 
 # User class:
 class User:
-    def __init__(self, username, groups, role):
+    def __init__(self, username: str, groups: list, role: str, fullname: str, email: str):
         self.username = username
         self.groups = groups
         self.role = role
+        self.fullname = fullname
+        self.email = email
 
     def is_authenticated(self):
         return True
@@ -38,6 +40,12 @@ class User:
 
     def is_admin(self):
         return "admin" in self.groups
+
+    def get_fullname(self):
+        return self.fullname
+
+    def get_email(self):
+        return self.email
 
     @staticmethod
     def validate_login(password_hash, password):
