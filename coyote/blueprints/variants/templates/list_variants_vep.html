@@ -80,7 +80,7 @@
               <b>{{ list.replace("genelist_", "") }} {{ dispgenes|length }} genes:</b>
               <div class="mt-1 flex flex-wrap gap-2">
                 {% for gene in dispgenes %}
-                  <span class="py-1 px-3 bg-gray-100 rounded-md">{{ gene }}</span>{% if not loop.last %} {% endif %}
+                  <span class="py-1 px-3 bg-gray-100 rounded-md text-xs">{{ gene }}</span>{% if not loop.last %} {% endif %}
                 {% endfor %}
               </div>
             </div>
