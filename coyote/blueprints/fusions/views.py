@@ -7,12 +7,11 @@ from flask import current_app as app
 from flask import redirect, render_template, request, url_for, send_from_directory
 from flask_login import current_user, login_required
 
-from coyote.blueprints.fusions.forms import FusionFilterForm
+from coyote.blueprints.variants.forms import FilterForm
 from wtforms import BooleanField
 from wtforms.validators import Optional
 from coyote.extensions import store
 from coyote.blueprints.fusions import fusions_bp
-from coyote.blueprints.variants import util
 from coyote.extensions import util
 
 
@@ -20,12 +19,10 @@ from coyote.extensions import util
 @login_required
 def list_fusions(id):
     sample = store.sample_handler.get_sample(id)
-    sample_ids = store.sample_handler.get_sample_ids(str(sample["_id"]))
     smp_grp = sample["groups"][0]
     group_params = util.common.get_group_parameters(smp_grp)
     settings = util.common.get_group_defaults(group_params)
     assay = util.common.get_assay_from_sample(sample)
-    subpanel = sample.get("subpanel")
 
     app.logger.info(app.config["GROUP_CONFIGS"])  # get group config from app config instead
     app.logger.info(f"the sample has these groups {smp_grp}")
@@ -34,7 +31,7 @@ def list_fusions(id):
     gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
     app.logger.info(f"this is the gene_lists, genelists_assay {gene_lists},{genelists_assay}")
 
-    class FusionForm(FusionFilterForm):
+    class FusionForm(FilterForm):
         pass
 
     form = FusionForm()
