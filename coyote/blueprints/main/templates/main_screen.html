@@ -1,3 +1,4 @@
+{% set curr_page = request.path.split("/")[-1] %}
 {% extends "layout.html" %}
 {% block title %}Main Screen{% endblock %}
 {% block search %}
@@ -14,18 +15,20 @@
 {% block body %}
 <div class="side-buttons">
   <div class="side-button analysed">
-      Analysed
+    <a href="{{ url_for(request.endpoint, assay=assay, status='done') }}" class="block w-full h-full text-center py-2 px-1">Analysed</a>
   </div>
   <div class="side-button pending">
-      Pending
+    <a href="{{ url_for(request.endpoint, assay=assay, status='live') }}" class="block w-full h-full text-center py-2 px-1">Pending</a>
   </div>
 </div>
-<div class="container mx-auto ml-8 p-5">
+
+<div class="container mx-auto ml-16 p-5">
   <div class="flex justify-start">
     <div class="w-4/5 ml-15%">
+      {% if not status or status == "live" %}
       <div class="overflow-x-auto">
-        <span class="text-lg font-semibold">Samples without reports</span>
-        <table class="min-w-full bg-white shadow-md rounded my-4 text-sm">
+        <span class="text-lg font-semibold">Live Samples</span>
+        <table class="min-w-full bg-white shadow-lg rounded-lg my-4 text-sm border border-gray-200 z-50">
           <thead>
             <tr>
               <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Sample ID</th>
@@ -37,17 +40,24 @@
               <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">When added</th>
             </tr>
           </thead>
-          <tbody class="text-gray-700">
+          <tbody id="pagination-table-body" class="text-gray-700">
             {% for sample in live_samples %}
               <tr>
                 <td class="py-2 px-4 border-b border-gray-300">
                   {% if sample.groups|join('') == 'fusion' or sample.groups|join('') == 'solidRNA_GMSv5' %}
-                    <a href="{{ url_for('fusions_bp.list_fusions', id=sample.name) }}" class="text-blue-500 hover:underline" >{{ sample.name }}</a>
+                    <a href="{{ url_for('fusions_bp.list_fusions', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                   {% else %}
                     <a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                   {% endif %}
                   {% if sample.comments|selectattr('hidden', 'equalto', 0)|list|length > 0 %}
                     *
+                  {% endif %}
+                </td>
+                <td class="py-2 px-4 border-b border-gray-300">
+                  {% if "num_samples" in sample %}
+                    {% for n in range(sample.num_samples) %}
+                      &#9679;
+                    {% endfor %}
                   {% endif %}
                 </td>
                 <td class="py-2 px-4 border-b border-gray-300">
@@ -90,11 +100,18 @@
             {% endfor %}
           </tbody>
         </table>
+        <!-- Pagination Controls -->
+        <div class="flex justify-between mt-4">
+          <button id="prev-page" class="bg-blue-500 text-white py-1 px-2 rounded disabled:opacity-50" onclick="prevPage()">Previous</button>
+          <div id="page-info" class="text-sm"></div>
+          <button id="next-page" class="bg-blue-500 text-white py-1 px-2 rounded disabled:opacity-50" onclick="nextPage()">Next</button>
+        </div>
       </div>
-
+      {% endif %}
+      {% if status == "done" %}
       <div class="overflow-x-auto mt-6">
         <span class="text-lg font-semibold">Reported samples (<a href="?all=1" class="text-blue-500 hover:underline">show all</a>)</span>
-        <table class="min-w-full bg-white shadow-md rounded my-4 text-s">
+        <table class="min-w-full bg-white shadow-lg rounded-lg my-4 text-sm border border-gray-200 z-50">
           <thead>
             <tr>
               <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Sample ID</th>
@@ -108,7 +125,7 @@
               <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Reports</th>
             </tr>
           </thead>
-          <tbody class="text-gray-700">
+          <tbody id="pagination-table-body" class="text-gray-700">
             {% for sample in done_samples|sort(attribute="last_report_time_created", reverse=True) %}
               <tr>
                 <td class="py-2 px-4 border-b border-gray-300">
@@ -116,14 +133,14 @@
                 </td>
                 <td class="py-2 px-4 border-b border-gray-300">
                   {% if "num_samples" in sample %}
-                    {%for n in range(sample.num_samples)%}
+                    {% for n in range(sample.num_samples) %}
                       &#9679;
                     {% endfor %}
                   {% endif %}
                 </td>
                 <td class="py-2 px-4 border-b border-gray-300">
                   {% for grp in sample.groups %}
-                    {{ grp }} 
+                    {{ grp }}
                   {% endfor %}
                 </td>
                 <td class="py-2 px-4 border-b border-gray-300">
@@ -164,13 +181,62 @@
             </tr>
             {% else %}
               <tr>
-                  <td colspan="8" class="py-2 px-4 border-b border-gray-300 text-center">No samples.</td>
+                <td colspan="8" class="py-2 px-4 border-b border-gray-300 text-center">No samples.</td>
               </tr>
             {% endfor %}
           </tbody>
         </table>
+        <!-- Pagination Controls -->
+        <div class="flex justify-between mt-4">
+          <button id="prev-page" class="bg-blue-500 text-white py-1 px-2 rounded disabled:opacity-50" onclick="prevPage()">Previous</button>
+          <div id="page-info" class="text-sm"></div>
+          <button id="next-page" class="bg-blue-500 text-white py-1 px-2 rounded disabled:opacity-50" onclick="nextPage()">Next</button>
+        </div>
       </div>
+      {% endif %}
     </div>
   </div>
 </div>
+
+<script>
+  const rowsPerPage = 10;
+  let currentPage = 1;
+  const tableBody = document.getElementById('pagination-table-body');
+  const rows = Array.from(tableBody.getElementsByTagName('tr'));
+  const pageInfo = document.getElementById('page-info');
+
+  function displayPage(page) {
+    const start = (page - 1) * rowsPerPage;
+    const end = page * rowsPerPage;
+
+    rows.forEach((row, index) => {
+      if (index >= start && index < end) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    pageInfo.textContent = `Page ${page} of ${Math.ceil(rows.length / rowsPerPage)}`;
+    document.getElementById('prev-page').disabled = page === 1;
+    document.getElementById('next-page').disabled = page === Math.ceil(rows.length / rowsPerPage);
+  }
+
+  function prevPage() {
+    if (currentPage > 1) {
+      currentPage--;
+      displayPage(currentPage);
+    }
+  }
+
+  function nextPage() {
+    if (currentPage < Math.ceil(rows.length / rowsPerPage)) {
+      currentPage++;
+      displayPage(currentPage);
+    }
+  }
+
+  // Initialize pagination
+  displayPage(currentPage);
+</script>
 {% endblock %}

@@ -8,7 +8,7 @@
 }
 .side-button {
     width: 30px;
-    height: 80px;
+    height: 100px;
     background-color: #4A90E2;
     color: white;
     display: flex;
@@ -18,7 +18,7 @@
     transition: width 0.3s;
     writing-mode: vertical-rl;
     text-orientation: mixed;
-    font-size: 0.75rem; /* Smaller font size for side buttons */
+    font-size: 1rem; /* Smaller font size for side buttons */
 }
 .side-button:hover {
     width: 40px;
