@@ -18,6 +18,16 @@ from coyote.extensions import util
 @fusions_bp.route("/rna/sample/<string:id>", methods=["GET", "POST"])
 @login_required
 def list_fusions(id):
+    """
+    Creates a functional elements to the fusion displays
+
+    Parameters:
+    id (str) : Sample id
+
+    Returns:
+
+
+    """
     sample = store.sample_handler.get_sample(id)
     smp_grp = sample["groups"][0]
     group_params = util.common.get_group_parameters(smp_grp)
@@ -31,13 +41,13 @@ def list_fusions(id):
     gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
     app.logger.info(f"this is the gene_lists, genelists_assay {gene_lists},{genelists_assay}")
 
+    # Save new filter settings if submitteds
+    # Inherit FilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
     class FusionForm(FilterForm):
         pass
 
     form = FusionForm()
-    sample_settings = util.common.get_fusions_settings(sample, settings)
-    app.logger.info(f"this is the sample and settings  {settings}")
-    app.logger.info(f"this is the sample_settings {sample_settings}")
+    ###########################################################################
 
     ## FORM FILTERS ##
     # Either reset sample to default filters or add the new filters from form.
@@ -50,6 +60,13 @@ def list_fusions(id):
             store.sample_handler.update_sample_settings(id, form)
         ## get sample again to recieve updated forms!
         sample = store.sample_handler.get_sample(id)
+    ############################################################################
+    # Check if sample has hidden comments
+    has_hidden_comments = 1 if store.sample_handler.hidden_sample_comments(sample.get("_id")) else 0
+
+    sample_settings = util.common.get_fusions_settings(sample, settings)
+    app.logger.info(f"this is the sample and settings  {settings}")
+    app.logger.info(f"this is the sample_settings {sample_settings}")
 
     # app.logger.info(f"this is the sample,{sample}")
     ## Change this to fusionquery.py
@@ -67,12 +84,12 @@ def list_fusions(id):
     fusions = list(store.fusion_handler.get_sample_fusions(fusion_query))
 
     for fus_idx, fus in enumerate(fusions):
-        app.logger.info(f"these are fus, {fus_idx} {fus}")
+        # app.logger.info(f"these are fus, {fus_idx} {fus}")
         (fusions[fus_idx]["global_annotations"], fusions[fus_idx]["classification"]) = (
             store.fusion_handler.get_fusion_annotations(fusions[fus_idx])
         )
 
-    app.logger.info(f"this is the fusion and fusion query,{fusions},{fusion_query}")
+    # app.logger.info(f"this is the fusion and fusion query,{fusions},{fusion_query}")
 
     # Your logic for handling RNA samples
     return render_template("rna.html", sample=sample, form=form, fusions=fusions)
