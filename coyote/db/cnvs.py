@@ -23,6 +23,7 @@ class CNVsHandler(BaseHandler):
         """
         return self.get_collection().find_one({"_id": ObjectId(cnv_id)})
 
+
     def get_cnv_annotations(self, cnv: str) -> list:
         """
         Get annotations for a CNV
@@ -115,3 +116,10 @@ class CNVsHandler(BaseHandler):
                     var["other_genes"].append(gene["gene"])
             fixed_cnvs_genes.append(var)
         return fixed_cnvs_genes
+
+    def hidden_cnv_comments(self, id: str) -> bool:
+        """
+        Return True if hidden cnv comments else False
+        """
+        return self.hidden_comments(id)
+

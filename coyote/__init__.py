@@ -80,6 +80,12 @@ def register_blueprints(app) -> None:
 
     app.register_blueprint(login_bp)
 
+    # User Profile Stuff
+    bp_debug_msg("profile_bp")
+    from coyote.blueprints.userprofile import profile_bp
+
+    app.register_blueprint(profile_bp)
+
     # Show Case Variants
     bp_debug_msg("varaints_bp")
     from coyote.blueprints.variants import variants_bp

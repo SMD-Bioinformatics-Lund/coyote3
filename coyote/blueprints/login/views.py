@@ -9,7 +9,7 @@ from coyote.blueprints.login.login import LoginForm, User
 from coyote.extensions import login_manager, mongo, ldap_manager, store
 
 
-users_collection = mongo.cx["coyote"]["users"]
+# users_collection = mongo.cx["coyote"]["users"]
 
 # Login routes:
 
@@ -25,7 +25,13 @@ def login():
             app.logger.info("anything?")
             user_obj = store.user_handler.user(username)
             role = user_obj.get("role", None)
-            user_obj = User(user_obj["_id"], user_obj["groups"], role)
+            user_obj = User(
+                user_obj["_id"],
+                user_obj["groups"],
+                role,
+                user_obj.get("fullname", "_id"),
+                user_obj.get("email", None),
+            )
             login_user(user_obj)
             return redirect(url_for("main_bp.main_screen"))
         else:
@@ -43,10 +49,17 @@ def logout():
 
 @login_manager.user_loader
 def load_user(username):
-    user = users_collection.find_one({"_id": username})
+    print(username)
+    user = store.user_handler.user_with_id(username)  # user id
     if not user:
         return None
-    return User(user["_id"], user["groups"], user.get("role", None))
+    return User(
+        user["_id"],
+        user["groups"],
+        user.get("role", None),
+        user.get("fullname", "_id"),
+        user.get("email", None),
+    )
 
 
 def ldap_authenticate(username, password):

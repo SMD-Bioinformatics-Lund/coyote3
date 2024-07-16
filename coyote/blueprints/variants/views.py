@@ -23,13 +23,13 @@ from coyote.extensions import util
 def list_variants(id):
 
     # Find sample data by name
-    sample = store.sample_handler.get_sample(id)
+    sample = store.sample_handler.get_sample(id)  # id = name
 
     # Get sample data by id if name is none
     if sample is None:
-        sample = store.sample_handler.get_sample_with_id(id)
+        sample = store.sample_handler.get_sample_with_id(id)  # id = id
 
-    sample_ids = store.sample_handler.get_sample_ids(str(sample["_id"]))
+    sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
     smp_grp = sample["groups"][0]
     group_params = util.common.get_group_parameters(smp_grp)
     settings = util.common.get_group_defaults(group_params)
@@ -68,18 +68,20 @@ def list_variants(id):
     ## FORM FILTERS ##
     # Either reset sample to default filters or add the new filters from form.
     if request.method == "POST" and form.validate_on_submit():
+        _id = str(sample.get("_id"))
         # Reset filters to defaults
         if form.reset.data == True:
-            store.sample_handler.reset_sample_settings(id, settings)
+            store.sample_handler.reset_sample_settings(_id, settings)
         # Change filters
         else:
-            store.sample_handler.update_sample_settings(id, form)
-        ## get sample again to recieve updated forms!
-        sample = store.sample_handler.get_sample(id)
+            store.sample_handler.update_sample_settings(_id, form)
+            ## get sample again to recieve updated forms!
+            sample = store.sample_handler.get_sample_with_id(_id)
+
     ############################################################################
 
     # Check if sample has hidden comments
-    has_hidden_comments = 1 if store.sample_handler.hidden_sample_comments(sample.get("_id")) else 0
+    has_hidden_comments = store.sample_handler.hidden_sample_comments(sample.get("_id"))
 
     ## get sample settings
     sample_settings = util.common.get_sample_settings(sample, settings)
@@ -319,11 +321,12 @@ def show_variant(id):
     variant["INFO"]["cosm_ids"] = cosm_ids.keys()
 
     # Check if variant has hidden comments
-    has_hidden_comments = 0
-    if "comments" in variant:
-        for comm in variant["comments"]:
-            if comm["hidden"] == 1:
-                has_hidden_comments = 1
+    has_hidden_comments = store.variant_handler.hidden_var_comments(id)
+    # has_hidden_comments = 0
+    # if "comments" in variant:
+    #     for comm in variant["comments"]:
+    #         if comm["hidden"] == 1:
+    #             has_hidden_comments = 1
 
     expression = store.expression_handler.get_expression_data(list(transcripts.keys()))
 
@@ -384,7 +387,7 @@ def show_variant(id):
     iarc_tp53 = store.iarc_tp53_handler.find_iarc_tp53(variant)
 
     # Get bams
-    sample_ids = store.sample_handler.get_sample_ids(str(sample["_id"]))
+    sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
     bam_id = store.bam_service_handler.get_bams(sample_ids)
 
     # Format PON (panel of normals) data
@@ -556,17 +559,21 @@ def add_variant_comment(id):
     _type = form_data.get("global", None)
     if _type == "global":
         store.annotation_handler.add_anno_comment(doc)
-    else:
-        if nomenclature == "f":
+
+    if nomenclature == "f":
+        if _type != "global":
             store.fusion_handler.add_fusion_comment(id, doc)
-            return redirect(url_for("show_fusion", id=id))
-        elif nomenclature == "t":
+        return redirect(url_for("show_fusion", id=id))
+    elif nomenclature == "t":
+        if _type != "global":
             store.transloc_handler.add_transloc_comment(id, doc)
-            return redirect(url_for("show_transloc", id=id))
-        elif nomenclature == "cn":
+        return redirect(url_for("show_transloc", id=id))
+    elif nomenclature == "cn":
+        if _type != "global":
             store.cnv_handler.add_cnv_comment(id, doc)
-            return redirect(url_for("show_cnvwgs", id=id))
-        else:
+        return redirect(url_for("show_cnvwgs", id=id))
+    else:
+        if _type != "global":
             store.variant_handler.add_var_comment(id, doc)
 
     return redirect(url_for("show_variant", id=id))
@@ -598,8 +605,9 @@ def show_cnvwgs(id):
     cnv = store.cnv_handler.get_cnv(id)
     sample = store.sample_handler.get_sample_with_id((cnv["SAMPLE_ID"]))
     assay = util.common.get_assay_from_sample(sample)
-    sample_ids = store.sample_handler.get_sample_ids(str(sample["_id"]))
+    sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
     bam_id = store.bam_service_handler.get_bams(sample_ids)
+    hidden_cnv_comments = store.cnv_handler.hidden_cnv_comments(id)
 
     annotations = store.cnv_handler.get_cnv_annotations(cnv)
     return render_template(
@@ -610,6 +618,7 @@ def show_cnvwgs(id):
         annotations=annotations,
         sample_ids=sample_ids,
         bam_id=bam_id,
+        hidden_comments=hidden_cnv_comments,
     )
 
 
@@ -685,7 +694,7 @@ def show_transloc(id):
     transloc = store.transloc_handler.get_transloc(id)
     sample = store.sample_handler.get_sample_with_id((transloc["SAMPLE_ID"]))
     assay = util.common.get_assay_from_sample(sample)
-    sample_ids = store.sample_handler.get_sample_ids(str(sample["_id"]))
+    sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
     bam_id = store.bam_service_handler.get_bams(sample_ids)
 
     annotations = store.transloc_handler.get_transloc_annotations(transloc)

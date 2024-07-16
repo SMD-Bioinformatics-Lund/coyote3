@@ -45,14 +45,6 @@ class SampleHandler(BaseHandler):
         sample = self.get_collection().find_one({"_id": ObjectId(id)})
         return sample
 
-    def get_sample_ids(self, sample_id: str):
-        a_var = self.get_collection().find_one({"SAMPLE_ID": sample_id}, {"GT": 1})
-        ids = {}
-        if a_var:
-            for gt in a_var["GT"]:
-                ids[gt.get("type")] = gt.get("sample")
-        return ids
-
     def reset_sample_settings(self, sample_id: str, settings):
         """
         reset sample to default settings
@@ -78,7 +70,7 @@ class SampleHandler(BaseHandler):
             },
         )
 
-    def update_sample_settings(self, sample_str, form):
+    def update_sample_settings(self, sample_str: str, form):
         """
         update sample settings according to form data
         """
@@ -106,7 +98,7 @@ class SampleHandler(BaseHandler):
                     checked_conseq[fieldname] = 1
 
         self.get_collection().update(
-            {"name": sample_str},
+            {"_id": ObjectId(sample_str)},
             {
                 "$set": {
                     "filter_max_freq": form.max_freq.data,

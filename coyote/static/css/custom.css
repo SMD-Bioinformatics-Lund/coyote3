@@ -1,0 +1,307 @@
+
+/* This Custom css is the buttons on the side of the screen to get analysed and Pending samples */
+.side-buttons {
+    position: absolute;
+    left: 0;
+    z-index: 50;
+    text-align: center;
+}
+.side-button {
+    width: 30px;
+    height: 80px;
+    background-color: #4A90E2;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: width 0.3s;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: 0.75rem; /* Smaller font size for side buttons */
+}
+.side-button:hover {
+    width: 40px;
+}
+.side-button.pending {
+    background-color: #E94E77;
+    margin-top: 10px;
+}
+.search-bar {
+    transition: width 0.3s;
+    width: 0;
+    overflow: hidden;
+}
+.search-bar:focus-within {
+    width: 200px;
+}
+
+
+/* Fusion related custom css */
+.fusoion_filters {
+    display: none;
+  }
+
+.tooltip {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: #555;
+  color: #fff;
+  text-align: center;
+  border-radius: 5px;
+  padding: 5px 0;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -60px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* List Variants View Page Custom CSS */
+.multiselect {
+  width: 100%;
+}
+
+.selectBox {
+  position: relative;
+}
+
+.selectBox select {
+  width: 100%;
+}
+
+.overSelect {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.checkboxes {
+display: none;
+border-bottom: 1px #bbb solid;
+border-left: 1px #bbb solid;
+border-right: 1px #bbb solid;
+border-radius: 0px 0px 3px 3px;
+background-color: #fff;
+}
+
+.checkboxes label {
+display: block;
+}
+
+.checkboxes label:hover {
+background-color: #f7f7ff;
+}
+
+.gene-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.genefilter {
+  background-color: #f0f0f0;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.3rem;
+}
+
+
+/* Color Codings for the Hotspot  */
+/* Add these to your CSS file */
+/* Add these to your CSS file */
+.bg-melanoma {
+  background-color: #fb6b6b; /* Darker red */
+}
+
+.bg-cns {
+  background-color: #76c7a6; /* Darker green */
+}
+
+.bg-lung {
+  background-color: #f57c94; /* Darker pink */
+}
+
+.bg-colon {
+  background-color: #bbbbbb; /* Darker gray */
+}
+
+.bg-gi {
+  background-color: #f8a488; /* Darker orange */
+}
+
+.bg-dna {
+  background-color: #f5a25d; /* Darker orange */
+}
+
+/* Color Codings for the Variant Filters  */
+.bg-pass, .bg-germline {
+  background-color: #5cb85c; /* Darker Green */
+}
+
+.bg-germline-risk, .bg-warn-homopolymer, .bg-warn-strandbias, .bg-warn-low-tvaf, .bg-warn-verylow-tvaf, .bg-warn-pon, .bg-warn-ffpe-pon, .bg-warn {
+  background-color: #f0ad4e; /* Darker Yellow */
+}
+
+.bg-fail-nvaf, .bg-fail-pvalue, .bg-fail-strandbias, .bg-fail-longdel, .bg-fail-pon, .bg-fail-ffpe-pon, .bg-fail {
+  background-color: #d9534f; /* Darker Red */
+}
+
+/* Color Codinds for Tier Class Information */
+.bg-tier1 {
+  background-color: #e53935; /* Bright Red */
+}
+.bg-tier2 {
+  background-color: #d81b60; /* Bright Pink */
+}
+.bg-tier3 {
+  background-color: #3949ab; /* Bright Blue */
+}
+.bg-tier4 {
+  background-color: #43a047; /* Bright Green */
+}
+.bg-tierother {
+  background-color: #c0ca33; /* Bright Yellow-Green */
+}
+.bg-remove {
+  background-color: #e0e0e0; /* Light Grey */
+}
+
+/* Custom CSS for each Variant detailed view page */
+/* custom-styles.css */
+div#desc1 { color:#f44; }
+div#desc2 { color:#e4e; }
+div#desc3 { color:#55f; }
+div#desc4 { color:#3b3; }
+
+#tier1 {
+  background-color:#faa;
+}
+#tier2 {
+  background-color:#faf;
+}
+#tier3 {
+  background-color:#bbf
+}
+#tier4 {
+  background-color:#bfb
+}
+#tierother {
+  background-color:rgb(204, 226, 76)
+}
+#remove {
+  background-color:rgb(253, 253, 253)
+}
+.highlightannotation {
+  background-color: rgb(96, 194, 93); 
+}
+
+@layer utilities {
+  .filter-grayscale-opacity {
+    filter: grayscale(100%) opacity(15%);
+  }
+}
+
+tr.include { background-color: #cfc; }
+tr.include:hover { background-color: #afa; }
+tr.includelargeamp { background-color: rgb(255, 214, 204); }
+tr.highlightannotation { background-color: rgb(96, 194, 93); }
+
+/* Custom CSS which mimic Tailwind CSS 2.2.19 */
+.w-600 {
+  width: 600px;
+}
+
+.max-w-screen-325 {
+  max-width: 325px;
+}
+
+.max-w-screen-300 {
+  max-width: 300px;
+}
+
+.max-w-screen-350 {
+  max-width: 350px;
+}
+
+.max-w-screen-375 {
+  max-width: 375px;
+}
+
+.max-w-screen-425 {
+  max-width: 425px;
+}
+
+.max-w-screen-400 {
+  max-width: 400px;
+}
+
+.max-w-screen-450 {
+  max-width: 450px;
+}
+
+.max-w-screen-500 {
+  max-width: 500px;
+}
+
+.max-w-screen-550 {
+  max-width: 550px;
+}
+
+.max-w-screen-575 {
+  max-width: 550px;
+}
+
+.max-w-screen-600 {
+  max-width: 600px;
+}
+
+.w-800 {
+  width: 800px;
+}
+
+.w-900 {
+  width: 800px;
+}
+
+.w-90_per {
+  width: 90%;
+}
+
+.hidden_comment {
+  background-color: #ffd6d6;
+  opacity: 0.3;
+}
+
+.no-spin::-webkit-inner-spin-button,
+.no-spin::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.no-spin {
+    /* Firefox */
+    -moz-appearance: textfield;
+}
+
+.visibility-collapsed {
+  visibility: collapse;
+}
+
+.noncanonical_transcript {
+
+}

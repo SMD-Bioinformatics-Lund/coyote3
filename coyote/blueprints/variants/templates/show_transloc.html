@@ -1,273 +1,381 @@
 {% extends "layout.html" %}
 
 {% block body %}
+<div class="container mx-auto p-5">
+  <div class="bg-white border-b border-gray-300 py-4">
+    <div class="flex justify-between items-center">
+      <!-- Left Side: Sample and Type -->
+      <div class="flex items-center space-x-4">
+        <div>
+          <span class="text-lg font-semibold text-gray-800">Sample:</span>
+          <a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}" class="text-blue-500 hover:underline text-lg">{{ sample.name }}</a>
+        </div>
+        {% if subpanel %}
+          <span class="text-gray-500">|</span>
+          <div>
+            <span class="text-lg font-semibold text-gray-800">Type:</span>
+            <b class="text-lg">{{ subpanel }}</b>
+          </div>
+        {% endif %}
+      </div>
 
-Variant in sample <a href="{{ url_for('variants_bp.list_variants', id=sample.name ) }}">{{ sample.name }}</a><p>
-<div id="var_main">
-
-  <div id="var_info">  
-    {% set sel_ann = tl.INFO.MANE_ANN or tl.INFO.ANN[0] %}
-    {% set genes = sel_ann.Gene_Name.split('&') %}
-    <span class="table_header">Variant annotation</span>
-    <table class="variant">
-      <thead><tr><th>Key</th><th>Value</th></tr></thead>
-      <tbody>
-	<tr><td>Genomic junction:</td><td>{{tl.CHROM}}:{{tl.POS}} - {{tl.ALT}}</td></tr>
-	<tr><td>Gene 1:</td><td>{{genes[0]}}</td></tr>
-	<tr><td>Gene 2:</td><td>{{genes[1]}}</td></tr>
-	<tr><td>Consequence:</td><td>{% for annot in sel_ann.Annotation%}{{annot}}<br>{% endfor %}</td></tr>
-	<tr><td>HGVS.c</td><td>{{sel_ann.HGVSc|unesc}}</td></tr>
-        <tr><td>HGVS.p</td><td>{{sel_ann.HGVSp|unesc}}</td></tr>
-	<tr><td>Exon rank</td><td>{{sel_ann.Rank}}</td></tr>
-	<tr><td>Panel info</td><td>{{tl.INFO.PANEL}}</td></tr>
-  {% for sample_id,bam_path in bam_id.items() %}
-    {% set gene2 = tl.ALT.split(':') %}
-    {% set gene2_chr = gene2[0]|regex_replace("\D+","") %}
-    {% set gene2_pos = gene2[1]|regex_replace("\D+","") %}
-      <tr>
-        <td>IGV({{sample_id}}):</td>
-          <td> 
-            {% for path in bam_path %}
-            {% set list1 = path.split('/') %}
-            <a href="http://localhost:60151/load?file=/R:{{path}}&locus={{tl.CHROM}}:{{tl.POS}}">{{list1[0]}}[{{genes[0]}}]</a>
-            <a href="http://localhost:60151/load?file=/R:{{path}}&locus={{gene2_chr}}:{{gene2_pos}}">[{{genes[1]}}]</a>
-            {% endfor %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-  {% if current_user.get_role() != "readonly" %}
-  <div id="var_actions">
-
-    {% if tl.interesting == true %}
-      <form action="{{ url_for('unmark_interesting_transloc', id=tl._id) }}" method="post">
-        <input class='inv' type="submit" name="mark_int" value="Exclude from report">
-      </form>
-    {% else %}
-      <form action="{{ url_for('mark_interesting_transloc', id=tl._id) }}" method="post">
-        <input type="submit" name="mark_int" value="Include in report">
-      </form>      
-    {% endif %}
-
-
-    
-    {% if tl.fp == true %}
-      <form action="{{ url_for('unmark_false_transloc', id=tl._id) }}" method="post">
-        <input class='inv' type="submit" name="mark_fp" value="Unmark false positive">
-      </form>    
-    {% else %}
-      <form action="{{ url_for('mark_false_transloc', id=tl._id) }}" method="post">
-        <input type="submit" name="mark_fp" value="Mark as false positive">
-      </form>
-    {% endif %}
-
-  </div>  
-  {% endif %}
-  </div>
-
-  <div id='var_moreinfo'>
-    <span class="table_header">Sample-specific data</span>
-    <table>
-      <thead>
-        <tr>
-          <th>Sample ID</th>
-          <th># spanning reads</th>
-          <th>%</th>
-          <th># split reads</th>
-          <th>%</th>
-          {% if tl.INFO.UR %}
-          <th>unique reads</th>
+      <!-- Right Side: Variant Actions -->
+      {% if current_user.get_role() != "readonly" %}
+        <div class="flex items-center space-x-2">
+          {% if tl.interesting == true %}
+            <form action="{{ url_for('unmark_interesting_transloc', id=tl._id) }}" method="post">
+              <input class='bg-yellow-600 text-black py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-yellow-700' type="submit" name="mark_int" value="Exclude from report">
+            </form>
+          {% else %}
+            <form action="{{ url_for('mark_interesting_transloc', id=tl._id) }}" method="post">
+              <input class="bg-green-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-green-700"  type="submit" name="mark_int" value="Include in report">
+            </form>      
           {% endif %}
-          {% if tl.INFO.set %}
-          <th>callers</th>
+
+          {% if tl.fp == true %}
+            <form action="{{ url_for('unmark_false_transloc', id=tl._id) }}" method="post">
+              <input class='bg-green-600 text-black py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-green-700' type="submit" name="mark_fp" value="Unmark false positive">
+            </form>    
+          {% else %}
+            <form action="{{ url_for('mark_false_transloc', id=tl._id) }}" method="post">
+              <input class="bg-purple-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-purple-700" type="submit" name="mark_fp" value="Mark as false positive">
+            </form>
           {% endif %}
-        </tr></thead>
-      {% for gt in tl.GT %}
-      {% if gt.PR %}
-      {% set PR = gt.PR.split(',') %}
-      {% set PR_sum = PR[0]|int+PR[1]|int %}
+        </div>
       {% endif %}
-      {% if gt.SR %}
-        {% set SR = gt.SR.split(',') %}
-        {% set SR_sum = SR[0]|int+SR[1]|int %}
-      {% endif %}
-      <tr>
-	<td>{{gt.sample}}</td>
-  {% if gt.PR %}
-	<td>{{PR[1]}}/{{PR_sum}}</td>
-	<td>{{(100*PR[1]|float/PR_sum|float)|round(2)}} %</td>
-	{% else %}
-	<td>N/A</td>
-	<td>N/A</td>
-  {% endif %}
-	{% if gt.SR %}
-	<td>{{SR[1]}}/{{SR_sum}}</td>
-	<td>{{(100*SR[1]|float/SR_sum|float)|round(2)}} %</td>
-	{% else %}
-	<td>N/A</td>
-	<td>N/A</td>
-	{% endif %}
-  {% if tl.INFO.UR %}
-  <td>{{tl.INFO.UR}}</td>
-  {% endif %}
-  {% if tl.INFO.set %}
-  {% if tl.INFO.set == "Intersection" %}
-  <td>manta&genefuse</td>
-  {% else %}
-  <td>{{tl.INFO.set}}</td>
-  {% endif %}
-  {% endif %}
-      </tr>
-      {% endfor %}
-    </table>
-
-    <span class="table_header">Annotations for all transcript combinations</span>
-    <table>
-      <thead><tr><th>Gene 1</th><th>Gene 2</th><th>HGVS.c</th><th>HGVS.p</th><th>Consequence</th></tr></thead>
-      {% for ann in tl.INFO.ANN %}
-      {% set genes = ann.Gene_Name.split('&') %}
-      <tr {% if ann.HGVSp == sel_ann.HGVSp %} class="canonical_transcript"<{%endif%}>
-	<td>{{genes[0]}}</td>
-	<td>{{genes[1]}}</td>
-	<td>{{ann.HGVSc|unesc}}</td>
-	<td>{{ann.HGVSp|unesc|replace(";","-")}}</td>
-	<td>{% for annot in ann.Annotation%}{{annot}}<br>{% endfor %}</td>
-      </tr>
-      {% endfor %}
-    </table>
+    </div>
   </div>
 
-<div id="var_comments">
-  {% if current_user.get_role() != "readonly" %}
-  <span class="table_header">Add new comment/annotation</span>
-  <div id="commenting_box">
-    <form action="{{ url_for('add_variant_comment', id=tl._id) }}" method="post">
-      <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..."></textarea><br>
+  <!-- Variant Information cards -->
+  <center>
+    <div class="container mx-auto px-4 py-6">
+      <!-- Translocation Annotation -->
+      <div class="float-left max-w-screen-600 w-full">
+        <div class="float-left max-w-screen-575 w-full bg-white shadow-md rounded-lg p-4 m-5 overflow-hidden">
+          {% set sel_ann = tl.INFO.MANE_ANN or tl.INFO.ANN[0] %}
+          {% set genes = sel_ann.Gene_Name.split('&') %}
+          <h2 class="text-base font-semibold mb-4 bg-purple-300 p-2 rounded">Variant Annotation</h2>
+          <table class="w-full table-auto text-xs table">
+            <tbody>
+              <tr class="hover:bg-purple-50">
+                <td class="px-2 py-2 border-b font-semibold">Genomic junction:</td>
+                <td class="px-2 py-2 border-b">{{tl.CHROM}}:{{tl.POS}} - {{tl.ALT}}</td>
+              </tr>
+              <tr class="hover:bg-purple-50">
+                <td class="px-2 py-2 border-b font-semibold">Gene 1:</td>
+                <td class="px-2 py-2 border-b">{{genes[0]}}</td>
+              </tr>
+              <tr class="hover:bg-purple-50">
+                <td class="px-2 py-2 border-b font-semibold">Gene 2:</td>
+                <td class="px-2 py-2 border-b">{{genes[1]}}</td>
+              </tr>
+              <tr class="hover:bg-purple-50">
+                <td class="px-2 py-2 border-b font-semibold">Consequence:</td>
+                <td class="px-2 py-2 border-b flex flex-wrap gap-2">
+                  {% for annot in sel_ann.Annotation%}
+                    <div class="bg-gray-100 rounded-md py-2 px-2 mt-1 hover:bg-gray-300">
+                      {{annot}}<br>
+                    </div>
+                  {% endfor %}
+                </td>
+              </tr>
+              <tr class="hover:bg-purple-50">
+                <td class="px-2 py-2 border-b font-semibold">HGVS.c</td>
+                <td class="px-2 py-2 border-b">{{sel_ann.HGVSc|unesc}}</td>
+              </tr>
+              <tr class="hover:bg-purple-50">
+                <td class="px-2 py-2 border-b font-semibold">HGVS.p</td>
+                <td class="px-2 py-2 border-b">{{sel_ann.HGVSp|unesc}}</td>
+              </tr>
+              <tr class="hover:bg-purple-50">
+                <td class="px-2 py-2 border-b font-semibold">Exon rank</td>
+                <td class="px-2 py-2 border-b">{{sel_ann.Rank}}</td>
+              </tr>
+              <tr class="hover:bg-purple-50">
+                <td class="px-2 py-2 border-b font-semibold">Panel info</td>
+                <td class="px-2 py-2 border-b">{{tl.INFO.PANEL}}</td>
+              </tr>
+              {% for sample_id,bam_path in bam_id.items() %}
+                {% set gene2 = tl.ALT.split(':') %}
+                {% set gene2_chr = gene2[0]|regex_replace("\D+","") %}
+                {% set gene2_pos = gene2[1]|regex_replace("\D+","") %}
+                <tr class="hover:bg-purple-50">
+                  <td class="px-2 py-2 border-b font-semibold">IGV({{sample_id}}):</td>
+                  <td class="px-2 py-2 border-b"> 
+                    {% for path in bam_path %}
+                      {% set list1 = path.split('/') %}
+                      <a href="http://localhost:60151/load?file=/R:{{path}}&locus={{tl.CHROM}}:{{tl.POS}}">{{list1[0]}}[{{genes[0]}}]</a>
+                      <a href="http://localhost:60151/load?file=/R:{{path}}&locus={{gene2_chr}}:{{gene2_pos}}">[{{genes[1]}}]</a>
+                    {% endfor %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
 
-      <input type="hidden" name="gene1" value="{{ genes[0] }}">
-      <input type="hidden" name="gene2" value="{{ genes[1] }}">
-      <input type="hidden" name="translocpoints" value="{{tl.CHROM}}:{{tl.POS}}^{{tl.ALT}}">
 
-      <input type="submit" value="Save">&nbsp;&nbsp;
-      <input type="checkbox" name="global" value="global"> Use as global annotation
+        <!-- Sample Specific Data -->
+        <div class="float-left max-w-screen-575 w-full bg-white shadow-md rounded-lg p-4 m-5 overflow-hidden">
+          <h2 class="text-base font-semibold mb-4 bg-green-200 p-2 rounded">Sample-Specific Data</h2>
+          <table class="w-full table-auto text-xs table">
+            <thead>
+              <tr>
+                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Sample ID</th>
+                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold"># spanning reads</th>
+                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">%</th>
+                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold"># split reads</th>
+                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">%</th>
+                {% if tl.INFO.UR %}
+                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">unique reads</th>
+                {% endif %}
+                {% if tl.INFO.set %}
+                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">callers</th>
+                {% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for gt in tl.GT %}
+                {% if gt.PR %}
+                  {% set PR = gt.PR.split(',') %}
+                  {% set PR_sum = PR[0]|int+PR[1]|int %}
+                {% endif %}
+                {% if gt.SR %}
+                  {% set SR = gt.SR.split(',') %}
+                  {% set SR_sum = SR[0]|int+SR[1]|int %}
+                {% endif %}
+                <tr class="hover:bg-green-50">
+                  <td class="px-2 py-2 border-b">{{gt.sample}}</td>
+                  {% if gt.PR %}
+                    <td class="px-2 py-2 border-b">{{PR[1]}}/{{PR_sum}}</td>
+                    <td class="px-2 py-2 border-b">{{(100*PR[1]|float/PR_sum|float)|round(2)}} %</td>
+                  {% else %}
+                    <td class="px-2 py-2 border-b">N/A</td>
+                    <td class="px-2 py-2 border-b">N/A</td>
+                  {% endif %}
+                  {% if gt.SR %}
+                    <td class="px-2 py-2 border-b">{{SR[1]}}/{{SR_sum}}</td>
+                    <td class="px-2 py-2 border-b">{{(100*SR[1]|float/SR_sum|float)|round(2)}} %</td>
+                  {% else %}
+                    <td class="px-2 py-2 border-b">N/A</td>
+                    <td class="px-2 py-2 border-b">N/A</td>
+                  {% endif %}
+                  {% if tl.INFO.UR %}
+                    <td class="px-2 py-2 border-b">{{tl.INFO.UR}}</td>
+                  {% endif %}
+                  {% if tl.INFO.set %}
+                    {% if tl.INFO.set == "Intersection" %}
+                      <td class="px-2 py-2 border-b">manta&genefuse</td>
+                    {% else %}
+                      <td class="px-2 py-2 border-b">{{tl.INFO.set}}</td>
+                    {% endif %}
+                  {% endif %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
 
-    </form>
-  </div>
-  {% endif %}
+        <!-- All Transcript Combinations Data -->
+        <div class="float-left max-w-screen-575 w-full bg-white shadow-md rounded-lg p-4 m-5 overflow-hidden">
+          <h2 class="text-base font-semibold mb-4 bg-pink-200 p-2 rounded">Annotations for All Transcript Combinations</h2>
+          <table class="w-full table-auto text-xs table">
+            <thead>
+              <tr>
+                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Gene 1</th>
+                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Gene 2</th>
+                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">HGVS.c</th>
+                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">HGVS.p</th>
+                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Consequence</th>
+              </tr>
+            </thead>
+            <tbody id="pagination-table-body">
+              {% for ann in tl.INFO.ANN %}
+                {% set genes = ann.Gene_Name.split('&') %}
+                {% if ann.HGVSp == sel_ann.HGVSp %}
+                  <tr class="bg-yellow-100 hover:bg-green-100 font-semibold">
+                {% else %}
+                  <tr class="hover:bg-pink-50">
+                {% endif %}
+                  <td class="px-2 py-2 border-b">{{genes[0]}}</td>
+                  <td class="px-2 py-2 border-b">{{genes[1]}}</td>
+                  <td class="px-2 py-2 border-b">{{ann.HGVSc|unesc}}</td>
+                  <td class="px-2 py-2 border-b">{{ann.HGVSp|unesc|replace(";","-")}}</td>
+                  <td class="px-2 py-2 border-b">{% for annot in ann.Annotation%}{{annot}}<br>{% endfor %}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <!-- Pagination Controls -->
+          <div class="flex justify-between mt-4">
+            <button id="prev-page" class="bg-blue-500 text-white py-1 px-2 rounded disabled:opacity-50" onclick="prevPage()">Previous</button>
+            <div id="page-info" class="text-sm"></div>
+            <button id="next-page" class="bg-blue-500 text-white py-1 px-2 rounded disabled:opacity-50" onclick="nextPage()">Next</button>
+          </div>
+        </div>
+      </div>
 
-  {% if tl.comments|length > 0 and current_user.get_role() != "readonly" %}
-	<div style='clear:left;'>
-    <span class="table_header">Sample-specific variant comments</span>
-    <table class="comments" id="variant_comments">
-      <thead><tr><th>Who</th><th>Comment</th><th></th></tr></thead>
-      <tbody>
-        {% for comment in tl.comments|sort(attribute='time_created', reverse=True) %}
-        {% if comment.hidden != 1 %}
-        <tr>
-		{% else %}
-        <tr class="hidden_comment hidden">
-		{% endif %}
-		<td class="comment" style="white-space: nowrap"><b>{{ comment.author }}</b><br><small>{{ comment.time_created|human_date }}</small></td>
-		<td class="comment" onclick="addText(event)">{{ comment.text|format_comment|safe }}</td>
-		<td class="comment">
-      {% if comment.hidden != 1 %}
-      <form action="{{ url_for('hide_transloc_comment', var_id=tl._id) }}" method="post">
-        <input type="hidden" name="comment_id" value="{{ comment._id }}">
-        <input id="hide_comment" type="image" width=15 src="{{ url_for('static', filename='delete.png') }}">
-      </form>
-      {% else %}
-      <form action="{{ url_for('unhide_transloc_comment', var_id=tl._id) }}" method="post">
-        <input type="hidden" name="comment_id" value="{{ comment._id }}">
-        <input id="unhide_comment" type="image" width=15 src="{{ url_for('static', filename='unhide.png') }}">
-      </form>
-      {% endif %}
-		</td>
-        </tr>
-        {% endfor %}
-        {% if hidden_comments != 0 %}
-        <tr>
-		<td colspan=4 style='border-top:1px solid #ccc; font-size:10px; padding-bottom:2px; padding-top:2px; text-align:center;'>
-      <a href="javascript:void(0)" onclick="switchVisibility_comments('hidden_comment')"><b>Show/hide deleted comments</b></a>
-		</td>
-        </tr>
+      <div class="float-left max-w-screen-400 w-full">
+        <!-- Variant Comments -->
+        {% if tl.comments|length > 0 and current_user.get_role() != "readonly" %}
+          <div class="float-left max-w-screen-375 w-full bg-white shadow-md rounded-lg p-4 m-5">
+            <h2 class="text-base font-semibold mb-4 bg-indigo-300 p-2 rounded">Sample-Specific Variant Comments</h2>
+            <table class="w-full table-auto text-xs">
+              <thead>
+                <tr>
+                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Who</th>
+                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Comment</th>
+                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Hide/Unhide</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for comment in tl.comments|sort(attribute='time_created', reverse=True) %}
+                  {% if comment.hidden != 1 %}
+                    <tr class="hover:bg-indigo-50">
+                  {% else %}
+                    <tr class="bg-red-100 hover:bg-red-200 opacity-30 hidden hidden_comment">
+                  {% endif %}
+                    <td class="align-top py-2 px-4 border-b border-gray-300 text-gray-800 text-left" style="white-space: nowrap">
+                      <b>{{ comment.author }}</b><br><small>{{ comment.time_created|human_date }}</small>
+                    </td>
+                    <td class="align-top py-2 px-4 border-b border-gray-300 text-gray-800 text-left" onclick="addText(event)">
+                      {{ comment.text|format_comment|safe }}
+                    </td>
+                    <td class="align-top py-2 px-4 border-b border-gray-300 text-gray-800 text-left">
+                      {% if comment.hidden != 1 %}
+                        <form action="{{ url_for('hide_transloc_comment', var_id=tl._id) }}" method="post">
+                          <input type="hidden" name="comment_id" value="{{ comment._id }}">
+                          <input id="hide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/delete.png') }}">
+                        </form>
+                      {% else %}
+                        <form action="{{ url_for('unhide_transloc_comment', var_id=tl._id) }}" method="post">
+                          <input type="hidden" name="comment_id" value="{{ comment._id }}">
+                          <input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/unhide.png') }}">
+                        </form>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+                {% if hidden_comments != 0 %}
+                  <tr>
+                    <td colspan=4 class="py-2 px-4 border-t border-gray-300 text-center text-sm text-gray-800">
+                      <a href="javascript:void(0)" onclick="switchVisibility_comments('hidden_comment')"><b>Show/hide deleted comments</b></a>
+                    </td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
         {% endif %}
 
-      </tbody>
-    </table>
-	</div>
-	{% endif %}
-
-	{% if annotations|length > 0 %}
-	<div style='clear:left;'>
-    <span class="table_header">Variant annotations</span>
-    <table class="annotatations" id="variant_annotations">
-      <thead><tr><th>Who</th><th>Annotation</th></tr></thead>
-      <tbody>
-        {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
-        {% if current_user.get_role() != "readonly" or loop.first == True %}
-        <tr>
-		<td class="annotation" style="white-space: nowrap"><b>{{ anno.author }}</b><br><small>{{ anno.time_created|human_date }}</small></td>
-		<td class="annotation" onclick="addText(event)">{{ anno.text|format_comment|safe }}</td>
-        </tr>
+        <!-- Variant Annotations -->
+        {% if annotations|length > 0 %}
+          <div class="float-left max-w-screen-375 w-full bg-white shadow-md rounded-lg p-4 m-5">
+            <h2 class="text-base font-semibold mb-4 bg-indigo-300 p-2 rounded">Variant Annotations</h2>
+            <table class="w-full table-auto text-xs">
+              <thead>
+                <tr>
+                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Who</th>
+                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Annotation</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
+                  {% if current_user.get_role() != "readonly" or loop.first == True %}
+                    <tr class="hover:bg-indigo-50">
+                      <td class="px-2 py-2 border-b whitespace-nowrap">
+                        <b>{{ anno.author }}</b><br><small>{{ anno.time_created|human_date }}</small>
+                      </td>
+                      <td class="px-2 py-2 border-b" onclick="addText(event)">
+                        {{ anno.text|format_comment|safe }}
+                      </td>
+                    </tr>
+                  {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         {% endif %}
-        {% endfor %}
 
-      </tbody>
-    </table>
-	</div>
-	{% endif %}
-	
+        <!-- Variant comments Box -->
+        {% if current_user.get_role() != "readonly" %}
+          <div class="float-left max-w-screen-375 w-full bg-white shadow-md rounded-lg p-4 m-5 clear-right">
+            <h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">Add New Comment/Annotation</h2>
+            <div id="commenting_box" class="w-full bg-gray-50 border border-gray-300 p-4 rounded-md">
+              <form action="{{ url_for('add_variant_comment', id=tl._id) }}" method="post">
+                <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="w-full h-20 p-1 border border-gray-300 rounded-md focus:bg-yellow-100 mb-4"></textarea><br>
+                <input type="hidden" name="gene1" value="{{ genes[0] }}">
+                <input type="hidden" name="gene2" value="{{ genes[1] }}">
+                <input type="hidden" name="translocpoints" value="{{tl.CHROM}}:{{tl.POS}}^{{tl.ALT}}">
+                <input type="submit" value="Save" class="bg-blue-500 text-white py-1 px-3 rounded-md cursor-pointer shadow-md">&nbsp;&nbsp;
+                <label class="inline-flex items-center">
+                  <input type="checkbox" name="global" value="global" class="form-checkbox text-blue-500">
+                  <span class="ml-2">Use as global annotation</span>
+                </label>
+              </form>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </center>
 </div>
-  
-  </div>
 
-
-  <script type="text/javascript">
-    $("#test").select2();
-
-    window.onload = function() {
-      $('[data-autoclick="true"]').click();
-      $('[data-autoclick="true"]').click();
-    };
-
-    function switchVisibility(class_name) {
-      var hide_class = "hidden";
-      var elems = document.getElementsByClassName(class_name);
-
-      for (var i = 0; i < elems.length; i++) {
-        if( elems[i].classList.contains(hide_class) ) {
-    elems[i].classList.remove(hide_class);
-	}
-	else {
-    elems[i].classList.add(hide_class);
-	}
-      }
-    }
-			
-  function switchVisibility_comments(class_name) {
-    var hide_class = "hidden";
-
-    var elems = document.getElementsByClassName(class_name);
-
-    for (var i = 0; i < elems.length; i++) {
-      if( elems[i].classList.contains(hide_class) ) {
-        elems[i].classList.remove(hide_class);
-      }
-      else {
-        elems[i].classList.add(hide_class);
-      }
-    }
-  }
-
+<script type="text/javascript">
 
   function addText(event) {
     var targ = event.target || event.srcElement;
-    document.getElementById("comment_textarea").value = targ.textContent || targ.innerText;
+    if (!targ.closest('tr').classList.contains('hidden_comment')) {
+      document.getElementById("comment_textarea").value = targ.textContent || targ.innerText;
+    }
   }
-			
-  </script>
 
+  function switchVisibility_comments(class_name) {
+    var elems = document.getElementsByClassName(class_name);
+    for (var i = 0; i < elems.length; i++) {
+      elems[i].classList.toggle('hidden');
+    }
+  }
 
-{% endblock %} 
+  const rowsPerPage = 10;
+  let currentPage = 1;
+  const tableBody = document.getElementById('pagination-table-body');
+  const rows = Array.from(tableBody.getElementsByTagName('tr'));
+  const pageInfo = document.getElementById('page-info');
+
+  function displayPage(page) {
+    const start = (page - 1) * rowsPerPage;
+    const end = page * rowsPerPage;
+
+    rows.forEach((row, index) => {
+      if (index >= start && index < end) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    pageInfo.textContent = `Page ${page} of ${Math.ceil(rows.length / rowsPerPage)}`;
+    document.getElementById('prev-page').disabled = page === 1;
+    document.getElementById('next-page').disabled = page === Math.ceil(rows.length / rowsPerPage);
+  }
+
+  function prevPage() {
+    if (currentPage > 1) {
+      currentPage--;
+      displayPage(currentPage);
+    }
+  }
+
+  function nextPage() {
+    if (currentPage < Math.ceil(rows.length / rowsPerPage)) {
+      currentPage++;
+      displayPage(currentPage);
+    }
+  }
+
+  // Initialize pagination
+  displayPage(currentPage);
+</script>
+
+{% endblock %}
