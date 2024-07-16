@@ -19,13 +19,11 @@ from coyote.extensions import util
 @fusions_bp.route("/rna/sample/<string:id>", methods=["GET", "POST"])
 @login_required
 def list_fusions(id):
-    sample = store.sample_handler.get_sample(id)
     sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
     smp_grp = sample["groups"][0]
     group_params = util.common.get_group_parameters(smp_grp)
     settings = util.common.get_group_defaults(group_params)
     assay = util.common.get_assay_from_sample(sample)
-    subpanel = sample.get("subpanel")
 
     app.logger.info(app.config["GROUP_CONFIGS"])  # get group config from app config instead
     app.logger.info(f"the sample has these groups {smp_grp}")
