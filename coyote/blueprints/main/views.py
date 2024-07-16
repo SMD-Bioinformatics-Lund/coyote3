@@ -17,17 +17,85 @@ from coyote.blueprints.main.util import SampleSearchForm
 
 @main_bp.route("/", methods=["GET", "POST"])
 @main_bp.route("/home", methods=["GET", "POST"])
-@main_bp.route("/<string:assay>", methods=["GET", "POST"])
+@main_bp.route("/home/<string:status>", methods=["GET", "POST"])
 @login_required
-def main_screen(assay=None):
+def home_screen(status="live"):
     form = SampleSearchForm()
-    # Check if a search was performed
     search_str = ""
     if request.method == "POST" and form.validate_on_submit():
         search_str = form.sample_search.data
 
-    # if no assay chosen, show all available samples to user
-    # else only show samples if the user is part of assay
+    user_groups = current_user.get_groups()
+
+    limit_done_samples = 50
+    if request.args.get("all") == "1":
+        limit_done_samples = None
+
+    if status == "done":
+        live_samples = []
+        done_samples = store.sample_handler.get_samples(
+            user_groups=user_groups, search_str=search_str, report=True, limit=limit_done_samples
+        )
+    else:
+        live_samples = store.sample_handler.get_samples(
+            user_groups=user_groups, search_str=search_str, report=False
+        )
+        done_samples = []
+
+    # Add date for latest report to done_samples
+    for samp in done_samples:
+        if "reports" in samp and "time_created" in samp["reports"][-1]:
+            samp["last_report_time_created"] = samp["reports"][-1]["time_created"]
+        else:
+            samp["last_report_time_created"] = 0
+        samp["num_samples"] = store.sample_handler.get_num_samples(str(samp["_id"]))
+
+    for samp in live_samples:
+        samp["num_samples"] = store.sample_handler.get_num_samples(str(samp["_id"]))
+
+    return render_template(
+        "main_screen.html",
+        live_samples=live_samples,
+        done_samples=done_samples,
+        form=form,
+        assay=None,
+        status=status,
+    )
+
+
+@main_bp.route("/panels/<string:assay>/<string:status>", methods=["GET", "POST"])
+@main_bp.route("/panels/<string:assay>", methods=["GET", "POST"])
+@login_required
+def panels_screen(assay="myeloid_GMSv1", status="live"):
+    return main_screen(assay, status)
+
+
+@main_bp.route("/rna/<string:assay>/<string:status>", methods=["GET", "POST"])
+@main_bp.route("/rna/<string:assay>", methods=["GET", "POST"])
+@login_required
+def rna_screen(assay="fusion", status="live"):
+    return main_screen(assay, status)
+
+
+@main_bp.route("/tumwgs/<string:assay>/<string:status>", methods=["GET", "POST"])
+@main_bp.route("/tumwgs/<string:assay>", methods=["GET", "POST"])
+@login_required
+def tumwgs_screen(assay="tumwgs-solid", status="live"):
+    return main_screen(assay, status)
+
+
+@main_bp.route("/<string:assay>", methods=["GET", "POST"])
+@main_bp.route("/<string:assay>/<string:status>", methods=["GET", "POST"])
+@login_required
+def main_screen(assay=None, status="live"):
+    if not assay:
+        return redirect(url_for("main_bp.home_screen"))
+
+    form = SampleSearchForm()
+    search_str = ""
+    if request.method == "POST" and form.validate_on_submit():
+        search_str = form.sample_search.data
+
     user_groups = current_user.get_groups()
     if assay:
         if assay in user_groups:
@@ -35,63 +103,42 @@ def main_screen(assay=None):
         else:
             user_groups = []
 
-    live_samples_iter = store.sample_handler.get_samples(
-        user_groups=user_groups, search_str=search_str
-    )
-    done_samples_iter = store.sample_handler.get_samples(
-        user_groups=user_groups, search_str=search_str, report=True
-    )
-
     limit_done_samples = 50
     if request.args.get("all") == "1":
-        limit_done_samples = 0
-    done_samples_iter = done_samples_iter.limit(limit_done_samples)
+        limit_done_samples = None
 
-    done_samples = []
-    # Add date for latest report
-    for samp in done_samples_iter:
+    if status == "done":
+        live_samples = []
+        done_samples = store.sample_handler.get_samples(
+            user_groups=user_groups, search_str=search_str, report=True, limit=limit_done_samples
+        )
+    elif status == "live":
+        live_samples = store.sample_handler.get_samples(
+            user_groups=user_groups, search_str=search_str, report=False
+        )
+        done_samples = []
+    else:
+        return redirect(url_for("main_bp.panels_screen", assay=assay, status="live"))
+
+    # Add date for latest report to done_samples
+    for samp in done_samples:
         if "reports" in samp and "time_created" in samp["reports"][-1]:
             samp["last_report_time_created"] = samp["reports"][-1]["time_created"]
         else:
             samp["last_report_time_created"] = 0
-        if limit_done_samples != 0:
-            samp["num_samples"] = store.sample_handler.get_num_samples(str(samp["_id"]))
-        done_samples.append(samp)
-
-    live_samples = []
-    for samp in live_samples_iter:
         samp["num_samples"] = store.sample_handler.get_num_samples(str(samp["_id"]))
-        live_samples.append(samp)
+
+    for samp in live_samples:
+        samp["num_samples"] = store.sample_handler.get_num_samples(str(samp["_id"]))
 
     return render_template(
-        "main_screen.html", live_samples=live_samples, done_samples=done_samples, form=form
+        "main_screen.html",
+        live_samples=live_samples,
+        done_samples=done_samples,
+        form=form,
+        assay=assay,
+        status=status,
     )
-
-
-@main_bp.route("/panels/<string:assay>", methods=["GET", "POST"])
-@main_bp.route("/panels/", methods=["GET", "POST"])
-@login_required
-def panels_screen(assay=None):
-    """
-    PANEL assay-urls in page header
-    """
-    if not assay:
-        return redirect(url_for("main_bp.panels_screen", assay="myeloid_GMSv1"))
-
-    return main_screen(assay)
-
-
-@main_bp.route("/rna/<string:assay>", methods=["GET", "POST"])
-@main_bp.route("/rna", methods=["GET", "POST"])
-@login_required
-def rna_screen(assay=None):
-    """
-    RNA assay-urls in page header
-    """
-    if not assay:
-        return redirect(url_for("main_bp.rna_screen", assay="fusion"))
-
-    return main_screen(assay)
 
 
 @main_bp.route("/errors/")
