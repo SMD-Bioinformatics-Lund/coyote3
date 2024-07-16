@@ -1,11 +1,11 @@
 from bson.objectid import ObjectId
 from coyote.db.base import BaseHandler
 
+
 class CNVsHandler(BaseHandler):
     """
     CNVs handler from coyote["cnvs"]
     """
-    
 
     def __init__(self, adapter):
         super().__init__(adapter)
@@ -28,10 +28,10 @@ class CNVsHandler(BaseHandler):
         """
         Get annotations for a CNV
         """
-        var = f"{str(cnv["chr"])}:{str(cnv["start"])}-{str(cnv["end"])}"
-        annotations = self.adapter.annotations_collection.find(
-            {"variant": var}
-        ).sort("time_created", 1)
+        var = f'{str(cnv["chr"])}:{str(cnv["start"])}-{str(cnv["end"])}'
+        annotations = self.adapter.annotations_collection.find({"variant": var}).sort(
+            "time_created", 1
+        )
 
         # latest_classification = {'class':999}
         annotations_arr = []
@@ -45,13 +45,13 @@ class CNVsHandler(BaseHandler):
 
     def mark_interesting_cnv(self, cnv_id: str, interesting: bool = True) -> None:
         """
-        Mark CNV as interesting 
+        Mark CNV as interesting
         """
         self.mark_interesting(cnv_id, interesting)
 
     def unmark_interesting_cnv(self, cnv_id: str, interesting: bool = False) -> None:
         """
-        Unmark CNV as interesting 
+        Unmark CNV as interesting
         """
         self.mark_interesting(cnv_id, interesting)
 
@@ -122,3 +122,4 @@ class CNVsHandler(BaseHandler):
         Return True if hidden cnv comments else False
         """
         return self.hidden_comments(id)
+

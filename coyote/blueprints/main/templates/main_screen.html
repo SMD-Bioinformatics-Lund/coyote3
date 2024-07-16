@@ -29,6 +29,7 @@
           <thead>
             <tr>
               <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Sample ID</th>
+              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal"></th>
               <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Group</th>
               <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Diagnosis</th>
               <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">BAM</th>
@@ -40,7 +41,11 @@
             {% for sample in live_samples %}
               <tr>
                 <td class="py-2 px-4 border-b border-gray-300">
-                  <a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                  {% if sample.groups|join('') == 'fusion' or sample.groups|join('') == 'solidRNA_GMSv5' %}
+                    <a href="{{ url_for('fusions_bp.list_fusions', id=sample.name) }}" class="text-blue-500 hover:underline" >{{ sample.name }}</a>
+                  {% else %}
+                    <a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                  {% endif %}
                   {% if sample.comments|selectattr('hidden', 'equalto', 0)|list|length > 0 %}
                     *
                   {% endif %}
@@ -93,6 +98,7 @@
           <thead>
             <tr>
               <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Sample ID</th>
+              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal"></th>
               <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Group</th>
               <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Diagnosis</th>
               <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">When added</th>
@@ -107,6 +113,13 @@
               <tr>
                 <td class="py-2 px-4 border-b border-gray-300">
                   <a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                </td>
+                <td class="py-2 px-4 border-b border-gray-300">
+                  {% if "num_samples" in sample %}
+                    {%for n in range(sample.num_samples)%}
+                      &#9679;
+                    {% endfor %}
+                  {% endif %}
                 </td>
                 <td class="py-2 px-4 border-b border-gray-300">
                   {% for grp in sample.groups %}

@@ -16,7 +16,7 @@ from coyote.db.canonical import CanonicalHandler
 from coyote.db.civic import CivicHandler
 from coyote.db.iarc_tp53 import IARCTP53Handler
 from coyote.db.brcaexchange import BRCAHandler
-from coyote.db.fusions import FusionHandler
+from coyote.db.fusions import FusionsHandler
 from coyote.db.biomarkers import BiomarkerHandler
 
 
@@ -73,6 +73,7 @@ class MongoAdapter:
         self.brcaexchange_collection = self.coyote_db["brcaexchange"]
         self.iarc_tp53_collection = self.coyote_db["iarc_tp53"]
         self.bam_samples = self.bam_db["samples"]
+        self.fusions_collection = self.coyote_db["fusions"]
 
     def _setup_handlers(self):
         """
@@ -95,5 +96,5 @@ class MongoAdapter:
         self.other_handler = OtherHandler(self)
         self.group_handler = GroupsHandler(self)
         self.user_handler = UsersHandler(self)
-        self.fusion_handler = FusionHandler(self)
+        self.fusion_handler = FusionsHandler(self)
         self.biomarker_handler = BiomarkerHandler(self)

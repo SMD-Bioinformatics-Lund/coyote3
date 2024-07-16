@@ -11,9 +11,9 @@ class Utility:
         from coyote.blueprints.variants.util import VariantUtility
         from coyote.util.common_utility import CommonUtility
         from coyote.blueprints.main.util import MainUtility
-        from coyote.blueprints.rna.util import RNAUtility
+        from coyote.blueprints.fusions.util import FusionUtility
 
         self.variant = VariantUtility()
         self.common = CommonUtility()
         self.main = MainUtility()
-        self.rna = RNAUtility()
+        self.rna = FusionUtility()
