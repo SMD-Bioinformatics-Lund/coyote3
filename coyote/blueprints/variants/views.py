@@ -23,11 +23,11 @@ from coyote.extensions import util
 def list_variants(id):
 
     # Find sample data by name
-    sample = store.sample_handler.get_sample(id)
+    sample = store.sample_handler.get_sample(id)  # id = name
 
     # Get sample data by id if name is none
     if sample is None:
-        sample = store.sample_handler.get_sample_with_id(id)
+        sample = store.sample_handler.get_sample_with_id(id)  # id = id
 
     sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
     smp_grp = sample["groups"][0]
@@ -68,14 +68,16 @@ def list_variants(id):
     ## FORM FILTERS ##
     # Either reset sample to default filters or add the new filters from form.
     if request.method == "POST" and form.validate_on_submit():
+        _id = str(sample.get("_id"))
         # Reset filters to defaults
         if form.reset.data == True:
-            store.sample_handler.reset_sample_settings(id, settings)
+            store.sample_handler.reset_sample_settings(_id, settings)
         # Change filters
         else:
-            store.sample_handler.update_sample_settings(id, form)
-        ## get sample again to recieve updated forms!
-        sample = store.sample_handler.get_sample_with_id(id)
+            store.sample_handler.update_sample_settings(_id, form)
+            ## get sample again to recieve updated forms!
+            sample = store.sample_handler.get_sample_with_id(_id)
+
     ############################################################################
 
     # Check if sample has hidden comments

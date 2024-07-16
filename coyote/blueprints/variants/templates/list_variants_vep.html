@@ -364,14 +364,14 @@
                 {% endif %}
               </td>
               {% if assay == "swea" or assay == "tumor_exome" %}
-              <td>
+              <td class="py-2 px-3 border-b border-gray-300 text-gray-800">
                 <div class="text-center relative z-10 w-24 h-4 m-0 border border-gray-800">
                   <div style="position:absolute;z-index:-1;width:{{ (csq.rank_score|float / 0.8) |int }}%;height:100%;background-color:{% if csq.rank_score > 25 %}#bea{% else %}#eba{% endif %};"></div>{{ '%0.1f'| format(csq.rank_score) }}
                 </div>
               </td>
               {% endif %}
               {% if assay == "swea" or assay == "gmsonco" %}
-              <td>
+              <td class="py-2 px-3 border-b border-gray-300 text-gray-800">
                 <div {% if var.INFO.ENIGMA_CLNSIG=="Pathogenic" %}class='bg-pink-300 px-1 py-0.5 font-bold inline-block text-red-800 rounded-md'{% endif %}>{{ var.INFO.ENIGMA_CLNSIG }}</div>
               </td>
               {% endif %}
