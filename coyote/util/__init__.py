@@ -16,4 +16,4 @@ class Utility:
         self.variant = VariantUtility()
         self.common = CommonUtility()
         self.main = MainUtility()
-        self.rna = FusionUtility()
+        self.fusion = FusionUtility()

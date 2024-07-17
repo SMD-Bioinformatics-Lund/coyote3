@@ -65,6 +65,14 @@ def list_fusions(id):
     has_hidden_comments = 1 if store.sample_handler.hidden_sample_comments(sample.get("_id")) else 0
 
     sample_settings = util.common.get_fusions_settings(sample, settings)
+
+    # min_spanreads = sample.get("checked_cnveffects", settings["default_spanreads"])
+    # min_spanpairs = sample.get("checked_cnveffects", settings["default_spanpairs"])
+    # fusionlist_filter = sample.get("checked_fusionlists", settings["default_checked_fusionlists"])
+    # fusioneffect_filter = sample.get("checked_fusioneffects", settings["default_checked_fusioneffects"])
+    # fusioncaller_filter = sample.get("checked_fusioncallers", settings["default_checked_fusioncallers"])
+
+    app.logger.info(f"this is the sample {sample}")
     app.logger.info(f"this is the sample and settings  {settings}")
     app.logger.info(f"this is the sample_settings {sample_settings}")
 
