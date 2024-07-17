@@ -286,7 +286,7 @@ def unhide_sample_comment(sample_id):
 
 
 ## Individual variant view ##
-@app.route("/var/<string:id>")
+@app.route("/dna/var/<string:id>")
 @login_required
 def show_variant(id):
 
@@ -589,7 +589,7 @@ def unhide_variant_comment(var_id):
 
 
 ###### CNVS VIEW PAGE #######
-@app.route("/cnvwgs/<string:id>")
+@app.route("/dna/cnvwgs/<string:id>")
 @login_required
 def show_cnvwgs(id):
     """
@@ -676,7 +676,7 @@ def unhide_cnv_comment(cnv_id):
 
 
 ###### TRANSLOCATIONS VIEW PAGE #######
-@app.route("/transloc/<string:id>")
+@app.route("/dna/transloc/<string:id>")
 @login_required
 def show_transloc(id):
     """

@@ -11,7 +11,9 @@ class SampleHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.samples_collection)
 
-    def get_samples(self, user_groups: list = [], report: bool = False, search_str: str = ""):
+    def get_samples(
+        self, user_groups: list = [], report: bool = False, search_str: str = "", limit=None
+    ):
         query = {"groups": {"$in": user_groups}}
         if report:
             query["report_num"] = {"$gt": 0}
@@ -22,7 +24,9 @@ class SampleHandler(BaseHandler):
         if len(search_str) > 0:
             query["name"] = {"$regex": search_str}
         self.app.logger.info(query)
-        samples = self.get_collection().find(query).sort("time_added", -1)
+        samples = list(self.get_collection().find(query).sort("time_added", -1))
+        if limit:
+            samples = samples[:limit]
         return samples
 
     def get_num_samples(self, sample_id: str) -> int:
