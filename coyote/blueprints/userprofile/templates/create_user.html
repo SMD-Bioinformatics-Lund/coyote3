@@ -1,0 +1,182 @@
+{% extends "layout.html" %}
+{% block title %}Create New User{% endblock %}
+{% block body %}
+<div class="flex justify-center items-center mt-1 min-h-screen bg-white">
+    <div class="w-full max-w-lg">
+        <div class="bg-white shadow-xl rounded-lg p-8">
+            <h1 class="text-4xl font-semibold text-center text-gray-900 mb-8">Create New User</h1>
+            <form method="POST" action="{{ url_for('profile_bp.create_user') }}" id="user-form">
+                {{ form.hidden_tag() }}
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-1" for="fullname">Full Name</label>
+                        {{ form.fullname(class="bg-white shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900") }}
+                        {% if form.fullname.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.fullname.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-1" for="username">Username</label>
+                        {{ form.username(class="bg-white shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900", id="username") }}
+                        <p id="username-feedback" class="text-xs mt-1"></p>
+                        {% if form.username.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.username.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-1" for="email">Email</label>
+                        {{ form.email(class="bg-white shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900", id="email") }}
+                        <p id="email-feedback" class="text-xs mt-1"></p>
+                        {% if form.email.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.email.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-1" for="password">Password</label>
+                        {{ form.password(class="bg-white shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900", id="password") }}
+                        {% if form.password.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.password.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-1" for="confirm_password">Confirm Password</label>
+                        {{ form.confirm_password(class="bg-white shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900", id="confirm_password") }}
+                        <p id="password-feedback" class="text-xs mt-1"></p>
+                        {% if form.confirm_password.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.confirm_password.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                      <label class="block text-gray-700 text-sm font-medium mb-1">Groups</label>
+                      <div class="bg-white shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900 flex flex-wrap gap-2" id="group-container" style="display: none;">
+                          <!-- Group items will be added here dynamically -->
+                      </div>
+                      <input type="text" id="group-input" class="mt-2 shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900" placeholder="Add new group and press Enter" onkeydown="addGroup(event)">
+                      {{ form.groups(class="hidden", id="groups-hidden") }}
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-1" for="role">Role</label>
+                        {{ form.role(class="bg-white shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900") }}
+                        {% if form.role.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.role.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="mt-8 text-center">
+                        <button class="inline-block bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300" type="submit" onclick="createUser()">Create User</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('username').addEventListener('blur', function() {
+        const username = this.value;
+        if (username) {
+            fetch('{{ url_for("profile_bp.validate_username") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ username: username })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const feedback = document.getElementById('username-feedback');
+                if (data.exists) {
+                    feedback.textContent = 'Username already exists';
+                    feedback.className = 'text-red-500';
+                } else {
+                    feedback.textContent = 'Username available';
+                    feedback.className = 'text-green-500';
+                }
+            });
+        }
+    });
+
+    document.getElementById('email').addEventListener('blur', function() {
+        const email = this.value;
+        if (email) {
+            fetch('{{ url_for("profile_bp.validate_email") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ email: email })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const feedback = document.getElementById('email-feedback');
+                if (data.exists) {
+                    feedback.textContent = 'Email already exists';
+                    feedback.className = 'text-red-500';
+                } else {
+                    feedback.textContent = 'Email available';
+                    feedback.className = 'text-green-500';
+                }
+            });
+        }
+    });
+
+    document.getElementById('confirm_password').addEventListener('input', function() {
+        const password = document.getElementById('password').value;
+        const confirmPassword = this.value;
+        const feedback = document.getElementById('password-feedback');
+        if (password !== confirmPassword) {
+            feedback.textContent = 'Passwords do not match';
+            feedback.className = 'text-red-500';
+        } else {
+            feedback.textContent = 'Passwords match';
+            feedback.className = 'text-green-500';
+        }
+    });
+
+    function removeGroup(element) {
+      element.parentElement.remove();
+      updateHiddenGroupsField();
+  }
+
+  function addGroup(event) {
+      if (event.key === 'Enter') {
+          event.preventDefault();
+          const groupInput = document.getElementById('group-input');
+          const groupName = groupInput.value.trim();
+          if (groupName) {
+              const groupContainer = document.getElementById('group-container');
+              const newGroup = document.createElement('div');
+              newGroup.className = 'bg-gray-200 rounded-md py-2 px-2 mt-1 flex items-center group-item';
+              newGroup.innerHTML = `
+                  <span class="text-gray-800 font-semibold py-1 px-2 rounded-lg">${groupName}</span>
+                  <button type="button" class="ml-2 text-red-500" onclick="removeGroup(this)">x</button>
+              `;
+              groupContainer.appendChild(newGroup);
+              groupContainer.style.display = 'flex'; // Show the group container
+              groupInput.value = '';
+              updateHiddenGroupsField();
+          }
+      }
+  }
+
+  function updateHiddenGroupsField() {
+      const groupContainer = document.getElementById('group-container');
+      const groups = Array.from(groupContainer.getElementsByClassName('group-item')).map(item => {
+          return item.querySelector('span').textContent.trim();
+      });
+      document.getElementById('groups-hidden').value = groups.join(',');
+
+      // Hide the group container if there are no groups
+      if (groups.length === 0) {
+          groupContainer.style.display = 'none';
+      }
+  }
+
+  function createUser() {
+    updateHiddenGroupsField();
+    document.getElementById('user-form').submit();
+}
+
+</script>
+{% endblock %}

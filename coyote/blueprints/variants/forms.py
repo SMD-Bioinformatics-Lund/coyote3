@@ -70,3 +70,7 @@ class FilterForm(FlaskForm):
     lymphoid = BooleanField()
     parp = BooleanField()
     historic = BooleanField()
+
+
+class GeneForm(FilterForm):
+    pass

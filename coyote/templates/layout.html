@@ -23,13 +23,18 @@
       <div class="relative flex items-center space-x-4">
         <div class="relative flex items-center space-x-4">
           {% if current_user.is_authenticated %}
-            <div class="relative">
+            <div class="relative mr-10">
               <button id="userMenuButton" class="flex items-center space-x-2 focus:outline-none">
                 <img class="h-8 w-8 rounded-full transition-transform duration-300 transform hover:scale-110 hover:rotate-6 hover:shadow-lg" src="{{ url_for('static', filename='icons/user-512.png') }}">
                 <span class="text-gray-800 font-bold">{{ current_user.get_fullname() }}</span>
               </button>
-              <div id="userDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-50">
+              <div id="userDropdown" class="hidden absolute right-30 mt-2 w-40 bg-white rounded-lg shadow-lg z-50">
                 <a href="{{ url_for('profile_bp.profile') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Profile</a>
+                <a href="{{ url_for('profile_bp.change_password', username=current_user.get_id()) }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Change Password</a>
+                {% if current_user.is_admin() %}
+                  <a href="{{ url_for('profile_bp.manage_users') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Manage Users</a>
+                  <a href="{{ url_for('profile_bp.create_user') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Create User</a>
+                {% endif %}
                 <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Logout</a>
               </div>
             </div>

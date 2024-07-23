@@ -1,0 +1,147 @@
+{% extends "layout.html" %}
+{% block title %}Manage Users{% endblock %}
+{% block body %}
+<div class="container mx-auto mt-10">
+    <div class="bg-white shadow-lg rounded-lg p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-semibold">Manage Users</h1>
+            <div class="relative">
+                <input type="text" id="search-input" class="search-bar border border-gray-300 rounded py-2 pl-3 pr-8 focus:outline-none focus:border-blue-500" placeholder="Search users">
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700 cursor-pointer" viewBox="0 0 20 20" fill="currentColor" onclick="document.getElementById('search-input').focus()">
+                        <path fill-rule="evenodd" d="M12.9 14.32a8 8 0 111.414-1.414l5.386 5.386a1 1 0 01-1.414 1.414l-5.386-5.386zM8 14A6 6 0 108 2a6 6 0 000 12z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table id="users-table" class="min-w-full bg-white rounded-lg">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="py-2 px-4 border-b border-gray-300 text-left text-sm font-bold text-gray-700">Username</th>
+                        <th class="py-2 px-4 border-b border-gray-300 text-left text-sm font-bold text-gray-700">Full Name</th>
+                        <th class="py-2 px-4 border-b border-gray-300 text-left text-sm font-bold text-gray-700">Email</th>
+                        <th class="py-2 px-4 border-b border-gray-300 text-left text-sm font-bold text-gray-700">Role</th>
+                        <th class="py-2 px-4 border-b border-gray-300 text-left text-sm font-bold text-gray-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="pagination-table-body">
+                    {% for user in users %}
+                    <tr class="hover:bg-gray-100 transition-colors duration-200">
+                        <td class="py-2 px-4 border-b border-gray-300 text-sm">{{ user._id }}</td>
+                        <td class="py-2 px-4 border-b border-gray-300 text-sm">{{ user.fullname }}</td>
+                        <td class="py-2 px-4 border-b border-gray-300 text-sm">{{ user.email }}</td>
+                        <td class="py-2 px-4 border-b border-gray-300 text-sm">{{ user.role }}</td>
+                        <td class="py-2 px-4 border-b border-gray-300 text-sm">
+                            <a href="{{ url_for('profile_bp.update_user', user_id=user._id) }}" class="text-blue-500 hover:text-blue-700 mr-2">Update</a>
+                            <button onclick="confirmDelete('{{ url_for('profile_bp.delete_user', user_id=user._id) }}')" class="text-red-500 hover:text-red-700">Delete</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <!-- Pagination Controls -->
+            <div class="flex justify-between mt-4">
+                <button id="prev-page" class="bg-blue-500 text-white py-1 px-2 rounded disabled:opacity-50" onclick="prevPage()">Previous</button>
+                <div id="page-info" class="text-sm"></div>
+                <button id="next-page" class="bg-blue-500 text-white py-1 px-2 rounded disabled:opacity-50" onclick="nextPage()">Next</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete confirmation modal -->
+<div id="deleteModal" class="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Confirm Deletion</h2>
+        <p class="mb-6">Are you sure you want to delete this user?</p>
+        <div class="flex justify-end">
+            <button id="cancelButton" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2">Cancel</button>
+            <a id="confirmButton" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Delete</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function confirmDelete(url) {
+        const modal = document.getElementById('deleteModal');
+        const confirmButton = document.getElementById('confirmButton');
+        modal.classList.remove('hidden');
+        confirmButton.setAttribute('href', url);
+    }
+
+    document.getElementById('cancelButton').addEventListener('click', function() {
+        document.getElementById('deleteModal').classList.add('hidden');
+    });
+
+    const rowsPerPage = 10;
+    let currentPage = 1;
+    const tableBody = document.getElementById('pagination-table-body');
+    const rows = Array.from(tableBody.getElementsByTagName('tr'));
+    const pageInfo = document.getElementById('page-info');
+
+    function displayPage(page) {
+        const start = (page - 1) * rowsPerPage;
+        const end = page * rowsPerPage;
+        rows.forEach((row, index) => {
+            if (index >= start && index < end) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        pageInfo.textContent = `Page ${page} of ${Math.ceil(rows.length / rowsPerPage)}`;
+        document.getElementById('prev-page').disabled = page === 1;
+        document.getElementById('next-page').disabled = page === Math.ceil(rows.length / rowsPerPage);
+    }
+
+    function prevPage() {
+        if (currentPage > 1) {
+            currentPage--;
+            displayPage(currentPage);
+        }
+    }
+
+    function nextPage() {
+        if (currentPage < Math.ceil(rows.length / rowsPerPage)) {
+            currentPage++;
+            displayPage(currentPage);
+        }
+    }
+
+    function updatePagination(filteredRows) {
+        const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+        currentPage = Math.min(currentPage, totalPages) || 1; // Ensure current page is within range
+        displayFilteredPage(currentPage, filteredRows);
+    }
+
+    function displayFilteredPage(page, filteredRows) {
+        const start = (page - 1) * rowsPerPage;
+        const end = page * rowsPerPage;
+        rows.forEach(row => row.style.display = 'none'); // Hide all rows initially
+        filteredRows.forEach((row, index) => {
+            if (index >= start && index < end) {
+                row.style.display = '';
+            }
+        });
+        pageInfo.textContent = `Page ${page} of ${Math.ceil(filteredRows.length / rowsPerPage)}`;
+        document.getElementById('prev-page').disabled = page === 1;
+        document.getElementById('next-page').disabled = page === Math.ceil(filteredRows.length / rowsPerPage);
+    }
+
+    document.getElementById('search-input').addEventListener('keyup', function() {
+        const searchTerm = this.value.toLowerCase();
+        const filteredRows = rows.filter(row => {
+            const username = row.cells[0].textContent.toLowerCase();
+            const fullname = row.cells[1].textContent.toLowerCase();
+            const email = row.cells[2].textContent.toLowerCase();
+            const role = row.cells[3].textContent.toLowerCase();
+            return username.includes(searchTerm) || fullname.includes(searchTerm) || email.includes(searchTerm) || role.includes(searchTerm);
+        });
+        updatePagination(filteredRows);
+    });
+
+    // Initialize pagination
+    displayPage(currentPage);
+</script>
+{% endblock %}

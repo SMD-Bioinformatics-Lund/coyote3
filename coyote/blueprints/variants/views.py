@@ -7,7 +7,7 @@ from flask import current_app as app
 from flask import redirect, render_template, request, url_for, send_from_directory
 from flask_login import current_user, login_required
 from pprint import pformat
-from coyote.blueprints.variants.forms import FilterForm
+from coyote.blueprints.variants.forms import GeneForm
 from wtforms import BooleanField
 from wtforms.validators import Optional
 from coyote.extensions import store
@@ -56,9 +56,6 @@ def list_variants(id):
 
     # Save new filter settings if submitted
     # Inherit FilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
-    class GeneForm(FilterForm):
-        pass
-
     for panel in genelists_assay:
         if panel["type"] == "genelist":
             setattr(GeneForm, "genelist_" + panel["name"], BooleanField())
@@ -70,7 +67,7 @@ def list_variants(id):
     if request.method == "POST" and form.validate_on_submit():
         _id = str(sample.get("_id"))
         # Reset filters to defaults
-        if form.reset.data == True:
+        if form.reset.data:
             store.sample_handler.reset_sample_settings(_id, settings)
         # Change filters
         else:
