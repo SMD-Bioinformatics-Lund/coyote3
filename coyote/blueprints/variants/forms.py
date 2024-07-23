@@ -70,3 +70,69 @@ class FilterForm(FlaskForm):
     lymphoid = BooleanField()
     parp = BooleanField()
     historic = BooleanField()
+
+
+class FusionFilter(FlaskForm):
+
+    min_reads = IntegerField("minreads", validators=[Optional()])
+    min_depth = IntegerField("mindepth", validators=[Optional()])
+    min_freq = FloatField("Min freq", validators=[Optional()])
+    max_freq = FloatField("Max freq", validators=[Optional()])
+    max_popfreq = FloatField("Population freq", validators=[Optional()])
+    min_cnv_size = IntegerField("Min CNV size", validators=[Optional()])
+    max_cnv_size = IntegerField("Max CNV size", validators=[Optional()])
+
+    exonic = BooleanField()
+    utr = BooleanField()
+    ncrna = BooleanField()
+
+    stopgain = BooleanField()
+    stoploss = BooleanField()
+    fs_indels = BooleanField()
+    nfs_indels = BooleanField()
+    unknown = BooleanField()
+    empty = BooleanField()
+
+    splicing = BooleanField()
+    stop_gained = BooleanField()
+    frameshift = BooleanField()
+    stop_lost = BooleanField()
+    start_lost = BooleanField()
+    inframe_indel = BooleanField()
+    missense = BooleanField()
+    other_coding = BooleanField()
+    synonymous = BooleanField()
+    UTR = BooleanField()
+    non_coding = BooleanField()
+    intronic = BooleanField()
+    intergenic = BooleanField()
+    regulatory = BooleanField()
+    feature_elon_trunc = BooleanField()
+
+    cnveffect_loss = BooleanField(validators=[Optional()])
+    cnveffect_gain = BooleanField(validators=[Optional()])
+
+    reset = BooleanField()
+
+    # fusionlist_Leukemi = BooleanField(validators=[Optional()])
+    # fusionlist_barntumor = BooleanField(validators=[Optional()])
+    fusionlist_FCknown = BooleanField(validators=[Optional()])
+    fusionlist_mitelman = BooleanField(validators=[Optional()])
+
+    fusioncaller_arriba = BooleanField(validators=[Optional()])
+    fusioncaller_fusioncatcher = BooleanField(validators=[Optional()])
+    fusioncaller_starfusion = BooleanField(validators=[Optional()])
+
+    min_spanpairs = IntegerField("Spanning pairs", validators=[InputRequired()])
+    min_spanreads = IntegerField("Spanning reads", validators=[InputRequired()])
+
+    fusioneffect_inframe = BooleanField(validators=[Optional()])
+    fusioneffect_outframe = BooleanField(validators=[Optional()])
+
+    ### assays filters
+    solid = BooleanField()
+    myeloid = BooleanField()
+    tumwgs = BooleanField()
+    lymphoid = BooleanField()
+    parp = BooleanField()
+    historic = BooleanField()

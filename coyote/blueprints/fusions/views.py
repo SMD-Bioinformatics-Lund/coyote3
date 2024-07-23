@@ -7,7 +7,7 @@ from flask import current_app as app
 from flask import redirect, render_template, request, url_for, send_from_directory
 from flask_login import current_user, login_required
 
-from coyote.blueprints.variants.forms import FilterForm
+from coyote.blueprints.variants.forms import FusionFilter
 from wtforms import BooleanField
 from wtforms.validators import Optional
 from coyote.extensions import store
@@ -29,7 +29,11 @@ def list_fusions(id):
 
     """
     sample = store.sample_handler.get_sample(id)
+
+    sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
+
     smp_grp = sample["groups"][0]
+
     group_params = util.common.get_group_parameters(smp_grp)
     settings = util.common.get_group_defaults(group_params)
     assay = util.common.get_assay_from_sample(sample)
@@ -43,23 +47,23 @@ def list_fusions(id):
 
     # Save new filter settings if submitteds
     # Inherit FilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
-    class FusionForm(FilterForm):
+    class FusionForm(FusionFilter):
         pass
 
     form = FusionForm()
     ###########################################################################
-
     ## FORM FILTERS ##
     # Either reset sample to default filters or add the new filters from form.
     if request.method == "POST" and form.validate_on_submit():
+        _id = str(sample.get("_id"))
         # Reset filters to defaults
         if form.reset.data == True:
-            store.sample_handler.reset_sample_settings(id, settings)
+            store.sample_handler.reset_sample_settings(_id, settings)
         # Change filters
         else:
-            store.sample_handler.update_sample_settings(id, form)
-        ## get sample again to recieve updated forms!
-        sample = store.sample_handler.get_sample(id)
+            store.sample_handler.update_sample_settings(_id, form)
+            ## get sample again to recieve updated forms!
+            sample = store.sample_handler.get_sample_with_id(_id)
     ############################################################################
     # Check if sample has hidden comments
     has_hidden_comments = 1 if store.sample_handler.hidden_sample_comments(sample.get("_id")) else 0
