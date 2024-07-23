@@ -242,6 +242,10 @@ tr.highlightannotation { background-color: rgb(96, 194, 93); }
   max-width: 375px;
 }
 
+.max-w-screen-390 {
+  max-width: 390px;
+}
+
 .max-w-screen-425 {
   max-width: 425px;
 }
@@ -269,6 +273,11 @@ tr.highlightannotation { background-color: rgb(96, 194, 93); }
 .max-w-screen-600 {
   max-width: 600px;
 }
+
+.max-w-screen-615 {
+  max-width: 615px;
+}
+
 
 .w-800 {
   width: 800px;

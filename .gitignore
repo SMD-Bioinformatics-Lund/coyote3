@@ -140,3 +140,4 @@ run_dev.py
 *.backup
 *.backup_default
 app.log*
+test

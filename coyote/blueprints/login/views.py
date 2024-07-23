@@ -49,7 +49,6 @@ def logout():
 
 @login_manager.user_loader
 def load_user(username):
-    print(username)
     user = store.user_handler.user_with_id(username)  # user id
     if not user:
         return None

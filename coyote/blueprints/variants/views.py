@@ -30,7 +30,16 @@ def list_variants(id):
         sample = store.sample_handler.get_sample_with_id(id)  # id = id
 
     sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
-    smp_grp = sample["groups"][0]
+    ## Check the leght of the sample groups from db, and if len is more than one, tumwgs-solid or tumwgs-hema takes the priority in new coyote
+    sample_groups = sample.get("groups")
+    if len(sample_groups) > 1:
+        for group in sample_groups:
+            if group in ["tumwgs-solid", "tumwgs-hema"]:
+                smp_grp = group
+                break
+    else:
+        smp_grp = sample["groups"][0]
+
     group_params = util.common.get_group_parameters(smp_grp)
     settings = util.common.get_group_defaults(group_params)
     assay = util.common.get_assay_from_sample(sample)
@@ -165,7 +174,7 @@ def list_variants(id):
     biomarkers_iter = False
     transloc_iter = False
     if group_params != None and "DNA" in group_params:
-        if group_params["DNA"]["CNV"]:
+        if group_params["DNA"].get("CNV"):
             cnvwgs_iter = list(store.cnv_handler.get_sample_cnvs(sample_id=str(sample["_id"])))
             if filter_cnveffects:
                 cnvwgs_iter = store.cnv_handler.cnvtype_variant(cnvwgs_iter, filter_cnveffects)
@@ -173,9 +182,9 @@ def list_variants(id):
             cnvwgs_iter_n = list(
                 store.cnv_handler.get_sample_cnvs(sample_id=str(sample["_id"]), normal=True)
             )
-        if group_params["DNA"]["OTHER"]:
+        if group_params["DNA"].get("OTHER"):
             biomarkers_iter = store.biomarker_handler.get_sample_other(sample_id=str(sample["_id"]))
-        if group_params["DNA"]["FUSIONS"]:
+        if group_params["DNA"].get("FUSIONS"):
             transloc_iter = store.transloc_handler.get_sample_translocations(
                 sample_id=str(sample["_id"])
             )

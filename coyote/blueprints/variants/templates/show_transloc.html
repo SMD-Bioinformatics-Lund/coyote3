@@ -48,10 +48,10 @@
 
   <!-- Variant Information cards -->
   <center>
-    <div class="container mx-auto px-4 py-6">
+    <div class="container mx-auto px-2 py-6">
       <!-- Translocation Annotation -->
-      <div class="float-left max-w-screen-600 w-full">
-        <div class="float-left max-w-screen-575 w-full bg-white shadow-md rounded-lg p-4 m-5 overflow-hidden">
+      <div class="float-left max-w-screen-615 w-full">
+        <div class="float-left max-w-screen-600 w-full bg-white shadow-md rounded-lg p-3 m-3 overflow-hidden">
           {% set sel_ann = tl.INFO.MANE_ANN or tl.INFO.ANN[0] %}
           {% set genes = sel_ann.Gene_Name.split('&') %}
           <h2 class="text-base font-semibold mb-4 bg-purple-300 p-2 rounded">Variant Annotation</h2>
@@ -116,7 +116,7 @@
 
 
         <!-- Sample Specific Data -->
-        <div class="float-left max-w-screen-575 w-full bg-white shadow-md rounded-lg p-4 m-5 overflow-hidden">
+        <div class="float-left max-w-screen-600 w-full bg-white shadow-md rounded-lg p-3 m-3 overflow-hidden">
           <h2 class="text-base font-semibold mb-4 bg-green-200 p-2 rounded">Sample-Specific Data</h2>
           <table class="w-full table-auto text-xs table">
             <thead>
@@ -177,7 +177,7 @@
         </div>
 
         <!-- All Transcript Combinations Data -->
-        <div class="float-left max-w-screen-575 w-full bg-white shadow-md rounded-lg p-4 m-5 overflow-hidden">
+        <div class="float-left max-w-screen-600 w-full bg-white shadow-md rounded-lg p-3 m-3 overflow-hidden">
           <h2 class="text-base font-semibold mb-4 bg-pink-200 p-2 rounded">Annotations for All Transcript Combinations</h2>
           <table class="w-full table-auto text-xs table">
             <thead>
@@ -218,7 +218,7 @@
       <div class="float-left max-w-screen-400 w-full">
         <!-- Variant Comments -->
         {% if tl.comments|length > 0 and current_user.get_role() != "readonly" %}
-          <div class="float-left max-w-screen-375 w-full bg-white shadow-md rounded-lg p-4 m-5">
+          <div class="float-left max-w-screen-390 w-full bg-white shadow-md rounded-lg p-3 m-3">
             <h2 class="text-base font-semibold mb-4 bg-indigo-300 p-2 rounded">Sample-Specific Variant Comments</h2>
             <table class="w-full table-auto text-xs">
               <thead>
@@ -270,7 +270,7 @@
 
         <!-- Variant Annotations -->
         {% if annotations|length > 0 %}
-          <div class="float-left max-w-screen-375 w-full bg-white shadow-md rounded-lg p-4 m-5">
+          <div class="float-left max-w-screen-390 w-full bg-white shadow-md rounded-lg p-3 m-3">
             <h2 class="text-base font-semibold mb-4 bg-indigo-300 p-2 rounded">Variant Annotations</h2>
             <table class="w-full table-auto text-xs">
               <thead>
@@ -299,7 +299,7 @@
 
         <!-- Variant comments Box -->
         {% if current_user.get_role() != "readonly" %}
-          <div class="float-left max-w-screen-375 w-full bg-white shadow-md rounded-lg p-4 m-5 clear-right">
+          <div class="float-left max-w-screen-390 w-full bg-white shadow-md rounded-lg p-4 m-5 clear-right">
             <h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">Add New Comment/Annotation</h2>
             <div id="commenting_box" class="w-full bg-gray-50 border border-gray-300 p-4 rounded-md">
               <form action="{{ url_for('add_variant_comment', id=tl._id) }}" method="post">
