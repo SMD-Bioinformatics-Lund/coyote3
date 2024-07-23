@@ -1,0 +1,98 @@
+{% extends "layout.html" %}
+{% block title %}Update User{% endblock %}
+{% block body %}
+<div class="flex justify-center items-center mt-10 min-h-screen bg-white">
+    <div class="w-full max-w-lg">
+        <div class="bg-white shadow-xl rounded-lg p-8">
+            <h1 class="text-4xl font-semibold text-center text-gray-900 mb-8">Update User</h1>
+            <form method="POST" action="{{ url_for('profile_bp.update_user', user_id=user._id) }}">
+                {{ form.hidden_tag() }}
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-1" for="username">Username</label>
+                        {{ form.username(class="bg-white shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900", value=user._id) }}
+                        {% if form.username.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.username.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-1" for="fullname">Full Name</label>
+                        {{ form.fullname(class="bg-white shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900", value=user.fullname) }}
+                        {% if form.fullname.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.fullname.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-1" for="email">Email</label>
+                        {{ form.email(class="bg-white shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900", value=user.email) }}
+                        {% if form.email.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.email.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-1" for="role">Role</label>
+                        {{ form.role(class="bg-white shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900", value=user.role) }}
+                        {% if form.role.errors %}
+                            <p class="text-red-500 text-xs mt-1">{{ form.role.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-1">Groups</label>
+                        <div class="bg-white shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900 flex flex-wrap gap-2" id="group-container">
+                            {% for group in user.groups %}
+                                <div class="bg-gray-200 rounded-md py-2 px-2 mt-1 flex items-center group-item">
+                                    <span class="text-gray-800 font-semibold py-1 px-2 rounded-lg">{{ group }}</span>
+                                    <button type="button" class="ml-2 text-red-500" onclick="removeGroup(this)">x</button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <input type="text" id="group-input" class="mt-2 shadow-inner border border-gray-300 rounded-lg w-full py-2 px-4 text-gray-900" placeholder="Add new group and press Enter" onkeydown="addGroup(event)">
+                        {{ form.groups(class="hidden", id="groups-hidden") }}
+                    </div>
+                    <div class="mt-8 text-center flex justify-between">
+                        <button class="inline-block bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300" type="submit">Update Information</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function removeGroup(element) {
+        element.parentElement.remove();
+        updateGroupsHiddenField();
+    }
+
+    function addGroup(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            const groupInput = document.getElementById('group-input');
+            const groupName = groupInput.value.trim();
+            if (groupName) {
+                const groupContainer = document.getElementById('group-container');
+                const newGroup = document.createElement('div');
+                newGroup.className = 'bg-gray-200 rounded-md py-2 px-2 mt-1 flex items-center group-item';
+                newGroup.innerHTML = `
+                    <span class="text-gray-800 font-semibold py-1 px-2 rounded-lg">${groupName}</span>
+                    <button type="button" class="ml-2 text-red-500" onclick="removeGroup(this)">x</button>
+                `;
+                groupContainer.appendChild(newGroup);
+                groupInput.value = '';
+                updateGroupsHiddenField();
+            }
+        }
+    }
+
+    function updateGroupsHiddenField() {
+        const groupsHiddenField = document.getElementById('groups-hidden');
+        const groups = Array.from(document.getElementsByClassName('group-item')).map(item => {
+            return item.querySelector('span').textContent.trim();
+        });
+        groupsHiddenField.value = groups.join(',');
+    }
+
+    // Initialize groups hidden field
+    updateGroupsHiddenField();
+</script>
+{% endblock %}

@@ -43,3 +43,42 @@ class UsersHandler(BaseHandler):
         """
 
         self.get_collection().update_one({"_id": username}, {"$set": {"password": password_hash}})
+
+    def user_exists(self, user_id=None, email=None) -> bool:
+        """
+        Check if a user exists
+        """
+        if not user_id and not email:
+            return False
+
+        if email:
+            return self.get_collection().find_one({"email": email}) is not None
+
+        if user_id:
+            return self.get_collection().find_one({"_id": user_id}) is not None
+
+    def create_user(self, user_data: dict) -> None:
+        """
+        Create a new user
+        """
+        self.get_collection().insert_one(user_data)
+
+    def get_all_users(self) -> list:
+        """
+        Get all users
+        """
+        return list(self.get_collection().find().sort([("fullname", pymongo.ASCENDING)]))
+
+    def delete_user(self, user_id) -> None:
+        """
+        Delete a user
+        """
+        self.get_collection().delete_one({"_id": user_id})
+
+    def update_user(self, user_data) -> None:
+        """
+        Update a user
+        """
+        id = user_data.pop("_id")
+        user_data.pop("password")
+        self.get_collection().update_one({"_id": id}, {"$set": user_data})
