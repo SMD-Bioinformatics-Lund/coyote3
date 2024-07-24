@@ -119,8 +119,8 @@ class FusionFilter(FlaskForm):
     fusioncaller_fusioncatcher = BooleanField(validators=[Optional()])
     fusioncaller_starfusion = BooleanField(validators=[Optional()])
 
-    min_spanpairs = IntegerField("Spanning pairs", validators=[Optional()])
-    min_spanreads = IntegerField("Spanning reads", validators=[Optional()])
+    min_spanpairs = IntegerField("Spanning pairs", validators=[InputRequired(), NumberRange(min=0)])
+    min_spanreads = IntegerField("Spanning reads", validators=[InputRequired(), NumberRange(min=0)])
 
     fusioneffect_inframe = BooleanField(validators=[Optional()])
     fusioneffect_outframe = BooleanField(validators=[Optional()])

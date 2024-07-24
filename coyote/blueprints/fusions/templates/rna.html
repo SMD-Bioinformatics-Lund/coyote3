@@ -73,15 +73,15 @@
   </div>
 
 
-    <!-- Filters Sidebar -->
-    <div id="filter-sidebar" class="fixed top-0 right-0 h-full w-60 bg-white overflow-y-auto shadow-md transform translate-x-full transition-transform duration-300 ease-in-out">
-      <div class="p-2">
-        <div class="flex justify-between items-center mb-2 text-sm">
-          <h2 class="text-sm font-semibold">Modify filters</h2>
-          <button id="filter-close" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
-        </div>
-        <form action="" method="POST" name="form" class="no-spin">
-          {{ form.hidden_tag() }}
+  <!-- Filters Sidebar -->
+  <div id="filter-sidebar" class="fixed top-0 right-0 h-full w-60 bg-white overflow-y-auto shadow-md transform translate-x-full transition-transform duration-300 ease-in-out">
+    <div class="p-2">
+      <div class="flex justify-between items-center mb-2 text-sm">
+        <h2 class="text-sm font-semibold">Modify filters</h2>
+        <button id="filter-close" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
+      </div>
+      <form action="" method="POST" name="form" class="no-spin">
+        {{ form.hidden_tag() }}
           <div class="mb-2">
             <label class="control-label block mb-0.5 text-sm">Spanning pairs</label>
             <div class="flex items-center">
@@ -89,23 +89,75 @@
               {{ form.min_spanreads(size=1, default=sample.filter_min_spanreads, class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm") }}
             </div>
           </div>
+
           <div class="mb-2">
             <label class="control-label block mb-0.5 text-sm">Spanning reads</label>
             <div class="flex items-center">
               <span class="mr-1">&gt;</span>
               {{ form.min_spanpairs(size=1, default=sample.min_spanreads, class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm") }}
             </div>
+          </div>
+
+          <div class="mb-2">
+            <label class="control-label block mb-0.5 text-sm">Fusion gene lists</label>
+            <div class="multiselect">
+              <div class="selectBox" onclick="showCheckboxes('fusionlists_checkboxes')">
+                <select class="w-full border border-gray-300 rounded p-0.5 text-sm">
+                  <option>Select Fusion Lists</option>
+                </select>
+                <div class="overSelect"></div>
+              </div>
+              <div id="fusionlists_checkboxes" class="checkboxes">
+                <label for="FCknown" class="text-sm">{{ form.fusionlist_FCknown(checked=False) }} FusionCatcher 'known'</label>
+                <label for="mitelman"class="text-sm">{{ form.fusionlist_mitelman(checked=False) }} Mitelman</label>
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label class="control-label block mb-0.5 text-sm">Fusion Caller</label>
+              <div class="multiselect">
+                <div class="selectBox" onclick="showCheckboxes('fusioncallers_checkboxes')">
+                  <select class="w-full border border-gray-300 rounded p-0.5 text-sm">
+                    <option>Select Fusion Callers</option>
+                  </select>
+                  <div class="overSelect"></div>
+                </div>
+                <div id="fusioncallers_checkboxes" class="checkboxes">
+                  <label for="arriba" class="text-sm">{{ form.fusioncaller_arriba(checked=False) }} Arriba</label>
+                  <label for="fusioncatcher" class="text-sm">{{ form.fusioncaller_fusioncatcher(checked=False) }} FusionCatcher</label>
+                  <label for="starfusion" class="text-sm">{{ form.fusioncaller_starfusion(checked=False) }}  StarFusion</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label class="control-label block mb-0.5 text-sm">Fusion effects</label>
+              <div class="multiselect">
+                <div class="selectBox" onclick="showCheckboxes('fusioneffect_checkboxes')">
+                  <select class="w-full border border-gray-300 rounded p-0.5 text-sm">
+                    <option>Select Fusion effects</option>
+                  </select>
+                  <div class="overSelect"></div>
+                </div>
+                <div id="fusioneffect_checkboxes" class="checkboxes">
+                  <label for="inframe" class="text-sm">{{ form.fusioneffect_inframe(checked=False) }} In-frame</label>
+                  <label for="outframe" class="text-sm">{{ form.fusioneffect_outframe(checked=False) }} Out-of-frame</label>
+                </div>
+              </div>
+            </div>
+          
+
           <div class="flex justify-between mb-2">
             <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm" name="apply" value="apply" type="submit">Apply</button>
             <button class="bg-blue-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm" name="reset" value="reset" type="submit">Reset</button>
-          </div
-          >
+          </div>
         </div>
-        </form>
-      </div>
+      </form>
     </div>
+  </div>
 
-  <!-- Fusion Table -->
+
+    <!-- Fusion Table -->
   {% if fusions|length > 0 %}
   <div class="bg-white shadow-md rounded-lg p-4 mb-4">
     <span class="table_header text-xl font-semibold">Fusions passing filter criteria</span>
@@ -175,7 +227,131 @@
     </div>
   </div>
   {% endif %}
-  
+
+  <!-- classification Comments -->
+  {% if sample.classification %}
+    <span class="table_header"
+      >Expression-based classification
+      ({{sample.classification.classifier_version}})</span
+    >
+    <table class="sortable" id="fusion_list_table" style="width: 320px">
+      <thead>
+        <tr>
+          <th>Class</th>
+          <th>Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in sample.classification.classifier_results %}
+        <tr>
+          <td>{{ c.class }}</td>
+          <td>
+            <div
+              style="
+                text-align: center;
+                position: relative;
+                z-index: 1;
+                width: 200px;
+                height: 100%;
+                margin: 0px 0px;
+                border: 1px solid rgb(50, 50, 50);
+              "
+            >
+              <div
+                style="position:absolute;z-index:-1;width:{{ (c.score * 100)|string }}%;height:100%;background-color:#acf;"
+              ></div>
+              {{ '%0.2f'| format(c.score) }}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %} 
+
+  <!-- expression Classfication -->  
+  {% if sample.expr %}
+    <span class="table_header">Expression levels of selected genes</span>
+    <table class="sortable" id="fusion_list_table" style="width: 320px">
+      <thead>
+        <th>Gene</th>
+        <th>TPM</th>
+        <th>TPM mean</th>
+        <th>Z-score</th>
+      </thead>
+      <tbody>
+        {% for data in sample.expr.sample %} {% if data.hgnc_symbol %}
+        <tr>
+          {% set zscore = data.z %}
+          <td>{{ data.hgnc_symbol }}</td>
+          <td>{{ '%0.2f'| format(data.sample_expression)}}</td>
+          <td>{{ '%0.2f'| format(data.reference_mean)}}</td>
+          <td>
+            {% if zscore >= 0 %}
+            <div
+              style="
+                text-align: left;
+                padding-left: 2px;
+                position: relative;
+                z-index: 1;
+                width: 200px;
+                height: 100%;
+                margin: 0px 0px;
+                border: 1px solid rgb(50, 50, 50);
+              "
+            >
+              <div
+                style="
+                  position: absolute;
+                  left: 100px;
+                  z-index: 0;
+                  width: 1px;
+                  height: 100%;
+                  background-color: #555;
+                "
+              ></div>
+              <div
+                style="position:absolute;left:101px;z-index:-1;width:{{ 2+ zscore * 6 }}px;height:100%;background-color:#8E8;"
+              ></div>
+              {{ '%0.2f'| format(zscore) }}
+            </div>
+            {% else %}
+            <div
+              style="
+                text-align: left;
+                padding-left: 2px;
+                position: relative;
+                z-index: 1;
+                width: 200px;
+                height: 100%;
+                margin: 0px 0px;
+                border: 1px solid rgb(50, 50, 50);
+              "
+            >
+              <div
+                style="
+                  position: absolute;
+                  left: 100px;
+                  z-index: 0;
+                  width: 1px;
+                  height: 100%;
+                  background-color: #555;
+                "
+              ></div>
+              <div
+                style="position:absolute;left:{{ 100+zscore*6 }}px;z-index:-1;width:{{ -zscore * 6 +1 }}px;height:100%;background-color:#faa;"
+              ></div>
+              {{ '%0.2f'| format(zscore) }}
+            </div>
+            {% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
   <!-- Sample Comments -->
   <div id="sample_comments" class="bg-white shadow-md rounded-lg p-6 mb-6">
     {% if sample.comments|length > 0 %}
@@ -239,8 +415,6 @@
       {{ ai_text }}
     </div>
   </div>
-
-
 </div>
 
 

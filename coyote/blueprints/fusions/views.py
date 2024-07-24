@@ -49,6 +49,7 @@ def list_fusions(id):
     # Inherit FilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
 
     form = FusionFilter()
+    ##
     print("this is the form data")
     print(form.data)
     ###########################################################################
@@ -58,7 +59,8 @@ def list_fusions(id):
         _id = str(sample.get("_id"))
         # Reset filters to defaults
         if form.reset.data == True:
-            store.sample_handler.reset_sample_settings(_id, settings)
+            print("does it go throu this?")
+            store.sample_handler.reset_sample_settings(_id, settings)  ## this loop is not working
         # Change filters
         else:
             store.sample_handler.update_sample_settings(_id, form)
@@ -70,15 +72,22 @@ def list_fusions(id):
 
     sample_settings = util.common.get_fusions_settings(sample, settings)
 
-    # min_spanreads = sample.get("checked_cnveffects", settings["default_spanreads"])
-    # min_spanpairs = sample.get("checked_cnveffects", settings["default_spanpairs"])
-    # fusionlist_filter = sample.get("checked_fusionlists", settings["default_checked_fusionlists"])
-    # fusioneffect_filter = sample.get("checked_fusioneffects", settings["default_checked_fusioneffects"])
-    # fusioncaller_filter = sample.get("checked_fusioncallers", settings["default_checked_fusioncallers"])
+    fusionlist_filter = sample.get("checked_fusionlists", settings["default_checked_fusionlists"])
+    fusioneffect_filter = sample.get(
+        "checked_fusioneffects", settings["default_checked_fusioneffects"]
+    )
+    fusioncaller_filter = sample.get(
+        "checked_fusioncallers", settings["default_checked_fusioncallers"]
+    )
+
+    filter_fusioneffects = util.fusion.create_fusioneffectlist(fusioneffect_filter)
+    filter_fusioncaller = util.fusion.create_fusioncallers(fusioncaller_filter)
 
     # app.logger.info(f"this is the sample {sample}")
+    app.logger.info(f"this is the form data {form.data}")
     app.logger.info(f"this is the sample and settings  {settings}")
-    # app.logger.info(f"this is the sample_settings {sample_settings}")
+    app.logger.info(f"this is the sample_settings {sample_settings}")
+    print(fusioneffect_filter)
 
     # app.logger.info(f"this is the sample,{sample}")
     ## Change this to fusionquery.py
@@ -92,8 +101,14 @@ def list_fusions(id):
                 }
             },
         }
+        if fusioneffect_filter:
+            fusion_query["calls.effect"] = {"$in": filter_fusioneffects}
+        if filter_fusioncaller:
+            fusion_query["calls.caller"] = {"$in": filter_fusioncaller}
 
-    fusions = list(store.fusion_handler.get_sample_fusions(fusion_query))
+        fusions = list(store.fusion_handler.get_sample_fusions(fusion_query))
+
+    print(fusion_query)
 
     for fus_idx, fus in enumerate(fusions):
         # app.logger.info(f"these are fus, {fus_idx} {fus}")
