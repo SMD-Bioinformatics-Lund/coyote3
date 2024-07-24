@@ -80,6 +80,7 @@ def list_fusions(id):
         "checked_fusioncallers", settings["default_checked_fusioncallers"]
     )
 
+    # filter_fusionlist = util.fusion.create_fusiongenelist(fusionlist_filter)
     filter_fusioneffects = util.fusion.create_fusioneffectlist(fusioneffect_filter)
     filter_fusioncaller = util.fusion.create_fusioncallers(fusioncaller_filter)
 
@@ -87,7 +88,9 @@ def list_fusions(id):
     app.logger.info(f"this is the form data {form.data}")
     app.logger.info(f"this is the sample and settings  {settings}")
     app.logger.info(f"this is the sample_settings {sample_settings}")
-    print(fusioneffect_filter)
+    print(fusionlist_filter)
+    # print (filter_fusionlist)
+    print(filter_fusioneffects)
 
     # app.logger.info(f"this is the sample,{sample}")
     ## Change this to fusionquery.py
@@ -105,6 +108,10 @@ def list_fusions(id):
             fusion_query["calls.effect"] = {"$in": filter_fusioneffects}
         if filter_fusioncaller:
             fusion_query["calls.caller"] = {"$in": filter_fusioncaller}
+        if "fusionlist_FCknown" in fusionlist_filter:
+            fusion_query["calls.desc"] = {"$regex": "known"}
+        if "fusionlist_mitelman" in fusionlist_filter:
+            fusion_query["calls.desc"] = {"$regex": "mitelman"}
 
         fusions = list(store.fusion_handler.get_sample_fusions(fusion_query))
 

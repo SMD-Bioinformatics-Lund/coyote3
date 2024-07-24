@@ -15,11 +15,12 @@ class FusionUtility:
     """
 
     @staticmethod
-    def create_fusiongenelist(list_names, fusion_lists):
+    def create_fusiongenelist(list_names):
 
         fusion_genes = []
         for name in list_names:
             list_name = name.split("_", 1)[1]
+
             if list_name != "FCknown" and list_name != "mitelman":
                 fusion_genes.extend(fusion_lists[list_name])
 
