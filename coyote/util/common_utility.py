@@ -210,10 +210,10 @@ class CommonUtility:
         """
         fusion_settings = {}
         fusion_settings["min_spanreads"] = int(
-            float(sample.get("filter_min_spanreads", settings.get("default_spanreads", 0)))
+            sample.get("filter_min_spanreads", settings.get("default_spanreads", 0))
         )
         fusion_settings["min_spanpairs"] = int(
-            float(sample.get("filter_min_spanpairs", settings.get("default_spanpairs", 0)))
+            sample.get("filter_min_spanpairs", settings.get("default_spanpairs", 0))
         )
         return fusion_settings
 

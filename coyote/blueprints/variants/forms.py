@@ -112,10 +112,6 @@ class FusionFilter(FlaskForm):
     cnveffect_loss = BooleanField(validators=[Optional()])
     cnveffect_gain = BooleanField(validators=[Optional()])
 
-    reset = BooleanField()
-
-    # fusionlist_Leukemi = BooleanField(validators=[Optional()])
-    # fusionlist_barntumor = BooleanField(validators=[Optional()])
     fusionlist_FCknown = BooleanField(validators=[Optional()])
     fusionlist_mitelman = BooleanField(validators=[Optional()])
 
@@ -123,16 +119,10 @@ class FusionFilter(FlaskForm):
     fusioncaller_fusioncatcher = BooleanField(validators=[Optional()])
     fusioncaller_starfusion = BooleanField(validators=[Optional()])
 
-    min_spanpairs = IntegerField("Spanning pairs", validators=[InputRequired()])
-    min_spanreads = IntegerField("Spanning reads", validators=[InputRequired()])
+    min_spanpairs = IntegerField("Spanning pairs", validators=[Optional()])
+    min_spanreads = IntegerField("Spanning reads", validators=[Optional()])
 
     fusioneffect_inframe = BooleanField(validators=[Optional()])
     fusioneffect_outframe = BooleanField(validators=[Optional()])
 
-    ### assays filters
-    solid = BooleanField()
-    myeloid = BooleanField()
-    tumwgs = BooleanField()
-    lymphoid = BooleanField()
-    parp = BooleanField()
-    historic = BooleanField()
+    reset = BooleanField()

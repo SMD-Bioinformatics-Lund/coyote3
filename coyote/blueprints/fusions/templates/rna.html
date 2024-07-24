@@ -93,55 +93,8 @@
             <label class="control-label block mb-0.5 text-sm">Spanning reads</label>
             <div class="flex items-center">
               <span class="mr-1">&gt;</span>
-              {{ form.min_spanreads(size=1, default=sample.min_spanreads, class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm") }}
+              {{ form.min_spanpairs(size=1, default=sample.min_spanreads, class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm") }}
             </div>
-          </div>
-          <div class="mb-2">
-            <label class="control-label block mb-0.5 text-sm">Fusion gene lists</label>
-            <div class="multiselect">
-              <div class="selectBox" onclick="showCheckboxes('fusionlists_checkboxes')">
-                <select class="w-full border border-gray-300 rounded p-0.5 text-sm">
-                  <option>Select Fusion Lists</option>
-                </select>
-                <div class="overSelect"></div>
-              </div>
-              <div id="fusionlists_checkboxes" class="checkboxes">
-                <label for="FCknown" class="text-sm">{{ form.fusionlist_FCknown(checked=False) }} FusionCatcher 'known'</label>
-                <label for="mitelman"class="text-sm">{{ form.fusionlist_mitelman(checked=False) }} Mitelman</label>
-              </div>
-            </div>
-          </div>
-          <div class="mb-2">
-            <label class="control-label block mb-0.5 text-sm">Fusion Caller</label>
-            <div class="multiselect">
-              <div class="selectBox" onclick="showCheckboxes('fusioncallers_checkboxes')">
-                <select class="w-full border border-gray-300 rounded p-0.5 text-sm">
-                  <option>Select Fusion Callers</option>
-                </select>
-                <div class="overSelect"></div>
-              </div>
-              <div id="fusioncallers_checkboxes" class="checkboxes">
-                <label for="arriba" class="text-sm">{{ form.fusioncaller_arriba(checked=False) }} Arriba</label>
-                <label for="fusioncatcher" class="text-sm">{{ form.fusioncaller_fusioncatcher(checked=False) }} FusionCatcher</label>
-                <label for="starfusion" class="text-sm">{{ form.fusioncaller_starfusion(checked=False) }}  StarFusion</label>
-              </div>
-            </div>
-          </div>
-          <div class="mb-2">
-            <label class="control-label block mb-0.5 text-sm">Fusion effects</label>
-            <div class="multiselect">
-              <div class="selectBox" onclick="showCheckboxes('fusioneffect_checkboxes')">
-                <select class="w-full border border-gray-300 rounded p-0.5 text-sm">
-                  <option>Select Fusion effects</option>
-                </select>
-                <div class="overSelect"></div>
-              </div>
-              <div id="fusioneffect_checkboxes" class="checkboxes">
-                <label for="inframe" class="text-sm">{{ form.fusioneffect_inframe(checked=False) }} In-frame</label>
-                <label for="outframe" class="text-sm">{{ form.fusioneffect_outframe(checked=False) }} Out-of-frame</label>
-              </div>
-            </div>
-          </div>
           <div class="flex justify-between mb-2">
             <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm" name="apply" value="apply" type="submit">Apply</button>
             <button class="bg-blue-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm" name="reset" value="reset" type="submit">Reset</button>

@@ -47,10 +47,10 @@ def list_fusions(id):
 
     # Save new filter settings if submitteds
     # Inherit FilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
-    class FusionForm(FusionFilter):
-        pass
 
-    form = FusionForm()
+    form = FusionFilter()
+    print("this is the form data")
+    print(form.data)
     ###########################################################################
     ## FORM FILTERS ##
     # Either reset sample to default filters or add the new filters from form.
@@ -76,9 +76,9 @@ def list_fusions(id):
     # fusioneffect_filter = sample.get("checked_fusioneffects", settings["default_checked_fusioneffects"])
     # fusioncaller_filter = sample.get("checked_fusioncallers", settings["default_checked_fusioncallers"])
 
-    app.logger.info(f"this is the sample {sample}")
+    # app.logger.info(f"this is the sample {sample}")
     app.logger.info(f"this is the sample and settings  {settings}")
-    app.logger.info(f"this is the sample_settings {sample_settings}")
+    # app.logger.info(f"this is the sample_settings {sample_settings}")
 
     # app.logger.info(f"this is the sample,{sample}")
     ## Change this to fusionquery.py
