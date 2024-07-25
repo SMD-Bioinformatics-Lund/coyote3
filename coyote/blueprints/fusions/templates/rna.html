@@ -1,65 +1,235 @@
-{% extends "layout.html" %} {% block body %} {% set translation=config["TRANS"]
-%} <span class="genefilter_generic">Sample:</span
-><a href="{{ url_for('fusions_bp.list_fusions', id=sample.name) }}">
-  {{ sample.name }}</a
->
+{% extends "layout.html" %} 
 
-<h1>Handling RNA Sample: {{ id }}</h1>
+{% block body %} 
+{% set translation=config["TRANS"] %} 
 
-<div id="top_div">
-  <div id="variantlist_div">
-    {% if fusions|length > 0 %}
-    <span class="table_header">Fusions passing filter criteria</span>
-    <table class="sortable" id="fusion_list_table">
-      <thead>
-        <tr>
-          <th nowrap>Gene 1</th>
-          <th nowrap>Gene 2</th>
-          <th>Effect</th>
-          <th nowrap>Spanning pairs</th>
-          <th nowrap data-autoclick="true">Unique spanning reads</th>
-          <th>Fusion points</th>
-          <th>Tier</th>
-          <th>Description</th>
-          <th>Callers</th>
-          <th>View</th>
-        </tr>
-      </thead>
+<div class="container mx-auto pt-6 pr-10 pl-10 pb-10">
 
-      {% for fus in fusions %} {% set genes = fus.genes.split('^') %} {% set
-      sel_fus = (fus.calls|selectattr('selected', 'equalto', 1) |list)[0] %}
-      {#{fus}#} {% if fus.blacklisted or fus.fp %}
-      <tr class="fp">
-        {% else %}
-      </tr>
-
-      <tr>
+  <!-- Sample Information -->
+  <div class="bg-white shadow-md rounded-lg p-4 mb-4 flex items-center justify-between">
+    <div>
+      <span class="genefilter_generic">Sample:</span>
+      <a href="{{ url_for('fusions_bp.list_fusions', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a >
+    </div>
+    <div class="flex items-center space-x-2">
+      {% if "subpanel" in sample %}
+        <div>Type:<b> {{ sample.subpanel }}</b></div><span class="px-1">|</span>
+      {% endif %}
+      {% if assay == "solid" %}
+        {% if "purity" in sample %}
+          <div>Purity:<b> {{ sample.purity * 100 }}%</b></div><span class="px-1">|</span>
         {% endif %}
-        <td>{{ genes[0] }}</td>
-        <td>{{ genes[1] }}</td>
-        <td>{{ sel_fus.effect }}</td>
-        <td>{{ sel_fus.spanpairs }}</td>
-        <td>{{ sel_fus.spanreads }}</td>
-        <td>{{ sel_fus.breakpoint1 }}<br />{{ sel_fus.breakpoint2 }}</td>
+        {% if biomarker and biomarker.count() > 0 %}
+          {% for bio in biomarker %}
+            {% if "MSIS" in bio %}
+              <div class="tooltip">MSI(Single):<span class="tooltiptext">Total: {{ bio.MSIS.tot }} Somatic: {{ bio.MSIS.som }}</span></div> 
+              <b>{{ bio.MSIS.perc }}%</b><span class="px-1">|</span>
+            {% endif %}
+            {% if "MSIP" in bio %}
+              <div class="tooltip">MSI(Paired):<span class="tooltiptext">Total: {{ bio.MSIP.tot }} Somatic: {{ bio.MSIP.som }}</span></div> 
+              <b>{{ bio.MSIP.perc }}%</b><span class="px-1">|</span>
+            {% endif %}
+            {% if "HRD" in bio %}
+              <div class="tooltip">HRD:<span class="tooltiptext">TAI: {{ bio.HRD.tai }} HRD: {{ bio.HRD.hrd }} LST: {{ bio.HRD.lst }}</span></div>
+              <b>{{ bio.HRD.sum }}</b>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+      {% endif %}
+    </div>
+    
+  </div>
 
-        <td class="varlist" sorttable_customkey="{{fus.classification.class}}">
-          {% if fus.classification.class != 999 %}
-          <div class="classbox_table" id="tier{{ fus.classification.class }}">
-            {{ fus.classification.class }}
-          </div>
+  <!-- Buttons and Filters -->
+  <div class="flex justify-between items-center mb-4">
+    <!-- Card for buttons -->
+    <div class="bg-white shadow-md rounded-lg p-4 w-full flex items-center">
+      <!-- Left aligned buttons -->
+      <div class="flex space-x-4">
+        <div class="button_link">
+          {% if assay == "fusion" or fusions|length > 0 %}
+          <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105" onclick="window.location.href='fusionreport/{{sample.name}}'">Preview report</button>
+          {% else %}
+          <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105" onclick="window.location.href='report2/{{sample.name}}'">Preview report</button>
           {% endif %}
-        </td>
+        </div>      
+        <div class="button_link">
+          <button class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105" onclick="window.location.href='#'; show_lowcov();">Low-coverage regions</button>
+        </div>
+        <div class="button_link">
+          <button class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105" onclick="switchVisibility('fp');"><b>Show/hide FPs</b></button>
+        </div>      
+        {% if assay == "solid" or assay == "gmsonco" %}
+        <div class="button_link">
+          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105" onclick="window.location.href='#'; show_germlinecnv();">Germline CNVs</button>
+        </div>      
+        {% endif %}
+      </div>
+      <!-- Right aligned filter button -->
+      <div class="ml-auto">
+        <button id="filter-toggle" class="bg-indigo-600 hover:bg-indigo-800 text-white px-4 py-2 rounded transition duration-300 ease-in-out transform hover:scale-105">Filters</button>
+      </div>   
+    </div>
+  </div>
 
-        <td>
-          {{ sel_fus.desc|format_fusion_desc|safe }} {#% if "desc" in sel_fus %}
-          {{ sel_fus["desc"].split(',')|join(', ') }} {% endif %#}
-        </td>
-        <td>{{ fus.calls|uniq_callers|join("<br />")|safe }}</td>
-        <td><a href="../fusion/{{fus._id}}">view</a></td>
-      </tr>
-      {% endfor %}
-    </table>
-    {% endif %} {% if sample.classification %}
+
+  <!-- Filters Sidebar -->
+  <div id="filter-sidebar" class="fixed top-0 right-0 h-full w-60 bg-white overflow-y-auto shadow-md transform translate-x-full transition-transform duration-300 ease-in-out">
+    <div class="p-2">
+      <div class="flex justify-between items-center mb-2 text-sm">
+        <h2 class="text-sm font-semibold">Modify filters</h2>
+        <button id="filter-close" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
+      </div>
+      <form action="" method="POST" name="form" class="no-spin">
+        {{ form.hidden_tag() }}
+          <div class="mb-2">
+            <label class="control-label block mb-0.5 text-sm">Spanning pairs</label>
+            <div class="flex items-center">
+              <span class="mr-1">&gt;</span>
+              {{ form.min_spanreads(size=1, default=sample.filter_min_spanreads, class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm") }}
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <label class="control-label block mb-0.5 text-sm">Spanning reads</label>
+            <div class="flex items-center">
+              <span class="mr-1">&gt;</span>
+              {{ form.min_spanpairs(size=1, default=sample.min_spanreads, class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm") }}
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <label class="control-label block mb-0.5 text-sm">Fusion gene lists</label>
+            <div class="multiselect">
+              <div class="selectBox" onclick="showCheckboxes('fusionlists_checkboxes')">
+                <select class="w-full border border-gray-300 rounded p-0.5 text-sm">
+                  <option>Select Fusion Lists</option>
+                </select>
+                <div class="overSelect"></div>
+              </div>
+              <div id="fusionlists_checkboxes" class="checkboxes">
+                <label for="FCknown" class="text-sm">{{ form.fusionlist_FCknown(checked=False) }} FusionCatcher 'known'</label>
+                <label for="mitelman"class="text-sm">{{ form.fusionlist_mitelman(checked=False) }} Mitelman</label>
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label class="control-label block mb-0.5 text-sm">Fusion Caller</label>
+              <div class="multiselect">
+                <div class="selectBox" onclick="showCheckboxes('fusioncallers_checkboxes')">
+                  <select class="w-full border border-gray-300 rounded p-0.5 text-sm">
+                    <option>Select Fusion Callers</option>
+                  </select>
+                  <div class="overSelect"></div>
+                </div>
+                <div id="fusioncallers_checkboxes" class="checkboxes">
+                  <label for="arriba" class="text-sm">{{ form.fusioncaller_arriba(checked=False) }} Arriba</label>
+                  <label for="fusioncatcher" class="text-sm">{{ form.fusioncaller_fusioncatcher(checked=False) }} FusionCatcher</label>
+                  <label for="starfusion" class="text-sm">{{ form.fusioncaller_starfusion(checked=False) }}  StarFusion</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label class="control-label block mb-0.5 text-sm">Fusion effects</label>
+              <div class="multiselect">
+                <div class="selectBox" onclick="showCheckboxes('fusioneffect_checkboxes')">
+                  <select class="w-full border border-gray-300 rounded p-0.5 text-sm">
+                    <option>Select Fusion effects</option>
+                  </select>
+                  <div class="overSelect"></div>
+                </div>
+                <div id="fusioneffect_checkboxes" class="checkboxes">
+                  <label for="inframe" class="text-sm">{{ form.fusioneffect_inframe(checked=False) }} In-frame</label>
+                  <label for="outframe" class="text-sm">{{ form.fusioneffect_outframe(checked=False) }} Out-of-frame</label>
+                </div>
+              </div>
+            </div>
+          
+
+          <div class="flex justify-between mb-2">
+            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm" name="apply" value="apply" type="submit">Apply</button>
+            <button class="bg-blue-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm" name="reset" value="reset" type="submit">Reset</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+    <!-- Fusion Table -->
+  {% if fusions|length > 0 %}
+  <div class="bg-white shadow-md rounded-lg p-4 mb-4">
+    <span class="table_header text-xl font-semibold">Fusions passing filter criteria</span>
+    <div class="overflow-auto">
+      <table class="min-w-full mt-4 table-auto text-xs">
+        <thead>
+          <tr class="bg-gradient-to-r from-blue-300 to-pink-300 text-black">
+            <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">Gene 1</th>
+            <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">Gene 2</th>
+            <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">Effect</th>
+            <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">Spanning pairs</th>
+            <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold" data-autoclick="true">Unique spanning reads</th>
+            <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">Fusion points</th>
+            <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">Tier</th>
+            <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">Description</th>
+            <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">Callers</th>
+            <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">View</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fus in fusions %}
+            {% set genes = fus.genes.split('^') %}
+            {% set sel_fus = (fus.calls|selectattr('selected', 'equalto', 1) |list)[0] %}
+            {% if fus.blacklisted or fus.fp %}
+            <tr class='bg-red-200 opacity-40 even:bg-red-200 odd:bg-red-200 hover:bg-red-300 border-b border-gray-300'>
+              {% else %}
+            <tr>
+              {% endif %}
+              <td class="py-2 px-3 border-b border-gray-300">
+                {{ genes[0] }}
+              </td>
+              <td class="py-2 px-3 border-b border-gray-300">
+                {{ genes[1] }}
+              </td>
+              <td class="py-2 px-3 border-b border-gray-300">
+                {{ sel_fus.effect }}
+              </td>
+              <td class="py-2 px-3 border-b border-gray-300">
+                {{ sel_fus.spanpairs }}
+              </td>
+              <td class="py-2 px-3 border-b border-gray-300">
+                {{ sel_fus.spanreads }}
+              </td>
+              <td class="py-2 px-3 border-b border-gray-300">
+                {{ sel_fus.breakpoint1 }}<br>{{ sel_fus.breakpoint2 }}
+              </td>
+              <td class="py-2 px-3 border-b border-gray-300 varlist" sorttable_customkey="{{ fus.classification.class }}">
+                {% if fus.classification.class != 999 %}
+                  <div class="px-1 py-0 w-[11px] text-center border border-gray-600 rounded-[11px]" id="tier{{ fus.classification.class }}">
+                    {{ fus.classification.class }}
+                  </div>
+                {% endif %}
+              </td>
+              <td class="py-2 px-3 border-b border-gray-300">
+                {{ sel_fus.desc|format_fusion_desc|safe }}
+              </td>
+              <td class="py-2 px-3 border-b border-gray-300">
+                {{ fus.calls|uniq_callers|join("<br>")|safe }}
+              </td>
+              <td class="py-2 px-3 border-b border-gray-300">
+                <a href='../dna/fusion/{{ fus._id }}' class="text-blue-500 hover:underline">view</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- classification Comments -->
+  {% if sample.classification %}
     <span class="table_header"
       >Expression-based classification
       ({{sample.classification.classifier_version}})</span
@@ -97,7 +267,10 @@
         {% endfor %}
       </tbody>
     </table>
-    {% endif %} {% if sample.expr %}
+    {% endif %} 
+
+  <!-- expression Classfication -->  
+  {% if sample.expr %}
     <span class="table_header">Expression levels of selected genes</span>
     <table class="sortable" id="fusion_list_table" style="width: 320px">
       <thead>
@@ -178,312 +351,142 @@
       </tbody>
     </table>
     {% endif %}
-  </div>
 
-  <div id="right_div">
-    <div id="filter_div">
-      <form action="" method="POST" name="form">
-        {{ form.hidden_tag() }}
-        <table>
-          <thead>
+  <!-- Sample Comments -->
+  <div id="sample_comments" class="bg-white shadow-md rounded-lg p-6 mb-6">
+    {% if sample.comments|length > 0 %}
+    <h2 class="text-xl font-semibold text-gray-800 mb-4">Sample Comments</h2>
+    <div class="overflow-auto">
+      <table class="min-w-full mt-4 table-auto text-sm">
+        <thead>
+          <tr class="bg-gradient-to-r from-red-300 to-yellow-300 text-black">
+            <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal">Who</th>
+            <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal">Comment</th>
+            <th class="py-2 px-4 border-b border-gray-300 text-left uppercase font-normal">Hide/Unhide</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for comment in sample.comments|sort(attribute='time_created', reverse=True) %}
+          {% if comment.hidden != 1 %}
             <tr>
-              <th>Modify filters</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="fusion_filters">
-              <td colspan="2"><b>Fusion filters</b></td>
-            </tr>
-            <tr class="fusion_filters">
-              <td>
-                <label class="control-label">Spanning pairs</label>
-                {% for error in form.min_spanpairs.errors %}
-                <span style="color: red">{{ error }}</span>
-                {% endfor %}
-              </td>
-              <td>
-                &gt; {{ form.min_spanpairs( size=1,
-                default=sample.filter_min_spanpairs ) }}
-              </td>
-            </tr>
-            <tr class="fusion_filters">
-              <td>
-                <label class="control-label">Spanning reads</label>
-                {% for error in form.min_spanreads.errors %}
-                <span style="color: red">{{ error }}</span>
-                {% endfor %}
-              </td>
-              <td>
-                &gt; {{ form.min_spanreads( size=1,
-                default=sample.filter_min_spanreads ) }}
-              </td>
-            </tr>
-            <tr class="fusion_filters">
-              <td colspan="2">
-                <div class="multiselect">
-                  <div
-                    class="selectBox"
-                    onclick="showCheckboxes('fusionlists_checkboxes')"
-                  >
-                    <select>
-                      <option>Fusion gene lists</option>
-                    </select>
-                    <div class="overSelect"></div>
-                  </div>
-                  <div id="fusionlists_checkboxes" class="checkboxes">
-                    <label for="FCknown"
-                      >{{ form.fusionlist_FCknown(checked=False) }}
-                      FusionCatcher 'known'</label
-                    >
-                    <label for="mitelman"
-                      >{{ form.fusionlist_mitelman(checked=False) }}
-                      Mitelman</label
-                    >
-                  </div>
-                </div>
-              </td>
-            </tr>
-            <tr class="fusion_filters">
-              <td colspan="2">
-                <div class="multiselect">
-                  <div
-                    class="selectBox"
-                    onclick="showCheckboxes('fusioncallers_checkboxes')"
-                  >
-                    <select>
-                      <option>Fusion callers</option>
-                    </select>
-                    <div class="overSelect"></div>
-                  </div>
-                  <div id="fusioncallers_checkboxes" class="checkboxes">
-                    <label for="arriba"
-                      >{{ form.fusioncaller_arriba(checked=False) }}
-                      Arriba</label
-                    >
-                    <label for="fusioncatcher"
-                      >{{ form.fusioncaller_fusioncatcher(checked=False) }}
-                      FusionCatcher</label
-                    >
-                    <label for="starfusion"
-                      >{{ form.fusioncaller_starfusion(checked=False) }}
-                      StarFusion</label
-                    >
-                  </div>
-                </div>
-              </td>
-            </tr>
-            <tr class="fusion_filters">
-              <td colspan="2">
-                <div class="multiselect">
-                  <div
-                    class="selectBox"
-                    onclick="showCheckboxes('fusioneffect_checkboxes')"
-                  >
-                    <select>
-                      <option>Fusion effects</option>
-                    </select>
-                    <div class="overSelect"></div>
-                  </div>
-                  <div id="fusioneffect_checkboxes" class="checkboxes">
-                    <label for="inframe"
-                      >{{ form.fusioneffect_inframe(checked=False) }}
-                      In-frame</label
-                    >
-                    <label for="outframe"
-                      >{{ form.fusioneffect_outframe(checked=False) }}
-                      Out-of-frame</label
-                    >
-                  </div>
-                </div>
-              </td>
-            </tr>
+          {% else %}
+            <tr class="bg-red-100 opacity-30 hidden hidden_comment">
+          {% endif %}
+            <td class="align-top py-2 px-4 border-b border-gray-300 text-gray-800 text-left whitespace-nowrap">
+              <b>{{ comment.author }}</b><br><small>{{ comment.time_created|human_date }}</small>
+            </td>
+            <td class="align-top py-2 px-4 border-b border-gray-300 text-gray-800 text-left" onclick='addText(event)'>
+              {{ comment.text|format_comment|safe }}
+            </td>
+            <td class="align-top py-2 px-4 border-b border-gray-300 text-gray-800 text-left">
+              {% set hidden_exists = 0 %}
+              {% if comment.hidden != 1 %}
+                <form action="{{ url_for('hide_sample_comment', sample_id=sample._id) }}" method="post">
+                  <input type="hidden" name="comment_id" value="{{ comment._id }}">
+                  <input id="hide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/delete.png') }}">
+                </form>
+              {% else %}
+                {% set hidden_exists = 1 %}
+                <form action="{{ url_for('unhide_sample_comment', sample_id=sample._id) }}" method="post">
+                  <input type="hidden" name="comment_id" value="{{ comment._id }}">
+                  <input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/unhide.png') }}">
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          {% if hidden_comments %}
             <tr>
-              <td colspan="3">
-                <button
-                  class="btn btn-default"
-                  name="apply"
-                  value="apply"
-                  type="submit"
-                >
-                  Apply
-                </button>
-                <button
-                  class="btn btn-default"
-                  name="reset"
-                  value="reset"
-                  type="submit"
-                >
-                  Reset
-                </button>
+              <td colspan=4 class="py-2 px-4 border-t border-gray-300 text-center text-sm text-gray-800">
+                <a href="javascript:void(0)" onclick="switchVisibility('hidden_comment')"><b>Show/hide deleted comments</b></a>
               </td>
             </tr>
-          </tbody>
-        </table>
-      </form>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+    <form action="{{ url_for('add_sample_comment', id=sample._id) }}" method="post">
+      <textarea id="comment_textarea" name="sample_comment" placeholder="Enter sample comment..." class="w-full p-2 border border-gray-300 rounded m-2 h-28"></textarea><br>
+      <input type="submit" value="Save comment" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2">
+      <button type="button" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mt-2" onclick="addAIText()">Suggest</button>
+    </form>
+    <div id="suggestion" class="hidden">
+      {{ ai_text }}
     </div>
   </div>
 </div>
 
-<div id="sample_comments">
-  {% if sample.comments|length > 0 %}
-  <span class="table_header">Sample comments</span>
-  <table class="comments">
-    <thead>
-      <tr>
-        <th>Who</th>
-        <th>Comment</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for comment in sample.comments|sort(attribute='time_created',
-      reverse=True) %} {% if comment.hidden != 1 %}
-      <tr>
-        {% else %}
-      </tr>
 
-      <tr class="hidden_comment hidden">
-        {% endif %}
-        <td class="comment" style="white-space: nowrap">
-          <b>{{ comment.author }}</b><br /><small
-            >{{ comment.time_created }}</small
-          >
-        </td>
-        <td class="comment" onclick="addText(event)">
-          {{ comment.text|format_comment|safe }}
-        </td>
-        <td class="comment">
-          {% set hidden_exists = 0 %} {% if comment.hidden != 1 %}
-          <form
-            action="{{ url_for('hide_sample_comment', sample_id=sample._id) }}"
-            method="post"
-          >
-            <input type="hidden" name="comment_id" value="{{ comment._id }}" />
-            <input
-              id="hide_comment"
-              type="image"
-              width="15"
-              src="{{ url_for('static', filename='delete.png') }}"
-            />
-          </form>
-          {% else %} {% set hidden_exists = 1 %}
-          <form
-            action="{{ url_for('unhide_sample_comment', sample_id=sample._id) }}"
-            method="post"
-          >
-            <input type="hidden" name="comment_id" value="{{ comment._id }}" />
-            <input
-              id="unhide_comment"
-              type="image"
-              width="15"
-              src="{{ url_for('static', filename='unhide.png') }}"
-            />
-          </form>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %} {% if hidden_comments == 1 %}
-      <tr>
-        <td
-          colspan="4"
-          style="
-            border-top: 1px solid #ccc;
-            font-size: 10px;
-            padding-bottom: 2px;
-            padding-top: 2px;
-            text-align: center;
-          "
-        >
-          <a
-            href="javascript:void(0)"
-            onclick="switchVisibility('hidden_comment')"
-            ><b>Show/hide deleted comments</b></a
-          >
-        </td>
-      </tr>
-      {% endif %}
-    </tbody>
-  </table>
-  {% endif %}
-  <form
-    action="{{ url_for('add_sample_comment', id=sample._id) }}"
-    method="post"
-  >
-    <textarea
-      style="height: 140px"
-      id="comment_textarea"
-      name="sample_comment"
-      placeholder="Enter sample comment..."
-    ></textarea
-    ><br />
-    <input type="submit" value="Save comment" />
-    <a class="button" href="javascript:void(0)" onclick="addAIText()"
-      >Suggest</a
-    >
-  </form>
-  <div id="suggestion" style="display: none">{{ai_text}}</div>
-</div>
+
+
 
 <script>
+  function addAIText() {
+    var suggestion = document.getElementById("suggestion").innerHTML.trim();
+    document.getElementById("comment_textarea").value = suggestion;
+  }
+
   function addText(event) {
     var targ = event.target || event.srcElement;
-    document.getElementById("comment_textarea").value =
-      targ.textContent || targ.innerText;
+    if (!targ.closest('tr').classList.contains('hidden_comment')) {
+      document.getElementById("comment_textarea").value = targ.textContent || targ.innerText;
+    }
   }
 
-  function addAIText() {
-    document.getElementById("comment_textarea").value =
-      document.getElementById("suggestion").innerHTML;
+  function addText(event) {
+    var targ = event.target || event.srcElement;
+    if (!targ.closest('tr').classList.contains('hidden_comment')) {
+      const textarea = document.getElementById('comment_textarea');
+      const text = event.target.innerText.trim();
+      textarea.value = text;
+    }
   }
-
+  
   window.onload = function () {
-    $('[data-autoclick="true"]').click();
-    $('[data-autoclick="true"]').click();
-    $('[data-autoclick-once="true"]').click();
+    document.querySelectorAll('[data-autoclick="true"]').forEach(element => element.click());
+    document.querySelectorAll('[data-autoclick-once="true"]').forEach(element => element.click());
   };
-
+  
   var expanded = false;
+  function toggleFilters() {
+    var filterCard = document.getElementById("filter_card");
+    filterCard.style.display = expanded ? "none" : "block";
+    expanded = !expanded;
+  }
+  
+  function show_lowcov() {
+    var lowcovDiv = document.getElementById("lowcovlist_div");
+    lowcovDiv.style.display = lowcovDiv.style.display == "none" ? "block" : "none";
+  }
+  
+  function show_germlinecnv() {
+    var germlineDiv = document.getElementById("germline_div");
+    germlineDiv.style.display = germlineDiv.style.display == "none" ? "block" : "none";
+  }
+  
+  function switchVisibility(class_name) {
+    var elems = document.getElementsByClassName(class_name);
+    for (var i = 0; i < elems.length; i++) {
+      elems[i].classList.toggle('hidden');
+    }
+  }
+  
+  // Filter sidebar toggle
+  document.getElementById('filter-toggle').addEventListener('click', function() {
+    document.getElementById('filter-sidebar').classList.toggle('translate-x-full');
+  });
+  
+  document.getElementById('filter-close').addEventListener('click', function() {
+    document.getElementById('filter-sidebar').classList.add('translate-x-full');
+  });
+  
   function showCheckboxes(id) {
     var checkboxes = document.getElementById(id);
-    if (!expanded) {
-      checkboxes.style.display = "block";
-      expanded = true;
-    } else {
-      checkboxes.style.display = "none";
-      expanded = false;
-    }
+    checkboxes.style.display = checkboxes.style.display === 'block' ? 'none' : 'block';
   }
+  
 
-  function show_lowcov() {
-    if (document.getElementById("lowcovlist_div").style.display == "none") {
-      document.getElementById("lowcovlist_div").style.display = "block";
-    } else {
-      document.getElementById("lowcovlist_div").style.display = "none";
-    }
-  }
-
-  function show_germlinecnv() {
-    if (document.getElementById("germline_div").style.display == "none") {
-      document.getElementById("germline_div").style.display = "block";
-    } else {
-      document.getElementById("germline_div").style.display = "none";
-    }
-  }
-
-  function switchVisibility(class_name) {
-    var hide_class = "hidden";
-
-    var elems = document.getElementsByClassName(class_name);
-
-    for (var i = 0; i < elems.length; i++) {
-      if (elems[i].classList.contains(hide_class)) {
-        elems[i].classList.remove(hide_class);
-      } else {
-        elems[i].classList.add(hide_class);
-      }
-    }
-  }
 </script>
 
 <style>
