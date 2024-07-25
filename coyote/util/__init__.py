@@ -18,3 +18,4 @@ class Utility:
         self.common = CommonUtility()
         self.main = MainUtility()
         self.fusion = FusionUtility()
+        self.profile = ProfileUtility()
