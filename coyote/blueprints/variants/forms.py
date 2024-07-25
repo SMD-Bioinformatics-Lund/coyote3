@@ -72,6 +72,10 @@ class FilterForm(FlaskForm):
     historic = BooleanField()
 
 
+<<<<<<< Temporary merge branch 1
+class GeneForm(FilterForm):
+    pass
+=======
 class FusionFilter(FlaskForm):
 
     min_reads = IntegerField("minreads", validators=[Optional()])
@@ -126,3 +130,4 @@ class FusionFilter(FlaskForm):
     fusioneffect_outframe = BooleanField(validators=[Optional()])
 
     reset = BooleanField()
+>>>>>>> Temporary merge branch 2
