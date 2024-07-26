@@ -7,7 +7,7 @@ from flask import current_app as app
 from flask import redirect, render_template, request, url_for, send_from_directory
 from flask_login import current_user, login_required
 from pprint import pformat
-from coyote.blueprints.variants.forms import FilterForm
+from coyote.blueprints.variants.forms import GeneForm
 from wtforms import BooleanField
 from wtforms.validators import Optional
 from coyote.extensions import store
@@ -265,16 +265,19 @@ def show_any_plot(fn, assay, build):
         return send_from_directory("/access/solid_hg38/plots", fn)
 
 
-@app.route("/sample/sample_comment/<string:id>", methods=["POST"])
+@app.route("/sample/sample_comment/<string:id>/<string:redirect_to>", methods=["POST"])  # type: ignore
 @login_required
-def add_sample_comment(id):
+def add_sample_comment(id, redirect_to):
     """
     Add Sample comment
     """
     data = request.form.to_dict()
     doc = util.variant.create_comment_doc(data, key="sample_comment")
     store.sample_handler.add_sample_comment(id, doc)
-    return redirect(url_for("variants_bp.list_variants", id=id))
+    if redirect_to == "variants":
+        return redirect(url_for("variants_bp.list_variants", id=id))
+    elif redirect_to == "fusions":
+        return redirect(url_for("fusions_bp.list_fusions", id=id))
 
 
 @app.route("/sample/hide_sample_comment/<string:sample_id>", methods=["POST"])
