@@ -47,7 +47,7 @@
                   {% if sample.groups|join('') == 'fusion' or sample.groups|join('') == 'solidRNA_GMSv5' %}
                     <a href="{{ url_for('fusions_bp.list_fusions', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                   {% else %}
-                    <a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                    <a href="{{ url_for('dna_bp.list_variants', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                   {% endif %}
                   {% if sample.comments|selectattr('hidden', 'equalto', 0)|list|length > 0 %}
                     *
@@ -129,7 +129,7 @@
             {% for sample in done_samples|sort(attribute="last_report_time_created", reverse=True) %}
               <tr>
                 <td class="py-2 px-4 border-b border-gray-300">
-                  <a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                  <a href="{{ url_for('dna_bp.list_variants', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                 </td>
                 <td class="py-2 px-4 border-b border-gray-300">
                   {% if "num_samples" in sample %}

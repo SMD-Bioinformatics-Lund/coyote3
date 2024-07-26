@@ -7,7 +7,7 @@
   <div class="bg-white shadow-md rounded-lg p-4 mb-4 flex items-center justify-between">
     <div>
       <span class="genefilter_generic">Sample:</span>
-      <a href="{{ url_for('variants_bp.list_variants', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+      <a href="{{ url_for('dna_bp.list_variants', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
     </div>
     <div class="flex items-center space-x-2">
       {% if "subpanel" in sample %}

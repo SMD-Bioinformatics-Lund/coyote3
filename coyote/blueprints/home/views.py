@@ -11,14 +11,14 @@ import traceback
 # Legacy main-screen:
 from flask_login import login_required
 from coyote.extensions import store
-from coyote.blueprints.main import main_bp
-from coyote.blueprints.main.util import SampleSearchForm
+from coyote.blueprints.home import home_bp
+from coyote.blueprints.home.util import SampleSearchForm
 from coyote.extensions import util
 
 
-@main_bp.route("/", methods=["GET", "POST"])
-@main_bp.route("/home", methods=["GET", "POST"])
-@main_bp.route("/home/<string:status>", methods=["GET", "POST"])
+@home_bp.route("/", methods=["GET", "POST"])
+@home_bp.route("/home", methods=["GET", "POST"])
+@home_bp.route("/home/<string:status>", methods=["GET", "POST"])
 @login_required
 def home_screen(status="live"):
     form = SampleSearchForm()
@@ -64,33 +64,33 @@ def home_screen(status="live"):
     )
 
 
-@main_bp.route("/panels/<string:assay>/<string:status>", methods=["GET", "POST"])
-@main_bp.route("/panels/<string:assay>", methods=["GET", "POST"])
+@home_bp.route("/panels/<string:assay>/<string:status>", methods=["GET", "POST"])
+@home_bp.route("/panels/<string:assay>", methods=["GET", "POST"])
 @login_required
 def panels_screen(assay="myeloid_GMSv1", status="live"):
     return main_screen(assay, status)
 
 
-@main_bp.route("/rna/<string:assay>/<string:status>", methods=["GET", "POST"])
-@main_bp.route("/rna/<string:assay>", methods=["GET", "POST"])
+@home_bp.route("/rna/<string:assay>/<string:status>", methods=["GET", "POST"])
+@home_bp.route("/rna/<string:assay>", methods=["GET", "POST"])
 @login_required
 def rna_screen(assay="fusion", status="live"):
     return main_screen(assay, status)
 
 
-@main_bp.route("/tumwgs/<string:assay>/<string:status>", methods=["GET", "POST"])
-@main_bp.route("/tumwgs/<string:assay>", methods=["GET", "POST"])
+@home_bp.route("/tumwgs/<string:assay>/<string:status>", methods=["GET", "POST"])
+@home_bp.route("/tumwgs/<string:assay>", methods=["GET", "POST"])
 @login_required
 def tumwgs_screen(assay="tumwgs-solid", status="live"):
     return main_screen(assay, status)
 
 
-@main_bp.route("/<string:assay>", methods=["GET", "POST"])
-@main_bp.route("/<string:assay>/<string:status>", methods=["GET", "POST"])
+@home_bp.route("/<string:assay>", methods=["GET", "POST"])
+@home_bp.route("/<string:assay>/<string:status>", methods=["GET", "POST"])
 @login_required
 def main_screen(assay=None, status="live"):
     if not assay:
-        return redirect(url_for("main_bp.home_screen"))
+        return redirect(url_for("home_bp.home_screen"))
 
     form = SampleSearchForm()
     search_str = ""
@@ -119,7 +119,7 @@ def main_screen(assay=None, status="live"):
         )
         done_samples = []
     else:
-        return redirect(url_for("main_bp.panels_screen", assay=assay, status="live"))
+        return redirect(url_for("home_bp.panels_screen", assay=assay, status="live"))
 
     # Add date for latest report to done_samples
     for samp in done_samples:
@@ -142,7 +142,7 @@ def main_screen(assay=None, status="live"):
     )
 
 
-@main_bp.route("/errors/")
+@home_bp.route("/errors/")
 def error_screen():
     """
     Error screen
@@ -159,19 +159,19 @@ def error_screen():
         return render_template("error.html", error=[])
 
 
-@main_bp.route("/sample/sample_comment/<string:id>", methods=["POST"])
+@home_bp.route("/sample/sample_comment/<string:id>", methods=["POST"])
 @login_required
 def add_sample_comment(id):
     """
     Add Sample comment
     """
     data = request.form.to_dict()
-    doc = util.variant.create_comment_doc(data, key="sample_comment")
+    doc = util.dna.create_comment_doc(data, key="sample_comment")
     store.sample_handler.add_sample_comment(id, doc)
     sample = store.sample_handler.get_sample_with_id(id)
     assay = util.common.get_assay_from_sample(sample)
     sample_type = util.common.get_sample_type(assay)
     if sample_type == "dna":
-        return redirect(url_for("variants_bp.list_variants", id=id))
+        return redirect(url_for("dna_bp.list_variants", id=id))
     else:
         return redirect(url_for("fusions_bp.list_fusions", id=id))

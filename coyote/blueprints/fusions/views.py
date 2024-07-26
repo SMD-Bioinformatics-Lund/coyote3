@@ -7,7 +7,7 @@ from flask import current_app as app
 from flask import redirect, render_template, request, url_for, send_from_directory
 from flask_login import current_user, login_required
 
-from coyote.blueprints.variants.forms import FusionFilter
+from coyote.blueprints.dna.forms import FusionFilter
 from wtforms import BooleanField
 from wtforms.validators import Optional
 from coyote.extensions import store
