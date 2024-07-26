@@ -2,7 +2,7 @@ from flask import current_app as app
 import re
 
 
-def build_query(sample_settings,group)->dict:
+def build_query(sample_settings, group) -> dict:
     """
     build a default query, or add group configured queries.
     """
@@ -11,19 +11,19 @@ def build_query(sample_settings,group)->dict:
 
     ## Global OR-statement, will override everything else
     globalor = []
-    
+
     # Show GERMLINE for paired or not, and with the option to override pipeline settings for genes. Default query NO germline
     ## check in config if germline should be forced to view
     if "GERM in CONFIG":
         ## get override germline genes from config
         germ = []
-        germ.append( {"FILTER" : {"$in": ["GERMLINE"] } } )
+        germ.append({"FILTER": {"$in": ["GERMLINE"]}})
         genes = ["ABC", "DEF"]
         germline_genes = []
         for gene in genes:
             germline_genes.append({"INFO.CSQ": {"$elemMatch": {"SYMBOL": {gene}}}})
         if germline_genes:
-            germ.append( {"$or" : germline_genes } )
+            germ.append({"$or": germline_genes})
         globalor.append(germ)
 
     ### AND STATEMENTS ###
@@ -53,7 +53,9 @@ def build_query(sample_settings,group)->dict:
         }
     )
     ## VEP CSQ ##
-    default_csq = {"INFO.CSQ": {"$elemMatch": {"Consequence": {"$in": sample_settings["filter_conseq"] }}}}
+    default_csq = {
+        "INFO.CSQ": {"$elemMatch": {"Consequence": {"$in": sample_settings["filter_conseq"]}}}
+    }
     # Any configured thing that should overwrite VEP-CSQ
     test = 1
     test2 = 0
@@ -61,15 +63,15 @@ def build_query(sample_settings,group)->dict:
 
     # check different configs
     if test:
-        csq_or.append( FLT_LARGE_INS() )
+        csq_or.append(FLT_LARGE_INS())
     if test2:
-        csq_or.append( FLT_LARGE_INS() )
-    
+        csq_or.append(FLT_LARGE_INS())
+
     # if any configs were added make it an OR, else just add consequence
     if len(csq_or) > 1:
-        form_list.append( { '$and': csq_or } )
+        form_list.append({"$and": csq_or})
     else:
-        form_list.append( default_csq )
+        form_list.append(default_csq)
 
     ## ADD ALL AND-statements to GLOBAL OR
     globalor.append({"$and": form_list})
@@ -82,7 +84,7 @@ def build_query(sample_settings,group)->dict:
 
 def FLT_LARGE_INS():
 
-    large_ins_regex = re.compile("\w{10,200}", re.IGNORECASE)
+    large_ins_regex = re.compile(r"\w{10,200}", re.IGNORECASE)
     flt3 = {
         "$and": [
             {"INFO.CSQ": {"$elemMatch": {"SYMBOL": "FLT3"}}},
