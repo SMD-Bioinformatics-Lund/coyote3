@@ -9,7 +9,7 @@ class SampleSearchForm(FlaskForm):
     sample_search = StringField("Search sample", validators=[validators.DataRequired()])
 
 
-class MainUtility:
+class HomeUtility:
     """
     Utility class for Main blueprint
     """
