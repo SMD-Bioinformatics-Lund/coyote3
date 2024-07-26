@@ -7,18 +7,18 @@ from flask import current_app as app
 from flask import redirect, render_template, request, url_for, send_from_directory
 from flask_login import current_user, login_required
 from pprint import pformat
-from coyote.blueprints.variants.forms import FilterForm
+from coyote.blueprints.dna.forms import FilterForm, GeneForm
 from wtforms import BooleanField
 from wtforms.validators import Optional
 from coyote.extensions import store
-from coyote.blueprints.variants import variants_bp
-from coyote.blueprints.variants.varqueries import build_query
-from coyote.blueprints.variants import varqueries_notbad
-from coyote.blueprints.variants import filters
+from coyote.blueprints.dna import dna_bp
+from coyote.blueprints.dna.varqueries import build_query
+from coyote.blueprints.dna import varqueries_notbad
+from coyote.blueprints.dna import filters
 from coyote.extensions import util
 
 
-@variants_bp.route("/dna/sample/<string:id>", methods=["GET", "POST"])
+@dna_bp.route("/dna/sample/<string:id>", methods=["GET", "POST"])
 @login_required
 def list_variants(id):
 
@@ -277,7 +277,7 @@ def add_sample_comment(id):
     sample = store.sample_handler.get_sample_with_id(id)
     assay = util.common.get_assay_from_sample(sample)
     if assay == "":
-        return redirect(url_for("variants_bp.list_variants", id=id))
+        return redirect(url_for("dna_bp.list_variants", id=id))
     else:
         pass
 
@@ -287,7 +287,7 @@ def add_sample_comment(id):
 def hide_sample_comment(sample_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.sample_handler.hide_sample_comment(sample_id, comment_id)
-    return redirect(url_for("variants_bp.list_variants", id=sample_id))
+    return redirect(url_for("dna_bp.list_variants", id=sample_id))
 
 
 @app.route("/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"])
@@ -295,7 +295,7 @@ def hide_sample_comment(sample_id):
 def unhide_sample_comment(sample_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.sample_handler.unhide_sample_comment(sample_id, comment_id)
-    return redirect(url_for("variants_bp.list_variants", id=sample_id))
+    return redirect(url_for("dna_bp.list_variants", id=sample_id))
 
 
 ## Individual variant view ##

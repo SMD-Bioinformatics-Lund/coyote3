@@ -8,7 +8,7 @@ class Utility:
         self.common = None
 
     def init_util(self):
-        from coyote.blueprints.variants.util import VariantUtility
+        from coyote.blueprints.dna.util import VariantUtility
         from coyote.util.common_utility import CommonUtility
         from coyote.blueprints.main.util import MainUtility
         from coyote.blueprints.fusions.util import FusionUtility
