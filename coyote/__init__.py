@@ -98,6 +98,18 @@ def register_blueprints(app) -> None:
 
     app.register_blueprint(fusions_bp)
 
+    # register common bp
+    bp_debug_msg("common_bp")
+    from coyote.blueprints.common import common_bp
+
+    app.register_blueprint(common_bp)
+
+    # register dashboard bp
+    bp_debug_msg("dashboard_bp")
+    from coyote.blueprints.dashboard import dashboard_bp
+
+    app.register_blueprint(dashboard_bp)
+
 
 def init_login_manager(app) -> None:
     app.logger.debug("Initializing login_manager")
