@@ -87,7 +87,7 @@ def register_blueprints(app) -> None:
     app.register_blueprint(profile_bp)
 
     # Show Case Variants
-    bp_debug_msg("varaints_bp")
+    bp_debug_msg("dna_bp")
     from coyote.blueprints.dna import dna_bp
 
     app.register_blueprint(dna_bp)
