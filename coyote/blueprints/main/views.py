@@ -166,7 +166,7 @@ def add_sample_comment(id):
     Add Sample comment
     """
     data = request.form.to_dict()
-    doc = util.variant.create_comment_doc(data, key="sample_comment")
+    doc = util.dna.create_comment_doc(data, key="sample_comment")
     store.sample_handler.add_sample_comment(id, doc)
     sample = store.sample_handler.get_sample_with_id(id)
     assay = util.common.get_assay_from_sample(sample)

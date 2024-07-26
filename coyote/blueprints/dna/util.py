@@ -9,7 +9,7 @@ from coyote.util.common_utility import CommonUtility
 from flask import current_app as app
 
 
-class VariantUtility:
+class DNAUtility:
     """
     Utility class for variants blueprint
     """
@@ -76,10 +76,8 @@ class VariantUtility:
 
         for v in variants:
             allele = v["ALT"]
-            exac = VariantUtility.parse_allele_freq(
-                v["INFO"]["selected_CSQ"].get("ExAC_MAF"), v["ALT"]
-            )
-            thousand_g = VariantUtility.parse_allele_freq(
+            exac = DNAUtility.parse_allele_freq(v["INFO"]["selected_CSQ"].get("ExAC_MAF"), v["ALT"])
+            thousand_g = DNAUtility.parse_allele_freq(
                 v["INFO"]["selected_CSQ"].get("GMAF"), v["ALT"]
             )
             gnomad = v["INFO"]["selected_CSQ"].get("gnomAD_AF", 0)
@@ -131,7 +129,7 @@ class VariantUtility:
 
                     if csq["SYMBOL"] in canonical and canonical[
                         csq["SYMBOL"]
-                    ] == VariantUtility.refseq_noversion(csq["Feature"]):
+                    ] == DNAUtility.refseq_noversion(csq["Feature"]):
                         db_canonical = csq_idx
                         return (csq_arr[db_canonical], "db")
                     if csq["CANONICAL"] == "YES" and vep_canonical == -1:
@@ -166,11 +164,11 @@ class VariantUtility:
         text = ""
 
         if var_type == "transloc":
-            text = VariantUtility.summerize_fusion(variants)
+            text = DNAUtility.summerize_fusion(variants)
         elif var_type == "cnv":
-            text = VariantUtility.summerize_cnv(variants)
+            text = DNAUtility.summerize_cnv(variants)
         elif var_type == "bio":
-            text = VariantUtility.summerize_bio(variants)
+            text = DNAUtility.summerize_bio(variants)
 
         return text
 
@@ -668,7 +666,7 @@ class VariantUtility:
         hg38_chr, hg38_pos = CommonUtility.get_hg38_pos(str(var["CHROM"]), str(var["POS"]))
         ncbi_link = CommonUtility.get_ncbi_link(hg38_chr, hg38_pos)
         thermo_link = CommonUtility.get_thermo_link(hg38_chr, hg38_pos)
-        gtcalls = VariantUtility.get_gt_calls(var)
+        gtcalls = DNAUtility.get_gt_calls(var)
 
         hgvsc = "-"
         hgvsp = "-"

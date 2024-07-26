@@ -94,9 +94,9 @@ def list_variants(id):
     # sample filters, either set, or default
     cnv_effects = sample.get("checked_cnveffects", settings["default_checked_cnveffects"])
     genelist_filter = sample.get("checked_genelists", settings["default_checked_genelists"])
-    filter_conseq = util.variant.get_filter_conseq_terms(sample_settings["csq_filter"].keys())
+    filter_conseq = util.dna.get_filter_conseq_terms(sample_settings["csq_filter"].keys())
     filter_genes = util.common.create_genelist(genelist_filter, gene_lists)
-    filter_cnveffects = util.variant.create_cnveffectlist(cnv_effects)
+    filter_cnveffects = util.dna.create_cnveffectlist(cnv_effects)
 
     # Add them to the form
     form.min_freq.data = sample_settings["min_freq"]
@@ -148,7 +148,7 @@ def list_variants(id):
         (
             variants[var_idx]["INFO"]["selected_CSQ"],
             variants[var_idx]["INFO"]["selected_CSQ_criteria"],
-        ) = util.variant.select_csq(var["INFO"]["CSQ"], canonical_dict)
+        ) = util.dna.select_csq(var["INFO"]["CSQ"], canonical_dict)
         (
             variants[var_idx]["global_annotations"],
             variants[var_idx]["classification"],
@@ -156,7 +156,7 @@ def list_variants(id):
             variants[var_idx]["annotations_interesting"],
         ) = store.annotation_handler.get_global_annotations(variants[var_idx], assay, subpanel)
     # Filter by population frequency
-    variants = util.variant.popfreq_filter(variants, float(sample_settings["max_popfreq"]))
+    variants = util.dna.popfreq_filter(variants, float(sample_settings["max_popfreq"]))
     variants = store.variant_handler.hotspot_variant(variants)
     ### SNV FILTRATION ENDS HERE ###
 
@@ -201,13 +201,13 @@ def list_variants(id):
             sample_id=str(sample["_id"])
         )
         biomarkers_iter_ai = store.biomarker_handler.get_sample_other(sample_id=str(sample["_id"]))
-        ai_text_transloc = util.variant.generate_ai_text_nonsnv(
+        ai_text_transloc = util.dna.generate_ai_text_nonsnv(
             assay, transloc_iter_ai, sample["groups"][0], "transloc"
         )
-        ai_text_cnv = util.variant.generate_ai_text_nonsnv(
+        ai_text_cnv = util.dna.generate_ai_text_nonsnv(
             assay, cnvwgs_iter, sample["groups"][0], "cnv"
         )
-        ai_text_bio = util.variant.generate_ai_text_nonsnv(
+        ai_text_bio = util.dna.generate_ai_text_nonsnv(
             assay, biomarkers_iter_ai, sample["groups"][0], "bio"
         )
         ai_text = ai_text + ai_text_transloc + ai_text_cnv + ai_text_bio + conclusion
@@ -272,7 +272,7 @@ def add_sample_comment(id):
     Add Sample comment
     """
     data = request.form.to_dict()
-    doc = util.variant.create_comment_doc(data, key="sample_comment")
+    doc = util.dna.create_comment_doc(data, key="sample_comment")
     store.sample_handler.add_sample_comment(id, doc)
     sample = store.sample_handler.get_sample_with_id(id)
     assay = util.common.get_assay_from_sample(sample)
@@ -348,7 +348,7 @@ def show_variant(id):
 
     # Select a transcript
     (variant["INFO"]["selected_CSQ"], variant["INFO"]["selected_CSQ_criteria"]) = (
-        util.variant.select_csq(variant["INFO"]["CSQ"], canonical_dict)
+        util.dna.select_csq(variant["INFO"]["CSQ"], canonical_dict)
     )
 
     # Find civic data
@@ -402,7 +402,7 @@ def show_variant(id):
     bam_id = store.bam_service_handler.get_bams(sample_ids)
 
     # Format PON (panel of normals) data
-    pon = util.variant.format_pon(variant)
+    pon = util.dna.format_pon(variant)
 
     # Get global annotations for the variant
     annotations, classification, other_classifications, annotations_interesting = (
@@ -520,9 +520,9 @@ def order_sanger(id):
         var["INFO"]["CSQ"], canonical_dict
     )
 
-    html, tx_info = util.variant.compose_sanger_email(var, sample["name"])
+    html, tx_info = util.dna.compose_sanger_email(var, sample["name"])
 
-    email_status = util.variant.send_sanger_email(html, tx_info["SYMBOL"])
+    email_status = util.dna.send_sanger_email(html, tx_info["SYMBOL"])
 
     return redirect(url_for("show_variant", id=id))
 
@@ -531,9 +531,9 @@ def order_sanger(id):
 @login_required
 def classify_variant(id):
     form_data = request.form.to_dict()
-    class_num = util.variant.get_tier_classification(form_data)
+    class_num = util.dna.get_tier_classification(form_data)
 
-    nomenclature, variant = util.variant.get_variant_nomenclature(form_data)
+    nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
     if class_num != 0:
         store.annotation_handler.insert_classified_variant(
             variant, nomenclature, class_num, form_data
@@ -550,7 +550,7 @@ def classify_variant(id):
 @login_required
 def remove_classified_variant(id):
     form_data = request.form.to_dict()
-    nomenclature, variant = util.variant.get_variant_nomenclature(form_data)
+    nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
     per_assay = store.annotation_handler.delete_classified_variant(variant, nomenclature, form_data)
     app.logger.debug(per_assay)
     return redirect(url_for("show_variant", id=id))
@@ -565,8 +565,8 @@ def add_variant_comment(id):
 
     # If global checkbox. Save variant with the protein, coding och genomic nomenclature in decreasing priority
     form_data = request.form.to_dict()
-    nomenclature, variant = util.variant.get_variant_nomenclature(form_data)
-    doc = util.variant.create_comment_doc(form_data, nomenclature=nomenclature, variant=variant)
+    nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
+    doc = util.dna.create_comment_doc(form_data, nomenclature=nomenclature, variant=variant)
     _type = form_data.get("global", None)
     if _type == "global":
         store.annotation_handler.add_anno_comment(doc)
