@@ -69,10 +69,10 @@ def register_blueprints(app) -> None:
         app.logger.debug(f"Blueprint registered: {msg}")
 
     # Coyote main:
-    bp_debug_msg("main_bp")
-    from coyote.blueprints.main import main_bp
+    bp_debug_msg("home_bp")
+    from coyote.blueprints.home import home_bp
 
-    app.register_blueprint(main_bp)
+    app.register_blueprint(home_bp)
 
     # Login stuff
     bp_debug_msg("login_bp")
