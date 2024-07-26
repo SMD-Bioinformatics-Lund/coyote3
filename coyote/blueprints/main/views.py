@@ -13,6 +13,7 @@ from flask_login import login_required
 from coyote.extensions import store
 from coyote.blueprints.main import main_bp
 from coyote.blueprints.main.util import SampleSearchForm
+from coyote.extensions import util
 
 
 @main_bp.route("/", methods=["GET", "POST"])
@@ -156,3 +157,21 @@ def error_screen():
         return render_template("error.html", error=error)
     else:
         return render_template("error.html", error=[])
+
+
+@main_bp.route("/sample/sample_comment/<string:id>", methods=["POST"])
+@login_required
+def add_sample_comment(id):
+    """
+    Add Sample comment
+    """
+    data = request.form.to_dict()
+    doc = util.variant.create_comment_doc(data, key="sample_comment")
+    store.sample_handler.add_sample_comment(id, doc)
+    sample = store.sample_handler.get_sample_with_id(id)
+    assay = util.common.get_assay_from_sample(sample)
+    sample_type = util.common.get_sample_type(assay)
+    if sample_type == "dna":
+        return redirect(url_for("variants_bp.list_variants", id=id))
+    else:
+        return redirect(url_for("fusions_bp.list_fusions", id=id))

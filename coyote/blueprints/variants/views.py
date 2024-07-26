@@ -274,7 +274,12 @@ def add_sample_comment(id):
     data = request.form.to_dict()
     doc = util.variant.create_comment_doc(data, key="sample_comment")
     store.sample_handler.add_sample_comment(id, doc)
-    return redirect(url_for("variants_bp.list_variants", id=id))
+    sample = store.sample_handler.get_sample_with_id(id)
+    assay = util.common.get_assay_from_sample(sample)
+    if assay == "":
+        return redirect(url_for("variants_bp.list_variants", id=id))
+    else:
+        pass
 
 
 @app.route("/sample/hide_sample_comment/<string:sample_id>", methods=["POST"])
