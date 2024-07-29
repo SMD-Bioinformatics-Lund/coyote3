@@ -96,9 +96,9 @@ def list_fusions(id):
     app.logger.info(f"this is the form data {form.data}")
     app.logger.info(f"this is the sample and settings  {settings}")
     app.logger.info(f"this is the sample_settings {sample_settings}")
-    print(fusionlist_filter)
+    # print(fusionlist_filter)
     # print (filter_fusionlist)
-    print(filter_fusioneffects)
+    # print(filter_fusioneffects)
 
     # app.logger.info(f"this is the sample,{sample}")
     ## Change this to fusionquery.py
@@ -122,8 +122,6 @@ def list_fusions(id):
             fusion_query["calls.desc"] = {"$regex": "mitelman"}
 
         fusions = list(store.fusion_handler.get_sample_fusions(fusion_query))
-
-    print(fusion_query)
 
     for fus_idx, fus in enumerate(fusions):
         # app.logger.info(f"these are fus, {fus_idx} {fus}")
