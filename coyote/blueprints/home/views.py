@@ -16,7 +16,7 @@ from coyote.blueprints.home.util import SampleSearchForm
 from coyote.extensions import util
 
 
-@home_bp.route("/", methods=["GET", "POST"])
+@home_bp.route("", methods=["GET", "POST"])
 @home_bp.route("/home/", methods=["GET", "POST"])
 @home_bp.route("/home/<string:status>", methods=["GET", "POST"])
 @login_required

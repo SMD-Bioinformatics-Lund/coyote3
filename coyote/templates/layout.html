@@ -1,4 +1,10 @@
-{% set curr_page = request.path.split("/")[-1] %}
+{% if '/home/' in request.path %}
+  {% set curr_page = 'home' %}
+{% elif 'done' in request.path or 'live' in request.path %}
+  {% set curr_page = request.path.split("/")[-2] %}
+{% else %}
+  {% set curr_page = request.path.split("/")[-1] %}
+{% endif %}
 <!doctype html>
 <html lang="en">
 
@@ -14,6 +20,7 @@
 </head>
 
 <body class="bg-white font-sans leading-normal tracking-normal text-sm">
+  <p>{{curr_page}}</p>
   <div class="bg-white">
     <div class="container mx-auto flex items-center justify-between p-4">
       <div class="flex items-center space-x-2">
@@ -54,6 +61,7 @@
       <div class="container mx-auto flex items-center justify-between p-2 relative">
           <div class="flex items-center space-x-4 ml-10">
               {% set navbar = {
+                  'home': 'HOME',
                   'panels': 'PANELS',
                   'tumwgs': 'TUMWGS',
                   'rna': 'RNA'
@@ -61,20 +69,20 @@
               
               {% if "/panels" in request.path %}
                   {% set navbar = {
-                      'home': 'Home',
+                      'home': 'HOME',
                       'myeloid_GMSv1': 'MYELOID',
                       'solid_GMSv3': 'SOLID',
                       'PARP_inhib': 'PARP'
                   } %}
               {% elif "/rna" in request.path %}
                   {% set navbar = {
-                      'home': 'Home',
+                      'home': 'HOME',
                       'fusion': 'MYELOID',
                       'solidRNA_GMSv5': 'SOLID'
                   } %}
               {% elif "/tumwgs" in request.path %}
                 {% set navbar = {
-                      'home': 'Home',
+                      'home': 'HOME',
                       'tumwgs-solid': 'PEDIATRIC SOLID',
                       'tumwgs-hema': 'HEMATOLOGY'
                   } %}
@@ -83,15 +91,15 @@
                   {% if name == 'home' %}
                       {% set url = url_for('home_bp.home_screen') %}
                   {% elif name == 'panels' %}
-                      {% set url = url_for('home_bp.panels_screen', assay='myeloid_GMSv1', status='live') %}
+                      {% set url = url_for('home_bp.panels_screen', assay='myeloid_GMSv1') %}
                   {% elif '/panels' in request.path %}
                       {% set url = url_for('home_bp.panels_screen', assay=name) %}
                   {% elif name == 'rna' %}
-                    {% set url = url_for('home_bp.rna_screen', assay='fusion', status='live') %}
+                    {% set url = url_for('home_bp.rna_screen', assay='fusion') %}
                   {% elif '/rna' in request.path %}
                       {% set url = url_for('home_bp.rna_screen', assay=name) %}
                   {% elif name == 'tumwgs' %}
-                    {% set url = url_for('home_bp.tumwgs_screen', assay='tumwgs-solid', status='live') %}
+                    {% set url = url_for('home_bp.tumwgs_screen', assay='tumwgs-solid') %}
                   {% elif '/tumwgs' in request.path %}
                     {% set url = url_for('home_bp.tumwgs_screen', assay=name) %}
                   {% else %}
