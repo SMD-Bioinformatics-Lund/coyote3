@@ -413,7 +413,7 @@
                 </span>
               </td>
               {% endfor %}
-              <td class="py-2 px-4 border-b border-gray-300 text-blue-500 hover:underline"><a href='/dna/var/{{ var._id }}'>view</a></td>
+              <td class="py-2 px-4 border-b border-gray-300 text-blue-500 hover:underline"><a href="{{ url_for('dna_bp.show_variant', id=var._id) }}">view</a></td>
           </tr>
           {% endfor %}
         </tbody>
@@ -529,7 +529,7 @@
               {% endif %}
             </td>
             <td class="py-2 px-3 border-b border-gray-300">
-              <a href="/dna/cnvwgs/{{ cnv._id }}" class="text-blue-500 hover:underline">view</a>
+              <a href="{{ url_for('dna_bp.show_cnv', id=cnv._id) }}" class="text-blue-500 hover:underline">view</a>
             </td>
           </tr>
           {% endfor %}
@@ -589,7 +589,7 @@
                 {% endif %}
               </td>
               <td class="py-2 px-3 border-b border-gray-300">
-                <a href="/dna/transloc/{{ tl._id }}" class="text-blue-500 hover:underline">view</a>
+                <a href="{{ url_for('dna_bp.show_transloc', id=tl._id) }}" class="text-blue-500 hover:underline">view</a>
               </td>
             </tr>
           {% endfor %}
@@ -660,7 +660,8 @@
                 {{ fus.calls|uniq_callers|join("<br>")|safe }}
               </td>
               <td class="py-2 px-3 border-b border-gray-300">
-                <a href='../dna/fusion/{{ fus._id }}' class="text-blue-500 hover:underline">view</a>
+                <a href="{{ url_for('dna_bp.show_fusion', id=fus._id) }}" class="text-blue-500 hover:underline">view</a>
+                
               </td>
             </tr>
           {% endfor %}

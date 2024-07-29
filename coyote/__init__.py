@@ -96,7 +96,7 @@ def register_blueprints(app) -> None:
     bp_debug_msg("fusions_bp")
     from coyote.blueprints.fusions import fusions_bp
 
-    app.register_blueprint(fusions_bp, url_prefix="/fusions")
+    app.register_blueprint(fusions_bp, url_prefix="/rna")
 
     # register common bp
     bp_debug_msg("common_bp")

@@ -15,7 +15,7 @@ from coyote.blueprints.fusions import fusions_bp
 from coyote.extensions import util
 
 
-@fusions_bp.route("/rna/sample/<string:id>", methods=["GET", "POST"])
+@fusions_bp.route("/sample/<string:id>", methods=["GET", "POST"])
 @login_required
 def list_fusions(id):
     """
@@ -28,7 +28,12 @@ def list_fusions(id):
 
 
     """
-    sample = store.sample_handler.get_sample(id)
+    # Find sample data by name
+    sample = store.sample_handler.get_sample(id)  # id = name
+
+    # Get sample data by id if name is none
+    if sample is None:
+        sample = store.sample_handler.get_sample_with_id(id)  # id = id
 
     sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
 

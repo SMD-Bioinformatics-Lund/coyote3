@@ -18,7 +18,7 @@ from coyote.blueprints.dna import filters
 from coyote.extensions import util
 
 
-@dna_bp.route("/dna/sample/<string:id>", methods=["GET", "POST"])
+@dna_bp.route("/sample/<string:id>", methods=["GET", "POST"])
 @login_required
 def list_variants(id):
 
@@ -282,7 +282,7 @@ def unhide_sample_comment(sample_id):
 
 
 ## Individual variant view ##
-@app.route("/dna/var/<string:id>")
+@dna_bp.route("/var/<string:id>")
 @login_required
 def show_variant(id):
 
@@ -418,7 +418,7 @@ def show_variant(id):
     )
 
 
-@app.route("/var/unfp/<string:id>", methods=["POST"])
+@dna_bp.route("/var/unfp/<string:id>", methods=["POST"])
 @login_required
 def unmark_false_variant(id):
     """
@@ -428,7 +428,7 @@ def unmark_false_variant(id):
     return redirect(url_for("show_variant", id=id))
 
 
-@app.route("/var/fp/<string:id>", methods=["POST"])
+@dna_bp.route("/var/fp/<string:id>", methods=["POST"])
 @login_required
 def mark_false_variant(id):
     """
@@ -438,7 +438,7 @@ def mark_false_variant(id):
     return redirect(url_for("show_variant", id=id))
 
 
-@app.route("/var/uninterest/<string:id>", methods=["POST"])
+@dna_bp.route("/var/uninterest/<string:id>", methods=["POST"])
 @login_required
 def unmark_interesting_variant(id):
     """
@@ -448,7 +448,7 @@ def unmark_interesting_variant(id):
     return redirect(url_for("show_variant", id=id))
 
 
-@app.route("/var/interest/<string:id>", methods=["POST"])
+@dna_bp.route("/var/interest/<string:id>", methods=["POST"])
 @login_required
 def mark_interesting_variant(id):
     """
@@ -458,7 +458,7 @@ def mark_interesting_variant(id):
     return redirect(url_for("show_variant", id=id))
 
 
-@app.route("/var/unirrelevant/<string:id>", methods=["POST"])
+@dna_bp.route("/var/unirrelevant/<string:id>", methods=["POST"])
 @login_required
 def unmark_irrelevant_variant(id):
     """
@@ -468,7 +468,7 @@ def unmark_irrelevant_variant(id):
     return redirect(url_for("show_variant", id=id))
 
 
-@app.route("/var/irrelevant/<string:id>", methods=["POST"])
+@dna_bp.route("/var/irrelevant/<string:id>", methods=["POST"])
 @login_required
 def mark_irrelevant_variant(id):
     """
@@ -478,7 +478,7 @@ def mark_irrelevant_variant(id):
     return redirect(url_for("show_variant", id=id))
 
 
-@app.route("/var/blacklist/<string:id>", methods=["POST"])
+@dna_bp.route("/var/blacklist/<string:id>", methods=["POST"])
 @login_required
 def add_variant_to_blacklist(id):
 
@@ -490,7 +490,7 @@ def add_variant_to_blacklist(id):
     return redirect(url_for("show_variant", id=id))
 
 
-@app.route("/var/ordersanger/<string:id>", methods=["POST"])
+@dna_bp.route("/var/ordersanger/<string:id>", methods=["POST"])
 @login_required
 def order_sanger(id):
     variant = store.variant_handler.get_variant(id)
@@ -510,7 +510,7 @@ def order_sanger(id):
     return redirect(url_for("show_variant", id=id))
 
 
-@app.route("/var/classify/<string:id>", methods=["POST"])
+@dna_bp.route("/var/classify/<string:id>", methods=["POST"])
 @login_required
 def classify_variant(id):
     form_data = request.form.to_dict()
@@ -529,7 +529,7 @@ def classify_variant(id):
     return redirect(url_for("show_variant", id=id))
 
 
-@app.route("/var/rmclassify/<string:id>", methods=["POST"])
+@dna_bp.route("/var/rmclassify/<string:id>", methods=["POST"])
 @login_required
 def remove_classified_variant(id):
     form_data = request.form.to_dict()
@@ -539,7 +539,7 @@ def remove_classified_variant(id):
     return redirect(url_for("show_variant", id=id))
 
 
-@app.route("/var/comment/<string:id>", methods=["POST"])
+@dna_bp.route("/var/comment/<string:id>", methods=["POST"])
 @login_required
 def add_variant_comment(id):
     """
@@ -573,7 +573,7 @@ def add_variant_comment(id):
     return redirect(url_for("show_variant", id=id))
 
 
-@app.route("/var/hide_variant_comment/<string:var_id>", methods=["POST"])
+@dna_bp.route("/var/hide_variant_comment/<string:var_id>", methods=["POST"])
 @login_required
 def hide_variant_comment(var_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
@@ -581,7 +581,7 @@ def hide_variant_comment(var_id):
     return redirect(url_for("show_variant", id=var_id))
 
 
-@app.route("/var/unhide_variant_comment/<string:var_id>", methods=["POST"])
+@dna_bp.route("/var/unhide_variant_comment/<string:var_id>", methods=["POST"])
 @login_required
 def unhide_variant_comment(var_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
@@ -590,9 +590,9 @@ def unhide_variant_comment(var_id):
 
 
 ###### CNVS VIEW PAGE #######
-@app.route("/dna/cnvwgs/<string:id>")
+@dna_bp.route("/cnv/<string:id>")
 @login_required
-def show_cnvwgs(id):
+def show_cnv(id):
     """
     Show CNVs view page
     """
@@ -616,7 +616,7 @@ def show_cnvwgs(id):
     )
 
 
-@app.route("/var/uninterestcnv/<string:id>", methods=["POST"])
+@dna_bp.route("/cnv/uninterestcnv/<string:id>", methods=["POST"])
 @login_required
 def unmark_interesting_cnv(id):
     """
@@ -626,7 +626,7 @@ def unmark_interesting_cnv(id):
     return redirect(url_for("show_cnvwgs", id=id))
 
 
-@app.route("/var/interestcnv/<string:id>", methods=["POST"])
+@dna_bp.route("/cnv/interestcnv/<string:id>", methods=["POST"])
 @login_required
 def mark_interesting_cnv(id):
     """
@@ -636,7 +636,7 @@ def mark_interesting_cnv(id):
     return redirect(url_for("show_cnvwgs", id=id))
 
 
-@app.route("/var/fpcnv/<string:id>", methods=["POST"])
+@dna_bp.route("/cnv/fpcnv/<string:id>", methods=["POST"])
 @login_required
 def mark_false_cnv(id):
     """
@@ -646,7 +646,7 @@ def mark_false_cnv(id):
     return redirect(url_for("show_cnvwgs", id=id))
 
 
-@app.route("/var/unfpcnv/<string:id>", methods=["POST"])
+@dna_bp.route("/cnv/unfpcnv/<string:id>", methods=["POST"])
 @login_required
 def unmark_false_cnv(id):
     """
@@ -656,7 +656,7 @@ def unmark_false_cnv(id):
     return redirect(url_for("show_cnvwgs", id=id))
 
 
-@app.route("/cnvwgs/hide_variant_comment/<string:cnv_id>", methods=["POST"])
+@dna_bp.route("/cnv/hide_variant_comment/<string:cnv_id>", methods=["POST"])
 @login_required
 def hide_cnv_comment(cnv_id):
     """
@@ -667,7 +667,7 @@ def hide_cnv_comment(cnv_id):
     return redirect(url_for("show_cnvwgs", id=cnv_id))
 
 
-@app.route("/cnvwgs/unhide_variant_comment/<string:cnv_id>", methods=["POST"])
+@dna_bp.route("/cnv/unhide_variant_comment/<string:cnv_id>", methods=["POST"])
 @login_required
 def unhide_cnv_comment(cnv_id):
     """
@@ -679,7 +679,7 @@ def unhide_cnv_comment(cnv_id):
 
 
 ###### TRANSLOCATIONS VIEW PAGE #######
-@app.route("/dna/transloc/<string:id>")
+@dna_bp.route("/transloc/<string:id>")
 @login_required
 def show_transloc(id):
     """
@@ -702,35 +702,35 @@ def show_transloc(id):
     )
 
 
-@app.route("/var/interesttransloc/<string:id>", methods=["POST"])
+@dna_bp.route("/transloc/interesttransloc/<string:id>", methods=["POST"])
 @login_required
 def mark_interesting_transloc(id):
     store.transloc_handler.mark_interesting_transloc(id)
     return redirect(url_for("show_transloc", id=id))
 
 
-@app.route("/var/uninteresttransloc/<string:id>", methods=["POST"])
+@dna_bp.route("/transloc/uninteresttransloc/<string:id>", methods=["POST"])
 @login_required
 def unmark_interesting_transloc(id):
     store.transloc_handler.unmark_interesting_transloc(id)
     return redirect(url_for("show_transloc", id=id))
 
 
-@app.route("/var/fptransloc/<string:id>", methods=["POST"])
+@dna_bp.route("/transloc/fptransloc/<string:id>", methods=["POST"])
 @login_required
 def mark_false_transloc(id):
     store.transloc_handler.mark_false_positive_transloc(id)
     return redirect(url_for("show_transloc", id=id))
 
 
-@app.route("/var/unfptransloc/<string:id>", methods=["POST"])
+@dna_bp.route("/transloc/unfptransloc/<string:id>", methods=["POST"])
 @login_required
 def unmark_false_transloc(id):
     store.transloc_handler.unmark_false_positive_transloc(id)
     return redirect(url_for("show_transloc", id=id))
 
 
-@app.route("/tl/hide_variant_comment/<string:var_id>", methods=["POST"])
+@dna_bp.route("/transloc/hide_variant_comment/<string:var_id>", methods=["POST"])
 @login_required
 def hide_transloc_comment(var_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
@@ -738,9 +738,19 @@ def hide_transloc_comment(var_id):
     return redirect(url_for("show_transloc", id=var_id))
 
 
-@app.route("/tl/unhide_variant_comment/<string:var_id>", methods=["POST"])
+@dna_bp.route("/transloc/unhide_variant_comment/<string:var_id>", methods=["POST"])
 @login_required
 def unhide_transloc_comment(var_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.transloc_handler.unhide_transloc_comment(var_id, comment_id)
     return redirect(url_for("show_transloc", id=var_id))
+
+
+###### FUSIONS VIEW PAGE #######
+@dna_bp.route("/fusion/<string:id>")
+@login_required
+def show_fusion(id):
+    """
+    Show Fusion view page
+    """
+    pass

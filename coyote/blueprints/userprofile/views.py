@@ -17,7 +17,7 @@ from coyote.extensions import util
 from datetime import datetime
 
 
-@profile_bp.route("/profile", methods=["GET", "POST"])
+@profile_bp.route("/", methods=["GET", "POST"])
 @login_required
 def profile():
     """
