@@ -23,21 +23,21 @@
       {% if current_user.get_role() != "readonly" %}
         <div class="flex items-center space-x-2">
           {% if tl.interesting == true %}
-            <form action="{{ url_for('unmark_interesting_transloc', id=tl._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.unmark_interesting_transloc', id=tl._id) }}" method="post">
               <input class='bg-yellow-600 text-black py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-yellow-700' type="submit" name="mark_int" value="Exclude from report">
             </form>
           {% else %}
-            <form action="{{ url_for('mark_interesting_transloc', id=tl._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.mark_interesting_transloc', id=tl._id) }}" method="post">
               <input class="bg-green-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-green-700"  type="submit" name="mark_int" value="Include in report">
             </form>      
           {% endif %}
 
           {% if tl.fp == true %}
-            <form action="{{ url_for('unmark_false_transloc', id=tl._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.unmark_false_transloc', id=tl._id) }}" method="post">
               <input class='bg-green-600 text-black py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-green-700' type="submit" name="mark_fp" value="Unmark false positive">
             </form>    
           {% else %}
-            <form action="{{ url_for('mark_false_transloc', id=tl._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.mark_false_transloc', id=tl._id) }}" method="post">
               <input class="bg-purple-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-purple-700" type="submit" name="mark_fp" value="Mark as false positive">
             </form>
           {% endif %}
@@ -243,12 +243,12 @@
                     </td>
                     <td class="align-top py-2 px-4 border-b border-gray-300 text-gray-800 text-left">
                       {% if comment.hidden != 1 %}
-                        <form action="{{ url_for('hide_transloc_comment', var_id=tl._id) }}" method="post">
+                        <form action="{{ url_for('dna_bp.hide_transloc_comment', var_id=tl._id) }}" method="post">
                           <input type="hidden" name="comment_id" value="{{ comment._id }}">
                           <input id="hide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/delete.png') }}">
                         </form>
                       {% else %}
-                        <form action="{{ url_for('unhide_transloc_comment', var_id=tl._id) }}" method="post">
+                        <form action="{{ url_for('dna_bp.unhide_transloc_comment', var_id=tl._id) }}" method="post">
                           <input type="hidden" name="comment_id" value="{{ comment._id }}">
                           <input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/unhide.png') }}">
                         </form>
@@ -302,7 +302,7 @@
           <div class="float-left max-w-screen-390 w-full bg-white shadow-md rounded-lg p-4 m-5 clear-right">
             <h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">Add New Comment/Annotation</h2>
             <div id="commenting_box" class="w-full bg-gray-50 border border-gray-300 p-4 rounded-md">
-              <form action="{{ url_for('add_variant_comment', id=tl._id) }}" method="post">
+              <form action="{{ url_for('dna_bp.add_variant_comment', id=tl._id) }}" method="post">
                 <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="w-full h-20 p-1 border border-gray-300 rounded-md focus:bg-yellow-100 mb-4"></textarea><br>
                 <input type="hidden" name="gene1" value="{{ genes[0] }}">
                 <input type="hidden" name="gene2" value="{{ genes[1] }}">

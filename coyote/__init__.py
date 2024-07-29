@@ -72,43 +72,43 @@ def register_blueprints(app) -> None:
     bp_debug_msg("home_bp")
     from coyote.blueprints.home import home_bp
 
-    app.register_blueprint(home_bp)
+    app.register_blueprint(home_bp, url_prefix="/")
 
     # Login stuff
     bp_debug_msg("login_bp")
     from coyote.blueprints.login import login_bp
 
-    app.register_blueprint(login_bp)
+    app.register_blueprint(login_bp, url_prefix="/login")
 
     # User Profile Stuff
     bp_debug_msg("profile_bp")
     from coyote.blueprints.userprofile import profile_bp
 
-    app.register_blueprint(profile_bp)
+    app.register_blueprint(profile_bp, url_prefix="/profile")
 
     # Show Case Variants
     bp_debug_msg("dna_bp")
     from coyote.blueprints.dna import dna_bp
 
-    app.register_blueprint(dna_bp)
+    app.register_blueprint(dna_bp, url_prefix="/dna")
 
     # Show Case fusions
     bp_debug_msg("fusions_bp")
     from coyote.blueprints.fusions import fusions_bp
 
-    app.register_blueprint(fusions_bp)
+    app.register_blueprint(fusions_bp, url_prefix="/rna")
 
     # register common bp
     bp_debug_msg("common_bp")
     from coyote.blueprints.common import common_bp
 
-    app.register_blueprint(common_bp)
+    app.register_blueprint(common_bp, url_prefix="/common")
 
     # register dashboard bp
     bp_debug_msg("dashboard_bp")
     from coyote.blueprints.dashboard import dashboard_bp
 
-    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
 
 
 def init_login_manager(app) -> None:

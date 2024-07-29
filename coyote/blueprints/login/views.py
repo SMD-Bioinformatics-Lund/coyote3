@@ -14,7 +14,7 @@ from coyote.extensions import login_manager, mongo, ldap_manager, store
 # Login routes:
 
 
-@login_bp.route("/login", methods=["GET", "POST"])
+@login_bp.route("/", methods=["GET", "POST"])
 def login():
     form = LoginForm()
 
@@ -33,7 +33,7 @@ def login():
                 user_obj.get("email", None),
             )
             login_user(user_obj)
-            return redirect(url_for("main_bp.home_screen"))
+            return redirect(url_for("home_bp.home_screen"))
         else:
             app.logger.info("yes?")
             return render_template("login.html", form=form, error="Invalid credentials")

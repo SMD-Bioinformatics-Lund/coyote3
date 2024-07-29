@@ -13,6 +13,7 @@ class Utility:
         from coyote.blueprints.home.util import HomeUtility
         from coyote.blueprints.fusions.util import FusionUtility
         from coyote.blueprints.userprofile.util import ProfileUtility
+        from coyote.blueprints.dashboard.util import DashBoardUtility
 
         self.dna = DNAUtility()
         self.common = CommonUtility()
@@ -20,3 +21,4 @@ class Utility:
         self.fusion = FusionUtility()
         self.rna = FusionUtility()
         self.profile = ProfileUtility()
+        self.dashboard = DashBoardUtility()
