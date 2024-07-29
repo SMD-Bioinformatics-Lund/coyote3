@@ -11,12 +11,11 @@ class Utility:
         from coyote.blueprints.dna.util import DNAUtility
         from coyote.util.common_utility import CommonUtility
         from coyote.blueprints.home.util import HomeUtility
-        from coyote.blueprints.fusions.util import FusionUtility
+        from coyote.blueprints.rna.util import RNAUtility
         from coyote.blueprints.userprofile.util import ProfileUtility
 
         self.dna = DNAUtility()
         self.common = CommonUtility()
         self.main = HomeUtility()
-        self.fusion = FusionUtility()
-        self.rna = FusionUtility()
+        self.rna = RNAUtility()
         self.profile = ProfileUtility()

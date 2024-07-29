@@ -93,10 +93,10 @@ def register_blueprints(app) -> None:
     app.register_blueprint(dna_bp)
 
     # Show Case fusions
-    bp_debug_msg("fusions_bp")
-    from coyote.blueprints.fusions import fusions_bp
+    bp_debug_msg("rna_bp")
+    from coyote.blueprints.rna import rna_bp
 
-    app.register_blueprint(fusions_bp)
+    app.register_blueprint(rna_bp)
 
     # register common bp
     bp_debug_msg("common_bp")
