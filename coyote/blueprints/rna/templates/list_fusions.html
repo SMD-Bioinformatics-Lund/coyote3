@@ -406,7 +406,7 @@
       </table>
     </div>
     {% endif %}
-    <form action="{{ url_for('add_sample_comment', id=sample._id) }}" method="post">
+    <form action="{{ url_for('home_bp.add_sample_comment', id=sample._id) }}" method="post">
       <textarea id="comment_textarea" name="sample_comment" placeholder="Enter sample comment..." class="w-full p-2 border border-gray-300 rounded m-2 h-28"></textarea><br>
       <input type="submit" value="Save comment" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2">
       <button type="button" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mt-2" onclick="addAIText()">Suggest</button>
@@ -416,9 +416,6 @@
     </div>
   </div>
 </div>
-
-
-
 
 
 <script>

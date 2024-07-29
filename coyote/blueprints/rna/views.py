@@ -30,9 +30,17 @@ def list_fusions(id):
     """
     sample = store.sample_handler.get_sample(id)
 
-    sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
+    if sample is None:
+        sample = store.sample_handler.get_sample_with_id(id)
 
-    smp_grp = sample["groups"][0]
+    sample_groups = sample.get("groups")
+    if len(sample_groups) > 1:
+        for group in sample_groups:
+            if group in ["tumwgs-solid", "tumwgs-hema"]:
+                smp_grp = group
+                break
+    else:
+        smp_grp = sample["groups"][0]
 
     group_params = util.common.get_group_parameters(smp_grp)
     settings = util.common.get_group_defaults(group_params)
@@ -126,4 +134,11 @@ def list_fusions(id):
     # app.logger.info(f"this is the fusion and fusion query,{fusions},{fusion_query}")
 
     # Your logic for handling RNA samples
-    return render_template("rna.html", sample=sample, form=form, fusions=fusions)
+    return render_template(
+        "list_fusions.html",
+        sample=sample,
+        form=form,
+        fusions=fusions,
+        hidden_comments=has_hidden_comments,
+        sample_id=sample["_id"],
+    )
