@@ -265,23 +265,6 @@ def show_any_plot(fn, assay, build):
         return send_from_directory("/access/solid_hg38/plots", fn)
 
 
-@app.route("/sample/sample_comment/<string:id>", methods=["POST"])
-@login_required
-def add_sample_comment(id):
-    """
-    Add Sample comment
-    """
-    data = request.form.to_dict()
-    doc = util.dna.create_comment_doc(data, key="sample_comment")
-    store.sample_handler.add_sample_comment(id, doc)
-    sample = store.sample_handler.get_sample_with_id(id)
-    assay = util.common.get_assay_from_sample(sample)
-    if assay == "":
-        return redirect(url_for("dna_bp.list_variants", id=id))
-    else:
-        pass
-
-
 @app.route("/sample/hide_sample_comment/<string:sample_id>", methods=["POST"])
 @login_required
 def hide_sample_comment(sample_id):

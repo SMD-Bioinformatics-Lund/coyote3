@@ -25,7 +25,7 @@ def error_screen():
         return render_template("error.html", error=[])
 
 
-@common_bp.route("/sample_comment/<string:id>", methods=["POST"])
+@common_bp.route("/sample/sample_comment/<string:id>", methods=["POST"])
 @login_required
 def add_sample_comment(id):
     """
