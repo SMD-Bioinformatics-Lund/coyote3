@@ -14,13 +14,13 @@ class FusionsHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.fusions_collection)
 
-    def get_sample_fusions(self, query: dict):
+    def get_sample_fusions(self, query: dict) -> dict:
         """
         Return fusions with according to a constructed varquery
         """
         return self.adapter.fusions_collection.find(query)
 
-    def get_selected_fusioncall(self, fusion):
+    def get_selected_fusioncall(self, fusion: list) -> dict:
         """
         Return the selected fusion call from the fusion data
         """
@@ -29,7 +29,7 @@ class FusionsHandler(BaseHandler):
                 return call
         return None
 
-    def get_fusion_annotations(self, fusion):
+    def get_fusion_annotations(self, fusion: list) -> dict:
         """
         Return annotations and latest classification for a given fusion
         """
@@ -51,3 +51,9 @@ class FusionsHandler(BaseHandler):
                     annotations_arr.append(anno)
 
         return annotations_arr, latest_classification
+
+    def get_fusion(self, id: str) -> dict:
+        """
+        Return variant with variant ID
+        """
+        return self.get_collection().find_one({"_id": ObjectId(id)})
