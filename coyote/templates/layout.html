@@ -9,6 +9,8 @@
     <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/tailwind.2.2.19.css') }}" rel="stylesheet">
     <link rel="shortcut icon" href="{{ url_for('static', filename='icons/favicon.ico') }}">
+    {% block style %}{% endblock %}
+    {% block javascript %}{% endblock %}
 </head>
 
 <body class="bg-white font-sans leading-normal tracking-normal text-sm">
@@ -127,6 +129,9 @@
     });
   });
 </script>
+
+{% block script %}{% endblock %}
 {% block body %}{% endblock %}
+{% block footer %}{% endblock %}
 </body>
 </html>
