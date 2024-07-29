@@ -22,7 +22,7 @@ class BaseHandler:
         self.handler_collection = collection
 
     def get_collection(self) -> pymongo.collection.Collection:
-        if self.handler_collection:
+        if self.handler_collection is not None:
             return self.handler_collection
         else:
             raise NotImplementedError("get_collection or set_collection must be implemented")

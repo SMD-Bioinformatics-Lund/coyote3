@@ -348,7 +348,7 @@ def array_uniq(arr):
 @app.template_filter()
 def format_oncokbtext(st):
     st = st.replace("\n", "<br />")
-    l = re.findall("\(PMID:.*?\)", st)
+    l = re.findall(r"\(PMID:.*?\)", st)
     i = 0
     for a in l:
         b = a.replace(")", "")

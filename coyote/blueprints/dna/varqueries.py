@@ -3,7 +3,7 @@ import re
 
 def build_query(which, settings):
 
-    large_ins_regex = re.compile("\w{10,200}", re.IGNORECASE)
+    large_ins_regex = re.compile(r"\w{10,200}", re.IGNORECASE)
 
     # Myeloid requires settings: min_freq, min_depth, min_reads, max_freq, filter_conseq(list)
 

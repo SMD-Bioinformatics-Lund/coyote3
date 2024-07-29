@@ -69,10 +69,10 @@ def register_blueprints(app) -> None:
         app.logger.debug(f"Blueprint registered: {msg}")
 
     # Coyote main:
-    bp_debug_msg("main_bp")
-    from coyote.blueprints.main import main_bp
+    bp_debug_msg("home_bp")
+    from coyote.blueprints.home import home_bp
 
-    app.register_blueprint(main_bp)
+    app.register_blueprint(home_bp)
 
     # Login stuff
     bp_debug_msg("login_bp")
@@ -87,16 +87,28 @@ def register_blueprints(app) -> None:
     app.register_blueprint(profile_bp)
 
     # Show Case Variants
-    bp_debug_msg("varaints_bp")
-    from coyote.blueprints.variants import variants_bp
+    bp_debug_msg("dna_bp")
+    from coyote.blueprints.dna import dna_bp
 
-    app.register_blueprint(variants_bp)
+    app.register_blueprint(dna_bp)
 
     # Show Case fusions
-    bp_debug_msg("fusions_bp")
-    from coyote.blueprints.fusions import fusions_bp
+    bp_debug_msg("rna_bp")
+    from coyote.blueprints.rna import rna_bp
 
-    app.register_blueprint(fusions_bp)
+    app.register_blueprint(rna_bp)
+
+    # register common bp
+    bp_debug_msg("common_bp")
+    from coyote.blueprints.common import common_bp
+
+    app.register_blueprint(common_bp)
+
+    # register dashboard bp
+    bp_debug_msg("dashboard_bp")
+    from coyote.blueprints.dashboard import dashboard_bp
+
+    app.register_blueprint(dashboard_bp)
 
 
 def init_login_manager(app) -> None:

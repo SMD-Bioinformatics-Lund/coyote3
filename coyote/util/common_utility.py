@@ -309,3 +309,10 @@ class CommonUtility:
         if len(arr) > 2:
             last = arr.pop()
             return f"{', '.join(arr)} {joiner} {last}"
+
+    @staticmethod
+    def get_sample_type(assay: str) -> str:
+        if assay not in ["fusion", "fusionrna"]:
+            return "dna"
+        else:
+            return "rna"

@@ -1,5 +1,5 @@
 """
-Coyote case variants
+Coyote case fusions
 """
 
 from flask import abort
@@ -7,15 +7,15 @@ from flask import current_app as app
 from flask import redirect, render_template, request, url_for, send_from_directory
 from flask_login import current_user, login_required
 
-from coyote.blueprints.variants.forms import FusionFilter
+from coyote.blueprints.dna.forms import FusionFilter
 from wtforms import BooleanField
 from wtforms.validators import Optional
 from coyote.extensions import store
-from coyote.blueprints.fusions import fusions_bp
+from coyote.blueprints.rna import rna_bp
 from coyote.extensions import util
 
 
-@fusions_bp.route("/rna/sample/<string:id>", methods=["GET", "POST"])
+@rna_bp.route("/rna/sample/<string:id>", methods=["GET", "POST"])
 @login_required
 def list_fusions(id):
     """
@@ -81,8 +81,8 @@ def list_fusions(id):
     )
 
     # filter_fusionlist = util.fusion.create_fusiongenelist(fusionlist_filter)
-    filter_fusioneffects = util.fusion.create_fusioneffectlist(fusioneffect_filter)
-    filter_fusioncaller = util.fusion.create_fusioncallers(fusioncaller_filter)
+    filter_fusioneffects = util.rna.create_fusioneffectlist(fusioneffect_filter)
+    filter_fusioncaller = util.rna.create_fusioncallers(fusioncaller_filter)
 
     # app.logger.info(f"this is the sample {sample}")
     app.logger.info(f"this is the form data {form.data}")
