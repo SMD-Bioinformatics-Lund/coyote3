@@ -72,7 +72,6 @@
     </div>
   </div>
 
-
   <!-- Filters Sidebar -->
   <div id="filter-sidebar" class="fixed top-0 right-0 h-full w-60 bg-white overflow-y-auto shadow-md transform translate-x-full transition-transform duration-300 ease-in-out">
     <div class="p-2">
@@ -156,8 +155,7 @@
     </div>
   </div>
 
-
-    <!-- Fusion Table -->
+  <!-- Fusion Table -->
   {% if fusions|length > 0 %}
   <div class="bg-white shadow-md rounded-lg p-4 mb-4">
     <span class="table_header text-xl font-semibold">Fusions passing filter criteria</span>
@@ -269,7 +267,8 @@
     </table>
     {% endif %} 
 
-  <!-- expression Classfication -->  
+
+    <!-- expression Classfication -->  
   {% if sample.expr %}
     <span class="table_header">Expression levels of selected genes</span>
     <table class="sortable" id="fusion_list_table" style="width: 320px">
@@ -351,8 +350,8 @@
       </tbody>
     </table>
     {% endif %}
-
-  <!-- Sample Comments -->
+  
+    <!-- Sample Comments -->
   <div id="sample_comments" class="bg-white shadow-md rounded-lg p-6 mb-6">
     {% if sample.comments|length > 0 %}
     <h2 class="text-xl font-semibold text-gray-800 mb-4">Sample Comments</h2>
@@ -406,7 +405,7 @@
       </table>
     </div>
     {% endif %}
-    <form action="{{ url_for('home_bp.add_sample_comment', id=sample._id) }}" method="post">
+    <form action="{{ url_for('common_bp.add_sample_comment', id=sample._id) }}" method="post">
       <textarea id="comment_textarea" name="sample_comment" placeholder="Enter sample comment..." class="w-full p-2 border border-gray-300 rounded m-2 h-28"></textarea><br>
       <input type="submit" value="Save comment" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2">
       <button type="button" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mt-2" onclick="addAIText()">Suggest</button>

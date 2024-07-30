@@ -475,7 +475,7 @@
               {% for other in in_other %}
                 <tr class="hover:bg-indigo-50">
                   <td class="px-2 py-2 border-b">
-                    <a href="{{ url_for('show_variant', id=other._id) }}" class="text-blue-600 underline">{{other.sample_name}}</a>
+                    <a href="{{ url_for('dna_bp.show_variant', id=other._id) }}" class="text-blue-600 underline">{{other.sample_name}}</a>
                   </td>
                   <td class="px-2 py-2 border-b">
                     {{other.comments|length}}
