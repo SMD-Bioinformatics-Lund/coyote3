@@ -1,0 +1,289 @@
+{% extends "layout.html" %}
+
+{% block body %}
+
+{% set sel_fus = (fusion.calls|selectattr('selected', 'equalto', 1) |list)[0] %}
+
+
+Variant in sample <a href="{{ url_for('rna_bp.list_variants', id=sample.name ) }}">{{ sample.name }}</a><p>
+<div id="var_main">
+  
+  <div id="var_info">  
+
+    <span class="table_header">Fusion info</span>
+    <table class="variant">
+      <thead><tr><th>Key</th><th>Value</th></tr></thead>
+      <tbody>
+	<tr><td>Gene 1 (5'):</td><td>{{ fusion.gene1 }}</td></tr>
+	<tr><td>Gene 2 (3'):</td><td>{{ fusion.gene2 }}</td></tr>
+	<tr><td>Atlas of GCOH</td><td><a href="https://www.google.com/search?ie=UTF-8&oe=UTF-8&q={{fusion.gene1}}%09{{fusion.gene2}}&btnG=Google+Search&domains=atlasgeneticsoncology.org&sitesearch=atlasgeneticsoncology.org&btnI" target="_blank">link</a>
+
+      </tbody>
+    </table>
+
+  {% if current_user.get_role() != "readonly" %}
+  <div id="var_actions">
+    {% if fusion.blacklist is defined and fusion.override_blacklist != true %}
+      <form action="{{ url_for('override_blacklist', id=fusion._id) }}" method="post">
+        <input class='inv' type="submit" name="override_blacklist" value="Override blacklist">
+      </form>    
+    {% endif %}
+    
+    
+    {% if fusion.fp == true %}
+      <form action="{{ url_for('unmark_false_fusion', id=fusion._id) }}" method="post">
+        <input class='inv' type="submit" name="mark_fp" value="Unmark false positive">
+      </form>    
+    {% else %}
+      <form action="{{ url_for('mark_false_fusion', id=fusion._id) }}" method="post">
+        <input type="submit" name="mark_fp" value="Mark as false positive">
+      </form>
+    {% endif %}
+
+     <!--
+    {% if fusion.interesting == true %}
+      <form action="{{ url_for('unmark_interesting_variant', id=fusion._id) }}" method="post">
+        <input class='inv' type="submit" name="mark_int" value="Unmark interesting">
+      </form>
+    {% else %}
+      <form action="{{ url_for('mark_interesting_variant', id=fusion._id) }}" method="post">
+        <input type="submit" name="mark_int" value="Mark as interesting">
+      </form>      
+    {% endif %}
+
+    {% if fusion.irrelevant == true %}
+      <form action="{{ url_for('unmark_irrelevant_variant', id=fusion._id) }}" method="post">
+        <input class='inv' type="submit" name="mark_irr" value="Unmark irrelevant">
+      </form>
+    {% else %}
+      <form action="{{ url_for('mark_irrelevant_variant', id=fusion._id) }}" method="post">
+        <input type="submit" name="mark_irr" value="Mark as irrelevant">
+      </form>      
+    {% endif %}
+
+    {% if fusion.blacklist != true %}
+      <form action="{{ url_for('add_variant_to_blacklist', id=fusion._id) }}" method="post">
+        <input type="submit" name="blacklist" value="Add variant to blacklist"  onclick="return confirm('This permanently adds the variant to the blacklist, affecting all samples of this type. Do this only if you are certain it is a recurring false positive. Proceed?')" >
+      </form>
+    {% endif %}
+     -->
+  </div>  
+  {% endif %}
+   
+  </div>
+
+
+  
+  <div id="fus_moreinfo">
+    <span class="table_header">Fusion calls</span>
+    <table class="variant" id="transcript_info">
+      <thead><tr><th nowrap>Gene 1</th><th nowrap>Gene 2</th><th nowrap>Breakpoints</th><th>Effect</th><th>Spanning pairs</th><th>Spanning reads</th><th>Longest anchor</th><th>Caller</th><th>Description</th><th></th></thead>
+      <tbody>
+	{% for call in fusion.calls %}
+	<tr>
+	  <td>
+	    {{fusion.gene1}}
+	  </td>
+	  <td>
+	    {{fusion.gene2}}
+	  </td>
+	  <td>
+	    {{call.breakpoint1}}<br>{{call.breakpoint2}}
+	  </td>
+	  <td>
+	    {{call.effect}}
+	  </td>
+	  <td>
+	    {{call.spanpairs}}
+	  </td>
+	  <td>
+	    {{call.spanreads}}
+	  </td>
+	  <td>
+	    {{call.longestanchor}}
+	  </td>
+	  <td>
+	    {{call.caller}}
+	  </td>
+	  <td>
+	    {{ call.desc|format_fusion_desc|safe }}
+	  </td>
+	  <td>{% if call.selected == 1 %}<b>selected</b>{% else %}<a href="{{ url_for('pick_fusioncall', id=fusion._id, callidx=loop.index, num_calls =fusion.calls|length ) }}">pick</a>{% endif %}</td>
+	</tr>
+	{% endfor %}
+      </tbody>
+    </table>
+    
+  
+  </div>
+ 
+  <div id="var_comments">
+    <span class="table_header">Variant classification</span><br>
+    <div id="classification">
+
+      {#% if classification.class != 999 %#}
+      <div class="class_desc" id="desc{{ classification.class }}">
+	{% if classification.class == 1 %}
+	Variant with strong clinical significance
+	{% elif classification.class == 2 %}
+	Variant with potential clinical significance
+	{% elif classification.class == 3 %}
+	Variant of unknown clinical significance
+	{% elif classification.class == 4 %}
+	Variant deemed benign or likely benign
+	{% elif classification.class == 999 %}
+	The variant has not been classified
+	{% endif %}
+      </div>
+      {#% endif %#}
+
+      {% if current_user.get_role() != "readonly" %}
+      <form id="form" action="{{ url_for('classify_variant', id=fusion._id) }}" method="post">
+
+	<input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
+	<input type="hidden" name="gene2" value="{{ fusion.gene2 }}">
+	<input type="hidden" name="fusionpoints" value="{{sel_fus.breakpoint1}}^{{sel_fus.breakpoint2}}">
+
+	<div class="class_label">Tier:</div>
+	<button id="tier1" class="tier {% if classification.class == 999 %}a{% elif classification.class == 1 %}selected_tier{% else %}unselected_tier{% endif %}" title="Variants with strong clinical significance" type="submit" name="tier1">I</button>
+	<button id="tier2" class="tier {% if classification.class == 999 %}a{% elif classification.class == 2 %}selected_tier{% else %}unselected_tier{% endif %}" title="Variants with potential clinical significance" type="submit" name="tier2">II</button>
+	<button id="tier3" class="tier {% if classification.class == 999 %}a{% elif classification.class == 3 %}selected_tier{% else %}unselected_tier{% endif %}" title="Variants of unknown clinical significance" type="submit" name="tier3">III</button>
+	<button id="tier4" class="tier {% if classification.class == 999 %}a{% elif classification.class == 4 %}selected_tier{% else %}unselected_tier{% endif %}" title="Variants deemed benign or likely benign" type="submit" name="tier4">IV</button>
+	<div class="tooltip class_info">
+	  ?
+	  <span class="tooltiptext">KK</span>
+	</div>
+
+      </form>
+      {% endif %}
+      </div>
+
+      {% if current_user.get_role() != "readonly" %}
+      <span class="table_header">Add new comment/annotation</span>
+      <div id="commenting_box">
+	<form action="{{ url_for('add_variant_comment', id=fusion._id) }}" method="post">
+	  <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..."></textarea><br>
+
+	  <input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
+	  <input type="hidden" name="gene2" value="{{ fusion.gene2 }}">
+	  <input type="hidden" name="fusionpoints" value="{{sel_fus.breakpoint1}}^{{sel_fus.breakpoint2}}">
+
+	  <input type="submit" value="Save">&nbsp;&nbsp;
+	  <input type="checkbox" name="global" value="global"> Use as global annotation
+
+	</form>
+      </div>
+      {% endif %}
+
+      {% if fusion.comments|length > 0 and current_user.get_role() != "readonly" %}
+      <div style='clear:left;'>
+	<span class="table_header">Sample-specific variant comments</span>
+	<table class="comments" id="variant_comments">
+	  <thead><tr><th>Who</th><th>Comment</th><th></th></tr></thead>
+	  <tbody>
+	    {% for comment in fusion.comments|sort(attribute='time_created', reverse=True) %}
+	    {% if comment.hidden != 1 %}
+	    <tr>
+	      {% else %}
+	    <tr class="hidden_comment hidden">
+	      {% endif %}
+	      <td class="comment" style="white-space: nowrap"><b>{{ comment.author }}</b><br><small>{{ comment.time_created|human_date }}</small></td>
+	      <td class="comment" onclick="addText(event)">{{ comment.text|format_comment|safe }}</td>
+	      <td class="comment">
+		{% if comment.hidden != 1 %}
+		<form action="{{ url_for('hide_fusion_comment', var_id=fusion._id) }}" method="post">
+		  <input type="hidden" name="comment_id" value="{{ comment._id }}">
+		  <input id="hide_comment" type="image" width=15 src="{{ url_for('static', filename='delete.png') }}">
+		</form>
+		{% else %}
+		<form action="{{ url_for('unhide_fusion_comment', var_id=fusion._id) }}" method="post">
+		  <input type="hidden" name="comment_id" value="{{ comment._id }}">
+		  <input id="unhide_comment" type="image" width=15 src="{{ url_for('static', filename='unhide.png') }}">
+		</form>
+		{% endif %}
+	      </td>
+	    </tr>
+	    {% endfor %}
+	    {% if hidden_comments != 0 %}
+	    <tr>
+	      <td colspan=4 style='border-top:1px solid #ccc; font-size:10px; padding-bottom:2px; padding-top:2px; text-align:center;'>
+		<a href="javascript:void(0)" onclick="switchVisibility_comments('hidden_comment')"><b>Show/hide deleted comments</b></a>
+	      </td>
+	    </tr>
+	    {% endif %}
+
+	  </tbody>
+	</table>
+      </div>
+      {% endif %}
+
+      {% if annotations|length > 0 %}
+      <div style='clear:left;'>
+	<span class="table_header">Variant annotations</span>
+	<table class="annotatations" id="variant_annotations">
+	  <thead><tr><th>Who</th><th>Annotation</th></tr></thead>
+	  <tbody>
+	    {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
+	    {% if current_user.get_role() != "readonly" or loop.first == True %}
+	    <tr>
+	      <td class="annotation" style="white-space: nowrap"><b>{{ anno.author }}</b><br><small>{{ anno.time_created|human_date }}</small></td>
+	      <td class="annotation" onclick="addText(event)">{{ anno.text|format_comment|safe }}</td>
+	    </tr>
+	    {% endif %}
+	    {% endfor %}
+
+	  </tbody>
+	</table>
+      </div>
+      {% endif %}
+      
+    </div>
+
+    
+  <script type="text/javascript">
+    $("#test").select2();
+
+    window.onload = function() {
+      $('[data-autoclick="true"]').click();
+      $('[data-autoclick="true"]').click();
+    };
+   
+    function switchVisibility(class_name) {
+      var hide_class = "hidden";
+      var elems = document.getElementsByClassName(class_name);
+
+      for (var i = 0; i < elems.length; i++) {
+        if( elems[i].classList.contains(hide_class) ) {
+	  elems[i].classList.remove(hide_class);
+	}
+	else {
+	  elems[i].classList.add(hide_class);
+	}
+      }
+    }
+			
+  function switchVisibility_comments(class_name) {
+    var hide_class = "hidden";
+
+    var elems = document.getElementsByClassName(class_name);
+
+    for (var i = 0; i < elems.length; i++) {
+      if( elems[i].classList.contains(hide_class) ) {
+        elems[i].classList.remove(hide_class);
+      }
+      else {
+        elems[i].classList.add(hide_class);
+      }
+    }
+  }
+
+
+  function addText(event) {
+    var targ = event.target || event.srcElement;
+    document.getElementById("comment_textarea").value = targ.textContent || targ.innerText;
+  }
+			
+  </script>
+ 
+
+{% endblock %} 

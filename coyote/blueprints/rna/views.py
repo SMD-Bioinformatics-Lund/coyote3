@@ -140,3 +140,21 @@ def list_fusions(id):
         hidden_comments=has_hidden_comments,
         sample_id=sample["_id"],
     )
+
+
+""" @app.route("/rna/fusion/<string:id>")
+@login_required
+def show_fusion(id):
+
+    fusion = store.fusion_handler.get_fusion(id)
+    query = fusion["SAMPLE_ID"]
+    sample = store.sample_handler.get_sample_with_id(query)
+    annotations, classification = store.fusion_handler.get_fusion_annotations(fusion)
+
+    return render_template(
+        "show_fusion.html",
+        fusion=fusion,
+        sample=sample,
+        annotations=annotations,
+        classification=classification,
+    ) """

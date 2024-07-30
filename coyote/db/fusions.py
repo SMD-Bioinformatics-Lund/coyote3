@@ -50,7 +50,7 @@ class FusionsHandler(BaseHandler):
                 elif "text" in anno:
                     annotations_arr.append(anno)
 
-        return annotations_arr, latest_classification
+        return (annotations_arr, latest_classification)
 
     def get_fusion(self, id: str) -> dict:
         """
