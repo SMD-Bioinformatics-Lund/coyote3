@@ -1,0 +1,168 @@
+{% extends "layout.html" %}
+{% block style %}
+  <link href="{{ url_for('dashboard_bp.static', filename='css/db_style.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block body %}
+<div class="container mx-auto py-10">
+  <!-- Top Cards Row -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+    <div class="card bg-gradient-to-r from-blue-400 to-blue-600 text-black shadow-lg rounded-xl p-8 relative overflow-hidden transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl">
+        <h2 class="text-xl font-semibold mb-2">Total Samples</h2>
+        <p class="text-4xl font-extrabold">{{ total_samples }}</p>
+    </div>
+    <div class="card bg-white text-black shadow-lg rounded-xl p-8 relative overflow-hidden border-4 border-green-400 transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl">
+      <div class="fill bg-green-400" style="width: {{ analysed_samples / total_samples * 100 }}%;"></div>
+          <h2 class="text-xl font-semibold mb-2 relative z-10">Samples Analysed</h2>
+          <p class="text-4xl font-extrabold relative z-10">{{ analysed_samples }}</p>
+    </div>
+    <div class="card bg-white text-black shadow-lg rounded-xl p-8 relative overflow-hidden border-4 border-red-400 transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl">
+      <div class="fill bg-red-400" style="width: {{ pending_samples|int / total_samples|int * 100 }}%;"></div>
+        <h2 class="text-xl font-semibold mb-2 relative z-10">Samples Pending</h2>
+        <p class="text-4xl font-extrabold relative z-10">{{ pending_samples }}</p>
+    </div>
+  </div>
+
+  <!-- Modern Chart Row -->
+  <h2 class="text-xl font-semibold mb-4">Samples Overview by Assay</h2>
+  <div class="flex justify-center mb-10">
+    <div class="card bg-white shadow-lg rounded-xl p-4 w-1/3">
+      <canvas id="multiLevelChart" width="50" height="50"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script type="text/javascript">
+  const totalSamplesData = {{ total_samples_data | safe }};
+  const analysedSamplesData = {{ analysed_samples_data | safe }};
+  const pendingSamplesData = {{ pending_samples_data | safe }};
+
+  function createMultiLevelChart(ctx) {
+    const totalLabels = Object.keys(totalSamplesData);
+    const totalValues = Object.values(totalSamplesData);
+    const analysedValues = Object.values(analysedSamplesData);
+    const pendingValues = Object.values(pendingSamplesData);
+
+    const colors = totalLabels.map((_, index) => `hsl(${index * 360 / totalLabels.length}, 70%, 50%)`);
+
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: totalLabels,
+        datasets: [
+          {
+            label: 'Total Samples',
+            data: totalValues,
+            backgroundColor: colors,
+            borderColor: '#fff',
+            borderWidth: 2,
+            hoverOffset: 10,
+          },
+          {
+            label: 'Analysed Samples',
+            data: analysedValues,
+            backgroundColor: colors,
+            borderColor: '#fff',
+            borderWidth: 2,
+            hoverOffset: 10,
+          },
+          {
+            label: 'Pending Samples',
+            data: pendingValues,
+            backgroundColor: colors,
+            borderColor: '#fff',
+            borderWidth: 2,
+            hoverOffset: 10,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        cutout: '60%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: '#243b55',
+              padding: 20,
+              font: {
+                size: 14,
+                weight: 'bold'
+              }
+            }
+          },
+          title: {
+            display: true,
+            text: 'Samples Overview',
+            color: '#243b55',
+            font: {
+              size: 18,
+              weight: 'bold'
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.raw;
+                return `${label}: ${value}`;
+              }
+            }
+          },
+          annotation: {
+            annotations: {
+              text1: {
+                type: 'label',
+                xValue: 0.5,
+                yValue: 1.2,
+                content: ['Total'],
+                color: '#000',
+                font: {
+                  size: 14
+                }
+              },
+              text2: {
+                type: 'label',
+                xValue: 0.5,
+                yValue: 0.7,
+                content: ['Analysed'],
+                color: '#000',
+                font: {
+                  size: 14
+                }
+              },
+              text3: {
+                type: 'label',
+                xValue: 0.5,
+                yValue: 0.4,
+                content: ['Pending'],
+                color: '#000',
+                font: {
+                  size: 14
+                }
+              }
+            }
+          }
+        },
+        animation: {
+          animateScale: true,
+          animateRotate: true
+        },
+        hover: {
+          onHover: function(e) {
+            const point = this.getElementAtEvent(e);
+            if (point.length) e.target.style.cursor = 'pointer';
+            else e.target.style.cursor = 'default';
+          }
+        }
+      }
+    });
+  }
+
+  window.onload = function() {
+    createMultiLevelChart(document.getElementById('multiLevelChart'));
+  };
+</script>
+{% endblock %}

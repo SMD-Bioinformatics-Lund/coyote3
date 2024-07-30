@@ -14,7 +14,7 @@ from coyote.extensions import login_manager, mongo, ldap_manager, store
 # Login routes:
 
 
-@login_bp.route("/login", methods=["GET", "POST"])
+@login_bp.route("/", methods=["GET", "POST"])
 def login():
     form = LoginForm()
 

@@ -147,3 +147,37 @@ class SampleHandler(BaseHandler):
         Return True if hidden comments for sample else False
         """
         return self.hidden_comments(id)
+
+    def get_all_samples(self, report=None) -> list:
+        """
+        get all samples
+        """
+        samples = list(self.get_collection().find().sort("time_added", -1))
+        if report:
+            samples = [sample for sample in samples if sample.get("report_num", 0) > 0]
+        elif report == False:
+            samples = [sample for sample in samples if sample.get("report_num", 0) == 0]
+        return samples
+
+    def get_assay_specific_sample_stats(self) -> dict:
+        """
+        get assay specific stats
+        """
+        assay_specific_stats = {"NA": {"total": 0, "report": 0, "pending": 0}}
+        for sample in self.get_collection().find():
+            if sample.get("groups"):
+                for group in sample.get("groups"):
+                    if group not in assay_specific_stats:
+                        assay_specific_stats[group] = {"total": 0, "report": 0, "pending": 0}
+                    assay_specific_stats[group]["total"] += 1
+                    if sample.get("report_num", 0) > 0:
+                        assay_specific_stats[group]["report"] += 1
+                    else:
+                        assay_specific_stats[group]["pending"] += 1
+            else:
+                assay_specific_stats["NA"]["total"] += 1
+                if sample.get("report_num", 0) > 0:
+                    assay_specific_stats["NA"]["report"] += 1
+                else:
+                    assay_specific_stats["NA"]["pending"] += 1
+        return assay_specific_stats

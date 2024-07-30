@@ -22,48 +22,48 @@
       {% if current_user.get_role() != "readonly" %}
       <div class="flex items-center space-x-4">
         {% if variant.blacklist is defined and variant.override_blacklist != true %}
-          <form action="{{ url_for('add_variant_to_blacklist', id=variant._id) }}" method="post">
+          <form action="{{ url_for('dna_bp.add_variant_to_blacklist', id=variant._id) }}" method="post">
             <input class="bg-red-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-red-700" type="submit" name="blacklist" value="Override blacklist">
           </form>    
         {% endif %}
         
         {% if variant.fp == true %}
-          <form action="{{ url_for('unmark_false_variant', id=variant._id) }}" method="post">
+          <form action="{{ url_for('dna_bp.unmark_false_variant', id=variant._id) }}" method="post">
             <input class="bg-green-600 text-black py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-green-700" type="submit" name="mark_fp" value="Unmark false positive">
           </form>    
         {% else %}
-          <form action="{{ url_for('mark_false_variant', id=variant._id) }}" method="post">
+          <form action="{{ url_for('dna_bp.mark_false_variant', id=variant._id) }}" method="post">
             <input class="bg-purple-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-purple-700" type="submit" name="mark_fp" value="Mark as false positive">
           </form>
         {% endif %}
         {% if variant.interesting == true %}
-          <form action="{{ url_for('unmark_interesting_variant', id=variant._id) }}" method="post">
+          <form action="{{ url_for('dna_bp.unmark_interesting_variant', id=variant._id) }}" method="post">
             <input class="bg-yellow-600 text-black py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-yellow-700" type="submit" name="mark_int" value="Unmark interesting">
           </form>
         {% else %}
-          <form action="{{ url_for('mark_interesting_variant', id=variant._id) }}" method="post">
+          <form action="{{ url_for('dna_bp.mark_interesting_variant', id=variant._id) }}" method="post">
             <input class="bg-green-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-green-700" type="submit" name="mark_int" value="Mark as interesting">
           </form>      
         {% endif %}
       
         {% if variant.irrelevant == true %}
-          <form action="{{ url_for('unmark_irrelevant_variant', id=variant._id) }}" method="post">
+          <form action="{{ url_for('dna_bp.unmark_irrelevant_variant', id=variant._id) }}" method="post">
             <input class="bg-green-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-yellow-600" type="submit" name="mark_irr" value="Unmark irrelevant">
           </form>
         {% else %}
-          <form action="{{ url_for('mark_irrelevant_variant', id=variant._id) }}" method="post">
+          <form action="{{ url_for('dna_bp.mark_irrelevant_variant', id=variant._id) }}" method="post">
             <input class="bg-yellow-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-yellow-700" type="submit" name="mark_irr" value="Mark as irrelevant">
           </form>      
         {% endif %}
       
         {% if variant.blacklist != true %}
-          <form action="{{ url_for('add_variant_to_blacklist', id=variant._id) }}" method="post">
+          <form action="{{ url_for('dna_bp.add_variant_to_blacklist', id=variant._id) }}" method="post">
             <input class="bg-red-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-red-700" type="submit" name="blacklist" value="Add variant to blacklist"  onclick="return confirm('This permanently adds the variant to the blacklist, affecting all samples of this type. Do this only if you are certain it is a recurring false positive. Proceed?')">
           </form>
         {% endif %}
       
         {% if assay=="swea" %}
-          <form action="{{ url_for('order_sanger', id=variant._id) }}" method="post">
+          <form action="{{ url_for('dna_bp.order_sanger', id=variant._id) }}" method="post">
             <input class="bg-blue-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-blue-700" type="submit" name="sanger" value="Request sanger">
           </form>      
         {% endif %} 
@@ -518,7 +518,7 @@
               {% endif %}
             </div>  
             {% if current_user.get_role() != "readonly" %}
-              <form id="form" action="{{ url_for('classify_variant', id=variant._id) }}" method="post" class="inline-flex items-center space-x-2"> <!-- class="class_form" -->
+              <form id="form" action="{{ url_for('dna_bp.classify_variant', id=variant._id) }}" method="post" class="inline-flex items-center space-x-2"> <!-- class="class_form" -->
                 <input type="hidden" name="assay" value="{{ assay }}">
                 <input type="hidden" name="subpanel" value="{{ subpanel }}">
       
@@ -537,7 +537,7 @@
                 <button id="tier3" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer {% if classification.class == 999 %}a{% elif classification.class == 3 %}font-bold shadow-lg{% else %}bg-white opacity-50{% endif %}" title="Variants of unknown clinical significance" type="submit" name="tier3">III</button>
                 <button id="tier4" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer {% if classification.class == 999 %}a{% elif classification.class == 4 %}font-bold shadow-lg{% else %}bg-white opacity-50{% endif %}" title="Variants deemed benign or likely benign" type="submit" name="tier4">IV</button>
               </form>
-              <form id="form" action="{{ url_for('remove_classified_variant', id=variant._id) }}" method="post" class="inline-flex items-center space-x-2" >
+              <form id="form" action="{{ url_for('dna_bp.remove_classified_variant', id=variant._id) }}" method="post" class="inline-flex items-center space-x-2" >
                 <input type="hidden" name="assay" value="{{ assay }}">
                 <input type="hidden" name="subpanel" value="{{ subpanel }}">
                 {% if sel_csq.HGVSc is defined %}
@@ -589,7 +589,7 @@
         <div class="float-left max-w-screen-350 w-full bg-white shadow-md rounded-lg p-4 m-5 clear-right">
           <h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">Add new comment/annotation</h2>
           <div id="commenting_box" class="w-full bg-gray-50 border border-gray-300 p-4 rounded-md">
-            <form action="{{ url_for('add_variant_comment', id=variant._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.add_variant_comment', id=variant._id) }}" method="post">
               <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="w-full h-20 p-1 border border-gray-300 rounded-md focus:bg-yellow-100 mb-4"></textarea><br>
       
               {% if sel_csq.HGVSc is defined %}
@@ -636,12 +636,12 @@
                   </td>
                   <td class="align-top py-2 px-4 border-b border-gray-300 text-gray-800 text-left">
                     {% if comment.hidden != 1 %}
-                      <form action="{{ url_for('hide_variant_comment', var_id=variant._id) }}" method="post">
+                      <form action="{{ url_for('dna_bp.hide_variant_comment', var_id=variant._id) }}" method="post">
                         <input type="hidden" name="comment_id" value="{{ comment._id }}">
                         <input id="hide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/delete.png') }}">
                       </form>
                     {% else %}
-                      <form action="{{ url_for('unhide_variant_comment', var_id=variant._id) }}" method="post">
+                      <form action="{{ url_for('dna_bp.unhide_variant_comment', var_id=variant._id) }}" method="post">
                         <input type="hidden" name="comment_id" value="{{ comment._id }}">
                         <input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/unhide.png') }}">
                       </form>

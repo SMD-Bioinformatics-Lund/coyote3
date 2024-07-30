@@ -1,4 +1,10 @@
-{% set curr_page = request.path.split("/")[-1] %}
+{% if '/home/' in request.path %}
+  {% set curr_page = 'home' %}
+{% elif 'done' in request.path or 'live' in request.path %}
+  {% set curr_page = request.path.split("/")[-2] %}
+{% else %}
+  {% set curr_page = request.path.split("/")[-1] %}
+{% endif %}
 <!doctype html>
 <html lang="en">
 
@@ -9,6 +15,8 @@
     <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/tailwind.2.2.19.css') }}" rel="stylesheet">
     <link rel="shortcut icon" href="{{ url_for('static', filename='icons/favicon.ico') }}">
+    {% block style %}{% endblock %}
+    {% block javascript %}{% endblock %}
 </head>
 
 <body class="bg-white font-sans leading-normal tracking-normal text-sm">
@@ -29,6 +37,7 @@
                 <span class="text-gray-800 font-bold">{{ current_user.get_fullname() }}</span>
               </button>
               <div id="userDropdown" class="hidden absolute right-30 mt-2 w-40 bg-white rounded-lg shadow-lg z-50">
+                <a href="{{ url_for('dashboard_bp.dashboard') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Dashboard</a>
                 <a href="{{ url_for('profile_bp.profile') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Profile</a>
                 <a href="{{ url_for('profile_bp.change_password', username=current_user.get_id()) }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Change Password</a>
                 {% if current_user.is_admin() %}
@@ -51,6 +60,7 @@
       <div class="container mx-auto flex items-center justify-between p-2 relative">
           <div class="flex items-center space-x-4 ml-10">
               {% set navbar = {
+                  'home': 'HOME',
                   'panels': 'PANELS',
                   'tumwgs': 'TUMWGS',
                   'rna': 'RNA'
@@ -58,20 +68,20 @@
               
               {% if "/panels" in request.path %}
                   {% set navbar = {
-                      'home': 'Home',
+                      'home': 'HOME',
                       'myeloid_GMSv1': 'MYELOID',
                       'solid_GMSv3': 'SOLID',
                       'PARP_inhib': 'PARP'
                   } %}
               {% elif "/rna" in request.path %}
                   {% set navbar = {
-                      'home': 'Home',
+                      'home': 'HOME',
                       'fusion': 'MYELOID',
                       'solidRNA_GMSv5': 'SOLID'
                   } %}
               {% elif "/tumwgs" in request.path %}
                 {% set navbar = {
-                      'home': 'Home',
+                      'home': 'HOME',
                       'tumwgs-solid': 'PEDIATRIC SOLID',
                       'tumwgs-hema': 'HEMATOLOGY'
                   } %}
@@ -80,15 +90,15 @@
                   {% if name == 'home' %}
                       {% set url = url_for('home_bp.home_screen') %}
                   {% elif name == 'panels' %}
-                      {% set url = url_for('home_bp.panels_screen', assay='myeloid_GMSv1', status='live') %}
+                      {% set url = url_for('home_bp.panels_screen', assay='myeloid_GMSv1') %}
                   {% elif '/panels' in request.path %}
                       {% set url = url_for('home_bp.panels_screen', assay=name) %}
                   {% elif name == 'rna' %}
-                    {% set url = url_for('home_bp.rna_screen', assay='fusion', status='live') %}
+                    {% set url = url_for('home_bp.rna_screen', assay='fusion') %}
                   {% elif '/rna' in request.path %}
                       {% set url = url_for('home_bp.rna_screen', assay=name) %}
                   {% elif name == 'tumwgs' %}
-                    {% set url = url_for('home_bp.tumwgs_screen', assay='tumwgs-solid', status='live') %}
+                    {% set url = url_for('home_bp.tumwgs_screen', assay='tumwgs-solid') %}
                   {% elif '/tumwgs' in request.path %}
                     {% set url = url_for('home_bp.tumwgs_screen', assay=name) %}
                   {% else %}
@@ -100,7 +110,7 @@
                         <a href="{{ url }}" class="text-gray-700 hover:text-gray-500">{{ menu_label }}</a>
                     {% endif %}
               {% endfor %}
-              <a href="{{ url_for('home_bp.error_screen') }}">Error</a>
+              <!--<a href="{{ url_for('common_bp.error_screen') }}">Error</a>-->
           </div>
           {% block search %}{% endblock %}
       </div>
@@ -127,6 +137,9 @@
     });
   });
 </script>
+
+{% block script %}{% endblock %}
 {% block body %}{% endblock %}
+{% block footer %}{% endblock %}
 </body>
 </html>
