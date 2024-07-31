@@ -69,5 +69,3 @@ def unhide_sample_comment(sample_id):
         return redirect(url_for("dna_bp.list_variants", id=sample_id))
     else:
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
-
-

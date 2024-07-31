@@ -13,6 +13,7 @@ from wtforms.validators import Optional
 from coyote.extensions import store
 from coyote.blueprints.rna import rna_bp
 from coyote.extensions import util
+from coyote.blueprints.rna import filters
 
 
 @rna_bp.route("/sample/<string:id>", methods=["GET", "POST"])
@@ -183,3 +184,27 @@ def unmark_false_fusion(id):
     return redirect(url_for("rna_bp.show_fusion", id=id))
 
 
+@rna_bp.route(
+    "/fusion/pickfusioncall/<string:id>/<string:callidx>/<string:num_calls>",
+    methods=["GET", "POST"],
+)
+@login_required
+def pick_fusioncall(id, callidx, num_calls):
+    store.fusion_handler.pick_fusion(id, callidx, num_calls)
+    return redirect(url_for("rna_bp.show_fusion", id=id))
+
+
+@rna_bp.route("/fusion/hide_fusion_comment/<string:fus_id>", methods=["POST"])
+@login_required
+def hide_fusion_comment(fus_id):
+    comment_id = request.form.get("comment_id", "MISSING_ID")
+    store.fusion_handler.hide_fus_comment(var_id, comment_id)
+    return redirect(url_for("rna_bp.show_variant", id=var_id))
+
+
+@rna_bp.route("/var/unhide_variant_comment/<string:var_id>", methods=["POST"])
+@login_required
+def unhide_fusion_comment(var_id):
+    comment_id = request.form.get("comment_id", "MISSING_ID")
+    store.fusion_handler.unhide_fus_comment(var_id, comment_id)
+    return redirect(url_for("rna_bp.show_variant", id=var_id))

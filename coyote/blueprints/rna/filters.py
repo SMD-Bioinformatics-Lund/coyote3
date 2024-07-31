@@ -1,91 +1,115 @@
 from flask import current_app as app
 import os
 from urllib.parse import unquote
+from markupsafe import escape
+import arrow
+import dateutil
 
 
 @app.template_filter()
 def format_fusion_desc(st):
-    html = ""
+    if not st:
+        return ""
 
-    good_terms = [
-        "mitelman",
-        "18cancers",
-        "known",
-        "oncogene",
-        "cgp",
-        "cancer",
-        "cosmic",
-        "gliomas",
-        "oesophagus",
-        "tumor",
-        "pancreases",
-        "prostates",
-        "tcga",
-        "ticdb",
-    ]
-    verybad_terms = [
-        "1000genomes",
-        "banned",
-        "bodymap2",
-        "cacg",
-        "conjoing",
-        "cortex",
-        "cta",
-        "ctb",
-        "ctc",
-        "ctd",
-        "distance1000bp",
-        "ensembl_fully_overlapping",
-        "ensembl_same_strand_overlapping",
-        "gtex",
-        "hpa",
-        "matched-normal",
-        "mt",
-        "non_cancer_tissues",
-        "non_tumor_cells",
-        "pair_pseudo_genes",
-        "paralogs",
-        "readthrough",
-        "refseq_fully_overlapping",
-        "rp11",
-        "rp",
-        "rrna",
-        "similar_reads",
-        "similar_symbols",
-        "ucsc_fully_overlapping",
-        "ucsc_same_strand_overlapping",
-    ]
-    bad_terms = [
-        "distance100kbp",
-        "distance10kbp",
-        "duplicates",
-        "ensembl_partially_overlapping",
-        "fragments",
-        "healthy",
-        "short_repeats",
-        "long_repeats",
-        "partial-matched-normal",
-        "refseq_partially_overlapping",
-        "short_distance" "ucsc_partially_overlapping",
-    ]
+    good_terms = set(
+        [
+            "mitelman",
+            "18cancers",
+            "known",
+            "oncogene",
+            "cgp",
+            "cancer",
+            "cosmic",
+            "gliomas",
+            "oesophagus",
+            "tumor",
+            "pancreases",
+            "prostates",
+            "tcga",
+            "ticdb",
+            "high",
+        ]
+    )
 
-    if st:
-        vals = st.split(",")
+    verybad_terms = set(
+        [
+            "1000genomes",
+            "banned",
+            "bodymap2",
+            "cacg",
+            "conjoing",
+            "cortex",
+            "cta",
+            "ctb",
+            "ctc",
+            "ctd",
+            "distance1000bp",
+            "ensembl_fully_overlapping",
+            "ensembl_same_strand_overlapping",
+            "gtex",
+            "hpa",
+            "matched-normal",
+            "mt",
+            "non_cancer_tissues",
+            "non_tumor_cells",
+            "pair_pseudo_genes",
+            "paralogs",
+            "readthrough",
+            "refseq_fully_overlapping",
+            "rp11",
+            "rp",
+            "rrna",
+            "similar_reads",
+            "similar_symbols",
+            "ucsc_fully_overlapping",
+            "ucsc_same_strand_overlapping",
+        ]
+    )
 
-        for v in vals:
-            v_str = v
-            v_str = v_str.replace("<", "&lt;")
-            v_str = v_str.replace(">", "&gt;")
-            if v in good_terms:
-                html = html + "<span class='fusion fusion-good'>" + v_str + "</span>"
-            elif v in verybad_terms:
-                html = html + "<span class='fusion fusion-verybad'>" + v_str + "</span>"
-            elif v in bad_terms:
-                html = html + "<span class='fusion fusion-bad'>" + v_str + "</span>"
-            else:
-                html = html + "<span class='fusion fusion-neutral'>" + v_str + "</span>"
+    bad_terms = set(
+        [
+            "distance100kbp",
+            "distance10kbp",
+            "duplicates",
+            "ensembl_partially_overlapping",
+            "fragments",
+            "healthy",
+            "short_repeats",
+            "long_repeats",
+            "partial-matched-normal",
+            "refseq_partially_overlapping",
+            "short_distance",
+            "ucsc_partially_overlapping",
+        ]
+    )
 
-    return html
+    # Define a dictionary mapping terms to Tailwind CSS classes
+    term_to_class = {
+        **{
+            term: "bg-green-500 text-white" for term in good_terms
+        },  # green background for good terms
+        **{
+            term: "bg-red-500 text-white" for term in verybad_terms
+        },  # red background for very bad terms
+        **{term: "bg-pink-500 text-white" for term in bad_terms},  # blue background for bad terms
+    }
+
+    # Truncate to first three words (for display purposes)
+    terms = st.split(",")
+    truncated_terms = terms[:100]  # considering max 9 terms (3 rows of 3 terms)
+
+    html_parts = []
+    for i, v in enumerate(truncated_terms):
+        term_class = term_to_class.get(v.strip(), "bg-gray-500 text-white")
+        html_parts.append(
+            f"<span class='inline-block px-2 py-1 text-xs font-semibold {term_class} rounded-full'>{escape(v.strip())}</span>"
+        )
+        if (i + 1) % 3 == 0 and (i + 1) != len(
+            truncated_terms
+        ):  # Insert a line break after every third term
+            html_parts.append("<br>")
+
+    return "".join(html_parts)
 
 
 @app.template_filter()
@@ -94,3 +118,15 @@ def uniq_callers(calls):
     for c in calls:
         callers.append(c["caller"])
     return set(callers)
+
+
+@app.template_filter()
+def human_date(value):
+    time_zone = "CET"
+    return arrow.get(value).replace(tzinfo=dateutil.tz.gettz(time_zone)).humanize()
+
+
+@app.template_filter()
+def format_comment(st):
+    st = st.replace("\n", "<br />")
+    return st

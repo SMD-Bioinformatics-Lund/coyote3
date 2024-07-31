@@ -70,3 +70,26 @@ class FusionsHandler(BaseHandler):
         Unmark variant false positive status
         """
         self.mark_false_positive(fusion_id, fp)
+
+    def pick_fusion(self, id, callidx, num_calls):
+
+        for i in range(int(num_calls)):
+            self.get_collection.update(
+                {"_id": ObjectId(id)}, {"$set": {"calls." + str(i) + ".selected": 0}}
+            )
+
+        self.get_collection.update(
+            {"_id": ObjectId(id)}, {"$set": {"calls." + str(int(callidx) - 1) + ".selected": 1}}
+        )
+
+    def hide_fus_comment(self, id: str, comment_id: str) -> None:
+        """
+        Hide variant comment
+        """
+        self.hide_comment(id, comment_id)
+
+    def unhide_fus_comment(self, id: str, comment_id: str) -> None:
+        """
+        Unhide variant comment
+        """
+        self.unhide_comment(id, comment_id)

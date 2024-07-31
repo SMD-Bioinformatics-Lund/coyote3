@@ -248,7 +248,7 @@ def list_variants(id):
     )
 
 
-@app.route("/plot/<string:fn>/<string:assay>/<string:build>") # type: ignore
+@app.route("/plot/<string:fn>/<string:assay>/<string:build>")  # type: ignore
 def show_any_plot(fn, assay, build):
     if assay == "myeloid":
         if build == "38":
@@ -508,7 +508,7 @@ def classify_variant(id):
 
     if class_num != 0:
         if nomenclature == "f":
-            return redirect(url_for("show_fusion", id=id))
+            return redirect(url_for("rna_bp.show_fusion", id=id))
 
     return redirect(url_for("show_variant", id=id))
 
@@ -518,6 +518,8 @@ def classify_variant(id):
 def remove_classified_variant(id):
     form_data = request.form.to_dict()
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
+    if nomenclature == "f":
+        return redirect(url_for("rna_bp.show_fusion", id=id))
     per_assay = store.annotation_handler.delete_classified_variant(variant, nomenclature, form_data)
     app.logger.debug(per_assay)
     return redirect(url_for("show_variant", id=id))
@@ -541,7 +543,7 @@ def add_variant_comment(id):
     if nomenclature == "f":
         if _type != "global":
             store.fusion_handler.add_fusion_comment(id, doc)
-        return redirect(url_for("show_fusion", id=id))
+        return redirect(url_for("rma_bp.show_fusion", id=id))
     elif nomenclature == "t":
         if _type != "global":
             store.transloc_handler.add_transloc_comment(id, doc)
