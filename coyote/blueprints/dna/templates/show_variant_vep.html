@@ -46,7 +46,8 @@
           </form>      
         {% endif %}
       
-        {% if variant.irrelevant == true %x§}
+
+        {% if variant.irrelevant == true %}
           <form action="{{ url_for('dna_bp.unmark_irrelevant_variant', id=variant._id) }}" method="post">
             <input class="bg-green-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-yellow-600" type="submit" name="mark_irr" value="Unmark irrelevant">
           </form>

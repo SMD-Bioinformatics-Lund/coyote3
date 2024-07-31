@@ -763,13 +763,13 @@
             <td class="align-top py-2 px-4 border-b border-gray-300 text-gray-800 text-left">
               {% set hidden_exists = 0 %}
               {% if comment.hidden != 1 %}
-                <form action="{{ url_for('hide_sample_comment', sample_id=sample._id) }}" method="post">
+                <form action="{{ url_for('common_bp.hide_sample_comment', sample_id=sample._id) }}" method="post">
                   <input type="hidden" name="comment_id" value="{{ comment._id }}">
                   <input id="hide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/delete.png') }}">
                 </form>
               {% else %}
                 {% set hidden_exists = 1 %}
-                <form action="{{ url_for('unhide_sample_comment', sample_id=sample._id) }}" method="post">
+                <form action="{{ url_for('common_bp.unhide_sample_comment', sample_id=sample._id) }}" method="post">
                   <input type="hidden" name="comment_id" value="{{ comment._id }}">
                   <input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/unhide.png') }}">
                 </form>
