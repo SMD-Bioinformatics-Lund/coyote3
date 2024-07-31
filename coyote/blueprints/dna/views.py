@@ -543,7 +543,7 @@ def add_variant_comment(id):
     if nomenclature == "f":
         if _type != "global":
             store.fusion_handler.add_fusion_comment(id, doc)
-        return redirect(url_for("rma_bp.show_fusion", id=id))
+        return redirect(url_for("rna_bp.show_fusion", id=id))
     elif nomenclature == "t":
         if _type != "global":
             store.transloc_handler.add_transloc_comment(id, doc)

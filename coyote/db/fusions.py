@@ -93,3 +93,9 @@ class FusionsHandler(BaseHandler):
         Unhide variant comment
         """
         self.unhide_comment(id, comment_id)
+
+    def add_fusion_comment(self, id: str, comment: dict) -> None:
+        """
+        Add variant comment
+        """
+        self.update_comment(id, comment)
