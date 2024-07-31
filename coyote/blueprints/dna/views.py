@@ -248,7 +248,7 @@ def list_variants(id):
     )
 
 
-@app.route("/plot/<string:fn>/<string:assay>/<string:build>")
+@app.route("/plot/<string:fn>/<string:assay>/<string:build>") # type: ignore
 def show_any_plot(fn, assay, build):
     if assay == "myeloid":
         if build == "38":
@@ -263,22 +263,6 @@ def show_any_plot(fn, assay, build):
         return send_from_directory("/access/tumwgs/cov", fn)
     elif assay == "solid":
         return send_from_directory("/access/solid_hg38/plots", fn)
-
-
-@app.route("/sample/hide_sample_comment/<string:sample_id>", methods=["POST"])
-@login_required
-def hide_sample_comment(sample_id):
-    comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.sample_handler.hide_sample_comment(sample_id, comment_id)
-    return redirect(url_for("dna_bp.list_variants", id=sample_id))
-
-
-@app.route("/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"])
-@login_required
-def unhide_sample_comment(sample_id):
-    comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.sample_handler.unhide_sample_comment(sample_id, comment_id)
-    return redirect(url_for("dna_bp.list_variants", id=sample_id))
 
 
 ## Individual variant view ##

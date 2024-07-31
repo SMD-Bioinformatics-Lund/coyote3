@@ -46,7 +46,7 @@
           </form>      
         {% endif %}
       
-        {% if variant.irrelevant == true %}
+        {% if variant.irrelevant == true %x§}
           <form action="{{ url_for('dna_bp.unmark_irrelevant_variant', id=variant._id) }}" method="post">
             <input class="bg-green-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-yellow-600" type="submit" name="mark_irr" value="Unmark irrelevant">
           </form>
@@ -73,7 +73,8 @@
   </div>
 
   <center>
-    <div class="container mx-auto px-4 py-6 overflow-auto"> <!-- id="var_main" -->
+    <div class="container mx-auto px-4 py-6 overflow-auto"> 
+      <!-- id="var_main" -->
       <div class="float-left max-w-screen-325 w-full">
         <div class="float-left max-w-screen-300 w-full bg-white shadow-md rounded-lg p-4 m-5 overflow-auto">
           {% set sel_csq = variant.INFO.selected_CSQ %}

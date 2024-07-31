@@ -15,7 +15,7 @@ from coyote.blueprints.rna import rna_bp
 from coyote.extensions import util
 
 
-@rna_bp.route("/rna/sample/<string:id>", methods=["GET", "POST"])
+@rna_bp.route("/sample/<string:id>", methods=["GET", "POST"])
 @login_required
 def list_fusions(id):
     """
@@ -142,14 +142,17 @@ def list_fusions(id):
     )
 
 
-""" @app.route("/rna/fusion/<string:id>")
+@rna_bp.route("/fusion/<string:id>")
 @login_required
 def show_fusion(id):
 
     fusion = store.fusion_handler.get_fusion(id)
-    query = fusion["SAMPLE_ID"]
-    sample = store.sample_handler.get_sample_with_id(query)
+    sample = store.sample_handler.get_sample_with_id(fusion["SAMPLE_ID"])
+    print("SAMPLE")
+    print(sample)
     annotations, classification = store.fusion_handler.get_fusion_annotations(fusion)
+    print(annotations)
+    print(classification)
 
     return render_template(
         "show_fusion.html",
@@ -157,4 +160,26 @@ def show_fusion(id):
         sample=sample,
         annotations=annotations,
         classification=classification,
-    ) """
+    )
+
+
+@rna_bp.route("/fusion/fp/<string:id>", methods=["POST"])
+@login_required
+def mark_false_fusion(id):
+    """
+    Mark False Positive status of a variant in the database
+    """
+    store.fusion_handler.mark_false_positive_fusion(id)
+    return redirect(url_for("rna_bp.show_fusion", id=id))
+
+
+@rna_bp.route("/fusion/unfp/<string:id>", methods=["POST"])
+@login_required
+def unmark_false_fusion(id):
+    """
+    Unmark False Positive status of a variant in the database
+    """
+    store.fusion_handler.unmark_false_positive_fusion(id)
+    return redirect(url_for("rna_bp.show_fusion", id=id))
+
+
