@@ -74,11 +74,11 @@ class FusionsHandler(BaseHandler):
     def pick_fusion(self, id, callidx, num_calls):
 
         for i in range(int(num_calls)):
-            self.get_collection.update(
+            self.get_collection().update(
                 {"_id": ObjectId(id)}, {"$set": {"calls." + str(i) + ".selected": 0}}
             )
 
-        self.get_collection.update(
+        self.get_collection().update(
             {"_id": ObjectId(id)}, {"$set": {"calls." + str(int(callidx) - 1) + ".selected": 1}}
         )
 
