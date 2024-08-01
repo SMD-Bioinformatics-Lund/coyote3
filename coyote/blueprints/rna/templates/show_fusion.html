@@ -12,6 +12,7 @@
 					<a href="{{ url_for('rna_bp.list_fusions', id=sample.name) }}" class="text-blue-500 hover:underline text-lg">{{ sample.name }}</a>
 				  </div>
 			</div>
+
       		<!-- Right Side: Variant Actions -->
       		{% if current_user.get_role() != "readonly" %}
       		<div class="flex items-center space-x-4">
@@ -27,7 +28,6 @@
 			</div>
 			{% endif %}
 		</div>
-
 	</div>
 
 
@@ -39,7 +39,7 @@
 			<div class="float-right max-w-screen-800 w-full">
 				<div class="float-right max-w-screen-800 w-full bg-white shadow-md rounded-lg p-4 m-5 overflow-auto">
 					<!--  id="fus_moreinfo -->
-					<h2 class="text-base font-semibold mb-4 bg-indigo-300 p-2 rounded">Fusion calls from different fusioncallers</h2>
+					<h2 class="text-base font-semibold mb-4 bg-green-300 p-2 rounded">Fusion calls from different fusioncallers</h2>
 					<table class="w-full table-auto text-xs">
 						<thead><tr>
 							<th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Gene 1</th>
@@ -87,7 +87,7 @@
 				<div class="bg-white shadow-md rounded-lg p-4 m-5">
 					{% set sel_fus = (fusion.calls|selectattr('selected', 'equalto', 1) |list)[0] %}
 					<!-- Fusion informaation and partner genes -->
-					<h2 class="text-base font-semibold mb-4 bg-purple-300 p-2 rounded">Fusion Info</h2>
+					<h2 class="text-base font-semibold mb-4 bg-blue-400 p-2 rounded">Fusion Info</h2>
 					<table class="w-full table-auto text-s table">
 						<tbody>
 							<tr class="hover:bg-purple-50">
@@ -111,7 +111,7 @@
 			<!--Variant specfic comment -->
 			<div class="w-full md:w-1/4 p-2">
 				<div class="bg-white shadow-md rounded-lg p-4 m-5">
-					<h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">Variant Classification</h2>
+					<h2 class="text-base font-semibold mb-4 bg-blue-400 p-2 rounded">Variant Classification</h2>
 					<div class="w-full p-2 border mb-1 bg-gray-50">
 						<!--  id="classification" -->
 						<div class="p-2 mb-1 bg-white text-center text-xs font-semibold border divide-gray-400" id="desc{{ classification.class }}">
@@ -160,7 +160,7 @@
 			{% if current_user.get_role() != "readonly" %}
 			<div class="w-full md:w-1/4 p-2">
 				<div class="bg-white shadow-md rounded-lg p-4 m-5">
-					<h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">Add new comment/annotation</h2>
+					<h2 class="text-base font-semibold mb-4 bg-blue-400 p-2 rounded">Add new comment/annotation</h2>
 					<div id="commenting_box" class="w-full bg-gray-50 border border-gray-300 p-4 rounded-md">
 					  <form action="{{ url_for('dna_bp.add_variant_comment', id=fusion._id) }}" method="post">
 						<textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="w-full h-20 p-1 border border-gray-300 rounded-md focus:bg-yellow-100 mb-4"></textarea><br>
@@ -186,7 +186,7 @@
 			{% if current_user.get_role() != "readonly" %}
 			<div class="w-full md:w-1/4 p-2">
 				<div class="bg-white shadow-md rounded-lg p-4 m-5">
-					<h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">Sample-Specific Variant Comments</h2>
+					<h2 class="text-base font-semibold mb-4 bg-blue-400 p-2 rounded">Variant Specific Comments</h2>
 					<table class="w-full table-auto text-xs">
 					  <thead>
 						<tr>
