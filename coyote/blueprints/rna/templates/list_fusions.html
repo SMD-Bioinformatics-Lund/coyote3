@@ -160,7 +160,7 @@
   <div class="bg-white shadow-md rounded-lg p-4 mb-4">
     <span class="table_header text-xl font-semibold">Fusions passing filter criteria</span>
     <div class="overflow-auto">
-      <table class="min-w-full mt-4 table-auto text-xs">
+      <table class="min-w-full mt-4 table-auto text-xs sortable">
         <thead>
           <tr class="bg-gradient-to-r from-blue-300 to-pink-300 text-black">
             <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">Gene 1</th>
@@ -226,130 +226,139 @@
   </div>
   {% endif %}
 
-  <!-- exrpression classification -->
-  {% if sample.classification %}
-    <span class="table_header"
-      >Expression-based classification
-      ({{sample.classification.classifier_version}})</span
-    >
-    <table class="sortable" id="fusion_list_table" style="width: 320px">
-      <thead>
-        <tr>
-          <th>Class</th>
-          <th>Score</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for c in sample.classification.classifier_results %}
-        <tr>
-          <td>{{ c.class }}</td>
-          <td>
-            <div
-              style="
-                text-align: center;
-                position: relative;
-                z-index: 1;
-                width: 200px;
-                height: 100%;
-                margin: 0px 0px;
-                border: 1px solid rgb(50, 50, 50);
-              "
-            >
-              <div
-                style="position:absolute;z-index:-1;width:{{ (c.score * 100)|string }}%;height:100%;background-color:#acf;"
-              ></div>
-              {{ '%0.2f'| format(c.score) }}
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% endif %} 
+  <div class="flex flex-wrap">
+    <!-- exrpression classification -->
+    <div class="w-full md:w-1/2 p-2">
+      {% if sample.classification %}
+      
+      <div class="bg-white shadow-md rounded-lg p-4 mb-4">
+        <span class="table_header text-xl font-semibold">Expression-based classification
+          ({{sample.classification.classifier_version}})</span>
+        <div class="overflow-auto">
+          <table class="min-w-full mt-4 table-auto text-xs sortable">
+            <thead>
+              <tr class="bg-gradient-to-r from-blue-300 to-pink-300 text-black">
+                <th class="py-2 px-3 border-b-2 text-left uppercase font-semibold">Class</th>
+                <th class="py-2 px-3 border-b-2 text-left uppercase font-semibold">Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in sample.classification.classifier_results %}
+              <tr >
+                <td class="py-2 px-3 border-b border-gray-300">{{ c.class }}</td>
+                <td class="py-2 px-3 border-b border-gray-300">
+                  <div style="text-align: center;
+                              position: relative;
+                              z-index: 1;
+                              width: 200px;
+                              height: 100%;
+                              margin: 0px 0px;
+                              border: 1px solid rgb(50, 50, 50);">
+                              <div style="position:absolute;z-index:-1;width:{{ (c.score * 100)|string }}%;height:100%;background-color:#acf;"></div>
+                            {{ '%0.2f'| format(c.score) }}
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %} 
+    </div>
 
-
-  <!-- Selected genes exprs -->  
-  {% if sample.expr %}
-    <span class="table_header">Expression levels of selected genes</span>
-    <table class="sortable" id="fusion_list_table" style="width: 320px">
-      <thead>
-        <th>Gene</th>
-        <th>TPM</th>
-        <th>TPM mean</th>
-        <th>Z-score</th>
-      </thead>
-      <tbody>
-        {% for data in sample.expr.sample %} {% if data.hgnc_symbol %}
-        <tr>
-          {% set zscore = data.z %}
-          <td>{{ data.hgnc_symbol }}</td>
-          <td>{{ '%0.2f'| format(data.sample_expression)}}</td>
-          <td>{{ '%0.2f'| format(data.reference_mean)}}</td>
-          <td>
-            {% if zscore >= 0 %}
-            <div
-              style="
-                text-align: left;
-                padding-left: 2px;
-                position: relative;
-                z-index: 1;
-                width: 200px;
-                height: 100%;
-                margin: 0px 0px;
-                border: 1px solid rgb(50, 50, 50);
-              "
-            >
-              <div
-                style="
-                  position: absolute;
-                  left: 100px;
-                  z-index: 0;
-                  width: 1px;
-                  height: 100%;
-                  background-color: #555;
-                "
-              ></div>
-              <div
-                style="position:absolute;left:101px;z-index:-1;width:{{ 2+ zscore * 6 }}px;height:100%;background-color:#8E8;"
-              ></div>
-              {{ '%0.2f'| format(zscore) }}
-            </div>
-            {% else %}
-            <div
-              style="
-                text-align: left;
-                padding-left: 2px;
-                position: relative;
-                z-index: 1;
-                width: 200px;
-                height: 100%;
-                margin: 0px 0px;
-                border: 1px solid rgb(50, 50, 50);
-              "
-            >
-              <div
-                style="
-                  position: absolute;
-                  left: 100px;
-                  z-index: 0;
-                  width: 1px;
-                  height: 100%;
-                  background-color: #555;
-                "
-              ></div>
-              <div
-                style="position:absolute;left:{{ 100+zscore*6 }}px;z-index:-1;width:{{ -zscore * 6 +1 }}px;height:100%;background-color:#faa;"
-              ></div>
-              {{ '%0.2f'| format(zscore) }}
-            </div>
-            {% endif %}
-          </td>
-          {% endif %}
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% endif %}
+     <!-- Selected genes exprs -->  
+    <div class="w-full md:w-1/2 p-2">
+      {% if sample.expr %}
+      <div class="bg-white shadow-md rounded-lg p-4 mb-4">
+        <span class="table_header text-xl font-semibold">Expression levels of selected genes</span>
+        <div class="overflow-auto">
+          <table class="min-w-full mt-4 table-auto text-xs sortable">
+            <thead>
+              <tr class="bg-gradient-to-r from-blue-300 to-pink-300 text-black">
+                <th class="py-2 px-3 border-b-2 text-left uppercase font-semibold">Gene</th>
+                <th class="py-2 px-3 border-b-2 text-left uppercase font-semibold">TPM</th>
+                <th class="py-2 px-3 border-b-2 text-left uppercase font-semibold">TPM mean</th>
+                <th class="py-2 px-3 border-b-2 text-left uppercase font-semibold">Z-Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for data in sample.expr.sample %}
+                {% if data.hgnc_symbol %}
+                <tr>
+                  {% set zscore = data.z %}
+                  <td class="py-2 px-3 border-b border-gray-300">{{ data.hgnc_symbol }}</td>
+                  <td class="py-2 px-3 border-b border-gray-300">{{ '%0.2f'| format(data.sample_expression) }}</td>
+                  <td class="py-2 px-3 border-b border-gray-300">{{ '%0.2f'| format(data.reference_mean)}}</td>
+                  <td> 
+                    {% if zscore >= 0 %}
+                    <div
+                    style="
+                      text-align: left;
+                      padding-left: 2px;
+                      position: relative;
+                      z-index: 1;
+                      width: 200px;
+                      height: 100%;
+                      margin: 0px 0px;
+                      border: 1px solid rgb(50, 50, 50);
+                    "
+                  >
+                    <div
+                      style="
+                        position: absolute;
+                        left: 100px;
+                        z-index: 0;
+                        width: 1px;
+                        height: 100%;
+                        background-color: #555;
+                      "
+                    ></div>
+                    <div
+                      style="position:absolute;left:101px;z-index:-1;width:{{ 2+ zscore * 6 }}px;height:100%;background-color:#8E8;"
+                    ></div>
+                    {{ '%0.2f'| format(zscore) }}
+                  </div>
+                    {% else %}
+                    <div
+                    style="
+                      text-align: left;
+                      padding-left: 2px;
+                      position: relative;
+                      z-index: 1;
+                      width: 200px;
+                      height: 100%;
+                      margin: 0px 0px;
+                      border: 1px solid rgb(50, 50, 50);
+                    "
+                  >
+                    <div
+                      style="
+                        position: absolute;
+                        left: 100px;
+                        z-index: 0;
+                        width: 1px;
+                        height: 100%;
+                        background-color: #555;
+                      "
+                    ></div>
+                    <div
+                      style="position:absolute;left:{{ 100+zscore*6 }}px;z-index:-1;width:{{ -zscore * 6 +1 }}px;height:100%;background-color:#faa;"
+                    ></div>
+                    {{ '%0.2f'| format(zscore) }}
+                  </div>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %} 
+    </div>    
+  </div>
   
   <!-- Sample Comments -->
   <div id="sample_comments" class="bg-white shadow-md rounded-lg p-6 mb-6">
