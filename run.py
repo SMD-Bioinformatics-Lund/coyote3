@@ -1,29 +1,33 @@
-"""Application entry point."""
-
 import logging.config
+from logging import Logger
+from typing import Dict, Any
+
+from flask import Flask
+import gunicorn.glogging
 from coyote import init_app
-from gunicorn import glogging
-import logging
-import logging_setup
 from logging_setup import custom_logging
+import os
 
 
 if __name__ != "__main__":
     print("Setting up Gunicorn logging.")
-    app = init_app()
-    custom_logging(app.config.get("LOGS"), gunicorn_logging=True)
+    app: Flask = init_app()
+    log_dir: str | Any = os.getenv("LOG_DIR", app.config.get("LOGS", "logs/prod"))
+    # custom_logging(log_dir, app.config.get("PRODUCTION", False), gunicorn_logging=True)
     app.secret_key = "SomethingSecret"
 
-    # print(glogging.CONFIG_DEFAULTS)
-    gunicorn_logger = logging.getLogger("gunicorn.error")
+    # print(gunicorn.glogging.CONFIG_DEFAULTS)
+    gunicorn_logger: Logger = logging.getLogger("gunicorn.error")
     app.logger.handlers = gunicorn_logger.handlers
     app.logger.setLevel(gunicorn_logger.level)
 
 if __name__ == "__main__":
     app = init_app()
-    custom_logging(app.config.get("LOGS"), gunicorn_logging=False)
+    log_dir = os.getenv("LOG_DIR", app.config.get("LOGS", "logs/prod"))
+    custom_logging(log_dir, app.config.get("PRODUCTION", False), gunicorn_logging=False)
     app.secret_key = "SomethingSecret"
     app.run(host="0.0.0.0", port=5001)
+
 
 """ docker network error
 

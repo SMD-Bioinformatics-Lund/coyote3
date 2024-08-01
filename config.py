@@ -21,6 +21,7 @@ CONFIG UTIL FUNCTIONS:
 class DefaultConfig:
     APP_VERSION = app_version
     LOGS = "logs"
+    PRODUCTION = False
 
     WTF_CSRF_ENABLED = True
     SECRET_KEY: str | None = os.getenv("FLASK_SECRET_KEY")
@@ -173,6 +174,7 @@ class ProductionConfig(DefaultConfig):
     """
 
     LOGS = "logs/prod"
+    PRODUCTION = True
     APP_VERSION: str = f"{app_version}"
     SECRET_KEY: str | None = os.getenv("FLASK_SECRET_KEY")
 
@@ -183,7 +185,7 @@ class DevelopmentConfig(DefaultConfig):
     """
 
     LOGS = "logs/dev"
-
+    PRODUCTION = False
     SECRET_KEY = "traskbatfluga"
     APP_VERSION: str = f"{app_version}-DEV (git: {CommonUtility.get_active_branch_name()})"
 
@@ -194,7 +196,7 @@ class TestConfig(DefaultConfig):
     """
 
     LOGS = "logs/test"
-
+    PRODUCTION = False
     # Paths to config files for testing:
     _PATH_ASSAY_CONFIG = "tests/config/assays.conf.toml"
     _PATH_CUTOFF_CONFIG = "tests/config/cutoffs.conf.toml"

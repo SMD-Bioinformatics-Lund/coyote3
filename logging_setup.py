@@ -1,10 +1,12 @@
-from typing import Any, Dict, Literal
 import logging
-from logging.handlers import RotatingFileHandler
-from gunicorn import glogging
+from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime, timedelta
-from pathlib import Path
+from typing import Any, Dict, Literal
+import colorlog
 from flask import request
+from pathlib import Path
+import os
+from gunicorn import glogging
 
 
 class RequestFilter(logging.Filter):
@@ -14,78 +16,112 @@ class RequestFilter(logging.Filter):
         return True
 
 
-def get_custom_config(log_dir: str) -> dict[str, Any]:
+class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
+    def __init__(self, *args, days_to_keep=15, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.days_to_keep = days_to_keep
 
+    def doRollover(self):
+        super().doRollover()
+        self.clean_old_log_files()
+
+    def clean_old_log_files(self):
+        cutoff = datetime.now() - timedelta(days=self.days_to_keep)
+        log_dir = Path(self.base).parent
+        for log_file in log_dir.glob("*.log"):
+            if log_file.is_file() and datetime.fromtimestamp(log_file.stat().st_mtime) < cutoff:
+                try:
+                    os.remove(log_file)
+                    print(f"Deleted old log file: {log_file}")
+                except Exception as e:
+                    print(f"Error deleting file {log_file}: {e}")
+
+
+def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
     today = datetime.now().strftime("%Y-%m-%d")
 
-    custom_config: Dict[str, Any] = {
+    handlers = {
+        "console": {
+            "class": "colorlog.StreamHandler",
+            "formatter": "colorized",
+            "stream": "ext://sys.stdout",
+            "filters": ["request_filter"],
+        },
+        "error_console": {
+            "class": "colorlog.StreamHandler",
+            "formatter": "colorized",
+            "stream": "ext://sys.stderr",
+            "filters": ["request_filter"],
+        },
+        "file_info": {
+            "level": "INFO",
+            "()": "logging_setup.CustomTimedRotatingFileHandler",
+            "formatter": "standard",
+            "filters": ["request_filter"],
+            "filename": f"{log_dir}/info_{today}.log",
+            "when": "midnight",
+            "backupCount": 15,
+            "days_to_keep": 15,
+        },
+        "file_error": {
+            "level": "ERROR",
+            "()": "logging_setup.CustomTimedRotatingFileHandler",
+            "formatter": "standard",
+            "filters": ["request_filter"],
+            "filename": f"{log_dir}/error_{today}.log",
+            "when": "midnight",
+            "backupCount": 15,
+            "days_to_keep": 15,
+        },
+    }
+
+    if not is_production:
+        handlers["file_debug"] = {
+            "level": "DEBUG",
+            "()": "logging_setup.CustomTimedRotatingFileHandler",
+            "formatter": "standard",
+            "filters": ["request_filter"],
+            "filename": f"{log_dir}/debug_{today}.log",
+            "when": "midnight",
+            "backupCount": 15,
+            "days_to_keep": 15,
+        }
+
+    loggers = {
+        "coyote": {
+            "level": "DEBUG" if not is_production else "INFO",
+            "handlers": ["console", "file_info", "file_error"]
+            + (["file_debug"] if not is_production else []),
+            "propagate": False,
+            "qualname": "coyote",
+        },
+        "gunicorn.error": {
+            "level": "WARNING",
+            "handlers": ["error_console", "file_error"],
+            "propagate": True,
+            "qualname": "gunicorn.error",
+        },
+        "gunicorn.access": {
+            "level": "INFO",
+            "handlers": ["console", "file_info"],
+            "propagate": True,
+            "qualname": "gunicorn.access",
+        },
+    }
+
+    return {
         "version": 1,
-        "disable_existing_loggers": False,
-        "root": {"level": "INFO", "handlers": ["console", "file_info", "file_error", "file_debug"]},
-        "loggers": {
-            "coyote": {
-                "level": "INFO",
-                "handlers": ["console", "file_info", "file_error", "file_debug"],
-                "propagate": False,
-                "qualname": "coyote",
-            },
-            "gunicorn.error": {
-                "level": "INFO",
-                "handlers": ["error_console", "file_error"],
-                "propagate": True,
-                "qualname": "gunicorn.error",
-            },
-            "gunicorn.access": {
-                "level": "INFO",
-                "handlers": ["console", "file_info"],
-                "propagate": True,
-                "qualname": "gunicorn.access",
-            },
+        "disable_existing_loggers": True,
+        "root": {
+            "level": "INFO",
+            "handlers": ["console", "file_info", "file_error"]
+            + (["file_debug"] if not is_production else []),
         },
-        "handlers": {
-            "console": {
-                "class": "logging.StreamHandler",
-                "formatter": "generic",
-                "stream": "ext://sys.stdout",
-                "filters": ["request_filter"],
-            },
-            "error_console": {
-                "class": "logging.StreamHandler",
-                "formatter": "generic",
-                "stream": "ext://sys.stderr",
-                "filters": ["request_filter"],
-            },
-            "file_info": {
-                "level": "INFO",
-                "class": "logging.handlers.RotatingFileHandler",
-                "formatter": "standard",
-                "filters": ["request_filter"],
-                "filename": f"{log_dir}/info_{today}.log",
-                "maxBytes": 5 * 1024 * 1024,  # 5 MB
-                "backupCount": 10,
-            },
-            "file_error": {
-                "level": "ERROR",
-                "class": "logging.handlers.RotatingFileHandler",
-                "formatter": "standard",
-                "filters": ["request_filter"],
-                "filename": f"{log_dir}/error_{today}.log",
-                "maxBytes": 5 * 1024 * 1024,  # 5 MB
-                "backupCount": 10,
-            },
-            "file_debug": {
-                "level": "DEBUG",
-                "class": "logging.handlers.RotatingFileHandler",
-                "formatter": "standard",
-                "filters": ["request_filter"],
-                "filename": f"{log_dir}/debug_{today}.log",
-                "maxBytes": 5 * 1024 * 1024,  # 5 MB
-                "backupCount": 10,
-            },
-        },
+        "loggers": loggers,
+        "handlers": handlers,
         "formatters": {
             "generic": {
-                "format": "%(asctime)s - [%(process)d] - [%(levelname)s] - %(message)s",
+                "format": "%(asctime)s - [%(process)d] - [%(name)s] - [%(levelname)s] - %(message)s",
                 "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
                 "class": "logging.Formatter",
             },
@@ -93,6 +129,18 @@ def get_custom_config(log_dir: str) -> dict[str, Any]:
                 "format": "%(asctime)s - [%(process)d] - [%(name)s] - [%(levelname)s] - [%(remote_addr)s] - [%(host)s] - %(message)s",
                 "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
                 "class": "logging.Formatter",
+            },
+            "colorized": {
+                "format": "%(log_color)s%(asctime)s - [%(process)d] - [%(name)s] - [%(levelname)s] - [%(remote_addr)s] - [%(host)s] - %(message)s",
+                "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
+                "class": "colorlog.ColoredFormatter",
+                "log_colors": {
+                    "DEBUG": "cyan",
+                    "INFO": "green",
+                    "WARNING": "yellow",
+                    "ERROR": "red",
+                    "CRITICAL": "red,bg_white",
+                },
             },
         },
         "filters": {
@@ -102,31 +150,29 @@ def get_custom_config(log_dir: str) -> dict[str, Any]:
         },
     }
 
-    return custom_config
+
+def setup_gunicorn_logging(log_dir: str, is_production: bool = False) -> None:
+    try:
+        Path(log_dir).mkdir(parents=True, exist_ok=True)
+        glogging.dictConfig(get_custom_config(log_dir, is_production))
+    except Exception as e:
+        print(f"Failed to setup gunicorn logging: {e}")
+        raise
 
 
-def setup_gunicorn_logging(log_dir: str) -> None:
-    Path(log_dir).mkdir(parents=True, exist_ok=True)
-    glogging.dictConfig(get_custom_config(log_dir))
+def setup_app_logging(log_dir: str, is_production: bool = False) -> None:
+    try:
+        Path(log_dir).mkdir(parents=True, exist_ok=True)
+        logging.config.dictConfig(get_custom_config(log_dir, is_production))
+    except Exception as e:
+        print(f"Failed to setup app logging: {e}")
+        raise
 
 
-def setup_app_logging(log_dir: str) -> None:
-    Path(log_dir).mkdir(parents=True, exist_ok=True)
-    logging.config.dictConfig(get_custom_config(log_dir))
-
-
-def custom_logging(log_dir: str, gunicorn_logging: bool = False) -> None:
+def custom_logging(
+    log_dir: str, is_production: bool = False, gunicorn_logging: bool = False
+) -> None:
     if gunicorn_logging:
-        setup_gunicorn_logging(log_dir)
+        setup_gunicorn_logging(log_dir, is_production)
     else:
-        setup_app_logging(log_dir)
-
-
-def delete_logs(logs_path: str) -> None:
-    for log_type in ["info", "error", "debug"]:
-        for i in range(11, 21):  # Consider files up to 20 days old for deletion
-            old_log_file = f"{logs_path}/{log_type}_{(datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')}.log"
-            try:
-                Path(old_log_file).unlink()
-            except FileNotFoundError:
-                pass
+        setup_app_logging(log_dir, is_production)
