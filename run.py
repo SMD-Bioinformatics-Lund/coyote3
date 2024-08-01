@@ -26,7 +26,7 @@ if __name__ == "__main__":
     log_dir = os.getenv("LOG_DIR", app.config.get("LOGS", "logs/prod"))
     custom_logging(log_dir, app.config.get("PRODUCTION", False), gunicorn_logging=False)
     app.secret_key = "SomethingSecret"
-    app.run(host="0.0.0.0", port=5001)
+    app.run(host="0.0.0.0")
 
 
 """ docker network error
