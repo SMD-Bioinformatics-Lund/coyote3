@@ -16,6 +16,7 @@ from coyote.blueprints.dna.varqueries import build_query
 from coyote.blueprints.dna import varqueries_notbad
 from coyote.blueprints.dna import filters
 from coyote.extensions import util
+import logging
 
 
 @dna_bp.route("/sample/<string:id>", methods=["GET", "POST"])
@@ -24,6 +25,11 @@ def list_variants(id):
 
     # Find sample data by name
     sample = store.sample_handler.get_sample(id)  # id = name
+    app.logger.debug(sample.get("_id"))
+    app.logger.info(sample.get("_id"))
+    app.logger.error(sample.get("_id"))
+    app.logger.warning(sample.get("_id"))
+    app.logger.critical(sample.get("_id"))
 
     # Get sample data by id if name is none
     if sample is None:
@@ -45,9 +51,9 @@ def list_variants(id):
     assay = util.common.get_assay_from_sample(sample)
     subpanel = sample.get("subpanel")
 
-    app.logger.info(app.config["GROUP_CONFIGS"])  # get group config from app config instead
-    app.logger.info(f"the sample has these groups {smp_grp}")
-    app.logger.info(f"this is the group from collection {group_params}")
+    app.logger.debug(app.config["GROUP_CONFIGS"])  # get group config from app config instead
+    app.logger.debug(f"the sample has these groups {smp_grp}")
+    app.logger.debug(f"this is the group from collection {group_params}")
     # group = store.group_handler.get_sample_groups( sample["groups"][0] ) # this is the old way of getting group config from mongodb
 
     ## GENEPANELS ##
@@ -134,8 +140,8 @@ def list_variants(id):
         },
         group_params,
     )
-    app.logger.info("this is the old varquery: %s", pformat(query))
-    app.logger.info("this is the new varquery: %s", pformat(query2))
+    app.logger.debug("this is the old varquery: %s", pformat(query))
+    app.logger.debug("this is the new varquery: %s", pformat(query2))
     variants_iter = store.variant_handler.get_case_variants(query)
     # Find all genes matching the query
     variants, genes = store.variant_handler.get_protein_coding_genes(variants_iter)

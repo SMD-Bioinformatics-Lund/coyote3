@@ -96,8 +96,8 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
             "qualname": "coyote",
         },
         "gunicorn.error": {
-            "level": "WARNING",
-            "handlers": ["error_console", "file_error"],
+            "level": "INFO",
+            "handlers": ["console", "file_error"],
             "propagate": True,
             "qualname": "gunicorn.error",
         },
@@ -111,7 +111,7 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
 
     return {
         "version": 1,
-        "disable_existing_loggers": True,
+        "disable_existing_loggers": False,
         "root": {
             "level": "INFO",
             "handlers": ["console", "file_info", "file_error"]
@@ -176,3 +176,11 @@ def custom_logging(
         setup_gunicorn_logging(log_dir, is_production)
     else:
         setup_app_logging(log_dir, is_production)
+
+
+def add_unique_handlers(logger, handlers):
+    existing_handlers = {h.__class__.__name__ for h in logger.handlers}
+    for handler in handlers:
+        if handler.__class__.__name__ not in existing_handlers:
+            logger.addHandler(handler)
+            existing_handlers.add(handler.__class__.__name__)
