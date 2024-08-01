@@ -3,6 +3,7 @@
 import os
 import ssl
 import toml
+from typing import Literal, Any
 
 from coyote.__version__ import __version__ as app_version
 from coyote.util.common_utility import CommonUtility
@@ -19,14 +20,15 @@ CONFIG UTIL FUNCTIONS:
 
 class DefaultConfig:
     APP_VERSION = app_version
+    LOGS = "logs"
 
     WTF_CSRF_ENABLED = True
-    SECRET_KEY = os.getenv("FLASK_SECRET_KEY")
+    SECRET_KEY: str | None = os.getenv("FLASK_SECRET_KEY")
 
     SESSION_COOKIE_NAME = "coyote"
 
-    MONGO_HOST = os.getenv("FLASK_MONGO_HOST") or "localhost"
-    MONGO_PORT = os.getenv("FLASK_MONGO_PORT") or 27017
+    MONGO_HOST: str = os.getenv("FLASK_MONGO_HOST") or "localhost"
+    MONGO_PORT: str | Literal[27017] = os.getenv("FLASK_MONGO_PORT") or 27017
     # MONGO_DB_NAME = "coyote"
     MONGO_DB_NAME = "coyote_dev"
     BAM_SERVICE_DB_NAME = "BAM_Service"
@@ -41,7 +43,7 @@ class DefaultConfig:
     LDAP_USER_DN = "ou=people"
 
     _PATH_GROUPS_CONFIG = "config/groups.toml"
-    GROUP_FILTERS = {
+    GROUP_FILTERS: dict[str, Any] = {
         "warn_cov": 500,
         "error_cov": 100,
         "default_popfreq": 1.0,
@@ -69,7 +71,7 @@ class DefaultConfig:
         "default_checked_fusioncallers": [],
         "default_checked_cnveffects": [],
     }
-    TRANS = {
+    TRANS: dict[str, str] = {
         "nonsynonymous_SNV": "missense SNV",
         "stopgain": "stop gain",
         "frameshift_insertion": "frameshift ins",
@@ -81,7 +83,7 @@ class DefaultConfig:
         "frameshift_variant": "frameshift variant",
     }
 
-    ASSAY_MAPPER = {
+    ASSAY_MAPPER: dict[str, list[str]] = {
         "exome": ["exome_trio"],
         "myeloid": [
             "myeloid",
@@ -102,7 +104,7 @@ class DefaultConfig:
         "fusionrna": ["solidRNA_GMSv5"],
     }
 
-    CONSEQ_TERMS_MAPPER = {
+    CONSEQ_TERMS_MAPPER: dict[str, list[str]] = {
         "splicing": ["splice_acceptor_variant", "splice_donor_variant", "splice_region_variant"],
         "stop_gained": ["stop_gained"],
         "frameshift": ["frameshift_variant"],
@@ -120,7 +122,7 @@ class DefaultConfig:
         "feature_elon_trunc": ["feature_elongation", "feature_truncation"],
     }
 
-    NCBI_CHR = {
+    NCBI_CHR: dict[str, str] = {
         "1": "NC_000001",
         "2": "NC_000002",
         "3": "NC_000003",
@@ -154,20 +156,36 @@ class DefaultConfig:
     SANGER_URL = "http://10.0.224.63/coyote/var/"
 
     @property
-    def MONGO_URI(self):
+    def MONGO_URI(self) -> str:
         """
         Construct a mongo uri config property
         """
         return f"mongodb://{self.MONGO_HOST}:{self.MONGO_PORT}/{self.MONGO_DB_NAME}"
 
     @property
-    def GROUP_CONFIGS(self):
+    def GROUP_CONFIGS(self) -> dict[str, Any]:
         return toml.load(self._PATH_GROUPS_CONFIG)
 
 
+class ProductionConfig(DefaultConfig):
+    """
+    Production configuration.
+    """
+
+    LOGS = "logs/prod"
+    APP_VERSION: str = f"{app_version}"
+    SECRET_KEY: str | None = os.getenv("FLASK_SECRET_KEY")
+
+
 class DevelopmentConfig(DefaultConfig):
+    """
+    Development configuration.
+    """
+
+    LOGS = "logs/dev"
+
     SECRET_KEY = "traskbatfluga"
-    APP_VERSION = f"{app_version}-DEV (git: {CommonUtility.get_active_branch_name()})"
+    APP_VERSION: str = f"{app_version}-DEV (git: {CommonUtility.get_active_branch_name()})"
 
 
 class TestConfig(DefaultConfig):
@@ -175,10 +193,14 @@ class TestConfig(DefaultConfig):
     For future test code.
     """
 
+    LOGS = "logs/test"
+
     # Paths to config files for testing:
     _PATH_ASSAY_CONFIG = "tests/config/assays.conf.toml"
     _PATH_CUTOFF_CONFIG = "tests/config/cutoffs.conf.toml"
     _PATH_TABLE_CONFIG = "tests/config/tables.conf.toml"
+
+    APP_VERSION: str = f"{app_version}-Test (git: {CommonUtility.get_active_branch_name()})"
 
     MONGO_HOST = "localhost"
     MONGO_PORT = 27017

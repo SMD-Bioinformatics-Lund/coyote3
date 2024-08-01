@@ -2,7 +2,6 @@
 
 from flask import Flask
 from flask_cors import CORS
-
 import config
 from . import extensions
 
@@ -21,7 +20,7 @@ def init_app(testing: bool = False) -> Flask:
         app.config.from_object(config.TestConfig())
 
     elif app.debug:
-        app.logger.debug(
+        app.logger.warning(
             "Debug mode ON. "
             "(Jag ropar ut mitt innersta hav, jag ropar ut all min skit och allt mitt skav!)"
         )
@@ -29,8 +28,8 @@ def init_app(testing: bool = False) -> Flask:
         app.config.from_object(config.DevelopmentConfig())
 
     else:
-        app.logger.info("Loading config.DefaultConfig")
-        app.config.from_object(config.DefaultConfig())  # Note initialization of Config
+        app.logger.info("Loading config.ProductionConfig")
+        app.config.from_object(config.ProductionConfig())  # Note initialization of Config
 
     app.logger.info("Initializing app extensions + blueprints:")
     with app.app_context():
