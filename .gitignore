@@ -142,3 +142,4 @@ run_dev.py
 *.backup_default
 app.log*
 test
+logs/

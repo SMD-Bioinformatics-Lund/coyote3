@@ -320,6 +320,6 @@ class CommonUtility:
     @staticmethod
     def filter_non_zero_data(data) -> dict:
         """
-        Remove Non Zero items 
+        Remove Non Zero items
         """
         return {k: v for k, v in data.items() if v > 0}
