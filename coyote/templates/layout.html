@@ -20,6 +20,25 @@
 </head>
 
 <body class="bg-white font-sans leading-normal tracking-normal text-sm">
+  <div class="container mx-auto mt-5">
+    <!-- Flash messages -->
+    <div id="alert-container" class="fixed top-5 right-5 z-50 space-y-2">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="flash-message bg-{{ category }}-100 border border-{{ category }}-400 text-{{ category }}-700 px-4 py-3 rounded relative" role="alert">
+              <span class="block sm:inline">{{ message }}</span>
+              <button type="button" class="absolute top-0 right-0 px-4 py-3" onclick="this.parentElement.style.display='none';">
+                <svg class="fill-current h-6 w-6 text-{{ category }}-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                  <path d="M14.348 5.652a.5.5 0 00-.707 0L10 9.293 6.36 5.652a.5.5 0 10-.707.707L9.293 10l-3.64 3.64a.5.5 0 10.707.707L10 10.707l3.64 3.64a.5.5 0 10.707-.707L10.707 10l3.64-3.64a.5.5 0 000-.707z"/>
+                </svg>
+              </button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
+  </div>
   <div class="bg-white">
     <div class="container mx-auto flex items-center justify-between p-4">
       <div class="flex items-center space-x-2">
@@ -135,8 +154,21 @@
     userDropdown.addEventListener('click', function(event) {
       event.stopPropagation();
     });
+
+    const alerts = document.querySelectorAll('.flash-message');
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            alert.classList.add('visible');
+        }, 100);
+
+        setTimeout(() => {
+            alert.classList.remove('visible');
+            setTimeout(() => alert.style.display = 'none', 500); // Additional delay to allow transition
+        }, 5000);
+    });
   });
 </script>
+
 
 {% block script %}{% endblock %}
 {% block body %}{% endblock %}

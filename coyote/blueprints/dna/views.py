@@ -4,7 +4,7 @@ Coyote case variants
 
 from flask import abort
 from flask import current_app as app
-from flask import redirect, render_template, request, url_for, send_from_directory
+from flask import redirect, render_template, request, url_for, send_from_directory, flash
 from flask_login import current_user, login_required
 from pprint import pformat
 from coyote.blueprints.dna.forms import FilterForm, GeneForm
