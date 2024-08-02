@@ -7,16 +7,15 @@ from flask import current_app as app
 from flask import redirect, render_template, request, url_for, send_from_directory, flash
 from flask_login import current_user, login_required
 from pprint import pformat
-from coyote.blueprints.dna.forms import FilterForm, GeneForm
+from coyote.blueprints.dna.forms import GeneForm
 from wtforms import BooleanField
-from wtforms.validators import Optional
 from coyote.extensions import store
 from coyote.blueprints.dna import dna_bp
 from coyote.blueprints.dna.varqueries import build_query
 from coyote.blueprints.dna import varqueries_notbad
 from coyote.blueprints.dna import filters
 from coyote.extensions import util
-import logging
+from typing import Literal, Any
 
 
 @dna_bp.route("/sample/<string:id>", methods=["GET", "POST"])
@@ -25,18 +24,14 @@ def list_variants(id):
 
     # Find sample data by name
     sample = store.sample_handler.get_sample(id)  # id = name
-    app.logger.debug(sample.get("_id"))
-    app.logger.info(sample.get("_id"))
-    app.logger.error(sample.get("_id"))
-    app.logger.warning(sample.get("_id"))
-    app.logger.critical(sample.get("_id"))
 
     # Get sample data by id if name is none
     if sample is None:
         sample = store.sample_handler.get_sample_with_id(id)  # id = id
 
     sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
-    ## Check the leght of the sample groups from db, and if len is more than one, tumwgs-solid or tumwgs-hema takes the priority in new coyote
+
+    ## Check the length of the sample groups from db, and if len is more than one, tumwgs-solid or tumwgs-hema takes the priority in new coyote
     sample_groups = sample.get("groups")
     if len(sample_groups) > 1:
         for group in sample_groups:
@@ -48,13 +43,13 @@ def list_variants(id):
 
     group_params = util.common.get_group_parameters(smp_grp)
     settings = util.common.get_group_defaults(group_params)
-    assay = util.common.get_assay_from_sample(sample)
+    assay: str | None | Literal["unknown"] = util.common.get_assay_from_sample(sample)
     subpanel = sample.get("subpanel")
 
-    app.logger.debug(app.config["GROUP_CONFIGS"])  # get group config from app config instead
+    # get group config from app config instead
+    app.logger.debug(app.config["GROUP_CONFIGS"])
     app.logger.debug(f"the sample has these groups {smp_grp}")
     app.logger.debug(f"this is the group from collection {group_params}")
-    # group = store.group_handler.get_sample_groups( sample["groups"][0] ) # this is the old way of getting group config from mongodb
 
     ## GENEPANELS ##
     ## send over all defined gene panels per assay, to matching template ##
@@ -179,7 +174,7 @@ def list_variants(id):
     cnvwgs_iter_n = False
     biomarkers_iter = False
     transloc_iter = False
-    if group_params != None and "DNA" in group_params:
+    if group_params is not None and "DNA" in group_params:
         if group_params["DNA"].get("CNV"):
             cnvwgs_iter = list(store.cnv_handler.get_sample_cnvs(sample_id=str(sample["_id"])))
             if filter_cnveffects:
@@ -271,22 +266,6 @@ def show_any_plot(fn, assay, build):
         return send_from_directory("/access/solid_hg38/plots", fn)
 
 
-@app.route("/sample/hide_sample_comment/<string:sample_id>", methods=["POST"])
-@login_required
-def hide_sample_comment(sample_id):
-    comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.sample_handler.hide_sample_comment(sample_id, comment_id)
-    return redirect(url_for("dna_bp.list_variants", id=sample_id))
-
-
-@app.route("/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"])
-@login_required
-def unhide_sample_comment(sample_id):
-    comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.sample_handler.unhide_sample_comment(sample_id, comment_id)
-    return redirect(url_for("dna_bp.list_variants", id=sample_id))
-
-
 ## Individual variant view ##
 @dna_bp.route("/var/<string:id>")
 @login_required
@@ -322,11 +301,6 @@ def show_variant(id):
 
     # Check if variant has hidden comments
     has_hidden_comments = store.variant_handler.hidden_var_comments(id)
-    # has_hidden_comments = 0
-    # if "comments" in variant:
-    #     for comm in variant["comments"]:
-    #         if comm["hidden"] == 1:
-    #             has_hidden_comments = 1
 
     expression = store.expression_handler.get_expression_data(list(transcripts.keys()))
 
@@ -431,7 +405,7 @@ def unmark_false_variant(id):
     Unmark False Positive status of a variant in the database
     """
     store.variant_handler.unmark_false_positive_var(id)
-    return redirect(url_for("show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", id=id))
 
 
 @dna_bp.route("/var/fp/<string:id>", methods=["POST"])
@@ -441,7 +415,7 @@ def mark_false_variant(id):
     Mark False Positive status of a variant in the database
     """
     store.variant_handler.mark_false_positive_var(id)
-    return redirect(url_for("show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", id=id))
 
 
 @dna_bp.route("/var/uninterest/<string:id>", methods=["POST"])
@@ -451,7 +425,7 @@ def unmark_interesting_variant(id):
     Unmark interesting status of a variant in the database
     """
     store.variant_handler.unmark_interesting_var(id)
-    return redirect(url_for("show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", id=id))
 
 
 @dna_bp.route("/var/interest/<string:id>", methods=["POST"])
@@ -461,7 +435,7 @@ def mark_interesting_variant(id):
     Mark interesting status of a variant in the database
     """
     store.variant_handler.mark_interesting_var(id)
-    return redirect(url_for("show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", id=id))
 
 
 @dna_bp.route("/var/unirrelevant/<string:id>", methods=["POST"])
@@ -471,7 +445,7 @@ def unmark_irrelevant_variant(id):
     Unmark irrelevant status of a variant in the database
     """
     store.variant_handler.unmark_irrelevant_var(id)
-    return redirect(url_for("show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", id=id))
 
 
 @dna_bp.route("/var/irrelevant/<string:id>", methods=["POST"])
@@ -481,7 +455,7 @@ def mark_irrelevant_variant(id):
     Mark irrelevant status of a variant in the database
     """
     store.variant_handler.mark_irrelevant_var(id)
-    return redirect(url_for("show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", id=id))
 
 
 @dna_bp.route("/var/blacklist/<string:id>", methods=["POST"])
@@ -492,8 +466,7 @@ def add_variant_to_blacklist(id):
     sample = store.sample_handler.get_sample_with_id(var["SAMPLE_ID"])
     assay = util.common.get_assay_from_sample(sample)
     store.blacklist_handler.blacklist_variant(var, assay)
-
-    return redirect(url_for("show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", id=id))
 
 
 @dna_bp.route("/var/ordersanger/<string:id>", methods=["POST"])
@@ -513,7 +486,7 @@ def order_sanger(id):
 
     email_status = util.dna.send_sanger_email(html, tx_info["SYMBOL"])
 
-    return redirect(url_for("show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", id=id))
 
 
 @dna_bp.route("/var/classify/<string:id>", methods=["POST"])
@@ -532,7 +505,7 @@ def classify_variant(id):
         if nomenclature == "f":
             return redirect(url_for("show_fusion", id=id))
 
-    return redirect(url_for("show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", id=id))
 
 
 @dna_bp.route("/var/rmclassify/<string:id>", methods=["POST"])
@@ -542,7 +515,7 @@ def remove_classified_variant(id):
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
     per_assay = store.annotation_handler.delete_classified_variant(variant, nomenclature, form_data)
     app.logger.debug(per_assay)
-    return redirect(url_for("show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", id=id))
 
 
 @dna_bp.route("/var/comment/<string:id>", methods=["POST"])
@@ -559,24 +532,25 @@ def add_variant_comment(id):
     _type = form_data.get("global", None)
     if _type == "global":
         store.annotation_handler.add_anno_comment(doc)
+        flash("Global comment added", "green")
 
     if nomenclature == "f":
         if _type != "global":
             store.fusion_handler.add_fusion_comment(id, doc)
-        return redirect(url_for("show_fusion", id=id))
+        return redirect(url_for("dna_bp.show_fusion", id=id))
     elif nomenclature == "t":
         if _type != "global":
             store.transloc_handler.add_transloc_comment(id, doc)
-        return redirect(url_for("show_transloc", id=id))
+        return redirect(url_for("dna_bp.show_transloc", id=id))
     elif nomenclature == "cn":
         if _type != "global":
             store.cnv_handler.add_cnv_comment(id, doc)
-        return redirect(url_for("show_cnvwgs", id=id))
+        return redirect(url_for("dna_bp.show_cnvwgs", id=id))
     else:
         if _type != "global":
             store.variant_handler.add_var_comment(id, doc)
 
-    return redirect(url_for("show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", id=id))
 
 
 @dna_bp.route("/var/hide_variant_comment/<string:var_id>", methods=["POST"])
@@ -584,7 +558,7 @@ def add_variant_comment(id):
 def hide_variant_comment(var_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.variant_handler.hide_var_comment(var_id, comment_id)
-    return redirect(url_for("show_variant", id=var_id))
+    return redirect(url_for("dna_bp.show_variant", id=var_id))
 
 
 @dna_bp.route("/var/unhide_variant_comment/<string:var_id>", methods=["POST"])
@@ -592,7 +566,7 @@ def hide_variant_comment(var_id):
 def unhide_variant_comment(var_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.variant_handler.unhide_variant_comment(var_id, comment_id)
-    return redirect(url_for("show_variant", id=var_id))
+    return redirect(url_for("dna_bp.show_variant", id=var_id))
 
 
 ###### CNVS VIEW PAGE #######
@@ -629,7 +603,7 @@ def unmark_interesting_cnv(id):
     Unmark CNV as interesting
     """
     store.cnv_handler.unmark_interesting_cnv(id)
-    return redirect(url_for("show_cnvwgs", id=id))
+    return redirect(url_for("dna_bp.show_cnv", id=id))
 
 
 @dna_bp.route("/cnv/interestcnv/<string:id>", methods=["POST"])
@@ -639,7 +613,7 @@ def mark_interesting_cnv(id):
     Mark CNV as interesting
     """
     store.cnv_handler.mark_interesting_cnv(id)
-    return redirect(url_for("show_cnvwgs", id=id))
+    return redirect(url_for("dna_bp.show_cnv", id=id))
 
 
 @dna_bp.route("/cnv/fpcnv/<string:id>", methods=["POST"])
@@ -649,7 +623,7 @@ def mark_false_cnv(id):
     Mark CNV as false positive
     """
     store.cnv_handler.mark_false_positive_cnv(id)
-    return redirect(url_for("show_cnvwgs", id=id))
+    return redirect(url_for("dna_bp.show_cnv", id=id))
 
 
 @dna_bp.route("/cnv/unfpcnv/<string:id>", methods=["POST"])
@@ -659,7 +633,7 @@ def unmark_false_cnv(id):
     Unmark CNV as false positive
     """
     store.cnv_handler.unmark_false_positive_cnv(id)
-    return redirect(url_for("show_cnvwgs", id=id))
+    return redirect(url_for("dna_bp.show_cnv", id=id))
 
 
 @dna_bp.route("/cnv/hide_variant_comment/<string:cnv_id>", methods=["POST"])
@@ -670,7 +644,7 @@ def hide_cnv_comment(cnv_id):
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.cnv_handler.hide_cnvs_comment(cnv_id, comment_id)
-    return redirect(url_for("show_cnvwgs", id=cnv_id))
+    return redirect(url_for("dna_bp.show_cnv", id=cnv_id))
 
 
 @dna_bp.route("/cnv/unhide_variant_comment/<string:cnv_id>", methods=["POST"])
@@ -681,7 +655,7 @@ def unhide_cnv_comment(cnv_id):
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.cnv_handler.unhide_cnvs_comment(cnv_id, comment_id)
-    return redirect(url_for("show_cnvwgs", id=cnv_id))
+    return redirect(url_for("dna_bp.show_cnv", id=cnv_id))
 
 
 ###### TRANSLOCATIONS VIEW PAGE #######
@@ -712,28 +686,28 @@ def show_transloc(id):
 @login_required
 def mark_interesting_transloc(id):
     store.transloc_handler.mark_interesting_transloc(id)
-    return redirect(url_for("show_transloc", id=id))
+    return redirect(url_for("dna_bp.show_transloc", id=id))
 
 
 @dna_bp.route("/transloc/uninteresttransloc/<string:id>", methods=["POST"])
 @login_required
 def unmark_interesting_transloc(id):
     store.transloc_handler.unmark_interesting_transloc(id)
-    return redirect(url_for("show_transloc", id=id))
+    return redirect(url_for("dna_bp.show_transloc", id=id))
 
 
 @dna_bp.route("/transloc/fptransloc/<string:id>", methods=["POST"])
 @login_required
 def mark_false_transloc(id):
     store.transloc_handler.mark_false_positive_transloc(id)
-    return redirect(url_for("show_transloc", id=id))
+    return redirect(url_for("dna_bp.show_transloc", id=id))
 
 
 @dna_bp.route("/transloc/unfptransloc/<string:id>", methods=["POST"])
 @login_required
 def unmark_false_transloc(id):
     store.transloc_handler.unmark_false_positive_transloc(id)
-    return redirect(url_for("show_transloc", id=id))
+    return redirect(url_for("dna_bp.show_transloc", id=id))
 
 
 @dna_bp.route("/transloc/hide_variant_comment/<string:var_id>", methods=["POST"])
@@ -741,7 +715,7 @@ def unmark_false_transloc(id):
 def hide_transloc_comment(var_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.transloc_handler.hide_transloc_comment(var_id, comment_id)
-    return redirect(url_for("show_transloc", id=var_id))
+    return redirect(url_for("dna_bp.show_transloc", id=var_id))
 
 
 @dna_bp.route("/transloc/unhide_variant_comment/<string:var_id>", methods=["POST"])
@@ -749,7 +723,7 @@ def hide_transloc_comment(var_id):
 def unhide_transloc_comment(var_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.transloc_handler.unhide_transloc_comment(var_id, comment_id)
-    return redirect(url_for("show_transloc", id=var_id))
+    return redirect(url_for("dna_bp.show_transloc", id=var_id))
 
 
 ###### FUSIONS VIEW PAGE #######

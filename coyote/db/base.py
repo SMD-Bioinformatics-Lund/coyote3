@@ -1,6 +1,7 @@
 from bson.objectid import ObjectId
 from flask_login import current_user
 from flask import current_app as app
+from flask import flash
 from datetime import datetime
 import pymongo
 
@@ -32,7 +33,7 @@ class BaseHandler:
         Hide comment for a variant or a translocation or a cnv etc
         """
 
-        self.handler_collection.update_one(
+        if self.handler_collection.update_one(
             {"_id": ObjectId(var_id), "comments._id": ObjectId(comment_id)},
             {
                 "$set": {
@@ -41,59 +42,80 @@ class BaseHandler:
                     "comments.$.time_hidden": datetime.now(),
                 }
             },
-        )
+        ):
+            flash("Comment hidden", "green")
+        else:
+            flash("Comment failed to remove", "red")
 
     def unhide_comment(self, var_id: str, comment_id: str) -> None:
         """
         Unhide comment for a variant or a translocation or a cnv etc
         """
-        self.get_collection().update_one(
+        if self.get_collection().update_one(
             {"_id": ObjectId(var_id), "comments._id": ObjectId(comment_id)},
             {
                 "$set": {
                     "comments.$.hidden": 0,
                 }
             },
-        )
+        ):
+            flash("Comment unhidden", "green")
+        else:
+            flash("Failed to unhide comment", "red")
 
     def mark_false_positive(self, var_id: str, fp: bool) -> None:
         """
         Mark / Unmark variant as false
         """
-        self.get_collection().update_one(
+        if self.get_collection().update_one(
             {"_id": ObjectId(var_id)},
             {"$set": {"fp": fp}},
-        )
+        ):
+            flash("Variant marked as False Positive", "green")
+        else:
+            flash("Failed to mark variant as False Positive", "red")
 
     def mark_interesting(self, var_id: str, interesting: bool) -> None:
         """
         Mark variant as interesting
         """
-        self.get_collection().update_one(
+        if self.get_collection().update_one(
             {"_id": ObjectId(var_id)},
             {"$set": {"interesting": interesting}},
-        )
+        ):
+            flash("Variant marked as Interesting", "green")
+        else:
+            flash("Failed to mark variant as Interesting", "red")
 
     def mark_irrelevant(self, var_id: str, irrelevant: bool) -> None:
         """
         Mark / Unmark variant as irrelevant
         """
-        self.get_collection().update_one(
+        if self.get_collection().update_one(
             {"_id": ObjectId(var_id)},
             {"$set": {"irrelevant": irrelevant}},
-        )
+        ):
+            flash("Variant marked as Irrelevant", "green")
+        else:
+            flash("Failed to mark variant as Irrelevant", "red")
 
     def add_comment(self, comment_doc: dict) -> None:
         """
         Add comment to a variant
         """
-        self.get_collection().insert_one(comment_doc)
+        if self.get_collection().insert_one(comment_doc):
+            flash("Comment added", "green")
+        else:
+            flash("Failed to add comment", "red")
 
     def update_comment(self, id: str, comment_doc: dict) -> None:
         """
         Update comment for a variant
         """
-        self.get_collection().update({"_id": ObjectId(id)}, comment_doc)
+        if self.get_collection().update({"_id": ObjectId(id)}, comment_doc):
+            flash("Comment added", "green")
+        else:
+            flash("Failed to add comment", "red")
 
     def hidden_comments(self, id: str) -> bool:
         """

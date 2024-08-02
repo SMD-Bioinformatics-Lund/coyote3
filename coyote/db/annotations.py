@@ -1,6 +1,7 @@
 from coyote.db.base import BaseHandler
 from datetime import datetime
 from pymongo.results import DeleteResult
+from flask import flash
 
 
 class AnnotationsHandler(BaseHandler):
@@ -147,7 +148,7 @@ class AnnotationsHandler(BaseHandler):
         Insert Classified variant
         """
         if nomenclature != "f":
-            self.get_collection().insert_one(
+            if self.get_collection().insert_one(
                 {
                     "class": class_num,
                     "author": self.current_user.get_id(),
@@ -159,9 +160,12 @@ class AnnotationsHandler(BaseHandler):
                     "assay": variant_data.get("assay", None),
                     "subpanel": variant_data.get("subpanel", None),
                 }
-            )
+            ):
+                flash("Variant classified", "green")
+            else:
+                flash("Variant classification failed", "red")
         else:
-            self.get_collection().insert_one(
+            if self.get_collection().insert_one(
                 {
                     "class": class_num,
                     "author": self.current_user.get_id(),
@@ -173,7 +177,11 @@ class AnnotationsHandler(BaseHandler):
                     "assay": variant_data.get("assay", None),
                     "subpanel": variant_data.get("subpanel", None),
                 }
-            )
+            ):
+                flash("Variant classified", "green")
+            else:
+                flash("Variant classification failed", "red")
+
         return None
 
     def delete_classified_variant(
