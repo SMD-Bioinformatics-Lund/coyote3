@@ -10,6 +10,7 @@ Flask-LDAPConn==0.10.2
 Flask-Login==0.6.3
 Flask-PyMongo==2.3.0
 Flask-WTF==1.2.1
+flash==1.0.3
 gunicorn==22.0.0
 isort==5.13.2
 itsdangerous==2.2.0
