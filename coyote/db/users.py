@@ -1,5 +1,6 @@
 import pymongo
 from coyote.db.base import BaseHandler
+from flask import flash
 
 
 class UsersHandler(BaseHandler):
@@ -29,20 +30,31 @@ class UsersHandler(BaseHandler):
         """
         Update the user fullname
         """
-        self.get_collection().update_one({"_id": user_id}, {"$set": {"fullname": fullname}})
+        if self.get_collection().update_one({"_id": user_id}, {"$set": {"fullname": fullname}}):
+            flash("User fullname updated", "green")
+        else:
+            flash("Failed to update user fullname", "red")
 
     def update_user_groups(self, user_id, groups) -> None:
         """
         Update the user groups
         """
-        self.get_collection().update_one({"_id": user_id}, {"$set": {"groups": groups}})
+        if self.get_collection().update_one({"_id": user_id}, {"$set": {"groups": groups}}):
+            flash("User groups updated", "green")
+        else:
+            flash("Failed to update user groups", "red")
 
     def update_password(self, username, password_hash) -> None:
         """
         Update the password for a user
         """
 
-        self.get_collection().update_one({"_id": username}, {"$set": {"password": password_hash}})
+        if self.get_collection().update_one(
+            {"_id": username}, {"$set": {"password": password_hash}}
+        ):
+            flash("Password updated", "green")
+        else:
+            flash("Failed to update password", "red")
 
     def user_exists(self, user_id=None, email=None) -> bool:
         """
@@ -61,7 +73,10 @@ class UsersHandler(BaseHandler):
         """
         Create a new user
         """
-        self.get_collection().insert_one(user_data)
+        if self.get_collection().insert_one(user_data):
+            flash("User created", "green")
+        else:
+            flash("Failed to create user", "red")
 
     def get_all_users(self) -> list:
         """
@@ -73,7 +88,10 @@ class UsersHandler(BaseHandler):
         """
         Delete a user
         """
-        self.get_collection().delete_one({"_id": user_id})
+        if self.get_collection().delete_one({"_id": user_id}):
+            flash("User deleted", "green")
+        else:
+            flash("Failed to delete user", "red")
 
     def update_user(self, user_data) -> None:
         """
@@ -81,4 +99,7 @@ class UsersHandler(BaseHandler):
         """
         id = user_data.pop("_id")
         user_data.pop("password")
-        self.get_collection().update_one({"_id": id}, {"$set": user_data})
+        if self.get_collection().update_one({"_id": id}, {"$set": user_data}):
+            flash("User updated", "green")
+        else:
+            flash("Failed to update user", "red")

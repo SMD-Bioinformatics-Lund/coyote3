@@ -1,4 +1,5 @@
 from coyote.db.base import BaseHandler
+from flask import flash
 
 
 class BlacklistHandler(BaseHandler):
@@ -38,6 +39,8 @@ class BlacklistHandler(BaseHandler):
         if self.get_collection().insert_one(
             {"assay": assay, "in_normal_perc": 1, "pos": short_pos}
         ):
+            flash(f"Variant {short_pos} added to blacklist", "green")
             return True
         else:
+            flash(f"Failed to add variant {short_pos} to blacklist", "red")
             return False
