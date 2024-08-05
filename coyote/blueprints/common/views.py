@@ -1,7 +1,8 @@
-from flask import abort, redirect, request, url_for
+from flask import abort, redirect, request, url_for, flash
 from flask_login import login_required
 from flask import current_app as app
 from coyote.blueprints.common import common_bp
+from coyote.blueprints.home import home_bp
 from coyote.extensions import store, util
 from flask import render_template
 from flask_login import current_user
@@ -34,6 +35,7 @@ def add_sample_comment(id):
     data = request.form.to_dict()
     doc = util.dna.create_comment_doc(data, key="sample_comment")
     store.sample_handler.add_sample_comment(id, doc)
+    flash("Sample comment added", "green")
     sample = store.sample_handler.get_sample_with_id(id)
     assay = util.common.get_assay_from_sample(sample)
     sample_type = util.common.get_sample_type(assay)

@@ -314,3 +314,14 @@ tr.highlightannotation { background-color: rgb(96, 194, 93); }
 .noncanonical_transcript {
 
 }
+
+.flash-message {
+  transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+  transform: translateX(100%);
+  opacity: 0;
+  width: 300px; /* Fixed width */
+}
+.flash-message.visible {
+  transform: translateX(0);
+  opacity: 1;
+}

@@ -14,7 +14,6 @@ class VariantsHandler(BaseHandler):
 
     def get_sample_ids(self, sample_id: str):
         a_var = self.get_collection().find_one({"SAMPLE_ID": sample_id}, {"GT": 1})
-        print(a_var)
         ids = {}
         if a_var:
             for gt in a_var["GT"]:
