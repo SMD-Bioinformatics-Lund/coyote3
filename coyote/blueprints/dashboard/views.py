@@ -1,7 +1,6 @@
 from flask import current_app as app, render_template
 from flask_login import login_required
-from coyote.extensions import store
-from coyote.extensions import util
+from coyote.extensions import store, util
 from coyote.blueprints.dashboard import dashboard_bp
 import json
 
@@ -30,6 +29,14 @@ def dashboard() -> str:
         assay: stats["total"] - stats["report"] for assay, stats in assay_specific_stats.items()
     }
 
+    # Get all classifications
+    classified_annotations = util.dashboard.convert_annotations_to_hashable(
+        store.annotation_handler.get_all_classified_variants()
+    )
+    class_stats, assay_class_stats = util.dashboard.get_classified_variant_stats(
+        classified_annotations
+    )
+
     return render_template(
         "dashboard.html",
         total_samples=total_samples_count,
@@ -38,4 +45,6 @@ def dashboard() -> str:
         total_samples_data=total_samples_data,
         analysed_samples_data=analysed_samples_data,
         pending_samples_data=pending_samples_data,
+        class_stats_data=json.dumps(class_stats),
+        assay_class_stats_data=json.dumps(assay_class_stats),
     )

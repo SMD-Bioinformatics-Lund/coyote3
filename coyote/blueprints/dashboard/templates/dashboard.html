@@ -24,10 +24,19 @@
   </div>
 
   <!-- Modern Chart Row -->
-  <h2 class="text-xl font-semibold mb-4">Samples Overview by Assay</h2>
   <div class="flex justify-center mb-10">
-    <div class="card bg-white shadow-lg rounded-xl p-4 w-1/3">
+    <div class="card bg-white shadow-lg rounded-xl p-4 w-1/3 m-4">
       <canvas id="multiLevelChart" width="50" height="50"></canvas>
+    </div>
+
+  <!-- Classification Stats Row -->
+    <div class="card bg-white shadow-lg rounded-xl p-4 w-1/3 m-4">
+      <canvas id="classificationChart" width="50" height="50"></canvas>
+    </div>
+
+  <!-- Assay Stats Row -->
+    <div class="card bg-white shadow-lg rounded-xl p-4 w-1/3 m-4">
+      <canvas id="assayChart" width="50" height="50"></canvas>
     </div>
   </div>
 </div>
@@ -38,6 +47,8 @@
   const totalSamplesData = {{ total_samples_data | safe }};
   const analysedSamplesData = {{ analysed_samples_data | safe }};
   const pendingSamplesData = {{ pending_samples_data | safe }};
+  const classStatsData = {{ class_stats_data | safe }};
+  const assayClassStatsData = {{ assay_class_stats_data | safe }};
 
   function createMultiLevelChart(ctx) {
     const totalLabels = Object.keys(totalSamplesData);
@@ -57,7 +68,7 @@
             data: totalValues,
             backgroundColor: colors,
             borderColor: '#fff',
-            borderWidth: 2,
+            borderWidth: 8,  // Increased borderWidth to create gap between rings
             hoverOffset: 10,
           },
           {
@@ -65,7 +76,7 @@
             data: analysedValues,
             backgroundColor: colors,
             borderColor: '#fff',
-            borderWidth: 2,
+            borderWidth: 8,  // Increased borderWidth to create gap between rings
             hoverOffset: 10,
           },
           {
@@ -73,7 +84,7 @@
             data: pendingValues,
             backgroundColor: colors,
             borderColor: '#fff',
-            borderWidth: 2,
+            borderWidth: 8,  // Increased borderWidth to create gap between rings
             hoverOffset: 10,
           }
         ]
@@ -86,16 +97,16 @@
             position: 'bottom',
             labels: {
               color: '#243b55',
-              padding: 20,
+              padding: 10,
               font: {
-                size: 14,
-                weight: 'bold'
+                size: 10,
+                weight: 'normal'
               }
             }
           },
           title: {
             display: true,
-            text: 'Samples Overview',
+            text: 'Samples Overview Per Assay and Status',
             color: '#243b55',
             font: {
               size: 18,
@@ -115,33 +126,36 @@
             annotations: {
               text1: {
                 type: 'label',
-                xValue: 0.5,
-                yValue: 1.2,
-                content: ['Total'],
+                xValue: 'Total Samples',
+                yValue: 0,
+                content: ['Total Samples'],
                 color: '#000',
                 font: {
                   size: 14
-                }
+                },
+                position: 'outside'
               },
               text2: {
                 type: 'label',
-                xValue: 0.5,
-                yValue: 0.7,
-                content: ['Analysed'],
+                xValue: 'Analysed Samples',
+                yValue: 0,
+                content: ['Analysed Samples'],
                 color: '#000',
                 font: {
                   size: 14
-                }
+                },
+                position: 'outside'
               },
               text3: {
                 type: 'label',
-                xValue: 0.5,
-                yValue: 0.4,
-                content: ['Pending'],
+                xValue: 'Pending Samples',
+                yValue: 0,
+                content: ['Pending Samples'],
                 color: '#000',
                 font: {
                   size: 14
-                }
+                },
+                position: 'outside'
               }
             }
           }
@@ -161,8 +175,250 @@
     });
   }
 
+  function createClassificationBarChart(ctx, data, title) {
+    const categories = Object.keys(data);
+    const classLabels = [];
+    const datasetMap = {};
+
+    // Gather all unique class labels
+    categories.forEach(category => {
+      const classData = data[category];
+      Object.keys(classData).forEach(classLabel => {
+        if (!classLabels.includes(classLabel)) {
+          classLabels.push(classLabel);
+        }
+      });
+    });
+
+    // Prepare dataset for each class label
+    classLabels.forEach(classLabel => {
+      datasetMap[classLabel] = {
+        label: `Class ${classLabel}`,
+        data: [],
+        backgroundColor: `hsl(${classLabel * 90}, 70%, 50%)`,  // Different colors for each class
+        borderColor: '#fff',
+        borderWidth: 2,
+        hoverOffset: 10,
+      };
+    });
+
+    // Fill data for each class in each category
+    categories.forEach(category => {
+      const classData = data[category];
+      classLabels.forEach(classLabel => {
+        const value = classData[classLabel] || 0;
+        datasetMap[classLabel].data.push(value);
+      });
+    });
+
+    const datasets = Object.values(datasetMap);
+
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: categories,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              color: '#243b55',
+              font: {
+                size: 10,
+                weight: 'normal'
+              }
+            }
+          },
+          title: {
+            display: true,
+            text: title,
+            color: '#243b55',
+            font: {
+              size: 18,
+              weight: 'bold'
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.dataset.label || '';
+                const value = context.raw;
+                return `${label}: ${value}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Nomenclature',
+              color: '#243b55',
+              font: {
+                size: 14,
+                weight: 'bold'
+              }
+            }
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'Counts',
+              color: '#243b55',
+              font: {
+                size: 14,
+                weight: 'bold'
+              }
+            },
+            beginAtZero: true  // Ensure the y-axis starts at 0
+          }
+        },
+        animation: {
+          animateScale: true,
+          animateRotate: true
+        },
+        hover: {
+          onHover: function(e) {
+            const point = this.getElementAtEvent(e);
+            if (point.length) e.target.style.cursor = 'pointer';
+            else e.target.style.cursor = 'default';
+          }
+        }
+      }
+    });
+  }
+
+  function createAssayBarChart(ctx, data, title) {
+    const assays = Object.keys(data);
+    const classLabels = new Set();
+    const datasetMap = {};
+
+    // Collect all unique class labels across all assays
+    assays.forEach(assay => {
+      const subCategoryData = data[assay];
+      Object.keys(subCategoryData).forEach(subCategory => {
+        const classData = subCategoryData[subCategory];
+        Object.keys(classData).forEach(classLabel => {
+          classLabels.add(classLabel);
+        });
+      });
+    });
+
+    // Convert classLabels set to array
+    const classLabelsArray = Array.from(classLabels);
+
+    // Initialize datasets for each class
+    classLabelsArray.forEach((classLabel, index) => {
+      datasetMap[classLabel] = {
+        label: `Class ${classLabel}`,
+        data: [],
+        backgroundColor: `hsl(${index * 90}, 70%, 50%)`,
+        borderColor: '#fff',
+        borderWidth: 2,
+        hoverOffset: 10,
+      };
+    });
+
+    // Populate datasets with data
+    assays.forEach(assay => {
+      const subCategoryData = data[assay];
+      classLabelsArray.forEach(classLabel => {
+        let totalCount = 0;
+        Object.keys(subCategoryData).forEach(subCategory => {
+          const classData = subCategoryData[subCategory] || {};
+          totalCount += classData[classLabel] || 0;
+        });
+        datasetMap[classLabel].data.push(totalCount);
+      });
+    });
+
+    const datasets = Object.values(datasetMap);
+
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: assays,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              color: '#243b55',
+              font: {
+                size: 10,
+                weight: 'normal'
+              }
+            }
+          },
+          title: {
+            display: true,
+            text: title,
+            color: '#243b55',
+            font: {
+              size: 18,
+              weight: 'bold'
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.dataset.label || '';
+                const value = context.raw;
+                return `${label}: ${value}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Assays',
+              color: '#243b55',
+              font: {
+                size: 14,
+                weight: 'bold'
+              }
+            }
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'Counts',
+              color: '#243b55',
+              font: {
+                size: 14,
+                weight: 'bold'
+              }
+            },
+            beginAtZero: true  // Ensure the y-axis starts at 0
+          }
+        },
+        animation: {
+          animateScale: true,
+          animateRotate: true
+        },
+        hover: {
+          onHover: function(e) {
+            const point = this.getElementAtEvent(e);
+            if (point.length) e.target.style.cursor = 'pointer';
+            else e.target.style.cursor = 'default';
+          }
+        }
+      }
+    });
+  }
+
   window.onload = function() {
     createMultiLevelChart(document.getElementById('multiLevelChart'));
+    createClassificationBarChart(document.getElementById('classificationChart'), classStatsData, 'Variant Classification Stats');
+    createAssayBarChart(document.getElementById('assayChart'), assayClassStatsData, 'Assay Specific Variant Classification Stats');
   };
 </script>
 {% endblock %}
