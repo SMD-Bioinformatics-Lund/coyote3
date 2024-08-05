@@ -35,6 +35,7 @@ def add_sample_comment(id):
     data = request.form.to_dict()
     doc = util.dna.create_comment_doc(data, key="sample_comment")
     store.sample_handler.add_sample_comment(id, doc)
+    flash("Sample comment added", "green")
     sample = store.sample_handler.get_sample_with_id(id)
     assay = util.common.get_assay_from_sample(sample)
     sample_type = util.common.get_sample_type(assay)

@@ -3,6 +3,7 @@ from copy import deepcopy
 from pathlib import Path
 import subprocess
 from flask import current_app as app
+from typing import Any, Literal
 
 
 class CommonUtility:
@@ -116,7 +117,7 @@ class CommonUtility:
         return assay_names
 
     @staticmethod
-    def get_assay_from_sample(smp):
+    def get_assay_from_sample(smp) -> Any | Literal["unknown"] | None:
         conf = app.config.get("ASSAY_MAPPER")
         if conf is None:
             return None
@@ -126,7 +127,7 @@ class CommonUtility:
         return "unknown"
 
     @staticmethod
-    def get_group_defaults(group):
+    def get_group_defaults(group) -> Any | None:
         """
         Return Default dict (either group defaults or coyote defaults) and setting per sample
         """
@@ -168,7 +169,7 @@ class CommonUtility:
         return settings
 
     @staticmethod
-    def get_sample_settings(sample, settings):
+    def get_sample_settings(sample, settings) -> dict:
         """
         get sample settings or use default
         """
@@ -200,7 +201,7 @@ class CommonUtility:
         return sample_settings
 
     @staticmethod
-    def get_fusions_settings(sample, settings):
+    def get_fusions_settings(sample, settings) -> dict:
         """
         get sample fusion setting or use default
 
@@ -218,7 +219,7 @@ class CommonUtility:
         return fusion_settings
 
     @staticmethod
-    def create_genelist(list_names, gene_lists):
+    def create_genelist(list_names, gene_lists) -> list:
         genes = []
         for name, val in list_names.items():
             if val == 1:
@@ -231,7 +232,7 @@ class CommonUtility:
         return genes
 
     @staticmethod
-    def get_active_branch_name():
+    def get_active_branch_name() -> str | None:
         """
         Get curr checked out git branch name. Used to display version name
         in debug mode.
@@ -251,7 +252,7 @@ class CommonUtility:
                     return line.partition("refs/heads/")[2]
 
     @staticmethod
-    def nl_num(i, gender):
+    def nl_num(i, gender) -> Any | str:
         names = [
             "noll",
             "en",
