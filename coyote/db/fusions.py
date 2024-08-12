@@ -2,6 +2,7 @@ import pymongo
 from bson.objectid import ObjectId
 from datetime import datetime
 from coyote.db.base import BaseHandler
+from flask import current_app as app
 
 
 class FusionsHandler(BaseHandler):
@@ -57,3 +58,22 @@ class FusionsHandler(BaseHandler):
         Return variant with variant ID
         """
         return self.get_collection().find_one({"_id": ObjectId(id)})
+
+    def get_unique_fusion_count(self) -> int:
+        """
+        Get unique Fusions
+        """
+        query = [
+            {"$group": {"_id": {"genes": "$genes"}}},
+            {"$group": {"_id": None, "uniqueFusionCount": {"$sum": 1}}},
+        ]
+
+        try:
+            result = list(self.get_collection().aggregate(query))
+            if result:
+                return result[0].get("uniqueFusionCount", 0)
+            else:
+                return 0
+        except Exception as e:
+            app.logger.error(f"An error occurred: {e}")
+            return 0

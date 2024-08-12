@@ -1,5 +1,6 @@
 from bson.objectid import ObjectId
 from coyote.db.base import BaseHandler
+from flask import current_app as app
 
 
 class TranslocsHandler(BaseHandler):
@@ -74,3 +75,22 @@ class TranslocsHandler(BaseHandler):
         Add comment to a Translocation
         """
         self.update_comment(transloc_id, comment)
+
+    def get_unique_transloc_count(self) -> list:
+        """
+        Get unique Translocations
+        """
+        query = [
+            {"$group": {"_id": {"CHROM": "$CHROM", "POS": "$POS", "REF": "$REF", "ALT": "$ALT"}}},
+            {"$group": {"_id": None, "uniqueTranslocCount": {"$sum": 1}}},
+        ]
+
+        try:
+            result = list(self.get_collection().aggregate(query))
+            if result:
+                return result[0].get("uniqueTranslocCount", 0)
+            else:
+                return 0
+        except Exception as e:
+            app.logger.error(f"An error occurred: {e}")
+            return 0

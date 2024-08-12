@@ -3,7 +3,7 @@ from copy import deepcopy
 from pathlib import Path
 import subprocess
 from flask import current_app as app
-from typing import Any, Literal
+from typing import Any, Literal, Dict, Tuple
 from bson import ObjectId
 from datetime import datetime
 
@@ -352,3 +352,13 @@ class CommonUtility:
             return data.isoformat()
         else:
             return data
+
+    @staticmethod
+    def dict_to_tuple(d: Dict) -> Tuple:
+        """Convert a dictionary to a tuple of sorted key-value pairs."""
+        return tuple(sorted(d.items()))
+
+    @staticmethod
+    def tuple_to_dict(t: Tuple) -> Dict:
+        """Convert a tuple of sorted key-value pairs back to a dictionary."""
+        return dict(t)

@@ -1,5 +1,6 @@
 from bson.objectid import ObjectId
 from coyote.db.base import BaseHandler
+from flask import current_app as app
 
 
 class CNVsHandler(BaseHandler):
@@ -22,7 +23,6 @@ class CNVsHandler(BaseHandler):
         Get CNV by ID
         """
         return self.get_collection().find_one({"_id": ObjectId(cnv_id)})
-
 
     def get_cnv_annotations(self, cnv: str) -> list:
         """
@@ -123,3 +123,21 @@ class CNVsHandler(BaseHandler):
         """
         return self.hidden_comments(id)
 
+    def get_unique_cnv_count(self) -> int:
+        """
+        Get unique CNVs
+        """
+        query = [
+            {"$group": {"_id": {"chr": "$chr", "start": "$start", "end": "$end"}}},
+            {"$group": {"_id": None, "uniqueCnvCount": {"$sum": 1}}},
+        ]
+
+        try:
+            result = list(self.get_collection().aggregate(query))
+            if result:
+                return result[0].get("uniqueCnvCount", 0)
+            else:
+                return 0
+        except Exception as e:
+            app.logger.error(f"An error occurred: {e}")
+            return 0

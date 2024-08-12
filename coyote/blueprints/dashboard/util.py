@@ -1,8 +1,8 @@
 from functools import lru_cache
 from datetime import datetime
 from collections import defaultdict, OrderedDict
-
-import pprint
+from typing import Dict, Tuple, List, Generator, Any
+from coyote.util.common_utility import CommonUtility
 
 
 class DashBoardUtility:
@@ -23,7 +23,7 @@ class DashBoardUtility:
         return tuple(converted)
 
     @staticmethod
-    @lru_cache(maxsize=128)
+    @lru_cache(maxsize=2)
     def get_classified_variant_stats(annotations: tuple) -> (dict, dict):
         """
         Get classified variant stats
@@ -38,8 +38,8 @@ class DashBoardUtility:
         # Create dictionaries to store the latest classifications, assay-specific stats, and gene-specific stats
         latest_classifications = {}
         assay_stats = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
-        gene_stats = defaultdict(lambda: defaultdict(int))
-        gene_class_stats = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+        # gene_stats = defaultdict(lambda: defaultdict(int))
+        # gene_class_stats = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
 
         for annotation in annotations:
             key = (annotation["nomenclature"], annotation["variant"])
@@ -54,22 +54,22 @@ class DashBoardUtility:
                 class_value = annotation.get("class", 0)
                 assay_stats[assay][annotation["nomenclature"]][class_value] += 1
 
-            # Update gene-specific stats
-            class_value = annotation.get("class", 0)
-            if annotation["nomenclature"] == "f":
-                gene1 = annotation.get("gene1")
-                gene2 = annotation.get("gene2")
-                if gene1:
-                    gene_stats[gene1][class_value] += 1
-                    gene_class_stats[gene1][annotation["nomenclature"]][class_value] += 1
-                if gene2:
-                    gene_stats[gene2][class_value] += 1
-                    gene_class_stats[gene2][annotation["nomenclature"]][class_value] += 1
-            else:
-                gene = annotation.get("gene")
-                if gene:
-                    gene_stats[gene][class_value] += 1
-                    gene_class_stats[gene][annotation["nomenclature"]][class_value] += 1
+            # # Update gene-specific stats
+            # class_value = annotation.get("class", 0)
+            # if annotation["nomenclature"] == "f":
+            #     gene1 = annotation.get("gene1")
+            #     gene2 = annotation.get("gene2")
+            #     if gene1:
+            #         gene_stats[gene1][class_value] += 1
+            #         gene_class_stats[gene1][annotation["nomenclature"]][class_value] += 1
+            #     if gene2:
+            #         gene_stats[gene2][class_value] += 1
+            #         gene_class_stats[gene2][annotation["nomenclature"]][class_value] += 1
+            # else:
+            #     gene = annotation.get("gene")
+            #     if gene:
+            #         gene_stats[gene][class_value] += 1
+            #         gene_class_stats[gene][annotation["nomenclature"]][class_value] += 1
 
         # Create the overall stats dictionary
         stats = defaultdict(lambda: defaultdict(int))

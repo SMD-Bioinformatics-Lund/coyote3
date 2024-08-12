@@ -1,4 +1,5 @@
 from coyote.db.base import BaseHandler
+from functools import lru_cache
 
 
 class GroupsHandler(BaseHandler):
@@ -16,3 +17,10 @@ class GroupsHandler(BaseHandler):
         """
         group = self.get_collection().find_one({"_id": group})
         return group
+
+    @lru_cache(maxsize=2)
+    def get_total_group_count(self):
+        """
+        Get total group count
+        """
+        return self.get_collection().count_documents({})
