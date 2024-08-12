@@ -71,7 +71,7 @@ def register_blueprints(app) -> None:
     bp_debug_msg("home_bp")
     from coyote.blueprints.home import home_bp
 
-    app.register_blueprint(home_bp, url_prefix="/")
+    app.register_blueprint(home_bp, url_prefix="/samples")
 
     # Login stuff
     bp_debug_msg("login_bp")
@@ -107,7 +107,7 @@ def register_blueprints(app) -> None:
     bp_debug_msg("dashboard_bp")
     from coyote.blueprints.dashboard import dashboard_bp
 
-    app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
+    app.register_blueprint(dashboard_bp, url_prefix="/")
 
 
 def init_login_manager(app) -> None:

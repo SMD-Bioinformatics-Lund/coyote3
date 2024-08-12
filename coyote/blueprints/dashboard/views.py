@@ -6,6 +6,7 @@ import json
 
 
 @dashboard_bp.route("/", methods=["GET", "POST"])
+@dashboard_bp.route("", methods=["GET", "POST"])
 @login_required
 def dashboard() -> str:
     """
