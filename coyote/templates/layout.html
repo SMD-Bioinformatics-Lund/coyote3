@@ -1,5 +1,5 @@
-{% if '/home/' in request.path %}
-  {% set curr_page = 'home' %}
+{% if '/samples/' in request.path %}
+  {% set curr_page = 'samples' %}
 {% elif 'done' in request.path or 'live' in request.path %}
   {% set curr_page = request.path.split("/")[-2] %}
 {% else %}
@@ -14,7 +14,7 @@
     <title>Prärievarg med ritningar</title>
     <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/tailwind.2.2.19.css') }}" rel="stylesheet">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='icons/favicon.ico') }}">
+    <link href="{{ url_for('static', filename='icons/favicon.ico') }}" rel="shortcut icon">
     <script src="{{ url_for('static', filename='js/jquery-3.1.1.slim.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/select2.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sorttable.js') }}"></script>  
@@ -45,7 +45,7 @@
   <div class="bg-white">
     <div class="container mx-auto flex items-center justify-between p-4">
       <div class="flex items-center space-x-2">
-        <a href="{{ url_for('home_bp.home_screen') }}" class="flex items-center space-x-2 text-4xl font-bold">
+        <a href="{{ url_for('dashboard_bp.dashboard') }}" class="flex items-center space-x-2 text-4xl font-bold">
           <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Coyote Logo" class="h-14 w-18">
           <span>COYOTE <span class="text-sm font-normal align-baseline">v{{config['APP_VERSION']}}</span></span>
         </a>
@@ -83,6 +83,7 @@
           <div class="flex items-center space-x-4 ml-10">
               {% set navbar = {
                   'home': 'HOME',
+                  'samples': 'SAMPLES',
                   'panels': 'PANELS',
                   'tumwgs': 'TUMWGS',
                   'rna': 'RNA'
@@ -91,6 +92,7 @@
               {% if "/panels" in request.path %}
                   {% set navbar = {
                       'home': 'HOME',
+                      'samples': 'SAMPLES',
                       'myeloid_GMSv1': 'MYELOID',
                       'solid_GMSv3': 'SOLID',
                       'PARP_inhib': 'PARP'
@@ -98,18 +100,22 @@
               {% elif "/rna" in request.path %}
                   {% set navbar = {
                       'home': 'HOME',
+                      'samples': 'SAMPLES',
                       'fusion': 'MYELOID',
                       'solidRNA_GMSv5': 'SOLID'
                   } %}
               {% elif "/tumwgs" in request.path %}
                 {% set navbar = {
                       'home': 'HOME',
+                      'samples': 'SAMPLES',
                       'tumwgs-solid': 'PEDIATRIC SOLID',
                       'tumwgs-hema': 'HEMATOLOGY'
                   } %}
               {% endif %}
               {% for name, menu_label in navbar.items() %}
                   {% if name == 'home' %}
+                      {% set url = url_for('dashboard_bp.dashboard') %}
+                  {% elif name == 'samples' %}
                       {% set url = url_for('home_bp.home_screen') %}
                   {% elif name == 'panels' %}
                       {% set url = url_for('home_bp.panels_screen', assay='myeloid_GMSv1') %}
