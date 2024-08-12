@@ -1,6 +1,7 @@
 from bson.objectid import ObjectId
 import re
 from coyote.db.base import BaseHandler
+from flask import current_app as app
 
 
 class VariantsHandler(BaseHandler):
@@ -149,3 +150,70 @@ class VariantsHandler(BaseHandler):
         Return True if hidden variant comments else False
         """
         return self.hidden_comments(id)
+
+    def get_total_variant_counts(self) -> int:
+        """
+        Get total variants count
+        """
+        return self.get_collection().count_documents({})
+
+    def get_unique_total_variant_counts(self) -> int:
+        """
+        Get all unique variants
+        """
+        query = [
+            {"$group": {"_id": {"CHROM": "$CHROM", "POS": "$POS", "REF": "$REF", "ALT": "$ALT"}}},
+            {"$group": {"_id": None, "uniqueVariantsCount": {"$sum": 1}}},
+            {"$project": {"_id": 0, "uniqueVariantsCount": 1}},
+        ]
+        try:
+            return tuple(self.get_collection().aggregate(query))[0].get("uniqueVariantsCount", 0)
+        except:
+            return 0
+
+    def get_unique_snp_count(self) -> int:
+        """
+        Get the count of unique variants where REF and ALT are one of the alphabets A, T, G, C
+        """
+
+        query = [
+            {
+                "$match": {
+                    "REF": {"$in": ["A", "T", "G", "C"]},
+                    "ALT": {"$in": ["A", "T", "G", "C"]},
+                }
+            },
+            {"$group": {"_id": {"CHROM": "$CHROM", "POS": "$POS", "REF": "$REF", "ALT": "$ALT"}}},
+            {"$group": {"_id": None, "uniqueVariantsCount": {"$sum": 1}}},
+        ]
+
+        try:
+            result = list(self.get_collection().aggregate(query))
+            if result:
+                return result[0].get("uniqueVariantsCount", 0)
+            else:
+                return 0
+        except Exception as e:
+            app.logger.error(f"An error occurred: {e}")
+            return 0
+
+    def get_unique_fp_count(self) -> int:
+        """
+        Get the count of unique false positive variants
+        """
+
+        query = [
+            {"$match": {"fp": True}},
+            {"$group": {"_id": {"CHROM": "$CHROM", "POS": "$POS", "REF": "$REF", "ALT": "$ALT"}}},
+            {"$group": {"_id": None, "uniqueVariantsCount": {"$sum": 1}}},
+        ]
+
+        try:
+            result = list(self.get_collection().aggregate(query))
+            if result:
+                return result[0].get("uniqueVariantsCount", 0)
+            else:
+                return 0
+        except Exception as e:
+            app.logger.error(f"An error occurred: {e}")
+            return 0

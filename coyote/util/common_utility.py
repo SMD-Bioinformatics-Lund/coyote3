@@ -3,7 +3,9 @@ from copy import deepcopy
 from pathlib import Path
 import subprocess
 from flask import current_app as app
-from typing import Any, Literal
+from typing import Any, Literal, Dict, Tuple
+from bson import ObjectId
+from datetime import datetime
 
 
 class CommonUtility:
@@ -324,3 +326,39 @@ class CommonUtility:
         Remove Non Zero items
         """
         return {k: v for k, v in data.items() if v > 0}
+
+    @staticmethod
+    def convert_object_id(data) -> list | dict | str | Any:
+        if isinstance(data, list):
+            return [CommonUtility.convert_object_id(item) for item in data]
+        elif isinstance(data, dict):
+            return {key: CommonUtility.convert_object_id(value) for key, value in data.items()}
+        elif isinstance(data, ObjectId):
+            return str(data)
+        else:
+            return data
+
+    @staticmethod
+    def convert_to_serializable(data) -> list | dict | str | Any:
+        if isinstance(data, list):
+            return [CommonUtility.convert_to_serializable(item) for item in data]
+        elif isinstance(data, dict):
+            return {
+                key: CommonUtility.convert_to_serializable(value) for key, value in data.items()
+            }
+        elif isinstance(data, ObjectId):
+            return str(data)
+        elif isinstance(data, datetime):
+            return data.isoformat()
+        else:
+            return data
+
+    @staticmethod
+    def dict_to_tuple(d: Dict) -> Tuple:
+        """Convert a dictionary to a tuple of sorted key-value pairs."""
+        return tuple(sorted(d.items()))
+
+    @staticmethod
+    def tuple_to_dict(t: Tuple) -> Dict:
+        """Convert a tuple of sorted key-value pairs back to a dictionary."""
+        return dict(t)

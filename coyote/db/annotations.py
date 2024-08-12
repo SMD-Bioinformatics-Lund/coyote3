@@ -234,3 +234,9 @@ class AnnotationsHandler(BaseHandler):
         Add comment to a variant
         """
         self.add_comment(comment)
+
+    def get_all_classified_variants(self) -> list:
+        """
+        Get all classified variants
+        """
+        return list(self.get_collection().find({"class": {"$exists": True}}))
