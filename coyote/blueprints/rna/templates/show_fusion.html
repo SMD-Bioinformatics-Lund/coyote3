@@ -2,244 +2,319 @@
 
 {% block body %}
 
-{% set sel_fus = (fusion.calls|selectattr('selected', 'equalto', 1) |list)[0] %}
+<div class="container mx-auto p-5">
+	<div class="bg-white border-b border-gray-300 py-4">
+		<div class="flex justify-between items-center">
+			<!-- Left Side: Sample and Type -->
+			<div class="flex items-center space-x-4">
+				<div>
+					<span class="text-s font-semibold text-gray-800">Sample:</span>
+					<a href="{{ url_for('rna_bp.list_fusions', id=sample.name) }}" class="text-blue-500 hover:underline text-lg">{{ sample.name }}</a>
+				  </div>
+			</div>
 
-
-Variant in sample <a href="{{ url_for('rna_bp.list_variants', id=sample.name ) }}">{{ sample.name }}</a><p>
-<div id="var_main">
-  
-  <div id="var_info">  
-
-    <span class="table_header">Fusion info</span>
-    <table class="variant">
-      <thead><tr><th>Key</th><th>Value</th></tr></thead>
-      <tbody>
-	<tr><td>Gene 1 (5'):</td><td>{{ fusion.gene1 }}</td></tr>
-	<tr><td>Gene 2 (3'):</td><td>{{ fusion.gene2 }}</td></tr>
-	<tr><td>Atlas of GCOH</td><td><a href="https://www.google.com/search?ie=UTF-8&oe=UTF-8&q={{fusion.gene1}}%09{{fusion.gene2}}&btnG=Google+Search&domains=atlasgeneticsoncology.org&sitesearch=atlasgeneticsoncology.org&btnI" target="_blank">link</a>
-
-      </tbody>
-    </table>
-
-  {% if current_user.get_role() != "readonly" %}
-  <div id="var_actions">
-    {% if fusion.blacklist is defined and fusion.override_blacklist != true %}
-      <form action="{{ url_for('override_blacklist', id=fusion._id) }}" method="post">
-        <input class='inv' type="submit" name="override_blacklist" value="Override blacklist">
-      </form>    
-    {% endif %}
-    
-    
-    {% if fusion.fp == true %}
-      <form action="{{ url_for('unmark_false_fusion', id=fusion._id) }}" method="post">
-        <input class='inv' type="submit" name="mark_fp" value="Unmark false positive">
-      </form>    
-    {% else %}
-      <form action="{{ url_for('mark_false_fusion', id=fusion._id) }}" method="post">
-        <input type="submit" name="mark_fp" value="Mark as false positive">
-      </form>
-    {% endif %}
-
-     <!--
-    {% if fusion.interesting == true %}
-      <form action="{{ url_for('unmark_interesting_variant', id=fusion._id) }}" method="post">
-        <input class='inv' type="submit" name="mark_int" value="Unmark interesting">
-      </form>
-    {% else %}
-      <form action="{{ url_for('mark_interesting_variant', id=fusion._id) }}" method="post">
-        <input type="submit" name="mark_int" value="Mark as interesting">
-      </form>      
-    {% endif %}
-
-    {% if fusion.irrelevant == true %}
-      <form action="{{ url_for('unmark_irrelevant_variant', id=fusion._id) }}" method="post">
-        <input class='inv' type="submit" name="mark_irr" value="Unmark irrelevant">
-      </form>
-    {% else %}
-      <form action="{{ url_for('mark_irrelevant_variant', id=fusion._id) }}" method="post">
-        <input type="submit" name="mark_irr" value="Mark as irrelevant">
-      </form>      
-    {% endif %}
-
-    {% if fusion.blacklist != true %}
-      <form action="{{ url_for('add_variant_to_blacklist', id=fusion._id) }}" method="post">
-        <input type="submit" name="blacklist" value="Add variant to blacklist"  onclick="return confirm('This permanently adds the variant to the blacklist, affecting all samples of this type. Do this only if you are certain it is a recurring false positive. Proceed?')" >
-      </form>
-    {% endif %}
-     -->
-  </div>  
-  {% endif %}
-   
-  </div>
-
-
-  
-  <div id="fus_moreinfo">
-    <span class="table_header">Fusion calls</span>
-    <table class="variant" id="transcript_info">
-      <thead><tr><th nowrap>Gene 1</th><th nowrap>Gene 2</th><th nowrap>Breakpoints</th><th>Effect</th><th>Spanning pairs</th><th>Spanning reads</th><th>Longest anchor</th><th>Caller</th><th>Description</th><th></th></thead>
-      <tbody>
-	{% for call in fusion.calls %}
-	<tr>
-	  <td>
-	    {{fusion.gene1}}
-	  </td>
-	  <td>
-	    {{fusion.gene2}}
-	  </td>
-	  <td>
-	    {{call.breakpoint1}}<br>{{call.breakpoint2}}
-	  </td>
-	  <td>
-	    {{call.effect}}
-	  </td>
-	  <td>
-	    {{call.spanpairs}}
-	  </td>
-	  <td>
-	    {{call.spanreads}}
-	  </td>
-	  <td>
-	    {{call.longestanchor}}
-	  </td>
-	  <td>
-	    {{call.caller}}
-	  </td>
-	  <td>
-	    {{ call.desc|format_fusion_desc|safe }}
-	  </td>
-	  <td>{% if call.selected == 1 %}<b>selected</b>{% else %}<a href="{{ url_for('pick_fusioncall', id=fusion._id, callidx=loop.index, num_calls =fusion.calls|length ) }}">pick</a>{% endif %}</td>
-	</tr>
-	{% endfor %}
-      </tbody>
-    </table>
-    
-  
-  </div>
- 
-  <div id="var_comments">
-    <span class="table_header">Variant classification</span><br>
-    <div id="classification">
-
-      {#% if classification.class != 999 %#}
-      <div class="class_desc" id="desc{{ classification.class }}">
-	{% if classification.class == 1 %}
-	Variant with strong clinical significance
-	{% elif classification.class == 2 %}
-	Variant with potential clinical significance
-	{% elif classification.class == 3 %}
-	Variant of unknown clinical significance
-	{% elif classification.class == 4 %}
-	Variant deemed benign or likely benign
-	{% elif classification.class == 999 %}
-	The variant has not been classified
-	{% endif %}
-      </div>
-      {#% endif %#}
-
-      {% if current_user.get_role() != "readonly" %}
-      <form id="form" action="{{ url_for('classify_variant', id=fusion._id) }}" method="post">
-
-	<input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
-	<input type="hidden" name="gene2" value="{{ fusion.gene2 }}">
-	<input type="hidden" name="fusionpoints" value="{{sel_fus.breakpoint1}}^{{sel_fus.breakpoint2}}">
-
-	<div class="class_label">Tier:</div>
-	<button id="tier1" class="tier {% if classification.class == 999 %}a{% elif classification.class == 1 %}selected_tier{% else %}unselected_tier{% endif %}" title="Variants with strong clinical significance" type="submit" name="tier1">I</button>
-	<button id="tier2" class="tier {% if classification.class == 999 %}a{% elif classification.class == 2 %}selected_tier{% else %}unselected_tier{% endif %}" title="Variants with potential clinical significance" type="submit" name="tier2">II</button>
-	<button id="tier3" class="tier {% if classification.class == 999 %}a{% elif classification.class == 3 %}selected_tier{% else %}unselected_tier{% endif %}" title="Variants of unknown clinical significance" type="submit" name="tier3">III</button>
-	<button id="tier4" class="tier {% if classification.class == 999 %}a{% elif classification.class == 4 %}selected_tier{% else %}unselected_tier{% endif %}" title="Variants deemed benign or likely benign" type="submit" name="tier4">IV</button>
-	<div class="tooltip class_info">
-	  ?
-	  <span class="tooltiptext">KK</span>
+      		<!-- Right Side: Variant Actions -->
+      		{% if current_user.get_role() != "readonly" %}
+      		<div class="flex items-center space-x-4">
+        		{% if fusion.fp == true %}
+          		<form action="{{ url_for('rna_bp.unmark_false_fusion', id=fusion._id) }}" method="post">
+            		<input class="bg-green-600 text-black py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-green-700" type="submit" name="mark_fp" value="Unmark false positive">
+          		</form>
+				{% else %}
+				<form action="{{ url_for('rna_bp.mark_false_fusion', id=fusion._id) }}" method="post">
+					<input class="bg-purple-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-purple-700" type="submit" name="mark_fp" value="Mark as false positive">
+				  </form>
+        		{% endif %}
+			</div>
+			{% endif %}
+		</div>
 	</div>
 
-      </form>
-      {% endif %}
-      </div>
 
-      {% if current_user.get_role() != "readonly" %}
-      <span class="table_header">Add new comment/annotation</span>
-      <div id="commenting_box">
-	<form action="{{ url_for('add_variant_comment', id=fusion._id) }}" method="post">
-	  <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..."></textarea><br>
 
-	  <input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
-	  <input type="hidden" name="gene2" value="{{ fusion.gene2 }}">
-	  <input type="hidden" name="fusionpoints" value="{{sel_fus.breakpoint1}}^{{sel_fus.breakpoint2}}">
+	<center>
 
-	  <input type="submit" value="Save">&nbsp;&nbsp;
-	  <input type="checkbox" name="global" value="global"> Use as global annotation
+		<div class="container mx-auto px-12 py-12 overflow-auto">
+			<!--Indidivual fusioncaller info -->
+			<div class="float-right max-w-screen-800 w-full">
+				<div class="float-right max-w-screen-800 w-full bg-white shadow-md rounded-lg p-4 m-5 overflow-auto">
+					<!--  id="fus_moreinfo -->
+					<h2 class="text-base font-semibold mb-4 bg-green-300 p-2 rounded">Fusion calls from different fusioncallers</h2>
+					<table class="w-full table-auto text-xs">
+						<thead><tr>
+							<th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Gene 1</th>
+							<th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Gene 2</th>
+							<th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Breakpoints</th>
+							<th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Effect</th>
+							<th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Spanning pairs</th>
+							<th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Spanning reads</th>
+							<th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Longest anchor</th>
+							<th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Caller</th>
+							<th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Description</th>
+							<th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Status</th>
+							</tr></thead>
+						<tbody>
+						{% for call in fusion.calls %}
+							{% if call.selected == 1 %}
+								<tr class="bg-yellow-100 hover:bg-green-100 font-semibold">
+							{% endif %}
+							<td class="px-2 py-2 border-b">{{fusion.gene1}}</td>
+							<td class="px-2 py-2 border-b">{{fusion.gene2}}</td>
+							<td class="px-2 py-2 border-b">{{call.breakpoint1}}<br>{{call.breakpoint2}}</td>
+							<td class="px-2 py-2 border-b">{{call.effect}}</td>
+							<td class="px-2 py-2 border-b">{{call.spanpairs}}</td>
+							<td class="px-2 py-2 border-b">{{call.spanreads}}</td>
+							<td class="px-2 py-2 border-b">{{call.longestanchor}}</td>
+							<td class="px-2 py-2 border-b">{{call.caller}}</td>
+							<td class="px-2 py-2 border-b">{{ call.desc|format_fusion_desc|safe }}</td>
+							<td class="px-2 py-2 border-b">
+							{% if call.selected == 1 %}  
+								<b>selected</b>
+							{% else %}
+								<a href="{{ url_for('rna_bp.pick_fusioncall', id=fusion._id, callidx=loop.index, num_calls =fusion.calls|length ) }}" class="text-blue-500 hover:underline text-s">pick</a>
+							{% endif %}
+							</td></tr>{% endfor %}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		
+		</div>
 
-	</form>
-      </div>
-      {% endif %}
+		<div class="flex flex-wrap">
+			<!-- id="var_main" -->
+			<div class="w-full md:w-1/4 p-2">
+				<div class="bg-white shadow-md rounded-lg p-4 m-5">
+					{% set sel_fus = (fusion.calls|selectattr('selected', 'equalto', 1) |list)[0] %}
+					<!-- Fusion informaation and partner genes -->
+					<h2 class="text-base font-semibold mb-4 bg-blue-400 p-2 rounded">Fusion Info</h2>
+					<table class="w-full table-auto text-s table">
+						<tbody>
+							<tr class="hover:bg-purple-50">
+								<td class="py-2 px-3 border-b border-gray-300"> Gene 1 (5'):</td>
+								<td class="py-2 px-3 border-b border-gray-300"> {{ fusion.gene1 }}</td>
+							</tr>
+							<tr class="hover:bg-purple-50">
+								<td class="py-2 px-3 border-b border-gray-300"> Gene 2 (3'):</td>
+								<td class="py-2 px-3 border-b border-gray-300"> {{ fusion.gene2 }}</td>
+							</tr>
+							<tr class="hover:bg-purple-50">
+								<td class="py-2 px-3 border-b border-gray-300"> Atlas of GCOH:</td>
+								<td class="py-2 px-3 border-b border-gray-300"> <a href="https://www.google.com/search?ie=UTF-8&oe=UTF-8&q={{fusion.gene1}}%09{{fusion.gene2}}&btnG=Google+Search&domains=atlasgeneticsoncology.org&sitesearch=atlasgeneticsoncology.org&btnI" target="_blank" class="text-blue-500 hover:underline text-s">link</a></td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
 
-      {% if fusion.comments|length > 0 and current_user.get_role() != "readonly" %}
-      <div style='clear:left;'>
-	<span class="table_header">Sample-specific variant comments</span>
-	<table class="comments" id="variant_comments">
-	  <thead><tr><th>Who</th><th>Comment</th><th></th></tr></thead>
-	  <tbody>
-	    {% for comment in fusion.comments|sort(attribute='time_created', reverse=True) %}
-	    {% if comment.hidden != 1 %}
-	    <tr>
-	      {% else %}
-	    <tr class="hidden_comment hidden">
-	      {% endif %}
-	      <td class="comment" style="white-space: nowrap"><b>{{ comment.author }}</b><br><small>{{ comment.time_created|human_date }}</small></td>
-	      <td class="comment" onclick="addText(event)">{{ comment.text|format_comment|safe }}</td>
-	      <td class="comment">
-		{% if comment.hidden != 1 %}
-		<form action="{{ url_for('hide_fusion_comment', var_id=fusion._id) }}" method="post">
-		  <input type="hidden" name="comment_id" value="{{ comment._id }}">
-		  <input id="hide_comment" type="image" width=15 src="{{ url_for('static', filename='delete.png') }}">
-		</form>
-		{% else %}
-		<form action="{{ url_for('unhide_fusion_comment', var_id=fusion._id) }}" method="post">
-		  <input type="hidden" name="comment_id" value="{{ comment._id }}">
-		  <input id="unhide_comment" type="image" width=15 src="{{ url_for('static', filename='unhide.png') }}">
-		</form>
-		{% endif %}
-	      </td>
-	    </tr>
-	    {% endfor %}
-	    {% if hidden_comments != 0 %}
-	    <tr>
-	      <td colspan=4 style='border-top:1px solid #ccc; font-size:10px; padding-bottom:2px; padding-top:2px; text-align:center;'>
-		<a href="javascript:void(0)" onclick="switchVisibility_comments('hidden_comment')"><b>Show/hide deleted comments</b></a>
-	      </td>
-	    </tr>
-	    {% endif %}
+			</div>
 
-	  </tbody>
-	</table>
-      </div>
-      {% endif %}
+			<!--Variant specfic comment -->
+			<div class="w-full md:w-1/4 p-2">
+				<div class="bg-white shadow-md rounded-lg p-4 m-5">
+					<h2 class="text-base font-semibold mb-4 bg-blue-400 p-2 rounded">Variant Classification</h2>
+					<div class="w-full p-2 border mb-1 bg-gray-50">
+						<!--  id="classification" -->
+						<div class="p-2 mb-1 bg-white text-center text-xs font-semibold border divide-gray-400" id="desc{{ classification.class }}">
+						<!-- class="class_desc"  id="desc{{ classification.class }}" -->
+						{% if classification.class == 1 %}
+							Variant with strong clinical significance
+						{% elif classification.class == 2 %}
+							Variant with potential clinical significance
+						{% elif classification.class == 3 %}
+							Variant of unknown clinical significance
+						{% elif classification.class == 4 %}
+							Variant deemed benign or likely benign
+						{% elif classification.class == 999 %}
+							The variant has not been classified
+						  {% endif %}
+						</div>
+						{% if current_user.get_role() != "readonly" %}
+						<form id="form" action="{{ url_for('dna_bp.classify_variant', id=fusion._id) }}" method="post" class="inline-flex items-center space-x-2">
+							<input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
+							<input type="hidden" name="gene2" value="{{ fusion.gene2 }}">
+							<input type="hidden" name="fusionpoints" value="{{sel_fus.breakpoint1}}^{{sel_fus.breakpoint2}}">
+							<div class="pt-2 pr-2 pb-1 pl-1">
+								Tier:
+							</div>
+							<button id="tier1" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer {% if classification.class == 999 %}a{% elif classification.class == 1 %}font-bold shadow-lg{% else %}bg-white opacity-50{% endif %}" title="Variants with strong clinical significance" type="submit" name="tier1">I</button>
+							<button id="tier2" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer {% if classification.class == 999 %}a{% elif classification.class == 2 %}font-bold shadow-lg{% else %}bg-white opacity-50{% endif %}" title="Variants with potential clinical significance" type="submit" name="tier2">II</button>
+							<button id="tier3" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer {% if classification.class == 999 %}a{% elif classification.class == 3 %}font-bold shadow-lg{% else %}bg-white opacity-50{% endif %}" title="Variants of unknown clinical significance" type="submit" name="tier3">III</button>
+							<button id="tier4" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer {% if classification.class == 999 %}a{% elif classification.class == 4 %}font-bold shadow-lg{% else %}bg-white opacity-50{% endif %}" title="Variants deemed benign or likely benign" type="submit" name="tier4">IV</button>
+						</form>
+						<form id="form" action="{{ url_for('dna_bp.remove_classified_variant', id=fusion._id) }}" method="post" class="inline-flex items-center space-x-2" >
+							<input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
+							<input type="hidden" name="gene2" value="{{ fusion.gene2 }}">
+							<input type="hidden" name="fusionpoints" value="{{sel_fus.breakpoint1}}^{{sel_fus.breakpoint2}}">
+							{% if 'assay' in classification %}
+								<button id="remove" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer" title="Remove {{assay}} classifications" type="submit" onclick="return confirm('This will remove all tiering for {{assay}}, proceed?')">❌</button>
+							  {% elif 'admin' in current_user.get_groups() %}
+								<button id="remove" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer" title="Remove historic non-assay classifications" type="submit" onclick="return confirm('This will remove all tiering for historic tiering without assays assigned, proceed?')">❌</button>
+							  {% endif %}
+						</form>
+						{% endif %}
+					</div>
+				</div>
+			</div>
 
-      {% if annotations|length > 0 %}
-      <div style='clear:left;'>
-	<span class="table_header">Variant annotations</span>
-	<table class="annotatations" id="variant_annotations">
-	  <thead><tr><th>Who</th><th>Annotation</th></tr></thead>
-	  <tbody>
-	    {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
-	    {% if current_user.get_role() != "readonly" or loop.first == True %}
-	    <tr>
-	      <td class="annotation" style="white-space: nowrap"><b>{{ anno.author }}</b><br><small>{{ anno.time_created|human_date }}</small></td>
-	      <td class="annotation" onclick="addText(event)">{{ anno.text|format_comment|safe }}</td>
-	    </tr>
-	    {% endif %}
-	    {% endfor %}
+			<!-- Add comment-->
+			{% if current_user.get_role() != "readonly" %}
+			<div class="w-full md:w-1/4 p-2">
+				<div class="bg-white shadow-md rounded-lg p-4 m-5">
+					<h2 class="text-base font-semibold mb-4 bg-blue-400 p-2 rounded">Add new comment/annotation</h2>
+					<div id="commenting_box" class="w-full bg-gray-50 border border-gray-300 p-4 rounded-md">
+					  <form action="{{ url_for('dna_bp.add_variant_comment', id=fusion._id) }}" method="post">
+						<textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="w-full h-20 p-1 border border-gray-300 rounded-md focus:bg-yellow-100 mb-4"></textarea><br>
+						
+						<input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
+						<input type="hidden" name="gene2" value="{{ fusion.gene2 }}">
+						<input type="hidden" name="fusionpoints" value="{{sel_fus.breakpoint1}}^{{sel_fus.breakpoint2}}">
+  
+						<input type="submit" value="Save" class="bg-blue-500 text-white py-2 px-4 rounded-md cursor-pointer shadow-md">&nbsp;&nbsp;
+						<label class="inline-flex items-center">
+						  <input type="checkbox" name="global" value="global" class="form-checkbox text-blue-500">
+						  <span class="ml-2">Use as global annotation</span>
+						</label>
+  
+					  </form>
+					</div>
+				</div>
+			</div>
+			{% endif %}
 
-	  </tbody>
-	</table>
-      </div>
-      {% endif %}
-      
-    </div>
 
-    
+			<!-- Variant Comments -->
+			{% if current_user.get_role() != "readonly" %}
+			<div class="w-full md:w-1/4 p-2">
+				<div class="bg-white shadow-md rounded-lg p-4 m-5">
+					<h2 class="text-base font-semibold mb-4 bg-blue-400 p-2 rounded">Variant Specific Comments</h2>
+					<table class="w-full table-auto text-xs">
+					  <thead>
+						<tr>
+						  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Who</th>
+						  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Comment</th>
+						  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Hide/Unhide</th>
+						</tr>
+					  </thead>
+					  <tbody>
+						{% for comment in fusion.comments|sort(attribute='time_created', reverse=True) %}
+						  {% if comment.hidden != 1 %}
+							<tr class="hover:bg-blue-50">
+						  {% else %}
+							<tr class="bg-red-100 hover:bg-red-200 opacity-30 hidden hidden_comment">
+						  {% endif %}
+						  <td class="align-top py-2 px-4 border-b border-gray-300 text-gray-800 text-left whitespace-nowrap">{{ comment.author }}<br><small>{{ comment.time_created|human_date }}</small></td>
+						  <td class="align-top py-2 px-4 border-b border-gray-300 text-gray-800 text-left" onclick="addText(event)">
+							{{ comment.text|format_comment|safe }}
+						  </td>
+						  <td class="align-top py-2 px-4 border-b border-gray-300 text-gray-800 text-left">
+							{% if comment.hidden != 1 %}
+							  <form action="{{ url_for('rna_bp.hide_fusion_comment', fus_id=fusion._id) }}" method="post">
+								<input type="hidden" name="comment_id" value="{{ comment._id }}">
+								<input id="hide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/delete.png') }}">
+							  </form>
+							{% else %}
+							  <form action="{{ url_for('rna_bp.unhide_fusion_comment', fus_id=fusion._id) }}" method="post">
+								<input type="hidden" name="comment_id" value="{{ comment._id }}">
+								<input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/unhide.png') }}">
+							  </form>
+							{% endif %}
+						  </td>
+						</tr>
+						{% endfor %}
+						{% if hidden_comments %}
+						  <tr>
+							<td colspan=4 class="py-2 px-4 border-t border-gray-300 text-center text-sm text-gray-800">
+							  <a href="javascript:void(0)" onclick="switchVisibility_comments('hidden_comment')">Show/hide deleted comments</a>
+							</td>
+						  </tr>
+						{% endif %}
+					  </tbody>
+					</table>
+				</div>
+			</div>
+			{% endif %}
+		</div>
+
+
+		<div class="container mx-auto px-12 py-12 overflow-auto">
+
+	        <!-- Variant Annotations Information Assay -->
+			{% if annotations_interesting|length > 0 %}
+			<div class="float-left max-w-screen-350 w-full bg-white shadow-md rounded-lg p-4 m-5">
+			  <h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">Variant Annotations (assay)</h2>
+			  <table class="w-full table-auto text-xs">
+				<thead>
+				  <tr>
+					<th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Who</th>
+					<th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Annotation</th>
+					<th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Assay</th>
+				  </tr>
+				</thead>
+				<tbody>
+				  {% for assay_sub, key in annotations_interesting.items() %}
+					<tr class="bg-green-200">
+					  <td class="px-2 py-2 border-b">
+						{{ key.author }}<br><small>{{ key.time_created|human_date }}</small>
+					  </td>
+					  <td class="px-2 py-2 border-b" onclick="addText(event)">{{ key.text|format_comment|safe }}</td>
+					  {% if "assay" in key %}
+						<td class="px-2 py-2 border-b">
+						  {{key.assay}}<br><small>{{key.subpanel}}</small>
+						</td>
+					  {% else %}
+						<td class="px-2 py-2 border-b">historic</td>
+					  {% endif %}
+					</tr>
+				  {% endfor %}
+				</tbody>
+			  </table>
+			</div>
+		  	{% endif %}
+
+			<!-- Variant Annotations Information All -->
+
+			{% if annotations|length > 0 %}
+			<div class="float-left w-full bg-white shadow-md rounded-lg p-4 m-5">
+			  <h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">Variant Annotations (all)</h2>
+			  <table class="w-full table-auto text-xs">
+				<thead>
+				  <tr>
+					<th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Who</th>
+					<th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Annotation</th>
+					<th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Assay</th>
+				  </tr>
+				</thead>
+				<tbody>
+				  {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
+					{% if current_user.get_role() != "readonly" or loop.first == True %}
+					  <tr class="hover:bg-blue-50">
+						<td class="px-2 py-2 border-b">
+						  {{ anno.author }}<br><small>{{ anno.time_created|human_date }}</small>
+						</td>
+						<td class="px-2 py-2 border-b" onclick="addText(event)">
+						  {{ anno.text|format_comment|safe }}
+						</td>
+						{% if "assay" in anno %}
+						  <td class="px-2 py-2 border-b">
+							{{anno.assay}}<br><small>{{anno.subpanel}}</small>
+						  </td>
+						{% else %}
+						  <td class="px-2 py-2 border-b">historic</td>
+						{% endif %}
+					  </tr>
+					{% endif %}
+				  {% endfor %}
+				</tbody>
+			  </table>
+			</div>
+		  	{% endif %}
+		  	
+				
+		</div>		
+	</center>
+</div>
+
+
   <script type="text/javascript">
     $("#test").select2();
 

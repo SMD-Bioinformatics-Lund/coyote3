@@ -42,34 +42,32 @@ def add_sample_comment(id):
     if sample_type == "dna":
         return redirect(url_for("dna_bp.list_variants", id=id))
     else:
-        return redirect(url_for("fusions_bp.list_fusions", id=id))
+        return redirect(url_for("rna_bp.list_fusions", id=id))
 
 
-@common_bp.route("/sample/hide_sample_comment/<string:id>", methods=["POST"])
+@common_bp.route("/sample/hide_sample_comment/<string:sample_id>", methods=["POST"])
 @login_required
-def hide_sample_comment(id):
+def hide_sample_comment(sample_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    sample = store.sample_handler.get_sample_with_id(id=id)
+    store.sample_handler.hide_sample_comment(sample_id, comment_id)
+    sample = store.sample_handler.get_sample_with_id(sample_id)
     assay = util.common.get_assay_from_sample(sample)
     sample_type = util.common.get_sample_type(assay)
-    store.sample_handler.hide_sample_comment(id, comment_id)
-    flash("Sample comment deleted", "green")
     if sample_type == "dna":
-        return redirect(url_for("dna_bp.list_variants", id=id))
+        return redirect(url_for("dna_bp.list_variants", id=sample_id))
     else:
-        return redirect(url_for("fusions_bp.list_fusions", id=id))
+        return redirect(url_for("rna_bp.list_fusions", id=sample_id))
 
 
-@common_bp.route("/sample/unhide_sample_comment/<string:id>", methods=["POST"])
+@common_bp.route("/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"])
 @login_required
-def unhide_sample_comment(id):
+def unhide_sample_comment(sample_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    sample = store.sample_handler.get_sample_with_id(id=id)
+    store.sample_handler.unhide_sample_comment(sample_id, comment_id)
+    sample = store.sample_handler.get_sample_with_id(sample_id)
     assay = util.common.get_assay_from_sample(sample)
     sample_type = util.common.get_sample_type(assay)
-    store.sample_handler.unhide_sample_comment(id, comment_id)
-    flash("Sample comment unhidden", "green")
     if sample_type == "dna":
-        return redirect(url_for("dna_bp.list_variants", id=id))
+        return redirect(url_for("dna_bp.list_variants", id=sample_id))
     else:
-        return redirect(url_for("fusions_bp.list_fusions", id=id))
+        return redirect(url_for("rna_bp.list_fusions", id=sample_id))

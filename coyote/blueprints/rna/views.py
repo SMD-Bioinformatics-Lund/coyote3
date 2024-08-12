@@ -13,9 +13,10 @@ from wtforms.validators import Optional
 from coyote.extensions import store
 from coyote.blueprints.rna import rna_bp
 from coyote.extensions import util
+from coyote.blueprints.rna import filters
 
 
-@rna_bp.route("/rna/sample/<string:id>", methods=["GET", "POST"])
+@rna_bp.route("/sample/<string:id>", methods=["GET", "POST"])
 @login_required
 def list_fusions(id):
     """
@@ -142,14 +143,17 @@ def list_fusions(id):
     )
 
 
-""" @app.route("/rna/fusion/<string:id>")
+@rna_bp.route("/fusion/<string:id>")
 @login_required
 def show_fusion(id):
 
     fusion = store.fusion_handler.get_fusion(id)
-    query = fusion["SAMPLE_ID"]
-    sample = store.sample_handler.get_sample_with_id(query)
+    sample = store.sample_handler.get_sample_with_id(fusion["SAMPLE_ID"])
+    print("SAMPLE")
+    print(sample)
     annotations, classification = store.fusion_handler.get_fusion_annotations(fusion)
+    print(annotations)
+    print(classification)
 
     return render_template(
         "show_fusion.html",
@@ -157,4 +161,50 @@ def show_fusion(id):
         sample=sample,
         annotations=annotations,
         classification=classification,
-    ) """
+    )
+
+
+@rna_bp.route("/fusion/fp/<string:id>", methods=["POST"])
+@login_required
+def mark_false_fusion(id):
+    """
+    Mark False Positive status of a variant in the database
+    """
+    store.fusion_handler.mark_false_positive_fusion(id)
+    return redirect(url_for("rna_bp.show_fusion", id=id))
+
+
+@rna_bp.route("/fusion/unfp/<string:id>", methods=["POST"])
+@login_required
+def unmark_false_fusion(id):
+    """
+    Unmark False Positive status of a variant in the database
+    """
+    store.fusion_handler.unmark_false_positive_fusion(id)
+    return redirect(url_for("rna_bp.show_fusion", id=id))
+
+
+@rna_bp.route(
+    "/fusion/pickfusioncall/<string:id>/<string:callidx>/<string:num_calls>",
+    methods=["GET", "POST"],
+)
+@login_required
+def pick_fusioncall(id, callidx, num_calls):
+    store.fusion_handler.pick_fusion(id, callidx, num_calls)
+    return redirect(url_for("rna_bp.show_fusion", id=id))
+
+
+@rna_bp.route("/fusion/hide_fusion_comment/<string:fus_id>", methods=["POST"])
+@login_required
+def hide_fusion_comment(fus_id):
+    comment_id = request.form.get("comment_id", "MISSING_ID")
+    store.fusion_handler.hide_fus_comment(var_id, comment_id)
+    return redirect(url_for("rna_bp.show_variant", id=var_id))
+
+
+@rna_bp.route("/var/unhide_variant_comment/<string:var_id>", methods=["POST"])
+@login_required
+def unhide_fusion_comment(var_id):
+    comment_id = request.form.get("comment_id", "MISSING_ID")
+    store.fusion_handler.unhide_fus_comment(var_id, comment_id)
+    return redirect(url_for("rna_bp.show_variant", id=var_id))
