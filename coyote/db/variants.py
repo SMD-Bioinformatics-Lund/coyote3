@@ -155,7 +155,7 @@ class VariantsHandler(BaseHandler):
         """
         Get total variants count
         """
-        return self.get_collection().count_documents({})
+        return self.get_collection().find().count()
 
     def get_unique_total_variant_counts(self) -> int:
         """
