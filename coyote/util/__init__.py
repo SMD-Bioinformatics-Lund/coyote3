@@ -14,6 +14,7 @@ class Utility:
         from coyote.blueprints.rna.util import RNAUtility
         from coyote.blueprints.userprofile.util import ProfileUtility
         from coyote.blueprints.dashboard.util import DashBoardUtility
+        from coyote.blueprints.genepanels.util import GenePanelUtility
 
         self.dna = DNAUtility()
         self.common = CommonUtility()
@@ -21,3 +22,4 @@ class Utility:
         self.rna = RNAUtility()
         self.profile = ProfileUtility()
         self.dashboard = DashBoardUtility()
+        self.genepanels = GenePanelUtility()

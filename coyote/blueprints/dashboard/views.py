@@ -19,16 +19,6 @@ def dashboard() -> str:
     pending_samples_count = store.sample_handler.get_all_samples(report=False)
 
     assay_specific_stats = store.sample_handler.get_assay_specific_sample_stats()  # Change it back
-    # assay_specific_stats = {
-    #     "NA": {"total": 0, "report": 0, "pending": 0},
-    #     "myeloid_GMSv1": {"total": 3, "report": 0, "pending": 3},
-    #     "tumwgs": {"total": 2, "report": 1, "pending": 1},
-    #     "tumwgs-solid": {"total": 2, "report": 1, "pending": 1},
-    #     "solid_GMSv3": {"total": 1, "report": 1, "pending": 0},
-    #     "PARP_inhib": {"total": 1, "report": 0, "pending": 1},
-    #     "fusion": {"total": 1, "report": 0, "pending": 1},
-    # }
-    print(assay_specific_stats)
     print(total_samples_count, analysed_samples_count, pending_samples_count)
 
     # Data for the charts based on assay
@@ -43,64 +33,49 @@ def dashboard() -> str:
         for assay, stats in assay_specific_stats.items()
     }
 
-    print(store.annotation_handler.get_assay_classified_stats())
     class_stats = util.dashboard.format_classified_stats(
         store.annotation_handler.get_classified_stats()
     )
     assay_class_stats = util.dashboard.format_assay_classified_stats(
         store.annotation_handler.get_assay_classified_stats()
     )
-    print(class_stats)
-    print(assay_class_stats)
 
     # Get total variants in the db
     total_variant_counts = store.variant_handler.get_total_variant_counts()  # Change it back
-    # total_variant_counts = 100
-    print(total_variant_counts)
     # Get all unique variants
-    # unique_variant_counts = store.variant_handler.get_unique_total_variant_counts() # Change it back
+    # unique_variant_counts = (
+    #     store.variant_handler.get_unique_total_variant_counts()
+    # )  # Change it back
     unique_variant_counts = 12
-    print(unique_variant_counts)
 
     # get unique variants Snps
     # unique_snps_counts = store.variant_handler.get_unique_snp_count() # Change it back
     unique_snps_counts = 10
-    print(unique_snps_counts)
 
     # get unique CNVs
     unique_cnv_counts: int = store.cnv_handler.get_unique_cnv_count()
-    print(unique_cnv_counts)
-
     # get unique Translocations
     unique_transloc_counts: int = store.transloc_handler.get_unique_transloc_count()
-    print(unique_transloc_counts)
 
     # get unique RNA fusions
     unique_fusion_counts: int = store.fusion_handler.get_unique_fusion_count()
-    print(unique_fusion_counts)
 
     # Get total blacklisted variants
     unique_blacklist_counts: int = store.blacklist_handler.get_unique_blacklist_count()
-    print(unique_blacklist_counts)
 
     # Get total False positive variants
     # unique_fp_counts: int = store.variant_handler.get_unique_fp_count()  # Change it back
     unique_fp_counts: int = 10
-    print(unique_fp_counts)
 
     # Get total genes analysed from all the panels
     unique_gene_count_all_panels = store.panel_handler.get_unique_all_panel_gene_count()
-    print(unique_gene_count_all_panels)
 
     # Get gene counts in each panel
     assay_gene_counts = store.panel_handler.get_assay_gene_counts()
-    print(assay_gene_counts)
     genelist_gene_counts = store.panel_handler.get_genelist_gene_counts()
-    print(genelist_gene_counts)
 
     # Total Assays analysed
     total_assay_count = store.group_handler.get_total_group_count()
-    print(total_assay_count)
 
     # Variant Caller specific stats
 

@@ -1,0 +1,156 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<div class="container mx-auto py-10">
+    <!-- New Gene List Form -->
+    <div class="bg-white shadow-lg rounded-xl p-8">
+        <h2 class="text-2xl font-semibold mb-6">Create New Gene Panel</h2>
+        <form id="genePanelForm" action="{{ url_for('genepanels_bp.create_genelist') }}" method="post" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+
+            <div class="mb-4">
+                {{ form.name.label(class="block text-gray-700 text-sm font-bold mb-2") }}
+                {{ form.name(class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full", placeholder="Enter name", id="nameField") }}
+                <span id="nameError" class="text-red-500 text-sm"></span>
+            </div>
+
+            <div class="mb-4">
+                {{ form.displayname.label(class="block text-gray-700 text-sm font-bold mb-2") }}
+                {{ form.displayname(class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full", placeholder="Enter display name", id="displaynameField") }}
+                <span id="displaynameError" class="text-red-500 text-sm"></span>
+            </div>
+
+            <div class="mb-4">
+                {{ form.type.label(class="block text-gray-700 text-sm font-bold mb-2") }}
+                {{ form.type(class="form-select bg-white border border-gray-300 rounded-lg py-2 px-4 w-full") }}
+            </div>
+
+            <div class="mb-4">
+                {{ form.genes_file.label(class="block text-gray-700 text-sm font-bold mb-2") }}
+                {{ form.genes_file(class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full") }}
+                <span class="text-gray-500 text-sm">or</span>
+                {{ form.genes_text(class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full mt-2", rows="4", placeholder="Paste comma-separated or newline-separated gene list") }}
+            </div>
+
+            <div class="mb-4">
+                {{ form.assays.label(class="block text-gray-700 text-sm font-bold mb-2") }}
+                <input type="text" id="new_assay_input" placeholder="Add new assay or select from suggestions" class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full mt-2">
+                <div id="suggested-assays" class="flex flex-wrap gap-2 mt-4">
+                    <!-- Display existing assays with a + icon -->
+                    {% for assay in available_assays %}
+                    <div class="suggestion-item flex items-center space-x-2 bg-gray-200 rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-300">
+                        <span>{{ assay }}</span>
+                        <button type="button" class="text-green-500 hover:text-green-700 add-assay">+</button>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div id="assay-container" class="flex flex-wrap gap-2 mt-4">
+                    <!-- User-selected assays will appear here -->
+                </div>
+                <input type="hidden" name="assays" id="assays_field" value="">
+            </div>
+
+            <div class="flex justify-end">
+                {{ form.submit(class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out") }}
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const nameField = document.getElementById('nameField');
+    const displaynameField = document.getElementById('displaynameField');
+    const nameError = document.getElementById('nameError');
+    const displaynameError = document.getElementById('displaynameError');
+    const assayContainer = document.getElementById('assay-container');
+    const newAssayInput = document.getElementById('new_assay_input');
+    const assaysField = document.getElementById('assays_field');
+
+    function updateAssaysField() {
+        const assayElements = assayContainer.querySelectorAll('.assay-item span');
+        const assays = Array.from(assayElements).map(span => span.textContent);
+        assaysField.value = assays.join(',');
+    }
+
+    function createAssayElement(assayName) {
+        const assayDiv = document.createElement('div');
+        assayDiv.className = 'assay-item flex items-center space-x-2 bg-blue-200 rounded-lg px-3 py-2';
+        assayDiv.innerHTML = `<span>${assayName}</span><button type="button" class="text-red-500 hover:text-red-700 remove-assay">x</button>`;
+        
+        assayDiv.querySelector('.remove-assay').addEventListener('click', function() {
+            assayDiv.remove();
+            updateAssaysField();
+        });
+
+        return assayDiv;
+    }
+
+    // Handle adding new assays via Enter key
+    newAssayInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter' && this.value.trim() !== '') {
+            event.preventDefault();
+            const newAssay = this.value.trim();
+            const assays = newAssay.split(',').map(a => a.trim()).filter(a => a !== '');
+            assays.forEach(assay => {
+                const assayElement = createAssayElement(assay);
+                assayContainer.appendChild(assayElement);
+            });
+            this.value = '';
+            updateAssaysField();
+        }
+    });
+
+    // Handle adding existing suggested assays
+    document.querySelectorAll('.suggestion-item .add-assay').forEach(button => {
+        button.addEventListener('click', function() {
+            const assayName = this.previousElementSibling.textContent;
+            const assayElement = createAssayElement(assayName);
+            assayContainer.appendChild(assayElement);
+            this.closest('.suggestion-item').remove();
+            updateAssaysField();
+        });
+    });
+
+    // Name and display name validation
+    function validateField(field, errorSpan, validationUrl) {
+        field.addEventListener('blur', function() {
+            const value = field.value.trim();
+            if (value !== '') {
+                fetch(validationUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ value: value })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.exists) {
+                        errorSpan.textContent = `${field.name} already exists. Please choose a different ${field.name}.`;
+                    } else {
+                        errorSpan.textContent = '';
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        });
+    }
+
+    validateField(nameField, nameError, '{{ url_for("genepanels_bp.validate_name") }}');
+    validateField(displaynameField, displaynameError, '{{ url_for("genepanels_bp.validate_displayname") }}');
+});
+</script>
+
+<style>
+  .form-input, .form-select {
+    transition: border-color 0.3s ease-in-out;
+  }
+  .form-input:focus, .form-select:focus {
+    border-color: #63b3ed;
+  }
+  .assay-item, .suggestion-item {
+    display: inline-block;
+    margin-right: 8px;
+    margin-bottom: 8px;
+  }
+</style>
+{% endblock %}

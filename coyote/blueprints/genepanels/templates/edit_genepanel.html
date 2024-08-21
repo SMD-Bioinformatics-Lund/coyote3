@@ -1,0 +1,295 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<div class="container mx-auto py-10">
+    <!-- Edit Gene Panel Form -->
+    <div class="bg-white shadow-lg rounded-xl p-8">
+        <h2 class="text-2xl font-semibold mb-6">Edit Gene Panel</h2>
+        <form id="genePanelForm" action="{{ url_for('genepanels_bp.edit_genepanel', genepanel_id=panel_data['_id']) }}" method="post" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+            <div class="mb-4">
+                {{ form.name.label(class="block text-gray-700 text-sm font-bold mb-2") }}
+                {{ form.name(class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full", placeholder="Enter name", id="nameField") }}
+                <span id="nameError" class="text-red-500 text-sm"></span>
+            </div>
+            <div class="mb-4">
+                {{ form.displayname.label(class="block text-gray-700 text-sm font-bold mb-2") }}
+                {{ form.displayname(class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full", placeholder="Enter display name", id="displaynameField") }}
+                <span id="displaynameError" class="text-red-500 text-sm"></span>
+            </div>
+            <div class="mb-4">
+                {{ form.type.label(class="block text-gray-700 text-sm font-bold mb-2") }}
+                {{ form.type(class="form-select bg-white border border-gray-300 rounded-lg py-2 px-4 w-full") }}
+            </div>
+            <div class="mb-4">
+                {{ form.genes_file.label(class="block text-gray-700 text-sm font-bold mb-2") }}
+                {{ form.genes_file(class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full") }}
+                <span class="text-gray-500 text-sm">or</span>
+                <div id="genes-input-container" class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full mt-2 flex flex-wrap items-center">
+                    <input type="text" id="genes-input" class="outline-none flex-grow" placeholder="Type genes here..." autocomplete="off">
+                </div>
+                <input type="hidden" name="genes_text" id="genes_field" value="{{ form.genes_text.data }}">
+            </div>
+            <div class="mb-4">
+                {{ form.assays.label(class="block text-gray-700 text-sm font-bold mb-2") }}
+                <div id="assays-input-container" class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full mt-2 flex flex-wrap items-center">
+                    <input type="text" id="assays-input" class="outline-none flex-grow" placeholder="Type assays here..." autocomplete="off">
+                </div>
+                <input type="hidden" name="assays" id="assays_field" value="{{ form.assays.data }}">
+                <div id="assay-suggestions" class="mt-2 flex flex-wrap gap-2">
+                    <!-- Suggestions will appear here -->
+                </div>
+            </div>
+            <div class="mb-4">
+                {{ form.version.label(class="block text-gray-700 text-sm font-bold mb-2") }}
+                {{ form.version(class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full", placeholder="Enter version", id="versionField") }}
+                <span id="versionError" class="text-red-500 text-sm"></span>
+            </div>
+            <div class="flex justify-end">
+                {{ form.submit(class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out") }}
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const genesInputContainer = document.getElementById('genes-input-container');
+    const genesInput = document.getElementById('genes-input');
+    const genesField = document.getElementById('genes_field');
+
+    const assaysInputContainer = document.getElementById('assays-input-container');
+    const assaysInput = document.getElementById('assays-input');
+    const assaysField = document.getElementById('assays_field');
+    const assaySuggestions = document.getElementById('assay-suggestions');
+
+    const nameField = document.getElementById('nameField');
+    const nameError = document.getElementById('nameError');
+    const displaynameField = document.getElementById('displaynameField');
+    const displaynameError = document.getElementById('displaynameError');
+
+    const versionField = document.getElementById('versionField');
+    const versionError = document.getElementById('versionError');
+
+    let versionValid = true;
+    let nameValid = true;
+    let displaynameValid = true;
+
+    // Function to update the hidden fields
+    function updateHiddenField(container, field) {
+        const values = [];
+        container.querySelectorAll('.item-tag').forEach(tag => {
+            values.push(tag.dataset.value);
+        });
+        field.value = values.join(',');
+    }
+
+    // Function to create a tag element
+    function createTagElement(name, container, field) {
+        const tagDiv = document.createElement('div');
+        tagDiv.className = 'item-tag flex items-center space-x-2 bg-blue-200 rounded-lg px-3 py-1 my-1 mr-2';
+        tagDiv.dataset.value = name;
+        tagDiv.innerHTML = `<span>${name}</span><button type="button" class="text-red-500 hover:text-red-700 remove-item">x</button>`;
+
+        tagDiv.querySelector('.remove-item').addEventListener('click', function() {
+            tagDiv.remove();
+            updateHiddenField(container, field);
+            updateAssaySuggestions();  // Update suggestions when an assay is removed
+        });
+
+        container.insertBefore(tagDiv, container.querySelector('input'));
+        updateHiddenField(container, field);
+    }
+
+    // Function to process the input and create tags
+    function processInput(input, container, field) {
+        const values = input.value.trim().split(/\s+/);
+        values.forEach(value => {
+            if (value) {
+                createTagElement(value, container, field);
+            }
+        });
+        input.value = '';
+    }
+
+    // Function to update assay suggestions
+    function updateAssaySuggestions() {
+        const currentAssays = assaysField.value.split(',').map(assay => assay.trim());
+        const availableAssays = {{ available_assays|tojson }};
+        assaySuggestions.innerHTML = '';
+
+        availableAssays.forEach(assay => {
+            if (!currentAssays.includes(assay)) {
+                const suggestionButton = document.createElement('button');
+                suggestionButton.className = 'suggestion-item bg-green-200 hover:bg-green-300 text-green-800 font-bold py-1 px-2 rounded-lg flex items-center';
+                suggestionButton.innerHTML = `<span class="mr-2">${assay}</span><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3-7a1 1 0 01-1 1H8a1 1 0 010-2h4a1 1 0 011 1z" clip-rule="evenodd" /></svg>`;
+                suggestionButton.addEventListener('click', function() {
+                    createTagElement(assay, assaysInputContainer, assaysField);
+                    updateAssaySuggestions();  // Update suggestions when an assay is added
+                });
+                assaySuggestions.appendChild(suggestionButton);
+            }
+        });
+
+        // Hide the suggestions container if there are no suggestions
+        assaySuggestions.style.display = assaySuggestions.innerHTML.trim() ? 'flex' : 'none';
+    }
+
+    // Event listener for genes input
+    genesInput.addEventListener('keydown', function(event) {
+        if (event.key === ' ' && this.value.trim() !== '') {
+            event.preventDefault();
+            processInput(this, genesInputContainer, genesField);
+        }
+    });
+
+    // Event listener for assays input
+    assaysInput.addEventListener('keydown', function(event) {
+        if (event.key === ' ' && this.value.trim() !== '') {
+            event.preventDefault();
+            processInput(this, assaysInputContainer, assaysField);
+            updateAssaySuggestions();  // Update suggestions after adding new assay
+        }
+    });
+
+    // Event listener for pasting into genes input
+    genesInput.addEventListener('input', function(event) {
+        if (this.value.includes(' ')) {
+            processInput(this, genesInputContainer, genesField);
+        }
+    });
+
+    // Event listener for pasting into assays input
+    assaysInput.addEventListener('input', function(event) {
+        if (this.value.includes(' ')) {
+            processInput(this, assaysInputContainer, assaysField);
+            updateAssaySuggestions();  // Update suggestions after pasting assays
+        }
+    });
+
+    // Pre-fill existing genes
+    const existingGenes = genesField.value.split(',');
+    existingGenes.forEach(gene => {
+        if (gene.trim()) {
+            createTagElement(gene.trim(), genesInputContainer, genesField);
+        }
+    });
+
+    // Pre-fill existing assays
+    const existingAssays = assaysField.value.split(',');
+    existingAssays.forEach(assay => {
+        if (assay.trim()) {
+            createTagElement(assay.trim(), assaysInputContainer, assaysField);
+        }
+    });
+
+    // Initial update of assay suggestions
+    updateAssaySuggestions();
+
+    // Version validation
+    versionField.addEventListener('blur', function() {
+        fetch('{{ url_for("genepanels_bp.validate_version", genepanel_id=panel_data["_id"]) }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ value: versionField.value.trim() })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.exists) {
+                versionError.textContent = 'Version already exists or version cannot be downgraded from the current version. Please use a new version.';
+                versionValid = false;
+            } else {
+                versionError.textContent = '';
+                versionValid = true;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            versionValid = false;
+        });
+    });
+
+    // Name validation
+    nameField.addEventListener('blur', function() {
+        fetch('{{ url_for("genepanels_bp.validate_name") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ value: nameField.value.trim(), genepanel_id: "{{ panel_data['_id'] }}" })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.exists) {
+                nameError.textContent = 'Name is associated with other panels. Please use a different name.';
+                nameValid = false;
+            } else {
+                nameError.textContent = '';
+                nameValid = true;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            nameValid = false;
+        });
+    });
+
+    // Display name validation
+    displaynameField.addEventListener('blur', function() {
+        fetch('{{ url_for("genepanels_bp.validate_displayname") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ value: displaynameField.value.trim(), genepanel_id: "{{ panel_data['_id'] }}" })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.exists) {
+                displaynameError.textContent = 'Display name is associated with other panels. Please use a different display name.';
+                displaynameValid = false;
+            } else {
+                displaynameError.textContent = '';
+                displaynameValid = true;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            displaynameValid = false;
+        });
+    });
+
+    // Prevent form submission if validation fails
+    document.getElementById('genePanelForm').addEventListener('submit', function(event) {
+        if (!versionValid || !nameValid || !displaynameValid) {
+            event.preventDefault(); // Prevent form submission
+            if (!nameValid) nameField.focus();
+            else if (!displaynameValid) displaynameField.focus();
+            else if (!versionValid) versionField.focus();
+        }
+    });
+});
+</script>
+
+<style>
+    .form-input, .form-select {
+        transition: border-color 0.3s ease-in-out;
+    }
+    .form-input:focus, .form-select:focus {
+        border-color: #63b3ed;
+    }
+    .item-tag {
+        display: inline-flex;
+        align-items: center;
+    }
+    .item-tag span {
+        margin-right: 8px;
+    }
+    .remove-item {
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
+    .suggestion-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+</style>
+{% endblock %}

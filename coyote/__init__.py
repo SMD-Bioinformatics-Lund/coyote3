@@ -109,6 +109,12 @@ def register_blueprints(app) -> None:
 
     app.register_blueprint(dashboard_bp, url_prefix="/")
 
+    # register genepanels bp
+    bp_debug_msg("genepanels_bp")
+    from coyote.blueprints.genepanels import genepanels_bp
+
+    app.register_blueprint(genepanels_bp, url_prefix="/genepanels")
+
 
 def init_login_manager(app) -> None:
     app.logger.debug("Initializing login_manager")

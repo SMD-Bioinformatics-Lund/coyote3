@@ -7,7 +7,7 @@ from coyote.util.common_utility import CommonUtility
 
 class DashBoardUtility:
     """
-    Utility class for variants blueprint
+    Utility class for Dashboard blueprint
     """
 
     @staticmethod
@@ -28,16 +28,6 @@ class DashBoardUtility:
         Format classified stats
         """
         class_stats = OrderedDict()
-
-        # for doc in class_stats:
-        #     nomenclature = doc["_id"]["nomenclature"]
-        #     class_value = doc["_id"]["class"]
-        #     count = doc["count"]
-
-        #     if nomenclature not in class_stats:
-        #         class_stats[nomenclature] = OrderedDict()
-
-        #     class_stats[nomenclature][class_value] = count
 
         for doc in class_stats_dict:
             if doc["_id"].get("assay") is not None:

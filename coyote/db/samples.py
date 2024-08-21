@@ -184,30 +184,6 @@ class SampleHandler(BaseHandler):
         """
         get assay specific stats
         """
-        # assay_specific_stats = {"NA": {"total": 0, "report": 0, "pending": 0}}
-        # for sample in self.get_collection().find():
-        #     if sample.get("groups"):
-        #         for group in sample.get("groups"):
-        #             if group not in assay_specific_stats:
-        #                 assay_specific_stats[group] = {"total": 0, "report": 0, "pending": 0}
-        #             assay_specific_stats[group]["total"] += 1
-        #             if sample.get("report_num", 0) > 0:
-        #                 assay_specific_stats[group]["report"] += 1
-        #             else:
-        #                 assay_specific_stats[group]["pending"] += 1
-        #     else:
-        #         assay_specific_stats["NA"]["total"] += 1
-        #         if sample.get("report_num", 0) > 0:
-        #             assay_specific_stats["NA"]["report"] += 1
-        #         else:
-        #             assay_specific_stats["NA"]["pending"] += 1
-        # return assay_specific_stats
-
-        # db.samples.createIndex({ groups: 1, report_num: 1 })
-        # db.samples.createIndex({ report_num: 1 })
-        # db.samples.createIndex({ groups: 1 }, { sparse: true })
-        # db.samples.createIndex( { groups: 1, report_num: 1 }, { partialFilterExpression: { groups: { $exists: true } } } )
-
         pipeline = [
             {"$unwind": "$groups"},
             {
