@@ -6,7 +6,6 @@ from flask import abort
 from flask import current_app as app
 from flask import redirect, render_template, request, url_for
 from flask_login import current_user
-import traceback
 
 # Legacy main-screen:
 from flask_login import login_required
@@ -17,7 +16,7 @@ from coyote.extensions import util
 
 
 @home_bp.route("/", methods=["GET", "POST"])
-@home_bp.route("/samples/<string:status>", methods=["GET", "POST"])
+@home_bp.route("/<string:status>", methods=["GET", "POST"])
 @login_required
 def home_screen(status="live"):
     form = SampleSearchForm()

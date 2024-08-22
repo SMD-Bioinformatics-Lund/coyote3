@@ -30,20 +30,20 @@
         <span class="text-lg font-semibold">Live Samples</span>
         <table class="min-w-full bg-white shadow-lg rounded-lg my-4 text-sm border border-gray-200 z-50">
           <thead>
-            <tr>
-              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Sample ID</th>
-              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal"></th>
-              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Group</th>
-              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Diagnosis</th>
-              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">BAM</th>
-              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">QC</th>
-              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">When added</th>
+            <tr class="bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase tracking-wider">
+              <th class="py-2 px-4 font-normal">Sample ID</th>
+              <th class="py-2 px-4 font-normal"></th>
+              <th class="py-2 px-4 font-normal">Group</th>
+              <th class="py-2 px-4 font-normal">Diagnosis</th>
+              <th class="py-2 px-4 font-normal">BAM</th>
+              <th class="py-2 px-4 font-normal">QC</th>
+              <th class="py-2 px-4 font-normal">When added</th>
             </tr>
           </thead>
           <tbody id="pagination-table-body" class="text-gray-700">
             {% for sample in live_samples %}
-              <tr>
-                <td class="py-2 px-4 border-b border-gray-300">
+              <tr class="border-b border-gray-300">
+                <td class="py-2 px-4">
                   {% if sample.groups|join('') == 'fusion' or sample.groups|join('') == 'solidRNA_GMSv5' %}
                     <a href="{{ url_for('rna_bp.list_fusions', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                   {% else %}
@@ -53,30 +53,30 @@
                     *
                   {% endif %}
                 </td>
-                <td class="py-2 px-4 border-b border-gray-300">
+                <td class="py-2 px-4">
                   {% if "num_samples" in sample %}
                     {% for n in range(sample.num_samples) %}
                       &#9679;
                     {% endfor %}
                   {% endif %}
                 </td>
-                <td class="py-2 px-4 border-b border-gray-300">
+                <td class="py-2 px-4">
                   {% for grp in sample.groups %}
                     {{ grp }}
                   {% endfor %}
                 </td>
-                <td class="py-2 px-4 border-b border-gray-300">
+                <td class="py-2 px-4">
                   {% if "subpanel" in sample %}
                     {{ sample.subpanel }}
                   {% endif %}
                 </td>
-                <td class="py-2 px-4 border-b border-gray-300">
+                <td class="py-2 px-4">
                   {% if sample.bam is defined %}
                     <a href="{{ sample.bam }}" class="text-blue-500 hover:underline">BAM</a>
                     <a href="{{ sample.bam }}.bai" class="text-blue-500 hover:underline">BAI</a>
                   {% endif %}
                 </td>
-                <td class="py-2 px-4 border-b border-gray-300">
+                <td class="py-2 px-4">
                   {% if sample.QC is defined %}
                     {% for qc in sample.QC|sort(attribute='sample_id') %}
                       {% if "500" in qc.pct_above_x %}
@@ -89,13 +89,13 @@
                     {% endfor %}
                   {% endif %}
                 </td>
-                <td class="py-2 px-4 border-b border-gray-300">
+                <td class="py-2 px-4">
                   {{ sample.time_added|human_date }}
                 </td>
               </tr>
             {% else %}
-              <tr>
-                <td colspan="6" class="py-2 px-4 border-b border-gray-300 text-center">No live samples.</td>
+              <tr class="border-b border-gray-300">
+                <td colspan="6" class="py-2 px-4 text-center">No live samples.</td>
               </tr>
             {% endfor %}
           </tbody>
@@ -113,54 +113,54 @@
         <span class="text-lg font-semibold">Reported samples (<a href="?all=1" class="text-blue-500 hover:underline">show all</a>)</span>
         <table class="min-w-full bg-white shadow-lg rounded-lg my-4 text-sm border border-gray-200 z-50">
           <thead>
-            <tr>
-              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Sample ID</th>
-              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal"></th>
-              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Group</th>
-              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Diagnosis</th>
-              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">When added</th>
-              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Last report</th>
-              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">BAM</th>
-              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">QC</th>
-              <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase font-normal">Reports</th>
+            <tr class="bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase tracking-wider">
+              <th class="py-2 px-4 font-normal">Sample ID</th>
+              <th class="py-2 px-4 font-normal"></th>
+              <th class="py-2 px-4 font-normal">Group</th>
+              <th class="py-2 px-4 font-normal">Diagnosis</th>
+              <th class="py-2 px-4 font-normal">When added</th>
+              <th class="py-2 px-4 font-normal">Last report</th>
+              <th class="py-2 px-4 font-normal">BAM</th>
+              <th class="py-2 px-4 font-normal">QC</th>
+              <th class="py-2 px-4 font-normal">Reports</th>
             </tr>
           </thead>
           <tbody id="pagination-table-body" class="text-gray-700">
             {% for sample in done_samples|sort(attribute="last_report_time_created", reverse=True) %}
-              <tr>
-                <td class="py-2 px-4 border-b border-gray-300">
+              <tr class="border-b border-gray-300">
+                <td class="py-2 px-4">
                   <a href="{{ url_for('dna_bp.list_variants', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                 </td>
-                <td class="py-2 px-4 border-b border-gray-300">
+                <td class="py-2 px-4">
                   {% if "num_samples" in sample %}
                     {% for n in range(sample.num_samples) %}
                       &#9679;
                     {% endfor %}
                   {% endif %}
                 </td>
-                <td class="py-2 px-4 border-b border-gray-300">
+                <td class="py-2 px-4">
                   {% for grp in sample.groups %}
                     {{ grp }}
                   {% endfor %}
                 </td>
-                <td class="py-2 px-4 border-b border-gray-300">
+                <td class="py-2 px-4">
                   {% if "subpanel" in sample %}
                     {{ sample.subpanel }}
                   {% endif %}
                 </td>
-                <td class="py-2 px-4 border-b border-gray-300">
+                <td class="py-2 px-4">
                   {{ sample.time_added|human_date }}
                 </td>
-                <td class="py-2 px-4 border-b border-gray-300">
+                <td class="py-2 px-4">
                   {{ sample.last_report_time_created|human_date }}
                 </td>
-                <td class="py-2 px-4 border-b border-gray-300">
+                <td class="py-2 px-4">
                   {% if sample.bam is defined %}
                     <a href="{{ sample.bam }}" class="text-blue-500 hover:underline">BAM</a>
                     <a href="{{ sample.bam }}.bai" class="text-blue-500 hover:underline">BAI</a>
                   {% endif %}
                 </td>
-                <td class="py-2 px-4 border-b border-gray-300">
+                <td class="py-2 px-4">
                   {% if sample.QC is defined %}
                     {% for qc in sample.QC|sort(attribute='sample_id') %}
                       {% if "500" in qc.pct_above_x %}
@@ -173,15 +173,15 @@
                     {% endfor %}
                   {% endif %}
                 </td>
-                <td class="py-2 px-4 border-b border-gray-300">
+                <td class="py-2 px-4">
                   {% for rep in sample.reports %}
                     <a href="{{rep.filepath}}" class="text-blue-500 hover:underline">{{ rep.report_num }}</a>
                   {% endfor %}
                 </td>
             </tr>
             {% else %}
-              <tr>
-                <td colspan="8" class="py-2 px-4 border-b border-gray-300 text-center">No samples.</td>
+              <tr class="border-b border-gray-300">
+                <td colspan="8" class="py-2 px-4 text-center">No samples.</td>
               </tr>
             {% endfor %}
           </tbody>
