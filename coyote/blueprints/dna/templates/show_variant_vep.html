@@ -19,7 +19,7 @@
       </div>
 
       <!-- Right Side: Variant Actions -->
-      {% if current_user.get_role() != "readonly" %}
+      {% if current_user.get_role() != "user" %}
       <div class="flex items-center space-x-4">
         {% if variant.blacklist is defined and variant.override_blacklist != true %}
           <form action="{{ url_for('dna_bp.add_variant_to_blacklist', id=variant._id) }}" method="post">

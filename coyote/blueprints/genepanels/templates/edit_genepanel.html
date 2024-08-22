@@ -1,0 +1,69 @@
+{% extends "layout.html" %}
+{% block title %}Update Gene Panel{% endblock %}
+{% block style %}
+  <link href="{{ url_for('genepanels_bp.static', filename='css/style.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block javascript %}
+    <script>
+        const validateNameUrl = '{{ url_for("genepanels_bp.validate_name") }}';
+        const validateDisplayNameUrl = '{{ url_for("genepanels_bp.validate_displayname") }}';
+        const validateVersionUrl = '{{ url_for("genepanels_bp.validate_version", genepanel_id=panel_data["_id"]) }}';
+        const panelId = '{{ panel_data["_id"] }}';
+        const availableAssaysJson = '{{ available_assays|tojson }}'; // Inject available assays as a JSON string
+    </script>
+    <script src="{{ url_for('genepanels_bp.static', filename='js/update_genelist.js') }}"></script>
+{% endblock %}
+
+{% block body %}
+  <div class="container mx-auto py-10">
+    <!-- Edit Gene Panel Form -->
+    <div class="bg-white shadow-lg rounded-xl p-8">
+      <h2 class="text-2xl font-semibold mb-6">Edit Gene Panel</h2>
+      <form id="genePanelForm" action="{{ url_for('genepanels_bp.edit_genepanel', genepanel_id=panel_data['_id']) }}" method="post" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <div class="mb-4">
+          {{ form.name.label(class="block text-gray-700 text-sm font-bold mb-2") }}
+          {{ form.name(class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full", placeholder="Enter name", id="nameField") }}
+          <span id="nameError" class="text-red-500 text-sm"></span>
+        </div>
+        <div class="mb-4">
+          {{ form.displayname.label(class="block text-gray-700 text-sm font-bold mb-2") }}
+          {{ form.displayname(class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full", placeholder="Enter display name", id="displaynameField") }}
+          <span id="displaynameError" class="text-red-500 text-sm"></span>
+        </div>
+        <div class="mb-4">
+          {{ form.type.label(class="block text-gray-700 text-sm font-bold mb-2") }}
+          {{ form.type(class="form-select bg-white border border-gray-300 rounded-lg py-2 px-4 w-full") }}
+        </div>
+        <div class="mb-4">
+          {{ form.genes_file.label(class="block text-gray-700 text-sm font-bold mb-2") }}
+          {{ form.genes_file(class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full") }}
+          <span class="text-gray-500 text-sm">or</span>
+          <div id="genes-input-container" class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full mt-2 flex flex-wrap items-center">
+            <input type="text" id="genes-input" class="outline-none flex-grow" placeholder="Type genes here..." autocomplete="off">
+          </div>
+          <input type="hidden" name="genes_text" id="genes_field" value="{{ form.genes_text.data }}">
+        </div>
+        <div class="mb-4">
+          {{ form.assays.label(class="block text-gray-700 text-sm font-bold mb-2") }}
+          <div id="assays-input-container" class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full mt-2 flex flex-wrap items-center">
+            <input type="text" id="assays-input" class="outline-none flex-grow" placeholder="Type assays here..." autocomplete="off">
+          </div>
+          <input type="hidden" name="assays" id="assays_field" value="{{ form.assays.data }}">
+          <div id="assay-suggestions" class="mt-2 flex flex-wrap gap-2">
+            <!-- Suggestions will appear here -->
+          </div>
+        </div>
+        <div class="mb-4">
+          {{ form.version.label(class="block text-gray-700 text-sm font-bold mb-2") }}
+          {{ form.version(class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full", placeholder="Enter version", id="versionField") }}
+          <span id="versionError" class="text-red-500 text-sm"></span>
+        </div>
+        <div class="flex justify-end">
+          {{ form.submit(class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out") }}
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

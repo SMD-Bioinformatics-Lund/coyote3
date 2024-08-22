@@ -11,13 +11,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prärievarg med ritningar</title>
+    <title>{% block title %}Prärievarg med ritningar{% endblock %}</title>
     <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/tailwind.2.2.19.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='icons/favicon.ico') }}" rel="shortcut icon">
     <script src="{{ url_for('static', filename='js/jquery-3.1.1.slim.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/select2.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/sorttable.js') }}"></script>  
+    <script src="{{ url_for('static', filename='js/sorttable.js') }}"></script>
     {% block style %}{% endblock %}
     {% block javascript %}{% endblock %}
 </head>
@@ -60,6 +60,7 @@
               </button>
               <div id="userDropdown" class="hidden absolute right-30 mt-2 w-40 bg-white rounded-lg shadow-lg z-50">
                 <a href="{{ url_for('dashboard_bp.dashboard') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Dashboard</a>
+                <a href="{{ url_for('genepanels_bp.display_genepanels') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Gene Panels</a>
                 <a href="{{ url_for('profile_bp.profile') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Profile</a>
                 <a href="{{ url_for('profile_bp.change_password', username=current_user.get_id()) }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Change Password</a>
                 {% if current_user.is_admin() %}

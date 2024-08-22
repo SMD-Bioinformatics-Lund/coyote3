@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+{% block title %} Gene Panels {% endblock %}
+{% block body %}
+  <div class="container mx-auto py-10">
+    <!-- Banner with Dropdown and Create Button -->
+    <div class="bg-white shadow-md rounded-lg p-6 mb-6 flex items-center justify-between">
+      <div class="flex items-center">
+        <form action="{{ url_for('genepanels_bp.display_genepanels') }}" method="POST" class="flex items-center">
+          <label for="assayDropdown" class="mr-4 text-lg font-semibold">Select Assay:</label>
+          <select name="selected_assay" id="assayDropdown" class="border border-gray-300 rounded px-4 py-2 mr-4">
+            {% for assay in assays %}
+            <option value="{{ assay }}" {% if assay == selected_assay %}selected{% endif %}>{{ assay }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105">
+            Get Panels
+          </button>
+        </form>
+      </div>
+      {% if current_user.is_admin() %}
+        <div>
+          <button onclick="window.location.href='{{ url_for("genepanels_bp.create_genelist") }}'"
+                  class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105">
+            Create New Gene Panel
+          </button>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Table for Gene Panels -->
+    {% if genepanels %}
+    <div class="bg-white shadow-md rounded-lg p-6 overflow-x-auto">
+      <h2 class="text-xl font-semibold mb-4">Gene Panels</h2>
+      <table class="min-w-full mt-4 table-auto text-xs sortable">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase text-xs font-medium tracking-wider">Type</th>
+            <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase text-xs font-medium tracking-wider">Name</th>
+            <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase text-xs font-medium tracking-wider">Display Name</th>
+            <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase text-xs font-medium tracking-wider">No. of Genes</th>
+            <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase text-xs font-medium tracking-wider">Version</th>
+            <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase text-xs font-medium tracking-wider">Other Assays</th>
+            <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase text-xs font-medium tracking-wider">Last Updated</th>
+            <th class="py-2 px-4 bg-gray-200 border-b border-gray-300 text-gray-800 text-left uppercase text-xs font-medium tracking-wider">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {% for panel in genepanels %}
+          <tr class="hover:bg-gray-100">
+            <td class="py-2 px-4 border-b border-gray-300 whitespace-nowrap text-sm text-gray-900">{{ panel.type }}</td>
+            <td class="py-2 px-4 border-b border-gray-300 whitespace-nowrap text-sm text-gray-900">{{ panel.name }}</td>
+            <td class="py-2 px-4 border-b border-gray-300 whitespace-nowrap text-sm text-gray-900">{{ panel.displayname }}</td>
+            <td class="py-2 px-4 border-b border-gray-300 whitespace-nowrap text-sm text-gray-900">{{ panel.no_of_genes }}</td>
+            <td class="py-2 px-4 border-b border-gray-300 whitespace-nowrap text-sm text-gray-900">{{ panel.version }}</td>
+            <td class="py-2 px-4 border-b border-gray-300 whitespace-nowrap text-sm text-gray-900">{{ panel.other_assays }}</td>
+            <td class="py-2 px-4 border-b border-gray-300 whitespace-nowrap text-sm text-gray-900">{{ panel.timestamp|safe|human_date }}<br><small class="text-gray-400">by {{ panel.user }}</small></td>
+            <td class="py-2 px-4 border-b border-gray-300 whitespace-nowrap text-sm text-gray-900">
+              <div class="flex items-center space-x-2 space-y-2">
+                <a href="{{ url_for('genepanels_bp.view_genepanel_genes', genepanel_id=panel.id) }}" target="_blank"><img src="{{ url_for('static', filename='icons/view-96.png') }}" alt="view genes" class="cursor-pointer py-1 px-2 w-10"></a>
+                {% if current_user.is_admin() %}
+                <a href="{{ url_for('genepanels_bp.edit_genepanel', genepanel_id=panel.id) }}"><img src="{{ url_for('static', filename='icons/edit-96.png') }}" alt="edit panel" class="cursor-pointer py-1 px-2 w-10"></a>
+                <a href="{{ url_for('genepanels_bp.delete_genepanel', genepanel_id=panel.id) }}"><img src="{{ url_for('static', filename='icons/delete-96.png') }}" alt="delete panel" class="cursor-pointer py-1 px-2 w-10" onclick="return confirm('Are you sure you want to delete this panel?');"></a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-center text-lg text-gray-600">No gene panels available for the selected assay.</p>
+    {% endif %}
+  </div>
+{% endblock %}
