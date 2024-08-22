@@ -11,6 +11,10 @@ from wtforms.validators import DataRequired, Length, Regexp
 
 
 class GenePanelForm(FlaskForm):
+    """
+    Gene Panel Form used for creating gene panels.
+    """
+
     name = StringField(
         "Name",
         validators=[
@@ -55,4 +59,8 @@ class GenePanelForm(FlaskForm):
 
 
 class UpdateGenePanelForm(GenePanelForm):
+    """
+    Update Gene Panel Form used for updating gene panels.
+    """
+
     submit = SubmitField("Update Gene Panel")

@@ -52,12 +52,19 @@ def create_genelist():
 
     if form.validate_on_submit():
         data = dict(form.data)
-
-        # Insert the new gene list into the database
+        data.pop("csrf_token")
+        app.genepanels_logger.debug(data)
+        # Insert/Update the new gene list into the database
         if store.panel_handler.update_genelist(data):
             flash("Gene list created successfully!", "green")
+            app.genepanels_logger.info(
+                f"Gene list '{data.get("name")}' for the assays '{data.get("assays")}' with version {data.get("version")} created successfully!"
+            )
         else:
             flash("Gene list creation failed!", "red")
+            app.genepanels_logger.error(
+                f"Gene list '{data.get("name")}' for the assays '{data.get("assays")}' with version {data.get("version")} creation failed!"
+            )
         return redirect(url_for("genepanels_bp.create_genelist"))
 
     return render_template("create_genelist.html", form=form, available_assays=available_assays)
@@ -66,6 +73,9 @@ def create_genelist():
 @genepanels_bp.route("/validate_name", methods=["POST"])
 @login_required
 def validate_name():
+    """
+    Validate Gene Panel Name
+    """
     data = request.json
     name = data.get("value", "")
     genepanel_id = data.get("genepanel_id", None)
@@ -76,6 +86,9 @@ def validate_name():
 @genepanels_bp.route("/validate_displayname", methods=["POST"])
 @login_required
 def validate_displayname():
+    """
+    Validate Gene Panel Display Name
+    """
     data = request.json
     displayname = data.get("value", "")
     genepanel_id = data.get("genepanel_id", None)
@@ -86,6 +99,9 @@ def validate_displayname():
 @genepanels_bp.route("/validate_genepanel_version/<string:genepanel_id>", methods=["POST"])
 @login_required
 def validate_version(genepanel_id):
+    """
+    Validate Gene Panel Version
+    """
     data: Any | None = request.json
     form_version = data.get("value", "")
     exists = util.genepanels.validate_panel_version(genepanel_id, form_version)
@@ -119,8 +135,14 @@ def edit_genepanel(genepanel_id):
         form_data["changelog"] = panel_data["changelog"]
         if store.panel_handler.update_genelist(form_data):
             flash("Gene list updated successfully!", "green")
+            app.genepanels_logger.info(
+                f"Gene list '{form_data.get("name")}' for the assays '{form_data.get("assays")}' with version {form_data.get("version")} updated successfully!"
+            )
         else:
             flash("Gene list update failed!", "red")
+            app.genepanels_logger.error(
+                f"Gene list '{form_data.get("name")}' for the assays '{form_data.get("assays")}' with version {form_data.get("version")} update failed!"
+            )
         return redirect(url_for("genepanels_bp.display_genepanels"))
 
     return render_template(
@@ -134,8 +156,13 @@ def edit_genepanel(genepanel_id):
 @genepanels_bp.route("/delete_genepanel/<string:genepanel_id>", methods=["POST", "GET"])
 @login_required
 def delete_genepanel(genepanel_id):
+    """
+    Delete Gene Panel
+    """
     if store.panel_handler.delete_genelist(genepanel_id):
         flash("Gene list deleted successfully!", "green")
+        app.genepanels_logger.info(f"Gene list '{genepanel_id}' deleted successfully!")
     else:
         flash("Gene list deletion failed!", "red")
+        app.genepanels_logger.error(f"Gene list '{genepanel_id}' deletion failed!")
     return redirect(url_for("genepanels_bp.display_genepanels"))

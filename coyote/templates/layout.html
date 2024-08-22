@@ -11,13 +11,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prärievarg med ritningar</title>
+    <title>{% block title %}Prärievarg med ritningar{% endblock %}</title>
     <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/tailwind.2.2.19.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='icons/favicon.ico') }}" rel="shortcut icon">
     <script src="{{ url_for('static', filename='js/jquery-3.1.1.slim.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/select2.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/sorttable.js') }}"></script>  
+    <script src="{{ url_for('static', filename='js/sorttable.js') }}"></script>
     {% block style %}{% endblock %}
     {% block javascript %}{% endblock %}
 </head>

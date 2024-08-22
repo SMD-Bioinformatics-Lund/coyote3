@@ -29,6 +29,7 @@ if __name__ != "__main__":
 
     # Set the app logger level to the gunicorn error logger level (you can choose which one to match)
     app.logger.setLevel(gunicorn_logger_error.level)
+    app.logger.error("This is an error message")
 
 if __name__ == "__main__":
     app = init_app()
