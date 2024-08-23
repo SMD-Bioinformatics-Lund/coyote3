@@ -18,18 +18,18 @@ class BlacklistHandler(BaseHandler):
         for var in variants:
             short_pos.append(f"{str(var['CHROM'])}_{str(var['POS'])}_{var['REF']}_{var['ALT']}")
 
-        black_listed = self.get_collection().find({"assay": assay, "pos": {"$in": short_pos}})
-        black_dict = {}
+        blacklisted = self.get_collection().find({"assay": assay, "pos": {"$in": short_pos}})
+        blacklisted_dict = {}
 
-        for black_var in black_listed:
-            black_dict[black_var["pos"]] = black_var["in_normal_perc"]
+        for blacklist_var in blacklisted:
+            blacklisted_dict[blacklist_var["pos"]] = blacklist_var["in_normal_perc"]
 
         for var in variants:
             pos = f"{str(var['CHROM'])}_{str(var['POS'])}_{var['REF']}_{var['ALT']}"
-            if pos in black_dict:
-                var["blacklist"] = black_dict[pos]
+            if pos in blacklisted_dict:
+                var["blacklist"] = blacklisted_dict[pos]
 
-        return variants[0]
+        return variants
 
     def blacklist_variant(self, var: dict, assay: str) -> str:
         """

@@ -11,16 +11,20 @@
         <h2 class="text-xl font-semibold mb-2">Total Samples</h2>
         <p class="text-4xl font-extrabold">{{ total_samples }}</p>
     </div>
-    <div class="card bg-white text-black shadow-lg rounded-xl p-8 relative overflow-hidden border-4 border-green-400 transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl">
-      <div class="fill bg-green-400" style="width: {{ analysed_samples / total_samples * 100 }}%;"></div>
-          <h2 class="text-xl font-semibold mb-2 relative z-10">Samples Analysed</h2>
-          <p class="text-4xl font-extrabold relative z-10">{{ analysed_samples }}</p>
-    </div>
-    <div class="card bg-white text-black shadow-lg rounded-xl p-8 relative overflow-hidden border-4 border-red-400 transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl">
-      <div class="fill bg-red-400" style="width: {{ pending_samples|int / total_samples|int * 100 }}%;"></div>
-        <h2 class="text-xl font-semibold mb-2 relative z-10">Samples Pending</h2>
-        <p class="text-4xl font-extrabold relative z-10">{{ pending_samples }}</p>
-    </div>
+    <a href="{{ url_for('home_bp.home_screen', status="done") }}">
+      <div class="card bg-white text-black shadow-lg rounded-xl p-8 relative overflow-hidden border-4 border-green-400 transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl">
+        <div class="fill bg-green-400" style="width: {{ analysed_samples / total_samples * 100 }}%;"></div>
+            <h2 class="text-xl font-semibold mb-2 relative z-10">Samples Analysed</h2>
+            <p class="text-4xl font-extrabold relative z-10">{{ analysed_samples }}</p>
+      </div>
+    </a>
+    <a href="{{ url_for('home_bp.home_screen') }}">
+      <div class="card bg-white text-black shadow-lg rounded-xl p-8 relative overflow-hidden border-4 border-red-400 transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl">
+        <div class="fill bg-red-400" style="width: {{ pending_samples|int / total_samples|int * 100 }}%;"></div>
+          <h2 class="text-xl font-semibold mb-2 relative z-10">Samples Pending</h2>
+          <p class="text-4xl font-extrabold relative z-10">{{ pending_samples }}</p>
+      </div>
+    </a>
   </div>
   <div class="grid grid-cols-1 md:grid-cols-7 gap-8 mb-10">
     <div class="card bg-gradient-to-r from-yellow-400 to-yellow-600 text-black shadow-lg rounded-xl p-8 relative overflow-hidden break-words transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl">

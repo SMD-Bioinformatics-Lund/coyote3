@@ -7,6 +7,7 @@ from flask_login import current_user
 from bson.objectid import ObjectId
 from coyote.util.common_utility import CommonUtility
 from flask import current_app as app
+from coyote.extensions import store
 
 
 class DNAUtility:
@@ -152,6 +153,24 @@ class DNAUtility:
     def refseq_noversion(acc):
         a = acc.split(".")
         return a[0]
+
+    @staticmethod
+    def select_csq_for_variants(variants, subpanel, assay, canonical_dict):
+        """
+        Selects the VEP CSQ and adds additional annotations to the variant
+        """
+        for var_idx, var in enumerate(variants):
+            (
+                variants[var_idx]["INFO"]["selected_CSQ"],
+                variants[var_idx]["INFO"]["selected_CSQ_criteria"],
+            ) = DNAUtility.select_csq(var["INFO"]["CSQ"], canonical_dict)
+            (
+                variants[var_idx]["global_annotations"],
+                variants[var_idx]["classification"],
+                variants[var_idx]["other_classification"],
+                variants[var_idx]["annotations_interesting"],
+            ) = store.annotation_handler.get_global_annotations(variants[var_idx], assay, subpanel)
+        return variants
 
     @staticmethod
     def generate_ai_text_nonsnv(assay, variants, group, var_type):

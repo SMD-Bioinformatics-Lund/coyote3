@@ -26,10 +26,11 @@ class GenePanelUtility:
             formatted_panels.append(new_panel)
             if "assays" in new_panel:
                 _assays = [a for a in new_panel["assays"] if a != assay]
-                if len(_assays) > 0:
-                    new_panel["other_assays"] = ",".join(_assays)
-                else:
-                    new_panel["other_assays"] = "-"
+                new_panel["other_assays"] = _assays
+                # if len(_assays) > 0:
+                #     new_panel["other_assays"] = ",".join(_assays)
+                # else:
+                #     new_panel["other_assays"] = "-"
                 new_panel.pop("assays")
 
         return formatted_panels

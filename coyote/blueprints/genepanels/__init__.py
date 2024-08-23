@@ -12,4 +12,4 @@ genepanels_bp = Blueprint(
 )
 from coyote.blueprints.genepanels import views  # noqa: F401, E402
 
-app.genepanels_logger = getLogger("genepanels")
+app.genepanels_logger = getLogger("coyote.genepanels")

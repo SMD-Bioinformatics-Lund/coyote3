@@ -61,7 +61,7 @@ class DashBoardUtility:
 
         for doc in class_stats_dict:
             assay = doc["_id"].get("assay", "NA")
-            if assay is "NA":
+            if assay == "NA":
                 continue
             else:
                 nomenclature = doc["_id"]["nomenclature"]

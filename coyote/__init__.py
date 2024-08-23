@@ -6,7 +6,7 @@ import config
 from . import extensions
 
 
-def init_app(testing: bool = False) -> Flask:
+def init_app(testing: bool = False, debug: bool = False) -> Flask:
     """Create Flask application."""
     app = Flask(__name__, instance_relative_config=True)
 
@@ -19,13 +19,14 @@ def init_app(testing: bool = False) -> Flask:
         app.logger.info("Loading config.TestConfig")
         app.config.from_object(config.TestConfig())
 
-    elif app.debug:
+    elif debug:
         app.logger.warning(
             "Debug mode ON. "
             "(Jag ropar ut mitt innersta hav, jag ropar ut all min skit och allt mitt skav!)"
         )
         app.logger.info("Loading config.DevelopmentConfig")
         app.config.from_object(config.DevelopmentConfig())
+        app.debug = True
 
     else:
         app.logger.info("Loading config.ProductionConfig")
