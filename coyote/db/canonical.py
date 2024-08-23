@@ -9,29 +9,28 @@ class CanonicalHandler(BaseHandler):
 
     def get_canonical_by_genes(self, genes: list) -> dict:
         """
-        find canonical transcript for genes
+        find canonical transcript for multiple genes
         """
-        self.app.logger.info(f"this is my search string: {genes}")
         canonical = self.get_collection().find({"gene": {"$in": genes}})
         return self.format_canonical(canonical)
 
     def get_canonical_by_gene(self, gene: str) -> dict:
         """
-        find canonical transcript for gene
+        find canonical transcript for a gene
         """
         canonical = self.get_collection().find_one({"gene": gene})
         return canonical
 
     def get_canonical_by_transcript(self, transcript: str) -> dict:
         """
-        find canonical transcript for gene
+        find canonical for a transcript
         """
         canonical = self.get_collection().find_one({"canonical": transcript})
         return canonical
 
     def get_canonical_by_transcripts(self, transcripts: list) -> dict:
         """
-        find canonical transcript for gene
+        find canonical for multiple transcripts
         """
         canonical = self.get_collection().find({"canonical": {"$in": transcripts}})
         return self.format_canonical(canonical)

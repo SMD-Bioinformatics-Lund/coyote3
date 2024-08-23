@@ -18,6 +18,7 @@ from coyote.db.iarc_tp53 import IARCTP53Handler
 from coyote.db.brcaexchange import BRCAHandler
 from coyote.db.fusions import FusionsHandler
 from coyote.db.biomarkers import BiomarkerHandler
+from coyote.db.coverage import CoverageHandler
 
 
 class MongoAdapter:
@@ -52,6 +53,8 @@ class MongoAdapter:
         """
         Setup collections
         """
+
+        ## Coyote DB
         self.samples_collection = self.coyote_db["samples"]
         self.users_collection = self.coyote_db["users"]
         self.groups_collection = self.coyote_db["groups"]
@@ -72,8 +75,11 @@ class MongoAdapter:
         self.oncokb_genes_collection = self.coyote_db["oncokb_genes"]
         self.brcaexchange_collection = self.coyote_db["brcaexchange"]
         self.iarc_tp53_collection = self.coyote_db["iarc_tp53"]
-        self.bam_samples = self.bam_db["samples"]
         self.fusions_collection = self.coyote_db["fusions"]
+        self.coverage_collection = self.coyote_db["coverage"]
+
+        ## BAM Service DB
+        self.bam_samples = self.bam_db["samples"]
 
     def _setup_handlers(self):
         """
@@ -98,3 +104,4 @@ class MongoAdapter:
         self.user_handler = UsersHandler(self)
         self.fusion_handler = FusionsHandler(self)
         self.biomarker_handler = BiomarkerHandler(self)
+        self.coverage_handler = CoverageHandler(self)
