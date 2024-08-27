@@ -298,7 +298,7 @@ def show_variant(id):
 
     expression = store.expression_handler.get_expression_data(list(transcripts.keys()))
 
-    variant = store.blacklist_handler.add_blacklist_data([variant], assay)
+    variant = store.blacklist_handler.add_blacklist_data([variant], assay)[0]
 
     # Get canonical transcripts for all genes annotated for the variant
     canonical_dict = store.canonical_handler.get_canonical_by_genes(list(genes.keys()))
