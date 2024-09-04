@@ -59,8 +59,6 @@ def list_fusions(id):
 
     form = FusionFilter()
     ##
-    print("this is the form data")
-    print(form.data)
     ###########################################################################
     ## FORM FILTERS ##
     # Either reset sample to default filters or add the new filters from form.
@@ -109,7 +107,7 @@ def list_fusions(id):
             "calls": {
                 "$elemMatch": {
                     "spanreads": {"$gte": sample_settings["min_spanreads"]},
-                    "spanpairs": {"$gte": sample_settings["min_spanreads"]},
+                    "spanpairs": {"$gte": sample_settings["min_spanpairs"]},
                 }
             },
         }
@@ -130,7 +128,7 @@ def list_fusions(id):
             store.fusion_handler.get_fusion_annotations(fusions[fus_idx])
         )
 
-    # app.logger.info(f"this is the fusion and fusion query,{fusions},{fusion_query}")
+    app.logger.info(f"this is the fusion and fusion query,{fusions},{fusion_query}")
 
     # Your logic for handling RNA samples
     return render_template(

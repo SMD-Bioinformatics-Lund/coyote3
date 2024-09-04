@@ -93,7 +93,7 @@
             <label class="control-label block mb-0.5 text-sm">Spanning reads</label>
             <div class="flex items-center">
               <span class="mr-1">&gt;</span>
-              {{ form.min_spanpairs(size=1, default=sample.min_spanreads, class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm") }}
+              {{ form.min_spanpairs(size=1, default=sample.filter_min_spanpairs, class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm") }}
             </div>
           </div>
 
@@ -167,7 +167,7 @@
             <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">Gene 2</th>
             <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">Effect</th>
             <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">Spanning pairs</th>
-            <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold" data-autoclick="true">Unique spanning reads</th>
+            <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">Unique spanning reads</th>
             <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">Fusion points</th>
             <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">Tier</th>
             <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">Description</th>
