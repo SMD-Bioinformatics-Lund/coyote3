@@ -152,32 +152,71 @@ class SampleHandler(BaseHandler):
         """
         get all samples
         """
-        samples = list(self.get_collection().find().sort("time_added", -1))
-        if report:
-            samples = [sample for sample in samples if sample.get("report_num", 0) > 0]
-        elif report == False:
-            samples = [sample for sample in samples if sample.get("report_num", 0) == 0]
+        if report is None:
+            samples = self.get_collection().find().sort("time_added", -1).count()
+        elif report:
+            # samples = [sample for sample in samples if sample.get("report_num", 0) > 0]
+            samples = (
+                self.get_collection()
+                .find({"report_num": {"$gt": 0}})
+                .sort("time_added", -1)
+                .count()
+            )
+        elif not report:
+            samples = (
+                self.get_collection()
+                .find(
+                    {
+                        "$or": [
+                            {"report_num": 0},
+                            {"report_num": None},
+                            {"report_num": {"$exists": False}},
+                        ]
+                    }
+                )
+                .sort("time_added", -1)
+                .count()
+            )
+
         return samples
 
     def get_assay_specific_sample_stats(self) -> dict:
         """
         get assay specific stats
         """
-        assay_specific_stats = {"NA": {"total": 0, "report": 0, "pending": 0}}
-        for sample in self.get_collection().find():
-            if sample.get("groups"):
-                for group in sample.get("groups"):
-                    if group not in assay_specific_stats:
-                        assay_specific_stats[group] = {"total": 0, "report": 0, "pending": 0}
-                    assay_specific_stats[group]["total"] += 1
-                    if sample.get("report_num", 0) > 0:
-                        assay_specific_stats[group]["report"] += 1
-                    else:
-                        assay_specific_stats[group]["pending"] += 1
-            else:
-                assay_specific_stats["NA"]["total"] += 1
-                if sample.get("report_num", 0) > 0:
-                    assay_specific_stats["NA"]["report"] += 1
-                else:
-                    assay_specific_stats["NA"]["pending"] += 1
+        pipeline = [
+            {"$unwind": "$groups"},
+            {
+                "$group": {
+                    "_id": "$groups",
+                    "total": {"$sum": 1},
+                    "report": {"$sum": {"$cond": [{"$gt": ["$report_num", 0]}, 1, 0]}},
+                    "pending": {"$sum": {"$cond": [{"$gt": ["$report_num", 0]}, 0, 1]}},
+                }
+            },
+            {
+                "$group": {
+                    "_id": None,
+                    "stats": {
+                        "$push": {
+                            "group": "$_id",
+                            "total": "$total",
+                            "report": "$report",
+                            "pending": "$pending",
+                        }
+                    },
+                }
+            },
+            {"$project": {"_id": 0, "stats": 1}},
+        ]
+
+        result = list(self.get_collection().aggregate(pipeline))[0].get("stats", [])
+        assay_specific_stats = {
+            stat.get("group"): {
+                "total": stat.get("total", 0),
+                "report": stat.get("report", 0),
+                "pending": stat.get("pending", 0),
+            }
+            for stat in result
+        }
         return assay_specific_stats

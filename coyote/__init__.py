@@ -6,7 +6,7 @@ import config
 from . import extensions
 
 
-def init_app(testing: bool = False) -> Flask:
+def init_app(testing: bool = False, debug: bool = False) -> Flask:
     """Create Flask application."""
     app = Flask(__name__, instance_relative_config=True)
 
@@ -19,13 +19,14 @@ def init_app(testing: bool = False) -> Flask:
         app.logger.info("Loading config.TestConfig")
         app.config.from_object(config.TestConfig())
 
-    elif app.debug:
+    elif debug:
         app.logger.warning(
             "Debug mode ON. "
             "(Jag ropar ut mitt innersta hav, jag ropar ut all min skit och allt mitt skav!)"
         )
         app.logger.info("Loading config.DevelopmentConfig")
         app.config.from_object(config.DevelopmentConfig())
+        app.debug = True
 
     else:
         app.logger.info("Loading config.ProductionConfig")
@@ -71,7 +72,7 @@ def register_blueprints(app) -> None:
     bp_debug_msg("home_bp")
     from coyote.blueprints.home import home_bp
 
-    app.register_blueprint(home_bp, url_prefix="/")
+    app.register_blueprint(home_bp, url_prefix="/samples")
 
     # Login stuff
     bp_debug_msg("login_bp")
@@ -107,7 +108,13 @@ def register_blueprints(app) -> None:
     bp_debug_msg("dashboard_bp")
     from coyote.blueprints.dashboard import dashboard_bp
 
-    app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
+    app.register_blueprint(dashboard_bp, url_prefix="/")
+
+    # register genepanels bp
+    bp_debug_msg("genepanels_bp")
+    from coyote.blueprints.genepanels import genepanels_bp
+
+    app.register_blueprint(genepanels_bp, url_prefix="/genepanels")
 
 
 def init_login_manager(app) -> None:

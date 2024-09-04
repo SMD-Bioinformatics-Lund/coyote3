@@ -17,7 +17,7 @@ if __name__ != "__main__":
     print("Setting up Gunicorn logging.")
     app: Flask = init_app()
     log_dir: str | Any = os.getenv("LOG_DIR", app.config.get("LOGS", "logs/prod"))
-    custom_logging(log_dir, app.config.get("PRODUCTION", False), gunicorn_logging=True)
+    custom_logging(log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=True)
     app.secret_key = "SomethingSecret"
 
     gunicorn_logger_error = logging.getLogger("gunicorn.error")
@@ -29,10 +29,11 @@ if __name__ != "__main__":
 
     # Set the app logger level to the gunicorn error logger level (you can choose which one to match)
     app.logger.setLevel(gunicorn_logger_error.level)
+    app.logger.error("This is an error message")
 
 if __name__ == "__main__":
-    app = init_app()
+    app = init_app(testing=False, debug=False)
     log_dir = os.getenv("LOG_DIR", app.config.get("LOGS", "logs/prod"))
-    custom_logging(log_dir, app.config.get("PRODUCTION", False), gunicorn_logging=False)
+    custom_logging(log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=False)
     app.secret_key = "SomethingSecret"
     app.run(host="0.0.0.0")

@@ -2,19 +2,15 @@
 Coyote case variants
 """
 
-from flask import abort
 from flask import current_app as app
-from flask import redirect, render_template, request, url_for, send_from_directory, flash
+from flask import redirect, render_template, request, url_for, send_from_directory, flash, abort
 from flask_login import current_user, login_required
 from pprint import pformat
-from coyote.blueprints.dna.forms import GeneForm
 from wtforms import BooleanField
-from coyote.extensions import store
-from coyote.blueprints.dna import dna_bp
+from coyote.extensions import store, util
+from coyote.blueprints.dna import dna_bp, varqueries_notbad, filters
 from coyote.blueprints.dna.varqueries import build_query
-from coyote.blueprints.dna import varqueries_notbad
-from coyote.blueprints.dna import filters
-from coyote.extensions import util
+from coyote.blueprints.dna.forms import GeneForm
 from typing import Literal, Any
 
 
@@ -29,20 +25,19 @@ def list_variants(id):
     if sample is None:
         sample = store.sample_handler.get_sample_with_id(id)  # id = id
 
+    # Get case and control samples
     sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
 
     ## Check the length of the sample groups from db, and if len is more than one, tumwgs-solid or tumwgs-hema takes the priority in new coyote
-    sample_groups = sample.get("groups")
-    if len(sample_groups) > 1:
-        for group in sample_groups:
-            if group in ["tumwgs-solid", "tumwgs-hema"]:
-                smp_grp = group
-                break
-    else:
-        smp_grp = sample["groups"][0]
+    smp_grp = util.common.select_one_sample_group(sample.get("groups"))
 
+    # Get group parameters from the sample group config file
     group_params = util.common.get_group_parameters(smp_grp)
+
+    # Get group defaults from coyote config, if not found in group config
     settings = util.common.get_group_defaults(group_params)
+
+    # Get assay from sample
     assay: str | None | Literal["unknown"] = util.common.get_assay_from_sample(sample)
     subpanel = sample.get("subpanel")
 
@@ -57,12 +52,10 @@ def list_variants(id):
     ## Default gene list. For samples with default_genelis_set=1 add a gene list to specific subtypes lunga, hjärna etc etc. Will fetch genelist from mongo collection.
     # this only for assays that should have a default gene list. Will always be added to sample if not explicitely removed from form
     if "default_genelist_set" in group_params:
-        if "subpanel" in sample:
-            panel_genelist = store.panel_handler.get_panel(
-                subpanel=sample["subpanel"], type="genelist"
-            )
+        if subpanel:
+            panel_genelist = store.panel_handler.get_panel(subpanel=subpanel, type="genelist")
             if panel_genelist:
-                settings["default_checked_genelists"] = {f"genelist_{sample['subpanel']}": 1}
+                settings["default_checked_genelists"] = {f"genelist_{subpanel}": 1}
 
     # Save new filter settings if submitted
     # Inherit FilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
@@ -92,6 +85,7 @@ def list_variants(id):
 
     ## get sample settings
     sample_settings = util.common.get_sample_settings(sample, settings)
+
     # sample filters, either set, or default
     cnv_effects = sample.get("checked_cnveffects", settings["default_checked_cnveffects"])
     genelist_filter = sample.get("checked_genelists", settings["default_checked_genelists"])
@@ -137,33 +131,33 @@ def list_variants(id):
     )
     app.logger.debug("this is the old varquery: %s", pformat(query))
     app.logger.debug("this is the new varquery: %s", pformat(query2))
+
     variants_iter = store.variant_handler.get_case_variants(query)
+
     # Find all genes matching the query
     variants, genes = store.variant_handler.get_protein_coding_genes(variants_iter)
+
     # Add blacklist data, ADD ALL variants_iter via the store please...
-    # util.add_blacklist_data( variants, assay )
+    variants = store.blacklist_handler.add_blacklist_data(variants, assay)
+
     # Get canonical transcripts for the genes from database
     canonical_dict = store.canonical_handler.get_canonical_by_genes(list(genes.keys()))
+
     # Select a VEP consequence for each variant
-    for var_idx, var in enumerate(variants):
-        (
-            variants[var_idx]["INFO"]["selected_CSQ"],
-            variants[var_idx]["INFO"]["selected_CSQ_criteria"],
-        ) = util.dna.select_csq(var["INFO"]["CSQ"], canonical_dict)
-        (
-            variants[var_idx]["global_annotations"],
-            variants[var_idx]["classification"],
-            variants[var_idx]["other_classification"],
-            variants[var_idx]["annotations_interesting"],
-        ) = store.annotation_handler.get_global_annotations(variants[var_idx], assay, subpanel)
+    variants = util.dna.select_csq_for_variants(variants, subpanel, assay, canonical_dict)
+
     # Filter by population frequency
     variants = util.dna.popfreq_filter(variants, float(sample_settings["max_popfreq"]))
+
+    # Add hotspot data
     variants = store.variant_handler.hotspot_variant(variants)
     ### SNV FILTRATION ENDS HERE ###
 
     # LOWCOV data, very computationally intense for samples with many regions
     low_cov = {}
-    # low_cov = app.config['COV_COLL'].find( { 'sample': id } )
+    # low_cov = store.coverage_handler.get_sample_coverage(sample["name"])
+    # print(list(low_cov))
+
     ## add cosmic to lowcov regions. Too many lowcov regions and this becomes very slow
     # this could maybe be something else than cosmic? config important regions?
     # if assay != "solid":
@@ -304,7 +298,7 @@ def show_variant(id):
 
     expression = store.expression_handler.get_expression_data(list(transcripts.keys()))
 
-    variant = store.blacklist_handler.add_blacklist_data([variant], assay)
+    variant = store.blacklist_handler.add_blacklist_data([variant], assay)[0]
 
     # Get canonical transcripts for all genes annotated for the variant
     canonical_dict = store.canonical_handler.get_canonical_by_genes(list(genes.keys()))

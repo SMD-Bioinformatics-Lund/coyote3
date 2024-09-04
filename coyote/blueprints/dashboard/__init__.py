@@ -2,7 +2,11 @@ from flask import Blueprint
 
 # Blueprint configuration
 dashboard_bp = Blueprint(
-    "dashboard_bp", __name__, template_folder="templates", static_folder="static"
+    "dashboard_bp",
+    __name__,
+    template_folder="templates",
+    static_folder="static",
+    static_url_path="dashboard/static",
 )
 
 # print(dashboard_bp.static)

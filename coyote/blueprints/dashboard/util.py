@@ -1,27 +1,81 @@
-from collections import defaultdict
-import re
-from math import floor, log10
+from functools import lru_cache
 from datetime import datetime
-from flask_login import current_user
+from collections import defaultdict, OrderedDict
+from typing import Dict, Tuple, List, Generator, Any
 from coyote.util.common_utility import CommonUtility
-from flask import current_app as app
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.utils import PlotlyJSONEncoder
-from typing import Any
-import json
 
 
 class DashBoardUtility:
     """
-    Utility class for variants blueprint
+    Utility class for Dashboard blueprint
     """
 
     @staticmethod
-    def generate_pie_chart(data, title) -> Any:
-        fig = go.Figure(
-            data=[go.Pie(labels=list(data.keys()), values=list(data.values()), hole=0.3)]
-        )
-        fig.update_layout(title_text=title, margin=dict(t=0, b=0, l=0, r=0), showlegend=False)
-        fig.update_traces(textinfo="value+label", marker=dict(colors=px.colors.qualitative.Plotly))
-        return json.dumps(fig, cls=PlotlyJSONEncoder)
+    def convert_annotations_to_hashable(annotations):
+        # Helper function to convert datetime to string
+        def datetime_to_hashable(dt):
+            return dt.isoformat()
+
+        converted = []
+        for annotation in annotations:
+            annotation["time_created"] = datetime_to_hashable(annotation["time_created"])
+            converted.append(frozenset(annotation.items()))
+        return tuple(converted)
+
+    @staticmethod
+    def format_classified_stats(class_stats_dict: dict) -> dict:
+        """
+        Format classified stats
+        """
+        class_stats = OrderedDict()
+
+        for doc in class_stats_dict:
+            if doc["_id"].get("assay") is not None:
+                continue
+            else:
+                nomenclature = doc["_id"]["nomenclature"]
+                if nomenclature == "f":
+                    nomenclature = "fusion"
+                elif nomenclature == "g":
+                    nomenclature = "genomic"
+                elif nomenclature == "c":
+                    nomenclature = "cnv"
+                elif nomenclature == "p":
+                    nomenclature = "protein"
+                else:
+                    nomenclature = "no_nomenclature"
+                class_value = doc["_id"]["class"]
+                count = doc["count"]
+                if nomenclature not in class_stats:
+                    class_stats[nomenclature] = OrderedDict()
+                class_stats[nomenclature][class_value] = count
+
+        return class_stats
+
+    @staticmethod
+    def format_assay_classified_stats(class_stats_dict: dict) -> dict:
+        """
+        Format classified stats
+        """
+        assay_class_stats = OrderedDict()
+
+        for doc in class_stats_dict:
+            assay = doc["_id"].get("assay", "NA")
+            if assay == "NA":
+                continue
+            else:
+                nomenclature = doc["_id"]["nomenclature"]
+                class_value = doc["_id"]["class"]
+                count = doc["count"]
+
+                if assay not in assay_class_stats:
+                    assay_class_stats[assay] = OrderedDict()
+
+                if nomenclature not in assay_class_stats[assay]:
+                    assay_class_stats[assay][nomenclature] = OrderedDict()
+
+                assay_class_stats[assay][nomenclature][class_value] = count
+
+        if None in assay_class_stats:
+            assay_class_stats["no_assay"] = assay_class_stats.pop(None)
+        return assay_class_stats

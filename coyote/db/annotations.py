@@ -234,3 +234,62 @@ class AnnotationsHandler(BaseHandler):
         Add comment to a variant
         """
         self.add_comment(comment)
+
+    def get_assay_classified_stats(self) -> tuple:
+        """
+        Get all classified stats
+        """
+        assay_class_stats_pipeline = [
+            # Match documents where the "class" field exists
+            {"$match": {"class": {"$exists": True}}},
+            # Sort by variant and time_created to ensure the latest document is first
+            {"$sort": {"variant": 1, "time_created": -1}},
+            # Group by variant to pick the latest document for each variant
+            {
+                "$group": {
+                    "_id": "$variant",
+                    "assay": {"$first": "$assay"},
+                    "nomenclature": {"$first": "$nomenclature"},
+                    "class": {"$first": "$class"},
+                }
+            },
+            # Group by assay, nomenclature, and class to get counts
+            {
+                "$group": {
+                    "_id": {"assay": "$assay", "nomenclature": "$nomenclature", "class": "$class"},
+                    "count": {"$sum": 1},
+                }
+            },
+            # Sort the results by assay, nomenclature, and class for consistency
+            {"$sort": {"_id.assay": 1, "_id.nomenclature": 1, "_id.class": 1}},
+        ]
+        return list(self.get_collection().aggregate(assay_class_stats_pipeline))
+
+    def get_classified_stats(self) -> tuple:
+        """
+        Get all classified stats
+        """
+        class_stats_pipeline = [
+            # Match documents where the "class" field exists
+            {"$match": {"class": {"$exists": True}}},
+            # Sort by nomenclature, variant, and time_created to ensure the latest document is first
+            {"$sort": {"nomenclature": 1, "variant": 1, "time_created": -1}},
+            # Group by variant to pick the latest document for each variant
+            {
+                "$group": {
+                    "_id": "$variant",
+                    "nomenclature": {"$first": "$nomenclature"},
+                    "class": {"$first": "$class"},
+                }
+            },
+            # Group by nomenclature and class to get counts
+            {
+                "$group": {
+                    "_id": {"nomenclature": "$nomenclature", "class": "$class"},
+                    "count": {"$sum": 1},
+                }
+            },
+            # Sort the results by nomenclature and class for consistency
+            {"$sort": {"_id.nomenclature": 1, "_id.class": 1}},
+        ]
+        return list(self.get_collection().aggregate(class_stats_pipeline))
