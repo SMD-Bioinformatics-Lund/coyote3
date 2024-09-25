@@ -8,22 +8,29 @@ def build_query(sample_settings,group)->dict:
     """
     query = {}
     query["SAMPLE_ID"] = sample_settings["id"]
-
+    group_query = group.get("query")
     ## Global OR-statement, will override everything else
     globalor = []
+    no_or_statements = 0
     
     # Show GERMLINE for paired or not, and with the option to override pipeline settings for genes. Default query NO germline
     ## check in config if germline should be forced to view
-    if "GERM in CONFIG":
+    if group_query != None and "GERMLINE" in group_query:
         ## get override germline genes from config
-        germ = []
-        germ.append( {"FILTER" : {"$in": ["GERMLINE"] } } )
-        genes = ["ABC", "DEF"]
-        germline_genes = []
-        for gene in genes:
-            germline_genes.append({"INFO.CSQ": {"$elemMatch": {"SYMBOL": {gene}}}})
-        if germline_genes:
-            germ.append( {"$or" : germline_genes } )
+        no_or_statements = no_or_statements+1
+        germ = {}
+        germ["FILTER"] = { "$in": ["GERMLINE"] } 
+        genes = []
+        if "GENES" in group_query:
+            genes = group_query["GENES"]
+        if genes:
+            if len(genes) == 1:
+                germ["INFO.CSQ"] = {"$elemMatch": {"SYMBOL": {genes[0]}}}
+            else:
+                germline_genes = []
+                for gene in genes:
+                    germline_genes.append({"INFO.CSQ": {"$elemMatch": {"SYMBOL": {gene}}}})
+                germ["$or"] = germline_genes
         globalor.append(germ)
 
     ### AND STATEMENTS ###
@@ -61,29 +68,34 @@ def build_query(sample_settings,group)->dict:
 
     # check different configs
     if test:
-        csq_or.append( FLT_LARGE_INS() )
+        csq_or.append( LARGE_INS() )
     if test2:
-        csq_or.append( FLT_LARGE_INS() )
+        csq_or.append( LARGE_INS() )
     
     # if any configs were added make it an OR, else just add consequence
     if len(csq_or) > 1:
-        form_list.append( { '$and': csq_or } )
+        form_list.append( { '$or': csq_or } )
     else:
         form_list.append( default_csq )
 
     ## ADD ALL AND-statements to GLOBAL OR
     globalor.append({"$and": form_list})
 
-    ## ADD the global or to the query
-    query["$or"] = globalor
+    ## ADD the global OR to the query, or just use default AND-statement
+    if no_or_statements > 0:
+        query["$or"] = globalor
+    else:
+        query['$and'] = form_list
 
     return query
 
 
-def FLT_LARGE_INS():
-
+def LARGE_INS():
+    """
+    special rule to always show large insertions in specified genes
+    """
     large_ins_regex = re.compile("\w{10,200}", re.IGNORECASE)
-    flt3 = {
+    large_ins = {
         "$and": [
             {"INFO.CSQ": {"$elemMatch": {"SYMBOL": "FLT3"}}},
             {
@@ -94,4 +106,13 @@ def FLT_LARGE_INS():
             },
         ]
     }
-    return flt3
+    return large_ins
+
+def REGULATORY_VARIANTS():
+    """
+    define if some promoter variants should show for specific genes
+
+    1 gene: '$and' : { genesymbol : gene}, { csq: TF_BINDING, REGULATORY }
+    2 or more genes: '$and' : {'$or' : { genesymbol:gene1}, { genesymbol:gene2}, { genesymbol:gene3} }, { csq: TF_BINDING, REGULATORY }
+    """
+    
