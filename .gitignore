@@ -143,3 +143,4 @@ run_dev.py
 app.log*
 test
 logs/
+examples_dev.txt

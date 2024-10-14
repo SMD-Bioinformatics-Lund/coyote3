@@ -31,8 +31,9 @@ class DefaultConfig:
     MONGO_HOST: str = os.getenv("FLASK_MONGO_HOST") or "localhost"
     MONGO_PORT: str | Literal[27017] = os.getenv("FLASK_MONGO_PORT") or 27017
     # MONGO_DB_NAME = "coyote"
-    MONGO_DB_NAME = "coyote_dev"
-    BAM_SERVICE_DB_NAME = "BAM_Service"
+    MONGO_DB_NAME = os.getenv("COYOTE_DB", "coyote_dev")
+    BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
+    _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections.toml"
 
     LDAP_HOST = "ldap://mtlucmds1.lund.skane.se"
     LDAP_BASE_DN = "dc=skane,dc=se"
@@ -167,6 +168,28 @@ class DefaultConfig:
     @property
     def GROUP_CONFIGS(self) -> dict[str, Any]:
         return toml.load(self._PATH_GROUPS_CONFIG)
+
+    @property
+    def DB_COLLECTIONS_CONFIG(self) -> dict[str, Any]:
+
+        db_config: dict[str, Any] = toml.load(self._PATH_DB_COLLECTIONS_CONFIG)
+
+        if not all(db in db_config for db in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME]):
+            missing_dbs = [
+                db for db in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME] if db not in db_config
+            ]
+            raise ValueError(
+                f"Database(s) {', '.join(missing_dbs)} not found in the database configuration. Check the config file. ({self._PATH_DB_COLLECTIONS_CONFIG})"
+            )
+
+        # Filter the config to include only the relevant databases
+        custom_db_config: dict[str, Any] = {
+            db_name: collections
+            for db_name, collections in db_config.items()
+            if db_name in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME]
+        }
+
+        return custom_db_config
 
 
 class ProductionConfig(DefaultConfig):
