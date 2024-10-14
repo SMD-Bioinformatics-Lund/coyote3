@@ -144,3 +144,4 @@ app.log*
 test
 logs/
 examples_dev.txt
+scripts/migrate_variants_idref.py
