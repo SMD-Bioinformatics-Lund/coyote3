@@ -15,13 +15,7 @@ class AnnotationsHandler(BaseHandler):
 
     def get_global_annotations(self, variant, assay, subpanel):
         genomic_location = (
-            str(variant["CHROM"])
-            + ":"
-            + str(variant["POS"])
-            + ":"
-            + variant["REF"]
-            + "/"
-            + variant["ALT"]
+            f"{str(variant['CHROM'])}:{str(variant['POS'])}:{variant['REF']}/{variant['ALT']}"
         )
         if len(variant["INFO"]["selected_CSQ"]["HGVSp"]) > 0:
             annotations = (
@@ -89,13 +83,13 @@ class AnnotationsHandler(BaseHandler):
                         if anno["assay"] == assay and anno["subpanel"] == subpanel:
                             latest_classification = anno
                         else:
-                            ass_sub = anno["assay"] + ":" + anno["subpanel"]
+                            ass_sub = f"{anno['assay']}:{anno['subpanel']}"
                             latest_classification_other[ass_sub] = anno["class"]
                     else:
                         if anno["assay"] == assay:
                             latest_classification = anno
                         else:
-                            ass_sub = anno["assay"] + ":" + anno["subpanel"]
+                            ass_sub = f"{anno['assay']}:{anno['subpanel']}"
                             latest_classification_other[ass_sub] = anno["class"]
                 except:
                     latest_classification = anno
@@ -104,7 +98,7 @@ class AnnotationsHandler(BaseHandler):
                 try:
                     if assay == "solid":
                         if anno["assay"] == assay and anno["subpanel"] == subpanel:
-                            ass_sub = anno["assay"] + ":" + anno["subpanel"]
+                            ass_sub = f"{anno['assay']}:{anno['subpanel']}"
                             annotations_interesting[ass_sub] = anno
                             annotations_arr.append(anno)
                         else:

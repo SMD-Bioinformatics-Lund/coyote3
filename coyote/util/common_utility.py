@@ -14,6 +14,16 @@ class CommonUtility:
     """
 
     @staticmethod
+    def get_simple_id(variant):
+        """
+        Get a simple id for a variant
+        """
+        return variant.get(
+            "simple_id",
+            f"{str(variant['CHROM'])}_{str(variant['POS'])}_{variant['REF']}_{variant['ALT']}",
+        )
+
+    @staticmethod
     def assay_config(assay_name: str = None) -> dict:
         conf = app.config.get("ASSAYS")
         if conf is None:

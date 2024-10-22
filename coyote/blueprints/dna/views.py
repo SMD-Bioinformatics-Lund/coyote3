@@ -129,19 +129,20 @@ def list_variants(id):
         },
         group_params,
     )
-    app.logger.debug("this is the old varquery: %s", pformat(query))
-    app.logger.debug("this is the new varquery: %s", pformat(query2))
+
+    # app.logger.debug("this is the old varquery: %s", pformat(query))
+    # app.logger.debug("this is the new varquery: %s", pformat(query2))
 
     variants_iter = store.variant_handler.get_case_variants(query)
 
-    # Find all genes matching the query
-    variants, genes = store.variant_handler.get_protein_coding_genes(variants_iter)
+    # Find all genes that are protein coding
+    variants, protein_coding_genes = store.variant_handler.get_protein_coding_genes(variants_iter)
 
-    # Add blacklist data, ADD ALL variants_iter via the store please...
+    # Add blacklist data
     variants = store.blacklist_handler.add_blacklist_data(variants, assay)
 
     # Get canonical transcripts for the genes from database
-    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(genes.keys()))
+    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(protein_coding_genes))
 
     # Select a VEP consequence for each variant
     variants = util.dna.select_csq_for_variants(variants, subpanel, assay, canonical_dict)
@@ -151,6 +152,10 @@ def list_variants(id):
 
     # Add hotspot data
     variants = store.variant_handler.hotspot_variant(variants)
+    for var in variants:
+        if var["POS"] == 55174771:
+            app.logger.debug("this is the variant: %s", pformat(var))
+            pass
     ### SNV FILTRATION ENDS HERE ###
 
     # LOWCOV data, very computationally intense for samples with many regions
@@ -272,38 +277,18 @@ def show_variant(id):
     assay = util.common.get_assay_from_sample(sample)
     subpanel = sample.get("subpanel")
 
-    cosm_ids = {}
-    rs_ids = {}
-    genes = {}
-    transcripts = {}
-
-    # Parse variation IDs and get all gene names
-    for csq in variant["INFO"]["CSQ"]:
-        ev_ids = csq["Existing_variation"].split("&")
-        for ev_id in ev_ids:
-            if ev_id.startswith("COSM"):
-                cosm_ids[ev_id] = 1
-            if ev_id.startswith("rs"):
-                rs_ids[ev_id] = 1
-
-        if csq["BIOTYPE"] == "protein_coding":
-            genes[csq["SYMBOL"]] = 1
-            transcripts[csq["Feature"]] = 1
-
-    variant["INFO"]["rs_ids"] = rs_ids.keys()
-    variant["INFO"]["cosm_ids"] = cosm_ids.keys()
-
     # Check if variant has hidden comments
     has_hidden_comments = store.variant_handler.hidden_var_comments(id)
 
-    expression = store.expression_handler.get_expression_data(list(transcripts.keys()))
+    expression = store.expression_handler.get_expression_data(list(variant.get("transcripts")))
 
     variant = store.blacklist_handler.add_blacklist_data([variant], assay)[0]
 
     # Get canonical transcripts for all genes annotated for the variant
-    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(genes.keys()))
+    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(variant.get("genes")))
 
     # Select a transcript
+    # TODO: I DONT WANT TO RUN THE SAME COMMANDS MULTIPLE TIMES IN ORDER TO REDUCE THE PROCESSING SPEED, MAY BE STORE THE SELECT CSQ TRANSCRIPT ID IN THE VARIANT ITSELF
     (variant["INFO"]["selected_CSQ"], variant["INFO"]["selected_CSQ_criteria"]) = (
         util.dna.select_csq(variant["INFO"]["CSQ"], canonical_dict)
     )
@@ -332,7 +317,8 @@ def show_variant(id):
     # Find OncoKB data
     oncokb_hgvsp = []
     if len(variant["INFO"]["selected_CSQ"]["HGVSp"]) > 0:
-        hgvsp = filters.one_letter_p(variant["INFO"]["selected_CSQ"]["HGVSp"]).split(":")[1]
+        # hgvsp = filters.one_letter_p(variant["INFO"]["selected_CSQ"]["HGVSp"]).split(":")[1]
+        hgvsp = filters.one_letter_p(variant["INFO"]["selected_CSQ"]["HGVSp"])
         hgvsp = hgvsp.replace("p.", "")
         oncokb_hgvsp.append(hgvsp)
 
@@ -467,10 +453,10 @@ def add_variant_to_blacklist(id):
 @login_required
 def order_sanger(id):
     variant = store.variant_handler.get_variant(id)
-    variants, genes = store.variant_handler.get_protein_coding_genes([variant])
+    variants, protein_coding_genes = store.variant_handler.get_protein_coding_genes([variant])
     var = variants[0]
     sample = store.sample_handler.get_sample_with_id(var["SAMPLE_ID"])
-    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(genes.keys()))
+    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(protein_coding_genes))
 
     var["INFO"]["selected_CSQ"], var["INFO"]["selected_CSQ_criteria"] = util.select_csq(
         var["INFO"]["CSQ"], canonical_dict

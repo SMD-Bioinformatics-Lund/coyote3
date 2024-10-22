@@ -59,6 +59,11 @@ class DNAUtility:
 
     @staticmethod
     def parse_allele_freq(freq, allele):
+        """
+        Depricated Function, Will be removed in future versions
+        """
+        # TODO: Remove this function
+
         if not freq:
             return ""
         if len(allele) > 1:
@@ -75,31 +80,26 @@ class DNAUtility:
 
         filtered_variants = []
 
-        for v in variants:
-            allele = v["ALT"]
-            exac = DNAUtility.parse_allele_freq(v["INFO"]["selected_CSQ"].get("ExAC_MAF"), v["ALT"])
-            thousand_g = DNAUtility.parse_allele_freq(
-                v["INFO"]["selected_CSQ"].get("GMAF"), v["ALT"]
-            )
-            gnomad = v["INFO"]["selected_CSQ"].get("gnomAD_AF", 0)
-            gnomad_genome = v["INFO"]["selected_CSQ"].get("gnomADg_AF", 0)
-            if gnomad == "." or gnomad == "":
-                gnomad = -1
-            if gnomad_genome == "." or gnomad_genome == "":
-                gnomad_genome = -1
+        for var in variants:
+            pop_freq = {
+                "exac": var.get("exac_frequency"),
+                "thousand_g": var.get("thousandG_frequency"),
+                "gnomad": var.get("gnomad_frequency"),
+                # "gnomad_max": var.get("gnomad_max"),
+            }
+            for k, v in pop_freq.items():
+                if v in ["", ".", None]:
+                    pop_freq[k] = float(-1)
+                else:
+                    pop_freq[k] = float(v)
 
             try:
-                if max_freq < 1 and (
-                    exac > max_freq
-                    or thousand_g > max_freq
-                    or float(gnomad) > max_freq
-                    or float(gnomad_genome) > max_freq
-                ):
+                if max_freq < 1 and any([freq > max_freq for freq in pop_freq.values()]):
                     pass
                 else:
-                    filtered_variants.append(v)
+                    filtered_variants.append(var)
             except TypeError:
-                filtered_variants.append(v)
+                filtered_variants.append(var)
 
         return filtered_variants
 
@@ -116,8 +116,25 @@ class DNAUtility:
         return pon
 
     @staticmethod
-    def select_csq(csq_arr, canonical):
+    def select_csq(csq_arr: list, canonical: dict):
+        """
+        Selects the most appropriate consequence (csq) from a list of consequences based on predefined criteria.
 
+        The function prioritizes consequences in the following order:
+        1. A consequence that matches the canonical dictionary (db_canonical).
+        2. A consequence marked as canonical by VEP (vep_canonical).
+        3. The first protein-coding consequence (first_protcoding).
+        4. If none of the above are found, the first consequence in the list.
+
+        Args:
+            csq_arr (list): A list of consequence dictionaries.
+            canonical (dict): A dictionary containing canonical symbols and their corresponding features.
+
+        Returns:
+            tuple: A tuple containing the selected consequence dictionary and a string indicating the selection method
+                ("db", "vep", or "random").
+        """
+        # TODO: SHOULD BE PROBABLY BRING IN MANE TRANSCRIPTS INTO THE SELECTION PROCESS
         db_canonical = -1
         vep_canonical = -1
         first_protcoding = -1
@@ -126,20 +143,22 @@ class DNAUtility:
 
         for impact in impact_order:
             for csq_idx, csq in enumerate(csq_arr):
-                if csq["IMPACT"] == impact:
+                csq_symbol = csq.get("SYMBOL")
+                csq_feature = csq.get("Feature")
+                csq_biotype = csq.get("BIOTYPE")
+                csq_impact = csq.get("IMPACT")
 
-                    if csq["SYMBOL"] in canonical and canonical[
-                        csq["SYMBOL"]
-                    ] == DNAUtility.refseq_noversion(csq["Feature"]):
+                if csq_impact == impact:
+                    if csq_symbol in canonical and canonical.get(
+                        csq_symbol
+                    ) == DNAUtility.refseq_noversion(csq_feature):
                         db_canonical = csq_idx
                         return (csq_arr[db_canonical], "db")
-                    if csq["CANONICAL"] == "YES" and vep_canonical == -1:
+
+                    if csq.get("CANONICAL") == "YES" and vep_canonical == -1:
                         vep_canonical = csq_idx
-                    if (
-                        first_protcoding == -1
-                        and csq["BIOTYPE"] == "protein_coding"
-                        and first_protcoding == -1
-                    ):
+
+                    if first_protcoding == -1 and csq_biotype == "protein_coding":
                         first_protcoding = csq_idx
 
         if vep_canonical >= 0:
@@ -155,15 +174,19 @@ class DNAUtility:
         return a[0]
 
     @staticmethod
-    def select_csq_for_variants(variants, subpanel, assay, canonical_dict):
+    def select_csq_for_variants(
+        variants: list, subpanel: str, assay: str, canonical_dict: dict
+    ) -> list:
         """
         Selects the VEP CSQ and adds additional annotations to the variant
         """
+        # TODO:
         for var_idx, var in enumerate(variants):
             (
                 variants[var_idx]["INFO"]["selected_CSQ"],
                 variants[var_idx]["INFO"]["selected_CSQ_criteria"],
             ) = DNAUtility.select_csq(var["INFO"]["CSQ"], canonical_dict)
+
             (
                 variants[var_idx]["global_annotations"],
                 variants[var_idx]["classification"],

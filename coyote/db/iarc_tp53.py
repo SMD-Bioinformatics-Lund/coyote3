@@ -16,10 +16,13 @@ class IARCTP53Handler(BaseHandler):
         """
         try:
             if variant["INFO"]["selected_CSQ"]["SYMBOL"] == "TP53":
+
                 hgvsc_parts = variant["INFO"]["selected_CSQ"]["HGVSc"].split(":")
                 if len(hgvsc_parts) >= 2:
                     hgvsc = hgvsc_parts[1]
-                    return self.get_collection().find_one({"var": hgvsc})
+                else:
+                    hgvsc = hgvsc_parts[0]
+                return self.get_collection().find_one({"var": hgvsc})
             else:
                 return None
         except Exception as e:

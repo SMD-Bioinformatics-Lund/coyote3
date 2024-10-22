@@ -26,12 +26,12 @@ class DefaultConfig:
     WTF_CSRF_ENABLED = True
     SECRET_KEY: str | None = os.getenv("FLASK_SECRET_KEY")
 
-    SESSION_COOKIE_NAME = "coyote"
+    SESSION_COOKIE_NAME = "coyote3.0"
 
     MONGO_HOST: str = os.getenv("FLASK_MONGO_HOST") or "localhost"
     MONGO_PORT: str | Literal[27017] = os.getenv("FLASK_MONGO_PORT") or 27017
     # MONGO_DB_NAME = "coyote"
-    MONGO_DB_NAME = os.getenv("COYOTE_DB", "coyote_dev")
+    MONGO_DB_NAME = os.getenv("COYOTE_DB", "coyote_dev_3")
     BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
     _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections.toml"
 

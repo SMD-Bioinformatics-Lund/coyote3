@@ -143,5 +143,5 @@ run_dev.py
 app.log*
 test
 logs/
-examples_dev.txt
+example_dev*
 scripts/migrate_variants_idref.py
