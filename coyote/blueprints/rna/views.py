@@ -206,3 +206,26 @@ def unhide_fusion_comment(var_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.fusion_handler.unhide_fus_comment(var_id, comment_id)
     return redirect(url_for("rna_bp.show_variant", id=var_id))
+
+@rna_bp.route("/fusion/sample/fusionreport/<string:id>", methods=["POST", ])
+@login_required
+def generate_fusion_report(id, *args, **kwargs):
+    sample = "aB"
+    assay = "fusion"
+    fusions = "aaaa"
+    class_desc = []
+    class_desc_short = []
+    report_date = datetime.now().date()
+    pdf = kwargs.get('pdf', 0)
+
+    
+    return render_template(
+        "list_fusions.html",
+        fusions=fusions,
+        sample=sample, 
+        class_desc=class_desc,
+        class_desc_short=class_desc_short, 
+        report_date=report_date, 
+        pdf=pdf, assay=assay 
+    )
+
