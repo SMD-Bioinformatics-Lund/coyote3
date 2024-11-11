@@ -244,7 +244,7 @@
               {% if sel_csq.SYMBOL == "TP53" %}
                 <tr class="hover:bg-purple-50">
                   <td class="px-2 py-2 border-b font-semibold">Seshat:</td>
-                  <td class="px-2 py-2 border-b"><a target="_blank" href="http://vps338341.ovh.net/search?mutation={{ sel_csq.HGVSp|no_transid|one_letter_p|unesc|ellipsify(35)|safe }}&sampleid=" class="text-blue-600 underline">{{sel_csq.SYMBOL}}</a></td>
+                  <td class="px-2 py-2 border-b"><a target="_blank" href="http://vps338341.ovh.net/search?mutation={{ sel_csq.HGVSp|unesc|one_letter_p|ellipsify(35)|safe }}&sampleid=" class="text-blue-600 underline">{{sel_csq.SYMBOL}}</a></td>
                 </tr>
               {% endif %}
               <tr class="hover:bg-purple-50">
@@ -508,8 +508,8 @@
                 {% if sel_csq.HGVSc is defined %}
                   <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">
                   <input type="hidden" name="transcript" value="{{ sel_csq.Feature }}">
-                  <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|no_transid }}">
-                  <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|no_transid }}">
+                  <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|unesc }}">
+                  <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc }}">
                 {% endif %}
                 <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
                 <div class="pt-2 pr-2 pb-1 pl-1">
@@ -526,8 +526,8 @@
                 {% if sel_csq.HGVSc is defined %}
                   <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">
                   <input type="hidden" name="transcript" value="{{ sel_csq.Feature }}">
-                  <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|no_transid }}">
-                  <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|no_transid }}">
+                  <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|unesc }}">
+                  <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc }}">
                 {% endif %}
                   <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
                 {% if 'assay' in classification %}
@@ -578,8 +578,8 @@
               {% if sel_csq.HGVSc is defined %}
                 <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">      
                 <input type="hidden" name="transcript" value="{{ sel_csq.Feature }}">
-                <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|no_transid }}">
-                <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|no_transid }}">
+                <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|unesc }}">
+                <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc}}">
               {% endif %}
               <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
               <input type="submit" value="Save" class="bg-blue-500 text-white py-2 px-4 rounded-md cursor-pointer shadow-md">&nbsp;&nbsp;

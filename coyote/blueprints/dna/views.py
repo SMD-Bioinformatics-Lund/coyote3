@@ -12,6 +12,7 @@ from coyote.blueprints.dna import dna_bp, varqueries_notbad, filters
 from coyote.blueprints.dna.varqueries import build_query
 from coyote.blueprints.dna.forms import GeneForm
 from typing import Literal, Any
+from datetime import datetime
 
 
 @dna_bp.route("/sample/<string:id>", methods=["GET", "POST"])
@@ -152,10 +153,7 @@ def list_variants(id):
 
     # Add hotspot data
     variants = store.variant_handler.hotspot_variant(variants)
-    for var in variants:
-        if var["POS"] == 55174771:
-            app.logger.debug("this is the variant: %s", pformat(var))
-            pass
+
     ### SNV FILTRATION ENDS HERE ###
 
     # LOWCOV data, very computationally intense for samples with many regions
@@ -474,7 +472,6 @@ def order_sanger(id):
 def classify_variant(id):
     form_data = request.form.to_dict()
     class_num = util.dna.get_tier_classification(form_data)
-
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
     if class_num != 0:
         store.annotation_handler.insert_classified_variant(
@@ -716,3 +713,335 @@ def show_fusion(id):
     Show Fusion view page
     """
     pass
+
+
+##### PREVIEW REPORT ######
+@dna_bp.route("/sample/preview_report/<string:id>", methods=["GET", "POST"])
+@dna_bp.route("/sample/report2/<string:id>", methods=["GET", "POST"])
+@login_required
+def generate_report_aml(id, *args, **kwargs):
+
+    sample = store.sample_handler.get_sample(id)  # id = name
+
+    if not sample:
+        sample = store.sample_handler.get_sample_with_id(id)  # id = id
+
+    assay = util.common.get_assay_from_sample(sample)
+    subpanel = sample.get("subpanel")
+
+    sample["num_samples"] = store.variant_handler.get_num_samples(str(sample["_id"]))
+
+    ## send over all defined gene panels per assay, to matching template ##
+    gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
+    # genelists_assay = list(app.config["PANELS_COLL"].find({"assays": {"$in": [assay]}}))
+
+    # TODO: Fix this function
+    genelist_filter = sample.get("checked_genelists", {})
+    ## remove genelist_ from each list
+    genelist_filter_ = [sub.replace("genelist_", "") for sub in genelist_filter]
+    ## displaynames for report
+    genelist_dispnames = util.common.get_genelist_dispnames(genelists_assay, genelist_filter_)
+
+    panels = [panel.get("name") for panel in genelists_assay]
+
+    group = util.common.select_one_sample_group(sample.get("groups"))
+    group_params = util.common.get_group_parameters(group)
+    settings = util.common.get_group_defaults(group_params)
+
+    # settings = {
+    #     "warn_cov": 500,
+    #     "error_cov": 100,
+    #     "default_popfreq": 1,
+    #     "default_mindepth": 100,
+    #     "default_min_freq": 0.05,
+    #     "default_min_reads": 10,
+    # }
+
+    ## get sample settings
+    sample_settings = util.common.get_sample_settings(sample, settings)
+    print(f"Sample settings: {sample_settings}")
+
+    # Get group specific settings
+    # if group is not None:
+    #     settings["error_cov"] = group.get("error_cov", 500)
+    #     settings["warn_cov"] = group.get("warn_cov", 100)
+    #     settings["default_popfreq"] = group.get("default_popfreq", 1)
+    #     settings["default_mindepth"] = group.get("default_mindepth", 100)
+    #     settings["default_spanreads"] = group.get("default_spanreads", 2)
+    #     settings["default_spanpairs"] = group.get("default_spanpairs", 0)
+    #     settings["default_min_freq"] = group.get("default_min_freq", 0.05)
+    #     settings["default_min_reads"] = group.get("default_min_reads", 10)
+
+    # # Get filter values or set to defaults
+    # min_freq = sample.get("filter_min_freq", settings["default_min_freq"])
+    # min_reads = sample.get("filter_min_reads", settings["default_min_reads"])
+    # max_freq = sample.get("filter_max_freq", 0.05)
+    # min_depth = sample.get("filter_min_depth", settings["default_mindepth"])
+    # max_popfreq = sample.get("filter_max_popfreq", settings["default_popfreq"])
+    # csq_filter = sample.get(
+    #     "checked_csq",
+    #     {
+    #         "splicing": 1,
+    #         "stop_gained": 1,
+    #         "frameshift": 1,
+    #         "stop_lost": 1,
+    #         "start_lost": 1,
+    #         "inframe_indel": 1,
+    #         "missense": 1,
+    #         "other_coding": 1,
+    #     },
+    # )
+    filter_conseq = util.dna.get_filter_conseq_terms(sample_settings.get("csq_filter", {}).keys())
+    filter_genes = util.common.create_genelist(genelist_filter, gene_lists)
+
+    query = build_query(
+        assay,
+        {
+            "id": str(sample["_id"]),
+            "max_freq": sample_settings["max_freq"],
+            "min_freq": sample_settings["min_freq"],
+            "min_depth": sample_settings["min_depth"],
+            "min_reads": sample_settings["min_reads"],
+            "max_popfreq": sample_settings["max_popfreq"],
+            "filter_conseq": filter_conseq,
+        },
+    )
+    query["fp"] = {"$ne": True}
+    query["irrelevant"] = {"$ne": True}
+    variants_iter = store.variant_handler.get_case_variants(query)
+
+    # TODO: FOR TUMOR EXOME
+    # query = varqueries.build_query(
+    #     "myeloid",
+    #     {
+    #         "id": str(sample["_id"]),
+    #         "max_freq": max_freq,
+    #         "min_freq": min_freq,
+    #         "min_depth": min_depth,
+    #         "min_reads": min_reads,
+    #         "filter_conseq": filter_conseq,
+    #     },
+    # )
+    # query["fp"] = {"$ne": True}
+    # query["irrelevant"] = {"$ne": True}
+
+    # variants_iter = app.config["VAR_COLL"].find(query)
+    # if len(filter_genes) > 0:
+    #     cnv_genes = ("MYCN", "CDKN2A", "FOXO1", "PAX3", "PAX7", "SMARCB1")
+    #     cnvs_iter = app.config["CNV_COLL"].find(
+    #         {
+    #             "SAMPLE_ID": str(sample["_id"]),
+    #             "INFO.genes": {"$in": cnv_genes},
+    #             "$or": [
+    #                 {"INFO.FOLD_CHANGE": {"$gt": 1.9}},
+    #                 {"INFO.FOLD_CHANGE": {"$lt": 0.05}},
+    #             ],
+    #         }
+    #     )
+    # else:
+    #     cnvs_iter = app.config["CNV_COLL"].find(
+    #         {
+    #             "SAMPLE_ID": str(sample["_id"]),
+    #             "$or": [{"INFO.FOLD_CHANGE": {"$gt": 1.8}}, {"INFO.FOLD_CHANGE": {"$lt": 0.1}}],
+    #         }
+    #     )
+
+    # Get all protein coding genes
+    variants, protein_coding_genes = store.variant_handler.get_protein_coding_genes(variants_iter)
+
+    # Add blacklist data
+    variants = store.blacklist_handler.add_blacklist_data(variants, assay)
+
+    # Get canonical transcripts for the genes from database
+    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(protein_coding_genes))
+
+    # Select a VEP consequence for each variant
+    variants = util.dna.select_csq_for_variants(variants, subpanel, assay, canonical_dict)
+
+    # for var_idx, var in enumerate(variants):
+    #     (
+    #         variants[var_idx]["INFO"]["selected_CSQ"],
+    #         variants[var_idx]["INFO"]["selected_CSQ_criteria"],
+    #     ) = select_csq(var["INFO"]["CSQ"], canonical_dict)
+    #     (
+    #         variants[var_idx]["global_annotations"],
+    #         variants[var_idx]["classification"],
+    #         variants[var_idx]["other_classifications"],
+    #         variants[var_idx]["annotations_interesting"],
+    #     ) = get_global_annotations(variants[var_idx], assay, subpanel)
+
+    # Filter by population frequency
+    variants = util.dna.popfreq_filter(variants, float(sample_settings["max_popfreq"]))
+    # variants = popfreq_filter(variants, float(max_popfreq))
+
+    # Add hotspot data
+    variants = store.variant_handler.hotspot_variant(variants)
+    # variants = hotspot_variant(variants)
+
+    # LOWCOV data, very computationally intense for samples with many regions
+    low_cov = {}
+    # low_cov = store.coverage_handler.get_sample_coverage(sample["name"])
+    # print(list(low_cov))
+
+    ## GET CNVs TRANSLOCS and OTHER BIOMARKERS ## # TODO NEEDS TO BE TESTED
+    cnvs_iter = False
+    biomarkers_iter = False
+    transloc_iter = False
+    if group_params is not None and "DNA" in group_params:
+        if group_params["DNA"].get("CNV"):
+            cnvs_iter = list(
+                store.cnv_handler.get_interesting_sample_cnvs(sample_id=str(sample["_id"]))
+            )
+        if group_params["DNA"].get("OTHER"):
+            biomarkers_iter = store.biomarker_handler.get_sample_other(sample_id=str(sample["_id"]))
+        if group_params["DNA"].get("FUSIONS"):
+            transloc_iter = store.transloc_handler.get_interesting_sample_translocations(
+                sample_id=str(sample["_id"])
+            )
+
+    trans = {
+        "missense_variant": "missense",
+        "stop_gained": "stop gained",
+        "frameshift_variant": "frameshift",
+        "synonymous_variant": "synonymous",
+        "frameshift_deletion": "frameshift del",
+        "inframe_insertion": "in-frame ins",
+        "inframe_deletion": "in-frame del",
+        "1": "I",
+        "2": "II",
+        "3": "III",
+        "4": "IV",
+        "coding_sequence_variant": "kodande variant",
+        "feature_elongation": "feature elongation",
+        "INS": "insertion",
+        "DEL": "deletion",
+    }
+
+    class_desc = [
+        "None",
+        "Variant av stark klinisk signifikans",
+        "Variant av potentiell klinisk signifikans",
+        "Variant av oklar klinisk signifikans",
+        "Variant bedömd som benign eller sannolikt benign",
+    ]
+    class_desc_short = [
+        "None",
+        "Stark klinisk signifikans",
+        "Potentiell klinisk signifikans",
+        "Oklar klinisk signifikans",
+        "Benign/sannolikt benign",
+    ]
+
+    # Get data from Clarity
+    # if "clarity-sample-id" in sample:
+    #     clarity_data = clarity.fetch_clarity_sample_udfs(sample["clarity-sample-id"])
+    # else:
+    #     clarity_data = "NOT_FOUND"
+
+    report_date = datetime.now().date()
+
+    pdf = kwargs.get("pdf", 0)
+
+    template = "report.html"
+    # TODO: CHECK AGAIN
+    creation_date_t = ""
+    creation_date_n = ""
+    image_name = "image.png"
+    image_rot_name = "image.rotated.png"
+    # creation_date_t = CDM(sample["name"])
+    # creation_date_n = ""
+    # if "Paired Sample Name" in clarity_data:
+    #     creation_date_n = CDM(clarity_data["Paired Sample Name"])
+    if assay == "devel" or assay == "tumor_exome":
+        template = "report_gisselsson.html"
+        chopped_id = rchop(sample["name"], "-agilent")
+        chopped_id = rchop(chopped_id, "-paired")
+
+        image_name = chopped_id + ".png"
+        image_rot_name = chopped_id + ".rotated.png"
+        cnvs_list = []
+        # cnvs_list = []
+        # for cnv in cnvs_iter:
+        #     cnv["image"] = (
+        #         chopped_id
+        #         + "."
+        #         + str(cnv["CHROM"])
+        #         + "_"
+        #         + str(cnv["POS"])
+        #         + "_"
+        #         + str(cnv["INFO"]["END"])
+        #         + ".png"
+        #     )
+        #     cnvs_list.append(cnv)
+
+        # cnvs_iter.rewind()
+
+    elif assay == "tumwgs":
+        template = "report_tumwgs.html"
+
+    return render_template(
+        template,
+        variants=variants,
+        sample=sample,
+        low_cov=low_cov,
+        translation=trans,
+        group=sample["groups"],
+        cnvs=cnvs_iter,  # cnvs_list, TMP
+        translocs=transloc_iter,  # not gmsonco
+        class_desc=class_desc,
+        class_desc_short=class_desc_short,
+        report_date=report_date,
+        dispgenes=filter_genes,
+        pdf=pdf,
+        assay=assay,
+        biomarkers=biomarkers_iter,  # solid
+        checked_genelists=genelist_dispnames,  # solid
+        image=image_name,  # TMP
+        image_rot=image_rot_name,  # TMP
+        tumor_normal_creation_date=creation_date_n,  # TMP gmsonco
+        tumor_creation_date=creation_date_t,  # TMP gmsonco
+        clarity={},
+    )
+
+
+@app.route("/sample/report/pdf/<string:id>")
+@login_required
+def generate_report_pdf(id):
+    sample = app.config["SAMPLES_COLL"].find_one({"name": id})
+    assay = get_assay_from_sample(sample)
+
+    # Get report number
+    report_num = 1
+    if "report_num" in sample:
+        report_num = sample["report_num"] + 1
+
+    # PDF file name
+    pdf_file = "static/reports/" + id + "_" + str(report_num) + ".pdf"
+
+    # Generate PDF
+    html = ""
+    if "fusion" in assay or "fusionrna" in assay:
+        html = generate_fusion_report(id, pdf=1)
+    else:
+        html = generate_report_aml(id, pdf=1)
+    HTML(string=html).write_pdf(pdf_file)
+
+    # Add to database
+    app.config["SAMPLES_COLL"].update(
+        {"name": id},
+        {
+            "$push": {
+                "reports": {
+                    "_id": ObjectId(),
+                    "report_num": report_num,
+                    "filepath": pdf_file,
+                    "author": current_user.get_id(),
+                    "time_created": datetime.now(),
+                }
+            },
+            "$set": {"report_num": report_num},
+        },
+    )
+
+    # Render it!
+    return render_pdf(HTML(string=html))

@@ -21,6 +21,16 @@ class VariantsHandler(BaseHandler):
                 ids[gt.get("type")] = gt.get("sample")
         return ids
 
+    def get_num_samples(self, sample_id: str) -> int:
+        """
+        Get number of samples
+        """
+        gt = self.get_collection().find_one({"SAMPLE_ID": sample_id}, {"GT": 1})
+        if gt:
+            return len(gt.get("GT"))
+        else:
+            return 0
+
     def get_case_variants(self, query: dict):
         """
         Return variants with according to a constructed varquery

@@ -12,6 +12,9 @@ class TranslocsHandler(BaseHandler):
     def get_sample_translocations(self, sample_id: str):
         return self.get_collection().find({"SAMPLE_ID": sample_id})
 
+    def get_interesting_sample_translocations(self, sample_id: str, interesting: bool = True):
+        return self.get_collection().find({"SAMPLE_ID": sample_id, "interesting": interesting})
+
     def get_transloc(self, transloc_id: str) -> dict:
         """
         Get Tranlocation by ID

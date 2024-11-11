@@ -5,6 +5,7 @@ import re
 from math import floor, log10
 import dateutil
 import arrow
+from markupsafe import Markup
 
 
 @app.template_filter()
@@ -41,6 +42,31 @@ def format_panel_flag_snv(panel_str):
             )
 
     return html
+
+
+@app.template_filter()
+def standard_HGVS(st):
+    parts = st.rsplit(".", 1)
+    standard = parts[0] + ".(" + parts[1] + ")"
+    return Markup.escape(standard)
+
+
+@app.template_filter()
+def perc_no_dec(val):
+    return str(int(round(100 * val, 0)))
+
+
+@app.template_filter()
+def format_tier(st):
+    if st == 1:
+        return "Tier I"
+    if st == 2:
+        return "Tier II"
+    if st == 3:
+        return "Tier III"
+    if st == 4:
+        return "Tier IV"
+    return st
 
 
 @app.template_filter()
