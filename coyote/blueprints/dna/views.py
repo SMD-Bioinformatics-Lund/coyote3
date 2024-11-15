@@ -13,6 +13,7 @@ from coyote.blueprints.dna.varqueries import build_query
 from coyote.blueprints.dna.forms import GeneForm
 from typing import Literal, Any
 from datetime import datetime
+from flask_weasyprint import HTML, render_pdf
 
 
 @dna_bp.route("/sample/<string:id>", methods=["GET", "POST"])
@@ -181,7 +182,9 @@ def list_variants(id):
                 store.cnv_handler.get_sample_cnvs(sample_id=str(sample["_id"]), normal=True)
             )
         if group_params["DNA"].get("OTHER"):
-            biomarkers_iter = store.biomarker_handler.get_sample_other(sample_id=str(sample["_id"]))
+            biomarkers_iter = store.biomarker_handler.get_sample_biomarkers(
+                sample_id=str(sample["_id"])
+            )
         if group_params["DNA"].get("FUSIONS"):
             transloc_iter = store.transloc_handler.get_sample_translocations(
                 sample_id=str(sample["_id"])
@@ -198,7 +201,9 @@ def list_variants(id):
         transloc_iter_ai = store.transloc_handler.get_sample_translocations(
             sample_id=str(sample["_id"])
         )
-        biomarkers_iter_ai = store.biomarker_handler.get_sample_other(sample_id=str(sample["_id"]))
+        biomarkers_iter_ai = store.biomarker_handler.get_sample_biomarkers(
+            sample_id=str(sample["_id"])
+        )
         ai_text_transloc = util.dna.generate_ai_text_nonsnv(
             assay, transloc_iter_ai, sample["groups"][0], "transloc"
         )
@@ -246,7 +251,7 @@ def list_variants(id):
     )
 
 
-@app.route("/plot/<string:fn>/<string:assay>/<string:build>")  # type: ignore
+@dna_bp.route("/plot/<string:fn>/<string:assay>/<string:build>")  # type: ignore
 def show_any_plot(fn, assay, build):
     if assay == "myeloid":
         if build == "38":
@@ -717,9 +722,8 @@ def show_fusion(id):
 
 ##### PREVIEW REPORT ######
 @dna_bp.route("/sample/preview_report/<string:id>", methods=["GET", "POST"])
-@dna_bp.route("/sample/report2/<string:id>", methods=["GET", "POST"])
 @login_required
-def generate_report_aml(id, *args, **kwargs):
+def generate_dna_report(id, *args, **kwargs):
 
     sample = store.sample_handler.get_sample(id)  # id = name
 
@@ -759,7 +763,6 @@ def generate_report_aml(id, *args, **kwargs):
 
     ## get sample settings
     sample_settings = util.common.get_sample_settings(sample, settings)
-    print(f"Sample settings: {sample_settings}")
 
     # Get group specific settings
     # if group is not None:
@@ -872,12 +875,17 @@ def generate_report_aml(id, *args, **kwargs):
 
     # Filter by population frequency
     variants = util.dna.popfreq_filter(variants, float(sample_settings["max_popfreq"]))
-    # variants = popfreq_filter(variants, float(max_popfreq))
 
     # Add hotspot data
     variants = store.variant_handler.hotspot_variant(variants)
-    # variants = hotspot_variant(variants)
 
+    # Filter variants for report
+    variants = util.dna.filter_variants_for_report(variants, filter_genes, assay)
+
+    # Sample dict for the variant summary table in the report
+    simple_variants = util.dna.get_simple_variants_for_report(variants)
+
+    # TODO: LOW COV
     # LOWCOV data, very computationally intense for samples with many regions
     low_cov = {}
     # low_cov = store.coverage_handler.get_sample_coverage(sample["name"])
@@ -892,45 +900,22 @@ def generate_report_aml(id, *args, **kwargs):
             cnvs_iter = list(
                 store.cnv_handler.get_interesting_sample_cnvs(sample_id=str(sample["_id"]))
             )
+            # this line checks if the cnvs are empty, if they are, it sets the cnvs_iter to True for easy way in the report
+            # this means that we need to show cnvs despite them being empty because the group demands for it
+            if not cnvs_iter:
+                cnvs_iter = True
         if group_params["DNA"].get("OTHER"):
-            biomarkers_iter = store.biomarker_handler.get_sample_other(sample_id=str(sample["_id"]))
+            biomarkers_iter = store.biomarker_handler.get_sample_biomarkers(
+                sample_id=str(sample["_id"])
+            )
+            if not biomarkers_iter:
+                biomarkers_iter = True
         if group_params["DNA"].get("FUSIONS"):
             transloc_iter = store.transloc_handler.get_interesting_sample_translocations(
                 sample_id=str(sample["_id"])
             )
-
-    trans = {
-        "missense_variant": "missense",
-        "stop_gained": "stop gained",
-        "frameshift_variant": "frameshift",
-        "synonymous_variant": "synonymous",
-        "frameshift_deletion": "frameshift del",
-        "inframe_insertion": "in-frame ins",
-        "inframe_deletion": "in-frame del",
-        "1": "I",
-        "2": "II",
-        "3": "III",
-        "4": "IV",
-        "coding_sequence_variant": "kodande variant",
-        "feature_elongation": "feature elongation",
-        "INS": "insertion",
-        "DEL": "deletion",
-    }
-
-    class_desc = [
-        "None",
-        "Variant av stark klinisk signifikans",
-        "Variant av potentiell klinisk signifikans",
-        "Variant av oklar klinisk signifikans",
-        "Variant bedömd som benign eller sannolikt benign",
-    ]
-    class_desc_short = [
-        "None",
-        "Stark klinisk signifikans",
-        "Potentiell klinisk signifikans",
-        "Oklar klinisk signifikans",
-        "Benign/sannolikt benign",
-    ]
+            if not transloc_iter:
+                transloc_iter = True
 
     # Get data from Clarity
     # if "clarity-sample-id" in sample:
@@ -938,11 +923,14 @@ def generate_report_aml(id, *args, **kwargs):
     # else:
     #     clarity_data = "NOT_FOUND"
 
+    # report header and date
+    analysis_method = util.common.get_analysis_method(assay)
+    report_header = util.common.get_report_header(assay, sample)
     report_date = datetime.now().date()
 
     pdf = kwargs.get("pdf", 0)
 
-    template = "report.html"
+    template = "dna_report.html"
     # TODO: CHECK AGAIN
     creation_date_t = ""
     creation_date_n = ""
@@ -976,20 +964,23 @@ def generate_report_aml(id, *args, **kwargs):
 
         # cnvs_iter.rewind()
 
-    elif assay == "tumwgs":
-        template = "report_tumwgs.html"
+    # elif assay == "tumwgs":
+    #     template = "report_tumwgs.html"
+
+    print(simple_variants)
 
     return render_template(
         template,
         variants=variants,
+        simple_variants=simple_variants,
         sample=sample,
         low_cov=low_cov,
-        translation=trans,
+        translation=app.config.get("REPORT_CONFIG").get("REPORT_TRANS"),
         group=sample["groups"],
         cnvs=cnvs_iter,  # cnvs_list, TMP
-        translocs=transloc_iter,  # not gmsonco
-        class_desc=class_desc,
-        class_desc_short=class_desc_short,
+        translocs=list(transloc_iter),  # not gmsonco
+        class_desc=app.config.get("REPORT_CONFIG").get("CLASS_DESC"),
+        class_desc_short=app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT"),
         report_date=report_date,
         dispgenes=filter_genes,
         pdf=pdf,
@@ -1001,14 +992,23 @@ def generate_report_aml(id, *args, **kwargs):
         tumor_normal_creation_date=creation_date_n,  # TMP gmsonco
         tumor_creation_date=creation_date_t,  # TMP gmsonco
         clarity={},
+        report_header=report_header,
+        analysis_method=analysis_method,
+        analysis_desc=app.config.get("REPORT_CONFIG").get("ANALYSIS_DESCRIPTION", {}).get(assay),
+        gene_table=app.config.get("REPORT_CONFIG").get("GENE_TABLE", {}).get(assay),
+        panel=group_params.get("panel_name", assay),
     )
 
 
-@app.route("/sample/report/pdf/<string:id>")
+@dna_bp.route("/sample/report/pdf/<string:id>")
 @login_required
 def generate_report_pdf(id):
-    sample = app.config["SAMPLES_COLL"].find_one({"name": id})
-    assay = get_assay_from_sample(sample)
+    sample = store.sample_handler.get_sample(id)  # id = name
+
+    if not sample:
+        sample = store.sample_handler.get_sample_with_id(id)  # id = id
+
+    assay = util.common.get_assay_from_sample(sample)
 
     # Get report number
     report_num = 1
@@ -1020,28 +1020,26 @@ def generate_report_pdf(id):
 
     # Generate PDF
     html = ""
-    if "fusion" in assay or "fusionrna" in assay:
-        html = generate_fusion_report(id, pdf=1)
-    else:
-        html = generate_report_aml(id, pdf=1)
+    html = generate_dna_report(id, pdf=1)
     HTML(string=html).write_pdf(pdf_file)
 
+    # TODO: Uncomment this
     # Add to database
-    app.config["SAMPLES_COLL"].update(
-        {"name": id},
-        {
-            "$push": {
-                "reports": {
-                    "_id": ObjectId(),
-                    "report_num": report_num,
-                    "filepath": pdf_file,
-                    "author": current_user.get_id(),
-                    "time_created": datetime.now(),
-                }
-            },
-            "$set": {"report_num": report_num},
-        },
-    )
+    # app.config["SAMPLES_COLL"].update(
+    #     {"name": id},
+    #     {
+    #         "$push": {
+    #             "reports": {
+    #                 "_id": ObjectId(),
+    #                 "report_num": report_num,
+    #                 "filepath": pdf_file,
+    #                 "author": current_user.get_id(),
+    #                 "time_created": datetime.now(),
+    #             }
+    #         },
+    #         "$set": {"report_num": report_num},
+    #     },
+    # )
 
     # Render it!
     return render_pdf(HTML(string=html))

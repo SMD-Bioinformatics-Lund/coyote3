@@ -71,3 +71,49 @@ def unhide_sample_comment(sample_id):
         return redirect(url_for("dna_bp.list_variants", id=sample_id))
     else:
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
+
+
+@common_bp.route("/<string:sample_id>/<string:assay>/<string:panel>/genes", methods=["GET"])
+@login_required
+def get_sample_genelists(sample_id, assay, panel):
+    """
+    Add genes to a sample
+    """
+    sample = store.sample_handler.get_sample(sample_id)
+    if not sample:
+        sample = store.sample_handler.get_sample_with_id(sample_id)
+
+    sample_default_gene_list_names = list(sample.get("checked_genelists", {}).keys())
+    if sample_default_gene_list_names:
+        sample_default_gene_list_names = [
+            g_list.replace("genelist_", "") for g_list in sample_default_gene_list_names
+        ]
+    assay = util.common.get_assay_from_sample(sample)
+
+    sample_default_genes_lists = store.panel_handler.get_assay_gene_list_by_name(
+        assay, sample_default_gene_list_names
+    )
+    group = sample.get("groups")
+
+    sample_default_genes_dict = {}
+    if sample_default_genes_lists:
+        for gene_list in sample_default_genes_lists:
+            sample_default_genes_dict[gene_list.get("displayname")] = gene_list.get("genes")
+
+    assay_default_gene_lists = store.panel_handler.get_assay_default_gene_list(assay)
+    assay_default_genes = []
+    if assay_default_gene_lists:
+        for gene_list in assay_default_gene_lists:
+            print(gene_list)
+            assay_default_genes.extend(gene_list.get("genes"))
+
+    # TODO: TRY TO SAVE AS A EMBBED THING IN THE SAMPLE REPORT
+    # list(set(assay_default_genes)), sample_default_genes_dict
+    return render_template(
+        "sample_genes.html",
+        sample=sample,
+        assay=assay,
+        panel=panel,
+        assay_default_genelist=list(set(assay_default_genes)),
+        sample_filtered_genelists=sample_default_genes_dict,
+    )

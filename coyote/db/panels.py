@@ -106,7 +106,7 @@ class PanelsHandler(BaseHandler):
             return []
 
     def get_assay_all_panels(self, assay):
-        pipeline = [
+        query = [
             {"$match": {"assays": {"$in": [assay]}}},
             {
                 "$project": {
@@ -121,7 +121,7 @@ class PanelsHandler(BaseHandler):
             },
         ]
 
-        panels = list(self.get_collection().aggregate(pipeline))
+        panels = list(self.get_collection().aggregate(query))
         return panels
 
     def get_panel_genes(self, gene_panel_id):
@@ -210,3 +210,22 @@ class PanelsHandler(BaseHandler):
             {"$group": {"_id": "$_id", "latestVersion": {"$first": "$changelog.version"}}},
         ]
         return list(self.get_collection().aggregate(query))[0].get("latestVersion", 0)
+
+    def get_assay_default_gene_list(self, assay: str):
+        """
+        Get default gene list for assay
+        """
+        assay_gene_lists = self.get_collection().find({"assays": {"$in": [assay]}, "default": True})
+        return assay_gene_lists
+
+    def get_assay_gene_list_by_name(self, assay: str, names_list: list):
+        """
+        Get gene list for assay by name
+        """
+        if not names_list:
+            return None
+
+        assay_gene_lists = self.get_collection().find(
+            {"assays": {"$in": [assay]}, "name": {"$in": names_list}}
+        )
+        return assay_gene_lists

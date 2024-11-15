@@ -8,6 +8,11 @@ import arrow
 from markupsafe import Markup
 
 
+@app.template_filter("has_hotspot")
+def has_hotspot_filter(variants):
+    return any(variant.get("hotspot") for variant in variants)
+
+
 @app.template_filter()
 def format_panel_flag_snv(panel_str):
     if not panel_str:
@@ -46,14 +51,18 @@ def format_panel_flag_snv(panel_str):
 
 @app.template_filter()
 def standard_HGVS(st):
-    parts = st.rsplit(".", 1)
-    standard = parts[0] + ".(" + parts[1] + ")"
+    if st:
+        parts = st.rsplit(".", 1)
+        standard = parts[0] + ".(" + parts[1] + ")"
+    else:
+        standard = ""
     return Markup.escape(standard)
 
 
 @app.template_filter()
 def perc_no_dec(val):
-    return str(int(round(100 * val, 0)))
+    if val and (val != "" or val != "NA"):
+        return f"{str(int(round(100 * val, 0)))}%"
 
 
 @app.template_filter()
@@ -261,6 +270,18 @@ def no_transid(nom):
     a = nom.split(":")
     if 1 < len(a):
         return a[1]
+
+
+@app.template_filter(name="format_hotspot_note")
+def format_hotspot_note(dummy):
+    html = ""
+    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-melanoma rounded-full'>MM: Malignt Melanom</span>&nbsp;"
+    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-cns rounded-full'>CNS: Centrala Nervsystemet</span>&nbsp;"
+    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-lung rounded-full'>LU: Lunga</span>&nbsp;"
+    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-colon rounded-full'>CO: Kolorektal</span>&nbsp;"
+    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-gi rounded-full'>GI: Gastro-Intestinal</span>&nbsp;"
+    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-dna rounded-full'>D: Generell Solid</span>&nbsp;"
+    return html
 
 
 @app.template_filter()

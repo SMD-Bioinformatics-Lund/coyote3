@@ -1,0 +1,560 @@
+{% extends "report_layout.html" %}
+{% block body %}
+
+{% set germline = True if sample.name == "11400-19" %}
+
+{% if pdf != 1 %}
+<div
+  style="background-color:#FCC; border:1px solid #EAA; width:300px; text-align:center; padding:20px; margin:10px 10px 30px 10px;">
+  <b>*** PREVIEW OF REPORT ***</b><br><br>
+  <a target="_blank" class="button" href="pdf/{{sample.name}}">Finalize report</a>
+</div>
+
+{% endif %}
+<!--  Report Header -->
+<span class="report_header">{{ report_header }} - {{ sample.name }}</span>
+
+<!--  Report Patient/Analysis Information -->
+<div class="report_div">
+  <table class='report_general'>
+    <tr>
+      <td class="top_report_key">Patientnamn</td>
+      <td class="top_report_val">&lt;PATIENT_NAME&gt;</td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Personnummer</td>
+      <td class="top_report_val">&lt;PERSONAL_IDENTITY_NUMBER&gt;</td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Prov-ID</td>
+      <td class="top_report_val">{{ sample.name }};
+        &lt;TUMOR_CREATION_DATE&gt;{% if not germline and sample.num_samples == 2 %}
+        (Kontrollprov: &lt;PAIRED_SAMPLE_NAME&gt;;&lt;TUMOR_NORMAL_CREATION_DATE&gt;){% endif %}</td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Registreringsdatum</td>
+      <td class="top_report_val">&lt;REGISTRATION_DATE&gt;</td>
+    </tr>
+    <tr>
+      {% if assay=="swea" or assay=="gmsonco" %}
+        <td class="top_report_key">Provtyp</td>
+        <td class="top_report_val">Tumörprov - &lt;SAMPLE_TYPE&gt;
+          {% if clarity["Paired Sample Name"] %}
+            / Blodprov
+          {% endif %}
+        </td>
+      <!-- <td class="top_report_key">Provtyp</td><td class="top_report_val">Blodprov, {{ clarity["Nucleotide Type"] }}</td> -->
+      {% else %}
+        <td class="top_report_key">Provtyp</td>
+        <td class="top_report_val">&lt;SAMPLE_TYPE&gt;</td>
+      {% endif %}
+    </tr>
+    {% if assay != "swea" and assay != "gmsonco" %}
+    <tr>
+      <td class="top_report_key">Frågeställning</td>
+      <td class="top_report_val">
+        {% if assay == "myeloid" %}
+          {% if sample.num_samples == 2 %}
+            Hematologisk neoplasi
+          {% else %}
+            &lt;DIAGNOSIS&gt;
+          {% endif %}
+        {% elif assay == "solid" %}
+          {% if 'subpanel' in sample %}
+            {% if sample.subpanel == "BP" %}
+              Bröst-Pilot
+            {% else %}
+              {{sample.subpanel}}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      </td>
+    </tr>
+    {% endif %}
+    <tr>
+      <td class="top_report_key">Rapportdatum</td>
+      <td class="top_report_val">{{ report_date }}</td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Analysmetod</td>
+      <td class="top_report_val">{{analysis_method}}</td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Analys genomförd av</td>
+      <td class="top_report_val">
+        {% if assay=="myeloid" %}
+          Centrum för molekylär diagnostik (CMD) och Klinisk genetik och patologi
+        {% elif assay=="swea" or assay=="gmsonco" %}
+          Centrum för molekylär diagnostik (CMD)
+        {% endif %}
+      </td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Rapport genererad av</td>
+      <td class="top_report_val">{{ current_user.get_fullname() }}</td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Rapport-ID</td>
+      <td class="top_report_val">
+        {% if sample.report_num is defined %}
+          {{ sample.name }}.{{ sample.report_num + 1 }}
+        {% else %}
+          {{ sample.name }}.1
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+</div>
+
+<!--  Variant Summary -->
+{% if assay == "tumwgs" %}
+  <span class="report_header">Kliniskt relevanta SNVs och små INDELs</span>
+{% else %}
+  <span class="report_header">Analysresultat</span>
+{% endif %}
+<table class="variant_table">
+  <tr>
+    <th>Gen</th>
+    <th>Variant</th>
+    <th>Variantfrekvens</th>
+    <th>Klassificering</th>
+    {% if simple_variants | has_hotspot %}
+      <th>Hotspot*</th>
+    {% endif %}
+  </tr>
+  {% for var in simple_variants %}
+      <tr>
+        <td>{{ var.symbol }}</td>
+        <td>{{ var.variant|unesc }}</td>
+        <td>{{ var.af|perc_no_dec }}</td>
+        <td>{{ var.class_short_desc }}</td>
+        {% if simple_variants | has_hotspot %}
+          <td>{{ ','.join(var.hotspot)|safe }}</td>
+        {% endif %}
+      </tr>
+  {% else %}
+      <tr>
+        <td>Inga detekterade varianter</td>
+      </tr>
+  {% endfor %}
+</table>
+
+{% if assay == "solid"%}
+* MM:malignt melanom, CO: kolorektal, LU: lunga, GI: gastro-intestinal, CNS: centrala nervsystemet, D: generell solid
+{% endif %}
+
+<!-- CNV Summary -->
+{% if cnvs %}
+  {% if assay == "tumwgs" %}
+    <span class="report_header">Kliniskt relevanta kopietalsförändringar</span>
+  {% else %}
+    <span class="report_header">Kliniskt relevanta genspecifika kopietalsförändringar</span>
+  {% endif %}
+
+  <table class="variant_table">
+    <tr>
+      <th>Gen(er)</th>
+      <th>Storlek</th>
+      <th>Typ</th>
+      <th>Kopietal</th>
+    </tr>
+    {% if cnvs and cnvs is iterable %}
+      {% for cnv in cnvs %}
+        <tr>
+          <td>
+            {% set non_panel_genes = [0] %}
+            {% for gene in cnv.genes%}
+              {% if gene.class %}
+                {{gene.gene}}
+              {% else %}
+                {% if non_panel_genes.append(non_panel_genes.pop()+1) %}{% endif %}
+              {% endif %}
+            {% endfor %}
+            {% if non_panel_genes[0] > 0 %}
+              <font color='#888'>+ {{non_panel_genes[0] }} other genes</font>
+            {% endif %}
+          </td>
+          <td>{{ cnv.size }} bp</td>
+          <td>
+            {% if cnv.ratio > 1 %}
+              AMP
+            {% elif cnv.ratio > 0 %}
+              DUP
+            {% else %}
+              DEL
+            {% endif %}
+          </td>
+          <td>{{ 2*(2**cnv.ratio)|round(2) }}</td>
+        </tr>
+      {% endfor %}
+    {% else %}
+      <tr>
+        <td>
+          {% if assay == "tumwgs" %}
+            Inga detekterade kopietalsförändringar.
+          {% else %}
+            Inga detekterade genspecifika kopietalsförändringar.
+            {% if assay == "solid" %}
+            {% else %}
+              För eventuella större förändringar, se under slutsats
+            {% endif %}
+          {% endif %}
+        </td>
+      </tr>
+    {% endif %}
+  </table>
+{% endif %}
+
+<!-- DNA Fusions Summary -->
+{% if translocs %}
+  {% if assay == "tumwgs" %}
+    <span class="report_header">Kliniskt relevanta fusioner</span>
+  {% else %}
+    <span class="report_header">Kliniskt relevanta fusioner (DNA)</span>
+  {% endif %}
+
+  <table class="variant_table">
+    <tr>
+      <th>Gen 1</th>
+      <th>Gen 2</th>
+      <th>HGVS.p</th>
+    </tr>
+    {% if translocs and translocs is iterable %}
+      {% for tl in translocs %}
+        {% set sel_ann = tl.INFO.MANE_ANN or tl.INFO.ANN[0] %}
+        {% set genes = sel_ann.Gene_Name.split('&') %}
+        <tr>
+          <td>{{ genes[0] }}</td>
+          <td>{{ genes[1] }}</td>
+          <td>{{ sel_ann.HGVSp|unesc }}</td>
+        </tr>
+      {% endfor %}
+    {% else %}
+      <tr>
+        <td>Inga detekterade fusioner</td>
+      </tr>
+    {% endif %}
+  </table>
+{% endif %}
+
+<!-- Biomarkers Summary -->
+{% if 1==0 %}
+  {% if biomarkers %}
+    <span class="report_header">Andra biomarkörer</span>
+    <table class="variant_table">
+      <tr>
+        <th>Markör</th>
+        <th>Värde</th>
+      </tr>
+      {% if biomarkers and biomarkers is iterable %}
+        {% for bio in biomarkers %}
+          {% if "MSIS" in bio %}
+            <tr>
+              <td>
+                MSI(Single)
+              </td>
+              <td>
+                {{bio.MSIS.perc}}%
+              </td>
+            </tr>
+          {% endif %}
+          {% if "MSIP" in bio %}
+            <tr>
+              <td>
+                MSI(Paired)
+              </td>
+              <td>
+                {{bio.MSIP.perc}}%
+              </td>
+            </tr>
+          {% endif %}
+          {% if "HRD" in bio %}
+            <tr>
+              <td>
+                HRD
+              </td>
+              <td>
+                {{bio.HRD.sum}}
+              </td>
+            </tr>
+          {% endif %}
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td>
+            Inga biomarkörer uppmätta
+          </td>
+          <td>
+            -
+          </td>
+        </tr>
+      {% endif %}
+    </table>
+  {% endif %}
+{% endif %}
+
+<!--  Report Comments/Result Summary -->
+<span class="report_header">Slutsats</span>
+<div class="conclusion">
+  <div class="results_summary">
+    {% if sample.comments|length > 0 %}
+      {% for comment in sample.comments if comment.hidden != 1 %}
+        {% if loop.last %}
+          {{ comment.text|format_comment|safe }}
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      Slutsats saknas!
+    {% endif %}
+  </div>
+</div>
+
+<!-- Page break for the detailed results -->
+<p style="page-break-before: always;"></p>
+<br>
+
+<!-- CNV Profile for WGS samples -->
+{% if assay == "tumwgs" %}
+  <span class="report_header">Kopietalsprofil, genomisk översikt</span>
+  <div style="transform:rotate(90deg);">
+    <br><img style="width:900px; height:auto; padding:30px;" src="{{ url_for('dna_bp.show_any_plot', fn=sample.cnvprofile|basename, assay=assay, build="" ) }}">
+  </div>
+{% endif %}
+
+<!-- Detailed list of each variants reported -->
+{% if simple_variants %}
+  <span class="report_header">Detekterade varianter</span>
+  {% for var in simple_variants %}
+
+    <div class=report_div style="page-break-inside:avoid;">
+      <table class='report_variant'>
+        <tr>
+          <th class="report_variant_header" colspan=6>
+            {% if var.variant %}
+              <span class="report_variant_header">{{ var.symbol }}: {{ var.variant|unesc }}</span><br>
+            {% else %}
+            {#{ var.INFO }#}
+            {% endif %}
+          </th>
+        </tr>
+        <tr>
+          <td class="report_key">Gen</td>
+          <td class="var_report_val">{{ var.symbol }}</td>
+
+          <td class="report_key">Typ</td>
+          <td class="var_report_val">{{var.class_type}} {{ var.variant_class }}</td>
+
+          <td class="report_key">Transkript</td>
+          <td class="var_report_val">
+            {{ var.feature }}
+            {% if exon_info %}
+              , exon {{ exon_info[0] }}
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td class="report_key">Konsekvens</td>
+          <td class="var_report_val">{{ var.consequence }}</td>
+          <td class="report_key">cDNA-förändring</td>
+          {% if var_type == "snv" %}
+            <td class="var_report_val">
+              <div class="wrapping">{{ var.cdna|unesc }}</div>
+            </td>
+          {% else %}
+            <td class="var_report_val">{{ var.cdna }}</td>
+          {% endif %}
+
+          <td class="report_key">Proteinförändring</td>
+          <td class="var_report_val">
+            {% if var.protein_changes %}
+                {% for p_change in var.protein_changes %}
+                  {{ p_change|safe }}<br>
+                {% endfor %}
+              {% else %}
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td class="report_key">Kromosom</td>
+          <td class="var_report_val">chr{{ var.chr }}</td>
+
+          <td class="report_key">Position (hg38)</td>
+          <td class="var_report_val">{{ var.pos }}</td>
+
+          <td class="report_key">Frekvens</td>
+          <td class="var_report_val">{{ var.af|perc_no_dec }}</td>
+        </tr>
+
+        {% if var.class != 999 %}   
+          <tr>
+            <td class="report_key">Klassificering</td>
+            <td class="report_annotation" colspan=5>
+              {{ var.class|format_tier }} -
+              {{ var.class_long_desc }}<br>
+            </td>
+          </tr>
+        {% endif %}
+
+        {% if var.global_annotations|length > 0 %}
+          <tr>
+            <td class="report_key">Kommentar</td>
+            {% if var.annotations_interesting|length > 0 %}
+              {% for assay_sub, key in var.annotations_interesting.items() %}
+                <td class="report_annotation" colspan=5>
+                  {{ key.text|format_comment|safe }}
+                </td>
+              {% endfor %}
+            {% else %}
+              {% set sorted_annos = var.global_annotations|sort(attribute="time_created", reverse=True) %}
+              <td class="report_annotation" colspan=5>
+                {{ sorted_annos[0].text|format_comment|safe }}
+              </td>
+            {% endif %}
+          </tr>
+        {% endif %}
+
+        {% if var.comments|length > 0 and 1==2 %} {# DO NOT SHOW COMMENTS EVER #}
+        <tr>
+          <td class="report_key">
+            Kommentar
+          </td>
+          <td class="report_comment" colspan=7>
+            {% for comment in var.comments %}
+              <li>{{ comment.text|format_comment|safe }}
+            {% endfor %}
+          </td>
+        </tr>
+        {% endif %}
+      </table>
+    </div>
+  {% else %}
+    {% if assay == "swea" %}
+      Inga avvikelser av klinisk signifikans har påvisats.<br>
+    {% else %}
+      Inga varianter detekterade<p>
+    <p>
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+<!-- Analysis Description -->
+<span class="report_header">Analysbeskrivning</span>
+<div class="analysis_description">
+  {{ analysis_desc|safe }}
+
+  <p>For gene lists see <a target="_blank" href={{ url_for('common_bp.get_sample_genelists', sample_id=sample.name, assay=assay, panel=panel ) }}>here</a></p>
+
+  <!--
+  <div>
+    <a href="#" onclick="document.getElementById('hidden-genelist').style.display = 'block';">here</a>
+    <div id="hidden-genelist" style="display: none;">
+      {{ if }}
+    </div>
+  </div>
+  -->
+
+  {% if not germline %}
+    <p>
+    <b>Tabell 1: Förklaring av klassificering</b>
+    <p>
+    <table class="info">
+      {% if assay == "solid" %}
+        <tr>
+          <td>Tier I</td>
+          <td>Variant av stark klinisk signifikans (genvarianter som är diagnostiska, behandlingsstyrande eller
+            riskstratifierande enligt gällande riktlinjer)</td>
+        </tr>
+      {% else %}
+        <tr>
+          <td>Tier I</td>
+          <td>Variant av stark klinisk signifikans (genvarianter som är diagnostiska, behandlingsstyrande eller
+            riskstratifierande enligt gällande riktlinjer)</td>
+        </tr>
+      {% endif %}
+      <tr>
+        <td>Tier II</td>
+        <td>Variant av potentiell klinisk signifikans (varianter i gener beskrivna i ett flertal publikationer)</td>
+      </tr>
+      <tr>
+        <td>Tier III</td>
+        <td>Variant av oklar klinisk signifikans (varianter i gener beskrivna i ett fåtal publikationer)</td>
+      </tr>
+      <tr>
+        <td>Tier IV</td>
+        <td>Variant bedömd som benign eller sannolikt benign</td>
+      </tr>
+    </table>
+
+    <p>
+      <b>Referenser</b>
+    <p>
+      [1] Standards and guidelines for the interpretation and reporting of sequence variants in cancer. Li et al, Journal
+      of Molecular Diagnostics, 2017.
+  {% endif %}
+</div>
+
+
+<script>
+  var expanded = false;
+  function showCheckboxes() {
+    var checkboxes = document.getElementById("checkboxes");
+    if (!expanded) {
+      checkboxes.style.display = "block";
+      expanded = true;
+    } else {
+      checkboxes.style.display = "none";
+      expanded = false;
+    }
+  }
+
+  function show_lowcov() {
+    if (document.getElementById("lowcovlist_div").style.display == "none") {
+      document.getElementById("lowcovlist_div").style.display = "inline";
+    }
+    else {
+      document.getElementById("lowcovlist_div").style.display = "none";
+    }
+  }
+
+</script>
+
+<style>
+  .multiselect {
+    width: 100%;
+  }
+
+  .selectBox {
+    position: relative;
+  }
+
+  .selectBox select {
+    width: 100%;
+  }
+
+  .overSelect {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+  }
+
+  #checkboxes {
+    display: none;
+    border-bottom: 1px #bbb solid;
+    border-left: 1px #bbb solid;
+    border-right: 1px #bbb solid;
+    border-radius: 0px 0px 3px 3px;
+    background-color: #fff;
+  }
+
+  #checkboxes label {
+    display: block;
+  }
+
+  #checkboxes label:hover {
+    background-color: #f7f7ff;
+  }
+</style>
+
+{% endblock %}

@@ -196,6 +196,158 @@ class DNAUtility:
         return variants
 
     @staticmethod
+    def filter_variants_for_report(variants: list, filter_genes: list, assay: str) -> list:
+        """
+        Filter the variants for the report
+        """
+        filtered_sorted_variants = sorted(
+            [
+                var
+                for var in variants
+                if (
+                    var.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL") in filter_genes
+                    or len(filter_genes) == 0
+                )
+                and not var.get("blacklist")
+                and var.get("classification", {}).get("class") != 4
+                and var.get("classification", {}).get("class") != 999
+                and not (
+                    (assay == "gmsonco" and var.get("classification", {}).get("class") == 3)
+                    if assay != "tumwgs"
+                    else False
+                )
+            ],
+            key=lambda var: var.get("classification", {}).get("class"),
+        )
+
+        return filtered_sorted_variants
+
+    @staticmethod
+    def get_simple_variants_for_report(variants: list) -> list:
+        """
+        Get simple variants for the report
+        """
+        translation = app.config.get("REPORT_CONFIG", {}).get("REPORT_TRANS")
+        class_short_desc_list = app.config.get("REPORT_CONFIG", {}).get("CLASS_DESC_SHORT")
+        class_long_desc_list = app.config.get("REPORT_CONFIG", {}).get("CLASS_DESC")
+        one_letter_p = app.jinja_env.filters["one_letter_p"]
+        standard_HGVS = app.jinja_env.filters["standard_HGVS"]
+        cdna = ""
+        protein_changes = []
+        simple_variants = []
+        for var in variants:
+            indel_size = len(var.get("ALT")) - len(var.get("REF"))
+            selected_CSQ = var.get("INFO", {}).get("selected_CSQ", {})
+            var_type = "snv"
+            variant_class = var.get("classification", {}).get("class")
+            if indel_size > 20 or indel_size < -20:
+                var_type = "indel"
+
+                if indel_size < 0:
+                    variant = cdna = f"{abs(indel_size)}bp DEL"
+                else:
+                    variant = cdna = f"{indel_size}bp INS"
+            elif selected_CSQ.get("HGVSc"):
+                variant = cdna = selected_CSQ.get("HGVSc")
+            elif var.get("INFO", {}).get("SVTYPE"):
+                var_type = "sv"
+                variant = cdna = (
+                    f"{var.get("INFO", {}).get("SVLEN")}bp {translation[var.get("INFO", {}).get('SVTYPE')]}"
+                )
+            else:
+                variant = "?"
+
+            # if there is a protein change and not long indel then replace the variant
+            if selected_CSQ.get("HGVSp", None):
+                if indel_size <= 20 or indel_size >= -20:
+                    var_type = "snv"
+                    variant = standard_HGVS(one_letter_p(selected_CSQ.get("HGVSp")))
+                    protein_changes = [
+                        standard_HGVS(one_letter_p(selected_CSQ.get("HGVSp"))),
+                        standard_HGVS(selected_CSQ.get("HGVSp")),
+                    ]
+                else:
+                    protein_changes = [
+                        one_letter_p(selected_CSQ.get("HGVSp")),
+                        selected_CSQ.get("HGVSp"),
+                    ]
+
+            # Vairant class short description
+            if str(variant_class) in class_short_desc_list:
+                variant_class_short = class_short_desc_list[str(variant_class)]
+            else:
+                variant_class_short = "None"
+
+            # Vairant class long description
+            if str(variant_class) in class_short_desc_list:
+                variant_class_long = class_long_desc_list[str(variant_class)]
+            else:
+                variant_class_long = "None"
+
+            # Classification/variant type
+            if var.get("INFO", {}).get("MYELOID_GERMLINE") == 1 or "GERMLINE" in var.get(
+                "FILTER", []
+            ):
+                class_type = "Konstitutionell"
+            else:
+                class_type = "Somatisk"
+
+            # consequence
+            all_conseq = selected_CSQ.get("Consequence", [])
+            consequence = ""
+            if all_conseq and isinstance(all_conseq, list):
+                for c in all_conseq:
+                    if c in translation:
+                        consequence = translation[c]
+                        break
+                    else:
+                        consequence = c
+            elif all_conseq and isinstance(all_conseq, str):
+                for c in all_conseq.split("&"):
+                    if c in translation:
+                        consequence = translation[c]
+                        break
+                    else:
+                        consequence = c
+
+            # Allele Freq
+            if var.get("INFO", {}).get("SVTYPE") and selected_CSQ.get("SYMBOL") == "FLT3":
+                AF = "N/A"
+            else:
+                for gt in var.get("GT"):
+                    if gt.get("type") == "case":
+                        AF = gt.get("AF")
+                        break
+
+            simple_variants.append(
+                {
+                    "chr": var.get("CHROM"),
+                    "pos": var.get("POS"),
+                    "ref": var.get("REF"),
+                    "alt": var.get("ALT"),
+                    "variant": variant,
+                    "af": AF,
+                    "symbol": selected_CSQ.get("SYMBOL"),
+                    "class": variant_class,
+                    "class_short_desc": variant_class_short,
+                    "class_long_desc": variant_class_long,
+                    "hotspot": var.get("INFO", {}).get("HOTSPOT"),
+                    "var_type": var_type,
+                    "class_type": class_type,
+                    "var_class": var.get("variant_class", ""),
+                    "exon_info": selected_CSQ.get("EXON", "").split("/"),
+                    "feature": selected_CSQ.get("Feature", ""),
+                    "consequence": consequence,
+                    "cdna": cdna,
+                    "protein_changes": protein_changes,
+                    "global_annotations": var.get("global_annotations", []),
+                    "annotations_interesting": var.get("annotations_interesting", []),
+                    "comments": var.get("comments", []),
+                }
+            )
+        return simple_variants
+
+    @staticmethod
     def generate_ai_text_nonsnv(assay, variants, group, var_type):
         """
         Function to add a summerizing text to a specific non-snv type of variation

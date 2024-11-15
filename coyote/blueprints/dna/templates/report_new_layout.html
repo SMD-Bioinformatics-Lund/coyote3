@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <title>DNA Report</title>
+  <link href="{{ url_for('static', filename='css/tailwind.2.2.19.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+  <style>
+    @page {
+      size: A4;
+      margin: 15mm;
+      @top-center {
+        content: element(header);
+      }
+      @bottom-center {
+        content: element(footer);
+      }
+    }
+
+    body {
+      margin: 0;
+      font-size: 11px;
+    }
+  </style>
+</head>
+
+<body class="text-sm" style="font-family: 'Inter', sans-serif;">
+
+  <div class="mx-auto" style="width: 210mm; max-width: 210mm; position: running(header);">
+    <!-- Full-width Red Top Bar with Angled Gaps -->
+    <div class="relative w-full h-3 bg-red-600">
+      <!-- Overlay for the striped effect on the last 30% of the bar -->
+      <!-- <div class="absolute top-0 right-100 h-full w-1/6" style="background: repeating-linear-gradient(90deg, #dc2626 30px, white 40px);"></div>-->
+      <div class="absolute top-0 right-0 h-full w-full" style="background: linear-gradient(to right, #facc15 55%, #dc2626 100%);"></div>
+    </div>
+    
+    <!-- Header Content -->
+    <div class="flex items-center justify-between px-6 py-4 border-b">
+      
+      <!-- Left Logo Section -->
+      <div class="flex items-center">
+        <img src="{{ url_for('static', filename='images/RSKlogo-rgb.png') }}" alt="Region Skane" class="w-16 h-auto">
+      </div>
+      
+      <!-- Right Text Section -->
+      <div class="text-right">
+        <p class="text-normal font-semibold text-gray-900 leading-tight tracking-wide">
+          Centrum för Molekylär Diagnostik (CMD)
+        </p>
+        <p class="text-xs text-gray-700 mt-1 tracking-tight">
+          Specialistfunktioner, Medicinsk service, Labmedicin,<br>
+          Sölvegatan 23 B, Byggnad 71, Lund
+        </p>
+      </div>
+    </div>
+  </div>
+
+
+<div class="page mx-auto my-2 pt-2 pb-2 pr-4 pl-3" style="width: 210mm; max-width: 210mm; ">
+  {% block body %}{% endblock %}
+</div>
+
+<div class="footer text-center text-xs mx-auto my-3 p-3 relative" style="width: 210mm; max-width: 210mm; position: running(footer);">
+  <!-- Gradient Footer Bar -->
+  <div class="absolute bottom-0 left-0 w-full h-2" style="background: linear-gradient(to right, #facc15 55%, #dc2626 100%);"></div>
+  
+  <!-- Footer Content -->
+  <hr class="mt-2 mb-3">
+  Sida <span class="pageNumber"></span> av <span class="totalPages"></span>
+</div>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var pageNumbers = document.querySelectorAll('.pageNumber');
+    var totalPages = document.querySelectorAll('.totalPages');
+    var total = document.querySelectorAll('.page').length;
+    pageNumbers.forEach(function(pageNumber, index) {
+      pageNumber.textContent = index + 1;
+    });
+    totalPages.forEach(function(totalPage) {
+      totalPage.textContent = total;
+    });
+  });
+</script>
+
+</body>
+</html>

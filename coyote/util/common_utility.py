@@ -421,3 +421,28 @@ class CommonUtility:
                 if genelist.get("name") in filter_list
             ]
         return display_names
+
+    @staticmethod
+    def get_report_header(assay: str, sample: dict):
+        """
+        Get report header based on assay and sample data
+        """
+        header = (
+            app.config.get("REPORT_CONFIG", {})
+            .get("REPORT_HEADERS", {})
+            .get(assay, "Unknown assay")
+        )
+        if assay == "myeloid" and sample.get("subpanel") == "Hem-Snabb":
+            if sample.get("num_samples") == 2:
+                header += ": fullständig parad analys"
+            else:
+                header += ": preliminär oparad analys"
+        return header
+
+    @staticmethod
+    def get_analysis_method(assay: str):
+        """
+        Get analysis method based on assay
+        """
+        method = app.config.get("REPORT_CONFIG", {}).get("ANALYSIS_METHODS", {}).get(assay, "")
+        return method

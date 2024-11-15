@@ -10,8 +10,16 @@ class BiomarkerHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.biomarkers_collection)
 
-    def get_sample_other(self, sample_id: str, normal: bool = False):
+    def get_sample_biomarkers_doc(self, sample_id: str, normal: bool = False):
         """
-        Get biomarkers data for a sample
+        Get biomarkers data as a full document for a sample
         """
         return self.get_collection().find({"SAMPLE_ID": sample_id})
+
+    def get_sample_biomarkers(self, sample_id: str, normal: bool = False):
+        """
+        Get biomarkers data for a sample without _id, name  and SAMPLE_ID
+        """
+        return self.get_collection().find(
+            {"SAMPLE_ID": sample_id}, {"_id": 0, "name": 0, "SAMPLE_ID": 0}
+        )

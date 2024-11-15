@@ -195,6 +195,7 @@ div.wrapping {
 div.analysis_description {
     max-width:800px;
     padding:0px;
+    text-align: justify;
 }
 div.conclusion {
     font-size:14px;
