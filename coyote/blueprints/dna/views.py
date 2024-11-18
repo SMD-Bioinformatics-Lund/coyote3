@@ -12,6 +12,8 @@ from coyote.blueprints.dna import dna_bp, varqueries_notbad, filters
 from coyote.blueprints.dna.varqueries import build_query
 from coyote.blueprints.dna.forms import GeneForm
 from typing import Literal, Any
+from datetime import datetime
+from flask_weasyprint import HTML, render_pdf
 
 
 @dna_bp.route("/sample/<string:id>", methods=["GET", "POST"])
@@ -129,19 +131,20 @@ def list_variants(id):
         },
         group_params,
     )
-    app.logger.debug("this is the old varquery: %s", pformat(query))
-    app.logger.debug("this is the new varquery: %s", pformat(query2))
+
+    # app.logger.debug("this is the old varquery: %s", pformat(query))
+    # app.logger.debug("this is the new varquery: %s", pformat(query2))
 
     variants_iter = store.variant_handler.get_case_variants(query)
 
-    # Find all genes matching the query
-    variants, genes = store.variant_handler.get_protein_coding_genes(variants_iter)
+    # Find all genes that are protein coding
+    variants, protein_coding_genes = store.variant_handler.get_protein_coding_genes(variants_iter)
 
-    # Add blacklist data, ADD ALL variants_iter via the store please...
+    # Add blacklist data
     variants = store.blacklist_handler.add_blacklist_data(variants, assay)
 
     # Get canonical transcripts for the genes from database
-    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(genes.keys()))
+    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(protein_coding_genes))
 
     # Select a VEP consequence for each variant
     variants = util.dna.select_csq_for_variants(variants, subpanel, assay, canonical_dict)
@@ -151,6 +154,7 @@ def list_variants(id):
 
     # Add hotspot data
     variants = store.variant_handler.hotspot_variant(variants)
+
     ### SNV FILTRATION ENDS HERE ###
 
     # LOWCOV data, very computationally intense for samples with many regions
@@ -178,7 +182,9 @@ def list_variants(id):
                 store.cnv_handler.get_sample_cnvs(sample_id=str(sample["_id"]), normal=True)
             )
         if group_params["DNA"].get("OTHER"):
-            biomarkers_iter = store.biomarker_handler.get_sample_other(sample_id=str(sample["_id"]))
+            biomarkers_iter = store.biomarker_handler.get_sample_biomarkers(
+                sample_id=str(sample["_id"])
+            )
         if group_params["DNA"].get("FUSIONS"):
             transloc_iter = store.transloc_handler.get_sample_translocations(
                 sample_id=str(sample["_id"])
@@ -195,7 +201,9 @@ def list_variants(id):
         transloc_iter_ai = store.transloc_handler.get_sample_translocations(
             sample_id=str(sample["_id"])
         )
-        biomarkers_iter_ai = store.biomarker_handler.get_sample_other(sample_id=str(sample["_id"]))
+        biomarkers_iter_ai = store.biomarker_handler.get_sample_biomarkers(
+            sample_id=str(sample["_id"])
+        )
         ai_text_transloc = util.dna.generate_ai_text_nonsnv(
             assay, transloc_iter_ai, sample["groups"][0], "transloc"
         )
@@ -243,7 +251,7 @@ def list_variants(id):
     )
 
 
-@app.route("/plot/<string:fn>/<string:assay>/<string:build>")  # type: ignore
+@dna_bp.route("/plot/<string:fn>/<string:assay>/<string:build>")  # type: ignore
 def show_any_plot(fn, assay, build):
     if assay == "myeloid":
         if build == "38":
@@ -272,38 +280,18 @@ def show_variant(id):
     assay = util.common.get_assay_from_sample(sample)
     subpanel = sample.get("subpanel")
 
-    cosm_ids = {}
-    rs_ids = {}
-    genes = {}
-    transcripts = {}
-
-    # Parse variation IDs and get all gene names
-    for csq in variant["INFO"]["CSQ"]:
-        ev_ids = csq["Existing_variation"].split("&")
-        for ev_id in ev_ids:
-            if ev_id.startswith("COSM"):
-                cosm_ids[ev_id] = 1
-            if ev_id.startswith("rs"):
-                rs_ids[ev_id] = 1
-
-        if csq["BIOTYPE"] == "protein_coding":
-            genes[csq["SYMBOL"]] = 1
-            transcripts[csq["Feature"]] = 1
-
-    variant["INFO"]["rs_ids"] = rs_ids.keys()
-    variant["INFO"]["cosm_ids"] = cosm_ids.keys()
-
     # Check if variant has hidden comments
     has_hidden_comments = store.variant_handler.hidden_var_comments(id)
 
-    expression = store.expression_handler.get_expression_data(list(transcripts.keys()))
+    expression = store.expression_handler.get_expression_data(list(variant.get("transcripts")))
 
     variant = store.blacklist_handler.add_blacklist_data([variant], assay)[0]
 
     # Get canonical transcripts for all genes annotated for the variant
-    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(genes.keys()))
+    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(variant.get("genes")))
 
     # Select a transcript
+    # TODO: I DONT WANT TO RUN THE SAME COMMANDS MULTIPLE TIMES IN ORDER TO REDUCE THE PROCESSING SPEED, MAY BE STORE THE SELECT CSQ TRANSCRIPT ID IN THE VARIANT ITSELF
     (variant["INFO"]["selected_CSQ"], variant["INFO"]["selected_CSQ_criteria"]) = (
         util.dna.select_csq(variant["INFO"]["CSQ"], canonical_dict)
     )
@@ -332,7 +320,8 @@ def show_variant(id):
     # Find OncoKB data
     oncokb_hgvsp = []
     if len(variant["INFO"]["selected_CSQ"]["HGVSp"]) > 0:
-        hgvsp = filters.one_letter_p(variant["INFO"]["selected_CSQ"]["HGVSp"]).split(":")[1]
+        # hgvsp = filters.one_letter_p(variant["INFO"]["selected_CSQ"]["HGVSp"]).split(":")[1]
+        hgvsp = filters.one_letter_p(variant["INFO"]["selected_CSQ"]["HGVSp"])
         hgvsp = hgvsp.replace("p.", "")
         oncokb_hgvsp.append(hgvsp)
 
@@ -467,10 +456,10 @@ def add_variant_to_blacklist(id):
 @login_required
 def order_sanger(id):
     variant = store.variant_handler.get_variant(id)
-    variants, genes = store.variant_handler.get_protein_coding_genes([variant])
+    variants, protein_coding_genes = store.variant_handler.get_protein_coding_genes([variant])
     var = variants[0]
     sample = store.sample_handler.get_sample_with_id(var["SAMPLE_ID"])
-    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(genes.keys()))
+    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(protein_coding_genes))
 
     var["INFO"]["selected_CSQ"], var["INFO"]["selected_CSQ_criteria"] = util.select_csq(
         var["INFO"]["CSQ"], canonical_dict
@@ -488,7 +477,6 @@ def order_sanger(id):
 def classify_variant(id):
     form_data = request.form.to_dict()
     class_num = util.dna.get_tier_classification(form_data)
-
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
     if class_num != 0:
         store.annotation_handler.insert_classified_variant(
@@ -730,3 +718,328 @@ def show_fusion(id):
     Show Fusion view page
     """
     pass
+
+
+##### PREVIEW REPORT ######
+@dna_bp.route("/sample/preview_report/<string:id>", methods=["GET", "POST"])
+@login_required
+def generate_dna_report(id, *args, **kwargs):
+
+    sample = store.sample_handler.get_sample(id)  # id = name
+
+    if not sample:
+        sample = store.sample_handler.get_sample_with_id(id)  # id = id
+
+    assay = util.common.get_assay_from_sample(sample)
+    subpanel = sample.get("subpanel")
+
+    sample["num_samples"] = store.variant_handler.get_num_samples(str(sample["_id"]))
+
+    ## send over all defined gene panels per assay, to matching template ##
+    gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
+    # genelists_assay = list(app.config["PANELS_COLL"].find({"assays": {"$in": [assay]}}))
+
+    # TODO: Fix this function
+    genelist_filter = sample.get("checked_genelists", {})
+    ## remove genelist_ from each list
+    genelist_filter_ = [sub.replace("genelist_", "") for sub in genelist_filter]
+    ## displaynames for report
+    genelist_dispnames = util.common.get_genelist_dispnames(genelists_assay, genelist_filter_)
+
+    panels = [panel.get("name") for panel in genelists_assay]
+
+    group = util.common.select_one_sample_group(sample.get("groups"))
+    group_params = util.common.get_group_parameters(group)
+    settings = util.common.get_group_defaults(group_params)
+
+    # settings = {
+    #     "warn_cov": 500,
+    #     "error_cov": 100,
+    #     "default_popfreq": 1,
+    #     "default_mindepth": 100,
+    #     "default_min_freq": 0.05,
+    #     "default_min_reads": 10,
+    # }
+
+    ## get sample settings
+    sample_settings = util.common.get_sample_settings(sample, settings)
+
+    # Get group specific settings
+    # if group is not None:
+    #     settings["error_cov"] = group.get("error_cov", 500)
+    #     settings["warn_cov"] = group.get("warn_cov", 100)
+    #     settings["default_popfreq"] = group.get("default_popfreq", 1)
+    #     settings["default_mindepth"] = group.get("default_mindepth", 100)
+    #     settings["default_spanreads"] = group.get("default_spanreads", 2)
+    #     settings["default_spanpairs"] = group.get("default_spanpairs", 0)
+    #     settings["default_min_freq"] = group.get("default_min_freq", 0.05)
+    #     settings["default_min_reads"] = group.get("default_min_reads", 10)
+
+    # # Get filter values or set to defaults
+    # min_freq = sample.get("filter_min_freq", settings["default_min_freq"])
+    # min_reads = sample.get("filter_min_reads", settings["default_min_reads"])
+    # max_freq = sample.get("filter_max_freq", 0.05)
+    # min_depth = sample.get("filter_min_depth", settings["default_mindepth"])
+    # max_popfreq = sample.get("filter_max_popfreq", settings["default_popfreq"])
+    # csq_filter = sample.get(
+    #     "checked_csq",
+    #     {
+    #         "splicing": 1,
+    #         "stop_gained": 1,
+    #         "frameshift": 1,
+    #         "stop_lost": 1,
+    #         "start_lost": 1,
+    #         "inframe_indel": 1,
+    #         "missense": 1,
+    #         "other_coding": 1,
+    #     },
+    # )
+    filter_conseq = util.dna.get_filter_conseq_terms(sample_settings.get("csq_filter", {}).keys())
+    filter_genes = util.common.create_genelist(genelist_filter, gene_lists)
+
+    query = build_query(
+        assay,
+        {
+            "id": str(sample["_id"]),
+            "max_freq": sample_settings["max_freq"],
+            "min_freq": sample_settings["min_freq"],
+            "min_depth": sample_settings["min_depth"],
+            "min_reads": sample_settings["min_reads"],
+            "max_popfreq": sample_settings["max_popfreq"],
+            "filter_conseq": filter_conseq,
+        },
+    )
+    query["fp"] = {"$ne": True}
+    query["irrelevant"] = {"$ne": True}
+    variants_iter = store.variant_handler.get_case_variants(query)
+
+    # TODO: FOR TUMOR EXOME
+    # query = varqueries.build_query(
+    #     "myeloid",
+    #     {
+    #         "id": str(sample["_id"]),
+    #         "max_freq": max_freq,
+    #         "min_freq": min_freq,
+    #         "min_depth": min_depth,
+    #         "min_reads": min_reads,
+    #         "filter_conseq": filter_conseq,
+    #     },
+    # )
+    # query["fp"] = {"$ne": True}
+    # query["irrelevant"] = {"$ne": True}
+
+    # variants_iter = app.config["VAR_COLL"].find(query)
+    # if len(filter_genes) > 0:
+    #     cnv_genes = ("MYCN", "CDKN2A", "FOXO1", "PAX3", "PAX7", "SMARCB1")
+    #     cnvs_iter = app.config["CNV_COLL"].find(
+    #         {
+    #             "SAMPLE_ID": str(sample["_id"]),
+    #             "INFO.genes": {"$in": cnv_genes},
+    #             "$or": [
+    #                 {"INFO.FOLD_CHANGE": {"$gt": 1.9}},
+    #                 {"INFO.FOLD_CHANGE": {"$lt": 0.05}},
+    #             ],
+    #         }
+    #     )
+    # else:
+    #     cnvs_iter = app.config["CNV_COLL"].find(
+    #         {
+    #             "SAMPLE_ID": str(sample["_id"]),
+    #             "$or": [{"INFO.FOLD_CHANGE": {"$gt": 1.8}}, {"INFO.FOLD_CHANGE": {"$lt": 0.1}}],
+    #         }
+    #     )
+
+    # Get all protein coding genes
+    variants, protein_coding_genes = store.variant_handler.get_protein_coding_genes(variants_iter)
+
+    # Add blacklist data
+    variants = store.blacklist_handler.add_blacklist_data(variants, assay)
+
+    # Get canonical transcripts for the genes from database
+    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(protein_coding_genes))
+
+    # Select a VEP consequence for each variant
+    variants = util.dna.select_csq_for_variants(variants, subpanel, assay, canonical_dict)
+
+    # for var_idx, var in enumerate(variants):
+    #     (
+    #         variants[var_idx]["INFO"]["selected_CSQ"],
+    #         variants[var_idx]["INFO"]["selected_CSQ_criteria"],
+    #     ) = select_csq(var["INFO"]["CSQ"], canonical_dict)
+    #     (
+    #         variants[var_idx]["global_annotations"],
+    #         variants[var_idx]["classification"],
+    #         variants[var_idx]["other_classifications"],
+    #         variants[var_idx]["annotations_interesting"],
+    #     ) = get_global_annotations(variants[var_idx], assay, subpanel)
+
+    # Filter by population frequency
+    variants = util.dna.popfreq_filter(variants, float(sample_settings["max_popfreq"]))
+
+    # Add hotspot data
+    variants = store.variant_handler.hotspot_variant(variants)
+
+    # Filter variants for report
+    variants = util.dna.filter_variants_for_report(variants, filter_genes, assay)
+
+    # Sample dict for the variant summary table in the report
+    simple_variants = util.dna.get_simple_variants_for_report(variants)
+
+    # TODO: LOW COV
+    # LOWCOV data, very computationally intense for samples with many regions
+    low_cov = {}
+    # low_cov = store.coverage_handler.get_sample_coverage(sample["name"])
+    # print(list(low_cov))
+
+    ## GET CNVs TRANSLOCS and OTHER BIOMARKERS ## # TODO NEEDS TO BE TESTED
+    cnvs_iter = False
+    biomarkers_iter = False
+    transloc_iter = False
+    if group_params is not None and "DNA" in group_params:
+        if group_params["DNA"].get("CNV"):
+            cnvs_iter = list(
+                store.cnv_handler.get_interesting_sample_cnvs(sample_id=str(sample["_id"]))
+            )
+            # this line checks if the cnvs are empty, if they are, it sets the cnvs_iter to True for easy way in the report
+            # this means that we need to show cnvs despite them being empty because the group demands for it
+            if not cnvs_iter:
+                cnvs_iter = True
+        if group_params["DNA"].get("OTHER"):
+            biomarkers_iter = store.biomarker_handler.get_sample_biomarkers(
+                sample_id=str(sample["_id"])
+            )
+            if not biomarkers_iter:
+                biomarkers_iter = True
+        if group_params["DNA"].get("FUSIONS"):
+            transloc_iter = store.transloc_handler.get_interesting_sample_translocations(
+                sample_id=str(sample["_id"])
+            )
+            if not transloc_iter:
+                transloc_iter = True
+
+    # Get data from Clarity
+    # if "clarity-sample-id" in sample:
+    #     clarity_data = clarity.fetch_clarity_sample_udfs(sample["clarity-sample-id"])
+    # else:
+    #     clarity_data = "NOT_FOUND"
+
+    # report header and date
+    analysis_method = util.common.get_analysis_method(assay)
+    report_header = util.common.get_report_header(assay, sample)
+    report_date = datetime.now().date()
+
+    pdf = kwargs.get("pdf", 0)
+
+    template = "dna_report.html"
+    # TODO: CHECK AGAIN
+    creation_date_t = ""
+    creation_date_n = ""
+    image_name = "image.png"
+    image_rot_name = "image.rotated.png"
+    # creation_date_t = CDM(sample["name"])
+    # creation_date_n = ""
+    # if "Paired Sample Name" in clarity_data:
+    #     creation_date_n = CDM(clarity_data["Paired Sample Name"])
+    if assay == "devel" or assay == "tumor_exome":
+        template = "report_gisselsson.html"
+        chopped_id = rchop(sample["name"], "-agilent")
+        chopped_id = rchop(chopped_id, "-paired")
+
+        image_name = chopped_id + ".png"
+        image_rot_name = chopped_id + ".rotated.png"
+        cnvs_list = []
+        # cnvs_list = []
+        # for cnv in cnvs_iter:
+        #     cnv["image"] = (
+        #         chopped_id
+        #         + "."
+        #         + str(cnv["CHROM"])
+        #         + "_"
+        #         + str(cnv["POS"])
+        #         + "_"
+        #         + str(cnv["INFO"]["END"])
+        #         + ".png"
+        #     )
+        #     cnvs_list.append(cnv)
+
+        # cnvs_iter.rewind()
+
+    # elif assay == "tumwgs":
+    #     template = "report_tumwgs.html"
+
+    print(simple_variants)
+
+    return render_template(
+        template,
+        variants=variants,
+        simple_variants=simple_variants,
+        sample=sample,
+        low_cov=low_cov,
+        translation=app.config.get("REPORT_CONFIG").get("REPORT_TRANS"),
+        group=sample["groups"],
+        cnvs=cnvs_iter,  # cnvs_list, TMP
+        translocs=list(transloc_iter),  # not gmsonco
+        class_desc=app.config.get("REPORT_CONFIG").get("CLASS_DESC"),
+        class_desc_short=app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT"),
+        report_date=report_date,
+        dispgenes=filter_genes,
+        pdf=pdf,
+        assay=assay,
+        biomarkers=biomarkers_iter,  # solid
+        checked_genelists=genelist_dispnames,  # solid
+        image=image_name,  # TMP
+        image_rot=image_rot_name,  # TMP
+        tumor_normal_creation_date=creation_date_n,  # TMP gmsonco
+        tumor_creation_date=creation_date_t,  # TMP gmsonco
+        clarity={},
+        report_header=report_header,
+        analysis_method=analysis_method,
+        analysis_desc=app.config.get("REPORT_CONFIG").get("ANALYSIS_DESCRIPTION", {}).get(assay),
+        gene_table=app.config.get("REPORT_CONFIG").get("GENE_TABLE", {}).get(assay),
+        panel=group_params.get("panel_name", assay),
+    )
+
+
+@dna_bp.route("/sample/report/pdf/<string:id>")
+@login_required
+def generate_report_pdf(id):
+    sample = store.sample_handler.get_sample(id)  # id = name
+
+    if not sample:
+        sample = store.sample_handler.get_sample_with_id(id)  # id = id
+
+    assay = util.common.get_assay_from_sample(sample)
+
+    # Get report number
+    report_num = 1
+    if "report_num" in sample:
+        report_num = sample["report_num"] + 1
+
+    # PDF file name
+    pdf_file = "static/reports/" + id + "_" + str(report_num) + ".pdf"
+
+    # Generate PDF
+    html = ""
+    html = generate_dna_report(id, pdf=1)
+    HTML(string=html).write_pdf(pdf_file)
+
+    # TODO: Uncomment this
+    # Add to database
+    # app.config["SAMPLES_COLL"].update(
+    #     {"name": id},
+    #     {
+    #         "$push": {
+    #             "reports": {
+    #                 "_id": ObjectId(),
+    #                 "report_num": report_num,
+    #                 "filepath": pdf_file,
+    #                 "author": current_user.get_id(),
+    #                 "time_created": datetime.now(),
+    #             }
+    #         },
+    #         "$set": {"report_num": report_num},
+    #     },
+    # )
+
+    # Render it!
+    return render_pdf(HTML(string=html))

@@ -21,6 +21,16 @@ class VariantsHandler(BaseHandler):
                 ids[gt.get("type")] = gt.get("sample")
         return ids
 
+    def get_num_samples(self, sample_id: str) -> int:
+        """
+        Get number of samples
+        """
+        gt = self.get_collection().find_one({"SAMPLE_ID": sample_id}, {"GT": 1})
+        if gt:
+            return len(gt.get("GT"))
+        else:
+            return 0
+
     def get_case_variants(self, query: dict):
         """
         Return variants with according to a constructed varquery
@@ -59,36 +69,38 @@ class VariantsHandler(BaseHandler):
 
         return other
 
-    def get_protein_coding_genes(self, var_iter: list) -> tuple[list, dict]:
+    def get_protein_coding_genes(self, var_iter: list) -> tuple[list, list]:
         """
         Get protein coding genes from a variant list
         """
-        genes = {}
+        genes = set()
         variants = []
         for var in var_iter:
             for csq in var["INFO"]["CSQ"]:
                 if csq["BIOTYPE"] == "protein_coding":
-                    genes[csq["SYMBOL"]] = 1
+                    genes.add(csq["SYMBOL"])
             variants.append(var)
 
-        return variants, genes
+        return variants, list(genes)
 
-    def hotspot_variant(self, variants: list) -> list[str]:
+    def hotspot_variant(self, variants: list) -> list[dict]:
         """
-        Return variants that are hotspots
+        Return variants that are hotspots.
+
+        Args:
+            variants (list): A list of variant dictionaries.
+
+        Returns:
+            list[dict]: A list of variant dictionaries that are hotspots.
         """
         hotspots = []
         for variant in variants:
-            for csq in variant["INFO"]["selected_CSQ"]:
-                if "hotspot_OID" in csq:
-                    if "COS" in variant["INFO"]["selected_CSQ"][csq]:
-                        csq1 = csq.split("_")
-                        csq2 = re.sub(r"hotspot", r"", csq1[0])
-                        hotspot = variant["INFO"].get("HOTSPOT", [])
-                        hotspot.append(csq2)
-                        variant["INFO"]["HOTSPOT"] = hotspot
+            hotspot_dict = variant.get("hotspots", [{}])[0]
+            if hotspot_dict:
+                for hotspot_key, hotspot_elem in hotspot_dict.items():
+                    if any("COS" in elem for elem in hotspot_elem):
+                        variant.setdefault("INFO", {}).setdefault("HOTSPOT", []).append(hotspot_key)
             hotspots.append(variant)
-
         return hotspots
 
     def mark_false_positive_var(self, variant_id: str, fp: bool = True) -> None:

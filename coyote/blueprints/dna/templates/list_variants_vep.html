@@ -11,24 +11,24 @@
     </div>
     <div class="flex items-center space-x-2">
       {% if "subpanel" in sample %}
-        <div>Type:<b> {{ sample.subpanel }}</b></div><span class="px-1">|</span>
+        <div>Type:<b> {{ sample.subpanel }}</b></div>
       {% endif %}
       {% if assay == "solid" %}
         {% if "purity" in sample %}
-          <div>Purity:<b> {{ sample.purity * 100 }}%</b></div><span class="px-1">|</span>
+          <span class="px-1">|</span><div>Purity:<b> {{ sample.purity * 100 }}%</b></div>
         {% endif %}
         {% if biomarker and biomarker.count() > 0 %}
           {% for bio in biomarker %}
             {% if "MSIS" in bio %}
-              <div class="tooltip">MSI(Single):<span class="tooltiptext">Total: {{ bio.MSIS.tot }} Somatic: {{ bio.MSIS.som }}</span></div> 
-              <b>{{ bio.MSIS.perc }}%</b><span class="px-1">|</span>
+              <span class="px-1">|</span><div class="tooltip">MSI(Single):<span class="tooltiptext">Total: {{ bio.MSIS.tot }} Somatic: {{ bio.MSIS.som }}</span></div> 
+              <b>{{ bio.MSIS.perc }}%</b>
             {% endif %}
             {% if "MSIP" in bio %}
-              <div class="tooltip">MSI(Paired):<span class="tooltiptext">Total: {{ bio.MSIP.tot }} Somatic: {{ bio.MSIP.som }}</span></div> 
-              <b>{{ bio.MSIP.perc }}%</b><span class="px-1">|</span>
+              <span class="px-1">|</span><div class="tooltip">MSI(Paired):<span class="tooltiptext">Total: {{ bio.MSIP.tot }} Somatic: {{ bio.MSIP.som }}</span></div> 
+              <b>{{ bio.MSIP.perc }}%</b>
             {% endif %}
             {% if "HRD" in bio %}
-              <div class="tooltip">HRD:<span class="tooltiptext">TAI: {{ bio.HRD.tai }} HRD: {{ bio.HRD.hrd }} LST: {{ bio.HRD.lst }}</span></div>
+              <span class="px-1">|</span><div class="tooltip">HRD:<span class="tooltiptext">TAI: {{ bio.HRD.tai }} HRD: {{ bio.HRD.hrd }} LST: {{ bio.HRD.lst }}</span></div>
               <b>{{ bio.HRD.sum }}</b>
             {% endif %}
           {% endfor %}
@@ -44,11 +44,7 @@
       <!-- Left aligned buttons -->
       <div class="flex space-x-4">
         <div class="button_link">
-          {% if assay == "fusion" or fusions|length > 0 %}
-          <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105" onclick="window.location.href='fusionreport/{{sample.name}}'">Preview report</button>
-          {% else %}
-          <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105" onclick="window.location.href='report2/{{sample.name}}'">Preview report</button>
-          {% endif %}
+          <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105" onclick="window.location.href='preview_report/{{sample.name}}'">Preview report</button>
         </div>      
         <div class="button_link">
           <button class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105" onclick="window.location.href='#'; show_lowcov();">Low-coverage regions</button>
@@ -69,18 +65,26 @@
     </div>
   </div>
 
-  <!-- Gene Selected Info -->
   <div id="sample_div" class="bg-white shadow-md rounded-lg p-4 mb-4">
-    <div>
+    <!-- Toggle Button -->
+    <div class="flex justify-between items-center">
+      <b>Gene Panel(s)</b>
+      <button class="focus:outline-none" onclick="toggleCard(this)">
+        <!-- Use one up arrow PNG and rotate it when collapsed -->
+        <img id="arrow-icon" src="{{ url_for('static', filename='icons/up-arrow-240.png') }}" alt="Toggle" class="w-6 h-6 transform transition-transform duration-200 filter invert">
+      </button>
+    </div>
+  
+    <!-- Collapsible Content -->
+    <div id="card-content" class="mt-2">
       {% if dispgenes %}
         {% if checked_genelists %}
-          <b>Gene Panel(s):</b>
           {% for list in checked_genelists %}
             <div class="mt-1">
               <b>{{ list.replace("genelist_", "") }} {{ dispgenes|length }} genes:</b>
-              <div class="mt-1 flex flex-wrap gap-2">
+              <div class="mt-1 flex flex-wrap gap-2 text-xs">
                 {% for gene in dispgenes %}
-                  <span class="py-1 px-3 bg-gray-100 rounded-md text-xs">{{ gene }}</span>{% if not loop.last %} {% endif %}
+                  <span class="py-1 px-2 bg-gray-100 rounded-md text-xs hover:bg-green-100">{{ gene }}</span>{% if not loop.last %} {% endif %}
                 {% endfor %}
               </div>
             </div>
@@ -91,11 +95,12 @@
       {% else %}
         <b>Gene Panel(s): No genefilter applied</b>
       {% endif %}
+      {% if not dispgenes %}
+        <p>No genes to display</p>
+      {% endif %}
     </div>
-    {% if not dispgenes %}
-      <p>No genes to display</p>
-    {% endif %}
   </div>
+
 
   <!-- Filters Sidebar -->
   <div id="filter-sidebar" class="fixed top-0 right-0 h-full w-60 bg-white overflow-y-auto shadow-md transform translate-x-full transition-transform duration-300 ease-in-out">
@@ -225,7 +230,7 @@
           </div>
           <div class="flex justify-between mb-2">
             <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm" name="apply" value="apply" type="submit">Apply</button>
-            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm" name="reset" value="reset" type="submit">Reset</button>
+            <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm" name="reset" value="reset" type="submit">Reset</button>
           </div>
         </div>
       </form>
@@ -291,7 +296,7 @@
               </td>
               <td>
                 {% if var.comments|length > 0 %}
-                &nbsp;<img class="w-4" src="{{ url_for('static', filename='images/comment.png') }}">
+                &nbsp;<img class="w-4" src="{{ url_for('static', filename='images/comment.png') }}"> 
                 {% endif %}
               </td>
               <td>
@@ -302,24 +307,60 @@
                 &nbsp;<img class="w-4" src="{{ url_for('static', filename='images/irrelevant.png') }}">
                 {% endif %}
               </td>
-              <td class="py-2 px-3 border-b border-gray-300 text-gray-800">{{ csq.SYMBOL }} {{ var.INFO.PANEL|format_panel_flag_snv|safe }}</td>
               <td class="py-2 px-3 border-b border-gray-300 text-gray-800">
-                {% if csq.HGVSp|length > 0 %}
-                  {{ csq.HGVSp|no_transid|unesc }}<br>
-                {% else %}
-                  -<br>
-                {% endif %}
-                {% if csq.HGVSc|length > 0 %}
-                  {{ csq.HGVSc|no_transid|unesc }}
-                {% elif var.INFO.SVTYPE is defined %}
-                  {{ var.INFO.SVLEN }}bp {{ var.INFO.SVTYPE }}
-                {% else %}
-                  -
-                {% endif %}
-                {% set indel_size = var.ALT|length - var.REF|length %}
-                {% if indel_size > 10 or indel_size < -10 %} <br>{{ indel_size }} bp {% if indel_size < 0 %}DEL{% else %}INS{% endif %} {% endif %}
+                {{ csq.SYMBOL }} {{ var.INFO.PANEL|format_panel_flag_snv|safe }}
               </td>
-              <td class="py-2 px-4 border-b border-gray-300 text-gray-800">{{ csq.VARIANT_CLASS }}</td>
+              <td class="py-2 px-3 border-b border-gray-300 text-gray-800">
+                <!-- HGVSp Section -->
+                <div class="relative inline-block w-full">
+                  {% if csq.HGVSp|length > 25 %}
+                    <!-- Truncated version (initial view with ellipsis) -->
+                    <div id="hgvsp-short" class="truncate w-full overflow-hidden">
+                      {{ csq.HGVSp[:25] }}...
+                    </div>
+              
+                    <!-- Full text, initially hidden -->
+                    <div id="hgvsp-full" class="hidden w-full break-all whitespace-normal">
+                      {{ csq.HGVSp }}
+                    </div>
+              
+                    <!-- Smaller button with a subtle symbol to toggle text visibility -->
+                    <button class="ml-1 text-xs text-gray-500 hover:text-blue-500 focus:outline-none"
+                            onclick="toggleText(this)">
+                      [+]
+                    </button>
+                  {% else %}
+                    {{ csq.HGVSp }}
+                  {% endif %}
+                </div>
+              
+                <!-- HGVSc Section -->
+                <div class="relative inline-block w-full">
+                  {% if csq.HGVSc|length > 25 %}
+                    <!-- Truncated version (initial view with ellipsis) -->
+                    <div id="hgvs-short" class="truncate w-full overflow-hidden">
+                      {{ csq.HGVSc[:25] }}...
+                    </div>
+              
+                    <!-- Full text, initially hidden -->
+                    <div id="hgvs-full" class="hidden w-full break-all whitespace-normal">
+                      {{ csq.HGVSc }}
+                    </div>
+              
+                    <!-- Smaller button with a subtle symbol to toggle text visibility -->
+                    <button class="ml-1 text-xs text-gray-500 hover:text-blue-500 focus:outline-none"
+                            onclick="toggleText(this)">
+                      [+]
+                    </button>
+                  {% else %}
+                    {{ csq.HGVSc }}
+                  {% endif %}
+                </div>
+              </td>
+
+              <td class="py-2 px-4 border-b border-gray-300 text-gray-800">
+                {{ var.variant_class }}
+              </td>
               {% if csq.Consequence is iterable and csq.Consequence is not string %}
                 <td class="py-2 px-4 border-b border-gray-300 text-gray-800">
                 {% for conseq in csq.Consequence %}
@@ -338,16 +379,16 @@
                 {% endif %}
               {% endif %}
               <td class="py-2 px-4 border-b border-gray-300 text-gray-800 font-bold">
-                {% if "gnomAD_AF" in csq and csq.gnomAD_AF != "" %}
-                  {{ '%.3f' | format(100*csq.gnomAD_AF)}}%<br>
-                {% elif "gnomADg_AF" in csq and csq.gnomADg_AF != "" %}
-                  {{ '%.3f' | format(100*csq.gnomADg_AF)}}%<br>
+                {% if "gnomad_frequency" in var and var.gnomad_frequency != "" %}
+                  {{ '%.3f' | format(100*var.gnomad_frequency)}}%<br>
+                {% elif "gnomad_max" in var and var.gnomad_max != "" %}
+                  {{ '%.3f' | format(100*var.gnomad_max)}}%<br>
                 {% endif %}
-                {% if csq.ExAC_MAF %}
-                  ExAC: {{ csq.ExAC_MAF|format_pop_freq(var.ALT)|safe }}<br>
+                {% if var.exac_frequency %}
+                  ExAC: {{ var.exac_frequency|format_pop_freq(var.ALT)|safe }}<br>
                 {% endif %}
-                {% if csq.GMAF %}
-                  1000G: {{ csq.GMAF|format_pop_freq(var.ALT)|safe }}
+                {% if var.thousandG_frequency %}
+                  1000G: {{ var.thousandG_frequency|format_pop_freq(var.ALT)|safe }}
                 {% endif %}
               </td>
               <td class="py-2 px-4 border-b border-gray-300 text-gray-800">
@@ -381,9 +422,19 @@
                     {{ var.CHROM }}:{{ var.POS }}
                   </div>
                 </td>
-                <td class="py-2 px-4 border-b border-gray-300 text-gray-800">{% if var.INFO.HOTSPOT %}<div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full">{{ var.INFO.HOTSPOT|format_hotspot|safe }}</div>{% endif %}</td>
+                <td class="py-2 px-4 border-b border-gray-300 text-gray-800">
+                  {% if var.INFO.HOTSPOT %}
+                    <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full">
+                      {{ var.INFO.HOTSPOT|format_hotspot|safe }}
+                    </div>
+                  {% endif %}
+                </td>
               {% else %}
-                <td class="py-2 px-4 border-b border-gray-300 text-gray-800">{{ var.CHROM }}:{{ var.POS }}</td>
+                <td class="py-2 px-4 border-b border-gray-300 text-gray-800">
+                  <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full bg-gray-400">
+                    {{ var.CHROM }}:{{ var.POS }}
+                  </div>
+                </td>
               {% endif %}
               <td class="py-2 px-4 border-b border-gray-300 text-gray-800">
                 <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full">{{ var.FILTER|format_filter|safe }}</div>
@@ -680,8 +731,8 @@
       {% set build = sample.genome_build %}
     {% endif %}
     <div class="flex justify-center">
-      <a href="{{ url_for('show_any_plot', fn=sample.cnvprofile|basename , assay=assay, build=build|int ) }}">
-        <img class="rounded-lg border border-gray-300 shadow-md transition duration-300 ease-in-out transform hover:scale-105 w-900" src="{{ url_for('show_any_plot', fn=sample.cnvprofile|basename , assay=assay, build=build|int ) }}"></a>
+      <a href="{{ url_for('dna_bp.show_any_plot', fn=sample.cnvprofile|basename , assay=assay, build=build|int ) }}">
+        <img class="rounded-lg border border-gray-300 shadow-md transition duration-300 ease-in-out transform hover:scale-105 w-900" src="{{ url_for('dna_bp.show_any_plot', fn=sample.cnvprofile|basename , assay=assay, build=build|int ) }}"></a>
     </div>
     <div class="text-center mt-4">
       {% if build|int == 38 %}
@@ -865,6 +916,37 @@
   }
   
 
+  // JavaScript for Expand/Collapse functionality
+  function toggleText(button) {
+    var shortText = button.previousElementSibling.previousElementSibling;
+    var fullText = button.previousElementSibling;
+
+    // Toggle between short and full text
+    if (fullText.classList.contains('hidden')) {
+      shortText.classList.add('hidden');   // Hide truncated text
+      fullText.classList.remove('hidden'); // Show full text
+      button.textContent = '[-]';          // Change button text to Collapse
+    } else {
+      shortText.classList.remove('hidden'); // Show truncated text
+      fullText.classList.add('hidden');     // Hide full text
+      button.textContent = '[+]';           // Change button text to Expand
+    }
+  }
+
+  // JavaScript for Expand/Collapse functionality
+  function toggleCard(button) {
+    var cardContent = document.getElementById('card-content');
+    var arrowIcon = button.querySelector('img'); // Get the image inside the button
+    
+    // Toggle between hidden and shown
+    if (cardContent.classList.contains('hidden')) {
+      cardContent.classList.remove('hidden'); // Show content
+      arrowIcon.classList.remove('rotate-180'); // Reset arrow to up (default)
+    } else {
+      cardContent.classList.add('hidden'); // Hide content
+      arrowIcon.classList.add('rotate-180'); // Rotate arrow to down
+    }
+  }
 </script>
 
 

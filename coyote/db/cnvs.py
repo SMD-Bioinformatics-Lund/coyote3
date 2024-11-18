@@ -13,6 +13,7 @@ class CNVsHandler(BaseHandler):
         self.set_collection(self.adapter.cnvs_collection)
 
     def get_sample_cnvs(self, sample_id: str, normal: bool = False):
+        # TODO CHECK WHAT IS NORMAL IN THE PREVIOUS COYOTE
         """
         Get CNVs for a sample
         """
@@ -23,6 +24,12 @@ class CNVsHandler(BaseHandler):
         Get CNV by ID
         """
         return self.get_collection().find_one({"_id": ObjectId(cnv_id)})
+
+    def get_interesting_sample_cnvs(self, sample_id: str, interesting: bool = True):
+        """
+        Get CNVs for a sample
+        """
+        return self.get_collection().find({"SAMPLE_ID": sample_id, "interesting": interesting})
 
     def get_cnv_annotations(self, cnv: str) -> list:
         """

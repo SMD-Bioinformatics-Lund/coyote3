@@ -47,10 +47,10 @@ def home_screen(status="live"):
             samp["last_report_time_created"] = samp["reports"][-1]["time_created"]
         else:
             samp["last_report_time_created"] = 0
-        samp["num_samples"] = store.sample_handler.get_num_samples(str(samp["_id"]))
+        samp["num_samples"] = store.variant_handler.get_num_samples(str(samp["_id"]))
 
     for samp in live_samples:
-        samp["num_samples"] = store.sample_handler.get_num_samples(str(samp["_id"]))
+        samp["num_samples"] = store.variant_handler.get_num_samples(str(samp["_id"]))
 
     return render_template(
         "main_screen.html",
@@ -125,10 +125,10 @@ def main_screen(assay=None, status="live"):
             samp["last_report_time_created"] = samp["reports"][-1]["time_created"]
         else:
             samp["last_report_time_created"] = 0
-        samp["num_samples"] = store.sample_handler.get_num_samples(str(samp["_id"]))
+        samp["num_samples"] = store.variant_handler.get_num_samples(str(samp["_id"]))
 
     for samp in live_samples:
-        samp["num_samples"] = store.sample_handler.get_num_samples(str(samp["_id"]))
+        samp["num_samples"] = store.variant_handler.get_num_samples(str(samp["_id"]))
 
     return render_template(
         "main_screen.html",

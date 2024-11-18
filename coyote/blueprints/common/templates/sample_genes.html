@@ -1,0 +1,35 @@
+{% extends "common_base.html" %}
+{% block body %}
+  <br><br><br>
+  {% set table_no = 1 %}
+  <h1>Sample: {{sample.name}}</h1>
+  {% if assay_default_genelist %}
+  <b>Tabell {{table_no}}: Gener inkluderade i {% if panel %}{{panel}}{% else %}{{ assay }}{% endif %} assay</b><p>
+  <table class="genetable">
+    {% for i in range(0, assay_default_genelist | length, 20) %}
+      <tr>
+        {% for gene in assay_default_genelist[i:i+20] %}
+          <td>{{ gene }}</td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+  </table><br><br>
+  {% set table_no = table_no + 1 %}
+{% endif %}
+
+  {% if sample_filtered_genelists %}
+  <b>Tabell {{table_no}}: Gener inkluderade i dis analys</b><p>
+  {% for key, value in sample_filtered_genelists.items() %}
+    <p><b>{{ key }}</b></p>
+    <table class="genetable">
+      {% for i in range(0, value | length, 20) %}
+        <tr>
+          {% for gene in value[i:i+20] %}
+            <td>{{ gene }}</td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </table><br><br>
+  {% endfor %}
+{% endif %}
+{% endblock %}
