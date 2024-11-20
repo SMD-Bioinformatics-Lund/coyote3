@@ -130,3 +130,4 @@ def human_date(value):
 def format_comment(st):
     st = st.replace("\n", "<br />")
     return st
+

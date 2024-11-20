@@ -48,7 +48,7 @@
       <div class="flex space-x-4">
         <div class="button_link">
           {% if assay == "fusion" or fusions|length > 0 %}
-          <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105" onclick="window.location.href='fusionreport/{{sample.name}}'">Preview report</button>
+          <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105" onclick="window.location.href='preview_report/{{sample.name}}'">Preview report</button>
           {% else %}
           <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105" onclick="window.location.href='report2/{{sample.name}}'">Preview report</button>
           {% endif %}

@@ -1,0 +1,310 @@
+{% extends "report_layout.html" %}
+{% block body %}
+
+{% if pdf != 1 %}
+<div
+  style="background-color:#FCC; border:1px solid #EAA; width:300px; text-align:center; padding:20px; margin:10px 10px 30px 10px;">
+  <b>*** PREVIEW OF REPORT ***</b><br><br>
+  <a target="_blank" class="button" href="pdf/{{sample.name}}">Finalize report</a>
+</div>
+{% endif %}
+
+<!--  Report Header -->
+<span class="report_header">{{ report_header }} - {{ sample.name }}</span>
+
+<!--  Report Patient/Analysis Information -->
+<div class="report_div"> 
+  <table class='report_general'>
+    <tr>
+      <td class="top_report_key">Patientnamn</td>
+      <td class="top_report_val">&lt;PATIENT_NAME&gt;</td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Personnummer</td>
+      <td class="top_report_val">&lt;PERSONAL_IDENTITY_NUMBER&gt;</td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Prov-ID</td>
+      <td class="top_report_val">{{ sample.name }}</td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Registreringsdatum</td>
+      <td class="top_report_val">&lt;REGISTRATION_DATE&gt;</td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Provtyp</td>
+      <td class="top_report_val">&lt;SAMPLE_TYPE&gt; / RNA</td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Frågeställning</td>
+      <td class="top_report_val">
+        {% if assay == "fusions" %}
+          RNA fusions
+        {% else %}
+          Gene Panel
+        {% endif %}
+      </td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Rapportdatum</td>
+      <td class="top_report_val">{{ report_date }}</td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Analysmetod</td>
+      <td class="top_report_val">{{analysis_method}}</td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Analys genomförd av</td>
+      <td class="top_report_val">Centrum för molekylär diagnostik (CMD) och Klinisk genetik och patologi</td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Rapport genererad av</td>
+      <td class="top_report_val">{{ current_user.get_fullname() }}</td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Rapport-ID</td>
+      <td class="top_report_val">
+        {% if sample.report_num is defined %}
+          {{ sample.name }}.{{ sample.report_num + 1 }}
+        {% else %}
+          {{ sample.name }}.1
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+</div>
+
+<!--  Variant Summary -->
+<span class="report_header">Analysresultat</span>
+<table class="variant_table">
+  {% if assay=="fusion" %}
+    <tr><th>Fusion</th><th>Klassificering</th></tr>
+  {% elif assay== "fusionrna" %}
+    <tr><th>Fusion/exon skipping</th><th>Klassificering</th></tr>
+  {% endif %}
+
+  {% for var in fusions|sort( attribute='classification.class' ) 
+    if (not var.blacklist and var.classification.class != 999 and var.classification.class != 4) %}
+      {% set sel_fus = fusion %}
+      <tr>
+        <td> {{var.gene1}} - {{ var.gene2}} </td>
+        <td>{{ class_desc_short[var.classification.class] }}</td>
+      </tr>
+    {% else %}
+      <tr>
+        <td>Inga detekterade fusioner</td>
+        <td></td>
+      </tr>  
+  {% endfor %}
+</table>
+
+<!--  Report Comments/Result Summary -->
+<span class="report_header">Slutsats</span>
+<div class="conclusion">
+  <div class="results_summary">
+    {% if sample.comments|length > 0 %}
+      {% for comment in sample.comments if comment.hidden != 1 %}
+        {% if loop.last %}
+          {{ comment.text|format_comment|safe }}
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      Slutsats saknas!
+    {% endif %}
+  </div>
+</div>
+
+<!-- Page break for the detailed results -->
+<p style="page-break-before: always;"></p>
+<br>
+
+<!-- Detailed list of each fusions reported -->
+{% if assay=="fusion" %}
+  <span class="report_header">Detekterade fusioner</span>
+{% elif assay== "fusionrna" %}
+  <span class="report_header">Detekterade fusioner och exon skipping</span>
+{% endif %}
+{% for var in fusions|sort( attribute='classification.class' ) 
+     if not var.blacklist and var.classification.class != 999 and var.classification.class != 4 %}
+      {% set sel_fus = (var.calls|selectattr('selected', 'equalto', 1) |list)[0] %}
+      <div class=report_div style="page-break-inside:avoid;">
+        <table class='report_variant'>
+          <tr>
+            <th class="report_variant_header" colspan=6>{{var.gene1}} - {{var.gene2}}</th>
+          </tr>
+          <tr>
+            <td class="report_key">Gener</td>
+            <td class="var_report_val">{{ var.gene1 }} - {{ var.gene2}}</td>
+            
+            <td class="report_key">Effekt</td>
+            <td class="var_report_val">
+              {% if sel_fus.spanpairs|int > 0 %}
+                {{ sel_fus.effect }}
+              {% else %}
+                NA
+              {% endif %}
+            </td>
+      
+            <td class="report_key">Fusionspunkter</td>
+            <td class="var_report_val">
+              {% if sel_fus.spanpairs|int > 0 %}
+                {{ sel_fus.breakpoint1 }} {{ sel_fus.breakpoint2 }}
+              {% else %}
+                NA
+              {% endif %}
+            </td>       
+          </tr>
+          <tr>
+            <td class="report_key">Antal läsningar</td>
+            <td class="var_report_val">{{ sel_fus.spanreads }}</td>
+      
+            <td class="report_key">Antal läs-par</td>
+            <td class="var_report_val">{{sel_fus.spanpairs }}</td>
+           
+            <td class="report_key">Längsta ankarsekvens</td>
+            <td class="var_report_val">
+              {% if sel_fus.longestanchor %}
+                {{ sel_fus.longestanchor }} bp
+              {% else %}
+                NA
+              {% endif %}
+            </td>
+          </tr>
+          {% if var.classification.class != 999 %}
+          <tr>
+            <td class="report_key">Klassificering</td>
+            <td class="report_annotation" colspan=5> {{ var.classification.class|format_tier }} - {{ class_desc[var.classification.class] }}<br></td>
+          </tr>  
+          {% endif %}
+          
+          {% if var.global_annotations|length > 0 %}    
+          <tr>
+            <td class="report_key">Kommentar</td>
+            {% set sorted_annos = var.global_annotations|sort(attribute="time_created", reverse=True) %}
+            <td class="report_annotation" colspan=5>{{ sorted_annos[0].text|format_comment|safe }}</td>
+          </tr>
+          {% endif %}
+      
+          {% if var.comments|length > 0 and 1==2 %} {# DO NOT SHOW COMMENTS EVER #}
+          <tr>
+            <td class="report_key">Kommentar</td>
+            <td class="report_comment" colspan=7>
+              {% for comment in var.comments %}
+                <li>{{ comment.text|format_comment|safe }}
+              {% endfor %}
+            </td>
+          </tr>
+          {% endif %}
+        </table>
+      </div>
+      {% else %}
+      <tr>
+        <td>Inga detekterade fusioner</td>
+        <td></td>
+      </tr> 
+{% endfor %}
+
+<!-- Quality control parameters in the sample -->
+{% if "QC" in sample %}
+<span class="report_header">Kvalitetsvärden</span>
+<div class="analysis_description">
+  <table class="info">
+    <tr>
+      <td>Antal läspar</td>
+      <td>{{'%0.0f'| format( (sample.QC[0]["tot_reads"]/1000000)|float) }} miljoner</td>
+    </tr>
+    <tr>
+      <td>% mappade läsningar</td>
+      <td>{{sample.QC[0]["mapped_pct"]}}%</td>
+    </tr>
+  </table>
+</div>
+{% endif %}
+
+<!-- Analysis Description -->
+<span class="report_header">Analysbeskrivning</span>
+<div class="analysis_description">
+  {{ analysis_desc|safe }}
+
+  <p>
+    <b>Tabell: Förklaring av klassificering</b><p>
+    <table class="info">
+      <tr><td>Tier I</td> 
+          <td>Variant av stark klinisk signifikans (innefattar varianter i gener som finns med i internationella/nationella riktlinjer)</td>
+        </tr>
+      <tr>
+        <td>Tier II</td>
+        <td>Variant av potentiell klinisk signifikans (innefattar varianter i gener som finns med i publikationer)</td>
+      </tr>
+      <tr>
+        <td>Tier III</td>
+        <td>Variant av oklar klinisk signifikans (innefattar varianter i gener i få eller inga publikationer)</td>
+      </tr>
+      <tr>
+        <td>Tier IV</td>
+        <td>Variant bedömd som benign eller sannolikt benign</td>
+      </tr>
+    </table>    
+    
+    <p>
+    <b>Referenser</b>
+    <p>
+    [1] Standards and guidelines for the interpretation and reporting of sequence variants in cancer. Li et al, Journal of Molecular Diagnostics, 2017.   
+</div>
+
+<script>
+  var expanded = false;
+  function showCheckboxes() {
+    var checkboxes = document.getElementById("checkboxes");
+    if (!expanded) {
+      checkboxes.style.display = "block";
+      expanded = true;
+    } else {
+      checkboxes.style.display = "none";
+      expanded = false;
+    }
+  }
+
+  function show_lowcov() {
+    if( document.getElementById("lowcovlist_div").style.display == "none" ) {
+       document.getElementById("lowcovlist_div").style.display="inline";
+    }
+    else {
+       document.getElementById("lowcovlist_div").style.display="none";
+    }
+  }
+
+</script>
+
+<style>
+  .multiselect {
+    width: 100%;
+  }
+  .selectBox {
+    position: relative;
+  }
+  .selectBox select {
+    width: 100%;
+  }
+  .overSelect {
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+  }
+  #checkboxes {
+    display: none;
+    border-bottom: 1px #bbb solid;
+    border-left: 1px #bbb solid;
+    border-right: 1px #bbb solid;
+    border-radius: 0px 0px 3px 3px;
+    background-color: #fff;
+  }
+  #checkboxes label {
+    display: block;
+  }
+  #checkboxes label:hover {
+    background-color: #f7f7ff;
+  }
+</style>
+
+{% endblock %}
+
