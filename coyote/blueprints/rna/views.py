@@ -222,10 +222,10 @@ def generate_rna_report(id, *args, **kwargs):
     #print (sample)
     assay = util.common.get_assay_from_sample(sample)
 
-    app.logger.info(f"assay works : {assay}")
+    app.logger.info(f"sample : {sample}")
 
     fusion_query = {"SAMPLE_ID": str(sample["_id"])}
-    app.logger.info(f"fusion_query : {fusion_query}")
+    #app.logger.info(f"fusion_query : {fusion_query}")
     
     fusions = list(store.fusion_handler.get_sample_fusions(fusion_query))
    
@@ -240,7 +240,7 @@ def generate_rna_report(id, *args, **kwargs):
     class_desc_short = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT").values())
     analysis_desc= app.config.get("REPORT_CONFIG").get("ANALYSIS_DESCRIPTION", {}).get(assay)
 
-    app.logger.info(f"analysis_desc,{analysis_desc}")
+    #app.logger.info(f"analysis_desc,{analysis_desc}")
     #app.logger.info(f"fusions,{fusions}")
     analysis_method = util.common.get_analysis_method(assay)
     report_header = util.common.get_report_header(assay, sample)
@@ -261,4 +261,47 @@ def generate_rna_report(id, *args, **kwargs):
         pdf=pdf
     )
 
+
+@rna_bp.route('/sample/report/pdf/<string:id>')
+@login_required
+def generate_report_pdf(id):
+    sample = store.sample_handler.get_sample(id)  # id = name
+
+    if not sample:
+        sample = store.sample_handler.get_sample_with_id(id)
+
+    assay = util.common.get_assay_from_sample(sample)
+
+    # Get report number
+    report_num = 1
+    if "report_num" in sample:
+        report_num = sample["report_num"] + 1 
+
+    # PDF file name
+    pdf_file = "static/reports/" + id + "_" + str(report_num) + ".pdf"
+
+    # Generate PDF
+    html = ""
+    html = generate_rna_report(id, pdf=1)
+    HTML(string=html).write_pdf(pdf_file)
+
+    # Add to database
+    store.sample_handler.get_sample(id).update(
+        {"name": id},
+        {
+            "$push": {
+                "reports": {
+                    "_id": ObjectId(),
+                    "report_num": report_num,
+                    "filepath": pdf_file,
+                    "author": current_user.get_id(),
+                    "time_created": datetime.now(),
+                }
+            },
+            "$set": {"report_num": report_num},
+        },
+    )
+
+    # Render it!
+    return render_pdf(HTML(string=html))
 
