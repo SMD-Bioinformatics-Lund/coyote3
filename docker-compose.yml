@@ -3,13 +3,15 @@ version: '3.9'
 # docker-compose up -d
 # docker-compose down
 services:
-  coyote_app:
+  coyote3_app:
+    container_name: coyote3_app
     build:
       context: .
+      dockerfile: Dockerfile
       network: host
-      target: coyote_app
-    image: coyote:dev
-    network_mode: host
+      target: coyote3_app
+    image: coyote3:dev
+    network_mode: bridge
     ports:
       - "8815:5000"
     environment:
@@ -26,7 +28,10 @@ services:
       - ".git:/app/.git"
       - "./coyote:/app/coyote"
       - "./config:/app/config"
+      - "./logs:/app/logs"
       - "./config.py:/app/config.py"
       - "./wsgi.py:/app/wsgi.py"
+      - "./gunicorn_config.py:/app/gunicorn_config.py"
+      - "./logging_setup.py:/app/logging_setup.py"
     command: "python3 wsgi.py"
 
