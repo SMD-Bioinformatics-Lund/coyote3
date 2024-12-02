@@ -17,24 +17,21 @@ class AnnotationsHandler(BaseHandler):
         genomic_location = (
             f"{str(variant['CHROM'])}:{str(variant['POS'])}:{variant['REF']}/{variant['ALT']}"
         )
-        if len(variant["INFO"]["selected_CSQ"]["HGVSp"]) > 0:
+        selected_CSQ = variant["INFO"]["selected_CSQ"]
+        if len(selected_CSQ["HGVSp"]) > 0:
             annotations = (
                 self.get_collection()
                 .find(
                     {
-                        "gene": variant["INFO"]["selected_CSQ"]["SYMBOL"],
+                        "gene": selected_CSQ["SYMBOL"],
                         "$or": [
                             {
                                 "nomenclature": "p",
-                                "variant": self.no_transid(
-                                    variant["INFO"]["selected_CSQ"]["HGVSp"]
-                                ),
+                                "variant": self.no_transid(selected_CSQ["HGVSp"]),
                             },
                             {
                                 "nomenclature": "c",
-                                "variant": self.no_transid(
-                                    variant["INFO"]["selected_CSQ"]["HGVSc"]
-                                ),
+                                "variant": self.no_transid(selected_CSQ["HGVSc"]),
                             },
                             {"nomenclature": "g", "variant": genomic_location},
                         ],
@@ -42,18 +39,16 @@ class AnnotationsHandler(BaseHandler):
                 )
                 .sort("time_created", 1)
             )
-        elif len(variant["INFO"]["selected_CSQ"]["HGVSc"]) > 0:
+        elif len(selected_CSQ["HGVSc"]) > 0:
             annotations = (
                 self.get_collection()
                 .find(
                     {
-                        "gene": variant["INFO"]["selected_CSQ"]["SYMBOL"],
+                        "gene": selected_CSQ["SYMBOL"],
                         "$or": [
                             {
                                 "nomenclature": "c",
-                                "variant": self.no_transid(
-                                    variant["INFO"]["selected_CSQ"]["HGVSc"]
-                                ),
+                                "variant": self.no_transid(selected_CSQ["HGVSc"]),
                             },
                             {"nomenclature": "g", "variant": genomic_location},
                         ],

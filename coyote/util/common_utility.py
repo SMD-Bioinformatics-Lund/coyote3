@@ -6,6 +6,8 @@ from flask import current_app as app
 from typing import Any, Literal, Dict, Tuple
 from bson import ObjectId
 from datetime import datetime
+from io import BytesIO
+import base64
 
 
 class CommonUtility:
@@ -231,7 +233,7 @@ class CommonUtility:
         return fusion_settings
 
     @staticmethod
-    def create_genelist(list_names: dict, gene_lists: dict) -> list:
+    def create_filter_genelist(list_names: dict, gene_lists: dict) -> list:
         """
         Creates a list of genes based on the provided list names and gene lists.
         Args:
@@ -446,3 +448,43 @@ class CommonUtility:
         """
         method = app.config.get("REPORT_CONFIG", {}).get("ANALYSIS_METHODS", {}).get(assay, "")
         return method
+
+    @staticmethod
+    def check_report_exists(report_path: str) -> bool:
+        """
+        Check if report path exists
+        """
+        return os.path.exists(report_path)
+
+    @staticmethod
+    def write_report(report_data: str, report_path: str) -> bool:
+        """
+        Write report data to a file
+        """
+        try:
+            with open(report_path, "w") as report_file:
+                report_file.write(report_data)
+            return True
+        except Exception as e:
+            app.logger.error(f"Error writing report to file: {e}")
+            return False
+
+    @staticmethod
+    def get_base64_image(image_path: str) -> str:
+        """
+        Get base64 encoded image
+        """
+        with open(image_path, "rb") as image_file:
+            base64_image = base64.b64encode(image_file.read()).decode("utf-8")
+        return base64_image
+
+    @staticmethod
+    def get_plot(fn: str, assay: str, build: str = "38") -> bool:
+        """
+        Check if plots should be shown in the report
+        """
+        plot_dir = app.config.get("REPORT_CONFIG", {}).get("REPORT_PLOTS_PATH", {}).get(assay, "")
+        if plot_dir and fn:
+            image_path = os.path.join(plot_dir, f"{fn}")
+            return CommonUtility.get_base64_image(image_path)
+        return False

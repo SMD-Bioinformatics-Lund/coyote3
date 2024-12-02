@@ -8,12 +8,51 @@ from bson.objectid import ObjectId
 from coyote.util.common_utility import CommonUtility
 from flask import current_app as app
 from coyote.extensions import store
+from bisect import bisect_left
 
 
 class DNAUtility:
     """
     Utility class for variants blueprint
     """
+
+    @staticmethod
+    def get_protein_coding_genes(var_iter: list) -> tuple[list, list]:
+        """
+        Get protein coding genes from a variant list
+        """
+        genes = set()
+        variants = []
+        for var in var_iter:
+            if var["INFO"].get("selected_CSQ", {}).get("BIOTYPE") == "protein_coding":
+                genes.add(var["INFO"]["selected_CSQ"]["SYMBOL"])
+            for csq in var["INFO"]["CSQ"]:
+                if csq["BIOTYPE"] == "protein_coding":
+                    genes.add(csq["SYMBOL"])
+            variants.append(var)
+
+        return variants, list(genes)
+
+    @staticmethod
+    def hotspot_variant(variants: list) -> list[dict]:
+        """
+        Return variants that are hotspots.
+
+        Args:
+            variants (list): A list of variant dictionaries.
+
+        Returns:
+            list[dict]: A list of variant dictionaries that are hotspots.
+        """
+        hotspots = []
+        for variant in variants:
+            hotspot_dict = variant.get("hotspots", [{}])[0]
+            if hotspot_dict:
+                for hotspot_key, hotspot_elem in hotspot_dict.items():
+                    if any("COS" in elem for elem in hotspot_elem):
+                        variant.setdefault("INFO", {}).setdefault("HOTSPOT", []).append(hotspot_key)
+            hotspots.append(variant)
+        return hotspots
 
     @staticmethod
     def get_filter_conseq_terms(checked):
@@ -193,6 +232,20 @@ class DNAUtility:
                 variants[var_idx]["other_classification"],
                 variants[var_idx]["annotations_interesting"],
             ) = store.annotation_handler.get_global_annotations(variants[var_idx], assay, subpanel)
+        return variants
+
+    @staticmethod
+    def add_global_annotations(variants: list, assay: str, subpanel: str) -> list:
+        """
+        Add global annotations to the variants
+        """
+        for var_idx, var in enumerate(variants):
+            (
+                variants[var_idx]["global_annotations"],
+                variants[var_idx]["classification"],
+                variants[var_idx]["other_classification"],
+                variants[var_idx]["annotations_interesting"],
+            ) = store.annotation_handler.get_global_annotations(var, assay, subpanel)
         return variants
 
     @staticmethod
@@ -986,3 +1039,39 @@ class DNAUtility:
             }
 
         return doc
+
+    @staticmethod
+    def filter_low_coverage_with_cosmic(low_coverage: list, cosmic: list) -> list:
+        """
+        Filter low coverage variants with cosmic data
+        """
+        # Sort cosmic data by chromosome and start position for efficient searching
+        if not cosmic:
+            return []
+        cosmic.sort(key=lambda x: (x["chr"], x["start"]))
+
+        filtered_low_cov: list = []
+
+        for low_cov in low_coverage:
+            low_cov["cosmic"] = []
+            # Find the starting index in the sorted cosmic list
+            start_idx = bisect_left(
+                cosmic,
+                (str(low_cov["chr"]), str(low_cov["start"])),
+                key=lambda x: (str(x["chr"]), str(x["start"])),
+            )
+            # Iterate through the cosmic list from the starting index
+            for cos in cosmic[start_idx:]:
+                if (
+                    int(cos["chr"]) != int(low_cov["chr"])
+                    or int(cos["start"]) > int(low_cov["end"])
+                    or int(cos["start"]) < int(low_cov["start"])
+                ):
+                    break
+                # if int(low_cov["start"]) >= int(cos["start"]) <= int(low_cov["end"]):
+                else:
+                    low_cov["cosmic"].append({k: v for k, v in cos.items() if k != "_id"})
+            if len(low_cov["cosmic"]) > 0:
+                filtered_low_cov.append(low_cov)
+
+        return filtered_low_cov

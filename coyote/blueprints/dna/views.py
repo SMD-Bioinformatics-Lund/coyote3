@@ -9,11 +9,14 @@ from pprint import pformat
 from wtforms import BooleanField
 from coyote.extensions import store, util
 from coyote.blueprints.dna import dna_bp, varqueries_notbad, filters
+from coyote.blueprints.home import home_bp
 from coyote.blueprints.dna.varqueries import build_query
 from coyote.blueprints.dna.forms import GeneForm
+from coyote.errors.exceptions import AppError
 from typing import Literal, Any
 from datetime import datetime
 from flask_weasyprint import HTML, render_pdf
+import os
 
 
 @dna_bp.route("/sample/<string:id>", methods=["GET", "POST"])
@@ -92,7 +95,7 @@ def list_variants(id):
     cnv_effects = sample.get("checked_cnveffects", settings["default_checked_cnveffects"])
     genelist_filter = sample.get("checked_genelists", settings["default_checked_genelists"])
     filter_conseq = util.dna.get_filter_conseq_terms(sample_settings["csq_filter"].keys())
-    filter_genes = util.common.create_genelist(genelist_filter, gene_lists)
+    filter_genes = util.common.create_filter_genelist(genelist_filter, gene_lists)
     filter_cnveffects = util.dna.create_cnveffectlist(cnv_effects)
 
     # Add them to the form
@@ -132,40 +135,40 @@ def list_variants(id):
         group_params,
     )
 
-    # app.logger.debug("this is the old varquery: %s", pformat(query))
+    app.logger.debug("this is the old varquery: %s", pformat(query))
     # app.logger.debug("this is the new varquery: %s", pformat(query2))
 
     variants_iter = store.variant_handler.get_case_variants(query)
 
     # Find all genes that are protein coding
-    variants, protein_coding_genes = store.variant_handler.get_protein_coding_genes(variants_iter)
+    # variants, protein_coding_genes = util.dna.get_protein_coding_genes(variants_iter)
+
+    variants = list(variants_iter)
 
     # Add blacklist data
     variants = store.blacklist_handler.add_blacklist_data(variants, assay)
 
-    # Get canonical transcripts for the genes from database
-    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(protein_coding_genes))
-
-    # Select a VEP consequence for each variant
-    variants = util.dna.select_csq_for_variants(variants, subpanel, assay, canonical_dict)
+    # Add global annotations for the variants
+    variants = util.dna.add_global_annotations(variants, assay, subpanel)
 
     # Filter by population frequency
     variants = util.dna.popfreq_filter(variants, float(sample_settings["max_popfreq"]))
 
     # Add hotspot data
-    variants = store.variant_handler.hotspot_variant(variants)
+    variants = util.dna.hotspot_variant(variants)
 
     ### SNV FILTRATION ENDS HERE ###
 
     # LOWCOV data, very computationally intense for samples with many regions
-    low_cov = {}
-    # low_cov = store.coverage_handler.get_sample_coverage(sample["name"])
-    # print(list(low_cov))
+    low_cov = store.coverage_handler.get_sample_coverage(sample["name"])
+    low_cov_chrs = list(set([x["chr"] for x in low_cov]))
 
     ## add cosmic to lowcov regions. Too many lowcov regions and this becomes very slow
     # this could maybe be something else than cosmic? config important regions?
-    # if assay != "solid":
-    #    low_cov = cosmic_variants_in_regions( low_cov )
+    cosmic_ids = store.cosmic_handler.get_cosmic_ids(chr=low_cov_chrs)
+
+    if assay != "solid":
+        low_cov = util.dna.filter_low_coverage_with_cosmic(low_cov, cosmic_ids)
 
     ## GET CNVs TRANSLOCS and OTHER BIOMARKERS ##
     cnvwgs_iter = False
@@ -263,6 +266,7 @@ def show_any_plot(fn, assay, build):
     elif assay == "gmsonco" or assay == "swea":
         return send_from_directory("/access/PARP_inhib/plots", fn)
     elif assay == "tumwgs":
+        print(fn)
         return send_from_directory("/access/tumwgs/cov", fn)
     elif assay == "solid":
         return send_from_directory("/access/solid_hg38/plots", fn)
@@ -288,13 +292,13 @@ def show_variant(id):
     variant = store.blacklist_handler.add_blacklist_data([variant], assay)[0]
 
     # Get canonical transcripts for all genes annotated for the variant
-    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(variant.get("genes")))
+    # canonical_dict = store.canonical_handler.get_canonical_by_genes(list(variant.get("genes")))
 
     # Select a transcript
     # TODO: I DONT WANT TO RUN THE SAME COMMANDS MULTIPLE TIMES IN ORDER TO REDUCE THE PROCESSING SPEED, MAY BE STORE THE SELECT CSQ TRANSCRIPT ID IN THE VARIANT ITSELF
-    (variant["INFO"]["selected_CSQ"], variant["INFO"]["selected_CSQ_criteria"]) = (
-        util.dna.select_csq(variant["INFO"]["CSQ"], canonical_dict)
-    )
+    # (variant["INFO"]["selected_CSQ"], variant["INFO"]["selected_CSQ_criteria"]) = (
+    #     util.dna.select_csq(variant["INFO"]["CSQ"], canonical_dict)
+    # )
 
     # Find civic data
     hgvsc_str = variant["INFO"]["selected_CSQ"]["HGVSc"]
@@ -456,7 +460,7 @@ def add_variant_to_blacklist(id):
 @login_required
 def order_sanger(id):
     variant = store.variant_handler.get_variant(id)
-    variants, protein_coding_genes = store.variant_handler.get_protein_coding_genes([variant])
+    variants, protein_coding_genes = util.dna.get_protein_coding_genes([variant])
     var = variants[0]
     sample = store.sample_handler.get_sample_with_id(var["SAMPLE_ID"])
     canonical_dict = store.canonical_handler.get_canonical_by_genes(list(protein_coding_genes))
@@ -710,16 +714,6 @@ def unhide_transloc_comment(var_id):
     return redirect(url_for("dna_bp.show_transloc", id=var_id))
 
 
-###### FUSIONS VIEW PAGE #######
-@dna_bp.route("/fusion/<string:id>")
-@login_required
-def show_fusion(id):
-    """
-    Show Fusion view page
-    """
-    pass
-
-
 ##### PREVIEW REPORT ######
 @dna_bp.route("/sample/preview_report/<string:id>", methods=["GET", "POST"])
 @login_required
@@ -737,12 +731,13 @@ def generate_dna_report(id, *args, **kwargs):
 
     ## send over all defined gene panels per assay, to matching template ##
     gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
-    # genelists_assay = list(app.config["PANELS_COLL"].find({"assays": {"$in": [assay]}}))
 
     # TODO: Fix this function
     genelist_filter = sample.get("checked_genelists", {})
+
     ## remove genelist_ from each list
     genelist_filter_ = [sub.replace("genelist_", "") for sub in genelist_filter]
+
     ## displaynames for report
     genelist_dispnames = util.common.get_genelist_dispnames(genelists_assay, genelist_filter_)
 
@@ -752,50 +747,11 @@ def generate_dna_report(id, *args, **kwargs):
     group_params = util.common.get_group_parameters(group)
     settings = util.common.get_group_defaults(group_params)
 
-    # settings = {
-    #     "warn_cov": 500,
-    #     "error_cov": 100,
-    #     "default_popfreq": 1,
-    #     "default_mindepth": 100,
-    #     "default_min_freq": 0.05,
-    #     "default_min_reads": 10,
-    # }
-
     ## get sample settings
     sample_settings = util.common.get_sample_settings(sample, settings)
 
-    # Get group specific settings
-    # if group is not None:
-    #     settings["error_cov"] = group.get("error_cov", 500)
-    #     settings["warn_cov"] = group.get("warn_cov", 100)
-    #     settings["default_popfreq"] = group.get("default_popfreq", 1)
-    #     settings["default_mindepth"] = group.get("default_mindepth", 100)
-    #     settings["default_spanreads"] = group.get("default_spanreads", 2)
-    #     settings["default_spanpairs"] = group.get("default_spanpairs", 0)
-    #     settings["default_min_freq"] = group.get("default_min_freq", 0.05)
-    #     settings["default_min_reads"] = group.get("default_min_reads", 10)
-
-    # # Get filter values or set to defaults
-    # min_freq = sample.get("filter_min_freq", settings["default_min_freq"])
-    # min_reads = sample.get("filter_min_reads", settings["default_min_reads"])
-    # max_freq = sample.get("filter_max_freq", 0.05)
-    # min_depth = sample.get("filter_min_depth", settings["default_mindepth"])
-    # max_popfreq = sample.get("filter_max_popfreq", settings["default_popfreq"])
-    # csq_filter = sample.get(
-    #     "checked_csq",
-    #     {
-    #         "splicing": 1,
-    #         "stop_gained": 1,
-    #         "frameshift": 1,
-    #         "stop_lost": 1,
-    #         "start_lost": 1,
-    #         "inframe_indel": 1,
-    #         "missense": 1,
-    #         "other_coding": 1,
-    #     },
-    # )
     filter_conseq = util.dna.get_filter_conseq_terms(sample_settings.get("csq_filter", {}).keys())
-    filter_genes = util.common.create_genelist(genelist_filter, gene_lists)
+    filter_genes = util.common.create_filter_genelist(genelist_filter, gene_lists)
 
     query = build_query(
         assay,
@@ -813,71 +769,18 @@ def generate_dna_report(id, *args, **kwargs):
     query["irrelevant"] = {"$ne": True}
     variants_iter = store.variant_handler.get_case_variants(query)
 
-    # TODO: FOR TUMOR EXOME
-    # query = varqueries.build_query(
-    #     "myeloid",
-    #     {
-    #         "id": str(sample["_id"]),
-    #         "max_freq": max_freq,
-    #         "min_freq": min_freq,
-    #         "min_depth": min_depth,
-    #         "min_reads": min_reads,
-    #         "filter_conseq": filter_conseq,
-    #     },
-    # )
-    # query["fp"] = {"$ne": True}
-    # query["irrelevant"] = {"$ne": True}
-
-    # variants_iter = app.config["VAR_COLL"].find(query)
-    # if len(filter_genes) > 0:
-    #     cnv_genes = ("MYCN", "CDKN2A", "FOXO1", "PAX3", "PAX7", "SMARCB1")
-    #     cnvs_iter = app.config["CNV_COLL"].find(
-    #         {
-    #             "SAMPLE_ID": str(sample["_id"]),
-    #             "INFO.genes": {"$in": cnv_genes},
-    #             "$or": [
-    #                 {"INFO.FOLD_CHANGE": {"$gt": 1.9}},
-    #                 {"INFO.FOLD_CHANGE": {"$lt": 0.05}},
-    #             ],
-    #         }
-    #     )
-    # else:
-    #     cnvs_iter = app.config["CNV_COLL"].find(
-    #         {
-    #             "SAMPLE_ID": str(sample["_id"]),
-    #             "$or": [{"INFO.FOLD_CHANGE": {"$gt": 1.8}}, {"INFO.FOLD_CHANGE": {"$lt": 0.1}}],
-    #         }
-    #     )
-
-    # Get all protein coding genes
-    variants, protein_coding_genes = store.variant_handler.get_protein_coding_genes(variants_iter)
+    variants = list(variants_iter)
 
     # Add blacklist data
     variants = store.blacklist_handler.add_blacklist_data(variants, assay)
 
-    # Get canonical transcripts for the genes from database
-    canonical_dict = store.canonical_handler.get_canonical_by_genes(list(protein_coding_genes))
-
-    # Select a VEP consequence for each variant
-    variants = util.dna.select_csq_for_variants(variants, subpanel, assay, canonical_dict)
-
-    # for var_idx, var in enumerate(variants):
-    #     (
-    #         variants[var_idx]["INFO"]["selected_CSQ"],
-    #         variants[var_idx]["INFO"]["selected_CSQ_criteria"],
-    #     ) = select_csq(var["INFO"]["CSQ"], canonical_dict)
-    #     (
-    #         variants[var_idx]["global_annotations"],
-    #         variants[var_idx]["classification"],
-    #         variants[var_idx]["other_classifications"],
-    #         variants[var_idx]["annotations_interesting"],
-    #     ) = get_global_annotations(variants[var_idx], assay, subpanel)
+    variants = util.dna.add_global_annotations(variants, assay, subpanel)
 
     # Filter by population frequency
     variants = util.dna.popfreq_filter(variants, float(sample_settings["max_popfreq"]))
 
     # Add hotspot data
-    variants = store.variant_handler.hotspot_variant(variants)
+    variants = util.dna.hotspot_variant(variants)
 
     # Filter variants for report
     variants = util.dna.filter_variants_for_report(variants, filter_genes, assay)
@@ -895,10 +798,14 @@ def generate_dna_report(id, *args, **kwargs):
     cnvs_iter = False
     biomarkers_iter = False
     transloc_iter = False
+    cnv_profile_base64 = None
     if group_params is not None and "DNA" in group_params:
         if group_params["DNA"].get("CNV"):
             cnvs_iter = list(
                 store.cnv_handler.get_interesting_sample_cnvs(sample_id=str(sample["_id"]))
+            )
+            cnv_profile_base64 = util.common.get_plot(
+                os.path.basename(sample.get("cnvprofile", "")), assay
             )
             # this line checks if the cnvs are empty, if they are, it sets the cnvs_iter to True for easy way in the report
             # this means that we need to show cnvs despite them being empty because the group demands for it
@@ -917,57 +824,12 @@ def generate_dna_report(id, *args, **kwargs):
             if not transloc_iter:
                 transloc_iter = True
 
-    # Get data from Clarity
-    # if "clarity-sample-id" in sample:
-    #     clarity_data = clarity.fetch_clarity_sample_udfs(sample["clarity-sample-id"])
-    # else:
-    #     clarity_data = "NOT_FOUND"
-
     # report header and date
     analysis_method = util.common.get_analysis_method(assay)
     report_header = util.common.get_report_header(assay, sample)
     report_date = datetime.now().date()
-
-    pdf = kwargs.get("pdf", 0)
-
+    save = kwargs.get("save", 0)
     template = "dna_report.html"
-    # TODO: CHECK AGAIN
-    creation_date_t = ""
-    creation_date_n = ""
-    image_name = "image.png"
-    image_rot_name = "image.rotated.png"
-    # creation_date_t = CDM(sample["name"])
-    # creation_date_n = ""
-    # if "Paired Sample Name" in clarity_data:
-    #     creation_date_n = CDM(clarity_data["Paired Sample Name"])
-    if assay == "devel" or assay == "tumor_exome":
-        template = "report_gisselsson.html"
-        chopped_id = rchop(sample["name"], "-agilent")
-        chopped_id = rchop(chopped_id, "-paired")
-
-        image_name = chopped_id + ".png"
-        image_rot_name = chopped_id + ".rotated.png"
-        cnvs_list = []
-        # cnvs_list = []
-        # for cnv in cnvs_iter:
-        #     cnv["image"] = (
-        #         chopped_id
-        #         + "."
-        #         + str(cnv["CHROM"])
-        #         + "_"
-        #         + str(cnv["POS"])
-        #         + "_"
-        #         + str(cnv["INFO"]["END"])
-        #         + ".png"
-        #     )
-        #     cnvs_list.append(cnv)
-
-        # cnvs_iter.rewind()
-
-    # elif assay == "tumwgs":
-    #     template = "report_tumwgs.html"
-
-    print(simple_variants)
 
     return render_template(
         template,
@@ -978,20 +840,16 @@ def generate_dna_report(id, *args, **kwargs):
         translation=app.config.get("REPORT_CONFIG").get("REPORT_TRANS"),
         group=sample["groups"],
         cnvs=cnvs_iter,  # cnvs_list, TMP
+        cnv_profile_base64=cnv_profile_base64,
         translocs=list(transloc_iter),  # not gmsonco
         class_desc=app.config.get("REPORT_CONFIG").get("CLASS_DESC"),
         class_desc_short=app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT"),
         report_date=report_date,
         dispgenes=filter_genes,
-        pdf=pdf,
+        save=save,
         assay=assay,
         biomarkers=biomarkers_iter,  # solid
         checked_genelists=genelist_dispnames,  # solid
-        image=image_name,  # TMP
-        image_rot=image_rot_name,  # TMP
-        tumor_normal_creation_date=creation_date_n,  # TMP gmsonco
-        tumor_creation_date=creation_date_t,  # TMP gmsonco
-        clarity={},
         report_header=report_header,
         analysis_method=analysis_method,
         analysis_desc=app.config.get("REPORT_CONFIG").get("ANALYSIS_DESCRIPTION", {}).get(assay),
@@ -1000,9 +858,9 @@ def generate_dna_report(id, *args, **kwargs):
     )
 
 
-@dna_bp.route("/sample/report/pdf/<string:id>")
+@dna_bp.route("/sample/report/save/<string:id>")
 @login_required
-def generate_report_pdf(id):
+def save_dna_report(id):
     sample = store.sample_handler.get_sample(id)  # id = name
 
     if not sample:
@@ -1015,13 +873,46 @@ def generate_report_pdf(id):
     if "report_num" in sample:
         report_num = sample["report_num"] + 1
 
-    # PDF file name
-    pdf_file = "static/reports/" + id + "_" + str(report_num) + ".pdf"
+    # report file name
+    report_path = f"{app.config['REPORTS_BASE_PATH']}/{assay}"
+    report_file = f"{app.config['REPORTS_BASE_PATH']}/{id}_{str(report_num)}.html"
+    # report_file = f"{app.config['REPORTS_BASE_PATH']}/test.html"
 
-    # Generate PDF
-    html = ""
-    html = generate_dna_report(id, pdf=1)
-    HTML(string=html).write_pdf(pdf_file)
+    if not os.path.exists(report_path):
+        flash(f"Creating directory {report_path}", "yellow")
+        os.makedirs(report_path)
+
+    if util.common.check_report_exists(report_file):
+        flash("Report already exists", "red")
+        raise AppError(
+            status_code=409,
+            message="Report already exists with the requested name.",
+            details=f"File name: {os.path.basename(report_file)}",
+        )
+
+    # Attempt to write the report to a file
+    try:
+        html = generate_dna_report(id, save=1)
+        if not util.common.write_report(html, report_file):
+            raise AppError(
+                status_code=500,
+                message=f"Failed to save report {id}_{report_num}.html",
+                details="An issue occurred while writing the report to the file system.",
+            )
+
+        # Success case
+        flash(f"Report id {id}_{report_num}.html is saved!", "green")
+
+    except Exception as e:
+        # Distinguish between AppError and generic exceptions
+        if isinstance(e, AppError):
+            # Handle the application-specific error
+            flash(e.message, "red")
+            app.logger.error(f"AppError: {e.message} | Details: {e.details}")
+        else:
+            # Handle unexpected errors
+            flash("An unexpected error occurred. Please try again later.", "red")
+            app.logger.exception(f"Unexpected error: {str(e)}")
 
     # TODO: Uncomment this
     # Add to database
@@ -1041,5 +932,4 @@ def generate_report_pdf(id):
     #     },
     # )
 
-    # Render it!
-    return render_pdf(HTML(string=html))
+    return redirect(url_for("home_bp.home_screen"))
