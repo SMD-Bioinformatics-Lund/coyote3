@@ -131,45 +131,36 @@ class AnnotationsHandler(BaseHandler):
         return nom
 
     def insert_classified_variant(
-        self, variant: str, nomenclature: str, class_num: int, variant_data: dict
+        self, variant: str, nomenclature: str, class_num: int, variant_data: dict, **kwargs
     ) -> None:
         """
         Insert Classified variant
         """
-        if nomenclature != "f":
-            if self.get_collection().insert_one(
-                {
-                    "class": class_num,
-                    "author": self.current_user.get_id(),
-                    "time_created": datetime.now(),
-                    "variant": variant,
-                    "nomenclature": nomenclature,
-                    "transcript": variant_data.get("transcript", None),
-                    "gene": variant_data.get("gene", None),
-                    "assay": variant_data.get("assay", None),
-                    "subpanel": variant_data.get("subpanel", None),
-                }
-            ):
-                flash("Variant classified", "green")
-            else:
-                flash("Variant classification failed", "red")
+        document = {
+            "author": self.current_user.get_id(),
+            "time_created": datetime.now(),
+            "variant": variant,
+            "nomenclature": nomenclature,
+            "assay": variant_data.get("assay", None),
+            "subpanel": variant_data.get("subpanel", None),
+        }
+
+        if "text" in kwargs:
+            document["text"] = kwargs["text"]
         else:
-            if self.get_collection().insert_one(
-                {
-                    "class": class_num,
-                    "author": self.current_user.get_id(),
-                    "time_created": datetime.now(),
-                    "variant": variant,
-                    "nomenclature": nomenclature,
-                    "gene1": variant_data.get("gene1", None),
-                    "gene2": variant_data.get("gene2", None),
-                    "assay": variant_data.get("assay", None),
-                    "subpanel": variant_data.get("subpanel", None),
-                }
-            ):
-                flash("Variant classified", "green")
-            else:
-                flash("Variant classification failed", "red")
+            document["class"] = class_num
+
+        if nomenclature != "f":
+            document["gene"] = variant_data.get("gene", None)
+            document["transcript"] = variant_data.get("transcript", None)
+        else:
+            document["gene1"] = variant_data.get("gene1", None)
+            document["gene2"] = variant_data.get("gene2", None)
+
+        if self.get_collection().insert_one(document):
+            flash("Variant classified", "green")
+        else:
+            flash("Variant classification failed", "red")
 
         return None
 

@@ -1075,3 +1075,30 @@ class DNAUtility:
                 filtered_low_cov.append(low_cov)
 
         return filtered_low_cov
+
+    @staticmethod
+    def create_annotation_text_from_gene(gene, csq, assay, **kwargs):
+        """
+        create an automated text annotation for tier3 variants.
+        Also check if annotation exists for variant, dont add new
+        """
+        first_csq = str(csq[0])
+        ## Might need a prettier way of presenting variant type. In line with translation dict used in list_variants
+        consequence = first_csq.replace("_", " ")
+        tumor_type = ""
+        if assay == "myeloid":
+            tumor_type = "hematologiska"
+        elif assay == "solid":
+            tumor_type = "solida"
+        else:
+            tumor_type = ""
+
+        ## Bit stinky to have in code, maybe in config for coyote3.0
+        text = f"Analysen påvisar en {consequence}. Varianten är klassad som Tier III då varianter i {gene} är sällsy men förekommer i {tumor_type} maligniteter."
+        gene_oncokb = kwargs.get("gene_oncokb", None)
+        if gene_oncokb:
+            text += f" För ytterligare information om {gene} se https://www.oncokb.org/gene/{gene}."
+        else:
+            text += f" {gene} finns ej beskriven i https://www.oncokb.org."
+        app.logger.debug(text)
+        return text

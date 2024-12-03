@@ -1,0 +1,302 @@
+<!-- Buttons and Filters -->
+<div class="flex justify-between items-center mb-4">
+  <!-- Card for buttons -->
+  <div class="bg-white shadow-md rounded-lg p-4 w-full flex items-center">
+    <!-- Left aligned buttons -->
+    <div class="flex space-x-4">
+      <div class="button_link">
+        <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105" onclick="window.location.href='preview_report/{{sample.name}}'">Preview report</button>
+      </div>      
+      <div class="button_link">
+        <button class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105" onclick="window.location.href='#'; show_lowcov();">Low-coverage regions</button>
+      </div>
+      <div class="button_link">
+        <button class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105" onclick="switchVisibility('fp');"><b>Show/hide FPs</b></button>
+      </div>      
+      {% if assay == "solid" or assay == "gmsonco" %}
+      <div class="button_link">
+        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105" onclick="window.location.href='#'; show_germlinecnv();">Germline CNVs</button>
+      </div>      
+      {% endif %}
+    </div>
+    <!-- Right aligned filter button -->
+    <div class="ml-auto">
+      <button id="snv-toggle" class="bg-yellow-600 hover:bg-yellow-800 text-white px-4 mx-2 py-2 rounded transition duration-300 ease-in-out transform hover:scale-105">Modify Variants</button>
+      <button id="filter-toggle" class="bg-indigo-600 hover:bg-indigo-800 text-white px-4 mx-2 py-2 rounded transition duration-300 ease-in-out transform hover:scale-105">Filters</button>
+    </div>   
+  </div>
+</div>
+
+<!-- Selected SNVs/indels Sidebar -->
+<div id="snv-sidebar" class="fixed top-0 right-0 h-full w-60 bg-white shadow-md overflow-y-auto transform translate-x-full transition-transform duration-300 ease-in-out">
+  <div class="p-2">
+    <div class="flex justify-between items-center mb-2 text-sm">
+      <h2 class="text-sm font-semibold">Modify Variants</h2>
+      <button id="snv-close" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
+    </div>
+    <form id="snv-sidebar-form" action="{{ url_for('dna_bp.classify_multi_variant', id=sample.name) }}" method="POST">
+      <div class="mb-5">
+        <!-- Sidebar Select All -->
+          <span>Select Options</span>
+      </div>
+
+      <!-- Sidebar Checkboxes -->
+      <div class="flex flex-col space-y-2 mb-4">
+        <label class="flex items-center text-sm">
+          <input type="checkbox" name="tier" value="1" class="mr-2 snv-sidebar-checkbox">
+          <span>Tier3</span>
+        </label>
+        <label class="flex items-center text-sm">
+          <input type="checkbox" name="irrelevant" value="1" class="mr-2 snv-sidebar-checkbox">
+          <span>Irrelevant</span>
+        </label>
+        <label class="flex items-center text-sm">
+          <input type="checkbox" name="false_positive" value="1" class="mr-2 snv-sidebar-checkbox">
+          <span>False Positive</span>
+        </label>
+      </div>
+
+      <!-- Submit Buttons -->
+      <div class="flex justify-between">
+        <input type="hidden" name="assay" value="{{ assay }}">
+        <input type="hidden" name="subpanel" value="{{ sample.subpanel }}">
+        <button type="button" onclick="submitSNVSidebarForm('apply')" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm">Apply</button>
+        <button type="button" onclick="submitSNVSidebarForm('remove')" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm">Remove</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+<!-- Filters Sidebar -->
+<div id="filter-sidebar" class="fixed top-0 right-0 h-full w-60 bg-white overflow-y-auto shadow-md transform translate-x-full transition-transform duration-300 ease-in-out">
+  <div class="p-2"> 
+    <div class="flex justify-between items-center mb-2 text-sm">
+      <h2 class="text-sm font-semibold">Modify filters</h2>
+      <button id="filter-close" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
+    </div>
+    <form action="" method="POST" name="form" class="no-spin">
+      {{ form.hidden_tag() }}
+      <div class="mb-2">
+        <label class="control-label block mb-0.5 text-sm">Depth</label>
+        <div class="flex items-center">
+          <span class="mr-1">&gt;</span>
+          {{ form.min_depth(size=2, default=sample.filter_min_depth, class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm") }}
+        </div>
+      </div>
+      <div class="mb-2">
+        <label class="control-label block mb-0.5 text-sm">Frequency</label>
+        <div class="flex items-center">
+          <span class="mr-1">&gt;</span>
+          {{ form.min_freq(size=1, default=sample.filter_min_freq, class="w-full border border-gray-300 rounded p-0.5 text-sm") }}
+        </div>
+      </div>
+      <div class="mb-2">
+        <label class="control-label block mb-0.5 text-sm">Min alt count</label>
+        <div class="flex items-center">
+          <span class="mr-1">&gt;</span>
+          {{ form.min_reads(size=1, default=sample.filter_min_reads, class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm") }}
+        </div>
+      </div>
+      <div class="mb-2" {% if assay == "swea" %}style="display:none"{% endif %}>
+        <label class="control-label block mb-0.5 text-sm">Control freq.</label>
+        <div class="flex items-center">
+          <span class="mr-1">&lt;</span>
+          {{ form.max_freq(size=1, default=sample.filter_max_freq, class="w-full border border-gray-300 rounded p-0.5 text-sm") }}
+        </div>
+      </div>
+      <div class="mb-2">
+        <label class="control-label block mb-0.5 text-sm">Population freq.</label>
+        <div class="flex items-center">
+          <span class="mr-1">&lt;</span>
+          {{ form.max_popfreq(size=1, default=sample.filter_max_popfreq, class="w-full border border-gray-300 rounded p-0.5 text-sm") }}
+        </div>
+      </div>
+      <div class="mb-2">
+        <label class="control-label block mb-0.5 text-sm">Consequence</label>
+        <div class="multiselect">
+          <div class="selectBox" onclick="showCheckboxes('csq_checkboxes')">
+            <select class="w-full border border-gray-300 rounded p-0.5 text-sm">
+              <option>Select Consequence</option>
+            </select>
+            <div class="overSelect"></div>
+          </div>
+          <div id="csq_checkboxes" class="checkboxes">
+            <label for="splicing" class="text-sm">{{ form.splicing(checked=True) }} Splicing</label>
+            <label for="stop_gained" class="text-sm">{{ form.stop_gained(checked=True) }} Stop gain</label>
+            <label for="frameshift" class="text-sm">{{ form.frameshift(checked=True) }} Frameshift indels</label>
+            <label for="stop_lost" class="text-sm">{{ form.stop_lost(checked=True) }} Stop loss</label>
+            <label for="start_lost" class="text-sm">{{ form.start_lost(checked=True) }} Start loss</label>
+            <label for="inframe_indel" class="text-sm">{{ form.inframe_indel(checked=True) }} In-frame indels</label>
+            <label for="missense" class="text-sm">{{ form.missense(checked=True) }} Missense</label>
+            <label for="other_coding" class="text-sm">{{ form.other_coding(checked=True) }} Other coding</label>
+            <label for="synonymous" class="text-sm">{{ form.synonymous(checked=False) }} Synonymous</label>
+            <label for="UTR" class="text-sm">{{ form.UTR(checked=False) }} UTR</label>
+            <label for="non_coding" class="text-sm">{{ form.non_coding(checked=False) }} Non-coding</label>
+            <label for="intronic" class="text-sm">{{ form.intronic(checked=False) }} Intronic</label>
+            <label for="intergenic" class="text-sm">{{ form.intergenic(checked=False) }} Intergenic</label>
+            <label for="regulatory" class="text-sm">{{ form.regulatory(checked=False) }} Regulatory</label>
+            <label for="feature_elon_trunc" class="text-sm">{{ form.feature_elon_trunc(checked=False) }} Feature elon/trunc</label>
+          </div>
+        </div>
+      </div>
+      <div class="mb-2">
+        <label class="control-label block mb-0.5 text-sm">Gene lists</label>
+        <div class="multiselect">
+          <div class="selectBox" onclick="showCheckboxes('genelists_checkboxes')">
+            <select class="w-full border border-gray-300 rounded p-0.5 text-sm">
+              <option>Select Gene Lists</option>
+            </select>
+            <div class="overSelect"></div>
+          </div>
+          <div id="genelists_checkboxes" class="checkboxes">
+            {% for panel in genelists_assay %}
+            {% if panel.type == 'genelist' %}
+            {% set show=False %}
+            <label for={{panel.name}} class="text-sm">{{ form['genelist_' ~ panel.name](checked=show) }} {{panel.displayname}}</label>
+            {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-between mb-2">
+        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm" name="apply" value="apply" type="submit">Apply</button>
+        <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm" name="reset" value="reset" type="submit">Reset</button>
+      </div>      
+      <div>
+        <p class="font-semibold text-sm">CNV filters WIP!</p>
+        <div class="mb-2">
+          <label class="control-label block mb-0.5 text-sm">Max size</label>
+          <div class="flex items-center">
+            <span class="mr-1">&lt;</span>
+            {{ form.max_cnv_size(size=7, default=sample.max_cnv_size, class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm") }}
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="control-label block mb-0.5 text-sm">Min size</label>
+          <div class="flex items-center">
+            <span class="mr-1">&gt;</span>
+            {{ form.min_cnv_size(size=7, default=sample.min_cnv_size, class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm") }}
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="control-label block mb-0.5 text-sm">CNV effect</label>
+          <div class="multiselect">
+            <div class="selectBox" onclick="showCheckboxes('cnveffect_checkboxes')">
+              <select class="w-full border border-gray-300 rounded p-0.5 text-sm">
+                <option>Select CNV Effect</option>
+              </select>
+              <div class="overSelect"></div>
+            </div>
+            <div id="cnveffect_checkboxes" class="checkboxes">
+              <label for="inframe" class="text-sm">{{ form.cnveffect_loss(checked=False) }} Loss</label>
+              <label for="outframe" class="text-sm">{{ form.cnveffect_gain(checked=False) }} Gain</label>
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-between mb-2">
+          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm" name="apply" value="apply" type="submit">Apply</button>
+          <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm" name="reset" value="reset" type="submit">Reset</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Toggle Filter Sidebar
+  document.getElementById('filter-toggle').addEventListener('click', function () {
+    const filterSidebar = document.getElementById('filter-sidebar');
+    const snvSidebar = document.getElementById('snv-sidebar');
+
+    // Open filter sidebar and close SNV sidebar if open
+    filterSidebar.classList.toggle('translate-x-full');
+    if (!snvSidebar.classList.contains('translate-x-full')) {
+      snvSidebar.classList.add('translate-x-full');
+    }
+  });
+
+  // Close Filter Sidebar
+  document.getElementById('filter-close').addEventListener('click', function () {
+    document.getElementById('filter-sidebar').classList.add('translate-x-full');
+  });
+
+  // Toggle SNV Sidebar
+  document.getElementById('snv-toggle').addEventListener('click', function () {
+    const filterSidebar = document.getElementById('filter-sidebar');
+    const snvSidebar = document.getElementById('snv-sidebar');
+
+    // Open SNV sidebar and close filter sidebar if open
+    snvSidebar.classList.toggle('translate-x-full');
+    if (!filterSidebar.classList.contains('translate-x-full')) {
+      filterSidebar.classList.add('translate-x-full');
+    }
+  });
+
+  // Close SNV Sidebar
+  document.getElementById('snv-close').addEventListener('click', function () {
+    document.getElementById('snv-sidebar').classList.add('translate-x-full');
+  });
+  ////////////////////////////////////////////////////////////////////////////////
+  // select/de-select snv checkboxes
+  function toggleSelectAllVariants(source) {
+    const checkboxes = document.querySelectorAll('.snv-checkbox');
+    checkboxes.forEach((checkbox) => {
+      checkbox.checked = source.checked;
+    });
+  }
+  ////////////////////////////////////////////////////////////////////////////////
+  // Submit SNV Sidebar Form
+  function submitSNVSidebarForm(actionValue) {
+    const sidebarForm = document.getElementById('snv-sidebar-form');
+    const selectedVariants = document.querySelectorAll('.snv-checkbox:checked'); // Selected variants
+    const sidebarOptions = document.querySelectorAll('.snv-sidebar-checkbox:checked'); // Selected sidebar checkboxes
+  
+    // Remove existing hidden inputs for variants and action
+    const existingVariantInputs = sidebarForm.querySelectorAll('input[name="selected_object_id"]');
+    existingVariantInputs.forEach((input) => input.remove());
+  
+    const existingActionInput = sidebarForm.querySelector('input[name="action"]');
+    if (existingActionInput) {
+      existingActionInput.remove();
+    }
+  
+    // Add selected variants as hidden inputs
+    selectedVariants.forEach((variant) => {
+      const hiddenInput = document.createElement('input');
+      hiddenInput.type = 'hidden';
+      hiddenInput.name = 'selected_object_id';
+      hiddenInput.value = variant.getAttribute('data-value');
+      sidebarForm.appendChild(hiddenInput);
+    });
+  
+    // Add the action value as a hidden input
+    const actionInput = document.createElement('input');
+    actionInput.type = 'hidden';
+    actionInput.name = 'action';
+    actionInput.value = actionValue;
+    sidebarForm.appendChild(actionInput);
+  
+    // Check if both variants and sidebar options are selected
+    const variantsSelected = selectedVariants.length > 0;
+    const optionsSelected = sidebarOptions.length > 0;
+  
+    // Validation: Stop submission if either is missing
+    if (!variantsSelected || !optionsSelected) {
+      if (!variantsSelected && !optionsSelected) {
+        alert('Please select at least one variant and one option.');
+      } else if (!variantsSelected) {
+        alert('Please select at least one variant.');
+      } else {
+        alert('Please select at least one option from the sidebar.');
+      }
+      return; // Stop form submission
+    }
+  
+    // If validation passes, submit the form
+    sidebarForm.submit();
+  }
+</script>
