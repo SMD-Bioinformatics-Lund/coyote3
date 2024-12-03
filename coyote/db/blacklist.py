@@ -1,6 +1,7 @@
 from coyote.db.base import BaseHandler
 from flask import flash
 from flask import current_app as app
+from coyote.util.common_utility import CommonUtility
 
 
 class BlacklistHandler(BaseHandler):
@@ -13,21 +14,20 @@ class BlacklistHandler(BaseHandler):
         self.set_collection(self.adapter.blacklist_collection)
 
     def add_blacklist_data(self, variants: list, assay: str) -> dict:
-        short_pos = []
+        """
+        Add blacklist data to variants
+        """
+
+        short_pos = [var.get("simple_id") for var in variants]
+
+        blacklisted = self.get_collection().find(
+            {"assay": assay, "pos": {"$in": short_pos}}, {"pos": 1, "in_normal_perc": 1, "_id": 0}
+        )
+        blacklisted_dict = {elem["pos"]: elem["in_normal_perc"] for elem in list(blacklisted)}
 
         for var in variants:
-            short_pos.append(f"{str(var['CHROM'])}_{str(var['POS'])}_{var['REF']}_{var['ALT']}")
-
-        blacklisted = self.get_collection().find({"assay": assay, "pos": {"$in": short_pos}})
-        blacklisted_dict = {}
-
-        for blacklist_var in blacklisted:
-            blacklisted_dict[blacklist_var["pos"]] = blacklist_var["in_normal_perc"]
-
-        for var in variants:
-            pos = f"{str(var['CHROM'])}_{str(var['POS'])}_{var['REF']}_{var['ALT']}"
-            if pos in blacklisted_dict:
-                var["blacklist"] = blacklisted_dict[pos]
+            if var["simple_id"] in blacklisted_dict:
+                var["blacklist"] = blacklisted_dict[var["simple_id"]]
 
         return variants
 
@@ -35,7 +35,7 @@ class BlacklistHandler(BaseHandler):
         """
         Add a variant to the blacklist collection
         """
-        short_pos = f"{str(var['CHROM'])}_{str(var['POS'])}_{var['REF']}_{var['ALT']}"
+        short_pos = var.get("simple_id", CommonUtility.get_simple_id(var))
 
         if self.get_collection().insert_one(
             {"assay": assay, "in_normal_perc": 1, "pos": short_pos}

@@ -19,6 +19,7 @@ from coyote.db.brcaexchange import BRCAHandler
 from coyote.db.fusions import FusionsHandler
 from coyote.db.biomarkers import BiomarkerHandler
 from coyote.db.coverage import CoverageHandler
+from coyote.db.cosmic import CosmicHandler
 
 
 class MongoAdapter:
@@ -53,33 +54,21 @@ class MongoAdapter:
         """
         Setup collections
         """
+        # Coyote DB
+        for collection_name, collection_value in (
+            self.app.config.get("DB_COLLECTIONS_CONFIG", {})
+            .get(self.app.config["MONGO_DB_NAME"], {})
+            .items()
+        ):
+            setattr(self, collection_name, self.coyote_db[collection_value])
 
-        ## Coyote DB
-        self.samples_collection = self.coyote_db["samples"]
-        self.users_collection = self.coyote_db["users"]
-        self.groups_collection = self.coyote_db["groups"]
-        self.panels_collection = self.coyote_db["panels"]
-        self.variants_collection = self.coyote_db["variants_idref"]
-        self.canonical_collection = self.coyote_db["refseq_canonical"]
-        self.annotations_collection = self.coyote_db["annotation"]
-        self.cnvs_collection = self.coyote_db["cnvs_wgs"]
-        self.fusion_collection = self.coyote_db["fusions"]
-        self.transloc_collection = self.coyote_db["transloc"]
-        self.biomarkers_collection = self.coyote_db["biomarkers"]
-        self.expression_collection = self.coyote_db["hpaexpr"]
-        self.blacklist_collection = self.coyote_db["blacklist"]
-        self.civic_variants_collection = self.coyote_db["civic_variants"]
-        self.civic_gene_collection = self.coyote_db["civic_genes"]
-        self.oncokb_collection = self.coyote_db["oncokb"]
-        self.oncokb_actionable_collection = self.coyote_db["oncokb_actionable"]
-        self.oncokb_genes_collection = self.coyote_db["oncokb_genes"]
-        self.brcaexchange_collection = self.coyote_db["brcaexchange"]
-        self.iarc_tp53_collection = self.coyote_db["iarc_tp53"]
-        self.fusions_collection = self.coyote_db["fusions"]
-        self.coverage_collection = self.coyote_db["coverage"]
-
-        ## BAM Service DB
-        self.bam_samples = self.bam_db["samples"]
+        # BAM Service DB
+        for bam_collection_name, bam_collection_value in (
+            self.app.config.get("DB_COLLECTIONS_CONFIG", {})
+            .get(self.app.config["BAM_SERVICE_DB_NAME"], {})
+            .items()
+        ):
+            setattr(self, bam_collection_name, self.bam_db[bam_collection_value])
 
     def _setup_handlers(self):
         """
@@ -105,3 +94,4 @@ class MongoAdapter:
         self.fusion_handler = FusionsHandler(self)
         self.biomarker_handler = BiomarkerHandler(self)
         self.coverage_handler = CoverageHandler(self)
+        self.cosmic_handler = CosmicHandler(self)

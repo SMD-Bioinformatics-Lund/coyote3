@@ -5,6 +5,12 @@ import re
 from math import floor, log10
 import dateutil
 import arrow
+from markupsafe import Markup
+
+
+@app.template_filter("has_hotspot")
+def has_hotspot_filter(variants):
+    return any(variant.get("hotspot") for variant in variants)
 
 
 @app.template_filter()
@@ -22,14 +28,54 @@ def format_panel_flag_snv(panel_str):
 
     html = ""
     if "somatic" in classification:
-        html = html + "<span class='filterwarn fusion-good'>*</span>"
+        html = (
+            html
+            + "<span class='inline-block px-1 mx-1 rounded-full text-xs bg-green-100 '>*</span>"
+        )
     for vartype in variant_type:
         if vartype == "snv":
-            html = html + "<span class='filterwarn fusion-good'>SNV</span>"
+            html = (
+                html
+                + "<span class='inline-block px-1 py-1 mx-1 my-1 my-1 rounded-full text-xs bg-green-100'>SNV</span>"
+            )
         else:
-            html = html + "<span class='filterwarn fusion-bad'>" + vartype.upper() + "</span>"
+            html = (
+                html
+                + "<span class='inline-block px-1 py-1 mx-1 my-1 my-1 rounded-full text-xs bg-red-100'>"
+                + vartype.upper()
+                + "</span>"
+            )
 
     return html
+
+
+@app.template_filter()
+def standard_HGVS(st):
+    if st:
+        parts = st.rsplit(".", 1)
+        standard = parts[0] + ".(" + parts[1] + ")"
+    else:
+        standard = ""
+    return Markup.escape(standard)
+
+
+@app.template_filter()
+def perc_no_dec(val):
+    if val and (val != "" or val != "NA"):
+        return f"{str(int(round(100 * val, 0)))}%"
+
+
+@app.template_filter()
+def format_tier(st):
+    if st == 1:
+        return "Tier I"
+    if st == 2:
+        return "Tier II"
+    if st == 3:
+        return "Tier III"
+    if st == 4:
+        return "Tier IV"
+    return st
 
 
 @app.template_filter()
@@ -41,54 +87,54 @@ def format_filter(filters):
     pon_ffpe_fail = False
     for f in filters:
         if f == "PASS":
-            html += "<span class='inline-block px-2 py-1 text-xs font-semibold text-white bg-pass rounded-full'>PASS</span>"
+            html += "<span class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-pass rounded-full'>PASS</span>"
         if f == "GERMLINE":
-            html += "<span title='Germline variant' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-germline rounded-full'>GERM</span>"
+            html += "<span title='Germline variant' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-germline rounded-full'>GERM</span>"
         if f == "GERMLINE_RISK":
-            html += "<span title='Germline risk' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-germline-risk rounded-full'>GERM</span>"
+            html += "<span title='Germline risk' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-germline-risk rounded-full'>GERM</span>"
         if f == "FAIL_NVAF":
-            html += "<span title='Too high VAF in normal sample' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-fail-nvaf rounded-full'>N</span>"
+            html += "<span title='Too high VAF in normal sample' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail-nvaf rounded-full'>N</span>"
         elif f == "FAIL_PVALUE":
-            html += "<span title='Too low P-value' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-fail-pvalue rounded-full'>P</span>"
+            html += "<span title='Too low P-value' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail-pvalue rounded-full'>P</span>"
         elif "WARN_HOMOPOLYMER" in f:
-            html += "<span title='Variant in homopolymer' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-warn-homopolymer rounded-full'>HP</span>"
+            html += "<span title='Variant in homopolymer' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn-homopolymer rounded-full'>HP</span>"
         elif "WARN_STRANDBIAS" in f:
-            html += "<span title='Strand bias' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-warn-strandbias rounded-full'>SB</span>"
+            html += "<span title='Strand bias' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn-strandbias rounded-full'>SB</span>"
         elif "FAIL_STRANDBIAS" in f:
-            html += "<span title='Strand bias' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-fail-strandbias rounded-full'>SB</span>"
+            html += "<span title='Strand bias' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail-strandbias rounded-full'>SB</span>"
         elif "FAIL_LONGDEL" in f:
-            html += "<span title='Long DEL from vardict' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-fail-longdel rounded-full'>LD</span>"
+            html += "<span title='Long DEL from vardict' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail-longdel rounded-full'>LD</span>"
         elif f == "WARN_LOW_TVAF":
-            html += "<span title='Low tumor VAF' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-warn-low-tvaf rounded-full'>LO</span>"
+            html += "<span title='Low tumor VAF' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn-low-tvaf rounded-full'>LO</span>"
         elif f == "WARN_VERYLOW_TVAF":
-            html += "<span title='Very low tumor VAF' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-warn-verylow-tvaf rounded-full'>XLO</span>"
+            html += "<span title='Very low tumor VAF' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn-verylow-tvaf rounded-full'>XLO</span>"
         elif f == "WARN_NOVAR":
             pass
         elif "WARN_PON" in f:
             if not pon_warn:
                 pon_warn = True
-                html += "<span title='Variant seen in panel of normals' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-warn-pon rounded-full'>PON</span>"
+                html += "<span title='Variant seen in panel of normals' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn-pon rounded-full'>PON</span>"
         elif "FAIL_PON" in f:
             if not pon_fail:
                 pon_fail = True
-                html += "<span title='Variant failed because seen in panel of normals' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-fail-pon rounded-full'>PON</span>"
+                html += "<span title='Variant failed because seen in panel of normals' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail-pon rounded-full'>PON</span>"
         elif "WARN_FFPE_PON" in f:
             if not pon_ffpe_warn:
                 pon_ffpe_warn = True
-                html += "<span title='Variant seen in panel of FFPE-normals' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-warn-ffpe-pon rounded-full'>FFPE</span>"
+                html += "<span title='Variant seen in panel of FFPE-normals' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn-ffpe-pon rounded-full'>FFPE</span>"
         elif "FAIL_FFPE_PON" in f:
             if not pon_ffpe_fail:
                 pon_ffpe_fail = True
-                html += "<span title='Variant failed because seen in panel of FFPE-normals' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-fail-ffpe-pon rounded-full'>FFPE</span>"
+                html += "<span title='Variant failed because seen in panel of FFPE-normals' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail-ffpe-pon rounded-full'>FFPE</span>"
         elif "FAIL" in f:
             html += (
-                "<span class='inline-block px-2 py-1 text-xs font-semibold text-white bg-fail rounded-full'>"
+                "<span class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail rounded-full'>"
                 + f
                 + "</span>"
             )
         elif "WARN" in f:
             html += (
-                "<span class='inline-block px-2 py-1 text-xs font-semibold text-white bg-warn rounded-full'>"
+                "<span class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn rounded-full'>"
                 + f
                 + "</span>"
             )
@@ -226,6 +272,18 @@ def no_transid(nom):
         return a[1]
 
 
+@app.template_filter(name="format_hotspot_note")
+def format_hotspot_note(dummy):
+    html = ""
+    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-melanoma rounded-full'>MM: Malignt Melanom</span>&nbsp;"
+    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-cns rounded-full'>CNS: Centrala Nervsystemet</span>&nbsp;"
+    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-lung rounded-full'>LU: Lunga</span>&nbsp;"
+    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-colon rounded-full'>CO: Kolorektal</span>&nbsp;"
+    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-gi rounded-full'>GI: Gastro-Intestinal</span>&nbsp;"
+    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-dna rounded-full'>D: Generell Solid</span>&nbsp;"
+    return html
+
+
 @app.template_filter()
 def format_hotspot(filters):
     """
@@ -235,17 +293,17 @@ def format_hotspot(filters):
     html = ""
     for f in filters:
         if "mm" in f:
-            html += "<span title='Present in Melanoma hotspot list' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-melanoma rounded-full'>MM</span>"
+            html += "<span title='Present in Melanoma hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-melanoma rounded-full'>MM</span>"
         if "cns" in f:
-            html += "<span title='Present in CNS hotspot list' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-cns rounded-full'>CNS</span>"
+            html += "<span title='Present in CNS hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-cns rounded-full'>CNS</span>"
         if "lu" in f:
-            html += "<span title='Present in Lung hotspot list' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-lung rounded-full'>LU</span>"
+            html += "<span title='Present in Lung hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-lung rounded-full'>LU</span>"
         if "co" in f:
-            html += "<span title='Present in Colon hotspot list' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-colon rounded-full'>CO</span>"
+            html += "<span title='Present in Colon hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-colon rounded-full'>CO</span>"
         if "gi" in f:
-            html += "<span title='Present in Gastro Intestinal hotspot list' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-gi rounded-full'>GI</span>"
+            html += "<span title='Present in Gastro Intestinal hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-gi rounded-full'>GI</span>"
         if "d" in f:
-            html += "<span title='Present in DNA-panel hotspot list' class='inline-block px-2 py-1 text-xs font-semibold text-white bg-dna rounded-full'>D</span>"
+            html += "<span title='Present in DNA-panel hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-dna rounded-full'>D</span>"
 
     return html
 

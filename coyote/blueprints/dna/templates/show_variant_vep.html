@@ -19,7 +19,7 @@
       </div>
 
       <!-- Right Side: Variant Actions -->
-      {% if current_user.get_role() != "user" %}
+      {% if current_user.get_role() == "admin" %}
       <div class="flex items-center space-x-4">
         {% if variant.blacklist is defined and variant.override_blacklist != true %}
           <form action="{{ url_for('dna_bp.add_variant_to_blacklist', id=variant._id) }}" method="post">
@@ -90,7 +90,7 @@
               </tr>
               <tr class="hover:bg-purple-50">
                 <td class="px-2 py-2 border-b font-semibold">Variant class:</td>
-                <td class="px-2 py-2 border-b">{{ sel_csq.VARIANT_CLASS }}</td
+                <td class="px-2 py-2 border-b">{{ variant.variant_class }}</td
               ></tr>
               {% if type == "DEL" or type == "DUP" %}
                 <tr class="hover:bg-purple-50">
@@ -106,15 +106,50 @@
                 <td class="px-2 py-2 border-b font-semibold">Canonical transcript:</td>
                 <td class="px-2 py-2 border-b">{{ sel_csq.Feature }}</td>
               </tr>
+
+
               <tr class="hover:bg-purple-50">
                 <td class="px-2 py-2 border-b font-semibold">Protein change:</td>
-                <td class="px-2 py-2 border-b">{{ sel_csq.HGVSp|no_transid|unesc|ellipsify(35)|safe }}<br>{{ sel_csq.HGVSp|no_transid|one_letter_p|unesc|ellipsify(35)|safe }}</td>
+                <td class="px-2 py-2 border-b">
+                  <!-- Truncated version (initial view with ellipsis) -->
+                  <div id="protein-short" class="truncate w-full overflow-hidden">
+                    {{ sel_csq.HGVSp|unesc|ellipsify(20)|safe }}<br>{{ sel_csq.HGVSp|one_letter_p|unesc|ellipsify(20)|safe }}
+                  </div>
+              
+                  <!-- Full text, initially hidden -->
+                  <div id="protein-full" class="hidden w-full break-all whitespace-normal">
+                    {{ sel_csq.HGVSp|unesc }}<br>{{ sel_csq.HGVSp|one_letter_p|unesc }}
+                  </div>
+              
+                  <!-- Button to toggle text visibility -->
+                  <button class="mt-1 text-xs text-gray-500 hover:text-blue-500 focus:outline-none"
+                          onclick="toggleText(this)">
+                    [+]
+                  </button>
+                </td>
               </tr>
-              {% set c_hgvs = sel_csq.HGVSc.split(':') %}
+              
               <tr class="hover:bg-purple-50">
                 <td class="px-2 py-2 border-b font-semibold">CDS change:</td>
-                <td class="px-2 py-2 border-b">{{ c_hgvs[1]|ellipsify(35)|safe }}</td>
+                <td class="px-2 py-2 border-b">
+                  <!-- Truncated version (initial view with ellipsis) -->
+                  <div id="cds-short" class="truncate w-full overflow-hidden">
+                    {{ sel_csq.HGVSc|ellipsify(20)|safe }}
+                  </div>
+              
+                  <!-- Full text, initially hidden -->
+                  <div id="cds-full" class="hidden w-full break-all whitespace-normal">
+                    {{ sel_csq.HGVSc }}
+                  </div>
+              
+                  <!-- Button to toggle text visibility -->
+                  <button class="mt-1 text-xs text-gray-500 hover:text-blue-500 focus:outline-none"
+                          onclick="toggleText(this)">
+                    [+]
+                  </button>
+                </td>
               </tr>
+              
               {% set indel_size = variant.ALT|length - variant.REF|length %}
               {% if indel_size != 0 %}
                 <tr class="hover:bg-purple-50">
@@ -139,10 +174,31 @@
                 </tr>
               {% endif %}
               {% set genomic_change =  variant.CHROM ~ ":" ~ variant.POS ~ ", " ~  variant.REF ~ " / " ~ variant.ALT %}
+
+
+
               <tr class="hover:bg-purple-50">
                 <td class="px-2 py-2 border-b font-semibold">Genomic change:</td>
-                <td class="px-2 py-2 border-b">{{ genomic_change|ellipsify(35)|safe }}</td>
+                <td class="px-2 py-2 border-b">
+                  <!-- Truncated version (initial view with ellipsis) -->
+                  <div id="genomic-short" class="truncate w-full overflow-hidden">
+                    {{ genomic_change|ellipsify(20)|safe }}
+                  </div>
+
+                  <!-- Full text, initially hidden -->
+                  <div id="genomic-full" class="hidden w-full break-all whitespace-normal">
+                    {{ genomic_change }}
+                  </div>
+
+                  <!-- Button to toggle text visibility -->
+                  <button class="mt-1 text-xs text-gray-500 hover:text-blue-500 focus:outline-none"
+                          onclick="toggleText(this)">
+                    [+]
+                  </button>
+                </td>
               </tr>
+
+
               <tr class="hover:bg-purple-50">
                 <td class="px-2 py-2 border-b font-semibold">CADD PHRED:</td>
                 <td class="px-2 py-2 border-b">{{ sel_csq.CADD_PHRED }}</td>
@@ -158,23 +214,16 @@
               <tr class="hover:bg-purple-50">
                 <td class="px-2 py-2 border-b font-semibold">dbSNP:</td>
                 <td class="px-2 py-2 border-b">
-                  {% for rs_id in variant.INFO.rs_ids %}
-                  {% set rs_num = rs_id.split("s") %}
-                    <a target="_blank" href="https://www.ncbi.nlm.nih.gov/projects/SNP/snp_ref.cgi?rs={{ rs_num[1]}}" class="text-blue-600 underline">{{ rs_id }}</a>
-                  {% endfor %}
+                  {%if variant.dbsnp_id %}
+                    <a target="_blank" href="https://www.ncbi.nlm.nih.gov/snp/{{ variant.dbsnp_id }}" class="text-blue-600 underline">{{ variant.dbsnp_id }}</a>
+                  {%endif%}
                 </td>
               </tr>
               <tr class="hover:bg-purple-50">
                 <td class="px-2 py-2 border-b font-semibold">COSMIC:</td>
                 <td class="px-2 py-2 border-b">
-                  {% if variant.INFO.cosm_ids|length > 0 %}
-                    {% for cosm_id in variant.INFO.cosm_ids %}
-                      {% set cosm_num = cosm_id.split("M") %}
-                      <a target="_blank" href="https://cancer.sanger.ac.uk/cosmic/mutation/overview?genome=37&id={{ cosm_num[1]}}" class="text-blue-600 underline">{{ cosm_id }}</a><br>
-                    {% endfor %}
-                  {% elif sel_csq.COSMIC %}
-                    {% set cosm_ids = sel_csq.COSMIC.split("&") %}
-                    {% for cosm_id in cosm_ids|array_uniq %}
+                  {% if variant.cosmic_ids %}
+                    {% for cosm_id in variant.cosmic_ids %}
                       <a target="_blank" href="https://cancer.sanger.ac.uk/cosmic/search?q={{ cosm_id }}" class="text-blue-600 underline">{{ cosm_id }}</a><br>
                     {% endfor %}
                   {% endif %}
@@ -182,7 +231,7 @@
               </tr>
               <tr class="hover:bg-purple-50">
                 <td class="px-2 py-2 border-b font-semibold">ClinVar:</td>
-                <td class="px-2 py-2 border-b">{{ sel_csq.CLIN_SIG|multirow|safe }}</td>
+                <td class="px-2 py-2 border-b">{{ sel_csq.CLIN_SIG|default('')|multirow|safe }}</td>
               </tr>
               <tr>
                 <td class="px-2 py-2 border-b font-semibold">cBioPortal:</td>
@@ -195,15 +244,15 @@
               {% if sel_csq.SYMBOL == "TP53" %}
                 <tr class="hover:bg-purple-50">
                   <td class="px-2 py-2 border-b font-semibold">Seshat:</td>
-                  <td class="px-2 py-2 border-b"><a target="_blank" href="http://vps338341.ovh.net/search?mutation={{ sel_csq.HGVSp|no_transid|one_letter_p|unesc|ellipsify(35)|safe }}&sampleid=" class="text-blue-600 underline">{{sel_csq.SYMBOL}}</a></td>
+                  <td class="px-2 py-2 border-b"><a target="_blank" href="http://vps338341.ovh.net/search?mutation={{ sel_csq.HGVSp|unesc|one_letter_p|ellipsify(35)|safe }}&sampleid=" class="text-blue-600 underline">{{sel_csq.SYMBOL}}</a></td>
                 </tr>
               {% endif %}
               <tr class="hover:bg-purple-50">
                 <td class="px-2 py-2 border-b font-semibold">LitVar:</td>
                 <td class="px-2 py-2 border-b">
-                  {% for rs_id in variant.INFO.rs_ids %}
-                    <a target="_blank" href="https://www.ncbi.nlm.nih.gov/CBBresearch/Lu/Demo/LitVar/#!?query={{ rs_id }}" class="text-blue-600 underline">{{ rs_id }}</a>
-                  {% endfor %}
+                  {% if variant.dbsnp_id %}
+                    <a target="_blank" href="https://www.ncbi.nlm.nih.gov/CBBresearch/Lu/Demo/LitVar/#!?query={{ variant.dbsnp_id }}" class="text-blue-600 underline">{{ variant.dbsnp_id }}</a>
+                  {% endif %}
                 </td>
               </tr>
               {% if type == "DEL" or type == "DUP" %}
@@ -215,9 +264,9 @@
               <tr class="hover:bg-purple-50">
                 <td class="px-2 py-2 border-b font-semibold">Alamut:</td>
                 <td class="px-2 py-2 border-b">
-                  {% for rs_id in variant.INFO.rs_ids %}
-                  <a target="_blank" href="http://localhost:10000/show?request={{variant.CHROM}}:{{variant.POS}}{{variant.REF}}&gt;{{variant.ALT}}" class="text-blue-600 underline">open</a>
-                  {% endfor %}
+                  {% if variant.dbsnp_id %}
+                    <a target="_blank" href="http://localhost:10000/show?request={{variant.CHROM}}:{{variant.POS}}{{variant.REF}}&gt;{{variant.ALT}}" class="text-blue-600 underline">open</a>
+                  {% endif %}
                 </td>
               </tr>
               {% set subfolder = {'dir': "None"} %}
@@ -290,7 +339,7 @@
         <div class="float-left max-w-screen-400 w-full bg-white shadow-md rounded-lg p-4 m-5 overflow-auto">
            <!-- id="var_moreinfo" -->
           <h2 class="text-base font-semibold mb-4 bg-indigo-300 p-2 rounded">
-            Variant Data for All Transcripts 
+            Alternate Transcripts Info
             {% if assay=="swea" or assay == "gmsonco" %}
             <a href="javascript:void(0)" onclick="switchVisibility_noncanonicaltranscripts('noncanonical_transcript')">Show/hide</a>
             {% endif %}
@@ -308,8 +357,6 @@
             <tbody>
               {% for csq in variant.INFO.CSQ %}
                 {% if csq.BIOTYPE == "protein_coding" and (csq.HGVSp|length > 0 or csq.HGVSc|length > 0)  %}
-                  {% set p_dat = csq.HGVSp.split(':') %}
-                  {% set c_dat = csq.HGVSc.split(':') %}
                   {% if csq.Feature == sel_csq.Feature  %}
                     <tr class="bg-yellow-100 hover:bg-green-100 font-semibold">
                   {% else %}
@@ -318,14 +365,8 @@
                   <td class="px-2 py-2 border-b">{{ csq.SYMBOL }}</td>
                   <td class="px-2 py-2 border-b">{{ csq.Feature }}</td>
                   <td class="px-2 py-2 border-b">{{ csq.EXON }}</td>
-                  <td class="px-2 py-2 border-b">{{ p_dat[1]|unesc|ellipsify(20)|safe }}</td>
-                  <td class="px-2 py-2 border-b">{{ c_dat[1]|unesc|ellipsify(20)|safe }}</td>
-                  <!--td>
-                    {#% if csq.Feature in expression %#}
-                    {#% set max_key = expression[csq.Feature]|max_key %#}
-                    {#{ max_key }} - {{ expression[csq.Feature][max_key]|round(1) }#}
-                    {#% endif %#}
-                  </td-->    
+                  <td class="px-2 py-2 border-b">{{ csq.HGVSp|unesc|ellipsify(20)|safe }}</td>
+                  <td class="px-2 py-2 border-b">{{ csq.HGVSc|unesc|ellipsify(20)|safe }}</td> 
                 </tr>
                 {% endif %}
               {% endfor %}
@@ -376,81 +417,20 @@
             </thead>
             <tbody>
               <tr class="hover:bg-indigo-50">
-                <td class="px-2 py-2 border-b">gnomAD exomes</td>
-                <td class="px-2 py-2 border-b">{{ sel_csq.gnomAD_AF|format_gnomad }}</td>
+                <td class="px-2 py-2 border-b">gnomAD</td>
+                <td class="px-2 py-2 border-b">{{ variant.gnomad_frequency|format_gnomad }}</td>
               </tr>
-              {% if sel_csq.gnomADg_AF %}
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">gnomAD genomes</td>
-                  <td class="px-2 py-2 border-b">{{ sel_csq.gnomADg_AF|format_gnomad }}</td>
-                </tr>
-              {% endif %}
-              {% if sel_csq.gnomAD_AF %}
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">gnomAD European</td>
-                  <td class="px-2 py-2 border-b">{{ sel_csq.gnomAD_NFE_AF|format_gnomad }}</td>
-                </tr>
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">gnomAD Finnish</td>
-                  <td class="px-2 py-2 border-b">{{ sel_csq.gnomAD_FIN_AF|format_gnomad }}</td>
-                </tr>
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">gnomAD African</td>
-                  <td class="px-2 py-2 border-b">{{ sel_csq.gnomAD_AFR_AF|format_gnomad }}</td>
-                </tr>
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">gnomAD Latino</td>
-                  <td class="px-2 py-2 border-b">{{ sel_csq.gnomAD_AMR_AF|format_gnomad }}</td>
-                </tr>
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">gnomAD African</td>
-                  <td class="px-2 py-2 border-b">{{ sel_csq.gnomAD_AFR_AF|format_gnomad }}</td>
-                </tr>
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">gnomAD East Asian</td>
-                  <td class="px-2 py-2 border-b">{{ sel_csq.gnomAD_EAS_AF|format_gnomad }}</td>
-                </tr>
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">gnomAD South Asian</td>
-                  <td class="px-2 py-2 border-b">{{ sel_csq.gnomAD_SAS_AF|format_gnomad }}</td>
-                </tr>
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">gnomAD Ashkenazi Jewish</td>
-                  <td class="px-2 py-2 border-b">{{ sel_csq.gnomAD_ASJ_AF|format_gnomad }}</td>
-                </tr>
-              {% elif sel_csq.ExAC_MAF %}
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">ExAC all</td>
-                  <td class="px-2 py-2 border-b">{{ sel_csq.ExAC_MAF|format_pop_freq(variant.ALT)|safe }}</td>
-                </tr>
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">ExAC European</td>
-                  <td class="px-2 py-2 border-b">{{ sel_csq.ExAC_NFE_MAF|format_pop_freq(variant.ALT)|safe }}</td>
-                </tr>
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">ExAC Finnish</td>
-                  <td class="px-2 py-2 border-b">{{ sel_csq.ExAC_FIN_MAF|format_pop_freq(variant.ALT)|safe }}</td>
-                </tr>
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">ExAC African</td>
-                  <td class="px-2 py-2 border-b">{{ sel_csq.ExAC_AFR_MAF|format_pop_freq(variant.ALT)|safe }}</td>
-                </tr>
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">ExAC Latino</td>
-                  <td class="px-2 py-2 border-b">{{ sel_csq.ExAC_AMR_MAF|format_pop_freq(variant.ALT)|safe }}</td>
-                </tr>
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">ExAC East Asian</td>
-                  <td class="px-2 py-2 border-b">{{ sel_csq.ExAC_EAS_MAF|format_pop_freq(variant.ALT)|safe }}</td>
-                </tr>
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">ExAC South Asian</td>
-                  <td class="px-2 py-2 border-b">{{ sel_csq.ExAC_SAS_MAF|format_pop_freq(variant.ALT)|safe }}</td>
-                </tr>
-              {% endif %}
+              <tr class="hover:bg-indigo-50">
+                <td class="px-2 py-2 border-b">gnomAD Max</td>
+                <td class="px-2 py-2 border-b">{{ variant.gnomad_max|format_gnomad }}</td>
+              </tr>
+              <tr class="hover:bg-indigo-50">
+                <td class="px-2 py-2 border-b">ExAC all</td>
+                <td class="px-2 py-2 border-b">{{ variant.ExAC_MAF|format_pop_freq(variant.ALT)|safe }}</td>
+              </tr>
               <tr class="hover:bg-indigo-50">
                 <td class="px-2 py-2 border-b">1000 G</td>
-                <td class="px-2 py-2 border-b">{{ sel_csq.AF|format_gnomad }}{{ sel_csq.GMAF|format_pop_freq(variant.ALT)}}</td>
+                <td class="px-2 py-2 border-b">{{ variant.thousandG_frequency|format_pop_freq(variant.ALT)}}</td>
               </tr>
               {% if "swegenAF" in variant.INFO %}
                 <tr class="hover:bg-indigo-50">
@@ -528,8 +508,8 @@
                 {% if sel_csq.HGVSc is defined %}
                   <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">
                   <input type="hidden" name="transcript" value="{{ sel_csq.Feature }}">
-                  <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|no_transid }}">
-                  <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|no_transid }}">
+                  <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|unesc }}">
+                  <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc }}">
                 {% endif %}
                 <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
                 <div class="pt-2 pr-2 pb-1 pl-1">
@@ -546,8 +526,8 @@
                 {% if sel_csq.HGVSc is defined %}
                   <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">
                   <input type="hidden" name="transcript" value="{{ sel_csq.Feature }}">
-                  <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|no_transid }}">
-                  <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|no_transid }}">
+                  <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|unesc }}">
+                  <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc }}">
                 {% endif %}
                   <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
                 {% if 'assay' in classification %}
@@ -598,8 +578,8 @@
               {% if sel_csq.HGVSc is defined %}
                 <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">      
                 <input type="hidden" name="transcript" value="{{ sel_csq.Feature }}">
-                <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|no_transid }}">
-                <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|no_transid }}">
+                <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|unesc }}">
+                <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc}}">
               {% endif %}
               <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
               <input type="submit" value="Save" class="bg-blue-500 text-white py-2 px-4 rounded-md cursor-pointer shadow-md">&nbsp;&nbsp;
@@ -698,8 +678,8 @@
         {% endif %}
 
         <!-- Variant Annotations Information All -->
-        <div class="float-left max-w-screen-350 w-full bg-white shadow-md rounded-lg p-4 m-5">
-          {% if annotations|length > 0 %}
+        {% if annotations|length > 0 %}
+          <div class="float-left max-w-screen-350 w-full bg-white shadow-md rounded-lg p-4 m-5">
             <h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">Variant Annotations (all)</h2>
             <table class="w-full table-auto text-xs">
               <thead>
@@ -731,8 +711,8 @@
                 {% endfor %}
               </tbody>
             </table>
+          </div>
         {% endif %}
-        </div>
 
         <!-- MELT Annotations -->
         {% if "MELT" in variant.INFO.variant_callers %}
@@ -963,6 +943,22 @@
     var targ = event.target || event.srcElement;
     if (!targ.closest('tr').classList.contains('hidden_comment')) {
       document.getElementById("comment_textarea").value = targ.textContent || targ.innerText;
+    }
+  }
+
+  function toggleText(button) {
+    var shortText = button.previousElementSibling.previousElementSibling;
+    var fullText = button.previousElementSibling;
+
+    // Toggle between short and full text
+    if (fullText.classList.contains('hidden')) {
+      shortText.classList.add('hidden');   // Hide truncated text
+      fullText.classList.remove('hidden'); // Show full text
+      button.textContent = '[-]';          // Change button text to Collapse
+    } else {
+      shortText.classList.remove('hidden'); // Show truncated text
+      fullText.classList.add('hidden');     // Hide full text
+      button.textContent = '[+]';           // Change button text to Expand
     }
   }
   

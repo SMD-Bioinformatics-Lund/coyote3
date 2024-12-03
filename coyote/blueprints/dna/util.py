@@ -8,12 +8,51 @@ from bson.objectid import ObjectId
 from coyote.util.common_utility import CommonUtility
 from flask import current_app as app
 from coyote.extensions import store
+from bisect import bisect_left
 
 
 class DNAUtility:
     """
     Utility class for variants blueprint
     """
+
+    @staticmethod
+    def get_protein_coding_genes(var_iter: list) -> tuple[list, list]:
+        """
+        Get protein coding genes from a variant list
+        """
+        genes = set()
+        variants = []
+        for var in var_iter:
+            if var["INFO"].get("selected_CSQ", {}).get("BIOTYPE") == "protein_coding":
+                genes.add(var["INFO"]["selected_CSQ"]["SYMBOL"])
+            for csq in var["INFO"]["CSQ"]:
+                if csq["BIOTYPE"] == "protein_coding":
+                    genes.add(csq["SYMBOL"])
+            variants.append(var)
+
+        return variants, list(genes)
+
+    @staticmethod
+    def hotspot_variant(variants: list) -> list[dict]:
+        """
+        Return variants that are hotspots.
+
+        Args:
+            variants (list): A list of variant dictionaries.
+
+        Returns:
+            list[dict]: A list of variant dictionaries that are hotspots.
+        """
+        hotspots = []
+        for variant in variants:
+            hotspot_dict = variant.get("hotspots", [{}])[0]
+            if hotspot_dict:
+                for hotspot_key, hotspot_elem in hotspot_dict.items():
+                    if any("COS" in elem for elem in hotspot_elem):
+                        variant.setdefault("INFO", {}).setdefault("HOTSPOT", []).append(hotspot_key)
+            hotspots.append(variant)
+        return hotspots
 
     @staticmethod
     def get_filter_conseq_terms(checked):
@@ -59,6 +98,11 @@ class DNAUtility:
 
     @staticmethod
     def parse_allele_freq(freq, allele):
+        """
+        Depricated Function, Will be removed in future versions
+        """
+        # TODO: Remove this function
+
         if not freq:
             return ""
         if len(allele) > 1:
@@ -75,31 +119,26 @@ class DNAUtility:
 
         filtered_variants = []
 
-        for v in variants:
-            allele = v["ALT"]
-            exac = DNAUtility.parse_allele_freq(v["INFO"]["selected_CSQ"].get("ExAC_MAF"), v["ALT"])
-            thousand_g = DNAUtility.parse_allele_freq(
-                v["INFO"]["selected_CSQ"].get("GMAF"), v["ALT"]
-            )
-            gnomad = v["INFO"]["selected_CSQ"].get("gnomAD_AF", 0)
-            gnomad_genome = v["INFO"]["selected_CSQ"].get("gnomADg_AF", 0)
-            if gnomad == "." or gnomad == "":
-                gnomad = -1
-            if gnomad_genome == "." or gnomad_genome == "":
-                gnomad_genome = -1
+        for var in variants:
+            pop_freq = {
+                "exac": var.get("exac_frequency"),
+                "thousand_g": var.get("thousandG_frequency"),
+                "gnomad": var.get("gnomad_frequency"),
+                # "gnomad_max": var.get("gnomad_max"),
+            }
+            for k, v in pop_freq.items():
+                if v in ["", ".", None]:
+                    pop_freq[k] = float(-1)
+                else:
+                    pop_freq[k] = float(v)
 
             try:
-                if max_freq < 1 and (
-                    exac > max_freq
-                    or thousand_g > max_freq
-                    or float(gnomad) > max_freq
-                    or float(gnomad_genome) > max_freq
-                ):
+                if max_freq < 1 and any([freq > max_freq for freq in pop_freq.values()]):
                     pass
                 else:
-                    filtered_variants.append(v)
+                    filtered_variants.append(var)
             except TypeError:
-                filtered_variants.append(v)
+                filtered_variants.append(var)
 
         return filtered_variants
 
@@ -116,8 +155,25 @@ class DNAUtility:
         return pon
 
     @staticmethod
-    def select_csq(csq_arr, canonical):
+    def select_csq(csq_arr: list, canonical: dict):
+        """
+        Selects the most appropriate consequence (csq) from a list of consequences based on predefined criteria.
 
+        The function prioritizes consequences in the following order:
+        1. A consequence that matches the canonical dictionary (db_canonical).
+        2. A consequence marked as canonical by VEP (vep_canonical).
+        3. The first protein-coding consequence (first_protcoding).
+        4. If none of the above are found, the first consequence in the list.
+
+        Args:
+            csq_arr (list): A list of consequence dictionaries.
+            canonical (dict): A dictionary containing canonical symbols and their corresponding features.
+
+        Returns:
+            tuple: A tuple containing the selected consequence dictionary and a string indicating the selection method
+                ("db", "vep", or "random").
+        """
+        # TODO: SHOULD BE PROBABLY BRING IN MANE TRANSCRIPTS INTO THE SELECTION PROCESS
         db_canonical = -1
         vep_canonical = -1
         first_protcoding = -1
@@ -126,20 +182,22 @@ class DNAUtility:
 
         for impact in impact_order:
             for csq_idx, csq in enumerate(csq_arr):
-                if csq["IMPACT"] == impact:
+                csq_symbol = csq.get("SYMBOL")
+                csq_feature = csq.get("Feature")
+                csq_biotype = csq.get("BIOTYPE")
+                csq_impact = csq.get("IMPACT")
 
-                    if csq["SYMBOL"] in canonical and canonical[
-                        csq["SYMBOL"]
-                    ] == DNAUtility.refseq_noversion(csq["Feature"]):
+                if csq_impact == impact:
+                    if csq_symbol in canonical and canonical.get(
+                        csq_symbol
+                    ) == DNAUtility.refseq_noversion(csq_feature):
                         db_canonical = csq_idx
                         return (csq_arr[db_canonical], "db")
-                    if csq["CANONICAL"] == "YES" and vep_canonical == -1:
+
+                    if csq.get("CANONICAL") == "YES" and vep_canonical == -1:
                         vep_canonical = csq_idx
-                    if (
-                        first_protcoding == -1
-                        and csq["BIOTYPE"] == "protein_coding"
-                        and first_protcoding == -1
-                    ):
+
+                    if first_protcoding == -1 and csq_biotype == "protein_coding":
                         first_protcoding = csq_idx
 
         if vep_canonical >= 0:
@@ -155,15 +213,19 @@ class DNAUtility:
         return a[0]
 
     @staticmethod
-    def select_csq_for_variants(variants, subpanel, assay, canonical_dict):
+    def select_csq_for_variants(
+        variants: list, subpanel: str, assay: str, canonical_dict: dict
+    ) -> list:
         """
         Selects the VEP CSQ and adds additional annotations to the variant
         """
+        # TODO:
         for var_idx, var in enumerate(variants):
             (
                 variants[var_idx]["INFO"]["selected_CSQ"],
                 variants[var_idx]["INFO"]["selected_CSQ_criteria"],
             ) = DNAUtility.select_csq(var["INFO"]["CSQ"], canonical_dict)
+
             (
                 variants[var_idx]["global_annotations"],
                 variants[var_idx]["classification"],
@@ -171,6 +233,172 @@ class DNAUtility:
                 variants[var_idx]["annotations_interesting"],
             ) = store.annotation_handler.get_global_annotations(variants[var_idx], assay, subpanel)
         return variants
+
+    @staticmethod
+    def add_global_annotations(variants: list, assay: str, subpanel: str) -> list:
+        """
+        Add global annotations to the variants
+        """
+        for var_idx, var in enumerate(variants):
+            (
+                variants[var_idx]["global_annotations"],
+                variants[var_idx]["classification"],
+                variants[var_idx]["other_classification"],
+                variants[var_idx]["annotations_interesting"],
+            ) = store.annotation_handler.get_global_annotations(var, assay, subpanel)
+        return variants
+
+    @staticmethod
+    def filter_variants_for_report(variants: list, filter_genes: list, assay: str) -> list:
+        """
+        Filter the variants for the report
+        """
+        filtered_sorted_variants = sorted(
+            [
+                var
+                for var in variants
+                if (
+                    var.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL") in filter_genes
+                    or len(filter_genes) == 0
+                )
+                and not var.get("blacklist")
+                and var.get("classification", {}).get("class") != 4
+                and var.get("classification", {}).get("class") != 999
+                and not (
+                    (assay == "gmsonco" and var.get("classification", {}).get("class") == 3)
+                    if assay != "tumwgs"
+                    else False
+                )
+            ],
+            key=lambda var: var.get("classification", {}).get("class"),
+        )
+
+        return filtered_sorted_variants
+
+    @staticmethod
+    def get_simple_variants_for_report(variants: list) -> list:
+        """
+        Get simple variants for the report
+        """
+        translation = app.config.get("REPORT_CONFIG", {}).get("REPORT_TRANS")
+        class_short_desc_list = app.config.get("REPORT_CONFIG", {}).get("CLASS_DESC_SHORT")
+        class_long_desc_list = app.config.get("REPORT_CONFIG", {}).get("CLASS_DESC")
+        one_letter_p = app.jinja_env.filters["one_letter_p"]
+        standard_HGVS = app.jinja_env.filters["standard_HGVS"]
+        cdna = ""
+        protein_changes = []
+        simple_variants = []
+        for var in variants:
+            indel_size = len(var.get("ALT")) - len(var.get("REF"))
+            selected_CSQ = var.get("INFO", {}).get("selected_CSQ", {})
+            var_type = "snv"
+            variant_class = var.get("classification", {}).get("class")
+            if indel_size > 20 or indel_size < -20:
+                var_type = "indel"
+
+                if indel_size < 0:
+                    variant = cdna = f"{abs(indel_size)}bp DEL"
+                else:
+                    variant = cdna = f"{indel_size}bp INS"
+            elif selected_CSQ.get("HGVSc"):
+                variant = cdna = selected_CSQ.get("HGVSc")
+            elif var.get("INFO", {}).get("SVTYPE"):
+                var_type = "sv"
+                variant = cdna = (
+                    f"{var.get("INFO", {}).get("SVLEN")}bp {translation[var.get("INFO", {}).get('SVTYPE')]}"
+                )
+            else:
+                variant = "?"
+
+            # if there is a protein change and not long indel then replace the variant
+            if selected_CSQ.get("HGVSp", None):
+                if indel_size <= 20 or indel_size >= -20:
+                    var_type = "snv"
+                    variant = standard_HGVS(one_letter_p(selected_CSQ.get("HGVSp")))
+                    protein_changes = [
+                        standard_HGVS(one_letter_p(selected_CSQ.get("HGVSp"))),
+                        standard_HGVS(selected_CSQ.get("HGVSp")),
+                    ]
+                else:
+                    protein_changes = [
+                        one_letter_p(selected_CSQ.get("HGVSp")),
+                        selected_CSQ.get("HGVSp"),
+                    ]
+
+            # Vairant class short description
+            if str(variant_class) in class_short_desc_list:
+                variant_class_short = class_short_desc_list[str(variant_class)]
+            else:
+                variant_class_short = "None"
+
+            # Vairant class long description
+            if str(variant_class) in class_short_desc_list:
+                variant_class_long = class_long_desc_list[str(variant_class)]
+            else:
+                variant_class_long = "None"
+
+            # Classification/variant type
+            if var.get("INFO", {}).get("MYELOID_GERMLINE") == 1 or "GERMLINE" in var.get(
+                "FILTER", []
+            ):
+                class_type = "Konstitutionell"
+            else:
+                class_type = "Somatisk"
+
+            # consequence
+            all_conseq = selected_CSQ.get("Consequence", [])
+            consequence = ""
+            if all_conseq and isinstance(all_conseq, list):
+                for c in all_conseq:
+                    if c in translation:
+                        consequence = translation[c]
+                        break
+                    else:
+                        consequence = c
+            elif all_conseq and isinstance(all_conseq, str):
+                for c in all_conseq.split("&"):
+                    if c in translation:
+                        consequence = translation[c]
+                        break
+                    else:
+                        consequence = c
+
+            # Allele Freq
+            if var.get("INFO", {}).get("SVTYPE") and selected_CSQ.get("SYMBOL") == "FLT3":
+                AF = "N/A"
+            else:
+                for gt in var.get("GT"):
+                    if gt.get("type") == "case":
+                        AF = gt.get("AF")
+                        break
+
+            simple_variants.append(
+                {
+                    "chr": var.get("CHROM"),
+                    "pos": var.get("POS"),
+                    "ref": var.get("REF"),
+                    "alt": var.get("ALT"),
+                    "variant": variant,
+                    "af": AF,
+                    "symbol": selected_CSQ.get("SYMBOL"),
+                    "class": variant_class,
+                    "class_short_desc": variant_class_short,
+                    "class_long_desc": variant_class_long,
+                    "hotspot": var.get("INFO", {}).get("HOTSPOT"),
+                    "var_type": var_type,
+                    "class_type": class_type,
+                    "var_class": var.get("variant_class", ""),
+                    "exon_info": selected_CSQ.get("EXON", "").split("/"),
+                    "feature": selected_CSQ.get("Feature", ""),
+                    "consequence": consequence,
+                    "cdna": cdna,
+                    "protein_changes": protein_changes,
+                    "global_annotations": var.get("global_annotations", []),
+                    "annotations_interesting": var.get("annotations_interesting", []),
+                    "comments": var.get("comments", []),
+                }
+            )
+        return simple_variants
 
     @staticmethod
     def generate_ai_text_nonsnv(assay, variants, group, var_type):
@@ -811,3 +1039,66 @@ class DNAUtility:
             }
 
         return doc
+
+    @staticmethod
+    def filter_low_coverage_with_cosmic(low_coverage: list, cosmic: list) -> list:
+        """
+        Filter low coverage variants with cosmic data
+        """
+        # Sort cosmic data by chromosome and start position for efficient searching
+        if not cosmic:
+            return []
+        cosmic.sort(key=lambda x: (x["chr"], x["start"]))
+
+        filtered_low_cov: list = []
+
+        for low_cov in low_coverage:
+            low_cov["cosmic"] = []
+            # Find the starting index in the sorted cosmic list
+            start_idx = bisect_left(
+                cosmic,
+                (str(low_cov["chr"]), str(low_cov["start"])),
+                key=lambda x: (str(x["chr"]), str(x["start"])),
+            )
+            # Iterate through the cosmic list from the starting index
+            for cos in cosmic[start_idx:]:
+                if (
+                    int(cos["chr"]) != int(low_cov["chr"])
+                    or int(cos["start"]) > int(low_cov["end"])
+                    or int(cos["start"]) < int(low_cov["start"])
+                ):
+                    break
+                # if int(low_cov["start"]) >= int(cos["start"]) <= int(low_cov["end"]):
+                else:
+                    low_cov["cosmic"].append({k: v for k, v in cos.items() if k != "_id"})
+            if len(low_cov["cosmic"]) > 0:
+                filtered_low_cov.append(low_cov)
+
+        return filtered_low_cov
+
+    @staticmethod
+    def create_annotation_text_from_gene(gene, csq, assay, **kwargs):
+        """
+        create an automated text annotation for tier3 variants.
+        Also check if annotation exists for variant, dont add new
+        """
+        first_csq = str(csq[0])
+        ## Might need a prettier way of presenting variant type. In line with translation dict used in list_variants
+        consequence = first_csq.replace("_", " ")
+        tumor_type = ""
+        if assay == "myeloid":
+            tumor_type = "hematologiska"
+        elif assay == "solid":
+            tumor_type = "solida"
+        else:
+            tumor_type = ""
+
+        ## Bit stinky to have in code, maybe in config for coyote3.0
+        text = f"Analysen påvisar en {consequence}. Varianten är klassad som Tier III då varianter i {gene} är sällsy men förekommer i {tumor_type} maligniteter."
+        gene_oncokb = kwargs.get("gene_oncokb", None)
+        if gene_oncokb:
+            text += f" För ytterligare information om {gene} se https://www.oncokb.org/gene/{gene}."
+        else:
+            text += f" {gene} finns ej beskriven i https://www.oncokb.org."
+        app.logger.debug(text)
+        return text

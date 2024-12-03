@@ -6,12 +6,24 @@ from flask import current_app as app
 from typing import Any, Literal, Dict, Tuple
 from bson import ObjectId
 from datetime import datetime
+from io import BytesIO
+import base64
 
 
 class CommonUtility:
     """
     List of util functions, mostly shared across Coyote main, rna and other blueprints.
     """
+
+    @staticmethod
+    def get_simple_id(variant):
+        """
+        Get a simple id for a variant
+        """
+        return variant.get(
+            "simple_id",
+            f"{str(variant['CHROM'])}_{str(variant['POS'])}_{variant['REF']}_{variant['ALT']}",
+        )
 
     @staticmethod
     def assay_config(assay_name: str = None) -> dict:
@@ -221,7 +233,16 @@ class CommonUtility:
         return fusion_settings
 
     @staticmethod
-    def create_genelist(list_names, gene_lists) -> list:
+    def create_filter_genelist(list_names: dict, gene_lists: dict) -> list:
+        """
+        Creates a list of genes based on the provided list names and gene lists.
+        Args:
+            list_names (dict): A dictionary where keys are list names and values are integers (1 to include the list, 0 to exclude).
+            gene_lists (dict): A dictionary where keys are list names and values are lists of genes.
+        Returns:
+            list: A list of genes from the included gene lists. If a list name is not defined in gene_lists, "gene list not defined" is added to the list.
+        """
+
         genes = []
         for name, val in list_names.items():
             if val == 1:
@@ -377,3 +398,93 @@ class CommonUtility:
         else:
             smp_grp = sample_groups[0]
         return smp_grp
+
+    @staticmethod
+    def get_genelist_dispnames(genelists: dict, filter_list: None | list) -> str:
+        """
+        Get display names of genelists.
+
+        This function extracts the display names from a list of gene lists. If a filter list is provided,
+        only the gene lists whose names are in the filter list will have their display names extracted.
+
+        Args:
+            genelists (dict): A dictionary where each key is a gene list and each value is a dictionary containing gene list details, including the "displayname".
+            filter_list (None | list): A list of gene list names to filter by. If None, all gene lists will be considered.
+
+        Returns:
+            list[str]: A list of display names of the gene lists.
+        """
+        if filter_list is None:
+            display_names = [genelist.get("displayname") for genelist in genelists]
+        else:
+            display_names = [
+                genelist.get("displayname")
+                for genelist in genelists
+                if genelist.get("name") in filter_list
+            ]
+        return display_names
+
+    @staticmethod
+    def get_report_header(assay: str, sample: dict):
+        """
+        Get report header based on assay and sample data
+        """
+        header = (
+            app.config.get("REPORT_CONFIG", {})
+            .get("REPORT_HEADERS", {})
+            .get(assay, "Unknown assay")
+        )
+        if assay == "myeloid" and sample.get("subpanel") == "Hem-Snabb":
+            if sample.get("num_samples") == 2:
+                header += ": fullständig parad analys"
+            else:
+                header += ": preliminär oparad analys"
+        return header
+
+    @staticmethod
+    def get_analysis_method(assay: str):
+        """
+        Get analysis method based on assay
+        """
+        method = app.config.get("REPORT_CONFIG", {}).get("ANALYSIS_METHODS", {}).get(assay, "")
+        return method
+
+    @staticmethod
+    def check_report_exists(report_path: str) -> bool:
+        """
+        Check if report path exists
+        """
+        return os.path.exists(report_path)
+
+    @staticmethod
+    def write_report(report_data: str, report_path: str) -> bool:
+        """
+        Write report data to a file
+        """
+        try:
+            with open(report_path, "w") as report_file:
+                report_file.write(report_data)
+            return True
+        except Exception as e:
+            app.logger.error(f"Error writing report to file: {e}")
+            return False
+
+    @staticmethod
+    def get_base64_image(image_path: str) -> str:
+        """
+        Get base64 encoded image
+        """
+        with open(image_path, "rb") as image_file:
+            base64_image = base64.b64encode(image_file.read()).decode("utf-8")
+        return base64_image
+
+    @staticmethod
+    def get_plot(fn: str, assay: str, build: str = "38") -> bool:
+        """
+        Check if plots should be shown in the report
+        """
+        plot_dir = app.config.get("REPORT_CONFIG", {}).get("REPORT_PLOTS_PATH", {}).get(assay, "")
+        if plot_dir and fn:
+            image_path = os.path.join(plot_dir, f"{fn}")
+            return CommonUtility.get_base64_image(image_path)
+        return False

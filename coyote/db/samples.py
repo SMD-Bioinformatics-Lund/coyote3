@@ -29,13 +29,6 @@ class SampleHandler(BaseHandler):
             samples = samples[:limit]
         return samples
 
-    def get_num_samples(self, sample_id: str) -> int:
-        gt = self.get_collection().find_one({"SAMPLE_ID": sample_id}, {"GT": 1})
-        if gt:
-            return len(gt.get("GT"))
-        else:
-            return 0
-
     def get_sample(self, name: str):
         """
         get sample by name

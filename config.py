@@ -26,13 +26,14 @@ class DefaultConfig:
     WTF_CSRF_ENABLED = True
     SECRET_KEY: str | None = os.getenv("FLASK_SECRET_KEY")
 
-    SESSION_COOKIE_NAME = "coyote"
+    SESSION_COOKIE_NAME = "coyote3.0"
 
     MONGO_HOST: str = os.getenv("FLASK_MONGO_HOST") or "localhost"
     MONGO_PORT: str | Literal[27017] = os.getenv("FLASK_MONGO_PORT") or 27017
     # MONGO_DB_NAME = "coyote"
-    MONGO_DB_NAME = "coyote_dev"
-    BAM_SERVICE_DB_NAME = "BAM_Service"
+    MONGO_DB_NAME = os.getenv("COYOTE_DB", "coyote_dev_3")
+    BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
+    _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections.toml"
 
     LDAP_HOST = "ldap://mtlucmds1.lund.skane.se"
     LDAP_BASE_DN = "dc=skane,dc=se"
@@ -84,6 +85,10 @@ class DefaultConfig:
         "frameshift_variant": "frameshift variant",
     }
 
+    # Report Config
+    _PATH_REPORT_CONFIG = "config/report.toml"
+    REPORTS_BASE_PATH = "/data/bnf/dev/ram/Pipelines/Web_Developement/coyote_blueprinted/reports"
+
     ASSAY_MAPPER: dict[str, list[str]] = {
         "exome": ["exome_trio"],
         "myeloid": [
@@ -100,11 +105,33 @@ class DefaultConfig:
         "swea": ["swea_ovarial"],
         "devel": ["devel"],
         "tumwgs": ["tumwgs", "tumwgs-solid", "tumwgs-hema"],
+        # "tumwgs-solid": ["tumwgs-solid"],
+        # "tumwgs-hema": ["tumwgs-hema"],
         "tumor_exome": ["gisselsson", "mertens"],
         "fusion": ["fusion", "fusion_validation_nf"],
         "gmsonco": ["gmsonco", "PARP_inhib"],
         "fusionrna": ["solidRNA_GMSv5"],
     }
+
+    # REPORT_HEADERS: dict[str, str] = {
+    #     "myeloid": "Analysrapport, myeloisk genpanel (NGS)",
+    #     "swea": "Analysrapport, BRCA-panel (NGS)",
+    #     "lymphoid": "Analysrapport, lymfoid genpanel (NGS)",
+    #     "solid": "Analysrapport, solid tumörpanel (NGS)",
+    #     "gmsonco": "Analysrapport, panel inför PARP-hämmare (NGS)",
+    #     "tumwgs": "Analysrapport, somatisk WGS (NGS)",
+    #     "unknown": "Analysrapport, myeloisk genpanel (NGS)",
+    # }
+
+    # ANALYSIS_METHODS: dict[str, str] = {
+    #     "myeloid": "NGS-/MPS-analys med panelen GMS-myeloid v1.0 (191 gener)",
+    #     "swea": "SWEA BRCA-panel, endast BRCA1 och BRCA2",
+    #     "lymphoid": "",
+    #     "solid": "",
+    #     "gmsonco": "NGS-/MPS-analys med panelen Ärftlig solid cancer v1.0",
+    #     "tumwgs": "Helgenomsekvensering (WGS) med Illumina TruSeq DNA PCR-Free",
+    #     "unknown": "",
+    # }
 
     CONSEQ_TERMS_MAPPER: dict[str, list[str]] = {
         "splicing": ["splice_acceptor_variant", "splice_donor_variant", "splice_region_variant"],
@@ -167,6 +194,32 @@ class DefaultConfig:
     @property
     def GROUP_CONFIGS(self) -> dict[str, Any]:
         return toml.load(self._PATH_GROUPS_CONFIG)
+
+    @property
+    def REPORT_CONFIG(self) -> dict[str, Any]:
+        return toml.load(self._PATH_REPORT_CONFIG)
+
+    @property
+    def DB_COLLECTIONS_CONFIG(self) -> dict[str, Any]:
+
+        db_config: dict[str, Any] = toml.load(self._PATH_DB_COLLECTIONS_CONFIG)
+
+        if not all(db in db_config for db in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME]):
+            missing_dbs = [
+                db for db in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME] if db not in db_config
+            ]
+            raise ValueError(
+                f"Database(s) {', '.join(missing_dbs)} not found in the database configuration. Check the config file. ({self._PATH_DB_COLLECTIONS_CONFIG})"
+            )
+
+        # Filter the config to include only the relevant databases
+        custom_db_config: dict[str, Any] = {
+            db_name: collections
+            for db_name, collections in db_config.items()
+            if db_name in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME]
+        }
+
+        return custom_db_config
 
 
 class ProductionConfig(DefaultConfig):

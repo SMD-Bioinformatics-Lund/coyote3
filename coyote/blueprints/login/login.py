@@ -34,9 +34,7 @@ class User:
         return self.groups
 
     def get_role(self):
-        if self.role:
-            return self.role
-        return "admin" if "admin" in self.groups else "user"
+        return "admin" if "admin" in self.groups else (self.role if self.role else "user")
 
     def is_admin(self):
         return "admin" in self.groups

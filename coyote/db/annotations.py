@@ -15,32 +15,23 @@ class AnnotationsHandler(BaseHandler):
 
     def get_global_annotations(self, variant, assay, subpanel):
         genomic_location = (
-            str(variant["CHROM"])
-            + ":"
-            + str(variant["POS"])
-            + ":"
-            + variant["REF"]
-            + "/"
-            + variant["ALT"]
+            f"{str(variant['CHROM'])}:{str(variant['POS'])}:{variant['REF']}/{variant['ALT']}"
         )
-        if len(variant["INFO"]["selected_CSQ"]["HGVSp"]) > 0:
+        selected_CSQ = variant["INFO"]["selected_CSQ"]
+        if len(selected_CSQ["HGVSp"]) > 0:
             annotations = (
                 self.get_collection()
                 .find(
                     {
-                        "gene": variant["INFO"]["selected_CSQ"]["SYMBOL"],
+                        "gene": selected_CSQ["SYMBOL"],
                         "$or": [
                             {
                                 "nomenclature": "p",
-                                "variant": self.no_transid(
-                                    variant["INFO"]["selected_CSQ"]["HGVSp"]
-                                ),
+                                "variant": self.no_transid(selected_CSQ["HGVSp"]),
                             },
                             {
                                 "nomenclature": "c",
-                                "variant": self.no_transid(
-                                    variant["INFO"]["selected_CSQ"]["HGVSc"]
-                                ),
+                                "variant": self.no_transid(selected_CSQ["HGVSc"]),
                             },
                             {"nomenclature": "g", "variant": genomic_location},
                         ],
@@ -48,18 +39,16 @@ class AnnotationsHandler(BaseHandler):
                 )
                 .sort("time_created", 1)
             )
-        elif len(variant["INFO"]["selected_CSQ"]["HGVSc"]) > 0:
+        elif len(selected_CSQ["HGVSc"]) > 0:
             annotations = (
                 self.get_collection()
                 .find(
                     {
-                        "gene": variant["INFO"]["selected_CSQ"]["SYMBOL"],
+                        "gene": selected_CSQ["SYMBOL"],
                         "$or": [
                             {
                                 "nomenclature": "c",
-                                "variant": self.no_transid(
-                                    variant["INFO"]["selected_CSQ"]["HGVSc"]
-                                ),
+                                "variant": self.no_transid(selected_CSQ["HGVSc"]),
                             },
                             {"nomenclature": "g", "variant": genomic_location},
                         ],
@@ -89,13 +78,13 @@ class AnnotationsHandler(BaseHandler):
                         if anno["assay"] == assay and anno["subpanel"] == subpanel:
                             latest_classification = anno
                         else:
-                            ass_sub = anno["assay"] + ":" + anno["subpanel"]
+                            ass_sub = f"{anno['assay']}:{anno['subpanel']}"
                             latest_classification_other[ass_sub] = anno["class"]
                     else:
                         if anno["assay"] == assay:
                             latest_classification = anno
                         else:
-                            ass_sub = anno["assay"] + ":" + anno["subpanel"]
+                            ass_sub = f"{anno['assay']}:{anno['subpanel']}"
                             latest_classification_other[ass_sub] = anno["class"]
                 except:
                     latest_classification = anno
@@ -104,7 +93,7 @@ class AnnotationsHandler(BaseHandler):
                 try:
                     if assay == "solid":
                         if anno["assay"] == assay and anno["subpanel"] == subpanel:
-                            ass_sub = anno["assay"] + ":" + anno["subpanel"]
+                            ass_sub = f"{anno['assay']}:{anno['subpanel']}"
                             annotations_interesting[ass_sub] = anno
                             annotations_arr.append(anno)
                         else:
@@ -142,45 +131,36 @@ class AnnotationsHandler(BaseHandler):
         return nom
 
     def insert_classified_variant(
-        self, variant: str, nomenclature: str, class_num: int, variant_data: dict
+        self, variant: str, nomenclature: str, class_num: int, variant_data: dict, **kwargs
     ) -> None:
         """
         Insert Classified variant
         """
-        if nomenclature != "f":
-            if self.get_collection().insert_one(
-                {
-                    "class": class_num,
-                    "author": self.current_user.get_id(),
-                    "time_created": datetime.now(),
-                    "variant": variant,
-                    "nomenclature": nomenclature,
-                    "transcript": variant_data.get("transcript", None),
-                    "gene": variant_data.get("gene", None),
-                    "assay": variant_data.get("assay", None),
-                    "subpanel": variant_data.get("subpanel", None),
-                }
-            ):
-                flash("Variant classified", "green")
-            else:
-                flash("Variant classification failed", "red")
+        document = {
+            "author": self.current_user.get_id(),
+            "time_created": datetime.now(),
+            "variant": variant,
+            "nomenclature": nomenclature,
+            "assay": variant_data.get("assay", None),
+            "subpanel": variant_data.get("subpanel", None),
+        }
+
+        if "text" in kwargs:
+            document["text"] = kwargs["text"]
         else:
-            if self.get_collection().insert_one(
-                {
-                    "class": class_num,
-                    "author": self.current_user.get_id(),
-                    "time_created": datetime.now(),
-                    "variant": variant,
-                    "nomenclature": nomenclature,
-                    "gene1": variant_data.get("gene1", None),
-                    "gene2": variant_data.get("gene2", None),
-                    "assay": variant_data.get("assay", None),
-                    "subpanel": variant_data.get("subpanel", None),
-                }
-            ):
-                flash("Variant classified", "green")
-            else:
-                flash("Variant classification failed", "red")
+            document["class"] = class_num
+
+        if nomenclature != "f":
+            document["gene"] = variant_data.get("gene", None)
+            document["transcript"] = variant_data.get("transcript", None)
+        else:
+            document["gene1"] = variant_data.get("gene1", None)
+            document["gene2"] = variant_data.get("gene2", None)
+
+        if self.get_collection().insert_one(document):
+            flash("Variant classified", "green")
+        else:
+            flash("Variant classification failed", "red")
 
         return None
 
