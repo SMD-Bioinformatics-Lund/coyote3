@@ -440,6 +440,13 @@ def show_variant(id):
         store.annotation_handler.get_global_annotations(variant, assay, subpanel)
     )
 
+    # if not classification:
+    #     variant = store.annotation_handler.add_alt_class([variant], assay, subpanel)[0]
+    # else:
+    #     variant["additional_classifications"] = None
+
+    variant = store.annotation_handler.add_alt_class(variant, assay, subpanel)
+
     return render_template(
         "show_variant_vep.html",
         variant=variant,

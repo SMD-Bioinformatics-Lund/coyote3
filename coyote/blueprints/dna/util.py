@@ -246,6 +246,26 @@ class DNAUtility:
                 variants[var_idx]["other_classification"],
                 variants[var_idx]["annotations_interesting"],
             ) = store.annotation_handler.get_global_annotations(var, assay, subpanel)
+
+            # if (
+            #     variants[var_idx]["classification"]["class"] == 999
+            #     or not variants[var_idx]["classification"]
+            # ):
+            #     variants[var_idx] = store.annotation_handler.add_alt_class(
+            #         variants[var_idx], assay, subpanel
+            #     )
+            # else:
+            #     variants[var_idx]["additional_classification"] = None
+
+            variants[var_idx] = store.annotation_handler.add_alt_class(
+                variants[var_idx], assay, subpanel
+            )
+            if variants[var_idx]["POS"] == 55174771:
+                print(variants[var_idx]["classification"])
+                print(variants[var_idx]["other_classification"])
+                print(variants[var_idx]["global_annotations"])
+                print(variants[var_idx]["additional_classification"])
+
         return variants
 
     @staticmethod

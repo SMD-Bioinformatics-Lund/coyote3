@@ -337,7 +337,7 @@
       <!-- Variant Data for All Transcripts -->
       <div class="float-left max-w-screen-425 w-full">
         <div class="float-left max-w-screen-400 w-full bg-white shadow-md rounded-lg p-4 m-5 overflow-auto">
-           <!-- id="var_moreinfo" -->
+          <!-- id="var_moreinfo" -->
           <h2 class="text-base font-semibold mb-4 bg-indigo-300 p-2 rounded">
             Alternate Transcripts Info
             {% if assay=="swea" or assay == "gmsonco" %}
@@ -352,10 +352,12 @@
                 <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Exon</th>
                 <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Prot change</th>
                 <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">CDS change</th>
+                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Tier</th>
               </tr>
             </thead>
             <tbody>
               {% for csq in variant.INFO.CSQ %}
+                {% set alt_class = variant.additional_classification %}
                 {% if csq.BIOTYPE == "protein_coding" and (csq.HGVSp|length > 0 or csq.HGVSc|length > 0)  %}
                   {% if csq.Feature == sel_csq.Feature  %}
                     <tr class="bg-yellow-100 hover:bg-green-100 font-semibold">
@@ -366,7 +368,15 @@
                   <td class="px-2 py-2 border-b">{{ csq.Feature }}</td>
                   <td class="px-2 py-2 border-b">{{ csq.EXON }}</td>
                   <td class="px-2 py-2 border-b">{{ csq.HGVSp|unesc|ellipsify(20)|safe }}</td>
-                  <td class="px-2 py-2 border-b">{{ csq.HGVSc|unesc|ellipsify(20)|safe }}</td> 
+                  <td class="px-2 py-2 border-b">{{ csq.HGVSc|unesc|ellipsify(20)|safe }}</td>
+                  <td class="px-2 py-2 border-b">
+                    {% if alt_class and csq.Feature == alt_class.transcript and (csq.HGVSc == alt_class.variant or csq.HGVSp == alt_class.variant) %}
+                      <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full bg-gray-400">
+                        {{ alt_class.class }}
+                      </div>
+                    {% else %}
+                      -
+                    {% endif %}
                 </tr>
                 {% endif %}
               {% endfor %}
