@@ -19,6 +19,7 @@ from coyote.db.brcaexchange import BRCAHandler
 from coyote.db.fusions import FusionsHandler
 from coyote.db.biomarkers import BiomarkerHandler
 from coyote.db.coverage import CoverageHandler
+from coyote.db.cosmic import CosmicHandler
 
 
 class MongoAdapter:
@@ -93,3 +94,4 @@ class MongoAdapter:
         self.fusion_handler = FusionsHandler(self)
         self.biomarker_handler = BiomarkerHandler(self)
         self.coverage_handler = CoverageHandler(self)
+        self.cosmic_handler = CosmicHandler(self)

@@ -48,10 +48,7 @@ class VariantsHandler(BaseHandler):
         Return same variant from other samples of a specific assay
         """
         query = {
-            "CHROM": variant["CHROM"],
-            "POS": variant["POS"],
-            "REF": variant["REF"],
-            "ALT": variant["ALT"],
+            "simple_id": variant["simple_id"],
             "SAMPLE_ID": {"$ne": variant["SAMPLE_ID"]},
         }
 
@@ -68,40 +65,6 @@ class VariantsHandler(BaseHandler):
             other.append(var.copy())
 
         return other
-
-    def get_protein_coding_genes(self, var_iter: list) -> tuple[list, list]:
-        """
-        Get protein coding genes from a variant list
-        """
-        genes = set()
-        variants = []
-        for var in var_iter:
-            for csq in var["INFO"]["CSQ"]:
-                if csq["BIOTYPE"] == "protein_coding":
-                    genes.add(csq["SYMBOL"])
-            variants.append(var)
-
-        return variants, list(genes)
-
-    def hotspot_variant(self, variants: list) -> list[dict]:
-        """
-        Return variants that are hotspots.
-
-        Args:
-            variants (list): A list of variant dictionaries.
-
-        Returns:
-            list[dict]: A list of variant dictionaries that are hotspots.
-        """
-        hotspots = []
-        for variant in variants:
-            hotspot_dict = variant.get("hotspots", [{}])[0]
-            if hotspot_dict:
-                for hotspot_key, hotspot_elem in hotspot_dict.items():
-                    if any("COS" in elem for elem in hotspot_elem):
-                        variant.setdefault("INFO", {}).setdefault("HOTSPOT", []).append(hotspot_key)
-            hotspots.append(variant)
-        return hotspots
 
     def mark_false_positive_var(self, variant_id: str, fp: bool = True) -> None:
         """

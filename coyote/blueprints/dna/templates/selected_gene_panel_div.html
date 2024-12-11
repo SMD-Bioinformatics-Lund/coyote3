@@ -1,0 +1,35 @@
+<div id="sample_div" class="bg-white shadow-md rounded-lg p-4 mb-4">
+  <!-- Toggle Button -->
+  <div class="flex justify-between items-center">
+    <b>Gene Panel(s)</b>
+    <button class="focus:outline-none" onclick="toggleCard(this)">
+      <!-- Use one up arrow PNG and rotate it when collapsed -->
+      <img id="arrow-icon" src="{{ url_for('static', filename='icons/up-arrow-240.png') }}" alt="Toggle" class="w-6 h-6 transform transition-transform duration-200 filter invert">
+    </button>
+  </div>
+
+  <!-- Collapsible Content -->
+  <div id="card-content" class="mt-2">
+    {% if dispgenes %}
+      {% if checked_genelists %}
+        {% for list in checked_genelists %}
+          <div class="mt-1">
+            <b>{{ list.replace("genelist_", "") }} {{ dispgenes|length }} genes:</b>
+            <div class="mt-1 flex flex-wrap gap-2 text-xs">
+              {% for gene in dispgenes %}
+                <span class="py-1 px-2 bg-gray-100 rounded-md text-xs hover:bg-green-100">{{ gene }}</span>{% if not loop.last %} {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <b>Gene Panel(s): No genefilter applied</b>
+      {% endif %}
+    {% else %}
+      <b>Gene Panel(s): No genefilter applied</b>
+    {% endif %}
+    {% if not dispgenes %}
+      <p>No genes to display</p>
+    {% endif %}
+  </div>
+</div>

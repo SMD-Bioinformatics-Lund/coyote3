@@ -17,21 +17,17 @@ class BlacklistHandler(BaseHandler):
         """
         Add blacklist data to variants
         """
-        short_pos = []
+
+        short_pos = [var.get("simple_id") for var in variants]
+
+        blacklisted = self.get_collection().find(
+            {"assay": assay, "pos": {"$in": short_pos}}, {"pos": 1, "in_normal_perc": 1, "_id": 0}
+        )
+        blacklisted_dict = {elem["pos"]: elem["in_normal_perc"] for elem in list(blacklisted)}
 
         for var in variants:
-            short_pos.append(CommonUtility.get_simple_id(var))
-
-        blacklisted = self.get_collection().find({"assay": assay, "pos": {"$in": short_pos}})
-        blacklisted_dict = {}
-
-        for blacklist_var in blacklisted:
-            blacklisted_dict[blacklist_var["pos"]] = blacklist_var["in_normal_perc"]
-
-        for var in variants:
-            pos = CommonUtility.get_simple_id(var)
-            if pos in blacklisted_dict:
-                var["blacklist"] = blacklisted_dict[pos]
+            if var["simple_id"] in blacklisted_dict:
+                var["blacklist"] = blacklisted_dict[var["simple_id"]]
 
         return variants
 
@@ -39,7 +35,7 @@ class BlacklistHandler(BaseHandler):
         """
         Add a variant to the blacklist collection
         """
-        short_pos = CommonUtility.get_simple_id(var)
+        short_pos = var.get("simple_id", CommonUtility.get_simple_id(var))
 
         if self.get_collection().insert_one(
             {"assay": assay, "in_normal_perc": 1, "pos": short_pos}

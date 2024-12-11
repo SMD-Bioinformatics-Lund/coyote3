@@ -87,6 +87,7 @@ class DefaultConfig:
 
     # Report Config
     _PATH_REPORT_CONFIG = "config/report.toml"
+    REPORTS_BASE_PATH = "/data/bnf/dev/ram/Pipelines/Web_Developement/coyote_blueprinted/reports"
 
     ASSAY_MAPPER: dict[str, list[str]] = {
         "exome": ["exome_trio"],

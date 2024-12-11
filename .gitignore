@@ -145,3 +145,4 @@ test
 logs/
 example_dev*
 scripts/migrate_variants_idref.py
+reports
