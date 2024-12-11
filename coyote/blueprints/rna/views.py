@@ -148,8 +148,6 @@ def show_fusion(id):
 
     fusion = store.fusion_handler.get_fusion(id)
     sample = store.sample_handler.get_sample_with_id(fusion["SAMPLE_ID"])
-    print("SAMPLE")
-    print(sample)
     annotations, classification = store.fusion_handler.get_fusion_annotations(fusion)
     print(annotations)
     print(classification)
