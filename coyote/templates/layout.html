@@ -23,7 +23,7 @@
 </head>
 
 <body class="bg-white font-sans leading-normal tracking-normal text-sm">
-  <div class="container mx-auto mt-5">
+  <div class=" mx-auto mt-5">
     <!-- Flash messages -->
     <div id="alert-container" class="fixed top-5 right-5 z-50 space-y-2">
       {% with messages = get_flashed_messages(with_categories=true) %}
@@ -43,7 +43,7 @@
     </div>
   </div>
   <div class="bg-white">
-    <div class="container mx-auto flex items-center justify-between p-4">
+    <div class="mx-auto flex items-center justify-between p-2 pb-2 ml-10">
       <div class="flex items-center space-x-2">
         <a href="{{ url_for('dashboard_bp.dashboard') }}" class="flex items-center space-x-2 text-4xl font-bold">
           <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Coyote Logo" class="h-14 w-18">
@@ -53,7 +53,7 @@
       <div class="relative flex items-center space-x-4">
         <div class="relative flex items-center space-x-4">
           {% if current_user.is_authenticated %}
-            <div class="relative mr-10">
+            <div class="relative mr-10 pr-10">
               <button id="userMenuButton" class="flex items-center space-x-2 focus:outline-none">
                 <img class="h-8 w-8 rounded-full transition-transform duration-300 transform hover:scale-110 hover:rotate-6 hover:shadow-lg" src="{{ url_for('static', filename='icons/user-512.png') }}">
                 <span class="text-gray-800 font-bold">{{ current_user.get_fullname() }}</span>
@@ -80,8 +80,8 @@
   </div>
   {% if current_user.is_authenticated %}
     <div class="bg-gray-300 shadow relative">
-      <div class="container mx-auto flex items-center justify-between p-2 relative">
-          <div class="flex items-center space-x-4 ml-10">
+      <div class="mx-auto flex items-center justify-between p-2 relative">
+          <div class="flex items-center space-x-4 ml-20 pl-5">
               {% set navbar = {
                   'home': 'HOME',
                   'samples': 'SAMPLES',

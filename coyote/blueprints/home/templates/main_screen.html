@@ -4,12 +4,12 @@
 {% block search %}
 <form action="" method="POST" class="relative">
   {{ form.hidden_tag() }}
-  <div class="absolute inset-y-0 right-0 flex items-center pr-7">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700 cursor-pointer transition-transform duration-300 transform hover:scale-125 hover:text-blue-500" viewBox="0 0 20 20" fill="currentColor" onclick="document.getElementById('search-input').focus()">
+  <div class="absolute inset-y-0 right-0 flex items-center pr-16 mr-20">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-6 text-gray-700 cursor-pointer transition-transform duration-300 transform hover:scale-125 hover:text-blue-500" viewBox="0 0 20 20" fill="currentColor" onclick="document.getElementById('search-input').focus()">
       <path fill-rule="evenodd" d="M12.9 14.32a8 8 0 111.414-1.414l5.386 5.386a1 1 0 01-1.414 1.414l-5.386-5.386zM8 14A6 6 0 108 2a6 6 0 000 12z" clip-rule="evenodd" />
     </svg>
   </div>
-  <input type="text" name="sample_search" id="search-input" class="search-bar border border-gray-300 rounded py-2 pl-3 pr-8 mr-4 focus:outline-none focus:border-blue-500" placeholder="Search samples" size="33">
+  <input type="text" name="sample_search" id="search-input" class="search-bar border border-gray-400 rounded py-1 pl-1 pr-12 mr-32 focus:outline-none focus:border-blue-500" placeholder="Search samples" size="33">
 </form>
 {% endblock %}
 {% block body %}
@@ -22,7 +22,7 @@
   </div>
 </div>
 
-<div class="container mx-auto ml-16 p-5">
+<div class="mx-auto ml-16 p-5">
   <div class="flex justify-start">
     <div class="w-4/5 ml-15%">
       {% if not status or status == "live" %}

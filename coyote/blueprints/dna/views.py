@@ -230,6 +230,7 @@ def list_variants(id):
         if sample["cnv"].lower().endswith((".png", ".jpg", ".jpeg")):
             sample["cnvprofile"] = sample["cnv"]
 
+    print(low_cov)
     return render_template(
         "list_variants_vep.html",
         checked_genelists=genelist_filter,
@@ -440,12 +441,12 @@ def show_variant(id):
         store.annotation_handler.get_global_annotations(variant, assay, subpanel)
     )
 
-    # if not classification:
-    #     variant = store.annotation_handler.add_alt_class([variant], assay, subpanel)[0]
-    # else:
-    #     variant["additional_classifications"] = None
+    if not classification or classification.get("class") == 999:
+        variant = store.annotation_handler.add_alt_class(variant, assay, subpanel)
+    else:
+        variant["additional_classifications"] = None
 
-    variant = store.annotation_handler.add_alt_class(variant, assay, subpanel)
+    # variant = store.annotation_handler.add_alt_class(variant, assay, subpanel)
 
     return render_template(
         "show_variant_vep.html",
@@ -568,6 +569,7 @@ def order_sanger(id):
 @login_required
 def classify_variant(id):
     form_data = request.form.to_dict()
+    print(form_data)
     class_num = util.dna.get_tier_classification(form_data)
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
     if class_num != 0:

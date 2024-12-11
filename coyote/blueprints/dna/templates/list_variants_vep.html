@@ -2,7 +2,7 @@
 
 {% block body %}
 {% set translation=config["TRANS"] %}
-<div class="container mx-auto pt-6 pr-10 pl-10 pb-10 relative">
+<div class="mx-auto pt-6 pr-10 pl-10 pb-10">
   <!-- Sample Information -->
   <div class="bg-white shadow-md rounded-lg p-4 mb-4 flex items-center justify-between">
     <div>
@@ -92,7 +92,7 @@
             {% for var in variants if (var.INFO.selected_CSQ.SYMBOL in dispgenes or dispgenes|length == 0) and (var.POS in disp_pos or disp_pos|length == 0) %}
               {% set csq = var.INFO.selected_CSQ %}
               {% if var.fp == True or ( var.blacklist and var.override_blacklist != true ) or var.irrelevant == True %}
-                <tr class='bg-red-200 opacity-40 even:bg-red-200 odd:bg-red-200 hover:bg-red-300 border-b border-gray-300'>
+                <tr class='bg-red-200 even:bg-red-200 odd:bg-red-200 hover:bg-red-300 border-b border-gray-300 fp'>
               {% else %}
                 <tr>
               {% endif %}

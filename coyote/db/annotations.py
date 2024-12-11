@@ -153,9 +153,10 @@ class AnnotationsHandler(BaseHandler):
                 {"nomenclature": "c", "variant": {"$in": hgvsc}},
                 {"nomenclature": "g", "variant": variant["simple_id"]},
             ],
+            "assay": assay,
+            "class": {"$exists": True},
         }
         if assay == "solid":
-            query["assay"] = assay
             query["subpanel"] = subpanel
 
         return list(self.get_collection().find(query).sort("time_created", -1).limit(1))
@@ -164,7 +165,7 @@ class AnnotationsHandler(BaseHandler):
         """
         Add alternative classifications to a list of variants based on the specified assay and subpanel.
         Args:
-            variants (list): A list of variants to be annotated.
+            variants (dict): A dict of a variant to be annotated.
             assay (str): The type of assay being used (e.g., 'solid').
             subpanel (str): The subpanel identifier for further filtering when assay is 'solid'.
         Returns:

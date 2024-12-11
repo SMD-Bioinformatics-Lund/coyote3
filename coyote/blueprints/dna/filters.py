@@ -370,14 +370,14 @@ def round_to_3(x):
 @app.template_filter()
 def format_gnomad(st):
     if not st:
-        return ""
+        return "-"
     return str(round_to_3(float(st * 100))) + "%"
 
 
 @app.template_filter()
 def format_pop_freq(st, allele_to_show):
     if not st:
-        return ""
+        return "-"
     if len(allele_to_show) > 1:
         allele_to_show = allele_to_show[1:]
     all_alleles = st.split("&")
@@ -387,6 +387,41 @@ def format_pop_freq(st, allele_to_show):
             return str(round_to_3(float(a[1]) * 100)) + "%"
 
     return "N/A"
+
+
+def remove_prefix(text, prefix):
+    if text.startswith(prefix):
+        return text[len(prefix) :]
+    return text
+
+
+@app.template_filter()
+def pubmed_links(st):
+
+    if not st:
+        return "-"
+    pids = re.split(r",\s*", st)
+    outstr = "<b>["
+    for i, pid in enumerate(pids):
+        pid = remove_prefix(pid, "PMID:")
+        outstr = (
+            outstr
+            + "<a href='https://www.ncbi.nlm.nih.gov/pubmed/"
+            + pid
+            + "'>"
+            + str(i + 1)
+            + "</a> "
+        )
+
+    outstr = outstr.rstrip()
+    outstr = outstr + "]</b>"
+
+    return outstr
+
+
+@app.template_filter()
+def three_dec(val):
+    return str(round_to_3(float(val) * 100))
 
 
 @app.template_filter()

@@ -174,9 +174,36 @@ background-color: #f7f7ff;
 .bg-tier4 {
   background-color: #43a047; /* Bright Green */
 }
+
+.bg-tier999 {
+  background-color: #2222229d; /* Bright Green */
+}
+
 .bg-tierother {
   background-color: #c0ca33; /* Bright Yellow-Green */
 }
+
+.bg-tier-header1 {
+  background-color: rgba(252, 165, 165, 0.5); /*  Red */
+}
+.bg-tier-header2 {
+  background-color: rgba(249, 168, 212, 0.5); /*  Pink */
+}
+.bg-tier-header3 {
+  background-color: rgba(165, 180, 252, 0.5); /* indigo */
+}
+.bg-tier-header4 {
+  background-color: rgba(82, 225, 159, 0.5); /*  Green */
+}
+
+.bg-tier-header999 {
+  background-color: rgba(149, 140, 140, 0.5); /* Gray */
+}
+
+.bg-tierother {
+  background-color: #c0ca33; /* Bright Yellow-Green */
+}
+
 .bg-remove {
   background-color: #e0e0e0; /* Light Grey */
 }

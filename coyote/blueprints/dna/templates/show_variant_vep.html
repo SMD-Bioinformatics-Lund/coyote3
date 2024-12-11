@@ -1,590 +1,544 @@
 {% extends "layout.html" %}
 
 {% block body %}
-{% set type = variant.INFO.TYPE %}
-<div class="container mx-auto p-5">
-  <div class="bg-white border-b border-gray-300 py-4">
-    <div class="flex justify-between items-center">
-      <!-- Left Side: Sample and Type -->
-      <div class="flex items-center space-x-4">
-        <div>
-          <span class="text-lg font-semibold text-gray-800">Sample:</span>
-          <a href="{{ url_for('dna_bp.list_variants', id=sample.name) }}" class="text-blue-500 hover:underline text-lg">{{ sample.name }}</a>
-        </div>
-        <span class="text-gray-500">|</span>
-        <div>
-          <span class="text-lg font-semibold text-gray-800">Type:</span>
-          <b class="text-lg">{{ subpanel }}</b>
-        </div>
+<div class="mx-auto p-5">
+  {% set sel_csq = variant.INFO.selected_CSQ %}
+  {% set genomic_change =  variant.CHROM ~ ":" ~ variant.POS ~ ", " ~  variant.REF ~ " / " ~ variant.ALT %}
+  {% set indel_size = variant.ALT|length - variant.REF|length %}
+  {% set subfolder = {'dir': "None"} %}
+  {% set alt_class = variant.additional_classification %}
+
+  <div class="flex justify-between items-start mx-5 my-3 bg-transparant rounded-lg shadow-lg ">
+    <!-- Left Card: Tiering Information -->
+    <div class="bg-white px-4 py-2">
+      <h3 class="text-sm font-semibold text-gray-800 mb-3">Change Variant Classification</h3>
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- Tier Buttons -->
+        <form action="{{ url_for('dna_bp.classify_variant', id=variant._id) }}" method="post" class="flex flex-wrap gap-2">
+          <input type="hidden" name="assay" value="{{ assay }}">
+          <input type="hidden" name="subpanel" value="{{ subpanel }}">
+          <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
+          {% if sel_csq.HGVSc is defined %}
+            <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">
+            <input type="hidden" name="transcript" value="{{ sel_csq.Feature }}">
+            <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|unesc }}">
+            <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc }}">
+          {% endif %}
+          {% if classification.class != 1 %}
+            <input class="bg-red-300 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-red-400 cursor-pointer"  id="tier1" type="submit" value="Tier I" name="tier1" title="Tier I: Strong Clinical Significance">
+          {% endif %}
+          {% if classification.class != 2 %}
+            <input class="bg-pink-300 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-pink-400" id="tier2" type="submit" name="tier2" value="Tier II" title="Tier II: Potential Clinical Significance">
+          {% endif %}
+          {% if classification.class != 3 %}
+            <input class="bg-indigo-200 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-indigo-300" id="tier3" type="submit" name="tier3" value="Tier III" title="Tier III: Unknown Clinical Significance">
+          {% endif %}
+          {% if classification.class != 4 %}
+            <input class="bg-green-200 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-green-300" id="tier4" type="submit" name="tier4" value="Tier IV" title="Tier IV: Benign">
+          {% endif %}
+        </form>
+        <!-- Remove Tier Button -->
+        {% if classification.class != 999 %}
+          <form action="{{ url_for('dna_bp.remove_classified_variant', id=variant._id) }}" method="post">
+            <input type="hidden" name="assay" value="{{ assay }}">
+            <input type="hidden" name="subpanel" value="{{ subpanel }}">
+            <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
+            {% if sel_csq.HGVSc is defined %}
+              <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">
+              <input type="hidden" name="transcript" value="{{ sel_csq.Feature }}">
+              <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|unesc }}">
+              <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc }}">
+            {% endif %}
+            {% if 'assay' in classification %}
+              <input class="bg-grey-200 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-grey-300" title="Remove {{assay}} classifications" id="remove" type="submit" onclick="return confirm('This will remove all tiering for {{assay}}, proceed?')" value="❌ Tier">
+            {% elif 'admin' in current_user.get_groups() %}
+              <input class="bg-grey-300 text-black text-xs px-2 py-1.5 rounded-md shadow-lg hover:bg-grey-500 cursor-pointer" title="Remove historic non-assay classifications" id="remove" type="submit" value="❌ Tier" onclick="return confirm('This will remove all tiering for historic tiering without assays assigned, proceed?')">
+            {% endif %}
+          </form>
+        {% endif %}
       </div>
-
-      <!-- Right Side: Variant Actions -->
-      {% if current_user.get_role() == "admin" %}
-      <div class="flex items-center space-x-4">
-        {% if variant.blacklist is defined and variant.override_blacklist != true %}
-          <form action="{{ url_for('dna_bp.add_variant_to_blacklist', id=variant._id) }}" method="post">
-            <input class="bg-red-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-red-700" type="submit" name="blacklist" value="Override blacklist">
-          </form>    
+    </div>
+  
+    <!-- Right Card: Variant Actions -->
+    <div class="bg-white px-4 py-2">
+      <h3 class="text-sm font-semibold text-right text-gray-800 mb-3">Variant Actions</h3>
+      <div class="flex flex-wrap items-center gap-2">
+        {% if current_user.get_role() == "admin" %}
+          {% if variant.blacklist is defined and variant.override_blacklist != true %}
+            <form action="{{ url_for('dna_bp.add_variant_to_blacklist', id=variant._id) }}" method="post">
+              <input class="bg-red-500 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-red-600" type="submit" name="blacklist" value="Override Blacklist">
+            </form>
+          {% endif %}
+  
+          {% if variant.fp == true %}
+            <form action="{{ url_for('dna_bp.unmark_false_variant', id=variant._id) }}" method="post">
+              <input class="bg-purple-400 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-purple-500" type="submit" name="mark_fp" value="Unmark False Positive">
+            </form>
+          {% else %}
+            <form action="{{ url_for('dna_bp.mark_false_variant', id=variant._id) }}" method="post">
+              <input class="bg-purple-400 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-purple-500" type="submit" name="mark_fp" value="Mark as False Positive">
+            </form>
+          {% endif %}
+  
+          {% if variant.interesting == true %}
+            <form action="{{ url_for('dna_bp.unmark_interesting_variant', id=variant._id) }}" method="post">
+              <input class="bg-green-400 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-green-500" type="submit" name="mark_int" value="Unmark Interesting">
+            </form>
+          {% else %}
+            <form action="{{ url_for('dna_bp.mark_interesting_variant', id=variant._id) }}" method="post">
+              <input class="bg-green-400 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-green-500" type="submit" name="mark_int" value="Mark as Interesting">
+            </form>
+          {% endif %}
+  
+          {% if variant.irrelevant == true %}
+            <form action="{{ url_for('dna_bp.unmark_irrelevant_variant', id=variant._id) }}" method="post">
+              <input class="bg-yellow-500 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-yellow-600" type="submit" name="mark_irr" value="Unmark Irrelevant">
+            </form>
+          {% else %}
+            <form action="{{ url_for('dna_bp.mark_irrelevant_variant', id=variant._id) }}" method="post">
+              <input class="bg-yellow-500 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-yellow-600" type="submit" name="mark_irr" value="Mark as Irrelevant">
+            </form>
+          {% endif %}
+  
+          {% if variant.blacklist != true %}
+            <form action="{{ url_for('dna_bp.add_variant_to_blacklist', id=variant._id) }}" method="post">
+              <input class="bg-red-400 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-red-500" type="submit" name="blacklist" value="Add to Blacklist" onclick="return confirm('This will affect all samples of this type. Proceed?')">
+            </form>
+          {% endif %}
+  
+          {% if assay == "swea" %}
+            <form action="{{ url_for('dna_bp.order_sanger', id=variant._id) }}" method="post">
+              <input class="bg-blue-400 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-blue-500" type="submit" name="sanger" value="Request Sanger">
+            </form>
+          {% endif %}
         {% endif %}
-        
-        {% if variant.fp == true %}
-          <form action="{{ url_for('dna_bp.unmark_false_variant', id=variant._id) }}" method="post">
-            <input class="bg-green-600 text-black py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-green-700" type="submit" name="mark_fp" value="Unmark false positive">
-          </form>    
-        {% else %}
-          <form action="{{ url_for('dna_bp.mark_false_variant', id=variant._id) }}" method="post">
-            <input class="bg-purple-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-purple-700" type="submit" name="mark_fp" value="Mark as false positive">
-          </form>
-        {% endif %}
-        {% if variant.interesting == true %}
-          <form action="{{ url_for('dna_bp.unmark_interesting_variant', id=variant._id) }}" method="post">
-            <input class="bg-yellow-600 text-black py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-yellow-700" type="submit" name="mark_int" value="Unmark interesting">
-          </form>
-        {% else %}
-          <form action="{{ url_for('dna_bp.mark_interesting_variant', id=variant._id) }}" method="post">
-            <input class="bg-green-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-green-700" type="submit" name="mark_int" value="Mark as interesting">
-          </form>      
-        {% endif %}
-      
-
-        {% if variant.irrelevant == true %}
-          <form action="{{ url_for('dna_bp.unmark_irrelevant_variant', id=variant._id) }}" method="post">
-            <input class="bg-green-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-yellow-600" type="submit" name="mark_irr" value="Unmark irrelevant">
-          </form>
-        {% else %}
-          <form action="{{ url_for('dna_bp.mark_irrelevant_variant', id=variant._id) }}" method="post">
-            <input class="bg-yellow-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-yellow-700" type="submit" name="mark_irr" value="Mark as irrelevant">
-          </form>      
-        {% endif %}
-      
-        {% if variant.blacklist != true %}
-          <form action="{{ url_for('dna_bp.add_variant_to_blacklist', id=variant._id) }}" method="post">
-            <input class="bg-red-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-red-700" type="submit" name="blacklist" value="Add variant to blacklist"  onclick="return confirm('This permanently adds the variant to the blacklist, affecting all samples of this type. Do this only if you are certain it is a recurring false positive. Proceed?')">
-          </form>
-        {% endif %}
-      
-        {% if assay=="swea" %}
-          <form action="{{ url_for('dna_bp.order_sanger', id=variant._id) }}" method="post">
-            <input class="bg-blue-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-blue-700" type="submit" name="sanger" value="Request sanger">
-          </form>      
-        {% endif %} 
-      </div>  
-      {% endif %}
+      </div>
     </div>
   </div>
 
-  <center>
-    <div class="container mx-auto px-4 py-6 overflow-auto"> 
-      <!-- id="var_main" -->
-      <div class="float-left max-w-screen-325 w-full">
-        <div class="float-left max-w-screen-300 w-full bg-white shadow-md rounded-lg p-4 m-5 overflow-auto">
-          {% set sel_csq = variant.INFO.selected_CSQ %}
-
-          <!-- Variant Annotation -->
-          <h2 class="text-base font-semibold mb-4 bg-purple-300 p-2 rounded">Variant Annotation</h2>
-          <table class="w-full table-auto text-xs table">
-            <tbody>
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">Gene:</td>
-                <td class="px-2 py-2 border-b"><a href="/coyote/gene_simple/{{ sel_csq.SYMBOL }}" class="text-blue-600 underline">{{ sel_csq.SYMBOL }}</a></td>
-              </tr>
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">Variant class:</td>
-                <td class="px-2 py-2 border-b">{{ variant.variant_class }}</td
-              ></tr>
-              {% if type == "DEL" or type == "DUP" %}
-                <tr class="hover:bg-purple-50">
-                  <td class="px-2 py-2 border-b font-semibold">Size:</td>
-                  <td class="px-2 py-2 border-b">{{ variant.INFO.END-variant.POS }} bp</td>
-                </tr>
-                <tr class="hover:bg-purple-50">
-                  <td class="px-2 py-2 border-b font-semibold">Region:</td>
-                  <td class="px-2 py-2 border-b">{{variant.CHROM}}:{{ variant.POS }}-{{ variant.INFO.END }}</td>
-                </tr>
-              {% endif %}
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">Canonical transcript:</td>
-                <td class="px-2 py-2 border-b">{{ sel_csq.Feature }}</td>
-              </tr>
-
-
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">Protein change:</td>
-                <td class="px-2 py-2 border-b">
-                  <!-- Truncated version (initial view with ellipsis) -->
-                  <div id="protein-short" class="truncate w-full overflow-hidden">
-                    {{ sel_csq.HGVSp|unesc|ellipsify(20)|safe }}<br>{{ sel_csq.HGVSp|one_letter_p|unesc|ellipsify(20)|safe }}
-                  </div>
-              
-                  <!-- Full text, initially hidden -->
-                  <div id="protein-full" class="hidden w-full break-all whitespace-normal">
-                    {{ sel_csq.HGVSp|unesc }}<br>{{ sel_csq.HGVSp|one_letter_p|unesc }}
-                  </div>
-              
-                  <!-- Button to toggle text visibility -->
-                  <button class="mt-1 text-xs text-gray-500 hover:text-blue-500 focus:outline-none"
-                          onclick="toggleText(this)">
-                    [+]
-                  </button>
-                </td>
-              </tr>
-              
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">CDS change:</td>
-                <td class="px-2 py-2 border-b">
-                  <!-- Truncated version (initial view with ellipsis) -->
-                  <div id="cds-short" class="truncate w-full overflow-hidden">
-                    {{ sel_csq.HGVSc|ellipsify(20)|safe }}
-                  </div>
-              
-                  <!-- Full text, initially hidden -->
-                  <div id="cds-full" class="hidden w-full break-all whitespace-normal">
-                    {{ sel_csq.HGVSc }}
-                  </div>
-              
-                  <!-- Button to toggle text visibility -->
-                  <button class="mt-1 text-xs text-gray-500 hover:text-blue-500 focus:outline-none"
-                          onclick="toggleText(this)">
-                    [+]
-                  </button>
-                </td>
-              </tr>
-              
-              {% set indel_size = variant.ALT|length - variant.REF|length %}
-              {% if indel_size != 0 %}
-                <tr class="hover:bg-purple-50">
-                  <td class="px-2 py-2 border-b font-semibold">Indel size:</td>
-                  <td class="px-2 py-2 border-b">{{ indel_size }} bp {% if indel_size < 0 %}DEL{% else %}INS{% endif %}</td>
-                </tr>
-              {% endif %}
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">Consequence:</td>
-                <td class="px-2 py-2 border-b">{{ sel_csq.Consequence|multirow|safe }}</td>
-              </tr>
-              {% if sel_csq.EXON|length > 0 %}
-                <tr class="hover:bg-purple-50">
-                  <td class="px-2 py-2 border-b font-semibold">Exon number:</td>
-                  <td class="px-2 py-2 border-b">{{ sel_csq.EXON }}</td>
-                </tr>
-              {% endif %}
-              {% if sel_csq.INTRON|length > 0 %}
-                <tr class="hover:bg-purple-50">
-                  <td class="px-2 py-2 border-b font-semibold">Intron number:</td>
-                  <td class="px-2 py-2 border-b">{{ sel_csq.INTRON }}</td>
-                </tr>
-              {% endif %}
-              {% set genomic_change =  variant.CHROM ~ ":" ~ variant.POS ~ ", " ~  variant.REF ~ " / " ~ variant.ALT %}
-
-
-
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">Genomic change:</td>
-                <td class="px-2 py-2 border-b">
-                  <!-- Truncated version (initial view with ellipsis) -->
-                  <div id="genomic-short" class="truncate w-full overflow-hidden">
-                    {{ genomic_change|ellipsify(20)|safe }}
-                  </div>
-
-                  <!-- Full text, initially hidden -->
-                  <div id="genomic-full" class="hidden w-full break-all whitespace-normal">
-                    {{ genomic_change }}
-                  </div>
-
-                  <!-- Button to toggle text visibility -->
-                  <button class="mt-1 text-xs text-gray-500 hover:text-blue-500 focus:outline-none"
-                          onclick="toggleText(this)">
-                    [+]
-                  </button>
-                </td>
-              </tr>
-
-
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">CADD PHRED:</td>
-                <td class="px-2 py-2 border-b">{{ sel_csq.CADD_PHRED }}</td>
-              </tr>
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">SIFT:</td>
-                <td class="px-2 py-2 border-b">{{ sel_csq.SIFT }}</td>
-              </tr>
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">Polyphen:</td>
-                <td class="px-2 py-2 border-b">{{ sel_csq.PolyPhen }}</td>
-              </tr>
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">dbSNP:</td>
-                <td class="px-2 py-2 border-b">
-                  {%if variant.dbsnp_id %}
-                    <a target="_blank" href="https://www.ncbi.nlm.nih.gov/snp/{{ variant.dbsnp_id }}" class="text-blue-600 underline">{{ variant.dbsnp_id }}</a>
-                  {%endif%}
-                </td>
-              </tr>
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">COSMIC:</td>
-                <td class="px-2 py-2 border-b">
-                  {% if variant.cosmic_ids %}
-                    {% for cosm_id in variant.cosmic_ids %}
-                      <a target="_blank" href="https://cancer.sanger.ac.uk/cosmic/search?q={{ cosm_id }}" class="text-blue-600 underline">{{ cosm_id }}</a><br>
-                    {% endfor %}
-                  {% endif %}
-                </td>
-              </tr>
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">ClinVar:</td>
-                <td class="px-2 py-2 border-b">{{ sel_csq.CLIN_SIG|default('')|multirow|safe }}</td>
-              </tr>
-              <tr>
-                <td class="px-2 py-2 border-b font-semibold">cBioPortal:</td>
-                <td class="px-2 py-2 border-b"><a target="_blank" href="http://www.cbioportal.org/ln?q={{sel_csq.SYMBOL}}" class="text-blue-600 underline">{{sel_csq.SYMBOL}}</a></td>
-              </tr>
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">OncoKB:</td>
-                <td class="px-2 py-2 border-b"><a target="_blank" href="http://oncokb.org/#/gene/{{sel_csq.SYMBOL}}" class="text-blue-600 underline">{{sel_csq.SYMBOL}}</a></td>
-              </tr>
-              {% if sel_csq.SYMBOL == "TP53" %}
-                <tr class="hover:bg-purple-50">
-                  <td class="px-2 py-2 border-b font-semibold">Seshat:</td>
-                  <td class="px-2 py-2 border-b"><a target="_blank" href="http://vps338341.ovh.net/search?mutation={{ sel_csq.HGVSp|unesc|one_letter_p|ellipsify(35)|safe }}&sampleid=" class="text-blue-600 underline">{{sel_csq.SYMBOL}}</a></td>
-                </tr>
-              {% endif %}
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">LitVar:</td>
-                <td class="px-2 py-2 border-b">
-                  {% if variant.dbsnp_id %}
-                    <a target="_blank" href="https://www.ncbi.nlm.nih.gov/CBBresearch/Lu/Demo/LitVar/#!?query={{ variant.dbsnp_id }}" class="text-blue-600 underline">{{ variant.dbsnp_id }}</a>
-                  {% endif %}
-                </td>
-              </tr>
-              {% if type == "DEL" or type == "DUP" %}
-                <tr class="hover:bg-purple-50">
-                  <td class="px-2 py-2 border-b font-semibold">DECIPHER:</td>
-                  <td class="px-2 py-2 border-b"><a target="_blank" href="https://decipher.sanger.ac.uk/browser#q/{{variant.CHROM}}:{{variant.POS}}-{{variant.INFO.END}}%20/location/{{variant.CHROM}}:{{variant.POS}}-{{variant.INFO.END}}" class="text-blue-600 underline">link</a></td>
-                </tr>
-              {% endif %}
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">Alamut:</td>
-                <td class="px-2 py-2 border-b">
-                  {% if variant.dbsnp_id %}
-                    <a target="_blank" href="http://localhost:10000/show?request={{variant.CHROM}}:{{variant.POS}}{{variant.REF}}&gt;{{variant.ALT}}" class="text-blue-600 underline">open</a>
-                  {% endif %}
-                </td>
-              </tr>
-              {% set subfolder = {'dir': "None"} %}
-              {% for sample_id,bam_path in bam_id.items() %}
-                <tr class="hover:bg-purple-50">
-                  <td class="px-2 py-2 border-b font-semibold">IGV({{sample_id}}):</td>
-                  <td class="px-2 py-2 border-b">
-                    {% for path in bam_path %}
-                    {% set list1 = path.split('/') %}
-                    {% if subfolder.update( { 'dir': list1[0] } ) %} {% endif %}
-                    <a href="http://localhost:60151/load?file=/R:{{path}}&locus={{variant.CHROM}}:{{variant.POS}}" class="text-blue-600 underline">{{list1[0]}}</a>
-                    {% endfor %}
-                  </td>
-                </tr>
-              {% endfor %}
-              {% if assay == "tumwgs" or assay == "fusion" %}
-              {% else %}
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">Design-BED:</td>
-                <td class="px-2 py-2 border-b">
-                  {% if subfolder.dir != "None" %}
-                    <a href="http://localhost:60151/load?file=/R:{{subfolder.dir}}/BED/design.bed" class="text-blue-600 underline">open</a>
-                  {% endif %}
-                </td>
-              </tr>
-              {% endif %}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Variant Caller details -->
-        {% if current_user.get_role() != "readonly" %}
-        <div class="float-left max-w-screen-300 w-full bg-white shadow-md rounded-lg p-2 m-5">
-          <h2 class="text-base font-semibold mb-4 bg-purple-300 p-2 rounded">Variant Callers</h2>
-          <table class="mw-full table-auto text-xs">
-              {% if variant.INFO.FOUND_IN %}
-              <thead>
-                <tr>
-                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Variant caller</th>
-                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">File</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for vc in variant.INFO.FOUND_IN %}
-                  <tr class="hover:bg-purple-50">
-                    <td class="px-2 py-2 border-b">{{vc[0] }}</td>
-                    <td class="px-2 py-2 border-b"><small>{{ vc[1] }}</small></td>
-                  </tr>
-                {% endfor %}
-              {% elif variant.INFO.variant_callers %}
-                <tr>
-                  <td></td>
-                    <td class="px-2 flex flex-wrap gap-2 py-2 border-b">
-                      {% for vc in variant.INFO.variant_callers %}
-                      <div class="bg-gray-100 rounded-md py-1 px-2 mt-1 hover:bg-purple-50">
-                        {{ vc }}
-                      </div>
-                      {% endfor %}
-                    </td>
-                </tr>
-              {% endif %}
-            </tbody>
-          </table>
-        </div>
+  <!-- Variant Wall Card -->
+  <div class="bg-white border border-gray-300 rounded-lg shadow-lg m-5">
+    <!-- Variant Header -->
+    <div class="w-full px-5 py-3 rounded-t-lg text-black flex justify-between items-center bg-tier-header{{ classification.class }}">
+      <!-- Variant Header Left Section -->
+      <div class="flex flex-col">
+        <h2 class="text-lg font-bold">
+          {{ sel_csq.SYMBOL }}({{ sel_csq.Feature }}):
+          {% if sel_csq.HGVSp %}
+            {{ sel_csq.HGVSp|one_letter_p|unesc }}
+          {% elif sel_csq.HGVSc %}
+            {{ sel_csq.HGVSc }}
+          {% else %}
+            {{ genomic_change }}
+          {% endif %}
+        </h2>
+        <p class="text-base font-normal">
+          {% if classification.class == 1 %}
+            Tier I: Strong Clinical Significance
+          {% elif classification.class == 2 %}
+            Tier II: Potential Clinical Significance
+          {% elif classification.class == 3 %}
+            Tier III: Unknown Clinical Significance
+          {% elif classification.class == 4 %}
+            Tier IV: Benign
+          {% else %}
+            Not Tiered
+          {% endif %}
+        </p>
+      </div>
+    
+      <!-- Variant Header Right Section -->
+      <div class="flex flex-col text-right">
+        <h2 class="text-lg font-bold">
+          <a href="{{ url_for('dna_bp.list_variants', id=sample.name) }}" class="hover:underline text-lg">
+            {{ sample.name }}
+          </a>
+        </h2>
+        {% if subpanel %}
+          <p class="text-base font-normal">
+            Type: {{ subpanel }}
+          </p>
         {% endif %}
       </div>
-
-      <!-- Variant Data for All Transcripts -->
-      <div class="float-left max-w-screen-425 w-full">
-        <div class="float-left max-w-screen-400 w-full bg-white shadow-md rounded-lg p-4 m-5 overflow-auto">
-          <!-- id="var_moreinfo" -->
-          <h2 class="text-base font-semibold mb-4 bg-indigo-300 p-2 rounded">
-            Alternate Transcripts Info
-            {% if assay=="swea" or assay == "gmsonco" %}
-            <a href="javascript:void(0)" onclick="switchVisibility_noncanonicaltranscripts('noncanonical_transcript')">Show/hide</a>
+    </div>
+    
+    <!-- Variant Wall Body -->
+    <div class="p-5 bg-white rounded-lg">
+      <!-- Variant Annotation Container -->
+      <div class="flex flex-wrap gap-3">
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">Chromosome</p>
+          <p class="text-sm font-semibold text-gray-800">chr{{variant.CHROM}}</p>
+        </div>
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">Position</p>
+          <p class="text-sm font-semibold text-gray-800">{{variant.POS}}</p>
+        </div>
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">Reference Allele</p>
+          <p class="text-sm font-semibold text-gray-800">{{variant.REF}}</p>
+        </div>
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">Alternate Allele</p>
+          <p class="text-sm font-semibold text-gray-800">{{variant.ALT}}</p>
+        </div>
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">Gene</p>
+          <p class="text-sm font-semibold text-gray-800"><a href="/coyote/gene_simple/{{ sel_csq.SYMBOL }}" class="text-blue-600 underline">{{ sel_csq.SYMBOL }}</a></p>
+        </div>
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">Canonical transcript</p>
+          <p class="text-sm font-semibold text-gray-800">{{ sel_csq.Feature }}</p>
+        </div>
+        {% for gt in variant.GT %}
+          <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+            <p class="text-sm text-gray-500 capitalize">{{gt.type}} VAF</p>
+            <p class="text-sm font-semibold text-gray-800">{{'%0.1f'| format(100*gt.AF|float) }}% ({{ gt.VD|int }} / {{ gt.DP|int }})</p>
+          </div>
+          {% if "UMI" in gt %}
+            <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+              <p class="text-sm text-gray-500 capitalize">{{gt.type}} UMI</p>
+              <p class="text-sm font-semibold text-gray-800">{{gt.UMI|format_umi|safe}}</p>
+            </div>
+          {% endif %}
+        {% endfor %}
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">Variant class</p>
+          <p class="text-sm font-semibold text-gray-800">{{ variant.variant_class }}</p>
+        </div>
+        {% if type == "DEL" or type == "DUP" %}
+          <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+            <p class="text-sm text-gray-500">Variant class</p>
+            <p class="text-sm font-semibold text-gray-800">{{ variant.INFO.END-variant.POS }} bp</p>
+          </div>
+          <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+            <p class="text-sm text-gray-500">Region</p>
+            <p class="text-sm font-semibold text-gray-800">{{variant.CHROM}}:{{ variant.POS }}-{{ variant.INFO.END }}</p>
+          </div>
+        {% endif %}
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">Protein change</p>
+          <p class="text-sm font-semibold text-gray-800">{{ sel_csq.HGVSp|unesc }}<br>{{ sel_csq.HGVSp|one_letter_p|unesc }}</p>
+        </div> 
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">CDS change</p>
+          <p class="text-sm font-semibold text-gray-800">{{ sel_csq.HGVSc }}</p>
+        </div>
+        {% if indel_size != 0 %}
+          <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+            <p class="text-sm text-gray-500">Indel size</p>
+            <p class="text-sm font-semibold text-gray-800">{{ indel_size }} bp {% if indel_size < 0 %}DEL{% else %}INS{% endif %}</p>
+          </div>
+        {% endif %}
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">Consequence</p>
+          <p class="text-sm font-semibold text-gray-800">{{ sel_csq.Consequence|multirow|safe }}</p>
+        </div>
+        {% if sel_csq.EXON|length > 0 %}
+          <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+            <p class="text-sm text-gray-500">Exon Number</p>
+            <p class="text-sm font-semibold text-gray-800">{{ sel_csq.EXON }}</p>
+          </div>
+        {% endif %}
+        {% if sel_csq.INTRON|length > 0 %}
+          <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+            <p class="text-sm text-gray-500">Intron Number</p>
+            <p class="text-sm font-semibold text-gray-800">{{ sel_csq.INTRON }}</p>
+          </div>
+        {% endif %}
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">Genomic change</p>
+          <p class="text-sm font-semibold text-gray-800">{{ genomic_change }}</p>
+        </div>
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">CADD PHRED</p>
+          <p class="text-sm font-semibold text-gray-800">
+            {% if sel_csq.CADD_PHRED %}
+              {{ sel_csq.CADD_PHRED }}
+            {%else %}
+              -
             {% endif %}
-          </h2>
-          <table class="w-full table-auto text-xs">
+          </p>
+        </div>
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">SIFT</p>
+          <p class="text-sm font-semibold text-gray-800">
+            {% if sel_csq.SIFT %}
+              {{ sel_csq.SIFT }}
+            {% else %}
+              -
+            {% endif %}
+            </p>
+        </div>
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">Polyphen</p>
+          <p class="text-sm font-semibold text-gray-800">
+            {% if sel_csq.PolyPhen %}
+              {{ sel_csq.PolyPhen }}
+            {% else %}
+              -
+            {% endif %}
+            </p>
+        </div>
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">dbSNP</p>
+          <p class="text-sm font-semibold text-gray-800">
+            {%if variant.dbsnp_id %}
+              <a target="_blank" href="https://www.ncbi.nlm.nih.gov/snp/{{ variant.dbsnp_id }}" class="text-blue-600 underline">{{ variant.dbsnp_id }}</a>
+            {% else %}
+              -
+            {%endif%}
+          </p>
+        </div>
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">COSMIC</p>
+          <p class="text-sm font-semibold text-gray-800">
+            {% if variant.cosmic_ids %}
+              {% for cosm_id in variant.cosmic_ids %}
+                <a target="_blank" href="https://cancer.sanger.ac.uk/cosmic/search?q={{ cosm_id }}" class="text-blue-600 underline">{{ cosm_id }}</a><br>
+              {% endfor %}
+            {% else %}
+              -
+            {% endif %}
+          </p>
+        </div>
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">ClinVar</p>
+          <p class="text-sm font-semibold text-gray-800">{{ sel_csq.CLIN_SIG|default('')|multirow|safe }}</p>
+        </div>
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">cBioPortal</p>
+          <p class="text-sm font-semibold text-gray-800"><a target="_blank" href="http://www.cbioportal.org/ln?q={{sel_csq.SYMBOL}}" class="text-blue-600 underline">{{sel_csq.SYMBOL}}</a></p>
+        </div>
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">OncoKB</p>
+          <p class="text-sm font-semibold text-gray-800"><a target="_blank" href="http://oncokb.org/#/gene/{{sel_csq.SYMBOL}}" class="text-blue-600 underline">{{sel_csq.SYMBOL}}</a></p>
+        </div>
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">LitVar</p>
+          <p class="text-sm font-semibold text-gray-800">
+            {% if variant.dbsnp_id %}
+              <a target="_blank" href="https://www.ncbi.nlm.nih.gov/CBBresearch/Lu/Demo/LitVar/#!?query={{ variant.dbsnp_id }}" class="text-blue-600 underline">{{ variant.dbsnp_id }}</a>
+            {% else %}
+              -
+            {% endif %}    
+          </p>
+        </div>
+        {% if sel_csq.SYMBOL == "TP53" %}
+          <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+            <p class="text-sm text-gray-500">Seshat</p>
+            <p class="text-sm font-semibold text-gray-800"><a target="_blank" href="http://vps338341.ovh.net/search?mutation={{ sel_csq.HGVSp|unesc|one_letter_p|ellipsify(35)|safe }}&sampleid=" class="text-blue-600 underline">{{sel_csq.SYMBOL}}</a></p>
+          </div>
+        {% endif %}
+        {% if type == "DEL" or type == "DUP" %}
+          <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+            <p class="text-sm text-gray-500">DECIPHER</p>
+            <p class="text-sm font-semibold text-gray-800"><a target="_blank" href="https://decipher.sanger.ac.uk/browser#q/{{variant.CHROM}}:{{variant.POS}}-{{variant.INFO.END}}%20/location/{{variant.CHROM}}:{{variant.POS}}-{{variant.INFO.END}}" class="text-blue-600 underline">link</a></p>
+          </div>
+        {% endif %}
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">Alamut</p>
+          <p class="text-sm font-semibold text-gray-800">
+            {% if variant.dbsnp_id %}
+              <a target="_blank" href="http://localhost:10000/show?request={{variant.CHROM}}:{{variant.POS}}{{variant.REF}}&gt;{{variant.ALT}}" class="text-blue-600 underline">open</a>
+            {% else %}
+              -
+            {% endif %}
+          </p>
+        </div>
+        {% for sample_id,bam_path in bam_id.items() %}
+          <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+            <p class="text-sm text-gray-500">IGV ({{sample_id}})</p>
+            <p class="text-sm font-semibold text-gray-800">
+              {% for path in bam_path %}
+                {% set list1 = path.split('/') %}
+                {% if subfolder.update( { 'dir': list1[0] } ) %} {% endif %}
+                <a href="http://localhost:60151/load?file=/R:{{path}}&locus={{variant.CHROM}}:{{variant.POS}}" class="text-blue-600 underline">{{list1[0]}}</a>
+              {% endfor %}
+            </p>
+          </div>
+        {% endfor %}
+        {% if assay == "tumwgs" or assay == "fusion" %}
+        {% else %}
+          <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+            <p class="text-sm text-gray-500">Design-BED</p>
+            <p class="text-sm font-semibold text-gray-800">
+              {% if subfolder.dir != "None" %}
+                <a href="http://localhost:60151/load?file=/R:{{subfolder.dir}}/BED/design.bed" class="text-blue-600 underline">open</a>
+              {% endif %}
+            </p>
+          </div>
+        {% endif %}
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">Variant Callers</p>
+          <div class="flex flex-wrap gap-2">
+            {% for vc in variant.INFO.variant_callers %}
+              <div class="bg-gray-100 rounded-md py-1 px-2 mt-1 hover:bg-gray-200">
+                <p class="text-sm font-semibold text-gray-800">{{ vc }}</p>
+              </div>
+            {% endfor %}
+            </div>
+        </div>
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">gnomAD</p>
+          <p class="text-sm font-semibold text-gray-800">{{ variant.gnomad_frequency|format_gnomad }}</p>
+        </div>
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">gnomAD Max</p>
+          <p class="text-sm font-semibold text-gray-800">{{ variant.gnomad_max|format_gnomad }}</p>
+        </div>
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">ExAC all</p>
+          <p class="text-sm font-semibold text-gray-800">{{ variant.ExAC_MAF|format_pop_freq(variant.ALT)|safe  }}</p>
+        </div>
+        <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+          <p class="text-sm text-gray-500">1000 Genome</p>
+          <p class="text-sm font-semibold text-gray-800">{{ variant.thousandG_frequency|format_pop_freq(variant.ALT)}}</p>
+        </div>
+        {% if "swegenAF" in variant.INFO %}
+          <div class="flex-grow bg-white p-3 rounded-lg shadow-md border border-gray-200">
+            <p class="text-sm text-gray-500">SweGen <img src="{{ url_for('static', filename='sweflag.png') }}"></p>
+            <p class="text-sm font-semibold text-gray-800">{{ variant.INFO.swegenAF|three_dec }}%</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  
+    <!-- Tier Based Color Bar at the Bottom -->
+    <div class="w-full h-4 mt-5 rounded-b-lg overflow-hidden bg-gray-200">
+      <div class="h-full bg-tier-header{{ classification.class }}"></div>
+    </div>
+  </div>
+  
+
+  <div class="mx-auto p-5">
+    <!-- Flexbox Container -->
+    <div class="flex flex-wrap gap-4">
+      <!-- Alternate Transcripts Info Card -->
+      <div class="flex-grow-0 bg-transparent p-2 ">
+        <h2 class="text-sm font-semibold bg-indigo-300 p-2 shadow-lg rounded-t-lg">
+          Alternate Transcripts Information
+          {% if assay == "swea" or assay == "gmsonco" %}
+            <a href="javascript:void(0)" onclick="switchVisibility_noncanonicaltranscripts('noncanonical_transcript')" class="text-blue-600 hover:underline">
+              Show/hide
+            </a>
+          {% endif %}
+        </h2>
+        <div class="overflow-auto rounded-b-lg border border-gray-400 shadow-md">
+          <table class="table-auto text-xs overflow-hidden mx-2 my-1">
             <thead>
-              <tr>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Gene</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Transcript</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Exon</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Prot change</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">CDS change</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Tier</th>
+              <tr class="border-b-2 text-left border-gray-300 capitalize">
+                <th class="p-2 font-semibold">Gene</th>
+                <th class="p-2 font-semibold">Transcript</th>
+                <th class="p-2 font-semibold">Exon</th>
+                <th class="p-2 font-semibold">Prot change</th>
+                <th class="p-2 font-semibold">CDS change</th>
+                <th class="p-2 font-semibold">Tier</th>
               </tr>
             </thead>
             <tbody>
               {% for csq in variant.INFO.CSQ %}
-                {% set alt_class = variant.additional_classification %}
-                {% if csq.BIOTYPE == "protein_coding" and (csq.HGVSp|length > 0 or csq.HGVSc|length > 0)  %}
-                  {% if csq.Feature == sel_csq.Feature  %}
-                    <tr class="bg-yellow-100 hover:bg-green-100 font-semibold">
+                {% if csq.BIOTYPE == "protein_coding" and (csq.HGVSp|length > 0 or csq.HGVSc|length > 0) %}
+                  {% if csq.Feature == sel_csq.Feature %}
+                    <tr class="bg-yellow-100 hover:bg-green-100 border-b text-left">
                   {% else %}
-                    <tr {% if assay=="swea" or assay=="gmsonco" %}class="noncanonical_transcript visibility-collapsed"{% else %}class=" hover:bg-indigo-50"{% endif %}>
+                    <tr {% if assay == "swea" or assay == "gmsonco" %}class="noncanonical_transcript visibility-collapsed border-b text-left"{% else %}class="hover:bg-indigo-50 border-b text-left"{% endif %}>
                   {% endif %}
-                  <td class="px-2 py-2 border-b">{{ csq.SYMBOL }}</td>
-                  <td class="px-2 py-2 border-b">{{ csq.Feature }}</td>
-                  <td class="px-2 py-2 border-b">{{ csq.EXON }}</td>
-                  <td class="px-2 py-2 border-b">{{ csq.HGVSp|unesc|ellipsify(20)|safe }}</td>
-                  <td class="px-2 py-2 border-b">{{ csq.HGVSc|unesc|ellipsify(20)|safe }}</td>
-                  <td class="px-2 py-2 border-b">
+                  <td class="p-2 font-medium">{{ csq.SYMBOL }}</td>
+                  <td class="p-2 font-medium">{{ csq.Feature }}</td>
+                  <td class="p-2 font-medium">{{ csq.EXON }}</td>
+                  <td class="p-2 font-medium whitespace-normal">{{ csq.HGVSp|unesc|safe }}</td>
+                  <td class="p-2 font-medium whitespace-normal">{{ csq.HGVSc|unesc|safe }}</td>
+                  <td class="p-2 font-medium">
                     {% if alt_class and csq.Feature == alt_class.transcript and (csq.HGVSc == alt_class.variant or csq.HGVSp == alt_class.variant) %}
-                      <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full bg-gray-400">
+                      <div class="inline-block px-2 py-1 text-xs font-bold text-white rounded-full bg-gray-400">
                         {{ alt_class.class }}
                       </div>
                     {% else %}
                       -
                     {% endif %}
+                  </td>
                 </tr>
                 {% endif %}
               {% endfor %}
             </tbody>
           </table>
         </div>
-
-          <!-- Sample Specific Data -->
-        <div class="float-left max-w-screen-400 w-full bg-white shadow-md rounded-lg p-4 m-5 overflow-auto">
-          <h2 class="text-base font-semibold mb-4 bg-indigo-300 p-2 rounded">Sample-Specific Data</h2>
-          <table class="w-full table-auto text-xs">
-            <thead>
-              <tr>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Sample</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Sample type</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Variant freq.</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">UMI families</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for gt in variant.GT %}
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">{{ gt.sample }}</td>
-                  <td class="px-2 py-2 border-b">{{ gt.type }}</td>
-                  <td class="px-2 py-2 border-b">{{'%0.1f'| format(100*gt.AF|float) }}% ({{ gt.VD|int }} / {{ gt.DP|int }})</td>
-                  <td class="px-2 py-2 border-b">
-                    {% if "UMI" in gt %}
-                      {{gt.UMI|format_umi|safe}}
-                    {% else %}
-                      N/A
-                    {% endif %}
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Population Frequencies -->
-        <div class="float-left max-w-screen-400 w-full bg-white shadow-md rounded-lg p-4 m-5 overflow-auto">
-          <h2 class="text-base font-semibold mb-4 bg-indigo-300 p-2 rounded">Population Frequencies</h2>
-          <table class="w-full table-auto text-xs">
-            <thead>
-              <tr>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Database</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Pop freq</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="hover:bg-indigo-50">
-                <td class="px-2 py-2 border-b">gnomAD</td>
-                <td class="px-2 py-2 border-b">{{ variant.gnomad_frequency|format_gnomad }}</td>
-              </tr>
-              <tr class="hover:bg-indigo-50">
-                <td class="px-2 py-2 border-b">gnomAD Max</td>
-                <td class="px-2 py-2 border-b">{{ variant.gnomad_max|format_gnomad }}</td>
-              </tr>
-              <tr class="hover:bg-indigo-50">
-                <td class="px-2 py-2 border-b">ExAC all</td>
-                <td class="px-2 py-2 border-b">{{ variant.ExAC_MAF|format_pop_freq(variant.ALT)|safe }}</td>
-              </tr>
-              <tr class="hover:bg-indigo-50">
-                <td class="px-2 py-2 border-b">1000 G</td>
-                <td class="px-2 py-2 border-b">{{ variant.thousandG_frequency|format_pop_freq(variant.ALT)}}</td>
-              </tr>
-              {% if "swegenAF" in variant.INFO %}
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">SweGen <img src="{{ url_for('static', filename='sweflag.png') }}"></td>
-                  <td class="px-2 py-2 border-b">{{ variant.INFO.swegenAF|three_dec }}%</td>
-                </tr>
-              {% endif %}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Variant in Other Samples -->
-        {% if in_other|length > 0 %}
-        <div class="float-left max-w-screen-400 w-full bg-white shadow-md rounded-lg p-4 m-5" >
-          <h2 class="text-base font-semibold mb-4 bg-indigo-300 p-2 rounded">Variant in Other Samples</h2>
-          <table class="w-full table-auto text-xs">
-            <thead>
-              <tr>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Sample</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Comments</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Marked</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for other in in_other %}
-                <tr class="hover:bg-indigo-50">
-                  <td class="px-2 py-2 border-b">
-                    <a href="{{ url_for('dna_bp.show_variant', id=other._id) }}" class="text-blue-600 underline">{{other.sample_name}}</a>
-                  </td>
-                  <td class="px-2 py-2 border-b">
-                    {{other.comments|length}}
-                  </td>
-                  <td class="px-2 py-2 border-b">
-                    {% if other.fp == True %}
-                      <img class="w-4" title="Marked as false positive" src="{{ url_for('static', filename='redcross.png') }}">
-                    {% endif %}
-                    {% if other.interesting == True %}
-                      <img class="w-4" title="Marked as interesting" src="{{ url_for('static', filename='interesting.png') }}">
-                    {% endif %}
-                    {% if other.irrelevant == True %}
-                      <img class="w-4" title="Marked as irrelevant" src="{{ url_for('static', filename='irrelevant.png') }}">
-                    {% endif %}
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        {% endif %}
       </div>
 
-      <div class="float-left max-w-screen-375 w-full">
-        <!-- Variant Classification -->
-        <div class="float-left max-w-screen-350 w-full clear-right bg-white shadow-md rounded-lg p-4 m-5 ">
-          <h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">Variant Classification</h2>
-          <div class="w-full p-2 border mb-1 bg-gray-50"> <!--  id="classification" -->
-            <div class="p-2 mb-1 bg-white text-center text-xs font-semibold border divide-gray-400" id="desc{{ classification.class }}"> <!-- class="class_desc"  id="desc{{ classification.class }}" -->
-              {% if classification.class == 1 %}
-                Variant with strong clinical significance
-              {% elif classification.class == 2 %}
-                Variant with potential clinical significance
-              {% elif classification.class == 3 %}
-                Variant of unknown clinical significance
-              {% elif classification.class == 4 %}
-                Variant deemed benign or likely benign
-              {% elif classification.class == 999 %}
-                The variant has not been classified
-              {% endif %}
-            </div>  
-            {% if current_user.get_role() != "readonly" %}
-              <form id="form" action="{{ url_for('dna_bp.classify_variant', id=variant._id) }}" method="post" class="inline-flex items-center space-x-2"> <!-- class="class_form" -->
-                <input type="hidden" name="assay" value="{{ assay }}">
-                <input type="hidden" name="subpanel" value="{{ subpanel }}">
-      
-                {% if sel_csq.HGVSc is defined %}
-                  <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">
-                  <input type="hidden" name="transcript" value="{{ sel_csq.Feature }}">
-                  <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|unesc }}">
-                  <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc }}">
-                {% endif %}
-                <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
-                <div class="pt-2 pr-2 pb-1 pl-1">
-                  Tier:
-                </div> <!-- class="class_label" -->
-                <button id="tier1" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer {% if classification.class == 999 %}a{% elif classification.class == 1 %}font-bold shadow-lg{% else %}bg-white opacity-50{% endif %}" title="Variants with strong clinical significance" type="submit" name="tier1">I</button>
-                <button id="tier2" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer {% if classification.class == 999 %}a{% elif classification.class == 2 %}font-bold shadow-lg{% else %}bg-white opacity-50{% endif %}" title="Variants with potential clinical significance" type="submit" name="tier2">II</button>
-                <button id="tier3" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer {% if classification.class == 999 %}a{% elif classification.class == 3 %}font-bold shadow-lg{% else %}bg-white opacity-50{% endif %}" title="Variants of unknown clinical significance" type="submit" name="tier3">III</button>
-                <button id="tier4" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer {% if classification.class == 999 %}a{% elif classification.class == 4 %}font-bold shadow-lg{% else %}bg-white opacity-50{% endif %}" title="Variants deemed benign or likely benign" type="submit" name="tier4">IV</button>
-              </form>
-              <form id="form" action="{{ url_for('dna_bp.remove_classified_variant', id=variant._id) }}" method="post" class="inline-flex items-center space-x-2" >
-                <input type="hidden" name="assay" value="{{ assay }}">
-                <input type="hidden" name="subpanel" value="{{ subpanel }}">
-                {% if sel_csq.HGVSc is defined %}
-                  <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">
-                  <input type="hidden" name="transcript" value="{{ sel_csq.Feature }}">
-                  <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|unesc }}">
-                  <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc }}">
-                {% endif %}
-                  <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
-                {% if 'assay' in classification %}
-                  <button id="remove" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer" title="Remove {{assay}} classifications" type="submit" onclick="return confirm('This will remove all tiering for {{assay}}, proceed?')">❌</button>
-                {% elif 'admin' in current_user.get_groups() %}
-                  <button id="remove" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer" title="Remove historic non-assay classifications" type="submit" onclick="return confirm('This will remove all tiering for historic tiering without assays assigned, proceed?')">❌</button>
-                {% endif %}
-              </form>
-            {% endif %}
+      <!-- Variant Annotations Information Assay -->
+      {% if annotations_interesting|length > 0 %}
+        <div class="bg-transparent p-2 flex-grow-0">
+          <h2 class="text-sm font-semibold bg-blue-300 p-2 shadow-lg rounded-t-lg">Variant Annotations Information (Assay)</h2>
+          <div class="rounded-b-lg border border-gray-400 shadow-md p-2">
+            <table class="table-auto text-xs table-fixed overflow-hidden">
+              <thead>
+                <tr class="border-b-2 text-left border-gray-300 capitalize">
+                  <th class="p-2 font-semibold">Who</th>
+                  <th class="p-2 font-semibold">Annotation</th>
+                  <th class="p-2 font-semibold">Assay</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for assay_sub, key in annotations_interesting.items() %}
+                  <tr class="hover:bg-blue-50 border-b">
+                    <td class="p-2 font-medium">{{ key.author }}<br><small>{{ key.time_created|human_date }}</small></td>
+                    <td class="p-2 font-medium" onclick="addText(event)">{{ key.text|format_comment|safe }}</td>
+                    <td class="p-2 font-medium">
+                      {% if "assay" in key %}
+                        {{key.assay}}<br><small>{{key.subpanel}}</small>
+                      {% else %}
+                        historic
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </div>
+      {% endif %}
 
-        <!-- Other tiering -->
-        <div class="float-left max-w-screen-350 w-full bg-white shadow-md rounded-lg p-4 m-5">
-          <h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">Other Tiering</h2>
-          <table class="w-full table-auto text-xs">
-            <thead>
-              <tr>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Assay</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Diagnosis</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Tier</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for var in other_classifications %}
-                <tr class="hover:bg-blue-50">
-                  <td class="px-2 py-2 border-b">{{var.assay}}</td>
-                  {% if "subpanel" in var %}
-                    <td class="px-2 py-2 border-b">{{var.subpanel}}</td>
-                  {% else %}
-                    <td class="px-2 py-2 border-b">-</td>
-                  {% endif %}
-                  <td class="px-2 py-2 border-b">{{var.class}}</td>
+      <!-- Other tiering -->
+      {% if other_classifications %}
+        <div class="bg-transparent p-2 w-1/4 overflow-hidden break-words">
+          <h2 class="text-sm font-semibold bg-green-200 p-2 shadow-lg rounded-t-lg">Other Tiering Information</h2>
+          <div class="rounded-b-lg border border-gray-400 shadow-md box-border p-2">
+            <table class="w-full table-auto text-xs table-fixed overflow-hidden">
+              <thead>
+                <tr class="border-b-2 text-left border-gray-300 capitalize">
+                  <th class="p-2 font-semibold">Assay</th>
+                  <th class="p-2 font-semibold">Diagnosis</th>
+                  <th class="p-2 font-semibold">Tier</th>
                 </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {% for var in other_classifications %}
+                  <tr class="hover:bg-green-50 border-b text-left">
+                    <td class="p-2 font-base">{{var.assay}}</td>
+                    <td class="p-2 font-base">
+                      {% if "subpanel" in var %}
+                        {{ var.subpanel }}
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+                    <td class="p-2 font-base">{{var.class}}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         </div>
+      {% endif %}
 
-        <!-- Add Variant Comments -->
-        {% if current_user.get_role() != "readonly" %}
-        <div class="float-left max-w-screen-350 w-full bg-white shadow-md rounded-lg p-4 m-5 clear-right">
-          <h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">Add new comment/annotation</h2>
-          <div id="commenting_box" class="w-full bg-gray-50 border border-gray-300 p-4 rounded-md">
+      <!-- Add Variant Comments -->
+      {% if current_user.get_role() != "readonly" %}
+        <div class="bg-transparent p-2 w-1/4">
+          <h2 class="text-sm font-semibold bg-purple-300 p-2 shadow-lg rounded-t-lg">Add new comment/annotation</h2>
+          <div id="commenting_box" class="rounded-b-lg border border-gray-400 shadow-md p-2">
             <form action="{{ url_for('dna_bp.add_variant_comment', id=variant._id) }}" method="post">
-              <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="w-full h-20 p-1 border border-gray-300 rounded-md focus:bg-yellow-100 mb-4"></textarea><br>
-      
+              <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="w-full h-32 p-2 border border-gray-300 rounded-md focus:bg-yellow-100 mb-4"></textarea><br>
               {% if sel_csq.HGVSc is defined %}
                 <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">      
                 <input type="hidden" name="transcript" value="{{ sel_csq.Feature }}">
@@ -592,8 +546,8 @@
                 <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc}}">
               {% endif %}
               <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
-              <input type="submit" value="Save" class="bg-blue-500 text-white py-2 px-4 rounded-md cursor-pointer shadow-md">&nbsp;&nbsp;
-              <label class="inline-flex items-center">
+              <input type="submit" value="Save" class="bg-blue-500 text-white py-1 px-2 rounded-md cursor-pointer shadow-md">&nbsp;&nbsp;
+              <label class="items-center">
                 <input type="checkbox" name="global" value="global" class="form-checkbox text-blue-500">
                 <span class="ml-2">Use as global annotation</span>
               </label>
@@ -602,45 +556,332 @@
             </form>
           </div>
         </div>
-        {% endif %}
+      {% endif %}
 
-        <!-- Variant Comments -->
-        {% if variant.comments|length > 0 and current_user.get_role() != "readonly" %}
-          <div class="float-left max-w-screen-350 w-full bg-white shadow-md rounded-lg p-4 m-5">
-            <h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">Sample-Specific Variant Comments</h2>
-            <table class="w-full table-auto text-xs">
+      <!-- MELT Annotations -->
+      {% if "MELT" in variant.INFO.variant_callers %}
+        <div class="bg-transparent p-2 w-1/4 overflow-hidden break-words">
+          <h2 class="text-sm font-semibold bg-red-200 p-2 shadow-lg rounded-t-lg">MELT-Specific Annotations</h2>
+          <div class="rounded-b-lg border border-gray-400 shadow-md box-border p-2">
+            <table class="w-full table-auto text-xs table-fixed overflow-hidden">
               <thead>
+                <tr class="border-b-2 text-left border-gray-300 capitalize">
+                  <th class="p-2 font-semibold">Type</th>
+                  <th class="p-2 font-semibold">Annotation</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if "custom" in variant.INFO %}
+                  {% set melt_anno = variant.INFO.custom.split(",") %}
+                  {% for ma in melt_anno %}
+                    {% set keyval = ma.split("|") %}
+                    <tr class="hover:bg-red-50 border-b text-left">
+                      <td class="p-2 font-medium">{{keyval[0]}}</td>
+                      <td class="p-2 font-medium">{{keyval[1]}}</td>
+                    </tr>
+                  {% endfor %}
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Panel of Normals -->
+      {% if pon is not none and pon|length > 0 %}
+        <div class="flex-grow-1 bg-transparent p-2">
+          <h2 class="text-sm font-semibold bg-red-300 p-2 shadow-lg rounded-t-lg">Panel of Normals</h2>
+          <div class="rounded-b-lg border border-gray-400 shadow-md">
+            <table class="table-auto text-xs overflow-hidden mx-4 my-1">
+              <thead>
+                <tr class="border-b-2 text-left border-gray-300 capitalize">
+                  <th class="p-2 font-semibold w-1/12">Variant caller</th>
+                  <th class="p-2 font-semibold w-1/12"># detected</th>
+                  <th class="p-2 font-semibold w-10/12">Variant Frequencies</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for vc in pon %}
+                  <tr class="hover:bg-red-50 border-b">
+                    <td class="p-2 font-medium">{{ vc }}</td>
+                    <td class="p-2 font-medium">{{ pon[vc].NUM }}%</td>
+                    <td class="p-2 font-medium">
+                      {% for vaf in (pon[vc].VAFS|string).split(",") %}
+                        <span class="ponfreq">{{'%0.1f'| format(100*vaf|float) }}%</span>
+                      {% endfor %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Knowledge Base Card -->
+      <div class="flex-grow bg-transparent p-2">
+        <h2 class="text-sm font-semibold bg-pink-300 p-2 shadow-lg rounded-t-lg">Knowledge Base</h2>
+        <div class="rounded-b-lg border border-gray-400 shadow-md overflow-hidden">
+          <table class="table-auto text-xs overflow-hidden mx-4 my-1">
+            <thead>
+              <tr class="border-b-2 text-left border-gray-300 capitalize">
+                <th class="p-2 font-semibold">Database</th>
+                <th class="p-2 font-semibold">Gene/Variant</th>
+                <th class="p-2 font-semibold">Summary</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- IARC Database -->
+              <!-- TODO: Update this to the latest design when testing -->
+              {#{% set iarc_tp53 = {} %}#}
+              {% if iarc_tp53 is defined and iarc_tp53 is not none %}
+                <tr class="hover:bg-pink-50 border-b">
+                  <td class="p-2 font-medium align-top">
+                    <img class="w-10 h-10 object-contain" alt="IARC TP53" src="{{ url_for('static', filename='images/iarctp53_logo.png') }}">
+                    <p class="text-red-500 font-bold align-top">BETA!</p>
+                  </td>
+                  <td class="p-2 font-medium align-top py-5">
+                    <a href="http://p53.iarc.fr/TP53GeneVariations.aspx" class="text-blue-600 hover:underline break-words">IARC Variations</a>
+                  </td>
+                  <td class="p-2 font-medium text-justify break-words">
+                    <div class="flex flex-wrap gap-2">
+                      <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
+                        <p class="text-xs text-gray-500">Somatic count</p>
+                        <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.n_somatic }}</p>
+                      </div>
+                      <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
+                        <p class="text-xs text-gray-500">Germline count</p>
+                        <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.n_germline }}</p>
+                      </div>
+                      <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
+                        <p class="text-xs text-gray-500">Structural motif</p>
+                        <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.motif }}</p>
+                      </div>
+                      <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
+                        <p class="text-xs text-gray-500">Domain function</p>
+                        <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.domain_func }}</p>
+                      </div>
+                      <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
+                        <p class="text-xs text-gray-500">Residue function</p>
+                        <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.residue_func }}</p>
+                      </div>
+                      <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
+                        <p class="text-xs text-gray-500">Transactivation class</p>
+                        <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.transactivation_class }}</p>
+                      </div>
+                      <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
+                        <p class="text-xs text-gray-500">AGVGD class</p>
+                        <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.AGVGD_class }}</p>
+                      </div>
+                      <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
+                        <p class="text-xs text-gray-500">Splicing</p>
+                        <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.splice }}</p>
+                      </div>
+                      <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
+                        <p class="text-xs text-gray-500">CpG site</p>
+                        <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.cpg }}</p>
+                      </div>
+                      <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
+                        <p class="text-xs text-gray-500">Polymorphism</p>
+                        <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.polymorphism }}</p>
+                      </div>
+                    </div>
+                    {% if "topology_count" in iarc_tp53 and iarc_tp53["topology_count"] is mapping %}
+                      <br><br>
+                      <table class="table-auto text-xs overflow-hidden mx-4 my-1">
+                        <thead>
+                          <tr class="border-b-2 text-left border-gray-300 capitalize">
+                            <th class="p-2 font-semibold">Topology</th>
+                            <th class="p-2 font-semibold">Count</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for top,count in iarc_tp53.topology_count.iteritems() %}
+                            <tr class="border text-left border-gray-300">
+                              <td class="p-2 font-base break-words">{{ top }}</td>
+                              <td class="p-2 font-base break-words">{{ count }}</td>
+                            </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    {%endif %}
+                  </td>
                 <tr>
-                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Who</th>
-                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Comment</th>
-                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Hide/Unhide</th>
+              {% endif %}
+
+              <!-- BRCA Exchange Database -->
+              <!-- TODO: Update this to the latest design when testing -->
+              {#{% set brca_exchange = {} %}#}
+              {% if brca_exchange is defined and brca_exchange is not none %}
+                <tr class="hover:bg-pink-50 border-b">
+                  <td class="p-2 font-medium align-top">
+                    <img class="w-12" alt="BRCA Exchange" src="{{ url_for('static', filename='images/brcaexchange_logo.jpg') }}">
+                  </td>
+                  <td class="p-2 font-medium align-top py-5">
+                    <a href="http://brcaexchange.org/variant/{{brca_exchange.id}}" class="text-blue-600 hover:underline break-words">{{brca_exchange.id}}</a>
+                  </td>
+                  <td class="p-2 font-medium text-justify break-words">
+                    Clinical significance (ENIGMA): <b>{{brca_exchange.enigma_clinsig}}</b><p>
+                    {{brca_exchange.enigma_clinsig_comment}}</b><p>
+                    {% if brca_exchange.enigma_clinsig_refs != "-" %}
+                      Citations: {{brca_exchange.enigma_clinsig_refs|pubmed_links|safe}}
+                    {% endif %}
+                  </td>
+              {% endif %}
+
+
+              <!-- OnkoKB Database -->
+              <!-- TODO: Update this to the latest design when testing -->
+              {#{% set oncokb = {} %}#}
+              {% if oncokb is defined and oncokb is not none %}
+                <tr class="hover:bg-pink-50 border-b">
+                  <td class="p-2 font-medium align-top">
+                    <img class="w-12 pt-4" alt="OncoKB" src="{{ url_for('static', filename='images/oncokb_logo.png') }}">
+                  </td>
+                  <td class="p-2 font-medium align-top py-5">
+                    <a href="http://oncokb.org/#/gene/{{sel_csq.SYMBOL}}" class="text-blue-600 hover:underline break-words">{{ oncokb.Alteration }}</a>
+                  </td>
+                  <td class="p-2 font-medium text-justify break-words">
+                    Oncogenicity: <b>{{ oncokb.Oncogenicity }}</b><br>
+                    Mutation effect: <b>{{ oncokb['Mutation Effect'] }}</b> {{ oncokb['PMIDs for Mutation Effect']|pubmed_links|safe }}<br><br>
+                    {% if oncokb_action.count() > 0 %}
+                      <b>Actions:</b>
+                      <table class="table-auto text-xs overflow-hidden mx-4 my-1">
+                        <thead>
+                          <tr class="border-b-2 text-left border-gray-300 capitalize">
+                            <th class="p-2 font-semibold">Cancer</th>
+                            <th class="p-2 font-semibold">Drug(s)</th>
+                            <th class="p-2 font-semibold">Level</th>
+                            <th class="p-2 font-semibold">Refs</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for oncokb_act in oncokb_action %}
+                            {% if oncokb_act.Alteration != "Oncogenic Mutations" or oncokb.Oncogenicity == "Oncogenic" %}
+                            <tr class="border text-left border-gray-300">
+                              <td class="p-2 font-base break-words">{{ oncokb_act['Cancer Type'] }}</td>
+                              <td class="p-2 font-base break-words">{{ oncokb_act['Drugs(s)'] }}</td>
+                              <td class="p-2 font-base break-words">{{ oncokb_act['Level'] }}</td>
+                              <td class="p-2 font-base break-words">{{ oncokb_act['PMIDs for drug']|pubmed_links|safe }}</td>
+                            </tr>
+                            {% endif %}
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endif %}
+
+              <!-- CIVIC Database -->
+              {% if civic_gene is defined and civic_gene is not none %}
+                <tr class="hover:bg-pink-50 border-b">
+                  <td class="p-2 font-medium align-top">
+                    <img class="w-10 h-10 object-contain" alt="OncoKB" src="{{ url_for('static', filename='images/civic_logo.png') }}">
+                  </td>
+                  <td class="p-2 font-medium align-top py-5">
+                    <a href="{{ civic_gene.gene_civic_url }}" class="text-blue-600 hover:underline break-words">
+                      {{ civic_gene.name }}
+                    </a>
+                  </td>
+                  <td class="p-2 font-medium text-justify break-words">
+                    {{ civic_gene.description }}
+                  </td>
+                </tr>
+              {% endif %}
+
+              <!-- OnkoKB Gene Database -->
+              {% if oncokb_gene is defined and oncokb_gene is not none %}
+                <tr class="hover:bg-pink-50 border-b">
+                  <td class="p-2 font-medium align-top">
+                    <img class="w-12 pt-4" alt="OncoKB" src="{{ url_for('static', filename='images/oncokb_logo.png') }}">
+                  </td>
+                  <td class="p-2 font-medium align-top py-5">
+                    <a target="_blank" href="http://oncokb.org/#/gene/{{sel_csq.SYMBOL}}" class="text-blue-600 hover:underline break-words">{{sel_csq.SYMBOL}}</a>
+                  </td>
+                  <td class="p-2 font-medium text-justify break-words">
+                    {% if oncokb_gene.description is defined %}
+                      {{ oncokb_gene.description|format_oncokbtext|safe }}
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Variant Annotations Information All -->
+      {% if annotations|length > 0 %}
+        <div class="bg-transparent p-2 flex-grow-0">
+          <h2 class="text-sm font-semibold bg-green-300 p-2 shadow-lg rounded-t-lg">Variant Annotations Information (All)</h2>
+          <div class="rounded-b-lg border border-gray-400 shadow-md p-2">
+            <table class="table-auto text-xs table-fixed overflow-hidden">
+              <thead>
+                <tr class="border-b-2 text-left border-gray-300 capitalize">
+                  <th class="p-2 font-semibold w-1/6">Who</th>
+                  <th class="p-2 font-semibold w-4/6">Annotation</th>
+                  <th class="p-2 font-semibold w-1/6">Assay</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
+                  {% if current_user.get_role() != "readonly" or loop.first == True %}
+                    <tr class="hover:bg-green-50 border-b">
+                      <td class="p-2 font-medium">{{ anno.author }}<br><small>{{ anno.time_created|human_date }}</small></td>
+                      <td class="p-2 font-medium" onclick="addText(event)">{{ anno.text|format_comment|safe }}</td>
+                      <td class="p-2 font-medium">
+                        {% if "assay" in anno %}
+                          {{anno.assay}}<br><small>{{anno.subpanel}}</small>
+                        {% else %}
+                          historic
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Sample-Specific Variant Comments -->
+      {% if variant.comments|length > 0 and current_user.get_role() != "readonly" %}
+        <div class="bg-transparent p-2 flex-grow-0">
+          <h2 class="text-sm font-semibold bg-yellow-300 p-2 shadow-lg rounded-t-lg">Sample-Specific Variant Comments</h2>
+          <div class="rounded-b-lg border border-gray-400 shadow-md">
+            <table class="table-auto text-xs overflow-hidden mx-4 my-1">
+              <thead>
+                <tr class="border-b-2 text-left border-gray-300 capitalize">
+                  <th class="p-2 font-semibold w-1/6">Who</th>
+                  <th class="p-2 font-semibold w-4/6">Comment</th>
+                  <th class="p-2 font-semibold w-1/6">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {% for comment in variant.comments|sort(attribute='time_created', reverse=True) %}
                   {% if comment.hidden != 1 %}
-                    <tr class="hover:bg-blue-50">
+                    <tr class="hover:bg-yellow-50 border-b text-left">
                   {% else %}
-                    <tr class="bg-red-100 hover:bg-red-200 opacity-30 hidden hidden_comment">
+                    <tr class="bg-red-100 hover:bg-red-200 text-left opacity-30 hidden hidden_comment">
                   {% endif %}
-                  <td class="align-top py-2 px-4 border-b border-gray-300 text-gray-800 text-left whitespace-nowrap">{{ comment.author }}<br><small>{{ comment.time_created|human_date }}</small></td>
-                  <td class="align-top py-2 px-4 border-b border-gray-300 text-gray-800 text-left" onclick="addText(event)">
-                    {{ comment.text|format_comment|safe }}
-                  </td>
-                  <td class="align-top py-2 px-4 border-b border-gray-300 text-gray-800 text-left">
-                    {% if comment.hidden != 1 %}
-                      <form action="{{ url_for('dna_bp.hide_variant_comment', var_id=variant._id) }}" method="post">
-                        <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                        <input id="hide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/delete.png') }}">
-                      </form>
-                    {% else %}
-                      <form action="{{ url_for('dna_bp.unhide_variant_comment', var_id=variant._id) }}" method="post">
-                        <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                        <input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/unhide.png') }}">
-                      </form>
-                    {% endif %}
-                  </td>
-                </tr>
+                    <td class="p-2 font-medium">{{ comment.author }}<br><small>{{ comment.time_created|human_date }}</small></td>
+                    <td class="p-2 font-medium" onclick="addText(event)">{{ comment.text|format_comment|safe }}</td>
+                    <td class="p-2 font-medium">
+                      {% if comment.hidden != 1 %}
+                        <form action="{{ url_for('dna_bp.hide_variant_comment', var_id=variant._id) }}" method="post">
+                          <input type="hidden" name="comment_id" value="{{ comment._id }}">
+                          <input id="hide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/delete.png') }}">
+                        </form>
+                      {% else %}
+                        <form action="{{ url_for('dna_bp.unhide_variant_comment', var_id=variant._id) }}" method="post">
+                          <input type="hidden" name="comment_id" value="{{ comment._id }}">
+                          <input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/unhide.png') }}">
+                        </form>
+                      {% endif %}
+                    </td>
+                  </tr>
                 {% endfor %}
                 {% if hidden_comments %}
                   <tr>
@@ -648,277 +889,18 @@
                       <a href="javascript:void(0)" onclick="switchVisibility_comments('hidden_comment')">Show/hide deleted comments</a>
                     </td>
                   </tr>
-                {% endif %}
-              </tbody>
-            </table>
-          </div>
-        {% endif %}
-
-        <!-- Variant Annotations Information Assay -->
-        {% if annotations_interesting|length > 0 %}
-          <div class="float-left max-w-screen-350 w-full bg-white shadow-md rounded-lg p-4 m-5">
-            <h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">Variant Annotations (assay)</h2>
-            <table class="w-full table-auto text-xs">
-              <thead>
-                <tr>
-                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Who</th>
-                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Annotation</th>
-                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Assay</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for assay_sub, key in annotations_interesting.items() %}
-                  <tr class="bg-green-200">
-                    <td class="px-2 py-2 border-b">
-                      {{ key.author }}<br><small>{{ key.time_created|human_date }}</small>
-                    </td>
-                    <td class="px-2 py-2 border-b" onclick="addText(event)">{{ key.text|format_comment|safe }}</td>
-                    {% if "assay" in key %}
-                      <td class="px-2 py-2 border-b">
-                        {{key.assay}}<br><small>{{key.subpanel}}</small>
-                      </td>
-                    {% else %}
-                      <td class="px-2 py-2 border-b">historic</td>
-                    {% endif %}
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        {% endif %}
-
-        <!-- Variant Annotations Information All -->
-        {% if annotations|length > 0 %}
-          <div class="float-left max-w-screen-350 w-full bg-white shadow-md rounded-lg p-4 m-5">
-            <h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">Variant Annotations (all)</h2>
-            <table class="w-full table-auto text-xs">
-              <thead>
-                <tr>
-                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Who</th>
-                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Annotation</th>
-                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Assay</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
-                  {% if current_user.get_role() != "readonly" or loop.first == True %}
-                    <tr class="hover:bg-blue-50">
-                      <td class="px-2 py-2 border-b">
-                        {{ anno.author }}<br><small>{{ anno.time_created|human_date }}</small>
-                      </td>
-                      <td class="px-2 py-2 border-b" onclick="addText(event)">
-                        {{ anno.text|format_comment|safe }}
-                      </td>
-                      {% if "assay" in anno %}
-                        <td class="px-2 py-2 border-b">
-                          {{anno.assay}}<br><small>{{anno.subpanel}}</small>
-                        </td>
-                      {% else %}
-                        <td class="px-2 py-2 border-b">historic</td>
-                      {% endif %}
-                    </tr>
-                  {% endif %}
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        {% endif %}
-
-        <!-- MELT Annotations -->
-        {% if "MELT" in variant.INFO.variant_callers %}
-        <div class="float-left max-w-screen-350 w-full bg-white shadow-md rounded-lg p-4 m-5">
-          <h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">MELT-Specific Annotations</h2>
-          <table class="w-full table-auto text-xs">
-            <thead>
-              <tr>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Type</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Annotation</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% if "custom" in variant.INFO %}
-                {% set melt_anno = variant.INFO.custom.split(",") %}
-                {% for ma in melt_anno %}
-                  {% set keyval = ma.split("|") %}
-                  <tr class="hover:bg-blue-50">
-                    <td class="px-2 py-2 border-b">{{keyval[0]}}</td>
-                    <td class="px-2 py-2 border-b">{{keyval[1]}}</td>
-                  </tr>
-                {% endfor %}
               {% endif %}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         </div>
-        {% endif %}
-
-        <!-- Panel of Normals -->
-        {% if pon is not none and pon|length > 0 %}
-        <div class="float-left max-w-screen-350 w-full bg-white shadow-md rounded-lg p-4 m-5" >
-          <h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">Panel of Normals</h2>
-          <table class="w-full table-auto text-xs">
-            <thead>
-              <tr>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Variant caller</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold"># detected</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Variant frequencies</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for vc in pon %}
-                <tr class="hover:bg-blue-50">
-                  <td class="px-2 py-2 border-b">{{vc}}</td>
-                  <td class="px-2 py-2 border-b">{{pon[vc].NUM}}</td>
-                  <td class="px-2 py-2 border-b">
-                    {% for vaf in (pon[vc].VAFS|string).split(",") %}
-                      <span class="ponfreq">{{'%0.1f'| format(100*vaf|float) }}%</span>
-                    {% endfor %}
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        {% endif %}
-      </div>
-
-      <!-- Knowledgebase -->
-      <div class="float-left max-w-screen-x1 w-11\/12 bg-white shadow-md rounded-lg p-4 m-5">
-        <h2 class="text-base font-semibold mb-4 bg-pink-300 p-2 rounded">Knowledge Base</h2>
-        <table class="w-full table-auto text-xs">
-          <thead>
-            <tr>
-              <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Knowledge base</th>
-              <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Summary</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% if iarc_tp53 is defined and iarc_tp53 is not none  %}
-            <tr>
-              <td style='vertical-align:top'>
-                <img class="w-6" alt="IARC TP53" src="{{ url_for('static', filename='images/iarctp53_logo.png') }}"><br>BETA!<br><b>Var:</b> <a href="http://p53.iarc.fr/TP53GeneVariations.aspx">link</a>
-              </td>
-              <td>
-                Somatic count: <b>{{ iarc_tp53.n_somatic }}</b><br>
-                Germline count: <b>{{ iarc_tp53.n_germline }}</b><br><br>
-                Structural motif: <b>{{ iarc_tp53.motif }}</b><br>
-                Domain function: <b>{{ iarc_tp53.domain_func }}</b><br>
-                Residue function: <b>{{ iarc_tp53.residue_func }}</b><br><br>
-                Transactivation class: <b>{{ iarc_tp53.transactivation_class }}</b><br>
-                AGVGD class: <b>{{ iarc_tp53.AGVGD_class }}</b><br>
-                Splicing: <b>{{ iarc_tp53.splice }}</b><br>
-                CpG site: <b>{{ iarc_tp53.cpg }}</b><br>
-                Polymorphism: <b>{{ iarc_tp53.polymorphism }}</b>
-                {% if "topology_count" in iarc_tp53 and iarc_tp53["topology_count"] is mapping %}
-                  <br><br>
-                  <table class="tiny">
-                    <tr class="tiny">
-                      <th class="tiny">Topology</th>
-                      <th class="tiny">Count</th>
-                    </tr>
-                    {% for top,count in iarc_tp53.topology_count.iteritems() %}
-                      <tr class="tiny">
-                        <td class="tiny">{{ top }}</td>
-                        <td class="tiny">{{ count }}</td>
-                      </tr>
-                    {% endfor %}
-                  </table>
-                {% endif %}
-              </td>
-            </tr>
-            {% endif %}
-            {% if brca_exchange is defined and brca_exchange is not none %}
-            <tr>
-              <td style='vertical-align:top'>
-                <img class="w-12" alt="BRCA Exchange" src="{{ url_for('static', filename='images/brcaexchange_logo.jpg') }}"><br><b>Var:</b> <a href="http://brcaexchange.org/variant/{{brca_exchange.id}}">link</a>
-              </td>
-              <td>
-                Clinical significance (ENIGMA): <b>{{brca_exchange.enigma_clinsig}}</b><p>
-                {{brca_exchange.enigma_clinsig_comment}}</b><p>
-                {% if brca_exchange.enigma_clinsig_refs != "-" %}
-                  Citations: {{brca_exchange.enigma_clinsig_refs|pubmed_links|safe}}
-                {% endif %}
-              </td>
-            </tr>
-            {% endif %}
-            {% if oncokb is defined and oncokb is not none %}
-            <tr>
-              <td style='vertical-align:top'>
-                <img class="w-12" alt="OncoKB" src="{{ url_for('static', filename='images/oncokb_logo.png') }}"><br><b>Var:</b> <a href="http://oncokb.org/#/gene/{{sel_csq.SYMBOL}}">{{ oncokb.Alteration }}</a>
-              </td>
-              <td>
-                Oncogenicity: <b>{{ oncokb.Oncogenicity }}</b><br>
-                Mutation effect: <b>{{ oncokb['Mutation Effect'] }}</b> {{ oncokb['PMIDs for Mutation Effect']|pubmed_links|safe }}<br><br>
-                {% if oncokb_action.count() > 0 %}
-                <b>Actions:</b>
-                <table class='tiny'>
-                  <tr>
-                    <th class='tiny'>Cancer</th>
-                    <th class='tiny'>Drug(s)</th>
-                    <th class='tiny'>Level</th>
-                    <th class='tiny'>Refs</th>
-                  </tr>
-                  {% for oncokb_act in oncokb_action %}
-                    {% if oncokb_act.Alteration != "Oncogenic Mutations" or oncokb.Oncogenicity == "Oncogenic" %}
-                    <tr>
-                      <td class='tiny'>{{ oncokb_act['Cancer Type'] }}</td>
-                      <td class='tiny'>{{ oncokb_act['Drugs(s)'] }}</td>
-                      <td class='tiny'>{{ oncokb_act['Level'] }}</td>
-                      <td class='tiny'>{{ oncokb_act['PMIDs for drug']|pubmed_links|safe }}</td>
-                    </tr>
-                    {% endif %}
-                  {% endfor %}
-                </table>
-                {% endif %}
-              </td>
-            </tr>
-            {% endif %}
-            {% for civ in civic %}
-            <tr>
-              <td style='vertical-align:top'>
-                <img class="w-10" alt="CIViC" src="{{ url_for('static', filename='images/civic_logo.png') }}"><br><b>Var:</b> <a href="{{ civ.variant_civic_url }}">{{ civ.variant_civic_url }}</a>
-              </td>
-              <td>
-                {% set civ_types = civ.variant_types.split(',') %}
-                <b>
-                {% for type in civ_types %}
-                {{ type|replace("_", " ") }}<br>
-                {% endfor %}
-                </b><p>
-                {{ civ.summary }}
-              </td>
-            </tr>
-            {% endfor %}
-            {% if oncokb_gene is defined and oncokb_gene is not none %}
-            <tr>
-              <td style='vertical-align:top'>
-                <img class="w-12" alt="OncoKB" src="{{ url_for('static', filename='images/oncokb_logo.png') }}"><br><b>Gene:</b><a target="_blank" href="http://oncokb.org/#/gene/{{sel_csq.SYMBOL}}">{{sel_csq.SYMBOL}}</a>
-              </td>
-              <td>
-                {% if oncokb_gene.description is defined %}
-                {{ oncokb_gene.description|format_oncokbtext|safe }}
-                {% endif %}
-              </td>
-            </tr>
-            {% endif %}
-            {% if civic_gene is defined and civic_gene is not none %}
-            <tr>
-              <td style='vertical-align:top'>
-                <img class="w-10" alt="OncoKB" src="{{ url_for('static', filename='images/civic_logo.png') }}"><br><b>Gene:</b> <a href="{{ civic_gene.gene_civic_url }}">{{ civic_gene.name }}</a>
-              </td>
-              <td>
-                {{ civic_gene.description }}
-              </td>
-            </tr>
-            {% endif %}
-          </tbody>
-        </table>
-      </div>
+      {% endif %}
     </div>
-  </center>
+  </div>
 </div>
+  
 
-
-  <script type="text/javascript">
+<script type="text/javascript">
     $("#test").select2();
 
     window.onload = function() {
@@ -973,10 +955,10 @@
   }
   
 
-  </script>
+</script>
 
+{% endblock %}
 
-{% endblock %} 
 
 {% macro complement(base) -%}
   {% if base == "A" %}T{% endif %}
