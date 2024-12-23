@@ -1,0 +1,131 @@
+{% extends "layout.html" %}
+<style>
+    .gene-line {
+        stroke: black;
+        stroke-width: 5px;
+    }
+    .exon {
+        fill: steelblue;
+        stroke: black;
+        stroke-width: 1px;
+    }
+    .label {
+        font-size: 12px;
+        font-family: Arial, sans-serif;
+        text-anchor: middle;
+    }
+</style>
+{% block body %}
+{% for gene in coverage.genes %}
+    <button onclick="plotGene('{{gene}}')">{{gene}}</button>
+    <br>
+{% endfor %}
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<script>
+    function plotGene(gene) {
+    // Parse the data from Jinja2
+    const geneData = {{ coverage | tojson | safe }};
+
+    // Get the specific gene data dynamically
+    const selectedGene = geneData.genes[gene];
+    if (!selectedGene) {
+        console.error(`Gene ${gene} not found in the data.`);
+        return;
+    }
+
+    // Remove any existing plot
+    d3.select("#gene-plot-container").remove();
+
+    // Create a new container for the plot
+    const plotContainer = d3.select("body")
+        .append("div")
+        .attr("id", "gene-plot-container")
+        .style("margin", "20px 0");
+
+    // Add a title or information
+    plotContainer.append("h3").text(`Gene: ${gene}`);
+
+    // Create the SVG for the plot
+    const svg = plotContainer.append("svg");
+
+    // Calculate dynamic width based on gene length
+    const depthCutoff = {{ cov_cutoff }}
+    const geneStart = selectedGene.transcript.start
+    const geneEnd = selectedGene.transcript.end
+    const geneLength = geneEnd - geneStart;
+    const baseWidthPerBp = 0.01; // Scale factor: 0.1px per base pair
+    const svgWidth = Math.max(geneLength * baseWidthPerBp, 2000); // Minimum width of 800px
+    const svgHeight = 200;
+    const margin = { top: 20, right: 200, bottom: 20, left: 200 };
+    const plotHeight = svgHeight - margin.top - margin.bottom;
+
+    svg.attr("width", svgWidth)
+        .attr("height", svgHeight);
+
+    // Dynamic scale based on gene size
+    const xScale = d3.scaleLinear()
+        .domain([geneStart, geneEnd])
+        .range([margin.left, svgWidth - margin.right]);
+
+    const geneY = plotHeight / 2;
+
+    // Draw the gene line
+    svg.append("line")
+        .style("stroke", "black")
+        .style("stroke-width", 1)
+        .attr("x1", xScale(selectedGene.transcript.start))
+        .attr("y1", geneY)
+        .attr("x2", xScale(selectedGene.transcript.end))
+        .attr("y2", geneY);
+
+
+    // Draw exons as rectangles
+    svg.selectAll("exon")
+        .data(selectedGene.exons)
+        .enter()
+        .append("rect")
+        .style("fill", "lightgrey")
+        .attr("x", d => xScale(d.start))
+        .attr("y", geneY - 10)
+        .attr("width", d => xScale(d.end) - xScale(d.start))
+        .attr("height", 20)
+        .append("title") // Tooltip
+        .text(d => `Exon ${d.nbr}: Start ${d.start}, End ${d.end}}`);
+
+    // Draw exons as rectangles
+    svg.selectAll("cds")
+        .data(selectedGene.CDS)
+        .enter()
+        .append("rect")
+        .attr("fill", d => {
+                // Color based on coverage cutoff
+                return d.cov < depthCutoff ? "red" : "steelblue"; // Red if cov < 500, green otherwise
+            })
+        .attr("x", d => xScale(d.start))
+        .attr("y", geneY - 10)
+        .attr("width", d => xScale(d.end) - xScale(d.start))
+        .attr("height", 20)
+        .append("title") // Tooltip
+        .text(d => `Exon ${d.nbr}: Start ${d.start}, End ${d.end}}, Cov ${d.cov}}`);
+    
+    svg.selectAll("probes")
+        .data(selectedGene.probes)
+        .enter()
+        .append("rect")
+        .attr("fill", d => {
+                // Color based on coverage cutoff
+                return d.cov < depthCutoff ? "red" : "steelblue"; // Red if cov < 500, green otherwise
+            })
+        .attr("x", d => xScale(d.start))
+        .attr("y", geneY - 35)
+        .attr("width", d => xScale(d.end) - xScale(d.start))
+        .attr("height", 20)
+        .append("title") // Tooltip
+        .text(d => `${d.chr}:${d.start}-${d.end} ${d.cov}}`);
+        }
+
+</script>
+
+{% endblock %}
