@@ -1,26 +1,37 @@
 {% extends "layout.html" %}
 <style>
-    .gene-line {
-        stroke: black;
-        stroke-width: 5px;
+    .containery {
+        display: grid;
     }
-    .exon {
-        fill: steelblue;
-        stroke: black;
-        stroke-width: 1px;
+    .button-containery {
+        max-width: 2px; /* Optional: Limit the width */
+        max-height: 1px; /* Set the maximum height */
+        overflow-y: auto; /* Enable vertical scrolling for long lists */
     }
-    .label {
-        font-size: 12px;
-        font-family: Arial, sans-serif;
-        text-anchor: middle;
+    .plot-container {
+        padding: 200px;
     }
 </style>
 {% block body %}
-{% for gene in coverage.genes %}
-    <button onclick="plotGene('{{gene}}')">{{gene}}</button>
-    <br>
-{% endfor %}
-
+<div id="containery" class="containery">
+    <div id="button-containery" class="button-containery">
+        {% for gene in coverage.genes | sort %}
+            <button onclick="plotGene('{{gene}}')">{{gene}}</button>
+        {% endfor %}
+    </div>
+    <div class="plot-container" id="plot-container"></div>
+    <div>
+        {% for gene in coverage.genes | sort %}
+        <table class="min-w-full mt-4 table-auto text-xs sortable">
+            <thead>
+                <tr class="bg-gradient-to-r from-indigo-300 to-yellow-300 text-black">
+                    <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">Gene</th>
+                </tr>
+            </thead>
+        </table>
+        {% endfor %}
+    </div>
+</div>
 <script src="https://d3js.org/d3.v7.min.js"></script>
 
 <script>
@@ -36,10 +47,10 @@
     }
 
     // Remove any existing plot
-    d3.select("#gene-plot-container").remove();
+    d3.select("#plot-container").select("#gene-plot-container").remove();
 
     // Create a new container for the plot
-    const plotContainer = d3.select("body")
+    const plotContainer = d3.select("#plot-container")
         .append("div")
         .attr("id", "gene-plot-container")
         .style("margin", "20px 0");
@@ -56,7 +67,7 @@
     const geneEnd = selectedGene.transcript.end
     const geneLength = geneEnd - geneStart;
     const baseWidthPerBp = 0.01; // Scale factor: 0.1px per base pair
-    const svgWidth = Math.max(geneLength * baseWidthPerBp, 2000); // Minimum width of 800px
+    const svgWidth = Math.min(Math.max(geneLength * baseWidthPerBp, 2000), 2000); // always scale to 2000 BP
     const svgHeight = 200;
     const margin = { top: 20, right: 200, bottom: 20, left: 200 };
     const plotHeight = svgHeight - margin.top - margin.bottom;
@@ -92,7 +103,7 @@
         .attr("width", d => xScale(d.end) - xScale(d.start))
         .attr("height", 20)
         .append("title") // Tooltip
-        .text(d => `Exon ${d.nbr}: Start ${d.start}, End ${d.end}}`);
+        .text(d => `${d.chr}:${d.start}-${d.end} (Exon ${d.nbr}), Cov: ${Number(d.cov).toFixed(2)}`);
 
     // Draw exons as rectangles
     svg.selectAll("cds")
@@ -108,7 +119,7 @@
         .attr("width", d => xScale(d.end) - xScale(d.start))
         .attr("height", 20)
         .append("title") // Tooltip
-        .text(d => `Exon ${d.nbr}: Start ${d.start}, End ${d.end}}, Cov ${d.cov}}`);
+        .text(d => `${d.chr}:${d.start}-${d.end} (Exon ${d.nbr}), Cov: ${Number(d.cov).toFixed(2)}`);
     
     svg.selectAll("probes")
         .data(selectedGene.probes)
@@ -123,7 +134,7 @@
         .attr("width", d => xScale(d.end) - xScale(d.start))
         .attr("height", 20)
         .append("title") // Tooltip
-        .text(d => `${d.chr}:${d.start}-${d.end} ${d.cov}}`);
+        .text(d => `${d.chr}:${d.start}-${d.end}, Cov: ${Number(d.cov).toFixed(2)}X`);
         }
 
 </script>

@@ -20,34 +20,14 @@ import os
 @cov_bp.route("/<string:id>", methods=["GET", "POST"])
 @login_required
 def list_variants(id):
-    cov_cutoff = 500
+    cov_cutoff = 1000
     #cov_dict = store.coverage2_handler.get_sample_coverage("66f285e8ecea5d8ee7e95afa")
-    cov_dict = store.coverage2_handler.get_sample_coverage("TEST123")
+    cov_dict = store.coverage2_handler.get_sample_coverage("TEST1234")
     del cov_dict['_id']
-    filtered_dict = defaultdict(dict)
-    genes = [ "TP53", "BRCA1", "BRCA2", "TERT"]
-    for gene in cov_dict['genes']:
-        if gene not in genes:
-            filtered_dict['genes'][gene] = cov_dict['genes'][gene]
+    
+    filtered_dict = filter_genes(cov_dict)
     filtered_dict = find_low_covered_genes(filtered_dict,cov_cutoff)
-
-    exons = []
-    for gene in filtered_dict['genes']:
-        for exon in filtered_dict['genes'][gene]['exons']:
-            exons.append(filtered_dict['genes'][gene]['exons'][exon])
-        filtered_dict['genes'][gene]['exons'] = exons
-
-    cds = []
-    for gene in filtered_dict['genes']:
-        for exon in filtered_dict['genes'][gene]['CDS']:
-            cds.append(filtered_dict['genes'][gene]['CDS'][exon])
-        filtered_dict['genes'][gene]['CDS'] = cds
-
-    probes = []
-    for gene in filtered_dict['genes']:
-        for probe in filtered_dict['genes'][gene]['probes']:
-            probes.append(filtered_dict['genes'][gene]['probes'][probe])
-        filtered_dict['genes'][gene]['probes'] = probes
+    filtered_dict = organize_data_for_d3(filtered_dict)
 
     return render_template(
         "show_cov.html",
@@ -68,4 +48,35 @@ def find_low_covered_genes(cov,cutoff):
         if has_low == True:
             keep['genes'][gene] = cov['genes'][gene]
     return keep
-    
+
+def organize_data_for_d3(filtered_dict):
+        
+    for gene in filtered_dict['genes']: 
+        if 'exons' in filtered_dict['genes'][gene]:
+            exons = []
+            for exon in filtered_dict['genes'][gene]['exons']:
+                exons.append(filtered_dict['genes'][gene]['exons'][exon])
+            filtered_dict['genes'][gene]['exons'] = exons
+        if 'CDS' in filtered_dict['genes'][gene]:
+            cds = []
+            for exon in filtered_dict['genes'][gene]['CDS']:
+                cds.append(filtered_dict['genes'][gene]['CDS'][exon])
+            filtered_dict['genes'][gene]['CDS'] = cds
+        if 'probes' in filtered_dict['genes'][gene]:
+            probes = []
+            for probe in filtered_dict['genes'][gene]['probes']:
+                probes.append(filtered_dict['genes'][gene]['probes'][probe])
+            filtered_dict['genes'][gene]['probes'] = probes
+
+    return filtered_dict
+
+def filter_genes(cov_dict):
+    genes = [ "TP53", "BRCA1", "BRCA2", "TERT" ]
+    if len(genes) > 0:
+        filtered_dict = defaultdict(dict)
+        for gene in cov_dict['genes']:
+            if gene in genes:
+                filtered_dict['genes'][gene] = cov_dict['genes'][gene]
+        return filtered_dict
+    else:
+        return cov_dict
