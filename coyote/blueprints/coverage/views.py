@@ -3,7 +3,7 @@ Coyote case variants
 """
 
 from flask import current_app as app
-from flask import redirect, render_template, request, url_for, send_from_directory, flash, abort
+from flask import redirect, render_template, request, url_for, send_from_directory, flash, abort, jsonify
 from flask_login import current_user, login_required
 from pprint import pformat
 from wtforms import BooleanField
@@ -34,6 +34,16 @@ def list_variants(id):
         coverage=filtered_dict,
         cov_cutoff=cov_cutoff
     )
+
+@app.route('/update-gene-status', methods=['POST'])
+def update_gene_status():
+    data = request.get_json()
+    gene = data.get('gene')
+    status = data.get('status')
+    # Return a response
+    return jsonify({'message': f'Status for gene {gene} updated to {status}'})
+
+
 
 def find_low_covered_genes(cov,cutoff):
     keep = defaultdict(dict)

@@ -11,132 +11,217 @@
     .plot-container {
         padding: 200px;
     }
+    .data-container {
+        padding: 200px;
+    }
 </style>
 {% block body %}
+
 <div id="containery" class="containery">
     <div id="button-containery" class="button-containery">
-        {% for gene in coverage.genes | sort %}
+        {% for gene in coverage.genes | sort %} 
             <button onclick="plotGene('{{gene}}')">{{gene}}</button>
         {% endfor %}
     </div>
     <div class="plot-container" id="plot-container"></div>
-    <div>
-        {% for gene in coverage.genes | sort %}
-        <table class="min-w-full mt-4 table-auto text-xs sortable">
-            <thead>
-                <tr class="bg-gradient-to-r from-indigo-300 to-yellow-300 text-black">
-                    <th class="py-2 px-3 border-b-2 text-center uppercase font-semibold">Gene</th>
-                </tr>
-            </thead>
-        </table>
-        {% endfor %}
+    <div class="data-container" id="data-container">
     </div>
 </div>
+
 <script src="https://d3js.org/d3.v7.min.js"></script>
 
 <script>
     function plotGene(gene) {
-    // Parse the data from Jinja2
-    const geneData = {{ coverage | tojson | safe }};
+        // Parse the data from Jinja2
+        const geneData = {{ coverage | tojson | safe }};
 
-    // Get the specific gene data dynamically
-    const selectedGene = geneData.genes[gene];
-    if (!selectedGene) {
-        console.error(`Gene ${gene} not found in the data.`);
-        return;
-    }
-
-    // Remove any existing plot
-    d3.select("#plot-container").select("#gene-plot-container").remove();
-
-    // Create a new container for the plot
-    const plotContainer = d3.select("#plot-container")
-        .append("div")
-        .attr("id", "gene-plot-container")
-        .style("margin", "20px 0");
-
-    // Add a title or information
-    plotContainer.append("h3").text(`Gene: ${gene}`);
-
-    // Create the SVG for the plot
-    const svg = plotContainer.append("svg");
-
-    // Calculate dynamic width based on gene length
-    const depthCutoff = {{ cov_cutoff }}
-    const geneStart = selectedGene.transcript.start
-    const geneEnd = selectedGene.transcript.end
-    const geneLength = geneEnd - geneStart;
-    const baseWidthPerBp = 0.01; // Scale factor: 0.1px per base pair
-    const svgWidth = Math.min(Math.max(geneLength * baseWidthPerBp, 2000), 2000); // always scale to 2000 BP
-    const svgHeight = 200;
-    const margin = { top: 20, right: 200, bottom: 20, left: 200 };
-    const plotHeight = svgHeight - margin.top - margin.bottom;
-
-    svg.attr("width", svgWidth)
-        .attr("height", svgHeight);
-
-    // Dynamic scale based on gene size
-    const xScale = d3.scaleLinear()
-        .domain([geneStart, geneEnd])
-        .range([margin.left, svgWidth - margin.right]);
-
-    const geneY = plotHeight / 2;
-
-    // Draw the gene line
-    svg.append("line")
-        .style("stroke", "black")
-        .style("stroke-width", 1)
-        .attr("x1", xScale(selectedGene.transcript.start))
-        .attr("y1", geneY)
-        .attr("x2", xScale(selectedGene.transcript.end))
-        .attr("y2", geneY);
-
-
-    // Draw exons as rectangles
-    svg.selectAll("exon")
-        .data(selectedGene.exons)
-        .enter()
-        .append("rect")
-        .style("fill", "lightgrey")
-        .attr("x", d => xScale(d.start))
-        .attr("y", geneY - 10)
-        .attr("width", d => xScale(d.end) - xScale(d.start))
-        .attr("height", 20)
-        .append("title") // Tooltip
-        .text(d => `${d.chr}:${d.start}-${d.end} (Exon ${d.nbr}), Cov: ${Number(d.cov).toFixed(2)}`);
-
-    // Draw exons as rectangles
-    svg.selectAll("cds")
-        .data(selectedGene.CDS)
-        .enter()
-        .append("rect")
-        .attr("fill", d => {
-                // Color based on coverage cutoff
-                return d.cov < depthCutoff ? "red" : "steelblue"; // Red if cov < 500, green otherwise
-            })
-        .attr("x", d => xScale(d.start))
-        .attr("y", geneY - 10)
-        .attr("width", d => xScale(d.end) - xScale(d.start))
-        .attr("height", 20)
-        .append("title") // Tooltip
-        .text(d => `${d.chr}:${d.start}-${d.end} (Exon ${d.nbr}), Cov: ${Number(d.cov).toFixed(2)}`);
-    
-    svg.selectAll("probes")
-        .data(selectedGene.probes)
-        .enter()
-        .append("rect")
-        .attr("fill", d => {
-                // Color based on coverage cutoff
-                return d.cov < depthCutoff ? "red" : "steelblue"; // Red if cov < 500, green otherwise
-            })
-        .attr("x", d => xScale(d.start))
-        .attr("y", geneY - 35)
-        .attr("width", d => xScale(d.end) - xScale(d.start))
-        .attr("height", 20)
-        .append("title") // Tooltip
-        .text(d => `${d.chr}:${d.start}-${d.end}, Cov: ${Number(d.cov).toFixed(2)}X`);
+        // Get the specific gene data dynamically
+        const selectedGene = geneData.genes[gene];
+        if (!selectedGene) {
+            console.error(`Gene ${gene} not found in the data.`);
+            return;
         }
 
+        // Remove any existing plot
+        d3.select("#plot-container").select("#gene-plot-container").remove();
+        
+        // Create a new container for the plot
+        const plotContainer = d3.select("#plot-container")
+            .append("div")
+            .attr("id", "gene-plot-container")
+            .style("margin", "20px 0");
+
+        // Add a title or information
+        plotContainer.append("h3").text(`Gene: ${gene}`);
+
+        // Create the SVG for the plot
+        const svg = plotContainer.append("svg");
+
+        // Calculate dynamic width based on gene length
+        const depthCutoff = {{ cov_cutoff }}
+        const geneStart = selectedGene.transcript.start
+        const geneEnd = selectedGene.transcript.end
+        const geneLength = geneEnd - geneStart;
+        const baseWidthPerBp = 0.01; // Scale factor: 0.1px per base pair
+        const svgWidth = Math.min(Math.max(geneLength * baseWidthPerBp, 2000), 2000); // always scale to 2000 BP
+        const svgHeight = 200;
+        const margin = { top: 20, right: 200, bottom: 20, left: 200 };
+        const plotHeight = svgHeight - margin.top - margin.bottom;
+
+        svg.attr("width", svgWidth)
+            .attr("height", svgHeight);
+
+        // Dynamic scale based on gene size
+        const xScale = d3.scaleLinear()
+            .domain([geneStart, geneEnd])
+            .range([margin.left, svgWidth - margin.right]);
+
+        const geneY = plotHeight / 2;
+
+        // Draw the gene line
+        svg.append("line")
+            .style("stroke", "black")
+            .style("stroke-width", 1)
+            .attr("x1", xScale(selectedGene.transcript.start))
+            .attr("y1", geneY)
+            .attr("x2", xScale(selectedGene.transcript.end))
+            .attr("y2", geneY);
+
+
+        // Draw exons as rectangles
+        svg.selectAll("exon")
+            .data(selectedGene.exons)
+            .enter()
+            .append("rect")
+            .style("fill", "lightgrey")
+            .attr("x", d => xScale(d.start))
+            .attr("y", geneY - 10)
+            .attr("width", d => xScale(d.end) - xScale(d.start))
+            .attr("height", 20)
+            .append("title") // Tooltip
+            .text(d => `${d.chr}:${d.start}-${d.end} (Exon ${d.nbr}), Cov: ${Number(d.cov).toFixed(2)}`);
+
+        // Draw exons as rectangles
+        svg.selectAll("cds")
+            .data(selectedGene.CDS)
+            .enter()
+            .append("rect")
+            .attr("fill", d => {
+                    // Color based on coverage cutoff
+                    return d.cov < depthCutoff ? "red" : "steelblue"; // Red if cov < 500, green otherwise
+                })
+            .attr("x", d => xScale(d.start))
+            .attr("y", geneY - 10)
+            .attr("width", d => xScale(d.end) - xScale(d.start))
+            .attr("height", 20)
+            .append("title") // Tooltip
+            .text(d => `${d.chr}:${d.start}-${d.end} (Exon ${d.nbr}), Cov: ${Number(d.cov).toFixed(2)}`);
+        
+        svg.selectAll("probes")
+            .data(selectedGene.probes)
+            .enter()
+            .append("rect")
+            .attr("fill", d => {
+                    // Color based on coverage cutoff
+                    return d.cov < depthCutoff ? "red" : "steelblue"; // Red if cov < 500, green otherwise
+                })
+            .attr("x", d => xScale(d.start))
+            .attr("y", geneY - 35)
+            .attr("width", d => xScale(d.end) - xScale(d.start))
+            .attr("height", 20)
+            .append("title") // Tooltip
+            .text(d => `${d.chr}:${d.start}-${d.end}, Cov: ${Number(d.cov).toFixed(2)}X`);
+
+        d3.select("#data-container").select("#gene-data-container").remove();
+        
+        // Create a new container for the data
+        const dataContainer = d3.select("#data-container")
+            .append("div")
+            .attr("id", "gene-data-container")
+            .style("margin", "20px 0");
+        dataContainer.append("h4").text("Exons not meeting criteria:");
+
+        // Example: Filter exons with coverage below the cutoff
+        const lowCoverageExons = selectedGene.CDS.filter(d => d.cov < depthCutoff);
+       // Create a table
+       const table = dataContainer.append("table")
+            .style("border-collapse", "collapse")
+            .style("width", "auto") // Set table width to adjust to its content
+            .style("margin-left", "0") // Align the table to the left
+            .style("margin-top", "20px"); // Optional: Add some spacing at the top
+
+        // Add table headers
+        const thead = table.append("thead");
+        thead.append("tr")
+            .selectAll("th")
+            .data(["Exon", "Chromosome", "Start", "End", "Coverage", "Actions"])
+            .enter()
+            .append("th")
+            .style("border", "1px solid black")
+            .style("padding", "8px")
+            .style("text-align", "left")
+            .text(d => d);
+
+        // Add table body
+        const tbody = table.append("tbody");
+
+        // Populate table rows with data
+        if (lowCoverageExons.length > 0) {
+            lowCoverageExons.forEach(exon => {
+                const row = tbody.append("tr");
+
+                // Add data cells
+                row.append("td")
+                    .style("padding", "8px")
+                    .text(`Exon ${exon.nbr}`);
+                row.append("td")
+                    .style("padding", "8px")
+                    .text(exon.chr);
+                row.append("td")
+                    .style("padding", "8px")
+                    .text(exon.start);
+                row.append("td")
+                    .style("padding", "8px")
+                    .text(exon.end);
+                row.append("td")
+                    .style("padding", "8px")
+                    .text(`${Number(exon.cov).toFixed(2)}X`);
+
+                // Add the "Blacklist" button
+                row.append("td")
+                    .style("padding", "8px")
+                    .append("button")
+                    .text("Blacklist")
+                    .on("click", () => markAsReviewed(gene));
+            });
+        }
+    }
+
+    function sendDataToBackend(gene, status) {
+        // The data to send
+        const payload = { gene: gene, status: status };
+
+        // Send the data to the backend using fetch
+        fetch('/update-gene-status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    function markAsReviewed(gene) {
+        // Example of sending true/false
+        sendDataToBackend(gene, true);
+    }
 </script>
 
 {% endblock %}
