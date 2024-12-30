@@ -20,7 +20,7 @@ import os
 @cov_bp.route("/<string:id>", methods=["GET", "POST"])
 @login_required
 def list_variants(id):
-    cov_cutoff = 1000
+    cov_cutoff = 500
     #cov_dict = store.coverage2_handler.get_sample_coverage("66f285e8ecea5d8ee7e95afa")
     cov_dict = store.coverage2_handler.get_sample_coverage("TEST1234")
     del cov_dict['_id']
@@ -85,7 +85,7 @@ def filter_genes(cov_dict):
     if len(genes) > 0:
         filtered_dict = defaultdict(dict)
         for gene in cov_dict['genes']:
-            if gene in genes:
+            if gene not in genes:
                 filtered_dict['genes'][gene] = cov_dict['genes'][gene]
         return filtered_dict
     else:
