@@ -20,9 +20,9 @@
     .gene-buttons {
         display: flex;
         flex-wrap: wrap;
-        gap: 5px; /* Space between buttons */
+        gap: 1px; /* Space between buttons */
         justify-content: left; /* Center-align buttons */
-        padding: 10px;
+        margin-top: 10px;
     }
 
     .gene-button {
@@ -41,7 +41,20 @@
     }
 </style>
 <div id="containery" class="containery">
+
+
     <div id="button-containery" class="button-containery">
+        Using the following genelists:
+        {% for list in genelists %}
+            {{list}}
+        {% endfor %}
+        <form action="" method="POST" name="form" class="no-spin">
+            <form action="{{ url_for('cov_bp.get_cov', sample_id=sample_id) }}" method="POST" class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm">
+                <button type="submit" class="gene-button" name="depth_cutoff" value="100">100X</button>
+                <button type="submit" class="gene-button" name="depth_cutoff" value="500">500X</button>
+                <button type="submit" class="gene-button" name="depth_cutoff" value="1000">1000X</button>
+            </form>
+        </form>
         <div class="gene-buttons">
         {% for gene in coverage.genes | sort %} 
             <button class="gene-button" onclick="plotGene('{{gene}}')">{{gene}}</button>
@@ -60,7 +73,7 @@
     function plotGene(gene) {
         // Parse the data from Jinja2
         const geneData = {{ coverage | tojson | safe }};
-
+        const depthCutoff = {{ cov_cutoff }}
         // Get the specific gene data dynamically
         const selectedGene = geneData.genes[gene];
         if (!selectedGene) {
@@ -78,13 +91,13 @@
             .style("margin", "20px 0");
 
         // Add a title or information
-        plotContainer.append("h3").text(`Gene: ${gene}`);
+        plotContainer.append("h3").text(`Gene: ${gene} @ ${depthCutoff}X`);
 
         // Create the SVG for the plot
         const svg = plotContainer.append("svg");
 
         // Calculate dynamic width based on gene length
-        const depthCutoff = {{ cov_cutoff }}
+        
         const geneStart = selectedGene.transcript.start
         const geneEnd = selectedGene.transcript.end
         const geneLength = geneEnd - geneStart;
@@ -165,7 +178,11 @@
             .append("div")
             .attr("id", "gene-data-container")
             .style("margin", "20px 0");
-        dataContainer.append("h4").text("Exons not meeting criteria:");
+        
+        dataContainer.append("h4")
+            .style("font-size", "18px")
+            .style("font-weight", "bold")
+            .text("Exons not meeting criteria:");
 
         // Example: Filter exons with coverage below the cutoff
         const lowCoverageExons = selectedGene.CDS.filter(d => d.cov < depthCutoff);
@@ -210,13 +227,18 @@
                 // Add the "Blacklist" button
                 row.append("td")
                     .style("padding", "4px")
+                    .style("color", "red")
                     .append("button")
                     .text("Blacklist")
-                    .on("click", () => markAsReviewed(gene));
+                    .on("click", () => blacklistRegion(gene));
             });
         }
-
-        dataContainer.append("h4").text("Probes not meeting criteria:");
+        dataContainer.append("br");
+        dataContainer.append("br");
+        dataContainer.append("h4")
+            .style("font-size", "18px")
+            .style("font-weight", "bold")
+            .text("Probes not meeting criteria:");
         const lowCoverageProbes = selectedGene.probes.filter(d => d.cov < depthCutoff);
         // Create probe table
         const probe_table = dataContainer.append("table")
@@ -255,9 +277,10 @@
                 // Add the "Blacklist" button
                 row.append("td")
                     .style("padding", "4px")
+                    .style("color", "red")
                     .append("button")
                     .text("Blacklist")
-                    .on("click", () => markAsReviewed(gene));
+                    .on("click", () => blacklistRegion(gene));
             });
         }
     }
@@ -283,7 +306,7 @@
         });
     }
 
-    function markAsReviewed(gene) {
+    function blacklistRegion(gene) {
         // Example of sending true/false
         sendDataToBackend(gene, true);
     }
