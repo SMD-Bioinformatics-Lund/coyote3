@@ -15,17 +15,50 @@ from typing import Literal, Any
 from datetime import datetime
 from collections import defaultdict
 from flask_weasyprint import HTML, render_pdf
+from coyote.blueprints.dna.forms import GeneForm
 import os
 
 @cov_bp.route("/<string:id>", methods=["GET", "POST"])
 @login_required
-def list_variants(id):
+def get_cov(id):
     cov_cutoff = 500
-    #cov_dict = store.coverage2_handler.get_sample_coverage("66f285e8ecea5d8ee7e95afa")
-    cov_dict = store.coverage2_handler.get_sample_coverage("TEST1234")
-    del cov_dict['_id']
+
+    sample = store.sample_handler.get_sample(id)  # id = name
+    assay: str | None | Literal["unknown"] = util.common.get_assay_from_sample(sample)
+    gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
     
-    filtered_dict = filter_genes(cov_dict)
+    for panel in genelists_assay:
+        if panel["type"] == "genelist":
+            setattr(GeneForm, "genelist_" + panel["name"], BooleanField())
+    form = GeneForm()
+    
+    # Check the length of the sample groups from db, and if len is more than one, tumwgs-solid or tumwgs-hema takes the priority in new coyote
+    smp_grp = util.common.select_one_sample_group(sample.get("groups"))
+    # Get group parameters from the sample group config file
+    group_params = util.common.get_group_parameters(smp_grp)
+
+    # Get group defaults from coyote config, if not found in group config
+    settings = util.common.get_group_defaults(group_params)
+    ## FORM FILTERS ##
+    # Either reset sample to default filters or add the new filters from form.
+    if request.method == "POST" and form.validate_on_submit():
+        _id = str(sample.get("_id"))
+        # Reset filters to defaults
+        if form.reset.data:
+            store.sample_handler.reset_sample_settings(_id, settings)
+        # Change filters
+        else:
+            store.sample_handler.update_sample_settings(_id, form)
+            ## get sample again to recieve updated forms!
+            sample = store.sample_handler.get_sample_with_id(_id)
+
+    genelist_filter = sample.get("checked_genelists", settings["default_checked_genelists"])
+    filter_genes = util.common.create_filter_genelist(genelist_filter, gene_lists)
+
+    cov_dict = store.coverage2_handler.get_sample_coverage(str(sample['_id']))
+    del cov_dict['_id']
+
+    filtered_dict = filter_genes_from_form(cov_dict,filter_genes)
     filtered_dict = find_low_covered_genes(filtered_dict,cov_cutoff)
     filtered_dict = organize_data_for_d3(filtered_dict)
 
@@ -54,7 +87,11 @@ def find_low_covered_genes(cov,cutoff):
                 if 'cov' in cov['genes'][gene]['CDS'][cds]:
                     if float(cov['genes'][gene]['CDS'][cds]['cov']) < cutoff:
                         has_low = True
-                        break
+        if 'probes' in cov['genes'][gene]:
+            for probe in cov['genes'][gene]['probes']:
+                if 'cov' in cov['genes'][gene]['probes'][probe]:
+                    if float(cov['genes'][gene]['probes'][probe]['cov']) < cutoff:
+                        has_low = True
         if has_low == True:
             keep['genes'][gene] = cov['genes'][gene]
     return keep
@@ -80,12 +117,11 @@ def organize_data_for_d3(filtered_dict):
 
     return filtered_dict
 
-def filter_genes(cov_dict):
-    genes = [ "TP53", "BRCA1", "BRCA2", "TERT" ]
-    if len(genes) > 0:
+def filter_genes_from_form(cov_dict,filter_genes):
+    if len(filter_genes) > 0:
         filtered_dict = defaultdict(dict)
         for gene in cov_dict['genes']:
-            if gene not in genes:
+            if gene in filter_genes:
                 filtered_dict['genes'][gene] = cov_dict['genes'][gene]
         return filtered_dict
     else:
