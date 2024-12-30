@@ -1,27 +1,53 @@
 {% extends "layout.html" %}
+
+{% block body %}
 <style>
     .containery {
         display: grid;
+        padding: 20px;
     }
     .button-containery {
-        max-width: 2px; /* Optional: Limit the width */
-        max-height: 1px; /* Set the maximum height */
+        max-width: 2000px; /* Optional: Limit the width */
+        max-height: 1000px; /* Set the maximum height */
         overflow-y: auto; /* Enable vertical scrolling for long lists */
     }
     .plot-container {
-        padding: 200px;
+        padding: 20px;
     }
     .data-container {
-        padding: 200px;
+        padding: 20px;
+    }
+    .gene-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px; /* Space between buttons */
+        justify-content: left; /* Center-align buttons */
+        padding: 10px;
+    }
+
+    .gene-button {
+        background-color: steelblue; /* Blue background */
+        color: white; /* White text */
+        border: none;
+        border-radius: 5px;
+        padding: 5px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .gene-button:hover {
+        background-color: #1678e0; /* Darker blue on hover */
     }
 </style>
-{% block body %}
-
 <div id="containery" class="containery">
     <div id="button-containery" class="button-containery">
+        <div class="gene-buttons">
         {% for gene in coverage.genes | sort %} 
-            <button onclick="plotGene('{{gene}}')">{{gene}}</button>
+            <button class="gene-button" onclick="plotGene('{{gene}}')">{{gene}}</button>
+            <br>
         {% endfor %}
+        </div>
     </div>
     <div class="plot-container" id="plot-container"></div>
     <div class="data-container" id="data-container">
@@ -101,7 +127,7 @@
             .append("title") // Tooltip
             .text(d => `${d.chr}:${d.start}-${d.end} (Exon ${d.nbr}), Cov: ${Number(d.cov).toFixed(2)}`);
 
-        // Draw exons as rectangles
+        // Draw coding regions as rectangles
         svg.selectAll("cds")
             .data(selectedGene.CDS)
             .enter()
@@ -154,11 +180,10 @@
         const thead = table.append("thead");
         thead.append("tr")
             .selectAll("th")
-            .data(["Exon", "Chromosome", "Start", "End", "Coverage", "Actions"])
+            .data(["Exon", "Coordinates", "Coverage", "Actions"])
             .enter()
             .append("th")
-            .style("border", "1px solid black")
-            .style("padding", "8px")
+            .style("padding", "4px")
             .style("text-align", "left")
             .text(d => d);
 
@@ -172,24 +197,18 @@
 
                 // Add data cells
                 row.append("td")
-                    .style("padding", "8px")
-                    .text(`Exon ${exon.nbr}`);
+                    .style("padding", "4px")
+                    .text(`${exon.nbr}`);
                 row.append("td")
-                    .style("padding", "8px")
-                    .text(exon.chr);
+                    .style("padding", "4px")
+                    .text(`${exon.chr}:${exon.start}-${exon.end}`);
                 row.append("td")
-                    .style("padding", "8px")
-                    .text(exon.start);
-                row.append("td")
-                    .style("padding", "8px")
-                    .text(exon.end);
-                row.append("td")
-                    .style("padding", "8px")
+                    .style("padding", "4px")
                     .text(`${Number(exon.cov).toFixed(2)}X`);
 
                 // Add the "Blacklist" button
                 row.append("td")
-                    .style("padding", "8px")
+                    .style("padding", "4px")
                     .append("button")
                     .text("Blacklist")
                     .on("click", () => markAsReviewed(gene));
