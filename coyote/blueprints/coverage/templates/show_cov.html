@@ -169,8 +169,9 @@
 
         // Example: Filter exons with coverage below the cutoff
         const lowCoverageExons = selectedGene.CDS.filter(d => d.cov < depthCutoff);
-       // Create a table
-       const table = dataContainer.append("table")
+        
+        // Create CDS table
+        const table = dataContainer.append("table")
             .style("border-collapse", "collapse")
             .style("width", "auto") // Set table width to adjust to its content
             .style("margin-left", "0") // Align the table to the left
@@ -205,6 +206,51 @@
                 row.append("td")
                     .style("padding", "4px")
                     .text(`${Number(exon.cov).toFixed(2)}X`);
+
+                // Add the "Blacklist" button
+                row.append("td")
+                    .style("padding", "4px")
+                    .append("button")
+                    .text("Blacklist")
+                    .on("click", () => markAsReviewed(gene));
+            });
+        }
+
+        dataContainer.append("h4").text("Probes not meeting criteria:");
+        const lowCoverageProbes = selectedGene.probes.filter(d => d.cov < depthCutoff);
+        // Create probe table
+        const probe_table = dataContainer.append("table")
+            .style("border-collapse", "collapse")
+            .style("width", "auto") // Set table width to adjust to its content
+            .style("margin-left", "0") // Align the table to the left
+            .style("margin-top", "20px"); // Optional: Add some spacing at the top
+
+        // Add table headers
+        const thead_probe = probe_table.append("thead");
+        thead_probe.append("tr")
+            .selectAll("th")
+            .data(["Coordinates", "Coverage", "Actions"])
+            .enter()
+            .append("th")
+            .style("padding", "4px")
+            .style("text-align", "left")
+            .text(d => d);
+
+        // Add table body
+        const tbody_probe = probe_table.append("tbody");
+
+        // Populate table rows with data
+        if (lowCoverageProbes.length > 0) {
+            lowCoverageProbes.forEach(probe => {
+                const row = tbody_probe.append("tr");
+
+                // Add data cells
+                row.append("td")
+                    .style("padding", "4px")
+                    .text(`${probe.chr}:${probe.start}-${probe.end}`);
+                row.append("td")
+                    .style("padding", "4px")
+                    .text(`${Number(probe.cov).toFixed(2)}X`);
 
                 // Add the "Blacklist" button
                 row.append("td")
