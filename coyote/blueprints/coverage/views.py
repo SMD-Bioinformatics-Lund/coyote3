@@ -1,5 +1,5 @@
 """
-Coyote case variants
+Coyote coverage for mane-transcripts
 """
 
 from flask import current_app as app
@@ -18,20 +18,17 @@ from flask_weasyprint import HTML, render_pdf
 from coyote.blueprints.dna.forms import GeneForm
 import os
 
-@cov_bp.route("/<string:id>", methods=["GET", "POST"])
+@cov_bp.route("/<string:sample_id>", methods=["GET", "POST"])
 @login_required
-def get_cov(id):
+def get_cov(sample_id):
     cov_cutoff = 500
-
-    sample = store.sample_handler.get_sample(id)  # id = name
+    if request.method == "POST":
+        cov_cutoff_form = request.form.get('depth_cutoff', '').strip()
+        cov_cutoff = int(cov_cutoff_form)
+    sample = store.sample_handler.get_sample(sample_id)  # id = name
     assay: str | None | Literal["unknown"] = util.common.get_assay_from_sample(sample)
     gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
-    
-    for panel in genelists_assay:
-        if panel["type"] == "genelist":
-            setattr(GeneForm, "genelist_" + panel["name"], BooleanField())
-    form = GeneForm()
-    
+      
     # Check the length of the sample groups from db, and if len is more than one, tumwgs-solid or tumwgs-hema takes the priority in new coyote
     smp_grp = util.common.select_one_sample_group(sample.get("groups"))
     # Get group parameters from the sample group config file
@@ -39,22 +36,9 @@ def get_cov(id):
 
     # Get group defaults from coyote config, if not found in group config
     settings = util.common.get_group_defaults(group_params)
-    ## FORM FILTERS ##
-    # Either reset sample to default filters or add the new filters from form.
-    if request.method == "POST" and form.validate_on_submit():
-        _id = str(sample.get("_id"))
-        # Reset filters to defaults
-        if form.reset.data:
-            store.sample_handler.reset_sample_settings(_id, settings)
-        # Change filters
-        else:
-            store.sample_handler.update_sample_settings(_id, form)
-            ## get sample again to recieve updated forms!
-            sample = store.sample_handler.get_sample_with_id(_id)
-
     genelist_filter = sample.get("checked_genelists", settings["default_checked_genelists"])
     filter_genes = util.common.create_filter_genelist(genelist_filter, gene_lists)
-
+    app.logger.debug(genelist_filter)
     cov_dict = store.coverage2_handler.get_sample_coverage(str(sample['_id']))
     del cov_dict['_id']
 
@@ -65,7 +49,9 @@ def get_cov(id):
     return render_template(
         "show_cov.html",
         coverage=filtered_dict,
-        cov_cutoff=cov_cutoff
+        cov_cutoff=cov_cutoff,
+        sample_id=sample_id,
+        genelists=genelist_filter
     )
 
 @app.route('/update-gene-status', methods=['POST'])
@@ -97,7 +83,9 @@ def find_low_covered_genes(cov,cutoff):
     return keep
 
 def organize_data_for_d3(filtered_dict):
-        
+    """
+    This is for javascript. I should probably just import the data as lists instead
+    """
     for gene in filtered_dict['genes']: 
         if 'exons' in filtered_dict['genes'][gene]:
             exons = []
