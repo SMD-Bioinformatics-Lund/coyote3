@@ -89,7 +89,11 @@
             .style("margin", "20px 0");
 
         // Add a title or information
-        plotContainer.append("h3").text(`Gene: ${gene} @ ${depthCutoff}X`);
+        plotContainer.append("h3").text(`Gene: ${gene} @ ${depthCutoff}X `)
+            .append("button")
+            .style("color", "red")
+            .text("Blacklist")
+            .on("click", () => blacklistRegion(gene,"",""));
 
         // Create the SVG for the plot
         const svg = plotContainer.append("svg");
@@ -298,7 +302,7 @@
         })
         .then(response => response.json())
         .then(data => {
-            console.log('Success:', data);
+            alert('Success:' + data.message);
         })
         .catch(error => {
             console.error('Error:', error);

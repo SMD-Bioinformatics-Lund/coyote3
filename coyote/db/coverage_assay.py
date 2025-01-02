@@ -16,12 +16,22 @@ class CoverageAssayHandler(BaseHandler):
         """
         Set exon/probe/region as blacklisted
         """
-        app.logger.debug(f"{gene} : {coord}")
-        data = self.get_collection().find_one({ "gene" : gene, "assay" : assay, "coord" : coord, region : region })
+        data = self.get_collection().find_one({ "gene" : gene, "assay" : assay, "coord" : coord, "region" : region })
         if data:
             return False
         else:
-            self.get_collection().insert_one({ "gene" : gene, "assay" : assay, "coord" : coord, region : region })
+            self.get_collection().insert_one({ "gene" : gene, "assay" : assay, "coord" : coord, "region" : region })
+        return gene
+    
+    def blacklist_gene(self, gene: str, assay: str) -> dict:
+        """
+        Set gene as blacklisted
+        """
+        data = self.get_collection().find_one({ "gene" : gene, "assay" : assay })
+        if data:
+            return False
+        else:
+            self.get_collection().insert_one({ "gene" : gene, "assay" : assay, "region" : "gene" })
         return gene
     
     def get_regions_per_assay(self, assay: str) -> dict:
@@ -35,7 +45,17 @@ class CoverageAssayHandler(BaseHandler):
         """
         return true/false if region is blacklisted for an assay
         """
-        data = self.get_collection().find_one({ "gene" : gene, "assay" : assay, "coord" : coord, region : region })
+        data = self.get_collection().find_one({ "gene" : gene, "assay" : assay, "coord" : coord, "region" : region })
+        if data:
+            return True
+        else:
+            return False
+        
+    def is_gene_blacklisted(self, gene: str, assay: str) -> bool:
+        """
+        return true/false if gene is blacklisted for assay
+        """
+        data = self.get_collection().find_one({ "gene" : gene, "assay" : assay, "region" : "gene" })
         if data:
             return True
         else:

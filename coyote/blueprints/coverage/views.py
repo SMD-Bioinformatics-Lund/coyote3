@@ -41,7 +41,7 @@ def get_cov(sample_id):
     cov_dict = store.coverage2_handler.get_sample_coverage(str(sample['_id']))
     del cov_dict['_id']
     del sample['_id']
-    filtered_dict = filter_genes_from_form(cov_dict,filter_genes)
+    filtered_dict = filter_genes_from_form(cov_dict,filter_genes,assay)
     filtered_dict = find_low_covered_genes(filtered_dict,cov_cutoff,assay)
     filtered_dict = organize_data_for_d3(filtered_dict)
     
@@ -61,13 +61,18 @@ def update_gene_status():
     gene = data.get('gene')
     status = data.get('status')
     coord = data.get('coord')
-    coord = coord.replace(':','_')
-    coord = coord.replace('-','_')
     assay = data.get('assay')
     region = data.get('region')
-    response = store.coverageassay_handler.blacklist_coord(gene,coord,region,assay)
-    # Return a response
-    return jsonify({'message': f'Status for gene {gene}:{coord} updated to {status} for assay: {assay}'})
+    if coord is not "":
+        coord = coord.replace(':','_')
+        coord = coord.replace('-','_')
+        response = store.coverageassay_handler.blacklist_coord(gene,coord,region,assay)
+        # Return a response
+        return jsonify({'message': f' Status for {gene}:{region}:{coord} was set as {status} for assay: {assay}. Page needs to be reload to take effect'})
+    else:
+        store.coverageassay_handler.blacklist_gene(gene,assay)
+        return jsonify({'message': f' Status for full gene: {gene} was set as {status} for assay: {assay}. Page needs to be reload to take effect'})
+
 
 def find_low_covered_genes(cov,cutoff,assay):
     """
@@ -107,15 +112,14 @@ def organize_data_for_d3(filtered_dict):
 
     return filtered_dict
 
-def filter_genes_from_form(cov_dict,filter_genes):
-    if len(filter_genes) > 0:
-        filtered_dict = defaultdict(dict)
-        for gene in cov_dict['genes']:
-            if gene in filter_genes:
-                filtered_dict['genes'][gene] = cov_dict['genes'][gene]
-        return filtered_dict
-    else:
-        return cov_dict
+def filter_genes_from_form(cov_dict,filter_genes,assay):
+    filtered_dict = defaultdict(dict)
+    for gene in cov_dict['genes']:
+        blacklisted = store.coverageassay_handler.is_gene_blacklisted(gene,assay)
+        if gene in filter_genes and not blacklisted:
+            filtered_dict['genes'][gene] = cov_dict['genes'][gene]
+    return filtered_dict
+
 
 def reg_low(region_dict, region, cutoff,gene, assay):
     """
