@@ -41,15 +41,13 @@
     }
 </style>
 <div id="containery" class="containery">
-
-
     <div id="button-containery" class="button-containery">
         Using the following genelists:
         {% for list in genelists %}
             {{list}}
         {% endfor %}
         <form action="" method="POST" name="form" class="no-spin">
-            <form action="{{ url_for('cov_bp.get_cov', sample_id=sample_id) }}" method="POST" class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm">
+            <form action="{{ url_for('cov_bp.get_cov', sample_id=sample.name) }}" method="POST" class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm">
                 <button type="submit" class="gene-button" name="depth_cutoff" value="100">100X</button>
                 <button type="submit" class="gene-button" name="depth_cutoff" value="500">500X</button>
                 <button type="submit" class="gene-button" name="depth_cutoff" value="1000">1000X</button>
@@ -212,14 +210,14 @@
         if (lowCoverageExons.length > 0) {
             lowCoverageExons.forEach(exon => {
                 const row = tbody.append("tr");
-
+                const coord = `${exon.chr}:${exon.start}-${exon.end}`
                 // Add data cells
                 row.append("td")
                     .style("padding", "4px")
                     .text(`${exon.nbr}`);
                 row.append("td")
                     .style("padding", "4px")
-                    .text(`${exon.chr}:${exon.start}-${exon.end}`);
+                    .text(`${coord}`);
                 row.append("td")
                     .style("padding", "4px")
                     .text(`${Number(exon.cov).toFixed(2)}X`);
@@ -230,7 +228,7 @@
                     .style("color", "red")
                     .append("button")
                     .text("Blacklist")
-                    .on("click", () => blacklistRegion(gene));
+                    .on("click", () => blacklistRegion(gene,coord,"CDS"));
             });
         }
         dataContainer.append("br");
@@ -265,11 +263,11 @@
         if (lowCoverageProbes.length > 0) {
             lowCoverageProbes.forEach(probe => {
                 const row = tbody_probe.append("tr");
-
+                const coord = `${probe.chr}:${probe.start}-${probe.end}`
                 // Add data cells
                 row.append("td")
                     .style("padding", "4px")
-                    .text(`${probe.chr}:${probe.start}-${probe.end}`);
+                    .text(`${coord}`);
                 row.append("td")
                     .style("padding", "4px")
                     .text(`${Number(probe.cov).toFixed(2)}X`);
@@ -280,14 +278,15 @@
                     .style("color", "red")
                     .append("button")
                     .text("Blacklist")
-                    .on("click", () => blacklistRegion(gene));
+                    .on("click", () => blacklistRegion(gene,coord,"probe"));
             });
         }
     }
 
-    function sendDataToBackend(gene, status) {
+    function sendDataToBackend(gene, coord, region, status) {
         // The data to send
-        const payload = { gene: gene, status: status };
+        const sampleAssay = {{ assay | tojson | safe }}
+        const payload = { gene: gene, region: region, coord: coord, status: status, assay: sampleAssay };
 
         // Send the data to the backend using fetch
         fetch('/update-gene-status', {
@@ -306,9 +305,9 @@
         });
     }
 
-    function blacklistRegion(gene) {
+    function blacklistRegion(gene,coord,region) {
         // Example of sending true/false
-        sendDataToBackend(gene, true);
+        sendDataToBackend(gene, coord, region, "blacklist");
     }
 </script>
 
