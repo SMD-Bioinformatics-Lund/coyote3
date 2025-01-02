@@ -1,7 +1,7 @@
 from coyote.db.base import BaseHandler
 from flask import flash
 from flask import current_app as app
-
+from bson.objectid import ObjectId
 
 class GroupCoverageHandler(BaseHandler):
     """
@@ -56,6 +56,16 @@ class GroupCoverageHandler(BaseHandler):
         return true/false if gene is blacklisted for assay
         """
         data = self.get_collection().find_one({ "gene" : gene, "group" : group, "region" : "gene" })
+        if data:
+            return True
+        else:
+            return False
+
+    def remove_blacklist(self, obj_id: str) -> bool:
+        """
+        return true/false if gene is blacklisted for assay
+        """
+        data = self.get_collection().delete_one({ '_id': ObjectId(obj_id) })
         if data:
             return True
         else:

@@ -74,15 +74,37 @@ def update_gene_status():
         store.groupcov_handler.blacklist_gene(gene,smp_grp)
         return jsonify({'message': f' Status for full gene: {gene} was set as {status} for group: {smp_grp}. Page needs to be reload to take effect'})
 
-@cov_bp.route("/<string:group>", methods=["GET", "POST"])
+@cov_bp.route("/blacklisted/<string:group>", methods=["GET", "POST"])
 @login_required
 def show_blacklisted_regions(group):
     """
+    show what regions/genes that has been blacklisted by user
+    function to remove blacklisted status
     """
-    blacklisted = store.groupcov_handler.get_regions_per_group(smp_grp)
+    grouped_by_gene = defaultdict(dict)
+    blacklisted = store.groupcov_handler.get_regions_per_group(group)
+    for entry in blacklisted:
+        if entry["region"] == "gene":
+            grouped_by_gene[entry['gene']]['gene'] = entry['_id']
+        elif entry["region"] == "CDS":
+            grouped_by_gene[entry['gene']]['CDS'] = entry
+        elif entry["region"] == "probe":
+            grouped_by_gene[entry['gene']]['probe'] = entry
     
+    return render_template(
+        "show_blacklisted.html",
+        blacklisted=grouped_by_gene,
+        group=group
 
+    )
 
+@cov_bp.route('/remove_blacklist/<string:obj_id>/<string:group>', methods=['GET'])
+def remove_blacklist(obj_id,group):
+    """
+    removes blacklisted region/gene
+    """
+    response = store.groupcov_handler.remove_blacklist(obj_id)
+    return redirect(url_for('cov_bp.show_blacklisted_regions', group=group)) 
 
 def find_low_covered_genes(cov,cutoff,smp_grp):
     """
