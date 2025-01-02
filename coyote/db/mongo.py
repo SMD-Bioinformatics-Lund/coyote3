@@ -21,6 +21,7 @@ from coyote.db.biomarkers import BiomarkerHandler
 from coyote.db.coverage import CoverageHandler
 from coyote.db.cosmic import CosmicHandler
 from coyote.db.coverage2 import CoverageHandler2
+from coyote.db.coverage_assay import CoverageAssayHandler
 
 
 class MongoAdapter:
@@ -97,3 +98,4 @@ class MongoAdapter:
         self.coverage_handler = CoverageHandler(self)
         self.cosmic_handler = CosmicHandler(self)
         self.coverage2_handler = CoverageHandler2(self)
+        self.coverageassay_handler = CoverageAssayHandler(self)
