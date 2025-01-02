@@ -31,6 +31,7 @@ def get_cov(sample_id):
     gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
     
     smp_grp = util.common.select_one_sample_group(sample.get("groups"))
+    app.logger.debug(smp_grp)
     # Get group parameters from the sample group config file
     group_params = util.common.get_group_parameters(smp_grp)
 
@@ -41,18 +42,18 @@ def get_cov(sample_id):
     cov_dict = store.coverage2_handler.get_sample_coverage(str(sample['_id']))
     del cov_dict['_id']
     del sample['_id']
-    filtered_dict = filter_genes_from_form(cov_dict,filter_genes,assay)
-    filtered_dict = find_low_covered_genes(filtered_dict,cov_cutoff,assay)
+    filtered_dict = filter_genes_from_form(cov_dict,filter_genes,smp_grp)
+    filtered_dict = find_low_covered_genes(filtered_dict,cov_cutoff,smp_grp)
     filtered_dict = organize_data_for_d3(filtered_dict)
     
-    blacklisted = store.coverageassay_handler.get_regions_per_assay(assay)
+    
     return render_template(
         "show_cov.html",
         coverage=filtered_dict,
         cov_cutoff=cov_cutoff,
         sample=sample,
         genelists=genelist_filter,
-        assay=assay
+        smp_grp=smp_grp
     )
 
 @app.route('/update-gene-status', methods=['POST'])
@@ -61,20 +62,29 @@ def update_gene_status():
     gene = data.get('gene')
     status = data.get('status')
     coord = data.get('coord')
-    assay = data.get('assay')
+    smp_grp = data.get('smp_grp')
     region = data.get('region')
     if coord is not "":
         coord = coord.replace(':','_')
         coord = coord.replace('-','_')
-        response = store.coverageassay_handler.blacklist_coord(gene,coord,region,assay)
+        store.groupcov_handler.blacklist_coord(gene,coord,region,smp_grp)
         # Return a response
-        return jsonify({'message': f' Status for {gene}:{region}:{coord} was set as {status} for assay: {assay}. Page needs to be reload to take effect'})
+        return jsonify({'message': f' Status for {gene}:{region}:{coord} was set as {status} for group: {smp_grp}. Page needs to be reload to take effect'})
     else:
-        store.coverageassay_handler.blacklist_gene(gene,assay)
-        return jsonify({'message': f' Status for full gene: {gene} was set as {status} for assay: {assay}. Page needs to be reload to take effect'})
+        store.groupcov_handler.blacklist_gene(gene,smp_grp)
+        return jsonify({'message': f' Status for full gene: {gene} was set as {status} for group: {smp_grp}. Page needs to be reload to take effect'})
+
+@cov_bp.route("/<string:group>", methods=["GET", "POST"])
+@login_required
+def show_blacklisted_regions(group):
+    """
+    """
+    blacklisted = store.groupcov_handler.get_regions_per_group(smp_grp)
+    
 
 
-def find_low_covered_genes(cov,cutoff,assay):
+
+def find_low_covered_genes(cov,cutoff,smp_grp):
     """
     find low covered parts in defined regions of interest
     """
@@ -82,16 +92,17 @@ def find_low_covered_genes(cov,cutoff,assay):
     for gene in cov['genes']:
         has_low = False
         if 'CDS' in cov['genes'][gene]:
-            has_low = reg_low(cov['genes'][gene]['CDS'],"CDS", cutoff,gene, assay)
+            has_low = reg_low(cov['genes'][gene]['CDS'],"CDS", cutoff,gene, smp_grp)
         if 'probes' in cov['genes'][gene]:
-           has_low = reg_low(cov['genes'][gene]['probes'],"probe", cutoff,gene, assay)
+           has_low = reg_low(cov['genes'][gene]['probes'],"probe", cutoff,gene, smp_grp)
         if has_low == True:
             keep['genes'][gene] = cov['genes'][gene]
     return keep
 
 def organize_data_for_d3(filtered_dict):
     """
-    This is for javascript. It's imported as dicts to
+    This is for javascript. Data imported as dicts to make blacklisting easier
+    but needs to be as lists for javascript to jsonify correctly in plot functions
     """
     for gene in filtered_dict['genes']: 
         if 'exons' in filtered_dict['genes'][gene]:
@@ -112,16 +123,16 @@ def organize_data_for_d3(filtered_dict):
 
     return filtered_dict
 
-def filter_genes_from_form(cov_dict,filter_genes,assay):
+def filter_genes_from_form(cov_dict,filter_genes,smp_grp):
     filtered_dict = defaultdict(dict)
     for gene in cov_dict['genes']:
-        blacklisted = store.coverageassay_handler.is_gene_blacklisted(gene,assay)
+        blacklisted = store.groupcov_handler.is_gene_blacklisted(gene,smp_grp)
         if gene in filter_genes and not blacklisted:
             filtered_dict['genes'][gene] = cov_dict['genes'][gene]
     return filtered_dict
 
 
-def reg_low(region_dict, region, cutoff,gene, assay):
+def reg_low(region_dict, region, cutoff,gene, smp_grp):
     """
     filter against cutoff ignore if region is blacklisted
     """
@@ -129,7 +140,7 @@ def reg_low(region_dict, region, cutoff,gene, assay):
     for reg in region_dict:
         if 'cov' in region_dict[reg]:
             if float(region_dict[reg]['cov']) < cutoff:
-                blacklisted = store.coverageassay_handler.is_region_blacklisted(gene,region,reg,assay)
+                blacklisted = store.groupcov_handler.is_region_blacklisted(gene,region,reg,smp_grp)
                 if not blacklisted:
                     has_low = True
     return has_low

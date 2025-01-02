@@ -289,8 +289,8 @@
 
     function sendDataToBackend(gene, coord, region, status) {
         // The data to send
-        const sampleAssay = {{ assay | tojson | safe }}
-        const payload = { gene: gene, region: region, coord: coord, status: status, assay: sampleAssay };
+        const sampleAssay = {{ smp_grp | tojson | safe }}
+        const payload = { gene: gene, region: region, coord: coord, status: status, smp_grp: sampleAssay };
 
         // Send the data to the backend using fetch
         fetch('/update-gene-status', {
