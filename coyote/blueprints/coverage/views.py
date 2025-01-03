@@ -132,16 +132,22 @@ def organize_data_for_d3(filtered_dict):
             for exon in filtered_dict['genes'][gene]['exons']:
                 exons.append(filtered_dict['genes'][gene]['exons'][exon])
             filtered_dict['genes'][gene]['exons'] = exons
+        else:
+            filtered_dict['genes'][gene]['exons'] = []
         if 'CDS' in filtered_dict['genes'][gene]:
             cds = []
             for exon in filtered_dict['genes'][gene]['CDS']:
                 cds.append(filtered_dict['genes'][gene]['CDS'][exon])
             filtered_dict['genes'][gene]['CDS'] = cds
+        else:
+            filtered_dict['genes'][gene]['CDS'] = []
         if 'probes' in filtered_dict['genes'][gene]:
             probes = []
             for probe in filtered_dict['genes'][gene]['probes']:
                 probes.append(filtered_dict['genes'][gene]['probes'][probe])
             filtered_dict['genes'][gene]['probes'] = probes
+        else:
+            filtered_dict['genes'][gene]['probes'] = []
 
     return filtered_dict
 
