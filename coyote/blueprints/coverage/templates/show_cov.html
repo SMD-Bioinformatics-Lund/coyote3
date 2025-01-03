@@ -40,33 +40,34 @@
         background-color: #1678e0; 
     }
 </style>
+
 <div id="containery" class="containery">
     <div id="button-containery" class="button-containery">
+        <div>
+            <button class="gene-button"><a href="{{ url_for('cov_bp.show_blacklisted_regions', group=smp_grp)}}">Blacklisted Regions</a></button>
+        </div>
         Using the following genelists:
         {% for list in genelists %}
             {{list}}
         {% endfor %}
         <form action="" method="POST" name="form" class="no-spin">
-            <form action="{{ url_for('cov_bp.get_cov', sample_id=sample.name) }}" method="POST" class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm">
+            <form action="{{ url_for('cov_bp.get_cov', sample_id=sample.name) }}" method="POST">
                 <button type="submit" class="gene-button" name="depth_cutoff" value="100">100X</button>
                 <button type="submit" class="gene-button" name="depth_cutoff" value="500">500X</button>
                 <button type="submit" class="gene-button" name="depth_cutoff" value="1000">1000X</button>
-                <button class="gene-button"><a href="{{ url_for('cov_bp.show_blacklisted_regions', group=smp_grp)}}">Blacklisted Regions</a></button>
             </form>
-            
         </form>
+    
         <div class="gene-buttons">
-        {% for gene in coverage.genes | sort %} 
-            <button class="gene-button" onclick="plotGene('{{gene}}')">{{gene}}</button>
-            <br>
-        {% endfor %}
+            {% for gene in coverage.genes | sort %} 
+                <button class="gene-button" onclick="plotGene('{{gene}}')">{{gene}}</button>
+                <br>
+            {% endfor %}
         </div>
     </div>
     <div class="plot-container" id="plot-container"></div>
-    <div class="data-container" id="data-container">
-    </div>
+    <div class="data-container" id="data-container"></div>
 </div>
-
 <script src="https://d3js.org/d3.v7.min.js"></script>
 
 <script>
