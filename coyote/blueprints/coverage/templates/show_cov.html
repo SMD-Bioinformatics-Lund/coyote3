@@ -37,12 +37,11 @@
     }
 
     .gene-button:hover {
-        background-color: #1678e0; /* Darker blue on hover */
+        background-color: #1678e0; 
     }
 </style>
 <div id="containery" class="containery">
     <div id="button-containery" class="button-containery">
-        <a href="{{ url_for('cov_bp.show_blacklisted_regions', group=smp_grp)}}">{{smp_grp}}</a>
         Using the following genelists:
         {% for list in genelists %}
             {{list}}
@@ -52,7 +51,9 @@
                 <button type="submit" class="gene-button" name="depth_cutoff" value="100">100X</button>
                 <button type="submit" class="gene-button" name="depth_cutoff" value="500">500X</button>
                 <button type="submit" class="gene-button" name="depth_cutoff" value="1000">1000X</button>
+                <button class="gene-button"><a href="{{ url_for('cov_bp.show_blacklisted_regions', group=smp_grp)}}">Blacklisted Regions</a></button>
             </form>
+            
         </form>
         <div class="gene-buttons">
         {% for gene in coverage.genes | sort %} 
@@ -173,7 +174,8 @@
             .attr("height", 20)
             .append("title") // Tooltip
             .text(d => `${d.chr}:${d.start}-${d.end}, Cov: ${Number(d.cov).toFixed(2)}X`);
-
+        
+        // Remove old data before adding a new gene to the container
         d3.select("#data-container").select("#gene-data-container").remove();
         
         // Create a new container for the data
@@ -182,37 +184,38 @@
             .attr("id", "gene-data-container")
             .style("margin", "20px 0");
         
-        dataContainer.append("h4")
+
+
+        // CODING SEQUENCE
+        const lowCoverageExons = selectedGene.CDS.filter(d => d.cov < depthCutoff);
+        if (lowCoverageExons.length > 0) {
+            dataContainer.append("h4")
             .style("font-size", "18px")
             .style("font-weight", "bold")
             .text("Exons not meeting criteria:");
+            // Create CDS table
+            const table = dataContainer.append("table")
+                .style("border-collapse", "collapse")
+                .style("width", "auto") // Set table width to adjust to its content
+                .style("margin-left", "0") // Align the table to the left
+                .style("margin-top", "20px"); // Optional: Add some spacing at the top
 
-        // Example: Filter exons with coverage below the cutoff
-        const lowCoverageExons = selectedGene.CDS.filter(d => d.cov < depthCutoff);
+            // Add table headers
+            const thead = table.append("thead");
+            thead.append("tr")
+                .selectAll("th")
+                .data(["Exon", "Coordinates", "Coverage", "Actions"])
+                .enter()
+                .append("th")
+                .style("padding", "4px")
+                .style("text-align", "left")
+                .text(d => d);
+
+            // Add table body
+            const tbody = table.append("tbody");
+
+            // Populate table rows with data
         
-        // Create CDS table
-        const table = dataContainer.append("table")
-            .style("border-collapse", "collapse")
-            .style("width", "auto") // Set table width to adjust to its content
-            .style("margin-left", "0") // Align the table to the left
-            .style("margin-top", "20px"); // Optional: Add some spacing at the top
-
-        // Add table headers
-        const thead = table.append("thead");
-        thead.append("tr")
-            .selectAll("th")
-            .data(["Exon", "Coordinates", "Coverage", "Actions"])
-            .enter()
-            .append("th")
-            .style("padding", "4px")
-            .style("text-align", "left")
-            .text(d => d);
-
-        // Add table body
-        const tbody = table.append("tbody");
-
-        // Populate table rows with data
-        if (lowCoverageExons.length > 0) {
             lowCoverageExons.forEach(exon => {
                 const row = tbody.append("tr");
                 const coord = `${exon.chr}:${exon.start}-${exon.end}`
@@ -236,36 +239,40 @@
                     .on("click", () => blacklistRegion(gene,coord,"CDS"));
             });
         }
-        dataContainer.append("br");
-        dataContainer.append("br");
-        dataContainer.append("h4")
-            .style("font-size", "18px")
-            .style("font-weight", "bold")
-            .text("Probes not meeting criteria:");
+
+        // PROBES 
         const lowCoverageProbes = selectedGene.probes.filter(d => d.cov < depthCutoff);
-        // Create probe table
-        const probe_table = dataContainer.append("table")
-            .style("border-collapse", "collapse")
-            .style("width", "auto") // Set table width to adjust to its content
-            .style("margin-left", "0") // Align the table to the left
-            .style("margin-top", "20px"); // Optional: Add some spacing at the top
-
-        // Add table headers
-        const thead_probe = probe_table.append("thead");
-        thead_probe.append("tr")
-            .selectAll("th")
-            .data(["Coordinates", "Coverage", "Actions"])
-            .enter()
-            .append("th")
-            .style("padding", "4px")
-            .style("text-align", "left")
-            .text(d => d);
-
-        // Add table body
-        const tbody_probe = probe_table.append("tbody");
-
-        // Populate table rows with data
+        // if probe data
         if (lowCoverageProbes.length > 0) {
+            dataContainer.append("br");
+            dataContainer.append("br");
+            dataContainer.append("h4")
+                .style("font-size", "18px")
+                .style("font-weight", "bold")
+                .text("Probes not meeting criteria:");
+        
+            // Create probe table
+            const probe_table = dataContainer.append("table")
+                .style("border-collapse", "collapse")
+                .style("width", "auto") // Set table width to adjust to its content
+                .style("margin-left", "0") // Align the table to the left
+                .style("margin-top", "20px"); // Optional: Add some spacing at the top
+        
+            // Add table headers
+            const thead_probe = probe_table.append("thead");
+            thead_probe.append("tr")
+                .selectAll("th")
+                .data(["Coordinates", "Coverage", "Actions"])
+                .enter()
+                .append("th")
+                .style("padding", "4px")
+                .style("text-align", "left")
+                .text(d => d);
+
+            // Add table body
+            const tbody_probe = probe_table.append("tbody");
+
+        
             lowCoverageProbes.forEach(probe => {
                 const row = tbody_probe.append("tr");
                 const coord = `${probe.chr}:${probe.start}-${probe.end}`

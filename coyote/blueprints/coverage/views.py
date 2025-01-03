@@ -38,6 +38,8 @@ def get_cov(sample_id):
     # Get group defaults from coyote config, if not found in group config
     settings = util.common.get_group_defaults(group_params)
     genelist_filter = sample.get("checked_genelists", settings["default_checked_genelists"])
+    genelist_clean = [name.replace("genelist_", "") for name in genelist_filter]
+
     filter_genes = util.common.create_filter_genelist(genelist_filter, gene_lists)
     cov_dict = store.coverage2_handler.get_sample_coverage(str(sample['_id']))
     del cov_dict['_id']
@@ -52,7 +54,7 @@ def get_cov(sample_id):
         coverage=filtered_dict,
         cov_cutoff=cov_cutoff,
         sample=sample,
-        genelists=genelist_filter,
+        genelists=genelist_clean,
         smp_grp=smp_grp
     )
 
