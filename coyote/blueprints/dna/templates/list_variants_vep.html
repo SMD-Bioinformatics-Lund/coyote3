@@ -44,277 +44,277 @@
   {% include "selected_gene_panel_div.html" %}
 
   <!-- SNV/Indels Card -->
-  <div id="snvs-div" class="bg-white shadow-md rounded-lg my-8">
+  <div id="snvs-div" class="bg-white rounded-lg my-8">
     <!-- SNV/Indels Toggle Button -->
-    <div class="flex justify-between items-center bg-gradient-to-b from-gray-300 to-gray-50 text-black rounded-md px-4 py-2">
+    <div class="flex justify-between items-center bg-green-200 text-black rounded-md px-4 py-2">
       <h2 class="text-base font-semibold tracking-wide uppercase">SNVs/Indels</h2>
       <button class="focus:outline-none" onclick="toggleCard('snvs-content')">
         <img id="arrow-icon" src="{{ url_for('static', filename='icons/up-arrow-240.png') }}" alt="Toggle SNV Card" class="w-6 h-6 transform transition-transform duration-200 filter invert">
       </button>
     </div>
 
-    <div class="mx-auto py-2 px-2 mx-2" id="snvs-content">
+    <div class="mx-auto py-4 mx-2" id="snvs-content">
       <div class="flex flex-wrap gap-4">
         <!-- SNVs/Indels Table -->
-        <div class="flex-grow-0 bg-transparent p-2" id="snvs-table-div-header">
-          <h2 class="text-sm bg-gradient-to-b from-blue-200 to-white font-semibold tracking-wide p-3 shadow-lg rounded-t-lg capitalize">
-            Variants passing filter criteria 
-          </h2>
+        <div class="flex-grow-0 bg-transparent shadow-md rounded-b-md overflow-auto" id="snvs-table-div-header">
+          <div class="flex items-center justify-between bg-gradient-to-b from-green-200 to-white shadow-lg rounded-t-lg">
+            <h2 class="text-sm font-semibold tracking-wide p-3 capitalize">
+              Variants passing filter criteria
+            </h2> 
+            <img src="{{ url_for('static', filename='icons/save-100.png') }}" alt="Export to CSV - SNVs" onclick="exportTableToCSV('{{ sample.name }}.filtered.snvs.csv', 'snvs-table')" class="cursor-pointer w-6 h-6 mr-4 transition-transform transform hover:scale-110" id="export-snvs-table"/>
+          </div>
           {% if variants|length > 0 %}
             <div class="overflow-auto rounded-b-lg shadow-md" id="snvs-table-div">
-              <table class="table-auto text-xs overflow-hidden mb-1" id="snvs-table">
-              <!--<form action="{{ url_for('dna_bp.classify_multi_variant', id=sample.name) }}" method="POST" name="variant-form">-->
-                <div class="overflow-auto rounded-b-lg shadow-md" id="variant-table-inner-div">
-                  <table class="table-auto text-xs overflow-hidden mb-1" id="variant-table">
-                    <thead>
-                      <tr class="border-b text-left border-gray-300 capitalize" id="variant-table-header">
-                        <th class="p-3 font-semibold" id="variant-table-header-checkbox">
-                          <input type="checkbox" id="select-all-table" onclick="toggleSelectAllVariants(this)">
-                        </th>
-                        <th class="p-3 font-semibold" id="variant-table-header-blacklisted"></th>
-                        <th class="p-3 font-semibold" id="variant-table-header-comments"></th>
-                        <th class="p-3 font-semibold" id="variant-table-header-interesting-irrelevant"></th>
-                        <th class="p-3 font-semibold" id="variant-table-header-gene">Gene</th>
-                        <th class="p-3 font-semibold" id="variant-table-header-hgvs">HGVS</th>
-                        <th class="p-3 font-semibold" id="variant-table-header-type">Type</th>
-                        <th class="p-3 font-semibold" id="variant-table-header-conseq">Consequence</th>
-                        <th class="p-3 font-semibold" id="variant-table-header-popFreq">PopFreq</th>
-                        <th class="p-3 font-semibold" id="variant-table-header-tier">Tier</th>
-                        {% if assay == "swea" or assay == "tumor_exome" %}
-                          <th data-autoclick="true" class="p-3 font-semibold" id="variant-table-header-score">Score</th>
+              <table class="table-auto text-xs mb-1 sortable" id="snvs-table">
+                <thead>
+                  <tr class="border-b text-left border-gray-300 capitalize" id="variant-table-header">
+                    <th class="p-3 font-semibold" id="variant-table-header-checkbox">
+                      <input type="checkbox" id="select-all-table" onclick="toggleSelectAllVariants(this)">
+                    </th>
+                    <th class="p-3 font-semibold" id="variant-table-header-blacklisted"></th>
+                    <th class="p-3 font-semibold" id="variant-table-header-comments"></th>
+                    <th class="p-3 font-semibold" id="variant-table-header-interesting-irrelevant"></th>
+                    <th class="p-3 font-semibold" id="variant-table-header-gene">Gene</th>
+                    <th class="p-3 font-semibold" id="variant-table-header-hgvs">HGVS</th>
+                    <th class="p-3 font-semibold" id="variant-table-header-type">Type</th>
+                    <th class="p-3 font-semibold" id="variant-table-header-conseq">Consequence</th>
+                    <th class="p-3 font-semibold" id="variant-table-header-popFreq">PopFreq</th>
+                    <th class="p-3 font-semibold" id="variant-table-header-tier">Tier</th>
+                    {% if assay == "swea" or assay == "tumor_exome" %}
+                      <th data-autoclick="true" class="p-3 font-semibold" id="variant-table-header-score">Score</th>
+                    {% endif %}
+                    {% if assay == "swea" or assay == "gmsonco" %}
+                      <th class="p-3 font-semibold" id="variant-table-header-enigma">ENIGMA</th>
+                    {% endif %}
+                    <th class="p-3 font-semibold" id="variant-table-header-chrPos">Chr:Pos</th>
+                    {% if assay == "solid" %}
+                      <th class="p-3 font-semibold" id="variant-table-header-hotspot">Hotspot</th>
+                    {% endif %}
+                    <th class="p-3 font-semibold" id="variant-table-header-flags">Flags</th>
+                    {% if assay == "swea" %}
+                      <th class="p-3 font-semibold" id="variant-table-header-gt"></th>
+                    {% endif %}
+                    {% for gt in variants[0].GT|sort(attribute='type') %}
+                      {% if gt.type == "case" %}
+                        <th {% if assay == "myeloid" %}data-autoclick="true"{% endif %} class="p-3 font-semibold" id="variant-table-header-case">{{ gt.type }} ({{gt.sample}})</th>
+                      {% else %}
+                        <th class="p-3 font-semibold" id="variant-table-header-control">{{ gt.type }} ({{gt.sample}})</th>
+                      {% endif %}
+                    {% endfor %}
+                    <th class="p-3 font-semibold" id="variant-table-header-view">View</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for var in variants if (var.INFO.selected_CSQ.SYMBOL in dispgenes or dispgenes|length == 0) and (var.POS in disp_pos or disp_pos|length == 0) %}
+                    {% set csq = var.INFO.selected_CSQ %}
+                    {% if var.fp == True or ( var.blacklist and var.override_blacklist != true ) or var.irrelevant == True %}
+                      <tr class='bg-red-200 opacity-40 hover:bg-red-300 border-b text-left fp' id="cnv-table-row-fp">
+                    {% else %}
+                      <tr class="border-b text-left" id="cnv-table-row">
+                    {% endif %}
+                      <td class="pl-2">
+                        <input type="checkbox" class="snv-checkbox" id="cnv-table-row-checkbox" data-value="{{ var._id }}">
+                      </td>
+                      <td id="cnv-table-row-blacklisted">
+                        {% if var.fp == True %}
+                          &nbsp;<img class="w-2" src="{{ url_for('static', filename='images/redcross.png') }}">
+                        {% elif var.blacklist and var.override_blacklist != true %}
+                          &nbsp;<img class="w-2 pl-2" src="{{ url_for('static', filename='images/blacklist.png') }}">
                         {% endif %}
-                        {% if assay == "swea" or assay == "gmsonco" %}
-                          <th class="p-3 font-semibold" id="variant-table-header-enigma">ENIGMA</th>
+                      </td>
+                      <td id="cnv-table-row-comments">
+                        {% if var.comments|length > 0 %}
+                          &nbsp;<img class="w-2" src="{{ url_for('static', filename='images/comment.png') }}"> 
                         {% endif %}
-                        <th class="p-3 font-semibold" id="variant-table-header-chrPos">Chr:Pos</th>
-                        {% if assay == "solid" %}
-                          <th class="p-3 font-semibold" id="variant-table-header-hotspot">Hotspot</th>
+                      </td>
+                      <td id="cnv-table-row-interesting-irrelevant">
+                        {% if var.interesting == True %}
+                          &nbsp;<img class="w-2" src="{{ url_for('static', filename='images/interesting.png') }}">
                         {% endif %}
-                        <th class="p-3 font-semibold" id="variant-table-header-flags">Flags</th>
-                        {% if assay == "swea" %}
-                          <th class="p-3 font-semibold" id="variant-table-header-gt"></th>
+                        {% if var.irrelevant == True %}
+                          &nbsp;<img class="w-2" src="{{ url_for('static', filename='images/irrelevant.png') }}">
                         {% endif %}
-                        {% for gt in variants[0].GT|sort(attribute='type') %}
-                          {% if gt.type == "case" %}
-                            <th {% if assay == "myeloid" %}data-autoclick="true"{% endif %} class="p-3 font-semibold" id="variant-table-header-case">{{ gt.type }} ({{gt.sample}})</th>
+                      </td>
+                      <td class="p-2 font-medium" id="cnv-table-row-gene">
+                        {{ csq.SYMBOL }} {{ var.INFO.PANEL|format_panel_flag_snv|safe }}
+                      </td>
+                      <td class="p-2 font-medium" id="cnv-table-row-hgvs">
+                        <!-- HGVSp Section -->
+                        <div class="relative inline-block">
+                          {% if csq.HGVSp|length > 25 %}
+                            <!-- Truncated version (initial view with ellipsis) -->
+                            <div id="hgvsp-short" class="truncate overflow-hidden">
+                              {{ csq.HGVSp[:25] }}...
+                            </div>
+
+                            <!-- Full text, initially hidden -->
+                            <div id="hgvsp-full" class="hidden break-all whitespace-normal">
+                              {{ csq.HGVSp }}
+                            </div>
+
+                            <!-- Smaller button with a subtle symbol to toggle text visibility -->
+                            <button class="ml-1 text-xs text-gray-500 hover:text-blue-500 focus:outline-none"
+                                    onclick="toggleText(this)">
+                              [+]
+                            </button>
                           {% else %}
-                            <th class="p-3 font-semibold" id="variant-table-header-control">{{ gt.type }} ({{gt.sample}})</th>
+                            {{ csq.HGVSp }}
+                          {% endif %}
+                        </div>
+                        <br>
+
+                        <!-- HGVSc Section -->
+                        <div class="relative inline-block">
+                          {% if csq.HGVSc|length > 25 %}
+                            <!-- Truncated version (initial view with ellipsis) -->
+                            <div id="hgvs-short" class="truncate overflow-hidden">
+                              {{ csq.HGVSc[:25] }}...
+                            </div>
+
+                            <!-- Full text, initially hidden -->
+                            <div id="hgvs-full" class="hidden break-all whitespace-normal">
+                              {{ csq.HGVSc }}
+                            </div>
+
+                            <!-- Smaller button with a subtle symbol to toggle text visibility -->
+                            <button class="ml-1 text-xs text-gray-500 hover:text-blue-500 focus:outline-none"
+                                    onclick="toggleText(this)">
+                              [+]
+                            </button>
+                          {% else %}
+                            {{ csq.HGVSc }}
+                          {% endif %}
+                        </div>
+                      </td>
+
+                      <td class="p-2 font-medium" id="cnv-table-row-type">
+                        {{ var.variant_class }}
+                      </td>
+                      {% if csq.Consequence is iterable and csq.Consequence is not string %}
+                        <td class="p-2 font-medium" id="cnv-table-row-conseq">
+                        {% for conseq in csq.Consequence %}
+                          {% if conseq in translation %}
+                            {{ translation[conseq] }}<br>
+                          {% else %}
+                            {{ conseq }}<br>
                           {% endif %}
                         {% endfor %}
-                        <th class="p-3 font-semibold" id="variant-table-header-view">View</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {% for var in variants if (var.INFO.selected_CSQ.SYMBOL in dispgenes or dispgenes|length == 0) and (var.POS in disp_pos or disp_pos|length == 0) %}
-                        {% set csq = var.INFO.selected_CSQ %}
-                        {% if var.fp == True or ( var.blacklist and var.override_blacklist != true ) or var.irrelevant == True %}
-                          <tr class='bg-red-200 opacity-40 hover:bg-red-300 border-b text-left fp' id="cnv-table-row-fp">
+                        </td>
+                      {% else %}
+                        {% if csq.Consequence in translation %}
+                          <td class="p-2 font-medium" id="cnv-table-row-conseq">{{ translation[csq.Consequence] }}</td>
                         {% else %}
-                          <tr class="border-b text-left" id="cnv-table-row">
+                          <td class="p-2 font-medium" id="cnv-table-row-conseq">{{ csq.Consequence.split('&')|join('<br>')|safe }}</td>
                         {% endif %}
-                          <td class="pl-2">
-                            <input type="checkbox" class="snv-checkbox" id="cnv-table-row-checkbox" data-value="{{ var._id }}">
-                          </td>
-                          <td id="cnv-table-row-blacklisted">
-                            {% if var.fp == True %}
-                              &nbsp;<img class="w-2" src="{{ url_for('static', filename='images/redcross.png') }}">
-                            {% elif var.blacklist and var.override_blacklist != true %}
-                              &nbsp;<img class="w-2 pl-2" src="{{ url_for('static', filename='images/blacklist.png') }}">
-                            {% endif %}
-                          </td>
-                          <td id="cnv-table-row-comments">
-                            {% if var.comments|length > 0 %}
-                              &nbsp;<img class="w-2" src="{{ url_for('static', filename='images/comment.png') }}"> 
-                            {% endif %}
-                          </td>
-                          <td id="cnv-table-row-interesting-irrelevant">
-                            {% if var.interesting == True %}
-                              &nbsp;<img class="w-2" src="{{ url_for('static', filename='images/interesting.png') }}">
-                            {% endif %}
-                            {% if var.irrelevant == True %}
-                              &nbsp;<img class="w-2" src="{{ url_for('static', filename='images/irrelevant.png') }}">
-                            {% endif %}
-                          </td>
-                          <td class="p-2 font-medium" id="cnv-table-row-gene">
-                            {{ csq.SYMBOL }} {{ var.INFO.PANEL|format_panel_flag_snv|safe }}
-                          </td>
-                          <td class="p-2 font-medium" id="cnv-table-row-hgvs">
-                            <!-- HGVSp Section -->
-                            <div class="relative inline-block">
-                              {% if csq.HGVSp|length > 25 %}
-                                <!-- Truncated version (initial view with ellipsis) -->
-                                <div id="hgvsp-short" class="truncate overflow-hidden">
-                                  {{ csq.HGVSp[:25] }}...
-                                </div>
-
-                                <!-- Full text, initially hidden -->
-                                <div id="hgvsp-full" class="hidden break-all whitespace-normal">
-                                  {{ csq.HGVSp }}
-                                </div>
-
-                                <!-- Smaller button with a subtle symbol to toggle text visibility -->
-                                <button class="ml-1 text-xs text-gray-500 hover:text-blue-500 focus:outline-none"
-                                        onclick="toggleText(this)">
-                                  [+]
-                                </button>
-                              {% else %}
-                                {{ csq.HGVSp }}
-                              {% endif %}
-                            </div>
-                            <br>
-
-                            <!-- HGVSc Section -->
-                            <div class="relative inline-block">
-                              {% if csq.HGVSc|length > 25 %}
-                                <!-- Truncated version (initial view with ellipsis) -->
-                                <div id="hgvs-short" class="truncate overflow-hidden">
-                                  {{ csq.HGVSc[:25] }}...
-                                </div>
-
-                                <!-- Full text, initially hidden -->
-                                <div id="hgvs-full" class="hidden break-all whitespace-normal">
-                                  {{ csq.HGVSc }}
-                                </div>
-
-                                <!-- Smaller button with a subtle symbol to toggle text visibility -->
-                                <button class="ml-1 text-xs text-gray-500 hover:text-blue-500 focus:outline-none"
-                                        onclick="toggleText(this)">
-                                  [+]
-                                </button>
-                              {% else %}
-                                {{ csq.HGVSc }}
-                              {% endif %}
-                            </div>
-                          </td>
-
-                          <td class="p-2 font-medium" id="cnv-table-row-type">
-                            {{ var.variant_class }}
-                          </td>
-                          {% if csq.Consequence is iterable and csq.Consequence is not string %}
-                            <td class="p-2 font-medium" id="cnv-table-row-conseq">
-                            {% for conseq in csq.Consequence %}
-                              {% if conseq in translation %}
-                                {{ translation[conseq] }}<br>
-                              {% else %}
-                                {{ conseq }}<br>
-                              {% endif %}
-                            {% endfor %}
-                            </td>
+                      {% endif %}
+                      <td class="p-2 font-bold" id="cnv-table-row-popFreq">
+                        {% if "gnomad_frequency" in var and var.gnomad_frequency != "" %}
+                          {{ '%.3f' | format(100*var.gnomad_frequency)}}%<br>
+                        {% elif "gnomad_max" in var and var.gnomad_max != "" %}
+                          {{ '%.3f' | format(100*var.gnomad_max)}}%<br>
+                        {% endif %}
+                        {% if var.exac_frequency %}
+                          ExAC: {{ var.exac_frequency|format_pop_freq(var.ALT)|safe }}<br>
+                        {% endif %}
+                        {% if var.thousandG_frequency %}
+                          1000G: {{ var.thousandG_frequency|format_pop_freq(var.ALT)|safe }}
+                        {% endif %}
+                      </td>
+                      <td class="p-2 font-medium" id="cnv-table-row-class">
+                        {% if var.classification.class != 999 and var.classification.transcript == csq.Feature %}
+                          <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full bg-tier{{ var.classification.class }}">
+                          {% if assay == "myeloid" or assay == "tumwgs" or "assay" in var.classification %}
+                            {{ var.classification.class }}
                           {% else %}
-                            {% if csq.Consequence in translation %}
-                              <td class="p-2 font-medium" id="cnv-table-row-conseq">{{ translation[csq.Consequence] }}</td>
-                            {% else %}
-                              <td class="p-2 font-medium" id="cnv-table-row-conseq">{{ csq.Consequence.split('&')|join('<br>')|safe }}</td>
-                            {% endif %}
+                            *
                           {% endif %}
-                          <td class="p-2 font-bold" id="cnv-table-row-popFreq">
-                            {% if "gnomad_frequency" in var and var.gnomad_frequency != "" %}
-                              {{ '%.3f' | format(100*var.gnomad_frequency)}}%<br>
-                            {% elif "gnomad_max" in var and var.gnomad_max != "" %}
-                              {{ '%.3f' | format(100*var.gnomad_max)}}%<br>
-                            {% endif %}
-                            {% if var.exac_frequency %}
-                              ExAC: {{ var.exac_frequency|format_pop_freq(var.ALT)|safe }}<br>
-                            {% endif %}
-                            {% if var.thousandG_frequency %}
-                              1000G: {{ var.thousandG_frequency|format_pop_freq(var.ALT)|safe }}
-                            {% endif %}
-                          </td>
-                          <td class="p-2 font-medium" id="cnv-table-row-class">
-                            {% if var.classification.class != 999 and var.classification.transcript == csq.Feature %}
-                              <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full bg-tier{{ var.classification.class }}">
-                              {% if assay == "myeloid" or assay == "tumwgs" or "assay" in var.classification %}
-                                {{ var.classification.class }}
-                              {% else %}
-                                *
-                              {% endif %}
-                              </div>
-                            {% elif var.additional_classification %}
-                              <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full bg-gray-400">
-                                {{var.additional_classification.tier}}
-                              </div>
-                            {% elif var.other_classification|length > 0 %}
-                              <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full bg-gray-400">?</div>
-                            {% endif %}
-                          </td>
-                          {% if assay == "swea" or assay == "tumor_exome" %}
-                            <td class="p-2 font-medium" id="cnv-table-row-score">
-                              <div class="text-center relative z-10 w-24 h-4 m-0 border border-gray-800">
-                                <div style="position:absolute;z-index:-1;width:{{ (csq.rank_score|float / 0.8) |int }}%;height:100%;background-color:{% if csq.rank_score > 25 %}#bea{% else %}#eba{% endif %};"></div>{{ '%0.1f'| format(csq.rank_score) }}
-                              </div>
-                            </td>
+                          </div>
+                        {% elif var.additional_classification %}
+                          <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full bg-gray-400">
+                            {{var.additional_classification.tier}}
+                          </div>
+                        {% elif var.other_classification|length > 0 %}
+                          <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full bg-gray-400">?</div>
+                        {% endif %}
+                      </td>
+                      {% if assay == "swea" or assay == "tumor_exome" %}
+                        <td class="p-2 font-medium" id="cnv-table-row-score">
+                          <div class="text-center relative z-10 w-24 h-4 m-0 border border-gray-800">
+                            <div style="position:absolute;z-index:-1;width:{{ (csq.rank_score|float / 0.8) |int }}%;height:100%;background-color:{% if csq.rank_score > 25 %}#bea{% else %}#eba{% endif %};"></div>{{ '%0.1f'| format(csq.rank_score) }}
+                          </div>
+                        </td>
+                      {% endif %}
+                      {% if assay == "swea" or assay == "gmsonco" %}
+                        <td class="p-2 font-medium" id="cnv-table-row-enigma">
+                          <div {% if var.INFO.ENIGMA_CLNSIG=="Pathogenic" %}class='bg-pink-300 px-1 py-0.5 font-bold inline-block text-red-800 rounded-md'{% endif %}>{{ var.INFO.ENIGMA_CLNSIG }}</div>
+                        </td>
+                      {% endif %}
+                      {% if assay == "solid" %}
+                        <td class="p-2 font-medium" id="cnv-table-row-chrPos">
+                          <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full {% if csq.mmhotspot %}bg-red-400{% else %}bg-gray-400{% endif %}">
+                            {{ var.CHROM }}:{{ var.POS }}
+                          </div>
+                        </td>
+                        <td class="p-2 font-medium" id="cnv-table-row-hotspot">
+                          {% if var.INFO.HOTSPOT %}
+                            <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full">
+                              {{ var.INFO.HOTSPOT|format_hotspot|safe }}
+                            </div>
                           {% endif %}
-                          {% if assay == "swea" or assay == "gmsonco" %}
-                            <td class="p-2 font-medium" id="cnv-table-row-enigma">
-                              <div {% if var.INFO.ENIGMA_CLNSIG=="Pathogenic" %}class='bg-pink-300 px-1 py-0.5 font-bold inline-block text-red-800 rounded-md'{% endif %}>{{ var.INFO.ENIGMA_CLNSIG }}</div>
-                            </td>
-                          {% endif %}
-                          {% if assay == "solid" %}
-                            <td class="p-2 font-medium" id="cnv-table-row-chrPos">
-                              <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full {% if csq.mmhotspot %}bg-red-400{% else %}bg-gray-400{% endif %}">
-                                {{ var.CHROM }}:{{ var.POS }}
-                              </div>
-                            </td>
-                            <td class="p-2 font-medium" id="cnv-table-row-hotspot">
-                              {% if var.INFO.HOTSPOT %}
-                                <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full">
-                                  {{ var.INFO.HOTSPOT|format_hotspot|safe }}
-                                </div>
-                              {% endif %}
-                            </td>
-                          {% else %}
-                            <td class="p-2 font-medium" id="cnv-table-row-chrPos">
-                              <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full bg-gray-400">
-                                {{ var.CHROM }}:{{ var.POS }}
-                              </div>
-                            </td>
-                          {% endif %}
-                          <td class="p-2 font-medium" id="cnv-table-row-flags">
-                            <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full">{{ var.FILTER|format_filter|safe }}</div>
-                          </td>
-                          {% if assay == "swea" %}
-                            <td class="p-2 font-medium" id="cnv-table-row-gt">
-                              {% for gt in var.GT|sort(attribute='type') %}
-                                {% if gt.type == "case" %}
-                                  <img class="{% if gt.GT=='0/0' %}filter-grayscale-opacity{% endif %} w-5" src="{{ url_for('static', filename='images/krabba3.png') }}">
-                                {% endif %}
-                                {% if gt.type == "control" %}
-                                  <img class="{% if gt.GT=='0/0' %}filter-grayscale-opacity{% endif %} w-5" src="{{ url_for('static', filename='images/blood.png') }}">
-                                {% endif %}
-                              {% endfor %}
-                            </td>
-                          {% endif %}
+                        </td>
+                      {% else %}
+                        <td class="p-2 font-medium" id="cnv-table-row-chrPos">
+                          <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full bg-gray-400">
+                            {{ var.CHROM }}:{{ var.POS }}
+                          </div>
+                        </td>
+                      {% endif %}
+                      <td class="p-2 font-medium" id="cnv-table-row-flags">
+                        <div class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full">{{ var.FILTER|format_filter|safe }}</div>
+                      </td>
+                      {% if assay == "swea" %}
+                        <td class="p-2 font-medium" id="cnv-table-row-gt">
                           {% for gt in var.GT|sort(attribute='type') %}
                             {% if gt.type == "case" %}
-                              <td class="p-2 font-medium" id="cnv-table-row-case" sorttable_customkey="{{ gt.AF }}">
-                            {% else %}
-                              <td class="p-2 font-medium" id="cnv-table-row-control" sorttable_customkey="{{ gt.AF }}">
+                              <img class="{% if gt.GT=='0/0' %}filter-grayscale-opacity{% endif %} w-5" src="{{ url_for('static', filename='images/krabba3.png') }}">
                             {% endif %}
-                              {% if gt.DP < settings.error_cov %}
-                                <span class="font-bold" style='color:red; font-weight:bold;'>
-                              {% elif gt.DP < settings.warn_cov %}
-                                <span class="font-bold" style='color:#dd7700'>
-                              {% else %}
-                                <span>
-                              {% endif %}
-                                {{ '%0.1f'| format(100*gt.AF|float) }}% ({{ gt.VD|int }} / {{ gt.DP|int }})
-                              </span>
-                            </td>
+                            {% if gt.type == "control" %}
+                              <img class="{% if gt.GT=='0/0' %}filter-grayscale-opacity{% endif %} w-5" src="{{ url_for('static', filename='images/blood.png') }}">
+                            {% endif %}
                           {% endfor %}
-                          <td class="py-2 px-4 border-b border-gray-300 text-blue-500 hover:underline" id="cnv-table-row-view"><a href="{{ url_for('dna_bp.show_variant', id=var._id) }}">view</a></td>
-                      </tr>
+                        </td>
+                      {% endif %}
+                      {% for gt in var.GT|sort(attribute='type') %}
+                        {% if gt.type == "case" %}
+                          <td class="p-2 font-medium" id="cnv-table-row-case" sorttable_customkey="{{ gt.AF }}">
+                        {% else %}
+                          <td class="p-2 font-medium" id="cnv-table-row-control" sorttable_customkey="{{ gt.AF }}">
+                        {% endif %}
+                          {% if gt.DP < settings.error_cov %}
+                            <span class="font-bold" style='color:red; font-weight:bold;'>
+                          {% elif gt.DP < settings.warn_cov %}
+                            <span class="font-bold" style='color:#dd7700'>
+                          {% else %}
+                            <span>
+                          {% endif %}
+                            {{ '%0.1f'| format(100*gt.AF|float) }}% ({{ gt.VD|int }} / {{ gt.DP|int }})
+                          </span>
+                        </td>
                       {% endfor %}
-                    </tbody>
-                  </table>
-                </div>
-              {% else %}
-                <em class="block text-center text-gray-500 text-sm italic bg-gray-100 p-4 rounded-b-lg border border-gray-300 shadow-md">
-                  No variants found with the current filter settings!
-                  <br>
-                </em>      
-              {% endif %}
-            </form>
-          </div>
+                      <td class="py-2 px-4 border-b border-gray-300 text-blue-500 hover:underline" id="cnv-table-row-view"><a href="{{ url_for('dna_bp.show_variant', id=var._id) }}">view</a></td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <em class="block text-center text-gray-500 text-sm italic bg-gray-100 p-4 rounded-b-lg border border-gray-300 shadow-md">
+              No variants found with the current filter settings!
+              <br>
+            </em>      
+          {% endif %}
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -322,9 +322,9 @@
 
   <!-- CNV Card -->
   {% if cnvwgs or sample.cnvprofile %}
-    <div id="cnv-div" class="bg-white shadow-md rounded-lg my-8">
+    <div id="cnv-div" class="bg-white rounded-lg my-8">
       <!-- CNV Toggle Button -->
-      <div class="flex justify-between items-center bg-gradient-to-b from-gray-300 to-gray-50 text-black rounded-md px-4 py-2">
+      <div class="flex justify-between items-center bg-purple-200 text-black rounded-md px-4 py-2">
         <h2 class="text-base font-semibold tracking-wide uppercase">CNVs</h2>
         <button class="focus:outline-none" onclick="toggleCard('cnv-content')">
           <img id="arrow-icon" src="{{ url_for('static', filename='icons/up-arrow-240.png') }}" alt="Toggle CNV Card" class="w-6 h-6 transform transition-transform duration-200 filter invert">
@@ -332,18 +332,16 @@
       </div>
 
       <!-- CNVs Collapsible Content -->
-      <div class="mx-auto py-2 px-2 mx-2" id="cnv-content">
+      <div class="mx-auto py-4 mx-2" id="cnv-content">
         <div class="flex flex-wrap gap-4">
 
           <!-- CNV Plot -->
           {% if sample.cnvprofile %}
-            <!--<div class="bg-white shadow-md rounded-lg p-6 mb-6">-->
-            <div class="flex-grow-0 bg-transparent p-2">
-              <!--<h2 class="text-xl font-semibold text-gray-800 mb-4 text-center">CNV Profile</h2>-->
+            <div class="flex-grow-0 bg-transparent pr-4" id="cnv-plot-div">
               <h2 class="text-sm bg-gradient-to-b from-purple-200 to-white font-semibold tracking-wide p-3 shadow-lg rounded-t-lg capitalize">
                 CNV Profile
               </h2>
-              <div class="overflow-auto rounded-b-lg shadow-sm px-6 py-5">
+              <div class="overflow-auto rounded-b-lg shadow-sm px-6 py-5" id="cnv-plot">
                 {% set build = 37 %}
                 {% if "genome_build" in sample %}
                   {% set build = sample.genome_build %}
@@ -367,13 +365,16 @@
 
 
           <!-- CNV Tables -->
-          <div class="flex-grow-0 bg-transparent p-2">
-            <h2 class="text-sm bg-gradient-to-b from-purple-200 to-white font-semibold tracking-wide p-3 shadow-lg rounded-t-lg capitalize">
-              Tumor CNVs passing filter criteria
-            </h2>
+          <div class="flex-grow-0 bg-transparent mr-4 rounded-b-md overflow-auto" id="cnv-table-div-header">
+            <div class="flex items-center justify-between bg-gradient-to-b from-purple-200 to-white shadow-lg rounded-t-lg">
+              <h2 class="text-sm font-semibold tracking-wide p-3 capitalize">
+                Tumor CNVs passing filter criteria 
+              </h2> 
+              <img src="{{ url_for('static', filename='icons/save-100.png') }}" alt="Export to CSV - CNVs" onclick="exportTableToCSV('{{ sample.name }}.filtered.cnvs.csv', 'cnvs-table')" class="cursor-pointer w-6 h-6 mr-4 transition-transform transform hover:scale-110" id="export-cnvs-table"/>
+            </div>
             {% if cnvwgs and cnvwgs|length > 0 %}
-              <div class="overflow-auto rounded-b-lg shadow-md">
-                <table class="table-auto text-xs overflow-hidden mb-1">
+              <div class="rounded-b-lg shadow-md overflow-auto" id="cnvs-table-div">
+                <table class="table-auto text-xs mb-1 sortable" id="cnvs-table">
                   <thead>
                     <tr class="border-b text-left border-gray-300 capitalize" id="cnv-table-header">
                       <th class="p-3 font-semibold" id="cnv-table-header-genes">Genes</th>
@@ -498,21 +499,24 @@
 
   <!-- Translocations Card -->
   {% if transloc %}
-    <div id="transloc-div" class="bg-white shadow-md rounded-lg my-8">
+    <div id="transloc-div" class="bg-white rounded-lg my-8">
       <!-- Translocations Toggle Button -->
-      <div class="flex justify-between items-center bg-gradient-to-b from-gray-300 to-gray-50 text-black rounded-md px-4 py-2">
+      <div class="flex justify-between items-center bg-blue-200 text-black rounded-md px-4 py-2">
         <h2 class="text-base font-semibold tracking-wide uppercase">Translocations</h2>
         <button class="focus:outline-none" onclick="toggleCard('transloc-content')">
           <img id="arrow-icon" src="{{ url_for('static', filename='icons/up-arrow-240.png') }}" alt="Toggle Transloc Card" class="w-6 h-6 transform transition-transform duration-200 filter invert">
         </button>
       </div>
-      <div class="mx-auto py-2 px-2 mx-2" id="transloc-content">
+      <div class="mx-auto py-4 mx-2" id="transloc-content">
         <div class="flex flex-wrap gap-4">
           <!-- Translocations Table -->
-          <div class="flex-grow-0 bg-transparent p-2">
-            <h2 class="text-sm bg-gradient-to-b from-indigo-200 to-white font-semibold tracking-wide p-3 shadow-lg rounded-t-lg capitalize">
-              Gene fusions passing filter criteria
-            </h2>
+          <div class="flex-grow-0 bg-transparent overflow-auto" id="transloc-table-div-header">
+            <div class="flex items-center justify-between bg-gradient-to-b from-blue-200 to-white shadow-lg rounded-t-lg">
+              <h2 class="text-sm font-semibold tracking-wide p-3 capitalize">
+                Gene fusions passing filter criteria
+              </h2> 
+              <img src="{{ url_for('static', filename='icons/save-100.png') }}" alt="Export to CSV - transloc" onclick="exportTableToCSV('{{ sample.name }}.filtered.transloc.csv', 'transloc-table')" class="cursor-pointer w-6 h-6 mr-4 transition-transform transform hover:scale-110" id="export-transloc-table"/>
+            </div>
             {% if transloc and transloc.count() > 0 %}
               <div class="overflow-auto rounded-b-lg shadow-md">
                 <table class="table-auto text-xs overflow-hidden mb-1">
@@ -585,23 +589,26 @@
 
   <!-- Fusion Card -->
   {% if fusions %}
-    <div id="fusion-div" class="bg-white shadow-md rounded-lg my-8">
+    <div id="fusion-div" class="bg-white rounded-lg my-8">
       <!-- Fusion Toggle Button -->
-      <div class="flex justify-between items-center bg-gradient-to-b from-gray-300 to-gray-50 text-black rounded-md px-4 py-2">
+      <div class="flex justify-between items-center bg-yellow-200 text-black rounded-md px-4 py-2">
         <h2 class="text-base font-semibold tracking-wide uppercase">DNA Fusions</h2>
         <button class="focus:outline-none" onclick="toggleCard('fusion-content')">
           <img id="arrow-icon" src="{{ url_for('static', filename='icons/up-arrow-240.png') }}" alt="Toggle Fusion Card" class="w-6 h-6 transform transition-transform duration-200 filter invert">
         </button>
       </div>
 
-      <div class="mx-auto py-2 px-2 mx-2" id="fusion-content">
+      <div class="mx-auto py-4 mx-2" id="fusion-content">
         <div class="flex flex-wrap gap-4">
           <!-- Fusion Table -->
           {% if fusions|length > 0 %}
-            <div class="flex-grow-0 bg-transparent p-2" id="fusion-table-div-header">
-              <h2 class="text-sm bg-gradient-to-b from-red-200 to-white font-semibold tracking-wide p-3 shadow-lg rounded-t-lg capitalize">
-                Fusions passing filter criteria
-              </h2>
+            <div class="flex-grow-0 bg-transparent" id="fusion-table-div-header">
+              <div class="flex items-center justify-between bg-gradient-to-b from-yellow-200 to-white shadow-lg rounded-t-lg">
+                <h2 class="text-sm font-semibold tracking-wide p-3 capitalize">
+                  Fusions passing filter criteria
+                </h2> 
+                <img src="{{ url_for('static', filename='icons/save-100.png') }}" alt="Export to CSV - fusion" onclick="exportTableToCSV('{{ sample.name }}.filtered.fusion.csv', 'fusion-table')" class="cursor-pointer w-6 h-6 mr-4 transition-transform transform hover:scale-110" id="export-fusion-table"/>
+              </div>
               <div class="overflow-auto rounded-b-lg shadow-md" id="fusion-table-div">
                 <table class="table-auto text-xs overflow-hidden mb-1" id="fusion-table">
                   <thead>
@@ -675,19 +682,19 @@
 
 
   <!-- Low Coverage Card -->
-  <div id="lowcov-div" class="bg-white shadow-md rounded-lg my-8" style="display:none">
+  <div id="lowcov-div" class="bg-white rounded-lg my-8" style="display:none">
     <!-- Low Coverage Toggle Button -->
-    <div class="flex justify-between items-center bg-gradient-to-b from-gray-300 to-gray-50 text-black rounded-md px-4 py-2">
+    <div class="flex justify-between items-center bg-pink-200 text-black rounded-md px-4 py-2">
       <h2 class="text-base font-semibold tracking-wide uppercase">Coverage</h2>
       <button class="focus:outline-none" onclick="toggleCard('lowcov-content')">
         <img id="arrow-icon" src="{{ url_for('static', filename='icons/up-arrow-240.png') }}" alt="Toggle Coverage Card" class="w-6 h-6 transform transition-transform duration-200 filter invert">
       </button>
     </div>
-    <div class="mx-auto py-2 px-2 mx-2" id="lowcov-content">
+    <div class="mx-auto py-4 mx-2" id="lowcov-content">
       <div class="flex flex-wrap gap-4">
         <!-- Low Coverage Table -->
-        <div class="flex-grow-0 bg-transparent p-2" id="lowcovlist_div">
-          <h2 class="text-sm bg-gradient-to-b from-yellow-200 to-white font-semibold tracking-wide p-3 shadow-lg rounded-t-lg capitalize">
+        <div class="flex-grow-0 bg-transparent" id="lowcovlist_div">
+          <h2 class="text-sm bg-gradient-to-b from-pink-200 to-white font-semibold tracking-wide p-3 shadow-lg rounded-t-lg capitalize">
             Low Coverage Regions
           </h2>
           <div class="overflow-auto rounded-b-lg shadow-md">
@@ -729,24 +736,24 @@
 
 
   <!-- Sample Comments Card -->
-  <div id="sample-comments-div" class="bg-white shadow-md rounded-lg my-8">
+  <div id="sample-comments-div" class="bg-white rounded-lg my-8">
     <!-- Comments Toggle Button -->
-    <div class="flex justify-between items-center bg-gradient-to-b from-gray-300 to-gray-50 text-black rounded-md px-4 py-2">
+    <div class="flex justify-between items-center bg-red-200 text-black rounded-md px-4 py-2">
       <h2 class="text-base font-semibold tracking-wide uppercase">Sample Comments</h2>
       <button class="focus:outline-none" onclick="toggleCard('sample-comments-content')">
-        <img id="arrow-icon" src="{{ url_for('static', filename='icons/up-arrow-240.png') }}" alt="Toggle Fusion Card" class="w-6 h-6 transform transition-transform duration-200 filter invert">
+        <img id="arrow-icon" src="{{ url_for('static', filename='icons/up-arrow-240.png') }}" alt="Toggle Comments Card" class="w-6 h-6 transform transition-transform duration-200 filter invert">
       </button>
     </div>
 
-    <div class="mx-auto py-2 px-2 mx-2" id="sample-comments-content">
+    <div class="mx-auto py-4 mx-2" id="sample-comments-content">
       <div class="flex flex-wrap gap-4">
         {% if sample.comments|length > 0 %}
-          <div class="flex-grow-0 bg-transparent p-2" id="comments-table-div-header">
-            <h2 class="text-sm bg-gradient-to-b from-green-200 to-white font-semibold tracking-wide p-3 shadow-lg rounded-t-lg capitalize">
+          <div class="flex-grow-0 bg-transparent" id="comments-table-div-header">
+            <h2 class="text-sm bg-gradient-to-b from-red-200 to-white font-semibold tracking-wide p-3 shadow-lg rounded-t-lg capitalize">
               Comments
             </h2>
-            <div class="overflow-auto rounded-b-lg shadow-md" id="comments-table-div">
-              <table class="table-auto text-xs overflow-hidden mb-1" id="comments-table">
+            <div class="rounded-b-lg shadow-md" id="comments-table-div">
+              <table class="table-auto text-xs mb-1" id="comments-table">
                 <thead>
                   <tr class="border-b text-left border-gray-300 capitalize" id="comments-table-header">
                     <th class="p-3 font-semibold" id="comments-table-header-who">Who</th>
@@ -764,7 +771,7 @@
                       <td class="px-2 font-medium whitespace-nowrap align-top py-4" id="comments-table-header-who">
                         <b>{{ comment.author }}</b><br><small>{{ comment.time_created|human_date }}</small>
                       </td>
-                      <td class="p-2 font-medium whitespace-nowrap" id="comments-table-header-comment" onclick='addText(event)'>
+                      <td class="p-2 font-medium" id="comments-table-header-comment" onclick='addText(event)'>
                         {{ comment.text|format_comment|safe }}
                       </td>
                       <td class="px-2 font-medium align-top py-4" id="comments-table-header-view">
@@ -798,15 +805,15 @@
         {% endif %}
 
         <!-- Add comments box -->
-        <div class="min-w-50_per flex-grow-1 bg-transparent p-2" id="comments-box-div-header">
-          <h2 class="text-base bg-gradient-to-b from-green-200 to-white font-semibold tracking-wide p-3 shadow-lg rounded-t-lg capitalize">
+        <div class="min-w-50_per flex-grow-1 bg-transparent px-2" id="comments-box-div-header">
+          <h2 class="text-base bg-gradient-to-b from-red-200 to-white font-semibold tracking-wide p-3 shadow-lg rounded-t-lg capitalize">
             Add Comments
           </h2>
           <div class="min-w-full overflow-auto rounded-b-lg shadow-md" id="comments-box-div">
             <form action="{{ url_for('common_bp.add_sample_comment', id=sample._id) }}" method="post">
-              <textarea id="comment_textarea" name="sample_comment" placeholder="Enter sample comment..." class="w-11/12 p-5 border border-gray-300 rounded m-5 h-40"></textarea><br>
-              <input type="submit" value="Save comment" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2">
-              <button type="button" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mt-2" onclick="addAIText()">Suggest</button>
+              <textarea id="comment_textarea" name="sample_comment" placeholder="Enter sample comment..." class="w-11/12 p-4 border border-gray-300 rounded mx-5 my-4 h-40"></textarea><br>
+              <input type="submit" value="Save comment" class="bg-blue-400 hover:bg-blue-600 text-white font-bold rounded py-1 px-2 my-4 ml-6 mr-2">
+              <button type="button" class="bg-gray-400 hover:bg-gray-600 text-white font-bold py-1 px-2 rounded py-1 px-2 my-4 mx-2" onclick="addAIText()">Suggest</button>
             </form>
             <div id="suggestion" class="hidden">
               {{ ai_text }}
@@ -908,6 +915,49 @@
       arrowIcon.classList.add('rotate-180'); // Reset arrow to upwards
     }
   }
+
+  // Export csv function
+  function exportTableToCSV(filename, tableId) {
+    // Get the table element by its ID
+    const table = document.getElementById(tableId);
+    if (!table) {
+      console.error(`Table with ID "${tableId}" not found.`);
+      return;
+    }
+  
+    let csv = [];
+    
+    // Get all rows from the table
+    const rows = table.querySelectorAll('tr');
+  
+    // Loop through each row
+    rows.forEach((row) => {
+      let rowData = [];
+      const cells = row.querySelectorAll('th, td'); // Get header and data cells
+      cells.forEach((cell) => {
+        // Extract text content and replace line breaks with ";"
+        let cellContent = cell.innerText.replace(/\n/g, ';').trim();
+        rowData.push(cellContent);
+      });
+      csv.push(rowData.join(',')); // Join cells with a comma
+    });
+  
+    // Convert the array to a CSV string
+    const csvString = csv.join('\n');
+  
+    // Create a Blob and download the CSV file
+    const blob = new Blob([csvString], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+  
+  
+  
   
 
 </script>

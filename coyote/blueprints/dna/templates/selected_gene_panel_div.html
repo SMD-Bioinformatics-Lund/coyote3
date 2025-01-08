@@ -1,5 +1,5 @@
 
-<div id="sample_div" class="bg-white shadow-md rounded-lg my-8">
+<div id="sample_div" class="bg-white rounded-lg my-8">
   <!-- Toggle Button -->
   <div class="flex justify-between items-center bg-gradient-to-b from-gray-300 to-gray-50 text-black rounded-md px-4 py-2">
     <h2 class="text-base font-semibold tracking-wide uppercase">Gene Panel(s)</h2>
@@ -16,7 +16,7 @@
         {% for list in checked_genelists %}
           <div class="mt-1">
             <b>{{ list.replace("genelist_", "") }} {{ dispgenes|length }} genes:</b>
-            <div class="mt-1 flex flex-wrap gap-2 text-xs justify-between">
+            <div class="mt-1 flex flex-wrap gap-2 text-xs">
               {% for gene in dispgenes %}
                 <span class="py-1 px-2 bg-gray-100 rounded-md text-xs hover:bg-green-100">{{ gene }}</span>{% if not loop.last %} {% endif %}
               {% endfor %}
