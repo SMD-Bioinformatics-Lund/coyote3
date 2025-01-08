@@ -98,6 +98,8 @@ def list_variants(id):
     filter_genes = util.common.create_filter_genelist(genelist_filter, gene_lists)
     filter_cnveffects = util.dna.create_cnveffectlist(cnv_effects)
 
+    print(f"this is the cnv effects: {cnv_effects}")
+
     # Add them to the form
     form.min_freq.data = sample_settings["min_freq"]
     form.max_freq.data = sample_settings["max_freq"]
@@ -230,7 +232,13 @@ def list_variants(id):
         if sample["cnv"].lower().endswith((".png", ".jpg", ".jpeg")):
             sample["cnvprofile"] = sample["cnv"]
 
-    print(low_cov)
+    # print(cnvwgs_iter)
+    # for cnv in cnvwgs_iter:
+    #     try:
+    #         print(cnv["ratio"])
+    #     except KeyError:
+    #         print(cnv)
+
     return render_template(
         "list_variants_vep.html",
         checked_genelists=genelist_filter,

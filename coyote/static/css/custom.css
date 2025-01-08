@@ -318,6 +318,10 @@ tr.highlightannotation { background-color: rgb(96, 194, 93); }
   width: 90%;
 }
 
+.min-w-50_per {
+  width: 50%;
+}
+
 .hidden_comment {
   background-color: #ffd6d6;
   opacity: 0.3;
