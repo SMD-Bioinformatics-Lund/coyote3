@@ -31,7 +31,6 @@ def get_cov(sample_id):
     gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
     
     smp_grp = util.common.select_one_sample_group(sample.get("groups"))
-    app.logger.debug(smp_grp)
     # Get group parameters from the sample group config file
     group_params = util.common.get_group_parameters(smp_grp)
 
@@ -42,6 +41,7 @@ def get_cov(sample_id):
 
     filter_genes = util.common.create_filter_genelist(genelist_filter, gene_lists)
     cov_dict = store.coverage2_handler.get_sample_coverage(str(sample['_id']))
+    app.logger.debug(cov_dict['genes'].keys())
     del cov_dict['_id']
     del sample['_id']
     filtered_dict = filter_genes_from_form(cov_dict,filter_genes,smp_grp)
@@ -66,7 +66,7 @@ def update_gene_status():
     coord = data.get('coord')
     smp_grp = data.get('smp_grp')
     region = data.get('region')
-    if coord is not "":
+    if coord != "":
         coord = coord.replace(':','_')
         coord = coord.replace('-','_')
         store.groupcov_handler.blacklist_coord(gene,coord,region,smp_grp)
