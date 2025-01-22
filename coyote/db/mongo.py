@@ -20,6 +20,8 @@ from coyote.db.fusions import FusionsHandler
 from coyote.db.biomarkers import BiomarkerHandler
 from coyote.db.coverage import CoverageHandler
 from coyote.db.cosmic import CosmicHandler
+from coyote.db.coverage2 import CoverageHandler2
+from coyote.db.group_coverage import GroupCoverageHandler
 
 
 class MongoAdapter:
@@ -95,3 +97,5 @@ class MongoAdapter:
         self.biomarker_handler = BiomarkerHandler(self)
         self.coverage_handler = CoverageHandler(self)
         self.cosmic_handler = CosmicHandler(self)
+        self.coverage2_handler = CoverageHandler2(self)
+        self.groupcov_handler = GroupCoverageHandler(self)
