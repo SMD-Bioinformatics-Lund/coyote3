@@ -23,7 +23,7 @@
 </head>
 
 <body class="bg-white font-sans leading-normal tracking-normal text-sm">
-  <div class=" mx-auto mt-5">
+  <div class=" mx-auto mt-2">
     <!-- Flash messages -->
     <div id="alert-container" class="fixed top-5 right-5 z-50 space-y-2">
       {% with messages = get_flashed_messages(with_categories=true) %}
@@ -43,11 +43,11 @@
     </div>
   </div>
   <div class="bg-white">
-    <div class="mx-auto flex items-center justify-between p-2 pb-2 ml-10">
+    <div class="mx-auto flex items-center justify-between ml-10">
       <div class="flex items-center space-x-2">
         <a href="{{ url_for('dashboard_bp.dashboard') }}" class="flex items-center space-x-2 text-4xl font-bold">
-          <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Coyote Logo" class="h-14 w-18">
-          <span>COYOTE <span class="text-sm font-normal align-baseline">v{{config['APP_VERSION']}}</span></span>
+          <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Coyote Logo" class="h-20 w-32">
+          <span>COYOT3 <span class="px-1 pt-2 text-sm font-normal align-baseline">v{{config['APP_VERSION']}}</span></span>
         </a>
       </div>      
       <div class="relative flex items-center space-x-4">

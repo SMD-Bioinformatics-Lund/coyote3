@@ -116,6 +116,315 @@
     </div>
   </div>
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <!-- Variant Wall Card -->
+  <div class="bg-white border border-gray-300 rounded-lg shadow-lg m-5">
+    <!-- Variant Header -->
+    <div class="w-full px-5 py-3 rounded-t-lg text-black flex justify-between items-center bg-tier-header{{ classification.class }}">
+      <!-- Variant Header Left Section -->
+      <div class="flex flex-col">
+        <h2 class="text-lg font-bold">
+          {{ sel_csq.SYMBOL }}({{ sel_csq.Feature }}):
+          {% if sel_csq.HGVSp %}
+            {{ sel_csq.HGVSp|one_letter_p|unesc }}
+          {% elif sel_csq.HGVSc %}
+            {{ sel_csq.HGVSc }}
+          {% else %}
+            {{ genomic_change }}
+          {% endif %}
+        </h2>
+        <p class="text-xs font-normal">
+          Called By: {{ variant.INFO.variant_callers|join(', ') }}
+        </p>
+        <p class="text-base font-normal">
+          {% if classification.class == 1 %}
+            Tier I: Strong Clinical Significance
+          {% elif classification.class == 2 %}
+            Tier II: Potential Clinical Significance
+          {% elif classification.class == 3 %}
+            Tier III: Unknown Clinical Significance
+          {% elif classification.class == 4 %}
+            Tier IV: Benign
+          {% else %}
+            Not Tiered
+          {% endif %}
+        </p>
+      </div>
+      <!-- Variant Header Right Section -->
+      <div class="flex flex-col text-right">
+        <h2 class="text-lg font-bold">
+          <a href="{{ url_for('dna_bp.list_variants', id=sample.name) }}" class="hover:underline text-lg">
+            {{ sample.name }}
+          </a>
+        </h2>
+        {% if subpanel %}
+          <p class="text-base font-normal">
+            Type: {{ subpanel }}
+          </p>
+        {% endif %}
+      </div>
+    </div>
+  
+    <!-- Variant Multi-Column Table -->
+    <div class="p-5 bg-white rounded-lg">
+      <div class="overflow-auto max-h-96 border border-gray-300 rounded-lg shadow-md">
+        <table class="table-auto w-full text-sm border-collapse">
+          <tbody>
+
+            <!-- Row 1 Primary var details (chr-pos-ref-alt) -->
+            <tr class="border-b divide-x divide-gray-300">
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">Chromosome</td>
+              <td class="px-2 py-1 ">chr{{ variant.CHROM }}</td>
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">Position</td>
+              <td class="px-2 py-1">{{ variant.POS }}</td>
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">Reference</td>
+              <td class="px-2 py-1">{{ variant.REF }}</td>
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">Alternate</td>
+              <td class="px-2 py-1">{{ variant.ALT }}</td>
+            </tr>
+
+            <!-- Row 2 Gene Related Info-->
+            <tr class="border-b divide-x divide-gray-300">
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">Gene</td>
+              <td class="px-2 py-1">
+                <a href="/coyote/gene_simple/{{ sel_csq.SYMBOL }}" class="text-blue-600 underline">{{ sel_csq.SYMBOL }}</a>
+              </td>
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">Canonical Transcript</td>
+              <td class="px-2 py-1">{{ sel_csq.Feature }}</td>
+              {% if sel_csq.EXON|length > 0 %}
+                <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">Exon Number</td>
+                <td class="px-2 py-1">{{ sel_csq.EXON }}</td>
+              {% endif %}
+              {% if sel_csq.INTRON|length > 0 %}
+                <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">Intron Number</td>
+                <td class="px-2 py-1">{{ sel_csq.INTRON }}</td>
+              {% endif %}
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">Variant Class</td>
+              <td class="px-2 py-1">{{ variant.variant_class }}</td>
+            </tr>
+
+            <!-- Row 3 Variant HGVs Related Info-->
+            <tr class="border-b divide-x divide-gray-300">
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">Protein Change</td>
+              <td class="px-2 py-1">{{ sel_csq.HGVSp|unesc }}</td>
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">Prot Change (1 letter)</td>
+              <td class="px-2 py-1">{{ sel_csq.HGVSp|one_letter_p|unesc }}</td>
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">CDS change</td>
+              <td class="px-2 py-1">{{ sel_csq.HGVSc }}</td>
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">Consequence</td>
+              <td class="px-2 py-1">{{ sel_csq.Consequence|multirow|safe }}</td>
+            </tr>
+
+            <!-- Row 4 Variant Scores Info-->
+            <tr class="border-b divide-x divide-gray-300">
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">CADD PHRED</td>
+              <td class="px-2 py-1">
+                {% if sel_csq.CADD_PHRED %}
+                  {{ sel_csq.CADD_PHRED }}
+                {%else %}
+                  -
+                {% endif %}
+              </td>
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">SIFT</td>
+              <td class="px-2 py-1">
+                {% if sel_csq.SIFT %}
+                  {{ sel_csq.SIFT }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">Polyphen</td>
+              <td class="px-2 py-1">
+                {% if sel_csq.PolyPhen %}
+                  {{ sel_csq.PolyPhen }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              {% if indel_size != 0 %}
+                <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">Indel size</td>
+                <td class="px-2 py-1">{{ indel_size }} bp {% if indel_size < 0 %}DEL{% else %}INS{% endif %}</td>
+              {% endif %}
+            </tr>
+
+            <!-- Row 5 Annotation Database Info -->
+            <tr class="border-b divide-x divide-gray-300">
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">dbSNP</td>
+              <td class="px-2 py-1">
+                {%if variant.dbsnp_id %}
+                  <a target="_blank" href="https://www.ncbi.nlm.nih.gov/snp/{{ variant.dbsnp_id }}" class="text-blue-600 underline">{{ variant.dbsnp_id }}</a>
+                {% else %}
+                  -
+                {%endif%}
+              </td>
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">COSMIC</td>
+              <td class="px-2 py-1">
+                {% if variant.cosmic_ids %}
+                  {% for cosm_id in variant.cosmic_ids %}
+                    <a target="_blank" href="https://cancer.sanger.ac.uk/cosmic/search?q={{ cosm_id }}" class="text-blue-600 underline">{{ cosm_id }}</a><br>
+                  {% endfor %}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">ClinVar</td>
+              <td class="px-2 py-1">{{ sel_csq.CLIN_SIG|default('')|multirow|safe }}</td>
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">cBioPortal</td>
+              <td class="px-2 py-1">
+                <a target="_blank" href="http://www.cbioportal.org/ln?q={{sel_csq.SYMBOL}}" class="text-blue-600 underline">
+                  {{sel_csq.SYMBOL}}
+                </a>
+              </td>
+            </tr>
+
+            <!-- Row 6 PopFreq Database Info  -->
+            <tr class="border-b divide-x divide-gray-300">
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">gnomAD</td>
+              <td class="px-2 py-1">{{ variant.gnomad_frequency|format_gnomad }}</td>
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">gnomAD Max</td>
+              <td class="px-2 py-1">{{ variant.gnomad_max|format_gnomad }}</td>
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">ExAC all</td>
+              <td class="px-2 py-1">{{ variant.ExAC_MAF|format_pop_freq(variant.ALT)|safe  }}</td>
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">1000 Genome</td>
+              <td class="px-2 py-1">{{ variant.thousandG_frequency|format_pop_freq(variant.ALT)}}</td>
+              {% if "swegenAF" in variant.INFO %}
+                <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">SweGen <img src="{{ url_for('static', filename='sweflag.png') }}"</td>
+                <td class="px-2 py-1">{{ variant.INFO.swegenAF|three_dec }}%</td>
+              {% endif %}
+            </tr>
+
+            <!-- Row 7 Annotation Database Info continuation -->
+            <tr class="border-b divide-x divide-gray-300">
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">OncoKB</td>
+              <td class="px-2 py-1">
+                <a target="_blank" href="http://oncokb.org/#/gene/{{sel_csq.SYMBOL}}" class="text-blue-600 underline">
+                  {{sel_csq.SYMBOL}}
+                </a>
+              </td>
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">LitVar</td>
+              <td class="px-2 py-1">
+                {% if variant.dbsnp_id %}
+                  <a target="_blank" href="https://www.ncbi.nlm.nih.gov/CBBresearch/Lu/Demo/LitVar/#!?query={{ variant.dbsnp_id }}" class="text-blue-600 underline">
+                    {{ variant.dbsnp_id }}
+                  </a>
+                {% else %}
+                  -
+                {% endif %}  
+              </td>
+              {% if sel_csq.SYMBOL == "TP53" %}
+                <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">Seshat</td>
+                <td class="px-2 py-1">
+                  <a target="_blank" href="http://vps338341.ovh.net/search?mutation={{ sel_csq.HGVSp|unesc|one_letter_p|safe }}" class="text-blue-600 underline">
+                    {{sel_csq.SYMBOL}}
+                  </a>
+                </td>
+              {% endif %}
+              <!--TODO:  DECIPHER Link -->
+              {% if type == "DEL" or type == "DUP" %}
+                <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">DECIPHER</td>
+                <td class="px-2 py-1">
+                  <a target="_blank" href="https://decipher.sanger.ac.uk/browser#q/{{variant.CHROM}}:{{variant.POS}}-{{variant.INFO.  END}}%20/location/{{variant.CHROM}}:{{variant.POS}}-{{variant.INFO.END}}" class="text-blue-600 underline">link</a>
+                </td>
+              {% endif %}
+            </tr>
+
+            <!-- Additional Rows Dynamically -->
+            <tr class="border-b divide-x divide-gray-300">
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">Class</td>
+              <td class="px-2 py-1">{{ variant.variant_class }}</td>
+              {% for gt in variant.GT %}
+                <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">{{gt.type}} VAF</td>
+                <td class="px-2 py-1">{{'%0.1f'| format(100*gt.AF|float) }}% ({{ gt.VD|int }} / {{ gt.DP|int }})</td>
+                {% if "UMI" in gt %}
+                  <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">{{gt.type}} UMI</td>
+                  <td class="px-2 py-1">{{gt.UMI|format_umi|safe}}</td>
+                {% endif %}
+              {% endfor %}
+              <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">Alamut</td>
+              <td class="px-2 py-1">
+                {% if variant.dbsnp_id %}
+                  <a target="_blank" href="http://localhost:10000/show?request={{variant.CHROM}}:{{variant.POS}}{{variant.REF}}&gt;{{variant.ALT}}" class="text-blue-600 underline">open</a>
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              {% for sample_id,bam_path in bam_id.items() %}
+                <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">IGV ({{sample_id}})</td>
+                <td class="px-2 py-1">
+                  {% for path in bam_path %}
+                    {% set list1 = path.split('/') %}
+                    {% if subfolder.update( { 'dir': list1[0] } ) %} {% endif %}
+                    <a href="http://localhost:60151/load?file=/R:{{path}}&locus={{variant.CHROM}}:{{variant.POS}}" class="text-blue-600 underline">{{list1[0]}}</a>
+                  {% endfor %}
+                </td>
+              {% endfor %}
+              {% if assay == "tumwgs" or assay == "fusion" %}
+              {% else %}
+                <td class="px-2 py-1 font-medium text-gray-500 bg-gray-100">Design-BED</td>
+                <td class="px-2 py-1">
+                  {% if subfolder.dir != "None" %}
+                    <a href="http://localhost:60151/load?file=/R:{{subfolder.dir}}/BED/design.bed" class="text-blue-600 underline">open</a>
+                  {% endif %}
+                </td>
+              {% endif %}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  
+    <!-- Tier Based Color Bar at the Bottom -->
+    <div class="w-full h-4 mt-5 rounded-b-lg overflow-hidden bg-gray-200">
+      <div class="h-full bg-tier-header{{ classification.class }}"></div>
+    </div>
+  </div>
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <!-- Variant Wall Card -->
   <div class="bg-white border border-gray-300 rounded-lg shadow-lg m-5">
     <!-- Variant Header -->
