@@ -325,7 +325,7 @@
     <div id="cnv-div" class="bg-white rounded-lg my-8">
       <!-- CNV Toggle Button -->
       <div class="flex justify-between items-center bg-purple-200 text-black rounded-md px-4 py-2">
-        <h2 class="text-base font-semibold tracking-wide uppercase">CNVs ({{ filtered_cnvs|length }})</h2>
+        <h2 class="text-base font-semibold tracking-wide uppercase">CNVs ({{ cnvwgs|length }})</h2>
         <button class="focus:outline-none" onclick="toggleCard('cnv-content')">
           <img id="arrow-icon" src="{{ url_for('static', filename='icons/up-arrow-240.png') }}" alt="Toggle CNV Card" class="w-6 h-6 transform transition-transform duration-200 filter invert">
         </button>
@@ -503,7 +503,7 @@
     <div id="transloc-div" class="bg-white rounded-lg my-8">
       <!-- Translocations Toggle Button -->
       <div class="flex justify-between items-center bg-blue-200 text-black rounded-md px-4 py-2">
-        <h2 class="text-base font-semibold tracking-wide uppercase">Translocations</h2>
+        <h2 class="text-base font-semibold tracking-wide uppercase">Translocations ({{ transloc.count() }})</h2>
         <button class="focus:outline-none" onclick="toggleCard('transloc-content')">
           <img id="arrow-icon" src="{{ url_for('static', filename='icons/up-arrow-240.png') }}" alt="Toggle Transloc Card" class="w-6 h-6 transform transition-transform duration-200 filter invert">
         </button>
@@ -593,7 +593,7 @@
     <div id="fusion-div" class="bg-white rounded-lg my-8">
       <!-- Fusion Toggle Button -->
       <div class="flex justify-between items-center bg-yellow-200 text-black rounded-md px-4 py-2">
-        <h2 class="text-base font-semibold tracking-wide uppercase">DNA Fusions</h2>
+        <h2 class="text-base font-semibold tracking-wide uppercase">DNA Fusions ({{ fusions|length }})</h2>
         <button class="focus:outline-none" onclick="toggleCard('fusion-content')">
           <img id="arrow-icon" src="{{ url_for('static', filename='icons/up-arrow-240.png') }}" alt="Toggle Fusion Card" class="w-6 h-6 transform transition-transform duration-200 filter invert">
         </button>
