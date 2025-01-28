@@ -208,6 +208,31 @@ background-color: #f7f7ff;
   background-color: #e0e0e0; /* Light Grey */
 }
 
+.td_bg_class-1 { 
+  --tw-bg-opacity: 1;
+  background-color: rgba(254, 242, 242, var(--tw-bg-opacity));
+}
+
+.td_bg_class-2 { 
+  --tw-bg-opacity: 1;
+  background-color: rgba(253, 242, 248, var(--tw-bg-opacity));
+}
+
+.td_bg_class-3 { 
+  --tw-bg-opacity: 1;
+  background-color: rgba(238, 242, 255, var(--tw-bg-opacity));
+}
+
+.td_bg_class-4 { 
+  --tw-bg-opacity: 1;
+  background-color: rgba(236, 253, 245, var(--tw-bg-opacity));
+}
+
+.td_bg_class-999 { 
+  --tw-bg-opacity: 1;
+  background-color: rgba(249, 250, 251, var(--tw-bg-opacity));
+}
+
 /* Custom CSS for each Variant detailed view page */
 /* custom-styles.css */
 div#desc1 { color:#f44; }

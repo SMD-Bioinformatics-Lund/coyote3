@@ -11,7 +11,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Prärievarg med ritningar{% endblock %}</title>
+    <title>{% block title %}COYOT3{% endblock %}</title>
     <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/tailwind.2.2.19.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='icons/favicon.ico') }}" rel="shortcut icon">
@@ -22,8 +22,8 @@
     {% block javascript %}{% endblock %}
 </head>
 
-<body class="bg-white font-sans leading-normal tracking-normal text-sm">
-  <div class=" mx-auto mt-2">
+<body class="bg-transparent font-sans leading-normal tracking-normal text-sm">
+  <div class="mx-auto">
     <!-- Flash messages -->
     <div id="alert-container" class="fixed top-5 right-5 z-50 space-y-2">
       {% with messages = get_flashed_messages(with_categories=true) %}
@@ -42,12 +42,12 @@
       {% endwith %}
     </div>
   </div>
-  <div class="bg-white">
-    <div class="mx-auto flex items-center justify-between ml-10">
-      <div class="flex items-center space-x-2">
+  <div class="bg-transparent ">
+    <div class="mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-2 ml-10 mt-2">
         <a href="{{ url_for('dashboard_bp.dashboard') }}" class="flex items-center space-x-2 text-4xl font-bold">
-          <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Coyote Logo" class="h-20 w-32">
-          <span>COYOT3 <span class="px-1 pt-2 text-sm font-normal align-baseline">v{{config['APP_VERSION']}}</span></span>
+          <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Coyote Logo" class="h-18 w-28">
+          <span>COYOT3<span class="px-1 pt-2 text-xs font-normal align-baseline">v{{config['APP_VERSION']}}</span></span>
         </a>
       </div>      
       <div class="relative flex items-center space-x-4">
@@ -79,69 +79,69 @@
     </div>
   </div>
   {% if current_user.is_authenticated %}
-    <div class="bg-gray-300 shadow relative">
+    <div class="bg-gray-200 shadow relative">
       <div class="mx-auto flex items-center justify-between p-2 relative">
-          <div class="flex items-center space-x-4 ml-20 pl-5">
-              {% set navbar = {
-                  'home': 'HOME',
-                  'samples': 'SAMPLES',
-                  'panels': 'PANELS',
-                  'tumwgs': 'TUMWGS',
-                  'rna': 'RNA'
-              } %}
-              
-              {% if "/panels" in request.path %}
-                  {% set navbar = {
-                      'home': 'HOME',
-                      'samples': 'SAMPLES',
-                      'myeloid_GMSv1': 'MYELOID',
-                      'solid_GMSv3': 'SOLID',
-                      'PARP_inhib': 'PARP'
-                  } %}
-              {% elif "/rna" in request.path %}
-                  {% set navbar = {
-                      'home': 'HOME',
-                      'samples': 'SAMPLES',
-                      'fusion': 'MYELOID',
-                      'solidRNA_GMSv5': 'SOLID'
-                  } %}
-              {% elif "/tumwgs" in request.path %}
+        <div class="flex items-center space-x-4 ml-20 pl-5">
+            {% set navbar = {
+                'home': 'HOME',
+                'samples': 'SAMPLES',
+                'panels': 'PANELS',
+                'tumwgs': 'TUMWGS',
+                'rna': 'RNA'
+            } %}
+            
+            {% if "/panels" in request.path %}
                 {% set navbar = {
-                      'home': 'HOME',
-                      'samples': 'SAMPLES',
-                      'tumwgs-solid': 'PEDIATRIC SOLID',
-                      'tumwgs-hema': 'HEMATOLOGY'
-                  } %}
-              {% endif %}
-              {% for name, menu_label in navbar.items() %}
-                  {% if name == 'home' %}
-                      {% set url = url_for('dashboard_bp.dashboard') %}
-                  {% elif name == 'samples' %}
-                      {% set url = url_for('home_bp.home_screen') %}
-                  {% elif name == 'panels' %}
-                      {% set url = url_for('home_bp.panels_screen', assay='myeloid_GMSv1') %}
-                  {% elif '/panels' in request.path %}
-                      {% set url = url_for('home_bp.panels_screen', assay=name) %}
-                  {% elif name == 'rna' %}
-                    {% set url = url_for('home_bp.rna_screen', assay='fusion') %}
-                  {% elif '/rna' in request.path %}
-                      {% set url = url_for('home_bp.rna_screen', assay=name) %}
-                  {% elif name == 'tumwgs' %}
-                    {% set url = url_for('home_bp.tumwgs_screen', assay='tumwgs-solid') %}
-                  {% elif '/tumwgs' in request.path %}
-                    {% set url = url_for('home_bp.tumwgs_screen', assay=name) %}
-                  {% else %}
-                      {% set url = url_for('home_bp.main_screen', assay=name) %}
-                  {% endif %}
-                    {% if name == curr_page %}
-                        <a href="{{ url }}" class="active text-gray-900 font-bold">{{ menu_label }}</a>
-                    {% else %}
-                        <a href="{{ url }}" class="text-gray-700 hover:text-gray-500">{{ menu_label }}</a>
-                    {% endif %}
-              {% endfor %}
-              <!--<a href="{{ url_for('common_bp.error_screen') }}">Error</a>-->
-          </div>
-          {% block search %}{% endblock %}
+                    'home': 'HOME',
+                    'samples': 'SAMPLES',
+                    'myeloid_GMSv1': 'MYELOID',
+                    'solid_GMSv3': 'SOLID',
+                    'PARP_inhib': 'PARP'
+                } %}
+            {% elif "/rna" in request.path %}
+                {% set navbar = {
+                    'home': 'HOME',
+                    'samples': 'SAMPLES',
+                    'fusion': 'MYELOID',
+                    'solidRNA_GMSv5': 'SOLID'
+                } %}
+            {% elif "/tumwgs" in request.path %}
+              {% set navbar = {
+                    'home': 'HOME',
+                    'samples': 'SAMPLES',
+                    'tumwgs-solid': 'PEDIATRIC SOLID',
+                    'tumwgs-hema': 'HEMATOLOGY'
+                } %}
+            {% endif %}
+            {% for name, menu_label in navbar.items() %}
+                {% if name == 'home' %}
+                    {% set url = url_for('dashboard_bp.dashboard') %}
+                {% elif name == 'samples' %}
+                    {% set url = url_for('home_bp.home_screen') %}
+                {% elif name == 'panels' %}
+                    {% set url = url_for('home_bp.panels_screen', assay='myeloid_GMSv1') %}
+                {% elif '/panels' in request.path %}
+                    {% set url = url_for('home_bp.panels_screen', assay=name) %}
+                {% elif name == 'rna' %}
+                  {% set url = url_for('home_bp.rna_screen', assay='fusion') %}
+                {% elif '/rna' in request.path %}
+                    {% set url = url_for('home_bp.rna_screen', assay=name) %}
+                {% elif name == 'tumwgs' %}
+                  {% set url = url_for('home_bp.tumwgs_screen', assay='tumwgs-solid') %}
+                {% elif '/tumwgs' in request.path %}
+                  {% set url = url_for('home_bp.tumwgs_screen', assay=name) %}
+                {% else %}
+                    {% set url = url_for('home_bp.main_screen', assay=name) %}
+                {% endif %}
+                {% if name == curr_page %}
+                    <a href="{{ url }}" class="active text-gray-900 font-bold">{{ menu_label }}</a>
+                {% else %}
+                    <a href="{{ url }}" class="text-gray-700 hover:text-gray-500">{{ menu_label }}</a>
+                {% endif %}
+            {% endfor %}
+            <!--<a href="{{ url_for('common_bp.error_screen') }}">Error</a>-->
+        </div>
+        {% block search %}{% endblock %}
       </div>
   {% endif %}
 </div>
