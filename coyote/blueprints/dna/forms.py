@@ -16,22 +16,12 @@ class FilterForm(FlaskForm):
     min_cnv_size = IntegerField("Min CNV size", validators=[InputRequired(), NumberRange(min=1)])
     max_cnv_size = IntegerField("Max CNV size", validators=[InputRequired(), NumberRange(min=2)])
 
-    exonic = BooleanField()
-    utr = BooleanField()
-    ncrna = BooleanField()
-
-    stopgain = BooleanField()
-    stoploss = BooleanField()
-    fs_indels = BooleanField()
-    nfs_indels = BooleanField()
-    unknown = BooleanField()
-    empty = BooleanField()
-
+    # SNVs
     splicing = BooleanField()
     stop_gained = BooleanField()
-    frameshift = BooleanField()
     stop_lost = BooleanField()
     start_lost = BooleanField()
+    frameshift = BooleanField()
     inframe_indel = BooleanField()
     missense = BooleanField()
     other_coding = BooleanField()
@@ -43,25 +33,13 @@ class FilterForm(FlaskForm):
     regulatory = BooleanField()
     feature_elon_trunc = BooleanField()
 
+    # CNVs
     cnveffect_loss = BooleanField(validators=[Optional()])
     cnveffect_gain = BooleanField(validators=[Optional()])
 
-    reset = BooleanField()
-
-    # fusionlist_Leukemi = BooleanField(validators=[Optional()])
-    # fusionlist_barntumor = BooleanField(validators=[Optional()])
-    fusionlist_FCknown = BooleanField(validators=[Optional()])
-    fusionlist_mitelman = BooleanField(validators=[Optional()])
-
-    fusioncaller_arriba = BooleanField(validators=[Optional()])
-    fusioncaller_fusioncatcher = BooleanField(validators=[Optional()])
-    fusioncaller_starfusion = BooleanField(validators=[Optional()])
-
+    # Fusion
     min_spanpairs = IntegerField("Spanning pairs", validators=[Optional()])
     min_spanreads = IntegerField("Spanning reads", validators=[Optional()])
-
-    fusioneffect_inframe = BooleanField(validators=[Optional()])
-    fusioneffect_outframe = BooleanField(validators=[Optional()])
 
     ### assays filters
     solid = BooleanField()
@@ -70,6 +48,9 @@ class FilterForm(FlaskForm):
     lymphoid = BooleanField()
     parp = BooleanField()
     historic = BooleanField()
+
+    # reset button
+    reset = BooleanField()
 
 
 class GeneForm(FilterForm):
@@ -85,17 +66,6 @@ class FusionFilter(FlaskForm):
     max_popfreq = FloatField("Population freq", validators=[Optional()])
     min_cnv_size = IntegerField("Min CNV size", validators=[Optional()])
     max_cnv_size = IntegerField("Max CNV size", validators=[Optional()])
-
-    exonic = BooleanField()
-    utr = BooleanField()
-    ncrna = BooleanField()
-
-    stopgain = BooleanField()
-    stoploss = BooleanField()
-    fs_indels = BooleanField()
-    nfs_indels = BooleanField()
-    unknown = BooleanField()
-    empty = BooleanField()
 
     splicing = BooleanField()
     stop_gained = BooleanField()

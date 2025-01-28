@@ -1,5 +1,6 @@
 <!-- Buttons and Filters -->
-<div class="flex justify-between items-start mx-auto my-3 bg-transparant shadow-md rounded-lg p-1 ">
+
+<div id="variant_functions_bar" class="flex justify-between items-start mx-auto my-3 bg-transparant shadow-md rounded-lg p-1 ">
   <!-- Card for buttons -->
   <div class="bg-white px-4 py-2">
     <!-- Left aligned buttons -->
@@ -65,7 +66,7 @@
 
 
 <!-- Filters Sidebar -->
-<div id="filter-sidebar" class="fixed top-0 right-0 h-full w-60 bg-white overflow-y-auto shadow-md transform translate-x-full transition-transform duration-300 ease-in-out z-10">
+<div id="filter-sidebar" class="fixed top-0 right-0 h-full w-60 bg-white overflow-y-auto shadow-md transform translate-x-full transition-transform duration-300 ease-in-out z-10" onclick="event.stopPropagation()">
   <div class="p-2"> 
     <div class="flex justify-between items-center mb-2 text-sm">
       <h2 class="text-sm font-semibold">Modify filters</h2>
@@ -118,21 +119,21 @@
             <div class="overSelect"></div>
           </div>
           <div id="csq_checkboxes" class="checkboxes">
-            <label for="splicing" class="text-sm">{{ form.splicing(checked=True) }} Splicing</label>
-            <label for="stop_gained" class="text-sm">{{ form.stop_gained(checked=True) }} Stop gain</label>
-            <label for="frameshift" class="text-sm">{{ form.frameshift(checked=True) }} Frameshift indels</label>
-            <label for="stop_lost" class="text-sm">{{ form.stop_lost(checked=True) }} Stop loss</label>
-            <label for="start_lost" class="text-sm">{{ form.start_lost(checked=True) }} Start loss</label>
-            <label for="inframe_indel" class="text-sm">{{ form.inframe_indel(checked=True) }} In-frame indels</label>
-            <label for="missense" class="text-sm">{{ form.missense(checked=True) }} Missense</label>
-            <label for="other_coding" class="text-sm">{{ form.other_coding(checked=True) }} Other coding</label>
-            <label for="synonymous" class="text-sm">{{ form.synonymous(checked=False) }} Synonymous</label>
-            <label for="UTR" class="text-sm">{{ form.UTR(checked=False) }} UTR</label>
-            <label for="non_coding" class="text-sm">{{ form.non_coding(checked=False) }} Non-coding</label>
-            <label for="intronic" class="text-sm">{{ form.intronic(checked=False) }} Intronic</label>
-            <label for="intergenic" class="text-sm">{{ form.intergenic(checked=False) }} Intergenic</label>
-            <label for="regulatory" class="text-sm">{{ form.regulatory(checked=False) }} Regulatory</label>
-            <label for="feature_elon_trunc" class="text-sm">{{ form.feature_elon_trunc(checked=False) }} Feature elon/trunc</label>
+            <label for="splicing" class="text-sm">{{ form.splicing }} Splicing</label>
+            <label for="stop_gained" class="text-sm">{{ form.stop_gained }} Stop gain</label>
+            <label for="frameshift" class="text-sm">{{ form.frameshift }} Frameshift indels</label>
+            <label for="stop_lost" class="text-sm">{{ form.stop_lost }} Stop loss</label>
+            <label for="start_lost" class="text-sm">{{ form.start_lost }} Start loss</label>
+            <label for="inframe_indel" class="text-sm">{{ form.inframe_indel }} In-frame indels</label>
+            <label for="missense" class="text-sm">{{ form.missense }} Missense</label>
+            <label for="other_coding" class="text-sm">{{ form.other_coding }} Other coding</label>
+            <label for="synonymous" class="text-sm">{{ form.synonymous }} Synonymous</label>
+            <label for="UTR" class="text-sm">{{ form.UTR }} UTR</label>
+            <label for="non_coding" class="text-sm">{{ form.non_coding }} Non-coding</label>
+            <label for="intronic" class="text-sm">{{ form.intronic }} Intronic</label>
+            <label for="intergenic" class="text-sm">{{ form.intergenic }} Intergenic</label>
+            <label for="regulatory" class="text-sm">{{ form.regulatory }} Regulatory</label>
+            <label for="feature_elon_trunc" class="text-sm">{{ form.feature_elon_trunc }} Feature elon/trunc</label>
           </div>
         </div>
       </div>
@@ -203,33 +204,70 @@
 
   ////////////////////////////////////////////////////////////////////////////////
   // Toggle Filter Sidebar
-  document.getElementById('filter-toggle').addEventListener('click', function () {
+  // Open Filter Sidebar and close SNV Sidebar if open
+  document.getElementById('filter-toggle').addEventListener('click', function (event) {
     const filterSidebar = document.getElementById('filter-sidebar');
     const snvSidebar = document.getElementById('snv-sidebar');
 
-    // Open filter sidebar and close SNV sidebar if open
+    // Toggle filter sidebar visibility
     filterSidebar.classList.toggle('translate-x-full');
+
+    // Ensure SNV sidebar is closed
+    if (!snvSidebar.classList.contains('translate-x-full')) {
+      snvSidebar.classList.add('translate-x-full');
+    }
+
+    // Stop click from bubbling to the document
+    event.stopPropagation();
+  });
+
+  // Close Filter Sidebar when clicking the close button
+  document.getElementById('filter-close').addEventListener('click', function () {
+    document.getElementById('filter-sidebar').classList.add('translate-x-full');
+  });
+
+  // Open SNV Sidebar and close Filter Sidebar if open
+  document.getElementById('snv-toggle').addEventListener('click', function (event) {
+    const filterSidebar = document.getElementById('filter-sidebar');
+    const snvSidebar = document.getElementById('snv-sidebar');
+
+    // Toggle SNV sidebar visibility
+    snvSidebar.classList.toggle('translate-x-full');
+
+    // Ensure filter sidebar is closed
+    if (!filterSidebar.classList.contains('translate-x-full')) {
+      filterSidebar.classList.add('translate-x-full');
+    }
+
+    // Stop click from bubbling to the document
+    event.stopPropagation();
+  });
+
+  // Close sidebars when clicking outside
+  document.addEventListener('click', function () {
+    const filterSidebar = document.getElementById('filter-sidebar');
+    const snvSidebar = document.getElementById('snv-sidebar');
+
+    // Close filter sidebar if open
+    if (!filterSidebar.classList.contains('translate-x-full')) {
+      filterSidebar.classList.add('translate-x-full');
+    }
+
+    // Close SNV sidebar if open
     if (!snvSidebar.classList.contains('translate-x-full')) {
       snvSidebar.classList.add('translate-x-full');
     }
   });
 
-  // Close Filter Sidebar
-  document.getElementById('filter-close').addEventListener('click', function () {
-    document.getElementById('filter-sidebar').classList.add('translate-x-full');
+  // Prevent clicks inside the sidebars from closing them
+  document.getElementById('filter-sidebar').addEventListener('click', function (event) {
+    event.stopPropagation();
   });
 
-  // Toggle SNV Sidebar
-  document.getElementById('snv-toggle').addEventListener('click', function () {
-    const filterSidebar = document.getElementById('filter-sidebar');
-    const snvSidebar = document.getElementById('snv-sidebar');
-
-    // Open SNV sidebar and close filter sidebar if open
-    snvSidebar.classList.toggle('translate-x-full');
-    if (!filterSidebar.classList.contains('translate-x-full')) {
-      filterSidebar.classList.add('translate-x-full');
-    }
+  document.getElementById('snv-sidebar').addEventListener('click', function (event) {
+    event.stopPropagation();
   });
+
 
   // Close SNV Sidebar
   document.getElementById('snv-close').addEventListener('click', function () {
@@ -294,4 +332,53 @@
     // If validation passes, submit the form
     sidebarForm.submit();
   }
+
+
+  // Recue the sidebar size to the inner window.location.href
+
+  function adjustSidebarPosition() {
+    const variantBar = document.getElementById('variant_functions_bar');
+    const filterSidebar = document.getElementById('filter-sidebar');
+    const snvSidebar = document.getElementById('snv-sidebar');
+    
+    // Get the bottom position of the variant bar
+    const variantBarBottom = variantBar.getBoundingClientRect().bottom;
+  
+    // Set the top of the sidebars dynamically
+    const topPosition = variantBarBottom + 10; // Add a margin of 10px below the bar
+    filterSidebar.style.top = `${topPosition}px`;
+    snvSidebar.style.top = `${topPosition}px`;
+  
+    // Ensure the sidebars have a maximum height and are scrollable if needed
+    const maxHeight = window.innerHeight - topPosition; // Calculate available space below the bar
+    filterSidebar.style.maxHeight = `${maxHeight}px`;
+    filterSidebar.style.overflowY = 'auto'; // Add a vertical scrollbar if content exceeds height
+    snvSidebar.style.maxHeight = `${maxHeight}px`;
+    snvSidebar.style.overflowY = 'auto'; // Add a vertical scrollbar if content exceeds height
+  }
+  
+  // Adjust the position on page load
+  adjustSidebarPosition();
+  
+  // Adjust the position on window resize
+  window.addEventListener('resize', adjustSidebarPosition);
+  
+  // Ensure sidebars toggle visibility properly when resizing screens
+  window.addEventListener('resize', () => {
+    const filterSidebar = document.getElementById('filter-sidebar');
+    const snvSidebar = document.getElementById('snv-sidebar');
+    
+    // Reset sidebars to hidden when resizing
+    if (!filterSidebar.classList.contains('translate-x-full')) {
+      filterSidebar.classList.add('translate-x-full');
+    }
+    if (!snvSidebar.classList.contains('translate-x-full')) {
+      snvSidebar.classList.add('translate-x-full');
+    }
+  });
+  
+
+  
+
+
 </script>

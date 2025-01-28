@@ -6,6 +6,7 @@ from flask import current_app as app
 from flask import redirect, render_template, request, url_for, send_from_directory, flash, abort
 from flask_login import current_user, login_required
 from pprint import pformat
+from copy import deepcopy
 from wtforms import BooleanField
 from coyote.extensions import store, util
 from coyote.blueprints.dna import dna_bp, varqueries_notbad, filters
@@ -98,14 +99,14 @@ def list_variants(id):
     filter_genes = util.common.create_filter_genelist(genelist_filter, gene_lists)
     filter_cnveffects = util.dna.create_cnveffectlist(cnv_effects)
 
-    # Add them to the form
-    form.min_freq.data = sample_settings["min_freq"]
-    form.max_freq.data = sample_settings["max_freq"]
-    form.min_depth.data = sample_settings["min_depth"]
-    form.min_reads.data = sample_settings["min_reads"]
-    form.max_popfreq.data = sample_settings["max_popfreq"]
-    form.min_cnv_size.data = sample_settings["min_cnv_size"]
-    form.max_cnv_size.data = sample_settings["max_cnv_size"]
+    # Add them to the form and update with the requested settings
+    form_data = deepcopy(sample_settings)
+    form_data.pop("csq_filter")
+    form_data.update(sample_settings["csq_filter"])
+    form_data.update(genelist_filter)
+    form_data.update(cnv_effects)
+    form_data.update({assay: 1})
+    form.process(data=form_data)
 
     # this is in config, but needs to be tested (2024-05-14) with a HD-sample of relevant name
     disp_pos = []
@@ -229,13 +230,6 @@ def list_variants(id):
     if "cnv" in sample:
         if sample["cnv"].lower().endswith((".png", ".jpg", ".jpeg")):
             sample["cnvprofile"] = sample["cnv"]
-
-    # print(cnvwgs_iter)
-    # for cnv in cnvwgs_iter:
-    #     try:
-    #         print(cnv["ratio"])
-    #     except KeyError:
-    #         print(cnv)
 
     return render_template(
         "list_variants_vep.html",
