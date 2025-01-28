@@ -47,7 +47,7 @@
   <div id="snvs-div" class="bg-white rounded-lg my-8">
     <!-- SNV/Indels Toggle Button -->
     <div class="flex justify-between items-center bg-green-200 text-black rounded-md px-4 py-2">
-      <h2 class="text-base font-semibold tracking-wide uppercase">SNVs/Indels</h2>
+      <h2 class="text-base font-semibold tracking-wide uppercase">SNVs/Indels ({{ variants|length }})</h2>
       <button class="focus:outline-none" onclick="toggleCard('snvs-content')">
         <img id="arrow-icon" src="{{ url_for('static', filename='icons/up-arrow-240.png') }}" alt="Toggle SNV Card" class="w-6 h-6 transform transition-transform duration-200 filter invert">
       </button>
@@ -105,7 +105,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {% for var in variants if (var.INFO.selected_CSQ.SYMBOL in dispgenes or dispgenes|length == 0) and (var.POS in disp_pos or disp_pos|length == 0) %}
+                  {% for var in variants %}
                     {% set csq = var.INFO.selected_CSQ %}
                     {% if var.fp == True or ( var.blacklist and var.override_blacklist != true ) or var.irrelevant == True %}
                       <tr class='bg-red-200 opacity-40 hover:bg-red-300 border-b text-left fp' id="cnv-table-row-fp">
@@ -325,7 +325,7 @@
     <div id="cnv-div" class="bg-white rounded-lg my-8">
       <!-- CNV Toggle Button -->
       <div class="flex justify-between items-center bg-purple-200 text-black rounded-md px-4 py-2">
-        <h2 class="text-base font-semibold tracking-wide uppercase">CNVs</h2>
+        <h2 class="text-base font-semibold tracking-wide uppercase">CNVs ({{ filtered_cnvs|length }})</h2>
         <button class="focus:outline-none" onclick="toggleCard('cnv-content')">
           <img id="arrow-icon" src="{{ url_for('static', filename='icons/up-arrow-240.png') }}" alt="Toggle CNV Card" class="w-6 h-6 transform transition-transform duration-200 filter invert">
         </button>
@@ -395,14 +395,15 @@
                     </tr>
                   </thead>
                   <tbody class="mx-2">
-                    {% for cnv in cnvwgs if (cnv.ratio|float < -0.3 or cnv.ratio|float > 0.3) and ((cnv.size|abs < (sizefilter|int) and cnv.size|abs > (sizefilter_min|int)) or cnv.ratio|float > 3) and (cnv.panel_gene|intersect(dispgenes) or dispgenes|length == 0 or assay == "tumwgs") %}
-                    {% if cnv.interesting %}
-                      <tr class="bg-green-100 hover:bg-green-200 border-b border-gray-300 text-left" id="cnv-table-row-interesting">
-                    {% elif cnv.ratio > 3 and cnv.size > (sizefilter|int) %}
-                      <tr class="bg-red-100 border-b text-left" id="cnv-table-row">
-                    {% else %}
-                      <tr class="border-b text-left" id="cnv-table-row">
-                    {% endif %}
+                    {#% for cnv in cnvwgs if (cnv.ratio|float < -0.3 or cnv.ratio|float > 0.3) and ((cnv.size|abs < (sizefilter|int) and cnv.size|abs > (sizefilter_min|int)) or cnv.ratio|float > 3) and (cnv.panel_gene|intersect(dispgenes) or dispgenes|length == 0 or assay == "tumwgs") %#}
+                    {% for cnv in cnvwgs %}
+                      {% if cnv.interesting %}
+                        <tr class="bg-green-100 hover:bg-green-200 border-b border-gray-300 text-left" id="cnv-table-row-interesting">
+                      {% elif cnv.ratio > 3 and cnv.size > (sizefilter|int) %}
+                        <tr class="bg-red-100 border-b text-left" id="cnv-table-row">
+                      {% else %}
+                        <tr class="border-b text-left" id="cnv-table-row">
+                      {% endif %}
                       <td class="p-2 font-medium" id="cnv-table-row-genes">
                         {% set non_panel_genes = [0] %}
                         {% for gene in cnv.genes %}
