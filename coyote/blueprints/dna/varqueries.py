@@ -4,12 +4,16 @@ import re
 def build_query(which, settings):
 
     large_ins_regex = re.compile(r"\w{10,200}", re.IGNORECASE)
+    gene_pos_filter = build_pos_genes_filter(settings)
 
     # Myeloid requires settings: min_freq, min_depth, min_reads, max_freq, filter_conseq(list)
 
     if which == "myeloid" or which == "fusion" or which == "tumwgs" or which == "unknown":
         query = {
             "SAMPLE_ID": settings["id"],
+            "$and": [
+                gene_pos_filter,
+            ],  # gene_pos_filter
             "$or": [
                 {"INFO.MYELOID_GERMLINE": 1},
                 {"FILTER": {"$in": ["GERMLINE"]}, "INFO.CSQ": {"$elemMatch": {"SYMBOL": "CEBPA"}}},
@@ -74,6 +78,7 @@ def build_query(which, settings):
         query = {
             "SAMPLE_ID": settings["id"],
             "$and": [
+                gene_pos_filter,
                 # Case sample fulfills filter critieria
                 {
                     "GT": {
@@ -92,6 +97,9 @@ def build_query(which, settings):
     if which == "solid":
         query = {
             "SAMPLE_ID": settings["id"],
+            "$and": [
+                gene_pos_filter,
+            ],  # gene_pos_filter
             "$or": [
                 {"FILTER": {"$in": ["GERMLINE"]}},
                 {
@@ -164,3 +172,15 @@ def build_query(which, settings):
 
 
 ## TERT NFKBIE
+
+
+def build_pos_genes_filter(settings):
+    pos_list = settings.get("disp_pos", [])
+    genes_list = settings.get("filter_genes", [])
+
+    if pos_list:
+        return {"POS": {"$in": pos_list}}
+    elif genes_list:
+        return {"genes": {"$in": genes_list}}
+    else:
+        return {}

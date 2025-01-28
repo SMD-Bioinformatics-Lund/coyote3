@@ -16,7 +16,7 @@
         {% for list in checked_genelists %}
           <div class="mt-1">
             <b>{{ list.replace("genelist_", "") }} {{ dispgenes|length }} genes:</b>
-            <div class="mt-1 flex flex-wrap gap-2 text-xs">
+            <div class="mt-1 flex flex-wrap gap-1 text-xs">
               {% for gene in dispgenes %}
                 <span class="py-1 px-2 bg-gray-100 rounded-md text-xs hover:bg-green-100">{{ gene }}</span>{% if not loop.last %} {% endif %}
               {% endfor %}
