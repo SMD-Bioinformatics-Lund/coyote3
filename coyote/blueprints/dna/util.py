@@ -1122,3 +1122,38 @@ class DNAUtility:
             text += f" {gene} finns ej beskriven i https://www.oncokb.org."
         app.logger.debug(text)
         return text
+
+    @staticmethod
+    def cnvtype_variant(cnvs: list, checked_effects: list) -> list:
+        """
+        Filter CNVs by type
+        # TODO: Will be Depricated in future
+        """
+        filtered_cnvs = []
+        for var in cnvs:
+            if var["ratio"] > 0:
+                effect = "AMP"
+            if var["ratio"] < 0:
+                effect = "DEL"
+            if effect in checked_effects:
+                filtered_cnvs.append(var)
+        return filtered_cnvs
+
+    @staticmethod
+    def cnv_organizegenes(cnvs: list) -> list:
+        """
+        Organize CNV genes
+        """
+        fixed_cnvs_genes = []
+        for var in cnvs:
+            var["other_genes"] = []
+            for gene in var["genes"]:
+                if "class" in gene:
+                    if "panel_gene" in var:
+                        var["panel_gene"].append(gene["gene"])
+                    else:
+                        var["panel_gene"] = [gene["gene"]]
+                else:
+                    var["other_genes"].append(gene["gene"])
+            fixed_cnvs_genes.append(var)
+        return fixed_cnvs_genes
