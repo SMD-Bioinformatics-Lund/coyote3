@@ -25,6 +25,7 @@ def get_cov(sample_id):
     if request.method == "POST":
         cov_cutoff_form = request.form.get('depth_cutoff')
         cov_cutoff = int(cov_cutoff_form)
+    #cov_cutoff = 1500
     sample = store.sample_handler.get_sample(sample_id) 
     
     assay: str | None | Literal["unknown"] = util.common.get_assay_from_sample(sample)
@@ -41,13 +42,13 @@ def get_cov(sample_id):
 
     filter_genes = util.common.create_filter_genelist(genelist_filter, gene_lists)
     cov_dict = store.coverage2_handler.get_sample_coverage(str(sample['_id']))
-    app.logger.debug(cov_dict['genes'].keys())
     del cov_dict['_id']
     del sample['_id']
     filtered_dict = filter_genes_from_form(cov_dict,filter_genes,smp_grp)
     filtered_dict = find_low_covered_genes(filtered_dict,cov_cutoff,smp_grp)
-    filtered_dict = organize_data_for_d3(filtered_dict)
+    cov_table = coverage_table(filtered_dict,cov_cutoff)
     
+    filtered_dict = organize_data_for_d3(filtered_dict)
     
     return render_template(
         "show_cov.html",
@@ -55,7 +56,8 @@ def get_cov(sample_id):
         cov_cutoff=cov_cutoff,
         sample=sample,
         genelists=genelist_clean,
-        smp_grp=smp_grp
+        smp_grp=smp_grp,
+        cov_table=cov_table
     )
 
 @app.route('/update-gene-status', methods=['POST'])
@@ -174,3 +176,50 @@ def reg_low(region_dict, region, cutoff,gene, smp_grp):
                 if not blacklisted:
                     has_low = True
     return has_low
+
+def coverage_table(cov_dict,cov_cutoff):
+    """
+    organize data to be presented condensed in table format
+    """
+    cov_table = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
+    for gene in cov_dict['genes']:
+        gene_cov = cov_dict['genes'][gene]
+        # if data has probes, create cov table based on these and their overlap to CDS
+        if "probes" in gene_cov:
+            for probe in gene_cov['probes']:
+                exons = assign_to_exon(probe,gene_cov)
+                cov_dict['genes'][gene]['probes'][probe]['exon_nr'] = exons
+                if len(exons) > 0:
+                    for exon in exons:
+                        if float(exon['cov']) < cov_cutoff or float(gene_cov['probes'][probe]['cov']) < cov_cutoff:
+                            cov_table[gene][exon['nbr']] = exon
+                else:
+                    if float(gene_cov['probes'][probe]['cov']) < cov_cutoff:
+                            cov_table[gene][probe] = gene_cov['probes'][probe]
+        else:
+            """
+            assign low cov CDS to cov_table
+            """
+            for exon in gene_cov['CDS']:
+                cov = gene_cov['CDS'][exon].get('cov',None)
+                if cov is not None:
+                    cov = float(cov)
+                    if cov < cov_cutoff:
+                        cov_table[gene][gene_cov['CDS'][exon]['nbr']] = gene_cov['CDS'][exon]
+
+    return cov_table
+
+def assign_to_exon(probe,gene_cov):
+    """
+    assign probe to correct exon(cds)
+    """
+    exons = []
+    for exon in gene_cov['CDS']:
+        p_start = int(gene_cov['probes'][probe]['start'])
+        p_end = int(gene_cov['probes'][probe]['end'])
+        e_start = int(gene_cov['CDS'][exon]['start'])
+        e_end = int(gene_cov['CDS'][exon]['end'])
+        if p_start <= e_end and p_end >= e_start:
+            exons.append(gene_cov['CDS'][exon])
+    #exons = ','.join(exons)
+    return exons

@@ -59,10 +59,40 @@
         </form>
     
         <div class="gene-buttons">
-            {% for gene in coverage.genes | sort %} 
-                <button class="gene-button" onclick="plotGene('{{gene}}')">{{gene}}</button>
-                <br>
-            {% endfor %}
+              <!-- Low Coverage Regions -->
+            <div id="lowcovlist_div"  clear:left; class="bg-white shadow-md rounded-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Low Coverage Regions</h2>
+                <div class="overflow-auto">
+                    <table class="min-w-full mt-4 table-auto text-xs" id="sortable-table">
+                        <thead>
+                            <tr class="bg-gradient-to-r from-yellow-300 to-green-300 text-black">
+                                <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="0" data-type="text">Chromosomal region</th>
+                                <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="1" data-type="number">Size (bp)</th>
+                                <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="2" data-type="number">Avg depth (x)</th>
+                                <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="3" data-type="text">Exon</th>
+                                <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="4" data-type="text">Gene</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for gene in cov_table %}
+                            {% for CDS in cov_table[gene] %}
+                            {% set exon = cov_table[gene][CDS] %}
+                            {% if '_' in CDS %}
+                            {% set CDS = "NCP" %}
+                            {% endif %}
+                            <tr class="hover:bg-gray-100">
+                                <td class="py-2 px-4 border-b border-gray-300">{{exon.chr}}:{{exon.start}}-{{exon.end}}</td>
+                                <td class="py-2 px-4 border-b border-gray-300">{{exon.end | int - exon.start | int}}</td>
+                                <td class="py-2 px-4 border-b border-gray-300">{{exon.cov | float | round() }}</td>
+                                <td class="py-2 px-4 border-b border-gray-300">{{CDS}}</td>
+                                <td class="py-2 px-4 border-b border-gray-300"><button onclick="plotGene('{{gene}}')">{{gene}}</button></td>
+                            </tr>
+                            {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
     <div class="plot-container" id="plot-container"></div>
@@ -151,8 +181,11 @@
             .enter()
             .append("rect")
             .attr("fill", d => {
-                    // Color based on coverage cutoff
-                    return d.cov < depthCutoff ? "red" : "steelblue"; // Red if cov < 500, green otherwise
+                if (isNaN(d.cov)) {
+                    return "black"; // Use gray for NaN values
+                }
+                // Color based on coverage cutoff
+                return d.cov < depthCutoff ? "pink" : "lightgreen"; // Red if cov < 500, green otherwise
                 })
             .attr("x", d => xScale(d.start))
             .attr("y", geneY - 10)
@@ -167,7 +200,7 @@
             .append("rect")
             .attr("fill", d => {
                     // Color based on coverage cutoff
-                    return d.cov < depthCutoff ? "red" : "steelblue"; // Red if cov < 500, green otherwise
+                    return d.cov < depthCutoff ? "pink" : "lightblue"; // Red if cov < 500, green otherwise
                 })
             .attr("x", d => xScale(d.start))
             .attr("y", geneY - 35)
@@ -176,6 +209,46 @@
             .append("title") // Tooltip
             .text(d => `${d.chr}:${d.start}-${d.end}, Cov: ${Number(d.cov).toFixed(2)}X`);
         
+
+        // Define legend data
+        const legendData = [
+            { color: "pink", label: "Any coverage < " + depthCutoff },
+            { color: "lightblue", label: "Probe coverage ≥ " + depthCutoff },
+            { color: "lightgreen", label: "CDS coverage ≥ " + depthCutoff },
+            { color: "black", label: "Not covered by design" }
+        ];
+
+        // Create legend container in the top-left corner
+        const legend = svg.append("g")
+            .attr("transform", "translate(10, 10)") // Position at top-left
+            .attr("class", "legend");
+
+        // Append legend items
+        legend.selectAll("legendItems")
+            .data(legendData)
+            .enter()
+            .append("g")
+            .attr("transform", (d, i) => `translate(0, ${i * 20})`) // Space items vertically
+            .each(function(d) {
+                // Append color box
+                d3.select(this)
+                    .append("rect")
+                    .attr("x", 0)
+                    .attr("y", 0)
+                    .attr("width", 15)
+                    .attr("height", 15)
+                    .attr("fill", d.color);
+
+                // Append text
+                d3.select(this)
+                    .append("text")
+                    .attr("x", 25) // Offset text to the right
+                    .attr("y", 12)
+                    .style("font-size", "12px")
+                    .style("dominant-baseline", "middle")
+                    .text(d.label);
+            });
+
         // Remove old data before adding a new gene to the container
         d3.select("#data-container").select("#gene-data-container").remove();
         
@@ -322,6 +395,40 @@
         // Example of sending true/false
         sendDataToBackend(gene, coord, region, "blacklist");
     }
+    document.addEventListener("DOMContentLoaded", function() {
+    const table = document.getElementById("sortable-table");
+    const headers = table.querySelectorAll("th");
+
+    headers.forEach(header => {
+        header.addEventListener("click", function() {
+            const columnIndex = this.getAttribute("data-column");
+            const type = this.getAttribute("data-type");
+            const tbody = table.querySelector("tbody");
+            const rows = Array.from(tbody.querySelectorAll("tr"));
+
+            // Determine sort direction
+            const isAscending = this.getAttribute("data-order") === "asc";
+            this.setAttribute("data-order", isAscending ? "desc" : "asc");
+
+            // Sort function
+            const sortedRows = rows.sort((a, b) => {
+                let aValue = a.children[columnIndex].textContent.trim();
+                let bValue = b.children[columnIndex].textContent.trim();
+
+                if (type === "number") {
+                    aValue = parseFloat(aValue) || 0;
+                    bValue = parseFloat(bValue) || 0;
+                }
+
+                return isAscending ? aValue > bValue ? 1 : -1 : aValue < bValue ? 1 : -1;
+            });
+
+            // Append sorted rows
+            tbody.innerHTML = "";
+            sortedRows.forEach(row => tbody.appendChild(row));
+        });
+    });
+});
 </script>
 
 {% endblock %}
