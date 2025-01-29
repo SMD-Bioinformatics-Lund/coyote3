@@ -63,35 +63,34 @@
             <div id="lowcovlist_div"  clear:left; class="bg-white shadow-md rounded-lg p-6 mb-6">
                 <h2 class="text-xl font-semibold text-gray-800 mb-4">Low Coverage Regions</h2>
                 <div class="overflow-auto">
-                <table class="min-w-full mt-4 table-auto text-xs">
-                    <thead>
-                    <tr class="bg-gradient-to-r from-yellow-300 to-green-300 text-black">
-                        <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal">Chromosomal region</th>
-                        <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal">Size (bp)</th>
-                        <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal" data-autoclick-once="true">Avg depth (x)</th>
-                        <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal">Exon</th>
-                        <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal">Gene</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for gene in cov_table %}
-                    {% for CDS in cov_table[gene] %}
-                    {% set exon = cov_table[gene][CDS] %}
-                    {% if '_' in CDS %}
-                    {% set CDS = "NCP" %}
-                    {% endif %}
-                    <tr class="hover:bg-gray-100">
-                        <td class="py-2 px-4 border-b border-gray-300">{{exon.chr}}:{{exon.start}}-{{exon.end}}</td>
-                        <td class="py-2 px-4 border-b border-gray-300">{{exon.end | int - exon.start | int}}</td>
-                        <td class="py-2 px-4 border-b border-gray-300">{{exon.cov |float | round() }}</td>
-                        <td class="py-2 px-4 border-b border-gray-300">{{CDS}}</td>
-                        <td class="py-2 px-4 border-b border-gray-300"><button  onclick="plotGene('{{gene}}')">{{gene}}</button></td>
-                    </tr>
-                    {% endfor %}
-                    {% endfor %}
-
-                    </tbody>
-                </table>
+                    <table class="min-w-full mt-4 table-auto text-xs" id="sortable-table">
+                        <thead>
+                            <tr class="bg-gradient-to-r from-yellow-300 to-green-300 text-black">
+                                <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="0" data-type="text">Chromosomal region</th>
+                                <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="1" data-type="number">Size (bp)</th>
+                                <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="2" data-type="number">Avg depth (x)</th>
+                                <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="3" data-type="text">Exon</th>
+                                <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="4" data-type="text">Gene</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for gene in cov_table %}
+                            {% for CDS in cov_table[gene] %}
+                            {% set exon = cov_table[gene][CDS] %}
+                            {% if '_' in CDS %}
+                            {% set CDS = "NCP" %}
+                            {% endif %}
+                            <tr class="hover:bg-gray-100">
+                                <td class="py-2 px-4 border-b border-gray-300">{{exon.chr}}:{{exon.start}}-{{exon.end}}</td>
+                                <td class="py-2 px-4 border-b border-gray-300">{{exon.end | int - exon.start | int}}</td>
+                                <td class="py-2 px-4 border-b border-gray-300">{{exon.cov | float | round() }}</td>
+                                <td class="py-2 px-4 border-b border-gray-300">{{CDS}}</td>
+                                <td class="py-2 px-4 border-b border-gray-300"><button onclick="plotGene('{{gene}}')">{{gene}}</button></td>
+                            </tr>
+                            {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -353,6 +352,40 @@
         // Example of sending true/false
         sendDataToBackend(gene, coord, region, "blacklist");
     }
+    document.addEventListener("DOMContentLoaded", function() {
+    const table = document.getElementById("sortable-table");
+    const headers = table.querySelectorAll("th");
+
+    headers.forEach(header => {
+        header.addEventListener("click", function() {
+            const columnIndex = this.getAttribute("data-column");
+            const type = this.getAttribute("data-type");
+            const tbody = table.querySelector("tbody");
+            const rows = Array.from(tbody.querySelectorAll("tr"));
+
+            // Determine sort direction
+            const isAscending = this.getAttribute("data-order") === "asc";
+            this.setAttribute("data-order", isAscending ? "desc" : "asc");
+
+            // Sort function
+            const sortedRows = rows.sort((a, b) => {
+                let aValue = a.children[columnIndex].textContent.trim();
+                let bValue = b.children[columnIndex].textContent.trim();
+
+                if (type === "number") {
+                    aValue = parseFloat(aValue) || 0;
+                    bValue = parseFloat(bValue) || 0;
+                }
+
+                return isAscending ? aValue > bValue ? 1 : -1 : aValue < bValue ? 1 : -1;
+            });
+
+            // Append sorted rows
+            tbody.innerHTML = "";
+            sortedRows.forEach(row => tbody.appendChild(row));
+        });
+    });
+});
 </script>
 
 {% endblock %}
