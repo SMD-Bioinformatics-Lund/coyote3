@@ -6,6 +6,7 @@ from flask import current_app as app
 from flask import redirect, render_template, request, url_for, send_from_directory, flash, abort
 from flask_login import current_user, login_required
 from pprint import pformat
+from copy import deepcopy
 from wtforms import BooleanField
 from coyote.extensions import store, util
 from coyote.blueprints.dna import dna_bp, varqueries_notbad, filters
@@ -98,14 +99,20 @@ def list_variants(id):
     filter_genes = util.common.create_filter_genelist(genelist_filter, gene_lists)
     filter_cnveffects = util.dna.create_cnveffectlist(cnv_effects)
 
-    # Add them to the form
-    form.min_freq.data = sample_settings["min_freq"]
-    form.max_freq.data = sample_settings["max_freq"]
-    form.min_depth.data = sample_settings["min_depth"]
-    form.min_reads.data = sample_settings["min_reads"]
-    form.max_popfreq.data = sample_settings["max_popfreq"]
-    form.min_cnv_size.data = sample_settings["min_cnv_size"]
-    form.max_cnv_size.data = sample_settings["max_cnv_size"]
+    # Add them to the form and update with the requested settings
+    form_data = deepcopy(sample_settings)
+    form_data.pop("csq_filter")
+    form_data.update(sample_settings["csq_filter"])
+    form_data.update(genelist_filter)
+    form_data.update(cnv_effects)
+    form_data.update({assay: 1})
+    form.process(data=form_data)
+
+    # this is in config, but needs to be tested (2024-05-14) with a HD-sample of relevant name
+    disp_pos = []
+    if "verif_samples" in group_params:
+        if sample["name"] in group_params["verif_samples"]:
+            disp_pos = group_params["verif_samples"][sample["name"]]
 
     ## SNV FILTRATION STARTS HERE ! ##
     ##################################
@@ -120,28 +127,12 @@ def list_variants(id):
             "min_reads": sample_settings["min_reads"],
             "max_popfreq": sample_settings["max_popfreq"],
             "filter_conseq": filter_conseq,
+            "filter_genes": filter_genes,
+            "disp_pos": disp_pos,
         },
     )
-    query2 = varqueries_notbad.build_query(
-        {
-            "id": str(sample["_id"]),
-            "max_freq": sample_settings["max_freq"],
-            "min_freq": sample_settings["min_freq"],
-            "min_depth": sample_settings["min_depth"],
-            "min_reads": sample_settings["min_reads"],
-            "max_popfreq": sample_settings["max_popfreq"],
-            "filter_conseq": filter_conseq,
-        },
-        group_params,
-    )
-
-    app.logger.debug("this is the old varquery: %s", pformat(query))
-    # app.logger.debug("this is the new varquery: %s", pformat(query2))
 
     variants_iter = store.variant_handler.get_case_variants(query)
-
-    # Find all genes that are protein coding
-    # variants, protein_coding_genes = util.dna.get_protein_coding_genes(variants_iter)
 
     variants = list(variants_iter)
 
@@ -177,10 +168,24 @@ def list_variants(id):
     transloc_iter = False
     if group_params is not None and "DNA" in group_params:
         if group_params["DNA"].get("CNV"):
-            cnvwgs_iter = list(store.cnv_handler.get_sample_cnvs(sample_id=str(sample["_id"])))
+            cnv_settings = {
+                assay: assay,
+                "sizefilter_max": sample_settings["max_cnv_size"],
+                "sizefilter_min": sample_settings["min_cnv_size"],
+                "cnvratio_lower": -0.3,
+                "cnvratio_upper": 0.3,
+                "filter_genes": filter_genes,
+            }
+            cnvwgs_iter = list(
+                store.cnv_handler.get_sample_cnvs(
+                    sample_id=str(sample["_id"]), settings=cnv_settings
+                )
+            )
+            # print(cnvwgs_iter[0])
             if filter_cnveffects:
-                cnvwgs_iter = store.cnv_handler.cnvtype_variant(cnvwgs_iter, filter_cnveffects)
-            cnvwgs_iter = store.cnv_handler.cnv_organizegenes(cnvwgs_iter)
+                cnvwgs_iter = util.dna.cnvtype_variant(cnvwgs_iter, filter_cnveffects)
+
+            cnvwgs_iter = util.dna.cnv_organizegenes(cnvwgs_iter)
             cnvwgs_iter_n = list(
                 store.cnv_handler.get_sample_cnvs(sample_id=str(sample["_id"]), normal=True)
             )
@@ -192,6 +197,7 @@ def list_variants(id):
             transloc_iter = store.transloc_handler.get_sample_translocations(
                 sample_id=str(sample["_id"])
             )
+
     #################################################
 
     ## "AI"-text depending on what analysis has been done. Add translocs and cnvs if marked as interesting (HRD and MSI?)
@@ -220,17 +226,11 @@ def list_variants(id):
     else:
         ai_text = ai_text + conclusion
 
-    # this is in config, but needs to be tested (2024-05-14) with a HD-sample of relevant name
-    disp_pos = []
-    if "verif_samples" in group_params:
-        if sample["name"] in group_params["verif_samples"]:
-            disp_pos = group_params["verif_samples"][sample["name"]]
     # this is to allow old samples to view plots, cnv + cnvprofile clash. Old assays used cnv as the entry for the plot, newer assays use cnv for path to cnv-file that was loaded.
     if "cnv" in sample:
         if sample["cnv"].lower().endswith((".png", ".jpg", ".jpeg")):
             sample["cnvprofile"] = sample["cnv"]
 
-    print(low_cov)
     return render_template(
         "list_variants_vep.html",
         checked_genelists=genelist_filter,
@@ -853,6 +853,7 @@ def generate_dna_report(id, *args, **kwargs):
             "min_reads": sample_settings["min_reads"],
             "max_popfreq": sample_settings["max_popfreq"],
             "filter_conseq": filter_conseq,
+            "filter_genes": filter_genes,
         },
     )
     query["fp"] = {"$ne": True}
