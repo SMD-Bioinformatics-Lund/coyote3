@@ -181,8 +181,11 @@
             .enter()
             .append("rect")
             .attr("fill", d => {
-                    // Color based on coverage cutoff
-                    return d.cov < depthCutoff ? "red" : "steelblue"; // Red if cov < 500, green otherwise
+                if (isNaN(d.cov)) {
+                    return "black"; // Use gray for NaN values
+                }
+                // Color based on coverage cutoff
+                return d.cov < depthCutoff ? "pink" : "lightgreen"; // Red if cov < 500, green otherwise
                 })
             .attr("x", d => xScale(d.start))
             .attr("y", geneY - 10)
@@ -197,7 +200,7 @@
             .append("rect")
             .attr("fill", d => {
                     // Color based on coverage cutoff
-                    return d.cov < depthCutoff ? "red" : "steelblue"; // Red if cov < 500, green otherwise
+                    return d.cov < depthCutoff ? "pink" : "lightblue"; // Red if cov < 500, green otherwise
                 })
             .attr("x", d => xScale(d.start))
             .attr("y", geneY - 35)
@@ -206,6 +209,46 @@
             .append("title") // Tooltip
             .text(d => `${d.chr}:${d.start}-${d.end}, Cov: ${Number(d.cov).toFixed(2)}X`);
         
+
+        // Define legend data
+        const legendData = [
+            { color: "pink", label: "Any coverage < " + depthCutoff },
+            { color: "lightblue", label: "Probe coverage ≥ " + depthCutoff },
+            { color: "lightgreen", label: "CDS coverage ≥ " + depthCutoff },
+            { color: "black", label: "Not covered by design" }
+        ];
+
+        // Create legend container in the top-left corner
+        const legend = svg.append("g")
+            .attr("transform", "translate(10, 10)") // Position at top-left
+            .attr("class", "legend");
+
+        // Append legend items
+        legend.selectAll("legendItems")
+            .data(legendData)
+            .enter()
+            .append("g")
+            .attr("transform", (d, i) => `translate(0, ${i * 20})`) // Space items vertically
+            .each(function(d) {
+                // Append color box
+                d3.select(this)
+                    .append("rect")
+                    .attr("x", 0)
+                    .attr("y", 0)
+                    .attr("width", 15)
+                    .attr("height", 15)
+                    .attr("fill", d.color);
+
+                // Append text
+                d3.select(this)
+                    .append("text")
+                    .attr("x", 25) // Offset text to the right
+                    .attr("y", 12)
+                    .style("font-size", "12px")
+                    .style("dominant-baseline", "middle")
+                    .text(d.label);
+            });
+
         // Remove old data before adding a new gene to the container
         d3.select("#data-container").select("#gene-data-container").remove();
         
