@@ -59,10 +59,41 @@
         </form>
     
         <div class="gene-buttons">
-            {% for gene in coverage.genes | sort %} 
-                <button class="gene-button" onclick="plotGene('{{gene}}')">{{gene}}</button>
-                <br>
-            {% endfor %}
+              <!-- Low Coverage Regions -->
+            <div id="lowcovlist_div"  clear:left; class="bg-white shadow-md rounded-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Low Coverage Regions</h2>
+                <div class="overflow-auto">
+                <table class="min-w-full mt-4 table-auto text-xs">
+                    <thead>
+                    <tr class="bg-gradient-to-r from-yellow-300 to-green-300 text-black">
+                        <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal">Chromosomal region</th>
+                        <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal">Size (bp)</th>
+                        <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal" data-autoclick-once="true">Avg depth (x)</th>
+                        <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal">Exon</th>
+                        <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal">Gene</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for gene in cov_table %}
+                    {% for CDS in cov_table[gene] %}
+                    {% set exon = cov_table[gene][CDS] %}
+                    {% if '_' in CDS %}
+                    {% set CDS = "NCP" %}
+                    {% endif %}
+                    <tr class="hover:bg-gray-100">
+                        <td class="py-2 px-4 border-b border-gray-300">{{exon.chr}}:{{exon.start}}-{{exon.end}}</td>
+                        <td class="py-2 px-4 border-b border-gray-300">{{exon.end | int - exon.start | int}}</td>
+                        <td class="py-2 px-4 border-b border-gray-300">{{exon.cov |float | round() }}</td>
+                        <td class="py-2 px-4 border-b border-gray-300">{{CDS}}</td>
+                        <td class="py-2 px-4 border-b border-gray-300"><button  onclick="plotGene('{{gene}}')">{{gene}}</button></td>
+                    </tr>
+                    {% endfor %}
+                    {% endfor %}
+
+                    </tbody>
+                </table>
+                </div>
+            </div>
         </div>
     </div>
     <div class="plot-container" id="plot-container"></div>
