@@ -16,7 +16,7 @@ def build_query(which, settings):
             ],  # gene_pos_filter
             "$or": [
                 {"INFO.MYELOID_GERMLINE": 1},
-                {"FILTER": {"$in": ["GERMLINE"]}, "INFO.CSQ": {"$elemMatch": {"SYMBOL": "CEBPA"}}},
+                {"FILTER": {"$in": ["GERMLINE"]}, "genes": {"$in": ["CEBPA"]}},
                 {"$and": [{"POS": {"$gt": 115256520}}, {"POS": {"$lt": 115256538}}, {"CHROM": 1}]},
                 {
                     "$and": [
@@ -30,6 +30,39 @@ def build_query(which, settings):
                                     "VD": {"$gte": float(settings["min_reads"])},
                                 }
                             }
+                        },
+                        # Filters if any of the population frequencies are above the max_popfreq
+                        {
+                            "$nor": [
+                                {
+                                    "gnomad_frequency": {
+                                        "$exists": "true",
+                                        "$type": "number",
+                                        "$gt": float(settings["max_popfreq"]),
+                                    }
+                                },
+                                {
+                                    "gnomad_max": {
+                                        "$exists": "true",
+                                        "$type": "number",
+                                        "$gt": float(settings["max_popfreq"]),
+                                    }
+                                },
+                                {
+                                    "exac_frequency": {
+                                        "$exists": "true",
+                                        "$type": "number",
+                                        "$gt": float(settings["max_popfreq"]),
+                                    }
+                                },
+                                {
+                                    "thousandG_frequency": {
+                                        "$exists": "true",
+                                        "$type": "number",
+                                        "$gt": float(settings["max_popfreq"]),
+                                    }
+                                },
+                            ],
                         },
                         # Either control sample fulfills criteria, or there is no control sample (unpaired tumor sample)
                         {
@@ -50,6 +83,13 @@ def build_query(which, settings):
                         {
                             "$or": [
                                 {
+                                    "INFO.selected_CSQ": {
+                                        "$elemMatch": {
+                                            "Consequence": {"$in": settings["filter_conseq"]}
+                                        }
+                                    }
+                                },
+                                {
                                     "INFO.CSQ": {
                                         "$elemMatch": {
                                             "Consequence": {"$in": settings["filter_conseq"]}
@@ -58,7 +98,7 @@ def build_query(which, settings):
                                 },
                                 {
                                     "$and": [
-                                        {"INFO.CSQ": {"$elemMatch": {"SYMBOL": "FLT3"}}},
+                                        {"genes": {"$in": ["FLT3"]}},
                                         {
                                             "$or": [
                                                 {"INFO.SVTYPE": {"$exists": "true"}},
@@ -115,6 +155,39 @@ def build_query(which, settings):
                                 }
                             }
                         },
+                        # Filters if any of the population frequencies are above the max_popfreq
+                        {
+                            "$nor": [
+                                {
+                                    "gnomad_frequency": {
+                                        "$exists": "true",
+                                        "$type": "number",
+                                        "$gt": float(settings["max_popfreq"]),
+                                    }
+                                },
+                                {
+                                    "gnomad_max": {
+                                        "$exists": "true",
+                                        "$type": "number",
+                                        "$gt": float(settings["max_popfreq"]),
+                                    }
+                                },
+                                {
+                                    "exac_frequency": {
+                                        "$exists": "true",
+                                        "$type": "number",
+                                        "$gt": float(settings["max_popfreq"]),
+                                    }
+                                },
+                                {
+                                    "thousandG_frequency": {
+                                        "$exists": "true",
+                                        "$type": "number",
+                                        "$gt": float(settings["max_popfreq"]),
+                                    }
+                                },
+                            ],
+                        },
                         # Either control sample fulfills criteria, or there is no control sample (unpaired tumor sample)
                         {
                             "$or": [
@@ -134,6 +207,13 @@ def build_query(which, settings):
                         {
                             "$or": [
                                 {
+                                    "INFO.selected_CSQ": {
+                                        "$elemMatch": {
+                                            "Consequence": {"$in": settings["filter_conseq"]}
+                                        }
+                                    }
+                                },
+                                {
                                     "INFO.CSQ": {
                                         "$elemMatch": {
                                             "Consequence": {"$in": settings["filter_conseq"]}
@@ -144,8 +224,7 @@ def build_query(which, settings):
                                     "$and": [
                                         {
                                             "$or": [
-                                                {"INFO.CSQ": {"$elemMatch": {"SYMBOL": "TERT"}}},
-                                                {"INFO.CSQ": {"$elemMatch": {"SYMBOL": "NFKBIE"}}},
+                                                {"genes": {"$in": ["TERT", "NFKBIE"]}},
                                             ]
                                         },
                                         {
