@@ -140,9 +140,6 @@ def list_variants(id):
 
     variants = list(variants_iter)
     app.logger.debug(f"variants: {len(variants)}")
-    for v in variants:
-        if 30725036 == v.get("POS", []):
-            app.logger.debug(f"variant found: {v.get('POS', [])}")
 
     # Add blacklist data
     variants = store.blacklist_handler.add_blacklist_data(variants, assay)
