@@ -132,9 +132,17 @@ def list_variants(id):
         },
     )
 
+    app.logger.debug(f"Sample Settings: {sample_settings}")
+    app.logger.debug(f"filter genes: {len(filter_genes)}")
+    app.logger.debug(f"Pos Filter: {len(disp_pos)}")
+
     variants_iter = store.variant_handler.get_case_variants(query)
 
     variants = list(variants_iter)
+    app.logger.debug(f"variants: {len(variants)}")
+    for v in variants:
+        if 30725036 == v.get("POS", []):
+            app.logger.debug(f"variant found: {v.get('POS', [])}")
 
     # Add blacklist data
     variants = store.blacklist_handler.add_blacklist_data(variants, assay)
