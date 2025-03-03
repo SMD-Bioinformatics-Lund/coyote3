@@ -45,6 +45,11 @@ def home_screen(status="live"):
         done_samples = store.sample_handler.get_samples(
             user_groups=user_groups, search_str=search_str, report=True, limit=limit_done_samples
         )
+    elif status == "live":
+        time_limit = util.common.get_date_days_ago(300)
+        done_samples = store.sample_handler.get_samples(
+            user_groups=user_groups, search_str=search_str, report=True, time_limit=time_limit
+        )
     else:
         done_samples = []
 
@@ -66,11 +71,6 @@ def home_screen(status="live"):
     for samp in live_samples:
         samp["num_samples"] = store.variant_handler.get_num_samples(str(samp["_id"]))
 
-    print("search_mode", search_mode)
-    print("search_str", search_str)
-    print("status", status)
-    print("live_samples", len(live_samples))
-    print("done_samples", len(done_samples))
     return render_template(
         "main_screen.html",
         live_samples=live_samples,

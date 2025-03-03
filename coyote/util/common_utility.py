@@ -8,6 +8,7 @@ from bson import ObjectId
 from datetime import datetime
 from io import BytesIO
 import base64
+from datetime import timedelta
 
 
 class CommonUtility:
@@ -488,3 +489,17 @@ class CommonUtility:
             image_path = os.path.join(plot_dir, f"{fn}")
             return CommonUtility.get_base64_image(image_path)
         return False
+
+    @staticmethod
+    def get_date_today() -> str:
+        """
+        Get today's date
+        """
+        return datetime.now().strftime("%Y-%m-%d")
+    
+    @staticmethod
+    def get_date_days_ago(days: int) -> str:
+        """
+        Get date a specified number of days ago
+        """
+        return (datetime.now() - timedelta(days=days))
