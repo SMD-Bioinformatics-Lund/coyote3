@@ -22,7 +22,8 @@
     {% block javascript %}{% endblock %}
 </head>
 
-<body class="bg-transparent font-sans leading-normal tracking-normal text-sm">
+
+<body class="bg-transparent font-sans leading-normal tracking-normal text-sm bg-yellow-100">
   <div class="mx-auto">
     <!-- Flash messages -->
     <div id="alert-container" class="fixed top-5 right-5 z-50 space-y-2">
@@ -52,10 +53,10 @@
       </div>      
       <div class="relative flex items-center space-x-4">
         <div class="relative flex items-center space-x-4">
-          {% if current_user.is_authenticated %}
-            <div class="relative mr-10 pr-10">
+          <div class="relative mr-10 pr-10">
+            {% if current_user.is_authenticated %}
               <button id="userMenuButton" class="flex items-center space-x-2 focus:outline-none">
-                <img class="h-8 w-8 rounded-full transition-transform duration-300 transform hover:scale-110 hover:rotate-6 hover:shadow-lg" src="{{ url_for('static', filename='icons/user-512.png') }}">
+                <img class="h-8 w-8 rounded-full transition-transform duration-300 transform hover:scale-110 hover:rotate-6 hover:shadow-lg bg-transparent" src="{{ url_for('static', filename='icons/user-512.png') }}">
                 <span class="text-gray-800 font-bold">{{ current_user.get_fullname() }}</span>
               </button>
               <div id="userDropdown" class="hidden absolute right-30 mt-2 w-40 bg-white rounded-lg shadow-lg z-50">
@@ -69,17 +70,17 @@
                 {% endif %}
                 <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Logout</a>
               </div>
-            </div>
-          {% else %}
-            <a href="{{ url_for('login_bp.login') }}" class="text-gray-800 hover:text-gray-600">
-              <img class="h-6 w-6 transition-transform duration-300 transform hover:scale-125 hover:rotate-12 hover:shadow-lg hover:shadow-indigo-500/50" src="{{ url_for('static', filename='icons/login-96.png') }}">
-            </a>
-          {% endif %}
+            {% else %}
+              <a href="{{ url_for('login_bp.login') }}" class="text-gray-800 hover:text-gray-600">
+                <img class="h-6 w-6 transition-transform duration-300 transform hover:scale-125 hover:rotate-12 hover:shadow-lg hover:shadow-indigo-500/50" src="{{ url_for('static', filename='icons/login-96.png') }}">
+              </a>
+            {% endif %}
+          </div>
         </div>    
     </div>
   </div>
   {% if current_user.is_authenticated %}
-    <div class="bg-gray-200 shadow relative">
+    <div class="bg-yellow-200 shadow-r-m rounded-lg relative">
       <div class="mx-auto flex items-center justify-between p-2 relative">
         <div class="flex items-center space-x-4 ml-20 pl-5">
             {% set navbar = {
@@ -145,7 +146,6 @@
       </div>
   {% endif %}
 </div>
-
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     var userMenuButton = document.getElementById('userMenuButton');

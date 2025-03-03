@@ -1,83 +1,6 @@
 {% set curr_page = request.path.split("/")[-1] %}
 {% extends "layout.html" %}
 {% block title %}Main Screen{% endblock %}
-{% block search %}
-<form action="" method="POST" class="flex items-center space-x-4 relative mr-12">
-  {{ form.hidden_tag() }}
-
-  <!-- Search Bar with Dynamic Extension -->
-  <div class="relative group flex-grow">
-    <input 
-      type="text" 
-      name="sample_search" 
-      id="search-input" 
-      value="{{ search_str or '' }}" 
-      class="search-bar transition-all duration-300 ease-in-out border border-gray-400 rounded-full py-1 pl-10 pr-2 focus:outline-none focus:border-blue-500 group-hover:w-100 w-6 h-7" 
-      placeholder="Search samples">
-    
-    <!-- Search Icon -->
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      class="absolute left-2 top-1.5 h-4 w-4 text-gray-700 cursor-pointer transition-transform duration-300 transform group-hover:scale-125 hover:text-blue-500" 
-      viewBox="0 0 20 20" 
-      fill="currentColor" 
-      onclick="document.getElementById('search-input').focus()">
-      <path 
-        fill-rule="evenodd" 
-        d="M12.9 14.32a8 8 0 111.414-1.414l5.386 5.386a1 1 0 01-1.414 1.414l-5.386-5.386zM8 14A6 6 0 108 2a6 6 0 000 12z" 
-        clip-rule="evenodd" />
-    </svg>
-  </div>
-
-  <!-- Compact Three-Way Toggle -->
-  <div class="relative w-32">
-    <!-- Outer Container -->
-    <div class="relative flex bg-transparent rounded-full border-2 border-gray-500 h-7 overflow-hidden mr-2">
-      <!-- Slider -->
-      <div 
-        id="slider-thumb" 
-        class="absolute top-0 h-full w-1/3 bg-blue-500 transition-all duration-300 ease-in-out rounded-full"
-        style="left: calc({% if search_mode == 'done' %}0%{% elif search_mode == 'both' %}33.33%{% else %}66.66%{% endif %});">
-      </div>
-
-      <!-- Options -->
-      <label class="flex-1 bg-transparent flex justify-center items-center relative cursor-pointer rounded-sm ">
-        <input 
-          type="radio" 
-          name="search_mode_slider" 
-          value="1" 
-          class="absolute inset-0 opacity-0 cursor-pointer" 
-          onclick="moveSlider(0)" 
-          {% if search_mode == 'done' %}checked{% endif %}>
-        <span class="text-xs font-normal text-gray-800">Done</span>
-      </label>
-      <label class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm  ">
-        <input 
-          type="radio" 
-          name="search_mode_slider" 
-          value="2" 
-          class="absolute inset-0 opacity-0 cursor-pointer" 
-          onclick="moveSlider(33.33)" 
-          {% if search_mode == 'both' %}checked{% endif %}>
-        <span class="text-xs font-normal text-gray-800">Both</span>
-      </label>
-      <label class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm ">
-        <input 
-          type="radio" 
-          name="search_mode_slider" 
-          value="3" 
-          class="absolute inset-0 opacity-0 cursor-pointer" 
-          onclick="moveSlider(66.66)" 
-          {% if search_mode == 'live' %}checked{% endif %}>
-        <span class="text-xs font-normal text-gray-800">Live</span>
-      </label>
-    </div>
-  </div>
-</form>
-
-
-{% endblock %}
-
 
 {% block body %}
 <div class="side-buttons">
@@ -89,27 +12,100 @@
   </div>
 </div>
 
+<div id="sample-search" class="mt-5">
+  <form action="" method="POST" class="flex items-center space-x-4 relative ml-20 max-w-lg w-full">
+    {{ form.hidden_tag() }}
+
+    <div class="relative group flex-grow min-w-[250px]">
+      <input 
+        type="text" 
+        name="sample_search" 
+        id="search-input" 
+        value="{{ search_str or '' }}" 
+        class="border border-gray-400 rounded-full py-1 pl-10 pr-4 focus:outline-none focus:border-blue-500 w-full" 
+        placeholder="Search samples">
+      
+      <!-- Search Icon -->
+      <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        class="absolute left-3 top-2 pb-1 h-5 w-5 text-gray-700 cursor-pointer hover:text-blue-500" 
+        viewBox="0 0 20 20" 
+        fill="currentColor" 
+        onclick="document.getElementById('search-input').focus()">
+        <path 
+          fill-rule="evenodd" 
+          d="M12.9 14.32a8 8 0 111.414-1.414l5.386 5.386a1 1 0 01-1.414 1.414l-5.386-5.386zM8 14A6 6 0 108 2a6 6 0 000 12z" 
+          clip-rule="evenodd" />
+      </svg>
+    </div>
+
+    <!-- Compact Three-Way Toggle -->
+    <div class="relative w-32">
+      <div class="relative flex bg-white rounded-full border border-gray-400 h-8 overflow-hidden">
+        <!-- Slider -->
+        <div 
+          id="slider-thumb" 
+          class="absolute top-0 h-full w-1/3 bg-blue-400 transition-all duration-200 ease-in-out rounded-full"
+          style="left: calc({% if search_mode == 'done' %}0%{% elif search_mode == 'both' %}33.33%{% else %}66.66%{% endif %});">
+        </div>
+
+        <!-- Options -->
+        <label class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm">
+          <input 
+            type="radio" 
+            name="search_mode_slider" 
+            value="1" 
+            class="absolute inset-0 opacity-0 cursor-pointer" 
+            onclick="moveSlider(0)" 
+            {% if search_mode == 'done' %}checked{% endif %}>
+          <span class="text-xs font-bold text-gray-800">Done</span>
+        </label>
+        <label class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm">
+          <input 
+            type="radio" 
+            name="search_mode_slider" 
+            value="2" 
+            class="absolute inset-0 opacity-0 cursor-pointer" 
+            onclick="moveSlider(33.33)" 
+            {% if search_mode == 'both' %}checked{% endif %}>
+          <span class="text-xs font-bold text-gray-800">All</span>
+        </label>
+        <label class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm">
+          <input 
+            type="radio" 
+            name="search_mode_slider" 
+            value="3" 
+            class="absolute inset-0 opacity-0 cursor-pointer" 
+            onclick="moveSlider(66.66)" 
+            {% if search_mode == 'live' %}checked{% endif %}>
+          <span class="text-xs font-bold text-gray-800">Live</span>
+        </label>
+      </div>
+    </div>
+  </form>
+</div>
+
 <div class="mx-auto ml-16 p-5">
-  <div class="flex justify-start">
-    <div class="w-4/5 ml-15%">
-      {% if live_samples %}
-        <div class="overflow-x-auto bg-white rounded-t-lg">
+  <div class="justify-start">
+    {% if live_samples %}
+      <div class="w-4/5 ml-15% bg-yellow-50 shadow-3xl rounded-2xl p-4 relative overflow-hidden">
+        <div class="overflow-x-auto rounded-2xl shadow-3xl relative">
           <span class="text-lg font-semibold">Live Samples</span>
-          <table class="min-w-full border bg-transparent shadow-lg rounded-lg z-50 text-xs my-2">
-            <thead>
-              <tr class="border-b text-left border-gray-300 rounded-b-lg shadow-lg uppercase tracking-wider bg-gray-200">
-                <th class="p-2 font-normal"></th>
+          <table class="min-w-full bg-transparent shadow-lg rounded-2xl text-xs my-2 overflow-hidden">
+            <thead class="rounded-t-2xl overflow-hidden border-gray-300">
+              <tr class="border-b text-left border-gray-600 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
+                <th class="p-2 font-normal rounded-tl-2xl"></th>
                 <th class="p-2 font-normal">Sample ID</th>
                 <th class="p-2 font-normal">Group</th>
                 <th class="p-2 font-normal">Diagnosis</th>
                 <th class="p-2 font-normal">BAM</th>
                 <th class="p-2 font-normal">QC</th>
-                <th class="p-2 font-normal">When added</th>
+                <th class="p-2 font-normal rounded-tr-2xl">When added</th>
               </tr>
             </thead>
-            <tbody id="pagination-table-body-live" class="text-gray-700">
+            <tbody id="pagination-table-body-live" class="text-gray-700 rounded-b-2xl overflow-hidden border-gray-300">
               {% for sample in live_samples %}
-                <tr class="border-b border-gray-300 hover:bg-red-50 text-left">
+              <tr class="border-t border-gray-300 hover:bg-yellow-50 text-left last:rounded-b-2xl">
                   <td class="p-2 font-medium text-center">
                     {% if "num_samples" in sample %}
                       {% for n in range(sample.num_samples) %}
@@ -168,24 +164,25 @@
             </tbody>
           </table>
           <!-- Pagination Controls -->
-          <div class="flex justify-between mt-4">
+          <div class="flex justify-between mt-1">
             <button id="prev-page-pagination-table-body-live" class="bg-blue-500 text-white py-1 px-2 rounded disabled:opacity-50" onclick="prevPage('pagination-table-body-live')">Previous</button>
-            <div id="page-info-pagination-table-body-live" class="text-sm"></div>
+            <div id="page-info-pagination-table-body-live" class="text-sm px-1"></div>
             <button id="next-page-pagination-table-body-live" class="bg-blue-500 text-white py-1 px-2 rounded disabled:opacity-50" onclick="nextPage('pagination-table-body-live')">Next</button>
           </div>
         </div>
-      {% endif %}
-
-      {% if done_samples %}
-        <div class="overflow-x-auto bg-white rounded-t-lg mt-10 pt-5">
+      </div>
+    {% endif %}
+    {% if done_samples %}
+      <div class="w-4/5 ml-15% bg-yellow-50 shadow-3xl rounded-2xl p-3 mt-10 relative overflow-hidden">
+        <div class="overflow-x-auto rounded-2xl shadow-3xl relative">
           <span class="text-lg font-semibold">Reported samples 
             {% if show_all %}
               (<a href="?all=1" class="text-blue-500 hover:underline">show all</a>)
             {% endif %}
           </span>
-          <table class="min-w-full border bg-transparent shadow-lg rounded-lg z-50 text-xs my-2">
-            <thead>
-              <tr class="border-b text-left border-gray-300 rounded-b-lg shadow-lg uppercase tracking-wider bg-gray-200">
+          <table class="min-w-full bg-transparent shadow-lg rounded-2xl text-xs my-2 overflow-hidden">
+            <thead class="rounded-t-2xl overflow-hidden border-gray-300">
+              <tr class="border-b text-left border-gray-600 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
                 <th class="p-2 font-normal"></th>
                 <th class="p-2 font-normal">Sample ID</th>
                 <th class="p-2 font-normal">Group</th>
@@ -197,9 +194,9 @@
                 <th class="p-2 font-normal">Reports</th>
               </tr>
             </thead>
-            <tbody id="pagination-table-body-done" class="text-gray-700">
+            <tbody id="pagination-table-body-done"class="text-gray-700 rounded-b-2xl overflow-hidden border-gray-300">
               {% for sample in done_samples|sort(attribute="last_report_time_created", reverse=True) %}
-                <tr class="border-b border-gray-300 hover:bg-red-50 text-left">
+                <tr class="border-t border-gray-300 hover:bg-yellow-50 text-left last:rounded-b-2xl">
                   <td class="p-2 font-medium text-center">
                     {% if "num_samples" in sample %}
                       {% for n in range(sample.num_samples) %}
@@ -261,13 +258,15 @@
           <!-- Pagination Controls -->
           <div class="flex justify-between mt-4">
             <button id="prev-page-pagination-table-body-done" class="bg-blue-500 text-white py-1 px-2 rounded disabled:opacity-50" onclick="prevPage('pagination-table-body-done')">Previous</button>
-            <div id="page-info-pagination-table-body-done" class="text-sm"></div>
+            <div id="page-info-pagination-table-body-done" class="text-sm px-1"></div>
             <button id="next-page-pagination-table-body-done" class="bg-blue-500 text-white py-1 px-2 rounded disabled:opacity-50" onclick="nextPage('pagination-table-body-done')">Next</button>
           </div>
         </div>
-      {% endif %}
+      </div>
+    {% endif %}
 
-      {% if not live_samples and not done_samples %}
+    {% if not live_samples and not done_samples %}
+      <div class="w-4/5 ml-15% bg-yellow-50 shadow-3xl rounded-2xl p-4 relative overflow-hidden">
         <div class="mt-8 flex flex-col items-center justify-center bg-gray-100 border border-gray-300 rounded-lg shadow-md py-6 px-4">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mb-4" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M9 2a7 7 0 100 14 7 7 0 000-14zM2 9a8 8 0 1116 0 8 8 0 01-16 0zM7 9.75a.75.75 0 01.75-.75h4.5a.75.75 0 010 1.5h-4.5A.75.75 0 017 9.75z" clip-rule="evenodd" />
@@ -275,8 +274,8 @@
           <p class="text-lg font-medium text-gray-600">No samples found</p>
           <p class="text-sm text-gray-500 mt-1">Try adjusting the filters or search to find your samples.</p>
         </div>
-      {% endif %}
-    </div>
+      </div>
+    {% endif %}
   </div>
 </div>
 
