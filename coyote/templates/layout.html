@@ -1,39 +1,52 @@
-{% if '/samples/' in request.path %}
-  {% set curr_page = 'samples' %}
-{% elif 'done' in request.path or 'live' in request.path %}
+{% if 'done' in request.path or 'live' in request.path %}
   {% set curr_page = request.path.split("/")[-2] %}
+{% elif '/panels/' in request.path or 'tumwgs' in request.path or 'rna' in request.path %}
+  {% set curr_page = request.path.split("/")[-1] %}
+{% elif 'samples' in request.path %}
+  {% set curr_page = 'samples' %}
 {% else %}
   {% set curr_page = request.path.split("/")[-1] %}
 {% endif %}
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
 
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}COYOT3{% endblock %}</title>
-    <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
     <link href="{{ url_for('static', filename='css/tailwind.2.2.19.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/custom.tailwind.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='icons/favicon.ico') }}" rel="shortcut icon">
+
+    <!-- JavaScript -->
     <script src="{{ url_for('static', filename='js/jquery-3.1.1.slim.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/select2.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sorttable.js') }}"></script>
+
+    <style>
+      .vertical-text {
+        writing-mode: vertical-lr; /* Rotates text while keeping button upright */
+        text-orientation: mixed;
+      }
+    </style>
     {% block style %}{% endblock %}
     {% block javascript %}{% endblock %}
-</head>
+  </head>
 
+  <body class="bg-gradient-to-t from-blue-100 to-indigo-100 text-sm overflow-hidden w-full">
 
-<body class="bg-transparent font-sans leading-normal tracking-normal text-sm bg-yellow-100">
-  <div class="mx-auto">
-    <!-- Flash messages -->
-    <div id="alert-container" class="fixed top-5 right-5 z-50 space-y-2">
+    <!-- FLASH MESSAGES -->
+    <div id="alert-container" class="fixed top-20 right-5 z-60 space-y-2">
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           {% for category, message in messages %}
-            <div class="flash-message bg-{{ category }}-100 border border-{{ category }}-400 text-{{ category }}-700 px-4 py-3 rounded relative" role="alert">
+            <div class="flash-message bg-{{ category }}-100 border border-{{ category }}-400 text-{{ category }}-700 px-4 py-3 rounded relative z-60">
               <span class="block sm:inline">{{ message }}</span>
-              <button type="button" class="absolute top-0 right-0 px-4 py-3" onclick="this.parentElement.style.display='none';">
-                <svg class="fill-current h-6 w-6 text-{{ category }}-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+              <button type="button" class="absolute top-0 right-0 px-5 py-3" onclick="this.parentElement.style.display='none';">
+                <svg class="fill-current h-6 w-8 text-{{ category }}-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                   <path d="M14.348 5.652a.5.5 0 00-.707 0L10 9.293 6.36 5.652a.5.5 0 10-.707.707L9.293 10l-3.64 3.64a.5.5 0 10.707.707L10 10.707l3.64 3.64a.5.5 0 10.707-.707L10.707 10l3.64-3.64a.5.5 0 000-.707z"/>
                 </svg>
               </button>
@@ -42,147 +55,142 @@
         {% endif %}
       {% endwith %}
     </div>
-  </div>
-  <div class="bg-transparent ">
-    <div class="mx-auto flex items-center justify-between">
-      <div class="flex items-center space-x-2 ml-10 mt-2">
-        <a href="{{ url_for('dashboard_bp.dashboard') }}" class="flex items-center space-x-2 text-4xl font-bold">
-          <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Coyote Logo" class="h-18 w-28">
-          <span>COYOT3<span class="px-1 pt-2 text-xs font-normal align-baseline">v{{config['APP_VERSION']}}</span></span>
+
+    <!-- CONTAINER: Full Page Structure -->
+    <div class="flex flex-col h-screen w-full">
+      <!-- HEADER (LOGO + USER INFO) -->
+      <header class="text-black py-1 px-8 flex justify-between items-center w-full z-50">
+        <a href="{{ url_for('dashboard_bp.dashboard') }}" class="flex items-center space-x-2 tracking-wide text-3xl font-bold">
+          <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Coyote Logo" class="h-12 w-20 transition-transform duration-300 transform hover:scale-110 hover:rotate-6">
+          <span >COYOT3 <span class="px-1 pt-2 text-xs tracking-tight font-normal align-baseline">v{{config['APP_VERSION']}}</span></span>
         </a>
-      </div>      
-      <div class="relative flex items-center space-x-4">
-        <div class="relative flex items-center space-x-4">
-          <div class="relative mr-10 pr-10">
-            {% if current_user.is_authenticated %}
-              <button id="userMenuButton" class="flex items-center space-x-2 focus:outline-none">
-                <img class="h-8 w-8 rounded-full transition-transform duration-300 transform hover:scale-110 hover:rotate-6 hover:shadow-lg bg-transparent" src="{{ url_for('static', filename='icons/user-512.png') }}">
-                <span class="text-gray-800 font-bold">{{ current_user.get_fullname() }}</span>
-              </button>
-              <div id="userDropdown" class="hidden absolute right-30 mt-2 w-40 bg-white rounded-lg shadow-lg z-50">
-                <a href="{{ url_for('dashboard_bp.dashboard') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Dashboard</a>
-                <a href="{{ url_for('genepanels_bp.display_genepanels') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Gene Panels</a>
-                <a href="{{ url_for('profile_bp.profile') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Profile</a>
-                <a href="{{ url_for('profile_bp.change_password', username=current_user.get_id()) }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Change Password</a>
-                {% if current_user.is_admin() %}
-                  <a href="{{ url_for('profile_bp.manage_users') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Manage Users</a>
-                  <a href="{{ url_for('profile_bp.create_user') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Create User</a>
-                {% endif %}
-                <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-200">Logout</a>
-              </div>
-            {% else %}
-              <a href="{{ url_for('login_bp.login') }}" class="text-gray-800 hover:text-gray-600">
-                <img class="h-6 w-6 transition-transform duration-300 transform hover:scale-125 hover:rotate-12 hover:shadow-lg hover:shadow-indigo-500/50" src="{{ url_for('static', filename='icons/login-96.png') }}">
-              </a>
-            {% endif %}
+
+        {% if current_user.is_authenticated %}
+          <div class="relative">
+            <button id="userMenuButton" class="flex items-center space-x-2 focus:outline-none mx-8">
+              <img class="h-8 w-8 rounded-full transition-transform duration-300 transform hover:scale-110 hover:rotate-6 bg-transparent" src="{{ url_for('static', filename='icons/user-512.png') }}">
+              <span class="text-black font-bold">{{ current_user.get_fullname() }}</span>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div id="userDropdown" class="hidden absolute right-0 mt-2 w-40 bg-indigo-50 rounded-lg shadow-lg">
+              <a href="{{ url_for('dashboard_bp.dashboard') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Dashboard</a>
+              <a href="{{ url_for('genepanels_bp.display_genepanels') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Gene Panels</a>
+              <a href="{{ url_for('profile_bp.profile') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Profile</a>
+              <a href="{{ url_for('profile_bp.change_password', username=current_user.get_id()) }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Change Password</a>
+              {% if current_user.is_admin() %}
+                <a href="{{ url_for('profile_bp.manage_users') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Manage Users</a>
+                <a href="{{ url_for('profile_bp.create_user') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Create User</a>
+              {% endif %}
+              <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Logout</a>
+            </div>
           </div>
-        </div>    
+        {% endif %}
+      </header>
+
+      <!-- NAVBAR (Below Header, No Absolute Positioning) -->
+      <nav class="bg-indigo-300 shadow-lg text-black px-2 py-1.5 flex space-x-4 pl-14 w-full">
+        {% set navbar = {
+          'home': 'HOME',
+          'samples': 'SAMPLES',
+          'panels': 'PANELS',
+          'tumwgs': 'TUMWGS',
+          'rna': 'RNA'
+        } %}
+      
+        {% if "/panels" in request.path %}
+          {% set navbar = {
+            'home': 'HOME',
+            'samples': 'SAMPLES',
+            'myeloid_GMSv1': 'MYELOID',
+            'solid_GMSv3': 'SOLID',
+            'PARP_inhib': 'PARP'
+          } %}
+        {% elif "/rna" in request.path %}
+          {% set navbar = {
+            'home': 'HOME',
+            'samples': 'SAMPLES',
+            'fusion': 'MYELOID',
+            'solidRNA_GMSv5': 'SOLID'
+          } %}
+        {% elif "/tumwgs" in request.path %}
+          {% set navbar = {
+            'home': 'HOME',
+            'samples': 'SAMPLES',
+            'tumwgs-solid': 'PEDIATRIC SOLID',
+            'tumwgs-hema': 'HEMATOLOGY'
+          } %}
+        {% endif %}
+        
+        {% for name, menu_label in navbar.items() %}
+          {% if name == 'home' %}
+            {% set url = url_for('dashboard_bp.dashboard') %}
+          {% elif name == 'samples' %}
+            {% set url = url_for('home_bp.home_screen') %}
+          {% elif name == 'panels' %}
+            {% set url = url_for('home_bp.panels_screen', assay='myeloid_GMSv1') %}
+          {% elif '/panels' in request.path %}
+            {% set url = url_for('home_bp.panels_screen', assay=name) %}
+          {% elif name == 'rna' %}
+          {% set url = url_for('home_bp.rna_screen', assay='fusion') %}
+          {% elif '/rna' in request.path %}
+            {% set url = url_for('home_bp.rna_screen', assay=name) %}
+          {% elif name == 'tumwgs' %}
+            {% set url = url_for('home_bp.tumwgs_screen', assay='tumwgs-solid') %}
+          {% elif '/tumwgs' in request.path %}
+            {% set url = url_for('home_bp.tumwgs_screen', assay=name) %}
+          {% else %}
+            {% set url = url_for('home_bp.main_screen', assay=name) %}
+          {% endif %}
+          {% if name == curr_page %}
+            <a href="{{ url }}" class="active text-gray-900 font-bold">{{ menu_label }}</a>
+          {% else %}
+            <a href="{{ url }}" class="text-gray-700 hover:text-gray-500">{{ menu_label }}</a>
+          {% endif %}
+        {% endfor %}
+      </nav>
+
+      <!-- MAIN CONTENT (SCROLLABLE GRID LAYOUT) -->
+
+      {% block body %}{% endblock %}
+
+
     </div>
-  </div>
-  {% if current_user.is_authenticated %}
-    <div class="bg-yellow-200 shadow-r-m rounded-lg relative">
-      <div class="mx-auto flex items-center justify-between p-2 relative">
-        <div class="flex items-center space-x-4 ml-20 pl-5">
-            {% set navbar = {
-                'home': 'HOME',
-                'samples': 'SAMPLES',
-                'panels': 'PANELS',
-                'tumwgs': 'TUMWGS',
-                'rna': 'RNA'
-            } %}
-            
-            {% if "/panels" in request.path %}
-                {% set navbar = {
-                    'home': 'HOME',
-                    'samples': 'SAMPLES',
-                    'myeloid_GMSv1': 'MYELOID',
-                    'solid_GMSv3': 'SOLID',
-                    'PARP_inhib': 'PARP'
-                } %}
-            {% elif "/rna" in request.path %}
-                {% set navbar = {
-                    'home': 'HOME',
-                    'samples': 'SAMPLES',
-                    'fusion': 'MYELOID',
-                    'solidRNA_GMSv5': 'SOLID'
-                } %}
-            {% elif "/tumwgs" in request.path %}
-              {% set navbar = {
-                    'home': 'HOME',
-                    'samples': 'SAMPLES',
-                    'tumwgs-solid': 'PEDIATRIC SOLID',
-                    'tumwgs-hema': 'HEMATOLOGY'
-                } %}
-            {% endif %}
-            {% for name, menu_label in navbar.items() %}
-                {% if name == 'home' %}
-                    {% set url = url_for('dashboard_bp.dashboard') %}
-                {% elif name == 'samples' %}
-                    {% set url = url_for('home_bp.home_screen') %}
-                {% elif name == 'panels' %}
-                    {% set url = url_for('home_bp.panels_screen', assay='myeloid_GMSv1') %}
-                {% elif '/panels' in request.path %}
-                    {% set url = url_for('home_bp.panels_screen', assay=name) %}
-                {% elif name == 'rna' %}
-                  {% set url = url_for('home_bp.rna_screen', assay='fusion') %}
-                {% elif '/rna' in request.path %}
-                    {% set url = url_for('home_bp.rna_screen', assay=name) %}
-                {% elif name == 'tumwgs' %}
-                  {% set url = url_for('home_bp.tumwgs_screen', assay='tumwgs-solid') %}
-                {% elif '/tumwgs' in request.path %}
-                  {% set url = url_for('home_bp.tumwgs_screen', assay=name) %}
-                {% else %}
-                    {% set url = url_for('home_bp.main_screen', assay=name) %}
-                {% endif %}
-                {% if name == curr_page %}
-                    <a href="{{ url }}" class="active text-gray-900 font-bold">{{ menu_label }}</a>
-                {% else %}
-                    <a href="{{ url }}" class="text-gray-700 hover:text-gray-500">{{ menu_label }}</a>
-                {% endif %}
-            {% endfor %}
-            <!--<a href="{{ url_for('common_bp.error_screen') }}">Error</a>-->
-        </div>
-        {% block search %}{% endblock %}
-      </div>
-  {% endif %}
-</div>
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    var userMenuButton = document.getElementById('userMenuButton');
-    var userDropdown = document.getElementById('userDropdown');
 
-    userMenuButton.addEventListener('click', function(event) {
-      event.stopPropagation();
-      userDropdown.classList.toggle('hidden');
-    });
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var userMenuButton = document.getElementById('userMenuButton');
+      var userDropdown = document.getElementById('userDropdown');
 
-    window.addEventListener('click', function() {
-      if (!userDropdown.classList.contains('hidden')) {
-        userDropdown.classList.add('hidden');
-      }
-    });
+      userMenuButton.addEventListener('click', function(event) {
+        event.stopPropagation();
+        userDropdown.classList.toggle('hidden');
+      });
 
-    userDropdown.addEventListener('click', function(event) {
-      event.stopPropagation();
-    });
+      window.addEventListener('click', function() {
+        if (!userDropdown.classList.contains('hidden')) {
+          userDropdown.classList.add('hidden');
+        }
+      });
 
-    const alerts = document.querySelectorAll('.flash-message');
-    alerts.forEach(alert => {
+      userDropdown.addEventListener('click', function(event) {
+        event.stopPropagation();
+      });
+
+      const alerts = document.querySelectorAll('.flash-message');
+      alerts.forEach(alert => {
         setTimeout(() => {
-            alert.classList.add('visible');
+          alert.classList.add('visible');
         }, 100);
 
         setTimeout(() => {
-            alert.classList.remove('visible');
-            setTimeout(() => alert.style.display = 'none', 500); // Additional delay to allow transition
+          alert.classList.remove('visible');
+          setTimeout(() => alert.style.display = 'none', 500); // Additional delay to allow transition
         }, 5000);
+      });
     });
-  });
-</script>
-
-
-{% block script %}{% endblock %}
-{% block body %}{% endblock %}
-{% block footer %}{% endblock %}
-</body>
+    </script>
+    {% block script %}{% endblock %}
+    {% block footer %}{% endblock %}
+  </body>
 </html>
