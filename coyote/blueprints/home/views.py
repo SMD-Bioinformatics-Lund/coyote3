@@ -46,7 +46,7 @@ def home_screen(status="live"):
             user_groups=user_groups, search_str=search_str, report=True, limit=limit_done_samples
         )
     elif status == "live":
-        time_limit = util.common.get_date_days_ago(300)
+        time_limit = util.common.get_date_days_ago(days=1000)
         done_samples = store.sample_handler.get_samples(
             user_groups=user_groups, search_str=search_str, report=True, time_limit=time_limit
         )
@@ -142,6 +142,11 @@ def main_screen(assay=None, status="live"):
     if status == "done" or search_mode in ["done", "both"]:
         done_samples = store.sample_handler.get_samples(
             user_groups=user_groups, search_str=search_str, report=True, limit=limit_done_samples
+        )
+    elif status == "live":
+        time_limit = util.common.get_date_days_ago(days=1000)
+        done_samples = store.sample_handler.get_samples(
+            user_groups=user_groups, search_str=search_str, report=True, time_limit=time_limit
         )
     else:
         done_samples = []
