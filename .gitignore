@@ -138,7 +138,7 @@ config.git.hash
 /config/
 .dir-locals.el
 run_dev.py
-*.backup
+*.backup*
 *.backup_default
 app.log*
 test

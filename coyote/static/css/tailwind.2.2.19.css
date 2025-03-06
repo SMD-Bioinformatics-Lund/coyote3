@@ -15643,6 +15643,7 @@ video {
   background-color: rgba(131, 24, 67, var(--tw-bg-opacity));
 }
 
+
 .group:hover .group-hover\:bg-transparent {
   background-color: transparent;
 }
