@@ -11,7 +11,7 @@ def build_query(which, settings):
     if which == "myeloid" or which == "fusion" or which == "tumwgs" or which == "unknown":
         query = {
             "SAMPLE_ID": settings["id"],
-            "$or": [
+            "$and": [
                 gene_pos_filter,
             ],  # gene_pos_filter
             "$or": [
@@ -137,7 +137,7 @@ def build_query(which, settings):
     if which == "solid":
         query = {
             "SAMPLE_ID": settings["id"],
-            "$or": [
+            "$and": [
                 gene_pos_filter,
             ],  # gene_pos_filter
             "$or": [

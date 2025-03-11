@@ -234,26 +234,33 @@ class CommonUtility:
         return fusion_settings
 
     @staticmethod
-    def create_filter_genelist(list_names: dict, gene_lists: dict) -> list:
+    def create_filter_genelist(genelist_dict: dict) -> list:
         """
-        Creates a list of genes based on the provided list names and gene lists.
+        Create a list of genes from a dictionary of gene lists.
         Args:
-            list_names (dict): A dictionary where keys are list names and values are integers (1 to include the list, 0 to exclude).
-            gene_lists (dict): A dictionary where keys are list names and values are lists of genes.
+            genelist_dict (dict): A dictionary where keys are gene list names and values are lists of genes.
         Returns:
-            list: A list of genes from the included gene lists. If a list name is not defined in gene_lists, "gene list not defined" is added to the list.
+            list: A list of genes.
         """
 
-        genes = []
-        for name, val in list_names.items():
-            if val == 1:
-                list_name = name.split("_", 1)[1]
-                try:
-                    genes.extend(gene_lists[list_name])
-                except:
-                    genes.extend(["gene list not defined"])
+        filter_genes = []
+        for name, genes in genelist_dict.items():
+            filter_genes.extend(genes)
 
-        return genes
+        return list(set(filter_genes))
+    
+    @staticmethod
+    def create_genelists_dict(list_names: list, gene_lists: dict) -> dict:
+        """
+        Creates a dictionary of gene lists from a list of selected gene lists.
+        Args:
+            gene_lists (list): A list of gene lists.
+            list_names (list): A list of gene list names.
+        Returns:
+            dict: A dictionary where keys are gene list names and values are lists of genes.
+        """
+
+        return {name: gene_lists[name] for name in list_names}
 
     @staticmethod
     def get_active_branch_name() -> str | None:

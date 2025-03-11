@@ -23,6 +23,14 @@ class PanelsHandler(BaseHandler):
                 gene_lists[panel["name"]] = panel["genes"]
         return gene_lists, panels
 
+    @lru_cache(maxsize=2)
+    def get_assay_panel_names(self, assay: str) -> dict:
+        """
+        Get panel name, display name and panel type for a given assay
+        """
+        
+        return list(self.get_collection().find({"assays": {"$in": [assay]}}, {"name": 1, "displayname": 1, "type": 1}))
+
     def get_panel(self, type: str, subpanel: str):
         panel = self.get_collection().find_one({"name": subpanel, "type": type})
         return panel

@@ -48,37 +48,49 @@ def list_variants(id):
     subpanel = sample.get("subpanel")
 
     # get group config from app config instead
-    app.logger.debug(app.config["GROUP_CONFIGS"])
-    app.logger.debug(f"the sample has these groups {smp_grp}")
-    app.logger.debug(f"this is the group from collection {group_params}")
+    # app.logger.debug(app.config["GROUP_CONFIGS"])
+    # app.logger.debug(f"the sample has these groups {smp_grp}")
+    # app.logger.debug(f"this is the group from collection {group_params}")
 
     ## GENEPANELS ##
     ## send over all defined gene panels per assay, to matching template ##
+    # app.logger.debug(f"Assay: {assay}\n")
+    # app.logger.debug(f"group_params: {group_params}\n")
+    # app.logger.debug(f"Settings: {settings}\n")
+    # app.logger.debug(f"Config: {app.config.get('GROUP_FILTERS')}\n")
+    
     gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
+    assay_panels = store.panel_handler.get_assay_panel_names(assay)
+    app.logger.debug(f"Assay panels: {assay_panels}\n")
     ## Default gene list. For samples with default_genelis_set=1 add a gene list to specific subtypes lunga, hjärna etc etc. Will fetch genelist from mongo collection.
     # this only for assays that should have a default gene list. Will always be added to sample if not explicitely removed from form
-    if "default_genelist_set" in group_params:
-        if subpanel:
-            panel_genelist = store.panel_handler.get_panel(subpanel=subpanel, type="genelist")
-            if panel_genelist:
-                settings["default_checked_genelists"] = {f"genelist_{subpanel}": 1}
+    
+    # app.logger.debug(f"gene_lists: {gene_lists}\n") # This has the gene lists only with the panel name as key
+    # app.logger.debug(f"genelists_assay: {genelists_assay}\n") # this is the whole doc from the db
+
+    if "default_genelist_set" in group_params and subpanel:
+        panel_genelist = store.panel_handler.get_panel(subpanel=subpanel, type="genelist")
+        if panel_genelist:
+            settings["default_checked_genelists"] = {f"genelist_{subpanel}": 1}
 
     # Save new filter settings if submitted
-    # Inherit FilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
-    for panel in genelists_assay:
-        if panel["type"] == "genelist":
-            setattr(GeneForm, "genelist_" + panel["name"], BooleanField())
+    # Inherit FilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!  
+    if gene_lists:
+        for gene_list in gene_lists:
+            setattr(GeneForm, f"genelist_{gene_list}", BooleanField())
+
     form = GeneForm()
+    print(form.data)
     ###########################################################################
 
     ## FORM FILTERS ##
     # Either reset sample to default filters or add the new filters from form.
     if request.method == "POST" and form.validate_on_submit():
+        app.logger.debug(f"form data: {form.data}")
         _id = str(sample.get("_id"))
         # Reset filters to defaults
         if form.reset.data:
             store.sample_handler.reset_sample_settings(_id, settings)
-        # Change filters
         else:
             store.sample_handler.update_sample_settings(_id, form)
             ## get sample again to recieve updated forms!
@@ -95,8 +107,11 @@ def list_variants(id):
     # sample filters, either set, or default
     cnv_effects = sample.get("checked_cnveffects", settings["default_checked_cnveffects"])
     genelist_filter = sample.get("checked_genelists", settings["default_checked_genelists"])
+    genelist_filter_names = [g_list.replace("genelist_", "") for g_list in genelist_filter if genelist_filter[g_list] == 1]
+    checked_genelist_dict = util.common.create_genelists_dict(genelist_filter_names, gene_lists)
+
     filter_conseq = util.dna.get_filter_conseq_terms(sample_settings["csq_filter"].keys())
-    filter_genes = util.common.create_filter_genelist(genelist_filter, gene_lists)
+    filter_genes = util.common.create_filter_genelist(checked_genelist_dict)
     filter_cnveffects = util.dna.create_cnveffectlist(cnv_effects)
 
     # Add them to the form and update with the requested settings
@@ -133,7 +148,8 @@ def list_variants(id):
     )
 
     app.logger.debug(f"Sample Settings: {sample_settings}")
-    app.logger.debug(f"filter genes: {len(filter_genes)}")
+    app.logger.debug(f"filter genes: {filter_genes}")
+    app.logger.debug(f"filter_genes_no: {len(filter_genes)}")
     app.logger.debug(f"Pos Filter: {len(disp_pos)}")
 
     variants_iter = store.variant_handler.get_case_variants(query)
@@ -238,8 +254,8 @@ def list_variants(id):
 
     return render_template(
         "list_variants_vep.html",
-        checked_genelists=genelist_filter,
-        genelists_assay=genelists_assay,
+        checked_genelists=genelist_filter, #TODO: even this is reduntant I guess
+        assay_panels=assay_panels,
         variants=variants,
         disp_pos=disp_pos,
         sample=sample,
@@ -247,16 +263,21 @@ def list_variants(id):
         assay=assay,
         hidden_comments=has_hidden_comments,
         form=form,
-        dispgenes=filter_genes,
+        dispgenes=filter_genes, #TODO: you dont need this as well
+        display_genelists=genelist_filter_names, #TODO: not needed
+        gene_lists_dict=gene_lists, #TODO: not needed
+        checked_genelist_dict=checked_genelist_dict,
         low_cov=low_cov,
         ai_text=ai_text,
         settings=settings,
         cnvwgs=cnvwgs_iter,
         cnvwgs_n=cnvwgs_iter_n,
-        sizefilter=sample_settings["max_cnv_size"],
-        sizefilter_min=sample_settings["min_cnv_size"],
+        sizefilter=sample_settings["max_cnv_size"], #TODO: can remove
+        sizefilter_min=sample_settings["min_cnv_size"], #TODO: can remove
         transloc=transloc_iter,
         biomarker=biomarkers_iter,
+        vep_var_class_translations=app.config.get("REPORT_CONFIG").get("VEP_VARIANT_CLASS_TRANSLATION"),
+        vep_conseq_translations=app.config.get("REPORT_CONFIG").get("VEP_CONSEQ_TRANSLATIONS"),
     )
 
 
@@ -934,6 +955,7 @@ def generate_dna_report(id, *args, **kwargs):
         sample=sample,
         low_cov=low_cov,
         translation=app.config.get("REPORT_CONFIG").get("REPORT_TRANS"),
+        vep_var_class_translations=app.config.get("REPORT_CONFIG").get("VEP_VARIANT_CLASS_TRANSLATION"),
         group=sample["groups"],
         cnvs=cnvs_iter,  # cnvs_list, TMP
         cnv_profile_base64=cnv_profile_base64,
