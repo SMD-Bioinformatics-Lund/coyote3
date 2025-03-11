@@ -66,6 +66,8 @@ body {
 		'Segoe UI Emoji';
 }
 
+
+
 /*
 Grouping content
 ================
@@ -176009,4 +176011,25 @@ video {
   .\32xl\:ease-in-out {
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
+}
+
+
+
+/* Tailwind Classes for Sorting Arrows */
+.th.sortable {
+  @apply relative cursor-pointer select-none;
+}
+
+.th.sortable::after {
+  content: " ▼";
+  @apply text-xs text-gray-500 opacity-0 transition-opacity duration-200;
+}
+
+.th.sortable:hover::after {
+  @apply opacity-100;
+}
+
+.th.sortable[data-order="asc"]::after {
+  content: " ▲";
+  @apply opacity-100;
 }

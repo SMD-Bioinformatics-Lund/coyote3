@@ -24,7 +24,8 @@
     <!-- JavaScript -->
     <script src="{{ url_for('static', filename='js/jquery-3.1.1.slim.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/select2.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/sorttable.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sortableTable.js') }}"></script>
+
 
     <style>
       .vertical-text {
@@ -39,22 +40,22 @@
   <body class="bg-gradient-to-t from-blue-100 to-indigo-100 text-sm overflow-hidden w-full">
 
     <!-- FLASH MESSAGES -->
-    <div id="alert-container" class="fixed top-20 right-5 z-60 space-y-2">
+    <div id="alert-container" class="fixed top-20 right-10 z-50 space-y-3">
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           {% for category, message in messages %}
-            <div class="flash-message bg-{{ category }}-100 border border-{{ category }}-400 text-{{ category }}-700 px-4 py-3 rounded relative z-60">
-              <span class="block sm:inline">{{ message }}</span>
-              <button type="button" class="absolute top-0 right-0 px-5 py-3" onclick="this.parentElement.style.display='none';">
-                <svg class="fill-current h-6 w-8 text-{{ category }}-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                  <path d="M14.348 5.652a.5.5 0 00-.707 0L10 9.293 6.36 5.652a.5.5 0 10-.707.707L9.293 10l-3.64 3.64a.5.5 0 10.707.707L10 10.707l3.64 3.64a.5.5 0 10.707-.707L10.707 10l3.64-3.64a.5.5 0 000-.707z"/>
-                </svg>
+            <div class="flash-message flex items-center bg-{{ category }}-100 border-l-4 border-{{ category }}-500 text-{{ category }}-900 px-4 py-2 rounded-xl shadow-2xl relative z-50 transform transition-all duration-500 ease-in-out translate-x-full opacity-0 backdrop-blur-lg">
+              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/exclamation-circle.svg') }}" alt="Alert" class="h-6 w-6 mr-3 text-{{ category }}-500 transition-transform duration-300 transform hover:scale-125 hover:rotate-12">
+              <span class="flex-1 text-sm font-semibold tracking-wide">{{ message }}</span>
+              <button type="button" class="ml-4 p-2 rounded-full bg-{{ category }}-200 hover:bg-{{ category }}-300 transition duration-300 close-btn">
+                <img src="{{ url_for('static', filename='icons/heroicons_outline_24/x-mark.svg') }}" alt="Close" class="h-5 w-5 transition-transform duration-300 transform hover:scale-125 hover:rotate-12">
               </button>
             </div>
           {% endfor %}
         {% endif %}
       {% endwith %}
     </div>
+
 
     <!-- CONTAINER: Full Page Structure -->
     <div class="flex flex-col h-screen w-full">
@@ -158,37 +159,102 @@
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      var userMenuButton = document.getElementById('userMenuButton');
-      var userDropdown = document.getElementById('userDropdown');
 
-      userMenuButton.addEventListener('click', function(event) {
-        event.stopPropagation();
-        userDropdown.classList.toggle('hidden');
+      // JavaScript for User Dropdown Menu
+      document.addEventListener('DOMContentLoaded', function() {
+        var userMenuButton = document.getElementById('userMenuButton');
+        var userDropdown = document.getElementById('userDropdown');
+
+        userMenuButton.addEventListener('click', function(event) {
+          event.stopPropagation();
+          userDropdown.classList.toggle('hidden');
+        });
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', function() {
+          if (!userDropdown.classList.contains('hidden')) {
+            userDropdown.classList.add('hidden');
+          }
+        });
+
+        // Prevent dropdown from closing when clicking inside
+        userDropdown.addEventListener('click', function(event) {
+          event.stopPropagation();
+        });
       });
 
-      window.addEventListener('click', function() {
-        if (!userDropdown.classList.contains('hidden')) {
-          userDropdown.classList.add('hidden');
+
+
+        // Flash Message Animation
+        document.addEventListener("DOMContentLoaded", function () {
+          const alerts = document.querySelectorAll(".flash-message");
+          alerts.forEach((alert, index) => {
+            let timeoutId;
+      
+            function startTimeout() {
+              timeoutId = setTimeout(() => {
+                alert.classList.remove("translate-x-0", "opacity-100");
+                alert.classList.add("translate-x-full", "opacity-0");
+                setTimeout(() => alert.style.display = "none", 500);
+              }, 7000 + index * 100); // currently set tot 7 sec
+            }
+      
+            setTimeout(() => {
+              alert.classList.remove("translate-x-full", "opacity-0");
+              alert.classList.add("translate-x-0", "opacity-100");
+              startTimeout();
+            }, 100 + index * 100);
+      
+            alert.addEventListener("mouseenter", () => clearTimeout(timeoutId));
+            alert.addEventListener("mouseleave", startTimeout);
+      
+            alert.querySelector(".close-btn").addEventListener("click", function () {
+              clearTimeout(timeoutId);
+              alert.classList.remove("translate-x-0", "opacity-100");
+              alert.classList.add("translate-x-full", "opacity-0");
+              setTimeout(() => alert.style.display = "none", 500);
+            });
+          });
+        });
+      
+
+      // JavaScript for Tooltip functionality
+      function showTooltip(event, content) {
+        let tooltip = document.getElementById("global-tooltip");
+
+        if (!tooltip) {
+            tooltip = document.createElement("div");
+            tooltip.id = "global-tooltip";
+            tooltip.className = "fixed bg-black text-white text-xs rounded-md shadow-lg p-2 w-auto max-w-xs opacity-0 transition-all duration-200 z-50 pointer-events-none";
+            document.body.appendChild(tooltip);
         }
-      });
 
-      userDropdown.addEventListener('click', function(event) {
-        event.stopPropagation();
-      });
+        tooltip.innerHTML = content;
+        tooltip.style.opacity = "1";
+        tooltip.style.pointerEvents = "auto";
 
-      const alerts = document.querySelectorAll('.flash-message');
-      alerts.forEach(alert => {
-        setTimeout(() => {
-          alert.classList.add('visible');
-        }, 100);
+        let x = event.clientX + 15;
+        let y = event.clientY + 15;
 
-        setTimeout(() => {
-          alert.classList.remove('visible');
-          setTimeout(() => alert.style.display = 'none', 500); // Additional delay to allow transition
-        }, 5000);
-      });
-    });
+        // Prevent tooltip from overflowing right edge
+        if (x + tooltip.offsetWidth > window.innerWidth) {
+            x = event.clientX - tooltip.offsetWidth - 15;
+        }
+        // Prevent tooltip from overflowing bottom edge
+        if (y + tooltip.offsetHeight > window.innerHeight) {
+            y = event.clientY - tooltip.offsetHeight - 15;
+        }
+
+        tooltip.style.left = `${x}px`;
+        tooltip.style.top = `${y}px`;
+
+        // Hide tooltip when mouse leaves the element
+        event.target.addEventListener("mouseleave", function hideTooltip() {
+            tooltip.style.opacity = "0";
+            tooltip.style.pointerEvents = "none";
+            event.target.removeEventListener("mouseleave", hideTooltip);
+        });
+      }
     </script>
     {% block script %}{% endblock %}
     {% block footer %}{% endblock %}
