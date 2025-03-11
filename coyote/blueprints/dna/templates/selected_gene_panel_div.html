@@ -1,36 +1,60 @@
-
-<div id="sample_div" class="bg-white rounded-lg my-8">
+<section id="selected_gene_list" class="bg-blue-50 shadow-lg rounded-xl my-2">
   <!-- Toggle Button -->
-  <div class="flex justify-between items-center bg-gradient-to-b from-gray-300 to-gray-50 text-black rounded-md px-4 py-2">
+  <div class="flex justify-between items-center bg-blue-50 text-black rounded-t-xl px-4 py-1 cursor-pointer hover:bg-purple-200 transition" onclick="toggleCard1()">
     <h2 class="text-base font-semibold tracking-wide uppercase">Gene Panel(s)</h2>
-    <button class="focus:outline-none" onclick="toggleCard('selected-genes-card-content')">
-      <!-- Use one up arrow PNG and rotate it when collapsed -->
-      <img id="arrow-icon" src="{{ url_for('static', filename='icons/up-arrow-240.png') }}" alt="Toggle Selected Genes Filters" class="w-6 h-6 transform transition-transform duration-200 filter invert rotate-180">
+    <!-- Toggle Icon -->
+    <button class="focus:outline-none">
+      <img id="arrow-icon" src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-double-up.svg') }}" 
+            alt="Toggle Selected Genes Filters" 
+            class="w-6 h-6 transform transition-transform duration-300 filter rotate-180">
     </button>
   </div>
 
-  <!-- Collapsible Content -->
-  <div id="selected-genes-card-content" class="my-2 p-3 hidden">
-    {% if dispgenes %}
-      {% if checked_genelists %}
-        {% for list in checked_genelists %}
-          <div class="mt-1">
-            <b>{{ list.replace("genelist_", "") }} {{ dispgenes|length }} genes:</b>
-            <div class="mt-1 flex flex-wrap gap-1 text-xs">
-              {% for gene in dispgenes %}
-                <span class="py-1 px-2 bg-gray-100 rounded-md text-xs hover:bg-green-100">{{ gene }}</span>{% if not loop.last %} {% endif %}
+  <!-- Gene Lists Summary (Closed View) -->
+  <div id="selected-genes-summary" class="text-sm font-medium rounded-2xl text-black mt-2 px-4 pb-2">
+    {% if checked_genelist_dict  %}
+      <div class="flex flex-row gap-1">
+        {% for glist, glist_genes in checked_genelist_dict.items() %}
+          <span class="py-1 px-3 bg-gray-200 rounded-md text-xs shadow-sm hover:bg-green-200 transition">{{ glist }}: {{ glist_genes|length }} gene(s)</span>
+        {% endfor %}
+      </div>
+    {% else %}
+      <span class="font-bold block text-gray-600">No genelist filters applied</span>
+    {% endif %}
+  </div>
+
+  <!-- Collapsible Content (Open State) -->
+  <div id="selected-genes-card-content" class="my-2 p-2 hidden rounded-2xl">
+    {% if display_genelists %}
+      <div class="flex flex-col gap-2">
+        {% for glist, glist_genes in checked_genelist_dict.items() %}
+          <div class="rounded-md shadow-md p-2 bg-transparent">
+            <b class="text-gray-800">{{ glist }} - {{ glist_genes|length }} gene(s):</b>
+            <div class="my-1 flex flex-wrap gap-2 text-xs">
+              {% for gene in glist_genes %}
+                <span class="py-0.5 px-1 bg-gray-200 rounded-md text-xs shadow-sm hover:bg-green-200 transition">{{ gene }}</span>
               {% endfor %}
             </div>
           </div>
         {% endfor %}
-      {% else %}
-        <b>Gene Panel(s): No genefilter applied</b>
-      {% endif %}
+      </div>
     {% else %}
-      <b>Gene Panel(s): No genefilter applied</b>
-    {% endif %}
-    {% if not dispgenes %}
-      <p>No genes to display</p>
+      <span class="font-semibold text-gray-600 block">No genefilter applied</span>
     {% endif %}
   </div>
-</div>
+</section>
+
+<script>
+function toggleCard1() {
+    let content = document.getElementById("selected-genes-card-content");
+    let arrowIcon = document.getElementById("arrow-icon");
+
+    if (content.classList.contains("hidden")) {
+        content.classList.remove("hidden");
+        arrowIcon.classList.remove("rotate-180");
+    } else {
+        content.classList.add("hidden");
+        arrowIcon.classList.add("rotate-180");
+    }
+}
+</script>

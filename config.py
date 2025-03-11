@@ -73,6 +73,8 @@ class DefaultConfig:
         "default_checked_fusioncallers": [],
         "default_checked_cnveffects": [],
     }
+
+    # Is it redundant? Have a full set from the report.toml
     TRANS: dict[str, str] = {
         "nonsynonymous_SNV": "missense SNV",
         "stopgain": "stop gain",
