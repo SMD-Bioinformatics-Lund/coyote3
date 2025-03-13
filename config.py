@@ -35,6 +35,9 @@ class DefaultConfig:
     BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
     _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections.toml"
 
+    # Gens URI
+    GENS_URI = os.getenv("GENS_URI", "http://10.231.229.34/gens/")
+
     LDAP_HOST = "ldap://mtlucmds1.lund.skane.se"
     LDAP_BASE_DN = "dc=skane,dc=se"
     LDAP_USER_LOGIN_ATTR = "mail"

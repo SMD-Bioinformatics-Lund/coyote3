@@ -1,5 +1,46 @@
 {% extends "layout.html" %}
 
+{% block style %}
+<style>
+  /* CNV Image */
+  .cnv-image {
+    flex: 1;
+    min-width: 30%;  /* Image should be at least 30% */
+    max-width: 100%; /* Can expand fully if table is missing */
+  }
+  
+  /* CNV Table */
+  .cnv-table {
+    flex: 2;
+    min-width: 60%;  /* Table should be at least 50% */
+    max-width: 100%; /* Can expand fully if image is missing */
+  }
+
+  /* If Only One Exists, It Takes Full Width */
+  .cnv-container:has(.cnv-image) .cnv-table:only-child {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  .cnv-container:has(.cnv-table) .cnv-image:only-child {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  
+  /* Move Table Below on Small Screens */
+  @media (max-width: 1024px) {
+    .cnv-image,
+    .cnv-table {
+      flex: 0 0 100%;
+      max-width: 100%;
+    }
+  }
+  
+  /* Make Image Float While Table Scrolls */
+</style>
+{% endblock %}
+
+
+
 {% block body %}
 <!-- FLEX CONTAINER: Sidebar (Fixed) + Main Content (Scrollable) + Filter Content Right Sidebar (Fixed)-->
 
@@ -412,6 +453,239 @@
       </div>
     </section>
 
+
+    <!-- CNVs -->
+    {% set has_cnv_image = sample.cnvprofile is not none %}
+    {% set has_cnv_table = cnvwgs and cnvwgs|length > 0 %}
+    
+    {% if has_cnv_table or has_cnv_image %}
+      <section id="cnvs" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative w-full">
+        <!-- CNVs Header -->
+        <div class="overflow-x-auto relative">
+          <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">
+            CNVs ({{ cnvwgs|length }})
+          </h2>
+        </div>
+    
+        <!-- Full-width Wrapper -->
+        <div class="w-full flex justify-center py-2" id="cnvs-content">
+          <!-- Inner Flexible Container -->
+          <div class="w-full px-1 bg-transparent">
+            
+            <!-- Flex Container for CNV Image & Table -->
+            <div class="flex flex-wrap gap-2 w-full bg-transparent cnv-container">
+    
+              <!-- CNV Image (Sticky Floating) -->
+              {% if has_cnv_image %}
+              <div class="cnv-image bg-transparent py-2 px-2">
+                <!-- Header with Toggle Switch -->
+                <div class="flex justify-between items-center bg-gradient-to-b from-brown-100 to-orange-200 shadow-lg rounded-t-lg border-b border-gray-400 p-2 tracking-wide capitalize">
+                  <h2 class="text-sm">
+                    CNV Profile
+                  </h2>
+                  <!-- Toggle Switch -->
+                  <div class="flex items-center space-x-2">
+                    <span class="text-sm text-gray-800">Rotate</span>
+                    
+                    <!-- Toggle Switch -->
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" id="cnv-image-rotate-toggle" class="sr-only">
+                      
+                      <!-- Toggle Background -->
+                      <div id="cnv-image-toggle-bg" class="w-16 h-7 rounded-full flex items-center relative transition-all duration-300">
+                        
+                        <!-- Sliding Knob -->
+                        <div id="cnv-image-toggle-knob" class="absolute bg-white h-6 w-6 rounded-full shadow-md transition-transform duration-300"></div>
+                        
+                        <!-- Labels -->
+                        <div class="absolute inset-0 flex justify-between items-center px-2">
+                          <span id="cnv-image-deg-0" class="text-white transition-colors mr-1">0°</span>
+                          <span id="cnv-image-deg-90" class="text-black transition-colors ml-3">90°</span>
+                        </div>
+                        
+                      </div>
+                    </label>
+                    
+                  </div>
+                </div>
+            
+                <div class="rounded-b-lg shadow-md p-4 sticky top-0">
+                  {% set build = sample.genome_build if "genome_build" in sample else 37 %}
+                  <!-- Image Container (Will be updated dynamically) -->
+                  <div id="cnv-image-container" class="flex justify-center items-center">
+                    <a id="cnv-image-link" href="{{ url_for('dna_bp.show_any_plot', fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}" target="_blank">
+                      <img id="cnv-image-img" 
+                          class="rounded-lg border border-gray-300 shadow-lg transition duration-300 ease-in-out transform scale-90 hover:scale-95"
+                          src="{{ url_for('dna_bp.show_any_plot_rotated', fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}">
+                    </a>
+                  </div>
+                </div>    
+              </div>
+            {% endif %}
+            
+
+              <!-- CNV Table -->
+              {% if has_cnv_table %}
+                <div class="cnv-table bg-transparent py-2">
+                  <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
+                    <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-100 to-orange-200 shadow-lg rounded-t-lg p-2 z-10">
+                      <h2 class="text-sm font-semibold text-black">CNV Table</h2>
+                      <img 
+                        src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
+                        alt="Export to CSV - CNVs" 
+                        onclick="exportTableToCSV('{{ sample.name }}.filtered.cnvs.csv', 'cnvs-table')" 
+                        class="w-6 h-6 transition-transform transform hover:scale-110"
+                      />
+                    </div>
+                    <div class="overflow-auto relative bg-transparent">
+                      <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="cnvs-table">
+                        <thead class="sortable capitalize tracking-wide rounded-t-lg bg-orange-100">
+                          <tr id="cnv-table-header" class="border-b text-left border-gray-800 ">
+                            <th class="px-2 py-3 font-semibold" id="cnv-table-header-genes">Genes</th>
+                            <th class="px-2 py-3 font-semibold" id="cnv-table-header-region">Region</th>
+                            <th class="px-2 py-3 font-semibold" id="cnv-table-header-size">Size (bp)</th>
+                            {% if assay == "solid" or assay == "gmsonco" %}
+                              <th class="px-2 py-3 font-semibold" id="cnv-table-header-callers">Callers</th>
+                            {% endif %}
+                              <th class="px-2 py-3 font-semibold" id="cnv-table-header-cn">Copy number</th>
+                            {% if sample.purity %}
+                              <th class="px-1 py-3 font-semibold w-4" id="cnv-table-header-purity">Purity {{ sample.purity }}</th>
+                            {% endif %}
+                            {% if assay == "solid" or assay == "gmsonco" %}
+                              <th class="px-1 py-3 font-semibold" id="cnv-table-header-sr">SR (ref/alt)</th>
+                            {% endif %}
+                            <th class="px-1 py-3 font-semibold w-4" id="cnv-table-header-status">Status</th>
+                            <th class="px-1 py-3 font-semibold w-4" id="cnv-table-header-view">View</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for cnv in cnvwgs %}
+                            {% if cnv.interesting %}
+                              <tr class="bg-green-100 hover:bg-green-200 border-t border-gray-400 text-left" id="cnv-table-row-interesting">
+                            {% elif cnv.ratio > 3 and cnv.size > (sizefilter|int) %}
+                              <tr class="bg-red-100 border-t border-gray-400 text-left" id="cnv-table-row">
+                            {% else %}
+                              <tr class="border-t border-gray-400 text-left" id="cnv-table-row">
+                            {% endif %}
+
+                              <!-- Genes -->
+                              <td class="pl-2 py-2.5" id="cnv-table-row-genes">
+                                {% set non_panel_genes = [0] %}
+                                {% for gene in cnv.genes %}
+                                  {% if gene.class %}
+                                    {{ gene.gene }}<br>
+                                  {% else %}
+                                    {% if non_panel_genes.append(non_panel_genes.pop() + 1) %}
+                                    {% endif %}
+                                  {% endif %}
+                                {% endfor %}
+                                {% if non_panel_genes[0] > 0 %}
+                                  <font class='text-gray-400'>+ {{ non_panel_genes[0] }} other genes</font>
+                                {% endif %}
+                              </td>
+
+                              <!-- Region -->
+                              <td id="cnv-table-row-region">
+                                <div class="inline-block px-2 py-1 text-white rounded-full bg-gray-400">
+                                  {{ cnv.chr }}:{{ cnv.start }}-{{ cnv.end }}
+                                </div>
+                              </td>
+
+                              <!-- Size -->
+                              <td id="cnv-table-row-size">
+                                {{ cnv.size|abs }}
+                              </td>
+
+                              <!-- Callers -->
+                              {% if assay == "solid" or assay == "gmsonco" %}
+                                <td id="cnv-table-row-callers">
+                                  {{ cnv.callers }}
+                                </td>
+
+                                <!-- Copy Number for solid and gmsonco assay -->
+                                {% if "gatk" in cnv.callers or "cnvkit" in cnv.callers %}
+                                  <td id="cnv-table-row-ratio">
+                                    {{ 2*(2**cnv.ratio)|round(2) }} ({{ cnv.ratio }})
+                                  </td>
+
+                                  <!-- purity for solid -->
+                                  {% if sample.purity %}
+                                    {% if cnv.ratio > 0 %}
+                                      <td class="w-4" id="cnv-table-row-purity">
+                                        {{ (2*(2**cnv.ratio)*1/sample.purity)|round(2) }}
+                                      </td>
+                                    {% else %}
+                                      <td class="w-4" id="cnv-table-row-purity">
+                                        {{ (2*(2**cnv.ratio)*sample.purity)|round(2) }}
+                                      </td>
+                                    {% endif %}
+                                  {% endif %}
+                                  {% if "manta" in cnv.callers %}
+                                    <td id="cnv-table-row-pr">
+                                      {{ cnv.PR }}
+                                    </td>
+                                  {% else %}
+                                    <td id="cnv-table-row-pr">
+                                      -
+                                    </td>
+                                  {% endif %}
+                                {% else %}
+                                  {% if assay == "solid" %}
+                                    <td id="cnv-table-row-pr">
+                                      -
+                                    </td>
+                                  {% endif %}
+                                  <td id="cnv-table-row-pr">
+                                    -
+                                  </td>
+                                  <td id="cnv-table-row-pr">
+                                    {{ cnv.PR }}
+                                  </td>
+                                {% endif %}
+                              {% else %}
+                                <td id="cnv-table-row-ratio">
+                                  {{ 2*(2**cnv.ratio)|round(2) }} ({{ cnv.ratio }})
+                                </td>
+                              {% endif %}
+                              <td class="w-4" id="cnv-table-row-status">
+                                {% if cnv.interesting %}
+                                  report
+                                {% endif %}
+                              </td>
+                              <td class="w-4" id="cnv-table-row-view">
+                                <a href="{{ url_for('dna_bp.show_cnv', id=cnv._id) }}" class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">view</a>
+                              </td>
+                            </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              {% else %} <!-- TODO: CHeck the cnvs from the config to show this section or not -->
+                <em class="block text-center text-gray-500 text-sm italic bg-gray-50 p-4 rounded-b-lg border border-gray-300 shadow-md">
+                  No cnvs found with the current filter settings!
+                  <br>
+                </em>    
+              {% endif %}
+            </div> <!-- End Flex Container -->
+          </div> <!-- End Inner Dynamic Container -->
+        </div> <!-- End Full-width Wrapper -->
+      </section>
+    {% endif %}
+    
+
+
+
+
+
+
+
+
+
+  
+
+
   </main>
 
 
@@ -435,7 +709,48 @@
       if (icon) icon.classList.remove("rotate-180");
     }
   }
-  
+
+  // JavaScript for rotating the cnv image functionality
+  document.addEventListener("DOMContentLoaded", function () {
+    let toggle = document.getElementById("cnv-image-rotate-toggle");
+    let knob = document.getElementById("cnv-image-toggle-knob");
+    let bg = document.getElementById("cnv-image-toggle-bg");
+    let deg0 = document.getElementById("cnv-image-deg-0");
+    let deg90 = document.getElementById("cnv-image-deg-90");
+    let imageElement = document.getElementById("cnv-image-img");
+    let imageLink = document.getElementById("cnv-image-link");
+
+    // Store original and rotated image URLs
+    let originalImage = "{{ url_for('dna_bp.show_any_plot', fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}";
+    let rotatedImage = "{{ url_for('dna_bp.show_any_plot_rotated', fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}";
+
+    function updateToggleState() {
+        if (toggle.checked) {
+            // Move knob to right, change background color, update image
+            knob.style.transform = "translateX(36px)";
+            bg.style.backgroundColor = "#e4a787";
+            deg0.style.color = "white";
+            deg90.style.color = "black";
+
+            imageElement.src = rotatedImage;
+        } else {
+            // Move knob to left, reset background color, update image
+            knob.style.transform = "translateX(0px)";
+            bg.style.backgroundColor = "#74a9d4";
+            deg0.style.color = "black";
+            deg90.style.color = "white";
+
+            imageElement.src = originalImage;
+        }
+    }
+
+      // Ensure slider starts at 90° (checked) on page load
+      toggle.checked = true;
+      updateToggleState();
+
+      // Add event listener for toggle change
+      toggle.addEventListener("change", updateToggleState);
+  });
 
 
   function addAIText() {

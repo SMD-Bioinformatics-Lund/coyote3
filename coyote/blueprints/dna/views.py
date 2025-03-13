@@ -17,6 +17,7 @@ from coyote.errors.exceptions import AppError
 from typing import Literal, Any
 from datetime import datetime
 from flask_weasyprint import HTML, render_pdf
+from PIL import Image
 import os
 
 
@@ -378,6 +379,55 @@ def show_any_plot(fn, assay, build):
         return send_from_directory("/access/tumwgs/cov", fn)
     elif assay == "solid":
         return send_from_directory("/access/solid_hg38/plots", fn)
+
+
+######### TODO ##########
+from flask import send_file, abort
+from PIL import Image
+import os
+import io
+
+@dna_bp.route("/plot/<string:fn>/<string:assay>/<string:build>/")  # Added angle parameter
+def show_any_plot_rotated(fn, assay, build, angle=90):
+    # Define the base directory based on the assay type
+    if assay == "myeloid":
+        base_dir = "/access/myeloid38/plots" if build == "38" else "/access/myeloid/plots"
+    elif assay == "lymphoid":
+        base_dir = "/access/lymphoid_hg38/plots"
+    elif assay in ["gmsonco", "swea"]:
+        base_dir = "/access/PARP_inhib/plots"
+    elif assay == "tumwgs":
+        base_dir = "/access/tumwgs/cov"
+    elif assay == "solid":
+        base_dir = "/access/solid_hg38/plots"
+    else:
+        abort(404, description="Assay not found")
+
+    # Full image path
+    image_path = os.path.join(base_dir, fn)
+
+    # Check if file exists
+    if not os.path.exists(image_path):
+        abort(404, description="File not found")
+
+    try:
+        # Open image
+        with Image.open(image_path) as img:
+            # Rotate image by given angle (e.g., 90, 180, 270)
+            rotated_img = img.rotate(-angle, expand=True)  # Use -angle for correct rotation direction
+
+            # Save rotated image to memory buffer
+            img_io = io.BytesIO()
+            rotated_img.save(img_io, format="PNG")  # Save as PNG
+            img_io.seek(0)
+
+            # Return rotated image as response
+            return send_file(img_io, mimetype="image/png")
+
+    except Exception as e:
+        abort(500, description=f"Error processing image: {str(e)}")
+
+############ TODO ##############
 
 
 ## Individual variant view ##
