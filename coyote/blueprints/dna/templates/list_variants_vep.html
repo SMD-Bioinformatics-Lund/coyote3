@@ -55,24 +55,37 @@
       </a>
     </div>
 
-    <div class="flex border-l-8 border-yellow-500">
-      <a href="#cnvs" 
-        class="relative bg-gray-500 text-white text-xs text-center mt-1 py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-          <span class="vertical-text">CNVs</span>
-      </a>
-    </div>
+    {% if cnvwgs or sample.cnvprofile %}
+      <div class="flex border-l-8 border-yellow-500">
+        <a href="#cnvs" 
+          class="relative bg-gray-500 text-white text-xs text-center mt-1 py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
+            <span class="vertical-text">CNVs</span>
+        </a>
+      </div>
+    {% endif %}
 
-    <div class="flex border-l-8 border-yellow-500">
-      <a href="#translocs" 
-        class="relative bg-gray-500 text-white text-xs text-center mt-1 py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-          <span class="vertical-text">TransLocs</span>
-      </a>
-    </div>
+    {% if transloc %}
+      <div class="flex border-l-8 border-yellow-500">
+        <a href="#translocs" 
+          class="relative bg-gray-500 text-white text-xs text-center mt-1 py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
+            <span class="vertical-text">TransLocs</span>
+        </a>
+      </div>
+    {% endif %}
 
-    <div class="flex border-l-8 border-yellow-500 ">
-      <a href="#fusions" 
-        class="relative bg-gray-500 text-white text-xs text-center mt-1 py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-          <span class="vertical-text">Fusions</span>
+    {% if fusions %}
+      <div class="flex border-l-8 border-yellow-500 ">
+        <a href="#fusions" 
+          class="relative bg-gray-500 text-white text-xs text-center mt-1 py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
+            <span class="vertical-text">Fusions</span>
+        </a>
+      </div>
+    {% endif %}
+
+    <div class="flex border-l-8 border-teal-500 mt-1">
+      <a href="#summary" 
+        class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
+          <span class="vertical-text">Summary</span>
       </a>
     </div>
 
@@ -80,13 +93,6 @@
       <a href="#lowcov" 
         class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
           <span class="vertical-text">Low Cov</span>
-      </a>
-    </div>
-
-    <div class="flex border-l-8 border-teal-500 mt-1">
-      <a href="#summary" 
-        class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-          <span class="vertical-text">Summary</span>
       </a>
     </div>
   </aside>
@@ -155,10 +161,10 @@
       </div>
     </section>
 
-    <!-- Selected Gene Panel -->
+    <!-- Selected Gene Panel Card -->
     {% include "selected_gene_panel_div.html" %}
 
-    <!-- SNVs & Indels -->
+    <!-- SNVs & Indels Card -->
     <section id="snv-indels" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
       <!-- SNV/Indels Header -->
       <div class="overflow-x-auto relative">
@@ -169,7 +175,7 @@
         <div class="flex flex-wrap gap-4 ">
           <!-- SNVs/Indels Table -->
           <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
-            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-100 to-orange-200 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
+            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
               <h2 class="text-sm font-semibold text-black">Variants Passing Filter Criteria</h2>
               <img 
                 src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
@@ -181,7 +187,7 @@
             {% if variants|length > 0 %}
               <div class="overflow-auto relative">
                 <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="snvs-table">
-                  <thead class="sortable capitalize tracking-wide rounded-t-lg bg-orange-100">
+                  <thead class="sortable capitalize tracking-wide rounded-t-lg bg-yellow-100">
                     <tr id="variant-table-header" class="border-b text-left border-gray-800">
                       <th class="px-2 py-3 font-semibold" id="variant-table-header-checkbox" data-nosort="true">
                         <input type="checkbox" id="select-all-table" onclick="toggleSelectAllVariants(this)">
@@ -454,7 +460,7 @@
     </section>
 
 
-    <!-- CNVs -->
+    <!-- CNVs Container -->
     {% set has_cnv_image = sample.cnvprofile is not none %}
     {% set has_cnv_table = cnvwgs and cnvwgs|length > 0 %}
     
@@ -479,7 +485,7 @@
               {% if has_cnv_image %}
               <div class="cnv-image bg-transparent py-2 px-2">
                 <!-- Header with Toggle Switch -->
-                <div class="flex justify-between items-center bg-gradient-to-b from-brown-100 to-orange-200 shadow-lg rounded-t-lg border-b border-gray-400 p-2 tracking-wide capitalize">
+                <div class="flex justify-between items-center bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 tracking-wide capitalize">
                   <h2 class="text-sm">
                     CNV Profile
                   </h2>
@@ -528,7 +534,7 @@
               {% if has_cnv_table %}
                 <div class="cnv-table bg-transparent py-2">
                   <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
-                    <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-100 to-orange-200 shadow-lg rounded-t-lg p-2 z-10">
+                    <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg p-2 z-10">
                       <h2 class="text-sm font-semibold text-black">CNV Table</h2>
                       <img 
                         src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
@@ -539,7 +545,7 @@
                     </div>
                     <div class="overflow-auto relative bg-transparent">
                       <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="cnvs-table">
-                        <thead class="sortable capitalize tracking-wide rounded-t-lg bg-orange-100">
+                        <thead class="sortable capitalize tracking-wide rounded-t-lg bg-yellow-100">
                           <tr id="cnv-table-header" class="border-b text-left border-gray-800 ">
                             <th class="px-2 py-3 font-semibold" id="cnv-table-header-genes">Genes</th>
                             <th class="px-2 py-3 font-semibold" id="cnv-table-header-region">Region</th>
@@ -673,17 +679,348 @@
         </div> <!-- End Full-width Wrapper -->
       </section>
     {% endif %}
-    
+
+    <!-- Translocations Card -->
+    {% if transloc %}
+      <section id="translocs" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
+        <!-- Translocs Header -->
+        <div class="overflow-x-auto relative">
+          <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">Translocations ({{ transloc.count() }})</h2>
+        </div>
+        
+        <div class="mx-auto py-2 " id="transloc-content">
+          <div class="flex flex-wrap gap-4 ">
+            <!-- Translocations Table -->
+            <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
+              <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
+                <h2 class="text-sm font-semibold text-black">Gene fusions passing filter criteria</h2>
+                <img 
+                  src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
+                  alt="Export to CSV - translocations" 
+                  onclick="exportTableToCSV('{{ sample.name }}.filtered.translocs.csv', 'transloc-table')" 
+                  class="w-6 h-6 transition-transform transform hover:scale-110"
+                />
+              </div>
+              {% if transloc and transloc.count() > 0 %}
+                <div class="overflow-auto relative">
+                  <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="transloc-table">
+                    <thead class="sortable capitalize tracking-wide rounded-t-lg bg-yellow-100">
+                      <tr id="transloc-table-header" class="border-b text-left border-gray-800">
+                        <th class="px-2 py-3 font-semibold" id="transloc-table-header-gene1">Gene 1</th>
+                        <th class="px-2 py-3 font-semibold" id="transloc-table-header-gene2">Gene 2</th>
+                        <th class="px-2 py-3 font-semibold" id="transloc-table-header-positions">Positions</th>
+                        <th class="px-2 py-3 font-semibold" id="transloc-table-header-type">Type</th>
+                        <th class="px-2 py-3 font-semibold" id="transloc-table-header-hgvs">HGVS</th>
+                        <th class="px-2 py-3 font-semibold" id="transloc-table-header-panel">Panel</th>
+                        <th class="px-2 py-3 font-semibold" id="transloc-table-header-status">Status</th>
+                        <th class="px-2 py-3 font-semibold" id="transloc-table-header-view">View</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for tl in transloc %}
+                        {% set ANN = tl.INFO.MANE_ANN or tl.INFO.ANN[0] %}
+                        {% set genes = ANN.Gene_Name.split('&') %}
+                        {% if tl.interesting %}
+                          <tr class="bg-green-100 hover:bg-green-200 border-t border-gray-400 text-left" id="transloc-table-row-interesting">
+                        {% else %}    
+                          <tr class="border-t border-gray-400 text-left" id="transloc-table-row">
+                        {% endif %}
+
+                          <td class="pl-2 py-2.5" id="transloc-table-row-gene1">
+                            {{ genes[0] }}
+                          </td>
+                          <td id="transloc-table-row-gene2">
+                            {{ genes[1] }}
+                          </td>
+                          <td id="transloc-table-row-positions">
+                            {{ tl.CHROM }}:{{ tl.POS }} {{ tl.ALT }}
+                          </td>
+                          <td id="transloc-table-row-type">
+                            {% for annot in ANN.Annotation %}
+                              {{ annot }}<br>
+                            {% endfor %}
+                          </td>
+                          <td id="transloc-table-row-hgvs">
+                            {{ ANN.HGVSp|unesc }}<br>{{ ANN.HGVSc|unesc }}
+                          </td>
+                          <td id="transloc-table-row-panel">
+                            {{ tl.INFO.PANEL }}
+                          </td>
+                          <td id="transloc-table-row-status">
+                            {% if tl.interesting %}
+                              report
+                            {% endif %}
+                          </td>
+                          <td id="transloc-table-row-view">
+                            <a href="{{ url_for('dna_bp.show_transloc', id=tl._id) }}" class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">view</a>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              {% else %}
+                <em class="block text-center text-gray-800 text-sm italic bg-gray-100 p-4 rounded-b-lg border border-gray-300 shadow-md">
+                  No translocations found with the current filter settings!
+                  <br>
+                </em> 
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </section>
+    {% endif %}
+
+    <!-- Fusion Card -->
+    {% if fusions %} <!-- TODO: CHECK THIS WITH TEST DATA -->
+      <section id="fusions" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
+        <!-- Fusions Header -->
+        <div class="overflow-x-auto relative">
+          <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">DNA Fusions ({{ fusions|length }})</h2>
+        </div>
+        
+        <div class="mx-auto py-2 " id="fusions-content">
+          <div class="flex flex-wrap gap-4 ">
+            <!-- Fusions Table -->
+            <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
+              <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-200 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
+                <h2 class="text-sm font-semibold text-black">DNA fusions passing filter criteria</h2>
+                <img 
+                  src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
+                  alt="Export to CSV - fusions" 
+                  onclick="exportTableToCSV('{{ sample.name }}.filtered.fusions.csv', 'fusions-table')" 
+                  class="w-6 h-6 transition-transform transform hover:scale-110"
+                />
+              </div>
+              {% if fusions and fusions|length > 0 %}
+                <div class="overflow-auto relative">
+                  <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="fusions-table">
+                    <thead class="sortable capitalize tracking-wide rounded-t-lg bg-yellow-100">
+                      <tr id="fusions-table-header" class="border-b text-left border-gray-800">
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-gene1">Gene 1</th>
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-gene2">Gene 2</th>
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-effect">Effect</th>
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-spanpairs">Spanning pairs</th>
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-unique-spanpairs" data-autoclick="true">Unique spanning reads</th>
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-fusion-points">Fusion points</th>
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-tier">Tier</th>
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-desc">Description</th>
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-callers">Callers</th>
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-view">View</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for fus in fusions %}
+                        {% set genes = fus.genes.split('^') %}
+                        {% set sel_fus = (fus.calls|selectattr('selected', 'equalto', 1) |list)[0] %}
+                        {% if fus.blacklisted or fus.fp %}
+                          <tr class="bg-red-200 opacity-60 hover:bg-red-300 border-t border-gray-400 text-left"id="fusions-table-row-blacklisted">
+                        {% else %}
+                          <tr class="border-t border-gray-400 text-left" id="fusions-table-row">
+                        {% endif %}
+                          <td class="pl-2 py-2.5" id="fusions-table-row-gene1">
+                            {{ genes[0] }}
+                          </td>
+                          <td id="fusions-table-row-gene2">
+                            {{ genes[1] }}
+                          </td>
+                          <td id="fusions-table-row-effect">
+                            {{ sel_fus.effect }}
+                          </td>
+                          <td id="fusions-table-row-spanpairs">
+                            {{ sel_fus.spanpairs }}
+                          </td>
+                          <td id="fusions-table-row-unique-spanpairs">
+                            {{ sel_fus.spanreads }}
+                          </td>
+                          <td id="fusions-table-row-fusion-points">
+                            {{ sel_fus.breakpoint1 }}<br>{{ sel_fus.breakpoint2 }}
+                          </td>
+                          <td class="py-2 px-3 border-b border-gray-300 varlist" sorttable_customkey="{{ fus.classification.class }}"  id="fusions-table-row-tier">
+                            {% if fus.classification.class != 999 %}
+                              <div class="inline-flex items-center px-3 py-1 font-semibold rounded-full bg-tier{{ fus.classification.class }} text-white shadow-md">
+                                {{ fus.classification.class }}
+                              </div>
+                            {% endif %}
+                          </td>
+                          <td id="fusions-table-row-desc">
+                            {{ sel_fus.desc|format_fusion_desc|safe }}
+                          </td>
+                          <td id="fusions-table-row-callers">
+                            {{ fus.calls|uniq_callers|join("<br>")|safe }}
+                          </td>
+                          <td id="fusions-table-row-view">
+                            <a href="{{ url_for('dna_bp.show_fusion', id=fus._id) }}" class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">view</a>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </section>
+    {% endif %}
 
 
+    <!-- Summary Comments Card -->
+    <section id="summary" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
+      <!-- Summary Header -->
+      <div class="overflow-x-auto relative">
+        <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">Summary</h2>
+      </div>
+
+      <div class="mx-auto py-2 " id="summary-content">
+        <div class="flex flex-wrap gap-4 ">
+          <!-- Summary comments Table -->
+          <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
+            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-blue-200 to-green-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
+              <h2 class="text-sm font-semibold text-black">Summary Comments</h2>
+            </div>
+            <div class="overflow-auto relative">
+              <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="summary-table">
+                <thead class="sortable capitalize tracking-wide rounded-t-lg bg-green-100">
+                  <tr id="summary-table-header" class="border-b text-left border-gray-800">
+                    <th class="px-2 py-3 font-semibold" id="comments-table-header-who">Who</th>
+                    <th class="px-2 py-3 font-semibold" id="comments-table-header-comment">Comment</th>
+                    <th class="px-2 py-3 font-semibold" id="comments-table-header-view">Hide/Unhide</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if sample.comments|length > 0 %}
+                    {% for comment in sample.comments|sort(attribute='time_created', reverse=True) %}
+                      {% if comment.hidden != 1 %}
+                        <tr class="hover:bg-green-50 border-t border-gray-400 text-left" id="comment-table-row">
+                      {% else %}
+                        <tr class="bg-red-200 opacity-60 hover:bg-red-300 border-t border-gray-400 text-left hidden hidden_comment" id="comment-table-row-hidden">
+                      {% endif %}
+                        <td class="px-2 whitespace-nowrap align-top py-4" id="comments-table-header-who">
+                          <b>{{ comment.author }}</b><br><small>{{ comment.time_created|human_date }}</small>
+                        </td>
+                        <td class="p-2" id="comments-table-header-comment" onclick='addText(event)'>
+                          {{ comment.text|format_comment|safe }}
+                        </td>
+                        <td class="px-2 align-top py-4" id="comments-table-header-view">
+                          {% set hidden_exists = 0 %}
+                          {% if comment.hidden != 1 %}
+                            <form action="{{ url_for('common_bp.hide_sample_comment', sample_id=sample._id) }}#summary" method="post">
+                              <input type="hidden" name="comment_id" value="{{ comment._id }}">
+                              <input id="hide_comment" type="image" class="w-5 hover:scale-105" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
+                            </form>
+                          {% else %}
+                            {% set hidden_exists = 1 %}
+                            <form action="{{ url_for('common_bp.unhide_sample_comment', sample_id=sample._id) }}#summary" method="post">
+                              <input type="hidden" name="comment_id" value="{{ comment._id }}">
+                              <input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
+                            </form>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                    {% if hidden_comments %}
+                      <tr>
+                        <td colspan=4 class="py-2 px-4 border-t border-gray-300 text-center text-sm text-gray-800">
+                          <a href="javascript:void(0)" onclick="switchVisibility('hidden_comment')"><b>Show/hide deleted comments</b></a>
+                        </td>
+                      </tr>
+                    {% endif %}
+                  {% else %}
+                    <tr>
+                      <td colspan=4 class="py-2 px-4 border-t border-gray-300 text-center text-sm text-gray-800">
+                        No comments available.
+                      </td>
+                    </tr>
+                  {% endif %}
+                <tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Add Comment Form -->
+          <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
+            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-blue-200 to-green-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
+              <h2 class="text-sm font-semibold text-black">Write New Summary</h2>
+            </div>
+            <div class="overflow-auto relative" id="comments-box-div">
+              <form action="{{ url_for('common_bp.add_sample_comment', id=sample._id) }}" method="post">
+                <textarea id="comment_textarea" name="sample_comment" placeholder="Type to write a new summary for {{ sample.name }} sample..." class="w-5/6 p-4 border border-gray-400 rounded mx-5 my-4 h-40"></textarea><br>
+                <input type="submit" value="Save" class="inline-block ml-10 mb-5 px-3 py-2 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg cursor-pointer">
+                <button type="button" class="inline-block ml-5 mb-5 px-3 py-2 text-black bg-gray-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-gray-500 hover:text-white hover:shadow-lg cursor-pointer" onclick="addAIText()">Suggest</button>
+                <button class="inline-block ml-5 mb-5 px-3 py-2 text-black bg-green-400 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-green-500 hover:text-white hover:shadow-lg cursor-pointer" onclick="window.location.href='preview_report/{{sample.name}}'">Preview report</button>
+              </form>
+              <div id="suggestion" class="hidden">
+                {{ ai_text }}
+              </div>
+            </div>
+          </div>
 
 
+        </div>
+      </div>
+    </section>
 
 
-
-
-
-  
+    <!-- Low Coverage Card old way -->
+    <section id="lowcov" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
+      <!-- Low Coverage Header -->
+      <div class="overflow-x-auto relative">
+        <div class="flex justify-between items-center">
+          <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">Coverage</h2>
+          <button class="bg-yellow-500 hover:bg-yellow-700 text-black text-xs mr-2 mt-1 px-5 py-1.5 rounded-md shadow-lg cursor-pointer duration-100 ease-in-out transform hover:scale-101" href='#lowcov' onclick="show_lowcov();">Show</button>
+        </div>
+      </div>
+      
+      <div class="mx-auto py-2 " id="lowcov-content">
+        <div class="flex flex-wrap gap-4 ">
+          <!-- Low Cov locations Table -->
+          <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
+            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-red-200 to-orange-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
+              <h2 class="text-sm font-semibold text-black">Low Coverage Regions</h2>
+              <img 
+                src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
+                alt="Export to CSV - lowcov" 
+                onclick="exportTableToCSV('{{ sample.name }}.filtered.lowcov.csv', 'lowcov-table')" 
+                class="w-6 h-6 transition-transform transform hover:scale-110"
+              />
+            </div>
+            <div class="overflow-auto relative">
+              <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="lowcov-table">
+                <thead class="sortable capitalize tracking-wide rounded-t-lg bg-orange-100">
+                  <tr class="border-b text-left border-gray-800" id="lowcov-table-header">
+                    <th class="px-2 py-3 font-semibold" id="lowcov-table-header-region">Chromosomal region</th>
+                    <th class="px-2 py-3 font-semibold" id="lowcov-table-header-size">Size (bp)</th>
+                    <th class="px-2 py-3 font-semibold" id="lowcov-table-header-avgDepth" data-autoclick-once="true">Avg depth (x)</th>
+                    <th class="px-2 py-3 font-semibold" id="lowcov-table-header-amplicon">Amplicon</th>
+                    <th class="px-2 py-3 font-semibold" id="lowcov-table-header-cosmicIds">COSMIC variants</th>
+                  </tr>
+                </thead>
+                <tbody id="lowcov-table-body" style="display:none">
+                  {% for low in low_cov %}
+                    {% if low.avg_cov < 500 %}
+                      <tr class="bg-red-50 hover:bg-red-100 border-t border-gray-400 text-left" id="lowcov-table-row">
+                    {% else %}
+                      <tr class="hover:bg-yellow-50 border-t border-gray-400 text-left" id="lowcov-table-row">
+                    {% endif %}
+                      <td class="pl-2 py-2.5" id="lowcov-table-row-region">{{ low.chr }}:{{ low.start }}-{{ low.end }}</td>
+                      <td id="lowcov-table-row-size">{{ low.end - low.start + 1 }}</td>
+                      <td id="lowcov-table-row-avgDepth">{{ low.avg_cov|int }}</td>
+                      <td id="lowcov-table-row-amplicon">{{ low.amplicon }}</td>
+                      <td id="lowcov-table-row-cosmicIds">
+                        {% for cosm in low.cosmic %}
+                          <span class="block" title="{{ cosm['cnt'] }}">{{ cosm["id"] }} - {{ cosm["cnt"]["haematopoietic_and_lymphoid_tissue"] }}</span>
+                        {% endfor %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
 
   </main>
@@ -787,21 +1124,56 @@
   }
   
   function show_lowcov() {
-    var lowcovDiv = document.getElementById("lowcov-div");
-    lowcovDiv.style.display = lowcovDiv.style.display == "none" ? "block" : "none";
-  }
-  
-  function show_germlinecnv() {
-    var germlineDiv = document.getElementById("germline_div");
-    germlineDiv.style.display = germlineDiv.style.display == "none" ? "block" : "none";
-  }
-  
-  function switchVisibility(class_name) {
-    var elems = document.getElementsByClassName(class_name);
-    for (var i = 0; i < elems.length; i++) {
-      elems[i].classList.toggle('hidden');
+    var lowcovDiv = document.getElementById("lowcov-table-body");
+    var button = document.querySelector("button[onclick='show_lowcov();']");
+
+    if (lowcovDiv.style.display === "none" || lowcovDiv.style.display === "") {
+        lowcovDiv.style.display = "block";
+        button.textContent = "Hide";
+    } else {
+        lowcovDiv.style.display = "none";
+        button.textContent = "Show";
     }
+}
+
+  
+function show_germlinecnv(button) {
+  var germlineDiv = document.getElementById("germline_div");
+
+  if (germlineDiv.style.display === "none" || germlineDiv.style.display === "") {
+      germlineDiv.style.display = "block";
+      button.classList.remove("bg-gray-400", "hover:bg-gray-500");
+      button.classList.add("bg-green-500", "hover:bg-green-600");
+  } else {
+      germlineDiv.style.display = "none";
+      button.classList.remove("bg-green-500", "hover:bg-green-600");
+      button.classList.add("bg-gray-400", "hover:bg-gray-500");
   }
+}
+
+  
+
+  
+  function switchVisibility(class_name, button) {
+    var elems = document.getElementsByClassName(class_name);
+
+    // Toggle visibility for all elements with the class
+    for (var i = 0; i < elems.length; i++) {
+        elems[i].classList.toggle('hidden');
+    }
+
+    // Toggle button text and color
+    if (button.textContent.includes("Hide")) {
+        button.textContent = button.textContent.replace("Hide", "Show");
+        button.classList.remove("bg-gray-400", "hover:bg-gray-500");
+        button.classList.add("bg-green-500", "hover:bg-green-600");
+    } else {
+        button.textContent = button.textContent.replace("Show", "Hide");
+        button.classList.remove("bg-green-500", "hover:bg-green-600");
+        button.classList.add("bg-gray-400", "hover:bg-gray-500");
+    }
+}
+
   
 
 

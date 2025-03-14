@@ -1,5 +1,20 @@
 <aside class="w-52 bg-transparent text-black flex flex-col overflow-y-auto shadow-2xl mx-1 py-1 px-1 right-0 h-full ">
 
+  <!-- Control actions -->
+  <div id="control-panel" class="p-1 px-2 space-y-2 w-full text-xs">
+    <div class="flex justify-between items-center mb-1">
+      <h2 class="text-sm font-semibold">Control Panel</h2>
+    </div>
+    <div class="flex justify-between mt-2">
+      <button class="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-1 rounded text-xs mx-1" onclick="switchVisibility('fp', this);">Hide FPs</button>
+      {% if assay == "solid" or assay == "gmsonco" %}
+          <button class="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-1 rounded text-xs mx-1" onclick="window.location.href='#'; show_germlinecnv(this);">Germline CNVs</button>    
+      {% endif %}
+    </div>
+  </div>
+
+  <hr class="broder border-gray-500 my-1">
+
   <!-- Variant actions -->
   <div id="snv-actions" class="p-1 px-2 space-y-2 w-full text-xs">
     <div class="flex justify-between items-center mb-1">
