@@ -1751,5 +1751,20 @@ th[data-order="desc"] .sort-arrow {
 
 /* Style table headers for sorting */
 
+/* Custom Max screen width */
+.max-w-screen-3xl {
+  max-width: 1920px;
+}
 
+.max-w-screen-4xl {
+  max-width: 2560px;
+}
+
+.max-w-screen-5xl {
+  max-width: 3200px;
+}
+
+.max-w-screen-6xl {
+  max-width: 3840px;
+}
 
