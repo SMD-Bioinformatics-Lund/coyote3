@@ -25,6 +25,7 @@
     <script src="{{ url_for('static', filename='js/jquery-3.1.1.slim.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/select2.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sortableTable.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pagination.js') }}"></script>
 
 
     <style>
@@ -90,7 +91,7 @@
       </header>
 
       <!-- NAVBAR (Below Header, No Absolute Positioning) -->
-      <nav class="bg-indigo-300 shadow-lg text-black px-2 py-1.5 flex space-x-4 pl-14 w-full">
+      <nav class="bg-indigo-300 shadow-lg text-black px-2 py-1.5 flex space-x-4 pl-14 w-full border-b-4 border-orange-400">
         {% set navbar = {
           'home': 'HOME',
           'samples': 'SAMPLES',
@@ -144,9 +145,9 @@
             {% set url = url_for('home_bp.main_screen', assay=name) %}
           {% endif %}
           {% if name == curr_page %}
-            <a href="{{ url }}" class="active text-gray-900 font-bold">{{ menu_label }}</a>
+            <a href="{{ url }}" class="active text-black font-bold">{{ menu_label }}</a>
           {% else %}
-            <a href="{{ url }}" class="text-gray-700 hover:text-gray-500">{{ menu_label }}</a>
+            <a href="{{ url }}" class="text-gray-600 hover:text-gray-900">{{ menu_label }}</a>
           {% endif %}
         {% endfor %}
       </nav>

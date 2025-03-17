@@ -547,6 +547,8 @@ def show_variant(id):
         sample_ids=sample_ids,
         bam_id=bam_id,
         annotations_interesting=annotations_interesting,
+        vep_var_class_translations=app.config.get("REPORT_CONFIG").get("VEP_VARIANT_CLASS_TRANSLATION"),
+        vep_conseq_translations=app.config.get("REPORT_CONFIG").get("VEP_CONSEQ_TRANSLATIONS"),
     )
 
 

@@ -172,7 +172,7 @@
       </div>
       
       <div class="mx-auto py-2 " id="snvs-content">
-        <div class="flex flex-wrap gap-4 ">
+        <div class="flex flex-wrap gap-4">
           <!-- SNVs/Indels Table -->
           <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
             <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
@@ -342,7 +342,7 @@
                                 {{ var.variant_class }}
                             </span>
                         {% endif %}
-                    </td>
+                      </td>
 
                       <!-- Consequence -->
                       <td id="snv-table-row-conseq" class="lowercase h-full items-left align-middle px-1 ">
@@ -446,7 +446,7 @@
                           View
                         </a>
                       </td>
-                  </tr>
+                    </tr>
                   {% endfor %}
                   </tbody>
                 </table>
@@ -483,51 +483,52 @@
     
               <!-- CNV Image (Sticky Floating) -->
               {% if has_cnv_image %}
-              <div class="cnv-image bg-transparent py-2 px-2">
-                <!-- Header with Toggle Switch -->
-                <div class="flex justify-between items-center bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 tracking-wide capitalize">
-                  <h2 class="text-sm">
-                    CNV Profile
-                  </h2>
-                  <!-- Toggle Switch -->
-                  <div class="flex items-center space-x-2">
-                    <span class="text-sm text-gray-800">Rotate</span>
-                    
+                <div class="cnv-image bg-transparent py-2 px-2">
+                  <!-- Header with Toggle Switch -->
+                  <div class="flex justify-between items-center bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 tracking-wide capitalize">
+                    <h2 class="text-sm">
+                      CNV Profile
+                    </h2>
                     <!-- Toggle Switch -->
-                    <label class="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" id="cnv-image-rotate-toggle" class="sr-only">
+                    <div class="flex items-center space-x-2">
+                      <span class="text-sm text-gray-800">Rotate</span>
                       
-                      <!-- Toggle Background -->
-                      <div id="cnv-image-toggle-bg" class="w-16 h-7 rounded-full flex items-center relative transition-all duration-300">
+                      <!-- Toggle Switch -->
+                      <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="cnv-image-rotate-toggle" class="sr-only">
                         
-                        <!-- Sliding Knob -->
-                        <div id="cnv-image-toggle-knob" class="absolute bg-white h-6 w-6 rounded-full shadow-md transition-transform duration-300"></div>
-                        
-                        <!-- Labels -->
-                        <div class="absolute inset-0 flex justify-between items-center px-2">
-                          <span id="cnv-image-deg-0" class="text-white transition-colors mr-1">0°</span>
-                          <span id="cnv-image-deg-90" class="text-black transition-colors ml-3">90°</span>
+                        <!-- Toggle Background -->
+                        <div id="cnv-image-toggle-bg" class="w-16 h-7 rounded-full flex items-center relative transition-all duration-300">
+                          
+                          <!-- Sliding Knob -->
+                          <div id="cnv-image-toggle-knob" class="absolute bg-white h-6 w-6 rounded-full shadow-md transition-transform duration-300"></div>
+                          
+                          <!-- Labels -->
+                          <div class="absolute inset-0 flex justify-between items-center px-2">
+                            <span id="cnv-image-deg-0" class="text-white transition-colors mr-1">0°</span>
+                            <span id="cnv-image-deg-90" class="text-black transition-colors ml-3">90°</span>
+                          </div>
+                          
                         </div>
-                        
-                      </div>
-                    </label>
-                    
+                      </label>
+                      
+                    </div>
                   </div>
-                </div>
-            
-                <div class="rounded-b-lg shadow-md p-4 sticky top-0">
-                  {% set build = sample.genome_build if "genome_build" in sample else 37 %}
-                  <!-- Image Container (Will be updated dynamically) -->
-                  <div id="cnv-image-container" class="flex justify-center items-center">
-                    <a id="cnv-image-link" href="{{ url_for('dna_bp.show_any_plot', fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}" target="_blank">
-                      <img id="cnv-image-img" 
+              
+                  <div class="rounded-b-lg shadow-md p-4 sticky top-0">
+                    {% set build = sample.genome_build if "genome_build" in sample else 37 %}
+                    <!-- Image Container (Will be updated dynamically) -->
+                    <div id="cnv-image-container" class="flex justify-center items-center">
+                      <a id="cnv-image-link" href="{{ url_for('dna_bp.show_any_plot', fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}" target="_blank">
+                        <img id="cnv-image-img" 
                           class="rounded-lg border border-gray-300 shadow-lg transition duration-300 ease-in-out transform scale-90 hover:scale-95"
-                          src="{{ url_for('dna_bp.show_any_plot_rotated', fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}">
-                    </a>
-                  </div>
-                </div>    
-              </div>
-            {% endif %}
+                          src="{{ url_for('dna_bp.show_any_plot_rotated', fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}"
+                        >
+                      </a>
+                    </div>
+                  </div>    
+                </div>
+              {% endif %}
             
 
               <!-- CNV Table -->
