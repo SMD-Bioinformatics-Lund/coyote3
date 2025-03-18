@@ -1,7 +1,5 @@
 {% extends "layout.html" %}
 
-
-
 {% block body %}
 
 
@@ -16,7 +14,7 @@
 <div class="flex w-full h-full overflow-hidden ">
 
   <!-- Variant Wall left side bar -->
-  <aside class="w-96 bg-gray-50 text-black flex flex-col overflow-y-auto shadow-xl rounded-lg mr-1 left-0 h-full border border-gray-400">
+  <aside class="w-80 bg-indigo-100 text-black flex flex-col overflow-y-auto shadow-xl rounded-lg mr-1 left-0 h-full border border-gray-400">
 
     <!-- Variant Wall -->
     <div class="flex justify-center items-center bg-gradient-to-r from-brown-300 to-brown-200 py-2 rounded-t-lg shadow-sm border-b border-black">
@@ -352,24 +350,60 @@
     </section>
 
 
-
+    <!-- Top buttons for links and actions -->
+    <div class="flex space-x-1 items-start">
+      <div class="relative">
+          <div class="absolute top-0 left-0 w-full h-1 bg-yellow-500"></div>
+          <a href="#cnvs"
+              class="relative bg-gray-500 text-white text-xs text-center py-1 px-2 transition-all duration-300 ease-in-out transform hover:translate-y-1 block">
+              CNVs
+          </a>
+      </div>
+      <div class="relative">
+          <div class="absolute top-0 left-0 w-full h-1 bg-yellow-500"></div>
+          <a href="#cnvs"
+              class="relative bg-gray-500 text-white text-xs text-center py-1 px-2 transition-all duration-300 ease-in-out transform hover:translate-y-1 block">
+              CNVs
+          </a>
+      </div>
+      <div class="relative">
+          <div class="absolute top-0 left-0 w-full h-1 bg-yellow-500"></div>
+          <a href="#cnvs"
+              class="relative bg-gray-500 text-white text-xs text-center py-1 px-2 transition-all duration-300 ease-in-out transform hover:translate-y-1 block">
+              CNVs
+          </a>
+      </div>
+      <div class="relative">
+          <div class="absolute top-0 left-0 w-full h-1 bg-yellow-500"></div>
+          <a href="#cnvs"
+              class="relative bg-gray-500 text-white text-xs text-center py-1 px-2 transition-all duration-300 ease-in-out transform hover:translate-y-1 block">
+              CNVs
+          </a>
+      </div>
+      <div class="relative">
+          <div class="absolute top-0 left-0 w-full h-1 bg-yellow-500"></div>
+          <a href="#cnvs"
+              class="relative bg-gray-500 text-white text-xs text-center py-1 px-2 transition-all duration-300 ease-in-out transform hover:translate-y-1 block">
+              CNVs
+          </a>
+      </div>
+    </div>
 
 
     <!-- other information cards -->
-    <!--<section class="bg-transparent px-2 py-3 my-2 flex items-start relative gap-2" id="information-cards">-->
+    <section class="bg-transparent px-2 py-3 my-2 flex flex-wrap items-start relative gap-10 m-2" id="information-cards">
 
-
-    <section class="bg-transparent px-2 py-1 my-1 grid grid-cols-2 max-content gap-3 max-w-screen-xl w-auto relative z-0 items-start" id="information-cards">
+    <!--<section class="bg-transparent px-2 py-1 my-1 grid grid-cols-3 gap-4 auto-rows-fr max-w-screen-5xl mx-auto relative z-0" id="information-cards-1">-->
 
       <!-- Comment box, other tiering and pon -->
-      <div class="flex flex-col gap-3 max-w-screen-sm w-auto">
+      <div class="flex flex-col gap-6 w-1/2 max-w-xl">
         <!-- Comment box -->
         {% if current_user.get_role() != "readonly" %}
-          <div class="bg-transparent w-full" id="commenting-box-card">
+          <div class="bg-transparent w-full max-w-xlg" id="commenting-box-card">
             <h2 class="text-sm font-semibold bg-gradient-to-b from-indigo-400 to-indigo-200 p-2 shadow-md rounded-t-lg">Add new comment/annotation</h2>
             <div id="commenting_box" class="rounded-b-lg border border-gray-400 shadow-md p-2">
               <form action="{{ url_for('dna_bp.add_variant_comment', id=variant._id) }}" method="post">
-                <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="w-full h-40 p-2 border border-gray-300 rounded-lg focus:bg-yellow-50 mb-4"></textarea><br>
+                <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="h-40 w-full p-2 border border-gray-300 rounded-lg focus:bg-yellow-50 mb-4"></textarea><br>
                 {% if sel_csq.HGVSc is defined %}
                   <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">      
                   <input type="hidden" name="transcript" value="{{ sel_csq.Feature }}">
@@ -390,16 +424,16 @@
         {% endif %}
 
         <!-- Other Tiering Information -->
-        <div class="bg-gray-50 w-auto shadow-md rounded-lg mb-1 pagination" data-rows-per-page="2" pagination-button-color="orange" pagination-button-text-color="black" id="other-tiering-info">
+        <div class="bg-gray-50 max-w-xl w-full shadow-md rounded-lg mb-1 pagination" data-rows-per-page="2" pagination-button-color="orange" pagination-button-text-color="black" id="other-tiering-info">
           <h2 class="text-sm font-semibold bg-gradient-to-b from-orange-400 to-orange-200 p-2 shadow-md rounded-t-lg">Other Tiering</h2>
           <div class="rounded-b-lg">
             {% if other_classifications %}
               <table class="w-full table-auto text-xs text-gray-800">
                 <thead class="capitalize tracking-wide rounded-t-lg bg-orange-100">
                   <tr class="border-b text-left border-gray-800">
-                    <th class="p-3 font-semibold w-1/6">Assay</th>
-                    <th class="p-3 font-semibold w-4/6">Diagnosis</th>
-                    <th class="p-3 font-semibold w-1/6">Tier</th>
+                    <th class="p-3 font-semibold ">Assay</th>
+                    <th class="p-3 font-semibold ">Diagnosis</th>
+                    <th class="p-3 font-semibold ">Tier</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -426,7 +460,7 @@
         </div>
 
         <!-- Panel of Normals -->
-        <div class="bg-gray-50 w-full shadow-md rounded-lg mb-1" id="panel-of-normals">
+        <div class="bg-gray-50 max-w-xl w-full shadow-md rounded-lg mb-1" id="panel-of-normals">
           <h2 class="text-sm font-semibold bg-gradient-to-b from-brown-400 to-brown-200 p-2 shadow-md rounded-t-lg">Panel of Normals</h2>
           <div class="rounded-b-lg">
             {% if pon is not none and pon|length > 0 %}
@@ -457,11 +491,63 @@
             {% endif %}
           </div>
         </div>
+
+        <!-- Alternate Transcripts Information -->
+        <div class="bg-gray-50 w-full max-w-xl shadow-md rounded-lg mb-1" id="alternate-transcripts-info">
+          <h2 class="text-sm font-semibold bg-gradient-to-b from-purple-400 to-purple-200 p-2 shadow-md rounded-t-lg">Alternate Transcripts             
+            {% if assay == "swea" or assay == "gmsonco" %}
+              <a href="javascript:void(0)" onclick="switchVisibility_noncanonicaltranscripts('noncanonical_transcript')" class="text-blue-600 hover:underline">
+                Show/hide
+              </a>
+            {% endif %}
+          </h2>
+          <div class="rounded-b-lg overflow-x-auto">
+            <table class="w-full max-w-xl text-xs text-gray-800 mx-auto">
+              <thead class="capitalize tracking-wide rounded-t-lg bg-purple-200">
+                <tr class="border-b text-left border-gray-800">
+                  <th class="px-1 py-2 font-semibold">Gene</th>
+                  <th class="px-1 py-2 font-semibold">Transcript</th>
+                  <th class="px-1 py-2 font-semibold">Exon</th>
+                  <th class="px-1 py-2 font-semibold">Protein Change</th>
+                  <th class="px-1 py-2 font-semibold">CDS Change</th>
+                  <th class="px-1 py-2 font-semibold">Tier</th>
+                </tr>
+              </thead>
+              <tbody id="alternate-transcripts-info-body" class="{% if variant.INFO.CSQ|length > 1 %}border-b border-gray-400 {% endif %}">
+                {% for csq in variant.INFO.CSQ %}
+                  {% if csq.BIOTYPE == "protein_coding" and (csq.HGVSp|length > 0 or csq.HGVSc|length > 0) %}
+                    {% if csq.Feature == sel_csq.Feature %}
+                      <tr class="bg-purple-100 hover:bg-green-100 border-t border-gray-400 text-left align-top">
+                    {% else %}
+                      <tr {% if assay == "swea" or assay == "gmsonco" %}class="noncanonical_transcript visibility-collapsed border-t border-gray-400 text-left align-top"{% else %}class="hover:bg-purple-50 border-t border-gray-400 text-left align-top"{% endif %}>
+                    {% endif %}
+                    <td class="p-2">{{ csq.SYMBOL }}</td>
+                    <td class="p-2">{{ csq.Feature }}</td>
+                    <td class="p-2">{{ csq.EXON }}</td>
+                    <td class="p-2 truncate overflow-hidden whitespace-nowrap" style="max-width: 1ch">{{ csq.HGVSp|unesc|safe }}</td>
+                    <td class="p-2 truncate overflow-hidden whitespace-nowrap" style="max-width: 1ch">{{ csq.HGVSc|unesc|safe }}</td>
+                    <td class="p-2">
+                      {% if alt_class and csq.Feature == alt_class.transcript and (csq.HGVSc == alt_class.variant or csq.HGVSp == alt_class.variant) %}
+                        <div class="inline-block px-2 py-1 text-xs font-bold text-white rounded-full bg-gray-400">
+                          {{ alt_class.class }}
+                        </div>
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
 
-      <div class="flex flex-col gap-3 max-w-screen-sm w-auto">
+      <div class="flex flex-col gap-6 w-1/2 max-w-2xl items-start">
         <!-- Variant annotations (All) -->
-        <div class="bg-gray-50 w-full pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="green" pagination-button-text-color="black" id="variant-annotations-all">
+        <div class="bg-gray-50 w-full max-w-2xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="green" pagination-button-text-color="black" id="variant-annotations-all">
           <h2 class="text-sm font-semibold bg-gradient-to-b from-green-400 to-green-200 p-2 shadow-lg rounded-t-lg">Variant Annotations (All)</h2>
           <div class="rounded-b-lg ">
             {% if annotations|length > 0 %}
@@ -498,7 +584,7 @@
         </div>
 
         <!-- Variant annotations (Assay) -->
-        <div class="bg-gray-50 w-full pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="blue" pagination-button-text-color="black" id="variant-annotations-assay">
+        <div class="bg-gray-50 w-full max-w-2xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="blue" pagination-button-text-color="black" id="variant-annotations-assay">
           <h2 class="text-sm font-semibold bg-gradient-to-b from-blue-400 to-blue-200 p-2 shadow-md rounded-t-lg">Variant Annotations (Assay)</h2>
           <div class="rounded-b-lg">
             {% if annotations_interesting|length > 0 %}
@@ -534,7 +620,7 @@
 
 
         <!-- Sample Specific Variant comments -->
-        <div class="bg-gray-50 w-full shadow-md rounded-lg mb-1" id="variant-comments">
+        <div class="bg-gray-50 w-full max-w-2xl shadow-md rounded-lg mb-1" id="variant-comments">
           <h2 class="text-sm font-semibold bg-gradient-to-b from-yellow-400 to-yellow-200 p-2 shadow-md rounded-t-lg">Sample-Specific Variant Comments</h2>
           <div class="rounded-b-lg">
             {% if variant.comments|length > 0 and current_user.get_role() != "readonly" %}
@@ -590,7 +676,7 @@
 
         <!-- MELT Annotations -->
         {% if "MELT" in variant.INFO.variant_callers %}
-          <div class="bg-gray-50 max-w-sm w-full shadow-md rounded-lg mb-1" id="melt-annotations">
+          <div class="bg-gray-50 max-w-lg w-full shadow-md rounded-lg mb-1" id="melt-annotations">
             <h2 class="text-sm font-semibold bg-gradient-to-b from-teal-400 to-teal-200 p-2 shadow-md rounded-t-lg">MELT-Specific Annotations</h2>
             <div class="rounded-b-lg">
               <table class="w-full text-xs text-gray-800">
@@ -617,66 +703,9 @@
           </div>
         {% endif %}
 
-      </div>
-
-    </section>
-
-    <section class="bg-transparent px-2 py-3 my-2 flex items-start relative gap-4" id="information-cards">
-
-        <!-- Alternate Transcripts Information -->
-        <div class="bg-gray-50 max-w-screen-sm w-full shadow-md rounded-lg mb-1" id="alternate-transcripts-info">
-          <h2 class="text-sm font-semibold bg-gradient-to-b from-purple-400 to-purple-200 p-2 shadow-md rounded-t-lg">Alternate Transcripts             
-            {% if assay == "swea" or assay == "gmsonco" %}
-              <a href="javascript:void(0)" onclick="switchVisibility_noncanonicaltranscripts('noncanonical_transcript')" class="text-blue-600 hover:underline">
-                Show/hide
-              </a>
-            {% endif %}
-          </h2>
-          <div class="rounded-b-lg">
-            <table class="w-full text-xs break-all text-gray-800">
-              <thead class="capitalize tracking-wide rounded-t-lg bg-purple-200">
-                <tr class="border-b text-left border-gray-800 break-all">
-                  <th class="px-1 py-2 font-semibold">Gene</th>
-                  <th class="px-1 py-2 font-semibold">Transcript</th>
-                  <th class="px-1 py-2 font-semibold">Exon</th>
-                  <th class="px-1 py-2 font-semibold">Protein Change</th>
-                  <th class="px-1 py-2 font-semibold">CDS Change</th>
-                  <th class="px-1 py-2 font-semibold">Tier</th>
-                </tr>
-              </thead>
-              <tbody id="alternate-transcripts-info-body" class="{% if variant.INFO.CSQ|length > 1 %}border-b border-gray-400 {% endif %}">
-                {% for csq in variant.INFO.CSQ %}
-                  {% if csq.BIOTYPE == "protein_coding" and (csq.HGVSp|length > 0 or csq.HGVSc|length > 0) %}
-                    {% if csq.Feature == sel_csq.Feature %}
-                      <tr class="bg-purple-100 hover:bg-green-100 border-t border-gray-400 text-left align-top">
-                    {% else %}
-                      <tr {% if assay == "swea" or assay == "gmsonco" %}class="noncanonical_transcript visibility-collapsed border-t border-gray-400 text-left align-top"{% else %}class="hover:bg-purple-50 border-t border-gray-400 text-left align-top"{% endif %}>
-                    {% endif %}
-                    <td class="p-2">{{ csq.SYMBOL }}</td>
-                    <td class="p-2">{{ csq.Feature }}</td>
-                    <td class="p-2">{{ csq.EXON }}</td>
-                    <td class="p-2 whitespace-normal">{{ csq.HGVSp|unesc|safe }}</td>
-                    <td class="p-2 whitespace-normal">{{ csq.HGVSc|unesc|safe }}</td>
-                    <td class="p-2">
-                      {% if alt_class and csq.Feature == alt_class.transcript and (csq.HGVSc == alt_class.variant or csq.HGVSp == alt_class.variant) %}
-                        <div class="inline-block px-2 py-1 text-xs font-bold text-white rounded-full bg-gray-400">
-                          {{ alt_class.class }}
-                        </div>
-                      {% else %}
-                        -
-                      {% endif %}
-                    </td>
-                  </tr>
-                  {% endif %}
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
         <!-- Knowledge Base -->
         <!-- Modify the table body classes -->
-        <div class="bg-gray-50 max-w-screen-sm w-full shadow-md rounded-lg mb-1" id="knowledge-base-card">
+        <div class="bg-gray-50 w-full max-w-2xl shadow-md rounded-lg mb-1" id="knowledge-base-card">
           <h2 class="text-sm font-semibold bg-gradient-to-b from-pink-400 to-pink-200 p-2 shadow-md rounded-t-lg">Knowledge Base</h2>
           <div class="rounded-b-lg">
             <table class="w-full table-auto text-xs text-gray-800">
@@ -858,6 +887,8 @@
             </table>
           </div>
         </div>
+      
+      </div>
 
     </section>
 
