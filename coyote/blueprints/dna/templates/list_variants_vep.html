@@ -462,14 +462,14 @@
 
     <!-- CNVs Container -->
     {% set has_cnv_image = sample.cnvprofile is not none %}
-    {% set has_cnv_table = cnvwgs and cnvwgs|length > 0 %}
+    {% set has_cnv_table = cnvwgs %}
     
     {% if has_cnv_table or has_cnv_image %}
       <section id="cnvs" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative w-full">
         <!-- CNVs Header -->
         <div class="overflow-x-auto relative">
           <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">
-            CNVs ({{ cnvwgs|length }})
+            CNVs {% if cnvwgs %}({{ cnvwgs|length }}){% endif %}
           </h2>
         </div>
     

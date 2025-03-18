@@ -48,6 +48,16 @@ class CommonUtility:
         return {}
 
     @staticmethod
+    def get_unknown_default_parameters(grp: str = "unknown-default") -> dict:
+        """
+        Get group paramters data
+        """
+        conf = app.config.get("GROUP_CONFIGS")
+        if conf is not None:
+            return deepcopy(conf.get("unknown-default"))
+        return {}
+
+    @staticmethod
     def table_config() -> dict:
         conf = app.config.get("TABLE")
         return deepcopy(conf)
@@ -146,7 +156,7 @@ class CommonUtility:
         """
         Return Default dict (either group defaults or coyote defaults) and setting per sample
         """
-        settings = app.config.get("GROUP_FILTERS")
+        settings = deepcopy(app.config.get("GROUP_FILTERS"))
         # Get group specific settings
         if group is not None:
             settings["error_cov"] = int(group.get("error_cov", settings["error_cov"]))
@@ -248,7 +258,7 @@ class CommonUtility:
             filter_genes.extend(genes)
 
         return list(set(filter_genes))
-    
+
     @staticmethod
     def create_genelists_dict(list_names: list, gene_lists: dict) -> dict:
         """
@@ -503,10 +513,10 @@ class CommonUtility:
         Get today's date
         """
         return datetime.now().strftime("%Y-%m-%d")
-    
+
     @staticmethod
     def get_date_days_ago(days: int) -> str:
         """
         Get date a specified number of days ago
         """
-        return (datetime.now() - timedelta(days=days))
+        return datetime.now() - timedelta(days=days)
