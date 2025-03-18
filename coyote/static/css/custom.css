@@ -174,11 +174,63 @@ background-color: #f7f7ff;
 .bg-tier4 {
   background-color: #43a047; /* Bright Green */
 }
+
+.bg-tier999 {
+  background-color: #2222229d; /* Bright Green */
+}
+
 .bg-tierother {
   background-color: #c0ca33; /* Bright Yellow-Green */
 }
+
+.bg-tier-header1 {
+  background-color: rgba(252, 165, 165, 0.5); /*  Red */
+}
+.bg-tier-header2 {
+  background-color: rgba(249, 168, 212, 0.5); /*  Pink */
+}
+.bg-tier-header3 {
+  background-color: rgba(165, 180, 252, 0.5); /* indigo */
+}
+.bg-tier-header4 {
+  background-color: rgba(82, 225, 159, 0.5); /*  Green */
+}
+
+.bg-tier-header999 {
+  background-color: rgba(149, 140, 140, 0.5); /* Gray */
+}
+
+.bg-tierother {
+  background-color: #c0ca33; /* Bright Yellow-Green */
+}
+
 .bg-remove {
   background-color: #e0e0e0; /* Light Grey */
+}
+
+.td_bg_class-1 { 
+  --tw-bg-opacity: 1;
+  background-color: rgba(254, 242, 242, var(--tw-bg-opacity));
+}
+
+.td_bg_class-2 { 
+  --tw-bg-opacity: 1;
+  background-color: rgba(253, 242, 248, var(--tw-bg-opacity));
+}
+
+.td_bg_class-3 { 
+  --tw-bg-opacity: 1;
+  background-color: rgba(238, 242, 255, var(--tw-bg-opacity));
+}
+
+.td_bg_class-4 { 
+  --tw-bg-opacity: 1;
+  background-color: rgba(236, 253, 245, var(--tw-bg-opacity));
+}
+
+.td_bg_class-999 { 
+  --tw-bg-opacity: 1;
+  background-color: rgba(249, 250, 251, var(--tw-bg-opacity));
 }
 
 /* Custom CSS for each Variant detailed view page */
@@ -289,6 +341,10 @@ tr.highlightannotation { background-color: rgb(96, 194, 93); }
 
 .w-90_per {
   width: 90%;
+}
+
+.min-w-50_per {
+  width: 50%;
 }
 
 .hidden_comment {

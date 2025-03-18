@@ -3,11 +3,11 @@
 
 {% set germline = True if sample.name == "11400-19" %}
 
-{% if pdf != 1 %}
+{% if save != 1 %}
 <div
   style="background-color:#FCC; border:1px solid #EAA; width:300px; text-align:center; padding:20px; margin:10px 10px 30px 10px;">
   <b>*** PREVIEW OF REPORT ***</b><br><br>
-  <a target="_blank" class="button" href="pdf/{{sample.name}}">Finalize report</a>
+  <a target="_blank" class="button" href="{{ url_for('dna_bp.save_dna_report', id=sample.name ) }}">Finalize report</a>
 </div>
 
 {% endif %}
@@ -28,7 +28,7 @@
     <tr>
       <td class="top_report_key">Prov-ID</td>
       <td class="top_report_val">{{ sample.name }};
-        &lt;TUMOR_CREATION_DATE&gt;{% if not germline and sample.num_samples == 2 %}
+        &lt;TUMOR_CREATION_DATE&gt;{% if sample.num_samples == 2 %}
         (Kontrollprov: &lt;PAIRED_SAMPLE_NAME&gt;;&lt;TUMOR_NORMAL_CREATION_DATE&gt;){% endif %}</td>
     </tr>
     <tr>
@@ -36,18 +36,12 @@
       <td class="top_report_val">&lt;REGISTRATION_DATE&gt;</td>
     </tr>
     <tr>
-      {% if assay=="swea" or assay=="gmsonco" %}
         <td class="top_report_key">Provtyp</td>
-        <td class="top_report_val">Tumörprov - &lt;SAMPLE_TYPE&gt;
-          {% if clarity["Paired Sample Name"] %}
-            / Blodprov
-          {% endif %}
-        </td>
-      <!-- <td class="top_report_key">Provtyp</td><td class="top_report_val">Blodprov, {{ clarity["Nucleotide Type"] }}</td> -->
-      {% else %}
-        <td class="top_report_key">Provtyp</td>
-        <td class="top_report_val">&lt;SAMPLE_TYPE&gt;</td>
-      {% endif %}
+        <td class="top_report_val">&lt;TUMOR_SAMPLE_TYPE&gt;</td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Kontrollprovtyp</td>
+      <td class="top_report_val">&lt;NORMAL_SAMPLE_TYPE&gt;</td>
     </tr>
     {% if assay != "swea" and assay != "gmsonco" %}
     <tr>
@@ -107,20 +101,19 @@
 </div>
 
 <!--  Variant Summary -->
-{% if assay == "tumwgs" %}
-  <span class="report_header">Kliniskt relevanta SNVs och små INDELs</span>
-{% else %}
-  <span class="report_header">Analysresultat</span>
-{% endif %}
+<span class="report_header">Analysresultat</span>
+<span class="report_header">Kliniskt relevanta SNVs och små INDELs</span>
 <table class="variant_table">
   <tr>
     <th>Gen</th>
     <th>Variant</th>
     <th>Variantfrekvens</th>
     <th>Klassificering</th>
+    <!-- We are not using hotspot for now
     {% if simple_variants | has_hotspot %}
       <th>Hotspot*</th>
     {% endif %}
+    -->
   </tr>
   {% for var in simple_variants %}
       <tr>
@@ -128,9 +121,11 @@
         <td>{{ var.variant|unesc }}</td>
         <td>{{ var.af|perc_no_dec }}</td>
         <td>{{ var.class_short_desc }}</td>
+        <!-- We are not using hotspot for now
         {% if simple_variants | has_hotspot %}
           <td>{{ ','.join(var.hotspot)|safe }}</td>
         {% endif %}
+        -->
       </tr>
   {% else %}
       <tr>
@@ -139,18 +134,16 @@
   {% endfor %}
 </table>
 
+<!-- We are not using hotspot for now 
 {% if assay == "solid"%}
 * MM:malignt melanom, CO: kolorektal, LU: lunga, GI: gastro-intestinal, CNS: centrala nervsystemet, D: generell solid
 {% endif %}
+-->
 
 <!-- CNV Summary -->
 {% if cnvs %}
-  {% if assay == "tumwgs" %}
-    <span class="report_header">Kliniskt relevanta kopietalsförändringar</span>
-  {% else %}
-    <span class="report_header">Kliniskt relevanta genspecifika kopietalsförändringar</span>
-  {% endif %}
-
+  <span class="report_header">Kliniskt relevanta kopietalsförändringar</span>
+  
   <table class="variant_table">
     <tr>
       <th>Gen(er)</th>
@@ -190,15 +183,7 @@
     {% else %}
       <tr>
         <td>
-          {% if assay == "tumwgs" %}
-            Inga detekterade kopietalsförändringar.
-          {% else %}
-            Inga detekterade genspecifika kopietalsförändringar.
-            {% if assay == "solid" %}
-            {% else %}
-              För eventuella större förändringar, se under slutsats
-            {% endif %}
-          {% endif %}
+          Inga detekterade kopietalsförändringar.
         </td>
       </tr>
     {% endif %}
@@ -207,11 +192,7 @@
 
 <!-- DNA Fusions Summary -->
 {% if translocs %}
-  {% if assay == "tumwgs" %}
-    <span class="report_header">Kliniskt relevanta fusioner</span>
-  {% else %}
-    <span class="report_header">Kliniskt relevanta fusioner (DNA)</span>
-  {% endif %}
+  <span class="report_header">Kliniskt relevanta fusioner (DNA)</span>
 
   <table class="variant_table">
     <tr>
@@ -314,11 +295,13 @@
 <br>
 
 <!-- CNV Profile for WGS samples -->
-{% if assay == "tumwgs" %}
+{% if assay == "tumwgs" and cnv_profile_base64 is not none %}
   <span class="report_header">Kopietalsprofil, genomisk översikt</span>
   <div style="transform:rotate(90deg);">
-    <br><img style="width:900px; height:auto; padding:30px;" src="{{ url_for('dna_bp.show_any_plot', fn=sample.cnvprofile|basename, assay=assay, build="" ) }}">
+    <!-- <img style="width:900px; height:auto; padding:30px;" src="{{ url_for('dna_bp.show_any_plot', fn=sample.cnvprofile|basename , assay=assay, build=build ) }}"> -->
+    <img style="width:900px; height:auto; padding:30px;" src="data:image/png;base64,{{ cnv_profile_base64 }}">
   </div>
+<p style="page-break-after: always;"></p>
 {% endif %}
 
 <!-- Detailed list of each variants reported -->
@@ -427,13 +410,6 @@
         {% endif %}
       </table>
     </div>
-  {% else %}
-    {% if assay == "swea" %}
-      Inga avvikelser av klinisk signifikans har påvisats.<br>
-    {% else %}
-      Inga varianter detekterade<p>
-    <p>
-    {% endif %}
   {% endfor %}
 {% endif %}
 
@@ -458,19 +434,11 @@
     <b>Tabell 1: Förklaring av klassificering</b>
     <p>
     <table class="info">
-      {% if assay == "solid" %}
-        <tr>
-          <td>Tier I</td>
-          <td>Variant av stark klinisk signifikans (genvarianter som är diagnostiska, behandlingsstyrande eller
-            riskstratifierande enligt gällande riktlinjer)</td>
-        </tr>
-      {% else %}
-        <tr>
-          <td>Tier I</td>
-          <td>Variant av stark klinisk signifikans (genvarianter som är diagnostiska, behandlingsstyrande eller
-            riskstratifierande enligt gällande riktlinjer)</td>
-        </tr>
-      {% endif %}
+      <tr>
+        <td>Tier I</td>
+        <td>Variant av stark klinisk signifikans (genvarianter som är diagnostiska, behandlingsstyrande eller
+          riskstratifierande enligt gällande riktlinjer)</td>
+      </tr>
       <tr>
         <td>Tier II</td>
         <td>Variant av potentiell klinisk signifikans (varianter i gener beskrivna i ett flertal publikationer)</td>

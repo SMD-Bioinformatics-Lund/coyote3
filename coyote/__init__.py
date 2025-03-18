@@ -4,6 +4,7 @@ from flask import Flask
 from flask_cors import CORS
 import config
 from . import extensions
+from .errors import register_error_handlers
 
 
 def init_app(testing: bool = False, debug: bool = False) -> Flask:
@@ -40,6 +41,9 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
         register_blueprints(app)
         init_ldap(app)
         init_utility(app)
+
+        # Register error handlers
+        register_error_handlers(app)
 
     app.logger.info("App initialization finished. Returning app.")
     return app
@@ -116,6 +120,11 @@ def register_blueprints(app) -> None:
 
     app.register_blueprint(genepanels_bp, url_prefix="/genepanels")
 
+    # register coverage bp
+    bp_debug_msg("cov_bp")
+    from coyote.blueprints.coverage import cov_bp
+
+    app.register_blueprint(cov_bp, url_prefix="/cov")
 
 def init_login_manager(app) -> None:
     app.logger.debug("Initializing login_manager")

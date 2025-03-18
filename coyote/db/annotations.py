@@ -17,24 +17,21 @@ class AnnotationsHandler(BaseHandler):
         genomic_location = (
             f"{str(variant['CHROM'])}:{str(variant['POS'])}:{variant['REF']}/{variant['ALT']}"
         )
-        if len(variant["INFO"]["selected_CSQ"]["HGVSp"]) > 0:
+        selected_CSQ = variant["INFO"]["selected_CSQ"]
+        if len(selected_CSQ["HGVSp"]) > 0:
             annotations = (
                 self.get_collection()
                 .find(
                     {
-                        "gene": variant["INFO"]["selected_CSQ"]["SYMBOL"],
+                        "gene": selected_CSQ["SYMBOL"],
                         "$or": [
                             {
                                 "nomenclature": "p",
-                                "variant": self.no_transid(
-                                    variant["INFO"]["selected_CSQ"]["HGVSp"]
-                                ),
+                                "variant": self.no_transid(selected_CSQ["HGVSp"]),
                             },
                             {
                                 "nomenclature": "c",
-                                "variant": self.no_transid(
-                                    variant["INFO"]["selected_CSQ"]["HGVSc"]
-                                ),
+                                "variant": self.no_transid(selected_CSQ["HGVSc"]),
                             },
                             {"nomenclature": "g", "variant": genomic_location},
                         ],
@@ -42,18 +39,16 @@ class AnnotationsHandler(BaseHandler):
                 )
                 .sort("time_created", 1)
             )
-        elif len(variant["INFO"]["selected_CSQ"]["HGVSc"]) > 0:
+        elif len(selected_CSQ["HGVSc"]) > 0:
             annotations = (
                 self.get_collection()
                 .find(
                     {
-                        "gene": variant["INFO"]["selected_CSQ"]["SYMBOL"],
+                        "gene": selected_CSQ["SYMBOL"],
                         "$or": [
                             {
                                 "nomenclature": "c",
-                                "variant": self.no_transid(
-                                    variant["INFO"]["selected_CSQ"]["HGVSc"]
-                                ),
+                                "variant": self.no_transid(selected_CSQ["HGVSc"]),
                             },
                             {"nomenclature": "g", "variant": genomic_location},
                         ],
@@ -75,6 +70,7 @@ class AnnotationsHandler(BaseHandler):
 
         for anno in annotations:
             if "class" in anno:
+                anno["class"] = int(anno["class"])
                 ## collect latest for current assay (if latest not assigned pick that)
                 ## also collect latest anno for all other assigned assays (including non-assays)
                 ## special rule for assays with subpanels, solid, tumwgs maybe lymph?
@@ -129,6 +125,65 @@ class AnnotationsHandler(BaseHandler):
 
         return annotations_arr, latest_classification, latest_other_arr, annotations_interesting
 
+    def get_additional_classifications(self, variant: dict, assay: str, subpanel: str) -> dict:
+        """
+        Retrieve additional classifications for a given variant based on specified assay and subpanel.
+        This method constructs a query to search for classifications in the database that match the
+        provided variant's genes, transcripts, and nomenclature variants (HGVSp and HGVSc). If the
+        assay type is 'solid', it further filters the results by assay and subpanel.
+        Args:
+            variant (dict): A dictionary containing variant details including 'transcripts', 'HGVSp',
+                            'HGVSc', and 'genes'.
+            assay (str): The type of assay being used (e.g., 'solid').
+            subpanel (str): The subpanel identifier for further filtering when assay is 'solid'.
+        Returns:
+            list: A list of annotations that match the query criteria, sorted by the time they were created.
+
+        """
+        transcripts = variant["transcripts"]
+        transcript_patterns = [f"^{transcript}(\\..*)?$" for transcript in transcripts]
+        hgvsp = variant["HGVSp"]
+        hgvsc = variant["HGVSc"]
+        genes = variant["genes"]
+        query = {
+            "gene": {"$in": genes},
+            "transcript": {"$regex": "|".join(transcript_patterns)},
+            "$or": [
+                {"nomenclature": "p", "variant": {"$in": hgvsp}},
+                {"nomenclature": "c", "variant": {"$in": hgvsc}},
+                {"nomenclature": "g", "variant": variant["simple_id"]},
+            ],
+            "assay": assay,
+            "class": {"$exists": True},
+        }
+        if assay == "solid":
+            query["subpanel"] = subpanel
+
+        return list(self.get_collection().find(query).sort("time_created", -1).limit(1))
+
+    def add_alt_class(self, variant: dict, assay: str, subpanel: str) -> list[dict]:
+        """
+        Add alternative classifications to a list of variants based on the specified assay and subpanel.
+        Args:
+            variants (dict): A dict of a variant to be annotated.
+            assay (str): The type of assay being used (e.g., 'solid').
+            subpanel (str): The subpanel identifier for further filtering when assay is 'solid'.
+        Returns:
+            list: A list of variants with additional classifications added to them.
+
+        """
+        additional_classifications = self.get_additional_classifications(variant, assay, subpanel)
+        if additional_classifications:
+            additional_classifications[0].pop("_id", None)
+            additional_classifications[0].pop("author", None)
+            additional_classifications[0].pop("time_created", None)
+            additional_classifications[0]["class"] = int(additional_classifications[0]["class"])
+            variant["additional_classification"] = additional_classifications[0]
+        else:
+            variant["additional_classification"] = None
+
+        return variant
+
     def no_transid(self, nom):
         a = nom.split(":")
         if 1 < len(a):
@@ -136,45 +191,36 @@ class AnnotationsHandler(BaseHandler):
         return nom
 
     def insert_classified_variant(
-        self, variant: str, nomenclature: str, class_num: int, variant_data: dict
+        self, variant: str, nomenclature: str, class_num: int, variant_data: dict, **kwargs
     ) -> None:
         """
         Insert Classified variant
         """
-        if nomenclature != "f":
-            if self.get_collection().insert_one(
-                {
-                    "class": class_num,
-                    "author": self.current_user.get_id(),
-                    "time_created": datetime.now(),
-                    "variant": variant,
-                    "nomenclature": nomenclature,
-                    "transcript": variant_data.get("transcript", None),
-                    "gene": variant_data.get("gene", None),
-                    "assay": variant_data.get("assay", None),
-                    "subpanel": variant_data.get("subpanel", None),
-                }
-            ):
-                flash("Variant classified", "green")
-            else:
-                flash("Variant classification failed", "red")
+        document = {
+            "author": self.current_user.get_id(),
+            "time_created": datetime.now(),
+            "variant": variant,
+            "nomenclature": nomenclature,
+            "assay": variant_data.get("assay", None),
+            "subpanel": variant_data.get("subpanel", None),
+        }
+
+        if "text" in kwargs:
+            document["text"] = kwargs["text"]
         else:
-            if self.get_collection().insert_one(
-                {
-                    "class": class_num,
-                    "author": self.current_user.get_id(),
-                    "time_created": datetime.now(),
-                    "variant": variant,
-                    "nomenclature": nomenclature,
-                    "gene1": variant_data.get("gene1", None),
-                    "gene2": variant_data.get("gene2", None),
-                    "assay": variant_data.get("assay", None),
-                    "subpanel": variant_data.get("subpanel", None),
-                }
-            ):
-                flash("Variant classified", "green")
-            else:
-                flash("Variant classification failed", "red")
+            document["class"] = class_num
+
+        if nomenclature != "f":
+            document["gene"] = variant_data.get("gene", None)
+            document["transcript"] = variant_data.get("transcript", None)
+        else:
+            document["gene1"] = variant_data.get("gene1", None)
+            document["gene2"] = variant_data.get("gene2", None)
+
+        if self.get_collection().insert_one(document):
+            flash("Variant classified", "green")
+        else:
+            flash("Variant classification failed", "red")
 
         return None
 

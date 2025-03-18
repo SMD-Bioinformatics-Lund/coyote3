@@ -21,25 +21,44 @@ from coyote.extensions import util
 def home_screen(status="live"):
     form = SampleSearchForm()
     search_str = ""
+    search_slider_values = {1: "done", 2: "both", 3: "live"}
+    search_mode = None
+
     if request.method == "POST" and form.validate_on_submit():
         search_str = form.sample_search.data
+        search_mode = search_slider_values[int(form.search_mode_slider.data)]
+
+    limit_done_samples = 50
+    if request.args.get("all") == "1" or search_mode:
+        limit_done_samples = None
+
+    if not search_mode:
+        search_mode = status
+        show_all = True
+    else:
+        status = search_mode
+        show_all = False
 
     user_groups = current_user.get_groups()
 
-    limit_done_samples = 50
-    if request.args.get("all") == "1":
-        limit_done_samples = None
-
-    if status == "done":
-        live_samples = []
+    if status == "done" or search_mode in ["done", "both"]:
         done_samples = store.sample_handler.get_samples(
             user_groups=user_groups, search_str=search_str, report=True, limit=limit_done_samples
         )
+    elif status == "live":
+        time_limit = util.common.get_date_days_ago(days=1000)
+        done_samples = store.sample_handler.get_samples(
+            user_groups=user_groups, search_str=search_str, report=True, time_limit=time_limit
+        )
     else:
+        done_samples = []
+
+    if status == "live" or search_mode in ["live", "both"]:
         live_samples = store.sample_handler.get_samples(
             user_groups=user_groups, search_str=search_str, report=False
         )
-        done_samples = []
+    else:
+        live_samples = []
 
     # Add date for latest report to done_samples
     for samp in done_samples:
@@ -59,6 +78,8 @@ def home_screen(status="live"):
         form=form,
         assay=None,
         status=status,
+        search_mode=search_mode,
+        show_all=show_all,
     )
 
 
@@ -92,32 +113,50 @@ def main_screen(assay=None, status="live"):
 
     form = SampleSearchForm()
     search_str = ""
+    search_slider_values = {1: "done", 2: "both", 3: "live"}
+    search_mode = None
+
     if request.method == "POST" and form.validate_on_submit():
         search_str = form.sample_search.data
+        search_mode = search_slider_values[int(form.search_mode_slider.data)]
+
+    limit_done_samples = 50
+    if request.args.get("all") == "1" or search_mode:
+        limit_done_samples = None
+
+    if not search_mode:
+        search_mode = status
+        show_all = True
+    else:
+        status = search_mode
+        show_all = False
 
     user_groups = current_user.get_groups()
+
     if assay:
         if assay in user_groups:
             user_groups = [assay]
         else:
             user_groups = []
 
-    limit_done_samples = 50
-    if request.args.get("all") == "1":
-        limit_done_samples = None
-
-    if status == "done":
-        live_samples = []
+    if status == "done" or search_mode in ["done", "both"]:
         done_samples = store.sample_handler.get_samples(
             user_groups=user_groups, search_str=search_str, report=True, limit=limit_done_samples
         )
     elif status == "live":
+        time_limit = util.common.get_date_days_ago(days=1000)
+        done_samples = store.sample_handler.get_samples(
+            user_groups=user_groups, search_str=search_str, report=True, time_limit=time_limit
+        )
+    else:
+        done_samples = []
+
+    if status == "live" or search_mode in ["live", "both"]:
         live_samples = store.sample_handler.get_samples(
             user_groups=user_groups, search_str=search_str, report=False
         )
-        done_samples = []
     else:
-        return redirect(url_for("home_bp.panels_screen", assay=assay, status="live"))
+        live_samples = []
 
     # Add date for latest report to done_samples
     for samp in done_samples:

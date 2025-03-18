@@ -8,12 +8,51 @@ from bson.objectid import ObjectId
 from coyote.util.common_utility import CommonUtility
 from flask import current_app as app
 from coyote.extensions import store
+from bisect import bisect_left
 
 
 class DNAUtility:
     """
     Utility class for variants blueprint
     """
+
+    @staticmethod
+    def get_protein_coding_genes(var_iter: list) -> tuple[list, list]:
+        """
+        Get protein coding genes from a variant list
+        """
+        genes = set()
+        variants = []
+        for var in var_iter:
+            if var["INFO"].get("selected_CSQ", {}).get("BIOTYPE") == "protein_coding":
+                genes.add(var["INFO"]["selected_CSQ"]["SYMBOL"])
+            for csq in var["INFO"]["CSQ"]:
+                if csq["BIOTYPE"] == "protein_coding":
+                    genes.add(csq["SYMBOL"])
+            variants.append(var)
+
+        return variants, list(genes)
+
+    @staticmethod
+    def hotspot_variant(variants: list) -> list[dict]:
+        """
+        Return variants that are hotspots.
+
+        Args:
+            variants (list): A list of variant dictionaries.
+
+        Returns:
+            list[dict]: A list of variant dictionaries that are hotspots.
+        """
+        hotspots = []
+        for variant in variants:
+            hotspot_dict = variant.get("hotspots", [{}])[0]
+            if hotspot_dict:
+                for hotspot_key, hotspot_elem in hotspot_dict.items():
+                    if any("COS" in elem for elem in hotspot_elem):
+                        variant.setdefault("INFO", {}).setdefault("HOTSPOT", []).append(hotspot_key)
+            hotspots.append(variant)
+        return hotspots
 
     @staticmethod
     def get_filter_conseq_terms(checked):
@@ -193,6 +232,40 @@ class DNAUtility:
                 variants[var_idx]["other_classification"],
                 variants[var_idx]["annotations_interesting"],
             ) = store.annotation_handler.get_global_annotations(variants[var_idx], assay, subpanel)
+        return variants
+
+    @staticmethod
+    def add_global_annotations(variants: list, assay: str, subpanel: str) -> list:
+        """
+        Add global annotations to the variants
+        """
+        for var_idx, var in enumerate(variants):
+            (
+                variants[var_idx]["global_annotations"],
+                variants[var_idx]["classification"],
+                variants[var_idx]["other_classification"],
+                variants[var_idx]["annotations_interesting"],
+            ) = store.annotation_handler.get_global_annotations(var, assay, subpanel)
+
+            # if (
+            #     variants[var_idx]["classification"]["class"] == 999
+            #     or not variants[var_idx]["classification"]
+            # ):
+            #     variants[var_idx] = store.annotation_handler.add_alt_class(
+            #         variants[var_idx], assay, subpanel
+            #     )
+            # else:
+            #     variants[var_idx]["additional_classification"] = None
+
+            variants[var_idx] = store.annotation_handler.add_alt_class(
+                variants[var_idx], assay, subpanel
+            )
+            if variants[var_idx]["POS"] == 55174771:
+                print(variants[var_idx]["classification"])
+                print(variants[var_idx]["other_classification"])
+                print(variants[var_idx]["global_annotations"])
+                print(variants[var_idx]["additional_classification"])
+
         return variants
 
     @staticmethod
@@ -986,3 +1059,101 @@ class DNAUtility:
             }
 
         return doc
+
+    @staticmethod
+    def filter_low_coverage_with_cosmic(low_coverage: list, cosmic: list) -> list:
+        """
+        Filter low coverage variants with cosmic data
+        """
+        # Sort cosmic data by chromosome and start position for efficient searching
+        if not cosmic:
+            return []
+        cosmic.sort(key=lambda x: (x["chr"], x["start"]))
+
+        filtered_low_cov: list = []
+
+        for low_cov in low_coverage:
+            low_cov["cosmic"] = []
+            # Find the starting index in the sorted cosmic list
+            start_idx = bisect_left(
+                cosmic,
+                (str(low_cov["chr"]), str(low_cov["start"])),
+                key=lambda x: (str(x["chr"]), str(x["start"])),
+            )
+            # Iterate through the cosmic list from the starting index
+            for cos in cosmic[start_idx:]:
+                if (
+                    int(cos["chr"]) != int(low_cov["chr"])
+                    or int(cos["start"]) > int(low_cov["end"])
+                    or int(cos["start"]) < int(low_cov["start"])
+                ):
+                    break
+                # if int(low_cov["start"]) >= int(cos["start"]) <= int(low_cov["end"]):
+                else:
+                    low_cov["cosmic"].append({k: v for k, v in cos.items() if k != "_id"})
+            if len(low_cov["cosmic"]) > 0:
+                filtered_low_cov.append(low_cov)
+
+        return filtered_low_cov
+
+    @staticmethod
+    def create_annotation_text_from_gene(gene, csq, assay, **kwargs):
+        """
+        create an automated text annotation for tier3 variants.
+        Also check if annotation exists for variant, dont add new
+        """
+        first_csq = str(csq[0])
+        ## Might need a prettier way of presenting variant type. In line with translation dict used in list_variants
+        consequence = first_csq.replace("_", " ")
+        tumor_type = ""
+        if assay == "myeloid":
+            tumor_type = "hematologiska"
+        elif assay == "solid":
+            tumor_type = "solida"
+        else:
+            tumor_type = ""
+
+        ## Bit stinky to have in code, maybe in config for coyote3.0
+        text = f"Analysen påvisar en {consequence}. Varianten är klassad som Tier III då varianter i {gene} är sällsy men förekommer i {tumor_type} maligniteter."
+        gene_oncokb = kwargs.get("gene_oncokb", None)
+        if gene_oncokb:
+            text += f" För ytterligare information om {gene} se https://www.oncokb.org/gene/{gene}."
+        else:
+            text += f" {gene} finns ej beskriven i https://www.oncokb.org."
+        app.logger.debug(text)
+        return text
+
+    @staticmethod
+    def cnvtype_variant(cnvs: list, checked_effects: list) -> list:
+        """
+        Filter CNVs by type
+        # TODO: Will be Depricated in future
+        """
+        filtered_cnvs = []
+        for var in cnvs:
+            if var["ratio"] > 0:
+                effect = "AMP"
+            if var["ratio"] < 0:
+                effect = "DEL"
+            if effect in checked_effects:
+                filtered_cnvs.append(var)
+        return filtered_cnvs
+
+    @staticmethod
+    def cnv_organizegenes(cnvs: list) -> list:
+        """
+        Organize CNV genes
+        """
+        fixed_cnvs_genes = []
+        for var in cnvs:
+            var["other_genes"] = []
+            for gene in var["genes"]:
+                if "class" in gene:
+                    if "panel_gene" in var:
+                        var["panel_gene"].append(gene["gene"])
+                    else:
+                        var["panel_gene"] = [gene["gene"]]
+                else:
+                    var["other_genes"].append(gene["gene"])
+            fixed_cnvs_genes.append(var)
+        return fixed_cnvs_genes

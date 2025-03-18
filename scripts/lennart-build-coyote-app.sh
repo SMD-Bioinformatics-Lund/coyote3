@@ -47,7 +47,7 @@ container_name="coyote3_app"
 # ./scripts/update-to-latest-config.sh
 
 echo "Building docker image: '$image_name'"
-docker build --no-cache --network host --target coyote3_app -t "$image_name" . 
+# docker build --no-cache --network host --target coyote3_app -t "$image_name" . 
 
 docker stop coyote3_app
 docker rm coyote3_app
@@ -69,6 +69,9 @@ docker run \
         --dns "10.212.226.10" \
         -v $PWD/config:/app/config \
         -v $PWD/logs:/app/logs \
+        -v /access:/access \
+	-v /media:/media \
+        -v /data:/data \
         -p "$PORT_NBR:8000" \
         --name "$container_name" \
         --restart=always \

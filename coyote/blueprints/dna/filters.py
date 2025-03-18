@@ -78,68 +78,63 @@ def format_tier(st):
     return st
 
 
+
 @app.template_filter()
 def format_filter(filters):
+    """Formats variant filters into colored badges with tooltips and wrapping behavior"""
+    
+    # Define color categories and tooltips
+    filter_classes = {
+        "PASS": ("PASS", "bg-pass", "Variant passed all quality filters"),
+        "GERMLINE": ("GERM", "bg-germline", "Germline variant"),
+        "GERMLINE_RISK": ("GERM", "bg-germline-risk", "Germline risk variant"),
+    }
+
+    warn_filters = {
+        "WARN_HOMOPOLYMER": ("HP", "bg-warn", "Variant in homopolymer"),
+        "WARN_STRANDBIAS": ("SB", "bg-warn", "Strand bias detected"),
+        "WARN_LOW_TVAF": ("LO", "bg-warn", "Low tumor VAF"),
+        "WARN_VERYLOW_TVAF": ("XLO", "bg-warn", "Very low tumor VAF"),
+        "WARN_PON": ("PON", "bg-warn", "Variant seen in panel of normals"),
+        "WARN_FFPE_PON": ("FFPE", "bg-warn", "Variant in panel of FFPE-normals"),
+    }
+
+    fail_filters = {
+        "FAIL_NVAF": ("N", "bg-fail", "Too high VAF in normal sample"),
+        "FAIL_PVALUE": ("P", "bg-fail", "Too low P-value"),
+        "FAIL_STRANDBIAS": ("SB", "bg-fail", "Strand bias failed"),
+        "FAIL_LONGDEL": ("LD", "bg-fail", "Long deletion detected"),
+        "FAIL_PON": ("PON", "bg-fail", "Variant failed due to panel of normals"),
+        "FAIL_FFPE_PON": ("FFPE", "bg-fail", "Variant failed due to FFPE panel"),
+    }
+
     html = ""
-    pon_warn = False
-    pon_fail = False
-    pon_ffpe_warn = False
-    pon_ffpe_fail = False
+    seen_flags = set()
+
     for f in filters:
-        if f == "PASS":
-            html += "<span class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-pass rounded-full'>PASS</span>"
-        if f == "GERMLINE":
-            html += "<span title='Germline variant' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-germline rounded-full'>GERM</span>"
-        if f == "GERMLINE_RISK":
-            html += "<span title='Germline risk' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-germline-risk rounded-full'>GERM</span>"
-        if f == "FAIL_NVAF":
-            html += "<span title='Too high VAF in normal sample' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail-nvaf rounded-full'>N</span>"
-        elif f == "FAIL_PVALUE":
-            html += "<span title='Too low P-value' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail-pvalue rounded-full'>P</span>"
-        elif "WARN_HOMOPOLYMER" in f:
-            html += "<span title='Variant in homopolymer' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn-homopolymer rounded-full'>HP</span>"
-        elif "WARN_STRANDBIAS" in f:
-            html += "<span title='Strand bias' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn-strandbias rounded-full'>SB</span>"
-        elif "FAIL_STRANDBIAS" in f:
-            html += "<span title='Strand bias' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail-strandbias rounded-full'>SB</span>"
-        elif "FAIL_LONGDEL" in f:
-            html += "<span title='Long DEL from vardict' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail-longdel rounded-full'>LD</span>"
-        elif f == "WARN_LOW_TVAF":
-            html += "<span title='Low tumor VAF' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn-low-tvaf rounded-full'>LO</span>"
-        elif f == "WARN_VERYLOW_TVAF":
-            html += "<span title='Very low tumor VAF' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn-verylow-tvaf rounded-full'>XLO</span>"
-        elif f == "WARN_NOVAR":
-            pass
-        elif "WARN_PON" in f:
-            if not pon_warn:
-                pon_warn = True
-                html += "<span title='Variant seen in panel of normals' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn-pon rounded-full'>PON</span>"
-        elif "FAIL_PON" in f:
-            if not pon_fail:
-                pon_fail = True
-                html += "<span title='Variant failed because seen in panel of normals' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail-pon rounded-full'>PON</span>"
-        elif "WARN_FFPE_PON" in f:
-            if not pon_ffpe_warn:
-                pon_ffpe_warn = True
-                html += "<span title='Variant seen in panel of FFPE-normals' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn-ffpe-pon rounded-full'>FFPE</span>"
-        elif "FAIL_FFPE_PON" in f:
-            if not pon_ffpe_fail:
-                pon_ffpe_fail = True
-                html += "<span title='Variant failed because seen in panel of FFPE-normals' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail-ffpe-pon rounded-full'>FFPE</span>"
+        if f in filter_classes:
+            text, css_class, tooltip = filter_classes[f]
+        elif f in warn_filters and f not in seen_flags:
+            text, css_class, tooltip = warn_filters[f]
+            seen_flags.add(f)
+        elif f in fail_filters and f not in seen_flags:
+            text, css_class, tooltip = fail_filters[f]
+            seen_flags.add(f)
         elif "FAIL" in f:
-            html += (
-                "<span class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail rounded-full'>"
-                + f
-                + "</span>"
-            )
+            text, css_class, tooltip = f, "bg-fail", "Failure due to quality issues"
         elif "WARN" in f:
-            html += (
-                "<span class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn rounded-full'>"
-                + f
-                + "</span>"
-            )
+            text, css_class, tooltip = f, "bg-warn", "Warning due to quality concerns"
+        else:
+            continue  # Ignore unknown filters
+
+        html += (
+            f"<div class='inline-block p-1 text-white {css_class} rounded-md text-xs leading-tight flex items-center' "
+            f"onmouseover='showTooltip(event, \"{tooltip}\")'>"
+            f"{text}</div>"
+        )
 
     return html
+
 
 
 @app.template_filter()
@@ -370,14 +365,14 @@ def round_to_3(x):
 @app.template_filter()
 def format_gnomad(st):
     if not st:
-        return ""
+        return "-"
     return str(round_to_3(float(st * 100))) + "%"
 
 
 @app.template_filter()
 def format_pop_freq(st, allele_to_show):
     if not st:
-        return ""
+        return "-"
     if len(allele_to_show) > 1:
         allele_to_show = allele_to_show[1:]
     all_alleles = st.split("&")
@@ -387,6 +382,41 @@ def format_pop_freq(st, allele_to_show):
             return str(round_to_3(float(a[1]) * 100)) + "%"
 
     return "N/A"
+
+
+def remove_prefix(text, prefix):
+    if text.startswith(prefix):
+        return text[len(prefix) :]
+    return text
+
+
+@app.template_filter()
+def pubmed_links(st):
+
+    if not st:
+        return "-"
+    pids = re.split(r",\s*", st)
+    outstr = "<b>["
+    for i, pid in enumerate(pids):
+        pid = remove_prefix(pid, "PMID:")
+        outstr = (
+            outstr
+            + "<a href='https://www.ncbi.nlm.nih.gov/pubmed/"
+            + pid
+            + "'>"
+            + str(i + 1)
+            + "</a> "
+        )
+
+    outstr = outstr.rstrip()
+    outstr = outstr + "]</b>"
+
+    return outstr
+
+
+@app.template_filter()
+def three_dec(val):
+    return str(round_to_3(float(val) * 100))
 
 
 @app.template_filter()
