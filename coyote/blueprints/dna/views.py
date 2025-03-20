@@ -49,7 +49,7 @@ def list_variants(id):
     smp_grp = util.common.select_one_sample_group(sample.get("groups"))
 
     if smp_grp is None:
-        flash("No group found for sample using unknown-default group", "red")
+        flash("No group found for sample using unknown-default group", "warning")
         smp_grp = "unknown-default"
 
     # Get group parameters from the sample group config file
@@ -99,7 +99,6 @@ def list_variants(id):
             setattr(GeneForm, f"genelist_{gene_list}", BooleanField())
 
     form = GeneForm()
-    print(form.data)
     ###########################################################################
 
     ## FORM FILTERS ##
@@ -125,16 +124,16 @@ def list_variants(id):
 
     # sample filters, either set, or default
     cnv_effects = sample.get("checked_cnveffects", settings["default_checked_cnveffects"])
-    app.logger.debug(f"sample: {sample}")
-    app.logger.debug(f"settings: {settings}")
+    # app.logger.debug(f"sample: {sample}")
+    # app.logger.debug(f"settings: {settings}")
     genelist_filter = sample.get("checked_genelists", settings["default_checked_genelists"])
-    app.logger.debug(f"genelist_filter: {genelist_filter}")
+    # app.logger.debug(f"genelist_filter: {genelist_filter}")
     genelist_filter_names = [
         g_list.replace("genelist_", "")
         for g_list in genelist_filter
         if genelist_filter[g_list] == 1
     ]
-    app.logger.debug(f"genelist_filter_names: {genelist_filter_names}")
+    # app.logger.debug(f"genelist_filter_names: {genelist_filter_names}")
     checked_genelist_dict = util.common.create_genelists_dict(genelist_filter_names, gene_lists)
 
     filter_conseq = util.dna.get_filter_conseq_terms(sample_settings["csq_filter"].keys())
@@ -280,8 +279,6 @@ def list_variants(id):
     if "cnv" in sample:
         if sample["cnv"].lower().endswith((".png", ".jpg", ".jpeg")):
             sample["cnvprofile"] = sample["cnv"]
-
-    print(f"cnvprofile: {sample.get('cnvprofile')}")
 
     return render_template(
         "list_variants_vep.html",
@@ -677,7 +674,7 @@ def order_sanger(id):
 @login_required
 def classify_variant(id):
     form_data = request.form.to_dict()
-    print(form_data)
+    print(f"form_data: {form_data}")
     class_num = util.dna.get_tier_classification(form_data)
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
     if class_num != 0:

@@ -260,12 +260,6 @@ class DNAUtility:
             variants[var_idx] = store.annotation_handler.add_alt_class(
                 variants[var_idx], assay, subpanel
             )
-            if variants[var_idx]["POS"] == 55174771:
-                print(variants[var_idx]["classification"])
-                print(variants[var_idx]["other_classification"])
-                print(variants[var_idx]["global_annotations"])
-                print(variants[var_idx]["additional_classification"])
-
         return variants
 
     @staticmethod

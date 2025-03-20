@@ -246,7 +246,7 @@ class AnnotationsHandler(BaseHandler):
         ## If variant has no match to current assay, it has an historical variant, i.e. not assigned to an assay. THIS IS DANGEROUS, maybe limit to admin?
         if len(num_assay) == 0 and "admin" in user_groups:
             per_assay = list(
-                self.get_collection().find(
+                self.get_collection().find(  # may be change it to delete later
                     {
                         "class": {"$exists": True},
                         "variant": variant,

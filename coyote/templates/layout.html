@@ -63,7 +63,7 @@
       <!-- HEADER (LOGO + USER INFO) -->
       <header class="text-black py-1 px-8 flex justify-between items-center w-full z-50">
         <a href="{{ url_for('dashboard_bp.dashboard') }}" class="flex items-center space-x-2 tracking-wide text-3xl font-bold">
-          <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Coyote Logo" class="h-12 w-20 transition-transform duration-300 transform hover:scale-110 hover:rotate-6">
+          <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Coyote Logo" class="h-12 w-20 transition-transform duration-300 transform hover:scale-110 hover:rotate-12">
           <span >COYOT3 <span class="px-1 pt-2 text-xs tracking-tight font-normal align-baseline">v{{config['APP_VERSION']}}</span></span>
         </a>
 
@@ -91,7 +91,7 @@
       </header>
 
       <!-- NAVBAR (Below Header, No Absolute Positioning) -->
-      <nav class="bg-indigo-300 shadow-lg text-black px-2 py-1.5 flex space-x-4 pl-14 w-full border-b-4 border-orange-400">
+      <nav class="bg-indigo-300 shadow-lg text-black px-2 py-1.5 flex space-x-4 pl-14 w-full border-b-4 border-indigo-400">
         {% set navbar = {
           'home': 'HOME',
           'samples': 'SAMPLES',
