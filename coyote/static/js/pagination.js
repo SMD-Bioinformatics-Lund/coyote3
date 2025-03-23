@@ -75,12 +75,12 @@
 
         // Create pagination controls
         const paginationControls = document.createElement('div');
-        paginationControls.className = 'flex justify-between mt-1';
+        paginationControls.className = 'flex flex-wrap justify-between mt-1 break-all';
 
         paginationControls.innerHTML = `
-          <button class="bg-${buttonColor}-400 text-${buttonTextColor} py-1 px-2 mx-1 mb-1 rounded-lg disabled:opacity-50" data-prev="${tableBodyId}" onclick="prevPage('${tableBodyId}', ${rowsPerPage})">Previous</button>
-          <span class="mx-1 mb-1" data-page-info="${tableBodyId}">Page 1 of ${Math.ceil(rows.length / rowsPerPage)}</span>
-          <button class="bg-${buttonColor}-400 text-${buttonTextColor} py-1 px-2 mx-1 mb-1 rounded-lg disabled:opacity-50" data-next="${tableBodyId}" onclick="nextPage('${tableBodyId}', ${rowsPerPage})">Next</button>
+          <button class="bg-${buttonColor}-400 text-${buttonTextColor} py-1 px-2 rounded-lg disabled:opacity-50" data-prev="${tableBodyId}" onclick="prevPage('${tableBodyId}', ${rowsPerPage})">Previous</button>
+          <span class="mx-3 mb-1" data-page-info="${tableBodyId}">Page 1 of ${Math.ceil(rows.length / rowsPerPage)}</span>
+          <button class="bg-${buttonColor}-400 text-${buttonTextColor} py-1 px-2  rounded-lg  disabled:opacity-50" data-next="${tableBodyId}" onclick="nextPage('${tableBodyId}', ${rowsPerPage})">Next</button>
         `;
 
         paginationElement.appendChild(paginationControls);

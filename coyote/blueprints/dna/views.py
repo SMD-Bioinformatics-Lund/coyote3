@@ -210,6 +210,9 @@ def list_variants(id):
     if assay != "solid":
         low_cov = util.dna.filter_low_coverage_with_cosmic(low_cov, cosmic_ids)
 
+    # Get bams
+    bam_id = store.bam_service_handler.get_bams(sample_ids)
+
     ## GET CNVs TRANSLOCS and OTHER BIOMARKERS ##
     cnvwgs_iter = False
     cnvwgs_iter_n = False
@@ -308,6 +311,7 @@ def list_variants(id):
             "VEP_VARIANT_CLASS_TRANSLATION"
         ),
         vep_conseq_translations=app.config.get("REPORT_CONFIG").get("VEP_CONSEQ_TRANSLATIONS"),
+        bam_id=bam_id,
     )
 
 

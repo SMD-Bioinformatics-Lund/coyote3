@@ -4,33 +4,71 @@
 
 
 {% set sel_csq = variant.INFO.selected_CSQ %}
-{% set genomic_change =  variant.CHROM ~ ":" ~ variant.POS ~ ", " ~  variant.REF ~ " / " ~ variant.ALT %}
+{% set genomic_change =  variant.CHROM ~ ":" ~ variant.POS ~ ", " ~  variant.REF ~ "/" ~ variant.ALT %}
 {% set indel_size = variant.ALT|length - variant.REF|length %}
 {% set subfolder = {'dir': "None"} %}
 {% set alt_class = variant.additional_classification %}
 {% set consequences = sel_csq.Consequence if sel_csq.Consequence is iterable and sel_csq.Consequence is not string else sel_csq.Consequence.split('&') %}
+{% set all_samples_bam_paths = [] %}
+
+{# Collect all BAM paths #}
+{% for sample_id, bam_paths in bam_id.items() %}
+  {% for path in bam_paths %}
+    {% set list1 = path.split('/') %}
+    {% if subfolder.update({ 'dir': list1[0] }) %} {% endif %}
+    {% set _ = all_samples_bam_paths.append("/R:" ~ path) %}
+  {% endfor %}
+{% endfor %}
+
+{# Append design BED file if available #}
+{# Creating design_bed_url as well #}
+{% if subfolder.dir != "None" and subfolder.dir != "tumwgs" %}
+  {% set design_bed = "http://localhost:60151/load?file=/R:" ~ subfolder.dir ~ "/BED/design.bed"  %}
+  {% set design_bed_url = '<a href="' ~ design_bed ~ '" class="text-blue-600 underline">' ~ "open" ~ '</a>'%}
+  {% set _ = all_samples_bam_paths.append("/R:" ~ subfolder.dir ~ "/BED/design.bed") %}
+{% else %}
+  {% set design_bed_url = '-' %}
+{% endif %}
+
+{# Build the final IGV URL #}
+{% if all_samples_bam_paths %}
+  {% set igv_url = "http://localhost:60151/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ variant.CHROM ~ ":" ~ variant.POS %}
+  {% set igv_genomic_position = '<a href="' ~ igv_url ~ '" class="text-blue-600 underline">' ~ genomic_change ~ '</a>' %}
+{% else %}
+  {% set igv_url = none %}
+  {% set igv_genomic_position = genomic_change %}
+{% endif %}
+
+{# variant to display on the main top card #}
+{% if sel_csq.HGVSp %}
+  {% set show_variant = sel_csq.HGVSp | one_letter_p | unesc %}
+{% elif sel_csq.HGVSc %}
+  {% set show_variant = sel_csq.HGVSc %}
+{% else %}
+  {% set show_variant = "g." ~ genomic_change %}
+{% endif %}
 
 
 <div class="flex w-full h-full overflow-hidden ">
 
   <!-- Variant Wall left side bar -->
-  <aside class="w-80 bg-transparent text-black flex flex-col overflow-y-auto shadow-xl rounded-lg mr-2 ml-1  left-0 h-full border border-gray-400">
+  <aside class="w-80 bg-transparent text-black flex flex-col overflow-y-auto shadow-lg rounded-lg mr-2 ml-1 left-0 h-full border-r-2 border-t-2 border-brown-400">
 
     <!-- Variant Wall -->
-    <div class="flex justify-center items-center bg-gradient-to-r from-brown-300 to-brown-200 py-2 rounded-t-lg shadow-sm border-b border-black">
+    <div class="flex justify-center items-center bg-gradient-to-b from-brown-300 to-brown-200 py-2 rounded-t-md shadow-lg">
       <img src="{{ url_for('static', filename='icons/heroicons_outline_24/bookmark.svg') }}" alt="Tag Icon" class="w-4 h-4 mr-2 opacity-80">
       <h2 class="text-sm font-semibold capitalize tracking-wide text-black">Variant Wall</h2>
     </div>
 
     <!-- Table Container -->
-    <div class="overflow-auto border border-gray-300 shadow-sm bg-transparent p-0">
-      <table class="table-auto bg-blue-50 w-full text-xs text-black">
+    <div class="overflow-auto shadow-lg bg-transparent p-0">
+      <table class="table-auto bg-blue-50 w-full text-xs text-black border-collapse">
         <tbody class="break-all">
-          <tr class="border-b border-gray-300 hover:bg-brown-100">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">Gene</th>
             <td class="p-1 text-right font-medium"><a href="/coyote/gene_simple/{{ sel_csq.SYMBOL }}" class="text-blue-600 underline">{{ sel_csq.SYMBOL }}</a></td>
           </tr>
-          <tr class="border-b border-gray-300 hover:bg-brown-100">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">Variant Class</th>
             <td class="p-1 text-right font-medium">
               {% if variant.variant_class in vep_var_class_translations %}
@@ -40,33 +78,57 @@
               {% endif %}
             </td>
           </tr>
-          <tr class="border-b border-gray-300 hover:bg-brown-100">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2 break-all">Canonical Transcript</th>
             <td class="p-1 text-right font-medium">{{ sel_csq.Feature }}</td>
           </tr>
-          <tr class="border-b border-gray-300 hover:bg-brown-100">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2 break-all">cDNA</th>
-            <td class="p-1 text-right font-medium truncate" style="max-width: 10ch">
+            <td class="p-1 text-right font-medium ">
               <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ sel_csq.HGVSc|unesc|safe }}</span>`)">
-                {{ sel_csq.HGVSc|unesc|safe }}
+                <div class="relative flex flex-wrap justify-end inline-block pr-1">
+                  <div id="hgvsc-short" class="truncate max-w-15c">
+                    {{ sel_csq.HGVSc|unesc|safe }}
+                  </div>
+                  <div id="hgvsc-full" class="hidden break-all whitespace-normal">
+                    {{ sel_csq.HGVSc|unesc|safe }}
+                  </div>
+                  <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
+                          data-target="hgvsc"
+                          onclick="toggleLongText(this)">
+                    [+]
+                  </button>
+                </div>
               </span>
             </td>
           </tr>
-          <tr class="border-b border-gray-300 hover:bg-brown-100">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2 break-all">Protein</th>
-            <td class="p-1 text-right font-medium truncate" style="max-width: 10ch">
+            <td class="p-1 text-right font-medium">
               <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ sel_csq.HGVSp|unesc|safe }}</span>`)">
-                {{ sel_csq.HGVSp|unesc|safe }}
+                <div class="relative flex flex-wrap justify-end inline-block pr-1">
+                  <div id="hgvsp-short" class="truncate max-w-15c">
+                    {{ sel_csq.HGVSp }}
+                  </div>
+                  <div id="hgvsp-full" class="hidden break-all whitespace-normal">
+                    {{ sel_csq.HGVSp|unesc|safe }}
+                  </div>
+                  <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
+                          data-target="hgvsp"
+                          onclick="toggleLongText(this)">
+                    [+]
+                  </button>
+                </div>
               </span>
             </td>
           </tr>
           {% if indel_size != 0 %}
-            <tr class="border-b border-gray-300 hover:bg-brown-100">
+            <tr class="hover:bg-brown-100 shadow-md rounded-lg">
               <th class="p-1 font-semibold text-left w-1/2 break-all">Indel Size</th>
               <td class="p-1 text-right font-medium">{{ indel_size }} bp {% if indel_size < 0 %}DEL{% else %}INS{% endif %}</td>
             </tr>
           {% endif %}
-          <tr class="border-b border-gray-300 hover:bg-brown-100">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">Consequence</th>
             <td class="py-1 px-1 text-right font-medium">
               {% for conseq in consequences %}
@@ -88,32 +150,46 @@
             </td>
           </tr>
           {% if sel_csq.EXON|length > 0 %}
-            <tr class="border-b border-gray-300 hover:bg-brown-100">
+            <tr class="hover:bg-brown-100 shadow-md rounded-lg">
               <th class="p-1 font-semibold text-left w-1/2">Exon</th>
               <td class="p-1 text-right font-medium">{{ sel_csq.EXON }}</td>
             </tr>
           {% endif %}
           {% if sel_csq.INTRON|length > 0 %}
-            <tr class="border-b border-gray-300 hover:bg-brown-100">
+            <tr class="hover:bg-brown-100 shadow-md rounded-lg">
               <th class="p-1 font-semibold text-left w-1/2">Intron</th>
               <td class="p-1 text-right font-medium">{{ sel_csq.INTRON }}</td>
             </tr>
           {% endif %}
-          <tr class="border-b border-gray-300 hover:bg-brown-100">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">Genomic Position</th>
             <td class="p-1 text-right font-medium truncate" style="max-width: 15ch">
               <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ genomic_change }}</span>`)">
-                {{ genomic_change }}
+                <div class="relative flex flex-wrap justify-end inline-block pr-1">
+                  <div id="genomic-change-short" class="truncate max-w-15c">
+                    {{ igv_genomic_position|safe }}
+                  </div>
+                
+                  <div id="genomic-change-full" class="hidden break-all whitespace-normal">
+                    {{ igv_genomic_position|safe }}
+                  </div>
+                
+                  <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
+                          data-target="genomic-change"
+                          onclick="toggleLongText(this)">
+                    [+]
+                  </button>
+                </div>
               </span>
             </td>
           </tr>
           {% for gt in variant.GT %}
-            <tr class="border-b border-gray-300 hover:bg-brown-100">
+            <tr class="hover:bg-brown-100 shadow-md rounded-lg">
               <th class="p-1 font-semibold text-left w-1/2 capitalize">{{gt.type}} VAF</th>
-              <td class="p-1 text-right font-medium">{{'%0.1f'| format(100*gt.AF|float) }}% <br>({{ gt.VD|int }} / {{ gt.DP|int }})</td>
+              <td class="p-1 text-right font-medium">{{'%0.1f'| format(100*gt.AF|float) }}% ({{ gt.VD|int }} / {{ gt.DP|int }})</td>
             </tr>
           {% endfor %}
-          <tr class="border-b border-gray-300 hover:bg-brown-100">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">CADD</th>
             <td class="p-1 text-right font-medium">
               {% if sel_csq.CADD_PHRED %}
@@ -123,7 +199,7 @@
               {% endif %}
             </td>
           </tr>
-          <tr class="border-b border-gray-300 hover:bg-brown-100">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">SIFT</th> <!-- TODO: Color this based the score -->
             <td class="p-1 text-right font-medium break-all">
               {% if sel_csq.SIFT %}
@@ -133,7 +209,7 @@
               {% endif %}
             </td>
           </tr>
-          <tr class="border-b border-gray-300 hover:bg-brown-100">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">Polyphen</th> <!-- TODO: Color this based the score -->
             <td class="p-1 text-right font-medium break-all">
               {% if sel_csq.PolyPhen %}
@@ -143,7 +219,7 @@
               {% endif %}
             </td>
           </tr>
-          <tr class="border-b border-gray-300 hover:bg-brown-100">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">dbSNP</th>
             <td class="p-1 text-right font-medium">
               {%if variant.dbsnp_id %}
@@ -153,7 +229,7 @@
               {%endif%}
             </td>
           </tr>
-          <tr class="border-b border-gray-300 hover:bg-brown-100">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">COSMIC</th>
             <td class="p-1 text-right font-medium">
               {% if variant.cosmic_ids %}
@@ -165,11 +241,11 @@
               {% endif %}
             </td>
           </tr>
-          <tr class="border-b border-gray-300 hover:bg-brown-100">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">ClinVar</th>
             <td class="p-1 text-right font-medium">{{ sel_csq.CLIN_SIG|default('')|multirow|safe }}</td>
           </tr>
-          <tr class="border-b border-gray-300 hover:bg-brown-100">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">cBioPortal</th>
             <td class="p-1 text-right font-medium">
               <a target="_blank" href="http://www.cbioportal.org/ln?q={{sel_csq.SYMBOL}}" class="text-blue-600 underline">
@@ -177,7 +253,7 @@
               </a>
             </td>
           </tr>
-          <tr class="border-b border-gray-300 hover:bg-brown-100">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">OnkoKB</th>
             <td class="p-1 text-right font-medium">
               <a target="_blank" href="http://oncokb.org/#/gene/{{sel_csq.SYMBOL}}" class="text-blue-600 underline">
@@ -185,7 +261,7 @@
               </a>
             </td>
           </tr>
-          <tr class="border-b border-gray-300 hover:bg-brown-100">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">LitVar</th>
             <td class="p-1 text-right font-medium">
               {% if variant.dbsnp_id %}
@@ -197,7 +273,7 @@
               {% endif %}  
             </td>
           </tr>
-          <tr class="border-b border-gray-300 hover:bg-brown-100">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">Alamut</th>
             <td class="p-1 text-right font-medium">
               {% if variant.dbsnp_id %}
@@ -209,18 +285,13 @@
           </tr>
           {% if assay == "tumwgs" or assay == "fusion" %}
           {% else %}
-            <tr class="border-b border-gray-300 hover:bg-brown-100">
+            <tr class="hover:bg-brown-100 shadow-md rounded-lg">
               <th class="p-1 font-semibold text-left w-1/2">Design Bed</th>
               <td class="p-1 text-right font-medium">
-                {% if subfolder.dir != "None" %}
-                  <a href="http://localhost:60151/load?file=/R:{{subfolder.dir}}/BED/design.bed" class="text-blue-600 underline">open</a>
-                {% else %}
-                  -
-                {% endif %}
+                {{design_bed_url|safe}}
               </td>
             </tr>
-          {% endif %}
-
+          {% endif %}          
         </tbody>
       </table>
     </div>
@@ -230,10 +301,10 @@
   <main class="flex-1 bg-transparent overflow-y-auto p-2 flex flex-col">
 
     <!-- sample info -->
-    <section class="bg-gray-100 px-2 py-1 my-1 flex flex-wrap justify-between w-full shadow-lg rounded-xl relative gap-2 border-2 border-indigo-400 z-0" id="sample-info">
+    <section class="bg-gray-100 px-2 py-1 my-1 flex flex-wrap justify-between w-full shadow-lg rounded-xl relative gap-2 border-l-8 border-r-8 border-indigo-400 z-0" id="sample-info">
 
       <!-- Sample Name (Will Wrap if Needed) -->
-      <div class="text-sm font-semibold text-black flex items-center ml-2 mr-4 ">
+      <div class="text-sm font-semibold text-black flex flex-wrap items-center ml-2 mr-4 break-all">
         Sample:
         <a href="{{ url_for('dna_bp.list_variants', id=sample.name) }}" class="ml-2 font-semibold text-blue-500 hover:underline">
           {{ sample.name }}
@@ -241,7 +312,7 @@
       </div>
 
       <!-- Sample Meta Information (Wraps Naturally) -->
-      <div id="sample-meta-info" class="pr-2 flex flex-wrap text-xs text-gray-700 font-medium items-center space-x-1 ml-2 mr-2">
+      <div id="sample-meta-info" class="pr-2 flex flex-wrap text-xs text-gray-700 font-medium items-center space-x-1 ml-2 mr-2 break-all overflow-x-auto">
         
         {% if "subpanel" in sample %}
           <div class="flex items-center">
@@ -291,17 +362,15 @@
     </section>
 
     <!-- Gene:Transcript:Variant Main Info banner -->
-    <section class="bg-gray-100 p-2 my-2 flex flex-wrap justify-between w-full shadow-lg rounded-xl relative gap-2 z-0 border-2 border-purple-400" id="variant-info">
+    <section class="bg-gray-100 p-2 my-2 flex flex-wrap justify-between w-full shadow-lg rounded-xl relative gap-2 z-0 border-l-8 border-r-8 border-purple-400 whitespace-normal break-all" id="variant-info">
       <!-- Variant Info Left Section -->
       <div class="flex flex-col ml-2 mr-4">
         <h2 class="text-base font-bold">
-          {{ sel_csq.SYMBOL }} ({{ sel_csq.Feature }}):
-          {% if sel_csq.HGVSp %}
-            {{ sel_csq.HGVSp|one_letter_p|unesc }}
-          {% elif sel_csq.HGVSc %}
-            {{ sel_csq.HGVSc }}
+          {{ sel_csq.SYMBOL }} ({{ sel_csq.Feature }}): 
+          {% if igv_url %}
+            <a href="{{ igv_url }}" class="text-black underline"> {{ show_variant }} </a>
           {% else %}
-            g.{{ genomic_change }} <!-- TODO: CHANGE THE NAMING FORMAT -->
+            {{ show_variant }}
           {% endif %}
         </h2>
         <p class="text-sm font-normal py-1 my-1">
@@ -310,7 +379,7 @@
       </div>
 
       <!-- Right Section Tier info --> <!-- Change this with tooltip -->
-      <div class="flex flex-col text-right ml-2 mr-4">
+      <div class="flex flex-col text-right ml-2 mr-4 overflow-x-auto">
         <h2 class="text-base font-bold pb-1">
           Classify Variant
         </h2>
@@ -326,13 +395,13 @@
               <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|unesc }}">
               <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc }}">
             {% endif %}
-            <input class="m-1 text-black text-sm px-3 py-1.5 rounded-md shadow-lg cursor-pointer cursor-pointer {% if classification.class != 1 %} bg-gray-300 transition-all duration-300 ease-in-out transform hover:translate-y-1 hover:bg-orange-500 {% else %} cursor-not-allowed font-bold text-white bg-tier{{ classification.class }} {% endif %}"  id="tier1" type="submit" value="Tier I" name="tier1" title="Tier I: Strong Clinical Significance">
+            <input class="m-1 text-black text-sm px-3 py-1.5 rounded-md shadow-lg cursor-pointer cursor-pointer whitespace-normal break-all {% if classification.class != 1 %} bg-gray-300 transition-all duration-300 ease-in-out transform hover:translate-y-1 hover:bg-orange-500 {% else %} cursor-not-allowed font-bold text-white bg-tier{{ classification.class }} {% endif %}"  id="tier1" type="submit" value="Tier I" name="tier1" title="Tier I: Strong Clinical Significance">
 
-            <input class="m-1 text-black text-sm px-3 py-1.5 rounded-md shadow-lg cursor-pointer {% if classification.class != 2 %} bg-gray-300 hover:bg-yellow-400 transition-all duration-300 ease-in-out transform hover:translate-y-1 {% else %} cursor-not-allowed font-bold text-white bg-tier{{ classification.class}} {% endif %}" id="tier2" type="submit" name="tier2" value="Tier II" title="Tier II: Potential Clinical Significance">
+            <input class="m-1 text-black text-sm px-3 py-1.5 rounded-md shadow-lg cursor-pointer whitespace-normal break-all {% if classification.class != 2 %} bg-gray-300 hover:bg-yellow-400 transition-all duration-300 ease-in-out transform hover:translate-y-1 {% else %} cursor-not-allowed font-bold text-white bg-tier{{ classification.class}} {% endif %}" id="tier2" type="submit" name="tier2" value="Tier II" title="Tier II: Potential Clinical Significance">
 
-            <input class="m-1 text-black text-sm px-3 py-1.5 rounded-md shadow-lg cursor-pointer {% if classification.class != 3 %} bg-gray-300 hover:bg-blue-500 transition-all duration-300 ease-in-out transform hover:translate-y-1 {% else %} cursor-not-allowed font-bold text-white bg-tier{{ classification.class}} {% endif %}" id="tier3" type="submit" name="tier3" value="Tier III" title="Tier III: Unknown Clinical Significance">
+            <input class="m-1 text-black text-sm px-3 py-1.5 rounded-md shadow-lg cursor-pointer whitespace-normal break-all {% if classification.class != 3 %} bg-gray-300 hover:bg-blue-500 transition-all duration-300 ease-in-out transform hover:translate-y-1 {% else %} cursor-not-allowed font-bold text-white bg-tier{{ classification.class}} {% endif %}" id="tier3" type="submit" name="tier3" value="Tier III" title="Tier III: Unknown Clinical Significance">
 
-            <input class="m-1 text-black text-sm px-3 py-1.5 rounded-md shadow-lg  cursor-pointer {% if classification.class != 4 %}bg-gray-300 hover:bg-green-600 transition-all duration-300 ease-in-out transform hover:translate-y-1 {% else %} cursor-not-allowed font-bold text-white bg-tier{{ classification.class}} {% endif %}" id="tier4" type="submit" name="tier4" value="Tier IV" title="Tier IV: Benign">
+            <input class="m-1 text-black text-sm px-3 py-1.5 rounded-md shadow-lg  cursor-pointer whitespace-normal break-all {% if classification.class != 4 %}bg-gray-300 hover:bg-green-600 transition-all duration-300 ease-in-out transform hover:translate-y-1 {% else %} cursor-not-allowed font-bold text-white bg-tier{{ classification.class}} {% endif %}" id="tier4" type="submit" name="tier4" value="Tier IV" title="Tier IV: Benign">
           </form>
 
           <!-- Remove Tier Info -->
@@ -348,9 +417,9 @@
                 <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc }}">
               {% endif %}
               {% if 'assay' in classification %}
-                <input class="m-1 bg-gray-300 text-black text-sm px-3 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-gray-400 transition-all duration-300 ease-in-out transform hover:translate-y-1" title="Remove {{assay}} classifications" id="remove" type="submit" onclick="return confirm('This will remove all tiering for {{assay}}, proceed?')" value="❌ Tier">
+                <input class="m-1 bg-gray-300 text-black text-sm px-3 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-gray-400 transition-all duration-300 ease-in-out transform hover:translate-y-1 whitespace-normal break-all" title="Remove {{assay}} classifications" id="remove" type="submit" onclick="return confirm('This will remove all tiering for {{assay}}, proceed?')" value="❌ Tier">
               {% elif 'admin' in current_user.get_groups() %}
-                <input class="m-1 bg-gray-300 text-black text-sm px-3 py-1.5 rounded-md shadow-lg hover:bg-gray-400 cursor-pointer transition-all duration-300 ease-in-out transform hover:translate-y-1" title="Remove historic non-assay classifications" id="remove" type="submit" value="❌ Tier" onclick="return confirm('This will remove all historic tiering without any assays assigned, proceed?')">
+                <input class="m-1 bg-gray-300 text-black text-sm px-3 py-1.5 rounded-md shadow-lg hover:bg-gray-400 cursor-pointer transition-all duration-300 ease-in-out transform hover:translate-y-1 whitespace-normal break-all" title="Remove historic non-assay classifications" id="remove" type="submit" value="❌ Tier" onclick="return confirm('This will remove all historic tiering without any assays assigned, proceed?')">
               {% endif %}
             </form>
           {% endif %}
@@ -358,20 +427,18 @@
       </div>
     </section>
 
-
-
     <!-- Top buttons for links and actions -->
-    <section class="shadow-lg rounded-xl relative gap-2 z-0 border-b-4 border-gray-400 mt-2 mr-2 py-1 ml-1" id="variant-actions-buttons">
-      <div class="flex space-x-1 items-start justify-end ml-auto mr-4 gap-2">
+    <section class="relative gap-2 z-0 mt-2 ml-1 bg-gray-100 py-1 shadow-lg rounded-xl border-l-8 border-r-8 border-blue-400" id="variant-actions-buttons">
+      <div class="flex flex-wrap items-start justify-end ml-auto mr-4 gap-2">
         <div class="relative">
-          <div class="absolute top-0 left-0 w-full h-1 bg-yellow-400"></div>
+          <div class="absolute top-0 left-0 w-full h-1 bg-yellow-400 break-all"></div>
           {% if variant.fp == true %}
             <form action="{{ url_for('dna_bp.unmark_false_variant', id=variant._id) }}" method="post">
-              <input class="relative bg-yellow-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block" type="submit" name="mark_fp" value="Unmark False Positive">
+              <input class="relative bg-yellow-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all" type="submit" name="mark_fp" value="Unmark False Positive">
             </form>
           {% else %}
             <form action="{{ url_for('dna_bp.mark_false_variant', id=variant._id) }}" method="post">
-              <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-yellow-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block" type="submit" name="mark_fp" value="Mark as False Positive">
+              <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-yellow-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all" type="submit" name="mark_fp" value="Mark as False Positive">
             </form>
           {% endif %}
         </div>
@@ -379,11 +446,11 @@
           <div class="absolute top-0 left-0 w-full h-1 bg-green-400"></div>
           {% if variant.interesting == true %}
             <form action="{{ url_for('dna_bp.unmark_interesting_variant', id=variant._id) }}" method="post">
-              <input class="relative bg-green-200 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block" type="submit" name="mark_int" value="Unmark Interesting">
+              <input class="relative bg-green-200 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all" type="submit" name="mark_int" value="Unmark Interesting">
             </form>
           {% else %}
             <form action="{{ url_for('dna_bp.mark_interesting_variant', id=variant._id) }}" method="post">
-              <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-green-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block" type="submit" name="mark_int" value="Mark as Interesting">
+              <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-green-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all" type="submit" name="mark_int" value="Mark as Interesting">
             </form>
           {% endif %}
         </div>
@@ -391,11 +458,11 @@
           <div class="absolute top-0 left-0 w-full h-1 bg-brown-500"></div>
           {% if variant.irrelevant == true %}
             <form action="{{ url_for('dna_bp.unmark_irrelevant_variant', id=variant._id) }}" method="post">
-              <input class="relative bg-brown-200 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block" type="submit" name="mark_irr" value="Unmark Irrelevant">
+              <input class="relative bg-brown-200 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all" type="submit" name="mark_irr" value="Unmark Irrelevant">
             </form>
           {% else %}
             <form action="{{ url_for('dna_bp.mark_irrelevant_variant', id=variant._id) }}" method="post">
-              <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-brown-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block" type="submit" name="mark_irr" value="Mark as Irrelevant">
+              <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-brown-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all" type="submit" name="mark_irr" value="Mark as Irrelevant">
             </form>
           {% endif %}
         </div>
@@ -403,7 +470,7 @@
           <div class="absolute top-0 left-0 w-full h-1 bg-orange-500"></div>
           {% if variant.blacklist != true %}
             <form action="{{ url_for('dna_bp.add_variant_to_blacklist', id=variant._id) }}" method="post">
-              <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-orange-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block" type="submit" name="blacklist" value="Add to Blacklist" onclick="return confirm('This will affect all samples of this type. Proceed?')">
+              <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-orange-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all" type="submit" name="blacklist" value="Add to Blacklist" onclick="return confirm('This will affect all samples of this type. Proceed?')">
             </form>
           {% endif %}
         </div>
@@ -411,14 +478,12 @@
           <div class="absolute top-0 left-0 w-full h-1 bg-purple-500"></div>
           {% if variant.blacklist is defined and variant.override_blacklist != true %}
             <form action="{{ url_for('dna_bp.add_variant_to_blacklist', id=variant._id) }}" method="post">
-              <input class="relative bg-purple-200 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block" type="submit" name="blacklist" value="Override Blacklist">
+              <input class="relative bg-purple-200 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all" type="submit" name="blacklist" value="Override Blacklist">
             </form>
           {% endif %}
         </div>
       </div>
     </section> 
-
-
 
     <!-- other information cards -->
     <section class="bg-transparent px-2 py-3 my-2 flex flex-wrap items-start relative gap-10 m-2" id="information-cards">
@@ -426,9 +491,9 @@
       <div class="flex flex-col gap-6 w-1/2 max-w-xl">
         <!-- Comment box -->
         {% if current_user.get_role() != "readonly" %}
-          <div class="bg-transparent w-full max-w-xlg" id="commenting-box-card">
-            <h2 class="text-sm font-semibold bg-gradient-to-b from-indigo-400 to-indigo-200 p-2 shadow-md rounded-t-lg">Add new comment/annotation</h2>
-            <div id="commenting_box" class="rounded-b-lg border border-gray-400 shadow-md p-2">
+          <div class="bg-transparent w-full max-w-xl" id="commenting-box-card">
+            <h2 class="text-sm font-semibold bg-gradient-to-b from-indigo-400 to-indigo-200 p-2 shadow-md rounded-t-lg break-all">Add new comment/annotation</h2>
+            <div id="commenting_box" class="rounded-b-lg border border-gray-400 shadow-md p-2 overflow-x-auto">
               <form action="{{ url_for('dna_bp.add_variant_comment', id=variant._id) }}" method="post">
                 <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="h-40 w-full p-2 border border-gray-300 rounded-lg focus:bg-yellow-50 mb-4"></textarea><br>
                 {% if sel_csq.HGVSc is defined %}
@@ -452,10 +517,10 @@
 
         <!-- Other Tiering Information -->
         <div class="bg-gray-50 max-w-xl w-full shadow-md rounded-lg mb-1 pagination" data-rows-per-page="2" pagination-button-color="orange" pagination-button-text-color="black" id="other-tiering-info">
-          <h2 class="text-sm font-semibold bg-gradient-to-b from-orange-400 to-orange-200 p-2 shadow-md rounded-t-lg">Other Tiering</h2>
-          <div class="rounded-b-lg">
+          <h2 class="text-sm font-semibold bg-gradient-to-b from-orange-400 to-orange-200 p-2 shadow-md rounded-t-lg break-all">Other Tiering</h2>
+          <div class="rounded-b-lg overflow-x-auto">
             {% if other_classifications %}
-              <table class="w-full table-auto text-xs text-gray-800">
+              <table class="w-full max-w-xl table-auto text-xs text-gray-800">
                 <thead class="capitalize tracking-wide rounded-t-lg bg-orange-100">
                   <tr class="border-b text-left border-gray-800">
                     <th class="p-3 font-semibold ">Assay</th>
@@ -481,17 +546,17 @@
                 </tbody>
               </table>
             {% else %}
-              <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md hover:bg-orange-50">Other tiering information is not available</em>
+              <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md hover:bg-orange-50 break-all">Other tiering information is not available</em>
             {% endif %}
           </div>
         </div>
 
         <!-- Panel of Normals -->
         <div class="bg-gray-50 max-w-xl w-full shadow-md rounded-lg mb-1" id="panel-of-normals">
-          <h2 class="text-sm font-semibold bg-gradient-to-b from-brown-400 to-brown-200 p-2 shadow-md rounded-t-lg">Panel of Normals</h2>
-          <div class="rounded-b-lg">
+          <h2 class="text-sm font-semibold bg-gradient-to-b from-brown-400 to-brown-200 p-2 shadow-md rounded-t-lg break-all">Panel of Normals</h2>
+          <div class="rounded-b-lg overflow-x-auto">
             {% if pon is not none and pon|length > 0 %}
-              <table class="w-full text-xs text-gray-800">
+              <table class="w-full max-w-xl text-xs text-gray-800">
                 <thead class="capitalize tracking-wide rounded-t-lg bg-brown-200">
                   <tr class="border-b text-left border-gray-800">
                     <th class="px-1 py-2 font-semibold w-1/6">Variant caller</th>
@@ -516,14 +581,14 @@
                 </tbody>
               </table>
             {% else %}
-              <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md hover:bg-brown-50">No Panel of Normals information available.</em>
+              <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md hover:bg-brown-50 break-all">No Panel of Normals information available.</em>
             {% endif %}
           </div>
         </div>
 
         <!-- Alternate Transcripts Information -->
         <div class="bg-gray-50 w-full max-w-xl shadow-md rounded-lg mb-1" id="alternate-transcripts-info">
-          <h2 class="text-sm font-semibold bg-gradient-to-b from-purple-400 to-purple-200 p-2 shadow-md rounded-t-lg">Alternate Transcripts             
+          <h2 class="text-sm font-semibold bg-gradient-to-b from-purple-400 to-purple-200 p-2 shadow-md rounded-t-lg break-all">Alternate Transcripts             
             {% if assay == "swea" or assay == "gmsonco" %}
               <a href="javascript:void(0)" onclick="switchVisibility_noncanonicaltranscripts('noncanonical_transcript')" class="text-blue-600 hover:underline">
                 Show/hide
@@ -553,14 +618,38 @@
                     <td class="p-2">{{ csq.SYMBOL }}</td>
                     <td class="p-2">{{ csq.Feature }}</td>
                     <td class="p-2">{{ csq.EXON }}</td>
-                    <td class="p-2 truncate" style="max-width: 10ch">
+                    <td class="p-2 ">
                       <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ csq.HGVSp|unesc|safe }}</span>`)">
-                        {{ csq.HGVSp|unesc|safe }}
+                        <div class="relative flex inline-block">
+                          <div id="{{csq.Feature}}-hgvsp-short" class="truncate max-w-15c">
+                            {{ csq.HGVSp|unesc|safe }}
+                          </div>
+                          <div id="{{csq.Feature}}-hgvsp-full" class="hidden break-all whitespace-normal">
+                            {{ csq.HGVSp|unesc|safe }}
+                          </div>
+                          <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
+                                  data-target="{{csq.Feature}}-hgvsp"
+                                  onclick="toggleLongText(this)">
+                            [+]
+                          </button>
+                        </div>
                       </span>
                     </td>
-                    <td class="p-2 truncate" style="max-width: 10ch">
+                    <td class="p-2 truncate">
                       <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ csq.HGVSc|unesc|safe }}</span>`)">
-                        {{ csq.HGVSc|unesc|safe }}
+                        <div class="relative flex inline-block">
+                          <div id="{{csq.Feature}}-hgvsc-short" class="truncate max-w-15c">
+                            {{ csq.HGVSc|unesc|safe }}
+                          </div>
+                          <div id="{{csq.Feature}}-hgvsc-full" class="hidden break-all whitespace-normal">
+                            {{ csq.HGVSc|unesc|safe }}
+                          </div>
+                          <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
+                                  data-target="{{csq.Feature}}-hgvsc"
+                                  onclick="toggleLongText(this)">
+                            [+]
+                          </button>
+                        </div>
                       </span>
                     </td>
                     <td class="p-2">
@@ -585,10 +674,10 @@
       <div class="flex flex-col gap-6 w-1/2 max-w-2xl items-start">
         <!-- Variant annotations (All) -->
         <div class="bg-gray-50 w-full max-w-2xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="green" pagination-button-text-color="black" id="variant-annotations-all">
-          <h2 class="text-sm font-semibold bg-gradient-to-b from-green-400 to-green-200 p-2 shadow-lg rounded-t-lg">Variant Annotations (All)</h2>
-          <div class="rounded-b-lg ">
+          <h2 class="text-sm font-semibold bg-gradient-to-b from-green-400 to-green-200 p-2 shadow-lg rounded-t-lg break-all">Variant Annotations (All)</h2>
+          <div class="rounded-b-lg overflow-x-auto">
             {% if annotations|length > 0 %}
-              <table class="w-full table-auto text-xs text-gray-800 mb-1">
+              <table class="w-full max-w-2xl table-auto text-xs text-gray-800 mb-1">
                 <thead class="capitalize tracking-wide rounded-t-lg bg-green-100">
                   <tr class="border-b text-left border-gray-800">
                     <th class="p-3 font-semibold w-1/6">Who</th>
@@ -615,17 +704,17 @@
                 </tbody>
               </table>
             {% else %}
-              <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md">No variant annotations (all) available.</em>
+              <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md break-all">No variant annotations (all) available.</em>
             {% endif %}
           </div>
         </div>
 
         <!-- Variant annotations (Assay) -->
         <div class="bg-gray-50 w-full max-w-2xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="blue" pagination-button-text-color="black" id="variant-annotations-assay">
-          <h2 class="text-sm font-semibold bg-gradient-to-b from-blue-400 to-blue-200 p-2 shadow-md rounded-t-lg">Variant Annotations (Assay)</h2>
-          <div class="rounded-b-lg">
+          <h2 class="text-sm font-semibold bg-gradient-to-b from-blue-400 to-blue-200 p-2 shadow-md rounded-t-lg break-all">Variant Annotations (Assay)</h2>
+          <div class="rounded-b-lg overflow-x-auto">
             {% if annotations_interesting|length > 0 %}
-              <table class="w-full table-auto text-xs text-gray-800">
+              <table class="w-full max-w-2xl table-auto text-xs text-gray-800">
                 <thead class="capitalize tracking-wide rounded-t-lg bg-blue-100">
                   <tr class="border-b text-left border-gray-800">
                     <th class="p-3 font-semibold w-1/6">Who</th>
@@ -650,7 +739,7 @@
                 </tbody>
               </table>
             {% else %}
-              <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md hover:bg-blue-100">No variant annotations (Assay) available.</em>
+              <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md hover:bg-blue-100 break-all">No variant annotations (Assay) available.</em>
             {% endif %}
           </div>
         </div>
@@ -658,15 +747,15 @@
 
         <!-- Sample Specific Variant comments -->
         <div class="bg-gray-50 w-full max-w-2xl shadow-md rounded-lg mb-1" id="variant-comments">
-          <h2 class="text-sm font-semibold bg-gradient-to-b from-yellow-400 to-yellow-200 p-2 shadow-md rounded-t-lg">Sample-Specific Variant Comments</h2>
-          <div class="rounded-b-lg">
+          <h2 class="text-sm font-semibold bg-gradient-to-b from-yellow-400 to-yellow-200 p-2 shadow-md rounded-t-lg break-all">Sample-Specific Variant Comments</h2>
+          <div class="rounded-b-lg overflow-x-auto">
             {% if variant.comments|length > 0 and current_user.get_role() != "readonly" %}
-              <table class="w-full table-auto text-xs text-gray-800">
+              <table class="w-full max-w-2xl table-auto text-xs text-gray-800">
                 <thead class="capitalize tracking-wide rounded-t-lg bg-yellow-100">
                   <tr class="border-b text-left border-gray-800">
                     <th class="p-3 font-semibold w-1/6">Who</th>
                     <th class="p-3 font-semibold w-4/6">Comment</th>
-                    <th class="p-3 font-semibold w-1/6">Assay</th>
+                    <th class="p-3 font-semibold w-1/6">Action</th>
                   </tr>
                 </thead>
                 <tbody id="variant-comments-body" class="{% if variant.comments|length > 1 %}border-b border-gray-400 {% endif %}">
@@ -706,7 +795,7 @@
               </table>
             {% else %}
               <em class="block text
-              -center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md">No sample-specific variant comments available.</em>
+              -center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md break-all">No sample-specific variant comments available.</em>
             {% endif %}
           </div>
         </div>
@@ -714,9 +803,9 @@
         <!-- MELT Annotations -->
         {% if "MELT" in variant.INFO.variant_callers %}
           <div class="bg-gray-50 max-w-lg w-full shadow-md rounded-lg mb-1" id="melt-annotations">
-            <h2 class="text-sm font-semibold bg-gradient-to-b from-teal-400 to-teal-200 p-2 shadow-md rounded-t-lg">MELT-Specific Annotations</h2>
-            <div class="rounded-b-lg">
-              <table class="w-full text-xs text-gray-800">
+            <h2 class="text-sm font-semibold bg-gradient-to-b from-teal-400 to-teal-200 p-2 shadow-md rounded-t-lg break-all">MELT-Specific Annotations</h2>
+            <div class="rounded-b-lg overflow-x-auto">
+              <table class="w-full max-w-lg text-xs text-gray-800">
                 <thead class="capitalize tracking-wide rounded-t-lg bg-teal-200">
                   <tr class="border-b text-left border-gray-800">
                     <th class="px-1 py-2 font-semibold">Type</th>
@@ -741,12 +830,11 @@
         {% endif %}
 
         <!-- Knowledge Base -->
-        <!-- Modify the table body classes -->
         <div class="bg-gray-50 w-full max-w-2xl shadow-md rounded-lg mb-1" id="knowledge-base-card">
           {% set kb_flase = True %}
-          <h2 class="text-sm font-semibold bg-gradient-to-b from-pink-400 to-pink-200 p-2 shadow-md rounded-t-lg">Knowledge Base</h2>
-          <div class="rounded-b-lg">
-            <table class="w-full table-auto text-xs text-gray-800">
+          <h2 class="text-sm font-semibold bg-gradient-to-b from-pink-400 to-pink-200 p-2 shadow-md rounded-t-lg break-all">Knowledge Base</h2>
+          <div class="rounded-b-lg overflow-x-auto">
+            <table class="w-full max-w-2xl table-auto text-xs text-gray-800">
               <thead class="capitalize tracking-wide rounded-t-lg bg-pink-200">
                 <tr class="border-b text-left border-gray-800">
                   <th class="p-3 font-semibold w-1/12">Database</th>
@@ -755,76 +843,6 @@
                 </tr>
               </thead>
               <tbody id="knowledge-base-card-body">
-                <!-- IARC Database -->
-                {% if iarc_tp53 is defined and iarc_tp53 is not none %}
-                  {% set kb_flase = False %}
-                  <tr class="hover:bg-pink-50 border-b">
-                    <td class="p-2 font-medium align-top">
-                      <img class="w-10 h-10 object-contain" alt="IARC TP53" src="{{ url_for('static', filename='images/iarctp53_logo.png') }}">
-                      <p class="text-red-500 font-bold align-top">BETA!</p>
-                    </td>
-                    <td class="p-2 font-medium align-top py-5">
-                      <a href="http://p53.iarc.fr/TP53GeneVariations.aspx" class="text-blue-600 hover:underline break-words">IARC Variations</a>
-                    </td>
-                    <td class="p-2 font-medium text-justify break-words">
-                      <div class="flex flex-wrap gap-2">
-                        <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
-                          <p class="text-xs text-gray-500">Somatic count</p>
-                          <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.n_somatic }}</p>
-                        </div>
-                        <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
-                          <p class="text-xs text-gray-500">Germline count</p>
-                          <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.n_germline }}</p>
-                        </div>
-                        <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
-                          <p class="text-xs text-gray-500">Structural motif</p>
-                          <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.motif }}</p>
-                        </div>
-                        <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
-                          <p class="text-xs text-gray-500">Domain function</p>
-                          <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.domain_func }}</p>
-                        </div>
-                        <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
-                          <p class="text-xs text-gray-500">Residue function</p>
-                          <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.residue_func }}</p>
-                        </div>
-                        <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
-                          <p class="text-xs text-gray-500">Transactivation class</p>
-                          <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.transactivation_class }}</p>
-                        </div>
-                        <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
-                          <p class="text-xs text-gray-500">AGVGD class</p>
-                          <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.AGVGD_class }}</p>
-                        </div>
-                        <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
-                          <p class="text-xs text-gray-500">Splicing</p>
-                          <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.splice }}</p>
-                        </div>
-                        <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
-                          <p class="text-xs text-gray-500">CpG site</p>
-                          <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.cpg }}</p>
-                        </div>
-                        <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
-                          <p class="text-xs text-gray-500">Polymorphism</p>
-                          <p class="text-xs font-semibold text-gray-800">{{ iarc_tp53.polymorphism }}</p>
-                        </div>
-                      </div>
-                      {% if "topology_count" in iarc_tp53 %}
-                        {% set kb_flase = False %}
-                        <br>
-                        <p class="text-sm p-2 font-semibold text-gray-800">Topologies - Counts</p>
-                        <div class="flex flex-wrap gap-2">
-                          {% for top, count in iarc_tp53.topology_count.items() %}
-                          <div class="flex-grow-0 bg-white p-2 rounded-lg shadow-md border border-gray-200">
-                            <p class="text-xs text-gray-500">{{ top }}</p>
-                            <p class="text-xs font-semibold text-gray-800">{{ count }}</p>
-                          </div>
-                          {% endfor %}
-                        </div>
-                      {%endif %}
-                    </td>
-                  <tr>
-                {% endif %}
                 <!-- BRCA Exchange Database -->
                 <!-- TODO: Update this to the latest design when testing -->
                 {#{% set brca_exchange = {} %}#}
@@ -927,11 +945,95 @@
                     </td>
                   </tr>
                 {% endif %}
+
+                <!-- IARC Database -->
+                {% if iarc_tp53 is defined and iarc_tp53 is not none %}
+                  {% set kb_flase = False %}
+                  <tr class="hover:bg-pink-50 border-b">
+                    <td class="p-2 font-medium align-top">
+                      <img class="w-10 h-10 object-contain" alt="IARC TP53" src="{{ url_for('static', filename='images/iarctp53_logo.png') }}">
+                      <p class="text-red-500 font-bold align-top">BETA!</p>
+                    </td>
+                    <td class="p-2 font-medium align-top py-5">
+                      <a href="http://p53.iarc.fr/TP53GeneVariations.aspx" class="text-blue-600 hover:underline break-words">IARC Variations</a>
+                    </td>
+                    <td class="p-2 font-medium text-justify break-words">
+                      <div class="text-xs text-gray-800 mb-3">
+                        <div>
+                          <span class="text-gray-600">Somatic count:</span>
+                          <span class="font-semibold">{{ iarc_tp53.n_somatic }}</span>
+                        </div>
+                        <div>
+                          <span class="text-gray-600">Germline count:</span>
+                          <span class="font-semibold">{{ iarc_tp53.n_germline }}</span>
+                        </div>
+                      </div>
+                      
+                      <div class="text-xs text-gray-800 mb-3">
+                        <div>
+                          <span class="text-gray-600">Structural motif</span>
+                          <span class="font-semibold">{{ iarc_tp53.motif }}</span>
+                        </div>
+                        <div>
+                          <span class="text-gray-600">Domain function</span>
+                          <span class="font-semibold">{{ iarc_tp53.domain_func }}</span>
+                        </div>
+                        <div>
+                          <span class="text-gray-600">Residue function</span>
+                          <span class="font-semibold">{{ iarc_tp53.residue_func }}</span>
+                        </div>
+                      </div>
+
+                      <div class="text-xs text-gray-800 mb-3">
+                        <div>
+                          <span class="text-gray-600">Transactivation class</span>
+                          <span class="font-semibold">{{ iarc_tp53.transactivation_class }}</span>
+                        </div>
+                        <div>
+                          <span class="text-gray-600">AGVGD class</span>
+                          <span class="font-semibold">{{ iarc_tp53.AGVGD_class }}</span>
+                        </div>
+                        <div>
+                          <span class="text-gray-600">Splicing</span>
+                          <span class="font-semibold">{{ iarc_tp53.splice }}</span>
+                        </div>
+                        <div>
+                          <span class="text-gray-600">CpG site</span>
+                          <span class="font-semibold">{{ iarc_tp53.cpg }}</span>
+                        </div>
+                        <div>
+                          <span class="text-gray-600">Polymorphism</span>
+                          <span class="font-semibold">{{ iarc_tp53.polymorphism }}</span>
+                        </div>
+                      </div>
+                      {% if "topology_count" in iarc_tp53 %}
+                        <div class="text-xs mb-2">
+                          <table class="table-auto text-xs text-gray-800 bg-transparent">
+                            <thead class="capitalize">
+                              <tr class="text-left">
+                                <th class="p-2 border border-gray-800 font-semibold">Topologies</th>
+                                <th class="p-2 border border-gray-800 font-semibold">Counts</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for top, count in iarc_tp53.topology_count.items() %}
+                                <tr class="hover:bg-pink-100 text-left align-top">
+                                  <td class="p-2 border border-gray-800">{{ top }}</td>
+                                  <td class="p-2 border border-gray-800">{{ count }}</td>
+                                </tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+                      {% endif %}                      
+                    </td>
+                  <tr>
+                {% endif %}
               </tbody>
             </table>
             {% if kb_flase %}
-             <em class="block text-center text-gray-500 text-sm italic bg-gray-50 p-4 rounded-b-lg border border-gray-300 shadow-md">No knowledge available.</em>
-           {% endif %}
+              <em class="block text-center text-gray-500 text-sm italic bg-gray-50 p-4 rounded-b-lg border border-gray-300 shadow-md break-all">No knowledge available.</em>
+            {% endif %}
           </div>
         </div>
       
@@ -986,23 +1088,6 @@
       document.getElementById("comment_textarea").value = targ.textContent || targ.innerText;
     }
   }
-
-  function toggleText(button) {
-    var shortText = button.previousElementSibling.previousElementSibling;
-    var fullText = button.previousElementSibling;
-
-    // Toggle between short and full text
-    if (fullText.classList.contains('hidden')) {
-      shortText.classList.add('hidden');   // Hide truncated text
-      fullText.classList.remove('hidden'); // Show full text
-      button.textContent = '[-]';          // Change button text to Collapse
-    } else {
-      shortText.classList.remove('hidden'); // Show truncated text
-      fullText.classList.add('hidden');     // Hide full text
-      button.textContent = '[+]';           // Change button text to Expand
-    }
-  }
-  
 
 
 </script>

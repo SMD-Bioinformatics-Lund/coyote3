@@ -38,7 +38,7 @@
     {% block javascript %}{% endblock %}
   </head>
 
-  <body class="bg-gradient-to-t from-blue-100 to-indigo-100 text-sm overflow-hidden w-full">
+  <body class="bg-gradient-to-t from-blue-100 to-indigo-100 text-sm overflow-hidden w-full border-t-4 border-indigo-400">
 
     <!-- FLASH MESSAGES -->
     <div id="alert-container" class="fixed top-20 right-10 z-50 space-y-3">
@@ -256,6 +256,32 @@
             event.target.removeEventListener("mouseleave", hideTooltip);
         });
       }
+
+
+      // JavaScript for hiding and showing long text 
+      function toggleLongText(button) {
+        const target = button.dataset.target;
+        const short = document.getElementById(`${target}-short`);
+        const full = document.getElementById(`${target}-full`);
+      
+        const isShortVisible = !short.classList.contains('hidden');
+        short.classList.toggle('hidden', isShortVisible);
+        full.classList.toggle('hidden', !isShortVisible);
+      
+        button.innerText = isShortVisible ? '[−]' : '[+]';
+      }
+      
+      // Check overflow for all toggle targets
+      window.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.text-toggle').forEach(button => {
+          const target = button.dataset.target;
+          const shortEl = document.getElementById(`${target}-short`);
+          if (shortEl && shortEl.scrollWidth > shortEl.clientWidth) {
+            button.classList.remove('hidden');
+          }
+        });
+      });
+
     </script>
     {% block script %}{% endblock %}
     {% block footer %}{% endblock %}
