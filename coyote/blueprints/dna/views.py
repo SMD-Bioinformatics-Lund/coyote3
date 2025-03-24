@@ -775,6 +775,7 @@ def show_cnv(id):
         "show_cnvwgs.html",
         cnv=cnv,
         sample=sample,
+        assay=assay,
         classification=999,
         annotations=annotations,
         sample_ids=sample_ids,
@@ -820,6 +821,26 @@ def unmark_false_cnv(id):
     Unmark CNV as false positive
     """
     store.cnv_handler.unmark_false_positive_cnv(id)
+    return redirect(url_for("dna_bp.show_cnv", id=id))
+
+
+@dna_bp.route("/cnv/noteworthycnv/<string:id>", methods=["POST"])
+@login_required
+def mark_noteworthy_cnv(id):
+    """
+    Mark CNV as note worthy
+    """
+    store.cnv_handler.noteworthy_cnv(id)
+    return redirect(url_for("dna_bp.show_cnv", id=id))
+
+
+@dna_bp.route("/cnv/unnoteworthycnv/<string:id>", methods=["POST"])
+@login_required
+def unmark_noteworthy_cnv(id):
+    """
+    Unmark CNV as note worthy
+    """
+    store.cnv_handler.unnoteworthy_cnv(id)
     return redirect(url_for("dna_bp.show_cnv", id=id))
 
 
