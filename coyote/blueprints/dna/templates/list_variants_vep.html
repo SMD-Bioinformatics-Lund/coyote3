@@ -259,40 +259,48 @@
                         </td>
 
                         <!-- HGVS -->
-                        <td id="snv-table-row-hgvs">
+                        <td id="snv-table-row-hgvs" class="max-w-25c">
 
                           <!-- HGVSp Section -->
-                          <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ csq.HGVSp|unesc|safe }}</span>`)">
-                            <div class="relative inline-block">
-                              <div id="vt-hgvsp-short" class="truncate max-w-15c">
-                                {{ csq.HGVSp }}
+                          {% if csq.HGVSp and csq.HGVSp != "-" %}
+                            <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ csq.HGVSp|unesc|safe }}</span>`)">
+                              <div class="relative flex inline-block">
+                                <div id="{{csq.Feature}}-hgvsp-short" class="truncate max-w-15c">
+                                  {{ csq.HGVSp|unesc|safe }}
+                                </div>
+                                <div id="{{csq.Feature}}-hgvsp-full" class="hidden break-all whitespace-normal">
+                                  {{ csq.HGVSp|unesc|safe }}
+                                </div>
+                                <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
+                                        data-target="{{csq.Feature}}-hgvsp"
+                                        onclick="toggleLongText(this)">
+                                  [+]
+                                </button>
                               </div>
-                              <div id="vt-hgvsp-full" class="hidden break-all whitespace-normal">
-                                {{ csq.HGVSp|unesc|safe }}
+                            </span>
+                          {% else %}
+                            -
+                          {% endif %}
+                          <!-- HGVSc Section -->
+                          {% if csq.HGVSc and csq.HGVSc != "-" %}
+                            <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ csq.HGVSc|unesc|safe }}</span>`)">
+                              <div class="relative flex inline-block">
+                                <div id="{{csq.Feature}}-hgvsc-short" class="truncate max-w-15c">
+                                  {{ csq.HGVSc|unesc|safe }}
+                                </div>
+                                <div id="{{csq.Feature}}-hgvsc-full" class="hidden break-all whitespace-normal">
+                                  {{ csq.HGVSc|unesc|safe }}
+                                </div>
+                                <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
+                                        data-target="{{csq.Feature}}-hgvsc"
+                                        onclick="toggleLongText(this)">
+                                  [+]
+                                </button>
                               </div>
-                              <button class="text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
-                                      data-target="vt-hgvsp"
-                                      onclick="toggleLongText(this)">
-                                [+]
-                              </button>
-                            </div>
-                          </span>
-                          <br>
-                          <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ csq.HGVSc|unesc|safe }}</span>`)">
-                            <div class="relative inline-block">
-                              <div id="vt-hgvsc-short" class="truncate max-w-15c">
-                                {{ csq.HGVSc|unesc|safe }}
-                              </div>
-                              <div id="vt-hgvsc-full" class="hidden break-all whitespace-normal">
-                                {{ csq.HGVSc|unesc|safe }}
-                              </div>
-                              <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
-                                      data-target="vt-hgvsc"
-                                      onclick="toggleLongText(this)">
-                                [+]
-                              </button>
-                            </div>
-                          </span>
+                            </span>
+                          {% else %}
+                            -
+                          {% endif %}
                         </td>
 
                         <!-- Variant Type -->
@@ -492,6 +500,16 @@
                             src="{{ url_for('dna_bp.show_any_plot_rotated', fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}"
                           >
                         </a>
+                      </div>
+                      <!-- TODO: Correct the Gene link -->
+                      <div class="text-center my-4 pb-2 ">
+                        {% if build|int == 38 %}
+                          {% for type, sample_id in sample_ids.items() %}
+                            <br><a href="http://mtcmdpgm01.lund.skane.se/gens/{{sample_id}}?case_id={{sample_id}}&hg_type=38" class="text-blue-500 hover:underline hover:text-blue-800 transition-colors duration-300" target="_blank">Open <b>{{sample_id}}</b> ({{type}}) in Gens</a>
+                          {% endfor %}
+                        {% else %}
+                          <br><a href="http://mtcmdpgm01.lund.skane.se/gens/{{ sample.name }}?case_id={{sample.name}}&region=1" class="text-blue-500 hover:underline hover:text-blue-800 transition-colors duration-300" target="_blank">Show in Gens</a>
+                        {% endif %}
                       </div>
                     </div>    
                   </div>

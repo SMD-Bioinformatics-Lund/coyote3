@@ -552,6 +552,7 @@
               <tbody id="alternate-transcripts-info-body" class="{% if variant.INFO.CSQ|length > 1 %}border-b border-gray-400 {% endif %}">
                 {% for csq in variant.INFO.CSQ %}
                   {% if csq.BIOTYPE == "protein_coding" and (csq.HGVSp|length > 0 or csq.HGVSc|length > 0) %}
+                    {% set alternate_transcripts = true %}
                     {% if csq.Feature == sel_csq.Feature %}
                       <tr class="bg-purple-100 hover:bg-green-100 border-t border-gray-400 text-left align-top">
                     {% else %}
@@ -604,10 +605,15 @@
                       {% endif %}
                     </td>
                   </tr>
+                  {% else %}
+                    {% set alternate_transcripts = false %}
                   {% endif %}
                 {% endfor %}
               </tbody>
             </table>
+            {% if not alternate_transcripts %}
+              <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md break-all">No alternate transcripts available.</em>
+            {% endif %}
           </div>
         </div>
 
@@ -736,8 +742,7 @@
                 </tbody>
               </table>
             {% else %}
-              <em class="block text
-              -center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md break-all">No sample-specific variant comments available.</em>
+              <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md break-all">No sample-specific variant comments available.</em>
             {% endif %}
           </div>
         </div>
