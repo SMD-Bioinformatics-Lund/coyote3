@@ -156,7 +156,7 @@
 
   </aside>
 
-  <main class="flex-1 bg-transparent overflow-y-auto p-2 flex flex-col">
+  <main class="flex-1 bg-transparent overflow-y-auto py-2 px-1 flex flex-col">
 
     <!-- sample info -->
     {% include "sample_meta_info.html" %}
@@ -217,12 +217,12 @@
 
 
     <!-- other information cards -->
-    <section class="bg-transparent px-2 py-3 my-2 flex flex-wrap items-start relative gap-10 m-2" id="cnv-information-cards">
+    <section class="bg-transparent p-2 my-2 flex flex-wrap items-start relative gap-4" id="cnv-information-cards">
       <!-- Comment box, other tiering and pon -->
-      <div class="flex flex-col gap-6 w-1/2 max-w-xl">
+      <div class="flex flex-col gap-y-4 max-w-xl">
         <!-- Comment box -->
         {% if current_user.get_role() != "readonly" %}
-          <div class="bg-transparent w-full max-w-xl" id="commenting-box-card">
+          <div class="bg-transparent min-w-400 w-full max-w-xl" id="commenting-box-card">
             <h2 class="text-sm font-semibold bg-gradient-to-b from-indigo-400 to-indigo-200 p-2 shadow-md rounded-t-lg break-all">Add new comment/annotation</h2>
             <div id="commenting_box" class="rounded-b-lg border border-gray-400 shadow-md p-2 overflow-x-auto">
               <form action="{{ url_for('dna_bp.add_variant_comment', id=cnv._id) }}" method="post">
@@ -280,13 +280,13 @@
       </div>
 
 
-      <div class="flex flex-col gap-6 w-1/2 max-w-2xl items-start">
+      <div class="flex flex-col gap-y-4 max-w-xl items-start">
         <!-- CNV annotations -->
-        <div class="bg-gray-50 w-full max-w-2xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="green" pagination-button-text-color="black" id="cnv-annotations">
+        <div class="bg-gray-50 w-full max-w-xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="green" pagination-button-text-color="black" id="cnv-annotations">
           <h2 class="text-sm font-semibold bg-gradient-to-b from-green-400 to-green-200 p-2 shadow-lg rounded-t-lg break-all">CNV Annotations</h2>
           <div class="rounded-b-lg overflow-x-auto">
             {% if annotations|length > 0 %}
-              <table class="w-full max-w-2xl table-auto text-xs text-gray-800 mb-1">
+              <table class="w-full max-w-xl table-auto text-xs text-gray-800 mb-1">
                 <thead class="capitalize tracking-wide rounded-t-lg bg-green-100">
                   <tr class="border-b text-left border-gray-800">
                     <th class="p-3 font-semibold w-1/6">Who</th>
@@ -320,11 +320,11 @@
 
 
         <!-- Sample Specific CNV comments -->
-        <div class="bg-gray-50 w-full max-w-2xl shadow-md rounded-lg mb-1" id="cnv-comments">
+        <div class="bg-gray-50 w-full max-w-xl shadow-md rounded-lg mb-1" id="cnv-comments">
           <h2 class="text-sm font-semibold bg-gradient-to-b from-yellow-400 to-yellow-200 p-2 shadow-md rounded-t-lg break-all">Sample-Specific Variant Comments</h2>
           <div class="rounded-b-lg overflow-x-auto">
             {% if cnv.comments|length > 0 and current_user.get_role() != "readonly" %}
-              <table class="w-full max-w-2xl table-auto text-xs text-gray-800">
+              <table class="w-full max-w-xl table-auto text-xs text-gray-800">
                 <thead class="capitalize tracking-wide rounded-t-lg bg-yellow-100">
                   <tr class="border-b text-left border-gray-800">
                     <th class="p-3 font-semibold w-1/6">Who</th>
