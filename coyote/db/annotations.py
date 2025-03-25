@@ -70,6 +70,7 @@ class AnnotationsHandler(BaseHandler):
 
         for anno in annotations:
             if "class" in anno:
+                anno["class"] = int(anno["class"])
                 ## collect latest for current assay (if latest not assigned pick that)
                 ## also collect latest anno for all other assigned assays (including non-assays)
                 ## special rule for assays with subpanels, solid, tumwgs maybe lymph?
@@ -123,6 +124,65 @@ class AnnotationsHandler(BaseHandler):
             )
 
         return annotations_arr, latest_classification, latest_other_arr, annotations_interesting
+
+    def get_additional_classifications(self, variant: dict, assay: str, subpanel: str) -> dict:
+        """
+        Retrieve additional classifications for a given variant based on specified assay and subpanel.
+        This method constructs a query to search for classifications in the database that match the
+        provided variant's genes, transcripts, and nomenclature variants (HGVSp and HGVSc). If the
+        assay type is 'solid', it further filters the results by assay and subpanel.
+        Args:
+            variant (dict): A dictionary containing variant details including 'transcripts', 'HGVSp',
+                            'HGVSc', and 'genes'.
+            assay (str): The type of assay being used (e.g., 'solid').
+            subpanel (str): The subpanel identifier for further filtering when assay is 'solid'.
+        Returns:
+            list: A list of annotations that match the query criteria, sorted by the time they were created.
+
+        """
+        transcripts = variant["transcripts"]
+        transcript_patterns = [f"^{transcript}(\\..*)?$" for transcript in transcripts]
+        hgvsp = variant["HGVSp"]
+        hgvsc = variant["HGVSc"]
+        genes = variant["genes"]
+        query = {
+            "gene": {"$in": genes},
+            "transcript": {"$regex": "|".join(transcript_patterns)},
+            "$or": [
+                {"nomenclature": "p", "variant": {"$in": hgvsp}},
+                {"nomenclature": "c", "variant": {"$in": hgvsc}},
+                {"nomenclature": "g", "variant": variant["simple_id"]},
+            ],
+            "assay": assay,
+            "class": {"$exists": True},
+        }
+        if assay == "solid":
+            query["subpanel"] = subpanel
+
+        return list(self.get_collection().find(query).sort("time_created", -1).limit(1))
+
+    def add_alt_class(self, variant: dict, assay: str, subpanel: str) -> list[dict]:
+        """
+        Add alternative classifications to a list of variants based on the specified assay and subpanel.
+        Args:
+            variants (dict): A dict of a variant to be annotated.
+            assay (str): The type of assay being used (e.g., 'solid').
+            subpanel (str): The subpanel identifier for further filtering when assay is 'solid'.
+        Returns:
+            list: A list of variants with additional classifications added to them.
+
+        """
+        additional_classifications = self.get_additional_classifications(variant, assay, subpanel)
+        if additional_classifications:
+            additional_classifications[0].pop("_id", None)
+            additional_classifications[0].pop("author", None)
+            additional_classifications[0].pop("time_created", None)
+            additional_classifications[0]["class"] = int(additional_classifications[0]["class"])
+            variant["additional_classification"] = additional_classifications[0]
+        else:
+            variant["additional_classification"] = None
+
+        return variant
 
     def no_transid(self, nom):
         a = nom.split(":")
@@ -186,7 +246,7 @@ class AnnotationsHandler(BaseHandler):
         ## If variant has no match to current assay, it has an historical variant, i.e. not assigned to an assay. THIS IS DANGEROUS, maybe limit to admin?
         if len(num_assay) == 0 and "admin" in user_groups:
             per_assay = list(
-                self.get_collection().find(
+                self.get_collection().find(  # may be change it to delete later
                     {
                         "class": {"$exists": True},
                         "variant": variant,

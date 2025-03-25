@@ -12,12 +12,51 @@ class CNVsHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.cnvs_collection)
 
-    def get_sample_cnvs(self, sample_id: str, normal: bool = False):
+    def get_sample_cnvs(self, sample_id: str, normal: bool = False, settings: dict | None = None):
         # TODO CHECK WHAT IS NORMAL IN THE PREVIOUS COYOTE
         """
         Get CNVs for a sample
         """
-        return self.get_collection().find({"SAMPLE_ID": sample_id})
+
+        query = {"SAMPLE_ID": sample_id}
+
+        if settings:
+            query = {
+                "SAMPLE_ID": sample_id,
+                "$and": [
+                    # Ratio Condition: (cnv.ratio|float < -0.3 or cnv.ratio|float > 0.3)
+                    {
+                        "$or": [
+                            {"ratio": {"$lt": settings["cnvratio_lower"]}},
+                            {"ratio": {"$gt": settings["cnvratio_upper"]}},
+                        ]
+                    },
+                    # Size and Ratio Condition:
+                    {
+                        "$or": [
+                            {
+                                "$and": [
+                                    {"size": {"$gt": settings["sizefilter_min"]}},
+                                    {"size": {"$lt": settings["sizefilter_max"]}},
+                                ]
+                            },
+                            {"ratio": {"$gt": 3}},
+                        ]
+                    },
+                    # Gene Panel Condition:
+                    {
+                        "$or": [
+                            {"panel_gene": {"$in": settings.get("filter_genes", [])}},
+                            {
+                                "panel_gene": {"$exists": False}
+                            },  # Handle empty dispgenes with $exists
+                            {"assay": "tumwgs"},
+                        ]
+                    },
+                ],
+            }
+
+        return self.get_collection().find(query)
 
     def get_cnv(self, cnv_id: str):
         """
@@ -74,6 +113,18 @@ class CNVsHandler(BaseHandler):
         """
         self.mark_false_positive(cnv_id, fp)
 
+    def noteworthy_cnv(self, cnv_id: str, noteworthy: bool = True) -> None:
+        """
+        Mark CNV as Note worthy
+        """
+        self.mark_noteworthy(cnv_id, noteworthy)
+
+    def unnoteworthy_cnv(self, cnv_id: str, noteworthy: bool = False) -> None:
+        """
+        UnMark CNV as Note worthy
+        """
+        self.mark_noteworthy(cnv_id, noteworthy)
+
     def hide_cnvs_comment(self, cnv_id: str, comment_id: str) -> None:
         """
         Hide CNVs comment
@@ -91,38 +142,6 @@ class CNVsHandler(BaseHandler):
         Add comment to a CNV
         """
         self.update_comment(cnv_id, comment_doc)
-
-    def cnvtype_variant(self, cnvs: list, checked_effects: list) -> list:
-        """
-        Filter CNVs by type
-        """
-        filtered_cnvs = []
-        for var in cnvs:
-            if var["ratio"] > 0:
-                effect = "AMP"
-            if var["ratio"] < 0:
-                effect = "DEL"
-            if effect in checked_effects:
-                filtered_cnvs.append(var)
-        return filtered_cnvs
-
-    def cnv_organizegenes(self, cnvs: list) -> list:
-        """
-        Organize CNV genes
-        """
-        fixed_cnvs_genes = []
-        for var in cnvs:
-            var["other_genes"] = []
-            for gene in var["genes"]:
-                if "class" in gene:
-                    if "panel_gene" in var:
-                        var["panel_gene"].append(gene["gene"])
-                    else:
-                        var["panel_gene"] = [gene["gene"]]
-                else:
-                    var["other_genes"].append(gene["gene"])
-            fixed_cnvs_genes.append(var)
-        return fixed_cnvs_genes
 
     def hidden_cnv_comments(self, id: str) -> bool:
         """
