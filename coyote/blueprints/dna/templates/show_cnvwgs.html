@@ -282,7 +282,7 @@
 
       <div class="flex flex-col gap-6 w-1/2 max-w-2xl items-start">
         <!-- CNV annotations -->
-        <div class="bg-gray-50 w-full max-w-2xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="green" pagination-button-text-color="black" id="variant-annotations-all">
+        <div class="bg-gray-50 w-full max-w-2xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="green" pagination-button-text-color="black" id="cnv-annotations">
           <h2 class="text-sm font-semibold bg-gradient-to-b from-green-400 to-green-200 p-2 shadow-lg rounded-t-lg break-all">CNV Annotations</h2>
           <div class="rounded-b-lg overflow-x-auto">
             {% if annotations|length > 0 %}
@@ -291,9 +291,10 @@
                   <tr class="border-b text-left border-gray-800">
                     <th class="p-3 font-semibold w-1/6">Who</th>
                     <th class="p-3 font-semibold w-4/6">Annotation</th>
+                    <th class="p-3 font-semibold w-4/6">Type</th>
                   </tr>
                 </thead>
-                <tbody id="variant-annotations-all-body" class="{% if annotations|length > 1 %}border-b border-gray-400 {% endif %}">
+                <tbody id="cnv-annotations-body" class="{% if annotations|length > 1 %}border-b border-gray-400 {% endif %}">
                   {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
                     {% if current_user.get_role() != "readonly" or loop.first == True %}
                       <tr class="hover:bg-green-100 border-t border-gray-400 text-left align-top">

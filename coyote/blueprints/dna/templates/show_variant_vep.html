@@ -4,6 +4,7 @@
 
 
 {% set sel_csq = variant.INFO.selected_CSQ %}
+{% set ns = namespace(alternate_transcripts=0) %}
 {% set genomic_change =  variant.CHROM ~ ":" ~ variant.POS ~ ", " ~  variant.REF ~ "/" ~ variant.ALT %}
 {% set indel_size = variant.ALT|length - variant.REF|length %}
 {% set subfolder = {'dir': "None"} %}
@@ -552,7 +553,7 @@
               <tbody id="alternate-transcripts-info-body" class="{% if variant.INFO.CSQ|length > 1 %}border-b border-gray-400 {% endif %}">
                 {% for csq in variant.INFO.CSQ %}
                   {% if csq.BIOTYPE == "protein_coding" and (csq.HGVSp|length > 0 or csq.HGVSc|length > 0) %}
-                    {% set alternate_transcripts = true %}
+                    {% set ns.alternate_transcripts = loop.index %}
                     {% if csq.Feature == sel_csq.Feature %}
                       <tr class="bg-purple-100 hover:bg-green-100 border-t border-gray-400 text-left align-top">
                     {% else %}
@@ -578,7 +579,7 @@
                         </div>
                       </span>
                     </td>
-                    <td class="p-2 truncate">
+                    <td class="p-2">
                       <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ csq.HGVSc|unesc|safe }}</span>`)">
                         <div class="relative flex inline-block">
                           <div id="{{csq.Feature}}-hgvsc-short" class="truncate max-w-15c">
@@ -605,13 +606,11 @@
                       {% endif %}
                     </td>
                   </tr>
-                  {% else %}
-                    {% set alternate_transcripts = false %}
                   {% endif %}
                 {% endfor %}
               </tbody>
             </table>
-            {% if not alternate_transcripts %}
+            {% if ns.alternate_transcripts == 0 %}
               <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md break-all">No alternate transcripts available.</em>
             {% endif %}
           </div>
