@@ -12,53 +12,72 @@
 {% endblock %}
 
 {% block body %}
-  <div class="flex justify-center items-center mt-10 min-h-screen bg-white">
-    <!-- New Gene List Form -->
-    <div class="bg-white shadow-lg rounded-xl p-8">
-      <h2 class="text-2xl font-semibold mb-6">Create New Gene Panel</h2>
-      <form id="genePanelForm" action="{{ url_for('genepanels_bp.create_genelist') }}" method="post" enctype="multipart/form-data">
-        {{ form.hidden_tag() }}
-        <div class="mb-4">
-          {{ form.name.label(class="block text-gray-700 text-sm font-bold mb-2") }}
-          {{ form.name(class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full", placeholder="Enter name", id="nameField") }}
-          <span id="nameError" class="text-red-500 text-sm"></span>
-        </div>
-        <div class="mb-4">
-          {{ form.displayname.label(class="block text-gray-700 text-sm font-bold mb-2") }}
-          {{ form.displayname(class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full", placeholder="Enter display name", id="displaynameField") }}
-          <span id="displaynameError" class="text-red-500 text-sm"></span>
-        </div>
-        <div class="mb-4">
-          {{ form.type.label(class="block text-gray-700 text-sm font-bold mb-2") }}
-          {{ form.type(class="form-select bg-white border border-gray-300 rounded-lg py-2 px-4 w-full") }}
-        </div>
-        <div class="mb-4">
-          {{ form.genes_file.label(class="block text-gray-700 text-sm font-bold mb-2") }}
-          {{ form.genes_file(class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full") }}
-          <span class="text-gray-500 text-sm">or</span>
-          {{ form.genes_text(class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full mt-2", rows="4", placeholder="Paste comma-separated or newline-separated gene list") }}
-        </div>
-        <div class="mb-4">
-          {{ form.assays.label(class="block text-gray-700 text-sm font-bold mb-2") }}
-          <input type="text" id="new_assay_input" placeholder="Add new assay or select from suggestions" class="form-input bg-white border border-gray-300 rounded-lg py-2 px-4 w-full mt-2">
-          <div id="suggested-assays" class="flex flex-wrap gap-2 mt-4">
-            <!-- Display existing assays with a + icon -->
-            {% for assay in available_assays %}
-            <div class="suggestion-item flex items-center space-x-2 bg-gray-200 rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-300">
-              <span>{{ assay }}</span>
-              <button type="button" class="text-green-500 hover:text-green-700 add-assay">+</button>
-            </div>
-            {% endfor %}
+<div class="flex justify-center items-start py-10 min-h-screen bg-gray-50">
+  <!-- New Gene Panel Form -->
+  <div class="w-full max-w-3xl bg-white shadow-md rounded-xl p-8 border border-gray-200">
+    <h2 class="text-2xl font-semibold text-black mb-6 tracking-tight">Create New Gene Panel</h2>
+
+    <form id="genePanelForm" action="{{ url_for('genepanels_bp.create_genelist') }}" method="post" enctype="multipart/form-data">
+      {{ form.hidden_tag() }}
+
+      <!-- Name -->
+      <div class="mb-5">
+        {{ form.name.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+        {{ form.name(class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400", placeholder="Enter name", id="nameField") }}
+        <span id="nameError" class="text-sm text-red-500 mt-1 block"></span>
+      </div>
+
+      <!-- Display Name -->
+      <div class="mb-5">
+        {{ form.displayname.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+        {{ form.displayname(class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400", placeholder="Enter display name", id="displaynameField") }}
+        <span id="displaynameError" class="text-sm text-red-500 mt-1 block"></span>
+      </div>
+
+      <!-- Type -->
+      <div class="mb-5">
+        {{ form.type.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+        {{ form.type(class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400") }}
+      </div>
+
+      <!-- Genes File / Text -->
+      <div class="mb-5">
+        {{ form.genes_file.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+        {{ form.genes_file(class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400") }}
+        <span class="text-sm text-gray-500 mt-1 block">or</span>
+        {{ form.genes_text(class="w-full border border-gray-300 rounded-lg px-4 py-2 mt-2 focus:outline-none focus:ring-2 focus:ring-indigo-400", rows="4", placeholder="Paste comma-separated or newline-separated gene list") }}
+      </div>
+
+      <!-- Assays -->
+      <div class="mb-5">
+        {{ form.assays.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+        <input type="text" id="new_assay_input" placeholder="Add new assay or select from suggestions"
+               class="w-full border border-gray-300 rounded-lg px-4 py-2 mt-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+
+        <!-- Suggested Assays -->
+        <div id="suggested-assays" class="flex flex-wrap gap-2 mt-4">
+          {% for assay in available_assays %}
+          <div class="suggestion-item flex items-center gap-2 bg-indigo-50 text-indigo-800 px-3 py-2 rounded-md text-sm font-medium shadow-sm cursor-pointer hover:bg-indigo-100">
+            <span>{{ assay }}</span>
+            <button type="button" class="text-green-600 hover:text-green-700 font-bold text-lg leading-none add-assay">+</button>
           </div>
-          <div id="assay-container" class="flex flex-wrap gap-2 mt-4">
-            <!-- User-selected assays will appear here -->
-          </div>
-          <input type="hidden" name="assays" id="assays_field" value="">
+          {% endfor %}
         </div>
-        <div class="flex justify-end">
-          {{ form.submit(class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out") }}
+
+        <!-- Selected Assays -->
+        <div id="assay-container" class="flex flex-wrap gap-2 mt-4">
+          <!-- User-selected assays will appear here -->
         </div>
-      </form>
-    </div>
+
+        <input type="hidden" name="assays" id="assays_field" value="">
+      </div>
+
+      <!-- Submit -->
+      <div class="flex justify-center">
+        {{ form.submit(class="inline-block p-2 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300") }}
+      </div>
+    </form>
   </div>
+</div>
+
 {% endblock %}
