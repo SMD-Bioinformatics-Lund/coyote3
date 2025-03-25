@@ -952,26 +952,53 @@ def generate_dna_report(id, *args, **kwargs):
     ## send over all defined gene panels per assay, to matching template ##
     gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
 
+    ## Check the length of the sample groups from db, and if len is more than one, tumwgs-solid or tumwgs-hema takes the priority in new coyote
+    smp_grp = util.common.select_one_sample_group(sample.get("groups"))
+
+    if smp_grp is None:
+        smp_grp = "unknown-default"
+
+    # Get group parameters from the sample group config file
+    group_params = util.common.get_group_parameters(smp_grp)
+
+    if not group_params:
+        group_params = util.common.get_unknown_default_parameters()
+
+    # Get group defaults from coyote config, if not found in group config
+    settings = util.common.get_group_defaults(group_params)
+
     # TODO: Fix this function
-    genelist_filter = sample.get("checked_genelists", {})
+    if "default_genelist_set" in group_params and subpanel:
+        panel_genelist = store.panel_handler.get_panel(subpanel=subpanel, type="genelist")
+        if panel_genelist:
+            settings["default_checked_genelists"] = {f"genelist_{subpanel}": 1}
+
+    # genelist_filter = sample.get("checked_genelists", {})
+    genelist_filter = sample.get("checked_genelists", settings["default_checked_genelists"])
 
     ## remove genelist_ from each list
-    genelist_filter_ = [sub.replace("genelist_", "") for sub in genelist_filter]
+    genelist_filter_names = [
+        g_list.replace("genelist_", "")
+        for g_list in genelist_filter
+        if genelist_filter[g_list] == 1
+    ]
+    checked_genelist_dict = util.common.create_genelists_dict(genelist_filter_names, gene_lists)
 
     ## displaynames for report
-    genelist_dispnames = util.common.get_genelist_dispnames(genelists_assay, genelist_filter_)
+    genelist_dispnames = util.common.get_genelist_dispnames(genelists_assay, checked_genelist_dict)
 
     panels = [panel.get("name") for panel in genelists_assay]
-
-    group = util.common.select_one_sample_group(sample.get("groups"))
-    group_params = util.common.get_group_parameters(group)
-    settings = util.common.get_group_defaults(group_params)
 
     ## get sample settings
     sample_settings = util.common.get_sample_settings(sample, settings)
 
-    filter_conseq = util.dna.get_filter_conseq_terms(sample_settings.get("csq_filter", {}).keys())
-    filter_genes = util.common.create_filter_genelist(genelist_filter, gene_lists)
+    filter_conseq = util.dna.get_filter_conseq_terms(sample_settings["csq_filter"].keys())
+    filter_genes = util.common.create_filter_genelist(checked_genelist_dict)
+
+    disp_pos = []
+    if "verif_samples" in group_params:
+        if sample["name"] in group_params["verif_samples"]:
+            disp_pos = group_params["verif_samples"][sample["name"]]
 
     query = build_query(
         assay,
@@ -984,10 +1011,12 @@ def generate_dna_report(id, *args, **kwargs):
             "max_popfreq": sample_settings["max_popfreq"],
             "filter_conseq": filter_conseq,
             "filter_genes": filter_genes,
+            "disp_pos": disp_pos,
+            "fp": {"$ne": True},
+            "irrelevant": {"$ne": True},
         },
     )
-    query["fp"] = {"$ne": True}
-    query["irrelevant"] = {"$ne": True}
+
     variants_iter = store.variant_handler.get_case_variants(query)
 
     variants = list(variants_iter)
@@ -1011,7 +1040,12 @@ def generate_dna_report(id, *args, **kwargs):
 
     # TODO: LOW COV
     # LOWCOV data, very computationally intense for samples with many regions
-    low_cov = {}
+    low_cov = store.coverage_handler.get_sample_coverage(sample["name"])
+    low_cov_chrs = list(set([x["chr"] for x in low_cov]))
+    cosmic_ids = store.cosmic_handler.get_cosmic_ids(chr=low_cov_chrs)
+
+    if assay != "solid":
+        low_cov = util.dna.filter_low_coverage_with_cosmic(low_cov, cosmic_ids)
     # low_cov = store.coverage_handler.get_sample_coverage(sample["name"])
     # print(list(low_cov))
 
@@ -1039,8 +1073,10 @@ def generate_dna_report(id, *args, **kwargs):
             if not biomarkers_iter:
                 biomarkers_iter = True
         if group_params["DNA"].get("FUSIONS"):
-            transloc_iter = store.transloc_handler.get_interesting_sample_translocations(
-                sample_id=str(sample["_id"])
+            transloc_iter = list(
+                store.transloc_handler.get_interesting_sample_translocations(
+                    sample_id=str(sample["_id"])
+                )
             )
             if not transloc_iter:
                 transloc_iter = True
@@ -1065,7 +1101,7 @@ def generate_dna_report(id, *args, **kwargs):
         group=sample["groups"],
         cnvs=cnvs_iter,  # cnvs_list, TMP
         cnv_profile_base64=cnv_profile_base64,
-        translocs=list(transloc_iter),  # not gmsonco
+        translocs=transloc_iter,  # not gmsonco
         class_desc=app.config.get("REPORT_CONFIG").get("CLASS_DESC"),
         class_desc_short=app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT"),
         report_date=report_date,
