@@ -88,8 +88,10 @@ class AnnotationsHandler(BaseHandler):
                             ass_sub = f"{anno['assay']}:{anno['subpanel']}"
                             latest_classification_other[ass_sub] = anno["class"]
                 except:
-                    latest_classification = anno
-                    latest_classification_other["N/A"] = anno["class"]
+                    latest_classification = None
+                    latest_classification_other[
+                        f"{anno.get('assay', 'NA')}:{anno.get('subpanel', 'NA')}"
+                    ] = anno["class"]
             elif "text" in anno:
                 try:
                     if assay == "solid":
@@ -111,10 +113,6 @@ class AnnotationsHandler(BaseHandler):
         latest_other_arr = []
         for latest_assay in latest_classification_other:
             assay_sub = latest_assay.split(":")
-            try:
-                a = assay_sub[1]
-            except:
-                assay_sub.append(None)
             latest_other_arr.append(
                 {
                     "assay": assay_sub[0],

@@ -359,7 +359,7 @@
                 <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|unesc }}">
                 <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc }}">
               {% endif %}
-              {% if 'assay' in classification %}
+              {% if classification and 'assay' in classification %}
                 <input class="m-1 bg-gray-300 text-black text-sm px-3 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-gray-400 transition-all duration-300 ease-in-out transform hover:translate-y-1 whitespace-normal break-all" title="Remove {{assay}} classifications" id="remove" type="submit" onclick="return confirm('This will remove all tiering for {{assay}}, proceed?')" value="❌ Tier">
               {% elif 'admin' in current_user.get_groups() %}
                 <input class="m-1 bg-gray-300 text-black text-sm px-3 py-1.5 rounded-md shadow-lg hover:bg-gray-400 cursor-pointer transition-all duration-300 ease-in-out transform hover:translate-y-1 whitespace-normal break-all" title="Remove historic non-assay classifications" id="remove" type="submit" value="❌ Tier" onclick="return confirm('This will remove all historic tiering without any assays assigned, proceed?')">

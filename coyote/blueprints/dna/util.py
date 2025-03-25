@@ -276,15 +276,16 @@ class DNAUtility:
                     or len(filter_genes) == 0
                 )
                 and not var.get("blacklist")
-                and var.get("classification", {}).get("class") != 4
-                and var.get("classification", {}).get("class") != 999
+                and var.get("classification")
+                and var.get("classification", {}).get("class", 0) != 4
+                and var.get("classification", {}).get("class", 0) != 999
                 and not (
-                    (assay == "gmsonco" and var.get("classification", {}).get("class") == 3)
+                    (assay == "gmsonco" and var.get("classification", {}).get("class", 0) == 3)
                     if assay != "tumwgs"
                     else False
                 )
             ],
-            key=lambda var: var.get("classification", {}).get("class"),
+            key=lambda var: var.get("classification", {}).get("class", 0),
         )
 
         return filtered_sorted_variants
