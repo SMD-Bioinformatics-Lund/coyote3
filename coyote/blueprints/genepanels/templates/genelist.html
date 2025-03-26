@@ -2,19 +2,25 @@
 {% block title %}Panel Gene List{% endblock %}
 {% block body %}
 <div class="flex w-full h-full overflow-hidden">
-  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col items-center">
+    <section id="genelist-container" class="bg-blue-50 shadow-lg rounded-xl px-6 py-6 my-4 border border-gray-200 w-full">
 
-    <section id="genelist-container" class="bg-white shadow-md rounded-xl p-6 border border-gray-200">
+      <h2 class="text-xl text-center font-semibold text-black tracking-wide uppercase pb-2">Gene List</h2>
+
       {% if genelist %}
-        <div class="p-1 flex flex-wrap gap-2 align-middle">
+        <div class="p-2 flex flex-wrap gap-2">
           {% for gene in genelist %}
-            <div class="bg-gray-200 text-xs rounded-lg p-1 hover:bg-gray-300">
-              {{gene}}
+            <div class="bg-gray-200 text-xs rounded-lg px-2 py-1 hover:bg-gray-300 transition-colors duration-150">
+              {{ gene }}
             </div>
           {% endfor %}
         </div>
+      {% else %}
+        <p class="text-sm text-gray-500 italic text-center">No genes found in this list.</p>
       {% endif %}
+
     </section>
   </main>
 </div>
+
 {% endblock %}
