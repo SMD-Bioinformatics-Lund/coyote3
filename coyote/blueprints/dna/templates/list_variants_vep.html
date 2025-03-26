@@ -115,9 +115,18 @@
         </a>
       </div>
 
-      <div class="flex border-l-8 border-orange-400 mt-1">
+      {% if sample.cov %}
+        <div class="flex border-l-8 border-orange-400 mt-1">
+          <a href="{{ url_for('cov_bp.get_cov', sample_id=sample.name) }}" 
+            class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
+              <span class="vertical-text">Coverage</span>
+          </a>
+        </div>
+      {% endif %}
+
+      <div class="flex border-l-8 border-orange-400 ">
         <a href="#lowcov" 
-          class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
+          class="relative bg-gray-500 text-white text-xs text-center mt-1 py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
             <span class="vertical-text">Low Cov</span>
         </a>
       </div>
