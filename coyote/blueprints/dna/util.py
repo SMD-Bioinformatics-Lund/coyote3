@@ -993,24 +993,30 @@ class DNAUtility:
     @staticmethod
     def get_variant_nomenclature(data: dict) -> str:
         """
-        Get the nomenclature for the variant
+        Get the nomenclature for the variant based on priority:
+        var_p > var_c > var_g > fusionpoints > translocpoints > cnvvar
         """
-        nomenclature = "p"
+        nomenclature = "p"  # default
+        variant = ""        # default value in case nothing is found
+
         var_nomenclature = {
-            "var_p": "p",
-            "var_c": "c",
+            "var_p": "p",  # priority 1
+            "var_c": "c",  # priority 2
+            "var_g": "g",  # priority 3
             "fusionpoints": "f",
-            "var_g": "g",
             "translocpoints": "t",
             "cnvvar": "cn",
         }
+
         for key, value in var_nomenclature.items():
-            if key in data:
-                variant = data.get(key, None)
+            variant_value = data.get(key)
+            if variant_value:  # this checks for both None and empty string
                 nomenclature = value
+                variant = variant_value
                 break
 
         return nomenclature, variant
+
 
     @staticmethod
     def create_comment_doc(

@@ -185,7 +185,7 @@
                         <th class="px-2 py-3 font-semibold max-w-30c" id="variant-table-header-flags">Flags</th>
                         {% for gt in variants[0].GT|sort(attribute='type') %}
                           {% if gt.type == "case" %}
-                            <th {% if assay == "myeloid" %}data-autoclick="true"{% endif %} class="px-1 py-3 font-semibold max-w-20c break-words whitespace-normal" id="variant-table-header-case">{{ gt.type }} ({{gt.sample}})</th>
+                            <th data-autoclick="true" class="px-1 py-3 font-semibold max-w-20c break-words whitespace-normal" id="variant-table-header-case">{{ gt.type }} ({{gt.sample}})</th>
                           {% else %}
                             <th class="px-2 py-3 font-semibold max-w-20c break-words whitespace-normal" id="variant-table-header-control">{{ gt.type }} ({{gt.sample}})</th>
                           {% endif %}
