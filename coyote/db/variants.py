@@ -66,6 +66,12 @@ class VariantsHandler(BaseHandler):
 
         return other
 
+    def get_variants_by_gene(self, gene: str) -> dict:
+        """
+        Get variants by gene
+        """
+        return self.get_collection().find({"genes": gene})
+
     def mark_false_positive_var(self, variant_id: str, fp: bool = True) -> None:
         """
         Mark variant false positive status

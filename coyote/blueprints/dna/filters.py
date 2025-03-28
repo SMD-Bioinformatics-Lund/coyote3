@@ -50,6 +50,12 @@ def format_panel_flag_snv(panel_str):
 
 
 @app.template_filter()
+def sortable_date(value):
+    s = str(value).translate("- :.")
+    return s
+
+
+@app.template_filter()
 def standard_HGVS(st):
     if st:
         parts = st.rsplit(".", 1)

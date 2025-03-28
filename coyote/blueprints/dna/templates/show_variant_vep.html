@@ -67,7 +67,7 @@
         <tbody class="break-all">
           <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">Gene</th>
-            <td class="p-1 text-right font-medium"><a href="/coyote/gene_simple/{{ sel_csq.SYMBOL }}" class="text-blue-600 underline">{{ sel_csq.SYMBOL }}</a></td>
+            <td class="p-1 text-right font-medium"><a href="{{ url_for('dna_bp.gene_view_simple', gene_name=sel_csq.SYMBOL) }}" class="text-blue-600 underline">{{ sel_csq.SYMBOL }}</a></td>
           </tr>
           <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">Variant Class</th>

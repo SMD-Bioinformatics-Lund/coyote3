@@ -2,6 +2,7 @@ from coyote.db.base import BaseHandler
 from datetime import datetime
 from pymongo.results import DeleteResult
 from flask import flash
+from collections import defaultdict
 
 
 class AnnotationsHandler(BaseHandler):
@@ -266,6 +267,12 @@ class AnnotationsHandler(BaseHandler):
             )
 
         return per_assay
+
+    def get_gene_annotations(self, gene_name: str) -> list:
+        """
+        Get all annotations for a given gene
+        """
+        return self.get_collection().find({"gene": gene_name}).sort("time_created", 1)
 
     def add_anno_comment(self, comment: dict) -> None:
         """

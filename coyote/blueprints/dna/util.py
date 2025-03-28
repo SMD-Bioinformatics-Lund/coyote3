@@ -1152,3 +1152,25 @@ class DNAUtility:
                     var["other_genes"].append(gene["gene"])
             fixed_cnvs_genes.append(var)
         return fixed_cnvs_genes
+
+    @staticmethod
+    def process_gene_annotations(annotations: dict) -> dict:
+        """
+        Process gene annotations
+        """
+        annotations_dict = defaultdict(lambda: defaultdict(dict))
+        for anno in annotations:
+            if "class" in anno:
+                if "assay" in anno:
+                    assub = anno["assay"] + ":" + anno["subpanel"]
+                    annotations_dict[assub][anno["variant"]]["latest_class"] = anno
+                else:
+                    annotations_dict["historic:None"][anno["variant"]]["latest_class"] = anno
+            if "text" in anno:
+                if "assay" in anno:
+                    assub = anno["assay"] + ":" + anno["subpanel"]
+                    annotations_dict[assub][anno["variant"]]["latest_text"] = anno
+                else:
+                    annotations_dict["historic:None"][anno["variant"]]["latest_text"] = anno
+
+        return annotations_dict

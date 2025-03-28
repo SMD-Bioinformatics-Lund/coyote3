@@ -326,6 +326,12 @@
         });
       });
 
+      // JavaScript for autoclick keys tables
+      window.onload = function () {
+        $('[data-autoclick="true"]').click();
+        $('[data-autoclick="true"]').click();
+      };
+
     </script>
     {% block script %}{% endblock %}
     {% block footer %}{% endblock %}

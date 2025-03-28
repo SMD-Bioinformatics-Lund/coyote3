@@ -21,10 +21,12 @@ from coyote.extensions import store, util
 from coyote.blueprints.dna import dna_bp, varqueries_notbad, filters
 from coyote.blueprints.home import home_bp
 from coyote.blueprints.dna.varqueries import build_query
-from coyote.blueprints.dna.forms import GeneForm
+from coyote.blueprints.dna.forms import GeneForm, FilterForm
 from coyote.errors.exceptions import AppError
 from typing import Literal, Any
 from datetime import datetime
+from bson import ObjectId
+from collections import defaultdict
 from flask_weasyprint import HTML, render_pdf
 from PIL import Image
 import os
@@ -581,6 +583,86 @@ def show_variant(id):
         ),
         vep_conseq_translations=app.config.get("REPORT_CONFIG").get("VEP_CONSEQ_TRANSLATIONS"),
     )
+
+
+@dna_bp.route("/gene_simple/<string:gene_name>", methods=["GET", "POST"])
+@login_required
+def gene_view_simple(gene_name):
+    annotations = store.annotation_handler.get_gene_annotations(gene_name)
+
+    annotations_dict = util.dna.process_gene_annotations(annotations)
+    form = FilterForm()
+    checked_assays = []
+    if request.method == "POST":
+        if form.solid.data:
+            checked_assays.append("solid")
+        if form.myeloid.data:
+            checked_assays.append("myeloid")
+        if form.tumwgs.data:
+            checked_assays.append("tumwgs")
+        if form.lymphoid.data:
+            checked_assays.append("lymphoid")
+        if form.parp.data:
+            checked_assays.append("parp")
+        if form.historic.data:
+            checked_assays.append("historic")
+    return render_template(
+        "gene_view2.html",
+        annotations=annotations,
+        annodict=annotations_dict,
+        gene=gene_name,
+        form=form,
+        checked_assays=checked_assays,
+    )
+
+
+############ TODO ##############
+@dna_bp.route("/gene/<string:gene_name>", methods=["GET", "POST"])
+@login_required
+def gene_view(gene_name):
+
+    # variants_iter = app.config["VAR_COLL"].find({"INFO.CSQ": {"$elemMatch": {"SYMBOL": gene_name}}})
+
+    variants_iter = store.variant_handler.get_variants_by_gene(gene_name)
+    variants = list(variants_iter)
+
+    app.logger.debug(f"gene specific variants: {len(variants)}")
+
+    # TODO:  How slow is this????
+    variants = util.dna.add_global_annotations(variants, "assay", "subpanel")
+    # print(variants[0])
+
+    variant_summary = defaultdict(dict)
+    sample_oids = []
+    for var in variants:
+        short_pos = var.get("simple_id", None)
+
+        if not var.get("classification"):
+            continue
+
+        if var["classification"].get("class", 999) != 999:
+
+            sample_oids.append(ObjectId(var["SAMPLE_ID"]))
+
+            if short_pos in variant_summary:
+                variant_summary[short_pos]["count"] += 1
+                variant_summary[short_pos]["samples"].append(var["SAMPLE_ID"])
+            else:
+                variant_summary[short_pos]["count"] = 1
+                variant_summary[short_pos]["CSQ"] = var["INFO"]["selected_CSQ"]
+                variant_summary[short_pos]["anno"] = var["global_annotations"]
+                variant_summary[short_pos]["class"] = var["classification"]
+                variant_summary[short_pos]["samples"] = [var["SAMPLE_ID"]]
+
+    # Get display names for the samples, from db.
+    samples = store.sample_handler.get_samples_by_oids(sample_oids)
+
+    # Create hash for translation ID -> display name, from samples
+    sample_names = {}
+    for sample in samples:
+        sample_names[str(sample["_id"])] = sample["name"]
+
+    return render_template("gene_view.html", variants=variant_summary, sample_names=sample_names)
 
 
 @dna_bp.route("/var/unfp/<string:id>", methods=["POST"])
