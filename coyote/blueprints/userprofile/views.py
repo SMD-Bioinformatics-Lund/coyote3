@@ -10,7 +10,7 @@ from coyote.blueprints.userprofile.forms import (
     UserForm,
     UserUpdateForm,
 )
-from coyote.blueprints.login.login import User
+from coyote.services.auth.user_session import User
 from coyote.blueprints.userprofile import profile_bp
 from flask_wtf.csrf import generate_csrf
 from coyote.extensions import util
@@ -23,7 +23,7 @@ def profile():
     """
     Profile page for the user
     """
-    user = store.user_handler.user_with_id(current_user.get_id())
+    user = store.user_handler.user_with_id(current_user.username)
     groups = list(filter(None, user.get("groups", [])))
     email = user.get("email", "")
     username = user.get("_id", "")
@@ -81,10 +81,10 @@ def update_info():
     """
     data = request.get_json()
     groups = data.get("groups", [])
-    user_id = current_user.get_id()
+    user_id = current_user.username
     fullname = data.get("fullname", "")
     store.user_handler.update_user_fullname(user_id, fullname)
-    if current_user.is_admin():
+    if current_user.is_admin:
         store.user_handler.update_user_groups(user_id, groups)
 
     return jsonify({"status": "success"})

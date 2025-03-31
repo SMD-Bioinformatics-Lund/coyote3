@@ -361,7 +361,7 @@
               {% endif %}
               {% if classification and 'assay' in classification %}
                 <input class="m-1 bg-gray-300 text-black text-sm px-3 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-gray-400 transition-all duration-300 ease-in-out transform hover:translate-y-1 whitespace-normal break-all" title="Remove {{assay}} classifications" id="remove" type="submit" onclick="return confirm('This will remove all tiering for {{assay}}, proceed?')" value="❌ Tier">
-              {% elif 'admin' in current_user.get_groups() %}
+              {% elif current_user.is_admin %}
                 <input class="m-1 bg-gray-300 text-black text-sm px-3 py-1.5 rounded-md shadow-lg hover:bg-gray-400 cursor-pointer transition-all duration-300 ease-in-out transform hover:translate-y-1 whitespace-normal break-all" title="Remove historic non-assay classifications" id="remove" type="submit" value="❌ Tier" onclick="return confirm('This will remove all historic tiering without any assays assigned, proceed?')">
               {% endif %}
             </form>
@@ -433,7 +433,7 @@
       <!-- Comment box, other tiering and pon -->
       <div class="flex flex-col gap-y-4 max-w-xl">
         <!-- Comment box -->
-        {% if current_user.get_role() != "readonly" %}
+        {% if current_user.role != "readonly" %}
           <div class="bg-transparent min-w-400 w-full max-w-xl" id="commenting-box-card">
             <h2 class="text-sm font-semibold bg-gradient-to-b from-indigo-400 to-indigo-200 p-2 shadow-md rounded-t-lg break-all">Add new comment/annotation</h2>
             <div id="commenting_box" class="rounded-b-lg border border-gray-400 shadow-md p-2 overflow-x-auto">
@@ -634,7 +634,7 @@
                 </thead>
                 <tbody id="variant-annotations-all-body" class="{% if annotations|length > 1 %}border-b border-gray-400 {% endif %}">
                   {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
-                    {% if current_user.get_role() != "readonly" or loop.first == True %}
+                    {% if current_user.role != "readonly" or loop.first == True %}
                       <tr class="hover:bg-green-100 border-t border-gray-400 text-left align-top">
                         <td class="p-2 font-medium">{{ anno.author }}<br><small>{{ anno.time_created|human_date }}</small></td>
                         <td class="p-2" onclick="addText(event)">{{ anno.text|format_comment|safe }}</td>
@@ -696,7 +696,7 @@
         <div class="bg-gray-50 w-full max-w-xl shadow-md rounded-lg mb-1" id="variant-comments">
           <h2 class="text-sm font-semibold bg-gradient-to-b from-yellow-400 to-yellow-200 p-2 shadow-md rounded-t-lg break-all">Sample-Specific Variant Comments</h2>
           <div class="rounded-b-lg overflow-x-auto">
-            {% if variant.comments|length > 0 and current_user.get_role() != "readonly" %}
+            {% if variant.comments|length > 0 and current_user.role != "readonly" %}
               <table class="w-full max-w-xl table-auto text-xs text-gray-800">
                 <thead class="capitalize tracking-wide rounded-t-lg bg-yellow-100">
                   <tr class="border-b text-left border-gray-800">

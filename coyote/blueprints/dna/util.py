@@ -1028,7 +1028,7 @@ class DNAUtility:
         if data.get("global", None) == "global":
             doc = {
                 "text": data.get(key),  # common
-                "author": current_user.get_id(),  # common
+                "author": current_user.username,  # common
                 "time_created": datetime.now(),  # common
                 "variant": variant,  # common
                 "nomenclature": nomenclature,  # common
@@ -1053,7 +1053,7 @@ class DNAUtility:
                         "_id": ObjectId(),
                         "hidden": 0,
                         "text": data.get(key),
-                        "author": current_user.get_id(),
+                        "author": current_user.username,
                         "time_created": datetime.now(),
                     }
                 }

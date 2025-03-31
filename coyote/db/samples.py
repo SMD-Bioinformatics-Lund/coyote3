@@ -156,7 +156,7 @@ class SampleHandler(BaseHandler):
         """
         return self.hidden_comments(id)
 
-    def get_all_samples(self, report=None) -> list:
+    def get_all_sample_counts(self, report=None) -> list:
         """
         get all samples
         """
@@ -228,3 +228,25 @@ class SampleHandler(BaseHandler):
             for stat in result
         }
         return assay_specific_stats
+
+    def get_all_samples(self, limit=None, search_str=""):
+        """
+        Get all the samples
+        """
+
+        query = {}
+        if len(search_str) > 0:
+            query["name"] = {"$regex": search_str}
+
+        if limit:
+            samples = self.get_collection().find(query).sort("time_added", -1).limit(limit)
+        else:
+            samples = self.get_collection().find(query).sort("time_added", -1)
+
+        return samples
+
+    def delete_sample(self, sample_oid: str) -> None:
+        """
+        delete sample from db
+        """
+        self.get_collection().delete_one({"_id": ObjectId(sample_oid)})

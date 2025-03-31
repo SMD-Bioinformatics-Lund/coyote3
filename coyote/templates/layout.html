@@ -71,7 +71,7 @@
           <div class="relative">
             <button id="userMenuButton" class="flex items-center space-x-2 focus:outline-none mx-8">
               <img class="h-8 w-8 rounded-full transition-transform duration-300 transform hover:scale-110 hover:rotate-6 bg-transparent" src="{{ url_for('static', filename='icons/user-512.png') }}">
-              <span class="text-black font-bold">{{ current_user.get_fullname() }}</span>
+              <span class="text-black font-bold">{{ current_user.get_fullname }}</span>
             </button>
 
             <!-- Dropdown Menu -->
@@ -79,10 +79,9 @@
               <a href="{{ url_for('dashboard_bp.dashboard') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Dashboard</a>
               <a href="{{ url_for('genepanels_bp.display_genepanels') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Gene Panels</a>
               <a href="{{ url_for('profile_bp.profile') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Profile</a>
-              <a href="{{ url_for('profile_bp.change_password', username=current_user.get_id()) }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Change Password</a>
-              {% if current_user.is_admin() %}
-                <a href="{{ url_for('profile_bp.manage_users') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Manage Users</a>
-                <a href="{{ url_for('profile_bp.create_user') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Create User</a>
+              <a href="{{ url_for('profile_bp.change_password', username=current_user.username) }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Change Password</a>
+              {% if user_is("admin") %}
+                <a href="{{ url_for('admin_bp.admin_home') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Admin DB</a>
               {% endif %}
               <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Logout</a>
             </div>

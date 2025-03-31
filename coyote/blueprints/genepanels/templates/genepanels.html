@@ -21,7 +21,7 @@
               </button>
             </form>
           </div>
-          {% if current_user.is_admin() %}
+          {% if current_user.is_admin %}
             <div>
               <button onclick="window.location.href='{{ url_for('genepanels_bp.create_genelist') }}'"
                       class="px-4 py-1 text-black bg-green-300 rounded-md shadow-md transition hover:bg-green-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-300">
@@ -83,7 +83,7 @@
                         <a href="{{ url_for('genepanels_bp.view_genepanel_genes', genepanel_id=panel.id) }}" target="_blank">
                           <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="view genes" class="w-5 cursor-pointer">
                         </a>
-                        {% if current_user.is_admin() %}
+                        {% if current_user.is_admin %}
                           <a href="{{ url_for('genepanels_bp.edit_genepanel', genepanel_id=panel.id) }}">
                             <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
                           </a>

@@ -198,3 +198,9 @@ class VariantsHandler(BaseHandler):
         except Exception as e:
             app.logger.error(f"An error occurred: {e}")
             return 0
+
+    def delete_sample_variants(self, sample_oid: str) -> None:
+        """
+        Delete all variants from variants collection for a given sample OID
+        """
+        return self.get_collection().delete_many({"SAMPLE_ID": sample_oid})

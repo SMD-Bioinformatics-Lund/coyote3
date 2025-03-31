@@ -73,6 +73,16 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
             "backupCount": 15,
             "days_to_keep": 15,
         },
+        "audit": {
+            "level": "INFO",
+            "()": "logging_setup.CustomTimedRotatingFileHandler",
+            "formatter": "standard",
+            "filters": ["request_filter"],
+            "filename": f"{log_dir}/audit_{today}.log",
+            "when": "midnight",
+            "backupCount": 15,
+            "days_to_keep": 30,
+        },
     }
 
     if not is_production:
@@ -106,6 +116,12 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
             "handlers": ["console", "file_info"],
             "propagate": True,
             "qualname": "gunicorn.access",
+        },
+        "audit": {
+            "level": "INFO",
+            "handlers": ["audit", "console"],
+            "propagate": False,
+            "qualname": "audit",
         },
     }
 

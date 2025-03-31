@@ -5,7 +5,10 @@ from flask_login import login_user, logout_user
 
 
 from coyote.blueprints.login import login_bp
-from coyote.blueprints.login.login import LoginForm, User
+from coyote.blueprints.login.forms import LoginForm
+
+from coyote.models.user import UserModel
+from coyote.services.auth.user_session import User
 from coyote.extensions import login_manager, mongo, ldap_manager, store
 
 
@@ -22,17 +25,10 @@ def login():
         username = str(form.username.data)
         password = str(form.password.data)
         if ldap_authenticate(username, password):
-            app.logger.info("anything?")
-            user_obj = store.user_handler.user(username)
-            role = user_obj.get("role", None)
-            user_obj = User(
-                user_obj["_id"],
-                user_obj["groups"],
-                role,
-                user_obj.get("fullname", "_id"),
-                user_obj.get("email", None),
-            )
-            login_user(user_obj)
+            user_doc = store.user_handler.user(username)
+            user_model = UserModel(**user_doc)
+            user = User(user_model)
+            login_user(user)
             return redirect(url_for("home_bp.home_screen"))
         else:
             app.logger.info("yes?")
@@ -49,16 +45,11 @@ def logout():
 
 @login_manager.user_loader
 def load_user(username):
-    user = store.user_handler.user_with_id(username)  # user id
+    user = store.user_handler.user_with_id(username)
     if not user:
         return None
-    return User(
-        user["_id"],
-        user["groups"],
-        user.get("role", None),
-        user.get("fullname", "_id"),
-        user.get("email", None),
-    )
+    user_model = UserModel(**user)
+    return User(user_model)
 
 
 def ldap_authenticate(username, password):
@@ -72,6 +63,6 @@ def ldap_authenticate(username, password):
             attribute=app.config.get("LDAP_USER_LOGIN_ATTR"),
         )
     except Exception as ex:
-        flash(ex, "danger")
+        flash(ex, "red")
 
     return authorized

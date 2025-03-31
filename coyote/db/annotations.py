@@ -196,7 +196,7 @@ class AnnotationsHandler(BaseHandler):
         Insert Classified variant
         """
         document = {
-            "author": self.current_user.get_id(),
+            "author": self.current_user.username,
             "time_created": datetime.now(),
             "variant": variant,
             "nomenclature": nomenclature,
@@ -241,7 +241,7 @@ class AnnotationsHandler(BaseHandler):
                 }
             )
         )
-        user_groups = self.current_user.get_groups()
+        user_groups = self.current_user.groups
         ## If variant has no match to current assay, it has an historical variant, i.e. not assigned to an assay. THIS IS DANGEROUS, maybe limit to admin?
         if len(num_assay) == 0 and "admin" in user_groups:
             per_assay = list(

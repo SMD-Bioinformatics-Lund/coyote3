@@ -1266,7 +1266,7 @@ def save_dna_report(id):
     #                 "_id": ObjectId(),
     #                 "report_num": report_num,
     #                 "filepath": pdf_file,
-    #                 "author": current_user.get_id(),
+    #                 "author": current_user.username,
     #                 "time_created": datetime.now(),
     #             }
     #         },

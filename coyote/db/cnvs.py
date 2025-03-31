@@ -167,3 +167,9 @@ class CNVsHandler(BaseHandler):
         except Exception as e:
             app.logger.error(f"An error occurred: {e}")
             return 0
+
+    def delete_sample_cnvs(self, sample_oid: str) -> None:
+        """
+        Delete CNVs for a sample
+        """
+        return self.get_collection().delete_many({"SAMPLE_ID": sample_oid})
