@@ -1,0 +1,18 @@
+<!-- admin_sidebar.html -->
+  {% set cards = [] %}
+  {% include "partials/admin_links_data.jinja" %}
+
+  <aside id="adminSidebar" class="flex-col w-56 bg-indigo-200 shadow-lg p-4 space-y-3 border-r border-indigo-300 flex shrink-0">
+    <a href={{url_for('admin_bp.admin_home')}} class="px-4 py-2 bg-indigo-300 hover:bg-indigo-400 text-sm font-semibold rounded-lg transition-all shadow text-left flex gap-2 align-middle">
+      <img src="{{ url_for('static', filename='icons/heroicons_outline_24/home.svg') }}" alt="Admin Home Icon" class="h-5 w-5">
+      Admin Home
+    </a>
+    {% for card in cards %}
+      {% if card.url %}
+        <a href="{{ card.url }}" class="px-4 py-2 bg-indigo-300 hover:bg-indigo-400 text-sm font-semibold rounded-lg transition-all shadow text-left flex gap-2 align-middle">
+          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/' ~ card.icon) }}" alt="{{ card.title }} Icon" class="h-5 w-5">
+          {{ card.title }}
+        </a>
+      {% endif %}
+    {% endfor %}
+  </aside>

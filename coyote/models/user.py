@@ -1,3 +1,4 @@
+from werkzeug.security import check_password_hash
 from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional
 from datetime import datetime
@@ -90,3 +91,7 @@ class UserModel(BaseModel):
 
     def formatted_updated(self) -> Optional[str]:
         return self.updated.strftime("%Y-%m-%d %H:%M:%S") if self.updated else None
+
+    @staticmethod
+    def validate_login(stored_hash: str, plain_password: str) -> bool:
+        return check_password_hash(stored_hash, plain_password)

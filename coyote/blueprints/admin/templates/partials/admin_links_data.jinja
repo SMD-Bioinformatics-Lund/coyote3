@@ -1,0 +1,36 @@
+{% do cards.append({
+  'url': url_for('admin_bp.all_samples'),
+  'icon': 'square-3-stack-3d.svg',
+  'title': 'Manage Samples',
+  'desc': 'Delete samples, purge data, etc.'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.manage_users'),
+  'icon': 'users.svg',
+  'title': 'Manage Users',
+  'desc': 'Add, update, remove users'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.create_user'),
+  'icon': 'user-plus.svg',
+  'title': 'Create User',
+  'desc': 'Invite new users to the platform'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.assay_configs'),
+  'icon': 'cog-8-tooth.svg',
+  'title': 'Configs',
+  'desc': 'Adjust panel configuration'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.register_assay'),
+  'icon': 'document-plus.svg',
+  'title': 'Register Assay',
+  'desc': 'Add new assay to system'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.audit'),
+  'icon': 'newspaper.svg',
+  'title': 'Audit Logs',
+  'desc': 'Track changes and activities'
+}) %}

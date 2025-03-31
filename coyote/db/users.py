@@ -1,5 +1,6 @@
 import pymongo
 from coyote.db.base import BaseHandler
+from datetime import datetime
 from flask import flash
 
 
@@ -97,9 +98,22 @@ class UsersHandler(BaseHandler):
         """
         Update a user
         """
-        id = user_data.pop("_id")
-        user_data.pop("password")
-        if self.get_collection().update_one({"_id": id}, {"$set": user_data}):
-            flash("User updated", "green")
+        user_id = user_data.pop("_id")
+        hashed_password = user_data.pop("password", None)
+
+        update_fields = {"$set": user_data}
+
+        if hashed_password:
+            update_fields["$set"]["password"] = hashed_password
+
+        result = self.get_collection().update_one({"_id": user_id}, update_fields)
+
+        if result.modified_count:
+            flash("User updated successfully!", "green")
         else:
-            flash("Failed to update user", "red")
+            flash("No changes made or user not found", "yellow")
+
+    def update_user_last_login(self, user_id: str):
+        self.get_collection().update_one(
+            {"_id": user_id}, {"$set": {"last_login": datetime.utcnow()}}
+        )

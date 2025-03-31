@@ -55,6 +55,8 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
                 "user_is": lambda r: current_user.is_authenticated and current_user.role == r,
                 "user_in_group": lambda g: current_user.is_authenticated
                 and current_user.in_group(g),
+                "pretty_role": lambda r: r.value.replace("_", " ").title(),
+                "password_change_enabled": False,
             }
 
         # Register error handlers

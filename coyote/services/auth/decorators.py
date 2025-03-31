@@ -3,7 +3,7 @@ from flask import redirect, url_for, flash
 from flask_login import current_user
 
 
-def admin_required(f):
+def require_admin(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated:

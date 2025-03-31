@@ -11,30 +11,55 @@ from coyote.models.user import UserModel
 from coyote.services.auth.user_session import User
 from coyote.extensions import login_manager, mongo, ldap_manager, store
 
+INTERNAL_USERS = {
+    "coyote3.developer@skane.se",
+    "coyote3.tester@skane.se",
+    "coyote3.external@skane.se",
+}
 
-# users_collection = mongo.cx["coyote"]["users"]
 
 # Login routes:
-
-
 @login_bp.route("/", methods=["GET", "POST"])
 def login():
     form = LoginForm()
 
     if request.method == "POST" and form.validate_on_submit():
-        username = str(form.username.data)
-        password = str(form.password.data)
-        if ldap_authenticate(username, password):
-            user_doc = store.user_handler.user(username)
-            user_model = UserModel(**user_doc)
-            user = User(user_model)
-            login_user(user)
-            return redirect(url_for("home_bp.home_screen"))
-        else:
-            app.logger.info("yes?")
+        username = str(form.username.data).strip()
+        password = str(form.password.data).strip()
+
+        user_doc = store.user_handler.user(username)
+        if not user_doc:
+            flash("User not found in system.", "red")
+            app.logger.error(f"User not found: {username}")
+            return render_template("login.html", form=form)
+
+        use_internal = username in INTERNAL_USERS
+        valid = (
+            UserModel.validate_login(user_doc["password"], password)
+            if use_internal
+            else ldap_authenticate(username, password)
+        )
+
+        if not valid:
+            app.logger.warning(f"Auth failed for user: {username} (internal: {use_internal})")
             return render_template("login.html", form=form, error="Invalid credentials")
 
-    return render_template("login.html", title="login", form=form)
+        if not user_doc.get("is_active", True):
+            flash("Your account is inactive. Please contact the administrator.", "red")
+            app.logger.warning(f"Inactive login attempt: {username}")
+            return render_template("login.html", form=form)
+
+        # Update last login timestamp
+        store.user_handler.update_user_last_login(username)
+
+        # Login user
+        user_model = UserModel(**user_doc)
+        user = User(user_model)
+        login_user(user)
+
+        return redirect(url_for("home_bp.home_screen"))
+
+    return render_template("login.html", title="Login", form=form)
 
 
 @login_bp.route("/logout")
