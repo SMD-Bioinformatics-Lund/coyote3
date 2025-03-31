@@ -22,6 +22,7 @@ from coyote.db.coverage import CoverageHandler
 from coyote.db.cosmic import CosmicHandler
 from coyote.db.coverage2 import CoverageHandler2
 from coyote.db.group_coverage import GroupCoverageHandler
+from coyote.db.assay_configs import AssayConfigsHandler
 
 
 class MongoAdapter:
@@ -99,3 +100,4 @@ class MongoAdapter:
         self.cosmic_handler = CosmicHandler(self)
         self.coverage2_handler = CoverageHandler2(self)
         self.groupcov_handler = GroupCoverageHandler(self)
+        self.assay_config_handler = AssayConfigsHandler(self)

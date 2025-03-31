@@ -20,13 +20,12 @@ from coyote.blueprints.admin import admin_bp
 from coyote.services.auth.decorators import require_admin
 from coyote.blueprints.home.util import SampleSearchForm
 from coyote.blueprints.admin.forms import (
-    ProfileForm,
     UserForm,
     UserUpdateForm,
 )
+from pydantic import ValidationError
 from pprint import pformat
 from copy import deepcopy
-from wtforms import BooleanField
 from coyote.extensions import store, util
 from typing import Literal, Any
 from datetime import datetime
@@ -212,8 +211,31 @@ def validate_email():
 @admin_bp.route("/assay-configs")
 @require_admin
 def assay_configs():
-    # logic + render template
-    return render_template("assay_configs.html")
+    return render_template("assay_configs/assay_configs.html")
+
+
+@admin_bp.route("/assays", methods=["GET"])
+@require_admin
+def get_assay_names():
+    return jsonify(store.assay_config_handler.get_assay_names())
+
+
+@admin_bp.route("/assay/<name>", methods=["GET"])
+@require_admin
+def get_assay(name):
+    config = store.assay_config_handler.get_assay_config(name)
+    return jsonify(config)
+
+
+@admin_bp.route("/assay/<name>", methods=["POST"])
+@require_admin
+def update_assay(name):
+    data = request.json
+    print("🛠 Received config update for", name)
+    print(data)
+
+    store.assay_config_handler.replace_config(name=name, data=data, updated_by=current_user.email)
+    return jsonify({"status": "success"})
 
 
 @admin_bp.route("/register-assay")
