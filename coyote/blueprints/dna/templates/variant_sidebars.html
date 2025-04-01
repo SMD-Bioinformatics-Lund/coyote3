@@ -1,278 +1,218 @@
-<!-- Buttons and Filters -->
+<aside class="w-52 bg-transparent text-black flex flex-col overflow-y-auto shadow-2xl mx-1 py-1 px-1 right-0 h-full ">
 
-<div id="variant_functions_bar" class="flex justify-between items-start mx-auto my-3 bg-transparant shadow-md rounded-lg p-1 ">
-  <!-- Card for buttons -->
-  <div class="bg-white px-4 py-2">
-    <!-- Left aligned buttons -->
-    <div class="flex flex-wrap items-center gap-3">
-        <button class="bg-green-300 hover:bg-green-500 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer duration-100 ease-in-out transform hover:scale-101" onclick="window.location.href='preview_report/{{sample.name}}'">Preview report</button>   
-        <button class="bg-yellow-500 hover:bg-yellow-700 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer duration-100 ease-in-out transform hover:scale-101" onclick="window.location.href='#'; show_lowcov();">Low-coverage regions</button>
-        <button class="bg-purple-500 hover:bg-purple-700 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer duration-100 ease-in-out transform hover:scale-101" onclick="switchVisibility('fp');">Show/hide FPs</button>    
+  <!-- Control actions -->
+  <div id="control-panel" class="p-1 px-2 space-y-2 w-full text-xs">
+    <div class="flex justify-between items-center mb-1">
+      <h2 class="text-sm font-semibold">Control Panel</h2>
+    </div>
+    <div class="flex justify-between mt-2">
+      <button class="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-1 rounded text-xs mx-1" onclick="switchVisibility('fp', this);">Hide FPs</button>
       {% if assay == "solid" or assay == "gmsonco" %}
-          <button class="bg-blue-500 hover:bg-blue-700 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer duration-100 ease-in-out transform hover:scale-101" onclick="window.location.href='#'; show_germlinecnv();">Germline CNVs</button>    
+          <button class="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-1 rounded text-xs mx-1" onclick="window.location.href='#'; show_germlinecnv(this);">Germline CNVs</button>    
       {% endif %}
     </div>
   </div>
-  <!-- Card for filters -->
-  <div class="bg-white px-4 py-2">
-    <!-- Right aligned filter button -->
-    <div class="flex flex-wrap items-center gap-3">
-      <button id="snv-toggle" class="bg-yellow-600 hover:bg-yellow-800 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer duration-100 ease-in-out transform hover:scale-101">Modify Variants</button>
-      <button id="filter-toggle" class="bg-indigo-600 hover:bg-indigo-800 text-black text-xs px-2 py-1.5 rounded-md shadow-lg cursor-pointer duration-100 ease-in-out transform hover:scale-101">Filters</button>
-    </div>   
-  </div>
-</div>
 
-<!-- Selected SNVs/indels Sidebar -->
-<div id="snv-sidebar" class="fixed top-0 right-0 h-full w-60 bg-white shadow-md overflow-y-auto transform translate-x-full transition-transform duration-300 ease-in-out z-10">
-  <div class="p-2">
-    <div class="flex justify-between items-center mb-2 text-sm">
+  <hr class="broder border-gray-500 my-1">
+
+  <!-- Variant actions -->
+  <div id="snv-actions" class="p-1 px-2 space-y-2 w-full text-xs">
+    <div class="flex justify-between items-center mb-1">
       <h2 class="text-sm font-semibold">Modify Variants</h2>
-      <button id="snv-close" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
     </div>
-    <form id="snv-sidebar-form" action="{{ url_for('dna_bp.classify_multi_variant', id=sample.name) }}" method="POST">
-      <div class="mb-5">
-        <!-- Sidebar Select All -->
-          <span>Select Options</span>
-      </div>
-
+    <form id="snv-actions-form" action="{{ url_for('dna_bp.classify_multi_variant', id=sample.name) }}" method="POST">
       <!-- Sidebar Checkboxes -->
-      <div class="flex flex-col space-y-2 mb-4">
-        <label class="flex items-center text-sm">
-          <input type="checkbox" name="tier" value="1" class="mr-2 snv-sidebar-checkbox">
+      <div class="flex flex-col">
+        <label class="flex items-center text-xs">
+          <input type="checkbox" name="tier" value="1" class="mr-2 snv-actions-checkbox">
           <span>Tier3</span>
         </label>
-        <label class="flex items-center text-sm">
-          <input type="checkbox" name="irrelevant" value="1" class="mr-2 snv-sidebar-checkbox">
+        <label class="flex items-center text-xs">
+          <input type="checkbox" name="irrelevant" value="1" class="mr-2 snv-actions-checkbox">
           <span>Irrelevant</span>
         </label>
-        <label class="flex items-center text-sm">
-          <input type="checkbox" name="false_positive" value="1" class="mr-2 snv-sidebar-checkbox">
+        <label class="flex items-center text-xs">
+          <input type="checkbox" name="false_positive" value="1" class="mr-2 snv-actions-checkbox">
           <span>False Positive</span>
         </label>
       </div>
 
       <!-- Submit Buttons -->
-      <div class="flex justify-between">
+      <div class="flex justify-between mt-2">
         <input type="hidden" name="assay" value="{{ assay }}">
         <input type="hidden" name="subpanel" value="{{ sample.subpanel }}">
-        <button type="button" onclick="submitSNVSidebarForm('apply')" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm">Apply</button>
-        <button type="button" onclick="submitSNVSidebarForm('remove')" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm">Remove</button>
+        <button type="button" onclick="submitSNVSidebarForm('apply')" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-1 rounded text-xs mx-1">Apply</button>
+        <button type="button" onclick="submitSNVSidebarForm('remove')" class="bg-orange-500 hover:bg-red-700 text-white font-semibold py-1 px-1 rounded text-xs mx-1">Remove</button>
       </div>
     </form>
   </div>
-</div>
 
+  <hr class="broder border-gray-500 my-1">
 
-
-<!-- Filters Sidebar -->
-<div id="filter-sidebar" class="fixed top-0 right-0 h-full w-60 bg-white overflow-y-auto shadow-md transform translate-x-full transition-transform duration-300 ease-in-out z-10" onclick="event.stopPropagation()">
-  <div class="p-2"> 
-    <div class="flex justify-between items-center mb-2 text-sm">
-      <h2 class="text-sm font-semibold">Modify filters</h2>
-      <button id="filter-close" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
-    </div>
-    <form action="" method="POST" name="form" class="no-spin">
+  <form action="" method="POST" name="form">
+    <div id="snv-filters" class="p-1 px-2 space-y-2 w-full text-xs">
+      <div class="flex justify-between items-center mb-1">
+        <h2 class="text-sm font-semibold">SNV Filters</h2>
+      </div>
+    
       {{ form.hidden_tag() }}
-      <div class="mb-2">
-        <label class="control-label block mb-0.5 text-sm">Depth</label>
-        <div class="flex items-center">
-          <span class="mr-1">&gt;</span>
-          {{ form.min_depth(size=2, default=sample.filter_min_depth, class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm") }}
+
+      <div class="flex justify-between items-center text-xs">
+        <label class="text-gray-900">Depth</label>
+        <div class="flex items-center gap-1">
+          <span class="text-sm font-bold">&gt;</span>
+          {{ form.min_depth(size=2, default=sample.filter_min_depth, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
         </div>
       </div>
-      <div class="mb-2">
-        <label class="control-label block mb-0.5 text-sm">Frequency</label>
-        <div class="flex items-center">
-          <span class="mr-1">&gt;</span>
-          {{ form.min_freq(size=1, default=sample.filter_min_freq, class="w-full border border-gray-300 rounded p-0.5 text-sm") }}
+
+      <div class="flex justify-between items-center text-xs">
+        <label class="text-gray-900">Frequency</label>
+        <div class="flex items-center gap-1">
+          <span class="text-sm font-bold">&gt;</span>
+          {{ form.min_freq(size=1, default=sample.filter_min_freq, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
         </div>
       </div>
-      <div class="mb-2">
-        <label class="control-label block mb-0.5 text-sm">Min alt count</label>
-        <div class="flex items-center">
-          <span class="mr-1">&gt;</span>
-          {{ form.min_reads(size=1, default=sample.filter_min_reads, class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm") }}
+
+      <div class="flex justify-between items-center text-xs">
+        <label class="text-gray-900">Min Alt Count</label>
+        <div class="flex items-center gap-1">
+          <span class="text-sm font-bold">&gt;</span>
+          {{ form.min_reads(size=1, default=sample.filter_min_reads, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
         </div>
       </div>
-      <div class="mb-2" {% if assay == "swea" %}style="display:none"{% endif %}>
-        <label class="control-label block mb-0.5 text-sm">Control freq.</label>
-        <div class="flex items-center">
-          <span class="mr-1">&lt;</span>
-          {{ form.max_freq(size=1, default=sample.filter_max_freq, class="w-full border border-gray-300 rounded p-0.5 text-sm") }}
+
+      <div class="flex justify-between items-center text-xs">
+        <label class="text-gray-900">Control Freq.</label>
+        <div class="flex items-center gap-1">
+          <span class="text-sm font-bold">&lt;</span>
+          {{ form.max_freq(size=1, default=sample.filter_max_freq, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
         </div>
       </div>
-      <div class="mb-2">
-        <label class="control-label block mb-0.5 text-sm">Population freq.</label>
-        <div class="flex items-center">
-          <span class="mr-1">&lt;</span>
-          {{ form.max_popfreq(size=1, default=sample.filter_max_popfreq, class="w-full border border-gray-300 rounded p-0.5 text-sm") }}
+
+      <div class="flex justify-between items-center text-xs">
+        <label class="text-gray-900">Pop. Freq.</label>
+        <div class="flex items-center gap-1">
+          <span class="text-sm font-bold">&lt;</span>
+          {{ form.max_popfreq(size=1, default=sample.filter_max_popfreq, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
         </div>
       </div>
-      <div class="mb-2">
-        <label class="control-label block mb-0.5 text-sm">Consequence</label>
-        <div class="multiselect">
-          <div class="selectBox" onclick="showCheckboxes('csq_checkboxes')">
-            <select class="w-full border border-gray-300 rounded p-0.5 text-sm">
-              <option>Select Consequence</option>
-            </select>
-            <div class="overSelect"></div>
-          </div>
-          <div id="csq_checkboxes" class="checkboxes">
-            <label for="splicing" class="text-sm">{{ form.splicing }} Splicing</label>
-            <label for="stop_gained" class="text-sm">{{ form.stop_gained }} Stop gain</label>
-            <label for="frameshift" class="text-sm">{{ form.frameshift }} Frameshift indels</label>
-            <label for="stop_lost" class="text-sm">{{ form.stop_lost }} Stop loss</label>
-            <label for="start_lost" class="text-sm">{{ form.start_lost }} Start loss</label>
-            <label for="inframe_indel" class="text-sm">{{ form.inframe_indel }} In-frame indels</label>
-            <label for="missense" class="text-sm">{{ form.missense }} Missense</label>
-            <label for="other_coding" class="text-sm">{{ form.other_coding }} Other coding</label>
-            <label for="synonymous" class="text-sm">{{ form.synonymous }} Synonymous</label>
-            <label for="UTR" class="text-sm">{{ form.UTR }} UTR</label>
-            <label for="non_coding" class="text-sm">{{ form.non_coding }} Non-coding</label>
-            <label for="intronic" class="text-sm">{{ form.intronic }} Intronic</label>
-            <label for="intergenic" class="text-sm">{{ form.intergenic }} Intergenic</label>
-            <label for="regulatory" class="text-sm">{{ form.regulatory }} Regulatory</label>
-            <label for="feature_elon_trunc" class="text-sm">{{ form.feature_elon_trunc }} Feature elon/trunc</label>
-          </div>
+
+      <!-- Multi-Select Dropdowns -->
+      <div class="relative z-20">
+        <label class="block text-gray-900 text-xs mb-1">Consequence</label>
+        
+        <!-- Conseq Dropdown Trigger -->
+        <div class="border border-gray-400 rounded bg-white cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('csq_checkboxes', 'csq-dropdown-icon')">
+          <span id="selected-option" class="text-xs text-gray-700">Select Consequence</span>
+          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}" class="h-4 w-4 text-gray-900 transition-transform duration-200"  id="csq-dropdown-icon" alt="Consequence Dropdown Icon">
+        </div>
+      
+        <!-- Conseq Dropdown Options -->
+        <div id="csq_checkboxes" class="hidden border border-gray-400 mt-1 rounded shadow-md bg-gray-50 p-1 space-y-1">
+          <label for="splicing" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.splicing }} <span>Splicing</span></label>
+          <label for="stop_gained" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.stop_gained }} <span>Stop gain</span></label>
+          <label for="frameshift" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.frameshift }} <span>Frameshift indels</span></label>
+          <label for="stop_lost" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.stop_lost }} <span>Stop loss</span></label>
+          <label for="start_lost" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.start_lost }} <span>Start loss</span></label>
+          <label for="inframe_indel" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.inframe_indel }} <span>In-frame indels</span></label>
+          <label for="missense" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.missense }} <span>Missense</span></label>
+          <label for="other_coding" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.other_coding }} <span>Other coding</span></label>
+          <label for="synonymous" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.synonymous }} <span>Synonymous</span></label>
+          <label for="UTR" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.UTR }} <span>UTR</span></label>
+          <label for="non_coding" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.non_coding }} <span>Non-coding</span></label>
+          <label for="intronic" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.intronic }} <span>Intronic</span></label>
+          <label for="intergenic" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.intergenic }} <span>Intergenic</span></label>
+          <label for="regulatory" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.regulatory }} <span>Regulatory</span></label>
+          <label for="feature_elon_trunc" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.feature_elon_trunc }} <span>Feature elon/trunc</span></label>
         </div>
       </div>
-      <div class="mb-2">
-        <label class="control-label block mb-0.5 text-sm">Gene lists</label>
-        <div class="multiselect">
-          <div class="selectBox" onclick="showCheckboxes('genelists_checkboxes')">
-            <select class="w-full border border-gray-300 rounded p-0.5 text-sm">
-              <option>Select Gene Lists</option>
-            </select>
-            <div class="overSelect"></div>
-          </div>
-          <div id="genelists_checkboxes" class="checkboxes">
-            {% for panel in genelists_assay %}
+      
+      <div class="relative z-10">
+        <label class="block text-gray-900 text-xs mb-1">Gene Lists</label>
+        
+        <!-- Genelist Dropdown Trigger -->
+        <div class="border border-gray-400 rounded bg-white cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('genelists_checkboxes', 'genelist-dropdown-icon')">
+          <span id="selected-genelist" class="text-xs text-gray-700">Select Gene Lists</span>
+          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}" class="h-4 w-4 text-gray-900 transition-transform duration-200" id="genelist-dropdown-icon" alt="genelist Dropdown Icon">
+        </div>
+      
+        <!-- Genelist Dropdown Options -->
+        <div id="genelists_checkboxes" class="hidden border border-gray-400 mt-1 rounded shadow-md bg-gray-50 p-1 space-y-1">
+          {% for panel in assay_panels %}
             {% if panel.type == 'genelist' %}
-            {% set show=False %}
-            <label for={{panel.name}} class="text-sm">{{ form['genelist_' ~ panel.name](checked=show) }} {{panel.displayname}}</label>
+              {% set show=False %}
+              <label for="{{ panel.name }}" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">
+                {{ form['genelist_' ~ panel.name](checked=show) }} <span>{{ panel.displayname }}</span>
+              </label>
             {% endif %}
-            {% endfor %}
-          </div>
+          {% endfor %}
         </div>
       </div>
-      <div class="flex justify-between mb-2">
-        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm" name="apply" value="apply" type="submit">Apply</button>
-        <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm" name="reset" value="reset" type="submit">Reset</button>
-      </div>      
-      <div>
-        <p class="font-semibold text-sm">CNV filters WIP!</p>
-        <div class="mb-2">
-          <label class="control-label block mb-0.5 text-sm">Max size</label>
-          <div class="flex items-center">
-            <span class="mr-1">&lt;</span>
-            {{ form.max_cnv_size(size=7, default=sample.max_cnv_size, class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm") }}
-          </div>
-        </div>
-        <div class="mb-2">
-          <label class="control-label block mb-0.5 text-sm">Min size</label>
-          <div class="flex items-center">
-            <span class="mr-1">&gt;</span>
-            {{ form.min_cnv_size(size=7, default=sample.min_cnv_size, class="no-spin w-full border border-gray-300 rounded p-0.5 text-sm") }}
-          </div>
-        </div>
-        <div class="mb-2">
-          <label class="control-label block mb-0.5 text-sm">CNV effect</label>
-          <div class="multiselect">
-            <div class="selectBox" onclick="showCheckboxes('cnveffect_checkboxes')">
-              <select class="w-full border border-gray-300 rounded p-0.5 text-sm">
-                <option>Select CNV Effect</option>
-              </select>
-              <div class="overSelect"></div>
-            </div>
-            <div id="cnveffect_checkboxes" class="checkboxes">
-              <label for="inframe" class="text-sm">{{ form.cnveffect_loss(checked=False) }} Loss</label>
-              <label for="outframe" class="text-sm">{{ form.cnveffect_gain(checked=False) }} Gain</label>
-            </div>
-          </div>
-        </div>
-        <div class="flex justify-between mb-2">
-          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm" name="apply" value="apply" type="submit">Apply</button>
-          <button class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm" name="reset" value="reset" type="submit">Reset</button>
+      
+      <!-- SNV FILTER Buttons -->
+      <div class="flex justify-between mt-2">
+        <button class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-1 rounded text-xs mx-1" name="apply" value="apply" type="submit">Apply</button>
+        <button class="bg-orange-500 hover:bg-red-700 text-white font-semibold py-1 px-1 rounded text-xs mx-1" name="reset" value="reset" type="submit">Reset</button>
+      </div>
+    </div>
+
+    <hr class="broder border-gray-500 my-1">
+    
+    <div id="cnv-filters" class="p-1 px-2 space-y-2 w-full text-xs">
+      <!-- CNV filters -->
+      <div class="flex justify-between items-center mb-1">
+        <h2 class="text-sm font-semibold">CNV Filters</h2>
+      </div>
+      
+      <!-- Max Size Filter -->
+      <div class="flex justify-between items-center text-xs">
+        <label class="text-gray-900">Max size</label>
+        <div class="flex items-center gap-1">
+          <span class="text-sm font-bold">&lt;</span>
+          {{ form.max_cnv_size(size=7, default=sample.max_cnv_size,class="border border-gray-300 rounded px-2 py-0.5 w-24") }}
         </div>
       </div>
-    </form>
-  </div>
-</div>
+      
+      <!-- Min Size Filter -->
+      <div class="flex justify-between items-center text-xs">
+        <label class="text-gray-900">Min size</label>
+        <div class="flex items-center gap-1">
+          <span class="text-sm font-bold">&gt;</span>
+          {{ form.min_cnv_size(size=7, default=sample.min_cnv_size, class="border border-gray-300 rounded px-2 py-0.5 w-24") }}
+        </div>
+      </div>
+      
+      <!-- CNV Effect Dropdown -->
+      <div class="relative">
+        <label class="block text-gray-900 text-xs mb-1">CNV Effect</label>
+
+        <!-- CNV Dropdown Trigger -->
+        <div class="border border-gray-400 rounded bg-white cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('cnveffect_checkboxes', 'cnveffect-dropdown-icon')">
+          <span class="text-xs text-gray-700">Select CNV Effect</span>
+          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}" class="h-4 w-4 text-gray-500 transition-transform duration-200"  id="cnveffect-dropdown-icon" alt="CNV Effect Dropdown Icon">
+        </div>
+
+        <div id="cnveffect_checkboxes" class="hidden border border-gray-400 mt-1 rounded shadow-md bg-gray-50 p-1 space-y-1">
+          <label for="cnveffect_loss" class="flex items-center space-x-1 px-2 py-1 rounded hover:bg-blue-100 transition">
+            {{ form.cnveffect_loss(checked=False) }} <span>Loss</span>
+          </label>
+          <label for="cnveffect_gain" class="flex items-center space-x-1 px-2 py-1 rounded hover:bg-blue-100 transition">
+            {{ form.cnveffect_gain(checked=False) }} <span>Gain</span>
+          </label>
+        </div>
+      
+        <!-- Apply & Reset Buttons -->
+        <div class="flex justify-between mt-2">
+          <button class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-1 rounded text-xs mx-1" name="apply" value="apply" type="submit">Apply</button>
+          <button class="bg-orange-500 hover:bg-red-700 text-white font-semibold py-1 px-1 rounded text-xs mx-1" name="reset" value="reset" type="submit">Reset</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</aside>
 
 <script>
 
-  ////////////////////////////////////////////////////////////////////////////////
-  // Toggle Filter Sidebar
-  // Open Filter Sidebar and close SNV Sidebar if open
-  document.getElementById('filter-toggle').addEventListener('click', function (event) {
-    const filterSidebar = document.getElementById('filter-sidebar');
-    const snvSidebar = document.getElementById('snv-sidebar');
-
-    // Toggle filter sidebar visibility
-    filterSidebar.classList.toggle('translate-x-full');
-
-    // Ensure SNV sidebar is closed
-    if (!snvSidebar.classList.contains('translate-x-full')) {
-      snvSidebar.classList.add('translate-x-full');
-    }
-
-    // Stop click from bubbling to the document
-    event.stopPropagation();
-  });
-
-  // Close Filter Sidebar when clicking the close button
-  document.getElementById('filter-close').addEventListener('click', function () {
-    document.getElementById('filter-sidebar').classList.add('translate-x-full');
-  });
-
-  // Open SNV Sidebar and close Filter Sidebar if open
-  document.getElementById('snv-toggle').addEventListener('click', function (event) {
-    const filterSidebar = document.getElementById('filter-sidebar');
-    const snvSidebar = document.getElementById('snv-sidebar');
-
-    // Toggle SNV sidebar visibility
-    snvSidebar.classList.toggle('translate-x-full');
-
-    // Ensure filter sidebar is closed
-    if (!filterSidebar.classList.contains('translate-x-full')) {
-      filterSidebar.classList.add('translate-x-full');
-    }
-
-    // Stop click from bubbling to the document
-    event.stopPropagation();
-  });
-
-  // Close sidebars when clicking outside
-  document.addEventListener('click', function () {
-    const filterSidebar = document.getElementById('filter-sidebar');
-    const snvSidebar = document.getElementById('snv-sidebar');
-
-    // Close filter sidebar if open
-    if (!filterSidebar.classList.contains('translate-x-full')) {
-      filterSidebar.classList.add('translate-x-full');
-    }
-
-    // Close SNV sidebar if open
-    if (!snvSidebar.classList.contains('translate-x-full')) {
-      snvSidebar.classList.add('translate-x-full');
-    }
-  });
-
-  // Prevent clicks inside the sidebars from closing them
-  document.getElementById('filter-sidebar').addEventListener('click', function (event) {
-    event.stopPropagation();
-  });
-
-  document.getElementById('snv-sidebar').addEventListener('click', function (event) {
-    event.stopPropagation();
-  });
-
-
-  // Close SNV Sidebar
-  document.getElementById('snv-close').addEventListener('click', function () {
-    document.getElementById('snv-sidebar').classList.add('translate-x-full');
-  });
   ////////////////////////////////////////////////////////////////////////////////
   // select/de-select snv checkboxes
   function toggleSelectAllVariants(source) {
@@ -284,9 +224,9 @@
   ////////////////////////////////////////////////////////////////////////////////
   // Submit SNV Sidebar Form
   function submitSNVSidebarForm(actionValue) {
-    const sidebarForm = document.getElementById('snv-sidebar-form');
+    const sidebarForm = document.getElementById('snv-actions-form');
     const selectedVariants = document.querySelectorAll('.snv-checkbox:checked'); // Selected variants
-    const sidebarOptions = document.querySelectorAll('.snv-sidebar-checkbox:checked'); // Selected sidebar checkboxes
+    const sidebarOptions = document.querySelectorAll('.snv-actions-checkbox:checked'); // Selected sidebar checkboxes
   
     // Remove existing hidden inputs for variants and action
     const existingVariantInputs = sidebarForm.querySelectorAll('input[name="selected_object_id"]');
@@ -332,53 +272,5 @@
     // If validation passes, submit the form
     sidebarForm.submit();
   }
-
-
-  // Recue the sidebar size to the inner window.location.href
-
-  function adjustSidebarPosition() {
-    const variantBar = document.getElementById('variant_functions_bar');
-    const filterSidebar = document.getElementById('filter-sidebar');
-    const snvSidebar = document.getElementById('snv-sidebar');
-    
-    // Get the bottom position of the variant bar
-    const variantBarBottom = variantBar.getBoundingClientRect().bottom;
-  
-    // Set the top of the sidebars dynamically
-    const topPosition = variantBarBottom + 10; // Add a margin of 10px below the bar
-    filterSidebar.style.top = `${topPosition}px`;
-    snvSidebar.style.top = `${topPosition}px`;
-  
-    // Ensure the sidebars have a maximum height and are scrollable if needed
-    const maxHeight = window.innerHeight - topPosition; // Calculate available space below the bar
-    filterSidebar.style.maxHeight = `${maxHeight}px`;
-    filterSidebar.style.overflowY = 'auto'; // Add a vertical scrollbar if content exceeds height
-    snvSidebar.style.maxHeight = `${maxHeight}px`;
-    snvSidebar.style.overflowY = 'auto'; // Add a vertical scrollbar if content exceeds height
-  }
-  
-  // Adjust the position on page load
-  adjustSidebarPosition();
-  
-  // Adjust the position on window resize
-  window.addEventListener('resize', adjustSidebarPosition);
-  
-  // Ensure sidebars toggle visibility properly when resizing screens
-  window.addEventListener('resize', () => {
-    const filterSidebar = document.getElementById('filter-sidebar');
-    const snvSidebar = document.getElementById('snv-sidebar');
-    
-    // Reset sidebars to hidden when resizing
-    if (!filterSidebar.classList.contains('translate-x-full')) {
-      filterSidebar.classList.add('translate-x-full');
-    }
-    if (!snvSidebar.classList.contains('translate-x-full')) {
-      snvSidebar.classList.add('translate-x-full');
-    }
-  });
-  
-
-  
-
 
 </script>

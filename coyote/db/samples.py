@@ -12,10 +12,18 @@ class SampleHandler(BaseHandler):
         self.set_collection(self.adapter.samples_collection)
 
     def get_samples(
-        self, user_groups: list = [], report: bool = False, search_str: str = "", limit=None
+        self,
+        user_groups: list = [],
+        report: bool = False,
+        search_str: str = "",
+        limit=None,
+        time_limit=None,
     ):
         query = {"groups": {"$in": user_groups}}
-        if report:
+        if report and time_limit:
+            query["report_num"] = {"$gt": 0}
+            query["reports"] = {"$elemMatch": {"time_created": {"$gt": time_limit}}}
+        elif report and not time_limit:
             query["report_num"] = {"$gt": 0}
         else:
             query["$or"] = [{"report_num": {"$exists": False}}, {"report_num": 0}]
@@ -23,7 +31,8 @@ class SampleHandler(BaseHandler):
         self.app.logger.info(f"this is my search string: {search_str}")
         if len(search_str) > 0:
             query["name"] = {"$regex": search_str}
-        self.app.logger.info(query)
+
+        print("query", query)
         samples = list(self.get_collection().find(query).sort("time_added", -1))
         if limit:
             samples = samples[:limit]
@@ -41,6 +50,12 @@ class SampleHandler(BaseHandler):
         """
         sample = self.get_collection().find_one({"_id": ObjectId(id)})
         return sample
+
+    def get_samples_by_oids(self, sample_oids: list):
+        """
+        get samples by object ids
+        """
+        return self.get_collection().find({"_id": {"$in": sample_oids}}, {"name": 1})
 
     def reset_sample_settings(self, sample_id: str, settings):
         """

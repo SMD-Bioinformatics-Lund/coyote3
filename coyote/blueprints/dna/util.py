@@ -260,12 +260,6 @@ class DNAUtility:
             variants[var_idx] = store.annotation_handler.add_alt_class(
                 variants[var_idx], assay, subpanel
             )
-            if variants[var_idx]["POS"] == 55174771:
-                print(variants[var_idx]["classification"])
-                print(variants[var_idx]["other_classification"])
-                print(variants[var_idx]["global_annotations"])
-                print(variants[var_idx]["additional_classification"])
-
         return variants
 
     @staticmethod
@@ -282,15 +276,16 @@ class DNAUtility:
                     or len(filter_genes) == 0
                 )
                 and not var.get("blacklist")
-                and var.get("classification", {}).get("class") != 4
-                and var.get("classification", {}).get("class") != 999
+                and var.get("classification")
+                and var.get("classification", {}).get("class", 0) != 4
+                and var.get("classification", {}).get("class", 0) != 999
                 and not (
-                    (assay == "gmsonco" and var.get("classification", {}).get("class") == 3)
+                    (assay == "gmsonco" and var.get("classification", {}).get("class", 0) == 3)
                     if assay != "tumwgs"
                     else False
                 )
             ],
-            key=lambda var: var.get("classification", {}).get("class"),
+            key=lambda var: var.get("classification", {}).get("class", 0),
         )
 
         return filtered_sorted_variants
@@ -998,24 +993,30 @@ class DNAUtility:
     @staticmethod
     def get_variant_nomenclature(data: dict) -> str:
         """
-        Get the nomenclature for the variant
+        Get the nomenclature for the variant based on priority:
+        var_p > var_c > var_g > fusionpoints > translocpoints > cnvvar
         """
-        nomenclature = "p"
+        nomenclature = "p"  # default
+        variant = ""        # default value in case nothing is found
+
         var_nomenclature = {
-            "var_p": "p",
-            "var_c": "c",
+            "var_p": "p",  # priority 1
+            "var_c": "c",  # priority 2
+            "var_g": "g",  # priority 3
             "fusionpoints": "f",
-            "var_g": "g",
             "translocpoints": "t",
             "cnvvar": "cn",
         }
+
         for key, value in var_nomenclature.items():
-            if key in data:
-                variant = data.get(key, None)
+            variant_value = data.get(key)
+            if variant_value:  # this checks for both None and empty string
                 nomenclature = value
+                variant = variant_value
                 break
 
         return nomenclature, variant
+
 
     @staticmethod
     def create_comment_doc(
@@ -1157,3 +1158,25 @@ class DNAUtility:
                     var["other_genes"].append(gene["gene"])
             fixed_cnvs_genes.append(var)
         return fixed_cnvs_genes
+
+    @staticmethod
+    def process_gene_annotations(annotations: dict) -> dict:
+        """
+        Process gene annotations
+        """
+        annotations_dict = defaultdict(lambda: defaultdict(dict))
+        for anno in annotations:
+            if "class" in anno:
+                if "assay" in anno:
+                    assub = anno["assay"] + ":" + anno["subpanel"]
+                    annotations_dict[assub][anno["variant"]]["latest_class"] = anno
+                else:
+                    annotations_dict["historic:None"][anno["variant"]]["latest_class"] = anno
+            if "text" in anno:
+                if "assay" in anno:
+                    assub = anno["assay"] + ":" + anno["subpanel"]
+                    annotations_dict[assub][anno["variant"]]["latest_text"] = anno
+                else:
+                    annotations_dict["historic:None"][anno["variant"]]["latest_text"] = anno
+
+        return annotations_dict

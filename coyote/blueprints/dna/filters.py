@@ -50,6 +50,12 @@ def format_panel_flag_snv(panel_str):
 
 
 @app.template_filter()
+def sortable_date(value):
+    s = str(value).translate("- :.")
+    return s
+
+
+@app.template_filter()
 def standard_HGVS(st):
     if st:
         parts = st.rsplit(".", 1)
@@ -80,64 +86,98 @@ def format_tier(st):
 
 @app.template_filter()
 def format_filter(filters):
+    """Formats variant filters into colored badges with tooltips and wrapping behavior"""
+
+    # Define color categories and tooltips
+    filter_classes = {
+        "PASS": ("PASS", "bg-pass", "Variant passed all quality filters"),
+        "GERMLINE": ("GERM", "bg-germline", "Germline variant"),
+        "GERMLINE_RISK": ("GERM", "bg-germline-risk", "Germline risk variant"),
+    }
+
+    warn_filters = {
+        "HP": ("HP", "bg-warn", "Variant in homopolymer"),
+        "SB": ("SB", "bg-warn", "Strand bias detected"),
+        "LO": ("LO", "bg-warn", "Low tumor VAF"),
+        "XLO": ("XLO", "bg-warn", "Very low tumor VAF"),
+        "PON": ("PON", "bg-warn", "Variant in panel of normals"),
+        "FFPE": ("FFPE", "bg-warn", "Variant in panel of FFPE-normals"),
+    }
+
+    fail_filters = {
+        "N": ("N", "bg-fail", "Too high VAF in normal sample"),
+        "P": ("P", "bg-fail", "Too low P-value"),
+        "SB": ("SB", "bg-fail", "Strand bias failed"),
+        "LD": ("LD", "bg-fail", "Long deletion detected"),
+        "PON": ("PON", "bg-fail", "Variant failed due to panel of normals"),
+        "FFPE": ("FFPE", "bg-fail", "Variant failed due to FFPE panel"),
+    }
+
+    # Mapping of multiple raw filter names to grouped categories
+    warn_map = {
+        "WARN_HOMOPOLYMER": "HP",
+        "WARN_STRANDBIAS": "SB",
+        "WARN_LOW_TVAF": "LO",
+        "WARN_VERYLOW_TVAF": "XLO",
+        "WARN_PON_freebayes": "PON",
+        "WARN_PON_vardict": "PON",
+        "WARN_PON_tnscope": "PON",
+        "WARN_FFPE_PON_freebayes": "FFPE",
+        "WARN_FFPE_PON_vardict": "FFPE",
+        "WARN_FFPE_PON_tnscope": "FFPE",
+    }
+
+    fail_map = {
+        "FAIL_NVAF": "N",
+        "FAIL_PVALUE": "P",
+        "FAIL_STRANDBIAS": "SB",
+        "FAIL_LONGDEL": "LD",
+        "FAIL_PON_freebayes": "PON",
+        "FAIL_PON_vardict": "PON",
+        "FAIL_PON_tnscope": "PON",
+        "FAIL_FFPE_PON_freebayes": "FFPE",
+        "FAIL_FFPE_PON_vardict": "FFPE",
+        "FAIL_FFPE_PON_tnscope": "FFPE",
+    }
+
+    skip_filters = ["WARN_NOVAR"]
+
     html = ""
-    pon_warn = False
-    pon_fail = False
-    pon_ffpe_warn = False
-    pon_ffpe_fail = False
+    seen_flags = set()
+
     for f in filters:
-        if f == "PASS":
-            html += "<span class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-pass rounded-full'>PASS</span>"
-        if f == "GERMLINE":
-            html += "<span title='Germline variant' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-germline rounded-full'>GERM</span>"
-        if f == "GERMLINE_RISK":
-            html += "<span title='Germline risk' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-germline-risk rounded-full'>GERM</span>"
-        if f == "FAIL_NVAF":
-            html += "<span title='Too high VAF in normal sample' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail-nvaf rounded-full'>N</span>"
-        elif f == "FAIL_PVALUE":
-            html += "<span title='Too low P-value' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail-pvalue rounded-full'>P</span>"
-        elif "WARN_HOMOPOLYMER" in f:
-            html += "<span title='Variant in homopolymer' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn-homopolymer rounded-full'>HP</span>"
-        elif "WARN_STRANDBIAS" in f:
-            html += "<span title='Strand bias' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn-strandbias rounded-full'>SB</span>"
-        elif "FAIL_STRANDBIAS" in f:
-            html += "<span title='Strand bias' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail-strandbias rounded-full'>SB</span>"
-        elif "FAIL_LONGDEL" in f:
-            html += "<span title='Long DEL from vardict' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail-longdel rounded-full'>LD</span>"
-        elif f == "WARN_LOW_TVAF":
-            html += "<span title='Low tumor VAF' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn-low-tvaf rounded-full'>LO</span>"
-        elif f == "WARN_VERYLOW_TVAF":
-            html += "<span title='Very low tumor VAF' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn-verylow-tvaf rounded-full'>XLO</span>"
-        elif f == "WARN_NOVAR":
-            pass
-        elif "WARN_PON" in f:
-            if not pon_warn:
-                pon_warn = True
-                html += "<span title='Variant seen in panel of normals' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn-pon rounded-full'>PON</span>"
-        elif "FAIL_PON" in f:
-            if not pon_fail:
-                pon_fail = True
-                html += "<span title='Variant failed because seen in panel of normals' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail-pon rounded-full'>PON</span>"
-        elif "WARN_FFPE_PON" in f:
-            if not pon_ffpe_warn:
-                pon_ffpe_warn = True
-                html += "<span title='Variant seen in panel of FFPE-normals' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn-ffpe-pon rounded-full'>FFPE</span>"
-        elif "FAIL_FFPE_PON" in f:
-            if not pon_ffpe_fail:
-                pon_ffpe_fail = True
-                html += "<span title='Variant failed because seen in panel of FFPE-normals' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail-ffpe-pon rounded-full'>FFPE</span>"
-        elif "FAIL" in f:
-            html += (
-                "<span class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-fail rounded-full'>"
-                + f
-                + "</span>"
-            )
-        elif "WARN" in f:
-            html += (
-                "<span class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-warn rounded-full'>"
-                + f
-                + "</span>"
-            )
+        if f in filter_classes:
+            text, css_class, tooltip = filter_classes[f]
+            seen_flags.add(f)
+        elif f in warn_map:
+            if warn_map[f] in seen_flags:
+                continue
+            else:
+                text, css_class, tooltip = warn_filters[warn_map[f]]
+                seen_flags.add(text)
+        elif f in fail_map:
+            if fail_map[f] in seen_flags:
+                continue
+            else:
+                text, css_class, tooltip = fail_filters[fail_map[f]]
+                seen_flags.add(text)
+        elif f in skip_filters:
+            seen_flags.add(f)
+            continue
+        elif "FAIL" in f and f not in seen_flags:
+            text, css_class, tooltip = f, "bg-fail", "Failure due to quality issues"
+            seen_flags.add(f)
+        elif "WARN" in f and f not in seen_flags:
+            text, css_class, tooltip = f, "bg-warn", "Warning due to quality concerns"
+            seen_flags.add(f)
+        else:
+            continue  # Ignore unknown filters
+
+        html += (
+            f"<div class='inline-block p-1 text-white {css_class} rounded-md text-xs leading-tight flex items-center' "
+            f"onmouseover='showTooltip(event, \"{tooltip}\")'>"
+            f"{text}</div>"
+        )
 
     return html
 

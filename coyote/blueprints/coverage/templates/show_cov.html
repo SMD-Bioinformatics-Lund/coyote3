@@ -40,63 +40,66 @@
         background-color: #1678e0; 
     }
 </style>
-
-<div id="containery" class="containery">
-    <div id="button-containery" class="button-containery">
-        <div>
-            <button class="gene-button"><a href="{{ url_for('cov_bp.show_blacklisted_regions', group=smp_grp)}}">Blacklisted Regions</a></button>
-        </div>
-        Using the following genelists:
-        {% for list in genelists %}
-            {{list}}
-        {% endfor %}
-        <form action="" method="POST" name="form" class="no-spin">
-            <form action="{{ url_for('cov_bp.get_cov', sample_id=sample.name) }}" method="POST">
-                <button type="submit" class="gene-button" name="depth_cutoff" value="100">100X</button>
-                <button type="submit" class="gene-button" name="depth_cutoff" value="500">500X</button>
-                <button type="submit" class="gene-button" name="depth_cutoff" value="1000">1000X</button>
+<div class="flex w-full h-full overflow-hidden">
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+    <div id="containery" class="containery">
+        <div id="button-containery" class="button-containery">
+            <div>
+                <button class="gene-button"><a href="{{ url_for('cov_bp.show_blacklisted_regions', group=smp_grp)}}">Blacklisted Regions</a></button>
+            </div>
+            Using the following genelists:
+            {% for list in genelists %}
+                {{list}}
+            {% endfor %}
+            <form action="" method="POST" name="form" class="no-spin">
+                <form action="{{ url_for('cov_bp.get_cov', sample_id=sample.name) }}" method="POST">
+                    <button type="submit" class="gene-button" name="depth_cutoff" value="100">100X</button>
+                    <button type="submit" class="gene-button" name="depth_cutoff" value="500">500X</button>
+                    <button type="submit" class="gene-button" name="depth_cutoff" value="1000">1000X</button>
+                </form>
             </form>
-        </form>
-    
-        <div class="gene-buttons">
-              <!-- Low Coverage Regions -->
-            <div id="lowcovlist_div"  clear:left; class="bg-white shadow-md rounded-lg p-6 mb-6">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4">Low Coverage Regions</h2>
-                <div class="overflow-auto">
-                    <table class="min-w-full mt-4 table-auto text-xs" id="sortable-table">
-                        <thead>
-                            <tr class="bg-gradient-to-r from-yellow-300 to-green-300 text-black">
-                                <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="0" data-type="text">Chromosomal region</th>
-                                <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="1" data-type="number">Size (bp)</th>
-                                <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="2" data-type="number">Avg depth (x)</th>
-                                <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="3" data-type="text">Exon</th>
-                                <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="4" data-type="text">Gene</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for gene in cov_table %}
-                            {% for CDS in cov_table[gene] %}
-                            {% set exon = cov_table[gene][CDS] %}
-                            {% if '_' in CDS %}
-                            {% set CDS = "NCP" %}
-                            {% endif %}
-                            <tr class="hover:bg-gray-100">
-                                <td class="py-2 px-4 border-b border-gray-300">{{exon.chr}}:{{exon.start}}-{{exon.end}}</td>
-                                <td class="py-2 px-4 border-b border-gray-300">{{exon.end | int - exon.start | int}}</td>
-                                <td class="py-2 px-4 border-b border-gray-300">{{exon.cov | float | round() }}</td>
-                                <td class="py-2 px-4 border-b border-gray-300">{{CDS}}</td>
-                                <td class="py-2 px-4 border-b border-gray-300"><button onclick="plotGene('{{gene}}')">{{gene}}</button></td>
-                            </tr>
-                            {% endfor %}
-                            {% endfor %}
-                        </tbody>
-                    </table>
+        
+            <div class="gene-buttons">
+                <!-- Low Coverage Regions -->
+                <div id="lowcovlist_div"  clear:left; class="bg-white shadow-md rounded-lg p-6 mb-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Low Coverage Regions</h2>
+                    <div class="overflow-auto">
+                        <table class="min-w-full mt-4 table-auto text-xs" id="sortable-table">
+                            <thead>
+                                <tr class="bg-gradient-to-r from-yellow-300 to-green-300 text-black">
+                                    <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="0" data-type="text">Chromosomal region</th>
+                                    <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="1" data-type="number">Size (bp)</th>
+                                    <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="2" data-type="number">Avg depth (x)</th>
+                                    <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="3" data-type="text">Exon</th>
+                                    <th class="py-2 px-4 border-b border-gray-300 text-center uppercase font-normal cursor-pointer" data-column="4" data-type="text">Gene</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for gene in cov_table %}
+                                {% for CDS in cov_table[gene] %}
+                                {% set exon = cov_table[gene][CDS] %}
+                                {% if '_' in CDS %}
+                                {% set CDS = "NCP" %}
+                                {% endif %}
+                                <tr class="hover:bg-gray-100">
+                                    <td class="py-2 px-4 border-b border-gray-300">{{exon.chr}}:{{exon.start}}-{{exon.end}}</td>
+                                    <td class="py-2 px-4 border-b border-gray-300">{{exon.end | int - exon.start | int}}</td>
+                                    <td class="py-2 px-4 border-b border-gray-300">{{exon.cov | float | round() }}</td>
+                                    <td class="py-2 px-4 border-b border-gray-300">{{CDS}}</td>
+                                    <td class="py-2 px-4 border-b border-gray-300"><button onclick="plotGene('{{gene}}')">{{gene}}</button></td>
+                                </tr>
+                                {% endfor %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
+        <div class="plot-container" id="plot-container"></div>
+        <div class="data-container" id="data-container"></div>
     </div>
-    <div class="plot-container" id="plot-container"></div>
-    <div class="data-container" id="data-container"></div>
+  </main>
 </div>
 <script src="https://d3js.org/d3.v7.min.js"></script>
 

@@ -10,7 +10,7 @@ services:
       dockerfile: Dockerfile
       network: host
       target: coyote3_app
-    image: coyote3:3.0.0.alpha-2
+    image: coyote3:3.0.0.alpha-3
     network_mode: bridge
     ports:
       - "8815:5000"

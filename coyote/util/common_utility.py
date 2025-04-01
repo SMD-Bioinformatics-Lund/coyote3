@@ -8,6 +8,7 @@ from bson import ObjectId
 from datetime import datetime
 from io import BytesIO
 import base64
+from datetime import timedelta
 
 
 class CommonUtility:
@@ -44,6 +45,16 @@ class CommonUtility:
         conf = app.config.get("GROUP_CONFIGS")
         if conf is not None:
             return deepcopy(conf.get(group))
+        return {}
+
+    @staticmethod
+    def get_unknown_default_parameters(grp: str = "unknown-default") -> dict:
+        """
+        Get group paramters data
+        """
+        conf = app.config.get("GROUP_CONFIGS")
+        if conf is not None:
+            return deepcopy(conf.get("unknown-default"))
         return {}
 
     @staticmethod
@@ -145,7 +156,7 @@ class CommonUtility:
         """
         Return Default dict (either group defaults or coyote defaults) and setting per sample
         """
-        settings = app.config.get("GROUP_FILTERS")
+        settings = deepcopy(app.config.get("GROUP_FILTERS"))
         # Get group specific settings
         if group is not None:
             settings["error_cov"] = int(group.get("error_cov", settings["error_cov"]))
@@ -233,26 +244,33 @@ class CommonUtility:
         return fusion_settings
 
     @staticmethod
-    def create_filter_genelist(list_names: dict, gene_lists: dict) -> list:
+    def create_filter_genelist(genelist_dict: dict) -> list:
         """
-        Creates a list of genes based on the provided list names and gene lists.
+        Create a list of genes from a dictionary of gene lists.
         Args:
-            list_names (dict): A dictionary where keys are list names and values are integers (1 to include the list, 0 to exclude).
-            gene_lists (dict): A dictionary where keys are list names and values are lists of genes.
+            genelist_dict (dict): A dictionary where keys are gene list names and values are lists of genes.
         Returns:
-            list: A list of genes from the included gene lists. If a list name is not defined in gene_lists, "gene list not defined" is added to the list.
+            list: A list of genes.
         """
 
-        genes = []
-        for name, val in list_names.items():
-            if val == 1:
-                list_name = name.split("_", 1)[1]
-                try:
-                    genes.extend(gene_lists[list_name])
-                except:
-                    genes.extend(["gene list not defined"])
+        filter_genes = []
+        for name, genes in genelist_dict.items():
+            filter_genes.extend(genes)
 
-        return genes
+        return list(set(filter_genes))
+
+    @staticmethod
+    def create_genelists_dict(list_names: list, gene_lists: dict) -> dict:
+        """
+        Creates a dictionary of gene lists from a list of selected gene lists.
+        Args:
+            gene_lists (list): A list of gene lists.
+            list_names (list): A list of gene list names.
+        Returns:
+            dict: A dictionary where keys are gene list names and values are lists of genes.
+        """
+
+        return {name: gene_lists[name] for name in list_names}
 
     @staticmethod
     def get_active_branch_name() -> str | None:
@@ -488,3 +506,17 @@ class CommonUtility:
             image_path = os.path.join(plot_dir, f"{fn}")
             return CommonUtility.get_base64_image(image_path)
         return False
+
+    @staticmethod
+    def get_date_today() -> str:
+        """
+        Get today's date
+        """
+        return datetime.now().strftime("%Y-%m-%d")
+
+    @staticmethod
+    def get_date_days_ago(days: int) -> str:
+        """
+        Get date a specified number of days ago
+        """
+        return datetime.now() - timedelta(days=days)
