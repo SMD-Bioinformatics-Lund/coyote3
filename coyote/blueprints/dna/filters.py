@@ -6,11 +6,23 @@ from math import floor, log10
 import dateutil
 import arrow
 from markupsafe import Markup
+from datetime import datetime
+import json
 
 
 @app.template_filter("has_hotspot")
 def has_hotspot_filter(variants):
     return any(variant.get("hotspot") for variant in variants)
+
+
+@app.template_filter("now")
+def now_filter(dummy=None, format="%Y-%m-%d %H:%M:%S"):
+    return datetime.utcnow().strftime(format)
+
+
+@app.template_filter("prettyjson")
+def pretty_json_filter(value):
+    return Markup(json.dumps(value, indent=2, ensure_ascii=False))
 
 
 @app.template_filter()

@@ -10,19 +10,19 @@
     {% set cards = [] %}
     {% include "partials/admin_links_data.jinja" %}
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 grid-cols-5 gap-6">
       {% for card in cards %}
         {% if card.url %}
-          <a href="{{ card.url }}" class="card bg-white rounded-xl shadow-md p-6 text-center cursor-pointer block">
+          <a href="{{ card.url }}" class="card bg-gray-100 rounded-xl shadow-md p-6 text-center cursor-pointer block">
             <img src="{{ url_for('static', filename='icons/heroicons_outline_24/' ~ card.icon) }}" alt="{{ card.title }} Icon" class="mx-auto mb-2 h-6 w-6">
-            <h3 class="text-lg font-semibold">{{ card.title }}</h3>
-            <p class="text-sm text-gray-600">{{ card.desc }}</p>
+            <h3 class="text-base font-semibold">{{ card.title }}</h3>
+            <p class="text-xs text-gray-600">{{ card.desc }}</p>
           </a>
         {% else %}
-          <div onclick="{{ card.onclick }}" class="card bg-white rounded-xl shadow-md p-6 text-center cursor-pointer">
+          <div onclick="{{ card.onclick }}" class="card bg-blue-100 rounded-xl shadow-md p-6 text-center cursor-pointer">
             <img src="{{ url_for('static', filename='icons/heroicons_outline_24/' ~ card.icon) }}" alt="{{ card.title }} Icon" class="mx-auto mb-2 h-6 w-6">
-            <h3 class="text-lg font-semibold">{{ card.title }}</h3>
-            <p class="text-sm text-gray-600">{{ card.desc }}</p>
+            <h3 class="text-base font-semibold">{{ card.title }}</h3>
+            <p class="text-xs text-gray-600">{{ card.desc }}</p>
           </div>
         {% endif %}
       {% endfor %}

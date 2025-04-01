@@ -31,6 +31,7 @@ from typing import Literal, Any
 from datetime import datetime
 import os
 import io
+import json
 
 
 @admin_bp.route("/")
@@ -150,7 +151,9 @@ def update_user(user_id):
     Admin edits an existing user account.
     """
     user = store.user_handler.user_with_id(user_id)
+    print("🛠 User data:", pformat(user))
     form = UserUpdateForm(data=user)
+    form.username.data = user["_id"]
 
     if form.validate_on_submit():
         updated_user = {
@@ -205,47 +208,163 @@ def validate_email():
 
 #### END OF MANAGE USERS PART ###
 
+
 #### ASSAY CONFIGURATION PART ####
+
+
+@admin_bp.route("/assay-config/dna/new", methods=["GET", "POST"])
+@require_admin
+def create_dna_assay_config():
+    schema = store.schema_handler.get_schema("DNA-Assay-Config")
+
+    if request.method == "POST":
+        # Automatically flatten single-value fields
+        form_data = {
+            key: (vals[0] if len(vals) == 1 else vals)
+            for key, vals in request.form.to_dict(flat=False).items()
+        }
+
+        # TODO: validate + apply defaults using schema
+        config = util.admin.process_form_to_config(form_data, schema)
+
+        config["_id"] = config["assay_name"]
+        config["created_by"] = current_user.email
+        config["created_on"] = datetime.utcnow()
+        config["updated_by"] = current_user.email
+        config["updated_on"] = datetime.utcnow()
+
+        store.assay_config_handler.insert_assay_config(config)
+        flash("New assay config created!", "green")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    return render_template("assay_configs/assay_config_create.html", schema=schema)
+
+
+@admin_bp.route("/assay-config/rna/new", methods=["GET", "POST"])
+@require_admin
+def create_rna_assay_config():
+    schema = store.schema_handler.get_schema("RNA-Assay-Config")
+    return "RNA assay config creation page"
+
+    # if request.method == "POST":
+    #     # Automatically flatten single-value fields
+    #     form_data = {
+    #         key: (vals[0] if len(vals) == 1 else vals)
+    #         for key, vals in request.form.to_dict(flat=False).items()
+    #     }
+
+    #     # TODO: validate + apply defaults using schema
+    #     config = util.admin.process_form_to_config(form_data, schema)
+
+    #     config["_id"] = config["assay_name"]
+    #     config["created_by"] = current_user.email
+    #     config["created_on"] = datetime.utcnow()
+    #     config["updated_by"] = current_user.email
+    #     config["updated_on"] = datetime.utcnow()
+
+    #     store.assay_config_handler.insert_assay_config(config)
+    #     flash("New assay config created!", "green")
+    #     return redirect(url_for("admin_bp.assay_configs"))
+
+    # return render_template("assay_configs/assay_config_create.html", schema=schema)
 
 
 @admin_bp.route("/assay-configs")
 @require_admin
 def assay_configs():
-    return render_template("assay_configs/assay_configs.html")
+    assay_configs = store.assay_config_handler.get_all_assay_configs()
+    return render_template("assay_configs/assay_configs.html", assay_configs=assay_configs)
 
 
-@admin_bp.route("/assays", methods=["GET"])
+@admin_bp.route("/assay-config/<assay_id>/edit", methods=["GET", "POST"])
 @require_admin
-def get_assay_names():
-    return jsonify(store.assay_config_handler.get_assay_names())
+def edit_assay_config(assay_id):
+    schema = store.schema_handler.get_schema("DNA-Assay-Config")  # or dynamically by type
+    assay_config = store.assay_config_handler.get_assay_config(assay_id)
+
+    if request.method == "POST":
+        form_data = request.form.to_dict()
+
+        try:
+            updated_config = util.admin.process_form_to_config(form_data, schema)
+
+            current_clean = util.admin.clean_config_for_comparison(assay_config)
+            incoming_clean = util.admin.clean_config_for_comparison(updated_config)
+
+            if current_clean == incoming_clean:
+                flash("No changes detected. Configuration was not updated.", "yellow")
+                return redirect(url_for("admin_bp.assay_configs"))
+
+            # Proceed with update
+            updated_config["updated_on"] = datetime.utcnow()
+            updated_config["updated_by"] = current_user.email
+            updated_config["version"] = assay_config.get("version", 1) + 1
+
+            store.assay_config_handler.update_assay_config(assay_id, updated_config)
+            flash("Assay configuration updated successfully.", "green")
+            return redirect(url_for("admin_bp.assay_configs"))
+
+        except Exception as e:
+            flash(f"Error: {e}", "red")
+
+    return render_template(
+        "assay_configs/assay_config_edit.html", schema=schema, config=assay_config
+    )
 
 
-@admin_bp.route("/assay/<name>", methods=["GET"])
+@admin_bp.route("/assay/<assay_id>/delete", methods=["GET"])
 @require_admin
-def get_assay(name):
-    config = store.assay_config_handler.get_assay_config(name)
-    return jsonify(config)
-
-
-@admin_bp.route("/assay/<name>", methods=["POST"])
-@require_admin
-def update_assay(name):
-    data = request.json
-    print("🛠 Received config update for", name)
-    print(data)
-
-    store.assay_config_handler.replace_config(name=name, data=data, updated_by=current_user.email)
-    return jsonify({"status": "success"})
-
-
-@admin_bp.route("/register-assay")
-@require_admin
-def register_assay():
+def delete_assay_config(assay_id):
     """
-    Register a new assay
+    Delete assay configuration
     """
+    config = store.assay_config_handler.get_assay_config(assay_id)
+    if not config:
+        return abort(404)
+
     # logic + render template
-    return render_template("register_assay.html")
+    return render_template("assay_configs/delete_assay_config.html", config=config)
+
+
+#### SCHEMAS PART ####
+@admin_bp.route("/schemas")
+@require_admin
+def schemas():
+    """
+    List all schemas
+    """
+    schemas = store.schema_handler.get_all_schemas()
+    return render_template("schemas/schemas.html", schemas=schemas)
+
+
+@admin_bp.route("/schemas/<schema_id>/edit", methods=["GET", "POST"])
+@require_admin
+def edit_schema(schema_id):
+    """
+    View schema details
+    """
+    schema = store.schema_handler.get_schema(schema_id)
+    if not schema:
+        return abort(404)
+
+    # # logic + render template
+    return render_template("schemas/schema_edit.html", schema_blob=schema)
+
+
+@admin_bp.route("/schemas/<schema_id>/delete", methods=["GET", "POST"])
+@require_admin
+def delete_schema(schema_id):
+    """
+    Delete schema
+    """
+    schema = store.schema_handler.get_schema(schema_id)
+    if not schema:
+        return abort(404)
+
+    # # logic + render template
+    # return render_template("schemas/delete_schema.html", schema=schema)
+
+    return "Delete schema page"
 
 
 @admin_bp.route("/audit")
