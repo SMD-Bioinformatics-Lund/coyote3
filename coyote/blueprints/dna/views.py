@@ -402,18 +402,25 @@ def classify_multi_variant(id):
 def show_any_plot(fn, assay, build):
     if assay == "myeloid":
         if build == "38":
-            return send_from_directory("/access/myeloid38/plots", fn)
+            base_dir = "/access/myeloid38/plots"
+
         else:
-            return send_from_directory("/access/myeloid/plots", fn)
+            base_dir = "/access/myeloid/plots"
     elif assay == "lymphoid":
-        return send_from_directory("/access/lymphoid_hg38/plots", fn)
+        base_dir = "/access/lymphoid_hg38/plots"
     elif assay == "gmsonco" or assay == "swea":
-        return send_from_directory("/access/PARP_inhib/plots", fn)
+        base_dir = "/access/PARP_inhib/plots"
     elif assay == "tumwgs":
-        print(fn)
-        return send_from_directory("/access/tumwgs/cov", fn)
+        base_dir = "/access/tumwgs/cov"
     elif assay == "solid":
-        return send_from_directory("/access/solid_hg38/plots", fn)
+        base_dir = "/access/solid_hg38/plots"
+
+    file_path = os.path.join(base_dir, fn)
+
+    if not os.path.exists(file_path) and assay == "myeloid":
+        base_dir = "/access/gmshem/plots/"
+
+    return send_from_directory(base_dir, fn)
 
 
 ######### TODO ##########
@@ -435,6 +442,10 @@ def show_any_plot_rotated(fn, assay, build, angle=90):
 
     # Full image path
     image_path = os.path.join(base_dir, fn)
+
+    # Check if file exists #TODO: done especially for GMSHem assay
+    if not os.path.exists(image_path) and assay == "myeloid":
+        image_path = os.path.join("/access/gmshem/plots/", fn + ".png")
 
     # Check if file exists
     if not os.path.exists(image_path):
