@@ -2,53 +2,71 @@
   'url': url_for('admin_bp.all_samples'),
   'icon': 'square-3-stack-3d.svg',
   'title': 'Manage Samples',
-  'desc': 'Delete samples, purge data, etc.'
+  'desc': 'Delete samples, purge data, etc.',
+  'category': 'Samples',
+  'color': 'blue'
 }) %}
 {% do cards.append({
   'url': url_for('admin_bp.manage_users'),
   'icon': 'users.svg',
   'title': 'Manage Users',
-  'desc': 'Add, update, remove users'
+  'desc': 'Add, update, remove users',
+  'category': 'Users',
+  'color': 'yellow'
 }) %}
 {% do cards.append({
   'url': url_for('admin_bp.create_user'),
   'icon': 'user-plus.svg',
   'title': 'New User',
-  'desc': 'Create new users for the platform'
+  'desc': 'Create new users for the platform',
+  'category': 'Users',
+  'color': 'yellow'
 }) %}
 {% do cards.append({
   'url': url_for('admin_bp.assay_configs'),
   'icon': 'document-duplicate.svg',
   'title': 'Manage Assay Configs',
-  'desc': 'Adjust assay/panel configuration'
+  'desc': 'Adjust assay/panel configuration',
+  'category': 'Assays',
+  'color': 'green'
 }) %}
 {% do cards.append({
   'url': url_for('admin_bp.create_dna_assay_config'),
   'icon': 'document-plus.svg',
   'title': 'New DNA Assay',
-  'desc': 'Add new DNA based assay to system'
+  'desc': 'Add new DNA based assay to system',
+  'category': 'Assays',
+  'color': 'green'
 }) %}
 {% do cards.append({
   'url': url_for('admin_bp.create_rna_assay_config'),
   'icon': 'document-plus.svg',
   'title': 'New RNA Assay',
-  'desc': 'Add new RNA based assay to system'
+  'desc': 'Add new RNA based assay to system',
+  'category': 'Assays',
+  'color': 'green'
 }) %}
 {% do cards.append({
   'url': url_for('admin_bp.schemas'),
   'icon': 'rectangle-stack.svg',
   'title': 'Manage Schemas',
-  'desc': 'Adjust master schema configurations'
+  'desc': 'Adjust master schema configurations',
+  'category': 'Schemas',
+  'color': 'purple'
 }) %}
 {% do cards.append({
   'url': url_for('admin_bp.create_schema'),
   'icon': 'document-check.svg',
   'title': 'New Schema',
-  'desc': 'Create a new master schema configuration'
+  'desc': 'Create a new master schema configuration',
+  'category': 'Schemas',
+  'color': 'purple'
 }) %}
 {% do cards.append({
   'url': url_for('admin_bp.audit'),
   'icon': 'newspaper.svg',
   'title': 'Audit Logs',
-  'desc': 'Track changes and activities'
+  'desc': 'Track changes and activities',
+  'category': 'Audit',
+  'color': 'brown',
 }) %}

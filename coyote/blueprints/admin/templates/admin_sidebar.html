@@ -1,18 +1,24 @@
 <!-- admin_sidebar.html -->
-  {% set cards = [] %}
-  {% include "partials/admin_links_data.jinja" %}
+{% set cards = [] %}
+{% include "partials/admin_links_data.jinja" %}
 
-  <aside id="adminSidebar" class="flex-col w-56 bg-indigo-200 shadow-lg p-4 space-y-3 border-r border-indigo-300 flex shrink-0">
-    <a href={{url_for('admin_bp.admin_home')}} class="px-4 py-2 bg-indigo-300 hover:bg-indigo-400 text-xs font-semibold rounded-lg transition-all shadow text-left flex gap-2 align-middle">
-      <img src="{{ url_for('static', filename='icons/heroicons_outline_24/home.svg') }}" alt="Admin Home Icon" class="h-4 w-4">
-      Admin Home
-    </a>
-    {% for card in cards %}
-      {% if card.url %}
-        <a href="{{ card.url }}" class="px-4 py-2 bg-indigo-300 hover:bg-indigo-400 text-xs font-semibold rounded-lg transition-all shadow text-left flex gap-2 align-middle">
-          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/' ~ card.icon) }}" alt="{{ card.title }} Icon" class="h-4 w-4">
-          {{ card.title }}
-        </a>
-      {% endif %}
-    {% endfor %}
-  </aside>
+<aside id="adminSidebar" class="flex-col w-56 bg-indigo-50 shadow-lg p-4 space-y-3 border-r border-indigo-300 flex shrink-0">
+
+  <!-- Admin Home Link -->
+  <a href="{{ url_for('admin_bp.admin_home') }}"
+     class="px-4 py-2 bg-gray-100 hover:bg-gray-200 border-l-8 border-gray-600 text-xs font-semibold rounded-lg transition-all transform hover:translate-x-1 shadow text-left flex gap-2 items-center">
+    <img src="{{ url_for('static', filename='icons/heroicons_outline_24/home.svg') }}" alt="Admin Home Icon" class="h-4 w-4">
+    Admin Home
+  </a>
+
+  <!-- Sidebar Links -->
+  {% for card in cards %}
+    {% if card.url %}
+      <a href="{{ card.url }}"
+         class="px-4 py-2 bg-{{card.color}}-50 hover:bg-{{card.color}}-200 border-l-8 border-{{card.color}}-600 text-xs font-semibold rounded-lg transition-all transform hover:translate-x-1 shadow text-left flex gap-2 items-center">
+        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/' ~ card.icon) }}" alt="{{ card.title }} Icon" class="h-4 w-4">
+        {{ card.title }}
+      </a>
+    {% endif %}
+  {% endfor %}
+</aside>
