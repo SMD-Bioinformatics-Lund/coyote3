@@ -107,8 +107,6 @@ def delete_sample(sample_id):
 
 
 #### MANAGE USERS PART ####
-
-
 @admin_bp.route("/users", methods=["GET"])
 @require_admin
 def manage_users():
@@ -210,83 +208,57 @@ def validate_email():
 #### END OF MANAGE USERS PART ###
 
 
-#### ASSAY CONFIGURATION PART ####
-@admin_bp.route("/assay-config/dna/new", methods=["GET", "POST"])
-@require_admin
-def create_dna_assay_config():
-    schema = store.schema_handler.get_schema("DNA-Assay-Config")
-
-    if not schema:
-        flash("DNA config schema not found!", "red")
-        return redirect(url_for("admin_bp.assay_configs"))
-    
-    if request.method == "POST":
-        # Automatically flatten single-value fields
-        form_data = {
-            key: (vals[0] if len(vals) == 1 else vals)
-            for key, vals in request.form.to_dict(flat=False).items()
-        }
-
-        config = util.admin.process_form_to_config(form_data, schema)
-
-        config["_id"] = config["assay_name"]
-        config["schema_name"] = schema["_id"]
-        config["schema_version"] = schema["version"]
-        config["created_by"] = current_user.email
-        config["created_on"] = datetime.utcnow()
-        config["updated_by"] = current_user.email
-        config["updated_on"] = datetime.utcnow()
-
-        store.assay_config_handler.insert_assay_config(config)
-        flash(f"{config["assay_name"]} assay config created!", "green")
-        return redirect(url_for("admin_bp.assay_configs"))
-
-    return render_template("assay_configs/assay_config_create.html", schema=schema)
-
-
-@admin_bp.route("/assay-config/rna/new", methods=["GET", "POST"])
-@require_admin
-def create_rna_assay_config():
-    schema = store.schema_handler.get_schema("RNA-Assay-Config")
-
-    if not schema:
-        flash("RNA config schema not found!", "red")
-        return redirect(url_for("admin_bp.assay_configs"))
-
-    if request.method == "POST":
-        # Automatically flatten single-value fields
-        form_data = {
-            key: (vals[0] if len(vals) == 1 else vals)
-            for key, vals in request.form.to_dict(flat=False).items()
-        }
-
-        config = util.admin.process_form_to_config(form_data, schema)
-
-        config["_id"] = config["assay_name"]
-        config["created_by"] = current_user.email
-        config["created_on"] = datetime.utcnow()
-        config["updated_by"] = current_user.email
-        config["updated_on"] = datetime.utcnow()
-
-        store.assay_config_handler.insert_assay_config(config)
-        flash(f"{config["assay_name"]} assay config created!", "green")
-        return redirect(url_for("admin_bp.assay_configs"))
-
-    return render_template("assay_configs/assay_config_create.html", schema=schema)
-
-
+# This section handles all operations related to assay configurations,
+# including fetching, creating, editing, toggling active status, and deleting
+# both DNA and RNA assay configurations.
 @admin_bp.route("/assay-configs")
 @require_admin
 def assay_configs():
+    """
+    Fetch and render all assay configurations.
+    Returns:
+        Response: Rendered HTML template displaying assay configurations.
+    """
     assay_configs = store.assay_config_handler.get_all_assay_configs()
     return render_template("assay_configs/assay_configs.html", assay_configs=assay_configs)
+
+
+@admin_bp.route("/assay-configs/<assay_id>/toggle", methods=["POST", "GET"])
+@require_admin
+def toggle_assay_config_active(assay_id):
+    """
+    Toggles the active status of an assay configuration by its ID.
+
+    Args:
+        assay_id (str): The ID of the assay configuration to toggle.
+
+    Returns:
+        Response: Redirects to the assay configurations page or aborts with 404 if not found.
+    """
+    assay_config = store.assay_config_handler.get_assay_config(assay_id)
+    if not assay_config:
+        return abort(404)
+
+    new_status = not assay_config.get("is_active", False)
+    store.assay_config_handler.toggle_active(assay_id, new_status)
+    flash(f"Assay config '{assay_id}' is now {'active' if new_status else 'inactive'}.", "green")
+    return redirect(url_for("admin_bp.assay_configs"))
 
 
 @admin_bp.route("/assay-config/<assay_id>/edit", methods=["GET", "POST"])
 @require_admin
 def edit_assay_config(assay_id):
-    schema = store.schema_handler.get_schema("DNA-Assay-Config")  # or dynamically by type
+    """
+    Handle the editing of an assay configuration.
+
+    Args:
+        assay_id (str): The unique identifier of the assay configuration to edit.
+
+    Returns:
+        Response: Renders the edit template or redirects based on the request method and outcome.
+    """
     assay_config = store.assay_config_handler.get_assay_config(assay_id)
+    schema = store.schema_handler.get_schema(assay_config.get("schema_name"))
 
     if request.method == "POST":
         form_data = request.form.to_dict()
@@ -322,7 +294,13 @@ def edit_assay_config(assay_id):
 @require_admin
 def delete_assay_config(assay_id):
     """
-    delete an assay configuration and redirect to assay list.
+    Deletes the assay configuration for the given assay ID.
+
+    Args:
+        assay_id (str): The ID of the assay configuration to delete.
+
+    Returns:
+        Response: Redirects to the assay configurations page or aborts with 404 if not found.
     """
     config = store.assay_config_handler.get_assay_config(assay_id)
     if not config:
@@ -333,12 +311,120 @@ def delete_assay_config(assay_id):
     return redirect(url_for("admin_bp.assay_configs"))
 
 
-#### SCHEMAS PART ####
+@admin_bp.route("/assay-config/dna/new", methods=["GET", "POST"])
+@require_admin
+def create_dna_assay_config():
+    """
+    Handles the creation of a DNA assay configuration. Fetches active DNA schemas,
+    processes form data, and saves the configuration to the database.
+    """
+    # Fetch all active DNA assay schemas
+    active_schemas = store.schema_handler.get_schemas_by_filter(
+        schema_type="assay_config", schema_category="DNA", is_active=True
+    )
+
+    if not active_schemas:
+        flash("No active DNA schemas found!", "red")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    # Determine which schema to use
+    selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
+    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+
+    if not schema:
+        flash("Selected schema not found!", "red")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    if request.method == "POST":
+        form_data = {
+            key: (vals[0] if len(vals) == 1 else vals)
+            for key, vals in request.form.to_dict(flat=False).items()
+        }
+
+        config = util.admin.process_form_to_config(form_data, schema)
+
+        config["_id"] = config["assay_name"]
+        config["schema_name"] = schema["_id"]
+        config["schema_version"] = schema["version"]
+        config["created_by"] = current_user.email
+        config["created_on"] = datetime.utcnow()
+        config["updated_by"] = current_user.email
+        config["updated_on"] = datetime.utcnow()
+
+        store.assay_config_handler.insert_assay_config(config)
+        flash(f"{config['assay_name']} assay config created!", "green")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    return render_template(
+        "assay_configs/assay_config_create.html",
+        schema=schema,
+        schemas=active_schemas,
+        selected_schema=schema,
+    )
+
+
+@admin_bp.route("/assay-config/rna/new", methods=["GET", "POST"])
+@require_admin
+def create_rna_assay_config():
+    """
+    Handles the creation of RNA assay configurations. Fetches active RNA schemas,
+    processes form data, and saves the configuration to the database.
+    """
+    # Fetch all active RNA assay schemas
+    active_schemas = store.schema_handler.get_schemas_by_filter(
+        schema_type="assay_config", schema_category="RNA", is_active=True
+    )
+
+    if not active_schemas:
+        flash("No active RNA schemas found!", "red")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    # Determine which schema to use
+    selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
+    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+
+    if not schema:
+        flash("Selected schema not found!", "red")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    if request.method == "POST":
+        form_data = {
+            key: (vals[0] if len(vals) == 1 else vals)
+            for key, vals in request.form.to_dict(flat=False).items()
+        }
+
+        config = util.admin.process_form_to_config(form_data, schema)
+
+        config["_id"] = config["assay_name"]
+        config["schema_name"] = schema["_id"]
+        config["schema_version"] = schema["version"]
+        config["created_by"] = current_user.email
+        config["created_on"] = datetime.utcnow()
+        config["updated_by"] = current_user.email
+        config["updated_on"] = datetime.utcnow()
+
+        store.assay_config_handler.insert_assay_config(config)
+        flash(f"{config['assay_name']} assay config created!", "green")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    return render_template(
+        "assay_configs/assay_config_create.html",
+        schema=schema,
+        schemas=active_schemas,
+        selected_schema=schema,
+    )
+
+
+# This section handles all operations related to schemas, including fetching,
+# creating, editing, toggling active status, and deleting schemas.
 @admin_bp.route("/schemas")
 @require_admin
 def schemas():
     """
-    List all schemas
+    Fetches all schemas and renders the schemas template.
+
+    Returns:
+        Response: Rendered HTML template with the list of schemas.
     """
     schemas = store.schema_handler.get_all_schemas()
     return render_template("schemas/schemas.html", schemas=schemas)
@@ -347,23 +433,38 @@ def schemas():
 @admin_bp.route("/schemas/<schema_id>/toggle", methods=["POST", "GET"])
 @require_admin
 def toggle_schema_active(schema_id):
+    """
+    Toggles the active status of a schema by its ID.
+
+    Args:
+        schema_id (str): The ID of the schema to toggle.
+
+    Returns:
+        Response: A redirect to the schemas page or a 404 error if the schema is not found.
+    """
     schema = store.schema_handler.get_schema(schema_id)
     if not schema:
         return abort(404)
 
     new_status = not schema.get("is_active", False)
-    store.schema_handler.toggle_active(schema_id,  new_status)
+    store.schema_handler.toggle_active(schema_id, new_status)
     flash(f"Schema '{schema_id}' is now {'active' if new_status else 'inactive'}.", "green")
     return redirect(url_for("admin_bp.schemas"))
-
 
 
 @admin_bp.route("/schemas/<schema_id>/edit", methods=["GET", "POST"])
 @require_admin
 def edit_schema(schema_id):
     """
-    Edit schema
+    Handle the editing of a schema by its ID.
+
+    Args:
+        schema_id (str): The unique identifier of the schema to edit.
+
+    Returns:
+        Response: Renders the schema edit page or redirects based on the operation outcome.
     """
+
     schema_doc = store.schema_handler.get_schema(schema_id)
 
     if request.method == "POST":
@@ -400,8 +501,11 @@ def edit_schema(schema_id):
 @require_admin
 def create_schema():
     """
-    Create a new schema
+    Handles the creation of a new schema. Validates the schema structure,
+    stores metadata, and saves it to the database. Renders the schema creation
+    template on GET or in case of errors.
     """
+
     if request.method == "POST":
         json_blob = request.form.get("json_blob")
         try:
@@ -437,8 +541,15 @@ def create_schema():
 @require_admin
 def delete_schema(schema_id):
     """
-    Delete a schema and redirect to schema list.
+    Deletes a schema by its ID.
+
+    Args:
+        schema_id (str): The ID of the schema to delete.
+
+    Returns:
+        Response: Redirects to the schemas page or aborts with a 404 if the schema is not found.
     """
+
     schema = store.schema_handler.get_schema(schema_id)
     if not schema:
         return abort(404)

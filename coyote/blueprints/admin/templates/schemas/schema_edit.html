@@ -38,7 +38,7 @@
 
         <!-- Header -->
         <div class="flex items-center justify-between mb-6">
-          <h1 class="text-xl font-bold text-blue-500 tracking-wide capitalize flex gap-4 align-middle"><img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="Schema Edit Icon" class="h-6 w-6"> Edit Schema - <i>{{schema_blob._id}}</i></h1>
+          <h1 class="text-xl font-bold text-blue-500 tracking-wide capitalize flex gap-2 align-middle"><img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="Schema Edit Icon" class="h-6 w-6"> Edit Schema - <i>{{schema_blob._id}}</i></h1>
           <a href="{{ url_for('admin_bp.schemas') }}" class="text-sm text-blue-500 hover:underline flex gap-2"><img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-uturn-left.svg') }}" alt="Go Back Icon" class="h-4 w-4"> Back to Schemas</a>
         </div>
 

@@ -59,3 +59,17 @@ class SchemaHandler(BaseHandler):
         Deletes a schema document from the collection by its unique identifier.
         """
         return self.get_collection().delete_one({"_id": schema_id})
+
+    def get_schemas_by_filter(
+        self, schema_category: str = None, schema_type: str = None, is_active: bool = True
+    ) -> list:
+        """
+        Get schemas by filter
+        """
+        query = {"is_active": is_active}
+        if schema_category:
+            query["schema_category"] = schema_category
+        if schema_type:
+            query["schema_type"] = schema_type
+
+        return list(self.get_collection().find(query))

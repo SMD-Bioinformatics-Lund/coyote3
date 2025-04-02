@@ -6,12 +6,12 @@
   <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
     <section id="manage-assay_configs-section" class="p-2 ml-2 mt-2">
       <div class="justify-start">
-        <div class="w-4/5 bg-blue-50 shadow-3xl rounded-2xl p-4 relative overflow-hidden">
+        <div class="w-full bg-blue-50 shadow-3xl rounded-2xl p-4 relative overflow-hidden">
 
           <div class="flex flex-row justify-between items-center gap-4 px-2 py-2">
             <h2 class="text-base font-semibold text-black tracking-wide uppercase">Manage Assay Configs</h2>
             <div class="relative w-64">
-              <input type="text" id="search-assay" placeholder="Search assays"
+              <input type="text" id="search-assay" placeholder="Search assays configurations"
                 class="w-full border border-gray-300 rounded-lg py-2 pl-4 pr-10 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
               <div class="absolute inset-y-0 right-0 flex items-center pr-3">
                 <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="search"
@@ -21,7 +21,7 @@
           </div>
 
           <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" id="assay-config-list" data-rows-per-page="20">
-            <table id="assay-config-table" class="min-w-full bg-transparent shadow-lg rounded-2xl text-xs my-2 overflow-hidden">
+            <table id="assay-config-table" class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
               <thead class="rounded-t-2xl overflow-hidden border-gray-800">
                 <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
                   <th class="p-2 font-normal">Assay Name</th>
@@ -29,6 +29,8 @@
                   <th class="p-2 font-normal">Group</th>
                   <th class="p-2 font-normal">Type</th>
                   <th class="p-2 font-normal">Panel Technology</th>
+                  <th class="p-2 font-normal">Schema Name</th>
+                  <th class="p-2 font-normal">Schema Version</th>
                   <th class="p-2 font-normal">Created By</th>
                   <th class="p-2 font-normal">Time Created</th>
                   <th class="p-2 font-normal">Updated By</th>
@@ -46,6 +48,8 @@
                   <td class="p-2 font-medium">{{ assay.assay_group }}</td>
                   <td class="p-2 font-medium">{{ assay.config_format }}</td>
                   <td class="p-2 font-medium">{{ assay.panel_technology }}</td>
+                  <td class="p-2 font-medium">{{ assay.schema_name }}</td>
+                  <td class="p-2 font-medium">{{ assay.schema_version|int }}</td>
                   <td class="p-2 font-medium">{{ assay.created_by }}</td>
                   <td class="p-2 font-medium">
                     {% if assay.created_on %}
@@ -71,14 +75,32 @@
                     {% endif %}
                   </td>
                   <td class="p-2 font-medium flex gap-3">
-                    <a href="{{ url_for('admin_bp.edit_assay_config', assay_id=assay.assay_name) }}" title="Edit"
-                      class="text-indigo-600 hover:text-indigo-800 font-medium">
-                      <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
-                    </a>
                     <button onclick="showActionModal({
-                        url: '{{ url_for('admin_bp.delete_assay_config', assay_id=assay.assay_name) }}',
+                        url: '{{ url_for('admin_bp.edit_assay_config', assay_id=assay._id) }}',
+                        title: 'Edit assay configuration',
+                        message: 'Are you sure you want to edit <b>{{ assay._id }} </b> assay configuration?',
+                        confirmText: 'Edit',
+                        confirmColor: 'blue'
+                      })"
+                      title="Edit"
+                      class="font-medium text-blue-600 hover:text-blue-800">
+                      <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
+                    </button>
+                    <button onclick="showActionModal({
+                        url: '{{ url_for('admin_bp.toggle_assay_config_active', assay_id=assay._id) }}',
+                        title: '{{ 'Deactivate' if assay.is_active else 'Activate' }} Schema',
+                        message: 'Are you sure you want to {{ 'deactivate' if assay.is_active else 'activate' }} <b>{{ assay._id }}</b>?',
+                        confirmText: '{{ 'Deactivate' if assay.is_active else 'Activate' }}',
+                        confirmColor: '{{ 'red' if assay.is_active else 'green' }}'
+                      })"
+                      title="{{ 'Deactivate' if assay.is_active else 'Activate' }}"
+                      class="font-medium {% if assay.is_active %}text-yellow-600 hover:text-yellow-800{% else %}text-green-600 hover:text-green-800{% endif %}">
+                      <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path-rounded-square.svg') }}" alt="toggle active" class="w-5 cursor-pointer">
+                    </button> 
+                    <button onclick="showActionModal({
+                        url: '{{ url_for('admin_bp.delete_assay_config', assay_id=assay._id) }}',
                         title: 'Delete Assay',
-                        message: 'Are you sure you want to delete <b>{{ assay.assay_name }}</b>?',
+                        message: 'Are you sure you want to delete <b>{{ assay._id }}</b> assay configuration?',
                         confirmText: 'Delete',
                         confirmColor: 'red'
                       })" title="Delete" class="text-red-500 hover:text-red-700 font-medium">
