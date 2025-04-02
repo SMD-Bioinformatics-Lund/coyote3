@@ -21,7 +21,7 @@
           </div>
 
           <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" id="schemas-list" data-rows-per-page="20">
-            <table id="schemas-table" class="min-w-full bg-transparent shadow-lg rounded-2xl text-xs my-2 overflow-hidden">
+            <table id="schemas-table" class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
               <thead class="rounded-t-2xl overflow-hidden border-gray-800">
                 <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
                   <th class="p-2 font-normal">Schema Name</th>
@@ -42,7 +42,7 @@
                   <td class="p-2 font-medium">{{ schema._id }}</td>
                   <td class="p-2 font-medium">{{ schema.schema_type }}</td>
                   <td class="p-2 font-medium">{{ schema.schema_category }}</td>
-                  <td class="p-2 font-medium">{{ schema.schema_version }}</td>
+                  <td class="p-2 font-medium">{{ schema.version }}</td>
                   <td class="p-2 font-medium">{{ schema.created_by }}</td>
                   <td class="p-2 font-medium">
                     {% if schema.created_on %}
@@ -67,10 +67,28 @@
                     {% endif %}
                   </td>
                   <td class="p-2 font-medium flex gap-3">
-                    <a href="{{ url_for('admin_bp.edit_schema', schema_id=schema._id) }}" title="Edit"
-                      class="text-indigo-600 hover:text-indigo-800 font-medium">
+                    <button onclick="showActionModal({
+                        url: '{{ url_for('admin_bp.edit_schema', schema_id=schema._id) }}',
+                        title: 'Edit Schema',
+                        message: 'Are you sure you want to edit <b>{{ schema._id }}</b>?',
+                        confirmText: 'Edit',
+                        confirmColor: 'blue'
+                      })"
+                      title="Edit"
+                      class="font-medium text-blue-600 hover:text-blue-800">
                       <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
-                    </a>
+                    </button> 
+                    <button onclick="showActionModal({
+                        url: '{{ url_for('admin_bp.toggle_schema_active', schema_id=schema._id) }}',
+                        title: '{{ 'Deactivate' if schema.is_active else 'Activate' }} Schema',
+                        message: 'Are you sure you want to {{ 'deactivate' if schema.is_active else 'activate' }} <b>{{ schema._id }}</b>?',
+                        confirmText: '{{ 'Deactivate' if schema.is_active else 'Activate' }}',
+                        confirmColor: '{{ 'red' if schema.is_active else 'green' }}'
+                      })"
+                      title="{{ 'Deactivate' if schema.is_active else 'Activate' }}"
+                      class="font-medium {% if schema.is_active %}text-yellow-600 hover:text-yellow-800{% else %}text-green-600 hover:text-green-800{% endif %}">
+                      <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path-rounded-square.svg') }}" alt="toggle active" class="w-5 cursor-pointer">
+                    </button>                  
                     <button onclick="showActionModal({
                         url: '{{ url_for('admin_bp.delete_schema', schema_id=schema._id) }}',
                         title: 'Delete Schema',
@@ -83,9 +101,9 @@
                   </td>
                 </tr>
                 {% else %}
-                <tr class="border-b border-gray-300">
-                  <td colspan="9" class="p-2 font-medium text-center">No schemas found.</td>
-                </tr>
+                  <tr class="border-b border-gray-300">
+                    <td colspan="9" class="p-2 font-medium text-center">No schemas found.</td>
+                  </tr>
                 {% endfor %}
               </tbody>
             </table>

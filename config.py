@@ -33,7 +33,7 @@ class DefaultConfig:
     # MONGO_DB_NAME = "coyote"
     MONGO_DB_NAME = os.getenv("COYOTE_DB", "coyote_dev_3")
     BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
-    _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections.toml"
+    _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections_new.toml"
 
     # Gens URI
     GENS_URI = os.getenv("GENS_URI", "http://10.231.229.34/gens/")

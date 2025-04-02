@@ -6,10 +6,12 @@ from datetime import datetime
 from flask_login import current_user
 from bson.objectid import ObjectId
 from coyote.util.common_utility import CommonUtility
+from coyote.blueprints.admin import validators
 from flask import current_app as app
 from coyote.extensions import store
 from bisect import bisect_left
 import json
+import os
 
 
 class AdminUtility:
@@ -112,3 +114,39 @@ class AdminUtility:
         ]:
             cfg.pop(meta_key, None)
         return cfg
+
+    @staticmethod
+    def load_json5_template():
+        path = os.path.join(
+            app.root_path, "blueprints", "admin", "static", "schemas", "schema_template.json5"
+        )
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+
+    @staticmethod
+    def validate_schema_structure(schema: dict) -> list[str]:
+        errors = []
+
+        # Check for required top-level keys
+        for key in validators.REQUIRED_SCHEMA_KEYS:
+            if key not in schema:
+                errors.append(f"Missing required key: '{key}'")
+
+        # Ensure `sections` is a dict with lists of field names
+        if "sections" in schema and not isinstance(schema["sections"], dict):
+            errors.append("'sections' must be a dictionary")
+        else:
+            for section, keys in schema.get("sections", {}).items():
+                if not isinstance(keys, list):
+                    errors.append(f"Section '{section}' should contain a list of field keys")
+
+        # Ensure each field listed in sections is defined in fields
+        defined_fields = set(schema.get("fields", {}).keys())
+        for section, keys in schema.get("sections", {}).items():
+            for field in keys:
+                if field not in defined_fields and field not in schema.get("subschemas", {}):
+                    errors.append(
+                        f"Field '{field}' in section '{section}' is not defined in 'fields' or 'subschemas'"
+                    )
+
+        return errors

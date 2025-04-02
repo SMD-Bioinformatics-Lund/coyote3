@@ -13,32 +13,38 @@
 {% do cards.append({
   'url': url_for('admin_bp.create_user'),
   'icon': 'user-plus.svg',
-  'title': 'Create User',
-  'desc': 'Invite new users to the platform'
+  'title': 'New User',
+  'desc': 'Create new users for the platform'
 }) %}
 {% do cards.append({
   'url': url_for('admin_bp.assay_configs'),
-  'icon': 'cog-8-tooth.svg',
+  'icon': 'document-duplicate.svg',
   'title': 'Manage Assay Configs',
-  'desc': 'Adjust panel configuration'
+  'desc': 'Adjust assay/panel configuration'
 }) %}
 {% do cards.append({
   'url': url_for('admin_bp.create_dna_assay_config'),
   'icon': 'document-plus.svg',
-  'title': 'Register DNA Assay',
+  'title': 'New DNA Assay',
   'desc': 'Add new DNA based assay to system'
 }) %}
 {% do cards.append({
   'url': url_for('admin_bp.create_rna_assay_config'),
   'icon': 'document-plus.svg',
-  'title': 'Register RNA Assay',
+  'title': 'New RNA Assay',
   'desc': 'Add new RNA based assay to system'
 }) %}
 {% do cards.append({
   'url': url_for('admin_bp.schemas'),
-  'icon': 'cog-8-tooth.svg',
+  'icon': 'rectangle-stack.svg',
   'title': 'Manage Schemas',
   'desc': 'Adjust master schema configurations'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.create_schema'),
+  'icon': 'document-check.svg',
+  'title': 'New Schema',
+  'desc': 'Create a new master schema configuration'
 }) %}
 {% do cards.append({
   'url': url_for('admin_bp.audit'),

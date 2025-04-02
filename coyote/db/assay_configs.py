@@ -26,26 +26,25 @@ class AssayConfigsHandler(BaseHandler):
         return [a["assay_name"] for a in assays]
 
     def get_assay_config(self, assay_id: str) -> dict:
+        """
+        Get the assay config
+        """
         return self.get_collection().find_one({"_id": assay_id})
 
-    def replace_config(self, name: str, data: dict, updated_by: str = "admin"):
-        existing = self.get_collection().find_one({"assay_name": name}) or {}
-        data["created"] = existing.get("created", datetime.utcnow())
-        data["created_by"] = existing.get("created_by", updated_by)
-
-        data["updated"] = datetime.utcnow()
-        data["updated_by"] = updated_by
-        data["assay_name"] = name
-        self.get_collection().replace_one({"assay_name": name}, data, upsert=True)
-
-    def update_assay_config(self, assay_name: str, data: dict):
+    def update_assay_config(self, assay_id: str, data: dict):
         """
         Update the assay config
         """
-        return self.get_collection().update_one({"assay_name": assay_name}, {"$set": data})
+        return self.get_collection().update_one({"_id": assay_id}, {"$set": data})
 
     def insert_assay_config(self, data: dict):
         """
         Insert a new assay config
         """
         return self.get_collection().insert_one(data)
+
+    def delete_assay_config(self, assay_id: str):
+        """
+        Delete the assay config
+        """
+        return self.get_collection().delete_one({"_id": assay_id})

@@ -1,34 +1,61 @@
 from coyote.db.base import BaseHandler
-from datetime import datetime
-from bson.objectid import ObjectId
 
 
 class SchemaHandler(BaseHandler):
     """
-    Handler for the 'schemas' MongoDB collection
+    SchemaHandler is a class that provides an interface for interacting with the 'schemas' MongoDB collection.
+    It extends the BaseHandler class and includes methods for performing CRUD operations and other utility functions
+    on schema documents.
     """
 
     def __init__(self, adapter):
+        """
+        Initializes the SchemaHandler with a database adapter and sets the collection to 'schemas_collection'.
+        """
         super().__init__(adapter)
         self.set_collection(self.adapter.schemas_collection)
 
     def get_all_schemas(self) -> list:
         """
-        Get all the schemas
+        Retrieves all schema documents from the collection.
         """
         return self.get_collection().find({})
 
-    def get_schema(self, schema_name: str) -> dict:
-        return self.get_collection().find_one({"_id": schema_name})
+    def get_schema(self, schema_id: str) -> dict:
+        """
+        Retrieves a single schema document by its unique identifier.
+        """
+        return self.get_collection().find_one({"_id": schema_id})
 
     def list_schemas(self, schema_type: str = None) -> list:
+        """
+        Lists all schema documents of a given type, sorted by schema name. If no type is provided, lists all schemas.
+        """
         query = {"schema_type": schema_type} if schema_type else {}
         return list(self.get_collection().find(query).sort("schema_name"))
 
-    def upsert_schema(self, schema_data: dict):
-        schema_id = schema_data["_id"]
-        schema_data["updated_on"] = datetime.utcnow()
-        return self.get_collection().replace_one({"_id": schema_id}, schema_data, upsert=True)
+    def update_schema(self, schema_id, updated_doc):
+        """
+        Updates an existing schema document identified by its unique identifier with the provided updated document.
+        """
+        self.get_collection().replace_one({"_id": schema_id}, updated_doc)
 
-    def delete_schema(self, schema_name: str):
-        return self.get_collection().delete_one({"_id": schema_name})
+    def toggle_active(self, schema_id: str, active_status: bool) -> bool:
+        """
+        Toggles the active status of a schema document by updating its 'is_active' field.
+        """
+        return self.get_collection().update_one(
+            {"_id": schema_id}, {"$set": {"is_active": active_status}}
+        )
+
+    def insert_schema(self, schema_doc: dict):
+        """
+        Inserts a new schema document into the collection.
+        """
+        self.get_collection().insert_one(schema_doc)
+
+    def delete_schema(self, schema_id: str):
+        """
+        Deletes a schema document from the collection by its unique identifier.
+        """
+        return self.get_collection().delete_one({"_id": schema_id})
