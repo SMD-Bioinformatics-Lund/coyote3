@@ -59,10 +59,16 @@
                     <td class="p-2 font-medium">{{ sample.groups | join(', ') }}</td>
                     <td class="p-2 font-medium">{{ sample.subpanel }}</td>
                     <td class="p-2 font-medium">{{ 'Yes' if sample.get('reports') else 'No' }}</td>
-                    <td class="p-2 font-medium text-center">
-                      <a href="{{ url_for('admin_bp.delete_sample', sample_id=sample._id) }}" onclick="return confirm('Delete this sample from all collections?')">
-                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/trash.svg') }}" alt="Delete Sample" class="w-5 h-5 text-red-600 hover:scale-110 hover:rotate-6 transition-transform">
-                      </a>
+                    <td class="p-2 font-medium flex gap-3">
+                      <button onclick="showActionModal({
+                        url: '{{ url_for('admin_bp.delete_sample', sample_id=sample._id) }}',
+                        title: 'Delete Sample',
+                        message: 'Are you sure you want to delete <b>{{ sample.name }}</b> sample from all the collections?',
+                        confirmText: 'Delete',
+                        confirmColor: 'red'
+                      })" title="Delete" class="text-red-500 hover:text-red-700 font-medium">
+                      <img src="{{ url_for('static', filename='icons/heroicons_outline_24/trash.svg') }}" alt="delete" class="w-5 cursor-pointer">
+                    </button>
                     </td>
                   </tr>
                 {% else %}

@@ -8,43 +8,41 @@ from flask import (
     render_template,
     request,
     url_for,
-    send_from_directory,
     flash,
     abort,
-    send_file,
     jsonify,
 )
-from flask_login import current_user, login_required
-from flask_wtf.csrf import generate_csrf
+from flask_login import current_user
 from coyote.blueprints.admin import admin_bp
 from coyote.services.auth.decorators import require_admin
+from coyote.services.audit_logs.decorators import log_action
 from coyote.blueprints.home.util import SampleSearchForm
-from coyote.blueprints.admin.forms import (
-    UserForm,
-    UserUpdateForm,
-)
-from pydantic import ValidationError
 from pprint import pformat
 from copy import deepcopy
 from coyote.extensions import store, util
 from typing import Literal, Any
 from datetime import datetime
-import os
-import io
 import json
 import json5
 
 
 @admin_bp.route("/")
 @require_admin
-def admin_home():
+def admin_home() -> Any:
+    """
+    Renders the admin home page template.
+    """
     return render_template("admin_home.html")
 
 
-#### SAMPLE DELETION PART ####
-@admin_bp.route("/all-samples", methods=["GET", "POST"])
+# This section handles the deletion of samples, including removing all traces
+# of a sample from the system and redirecting to the list of all samples.
+@admin_bp.route("/manage-samples", methods=["GET", "POST"])
 @require_admin
 def all_samples():
+    """
+    Handle the retrieval and display of samples with optional search functionality.
+    """
 
     form = SampleSearchForm()
     search_str = ""
@@ -56,50 +54,23 @@ def all_samples():
     samples = store.sample_handler.get_all_samples(limit_samples, search_str)
 
     # logic + render template
-    return render_template("all_samples.html", all_samples=samples, form=form)
+    return render_template("samples/all_samples.html", all_samples=samples, form=form)
 
 
-@admin_bp.route("/sample/<string:sample_id>/delete", methods=["POST"])
+@admin_bp.route("/manage-samples/<string:sample_id>/delete", methods=["GET"])
 @require_admin
+@log_action("delete_sample_route", call_type="admin_call")
 def delete_sample(sample_id):
+    """
+    Deletes a sample and all associated traces, then redirects to the list of all samples.
 
-    sample = store.sample_handler.get_sample(sample_id)
-    if not sample:
-        sample = store.sample_handler.get_sample_with_id(sample_id)
+    Args:
+        sample_id (int): The ID of the sample to delete.
 
-    sample_oid = sample["_id"]
-
-    # delete from all collections
-    # delete from variant collection
-    store.variant_handler.delete_sample_variants(sample_oid)
-
-    # delete from cnv collection
-    store.cnv_handler.delete_sample_cnvs(sample_oid)
-
-    # delete from coverage collection
-    store.coverage_handler.delete_sample_coverage(sample_oid)
-
-    # delete from coverage2 collection
-    store.coverage2_handler.delete_sample_coverage(sample_oid)
-
-    # delete from transloc collection
-    store.transloc_handler.delete_sample_translocs(sample_oid)
-
-    # delete from fusions collection
-    store.fusion_handler.delete_sample_fusions(sample_oid)
-
-    # delete from biomarker collection
-    store.biomarker_handler.deleter_sample_biomarkers(sample_oid)
-
-    # finally delete from sample collection
-    store.sample_handler.delete_sample(sample_oid)
-
-    flash(
-        f"Sample {sample['name']} deleted successfully",
-        "green",
-    )
-
-    # logic + render template
+    Returns:
+        Response: A redirect response to the 'all_samples' view.
+    """
+    util.admin.delete_all_sample_traces(sample_id)
     return redirect(url_for("admin_bp.all_samples"))
 
 

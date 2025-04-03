@@ -1,5 +1,7 @@
 from flask_login import UserMixin
 from coyote.models.user import UserModel
+from coyote.extensions import roles_model
+from coyote.services.permissions import PermissionService
 
 
 class User(UserMixin):
@@ -23,3 +25,12 @@ class User(UserMixin):
     @property
     def formatted_last_login(self):
         return self.user_model.formatted_last_login()
+
+    def get_permission_service(self):
+        return PermissionService(self, roles_model)
+
+    def can(self, permission: str) -> bool:
+        return self.get_permission_service().can(permission)
+
+    def has_min_role(self, required_role: str) -> bool:
+        return self.get_permission_service().has_min_role(required_role)

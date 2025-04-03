@@ -7,6 +7,7 @@ from flask_login import current_user
 from bson.objectid import ObjectId
 from coyote.util.common_utility import CommonUtility
 from coyote.blueprints.admin import validators
+from coyote.services.audit_logs.decorators import log_action
 from flask import current_app as app
 from coyote.extensions import store
 from bisect import bisect_left
@@ -77,6 +78,10 @@ class AdminUtility:
 
     @staticmethod
     def cast_value(value, field_type):
+        """
+        Casts a value to the specified field type.
+        Handles types: int, float, bool, list, json.
+        """
         # flatten form data if it’s a list with single value
         if isinstance(value, list) and len(value) == 1 and field_type not in ["list", "json"]:
             value = value[0]
@@ -117,6 +122,10 @@ class AdminUtility:
 
     @staticmethod
     def load_json5_template():
+        """
+        Loads the JSON5 schema template from the static directory.
+        This template is used for creating new schemas.
+        """
         path = os.path.join(
             app.root_path, "blueprints", "admin", "static", "schemas", "schema_template.json5"
         )
@@ -125,6 +134,11 @@ class AdminUtility:
 
     @staticmethod
     def validate_schema_structure(schema: dict) -> list[str]:
+        """
+        Validates the structure of the schema.
+        Checks for required keys and ensures that sections are defined correctly.
+        Returns a list of error messages if any issues are found.
+        """
         errors = []
 
         # Check for required top-level keys
@@ -150,3 +164,22 @@ class AdminUtility:
                     )
 
         return errors
+
+    @staticmethod
+    def delete_all_sample_traces(sample_id: str):
+        """
+        Deletes all traces of a sample from the database.
+        This includes variants, CNVs, coverage, translocations, fusions, biomarkers, and the sample itself.
+        """
+        actions = [
+            store.variant_handler.delete_sample_variants,
+            store.cnv_handler.delete_sample_cnvs,
+            store.coverage_handler.delete_sample_coverage,
+            store.coverage2_handler.delete_sample_coverage,
+            store.transloc_handler.delete_sample_translocs,
+            store.fusion_handler.delete_sample_fusions,
+            store.biomarker_handler.deleter_sample_biomarkers,
+            store.sample_handler.delete_sample,
+        ]
+        for handler in actions:
+            handler(sample_id)
