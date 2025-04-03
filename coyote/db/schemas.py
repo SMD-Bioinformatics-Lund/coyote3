@@ -38,7 +38,7 @@ class SchemaHandler(BaseHandler):
         """
         Updates an existing schema document identified by its unique identifier with the provided updated document.
         """
-        self.get_collection().replace_one({"_id": schema_id}, updated_doc)
+        return self.get_collection().replace_one({"_id": schema_id}, updated_doc)
 
     def toggle_active(self, schema_id: str, active_status: bool) -> bool:
         """

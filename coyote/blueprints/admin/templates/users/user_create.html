@@ -1,0 +1,272 @@
+{% extends "layout.html" %}
+{% block title %}Create User{% endblock %}
+
+{% block body %}
+<div class="flex w-full h-full overflow-hidden">
+  {% include "admin_sidebar.html" %}
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+    <section class="p-2 ml-2 mt-2">
+      <div class="bg-white border border-gray-200 rounded-2xl shadow-xl p-6">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="text-xl font-bold text-blue-500 tracking-wide capitalize flex gap-2 align-middle"><img src="{{ url_for('static', filename='icons/heroicons_outline_24/user-plus.svg') }}" alt="Schema Create Icon" class="h-6 w-6">Add New User</h1>
+          <div class="flex items-center gap-4">
+            <form method="GET" action="{{ url_for('admin_bp.create_user') }}">
+              <label for="schema-select" class="text-sm font-medium text-gray-800 font-semibold">Selected Schema:</label>
+              <select id="schema-select" name="schema_id" onchange="this.form.submit()"
+                      class="text-sm border border-gray-300 rounded-md shadow-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                {% for s in schemas %}
+                  <option value="{{ s._id }}" {% if s._id == selected_schema._id %}selected{% endif %}>
+                    {{ s._id }} (v{{ s.version }})
+                  </option>
+                {% endfor %}
+              </select>
+            </form>
+          </div>
+        </div>
+
+        <form method="POST" class="space-y-6 text-sm text-gray-700" id="userForm">
+          {% for section, keys in schema.sections.items() %}
+          <div class="mb-6 border-l-4 border-blue-200 bg-blue-50 rounded-xl p-4 shadow-sm">
+            <h2 class="text-blue-600 font-semibold uppercase tracking-wide text-xs mb-4">{{ section.replace('_', ' ') }}</h2>
+            <div class="grid grid-cols-3 gap-4">
+              {% for key in keys %}
+                {% if schema.fields[key] %}
+                  {% set field = schema.fields[key] %}
+                  {% if field.type == 'radio' and field.options %}
+                    <div class="col-span-full">
+                      <h3 class="text-xs font-bold text-gray-600 mb-1 py-1">System Role</h3>
+                      <div class="flex gap-4">
+                        {% for option in field.options %}
+                          <label class="inline-flex items-center gap-1 text-xs">
+                            <input type="radio" name="role" value="{{ option }}" class="accent-blue-600"
+                              {% if field.default == option %}checked{% endif %}> {{ option }}
+                          </label>
+                        {% endfor %}
+                      </div>
+                    </div>
+                  {% elif field.type == 'subschema' and schema.subschemas[field.schema] %}
+                    {% set subschema = schema.subschemas[field.schema] %}
+                    <div class="col-span-full">
+                      <h3 class="text-xs font-bold text-black mb-1">{{ field.label }}</h3>
+                      <div class="grid grid-cols-3 gap-4">
+                        {% for subkey, subfield in subschema.fields.items() %}
+                          {% if subfield.type == 'bool' %}
+                            <label class="inline-flex items-center gap-2 text-xs">
+                              <input type="checkbox" name="{{ key }}.{{ subkey }}" value="true" class="accent-blue-600 rounded">
+                              {{ subfield.label or subkey }} {% if subfield.required %}<span class="text-red-500">*</span>{% endif %} <span class="text-gray-500">({{ subfield.type }})</span>
+                            </label>
+                          {% else %}
+                            <div>
+                              <label class="block font-semibold text-xs mb-1">{{ subfield.label or subkey }} {% if subfield.required %}<span class="text-red-500">*</span>{% endif %} <span class="text-gray-500">({{ subfield.type }})</span></label>
+                              <input type="text" id="{{ key }}.{{ subkey }}" name="{{ key }}.{{ subkey }}" class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1" placeholder="{{ subfield.placeholder or '' }}">
+                            </div>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  {% elif field.type in ['json', 'list'] %}
+                    <div class="col-span-full">
+                      <label class="block font-semibold text-xs mb-1">
+                        {{ field.label or key }} {% if field.required %}<span class="text-red-500">*</span>{% endif %} <span class="text-gray-500 text-xs font-normal">({{ field.type }})</span>
+                      </label>
+                      <textarea name="{{ key }}" rows="6" class="w-full font-mono text-xs bg-gray-100 border border-gray-400 rounded-md shadow-sm p-2 resize-y">{{ field.default | tojson(indent=2) }}</textarea>
+                    </div>
+                  {% elif field.type == 'bool' %}
+                    <div class="flex items-center space-x-2">
+                      <input type="checkbox" name="{{ key }}" value="true" class="accent-blue-600 rounded" {% if key == "is_active" %}checked{% endif %}>
+                      <label class="text-xs font-semibold">{{ field.label or key }} {% if field.required %}<span class="text-red-500">*</span>{% endif %} <span class="text-gray-500">({{ field.type }})</span></label>
+                    </div>
+                  {% else %}
+                  <div>
+                    <label class="block font-semibold text-xs mb-1">
+                      {{ field.label or key }}
+                      {% if field.required %}<span class="text-red-500">*</span>{% endif %}
+                      <span class="text-gray-500 text-xs font-normal">({{ field.type }})</span>
+                    </label>
+
+                    {% if field.type == 'int' %}
+                      <input
+                        type="number"
+                        name="{{ key }}"
+                        id="{{ key }}"
+                        step="1"
+                        inputmode="numeric"
+                        pattern="[0-9]+"
+                        placeholder="{{ field.placeholder or '' }}"
+                        value="{{ field.default | int }}"
+                        class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1"
+                      />
+                    {% elif field.type == 'float' %}
+                      <input
+                        type="number"
+                        name="{{ key }}"
+                        id="{{ key }}"
+                        step="0.01"
+                        placeholder="{{ field.placeholder or '' }}"
+                        value="{{ field.default }}"
+                        class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1"
+                      />
+                    {% elif field.type == 'bool' %}
+                      <label class="inline-flex items-center gap-2 text-xs">
+                        <input type="checkbox" id="{{ key }}" name="{{ key }}" value="true" class="accent-blue-600 rounded" {% if field.default %}checked{% endif %}>
+                        <span>{{ field.label or key }}</span>
+                      </label>
+                    {% elif key in ['created_by', 'updated_by'] %}
+                      <input
+                        type="text"
+                        name="{{ key }}"
+                        id="{{ key }}"
+                        value="{{ current_user.email }}"
+                        readonly
+                        class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 text-gray-500"
+                      />
+                    {% elif key in ['created_on', 'updated_on'] %}
+                      <input
+                        type="text"
+                        name="{{ key }}"
+                        id="{{ key }}"
+                        value="{{ '' | now }}"
+                        readonly
+                        class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 text-gray-500"
+                      />
+                    {% else %}
+                      <input
+                        type="text"
+                        name="{{ key }}"
+                        id="{{ key }}"
+                        placeholder="{{ field.placeholder or '' }}"
+                        value="{{ field.default }}"
+                        class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1"
+                      />
+                    {% endif %}
+                  </div>
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+
+          <!-- Save Button -->
+          <div class="text-right pt-4">
+            <button type="submit" class="bg-blue-300 hover:bg-blue-400 text-black font-semibold px-4 py-2 rounded-lg shadow-sm transition">
+              Create User
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const fnameEl = document.querySelector('[id*="firstname"]');
+    const lnameEl = document.querySelector('[id*="lastname"]');
+    const fullInput = document.querySelector('[id*="fullname"]');
+    const userInput = document.querySelector('[id*="username"]');
+    const emailInput = document.querySelector('[id*="email"]');
+    const passwordInput = document.querySelector('[id="password"]');
+    const confirmPasswordInput = document.querySelector('[id="confirm_password"]');
+  
+    // Inject live validation <p> tags if not present
+    if (userInput && !document.getElementById("username_check")) {
+      const msg = document.createElement("p");
+      msg.id = "username_check";
+      msg.className = "text-xs mt-1";
+      userInput.insertAdjacentElement("afterend", msg);
+    }
+  
+    if (emailInput && !document.getElementById("email_check")) {
+      const msg = document.createElement("p");
+      msg.id = "email_check";
+      msg.className = "text-xs mt-1";
+      emailInput.insertAdjacentElement("afterend", msg);
+    }
+  
+    if (confirmPasswordInput && !document.getElementById("password_match_msg")) {
+      const msg = document.createElement("p");
+      msg.id = "password_match_msg";
+      msg.className = "text-xs mt-1";
+      confirmPasswordInput.insertAdjacentElement("afterend", msg);
+    }
+  
+    const usernameMsg = document.getElementById("username_check");
+    const emailMsg = document.getElementById("email_check");
+    const passwordMsg = document.getElementById("password_match_msg");
+  
+    function updateFullNameAndUsername() {
+      const fname = fnameEl?.value.trim() || "";
+      const lname = lnameEl?.value.trim() || "";
+      const fullName = `${fname} ${lname}`.trim();
+      const username = `${fname}.${lname}`.toLowerCase();
+      if (fullInput) fullInput.value = fullName;
+      if (userInput) {
+        userInput.value = username;
+        checkUsername(username);
+      }
+    }
+  
+    async function checkUsername(username = null) {
+      const value = username || userInput?.value.trim();
+      if (!value || !usernameMsg) return;
+      const res = await fetch("{{ url_for('admin_bp.validate_username') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: value })
+      });
+      const data = await res.json();
+      usernameMsg.textContent = data.exists ? "❌ Username already exists." : "✅ Username available.";
+      usernameMsg.className = data.exists ? "text-xs mt-1 text-red-500" : "text-xs mt-1 text-green-600";
+    }
+  
+    async function checkEmail() {
+      const value = emailInput?.value.trim();
+      if (!value || !emailMsg) return;
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+      if (!isEmail) {
+        emailMsg.textContent = "❌ Invalid email format.";
+        emailMsg.className = "text-xs mt-1 text-red-500";
+        return;
+      }
+      const res = await fetch("{{ url_for('admin_bp.validate_email') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: value })
+      });
+      const data = await res.json();
+      emailMsg.textContent = data.exists ? "❌ Email already in use." : "✅ Email available.";
+      emailMsg.className = data.exists ? "text-xs mt-1 text-red-500" : "text-xs mt-1 text-green-600";
+    }
+  
+    function matchPasswords() {
+      const pwd = passwordInput?.value.trim() || "";
+      const confirm = confirmPasswordInput?.value.trim() || "";
+  
+      if (!pwd && !confirm) {
+        passwordMsg.textContent = "";
+        return;
+      }
+  
+      if (pwd !== confirm) {
+        passwordMsg.textContent = "❌ Passwords do not match.";
+        passwordMsg.className = "text-xs mt-1 text-red-500";
+      } else {
+        passwordMsg.textContent = "✅ Passwords match.";
+        passwordMsg.className = "text-xs mt-1 text-green-600";
+      }
+    }
+  
+    fnameEl?.addEventListener("input", updateFullNameAndUsername);
+    lnameEl?.addEventListener("input", updateFullNameAndUsername);
+    userInput?.addEventListener("input", () => checkUsername());
+    emailInput?.addEventListener("input", checkEmail);
+    passwordInput?.addEventListener("input", matchPasswords);
+    confirmPasswordInput?.addEventListener("input", matchPasswords);
+  });
+</script>
+  
+  
+{% endblock %}

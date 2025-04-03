@@ -6,7 +6,7 @@
   {% include "admin_sidebar.html" %}
   <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
     <section  class="p-2 ml-2 mt-2">
-      <div class="bg-blue-50 border border-gray-200 rounded-2xl shadow-xl p-6">
+      <div class="bg-gray-50 border border-gray-200 rounded-2xl shadow-xl p-6">
 
         <!-- Header -->
         <div class="flex items-center justify-between mb-6">
@@ -31,7 +31,7 @@
 
           <!-- Field Groups -->
           {% for section, keys in schema.sections.items() %}
-            <div class="bg-gray-100 border border-blue-200 rounded-xl shadow-sm p-4">
+            <div class="mb-6 border-l-4 border-blue-200 bg-blue-50 rounded-xl p-4 shadow-sm">
               <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') }}</h2>
 
               <div class="grid grid-cols-3 gap-4">

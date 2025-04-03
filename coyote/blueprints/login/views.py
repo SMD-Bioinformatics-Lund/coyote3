@@ -49,13 +49,14 @@ def login():
             app.logger.warning(f"Inactive login attempt: {username}")
             return render_template("login.html", form=form)
 
-        # Update last login timestamp
-        store.user_handler.update_user_last_login(username)
-
         # Login user
         user_model = UserModel(**user_doc)
         user = User(user_model)
         login_user(user)
+
+        # Update last login timestamp
+        user_doc = store.user_handler.user(username)
+        store.user_handler.update_user_last_login(user_doc.get("_id"))
 
         return redirect(url_for("home_bp.home_screen"))
 

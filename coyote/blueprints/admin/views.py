@@ -106,80 +106,129 @@ def delete_sample(sample_id):
 #### END OF SAMPLE DELETION PART ###
 
 
-#### MANAGE USERS PART ####
+# This section handles all operations related to user management,
+# including listing, creating, editing, deleting, and toggling user accounts.
 @admin_bp.route("/users", methods=["GET"])
 @require_admin
 def manage_users():
     """
-    Admin view to list and manage all users.
+    Fetches all users from the user handler and renders the manage users template.
+
+    Returns:
+        str: Rendered HTML template for managing users.
     """
     users = store.user_handler.get_all_users()
     return render_template("users/manage_users.html", users=users)
 
 
-@admin_bp.route("/users/create", methods=["GET", "POST"])
+@admin_bp.route("/users/new", methods=["GET", "POST"])
 @require_admin
 def create_user():
     """
-    Admin creates a new user account.
+    Handles the creation of a new user based on a selected schema.
+    Fetches active user schemas, processes form data, and stores the new user.
     """
-    form = UserForm()
-    if form.validate_on_submit():
-        user_data = {
-            "_id": form.username.data,
-            "fullname": form.fullname.data,
-            "email": form.email.data,
-            "job_title": form.job_title.data,
-            "groups": [g.strip() for g in form.groups.data.split(",") if g.strip()],
-            "role": form.role.data,
-            "password": util.profile.hash_password(form.password.data),
-            "created": datetime.utcnow(),
-            "updated": datetime.utcnow(),
-            "is_active": form.is_active.data,
-        }
-        store.user_handler.create_user(user_data)
+    # Fetch all active user schemas
+    active_schemas = store.schema_handler.get_schemas_by_filter(
+        schema_type="user", schema_category="user_management", is_active=True
+    )
+
+    if not active_schemas:
+        flash("No active user schemas found!", "red")
         return redirect(url_for("admin_bp.manage_users"))
 
-    return render_template("users/create_user.html", form=form)
+    # Determine which schema to use
+    selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
+    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+
+    if not schema:
+        flash("User schema not found!", "red")
+        return redirect(url_for("admin_bp.manage_users"))
+
+    if request.method == "POST":
+        form_data = {
+            key: (vals[0] if len(vals) == 1 else vals)
+            for key, vals in request.form.to_dict(flat=False).items()
+        }
+
+        user_data = util.admin.process_form_to_config(form_data, schema)
+
+        user_data["_id"] = user_data["username"]
+        user_data["schema_name"] = schema["_id"]
+        user_data["schema_version"] = schema["version"]
+        user_data["created_by"] = current_user.email
+        user_data["created_on"] = datetime.utcnow()
+        user_data["updated_by"] = current_user.email
+        user_data["updated_on"] = datetime.utcnow()
+        user_data["email"] = user_data["email"].lower()
+        user_data["username"] = user_data["username"].lower()
+
+        # Hash the password
+        if "password" in user_data:
+            user_data["password"] = util.profile.hash_password(user_data["password"])
+
+        store.user_handler.create_user(user_data)
+        flash("User created successfully!", "green")
+        return redirect(url_for("admin_bp.manage_users"))
+
+    return render_template(
+        "users/user_create.html",
+        schema=schema,
+        schemas=active_schemas,
+        selected_schema=schema,
+    )
 
 
 @admin_bp.route("/users/<user_id>/edit", methods=["GET", "POST"])
 @require_admin
-def update_user(user_id):
+def edit_user(user_id):
     """
-    Admin edits an existing user account.
+    Edit an existing user's details based on the provided user ID.
+
+    Args:
+        user_id (str): The unique identifier of the user to be edited.
+
+    Returns:
+        Response: Renders the user edit template or redirects after a successful update.
     """
-    user = store.user_handler.user_with_id(user_id)
-    print("🛠 User data:", pformat(user))
-    form = UserUpdateForm(data=user)
-    form.username.data = user["_id"]
+    user_doc = store.user_handler.user_with_id(user_id)
+    schema = store.schema_handler.get_schema(user_doc.get("schema_name"))
 
-    if form.validate_on_submit():
-        updated_user = {
-            "_id": form.username.data,
-            "fullname": form.fullname.data,
-            "email": form.email.data,
-            "job_title": form.job_title.data,
-            "groups": [g.strip() for g in form.groups.data.split(",") if g.strip()],
-            "role": form.role.data,
-            "is_active": form.is_active.data,
-            "updated": datetime.utcnow(),
-        }
+    if "groups" in user_doc:
+        user_doc["groups"] = {group: True for group in user_doc["groups"]}
 
-        if form.password.data:
-            updated_user["password"] = util.profile.hash_password(form.password.data)
+    if request.method == "POST":
+        form_data = request.form.to_dict()
 
-        store.user_handler.update_user(updated_user)
+        updated_user = util.admin.process_form_to_config(form_data, schema)
+
+        # Proceed with update
+        updated_user["updated_on"] = datetime.utcnow()
+        updated_user["updated_by"] = current_user.email
+
+        if "password" in updated_user:
+            updated_user["password"] = util.profile.hash_password(updated_user["password"])
+        else:
+            updated_user["password"] = user_doc["password"]
+
+        updated_user["email"] = updated_user["email"].lower()
+        updated_user["username"] = updated_user["username"].lower()
+        updated_user["groups"] = list(updated_user.get("groups", {}).keys())
+        updated_user["schema_name"] = schema["_id"]
+        updated_user["schema_version"] = schema["version"]
+
+        store.user_handler.update_user(user_id, updated_user)
+        flash("User updated successfully.", "green")
         return redirect(url_for("admin_bp.manage_users"))
 
-    return render_template("users/update_user.html", form=form, user=user)
+    return render_template("users/user_edit.html", schema=schema, config=user_doc)
 
 
-@admin_bp.route("/users/<user_id>/delete", methods=["POST"])
+@admin_bp.route("/users/<user_id>/delete", methods=["GET"])
 @require_admin
 def delete_user(user_id):
     """
-    Admin deletes a user account.
+    Deletes a user account by the given user ID and redirects to the manage users page.
     """
     store.user_handler.delete_user(user_id)
     return redirect(url_for("admin_bp.manage_users"))
@@ -189,9 +238,12 @@ def delete_user(user_id):
 @require_admin
 def validate_username():
     """
-    Check if username already exists.
+    Validates if a username already exists in the system.
+
+    Returns:
+        Response: JSON response indicating whether the username exists.
     """
-    username = request.json.get("username")
+    username = request.json.get("username").lower()
     return jsonify({"exists": store.user_handler.user_exists(user_id=username)})
 
 
@@ -199,10 +251,35 @@ def validate_username():
 @require_admin
 def validate_email():
     """
-    Check if email already exists.
+    Validate if an email exists in the user database.
+
+    Returns:
+        Response: A JSON response indicating whether the email exists.
     """
-    email = request.json.get("email")
+    email = request.json.get("email").lower()
     return jsonify({"exists": store.user_handler.user_exists(email=email)})
+
+
+@admin_bp.route("/users/<user_id>/toggle", methods=["POST", "GET"])
+@require_admin
+def toggle_user_active(user_id):
+    """
+    Toggles the active status of an user configuration by its ID.
+
+    Args:
+        user_id (str): The ID of the user configuration to toggle.
+
+    Returns:
+        Response: Redirects to the user configurations page or aborts with 404 if not found.
+    """
+    user_doc = store.user_handler.user_with_id(user_id)
+    if not user_doc:
+        return abort(404)
+
+    new_status = not user_doc.get("is_active", False)
+    store.user_handler.toggle_active(user_id, new_status)
+    flash(f"User: '{user_id}' is now {'active' if new_status else 'inactive'}.", "green")
+    return redirect(url_for("admin_bp.manage_users"))
 
 
 #### END OF MANAGE USERS PART ###
@@ -262,6 +339,7 @@ def edit_assay_config(assay_id):
 
     if request.method == "POST":
         form_data = request.form.to_dict()
+        print("Form data:", pformat(form_data))
 
         try:
             updated_config = util.admin.process_form_to_config(form_data, schema)
