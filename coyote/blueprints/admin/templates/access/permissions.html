@@ -1,0 +1,143 @@
+{% extends "layout.html" %}
+{% block title %}Manage Permission Policies{% endblock %}
+{% block body %}
+<div class="flex w-full h-full overflow-hidden">
+  {% include "admin_sidebar.html" %}
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+    <section id="manage-permissions-section" class="p-2 ml-2 mt-2">
+      <div class="w-full bg-blue-50 shadow-3xl rounded-2xl p-4 border-l-4 border-blue-400">
+
+        <!-- Header & Search -->
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-base font-semibold text-black tracking-wide uppercase">Manage Permission Policies</h2>
+          <div class="relative w-64">
+            <input type="text" id="search-permissions" placeholder="Search permissions"
+              class="w-full border border-gray-300 rounded-lg py-2 pl-4 pr-10 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="search"
+                class="h-5 w-5 text-gray-500 cursor-pointer" onclick="document.getElementById('search-permissions').focus()">
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" id="permissions-list" data-rows-per-page="20">
+          <table id="permissions-list-table" class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
+            <thead class="rounded-t-2xl overflow-hidden border-gray-800">
+              <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
+                <th class="p-2 font-normal">Permission</th>
+                <th class="p-2 font-normal">Label</th>
+                <th class="p-2 font-normal">Category</th>
+                <th class="p-2 font-normal">Description</th>
+                <th class="p-2 font-normal">schema</th>
+                <th class="p-2 font-normal">Status</th>
+                <th class="p-2 font-normal">Created</th>
+                <th class="p-2 font-normal">Updated</th>
+                <th class="p-2 font-normal">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="permissions-list-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
+              {% for category, permissions in grouped_permissions.items() %}
+                {% for perm in permissions %}
+                  <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
+                    <td class="p-2 font-medium">{{ perm._id }}</td>
+                    <td class="p-2 font-medium">{{ perm.label }}</td>
+                    <td class="p-2 font-medium">{{ perm.category }}</td>
+                    <td class="p-2 font-medium">{{ perm.description or '-' }}</td>
+                    <td class="p-2 font-medium">{{ perm.schema_name or '-' }}</td>
+                    <td class="p-2 font-medium">
+                      {% if perm.is_active %}
+                        <span class="text-green-600 font-semibold">Enabled</span>
+                      {% else %}
+                        <span class="text-red-500 font-semibold">Disabled</span>
+                      {% endif %}
+                    </td>
+                    <td class="p-2 font-medium">
+                      <span class="block">{{ perm.created_by or '-' }}</span>
+                      <span class="text-gray-500 font-thin"><small>{{ perm.created_on|human_date }}</small></span>
+                    </td>
+                    <td class="p-2 font-medium">
+                      <span class="block">{{ perm.updated_by or '-' }}</span>
+                      <span class="text-gray-500 font-thin"><small>{{ perm.updated_on|human_date }}</small></span>
+                    </td>
+                    <td class="p-2 flex gap-3">
+                      <button onclick="showActionModal({
+                          url: '{{ url_for('admin_bp.edit_permission', perm_id=perm._id) }}',
+                          title: 'Edit Permission Policy',
+                          message: 'Are you sure you want to edit <b>{{ perm._id }} </b> policy?',
+                          confirmText: 'Edit',
+                          confirmColor: 'blue'
+                        })"
+                        title="Edit"
+                        class="font-medium text-blue-600 hover:text-blue-800">
+                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
+                      </button>
+                      <button onclick="showActionModal({
+                          url: '{{ url_for('admin_bp.toggle_permission_active', perm_id=perm._id) }}',
+                          title: '{{ 'Disable' if perm.is_active else 'Enable' }} Schema',
+                          message: 'Are you sure you want to {{ 'Disable' if perm.is_active else 'Enable' }} <b>{{ perm._id }}</b>?',
+                          confirmText: '{{ 'Disable' if perm.is_active else 'Enable' }}',
+                          confirmColor: '{{ 'red' if perm.is_active else 'green' }}'
+                        })"
+                        title="{{ 'Disable' if perm.is_active else 'Enable' }}"
+                        class="font-medium {% if perm.is_active %}text-yellow-600 hover:text-yellow-800{% else %}text-green-600 hover:text-green-800{% endif %}">
+                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path-rounded-square.svg') }}" alt="toggle active" class="w-5 cursor-pointer">
+                      </button>
+                      <button onclick="showActionModal({
+                          url: '{{ url_for('admin_bp.delete_permission', perm_id=perm._id) }}',
+                          title: 'Delete Permission Policy',
+                          message: 'Are you sure you want to delete <b>{{ perm._id }}</b> policy?',
+                          confirmText: 'Delete',
+                          confirmColor: 'red'
+                        })" title="Delete" class="text-red-500 hover:text-red-700 font-medium">
+                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/trash.svg') }}" alt="delete" class="w-5 cursor-pointer">
+                      </button>
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+              <tr class="border-b border-gray-300">
+                <td colspan="9" class="p-2 font-medium text-center">No permissions found.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+
+  const input = document.getElementById('search-permissions');
+  const body = document.getElementById('permissions-list-body');
+  const container = document.getElementById('permissions-list');
+  const rowsPerPage = parseInt(container.dataset.rowsPerPage) || 15;
+  const originalRows = [...body.querySelectorAll('tr')].map(r => r.cloneNode(true));
+  const id = body.id;
+
+  input.addEventListener('input', () => {
+    const term = input.value.toLowerCase().trim();
+
+    // Remove any existing pagination controls
+    container.querySelectorAll('[data-prev], [data-next], [data-page-info]').forEach(el => el.parentElement?.remove());
+
+    // Filter rows or reset
+    const filtered = term
+      ? originalRows.filter(row =>
+          [...row.querySelectorAll('td')].slice(0, 4).some(td =>
+            td.textContent.toLowerCase().includes(term)
+          )
+        )
+      : originalRows;
+
+    // Replace table body with filtered or full rows
+    body.innerHTML = '';
+    filtered.forEach(row => body.appendChild(row));
+
+    // Trigger pagination if needed
+    filtered.length > rowsPerPage ? initializePagination() : displayPage(1, id, rowsPerPage);
+  });
+</script>
+{% endblock %}

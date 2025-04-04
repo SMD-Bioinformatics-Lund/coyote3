@@ -310,7 +310,6 @@ def edit_assay_config(assay_id):
 
     if request.method == "POST":
         form_data = request.form.to_dict()
-        print("Form data:", pformat(form_data))
 
         try:
             updated_config = util.admin.process_form_to_config(form_data, schema)
@@ -606,6 +605,279 @@ def delete_schema(schema_id):
     store.schema_handler.delete_schema(schema_id)
     flash(f"Schema '{schema_id}' deleted successfully.", "green")
     return redirect(url_for("admin_bp.schemas"))
+
+
+#### END OF SCHEMA MANAGEMENT PART ###
+
+
+#### Permission Management ####
+@admin_bp.route("/permissions")
+@require_admin
+def list_permissions():
+    policies = store.permissions_handler.get_all(is_active=False)
+    categories = store.permissions_handler.get_categories()
+    grouped = {}
+    for p in policies:
+        grouped.setdefault(p["category"], []).append(p)
+    return render_template("access/permissions.html", grouped_permissions=grouped)
+
+
+@admin_bp.route("/permissions/new", methods=["GET", "POST"])
+@require_admin
+def create_permission():
+
+    active_schemas = store.schema_handler.get_schemas_by_filter(
+        schema_type="admin_config", schema_category="RBAC_permissions", is_active=True
+    )
+    if not active_schemas:
+        flash("No active permission schemas found!", "red")
+        return redirect(url_for("admin_bp.list_permissions"))
+
+    # Determine which schema to use
+    selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
+    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+    if not schema:
+        flash("Selected schema not found!", "red")
+        return redirect(url_for("admin_bp.list_permissions"))
+
+    if request.method == "POST":
+        form_data = {
+            key: (vals[0] if len(vals) == 1 else vals)
+            for key, vals in request.form.to_dict(flat=False).items()
+        }
+        policy = util.admin.process_form_to_config(form_data, schema)
+
+        policy["permission_name"] = policy["_id"]
+        policy["created_by"] = current_user.email
+        policy["updated_by"] = current_user.email
+        policy["created_on"] = datetime.utcnow().isoformat()
+        policy["updated_on"] = datetime.utcnow().isoformat()
+        policy["schema_name"] = schema["_id"]
+        policy["schema_version"] = schema["version"]
+
+        store.permissions_handler.insert_permission(policy)
+        flash(f"Permission policy '{policy['_id']}' created.", "green")
+        return redirect(url_for("admin_bp.list_permissions"))
+
+    return render_template(
+        "access/create_permission.html",
+        schema=schema,
+        schemas=active_schemas,
+        selected_schema=schema,
+    )
+
+
+@admin_bp.route("/permissions/<perm_id>/edit", methods=["GET", "POST"])
+@require_admin
+def edit_permission(perm_id):
+    permission = store.permissions_handler.get(perm_id)
+    if not permission:
+        return abort(404)
+
+    schema = store.schema_handler.get_schema(permission.get("schema_name"))
+
+    if request.method == "POST":
+        form_data = request.form.to_dict(flat=True)
+
+        updated_permission = util.admin.process_form_to_config(form_data, schema)
+
+        current_clean = util.admin.clean_config_for_comparison(permission)
+        incoming_clean = util.admin.clean_config_for_comparison(updated_permission)
+        if current_clean == incoming_clean:
+            flash("No changes detected. Permission policy was not updated.", "yellow")
+            return redirect(url_for("admin_bp.list_permissions"))
+
+        # Proceed with update
+        updated_permission["updated_on"] = datetime.utcnow()
+        updated_permission["updated_by"] = current_user.email
+        updated_permission["version"] = permission.get("version", 1) + 1
+
+        store.permissions_handler.update_policy(perm_id, updated_permission)
+        flash(f"Permission policy '{perm_id}' updated.", "green")
+        return redirect(url_for("admin_bp.list_permissions"))
+
+    return render_template("access/edit_permission.html", schema=schema, config=permission)
+
+
+@admin_bp.route("/permissions/<perm_id>/toggle", methods=["POST", "GET"])
+@require_admin
+def toggle_permission_active(perm_id):
+    perm = store.permissions_handler.get(perm_id)
+    if not perm:
+        return abort(404)
+
+    new_status = not perm.get("is_active", False)
+    store.permissions_handler.toggle_active(perm_id, new_status)
+    flash(f"Permission '{perm_id}' is now {'Active' if new_status else 'Inactive'}.", "green")
+    return redirect(url_for("admin_bp.list_permissions"))
+
+
+@admin_bp.route("/permissions/<perm_id>/delete", methods=["GET"])
+@require_admin
+def delete_permission(perm_id):
+    perm = store.permissions_handler.get(perm_id)
+    if not perm:
+        return abort(404)
+
+    store.permissions_handler.delete_permission(perm_id)
+    flash(f"Permission policy '{perm_id}' deleted successfully.", "green")
+    return redirect(url_for("admin_bp.list_permissions"))
+
+
+# --- Role listing page ---
+@admin_bp.route("/roles")
+@require_admin
+def list_roles():
+    roles = store.roles_handler.get_all_roles()
+    return render_template("access/roles.html", roles=roles)
+
+
+# --- Role creation page ---
+@admin_bp.route("/roles/new", methods=["GET", "POST"])
+@require_admin
+def create_role():
+
+    active_schemas = store.schema_handler.get_schemas_by_filter(
+        schema_type="admin_config", schema_category="access_control", is_active=True
+    )
+
+    if not active_schemas:
+        flash("No active role schemas found!", "red")
+        return redirect(url_for("admin_bp.list_roles"))
+
+    # Determine which schema to use
+    selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
+    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+    if not schema:
+        flash("Selected schema not found!", "red")
+        return redirect(url_for("admin_bp.list_roles"))
+
+    permission_policies = store.permissions_handler.get_all(is_active=True)
+
+    # Inject checkbox options directly into schema field definition
+    if "permissions" in schema["fields"]:
+        schema["fields"]["permissions"]["options"] = [
+            {
+                "value": p["_id"],
+                "label": p.get("label", p["_id"]),
+                "category": p.get("category", "Uncategorized"),
+            }
+            for p in permission_policies
+        ]
+
+    if request.method == "POST":
+        form_data = {
+            key: (vals[0] if len(vals) == 1 else vals)
+            for key, vals in request.form.to_dict(flat=False).items()
+        }
+        permissions = request.form.getlist("permissions") or []
+
+        policy = util.admin.process_form_to_config(form_data, schema)
+
+        policy["name"] = form_data.get("_id")
+
+        policy["schema_name"] = schema["_id"]
+        policy["schema_version"] = schema["version"]
+        policy["permissions"] = permissions
+        policy["created_by"] = current_user.email
+        policy["created_on"] = datetime.utcnow().isoformat()
+        policy["updated_by"] = current_user.email
+        policy["updated_on"] = datetime.utcnow().isoformat()
+
+        store.roles_handler.save_role(policy)
+        flash(f"Role '{policy["_id"]}' created successfully.", "green")
+        return redirect(url_for("admin_bp.list_roles"))
+
+    return render_template(
+        "access/create_role.html",
+        schema=schema,
+        selected_schema=schema,
+        schemas=active_schemas,
+    )
+
+
+# --- Role edit page ---
+@admin_bp.route("/roles/<role_id>/edit", methods=["GET", "POST"])
+@require_admin
+def edit_role(role_id):
+    role = store.roles_handler.get_role(role_id)
+    if not role:
+        return abort(404)
+
+    schema = store.schema_handler.get_schema(role.get("schema_name"))
+    permission_policies = store.permissions_handler.get_all(is_active=True)
+
+    # Inject checkbox options directly into schema field definition
+    if "permissions" in schema["fields"]:
+        schema["fields"]["permissions"]["options"] = [
+            {
+                "value": p["_id"],
+                "label": p.get("label", p["_id"]),
+                "category": p.get("category", "Uncategorized"),
+            }
+            for p in permission_policies
+        ]
+
+    if request.method == "POST":
+        form_data = request.form.to_dict(flat=True)
+        permissions = request.form.getlist("permissions") or []
+
+        updated_role = util.admin.process_form_to_config(form_data, schema)
+        current_clean = util.admin.clean_config_for_comparison(role)
+        incoming_clean = util.admin.clean_config_for_comparison(updated_role)
+        if current_clean == incoming_clean:
+            flash("No changes detected. Role was not updated.", "yellow")
+            return redirect(url_for("admin_bp.list_roles"))
+
+        updated_role["permissions"] = permissions
+        updated_role["updated_by"] = current_user.email
+        updated_role["updated_on"] = datetime.utcnow().isoformat()
+        updated_role["version"] = role.get("version", 1) + 1
+
+        store.roles_handler.update_role(role_id, updated_role)
+        flash(f"Role '{role_id}' updated successfully.", "green")
+        return redirect(url_for("admin_bp.list_roles"))
+
+    return render_template("access/edit_role.html", schema=schema, config=role)
+
+
+@admin_bp.route("/roles/<role_id>/toggle", methods=["POST", "GET"])
+@require_admin
+def toggle_role_active(role_id):
+    role = store.roles_handler.get(role_id)
+    if not role:
+        return abort(404)
+
+    new_status = not role.get("is_active", False)
+    store.roles_handler.toggle_active(role_id, new_status)
+    flash(f"Role '{role_id}' is now {'Active' if new_status else 'Inactive'}.", "green")
+    return redirect(url_for("admin_bp.list_roles"))
+
+
+@admin_bp.route("/roles/<role_id>/delete", methods=["GET"])
+@require_admin
+def delete_role(role_id):
+    role = store.roles_handler.get_role(role_id)
+    if not role:
+        return abort(404)
+
+    store.roles_handler.delete_role(role_id)
+    flash(f"Role '{role_id}' deleted successfully.", "green")
+    return redirect(url_for("admin_bp.list_roles"))
+
+
+# --- Permission policy schema from DB ---
+@admin_bp.route("/schemas/permission_policies")
+@require_admin
+def get_permission_policy_schema():
+    return store.schema_handler.get_schema("permission_policies") or {}
+
+
+# --- Role schema from DB ---
+@admin_bp.route("/schemas/roles")
+@require_admin
+def get_roles_schema():
+    return store.schema_handler.get_schema("roles") or {}
 
 
 @admin_bp.route("/audit")

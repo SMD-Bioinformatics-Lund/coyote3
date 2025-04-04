@@ -28,10 +28,8 @@
                   <th class="p-2 font-normal">Schema Type</th>
                   <th class="p-2 font-normal">Category</th>
                   <th class="p-2 font-normal">Version</th>
-                  <th class="p-2 font-normal">Created By</th>
-                  <th class="p-2 font-normal">Time Created</th>
-                  <th class="p-2 font-normal">Updated By</th>
-                  <th class="p-2 font-normal">Time Updated</th>
+                  <th class="p-2 font-normal">Created</th>
+                  <th class="p-2 font-normal">Updated</th>
                   <th class="p-2 font-normal">Status</th>
                   <th class="p-2 font-normal">Actions</th>
                 </tr>
@@ -43,21 +41,13 @@
                   <td class="p-2 font-medium">{{ schema.schema_type }}</td>
                   <td class="p-2 font-medium">{{ schema.schema_category }}</td>
                   <td class="p-2 font-medium">{{ schema.version }}</td>
-                  <td class="p-2 font-medium">{{ schema.created_by }}</td>
                   <td class="p-2 font-medium">
-                    {% if schema.created_on %}
-                      {{ schema.created_on|human_date }}
-                    {% else %}
-                      -
-                    {% endif %}
+                    <span class="block">{{ schema.created_by }}</span>
+                    <span class="text-gray-500 font-thin"><small>{{ schema.created_on|human_date or '-' }}</small></span>
                   </td>
-                  <td class="p-2 font-medium">{{ schema.updated_by }}</td>
                   <td class="p-2 font-medium">
-                    {% if schema.updated_on %}
-                      {{ schema.updated_on|human_date }}
-                    {% else %}
-                      -
-                    {% endif %}
+                    <span class="block">{{ schema.updated_by }}</span>
+                    <span class="text-gray-500 font-thin"><small>{{ schema.updated_on|human_date or '-' }}</small></span>
                   </td>
                   <td class="p-2 font-medium">
                     {% if schema.is_active %}

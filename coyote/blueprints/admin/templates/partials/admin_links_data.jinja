@@ -47,6 +47,38 @@
   'color': 'green'
 }) %}
 {% do cards.append({
+  'url': url_for('admin_bp.list_roles'),
+  'icon': 'user-circle.svg',
+  'title': 'Manage Roles',
+  'desc': 'Adjust role policies for users',
+  'category': 'Roles',
+  'color': 'pink'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.create_role'),
+  'icon': 'user-circle.svg',
+  'title': 'New Role Policy',
+  'desc': 'Add new role policy to system',
+  'category': 'Roles',
+  'color': 'pink'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.list_permissions'),
+  'icon': 'key.svg',
+  'title': 'Manage Permissions',
+  'desc': 'Adjust permission policies for users',
+  'category': 'Permissions',
+  'color': 'orange'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.create_permission'),
+  'icon': 'key.svg',
+  'title': 'New Permission Policy',
+  'desc': 'Add new permission policy to system',
+  'category': 'Permissions',
+  'color': 'orange'
+}) %}
+{% do cards.append({
   'url': url_for('admin_bp.schemas'),
   'icon': 'rectangle-stack.svg',
   'title': 'Manage Schemas',

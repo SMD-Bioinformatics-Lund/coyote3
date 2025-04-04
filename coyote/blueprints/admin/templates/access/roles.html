@@ -1,0 +1,154 @@
+{% extends "layout.html" %}
+{% block title %}Manage Roles{% endblock %}
+{% block body %}
+<div class="flex w-full h-full overflow-hidden">
+  {% include "admin_sidebar.html" %}
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+    <section id="manage-roles-section" class="p-2 ml-2 mt-2">
+      <div class="w-full bg-blue-50 shadow-3xl rounded-2xl p-4 border-l-4 border-blue-400">
+
+        <!-- Header -->
+        <div class="flex flex-row justify-between items-center gap-4 px-2 py-2">
+          <h2 class="text-base font-semibold text-black tracking-wide uppercase">Manage Role Policies</h2>
+          <div class="relative w-64">
+            <input type="text" id="search-roles" placeholder="Search role policies"
+              class="w-full border border-gray-300 rounded-lg py-2 pl-4 pr-10 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="search"
+                class="h-5 w-5 text-gray-500 cursor-pointer" onclick="document.getElementById('search-roles').focus()">
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" id="roles-list" data-rows-per-page="20">
+          <table id="roles-table" class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
+            <thead class="rounded-t-2xl overflow-hidden border-gray-800">
+              <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
+                <th class="p-2 font-normal">ID</th>
+                <th class="p-2 font-normal">Label</th>
+                <th class="p-2 font-normal">Level</th>
+                <th class="p-2 font-normal">Permissions</th>
+                <th class="p-2 font-normal">Description</th>
+                <th class="p-2 font-normal">Created</th>
+                <th class="p-2 font-normal">Updated</th>
+                <th class="p-2 font-normal">Version</th>
+                <th class="p-2 font-normal">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="roles-list-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
+              {% for role in roles %}
+              <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
+                <td class="p-2 font-medium ">
+                  <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-{{ role.color }}-500 text-center">
+                    {{ role._id }}
+                  </span>
+                </td>
+                <td class="p-2 font-medium">{{ role.label }}</td>
+                <td class="p-2 text-center">{{ role.level }}</td>
+                <td class="p-2 font-medium">
+                  {% if role.permissions %}
+                    <div class="flex flex-wrap gap-1">
+                      {% for perm in role.permissions[:5] %}
+                        <span class="bg-gray-300 text-gray-700 px-2 py-0.5 rounded text-[10px] font-medium">{{ perm }}</span>
+                      {% endfor %}
+                      {% if role.permissions | length > 5 %}
+                        <span class="text-gray-500 text-xs">+{{ role.permissions | length - 5 }} more</span>
+                      {% endif %}
+                    </div>
+                  {% else %}
+                    <span class="text-gray-400">-</span>
+                  {% endif %}
+                </td>
+                <td class="p-2 text-xs">{{ role.description or '-' }}</td>
+                <td class="p-2 text-xs">
+                  <span class="block">{{ role.created_by }}</span>
+                  <span class="text-gray-500 font-thin"><small>{{ role.created_on | human_date }}</small></span>
+                </td>
+                <td class="p-2 text-xs">
+                  <span class="block">{{ role.updated_by }}</span>
+                  <span class="text-gray-500 font-thin"><small>{{ role.updated_on | human_date }}</small></span>
+                </td>
+                <td class="p-2 text-xs">{{ role.version or '-' }}</td>
+                <td class="p-2 font-medium flex gap-3">
+
+                  <button onclick="showActionModal({
+                      url: '{{ url_for('admin_bp.edit_role', role_id=role._id) }}',
+                      title: 'Edit Role Policy',
+                      message: 'Are you sure you want to edit <b>{{ role._id }} </b> role policy?',
+                      confirmText: 'Edit',
+                      confirmColor: 'blue'
+                    })"
+                    title="Edit"
+                    class="font-medium text-blue-600 hover:text-blue-800">
+                    <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
+                  </button>
+                  <button onclick="showActionModal({
+                      url: '{{ url_for('admin_bp.toggle_role_active', role_id=role._id) }}',
+                      title: '{{ 'Deactivate' if role.is_active else 'Activate' }} Schema',
+                      message: 'Are you sure you want to {{ 'deactivate' if role.is_active else 'activate' }} <b>{{ role._id }}</b>?',
+                      confirmText: '{{ 'Deactivate' if role.is_active else 'Activate' }}',
+                      confirmColor: '{{ 'red' if role.is_active else 'green' }}'
+                    })"
+                    title="{{ 'Deactivate' if role.is_active else 'Activate' }}"
+                    class="font-medium {% if role.is_active %}text-yellow-600 hover:text-yellow-800{% else %}text-green-600 hover:text-green-800{% endif %}">
+                    <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path-rounded-square.svg') }}" alt="toggle active" class="w-5 cursor-pointer">
+                  </button> 
+                  <button onclick="showActionModal({
+                      url: '{{ url_for('admin_bp.delete_role', role_id=role._id) }}',
+                      title: 'Delete Role Policy',
+                      message: 'Are you sure you want to delete <b>{{ role._id }}</b> role policy?',
+                      confirmText: 'Delete',
+                      confirmColor: 'red'
+                    })" title="Delete" class="text-red-500 hover:text-red-700 font-medium">
+                    <img src="{{ url_for('static', filename='icons/heroicons_outline_24/trash.svg') }}" alt="delete" class="w-5 cursor-pointer">
+                  </button>
+                </td>
+              </tr>
+              {% else %}
+                <tr class="border-b border-gray-300">
+                  <td colspan="9" class="p-2 font-medium text-center">No roles found.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+
+  const input = document.getElementById('search-roles');
+  const body = document.getElementById('roles-list-body');
+  const container = document.getElementById('roles-list');
+  const rowsPerPage = parseInt(container.dataset.rowsPerPage) || 15;
+  const originalRows = [...body.querySelectorAll('tr')].map(r => r.cloneNode(true));
+  const id = body.id;
+
+  input.addEventListener('input', () => {
+    const term = input.value.toLowerCase().trim();
+
+    // Remove any existing pagination controls
+    container.querySelectorAll('[data-prev], [data-next], [data-page-info]').forEach(el => el.parentElement?.remove());
+
+    // Filter rows or reset
+    const filtered = term
+      ? originalRows.filter(row =>
+          [...row.querySelectorAll('td')].slice(0, 4).some(td =>
+            td.textContent.toLowerCase().includes(term)
+          )
+        )
+      : originalRows;
+
+    // Replace table body with filtered or full rows
+    body.innerHTML = '';
+    filtered.forEach(row => body.appendChild(row));
+
+    // Trigger pagination if needed
+    filtered.length > rowsPerPage ? initializePagination() : displayPage(1, id, rowsPerPage);
+  });
+</script>
+{% endblock %}

@@ -31,10 +31,8 @@
                   <th class="p-2 font-normal">Panel Technology</th>
                   <th class="p-2 font-normal">Schema Name</th>
                   <th class="p-2 font-normal">Schema Version</th>
-                  <th class="p-2 font-normal">Created By</th>
-                  <th class="p-2 font-normal">Time Created</th>
-                  <th class="p-2 font-normal">Updated By</th>
-                  <th class="p-2 font-normal">Time Updated</th>
+                  <th class="p-2 font-normal">Created</th>
+                  <th class="p-2 font-normal">Updated</th>
                   <th class="p-2 font-normal">Version</th>
                   <th class="p-2 font-normal">Status</th>
                   <th class="p-2 font-normal">Actions</th>
@@ -50,21 +48,13 @@
                   <td class="p-2 font-medium">{{ assay.panel_technology }}</td>
                   <td class="p-2 font-medium">{{ assay.schema_name }}</td>
                   <td class="p-2 font-medium">{{ assay.schema_version|int }}</td>
-                  <td class="p-2 font-medium">{{ assay.created_by }}</td>
                   <td class="p-2 font-medium">
-                    {% if assay.created_on %}
-                      {{ assay.created_on|human_date }}
-                    {% else %}
-                      -
-                    {% endif %}
+                    <span class="block">{{ assay.created_by }}</span>
+                    <span class="text-gray-500 font-thin"><small>{{ assay.created_on | human_date }}</small></span>
                   </td>
-                  <td class="p-2 font-medium">{{ assay.updated_by }}</td>
                   <td class="p-2 font-medium">
-                    {% if assay.updated_on %}
-                      {{ assay.updated_on|human_date }}
-                    {% else %}
-                      -
-                    {% endif %}
+                    <span class="block">{{ assay.updated_by }}</span>
+                    <span class="text-gray-500 font-thin"><small>{{ assay.updated_on | human_date }}</small></span>
                   </td>
                   <td class="p-2 font-medium">{{ assay.version or '-' }}</td>
                   <td class="p-2 font-medium">
@@ -109,9 +99,9 @@
                   </td>
                 </tr>
                 {% else %}
-                <tr class="border-b border-gray-300">
-                  <td colspan="9" class="p-2 font-medium text-center">No assays found.</td>
-                </tr>
+                  <tr class="border-b border-gray-300">
+                    <td colspan="9" class="p-2 font-medium text-center">No assays found.</td>
+                  </tr>
                 {% endfor %}
               </tbody>
             </table>

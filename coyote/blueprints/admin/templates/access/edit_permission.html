@@ -1,0 +1,128 @@
+{% extends "layout.html" %}
+{% block title %}Edit Permission Policy{% endblock %}
+{% block body %}
+<div class="flex w-full h-full overflow-hidden">
+  {% include "admin_sidebar.html" %}
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+    <section class="p-2 ml-2 mt-2">
+      <div class="bg-gray-50 border border-gray-200 rounded-2xl shadow-xl p-6">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="text-xl font-bold text-blue-500 tracking-wide capitalize flex gap-2 align-middle"><img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="Schema Edit Icon" class="h-6 w-6">Edit Permission - <i>{{config._id}}</i></h1>
+          <div class="text-sm text-gray-700 flex items-center">
+            <span class="inline-flex items-center px-2 py-1 bg-blue-200 text-blue-700 font-semibold rounded-l-full">
+              {{ config.schema_name }}
+            </span>
+            <span class="inline-flex items-center px-2 py-1 bg-orange-200 text-black font-semibold rounded-r-full ">
+              v{{ config.schema_version }}
+            </span>
+          </div>
+        </div>
+
+        <form method="POST" class="space-y-6 text-sm text-gray-700">
+          {% for section, keys in schema.sections.items() %}
+            <div class="bg-blue-50 border-l-4 border-blue-300 rounded-xl shadow-lg p-4">
+              <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') }}</h2>
+              <div class="grid grid-cols-3 gap-4">
+                {% for key in keys %}
+                  {% if schema.fields[key] %}
+                    {% set field = schema.fields[key] %}
+                    {% set disabled = key in ['_id', 'created_by', 'created_on', 'updated_by', 'updated_on', 'version', 'schema_name', 'schema_version'] %}
+                    {% if field.type in ['json', 'list'] %}
+                      <div class="col-span-full">
+                        <label class="block font-semibold text-xs mb-1">
+                          {{ field.label or key }}
+                          {% if field.required %}<span class="text-red-500">*</span>{% endif %}
+                          <span class="text-gray-500 text-xs font-normal">({{ field.type }})</span>
+                        </label>
+                        <textarea name="{{ key }}" rows="6"
+                                  placeholder="{{ field.placeholder or '' }}"
+                                  class="w-full font-mono text-xs bg-gray-100 border border-gray-400 rounded-md shadow-sm p-2 resize-y"
+                        >{{ config[key] | tojson(indent=2) }}</textarea>
+                      </div>
+                    {% elif field.type == 'bool' %}
+                      <div class="flex items-center space-x-2">
+                        <input type="checkbox" name="{{ key }}" value="true"
+                                class="accent-blue-600 rounded"
+                                {% if config[key] %}checked{% endif %}
+                                {% if disabled %}disabled{% endif %}>
+                        <label class="text-xs font-semibold">
+                          {{ field.label or key }}
+                          {% if field.required %}<span class="text-red-500">*</span>{% endif %}
+                          <span class="text-gray-500">({{ field.type }})</span>
+                        </label>
+                      </div>
+                    {% else %}
+                      <div>
+                        <label class="block font-semibold text-xs mb-1">
+                          {{ field.label or key }}
+                          {% if field.required %}<span class="text-red-500">*</span>{% endif %}
+                          <span class="text-gray-500 text-xs font-normal">({{ field.type }})</span>
+                        </label>
+                        <input
+                          type="{{ 'number' if field.type in ['int', 'float'] else 'text' }}"
+                          name="{{ key }}"
+                          value="{{ config[key] if field.type != 'int' else config[key]|int }}"
+                          {% if field.type == 'int' %}step="1" inputmode="numeric" pattern="[0-9]+"{% elif field.type == 'float' %}step="0.01"{% endif %}
+                          class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 {% if disabled %}text-gray-500{% endif %}"
+                          placeholder="{{ field.placeholder or '' }}"
+                          {% if disabled %}readonly{% endif %}
+                        />
+                      </div>
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
+
+          <!-- Metadata Section -->
+          <div class="mb-6 border-l-4 border-blue-300 bg-blue-50 rounded-xl p-4 shadow-lg">
+            <h2 class="text-sm font-semibold text-gray-700 uppercase mb-3 tracking-wide">Metadata</h2>
+            <div class="grid grid-cols-3 gap-4">
+              <div>
+                <label class="block font-semibold text-xs mb-1">Created By</label>
+                <input type="text" name="created_by" value="{{ config.created_by or '-' }}" readonly
+                        class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 text-gray-500" />
+              </div>
+
+              <div>
+                <label class="block font-semibold text-xs mb-1">Created On</label>
+                <input type="text" name="created_on" value="{{ config.created_on or '-' }}" readonly
+                    class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 text-gray-500" />
+                </div>
+
+              <div>
+                <label class="block font-semibold text-xs mb-1">Updated By</label>
+                <input type="text" name="updated_by" value="{{ config.updated_by or '-' }}" readonly
+                        class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 text-gray-500" />
+              </div>
+
+              <div>
+                <label class="block font-semibold text-xs mb-1">Updated On</label>
+                <input type="text" name="updated_on" value="{{ config.updated_on | now }}" readonly
+                        class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 text-gray-500" />
+              </div>
+
+              <div>
+                <label class="block font-semibold text-xs mb-1">Version</label>
+                <input type="number" name="version" value="1" readonly
+                        class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Save Button -->
+          <div class="text-right">
+            <button type="submit" class="bg-blue-300 hover:bg-blue-400 text-black font-semibold px-4 py-2 rounded-lg shadow-sm transition">
+              Save Permission
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </section>
+  </main>
+</div>
+{% endblock %}
