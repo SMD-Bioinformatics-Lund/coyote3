@@ -614,6 +614,12 @@ def delete_schema(schema_id):
 @admin_bp.route("/permissions")
 @require_admin
 def list_permissions():
+    """
+    Retrieves and groups inactive permissions by category, then renders the permissions template.
+
+    Returns:
+        str: Rendered HTML template with grouped permissions.
+    """
     policies = store.permissions_handler.get_all(is_active=False)
     categories = store.permissions_handler.get_categories()
     grouped = {}
@@ -625,6 +631,10 @@ def list_permissions():
 @admin_bp.route("/permissions/new", methods=["GET", "POST"])
 @require_admin
 def create_permission():
+    """
+    Handles the creation of a new permission policy based on a selected schema.
+    Renders a form for input and processes the form submission to store the policy.
+    """
 
     active_schemas = store.schema_handler.get_schemas_by_filter(
         schema_type="admin_config", schema_category="RBAC_permissions", is_active=True
@@ -670,6 +680,15 @@ def create_permission():
 @admin_bp.route("/permissions/<perm_id>/edit", methods=["GET", "POST"])
 @require_admin
 def edit_permission(perm_id):
+    """
+    Handle the editing of a permission policy.
+
+    Args:
+        perm_id (str): The unique identifier of the permission policy to edit.
+
+    Returns:
+        Response: Renders the edit permission template or redirects after updating.
+    """
     permission = store.permissions_handler.get(perm_id)
     if not permission:
         return abort(404)
@@ -702,6 +721,20 @@ def edit_permission(perm_id):
 @admin_bp.route("/permissions/<perm_id>/toggle", methods=["POST", "GET"])
 @require_admin
 def toggle_permission_active(perm_id):
+    """
+    Toggles the active status of a permission based on its ID.
+
+    Args:
+        perm_id (str): The unique identifier of the permission to toggle.
+
+    Returns:
+        Response: A redirect to the permissions list page if successful.
+        If the permission is not found, returns a 404 error response.
+
+    Side Effects:
+        - Updates the active status of the specified permission in the store.
+        - Displays a flash message indicating the new status of the permission.
+    """
     perm = store.permissions_handler.get(perm_id)
     if not perm:
         return abort(404)
@@ -715,6 +748,20 @@ def toggle_permission_active(perm_id):
 @admin_bp.route("/permissions/<perm_id>/delete", methods=["GET"])
 @require_admin
 def delete_permission(perm_id):
+    """
+    Deletes a permission policy by its ID.
+
+    Args:
+        perm_id (str): The unique identifier of the permission policy to be deleted.
+
+    Returns:
+        Response: A redirect to the list of permissions if the deletion is successful.
+                    Returns a 404 error if the permission policy is not found.
+
+    Side Effects:
+        - Deletes the specified permission policy from the permissions handler.
+        - Displays a success message using flash if the deletion is successful.
+    """
     perm = store.permissions_handler.get(perm_id)
     if not perm:
         return abort(404)
@@ -728,6 +775,12 @@ def delete_permission(perm_id):
 @admin_bp.route("/roles")
 @require_admin
 def list_roles():
+    """
+    Retrieve and render a list of all roles.
+
+    Returns:
+        str: Rendered HTML template displaying the roles.
+    """
     roles = store.roles_handler.get_all_roles()
     return render_template("access/roles.html", roles=roles)
 
@@ -736,6 +789,15 @@ def list_roles():
 @admin_bp.route("/roles/new", methods=["GET", "POST"])
 @require_admin
 def create_role():
+    """
+    Handles the creation of a new role based on a selected schema and user input.
+
+    Retrieves active role schemas and permission policies, processes form data,
+    and saves the new role configuration to the database.
+
+    Returns:
+        Redirects to the roles list page or renders the role creation template.
+    """
 
     active_schemas = store.schema_handler.get_schemas_by_filter(
         schema_type="admin_config", schema_category="access_control", is_active=True
@@ -800,6 +862,18 @@ def create_role():
 @admin_bp.route("/roles/<role_id>/edit", methods=["GET", "POST"])
 @require_admin
 def edit_role(role_id):
+    """
+    Handle the editing of a role by its ID.
+
+    Retrieves the role, updates its schema with permission options, and processes
+    form submissions to update the role's configuration.
+
+    Args:
+        role_id (str): The ID of the role to be edited.
+
+    Returns:
+        Response: Renders the edit role page or redirects after processing.
+    """
     role = store.roles_handler.get_role(role_id)
     if not role:
         return abort(404)
@@ -844,6 +918,15 @@ def edit_role(role_id):
 @admin_bp.route("/roles/<role_id>/toggle", methods=["POST", "GET"])
 @require_admin
 def toggle_role_active(role_id):
+    """
+    Toggles the active status of a role by its ID.
+
+    Args:
+        role_id (int): The ID of the role to toggle.
+
+    Returns:
+        Response: A redirect to the roles list or a 404 error if the role is not found.
+    """
     role = store.roles_handler.get(role_id)
     if not role:
         return abort(404)
@@ -857,6 +940,15 @@ def toggle_role_active(role_id):
 @admin_bp.route("/roles/<role_id>/delete", methods=["GET"])
 @require_admin
 def delete_role(role_id):
+    """
+    Deletes a role by its ID if it exists.
+
+    Args:
+        role_id (int): The ID of the role to delete.
+
+    Returns:
+        Response: A redirect to the roles list page or a 404 error if the role is not found.
+    """
     role = store.roles_handler.get_role(role_id)
     if not role:
         return abort(404)
@@ -870,6 +962,12 @@ def delete_role(role_id):
 @admin_bp.route("/schemas/permission_policies")
 @require_admin
 def get_permission_policy_schema():
+    """
+    Retrieve the schema for permission policies from the schema handler.
+
+    Returns:
+        dict: The permission policies schema, or an empty dictionary if not found.
+    """
     return store.schema_handler.get_schema("permission_policies") or {}
 
 
@@ -877,6 +975,12 @@ def get_permission_policy_schema():
 @admin_bp.route("/schemas/roles")
 @require_admin
 def get_roles_schema():
+    """
+    Retrieve the schema for roles from the schema handler.
+
+    Returns:
+        dict: The roles schema, or an empty dictionary if not found.
+    """
     return store.schema_handler.get_schema("roles") or {}
 
 

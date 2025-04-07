@@ -35,6 +35,8 @@
                 {% for key in keys %}
                   {% if schema.fields[key] %}
                     {% set field = schema.fields[key] %}
+                    {% set disabled = key in ['_id', 'created_by', 'created_on', 'updated_by', 'updated_on', 'version', 'schema_name', 'schema_version'] %}
+                    {% set default_value = field.default if field.default is defined else "" %}
                     <div {% if field.type in ['list', 'json'] %}class="col-span-full"{% endif %}>
                       <label class="block font-semibold text-xs mb-1">
                         {{ field.label or key }}
@@ -44,18 +46,22 @@
 
                       {% if field.type == 'bool' %}
                         <label class="inline-flex items-center gap-2 text-xs">
-                          <input type="checkbox" name="{{ key }}" value="true" class="accent-blue-600 rounded" checked>
+                          <input type="checkbox" name="{{ key }}" value="true" class="accent-blue-600 rounded" {% if default_value %}checked{% endif %} {% if disabled %}disabled{% endif %}>
                           <span>{{ field.label or key }}</span>
                         </label>
                       {% elif field.type == 'string' and field.multiline %}
                         <textarea name="{{ key }}" rows="4" placeholder="{{ field.placeholder or '' }}"
-                                  class="w-full font-mono text-xs bg-gray-100 border border-gray-400 rounded-md shadow-sm p-2 resize-y"></textarea>
+                                  class="w-full font-mono text-xs bg-gray-100 border border-gray-400 rounded-md shadow-sm p-2 resize-y {% if disabled %}text-gray-500{% endif %}" {% if disabled %}readonly{% endif %}>{{ default_value }}</textarea>
                       {% elif field.type == 'list' %}
                         <input type="text" name="{{ key }}" placeholder="Comma-separated"
-                                class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1">
+                                value="{{ default_value }}"
+                                class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 {% if disabled %}text-gray-500{% endif %}"
+                                {% if disabled %}readonly{% endif %}>
                       {% else %}
                         <input type="text" name="{{ key }}" placeholder="{{ field.placeholder or '' }}"
-                                class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1">
+                                value="{{ default_value }}"
+                                class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 {% if disabled %}text-gray-500{% endif %}"
+                                {% if disabled %}readonly{% endif %}>
                       {% endif %}
 
                       {% if field.help %}
@@ -94,12 +100,6 @@
                 <label class="block font-semibold text-xs mb-1">Updated On</label>
                 <input type="text" name="updated_on" value="{{ '' | now }}" readonly
                         class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 text-gray-500" />
-              </div>
-
-              <div>
-                <label class="block font-semibold text-xs mb-1">Version</label>
-                <input type="number" name="version" value="1" readonly
-                        class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1" />
               </div>
             </div>
           </div>

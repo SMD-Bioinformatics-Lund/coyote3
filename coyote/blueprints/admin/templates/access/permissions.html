@@ -60,7 +60,7 @@
                       <span class="block">{{ perm.updated_by or '-' }}</span>
                       <span class="text-gray-500 font-thin"><small>{{ perm.updated_on|human_date }}</small></span>
                     </td>
-                    <td class="p-2 flex gap-3">
+                    <td class="p-2 font-medium flex gap-2 flex-wrap">
                       <button onclick="showActionModal({
                           url: '{{ url_for('admin_bp.edit_permission', perm_id=perm._id) }}',
                           title: 'Edit Permission Policy',

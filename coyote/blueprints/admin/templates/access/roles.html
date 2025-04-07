@@ -70,7 +70,7 @@
                   <span class="text-gray-500 font-thin"><small>{{ role.updated_on | human_date }}</small></span>
                 </td>
                 <td class="p-2 text-xs">{{ role.version or '-' }}</td>
-                <td class="p-2 font-medium flex gap-3">
+                <td class="p-2 font-medium flex gap-2 flex-wrap">
 
                   <button onclick="showActionModal({
                       url: '{{ url_for('admin_bp.edit_role', role_id=role._id) }}',

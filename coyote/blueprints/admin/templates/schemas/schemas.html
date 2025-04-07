@@ -56,7 +56,7 @@
                       <span class="text-red-500 font-semibold">Inactive</span>
                     {% endif %}
                   </td>
-                  <td class="p-2 font-medium flex gap-3">
+                  <td class="p-2 font-medium flex gap-2 flex-wrap">
                     <button onclick="showActionModal({
                         url: '{{ url_for('admin_bp.edit_schema', schema_id=schema._id) }}',
                         title: 'Edit Schema',
