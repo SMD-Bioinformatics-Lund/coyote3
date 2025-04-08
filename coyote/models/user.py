@@ -1,87 +1,92 @@
-from werkzeug.security import check_password_hash
-from pydantic import BaseModel, EmailStr, Field
-from typing import List, Optional
+from pydantic import BaseModel, Field, EmailStr
+from typing import List, Optional, Set
 from datetime import datetime
-from enum import Enum
-
-
-class AppRole(str, Enum):
-    ADMIN = "admin"
-    DEVELOPER = "developer"
-    TESTER = "tester"
-    GROUP_MANAGER = "group_manager"
-    STANDARD_USER = "standard_user"
-    VIEWER = "viewer"
-    EXTERNAL = "external"
+from werkzeug.security import check_password_hash
 
 
 class UserModel(BaseModel):
-    id: str = Field(..., alias="_id")  # MongoDB uses "_id"
-    email: str = Field(..., alias="email")  # MongoDB uses "email"
+    id: str = Field(..., alias="_id")
+    email: EmailStr
+    username: str
     fullname: str
-    job_title: Optional[str] = None  # e.g. "Clinical Geneticist"
-    role: AppRole
+    role: str
     groups: List[str] = []
     permissions: List[str] = []
-    password: Optional[str] = None
-    updated: Optional[datetime] = None
-    created: Optional[datetime] = None
-    last_login: Optional[datetime] = None
+    denied_permissions: List[str] = []
+    access_level: int = 0
+    job_title: Optional[str] = None
     is_active: bool = True
 
-    def in_group(self, group: str) -> bool:
-        return group in self.groups
+    # -------------------- STATIC METHODS --------------------
+    @staticmethod
+    def validate_login(stored_hash: str, plain_password: str) -> bool:
+        return check_password_hash(stored_hash, plain_password)
 
+    @classmethod
+    def from_mongo(cls, user_doc: dict, role_doc: Optional[dict] = None) -> "UserModel":
+        role_doc = role_doc or {}
+
+        merged_permissions = list(
+            set(user_doc.get("permissions", [])) | set(role_doc.get("permissions", []))
+        )
+        merged_denied = list(
+            set(user_doc.get("denied_permissions", []))
+            | set(role_doc.get("denied_permissions", []))
+        )
+
+        safe_user_doc = {
+            k: v
+            for k, v in user_doc.items()
+            if k not in {"permissions", "denied_permissions", "access_level"}
+        }
+
+        return cls(
+            **safe_user_doc,
+            permissions=merged_permissions,
+            denied_permissions=merged_denied,
+            access_level=role_doc.get("level", 0),
+        )
+
+    def to_dict(self) -> dict:
+        return self.dict(
+            by_alias=True,
+            exclude={"updated", "created", "last_login", "password"},
+            exclude_none=True,  # 🔥 this is the magic that removes None fields
+        )
+
+    # -------------------- PROPERTIES & HELPERS --------------------
     def has_permission(self, perm: str) -> bool:
-        return perm in self.permissions
+        return perm in self.permissions and perm not in self.denied_permissions
 
     def has_any_permission(self, perms: List[str]) -> bool:
         return any(p in self.permissions for p in perms)
 
-    @property
-    def username(self) -> bool:
-        return self.id
+    def has_all_permissions(self, perms: List[str]) -> bool:
+        return all(p in self.permissions for p in perms)
+
+    def has_min_access_level(self, level: int) -> bool:
+        return self.access_level >= level
+
+    def has_min_role_priority(self, required_priority: int) -> bool:
+        return self.access_level >= required_priority
 
     @property
-    def is_admin(self) -> bool:
-        return self.role == AppRole.ADMIN
+    def granted_permissions(self) -> Set[str]:
+        return set(self.permissions) - set(self.denied_permissions)
 
     @property
-    def is_developer_or_tester(self) -> bool:
-        return self.role in {AppRole.DEVELOPER, AppRole.TESTER}
+    def forbidden_permissions(self) -> Set[str]:
+        return set(self.denied_permissions)
 
     @property
-    def is_group_manager(self) -> bool:
-        return self.role == AppRole.GROUP_MANAGER
+    def is_admin(self):
+        return self.role == "admin"
 
-    @property
-    def is_standard_user(self) -> bool:
-        return self.role == AppRole.STANDARD_USER
+    def can_access_group(self, group: str) -> bool:
+        return self.role == "admin" or group in self.groups
 
-    @property
-    def is_viewer(self) -> bool:
-        return self.role == AppRole.VIEWER
-
-    @property
-    def is_external(self) -> bool:
-        return self.role == AppRole.EXTERNAL
-
-    @property
-    def can_manage_group(self) -> bool:
-        return self.role in {AppRole.ADMIN, AppRole.GROUP_MANAGER}
-
-    @property
-    def has_limited_readonly_access(self) -> bool:
-        return self.role in {AppRole.VIEWER, AppRole.EXTERNAL}
-
-    model_config = {
-        "validate_by_name": True,
-        "populate_by_name": True,
-        "json_encoders": {datetime: lambda v: v.isoformat()},
-    }
-
-    def update_last_login(self):
-        self.last_login = datetime.utcnow()
+    def get_accessible_groups(self) -> List[str]:
+        return ["ALL"] if self.role == "admin" else self.groups
 
     def formatted_last_login(self) -> Optional[str]:
         return self.last_login.strftime("%Y-%m-%d %H:%M:%S") if self.last_login else None
@@ -92,6 +97,6 @@ class UserModel(BaseModel):
     def formatted_updated(self) -> Optional[str]:
         return self.updated.strftime("%Y-%m-%d %H:%M:%S") if self.updated else None
 
-    @staticmethod
-    def validate_login(stored_hash: str, plain_password: str) -> bool:
-        return check_password_hash(stored_hash, plain_password)
+    class Config:
+        allow_population_by_field_name = True
+        json_encoders = {datetime: lambda v: v.isoformat()}

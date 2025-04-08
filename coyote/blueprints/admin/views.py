@@ -101,7 +101,7 @@ def create_user():
     """
     # Fetch all active user schemas
     active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="user", schema_category="user_management", is_active=True
+        schema_type="user_config", schema_category="user_management", is_active=True
     )
 
     if not active_schemas:

@@ -38,7 +38,7 @@ class RolesHandler(BaseHandler):
         """
         Get a role
         """
-        return self.get_collection().find_one({"_id": role_id})
+        return self.get_collection().find_one({"_id": role_id.lower()})
 
     def delete_role(self, role_id: str) -> dict:
         """

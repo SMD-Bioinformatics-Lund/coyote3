@@ -1,6 +1,6 @@
 """Initialize Flask app."""
 
-from flask import Flask
+from flask import Flask, request, redirect, url_for, flash
 from flask_cors import CORS
 import config
 from . import extensions
@@ -70,13 +70,68 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
         if current_user.is_authenticated:
             fresh_user_data = store.user_handler.user_with_id(current_user.username)
             if fresh_user_data:
-                user_model = UserModel(**fresh_user_data)
+                role_doc = store.roles_handler.get_role(fresh_user_data.get("role")) or {}
+                user_model = UserModel.from_mongo(fresh_user_data, role_doc)
                 updated_user = User(user_model)
 
-                # Optional: avoid calling login_user if no real changes
-                if current_user.to_dict() != updated_user.to_dict():
+                # Re-login only if things have changed
+                current = current_user.to_dict()
+                updated = updated_user.to_dict()
+
+                if current != updated:
                     login_user(updated_user)
-                    app.logger.debug(f"Refreshed session for user: {updated_user.username}")
+                    app.logger.debug(f"Session refreshed: {updated_user.username}")
+
+    @app.before_request
+    def enforce_permissions():
+        if not current_user.is_authenticated:
+            return
+
+        view = app.view_functions.get(request.endpoint)
+        if not view:
+            return
+
+        required_permission = getattr(view, "required_permission", None)
+        required_level = getattr(view, "required_access_level", None)
+
+        # Permission check
+        if required_permission:
+            if required_permission not in current_user.permissions:
+                flash("You lack the required permission to access this page.", "red")
+                return redirect(url_for("home_bp.home_screen"))
+
+            if required_permission in current_user.denied_permissions:
+                flash("Access to this permission is explicitly forbidden.", "red")
+                return redirect(url_for("home_bp.home_screen"))
+
+        # Access level check
+        if required_level is not None:
+            if not current_user.has_min_access_level(required_level):
+                flash("Your role does not allow access to this page.", "red")
+                return redirect(url_for("home_bp.home_screen"))
+
+    @app.context_processor
+    def inject_permission_helpers():
+
+        def can(permission: str) -> bool:
+            return (
+                current_user.is_authenticated
+                and permission in current_user.permissions
+                and permission not in current_user.denied_permissions
+            )
+
+        def min_level(level: int) -> bool:
+            return current_user.is_authenticated and current_user.access_level >= level
+
+        def min_role(role_name: str) -> bool:
+            if not current_user.is_authenticated:
+                return False
+
+            role_doc = store.roles_handler.get_role(role_name)
+            required_level = role_doc.get("level") if role_doc else 0
+            return current_user.access_level >= required_level
+
+        return {"can": can, "min_level": min_level, "min_role": min_role}
 
     return app
 
@@ -114,7 +169,7 @@ def register_blueprints(app) -> None:
     bp_debug_msg("login_bp")
     from coyote.blueprints.login import login_bp
 
-    app.register_blueprint(login_bp, url_prefix="/login")
+    app.register_blueprint(login_bp, url_prefix="/coyote")
 
     # User Profile Stuff
     bp_debug_msg("profile_bp")

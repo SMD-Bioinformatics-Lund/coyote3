@@ -23,6 +23,12 @@ class DefaultConfig:
     LOGS = "logs"
     PRODUCTION = False
 
+    INTERNAL_USERS = {
+        "coyote3.developer@skane.se",
+        "coyote3.tester@skane.se",
+        "coyote3.external@skane.se",
+    }
+
     WTF_CSRF_ENABLED = True
     SECRET_KEY: str | None = os.getenv("FLASK_SECRET_KEY")
 

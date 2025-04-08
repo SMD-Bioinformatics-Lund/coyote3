@@ -285,6 +285,7 @@ def list_variants(id):
         if sample["cnv"].lower().endswith((".png", ".jpg", ".jpeg")):
             sample["cnvprofile"] = sample["cnv"]
 
+    print(f"Current User: {current_user.user_model.dict()}")
     return render_template(
         "list_variants_vep.html",
         checked_genelists=genelist_filter,  # TODO: even this is reduntant I guess
