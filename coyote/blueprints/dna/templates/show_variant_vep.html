@@ -4,6 +4,7 @@
 
 
 {% set sel_csq = variant.INFO.selected_CSQ %}
+{% set ns = namespace(alternate_transcripts=0) %}
 {% set genomic_change =  variant.CHROM ~ ":" ~ variant.POS ~ ", " ~  variant.REF ~ "/" ~ variant.ALT %}
 {% set indel_size = variant.ALT|length - variant.REF|length %}
 {% set subfolder = {'dir': "None"} %}
@@ -66,7 +67,7 @@
         <tbody class="break-all">
           <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">Gene</th>
-            <td class="p-1 text-right font-medium"><a href="/coyote/gene_simple/{{ sel_csq.SYMBOL }}" class="text-blue-600 underline">{{ sel_csq.SYMBOL }}</a></td>
+            <td class="p-1 text-right font-medium"><a href="{{ url_for('dna_bp.gene_view_simple', gene_name=sel_csq.SYMBOL) }}" class="text-blue-600 underline">{{ sel_csq.SYMBOL }}</a></td>
           </tr>
           <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">Variant Class</th>
@@ -298,7 +299,7 @@
 
   </aside>
 
-  <main class="flex-1 bg-transparent overflow-y-auto p-2 flex flex-col">
+  <main class="flex-1 bg-transparent overflow-y-auto py-2 px-1 flex flex-col">
 
     <!-- sample info -->
     {% include "sample_meta_info.html" %}
@@ -358,7 +359,7 @@
                 <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|unesc }}">
                 <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc }}">
               {% endif %}
-              {% if 'assay' in classification %}
+              {% if classification and 'assay' in classification %}
                 <input class="m-1 bg-gray-300 text-black text-sm px-3 py-1.5 rounded-md shadow-lg cursor-pointer hover:bg-gray-400 transition-all duration-300 ease-in-out transform hover:translate-y-1 whitespace-normal break-all" title="Remove {{assay}} classifications" id="remove" type="submit" onclick="return confirm('This will remove all tiering for {{assay}}, proceed?')" value="❌ Tier">
               {% elif 'admin' in current_user.get_groups() %}
                 <input class="m-1 bg-gray-300 text-black text-sm px-3 py-1.5 rounded-md shadow-lg hover:bg-gray-400 cursor-pointer transition-all duration-300 ease-in-out transform hover:translate-y-1 whitespace-normal break-all" title="Remove historic non-assay classifications" id="remove" type="submit" value="❌ Tier" onclick="return confirm('This will remove all historic tiering without any assays assigned, proceed?')">
@@ -428,12 +429,12 @@
     </section> 
 
     <!-- other information cards -->
-    <section class="bg-transparent px-2 py-3 my-2 flex flex-wrap items-start relative gap-10 m-2" id="snv-information-cards">
+    <section class="bg-transparent p-2 my-2 flex flex-wrap items-start relative gap-4" id="snv-information-cards">
       <!-- Comment box, other tiering and pon -->
-      <div class="flex flex-col gap-6 w-1/2 max-w-xl">
+      <div class="flex flex-col gap-y-4 max-w-xl">
         <!-- Comment box -->
         {% if current_user.get_role() != "readonly" %}
-          <div class="bg-transparent w-full max-w-xl" id="commenting-box-card">
+          <div class="bg-transparent min-w-400 w-full max-w-xl" id="commenting-box-card">
             <h2 class="text-sm font-semibold bg-gradient-to-b from-indigo-400 to-indigo-200 p-2 shadow-md rounded-t-lg break-all">Add new comment/annotation</h2>
             <div id="commenting_box" class="rounded-b-lg border border-gray-400 shadow-md p-2 overflow-x-auto">
               <form action="{{ url_for('dna_bp.add_variant_comment', id=variant._id) }}" method="post">
@@ -552,7 +553,7 @@
               <tbody id="alternate-transcripts-info-body" class="{% if variant.INFO.CSQ|length > 1 %}border-b border-gray-400 {% endif %}">
                 {% for csq in variant.INFO.CSQ %}
                   {% if csq.BIOTYPE == "protein_coding" and (csq.HGVSp|length > 0 or csq.HGVSc|length > 0) %}
-                    {% set alternate_transcripts = true %}
+                    {% set ns.alternate_transcripts = loop.index %}
                     {% if csq.Feature == sel_csq.Feature %}
                       <tr class="bg-purple-100 hover:bg-green-100 border-t border-gray-400 text-left align-top">
                     {% else %}
@@ -578,7 +579,7 @@
                         </div>
                       </span>
                     </td>
-                    <td class="p-2 truncate">
+                    <td class="p-2">
                       <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ csq.HGVSc|unesc|safe }}</span>`)">
                         <div class="relative flex inline-block">
                           <div id="{{csq.Feature}}-hgvsc-short" class="truncate max-w-15c">
@@ -605,13 +606,11 @@
                       {% endif %}
                     </td>
                   </tr>
-                  {% else %}
-                    {% set alternate_transcripts = false %}
                   {% endif %}
                 {% endfor %}
               </tbody>
             </table>
-            {% if not alternate_transcripts %}
+            {% if ns.alternate_transcripts == 0 %}
               <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md break-all">No alternate transcripts available.</em>
             {% endif %}
           </div>
@@ -619,13 +618,13 @@
 
       </div>
 
-      <div class="flex flex-col gap-6 w-1/2 max-w-2xl items-start">
+      <div class="flex flex-col gap-y-4 max-w-xl items-start">
         <!-- Variant annotations (All) -->
-        <div class="bg-gray-50 w-full max-w-2xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="green" pagination-button-text-color="black" id="variant-annotations-all">
+        <div class="bg-gray-50 w-full max-w-xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="green" pagination-button-text-color="black" id="variant-annotations-all">
           <h2 class="text-sm font-semibold bg-gradient-to-b from-green-400 to-green-200 p-2 shadow-lg rounded-t-lg break-all">Variant Annotations (All)</h2>
           <div class="rounded-b-lg overflow-x-auto">
             {% if annotations|length > 0 %}
-              <table class="w-full max-w-2xl table-auto text-xs text-gray-800 mb-1">
+              <table class="w-full max-w-xl table-auto text-xs text-gray-800 mb-1">
                 <thead class="capitalize tracking-wide rounded-t-lg bg-green-100">
                   <tr class="border-b text-left border-gray-800">
                     <th class="p-3 font-semibold w-1/6">Who</th>
@@ -658,11 +657,11 @@
         </div>
 
         <!-- Variant annotations (Assay) -->
-        <div class="bg-gray-50 w-full max-w-2xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="blue" pagination-button-text-color="black" id="variant-annotations-assay">
+        <div class="bg-gray-50 w-full max-w-xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="blue" pagination-button-text-color="black" id="variant-annotations-assay">
           <h2 class="text-sm font-semibold bg-gradient-to-b from-blue-400 to-blue-200 p-2 shadow-md rounded-t-lg break-all">Variant Annotations (Assay)</h2>
           <div class="rounded-b-lg overflow-x-auto">
             {% if annotations_interesting|length > 0 %}
-              <table class="w-full max-w-2xl table-auto text-xs text-gray-800">
+              <table class="w-full max-w-xl table-auto text-xs text-gray-800">
                 <thead class="capitalize tracking-wide rounded-t-lg bg-blue-100">
                   <tr class="border-b text-left border-gray-800">
                     <th class="p-3 font-semibold w-1/6">Who</th>
@@ -694,11 +693,11 @@
 
 
         <!-- Sample Specific Variant comments -->
-        <div class="bg-gray-50 w-full max-w-2xl shadow-md rounded-lg mb-1" id="variant-comments">
+        <div class="bg-gray-50 w-full max-w-xl shadow-md rounded-lg mb-1" id="variant-comments">
           <h2 class="text-sm font-semibold bg-gradient-to-b from-yellow-400 to-yellow-200 p-2 shadow-md rounded-t-lg break-all">Sample-Specific Variant Comments</h2>
           <div class="rounded-b-lg overflow-x-auto">
             {% if variant.comments|length > 0 and current_user.get_role() != "readonly" %}
-              <table class="w-full max-w-2xl table-auto text-xs text-gray-800">
+              <table class="w-full max-w-xl table-auto text-xs text-gray-800">
                 <thead class="capitalize tracking-wide rounded-t-lg bg-yellow-100">
                   <tr class="border-b text-left border-gray-800">
                     <th class="p-3 font-semibold w-1/6">Who</th>
@@ -777,11 +776,11 @@
         {% endif %}
 
         <!-- Knowledge Base -->
-        <div class="bg-gray-50 w-full max-w-2xl shadow-md rounded-lg mb-1" id="knowledge-base-card">
+        <div class="bg-gray-50 w-full max-w-xl shadow-md rounded-lg mb-1" id="knowledge-base-card">
           {% set kb_flase = True %}
           <h2 class="text-sm font-semibold bg-gradient-to-b from-pink-400 to-pink-200 p-2 shadow-md rounded-t-lg break-all">Knowledge Base</h2>
           <div class="rounded-b-lg overflow-x-auto">
-            <table class="w-full max-w-2xl table-auto text-xs text-gray-800">
+            <table class="w-full max-w-xl table-auto text-xs text-gray-800">
               <thead class="capitalize tracking-wide rounded-t-lg bg-pink-200">
                 <tr class="border-b text-left border-gray-800">
                   <th class="p-3 font-semibold w-1/12">Database</th>

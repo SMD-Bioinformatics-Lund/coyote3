@@ -21,10 +21,12 @@ from coyote.extensions import store, util
 from coyote.blueprints.dna import dna_bp, varqueries_notbad, filters
 from coyote.blueprints.home import home_bp
 from coyote.blueprints.dna.varqueries import build_query
-from coyote.blueprints.dna.forms import GeneForm
+from coyote.blueprints.dna.forms import GeneForm, FilterForm
 from coyote.errors.exceptions import AppError
 from typing import Literal, Any
 from datetime import datetime
+from bson import ObjectId
+from collections import defaultdict
 from flask_weasyprint import HTML, render_pdf
 from PIL import Image
 import os
@@ -400,18 +402,25 @@ def classify_multi_variant(id):
 def show_any_plot(fn, assay, build):
     if assay == "myeloid":
         if build == "38":
-            return send_from_directory("/access/myeloid38/plots", fn)
+            base_dir = "/access/myeloid38/plots"
+
         else:
-            return send_from_directory("/access/myeloid/plots", fn)
+            base_dir = "/access/myeloid/plots"
     elif assay == "lymphoid":
-        return send_from_directory("/access/lymphoid_hg38/plots", fn)
+        base_dir = "/access/lymphoid_hg38/plots"
     elif assay == "gmsonco" or assay == "swea":
-        return send_from_directory("/access/PARP_inhib/plots", fn)
+        base_dir = "/access/PARP_inhib/plots"
     elif assay == "tumwgs":
-        print(fn)
-        return send_from_directory("/access/tumwgs/cov", fn)
+        base_dir = "/access/tumwgs/cov"
     elif assay == "solid":
-        return send_from_directory("/access/solid_hg38/plots", fn)
+        base_dir = "/access/solid_hg38/plots"
+
+    file_path = os.path.join(base_dir, fn)
+
+    if not os.path.exists(file_path) and assay == "myeloid":
+        base_dir = "/access/gmshem/plots/"
+
+    return send_from_directory(base_dir, fn)
 
 
 ######### TODO ##########
@@ -433,6 +442,10 @@ def show_any_plot_rotated(fn, assay, build, angle=90):
 
     # Full image path
     image_path = os.path.join(base_dir, fn)
+
+    # Check if file exists #TODO: done especially for GMSHem assay
+    if not os.path.exists(image_path) and assay == "myeloid":
+        image_path = os.path.join("/access/gmshem/plots/", fn + ".png")
 
     # Check if file exists
     if not os.path.exists(image_path):
@@ -581,6 +594,86 @@ def show_variant(id):
         ),
         vep_conseq_translations=app.config.get("REPORT_CONFIG").get("VEP_CONSEQ_TRANSLATIONS"),
     )
+
+
+@dna_bp.route("/gene_simple/<string:gene_name>", methods=["GET", "POST"])
+@login_required
+def gene_view_simple(gene_name):
+    annotations = store.annotation_handler.get_gene_annotations(gene_name)
+
+    annotations_dict = util.dna.process_gene_annotations(annotations)
+    form = FilterForm()
+    checked_assays = []
+    if request.method == "POST":
+        if form.solid.data:
+            checked_assays.append("solid")
+        if form.myeloid.data:
+            checked_assays.append("myeloid")
+        if form.tumwgs.data:
+            checked_assays.append("tumwgs")
+        if form.lymphoid.data:
+            checked_assays.append("lymphoid")
+        if form.parp.data:
+            checked_assays.append("parp")
+        if form.historic.data:
+            checked_assays.append("historic")
+    return render_template(
+        "gene_view2.html",
+        annotations=annotations,
+        annodict=annotations_dict,
+        gene=gene_name,
+        form=form,
+        checked_assays=checked_assays,
+    )
+
+
+############ TODO ##############
+@dna_bp.route("/gene/<string:gene_name>", methods=["GET", "POST"])
+@login_required
+def gene_view(gene_name):
+
+    # variants_iter = app.config["VAR_COLL"].find({"INFO.CSQ": {"$elemMatch": {"SYMBOL": gene_name}}})
+
+    variants_iter = store.variant_handler.get_variants_by_gene(gene_name)
+    variants = list(variants_iter)
+
+    app.logger.debug(f"gene specific variants: {len(variants)}")
+
+    # TODO:  How slow is this????
+    variants = util.dna.add_global_annotations(variants, "assay", "subpanel")
+    # print(variants[0])
+
+    variant_summary = defaultdict(dict)
+    sample_oids = []
+    for var in variants:
+        short_pos = var.get("simple_id", None)
+
+        if not var.get("classification"):
+            continue
+
+        if var["classification"].get("class", 999) != 999:
+
+            sample_oids.append(ObjectId(var["SAMPLE_ID"]))
+
+            if short_pos in variant_summary:
+                variant_summary[short_pos]["count"] += 1
+                variant_summary[short_pos]["samples"].append(var["SAMPLE_ID"])
+            else:
+                variant_summary[short_pos]["count"] = 1
+                variant_summary[short_pos]["CSQ"] = var["INFO"]["selected_CSQ"]
+                variant_summary[short_pos]["anno"] = var["global_annotations"]
+                variant_summary[short_pos]["class"] = var["classification"]
+                variant_summary[short_pos]["samples"] = [var["SAMPLE_ID"]]
+
+    # Get display names for the samples, from db.
+    samples = store.sample_handler.get_samples_by_oids(sample_oids)
+
+    # Create hash for translation ID -> display name, from samples
+    sample_names = {}
+    for sample in samples:
+        sample_names[str(sample["_id"])] = sample["name"]
+
+    return render_template("gene_view.html", variants=variant_summary, sample_names=sample_names)
 
 
 @dna_bp.route("/var/unfp/<string:id>", methods=["POST"])
@@ -952,26 +1045,53 @@ def generate_dna_report(id, *args, **kwargs):
     ## send over all defined gene panels per assay, to matching template ##
     gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
 
+    ## Check the length of the sample groups from db, and if len is more than one, tumwgs-solid or tumwgs-hema takes the priority in new coyote
+    smp_grp = util.common.select_one_sample_group(sample.get("groups"))
+
+    if smp_grp is None:
+        smp_grp = "unknown-default"
+
+    # Get group parameters from the sample group config file
+    group_params = util.common.get_group_parameters(smp_grp)
+
+    if not group_params:
+        group_params = util.common.get_unknown_default_parameters()
+
+    # Get group defaults from coyote config, if not found in group config
+    settings = util.common.get_group_defaults(group_params)
+
     # TODO: Fix this function
-    genelist_filter = sample.get("checked_genelists", {})
+    if "default_genelist_set" in group_params and subpanel:
+        panel_genelist = store.panel_handler.get_panel(subpanel=subpanel, type="genelist")
+        if panel_genelist:
+            settings["default_checked_genelists"] = {f"genelist_{subpanel}": 1}
+
+    # genelist_filter = sample.get("checked_genelists", {})
+    genelist_filter = sample.get("checked_genelists", settings["default_checked_genelists"])
 
     ## remove genelist_ from each list
-    genelist_filter_ = [sub.replace("genelist_", "") for sub in genelist_filter]
+    genelist_filter_names = [
+        g_list.replace("genelist_", "")
+        for g_list in genelist_filter
+        if genelist_filter[g_list] == 1
+    ]
+    checked_genelist_dict = util.common.create_genelists_dict(genelist_filter_names, gene_lists)
 
     ## displaynames for report
-    genelist_dispnames = util.common.get_genelist_dispnames(genelists_assay, genelist_filter_)
+    genelist_dispnames = util.common.get_genelist_dispnames(genelists_assay, checked_genelist_dict)
 
     panels = [panel.get("name") for panel in genelists_assay]
-
-    group = util.common.select_one_sample_group(sample.get("groups"))
-    group_params = util.common.get_group_parameters(group)
-    settings = util.common.get_group_defaults(group_params)
 
     ## get sample settings
     sample_settings = util.common.get_sample_settings(sample, settings)
 
-    filter_conseq = util.dna.get_filter_conseq_terms(sample_settings.get("csq_filter", {}).keys())
-    filter_genes = util.common.create_filter_genelist(genelist_filter, gene_lists)
+    filter_conseq = util.dna.get_filter_conseq_terms(sample_settings["csq_filter"].keys())
+    filter_genes = util.common.create_filter_genelist(checked_genelist_dict)
+
+    disp_pos = []
+    if "verif_samples" in group_params:
+        if sample["name"] in group_params["verif_samples"]:
+            disp_pos = group_params["verif_samples"][sample["name"]]
 
     query = build_query(
         assay,
@@ -984,10 +1104,12 @@ def generate_dna_report(id, *args, **kwargs):
             "max_popfreq": sample_settings["max_popfreq"],
             "filter_conseq": filter_conseq,
             "filter_genes": filter_genes,
+            "disp_pos": disp_pos,
+            "fp": {"$ne": True},
+            "irrelevant": {"$ne": True},
         },
     )
-    query["fp"] = {"$ne": True}
-    query["irrelevant"] = {"$ne": True}
+
     variants_iter = store.variant_handler.get_case_variants(query)
 
     variants = list(variants_iter)
@@ -1011,7 +1133,12 @@ def generate_dna_report(id, *args, **kwargs):
 
     # TODO: LOW COV
     # LOWCOV data, very computationally intense for samples with many regions
-    low_cov = {}
+    low_cov = store.coverage_handler.get_sample_coverage(sample["name"])
+    low_cov_chrs = list(set([x["chr"] for x in low_cov]))
+    cosmic_ids = store.cosmic_handler.get_cosmic_ids(chr=low_cov_chrs)
+
+    if assay != "solid":
+        low_cov = util.dna.filter_low_coverage_with_cosmic(low_cov, cosmic_ids)
     # low_cov = store.coverage_handler.get_sample_coverage(sample["name"])
     # print(list(low_cov))
 
@@ -1039,8 +1166,10 @@ def generate_dna_report(id, *args, **kwargs):
             if not biomarkers_iter:
                 biomarkers_iter = True
         if group_params["DNA"].get("FUSIONS"):
-            transloc_iter = store.transloc_handler.get_interesting_sample_translocations(
-                sample_id=str(sample["_id"])
+            transloc_iter = list(
+                store.transloc_handler.get_interesting_sample_translocations(
+                    sample_id=str(sample["_id"])
+                )
             )
             if not transloc_iter:
                 transloc_iter = True
@@ -1065,7 +1194,7 @@ def generate_dna_report(id, *args, **kwargs):
         group=sample["groups"],
         cnvs=cnvs_iter,  # cnvs_list, TMP
         cnv_profile_base64=cnv_profile_base64,
-        translocs=list(transloc_iter),  # not gmsonco
+        translocs=transloc_iter,  # not gmsonco
         class_desc=app.config.get("REPORT_CONFIG").get("CLASS_DESC"),
         class_desc_short=app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT"),
         report_date=report_date,

@@ -1,0 +1,109 @@
+{% extends "layout.html" %}
+
+{% block body %}
+
+<div class="flex w-full h-full overflow-hidden">
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+    <section id="gene_variants" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
+
+      <div class="justify-start">
+        <div class="w-4/5  shadow-3xl rounded-2xl p-4 relative overflow-hidden">
+          <div class="overflow-x-auto rounded-2xl shadow-3xl relative">
+            <span class="text-lg font-semibold">Gene Annotations</span>
+            <table class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
+              <thead class="rounded-t-2xl overflow-hidden border-gray-800 sortable">
+                <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
+                  <th class="p-2 font-normal">Variant P</th>
+                  <th class="p-2 font-normal">Variant C</th>
+                  <th class="p-2 font-normal">Consequence</th>
+                  <th class="p-2 font-normal">Tier</th>
+                  <th class="p-2 font-normal">Comment</th>
+                  <th class="p-2 font-normal" data-autoclick="true">Time added</th>
+                  <th class="p-2 font-normal">Count</th>
+                  <th class="p-2 font-normal">Samples</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% set ns = namespace(has_variants=false) %}
+                {% for pos, var in variants.items() if var.class.class != 999 %}
+                  {% set ns.has_variants = true %}
+                  <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
+                    <td class="p-2 font-medium">
+                      <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ var.CSQ.HGVSp|unesc|safe }}</span>`)">
+                        <div class="relative flex inline-block">
+                          <div id="idp-{{var.CSQ.HGVSp}}-short" class="truncate max-w-30c">
+                            {{ var.CSQ.HGVSp|unesc|safe }}
+                          </div>
+                          <div id="idp-{{var.CSQ.HGVSp}}-full" class="hidden break-all whitespace-normal">
+                            {{ var.CSQ.HGVSp|unesc|safe }}
+                          </div>
+                          <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
+                                  data-target="idp-{{var.CSQ.HGVSp}}"
+                                  onclick="toggleLongText(this)">
+                            [+]
+                          </button>
+                        </div>
+                      </span>
+                    </td>
+                    <td class="p-2 font-medium">
+                      {{var.CSQ.HGVSc|no_transid|unesc|ellipsify(35)|safe}}
+                      <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ var.CSQ.HGVSc|unesc|safe }}</span>`)">
+                        <div class="relative flex inline-block">
+                          <div id="idc-{{var.CSQ.HGVSc}}-short" class="truncate max-w-30c">
+                            {{ var.CSQ.HGVSc|unesc|safe }}
+                          </div>
+                          <div id="idc-{{var.CSQ.HGVSc}}-full" class="hidden break-all whitespace-normal">
+                            {{ var.CSQ.HGVSc|unesc|safe }}
+                          </div>
+                          <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
+                                  data-target="idc-{{var.CSQ.HGVSc}}"
+                                  onclick="toggleLongText(this)">
+                            [+]
+                          </button>
+                        </div>
+                      </span>
+                    </td>
+                    <td class="p-2 font-medium">
+                      {{var.CSQ.Consequence|multirow|safe}}
+                    </td>
+                    <td class="p-2 font-medium">
+                      {% if var.class.class != 999 %}
+                        <div class="inline-flex items-center px-3 py-1 font-semibold rounded-full bg-tier{{ var.class.class }} text-white shadow-md">
+                          {{ var.class.class }}
+                        </div>
+                      {% endif %}
+                    </td>
+                    <td class="p-2 font-medium">
+                      {% if var.anno %}
+                        {{ var.anno[0].text }} <p>
+                      {% endif %}
+                    </td>
+                    <td class="p-2 font-medium">
+                      {% if var.anno %}
+                        {{ var.anno[0].time_created|human_date }} <p>
+                      {% endif %}
+                    </td>
+                    <td class="p-2 font-medium">{{var.count}}</td>
+                    <td class="p-2 font-medium">
+                      <!-- TODO: FIX THIS FOR RNA SAMPLES WHEN WE FIX THE LOGIC (Issue: #49)-->
+                      {% for id in var.samples %}
+                          <a href="{{ url_for('dna_bp.list_variants', id=sample_names[id]) }}" class="text-blue-500 hover:underline">{{ sample_names[id] }}</a><br>
+                      {% endfor %}
+                    </td>
+                  </tr>  
+                {% endfor %}
+                {% if not ns.has_variants %}
+                  <tr class="border-b border-gray-300">
+                    <td colspan="8" class="p-4 text-center text-sm text-gray-800 font-medium italic">No variants.</td>
+                  </tr>
+              {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+{% endblock %}

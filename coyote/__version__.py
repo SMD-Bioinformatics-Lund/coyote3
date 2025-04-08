@@ -1,4 +1,4 @@
-__version__ = "3.0.0.alpha-2"
+__version__ = "3.0.0.alpha-3"
 
 
 # For easier access by build-scripts:

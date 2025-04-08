@@ -103,6 +103,7 @@ class DefaultConfig:
             "gms_myeloid",
             "myeloid_GMSv1",
             "myeloid_GMSv1_hg38",
+            "GMSHem",
             # "lymphoid_GMSv1",
         ],
         "lymphoid": ["lymphoid", "lymphoid_vep", "lymphoid_GMSv1"],

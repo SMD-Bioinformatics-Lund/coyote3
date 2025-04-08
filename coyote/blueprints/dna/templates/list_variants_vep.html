@@ -115,9 +115,18 @@
         </a>
       </div>
 
-      <div class="flex border-l-8 border-orange-400 mt-1">
+      {% if sample.cov %}
+        <div class="flex border-l-8 border-orange-400 mt-1">
+          <a href="{{ url_for('cov_bp.get_cov', sample_id=sample.name) }}" 
+            class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
+              <span class="vertical-text">Coverage</span>
+          </a>
+        </div>
+      {% endif %}
+
+      <div class="flex border-l-8 border-orange-400 ">
         <a href="#lowcov" 
-          class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
+          class="relative bg-gray-500 text-white text-xs text-center mt-1 py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
             <span class="vertical-text">Low Cov</span>
         </a>
       </div>
@@ -176,7 +185,7 @@
                         <th class="px-2 py-3 font-semibold max-w-30c" id="variant-table-header-flags">Flags</th>
                         {% for gt in variants[0].GT|sort(attribute='type') %}
                           {% if gt.type == "case" %}
-                            <th {% if assay == "myeloid" %}data-autoclick="true"{% endif %} class="px-1 py-3 font-semibold max-w-20c break-words whitespace-normal" id="variant-table-header-case">{{ gt.type }} ({{gt.sample}})</th>
+                            <th data-autoclick="true" class="px-1 py-3 font-semibold max-w-20c break-words whitespace-normal" id="variant-table-header-case">{{ gt.type }} ({{gt.sample}})</th>
                           {% else %}
                             <th class="px-2 py-3 font-semibold max-w-20c break-words whitespace-normal" id="variant-table-header-control">{{ gt.type }} ({{gt.sample}})</th>
                           {% endif %}
@@ -369,6 +378,7 @@
                                 {{ var.additional_classification.tier }}
                               </div>
                             {% endif %}
+                            
                           {% elif var.other_classification|length > 0 %}
                             <div class="inline-flex items-center px-3 py-1 font-semibold rounded-full bg-gray-400 text-white shadow-md">
                               ?
@@ -932,16 +942,38 @@
               </div>
               <div class="overflow-auto relative" id="comments-box-div">
                 <form action="{{ url_for('common_bp.add_sample_comment', id=sample._id) }}" method="post">
-                  <textarea id="comment_textarea" name="sample_comment" placeholder="Type to write a new summary for {{ sample.name }} sample..." class="w-5/6 p-4 border border-gray-400 rounded mx-5 my-4 h-40"></textarea><br>
-                  <input type="submit" value="Save" class="inline-block ml-10 mb-5 px-3 py-2 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg cursor-pointer">
-                  <button type="button" class="inline-block ml-5 mb-5 px-3 py-2 text-black bg-gray-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-gray-500 hover:text-white hover:shadow-lg cursor-pointer" onclick="addAIText()">Suggest</button>
-                  <button class="inline-block ml-5 mb-5 px-3 py-2 text-black bg-green-400 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-green-500 hover:text-white hover:shadow-lg cursor-pointer" onclick="window.location.href='preview_report/{{sample.name}}'">Preview report</button>
+                  <textarea id="comment_textarea"
+                            name="sample_comment"
+                            placeholder="Type to write a new summary for {{ sample.name }} sample..."
+                            class="w-5/6 p-4 border border-gray-400 rounded mx-5 my-4 h-40"></textarea>
+            
+                  <!-- Buttons Row -->
+                  <div class="flex flex-wrap items-center gap-4 mx-5 mb-5">
+                    <input type="submit"
+                          value="Save"
+                          class="p-2 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg cursor-pointer">
+            
+                    <button type="button"
+                            onclick="addAIText()"
+                            class="p-2 text-black bg-gray-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-gray-500 hover:text-white hover:shadow-lg cursor-pointer">
+                      Suggest
+                    </button>
+            
+                    <button type="button"
+                            onclick="window.location.href='preview_report/{{ sample.name }}'"
+                            class="p-2 text-black bg-green-400 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-green-500 hover:text-white hover:shadow-lg cursor-pointer">
+                      Preview Report
+                    </button>
+                  </div>
                 </form>
+            
+                <!-- AI suggestion box -->
                 <div id="suggestion" class="hidden">
                   {{ ai_text }}
                 </div>
               </div>
             </div>
+            
 
 
           </div>
