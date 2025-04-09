@@ -50,6 +50,12 @@ def format_panel_flag_snv(panel_str):
 
 
 @app.template_filter()
+def sortable_date(value):
+    s = str(value).translate("- :.")
+    return s
+
+
+@app.template_filter()
 def standard_HGVS(st):
     if st:
         parts = st.rsplit(".", 1)
@@ -78,11 +84,10 @@ def format_tier(st):
     return st
 
 
-
 @app.template_filter()
 def format_filter(filters):
     """Formats variant filters into colored badges with tooltips and wrapping behavior"""
-    
+
     # Define color categories and tooltips
     filter_classes = {
         "PASS": ("PASS", "bg-pass", "Variant passed all quality filters"),
@@ -91,22 +96,51 @@ def format_filter(filters):
     }
 
     warn_filters = {
-        "WARN_HOMOPOLYMER": ("HP", "bg-warn", "Variant in homopolymer"),
-        "WARN_STRANDBIAS": ("SB", "bg-warn", "Strand bias detected"),
-        "WARN_LOW_TVAF": ("LO", "bg-warn", "Low tumor VAF"),
-        "WARN_VERYLOW_TVAF": ("XLO", "bg-warn", "Very low tumor VAF"),
-        "WARN_PON": ("PON", "bg-warn", "Variant seen in panel of normals"),
-        "WARN_FFPE_PON": ("FFPE", "bg-warn", "Variant in panel of FFPE-normals"),
+        "HP": ("HP", "bg-warn", "Variant in homopolymer"),
+        "SB": ("SB", "bg-warn", "Strand bias detected"),
+        "LO": ("LO", "bg-warn", "Low tumor VAF"),
+        "XLO": ("XLO", "bg-warn", "Very low tumor VAF"),
+        "PON": ("PON", "bg-warn", "Variant in panel of normals"),
+        "FFPE": ("FFPE", "bg-warn", "Variant in panel of FFPE-normals"),
     }
 
     fail_filters = {
-        "FAIL_NVAF": ("N", "bg-fail", "Too high VAF in normal sample"),
-        "FAIL_PVALUE": ("P", "bg-fail", "Too low P-value"),
-        "FAIL_STRANDBIAS": ("SB", "bg-fail", "Strand bias failed"),
-        "FAIL_LONGDEL": ("LD", "bg-fail", "Long deletion detected"),
-        "FAIL_PON": ("PON", "bg-fail", "Variant failed due to panel of normals"),
-        "FAIL_FFPE_PON": ("FFPE", "bg-fail", "Variant failed due to FFPE panel"),
+        "N": ("N", "bg-fail", "Too high VAF in normal sample"),
+        "P": ("P", "bg-fail", "Too low P-value"),
+        "SB": ("SB", "bg-fail", "Strand bias failed"),
+        "LD": ("LD", "bg-fail", "Long deletion detected"),
+        "PON": ("PON", "bg-fail", "Variant failed due to panel of normals"),
+        "FFPE": ("FFPE", "bg-fail", "Variant failed due to FFPE panel"),
     }
+
+    # Mapping of multiple raw filter names to grouped categories
+    warn_map = {
+        "WARN_HOMOPOLYMER": "HP",
+        "WARN_STRANDBIAS": "SB",
+        "WARN_LOW_TVAF": "LO",
+        "WARN_VERYLOW_TVAF": "XLO",
+        "WARN_PON_freebayes": "PON",
+        "WARN_PON_vardict": "PON",
+        "WARN_PON_tnscope": "PON",
+        "WARN_FFPE_PON_freebayes": "FFPE",
+        "WARN_FFPE_PON_vardict": "FFPE",
+        "WARN_FFPE_PON_tnscope": "FFPE",
+    }
+
+    fail_map = {
+        "FAIL_NVAF": "N",
+        "FAIL_PVALUE": "P",
+        "FAIL_STRANDBIAS": "SB",
+        "FAIL_LONGDEL": "LD",
+        "FAIL_PON_freebayes": "PON",
+        "FAIL_PON_vardict": "PON",
+        "FAIL_PON_tnscope": "PON",
+        "FAIL_FFPE_PON_freebayes": "FFPE",
+        "FAIL_FFPE_PON_vardict": "FFPE",
+        "FAIL_FFPE_PON_tnscope": "FFPE",
+    }
+
+    skip_filters = ["WARN_NOVAR"]
 
     html = ""
     seen_flags = set()
@@ -114,16 +148,28 @@ def format_filter(filters):
     for f in filters:
         if f in filter_classes:
             text, css_class, tooltip = filter_classes[f]
-        elif f in warn_filters and f not in seen_flags:
-            text, css_class, tooltip = warn_filters[f]
             seen_flags.add(f)
-        elif f in fail_filters and f not in seen_flags:
-            text, css_class, tooltip = fail_filters[f]
+        elif f in warn_map:
+            if warn_map[f] in seen_flags:
+                continue
+            else:
+                text, css_class, tooltip = warn_filters[warn_map[f]]
+                seen_flags.add(text)
+        elif f in fail_map:
+            if fail_map[f] in seen_flags:
+                continue
+            else:
+                text, css_class, tooltip = fail_filters[fail_map[f]]
+                seen_flags.add(text)
+        elif f in skip_filters:
             seen_flags.add(f)
-        elif "FAIL" in f:
+            continue
+        elif "FAIL" in f and f not in seen_flags:
             text, css_class, tooltip = f, "bg-fail", "Failure due to quality issues"
-        elif "WARN" in f:
+            seen_flags.add(f)
+        elif "WARN" in f and f not in seen_flags:
             text, css_class, tooltip = f, "bg-warn", "Warning due to quality concerns"
+            seen_flags.add(f)
         else:
             continue  # Ignore unknown filters
 
@@ -134,7 +180,6 @@ def format_filter(filters):
         )
 
     return html
-
 
 
 @app.template_filter()

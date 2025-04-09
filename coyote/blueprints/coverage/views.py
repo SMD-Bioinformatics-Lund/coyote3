@@ -40,7 +40,8 @@ def get_cov(sample_id):
     genelist_filter = sample.get("checked_genelists", settings["default_checked_genelists"])
     genelist_clean = [name.replace("genelist_", "") for name in genelist_filter]
 
-    filter_genes = util.common.create_filter_genelist(genelist_filter, gene_lists)
+    checked_genelist_dict = util.common.create_genelists_dict(genelist_clean, gene_lists)
+    filter_genes = util.common.create_filter_genelist(checked_genelist_dict)
     cov_dict = store.coverage2_handler.get_sample_coverage(str(sample['_id']))
     del cov_dict['_id']
     del sample['_id']

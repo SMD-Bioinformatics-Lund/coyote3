@@ -2,6 +2,7 @@ from coyote.db.base import BaseHandler
 from datetime import datetime
 from pymongo.results import DeleteResult
 from flask import flash
+from collections import defaultdict
 
 
 class AnnotationsHandler(BaseHandler):
@@ -88,8 +89,10 @@ class AnnotationsHandler(BaseHandler):
                             ass_sub = f"{anno['assay']}:{anno['subpanel']}"
                             latest_classification_other[ass_sub] = anno["class"]
                 except:
-                    latest_classification = anno
-                    latest_classification_other["N/A"] = anno["class"]
+                    latest_classification = None
+                    latest_classification_other[
+                        f"{anno.get('assay', 'NA')}:{anno.get('subpanel', 'NA')}"
+                    ] = anno["class"]
             elif "text" in anno:
                 try:
                     if assay == "solid":
@@ -111,10 +114,6 @@ class AnnotationsHandler(BaseHandler):
         latest_other_arr = []
         for latest_assay in latest_classification_other:
             assay_sub = latest_assay.split(":")
-            try:
-                a = assay_sub[1]
-            except:
-                assay_sub.append(None)
             latest_other_arr.append(
                 {
                     "assay": assay_sub[0],
@@ -246,7 +245,7 @@ class AnnotationsHandler(BaseHandler):
         ## If variant has no match to current assay, it has an historical variant, i.e. not assigned to an assay. THIS IS DANGEROUS, maybe limit to admin?
         if len(num_assay) == 0 and "admin" in user_groups:
             per_assay = list(
-                self.get_collection().find(
+                self.get_collection().find(  # may be change it to delete later
                     {
                         "class": {"$exists": True},
                         "variant": variant,
@@ -268,6 +267,12 @@ class AnnotationsHandler(BaseHandler):
             )
 
         return per_assay
+
+    def get_gene_annotations(self, gene_name: str) -> list:
+        """
+        Get all annotations for a given gene
+        """
+        return self.get_collection().find({"gene": gene_name}).sort("time_created", 1)
 
     def add_anno_comment(self, comment: dict) -> None:
         """

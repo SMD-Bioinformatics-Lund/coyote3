@@ -12,104 +12,115 @@ def build_query(which, settings):
         query = {
             "SAMPLE_ID": settings["id"],
             "$and": [
-                gene_pos_filter,
-            ],  # gene_pos_filter
-            "$or": [
-                {"INFO.MYELOID_GERMLINE": 1},
-                {"FILTER": {"$in": ["GERMLINE"]}, "genes": {"$in": ["CEBPA"]}},
-                {"$and": [{"POS": {"$gt": 115256520}}, {"POS": {"$lt": 115256538}}, {"CHROM": 1}]},
+                gene_pos_filter,  # gene_pos_filter
                 {
-                    "$and": [
-                        # Case sample fulfills filter critieria
+                    "$or": [
+                        {"INFO.MYELOID_GERMLINE": 1},
                         {
-                            "GT": {
-                                "$elemMatch": {
-                                    "type": "case",
-                                    "AF": {"$gte": float(settings["min_freq"])},
-                                    "DP": {"$gte": float(settings["min_depth"])},
-                                    "VD": {"$gte": float(settings["min_reads"])},
-                                }
-                            }
+                            "FILTER": {"$in": ["GERMLINE"]},
+                            "INFO.CSQ": {"$elemMatch": {"SYMBOL": "CEBPA"}},
                         },
-                        # Filters if any of the population frequencies are above the max_popfreq
                         {
-                            "$nor": [
-                                {
-                                    "gnomad_frequency": {
-                                        "$exists": "true",
-                                        "$type": "number",
-                                        "$gt": float(settings["max_popfreq"]),
-                                    }
-                                },
-                                {
-                                    "gnomad_max": {
-                                        "$exists": "true",
-                                        "$type": "number",
-                                        "$gt": float(settings["max_popfreq"]),
-                                    }
-                                },
-                                {
-                                    "exac_frequency": {
-                                        "$exists": "true",
-                                        "$type": "number",
-                                        "$gt": float(settings["max_popfreq"]),
-                                    }
-                                },
-                                {
-                                    "thousandG_frequency": {
-                                        "$exists": "true",
-                                        "$type": "number",
-                                        "$gt": float(settings["max_popfreq"]),
-                                    }
-                                },
-                            ],
+                            "$and": [
+                                {"POS": {"$gt": 115256520}},
+                                {"POS": {"$lt": 115256538}},
+                                {"CHROM": 1},
+                            ]
                         },
-                        # Either control sample fulfills criteria, or there is no control sample (unpaired tumor sample)
                         {
-                            "$or": [
+                            "$and": [
+                                # Case sample fulfills filter critieria
                                 {
                                     "GT": {
                                         "$elemMatch": {
-                                            "type": "control",
-                                            "AF": {"$lte": float(settings["max_freq"])},
+                                            "type": "case",
+                                            "AF": {"$gte": float(settings["min_freq"])},
                                             "DP": {"$gte": float(settings["min_depth"])},
+                                            "VD": {"$gte": float(settings["min_reads"])},
                                         }
                                     }
                                 },
-                                {"GT": {"$not": {"$elemMatch": {"type": "control"}}}},
-                            ]
-                        },
-                        # Either variant fullfills Consequence-filter or is a structural variant in FLT3.
-                        {
-                            "$or": [
+                                # Either control sample fulfills criteria, or there is no control sample (unpaired tumor sample)
                                 {
-                                    "INFO.selected_CSQ": {
-                                        "$elemMatch": {
-                                            "Consequence": {"$in": settings["filter_conseq"]}
-                                        }
-                                    }
-                                },
-                                {
-                                    "INFO.CSQ": {
-                                        "$elemMatch": {
-                                            "Consequence": {"$in": settings["filter_conseq"]}
-                                        }
-                                    }
-                                },
-                                {
-                                    "$and": [
-                                        {"genes": {"$in": ["FLT3"]}},
+                                    "$or": [
                                         {
-                                            "$or": [
-                                                {"INFO.SVTYPE": {"$exists": "true"}},
-                                                {"ALT": large_ins_regex},
+                                            "GT": {
+                                                "$elemMatch": {
+                                                    "type": "control",
+                                                    "AF": {"$lte": float(settings["max_freq"])},
+                                                    "DP": {"$gte": float(settings["min_depth"])},
+                                                }
+                                            }
+                                        },
+                                        {"GT": {"$not": {"$elemMatch": {"type": "control"}}}},
+                                    ]
+                                },
+                                # Filters if any of the population frequencies are above the max_popfreq
+                                {
+                                    "$nor": [
+                                        {
+                                            "gnomad_frequency": {
+                                                "$exists": "true",
+                                                "$type": "number",
+                                                "$gt": float(settings["max_popfreq"]),
+                                            }
+                                        },
+                                        {
+                                            "gnomad_max": {
+                                                "$exists": "true",
+                                                "$type": "number",
+                                                "$gt": float(settings["max_popfreq"]),
+                                            }
+                                        },
+                                        {
+                                            "exac_frequency": {
+                                                "$exists": "true",
+                                                "$type": "number",
+                                                "$gt": float(settings["max_popfreq"]),
+                                            }
+                                        },
+                                        {
+                                            "thousandG_frequency": {
+                                                "$exists": "true",
+                                                "$type": "number",
+                                                "$gt": float(settings["max_popfreq"]),
+                                            }
+                                        },
+                                    ],
+                                },
+                                # Either variant fullfills Consequence-filter or is a structural variant in FLT3.
+                                {
+                                    "$or": [
+                                        {
+                                            "INFO.selected_CSQ.Consequence": {
+                                                "$in": settings["filter_conseq"]
+                                            }
+                                        },
+                                        {
+                                            "INFO.CSQ": {
+                                                "$elemMatch": {
+                                                    "Consequence": {
+                                                        "$in": settings["filter_conseq"]
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "$and": [
+                                                {"genes": {"$in": ["FLT3"]}},
+                                                {
+                                                    "$or": [
+                                                        {"INFO.SVTYPE": {"$exists": "true"}},
+                                                        {"ALT": large_ins_regex},
+                                                    ]
+                                                },
                                             ]
                                         },
                                     ]
                                 },
                             ]
                         },
-                    ]
+                    ],
                 },
             ],
         }
@@ -138,112 +149,126 @@ def build_query(which, settings):
         query = {
             "SAMPLE_ID": settings["id"],
             "$and": [
-                gene_pos_filter,
-            ],  # gene_pos_filter
-            "$or": [
-                {"FILTER": {"$in": ["GERMLINE"]}},
+                gene_pos_filter,  # gene_pos_filter
                 {
-                    "$and": [
-                        # Case sample fulfills filter critieria
+                    "$or": [
+                        {"FILTER": {"$in": ["GERMLINE"]}},
                         {
-                            "GT": {
-                                "$elemMatch": {
-                                    "type": "case",
-                                    "AF": {"$gte": float(settings["min_freq"])},
-                                    "DP": {"$gte": float(settings["min_depth"])},
-                                    "VD": {"$gte": float(settings["min_reads"])},
-                                }
-                            }
-                        },
-                        # Filters if any of the population frequencies are above the max_popfreq
-                        {
-                            "$nor": [
-                                {
-                                    "gnomad_frequency": {
-                                        "$exists": "true",
-                                        "$type": "number",
-                                        "$gt": float(settings["max_popfreq"]),
-                                    }
-                                },
-                                {
-                                    "gnomad_max": {
-                                        "$exists": "true",
-                                        "$type": "number",
-                                        "$gt": float(settings["max_popfreq"]),
-                                    }
-                                },
-                                {
-                                    "exac_frequency": {
-                                        "$exists": "true",
-                                        "$type": "number",
-                                        "$gt": float(settings["max_popfreq"]),
-                                    }
-                                },
-                                {
-                                    "thousandG_frequency": {
-                                        "$exists": "true",
-                                        "$type": "number",
-                                        "$gt": float(settings["max_popfreq"]),
-                                    }
-                                },
-                            ],
-                        },
-                        # Either control sample fulfills criteria, or there is no control sample (unpaired tumor sample)
-                        {
-                            "$or": [
+                            "$and": [
+                                # Case sample fulfills filter critieria
                                 {
                                     "GT": {
                                         "$elemMatch": {
-                                            "type": "control",
-                                            "AF": {"$lte": float(settings["max_freq"])},
+                                            "type": "case",
+                                            "AF": {"$gte": float(settings["min_freq"])},
                                             "DP": {"$gte": float(settings["min_depth"])},
+                                            "VD": {"$gte": float(settings["min_reads"])},
                                         }
                                     }
                                 },
-                                {"GT": {"$not": {"$elemMatch": {"type": "control"}}}},
-                            ]
-                        },
-                        # Either variant fullfills Consequence-filter or is a promoter variant in TERT.
-                        {
-                            "$or": [
+                                # Either control sample fulfills criteria, or there is no control sample (unpaired tumor sample)
                                 {
-                                    "INFO.selected_CSQ": {
-                                        "$elemMatch": {
-                                            "Consequence": {"$in": settings["filter_conseq"]}
-                                        }
-                                    }
-                                },
-                                {
-                                    "INFO.CSQ": {
-                                        "$elemMatch": {
-                                            "Consequence": {"$in": settings["filter_conseq"]}
-                                        }
-                                    }
-                                },
-                                {
-                                    "$and": [
+                                    "$or": [
                                         {
-                                            "$or": [
-                                                {"genes": {"$in": ["TERT", "NFKBIE"]}},
-                                            ]
+                                            "GT": {
+                                                "$elemMatch": {
+                                                    "type": "control",
+                                                    "AF": {"$lte": float(settings["max_freq"])},
+                                                    "DP": {"$gte": float(settings["min_depth"])},
+                                                }
+                                            }
+                                        },
+                                        {"GT": {"$not": {"$elemMatch": {"type": "control"}}}},
+                                    ]
+                                },
+                                # Filters if any of the population frequencies are above the max_popfreq
+                                {
+                                    "$nor": [
+                                        {
+                                            "gnomad_frequency": {
+                                                "$exists": "true",
+                                                "$type": "number",
+                                                "$gt": float(settings["max_popfreq"]),
+                                            }
+                                        },
+                                        {
+                                            "gnomad_max": {
+                                                "$exists": "true",
+                                                "$type": "number",
+                                                "$gt": float(settings["max_popfreq"]),
+                                            }
+                                        },
+                                        {
+                                            "exac_frequency": {
+                                                "$exists": "true",
+                                                "$type": "number",
+                                                "$gt": float(settings["max_popfreq"]),
+                                            }
+                                        },
+                                        {
+                                            "thousandG_frequency": {
+                                                "$exists": "true",
+                                                "$type": "number",
+                                                "$gt": float(settings["max_popfreq"]),
+                                            }
+                                        },
+                                    ],
+                                },
+                                # Either variant fullfills Consequence-filter or is a promoter variant in TERT.
+                                {
+                                    "$or": [
+                                        {
+                                            "INFO.selected_CSQ.Consequence": {
+                                                "$in": settings["filter_conseq"]
+                                            }
                                         },
                                         {
                                             "INFO.CSQ": {
                                                 "$elemMatch": {
                                                     "Consequence": {
-                                                        "$in": [
-                                                            "regulatory_region_variant",
-                                                            "TF_binding_site_variant",
-                                                        ]
+                                                        "$in": settings["filter_conseq"]
                                                     }
                                                 }
                                             }
+                                        },
+                                        {
+                                            "$and": [
+                                                {
+                                                    "$or": [
+                                                        {"genes": {"$in": ["TERT", "NFKBIE"]}},
+                                                    ]
+                                                },
+                                                {
+                                                    "$or": [
+                                                        {
+                                                            "INFO.selected_CSQ.Consequence": {
+                                                                "$in": [
+                                                                    "regulatory_region_variant",
+                                                                    "TF_binding_site_variant",
+                                                                ]
+                                                            }
+                                                        },
+                                                        {
+                                                            "INFO.CSQ": {
+                                                                "$elemMatch": {
+                                                                    "Consequence": {
+                                                                        "$in": [
+                                                                            "regulatory_region_variant",
+                                                                            "TF_binding_site_variant",
+                                                                        ]
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                    ]
+                                                },
+                                            ]
                                         },
                                     ]
                                 },
                             ]
                         },
-                    ]
+                    ],
                 },
             ],
         }
@@ -256,10 +281,25 @@ def build_query(which, settings):
 def build_pos_genes_filter(settings):
     pos_list = settings.get("disp_pos", [])
     genes_list = settings.get("filter_genes", [])
+    fp = settings.get("fp", "")
+    irrelevant = settings.get("irrelevant", "")
+
+    partial_query = {}
 
     if pos_list:
-        return {"POS": {"$in": pos_list}}
+        partial_query["POS"] = {"$in": pos_list}
     elif genes_list:
-        return {"genes": {"$in": genes_list}}
+        partial_query["genes"] = {"$in": genes_list}
+    else:
+        pass
+
+    if fp:
+        partial_query["fp"] = fp
+
+    if irrelevant:
+        partial_query["irrelevant"] = irrelevant
+
+    if partial_query:
+        return {"$and": [partial_query]}
     else:
         return {}

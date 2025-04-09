@@ -20,7 +20,7 @@ version=$(python ./coyote/__version__.py)
 echo "Deploying Coyote3 v${version} on lennart."
 
 image_name="coyote3:$version"
-container_name="coyote3_app_alpha-2"
+container_name="coyote3_app_alpha-3"
 
 # # Fail build if unable to access Coyote secret key:
 # if [[ -z "${SECRET_KEY_COYOTE_PATH}" ]]; then

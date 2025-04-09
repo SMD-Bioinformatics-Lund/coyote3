@@ -99,6 +99,18 @@ class BaseHandler:
         else:
             flash("Failed to mark variant as Irrelevant", "red")
 
+    def mark_noteworthy(self, var_id: str, noteworthy: bool) -> None:
+        """
+        Mark / Unmark variant as noteworthy (it is intresting but may not be used to report, but can be used for future references)
+        """
+        if self.get_collection().update_one(
+            {"_id": ObjectId(var_id)},
+            {"$set": {"noteworthy": noteworthy}},
+        ):
+            flash("Variant marked as Note Worthy", "green")
+        else:
+            flash("Failed to mark variant as Note Worthy", "red")
+
     def add_comment(self, comment_doc: dict) -> None:
         """
         Add comment to a variant

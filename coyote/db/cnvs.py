@@ -113,6 +113,18 @@ class CNVsHandler(BaseHandler):
         """
         self.mark_false_positive(cnv_id, fp)
 
+    def noteworthy_cnv(self, cnv_id: str, noteworthy: bool = True) -> None:
+        """
+        Mark CNV as Note worthy
+        """
+        self.mark_noteworthy(cnv_id, noteworthy)
+
+    def unnoteworthy_cnv(self, cnv_id: str, noteworthy: bool = False) -> None:
+        """
+        UnMark CNV as Note worthy
+        """
+        self.mark_noteworthy(cnv_id, noteworthy)
+
     def hide_cnvs_comment(self, cnv_id: str, comment_id: str) -> None:
         """
         Hide CNVs comment

@@ -1690,6 +1690,13 @@
   background-color: #999999; /* Soft Gray */
 }
 
+.hover:bg-tier1:hover { background-color: #D55E00; } /* Dark Orange - High Impact */
+.hover:bg-tier2:hover { background-color: #E69F00; } /* Warm Amber - Moderate Impact */
+.hover:bg-tier3:hover { background-color: #0072B2; } /* Deep Blue - Less Impact */
+.hover:bg-tier4:hover { background-color: #009E73; } /* Teal Green - Benign */
+.hover:bg-tier999:hover { background-color: #666666; } /* Neutral Gray */
+.hover:bg-tierother:hover { background-color: #999999; } /* Soft Gray */
+
 .bg-tier-header1 {
   background-color: rgba(213, 94, 0, 0.5); /* Dark Orange */
 }
@@ -1713,12 +1720,14 @@
 
 
 
-/* Color Coding for Variant Filters (Color-Blind Friendly) */
-.bg-pass { background-color: #008450; } /* Dark Green */
-.bg-germline { background-color: #E69F00; } /* Dark Amber */
-.bg-germline-risk { background-color: #D55E00; } /* Burnt Orange */
-.bg-warn { background-color: #E67E22; } /* Strong Orange */
-.bg-fail { background-color: #D7263D; } /* Deep Red */
+/* Color Coding for Variant Filters (Subtle, Darker, and Color-Blind Friendly) */
+.bg-pass { background-color: #166534; } /* Dark Emerald Green */
+.bg-germline { background-color: #B5761B; } /* Muted Bronze */
+.bg-germline-risk { background-color: #9B3D12; } /* Deep Brick Red */
+.bg-warn { background-color: #C17C00; } /* Warm Amber */
+.bg-fail { background-color: #8C1D1D; } /* Dark Maroon */
+
+
 
 
 /* Style table headers for sorting */
@@ -1768,3 +1777,55 @@ th[data-order="desc"] .sort-arrow {
   max-width: 3840px;
 }
 
+/* custom max width in char */
+/* Tailwind-style max-width classes using ch (character width) */
+.max-w-10c { max-width: 10ch; }
+.max-w-15c { max-width: 15ch; }
+.max-w-20c { max-width: 20ch; }
+.max-w-25c { max-width: 25ch; }
+.max-w-30c { max-width: 30ch; }
+.max-w-35c { max-width: 35ch; }
+.max-w-40c { max-width: 40ch; }
+.max-w-45c { max-width: 45ch; }
+.max-w-50c { max-width: 50ch; }
+.max-w-55c { max-width: 55ch; }
+.max-w-60c { max-width: 60ch; }
+.max-w-65c { max-width: 65ch; }
+.max-w-70c { max-width: 70ch; }
+.max-w-75c { max-width: 75ch; }
+.max-w-80c { max-width: 80ch; }
+.max-w-85c { max-width: 85ch; }
+.max-w-90c { max-width: 90ch; }
+.max-w-95c { max-width: 95ch; }
+.max-w-100c { max-width: 100ch; }
+
+/* Tailwind-style min-width classes using px */
+.min-w-100 { min-width: 100px; }
+.min-w-150 { min-width: 150px; }
+.min-w-200 { min-width: 200px; }
+.min-w-250 { min-width: 250px; }
+.min-w-300 { min-width: 300px; }
+.min-w-350 { min-width: 350px; }
+.min-w-400 { min-width: 400px; }
+.min-w-450 { min-width: 450px; }
+.min-w-500 { min-width: 500px; }
+.min-w-550 { min-width: 550px; }
+.min-w-600 { min-width: 600px; }
+.min-w-650 { min-width: 650px; }
+.min-w-700 { min-width: 700px; }
+.min-w-750 { min-width: 750px; }
+.min-w-800 { min-width: 800px; }
+.min-w-850 { min-width: 850px; }
+.min-w-900 { min-width: 900px; }
+.min-w-950 { min-width: 950px; }
+.min-w-1000 { min-width: 1000px; }
+.min-w-1100 { min-width: 1100px; }
+.min-w-1200 { min-width: 1200px; }
+.min-w-1300 { min-width: 1300px; }
+.min-w-1400 { min-width: 1400px; }
+.min-w-1500 { min-width: 1500px; }
+.min-w-1600 { min-width: 1600px; }
+.min-w-1700 { min-width: 1700px; }
+.min-w-1800 { min-width: 1800px; }
+.min-w-1900 { min-width: 1900px; }
+.min-w-2000 { min-width: 2000px; }

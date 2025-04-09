@@ -1,324 +1,480 @@
 {% extends "layout.html" %}
 
 {% block body %}
-<div class="container mx-auto p-5">
-  <div class="bg-white border-b border-gray-300 py-4">
-    <div class="flex justify-between items-center">
-      <!-- Left Side: Sample and Type -->
-      <div class="flex items-center space-x-4">
-        <div>
-          <span class="text-lg font-semibold text-gray-800">Sample:</span>
-          <a href="{{ url_for('dna_bp.list_variants', id=sample.name) }}" class="text-blue-500 hover:underline text-lg">{{ sample.name }}</a>
-        </div>
-        {% if subpanel %}
-          <span class="text-gray-500">|</span>
-          <div>
-            <span class="text-lg font-semibold text-gray-800">Type:</span>
-            <b class="text-lg">{{ subpanel }}</b>
-          </div>
-        {% endif %}
+
+{% set sel_ann = tl.INFO.MANE_ANN or tl.INFO.ANN[0] %}
+{% set genes = sel_ann.Gene_Name.split('&') %}
+
+{% set gene2 = tl.ALT.split(':') %}
+{% set gene2_chr = gene2[0]|regex_replace("\D+","") %}
+{% set gene2_pos = gene2[1]|regex_replace("\D+","") %}
+
+{% set gene_1_locus = tl.CHROM ~ ":" ~ tl.POS %}
+{% set gene_2_locus = gene2_chr ~ ":" ~ gene2_pos %}
+
+{% set subfolder = {'dir': "None"} %}
+{% set all_samples_bam_paths = [] %}
+
+{# Collect all BAM paths #}
+{% for sample_id, bam_paths in bam_id.items() %}
+  {% for path in bam_paths %}
+    {% set list1 = path.split('/') %}
+    {% if subfolder.update({ 'dir': list1[0] }) %} {% endif %}
+    {% set _ = all_samples_bam_paths.append("/R:" ~ path) %}
+  {% endfor %}
+{% endfor %}
+
+{# Creating design_bed_url as well #}
+{% if subfolder.dir != "None" and subfolder.dir != "tumwgs" %}
+  {% set design_bed = "http://localhost:60151/load?file=/R:" ~ subfolder.dir ~ "/BED/design.bed"  %}
+  {% set design_bed_url = '<a href="' ~ design_bed ~ '" class="text-blue-600 underline">' ~ "open" ~ '</a>'%}
+  {% set _ = all_samples_bam_paths.append("/R:" ~ subfolder.dir ~ "/BED/design.bed") %}
+{% else %}
+  {% set design_bed_url = '-' %}
+{% endif %}
+
+{# Build the final IGV URL #}
+{% if all_samples_bam_paths %}
+  {% set igv_url_gene1 = "http://localhost:60151/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ gene_1_locus %}
+  {% set igv_url_gene2 = "http://localhost:60151/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ gene_2_locus %}
+  {% set igv_link_gene1 = '<a href="' ~ igv_url ~ '" class="text-blue-600 underline">' ~ gene_1_locus ~ '</a>' %}
+  {% set igv_link_gene2 = '<a href="' ~ igv_url_left ~ '" class="text-blue-600 underline">' ~ gene_2_locus ~ '</a>' %}
+
+{% else %}
+  {% set igv_url_gene1 = none %}
+  {% set igv_url_gene2 = none %}
+  {% set igv_link_gene1 = gene_1_locus %}
+  {% set igv_link_gene2 = gene_2_locus %}
+
+{% endif %}
+
+<div class="flex w-full h-full overflow-hidden">
+
+  <!-- Translocation Wall left side bar -->
+  <aside class="w-80 bg-transparent text-black flex flex-col overflow-y-auto shadow-lg rounded-lg mr-2 ml-1 left-0 h-full border-r-2 border-t-2 border-brown-400">
+
+    <!-- Translocation Wall -->
+    <div class="flex justify-center items-center bg-gradient-to-b from-brown-300 to-brown-200 py-2 rounded-t-md shadow-lg">
+      <img src="{{ url_for('static', filename='icons/heroicons_outline_24/bookmark.svg') }}" alt="Tag Icon" class="w-4 h-4 mr-2 opacity-80">
+      <h2 class="text-sm font-semibold capitalize tracking-wide text-black">Translocation Wall</h2>
+    </div>
+
+    <!-- Table Container -->
+    <div class="overflow-auto shadow-lg bg-transparent p-0">
+      <table class="table-auto bg-blue-50 w-full text-xs text-black border-collapse">
+        <tbody class="break-all">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Genomic junction</th>
+            <td class="p-1 text-right font-medium">{{tl.CHROM}}:{{tl.POS}} - {{tl.ALT}}</td>
+          </tr>
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Gene 1</th>
+            <td class="p-1 text-right font-medium">{{genes[0]}}</td>
+          </tr>
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Gene 2</th>
+            <td class="p-1 text-right font-medium">{{genes[1]}}</td>
+          </tr>
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Consequence</th>
+            <td class="p-1 text-right font-medium">
+              {% for annot in sel_ann.Annotation%}
+                <div class="inline-block mb-1 py-1 cursor-pointer rounded-full bg-gray-300"
+                  onmouseover="showTooltip(event, `{% if annot in vep_conseq_translations %}
+                    <strong>{{ vep_conseq_translations[annot].display }}</strong><br>
+                    {{ vep_conseq_translations[annot].desc }}<br>
+                    <span class='text-yellow-400 font-bold'>Impact: {{ vep_conseq_translations[annot].impact }}</span>
+                  {% else %}
+                    {{ annot }}
+                  {% endif %}`)">
+                  {% if conannotseq in vep_conseq_translations %}
+                      {{ vep_conseq_translations[annot].short }}
+                  {% else %}
+                    {{ annot }}
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </td>
+          </tr>
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">HGVSc</th>
+            <td class="p-1 text-right font-medium">
+              <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ sel_ann.HGVSc|unesc|safe }}</span>`)">
+                <div class="relative flex flex-wrap justify-end inline-block pr-1">
+                  <div id="transloc-hgvsc-short" class="truncate max-w-15c">
+                    {{ sel_ann.HGVSc|unesc|safe }}
+                  </div>
+                  <div id="transloc-hgvsc-full" class="hidden break-all whitespace-normal">
+                    {{ sel_ann.HGVSc|unesc|safe }}
+                  </div>
+                  <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
+                          data-target="transloc-hgvsc"
+                          onclick="toggleLongText(this)">
+                    [+]
+                  </button>
+                </div>
+              </span>
+            </td>
+          </tr>
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">HGVSp</th>
+            <td class="p-1 text-right font-medium">
+              <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ sel_ann.HGVSp|unesc|safe }}</span>`)">
+                <div class="relative flex flex-wrap justify-end inline-block pr-1">
+                  <div id="transloc-hgvsp-short" class="truncate max-w-15c">
+                    {{ sel_ann.HGVSp }}
+                  </div>
+                  <div id="transloc-hgvsp-full" class="hidden break-all whitespace-normal">
+                    {{ sel_ann.HGVSp|unesc|safe }}
+                  </div>
+                  <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
+                          data-target="transloc-hgvsp"
+                          onclick="toggleLongText(this)">
+                    [+]
+                  </button>
+                </div>
+              </span>
+            </td>
+          </tr>
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Exon rank</th>
+            <td class="p-1 text-right font-medium">{{sel_ann.Rank}}</td>
+          </tr>
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Panel info</th>
+            <td class="p-1 text-right font-medium">{{tl.INFO.PANEL}}</td>
+          </tr>
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Gene 1 locus</th>
+            <td class="p-1 text-right font-medium">{{igv_link_gene1|safe}}</td>
+          </tr>
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Gene 2 locus</th>
+            <td class="p-1 text-right font-medium">{{igv_link_gene2|safe}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  
+  </aside>
+
+  <main class="flex-1 bg-transparent overflow-y-auto py-2 px-1 flex flex-col">
+
+    <!-- sample info -->
+    {% include "sample_meta_info.html" %}
+
+    <!-- Tranlocations Main Info Card  -->
+    <section class="bg-gray-100 p-2 my-2 flex flex-wrap justify-between w-full shadow-lg rounded-xl relative gap-2 z-0 border-l-8 border-r-8 border-purple-400 whitespace-normal break-all" id="transloc-info">
+      <!-- Tranlocations Info Left Section -->
+      <div class="flex flex-col ml-2 mr-4" id="transloc-info-left">
+        <h2 class="text-base font-bold">
+          {{genes[0]}}-{{genes[1]}}: {{tl.CHROM}}:{{tl.POS}} - {{tl.ALT}}
+        </h2>
+        <p class="text-sm font-normal py-1 my-1">
+          Called by: {{tl.INFO.set}}
+        </p>
       </div>
 
-      <!-- Right Side: Variant Actions -->
-      {% if current_user.get_role() != "readonly" %}
-        <div class="flex items-center space-x-2">
+      <!-- Top buttons for links and actions -->
+      <div class="flex flex-wrap items-start justify-end ml-auto mr-4 gap-2" id="transloc-action-buttons">
+        <div class="relative">
+          <div class="absolute top-0 left-0 w-full h-1 bg-yellow-400 break-all"></div>
+          {% if tl.fp == true %}
+            <form action="{{ url_for('dna_bp.unmark_false_transloc', id=tl._id) }}" method="post">
+              <input class="relative bg-yellow-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all" type="submit" name="mark_fp" value="Unmark False Positive">
+            </form>
+          {% else %}
+            <form action="{{ url_for('dna_bp.mark_false_transloc', id=tl._id) }}" method="post">
+              <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-yellow-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all" type="submit" name="mark_fp" value="Mark as False Positive">
+            </form>
+          {% endif %}
+        </div>
+        <div class="relative">
+          <div class="absolute top-0 left-0 w-full h-1 bg-green-400"></div>
           {% if tl.interesting == true %}
             <form action="{{ url_for('dna_bp.unmark_interesting_transloc', id=tl._id) }}" method="post">
-              <input class='bg-yellow-600 text-black py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-yellow-700' type="submit" name="mark_int" value="Exclude from report">
+              <input class="relative bg-green-200 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all" type="submit" name="exclude_from_report" value="Exclude from report">
             </form>
           {% else %}
             <form action="{{ url_for('dna_bp.mark_interesting_transloc', id=tl._id) }}" method="post">
-              <input class="bg-green-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-green-700"  type="submit" name="mark_int" value="Include in report">
-            </form>      
-          {% endif %}
-
-          {% if tl.fp == true %}
-            <form action="{{ url_for('dna_bp.unmark_false_transloc', id=tl._id) }}" method="post">
-              <input class='bg-green-600 text-black py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-green-700' type="submit" name="mark_fp" value="Unmark false positive">
-            </form>    
-          {% else %}
-            <form action="{{ url_for('dna_bp.mark_false_transloc', id=tl._id) }}" method="post">
-              <input class="bg-purple-600 text-white py-2 px-4 rounded-md shadow-md cursor-pointer hover:bg-purple-700" type="submit" name="mark_fp" value="Mark as false positive">
+              <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-green-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all" type="submit" name="include_in_report" value="Include in report">
             </form>
           {% endif %}
         </div>
-      {% endif %}
-    </div>
-  </div>
-
-  <!-- Variant Information cards -->
-  <center>
-    <div class="container mx-auto px-2 py-6">
-      <!-- Translocation Annotation -->
-      <div class="float-left max-w-screen-615 w-full">
-        <div class="float-left max-w-screen-600 w-full bg-white shadow-md rounded-lg p-3 m-3 overflow-hidden">
-          {% set sel_ann = tl.INFO.MANE_ANN or tl.INFO.ANN[0] %}
-          {% set genes = sel_ann.Gene_Name.split('&') %}
-          <h2 class="text-base font-semibold mb-4 bg-purple-300 p-2 rounded">Variant Annotation</h2>
-          <table class="w-full table-auto text-xs table">
-            <tbody>
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">Genomic junction:</td>
-                <td class="px-2 py-2 border-b">{{tl.CHROM}}:{{tl.POS}} - {{tl.ALT}}</td>
-              </tr>
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">Gene 1:</td>
-                <td class="px-2 py-2 border-b">{{genes[0]}}</td>
-              </tr>
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">Gene 2:</td>
-                <td class="px-2 py-2 border-b">{{genes[1]}}</td>
-              </tr>
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">Consequence:</td>
-                <td class="px-2 py-2 border-b flex flex-wrap gap-2">
-                  {% for annot in sel_ann.Annotation%}
-                    <div class="bg-gray-100 rounded-md py-2 px-2 mt-1 hover:bg-gray-300">
-                      {{annot}}<br>
-                    </div>
-                  {% endfor %}
-                </td>
-              </tr>
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">HGVS.c</td>
-                <td class="px-2 py-2 border-b">{{sel_ann.HGVSc|unesc}}</td>
-              </tr>
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">HGVS.p</td>
-                <td class="px-2 py-2 border-b">{{sel_ann.HGVSp|unesc}}</td>
-              </tr>
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">Exon rank</td>
-                <td class="px-2 py-2 border-b">{{sel_ann.Rank}}</td>
-              </tr>
-              <tr class="hover:bg-purple-50">
-                <td class="px-2 py-2 border-b font-semibold">Panel info</td>
-                <td class="px-2 py-2 border-b">{{tl.INFO.PANEL}}</td>
-              </tr>
-              {% for sample_id,bam_path in bam_id.items() %}
-                {% set gene2 = tl.ALT.split(':') %}
-                {% set gene2_chr = gene2[0]|regex_replace("\D+","") %}
-                {% set gene2_pos = gene2[1]|regex_replace("\D+","") %}
-                <tr class="hover:bg-purple-50">
-                  <td class="px-2 py-2 border-b font-semibold">IGV({{sample_id}}):</td>
-                  <td class="px-2 py-2 border-b"> 
-                    {% for path in bam_path %}
-                      {% set list1 = path.split('/') %}
-                      <a href="http://localhost:60151/load?file=/R:{{path}}&locus={{tl.CHROM}}:{{tl.POS}}">{{list1[0]}}[{{genes[0]}}]</a>
-                      <a href="http://localhost:60151/load?file=/R:{{path}}&locus={{gene2_chr}}:{{gene2_pos}}">[{{genes[1]}}]</a>
-                    {% endfor %}
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-
-        <!-- Sample Specific Data -->
-        <div class="float-left max-w-screen-600 w-full bg-white shadow-md rounded-lg p-3 m-3 overflow-hidden">
-          <h2 class="text-base font-semibold mb-4 bg-green-200 p-2 rounded">Sample-Specific Data</h2>
-          <table class="w-full table-auto text-xs table">
-            <thead>
-              <tr>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Sample ID</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold"># spanning reads</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">%</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold"># split reads</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">%</th>
-                {% if tl.INFO.UR %}
-                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">unique reads</th>
-                {% endif %}
-                {% if tl.INFO.set %}
-                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">callers</th>
-                {% endif %}
-              </tr>
-            </thead>
-            <tbody>
-              {% for gt in tl.GT %}
-                {% if gt.PR %}
-                  {% set PR = gt.PR.split(',') %}
-                  {% set PR_sum = PR[0]|int+PR[1]|int %}
-                {% endif %}
-                {% if gt.SR %}
-                  {% set SR = gt.SR.split(',') %}
-                  {% set SR_sum = SR[0]|int+SR[1]|int %}
-                {% endif %}
-                <tr class="hover:bg-green-50">
-                  <td class="px-2 py-2 border-b">{{gt.sample}}</td>
-                  {% if gt.PR %}
-                    <td class="px-2 py-2 border-b">{{PR[1]}}/{{PR_sum}}</td>
-                    <td class="px-2 py-2 border-b">{{(100*PR[1]|float/PR_sum|float)|round(2)}} %</td>
-                  {% else %}
-                    <td class="px-2 py-2 border-b">N/A</td>
-                    <td class="px-2 py-2 border-b">N/A</td>
-                  {% endif %}
-                  {% if gt.SR %}
-                    <td class="px-2 py-2 border-b">{{SR[1]}}/{{SR_sum}}</td>
-                    <td class="px-2 py-2 border-b">{{(100*SR[1]|float/SR_sum|float)|round(2)}} %</td>
-                  {% else %}
-                    <td class="px-2 py-2 border-b">N/A</td>
-                    <td class="px-2 py-2 border-b">N/A</td>
-                  {% endif %}
-                  {% if tl.INFO.UR %}
-                    <td class="px-2 py-2 border-b">{{tl.INFO.UR}}</td>
-                  {% endif %}
-                  {% if tl.INFO.set %}
-                    {% if tl.INFO.set == "Intersection" %}
-                      <td class="px-2 py-2 border-b">manta&genefuse</td>
-                    {% else %}
-                      <td class="px-2 py-2 border-b">{{tl.INFO.set}}</td>
-                    {% endif %}
-                  {% endif %}
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- All Transcript Combinations Data -->
-        <div class="float-left max-w-screen-600 w-full bg-white shadow-md rounded-lg p-3 m-3 overflow-hidden">
-          <h2 class="text-base font-semibold mb-4 bg-pink-200 p-2 rounded">Annotations for All Transcript Combinations</h2>
-          <table class="w-full table-auto text-xs table">
-            <thead>
-              <tr>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Gene 1</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Gene 2</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">HGVS.c</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">HGVS.p</th>
-                <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Consequence</th>
-              </tr>
-            </thead>
-            <tbody id="pagination-table-body">
-              {% for ann in tl.INFO.ANN %}
-                {% set genes = ann.Gene_Name.split('&') %}
-                {% if ann.HGVSp == sel_ann.HGVSp %}
-                  <tr class="bg-yellow-100 hover:bg-green-100 font-semibold">
-                {% else %}
-                  <tr class="hover:bg-pink-50">
-                {% endif %}
-                  <td class="px-2 py-2 border-b">{{genes[0]}}</td>
-                  <td class="px-2 py-2 border-b">{{genes[1]}}</td>
-                  <td class="px-2 py-2 border-b">{{ann.HGVSc|unesc}}</td>
-                  <td class="px-2 py-2 border-b">{{ann.HGVSp|unesc|replace(";","-")}}</td>
-                  <td class="px-2 py-2 border-b">{% for annot in ann.Annotation%}{{annot}}<br>{% endfor %}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          <!-- Pagination Controls -->
-          <div class="flex justify-between mt-4">
-            <button id="prev-page" class="bg-blue-500 text-white py-1 px-2 rounded disabled:opacity-50" onclick="prevPage()">Previous</button>
-            <div id="page-info" class="text-sm"></div>
-            <button id="next-page" class="bg-blue-500 text-white py-1 px-2 rounded disabled:opacity-50" onclick="nextPage()">Next</button>
-          </div>
-        </div>
       </div>
 
-      <div class="float-left max-w-screen-400 w-full">
-        <!-- Variant Comments -->
-        {% if tl.comments|length > 0 and current_user.get_role() != "readonly" %}
-          <div class="float-left max-w-screen-390 w-full bg-white shadow-md rounded-lg p-3 m-3">
-            <h2 class="text-base font-semibold mb-4 bg-indigo-300 p-2 rounded">Sample-Specific Variant Comments</h2>
-            <table class="w-full table-auto text-xs">
-              <thead>
-                <tr>
-                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Who</th>
-                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Comment</th>
-                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Hide/Unhide</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for comment in tl.comments|sort(attribute='time_created', reverse=True) %}
-                  {% if comment.hidden != 1 %}
-                    <tr class="hover:bg-indigo-50">
-                  {% else %}
-                    <tr class="bg-red-100 hover:bg-red-200 opacity-30 hidden hidden_comment">
-                  {% endif %}
-                    <td class="align-top py-2 px-4 border-b border-gray-300 text-gray-800 text-left" style="white-space: nowrap">
-                      <b>{{ comment.author }}</b><br><small>{{ comment.time_created|human_date }}</small>
-                    </td>
-                    <td class="align-top py-2 px-4 border-b border-gray-300 text-gray-800 text-left" onclick="addText(event)">
-                      {{ comment.text|format_comment|safe }}
-                    </td>
-                    <td class="align-top py-2 px-4 border-b border-gray-300 text-gray-800 text-left">
-                      {% if comment.hidden != 1 %}
-                        <form action="{{ url_for('dna_bp.hide_transloc_comment', var_id=tl._id) }}" method="post">
-                          <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                          <input id="hide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/delete.png') }}">
-                        </form>
-                      {% else %}
-                        <form action="{{ url_for('dna_bp.unhide_transloc_comment', var_id=tl._id) }}" method="post">
-                          <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                          <input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/unhide.png') }}">
-                        </form>
-                      {% endif %}
-                    </td>
-                  </tr>
-                {% endfor %}
-                {% if hidden_comments != 0 %}
-                  <tr>
-                    <td colspan=4 class="py-2 px-4 border-t border-gray-300 text-center text-sm text-gray-800">
-                      <a href="javascript:void(0)" onclick="switchVisibility_comments('hidden_comment')"><b>Show/hide deleted comments</b></a>
-                    </td>
-                  </tr>
-                {% endif %}
-              </tbody>
-            </table>
-          </div>
-        {% endif %}
+    </section>
 
-        <!-- Variant Annotations -->
-        {% if annotations|length > 0 %}
-          <div class="float-left max-w-screen-390 w-full bg-white shadow-md rounded-lg p-3 m-3">
-            <h2 class="text-base font-semibold mb-4 bg-indigo-300 p-2 rounded">Variant Annotations</h2>
-            <table class="w-full table-auto text-xs">
-              <thead>
-                <tr>
-                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Who</th>
-                  <th class="px-2 py-2 border-b-2 text-center uppercase font-semibold">Annotation</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
-                  {% if current_user.get_role() != "readonly" or loop.first == True %}
-                    <tr class="hover:bg-indigo-50">
-                      <td class="px-2 py-2 border-b whitespace-nowrap">
-                        <b>{{ anno.author }}</b><br><small>{{ anno.time_created|human_date }}</small>
-                      </td>
-                      <td class="px-2 py-2 border-b" onclick="addText(event)">
-                        {{ anno.text|format_comment|safe }}
-                      </td>
-                    </tr>
-                  {% endif %}
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        {% endif %}
-
-        <!-- Variant comments Box -->
+    <!-- other information cards -->
+    <section class="bg-transparent p-2 my-2 flex flex-wrap items-start relative gap-4" id="transloc-information-cards">
+      <!-- Comment box, other tiering and pon -->
+      <div class="flex flex-col gap-y-4 max-w-xl">
+        <!-- Comment box -->
         {% if current_user.get_role() != "readonly" %}
-          <div class="float-left max-w-screen-390 w-full bg-white shadow-md rounded-lg p-4 m-5 clear-right">
-            <h2 class="text-base font-semibold mb-4 bg-blue-300 p-2 rounded">Add New Comment/Annotation</h2>
-            <div id="commenting_box" class="w-full bg-gray-50 border border-gray-300 p-4 rounded-md">
+          <div class="bg-transparent min-w-400 w-full max-w-xl" id="commenting-box-card">
+            <h2 class="text-sm font-semibold bg-gradient-to-b from-indigo-400 to-indigo-200 p-2 shadow-md rounded-t-lg break-all">Add new comment/annotation</h2>
+            <div id="commenting_box" class="rounded-b-lg border border-gray-400 shadow-md p-2 overflow-x-auto">
               <form action="{{ url_for('dna_bp.add_variant_comment', id=tl._id) }}" method="post">
-                <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="w-full h-20 p-1 border border-gray-300 rounded-md focus:bg-yellow-100 mb-4"></textarea><br>
+                <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="h-40 w-full p-2 border border-gray-300 rounded-lg focus:bg-yellow-50 mb-4"></textarea><br>
                 <input type="hidden" name="gene1" value="{{ genes[0] }}">
                 <input type="hidden" name="gene2" value="{{ genes[1] }}">
                 <input type="hidden" name="translocpoints" value="{{tl.CHROM}}:{{tl.POS}}^{{tl.ALT}}">
-                <input type="submit" value="Save" class="bg-blue-500 text-white py-1 px-3 rounded-md cursor-pointer shadow-md">&nbsp;&nbsp;
-                <label class="inline-flex items-center">
+                <input type="submit" value="Save" class="bg-blue-500 text-white py-1 px-2 mx-1 mb-1 rounded-lg cursor-pointer shadow-md">&nbsp;&nbsp;
+                <label class="items-center">
                   <input type="checkbox" name="global" value="global" class="form-checkbox text-blue-500">
                   <span class="ml-2">Use as global annotation</span>
                 </label>
+                <input type="hidden" name="assay" value="{{ assay }}">
+                <input type="hidden" name="subpanel" value="{{ sample.get('subpanel', '') }}">
               </form>
             </div>
           </div>
         {% endif %}
+
+        <!-- Alternate Transcripts Information -->
+        <div class="bg-gray-50 w-full max-w-xl shadow-md rounded-lg mb-1 pagination" id="transloc-alternate-transcripts-info" data-rows-per-page="10" pagination-button-color="purple" pagination-button-text-color="black">
+          <h2 class="text-sm font-semibold bg-gradient-to-b from-purple-400 to-purple-200 p-2 shadow-md rounded-t-lg break-all">Alternate Transcripts Combinations</h2>
+          <div class="rounded-b-lg overflow-x-auto">
+            <table class="w-full max-w-xl text-xs text-gray-800 mx-auto">
+              <thead class="capitalize tracking-wide rounded-t-lg bg-purple-200">
+                <tr class="border-b text-left border-gray-800">
+                  <th class="px-1 py-2 font-semibold">Gene 1</th>
+                  <th class="px-1 py-2 font-semibold">Gene 2</th>
+                  <th class="px-1 py-2 font-semibold">Protein Change</th>
+                  <th class="px-1 py-2 font-semibold">CDS Change</th>
+                  <th class="px-1 py-2 font-semibold">Consequence</th>
+                </tr>
+              </thead>
+              <tbody id="transloc-alternate-transcripts-info-body" class="{% if tl.INFO.ANN|length > 1 %}border-b border-gray-400 {% endif %}">
+                {% for ann in tl.INFO.ANN %}
+                  {% set genes = ann.Gene_Name.split('&') %}
+                  {% set alternate_transcripts = true %}
+                  {% if ann.HGVSp == sel_ann.HGVSp %}
+                    <tr class="bg-purple-100 hover:bg-green-100 border-t border-gray-400 text-left align-top">
+                  {% else %}
+                    <tr class="hover:bg-purple-50 border-t border-gray-400 text-left align-top">
+                  {% endif %}
+                    {% set hgvsp = ann.HGVSp|unesc|replace(";","-") %}
+                    <td class="p-2">{{genes[0]}}</td>
+                    <td class="p-2">{{genes[1]}}</td>
+                    <td class="p-2 ">
+                      <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ hgvsp|unesc|safe }}</span>`)">
+                        <div class="relative flex inline-block max-w-20c">
+                          <!-- CHANGE THIS ID TO FEAURE -->
+                          <div id="transloc-hgvsp-{{loop.index}}-short" class="truncate max-w-20c overflow-hidden whitespace-nowrap inline-block align-top">
+                            {{hgvsp|unesc|safe }}
+                          </div>
+                          <div id="transloc-hgvsp-{{loop.index}}-full" class="hidden break-all whitespace-normal">
+                            {{hgvsp|unesc|safe }}
+                          </div>
+                          <button class="ml-1 text-toggle hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
+                                  data-target="transloc-hgvsp-{{loop.index}}"
+                                  onclick="toggleLongText(this)">
+                            [+]
+                          </button>
+                        </div>
+                      </span>
+                    </td>
+                    <td class="p-2">
+                      <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ ann.HGVSc|unesc|safe }}</span>`)">
+                        <div class="relative flex inline-block max-w-20c">
+                          <div id="transloc-hgvsc-{{loop.index}}-short" class="truncate max-w-20c overflow-hidden whitespace-nowrap inline-block align-top">
+                            {{ ann.HGVSc|unesc|safe }}
+                          </div>
+                          <div id="transloc-hgvsc-{{loop.index}}-full" class="hidden break-all whitespace-normal">
+                            {{ ann.HGVSc|unesc|safe }}
+                          </div>
+                          <button class="ml-1 text-toggle hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
+                                  data-target="transloc-hgvsc-{{loop.index}}"
+                                  onclick="toggleLongText(this)">
+                            [+]
+                          </button>
+                        </div>
+                      </span>
+                    </td>
+                    <td class="p-2">
+                      {% for annot in ann.Annotation%}{{annot}}<br>{% endfor %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% if tl.INFO.ANN|length == 0 %}
+              <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md break-all">
+                No alternate transcripts combinations available.
+              </em>
+            {% endif %}
+          </div>
+        </div>
+
       </div>
-    </div>
-  </center>
+
+      <div class="flex flex-col gap-y-4 max-w-xl items-start">
+        <!-- Tranlocations annotations -->
+        <div class="bg-gray-50 w-full max-w-xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="green" pagination-button-text-color="black" id="transloc-annotations-all">
+          <h2 class="text-sm font-semibold bg-gradient-to-b from-green-400 to-green-200 p-2 shadow-lg rounded-t-lg break-all">Translocation Annotations</h2>
+          <div class="rounded-b-lg overflow-x-auto">
+            {% if annotations|length > 0 %}
+              <table class="w-full max-w-xl table-auto text-xs text-gray-800 mb-1">
+                <thead class="capitalize tracking-wide rounded-t-lg bg-green-100">
+                  <tr class="border-b text-left border-gray-800">
+                    <th class="p-3 font-semibold w-1/6">Who</th>
+                    <th class="p-3 font-semibold w-4/6">Annotation</th>
+                    <th class="p-3 font-semibold w-4/6">Type</th>
+                  </tr>
+                </thead>
+                <tbody id="transloc-annotations-all-body" class="{% if annotations|length > 1 %}border-b border-gray-400 {% endif %}">
+                  {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
+                    {% if current_user.get_role() != "readonly" or loop.first == True %}
+                      <tr class="hover:bg-green-100 border-t border-gray-400 text-left align-top">
+                        <td class="p-2 font-medium">{{ anno.author }}<br><small>{{ anno.time_created|human_date }}</small></td>
+                        <td class="p-2" onclick="addText(event)">{{ anno.text|format_comment|safe }}</td>
+                        <td class="p-2">
+                          {% if "assay" in anno %}
+                            {{ anno.assay }}<br><small>{{ anno.subpanel }}</small>
+                          {% else %}
+                            historic
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endif %}
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md break-all">No translocation annotations available.</em>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Sample Specific Translocation data -->
+        <div class="bg-gray-50 w-fullmax-w-xl shadow-md rounded-lg mb-1" id="transloc-sample-data">
+          <h2 class="text-sm font-semibold bg-gradient-to-b from-blue-400 to-blue-200 p-2 shadow-md rounded-t-lg break-all">Sample-Specific Data</h2>
+          <div class="rounded-b-lg overflow-x-auto">
+            {% if tl.comments|length > 0 and current_user.get_role() != "readonly" %}
+              <table class="w-full max-w-xl table-auto text-xs text-gray-800">
+                <thead class="capitalize tracking-wide rounded-t-lg bg-blue-100">
+                  <tr class="border-b text-left border-gray-800">
+                    <th class="p-3 font-semibold">Sample ID</th>
+                    <th class="p-3 font-semibold">#spanning reads</th>
+                    <th class="p-3 font-semibold">%</th>
+                    <th class="p-3 font-semibold"># split reads</th>
+                    <th class="p-3 font-semibold">%</th>
+                    {% if tl.INFO.UR %}
+                      <th class="p-3 font-semibold">Unique Reads</th>
+                    {% endif %}
+                    {% if tl.INFO.set %}
+                      <th class="p-3 font-semibold">Callers</th>
+                    {% endif %}
+                  </tr>
+                </thead>
+                <tbody id="transloc-sample-data-body" class="{% if tl.GT|length > 1 %}border-b border-gray-400 {% endif %}">
+                  {% for gt in tl.GT %}
+                    {% if gt.PR %}
+                      {% set PR = gt.PR.split(',') %}
+                      {% set PR_sum = PR[0]|int+PR[1]|int %}
+                    {% endif %}
+                    {% if gt.SR %}
+                      {% set SR = gt.SR.split(',') %}
+                      {% set SR_sum = SR[0]|int+SR[1]|int %}
+                    {% endif %}
+                    <tr class="hover:bg-blue-100 border-t border-gray-400 text-left align-top">
+                      <td class="p-2">{{gt.sample}}</td>
+                      {% if gt.PR %}
+                        <td class="p-2">{{PR[1]}}/{{PR_sum}}</td>
+                        <td class="p-2">{{(100*PR[1]|float/PR_sum|float)|round(2)}}</td>
+                      {% else %}
+                        <td class="p-2">N/A</td>
+                        <td class="p-2">N/A</td>
+                      {% endif %}
+                      {% if gt.SR %}
+                        <td class="p-2">{{SR[1]}}/{{SR_sum}}</td>
+                        <td class="p-2">{{(100*SR[1]|float/SR_sum|float)|round(2)}}</td>
+                      {% else %}
+                        <td class="p-2">N/A</td>
+                        <td class="p-2">N/A</td>
+                    {% endif %}
+                    {% if tl.INFO.UR %}
+                      <td class="p-2">{{tl.INFO.UR}}</td>
+                    {% endif %}
+                    {% if tl.INFO.set %}
+                      {% if tl.INFO.set == "Intersection" %}
+                        <td class="p-2">manta&genefuse</td>
+                      {% else %}
+                        <td class="p-2">{{tl.INFO.set}}</td>
+                      {% endif %}
+                    {% endif %}
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md break-all">No sample-specific translocation comments available.</em>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Sample Specific Tranlocations comments -->
+        <div class="bg-gray-50 w-full max-w-xl shadow-md rounded-lg mb-1" id="transloc-comments">
+          <h2 class="text-sm font-semibold bg-gradient-to-b from-yellow-400 to-yellow-200 p-2 shadow-md rounded-t-lg break-all">Sample-Specific Variant Comments</h2>
+          <div class="rounded-b-lg overflow-x-auto">
+            {% if tl.comments|length > 0 and current_user.get_role() != "readonly" %}
+              <table class="w-full max-w-xl table-auto text-xs text-gray-800">
+                <thead class="capitalize tracking-wide rounded-t-lg bg-yellow-100">
+                  <tr class="border-b text-left border-gray-800">
+                    <th class="p-3 font-semibold w-1/6">Who</th>
+                    <th class="p-3 font-semibold w-4/6">Comment</th>
+                    <th class="p-3 font-semibold w-1/6">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="transloc-comments-body" class="{% if tl.comments|length > 1 %}border-b border-gray-400 {% endif %}">
+                  {% for comment in tl.comments|sort(attribute='time_created', reverse=True) %}
+                    {% if comment.hidden != 1 %}
+                      <tr class="hover:bg-yellow-50 border-t border-gray-400 text-left align-top">
+                    {% else %}
+                      <tr class="bg-red-100 hover:bg-red-200 opacity-30 border-t border-gray-400 text-left align-top hidden hidden_comment">
+                    {% endif %}
+                      <td class="p-2 font-medium">{{ comment.author }}<br><small>{{ comment.time_created|human_date }}</small></td>
+                      <td class="p-2" onclick="addText(event)">{{ comment.text|format_comment|safe }}</td>
+                      <td class="p-2">
+                        {% if comment.hidden != 1 %}
+                          <form action="{{ url_for('dna_bp.hide_transloc_comment', var_id=tl._id) }}" method="post">
+                            <input type="hidden" name="comment_id" value="{{ comment._id }}">
+                            <input id="hide_comment" type="image" class="w-5 hover:scale-105" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
+                          </form>
+                        {% else %}
+                          <form action="{{ url_for('dna_bp.unhide_transloc_comment', var_id=tl._id) }}" method="post">
+                            <input type="hidden" name="comment_id" value="{{ comment._id }}">
+                            <input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
+                          </form>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                  {% if hidden_comments %}
+                    <tr>
+                      <td colspan=3 class="py-2 px-4 border-t border-gray-300 text-center text-sm text-gray-800">
+                        <a href="javascript:void(0);" onclick="switchVisibility_comments('hidden_comment')">
+                          Show/Hide Deleted Comments
+                        </a>
+                      </td>
+                    </tr>
+                {% endif %}
+                </tbody>
+              </table>
+            {% else %}
+              <em class="block text
+              -center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md break-all">No sample-specific translocation comments available.</em>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+
 </div>
 
 <script type="text/javascript">
@@ -337,45 +493,7 @@
     }
   }
 
-  const rowsPerPage = 10;
-  let currentPage = 1;
-  const tableBody = document.getElementById('pagination-table-body');
-  const rows = Array.from(tableBody.getElementsByTagName('tr'));
-  const pageInfo = document.getElementById('page-info');
 
-  function displayPage(page) {
-    const start = (page - 1) * rowsPerPage;
-    const end = page * rowsPerPage;
-
-    rows.forEach((row, index) => {
-      if (index >= start && index < end) {
-        row.style.display = '';
-      } else {
-        row.style.display = 'none';
-      }
-    });
-
-    pageInfo.textContent = `Page ${page} of ${Math.ceil(rows.length / rowsPerPage)}`;
-    document.getElementById('prev-page').disabled = page === 1;
-    document.getElementById('next-page').disabled = page === Math.ceil(rows.length / rowsPerPage);
-  }
-
-  function prevPage() {
-    if (currentPage > 1) {
-      currentPage--;
-      displayPage(currentPage);
-    }
-  }
-
-  function nextPage() {
-    if (currentPage < Math.ceil(rows.length / rowsPerPage)) {
-      currentPage++;
-      displayPage(currentPage);
-    }
-  }
-
-  // Initialize pagination
-  displayPage(currentPage);
 </script>
 
 {% endblock %}
