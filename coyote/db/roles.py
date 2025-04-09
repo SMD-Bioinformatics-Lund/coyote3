@@ -21,6 +21,12 @@ class RolesHandler(BaseHandler):
         """
         return list(self.get_collection().find({}).sort("level", -1))
 
+    def get_all_role_names(self) -> list:
+        """
+        Get all role names
+        """
+        return [role["_id"] for role in self.get_collection().find({"is_active": True}, {"_id": 1})]
+
     def save_role(self, role_data: dict) -> dict:
         """
         Save a role

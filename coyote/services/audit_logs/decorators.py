@@ -1,92 +1,46 @@
-import logging
-from functools import wraps
-from flask_login import current_user
-from flask import request
-import json
-import traceback
 import time
+import traceback
+from functools import wraps
+from coyote.services.audit_logs.logger import AuditLogger
+from flask import g
 
 
-audit_logger = logging.getLogger("audit")
-
-
-def log_action(action_name: str = None, **extra_info):  # <-- this line is the fix
+def log_action(action_name: str = None, call_type: str = None):
     """
-    Decorator to log actions performed by users.
-    Logs include user ID, IP address, action name, status, and any additional info.
-    :param action_name: Name of the action being logged. If None, uses the function name.
-    :param extra_info: Additional information to log.
-    :return: Decorated function.
+    Decorator to log user actions with audit metadata. Attach metadata to g.audit_metadata in the route.
     """
 
-    def decorator(f):
-        @wraps(f)
+    def decorator(func):
+        @wraps(func)
         def wrapped(*args, **kwargs):
-            user_id = current_user.username if current_user.is_authenticated else "anonymous"
-            ip = request.remote_addr
-            action = action_name or f.__name__
-            safe_kwargs = {
-                k: (
-                    v
-                    if isinstance(v, (str, int, float, bool, type(None)))
-                    else str(type(v).__name__)
-                )
-                for k, v in kwargs.items()
-            }
+            g.audit_metadata = getattr(g, "audit_metadata", {})
+            if call_type:
+                g.audit_call_type = call_type
 
+            action = action_name or func.__name__
+            logger = AuditLogger()
             start_time = time.perf_counter()
 
             # Log start
-            audit_logger.info(
-                json.dumps(
-                    {
-                        "action": action,
-                        "user": user_id,
-                        "ip": ip,
-                        "status": "started",
-                        "kwargs": safe_kwargs,
-                        **extra_info,
-                    }
-                )
-            )
+            logger.log(action=action, status="started", metadata=g.audit_metadata)
 
             try:
-                result = f(*args, **kwargs)
-                duration = (time.perf_counter() - start_time) * 1000
-
-                # Log success
-                audit_logger.info(
-                    json.dumps(
-                        {
-                            "action": action,
-                            "user": user_id,
-                            "ip": ip,
-                            "status": "success",
-                            "duration_ms": round(duration, 2),
-                            "result_type": str(type(result).__name__),
-                            **extra_info,
-                        }
-                    )
+                result = func(*args, **kwargs)
+                status_code = getattr(result, "status_code", 200)
+                logger.log(
+                    action=action,
+                    status="success",
+                    start_time=start_time,
+                    metadata=g.audit_metadata,
+                    status_code=status_code,
                 )
-
                 return result
 
             except Exception as e:
-                duration = (time.perf_counter() - start_time) * 1000
-
-                audit_logger.error(
-                    json.dumps(
-                        {
-                            "action": action,
-                            "user": user_id,
-                            "ip": ip,
-                            "status": "failed",
-                            "duration_ms": round(duration, 2),
-                            "error": str(e),
-                            "traceback": traceback.format_exc(),
-                            **extra_info,
-                        }
-                    )
+                g.audit_metadata["error"] = str(e)
+                g.audit_metadata["traceback"] = traceback.format_exc()
+                logger.log(
+                    action=action, status="failed", start_time=start_time, metadata=g.audit_metadata
                 )
                 raise
 

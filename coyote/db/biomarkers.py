@@ -24,7 +24,7 @@ class BiomarkerHandler(BaseHandler):
             {"SAMPLE_ID": sample_id}, {"_id": 0, "name": 0, "SAMPLE_ID": 0}
         )
 
-    def deleter_sample_biomarkers(self, sample_id: str):
+    def delete_sample_biomarkers(self, sample_id: str):
         """
         Delete biomarkers data for a sample
         """

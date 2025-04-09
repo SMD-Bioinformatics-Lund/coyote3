@@ -11,7 +11,7 @@ from flask_login import current_user
 from flask_login import login_required
 from coyote.extensions import store
 from coyote.blueprints.home import home_bp
-from coyote.blueprints.home.util import SampleSearchForm
+from coyote.blueprints.home.forms import SampleSearchForm
 from coyote.extensions import util
 
 

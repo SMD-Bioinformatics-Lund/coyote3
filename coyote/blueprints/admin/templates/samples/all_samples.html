@@ -34,9 +34,9 @@
     <!-- Manage samples Section -->
     <section id="manage-samples-section" class="p-2 ml-2 mt-2">
       <div class="justify-start">
-        <div class="w-4/5 max-w-7xl bg-blue-50 shadow-3xl rounded-2xl p-4 relative overflow-hidden border-l-4 border-blue-400">
+        <div class="w-4/5 bg-blue-50 shadow-3xl rounded-2xl p-4 relative overflow-hidden border-l-4 border-blue-400">
           <!-- Header -->
-          <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 px-2 py-2">
+          <div class="flex flex-col gap-4 px-2 py-2">
             <h2 class="text-base font-semibold text-black tracking-wide uppercase">Manage Samples</h2>
           </div>
 
@@ -60,15 +60,17 @@
                     <td class="p-2 font-medium">{{ sample.subpanel }}</td>
                     <td class="p-2 font-medium">{{ 'Yes' if sample.get('reports') else 'No' }}</td>
                     <td class="p-2 font-medium flex gap-3">
-                      <button onclick="showActionModal({
-                        url: '{{ url_for('admin_bp.delete_sample', sample_id=sample._id) }}',
-                        title: 'Delete Sample',
-                        message: 'Are you sure you want to delete <b>{{ sample.name }}</b> sample from all the collections?',
-                        confirmText: 'Delete',
-                        confirmColor: 'red'
-                      })" title="Delete" class="text-red-500 hover:text-red-700 font-medium">
-                      <img src="{{ url_for('static', filename='icons/heroicons_outline_24/trash.svg') }}" alt="delete" class="w-5 cursor-pointer">
-                    </button>
+                      {% if has_access("delete_sample_global", min_role="developer", min_level=9999) %}
+                        <button onclick="showActionModal({
+                            url: '{{ url_for('admin_bp.delete_sample', sample_id=sample._id) }}',
+                            title: 'Delete Sample',
+                            message: 'Are you sure you want to delete <b>{{ sample.name }}</b> sample from all the collections?',
+                            confirmText: 'Delete',
+                            confirmColor: 'red'
+                          })" title="Delete" class="text-red-500 hover:text-red-700 font-medium">
+                          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/trash.svg') }}" alt="delete" class="w-5 cursor-pointer">
+                        </button>
+                      {% endif %}
                     </td>
                   </tr>
                 {% else %}

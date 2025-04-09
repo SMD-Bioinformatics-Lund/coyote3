@@ -51,7 +51,7 @@ def change_password(username):
                     method="pbkdf2:sha256",
                 ),
             )
-            flash("Password updated successfully", "success")
+            flash("Password updated successfully", "green")
             return redirect(url_for("profile_bp.profile"))
         else:
             form.old_password.errors.append("Old password is incorrect")

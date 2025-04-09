@@ -71,38 +71,41 @@
                 </td>
                 <td class="p-2 text-xs">{{ role.version or '-' }}</td>
                 <td class="p-2 font-medium flex gap-2 flex-wrap">
-
-                  <button onclick="showActionModal({
-                      url: '{{ url_for('admin_bp.edit_role', role_id=role._id) }}',
-                      title: 'Edit Role Policy',
-                      message: 'Are you sure you want to edit <b>{{ role._id }} </b> role policy?',
-                      confirmText: 'Edit',
-                      confirmColor: 'blue'
-                    })"
-                    title="Edit"
-                    class="font-medium text-blue-600 hover:text-blue-800">
-                    <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
-                  </button>
-                  <button onclick="showActionModal({
-                      url: '{{ url_for('admin_bp.toggle_role_active', role_id=role._id) }}',
-                      title: '{{ 'Deactivate' if role.is_active else 'Activate' }} Schema',
-                      message: 'Are you sure you want to {{ 'deactivate' if role.is_active else 'activate' }} <b>{{ role._id }}</b>?',
-                      confirmText: '{{ 'Deactivate' if role.is_active else 'Activate' }}',
-                      confirmColor: '{{ 'red' if role.is_active else 'green' }}'
-                    })"
-                    title="{{ 'Deactivate' if role.is_active else 'Activate' }}"
-                    class="font-medium {% if role.is_active %}text-yellow-600 hover:text-yellow-800{% else %}text-green-600 hover:text-green-800{% endif %}">
-                    <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path-rounded-square.svg') }}" alt="toggle active" class="w-5 cursor-pointer">
-                  </button> 
-                  <button onclick="showActionModal({
-                      url: '{{ url_for('admin_bp.delete_role', role_id=role._id) }}',
-                      title: 'Delete Role Policy',
-                      message: 'Are you sure you want to delete <b>{{ role._id }}</b> role policy?',
-                      confirmText: 'Delete',
-                      confirmColor: 'red'
-                    })" title="Delete" class="text-red-500 hover:text-red-700 font-medium">
-                    <img src="{{ url_for('static', filename='icons/heroicons_outline_24/trash.svg') }}" alt="delete" class="w-5 cursor-pointer">
-                  </button>
+                  {% if has_access("edit_role", min_role="admin", min_level=99999) %}
+                    <button onclick="showActionModal({
+                        url: '{{ url_for('admin_bp.edit_role', role_id=role._id) }}',
+                        title: 'Edit Role Policy',
+                        message: 'Are you sure you want to edit <b>{{ role._id }} </b> role policy?',
+                        confirmText: 'Edit',
+                        confirmColor: 'blue'
+                      })"
+                      title="Edit"
+                      class="font-medium text-blue-600 hover:text-blue-800">
+                      <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
+                    </button>
+                    <button onclick="showActionModal({
+                        url: '{{ url_for('admin_bp.toggle_role_active', role_id=role._id) }}',
+                        title: '{{ 'Deactivate' if role.is_active else 'Activate' }} Schema',
+                        message: 'Are you sure you want to {{ 'deactivate' if role.is_active else 'activate' }} <b>{{ role._id }}</b>?',
+                        confirmText: '{{ 'Deactivate' if role.is_active else 'Activate' }}',
+                        confirmColor: '{{ 'red' if role.is_active else 'green' }}'
+                      })"
+                      title="{{ 'Deactivate' if role.is_active else 'Activate' }}"
+                      class="font-medium {% if role.is_active %}text-yellow-600 hover:text-yellow-800{% else %}text-green-600 hover:text-green-800{% endif %}">
+                      <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path-rounded-square.svg') }}" alt="toggle active" class="w-5 cursor-pointer">
+                    </button>
+                  {% endif %}
+                  {% if has_access("delete_role", min_role="admin", min_level=99999) %}
+                    <button onclick="showActionModal({
+                        url: '{{ url_for('admin_bp.delete_role', role_id=role._id) }}',
+                        title: 'Delete Role Policy',
+                        message: 'Are you sure you want to delete <b>{{ role._id }}</b> role policy?',
+                        confirmText: 'Delete',
+                        confirmColor: 'red'
+                      })" title="Delete" class="text-red-500 hover:text-red-700 font-medium">
+                      <img src="{{ url_for('static', filename='icons/heroicons_outline_24/trash.svg') }}" alt="delete" class="w-5 cursor-pointer">
+                    </button>
+                  {% endif %}
                 </td>
               </tr>
               {% else %}

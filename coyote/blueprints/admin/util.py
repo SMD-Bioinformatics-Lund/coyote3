@@ -9,6 +9,7 @@ from coyote.util.common_utility import CommonUtility
 from coyote.blueprints.admin import validators
 from coyote.services.audit_logs.decorators import log_action
 from flask import current_app as app
+from flask import flash
 from coyote.extensions import store
 from bisect import bisect_left
 import json
@@ -171,6 +172,7 @@ class AdminUtility:
         Deletes all traces of a sample from the database.
         This includes variants, CNVs, coverage, translocations, fusions, biomarkers, and the sample itself.
         """
+        sample_name = store.sample_handler.get_sample_with_id(sample_id)
         actions = [
             store.variant_handler.delete_sample_variants,
             store.cnv_handler.delete_sample_cnvs,
@@ -178,8 +180,22 @@ class AdminUtility:
             store.coverage2_handler.delete_sample_coverage,
             store.transloc_handler.delete_sample_translocs,
             store.fusion_handler.delete_sample_fusions,
-            store.biomarker_handler.deleter_sample_biomarkers,
+            store.biomarker_handler.delete_sample_biomarkers,
             store.sample_handler.delete_sample,
         ]
         for handler in actions:
             handler(sample_id)
+            result = handler(sample_id)
+            collection_name = handler.__name__.replace("delete_sample_", "").replace("_handler", "")
+            if collection_name == "delete_sample":
+                collection_name = "sample"
+            if result:
+                flash(
+                    f"Deleted {collection_name} for {sample_name.get('name')}",
+                    "green",
+                )
+            else:
+                flash(
+                    f"Failed to delete {collection_name} for {sample_name.get('name')}",
+                    "red",
+                )

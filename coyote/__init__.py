@@ -9,12 +9,15 @@ from flask_login import current_user, login_user
 from coyote.services.auth.user_session import User  # Your User class
 from coyote.models.user import UserModel
 from coyote.extensions import store
+from pymongo.errors import ConnectionFailure
+import json
 
 
 def init_app(testing: bool = False, debug: bool = False) -> Flask:
     """Create Flask application."""
     app = Flask(__name__, instance_relative_config=True)
     app.jinja_env.add_extension("jinja2.ext.do")
+    app.jinja_env.filters["from_json"] = json.loads
 
     # Allows cross-origin requests for CDM/api
     # /trends needs this to work.
@@ -46,7 +49,14 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
         register_blueprints(app)
         init_ldap(app)
         init_utility(app)
+        app.logger.debug("init_db() completed")
 
+        # Cache roles access levels in app context
+        app.role_access_levels = {
+            role["_id"]: role.get("level", 0) for role in store.roles_handler.get_all_roles()
+        }
+
+        # TODO: revit this function and remove unused things
         @app.context_processor
         def inject_user_helpers():
             return {
@@ -84,35 +94,46 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
 
     @app.before_request
     def enforce_permissions():
-        if not current_user.is_authenticated:
-            return
-
         view = app.view_functions.get(request.endpoint)
         if not view:
             return
 
+        # Fetch required metadata
         required_permission = getattr(view, "required_permission", None)
         required_level = getattr(view, "required_access_level", None)
+        required_role = getattr(view, "required_role_name", None)
 
-        # Permission check
-        if required_permission:
-            if required_permission not in current_user.permissions:
-                flash("You lack the required permission to access this page.", "red")
-                return redirect(url_for("home_bp.home_screen"))
+        # If any access control is defined, require authentication
+        if required_permission or required_level is not None or required_role:
+            if not current_user.is_authenticated:
+                flash("Login required", "yellow")
+                return redirect(url_for("login_bp.login"))
 
-            if required_permission in current_user.denied_permissions:
-                flash("Access to this permission is explicitly forbidden.", "red")
-                return redirect(url_for("home_bp.home_screen"))
+            # Resolve role level from cached access levels
+            resolved_role_level = 0
+            if required_role:
+                role_levels = app.role_access_levels
+                resolved_role_level = role_levels.get(required_role, 0)
 
-        # Access level check
-        if required_level is not None:
-            if not current_user.has_min_access_level(required_level):
-                flash("Your role does not allow access to this page.", "red")
+            # --------------------------
+            # Evaluate all three checks:
+            # --------------------------
+            permission_ok = (
+                required_permission
+                and required_permission in current_user.permissions
+                and required_permission not in current_user.denied_permissions
+            )
+
+            level_ok = required_level is not None and current_user.access_level >= required_level
+
+            role_ok = required_role is not None and current_user.access_level >= resolved_role_level
+
+            if not (permission_ok or level_ok or role_ok):
+                flash("You do not have access to this page.", "red")
                 return redirect(url_for("home_bp.home_screen"))
 
     @app.context_processor
     def inject_permission_helpers():
-
         def can(permission: str) -> bool:
             return (
                 current_user.is_authenticated
@@ -127,24 +148,59 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
             if not current_user.is_authenticated:
                 return False
 
-            role_doc = store.roles_handler.get_role(role_name)
-            required_level = role_doc.get("level") if role_doc else 0
+            required_level = app.role_access_levels.get(role_name, 0)
             return current_user.access_level >= required_level
 
-        return {"can": can, "min_level": min_level, "min_role": min_role}
+        # 🔥 Store reference to avoid shadowing
+        _min_role = min_role
+        _min_level = min_level
+        _can = can
+
+        def has_access(permission=None, min_role=None, min_level=None) -> bool:
+            """Shortcut to check access via permission, role, or level."""
+            if not current_user.is_authenticated:
+                return False
+
+            if not permission and not min_role and min_level is None:
+                return True
+
+            return (
+                (permission and _can(permission))
+                or (min_role and _min_role(min_role))
+                or (min_level is not None and _min_level(min_level))
+            )
+
+        return {
+            "can": can,
+            "min_role": min_role,
+            "min_level": min_level,
+            "has_access": has_access,
+        }
 
     return app
 
 
 def init_db(app) -> None:
-    app.logger.info("Initializing MongoDB")
-    # TODO: Add connection checks
-    app.logger.info("Initializing mongodb at: " f"{app.config['MONGO_URI']}")
+    app.logger.info("Initializing MongoDB...")
+
+    mongo_uri = app.config.get("MONGO_URI", "not set")
+    app.logger.info(f"Connecting to MongoDB at: {mongo_uri}")
+
+    # Initialize the PyMongo extension
     extensions.mongo.init_app(app)
+
+    # Check the connection
+    try:
+        client = extensions.mongo.cx  # Get PyMongo client
+        client.admin.command("ping")  # Basic ping to confirm connection
+        app.logger.info("MongoDB connection established successfully.")
+    except ConnectionFailure as e:
+        app.logger.error(f"MongoDB connection failed: {e}")
+        raise RuntimeError("Could not connect to MongoDB. Aborting.") from e
 
 
 def init_store(app) -> None:
-    app.logger.info("Initializing MongoAdapter at: " f"{app.config['MONGO_URI']}")
+    app.logger.info(f"Initializing MongoAdapter at: {app.config['MONGO_URI']}")
     extensions.store.init_from_app(app)
 
 

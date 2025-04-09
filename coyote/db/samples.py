@@ -32,7 +32,6 @@ class SampleHandler(BaseHandler):
         if len(search_str) > 0:
             query["name"] = {"$regex": search_str}
 
-        print("query", query)
         samples = list(self.get_collection().find(query).sort("time_added", -1))
         if limit:
             samples = samples[:limit]
@@ -50,6 +49,13 @@ class SampleHandler(BaseHandler):
         """
         sample = self.get_collection().find_one({"_id": ObjectId(id)})
         return sample
+
+    def get_sample_name(self, id: str):
+        """
+        get sample name by id
+        """
+        sample = self.get_collection().find_one({"_id": ObjectId(id)})
+        return sample.get("name") if sample else None
 
     def get_samples_by_oids(self, sample_oids: list):
         """
@@ -229,12 +235,16 @@ class SampleHandler(BaseHandler):
         }
         return assay_specific_stats
 
-    def get_all_samples(self, limit=None, search_str=""):
+    def get_all_samples(self, groups=None, limit=None, search_str=""):
         """
         Get all the samples
         """
 
         query = {}
+
+        if groups:
+            query = {"groups": {"$in": groups}}
+
         if len(search_str) > 0:
             query["name"] = {"$regex": search_str}
 
@@ -249,4 +259,4 @@ class SampleHandler(BaseHandler):
         """
         delete sample from db
         """
-        self.get_collection().delete_one({"_id": ObjectId(sample_oid)})
+        return self.get_collection().delete_one({"_id": ObjectId(sample_oid)})

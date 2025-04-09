@@ -51,7 +51,7 @@ def list_variants(id):
     smp_grp = util.common.select_one_sample_group(sample.get("groups"))
 
     if smp_grp is None:
-        flash("No group found for sample using unknown-default group", "warning")
+        flash("No group found for sample using unknown-default group", "yellow")
         smp_grp = "unknown-default"
 
     # Get group parameters from the sample group config file

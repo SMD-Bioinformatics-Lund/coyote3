@@ -24,9 +24,14 @@ class DefaultConfig:
     PRODUCTION = False
 
     INTERNAL_USERS = {
-        "coyote3.developer@skane.se",
-        "coyote3.tester@skane.se",
-        "coyote3.external@skane.se",
+        "coyote.admin@skane.se",
+        "coyote.developer@skane.se",
+        "coyote.tester@skane.se",
+        "coyote.manager@skane.se",
+        "coyote.user@skane.se",
+        "coyote.intern@skane.se",
+        "coyote.viewer@skane.se",
+        "coyote.external@skane.se",
     }
 
     WTF_CSRF_ENABLED = True

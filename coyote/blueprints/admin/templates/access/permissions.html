@@ -61,37 +61,41 @@
                       <span class="text-gray-500 font-thin"><small>{{ perm.updated_on|human_date }}</small></span>
                     </td>
                     <td class="p-2 font-medium flex gap-2 flex-wrap">
-                      <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.edit_permission', perm_id=perm._id) }}',
-                          title: 'Edit Permission Policy',
-                          message: 'Are you sure you want to edit <b>{{ perm._id }} </b> policy?',
-                          confirmText: 'Edit',
-                          confirmColor: 'blue'
-                        })"
-                        title="Edit"
-                        class="font-medium text-blue-600 hover:text-blue-800">
-                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
-                      </button>
-                      <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.toggle_permission_active', perm_id=perm._id) }}',
-                          title: '{{ 'Disable' if perm.is_active else 'Enable' }} Schema',
-                          message: 'Are you sure you want to {{ 'Disable' if perm.is_active else 'Enable' }} <b>{{ perm._id }}</b>?',
-                          confirmText: '{{ 'Disable' if perm.is_active else 'Enable' }}',
-                          confirmColor: '{{ 'red' if perm.is_active else 'green' }}'
-                        })"
-                        title="{{ 'Disable' if perm.is_active else 'Enable' }}"
-                        class="font-medium {% if perm.is_active %}text-yellow-600 hover:text-yellow-800{% else %}text-green-600 hover:text-green-800{% endif %}">
-                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path-rounded-square.svg') }}" alt="toggle active" class="w-5 cursor-pointer">
-                      </button>
-                      <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.delete_permission', perm_id=perm._id) }}',
-                          title: 'Delete Permission Policy',
-                          message: 'Are you sure you want to delete <b>{{ perm._id }}</b> policy?',
-                          confirmText: 'Delete',
-                          confirmColor: 'red'
-                        })" title="Delete" class="text-red-500 hover:text-red-700 font-medium">
-                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/trash.svg') }}" alt="delete" class="w-5 cursor-pointer">
-                      </button>
+                      {% if has_access("edit_permission", min_role="admin", min_level=99999) %}
+                        <button onclick="showActionModal({
+                            url: '{{ url_for('admin_bp.edit_permission', perm_id=perm._id) }}',
+                            title: 'Edit Permission Policy',
+                            message: 'Are you sure you want to edit <b>{{ perm._id }} </b> policy?',
+                            confirmText: 'Edit',
+                            confirmColor: 'blue'
+                          })"
+                          title="Edit"
+                          class="font-medium text-blue-600 hover:text-blue-800">
+                          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
+                        </button>
+                        <button onclick="showActionModal({
+                            url: '{{ url_for('admin_bp.toggle_permission_active', perm_id=perm._id) }}',
+                            title: '{{ 'Disable' if perm.is_active else 'Enable' }} Schema',
+                            message: 'Are you sure you want to {{ 'Disable' if perm.is_active else 'Enable' }} <b>{{ perm._id }}</b>?',
+                            confirmText: '{{ 'Disable' if perm.is_active else 'Enable' }}',
+                            confirmColor: '{{ 'red' if perm.is_active else 'green' }}'
+                          })"
+                          title="{{ 'Disable' if perm.is_active else 'Enable' }}"
+                          class="font-medium {% if perm.is_active %}text-yellow-600 hover:text-yellow-800{% else %}text-green-600 hover:text-green-800{% endif %}">
+                          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path-rounded-square.svg') }}" alt="toggle active" class="w-5 cursor-pointer">
+                        </button>
+                      {% endif %}
+                      {% if has_access("delete_permission", min_role="admin", min_level=99999) %}
+                        <button onclick="showActionModal({
+                            url: '{{ url_for('admin_bp.delete_permission', perm_id=perm._id) }}',
+                            title: 'Delete Permission Policy',
+                            message: 'Are you sure you want to delete <b>{{ perm._id }}</b> policy?',
+                            confirmText: 'Delete',
+                            confirmColor: 'red'
+                          })" title="Delete" class="text-red-500 hover:text-red-700 font-medium">
+                          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/trash.svg') }}" alt="delete" class="w-5 cursor-pointer">
+                        </button>
+                      {% endif %}
                     </td>
                   </tr>
                 {% endfor %}

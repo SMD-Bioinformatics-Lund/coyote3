@@ -1,6 +1,7 @@
 from functools import wraps
 from flask import redirect, url_for, flash
 from flask_login import current_user
+from flask import current_app as app
 
 
 def require_admin(f):
@@ -144,27 +145,29 @@ def require_role_or_permission(min_level=None, permission=None):
     return decorator
 
 
-def require(permission=None, min_level=None, min_role=None):
+def require(permission=None, min_role=None, min_level=None):
     """
-    Assigns permission and/or min role requirement to a route.
-    Accepts either access level or role name (resolved via roles_handler).
+    A decorator to specify access control requirements for a function.
+    This decorator allows you to define the required permission, minimum role,
+    and minimum access level needed to execute the decorated function. These
+    attributes are stored as properties of the function for later use, such as
+    during authorization checks.
+    Args:
+        permission (str, optional): The specific permission required to access
+            the function. Defaults to None.
+        min_role (str, optional): The minimum role name required to access the
+            function. Defaults to None.
+        min_level (int, optional): The minimum access level required to access
+            the function. Defaults to None.
+    Returns:
+        function: The decorated function with the access control attributes
+        attached.
     """
 
     def decorator(f):
         f.required_permission = permission
-
-        resolved_level = min_level
-
-        if min_role and not min_level:
-            # resolve access level from role name
-            roles_handler = getattr(app, "roles_handler", None) or app.extensions.get(
-                "roles_handler"
-            )
-            if roles_handler:
-                role_doc = roles_handler.get_role(min_role)
-                resolved_level = role_doc.get("level") if role_doc else 0
-
-        f.required_access_level = resolved_level
+        f.required_access_level = min_level
+        f.required_role_name = min_role
         return f
 
     return decorator

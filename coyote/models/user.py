@@ -98,5 +98,5 @@ class UserModel(BaseModel):
         return self.updated.strftime("%Y-%m-%d %H:%M:%S") if self.updated else None
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name = True
         json_encoders = {datetime: lambda v: v.isoformat()}

@@ -12,11 +12,14 @@ from flask import (
     abort,
     jsonify,
 )
+from flask import g
+from flask.wrappers import Response
 from flask_login import current_user
+from werkzeug import Response
 from coyote.blueprints.admin import admin_bp
-from coyote.services.auth.decorators import require_admin
+from coyote.services.auth.decorators import require
 from coyote.services.audit_logs.decorators import log_action
-from coyote.blueprints.home.util import SampleSearchForm
+from coyote.blueprints.home.forms import SampleSearchForm
 from pprint import pformat
 from copy import deepcopy
 from coyote.extensions import store, util
@@ -24,10 +27,11 @@ from typing import Literal, Any
 from datetime import datetime
 import json
 import json5
+from pathlib import Path
 
 
 @admin_bp.route("/")
-@require_admin
+@require(min_role="manager", min_level=99)
 def admin_home() -> Any:
     """
     Renders the admin home page template.
@@ -35,13 +39,30 @@ def admin_home() -> Any:
     return render_template("admin_home.html")
 
 
-# This section handles the deletion of samples, including removing all traces
-# of a sample from the system and redirecting to the list of all samples.
+# ==============================
+# === SAMPLE MANAGEMENT PART ===
+# ==============================
+# This section handles the deletion of samples, including removing all traces of a sample from the system
+# and redirecting to the list of all samples. It ensures proper cleanup and user redirection.
 @admin_bp.route("/manage-samples", methods=["GET", "POST"])
-@require_admin
-def all_samples():
+@require("view_sample_global", min_role="developer", min_level=9999)
+def all_samples() -> str:
     """
-    Handle the retrieval and display of samples with optional search functionality.
+    Retrieve and display a list of samples with optional search functionality.
+
+    This function handles both GET and POST requests. For POST requests, it processes
+    a search form to filter the samples based on the provided search string. The samples
+    are limited to a predefined number and are filtered based on the current user's groups.
+
+    Returns:
+        str: Rendered HTML template displaying the list of samples and the search form.
+
+    Template:
+        samples/all_samples.html
+
+    Context:
+        all_samples (list): A list of sample objects retrieved from the data store.
+        form (SampleSearchForm): The search form for filtering samples.
     """
 
     form = SampleSearchForm()
@@ -51,54 +72,80 @@ def all_samples():
         search_str = form.sample_search.data
 
     limit_samples = 50
-    samples = store.sample_handler.get_all_samples(limit_samples, search_str)
+    groups = current_user.groups
+    samples = list(store.sample_handler.get_all_samples(groups, limit_samples, search_str))
 
-    # logic + render template
     return render_template("samples/all_samples.html", all_samples=samples, form=form)
 
 
 @admin_bp.route("/manage-samples/<string:sample_id>/delete", methods=["GET"])
-@require_admin
-@log_action("delete_sample_route", call_type="admin_call")
-def delete_sample(sample_id):
+@require("delete_sample_global", min_role="developer", min_level=9999)
+@log_action("delete_sample", call_type="admin_call")
+def delete_sample(sample_id) -> Response:
     """
     Deletes a sample and all associated traces, then redirects to the list of all samples.
-
     Args:
-        sample_id (int): The ID of the sample to delete.
-
+        sample_id (int): The unique identifier of the sample to be deleted.
     Returns:
-        Response: A redirect response to the 'all_samples' view.
+        werkzeug.wrappers.Response: A redirect response to the "all_samples" page.
     """
+    sample_name = store.sample_handler.get_sample_name(sample_id)
+
+    # log Action
+    g.audit_metadata = {"sample": sample_name}
+
     util.admin.delete_all_sample_traces(sample_id)
     return redirect(url_for("admin_bp.all_samples"))
 
 
-#### END OF SAMPLE DELETION PART ###
-
-
+# ============================
+# === USER MANAGEMENT PART ===
+# ============================
 # This section handles all operations related to user management,
 # including listing, creating, editing, deleting, and toggling user accounts.
 @admin_bp.route("/users", methods=["GET"])
-@require_admin
-def manage_users():
+@require("view_user", min_role="admin", min_level=99999)
+def manage_users() -> str:
     """
-    Fetches all users from the user handler and renders the manage users template.
+    Retrieve and display a list of all users.
+
+    This function fetches all users from the user handler and renders the
+    "manage_users.html" template to display the list of users.
 
     Returns:
-        str: Rendered HTML template for managing users.
+        flask.Response: The rendered HTML page displaying the list of users.
     """
     users = store.user_handler.get_all_users()
     return render_template("users/manage_users.html", users=users)
 
 
 @admin_bp.route("/users/new", methods=["GET", "POST"])
-@require_admin
-def create_user():
+@require("create_user", min_role="admin", min_level=99999)
+@log_action(action_name="create_user", call_type="admin_call")
+def create_user() -> Response | str:
     """
-    Handles the creation of a new user based on a selected schema.
-    Fetches active user schemas, processes form data, and stores the new user.
+    Handles the creation of a new user.
+
+    Fetches active user schemas, processes form data, and creates a new user.
+    Includes role injection, password hashing, and group processing.
+
+    Returns:
+        - Redirects to user management page on success or errors.
+        - Renders "users/user_create.html" template for GET requests.
+
+    Flash Messages:
+        - "No active user schemas found!" (red): No schemas available.
+        - "User schema not found!" (red): Invalid schema.
+        - "User created successfully!" (green): User created.
+
+    Dependencies:
+        - `store.schema_handler.get_schemas_by_filter`: Fetch schemas.
+        - `store.roles_handler.get_all_role_names`: Get roles.
+        - `util.admin.process_form_to_config`: Process form data.
+        - `util.profile.hash_password`: Hash password.
+        - `store.user_handler.create_user`: Save user.
     """
+
     # Fetch all active user schemas
     active_schemas = store.schema_handler.get_schemas_by_filter(
         schema_type="user_config", schema_category="user_management", is_active=True
@@ -116,6 +163,10 @@ def create_user():
         flash("User schema not found!", "red")
         return redirect(url_for("admin_bp.manage_users"))
 
+    # Inject Roles from the Roles collections
+    available_roles = store.roles_handler.get_all_role_names()
+    schema["fields"]["role"]["options"] = available_roles
+
     if request.method == "POST":
         form_data = {
             key: (vals[0] if len(vals) == 1 else vals)
@@ -123,7 +174,6 @@ def create_user():
         }
 
         user_data = util.admin.process_form_to_config(form_data, schema)
-
         user_data["_id"] = user_data["username"]
         user_data["schema_name"] = schema["_id"]
         user_data["schema_version"] = schema["version"]
@@ -134,9 +184,16 @@ def create_user():
         user_data["email"] = user_data["email"].lower()
         user_data["username"] = user_data["username"].lower()
 
+        # Log Action
+        g.audit_metadata = {"user": user_data["username"]}
+
         # Hash the password
         if "password" in user_data:
             user_data["password"] = util.profile.hash_password(user_data["password"])
+
+        # Convert groups dict to list of active groups
+        if "groups" in user_data and isinstance(user_data["groups"], dict):
+            user_data["groups"] = [key for key, val in user_data["groups"].items() if val]
 
         store.user_handler.create_user(user_data)
         flash("User created successfully!", "green")
@@ -151,8 +208,9 @@ def create_user():
 
 
 @admin_bp.route("/users/<user_id>/edit", methods=["GET", "POST"])
-@require_admin
-def edit_user(user_id):
+@require("edit_user", min_role="admin", min_level=99999)
+@log_action("edit_user", call_type="admin_call")
+def edit_user(user_id) -> Response | str:
     """
     Edit an existing user's details based on the provided user ID.
 
@@ -162,8 +220,13 @@ def edit_user(user_id):
     Returns:
         Response: Renders the user edit template or redirects after a successful update.
     """
+
     user_doc = store.user_handler.user_with_id(user_id)
     schema = store.schema_handler.get_schema(user_doc.get("schema_name"))
+
+    # Inject Roles from the Roles collections
+    available_roles = store.roles_handler.get_all_role_names()
+    schema["fields"]["role"]["options"] = available_roles
 
     if "groups" in user_doc:
         user_doc["groups"] = {group: True for group in user_doc["groups"]}
@@ -188,6 +251,9 @@ def edit_user(user_id):
         updated_user["schema_name"] = schema["_id"]
         updated_user["schema_version"] = schema["version"]
 
+        # Log Action
+        g.audit_metadata = {"user": user_id}
+
         store.user_handler.update_user(user_id, updated_user)
         flash("User updated successfully.", "green")
         return redirect(url_for("admin_bp.manage_users"))
@@ -196,18 +262,27 @@ def edit_user(user_id):
 
 
 @admin_bp.route("/users/<user_id>/delete", methods=["GET"])
-@require_admin
-def delete_user(user_id):
+@require("delete_user", min_role="admin", min_level=99999)
+@log_action(action_name="delete_user", call_type="admin_call")
+def delete_user(user_id) -> Response:
     """
-    Deletes a user account by the given user ID and redirects to the manage users page.
+    Deletes a user by their ID and redirects to the manage users page.
+
+    Args:
+        user_id (int): The ID of the user to be deleted.
     """
+
     store.user_handler.delete_user(user_id)
+
+    # Log Action
+    g.audit_metadata = {"user": user_id}
+
     return redirect(url_for("admin_bp.manage_users"))
 
 
 @admin_bp.route("/users/validate_username", methods=["POST"])
-@require_admin
-def validate_username():
+@require("create_user", min_role="admin", min_level=99999)
+def validate_username() -> Response:
     """
     Validates if a username already exists in the system.
 
@@ -219,7 +294,7 @@ def validate_username():
 
 
 @admin_bp.route("/users/validate_email", methods=["POST"])
-@require_admin
+@require("create_user", min_role="admin", min_level=99999)
 def validate_email():
     """
     Validate if an email exists in the user database.
@@ -232,7 +307,8 @@ def validate_email():
 
 
 @admin_bp.route("/users/<user_id>/toggle", methods=["POST", "GET"])
-@require_admin
+@require("edit_user", min_role="admin", min_level=99999)
+@log_action(action_name="edit_user", call_type="admin_call")
 def toggle_user_active(user_id):
     """
     Toggles the active status of an user configuration by its ID.
@@ -248,6 +324,13 @@ def toggle_user_active(user_id):
         return abort(404)
 
     new_status = not user_doc.get("is_active", False)
+
+    # Log Action
+    g.audit_metadata = {
+        "user": user_id,
+        "user_status": "Active" if new_status else "Inactive",
+    }
+
     store.user_handler.toggle_active(user_id, new_status)
     flash(f"User: '{user_id}' is now {'active' if new_status else 'inactive'}.", "green")
     return redirect(url_for("admin_bp.manage_users"))
@@ -256,12 +339,15 @@ def toggle_user_active(user_id):
 #### END OF MANAGE USERS PART ###
 
 
+# ====================================
+# === ASSAY CONFIG MANAGEMENT PART ===
+# ====================================
 # This section handles all operations related to assay configurations,
 # including fetching, creating, editing, toggling active status, and deleting
 # both DNA and RNA assay configurations.
 @admin_bp.route("/assay-configs")
-@require_admin
-def assay_configs():
+@require("view_assay_config", min_role="developer", min_level=9999)
+def assay_configs() -> str:
     """
     Fetch and render all assay configurations.
     Returns:
@@ -272,8 +358,9 @@ def assay_configs():
 
 
 @admin_bp.route("/assay-configs/<assay_id>/toggle", methods=["POST", "GET"])
-@require_admin
-def toggle_assay_config_active(assay_id):
+@require("edit_assay_config", min_role="developer", min_level=9999)
+@log_action(action_name="edit_assay_config", call_type="developer_call")
+def toggle_assay_config_active(assay_id) -> Response:
     """
     Toggles the active status of an assay configuration by its ID.
 
@@ -288,14 +375,20 @@ def toggle_assay_config_active(assay_id):
         return abort(404)
 
     new_status = not assay_config.get("is_active", False)
+    # Log Action
+    g.audit_metadata = {
+        "assay": assay_id,
+        "assay_status": "Active" if new_status else "Inactive",
+    }
     store.assay_config_handler.toggle_active(assay_id, new_status)
     flash(f"Assay config '{assay_id}' is now {'active' if new_status else 'inactive'}.", "green")
     return redirect(url_for("admin_bp.assay_configs"))
 
 
 @admin_bp.route("/assay-config/<assay_id>/edit", methods=["GET", "POST"])
-@require_admin
-def edit_assay_config(assay_id):
+@require("edit_assay_config", min_role="developer", min_level=9999)
+@log_action(action_name="edit_assay_config", call_type="developer_call")
+def edit_assay_config(assay_id) -> Response | str:
     """
     Handle the editing of an assay configuration.
 
@@ -333,14 +426,18 @@ def edit_assay_config(assay_id):
         except Exception as e:
             flash(f"Error: {e}", "red")
 
+        # Log Action
+        g.audit_metadata = {"assay": assay_id}
+
     return render_template(
         "assay_configs/assay_config_edit.html", schema=schema, config=assay_config
     )
 
 
 @admin_bp.route("/assay/<assay_id>/delete", methods=["GET"])
-@require_admin
-def delete_assay_config(assay_id):
+@require("delete_assay_config", min_role="admin", min_level=99999)
+@log_action(action_name="delete_assay_config", call_type="admin_call")
+def delete_assay_config(assay_id) -> Response:
     """
     Deletes the assay configuration for the given assay ID.
 
@@ -355,13 +452,17 @@ def delete_assay_config(assay_id):
         return abort(404)
 
     store.assay_config_handler.delete_assay_config(assay_id)
+    # Log Action
+    g.audit_metadata = {"assay": assay_id}
+
     flash(f"Assay config '{assay_id}' deleted successfully.", "green")
     return redirect(url_for("admin_bp.assay_configs"))
 
 
 @admin_bp.route("/assay-config/dna/new", methods=["GET", "POST"])
-@require_admin
-def create_dna_assay_config():
+@require("create_assay_config", min_role="developer", min_level=9999)
+@log_action(action_name="create_assay_config", call_type="developer_call")
+def create_dna_assay_config() -> Response | str:
     """
     Handles the creation of a DNA assay configuration. Fetches active DNA schemas,
     processes form data, and saves the configuration to the database.
@@ -399,6 +500,9 @@ def create_dna_assay_config():
         config["updated_by"] = current_user.email
         config["updated_on"] = datetime.utcnow()
 
+        # Log Action
+        g.audit_metadata = {"assay": config["assay_name"]}
+
         store.assay_config_handler.insert_assay_config(config)
         flash(f"{config['assay_name']} assay config created!", "green")
         return redirect(url_for("admin_bp.assay_configs"))
@@ -412,8 +516,9 @@ def create_dna_assay_config():
 
 
 @admin_bp.route("/assay-config/rna/new", methods=["GET", "POST"])
-@require_admin
-def create_rna_assay_config():
+@require("create_assay_config", min_role="developer", min_level=9999)
+@log_action(action_name="create_assay_config", call_type="developer_call")
+def create_rna_assay_config() -> Response | str:
     """
     Handles the creation of RNA assay configurations. Fetches active RNA schemas,
     processes form data, and saves the configuration to the database.
@@ -451,6 +556,9 @@ def create_rna_assay_config():
         config["updated_by"] = current_user.email
         config["updated_on"] = datetime.utcnow()
 
+        # Log Action
+        g.audit_metadata = {"assay": config["assay_name"]}
+
         store.assay_config_handler.insert_assay_config(config)
         flash(f"{config['assay_name']} assay config created!", "green")
         return redirect(url_for("admin_bp.assay_configs"))
@@ -463,11 +571,14 @@ def create_rna_assay_config():
     )
 
 
+# ==============================
+# === SCHEMA MANAGEMENT PART ===
+# ==============================
 # This section handles all operations related to schemas, including fetching,
 # creating, editing, toggling active status, and deleting schemas.
 @admin_bp.route("/schemas")
-@require_admin
-def schemas():
+@require("view_schema", min_role="developer", min_level=9999)
+def schemas() -> str:
     """
     Fetches all schemas and renders the schemas template.
 
@@ -479,8 +590,9 @@ def schemas():
 
 
 @admin_bp.route("/schemas/<schema_id>/toggle", methods=["POST", "GET"])
-@require_admin
-def toggle_schema_active(schema_id):
+@require("edit_schema", min_role="developer", min_level=9999)
+@log_action(action_name="edit_schema", call_type="developer_call")
+def toggle_schema_active(schema_id) -> Response:
     """
     Toggles the active status of a schema by its ID.
 
@@ -495,14 +607,21 @@ def toggle_schema_active(schema_id):
         return abort(404)
 
     new_status = not schema.get("is_active", False)
+
+    # Log Action
+    g.audit_metadata = {
+        "schema": schema_id,
+        "schema_status": "Active" if new_status else "Inactive",
+    }
     store.schema_handler.toggle_active(schema_id, new_status)
     flash(f"Schema '{schema_id}' is now {'active' if new_status else 'inactive'}.", "green")
     return redirect(url_for("admin_bp.schemas"))
 
 
 @admin_bp.route("/schemas/<schema_id>/edit", methods=["GET", "POST"])
-@require_admin
-def edit_schema(schema_id):
+@require("edit_schema", min_role="developer", min_level=9999)
+@log_action(action_name="edit_schema", call_type="developer_call")
+def edit_schema(schema_id) -> str | Response:
     """
     Handle the editing of a schema by its ID.
 
@@ -542,12 +661,16 @@ def edit_schema(schema_id):
         except Exception as e:
             flash(f"Error updating schema: {e}", "red")
 
+        # Log Action
+        g.audit_metadata = {"schema": schema_id}
+
     return render_template("schemas/schema_edit.html", schema_blob=schema_doc)
 
 
 @admin_bp.route("/schemas/new", methods=["GET", "POST"])
-@require_admin
-def create_schema():
+@require("create_schema", min_role="developer", min_level=9999)
+@log_action(action_name="create_schema", call_type="developer_call")
+def create_schema() -> str | Response:
     """
     Handles the creation of a new schema. Validates the schema structure,
     stores metadata, and saves it to the database. Renders the schema creation
@@ -579,6 +702,9 @@ def create_schema():
         except Exception as e:
             flash(f"Error: {e}", "red")
 
+        # Log Action
+        g.audit_metadata = {"schema": parsed_schema.get("schema_name")}
+
     # Load the initial schema template
     initial_blob = util.admin.load_json5_template()
 
@@ -586,8 +712,9 @@ def create_schema():
 
 
 @admin_bp.route("/schemas/<schema_id>/delete", methods=["GET"])
-@require_admin
-def delete_schema(schema_id):
+@require("delete_schema", min_role="admin", min_level=99999)
+@log_action(action_name="delete_schema", call_type="admin_call")
+def delete_schema(schema_id) -> Response:
     """
     Deletes a schema by its ID.
 
@@ -603,6 +730,9 @@ def delete_schema(schema_id):
         return abort(404)
 
     store.schema_handler.delete_schema(schema_id)
+
+    # Log Action
+    g.audit_metadata = {"schema": schema_id}
     flash(f"Schema '{schema_id}' deleted successfully.", "green")
     return redirect(url_for("admin_bp.schemas"))
 
@@ -610,10 +740,14 @@ def delete_schema(schema_id):
 #### END OF SCHEMA MANAGEMENT PART ###
 
 
-#### Permission Management ####
+# ===================================
+# === PERMISSIONS MANAGEMENT PART ===
+# ===================================
+# This section handles all operations related to permissions management,
+# including listing, creating, editing, toggling active status, and deleting permissions.
 @admin_bp.route("/permissions")
-@require_admin
-def list_permissions():
+@require("view_permission", min_role="admin", min_level=99999)
+def list_permissions() -> str:
     """
     Retrieves and groups inactive permissions by category, then renders the permissions template.
 
@@ -621,7 +755,6 @@ def list_permissions():
         str: Rendered HTML template with grouped permissions.
     """
     policies = store.permissions_handler.get_all(is_active=False)
-    categories = store.permissions_handler.get_categories()
     grouped = {}
     for p in policies:
         grouped.setdefault(p["category"], []).append(p)
@@ -629,8 +762,9 @@ def list_permissions():
 
 
 @admin_bp.route("/permissions/new", methods=["GET", "POST"])
-@require_admin
-def create_permission():
+@require("create_permission", min_role="admin", min_level=99999)
+@log_action(action_name="create_permission", call_type="admin_call")
+def create_permission() -> Response | str:
     """
     Handles the creation of a new permission policy based on a selected schema.
     Renders a form for input and processes the form submission to store the policy.
@@ -666,6 +800,10 @@ def create_permission():
         policy["schema_version"] = schema["version"]
 
         store.permissions_handler.insert_permission(policy)
+
+        # Log Action
+        g.audit_metadata = {"permission": policy["_id"]}
+
         flash(f"Permission policy '{policy['_id']}' created.", "green")
         return redirect(url_for("admin_bp.list_permissions"))
 
@@ -678,8 +816,9 @@ def create_permission():
 
 
 @admin_bp.route("/permissions/<perm_id>/edit", methods=["GET", "POST"])
-@require_admin
-def edit_permission(perm_id):
+@require("edit_permission", min_role="admin", min_level=99999)
+@log_action(action_name="edit_permission", call_type="admin_call")
+def edit_permission(perm_id) -> Response | str:
     """
     Handle the editing of a permission policy.
 
@@ -711,6 +850,9 @@ def edit_permission(perm_id):
         updated_permission["updated_by"] = current_user.email
         updated_permission["version"] = permission.get("version", 1) + 1
 
+        # Log Action
+        g.audit_metadata = {"permission": perm_id}
+
         store.permissions_handler.update_policy(perm_id, updated_permission)
         flash(f"Permission policy '{perm_id}' updated.", "green")
         return redirect(url_for("admin_bp.list_permissions"))
@@ -719,8 +861,9 @@ def edit_permission(perm_id):
 
 
 @admin_bp.route("/permissions/<perm_id>/toggle", methods=["POST", "GET"])
-@require_admin
-def toggle_permission_active(perm_id):
+@require("edit_permission", min_role="admin", min_level=99999)
+@log_action(action_name="edit_permission", call_type="admin_call")
+def toggle_permission_active(perm_id) -> Response:
     """
     Toggles the active status of a permission based on its ID.
 
@@ -740,14 +883,21 @@ def toggle_permission_active(perm_id):
         return abort(404)
 
     new_status = not perm.get("is_active", False)
+
+    # Log Action
+    g.audit_metadata = {
+        "permission": perm_id,
+        "permission_status": "Active" if new_status else "Inactive",
+    }
     store.permissions_handler.toggle_active(perm_id, new_status)
     flash(f"Permission '{perm_id}' is now {'Active' if new_status else 'Inactive'}.", "green")
     return redirect(url_for("admin_bp.list_permissions"))
 
 
 @admin_bp.route("/permissions/<perm_id>/delete", methods=["GET"])
-@require_admin
-def delete_permission(perm_id):
+@require("delete_permission", min_role="admin", min_level=99999)
+@log_action(action_name="delete_permission", call_type="admin_call")
+def delete_permission(perm_id) -> Response:
     """
     Deletes a permission policy by its ID.
 
@@ -766,15 +916,23 @@ def delete_permission(perm_id):
     if not perm:
         return abort(404)
 
+    # Log Action
+    g.audit_metadata = {"permission": perm_id}
+
     store.permissions_handler.delete_permission(perm_id)
     flash(f"Permission policy '{perm_id}' deleted successfully.", "green")
     return redirect(url_for("admin_bp.list_permissions"))
 
 
+# ============================
+# === ROLE MANAGEMENT PART ===
+# ============================
 # --- Role listing page ---
+# This section handles the listing of roles, including rendering the roles page
+# and providing functionality for viewing, creating, editing, toggling, and deleting roles.
 @admin_bp.route("/roles")
-@require_admin
-def list_roles():
+@require("view_role", min_role="admin", min_level=99999)
+def list_roles() -> str:
     """
     Retrieve and render a list of all roles.
 
@@ -787,8 +945,9 @@ def list_roles():
 
 # --- Role creation page ---
 @admin_bp.route("/roles/new", methods=["GET", "POST"])
-@require_admin
-def create_role():
+@require("create_role", min_role="admin", min_level=99999)
+@log_action(action_name="create_role", call_type="admin_call")
+def create_role() -> Response | str:
     """
     Handles the creation of a new role based on a selected schema and user input.
 
@@ -846,6 +1005,9 @@ def create_role():
         policy["updated_by"] = current_user.email
         policy["updated_on"] = datetime.utcnow().isoformat()
 
+        # Log Action
+        g.audit_metadata = {"role": policy["_id"]}
+
         store.roles_handler.save_role(policy)
         flash(f"Role '{policy["_id"]}' created successfully.", "green")
         return redirect(url_for("admin_bp.list_roles"))
@@ -860,8 +1022,9 @@ def create_role():
 
 # --- Role edit page ---
 @admin_bp.route("/roles/<role_id>/edit", methods=["GET", "POST"])
-@require_admin
-def edit_role(role_id):
+@require("edit_role", min_role="admin", min_level=99999)
+@log_action(action_name="edit_role", call_type="admin_call")
+def edit_role(role_id) -> Response | str:
     """
     Handle the editing of a role by its ID.
 
@@ -908,6 +1071,9 @@ def edit_role(role_id):
         updated_role["updated_on"] = datetime.utcnow().isoformat()
         updated_role["version"] = role.get("version", 1) + 1
 
+        # Log Action
+        g.audit_metadata = {"role": role_id}
+
         store.roles_handler.update_role(role_id, updated_role)
         flash(f"Role '{role_id}' updated successfully.", "green")
         return redirect(url_for("admin_bp.list_roles"))
@@ -916,8 +1082,9 @@ def edit_role(role_id):
 
 
 @admin_bp.route("/roles/<role_id>/toggle", methods=["POST", "GET"])
-@require_admin
-def toggle_role_active(role_id):
+@require("edit_role", min_role="admin", min_level=99999)
+@log_action(action_name="edit_role", call_type="admin_call")
+def toggle_role_active(role_id) -> Response:
     """
     Toggles the active status of a role by its ID.
 
@@ -932,14 +1099,21 @@ def toggle_role_active(role_id):
         return abort(404)
 
     new_status = not role.get("is_active", False)
+
+    # Log Action
+    g.audit_metadata = {
+        "role": role_id,
+        "role_status": "Active" if new_status else "Inactive",
+    }
     store.roles_handler.toggle_active(role_id, new_status)
     flash(f"Role '{role_id}' is now {'Active' if new_status else 'Inactive'}.", "green")
     return redirect(url_for("admin_bp.list_roles"))
 
 
 @admin_bp.route("/roles/<role_id>/delete", methods=["GET"])
-@require_admin
-def delete_role(role_id):
+@require("delete_role", min_role="admin", min_level=99999)
+@log_action(action_name="delete_role", call_type="admin_call")
+def delete_role(role_id) -> Response:
     """
     Deletes a role by its ID if it exists.
 
@@ -953,42 +1127,50 @@ def delete_role(role_id):
     if not role:
         return abort(404)
 
+    # Log Action
+    g.audit_metadata = {"role": role_id}
+
     store.roles_handler.delete_role(role_id)
     flash(f"Role '{role_id}' deleted successfully.", "green")
     return redirect(url_for("admin_bp.list_roles"))
 
 
-# --- Permission policy schema from DB ---
-@admin_bp.route("/schemas/permission_policies")
-@require_admin
-def get_permission_policy_schema():
-    """
-    Retrieve the schema for permission policies from the schema handler.
-
-    Returns:
-        dict: The permission policies schema, or an empty dictionary if not found.
-    """
-    return store.schema_handler.get_schema("permission_policies") or {}
-
-
-# --- Role schema from DB ---
-@admin_bp.route("/schemas/roles")
-@require_admin
-def get_roles_schema():
-    """
-    Retrieve the schema for roles from the schema handler.
-
-    Returns:
-        dict: The roles schema, or an empty dictionary if not found.
-    """
-    return store.schema_handler.get_schema("roles") or {}
-
-
+# ===========================
+# ===== AUDIT LOGS PART =====
+# ===========================
 @admin_bp.route("/audit")
-@require_admin
+@require("view_audit_logs", min_role="admin", min_level=99999)
 def audit():
     """
-    Audit trail
+    Retrieve and display audit logs from the last 30 days.
+    This function collects log files from the specified audit logs directory,
+    filters them based on their modification time (only logs modified within
+    the last 30 days are included), and reads their contents. The logs are
+    then reversed to ensure the newest entries appear first and rendered
+    in the "audit/audit.html" template.
+    Returns:
+        str: Rendered HTML template displaying the audit logs.
     """
-    # logic + render template
-    return render_template("audit.html")
+
+    logs_path = Path(app.config["LOGS"], "audit")
+    cutoff_ts = datetime.utcnow().timestamp() - (30 * 24 * 60 * 60)  # last 30 days
+
+    log_files = sorted(
+        [f for f in logs_path.glob("*.log*") if f.stat().st_mtime >= cutoff_ts],
+        key=lambda f: f.stat().st_mtime,
+        reverse=True,
+    )
+
+    logs_data = []
+
+    for file in log_files:
+        with file.open("r") as f:
+            logs_data.extend([line.strip() for line in f])
+
+    # Reverse the logs so the newest ones appear first
+    logs_data = list(reversed(logs_data))
+
+    return render_template(
+        "audit/audit.html",
+        logs=logs_data,
+    )
