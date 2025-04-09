@@ -1,12 +1,5 @@
-{% if 'done' in request.path or 'live' in request.path %}
-  {% set curr_page = request.path.split("/")[-2] %}
-{% elif '/panels/' in request.path or 'tumwgs' in request.path or 'rna' in request.path %}
-  {% set curr_page = request.path.split("/")[-1] %}
-{% elif 'samples' in request.path %}
-  {% set curr_page = 'samples' %}
-{% else %}
-  {% set curr_page = request.path.split("/")[-1] %}
-{% endif %}
+
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -77,7 +70,6 @@
             <!-- Dropdown Menu -->
             <div id="userDropdown" class="hidden absolute right-0 mt-2 w-40 bg-indigo-50 rounded-lg shadow-lg">
               <a href="{{ url_for('dashboard_bp.dashboard') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Dashboard</a>
-              <a href="{{ url_for('genepanels_bp.display_genepanels') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Gene Panels</a>
               <a href="{{ url_for('profile_bp.profile') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Profile</a>
               {% if password_changed_enabled %}
                 <a href="{{ url_for('profile_bp.change_password', username=current_user.username) }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100 ">Change Password</a>
@@ -92,71 +84,88 @@
       </header>
 
       <!-- NAVBAR (Below Header, No Absolute Positioning) -->
-        <nav class="bg-indigo-300 shadow-lg text-black px-2 py-1.5 flex space-x-4 pl-14 w-full border-b-4 border-indigo-400">
-          {% if current_user.is_authenticated %}
-            {% set navbar = {
-              'home': 'HOME',
-              'samples': 'SAMPLES',
-              'panels': 'PANELS',
-              'tumwgs': 'TUMWGS',
-              'rna': 'RNA'
-            } %}
-          
-            {% if "/panels" in request.path %}
-              {% set navbar = {
-                'home': 'HOME',
-                'samples': 'SAMPLES',
-                'myeloid_GMSv1': 'MYELOID',
-                'solid_GMSv3': 'SOLID',
-                'PARP_inhib': 'PARP'
-              } %}
-            {% elif "/rna" in request.path %}
-              {% set navbar = {
-                'home': 'HOME',
-                'samples': 'SAMPLES',
-                'fusion': 'MYELOID',
-                'solidRNA_GMSv5': 'SOLID'
-              } %}
-            {% elif "/tumwgs" in request.path %}
-              {% set navbar = {
-                'home': 'HOME',
-                'samples': 'SAMPLES',
-                'tumwgs-solid': 'PEDIATRIC SOLID',
-                'tumwgs-hema': 'HEMATOLOGY'
-              } %}
-            {% endif %}
-            
-            {% for name, menu_label in navbar.items() %}
-              {% if name == 'home' %}
-                {% set url = url_for('dashboard_bp.dashboard') %}
-              {% elif name == 'samples' %}
-                {% set url = url_for('home_bp.home_screen') %}
-              {% elif name == 'panels' %}
-                {% set url = url_for('home_bp.panels_screen', assay='myeloid_GMSv1') %}
-              {% elif '/panels' in request.path %}
-                {% set url = url_for('home_bp.panels_screen', assay=name) %}
-              {% elif name == 'rna' %}
-              {% set url = url_for('home_bp.rna_screen', assay='fusion') %}
-              {% elif '/rna' in request.path %}
-                {% set url = url_for('home_bp.rna_screen', assay=name) %}
-              {% elif name == 'tumwgs' %}
-                {% set url = url_for('home_bp.tumwgs_screen', assay='tumwgs-solid') %}
-              {% elif '/tumwgs' in request.path %}
-                {% set url = url_for('home_bp.tumwgs_screen', assay=name) %}
-              {% else %}
-                {% set url = url_for('home_bp.main_screen', assay=name) %}
-              {% endif %}
-              {% if name == curr_page %}
-                <a href="{{ url }}" class="active text-black font-bold">{{ menu_label }}</a>
-              {% else %}
-                <a href="{{ url }}" class="text-gray-600 hover:text-gray-900">{{ menu_label }}</a>
-              {% endif %}
-            {% endfor %}
-          {% endif %}
-        </nav>
+      {# Setup data and logic #}
+      {# Get assay groups from config #}
+      {% set assay_groups = config.get("ASSAY_GROUPS", {}) %}
+      {% set user_groups = current_user.groups or [] %}
+      {% set curr_path = request.path %}
+      {% set curr_page = curr_path.split('/')[-1] %}
+
+      {% set curr_group = '' %}
+      {% for group_name, group in assay_groups.items() %}
+        {% if curr_page in group.assays %}
+          {% set curr_group = group_name %}
+        {% endif %}
+      {% endfor %}
+
       
 
-      <!-- MAIN CONTENT (SCROLLABLE GRID LAYOUT) -->
+      <nav class="bg-indigo-300 border-b-4 border-indigo-400 text-sm font-medium text-gray-800">
+        <div class="mx-auto p-1 ml-10">
+      
+          <!-- Top navigation -->
+          <div class="flex flex-wrap items-center gap-x-2">
+            <!-- Static links -->
+            <a href="{{ url_for('dashboard_bp.dashboard') }}"
+                class="px-2 py-0.5 rounded-2xl hover:bg-indigo-100 hover:text-black transition
+                {% if request.path == url_for('dashboard_bp.dashboard') %} bg-orange-200 text-black font-bold {% endif %}">
+                HOME
+            </a>
+            <a href="{{ url_for('home_bp.home_screen') }}"
+                class="px-2 py-0.5 rounded-2xl hover:bg-indigo-100 hover:text-black transition
+                {% if request.path == url_for('home_bp.home_screen') %}  bg-orange-200 text-black font-bold {% endif %}">
+                SAMPLES
+            </a>
+            <a href="{{ url_for('genepanels_bp.display_genepanels') }}"
+                class="px-2 py-0.5 rounded-2xl hover:bg-indigo-100 hover:text-black transition
+                {% if request.path == url_for('genepanels_bp.display_genepanels') %}  bg-orange-200 text-black font-bold {% endif %}">
+                GENE-LISTS
+            </a>
+      
+            <!-- Separator -->
+            <div class="h-6 w-0.5 bg-gray-800 mx-2"></div>
+
+      
+            <!-- Group buttons -->
+            {% for group_name, group in assay_groups.items() %}
+              {% set assays = group.assays %}
+              {% set has_access = assays.keys()|select('in', user_groups)|list %}
+              {% if has_access %}
+                <button
+                  class="group-toggle px-2 py-0.5 rounded-2xl hover:bg-indigo-100 hover:text-black transition
+                  {% if curr_page in assays.keys() or curr_group == group_name %}  bg-orange-200 text-black font-bold {% endif %}"
+                  data-group="{{ group_name }}">
+                  {{ group.label }}
+                </button>
+              {% endif %}
+            {% endfor %}
+          </div>
+      
+          <!-- Assay links for current group -->
+          {% for group_name, group in assay_groups.items() %}
+            {% set assays = group.assays %}
+            {% set show_group = (group_name == curr_group) %}
+            {% if assays.keys()|select('in', user_groups)|list %}
+              <div class="mt-3 flex flex-wrap gap-1 pl-3 ml-64 group-assays"
+                    data-group="{{ group_name }}"
+                    style="display: {% if show_group %}flex{% else %}none{% endif %};">
+                {% for assay_key, assay in assays.items() %}
+                  {% if assay_key in user_groups %}
+                    <a href="{{ url_for(assay.url, assay=assay_key) }}"
+                        class="px-2 py-0.5 text-xs rounded-2xl hover:bg-indigo-100 hover:text-black transition
+                        {% if curr_page == assay_key %}  bg-orange-200 text-black font-semibold {% endif %}">
+                        {{ assay.label }}
+                    </a>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </nav>
+      
+      
+    <!-- MAIN CONTENT (SCROLLABLE GRID LAYOUT) -->
 
       {% block body %}{% endblock %}
 
@@ -184,6 +193,24 @@
 
 
     <script>
+
+      // JavaScript for Select2 Nav bar
+      document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll(".group-toggle").forEach(button => {
+          button.addEventListener("click", () => {
+            const group = button.dataset.group;
+    
+            document.querySelectorAll(".group-assays").forEach(g => {
+              g.style.display = g.dataset.group === group ? "flex" : "none";
+            });
+    
+            document.querySelectorAll(".group-toggle").forEach(b => {
+              b.classList.remove("bg-orange-100", "text-black");
+            });
+            button.classList.add("bg-orange-100", "text-black");
+          });
+        });
+      });
 
       // JavaScript for Action Modal
       function showActionModal({ url, title = "Confirm Action", message = "Are you sure you want to proceed?", confirmText = "Confirm", confirmColor = "blue" }) {

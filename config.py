@@ -105,6 +105,35 @@ class DefaultConfig:
     _PATH_REPORT_CONFIG = "config/report.toml"
     REPORTS_BASE_PATH = "/data/bnf/dev/ram/Pipelines/Web_Developement/coyote_blueprinted/reports"
 
+    # For the app Nav Bar
+    ASSAY_GROUPS = {
+        "panels": {
+            "label": "PANELS",
+            "assays": {
+                "myeloid_GMSv1": {"label": "MYELOID", "url": "home_bp.panels_screen"},
+                "solid_GMSv3": {"label": "SOLID", "url": "home_bp.panels_screen"},
+                "PARP_inhib": {"label": "PARP", "url": "home_bp.panels_screen"},
+                "hema_GMSv1": {"label": "HEMA", "url": "home_bp.panels_screen"},
+                "lymphoid_GMSv1": {"label": "LYMPHOID", "url": "home_bp.panels_screen"},
+                "PGxV1": {"label": "PGx", "url": "home_bp.panels_screen"},
+            },
+        },
+        "rna": {
+            "label": "RNA",
+            "assays": {
+                "fusion": {"label": "MYELOID-RNA", "url": "home_bp.rna_screen"},
+                "solidRNA_GMSv5": {"label": "SOLID-RNA", "url": "home_bp.rna_screen"},
+            },
+        },
+        "tumwgs": {
+            "label": "TUMWGS",
+            "assays": {
+                "tumwgs-solid": {"label": "PEDIATRIC-SOLID", "url": "home_bp.tumwgs_screen"},
+                "tumwgs-hema": {"label": "HEMATOLOGY", "url": "home_bp.tumwgs_screen"},
+            },
+        },
+    }
+
     ASSAY_MAPPER: dict[str, list[str]] = {
         "exome": ["exome_trio"],
         "myeloid": [
