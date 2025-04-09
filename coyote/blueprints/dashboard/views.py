@@ -14,9 +14,9 @@ def dashboard() -> str:
     """
     Dashboard
     """
-    total_samples_count = store.sample_handler.get_all_samples()
-    analysed_samples_count = store.sample_handler.get_all_samples(report=True)
-    pending_samples_count = store.sample_handler.get_all_samples(report=False)
+    total_samples_count = store.sample_handler.get_all_sample_counts()
+    analysed_samples_count = store.sample_handler.get_all_sample_counts(report=True)
+    pending_samples_count = store.sample_handler.get_all_sample_counts(report=False)
 
     assay_specific_stats = store.sample_handler.get_assay_specific_sample_stats()  # Change it back
     print(total_samples_count, analysed_samples_count, pending_samples_count)

@@ -23,6 +23,17 @@ class DefaultConfig:
     LOGS = "logs"
     PRODUCTION = False
 
+    INTERNAL_USERS = {
+        "coyote.admin@skane.se",
+        "coyote.developer@skane.se",
+        "coyote.tester@skane.se",
+        "coyote.manager@skane.se",
+        "coyote.user@skane.se",
+        "coyote.intern@skane.se",
+        "coyote.viewer@skane.se",
+        "coyote.external@skane.se",
+    }
+
     WTF_CSRF_ENABLED = True
     SECRET_KEY: str | None = os.getenv("FLASK_SECRET_KEY")
 
@@ -33,7 +44,7 @@ class DefaultConfig:
     # MONGO_DB_NAME = "coyote"
     MONGO_DB_NAME = os.getenv("COYOTE_DB", "coyote_dev_3")
     BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
-    _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections.toml"
+    _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections_new.toml"
 
     # Gens URI
     GENS_URI = os.getenv("GENS_URI", "http://10.231.229.34/gens/")
@@ -93,6 +104,35 @@ class DefaultConfig:
     # Report Config
     _PATH_REPORT_CONFIG = "config/report.toml"
     REPORTS_BASE_PATH = "/data/bnf/dev/ram/Pipelines/Web_Developement/coyote_blueprinted/reports"
+
+    # For the app Nav Bar
+    ASSAY_GROUPS = {
+        "panels": {
+            "label": "PANELS",
+            "assays": {
+                "myeloid_GMSv1": {"label": "MYELOID", "url": "home_bp.panels_screen"},
+                "solid_GMSv3": {"label": "SOLID", "url": "home_bp.panels_screen"},
+                "PARP_inhib": {"label": "PARP", "url": "home_bp.panels_screen"},
+                "hema_GMSv1": {"label": "HEMA", "url": "home_bp.panels_screen"},
+                "lymphoid_GMSv1": {"label": "LYMPHOID", "url": "home_bp.panels_screen"},
+                "PGxV1": {"label": "PGx", "url": "home_bp.panels_screen"},
+            },
+        },
+        "rna": {
+            "label": "RNA",
+            "assays": {
+                "fusion": {"label": "MYELOID-RNA", "url": "home_bp.rna_screen"},
+                "solidRNA_GMSv5": {"label": "SOLID-RNA", "url": "home_bp.rna_screen"},
+            },
+        },
+        "tumwgs": {
+            "label": "TUMWGS",
+            "assays": {
+                "tumwgs-solid": {"label": "PEDIATRIC-SOLID", "url": "home_bp.tumwgs_screen"},
+                "tumwgs-hema": {"label": "HEMATOLOGY", "url": "home_bp.tumwgs_screen"},
+            },
+        },
+    }
 
     ASSAY_MAPPER: dict[str, list[str]] = {
         "exome": ["exome_trio"],

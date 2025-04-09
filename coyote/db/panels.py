@@ -28,8 +28,12 @@ class PanelsHandler(BaseHandler):
         """
         Get panel name, display name and panel type for a given assay
         """
-        
-        return list(self.get_collection().find({"assays": {"$in": [assay]}}, {"name": 1, "displayname": 1, "type": 1}))
+
+        return list(
+            self.get_collection().find(
+                {"assays": {"$in": [assay]}}, {"name": 1, "displayname": 1, "type": 1}
+            )
+        )
 
     def get_panel(self, type: str, subpanel: str):
         panel = self.get_collection().find_one({"name": subpanel, "type": type})
@@ -172,7 +176,7 @@ class PanelsHandler(BaseHandler):
                 "change": "created" if not data.get("changelog") else "updated",
                 "version": data.get("version"),
                 "timestamp": datetime.now(),
-                "user": current_user.get_id(),
+                "user": current_user.username,
             }
         )
 

@@ -38,7 +38,7 @@ class BaseHandler:
             {
                 "$set": {
                     "comments.$.hidden": 1,
-                    "comments.$.hidden_by": current_user.get_id(),
+                    "comments.$.hidden_by": current_user.username,
                     "comments.$.time_hidden": datetime.now(),
                 }
             },

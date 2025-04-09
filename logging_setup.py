@@ -27,9 +27,16 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
 
     def clean_old_log_files(self):
         cutoff = datetime.now() - timedelta(days=self.days_to_keep)
-        log_dir = Path(self.base).parent
-        for log_file in log_dir.glob("*.log"):
-            if log_file.is_file() and datetime.fromtimestamp(log_file.stat().st_mtime) < cutoff:
+        log_dir = Path(self.baseFilename).parent
+
+        # 🔥 Match everything that starts with the same base filename
+        base_prefix = Path(self.baseFilename).stem  # e.g., '2025-04-09'
+        for log_file in log_dir.glob(f"{base_prefix}*"):
+            if (
+                log_file.is_file()
+                and log_file != Path(self.baseFilename)  # Don't delete current log
+                and datetime.fromtimestamp(log_file.stat().st_mtime) < cutoff
+            ):
                 try:
                     os.remove(log_file)
                     print(f"Deleted old log file: {log_file}")
@@ -58,20 +65,33 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
             "()": "logging_setup.CustomTimedRotatingFileHandler",
             "formatter": "standard",
             "filters": ["request_filter"],
-            "filename": f"{log_dir}/info_{today}.log",
+            "filename": f"{log_dir}/info/{today}.log",
             "when": "midnight",
-            "backupCount": 15,
-            "days_to_keep": 15,
+            "interval": 1,
+            "backupCount": 0,
+            "days_to_keep": 30,
         },
         "file_error": {
             "level": "ERROR",
             "()": "logging_setup.CustomTimedRotatingFileHandler",
             "formatter": "standard",
             "filters": ["request_filter"],
-            "filename": f"{log_dir}/error_{today}.log",
+            "filename": f"{log_dir}/error/{today}.log",
             "when": "midnight",
-            "backupCount": 15,
-            "days_to_keep": 15,
+            "interval": 1,
+            "backupCount": 0,  # let days_to_keep handle deletion
+            "days_to_keep": 30,
+        },
+        "audit": {
+            "level": "INFO",
+            "()": "logging_setup.CustomTimedRotatingFileHandler",
+            "formatter": "standard",
+            "filters": ["request_filter"],
+            "filename": f"{log_dir}/audit/{today}.log",
+            "when": "midnight",  # rotate daily
+            "interval": 1,
+            "backupCount": 0,  # let days_to_keep handle deletion
+            "days_to_keep": 180,  # or 365, depending on org policy
         },
     }
 
@@ -81,7 +101,7 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
             "()": "logging_setup.CustomTimedRotatingFileHandler",
             "formatter": "standard",
             "filters": ["request_filter"],
-            "filename": f"{log_dir}/debug_{today}.log",
+            "filename": f"{log_dir}/debug/{today}.log",
             "when": "midnight",
             "backupCount": 15,
             "days_to_keep": 15,
@@ -106,6 +126,12 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
             "handlers": ["console", "file_info"],
             "propagate": True,
             "qualname": "gunicorn.access",
+        },
+        "audit": {
+            "level": "INFO",
+            "handlers": ["audit", "console"],
+            "propagate": False,
+            "qualname": "audit",
         },
     }
 
@@ -153,7 +179,8 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
 
 def setup_gunicorn_logging(log_dir: str, is_production: bool = False) -> None:
     try:
-        Path(log_dir).mkdir(parents=True, exist_ok=True)
+        for sub in ["audit", "info", "error", "debug"]:
+            (Path(log_dir) / sub).mkdir(parents=True, exist_ok=True)
         glogging.dictConfig(get_custom_config(log_dir, is_production))
     except Exception as e:
         print(f"Failed to setup gunicorn logging: {e}")
@@ -162,7 +189,8 @@ def setup_gunicorn_logging(log_dir: str, is_production: bool = False) -> None:
 
 def setup_app_logging(log_dir: str, is_production: bool = False) -> None:
     try:
-        Path(log_dir).mkdir(parents=True, exist_ok=True)
+        for sub in ["audit", "info", "error", "debug"]:
+            (Path(log_dir) / sub).mkdir(parents=True, exist_ok=True)
         logging.config.dictConfig(get_custom_config(log_dir, is_production))
     except Exception as e:
         print(f"Failed to setup app logging: {e}")

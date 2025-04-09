@@ -51,7 +51,7 @@ def list_variants(id):
     smp_grp = util.common.select_one_sample_group(sample.get("groups"))
 
     if smp_grp is None:
-        flash("No group found for sample using unknown-default group", "warning")
+        flash("No group found for sample using unknown-default group", "yellow")
         smp_grp = "unknown-default"
 
     # Get group parameters from the sample group config file
@@ -285,6 +285,7 @@ def list_variants(id):
         if sample["cnv"].lower().endswith((".png", ".jpg", ".jpeg")):
             sample["cnvprofile"] = sample["cnv"]
 
+    print(f"Current User: {current_user.user_model.dict()}")
     return render_template(
         "list_variants_vep.html",
         checked_genelists=genelist_filter,  # TODO: even this is reduntant I guess
@@ -1277,7 +1278,7 @@ def save_dna_report(id):
     #                 "_id": ObjectId(),
     #                 "report_num": report_num,
     #                 "filepath": pdf_file,
-    #                 "author": current_user.get_id(),
+    #                 "author": current_user.username,
     #                 "time_created": datetime.now(),
     #             }
     #         },

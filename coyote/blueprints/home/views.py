@@ -11,7 +11,7 @@ from flask_login import current_user
 from flask_login import login_required
 from coyote.extensions import store
 from coyote.blueprints.home import home_bp
-from coyote.blueprints.home.util import SampleSearchForm
+from coyote.blueprints.home.forms import SampleSearchForm
 from coyote.extensions import util
 
 
@@ -39,7 +39,7 @@ def home_screen(status="live"):
         status = search_mode
         show_all = False
 
-    user_groups = current_user.get_groups()
+    user_groups = current_user.groups
 
     if status == "done" or search_mode in ["done", "both"]:
         done_samples = store.sample_handler.get_samples(
@@ -131,7 +131,7 @@ def main_screen(assay=None, status="live"):
         status = search_mode
         show_all = False
 
-    user_groups = current_user.get_groups()
+    user_groups = current_user.groups
 
     if assay:
         if assay in user_groups:

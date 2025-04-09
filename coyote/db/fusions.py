@@ -60,7 +60,6 @@ class FusionsHandler(BaseHandler):
         """
         return self.get_collection().find_one({"_id": ObjectId(id)})
 
-
     def get_unique_fusion_count(self) -> int:
         """
         Get unique Fusions
@@ -121,3 +120,8 @@ class FusionsHandler(BaseHandler):
         """
         self.update_comment(id, comment)
 
+    def delete_sample_fusions(self, sample_oid: str) -> None:
+        """
+        Delete fusions for a sample
+        """
+        return self.get_collection().delete_many({"sample": sample_oid})

@@ -6,6 +6,8 @@ from math import floor, log10
 import dateutil
 import arrow
 from markupsafe import Markup
+from datetime import datetime
+import json
 
 
 @app.template_filter("has_hotspot")

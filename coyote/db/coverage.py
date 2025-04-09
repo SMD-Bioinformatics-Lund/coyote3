@@ -18,3 +18,9 @@ class CoverageHandler(BaseHandler):
         """
         coverage = self.get_collection().find({"sample": sample_name})
         return list(coverage)
+
+    def delete_sample_coverage(self, sample_oid: str):
+        """
+        Delete coverage for a sample
+        """
+        return self.get_collection().delete_many({"sample": sample_oid})

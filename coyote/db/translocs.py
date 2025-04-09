@@ -97,3 +97,9 @@ class TranslocsHandler(BaseHandler):
         except Exception as e:
             app.logger.error(f"An error occurred: {e}")
             return 0
+
+    def delete_sample_translocs(self, sample_oid: str) -> None:
+        """
+        Delete Translocations for a sample
+        """
+        return self.get_collection().delete_many({"SAMPLE_ID": sample_oid})

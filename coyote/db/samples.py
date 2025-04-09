@@ -32,7 +32,6 @@ class SampleHandler(BaseHandler):
         if len(search_str) > 0:
             query["name"] = {"$regex": search_str}
 
-        print("query", query)
         samples = list(self.get_collection().find(query).sort("time_added", -1))
         if limit:
             samples = samples[:limit]
@@ -50,6 +49,13 @@ class SampleHandler(BaseHandler):
         """
         sample = self.get_collection().find_one({"_id": ObjectId(id)})
         return sample
+
+    def get_sample_name(self, id: str):
+        """
+        get sample name by id
+        """
+        sample = self.get_collection().find_one({"_id": ObjectId(id)})
+        return sample.get("name") if sample else None
 
     def get_samples_by_oids(self, sample_oids: list):
         """
@@ -156,7 +162,7 @@ class SampleHandler(BaseHandler):
         """
         return self.hidden_comments(id)
 
-    def get_all_samples(self, report=None) -> list:
+    def get_all_sample_counts(self, report=None) -> list:
         """
         get all samples
         """
@@ -228,3 +234,29 @@ class SampleHandler(BaseHandler):
             for stat in result
         }
         return assay_specific_stats
+
+    def get_all_samples(self, groups=None, limit=None, search_str=""):
+        """
+        Get all the samples
+        """
+
+        query = {}
+
+        if groups:
+            query = {"groups": {"$in": groups}}
+
+        if len(search_str) > 0:
+            query["name"] = {"$regex": search_str}
+
+        if limit:
+            samples = self.get_collection().find(query).sort("time_added", -1).limit(limit)
+        else:
+            samples = self.get_collection().find(query).sort("time_added", -1)
+
+        return samples
+
+    def delete_sample(self, sample_oid: str) -> None:
+        """
+        delete sample from db
+        """
+        return self.get_collection().delete_one({"_id": ObjectId(sample_oid)})

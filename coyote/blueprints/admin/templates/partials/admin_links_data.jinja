@@ -1,0 +1,143 @@
+{% do cards.append({
+  'url': url_for('admin_bp.all_samples'),
+  'permission': 'view_sample_global',
+  'min_role': 'developer',
+  'min_level': 9999,
+  'icon': 'square-3-stack-3d.svg',
+  'title': 'Manage Samples',
+  'desc': 'Delete samples, purge data, etc.',
+  'category': 'Samples',
+  'color': 'blue'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.manage_users'),
+  'permission': 'view_users',
+  'min_role': 'admin',
+  'min_level': 99999,
+  'icon': 'users.svg',
+  'title': 'Manage Users',
+  'desc': 'Add, update, remove users',
+  'category': 'Users',
+  'color': 'yellow'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.create_user'),
+  'permission': 'create_user',
+  'min_role': 'admin',
+  'min_level': 99999,
+  'icon': 'user-plus.svg',
+  'title': 'New User',
+  'desc': 'Create new users for the platform',
+  'category': 'Users',
+  'color': 'yellow'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.list_roles'),
+  'permission': 'view_role',
+  'min_role': 'admin',
+  'min_level': 99999,
+  'icon': 'user-circle.svg',
+  'title': 'Manage Roles',
+  'desc': 'Adjust role policies for users',
+  'category': 'Roles',
+  'color': 'pink'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.create_role'),
+  'permission': 'create_role',
+  'min_role': 'admin',
+  'min_level': 99999,
+  'icon': 'user-circle.svg',
+  'title': 'New Role Policy',
+  'desc': 'Add new role policy to system',
+  'category': 'Roles',
+  'color': 'pink'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.assay_configs'),
+  'permission': 'view_assay_config',
+  'min_role': 'developer',
+  'min_level': 9999,
+  'icon': 'document-duplicate.svg',
+  'title': 'Manage Assay Configs',
+  'desc': 'Adjust assay/panel configuration',
+  'category': 'Assays',
+  'color': 'green'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.create_dna_assay_config'),
+  'permission': 'create_assay_config',
+  'min_role': 'developer',
+  'min_level': 9999,
+  'icon': 'document-plus.svg',
+  'title': 'New DNA Assay',
+  'desc': 'Add new DNA based assay to system',
+  'category': 'Assays',
+  'color': 'green'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.create_rna_assay_config'),
+  'permission': 'create_assay_config',
+  'min_role': 'developer',
+  'min_level': 9999,
+  'icon': 'document-plus.svg',
+  'title': 'New RNA Assay',
+  'desc': 'Add new RNA based assay to system',
+  'category': 'Assays',
+  'color': 'green'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.list_permissions'),
+  'permission': 'view_permission',
+  'min_role': 'admin',
+  'min_level': 99999,
+  'icon': 'key.svg',
+  'title': 'Manage Permissions',
+  'desc': 'Adjust permission policies for users',
+  'category': 'Permissions',
+  'color': 'orange'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.create_permission'),
+  'permission': 'create_permission',
+  'min_role': 'admin',
+  'min_level': 99999,
+  'icon': 'key.svg',
+  'title': 'New Permission Policy',
+  'desc': 'Add new permission policy to system',
+  'category': 'Permissions',
+  'color': 'orange'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.schemas'),
+  'permission': 'view_schema',
+  'min_role': 'developer',
+  'min_level': 9999,
+  'icon': 'rectangle-stack.svg',
+  'title': 'Manage Schemas',
+  'desc': 'Adjust master schema configurations',
+  'category': 'Schemas',
+  'color': 'purple'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.create_schema'),
+  'permission': 'create_schema',
+  'min_role': 'developer',
+  'min_level': 9999,
+  'icon': 'document-check.svg',
+  'title': 'New Schema',
+  'desc': 'Create a new master schema configuration',
+  'category': 'Schemas',
+  'color': 'purple'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.audit'),
+  'permission': 'view_audit_logs',
+  'min_role': 'admin',
+  'min_level': 99999,
+  'icon': 'newspaper.svg',
+  'title': 'Audit Logs',
+  'desc': 'Track changes and activities',
+  'category': 'Audit',
+  'color': 'brown'
+}) %}
