@@ -303,3 +303,83 @@ def generate_report_pdf(id):
     # Render it!
     return render_pdf(HTML(string=html))
 
+
+
+@rna_bp.route("/multi_class/<id>", methods=["POST"])
+@login_required
+def classify_multi_variant(id):
+    """
+    Classify multiple variants
+    """
+    print(f"var_form: {request.form.to_dict()}")
+    action = request.form.get("action")
+    print(f"action: {action}")
+    variants_to_modify = request.form.getlist("selected_object_id")
+    assay = request.form.get("assay", None)
+    subpanel = request.form.get("subpanel", None)
+    tier = request.form.get("tier", None)
+    irrelevant = request.form.get("irrelevant", None)
+    false_positive = request.form.get("false_positive", None)
+
+    if tier and action == "apply":
+        variants_iter = []
+        for variant in variants_to_modify:
+            var_iter = store.variant_handler.get_variant(str(variant))
+            variants_iter.append(var_iter)
+
+        for var in variants_iter:
+            selectec_csq = var["INFO"]["selected_CSQ"]
+            transcript = selectec_csq.get("Feature", None)
+            gene = selectec_csq.get("SYMBOL", None)
+            hgvs_p = selectec_csq.get("HGVSp", None)
+            hgvs_c = selectec_csq.get("HGVSc", None)
+            hgvs_g = f"{var['CHROM']}:{var['POS']}:{var['REF']}/{var['ALT']}"
+            consequence = selectec_csq.get("Consequence", None)
+            gene_oncokb = store.oncokb_handler.get_oncokb_gene(gene)
+            text = util.dna.create_annotation_text_from_gene(
+                gene, consequence, assay, gene_oncokb=gene_oncokb
+            )
+
+            nomenclature = "p"
+            if hgvs_p != "" and hgvs_p is not None:
+                variant = hgvs_p
+            elif hgvs_c != "" and hgvs_c is not None:
+                variant = hgvs_c
+                nomenclature = "c"
+            else:
+                variant = hgvs_g
+                nomenclature = "g"
+
+            variant_data = {
+                "gene": gene,
+                "assay": assay,
+                "subpanel": subpanel,
+                "transcript": transcript,
+            }
+
+            # Add the variant to the database with class
+            store.annotation_handler.insert_classified_variant(
+                variant, nomenclature, tier, variant_data
+            )
+
+            # Add the annotation text to the database
+            store.annotation_handler.insert_classified_variant(
+                variant, nomenclature, tier, variant_data, text=text
+            )
+            if irrelevant:
+                store.variant_handler.mark_irrelevant_var(var["_id"])
+    elif false_positive:
+        if action == "apply":
+            for variant in variants_to_modify:
+                store.variant_handler.mark_false_positive_var(variant)
+        elif action == "remove":
+            for variant in variants_to_modify:
+                store.variant_handler.unmark_false_positive_var(variant)
+    elif irrelevant:
+        if action == "apply":
+            for variant in variants_to_modify:
+                store.variant_handler.mark_irrelevant_var(variant)
+        elif action == "remove":
+            for variant in variants_to_modify:
+                store.variant_handler.unmark_irrelevant_var(variant)
+    return redirect(url_for("rna_bp.list_fusions", id=id))
