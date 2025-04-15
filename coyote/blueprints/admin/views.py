@@ -30,7 +30,6 @@ import json5
 from pathlib import Path
 
 
-
 @admin_bp.route("/")
 @require(min_role="manager", min_level=99)
 def admin_home() -> Any:
@@ -496,6 +495,7 @@ def create_dna_assay_config() -> Response | str:
         config["_id"] = config["assay_name"]
         config["schema_name"] = schema["_id"]
         config["schema_version"] = schema["version"]
+        config["version"] = 1
         config["created_by"] = current_user.email
         config["created_on"] = datetime.utcnow()
         config["updated_by"] = current_user.email
@@ -552,6 +552,7 @@ def create_rna_assay_config() -> Response | str:
         config["_id"] = config["assay_name"]
         config["schema_name"] = schema["_id"]
         config["schema_version"] = schema["version"]
+        config["version"] = 1
         config["created_by"] = current_user.email
         config["created_on"] = datetime.utcnow()
         config["updated_by"] = current_user.email

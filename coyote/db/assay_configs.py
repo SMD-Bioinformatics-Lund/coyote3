@@ -37,6 +37,15 @@ class AssayConfigsHandler(BaseHandler):
         """
         return self.get_collection().find_one({"_id": assay_id})
 
+    def get_assay_config_filtered(self, assay_id: str) -> dict:
+        """
+        Retrieves a specific assay configuration document by its ID.
+        """
+        return self.get_collection().find_one(
+            {"_id": assay_id, "is_active": True},
+            {"updated_on": 0, "updated_by": 0, "created_on": 0, "created_by": 0},
+        )
+
     def update_assay_config(self, assay_id: str, data: dict) -> Any:
         """
         Updates an existing assay configuration document with new data.

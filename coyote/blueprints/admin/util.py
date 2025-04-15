@@ -155,14 +155,26 @@ class AdminUtility:
                 if not isinstance(keys, list):
                     errors.append(f"Section '{section}' should contain a list of field keys")
 
-        # Ensure each field listed in sections is defined in fields
+        # Ensure each field listed in sections is defined in fields or subschemas
         defined_fields = set(schema.get("fields", {}).keys())
+        defined_subschemas = schema.get("subschemas", {})
         for section, keys in schema.get("sections", {}).items():
             for field in keys:
-                if field not in defined_fields and field not in schema.get("subschemas", {}):
-                    errors.append(
-                        f"Field '{field}' in section '{section}' is not defined in 'fields' or 'subschemas'"
-                    )
+                # Direct field match
+                if field in defined_fields or field in defined_subschemas:
+                    continue
+
+                # Dot notation match
+                if "." in field:
+                    parent, child = field.split(".", 1)
+                    if parent in defined_subschemas:
+                        subschema_fields = defined_subschemas[parent].get("fields", {})
+                        if child in subschema_fields:
+                            continue
+
+                errors.append(
+                    f"Field '{field}' in section '{section}' is not defined in 'fields' or in any valid subschema"
+                )
 
         return errors
 
