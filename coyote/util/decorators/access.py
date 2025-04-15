@@ -41,3 +41,28 @@ def require_sample_group_access(sample_arg="sample_name"):
         return wrapper
 
     return decorator
+
+
+def require_group_access(group_arg: str = "group"):
+    """
+    Decorator to enforce group-based access control.
+
+    Args:
+        group_arg (str): The name of the route argument that contains the target group name.
+    """
+
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(*args, **kwargs):
+            user_groups = set(current_user.groups or [])
+            target_group = kwargs.get(group_arg)
+
+            if not target_group or target_group not in user_groups:
+                flash("Access denied: You do not have permission to access this group.", "red")
+                abort(403, description="Access denied: You do not belong to the target group.")
+
+            return view_func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator

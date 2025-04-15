@@ -16,6 +16,7 @@ class Utility:
         from coyote.blueprints.dashboard.util import DashBoardUtility
         from coyote.blueprints.genepanels.util import GenePanelUtility
         from coyote.blueprints.admin.util import AdminUtility
+        from coyote.blueprints.coverage.util import CoverageUtility
 
         self.dna = DNAUtility()
         self.common = CommonUtility()
@@ -25,3 +26,4 @@ class Utility:
         self.dashboard = DashBoardUtility()
         self.genepanels = GenePanelUtility()
         self.admin = AdminUtility()
+        self.coverage = CoverageUtility()

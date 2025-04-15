@@ -7,6 +7,8 @@ from coyote.extensions import store, util
 from flask import render_template
 from flask_login import current_user
 import traceback
+from coyote.util.decorators.access import require_sample_group_access
+from coyote.services.auth.decorators import require
 
 
 @common_bp.route("/errors/")
@@ -26,26 +28,39 @@ def error_screen():
         return render_template("error.html", error=[])
 
 
-@common_bp.route("/sample/sample_comment/<string:id>", methods=["POST"])
+@common_bp.route(
+    "/dna/sample/<string:sample_id>/sample_comment",
+    methods=["POST"],
+    endpoint="add_dna_sample_comment",
+)
+@common_bp.route(
+    "/rna/sample/<string:sample_id>/sample_comment",
+    methods=["POST"],
+    endpoint="add_rna_sample_comment",
+)
+@common_bp.route("/sample/<string:sample_id>/sample_comment", methods=["POST"])
 @login_required
-def add_sample_comment(id):
+@require_sample_group_access("sample_id")
+@require("add_sample_comment", min_role="admin")
+def add_sample_comment(sample_id):
     """
     Add Sample comment
     """
     data = request.form.to_dict()
     doc = util.dna.create_comment_doc(data, key="sample_comment")
-    store.sample_handler.add_sample_comment(id, doc)
+    store.sample_handler.add_sample_comment(sample_id, doc)
     flash("Sample comment added", "green")
-    sample = store.sample_handler.get_sample_with_id(id)
+    sample = store.sample_handler.get_sample_with_id(sample_id)
     assay = util.common.get_assay_from_sample(sample)
-    sample_type = util.common.get_sample_type(assay)
-    if sample_type == "dna":
-        return redirect(url_for("dna_bp.list_variants", id=id))
+    if request.endpoint == "common_bp.add_dna_sample_comment":
+        return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
     else:
-        return redirect(url_for("rna_bp.list_fusions", id=id))
+        return redirect(url_for("rna_bp.list_fusions", id=sample_id))
 
 
-@common_bp.route("/sample/hide_sample_comment/<string:sample_id>", methods=["POST"])
+@common_bp.route("/sample/<string:sample_id>/hide_sample_comment", methods=["POST"])
+@require_sample_group_access("sample_id")
+@require("hide_sample_comment", min_role="admin")
 @login_required
 def hide_sample_comment(sample_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
@@ -54,13 +69,15 @@ def hide_sample_comment(sample_id):
     assay = util.common.get_assay_from_sample(sample)
     sample_type = util.common.get_sample_type(assay)
     if sample_type == "dna":
-        return redirect(url_for("dna_bp.list_variants", id=sample_id))
+        return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
     else:
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
 
 
 @common_bp.route("/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"])
 @login_required
+@require_sample_group_access("sample_id")
+@require("unhide_sample_comment", min_role="admin")
 def unhide_sample_comment(sample_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.sample_handler.unhide_sample_comment(sample_id, comment_id)
@@ -68,7 +85,7 @@ def unhide_sample_comment(sample_id):
     assay = util.common.get_assay_from_sample(sample)
     sample_type = util.common.get_sample_type(assay)
     if sample_type == "dna":
-        return redirect(url_for("dna_bp.list_variants", id=sample_id))
+        return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
     else:
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
 

@@ -249,7 +249,7 @@ def register_blueprints(app) -> None:
     bp_debug_msg("common_bp")
     from coyote.blueprints.common import common_bp
 
-    app.register_blueprint(common_bp, url_prefix="/common")
+    app.register_blueprint(common_bp, url_prefix="/")
 
     # register dashboard bp
     bp_debug_msg("dashboard_bp")

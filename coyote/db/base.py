@@ -115,19 +115,13 @@ class BaseHandler:
         """
         Add comment to a variant
         """
-        if self.get_collection().insert_one(comment_doc):
-            flash("Comment added", "green")
-        else:
-            flash("Failed to add comment", "red")
+        self.get_collection().insert_one(comment_doc)
 
     def update_comment(self, id: str, comment_doc: dict) -> None:
         """
         Update comment for a variant
         """
-        if self.get_collection().update({"_id": ObjectId(id)}, comment_doc):
-            flash("Comment added", "green")
-        else:
-            flash("Failed to add comment", "red")
+        self.get_collection().update({"_id": ObjectId(id)}, comment_doc)
 
     def hidden_comments(self, id: str) -> bool:
         """
