@@ -79,6 +79,12 @@ class TranslocsHandler(BaseHandler):
         """
         self.update_comment(transloc_id, comment)
 
+    def hidden_transloc_comments(self, id: str) -> bool:
+        """
+        Return True if hidden transloc comments else False
+        """
+        return self.hidden_comments(id)
+
     def get_unique_transloc_count(self) -> list:
         """
         Get unique Translocations

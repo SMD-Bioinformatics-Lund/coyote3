@@ -30,6 +30,7 @@ import json5
 from pathlib import Path
 
 
+
 @admin_bp.route("/")
 @require(min_role="manager", min_level=99)
 def admin_home() -> Any:

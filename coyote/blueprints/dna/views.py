@@ -28,21 +28,24 @@ from datetime import datetime
 from bson import ObjectId
 from collections import defaultdict
 from flask_weasyprint import HTML, render_pdf
+from coyote.util.decorators.access import require_sample_group_access
+from coyote.services.auth.decorators import require
 from PIL import Image
 import os
 import io
 
 
-@dna_bp.route("/sample/<string:id>", methods=["GET", "POST"])
+@dna_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])
 @login_required
-def list_variants(id):
+@require_sample_group_access("sample_id")
+def list_variants(sample_id):
 
     # Find sample data by name
-    sample = store.sample_handler.get_sample(id)  # id = name
+    sample = store.sample_handler.get_sample(sample_id)  # sample_id = name
 
     # Get sample data by id if name is none
     if sample is None:
-        sample = store.sample_handler.get_sample_with_id(id)  # id = id
+        sample = store.sample_handler.get_sample_with_id(sample_id)  # sample_id = id
 
     # Get case and control samples
     sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
@@ -319,15 +322,15 @@ def list_variants(id):
 
 
 # TODO
-@dna_bp.route("/multi_class/<id>", methods=["POST"])
+@dna_bp.route("/<sample_id>/multi_class", methods=["POST"])
 @login_required
-def classify_multi_variant(id):
+@require_sample_group_access("sample_id")
+@require("manage_snvs", min_role="admin")
+def classify_multi_variant(sample_id):
     """
     Classify multiple variants
     """
-    print(f"var_form: {request.form.to_dict()}")
     action = request.form.get("action")
-    print(f"action: {action}")
     variants_to_modify = request.form.getlist("selected_object_id")
     assay = request.form.get("assay", None)
     subpanel = request.form.get("subpanel", None)
@@ -396,11 +399,13 @@ def classify_multi_variant(id):
         elif action == "remove":
             for variant in variants_to_modify:
                 store.variant_handler.unmark_irrelevant_var(variant)
-    return redirect(url_for("dna_bp.list_variants", id=id))
+    return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
 
 
-@dna_bp.route("/plot/<string:fn>/<string:assay>/<string:build>")  # type: ignore
-def show_any_plot(fn, assay, build):
+@dna_bp.route("/<string:sample_id>/plot/<string:fn>/<string:assay>/<string:build>")  # type: ignore
+@login_required
+@require_sample_group_access("sample_id")
+def show_any_plot(sample_id, fn, assay, build):
     if assay == "myeloid":
         if build == "38":
             base_dir = "/access/myeloid38/plots"
@@ -425,8 +430,12 @@ def show_any_plot(fn, assay, build):
 
 
 ######### TODO ##########
-@dna_bp.route("/plot/<string:fn>/<string:assay>/<string:build>/")  # Added angle parameter
-def show_any_plot_rotated(fn, assay, build, angle=90):
+@dna_bp.route(
+    "/<string:sample_id>/plot/<string:fn>/<string:assay>/<string:build>/"
+)  # Added angle parameter
+@login_required
+@require_sample_group_access("sample_id")
+def show_any_plot_rotated(sample_id, fn, assay, build, angle=90):
     # Define the base directory based on the assay type
     if assay == "myeloid":
         base_dir = "/access/myeloid38/plots" if build == "38" else "/access/myeloid/plots"
@@ -474,11 +483,12 @@ def show_any_plot_rotated(fn, assay, build, angle=90):
 
 ############ TODO ##############
 ## Individual variant view ##
-@dna_bp.route("/var/<string:id>")
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>")
 @login_required
-def show_variant(id):
+@require_sample_group_access("sample_id")
+def show_variant(sample_id, var_id):
 
-    variant = store.variant_handler.get_variant(id)
+    variant = store.variant_handler.get_variant(var_id)
     in_other = store.variant_handler.get_variant_in_other_samples(variant)
     sample = store.sample_handler.get_sample_with_id(variant["SAMPLE_ID"])
 
@@ -486,7 +496,7 @@ def show_variant(id):
     subpanel = sample.get("subpanel")
 
     # Check if variant has hidden comments
-    has_hidden_comments = store.variant_handler.hidden_var_comments(id)
+    has_hidden_comments = store.variant_handler.hidden_var_comments(var_id)
 
     expression = store.expression_handler.get_expression_data(list(variant.get("transcripts")))
 
@@ -599,6 +609,7 @@ def show_variant(id):
 
 @dna_bp.route("/gene_simple/<string:gene_name>", methods=["GET", "POST"])
 @login_required
+@require("view_gene_annotations", min_role="user", min_level=9)
 def gene_view_simple(gene_name):
     annotations = store.annotation_handler.get_gene_annotations(gene_name)
 
@@ -631,6 +642,7 @@ def gene_view_simple(gene_name):
 ############ TODO ##############
 @dna_bp.route("/gene/<string:gene_name>", methods=["GET", "POST"])
 @login_required
+@require("view_gene_annotations", min_role="user", min_level=9)
 def gene_view(gene_name):
 
     # variants_iter = app.config["VAR_COLL"].find({"INFO.CSQ": {"$elemMatch": {"SYMBOL": gene_name}}})
@@ -677,80 +689,96 @@ def gene_view(gene_name):
     return render_template("gene_view.html", variants=variant_summary, sample_names=sample_names)
 
 
-@dna_bp.route("/var/unfp/<string:id>", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/unfp", methods=["POST"])
 @login_required
-def unmark_false_variant(id):
+@require("manage_snvs", min_role="admin")
+@require_sample_group_access("sample_id")
+def unmark_false_variant(sample_id, var_id):
     """
     Unmark False Positive status of a variant in the database
     """
     store.variant_handler.unmark_false_positive_var(id)
-    return redirect(url_for("dna_bp.show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
-@dna_bp.route("/var/fp/<string:id>", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/fp", methods=["POST"])
 @login_required
-def mark_false_variant(id):
+@require("manage_snvs", min_role="admin")
+@require_sample_group_access("sample_id")
+def mark_false_variant(sample_id, var_id):
     """
     Mark False Positive status of a variant in the database
     """
     store.variant_handler.mark_false_positive_var(id)
-    return redirect(url_for("dna_bp.show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
-@dna_bp.route("/var/uninterest/<string:id>", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/uninterest", methods=["POST"])
 @login_required
-def unmark_interesting_variant(id):
+@require("manage_snvs", min_role="admin")
+@require_sample_group_access("sample_id")
+def unmark_interesting_variant(sample_id, var_id):
     """
     Unmark interesting status of a variant in the database
     """
     store.variant_handler.unmark_interesting_var(id)
-    return redirect(url_for("dna_bp.show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
-@dna_bp.route("/var/interest/<string:id>", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/interest", methods=["POST"])
 @login_required
-def mark_interesting_variant(id):
+@require("manage_snvs", min_role="admin")
+@require_sample_group_access("sample_id")
+def mark_interesting_variant(sample_id, var_id):
     """
     Mark interesting status of a variant in the database
     """
     store.variant_handler.mark_interesting_var(id)
-    return redirect(url_for("dna_bp.show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
-@dna_bp.route("/var/unirrelevant/<string:id>", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/unirrelevant", methods=["POST"])
 @login_required
-def unmark_irrelevant_variant(id):
+@require("manage_snvs", min_role="admin")
+@require_sample_group_access("sample_id")
+def unmark_irrelevant_variant(sample_id, var_id):
     """
     Unmark irrelevant status of a variant in the database
     """
     store.variant_handler.unmark_irrelevant_var(id)
-    return redirect(url_for("dna_bp.show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
-@dna_bp.route("/var/irrelevant/<string:id>", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/irrelevant", methods=["POST"])
 @login_required
-def mark_irrelevant_variant(id):
+@require("manage_snvs", min_role="admin")
+@require_sample_group_access("sample_id")
+def mark_irrelevant_variant(sample_id, var_id):
     """
     Mark irrelevant status of a variant in the database
     """
     store.variant_handler.mark_irrelevant_var(id)
-    return redirect(url_for("dna_bp.show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
-@dna_bp.route("/var/blacklist/<string:id>", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/blacklist", methods=["POST"])
 @login_required
-def add_variant_to_blacklist(id):
+@require("manage_snvs", min_role="admin")
+@require_sample_group_access("sample_id")
+def add_variant_to_blacklist(sample_id, var_id):
 
     var = store.variant_handler.get_variant(id)
     sample = store.sample_handler.get_sample_with_id(var["SAMPLE_ID"])
     assay = util.common.get_assay_from_sample(sample)
     store.blacklist_handler.blacklist_variant(var, assay)
-    return redirect(url_for("dna_bp.show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, id=id))
 
 
-@dna_bp.route("/var/ordersanger/<string:id>", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/ordersanger", methods=["POST"])
 @login_required
-def order_sanger(id):
+@require("manage_snvs", min_role="admin")
+@require_sample_group_access("sample_id")
+def order_sanger(sample_id, var_id):
     variant = store.variant_handler.get_variant(id)
     variants, protein_coding_genes = util.dna.get_protein_coding_genes([variant])
     var = variants[0]
@@ -765,14 +793,15 @@ def order_sanger(id):
 
     email_status = util.dna.send_sanger_email(html, tx_info["SYMBOL"])
 
-    return redirect(url_for("dna_bp.show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
-@dna_bp.route("/var/classify/<string:id>", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/classify", methods=["POST"])
 @login_required
-def classify_variant(id):
+@require(permission="tier_dna_variant", min_role="manager", min_level=99)
+@require_sample_group_access("sample_id")
+def classify_variant(sample_id, var_id):
     form_data = request.form.to_dict()
-    print(f"form_data: {form_data}")
     class_num = util.dna.get_tier_classification(form_data)
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
     if class_num != 0:
@@ -782,29 +811,60 @@ def classify_variant(id):
 
     if class_num != 0:
         if nomenclature == "f":
-            return redirect(url_for("rna_bp.show_fusion", id=id))
+            return redirect(url_for("rna_bp.show_fusion", id=var_id))
 
-    return redirect(url_for("dna_bp.show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
-@dna_bp.route("/var/rmclassify/<string:id>", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/rmclassify", methods=["POST"])
 @login_required
-def remove_classified_variant(id):
+@require(permission="remove_dna_variant_tier", min_role="admin")
+@require_sample_group_access("sample_id")
+def remove_classified_variant(sample_id, var_id):
     form_data = request.form.to_dict()
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
     if nomenclature == "f":
-        return redirect(url_for("rna_bp.show_fusion", id=id))
+        return redirect(url_for("rna_bp.show_fusion", id=var_id))
     per_assay = store.annotation_handler.delete_classified_variant(variant, nomenclature, form_data)
     app.logger.debug(per_assay)
-    return redirect(url_for("dna_bp.show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
-@dna_bp.route("/var/comment/<string:id>", methods=["POST"])
+@dna_bp.route(
+    "/<string:sample_id>/var/<string:var_id>/add_variant_comment",
+    methods=["POST"],
+    endpoint="add_variant_comment",
+)
+@dna_bp.route(
+    "/<string:sample_id>/cnv/<string:cnv_id>/add_cnv_comment",
+    methods=["POST"],
+    endpoint="add_cnv_comment",
+)
+@dna_bp.route(
+    "/<string:sample_id>/fusion/<string:fus_id>/add_fusion_comment",
+    methods=["POST"],
+    endpoint="add_fusion_comment",
+)
+@dna_bp.route(
+    "/<string:sample_id>/translocation/<string:transloc_id>/add_translocation_comment",
+    methods=["POST"],
+    endpoint="add_translocation_comment",
+)
 @login_required
-def add_variant_comment(id):
+@require("add_variant_comment", min_role="admin")
+@require_sample_group_access("sample_id")
+def add_var_comment(sample_id, id=None, **kwargs):
     """
     Add a comment to a variant
     """
+
+    id = (
+        id
+        or request.view_args.get("var_id")
+        or request.view_args.get("cnv_id")
+        or request.view_args.get("fus_id")
+        or request.view_args.get("transloc_id")
+    )
 
     # If global checkbox. Save variant with the protein, coding och genomic nomenclature in decreasing priority
     form_data = request.form.to_dict()
@@ -818,51 +878,56 @@ def add_variant_comment(id):
     if nomenclature == "f":
         if _type != "global":
             store.fusion_handler.add_fusion_comment(id, doc)
-        return redirect(url_for("rna_bp.show_fusion", id=id))
+        return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, id=id))
     elif nomenclature == "t":
         if _type != "global":
             store.transloc_handler.add_transloc_comment(id, doc)
-        return redirect(url_for("dna_bp.show_transloc", id=id))
+        return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=id))
     elif nomenclature == "cn":
         if _type != "global":
             store.cnv_handler.add_cnv_comment(id, doc)
-        return redirect(url_for("dna_bp.show_cnvwgs", id=id))
+        return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=id))
     else:
         if _type != "global":
             store.variant_handler.add_var_comment(id, doc)
 
-    return redirect(url_for("dna_bp.show_variant", id=id))
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=id))
 
 
-@dna_bp.route("/var/hide_variant_comment/<string:var_id>", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/hide_variant_comment", methods=["POST"])
 @login_required
-def hide_variant_comment(var_id):
+@require("hide_variant_comment", min_role="admin")
+@require_sample_group_access("sample_id")
+def hide_variant_comment(sample_id, var_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.variant_handler.hide_var_comment(var_id, comment_id)
-    return redirect(url_for("dna_bp.show_variant", id=var_id))
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
-@dna_bp.route("/var/unhide_variant_comment/<string:var_id>", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/unhide_variant_comment", methods=["POST"])
 @login_required
-def unhide_variant_comment(var_id):
+@require("unhide_variant_comment", min_role="admin")
+@require_sample_group_access("sample_id")
+def unhide_variant_comment(sample_id, var_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.variant_handler.unhide_variant_comment(var_id, comment_id)
-    return redirect(url_for("dna_bp.show_variant", id=var_id))
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
 ###### CNVS VIEW PAGE #######
-@dna_bp.route("/cnv/<string:id>")
+@dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>")
 @login_required
-def show_cnv(id):
+@require_sample_group_access("sample_id")
+def show_cnv(sample_id, cnv_id):
     """
     Show CNVs view page
     """
-    cnv = store.cnv_handler.get_cnv(id)
+    cnv = store.cnv_handler.get_cnv(cnv_id)
     sample = store.sample_handler.get_sample_with_id((cnv["SAMPLE_ID"]))
     assay = util.common.get_assay_from_sample(sample)
     sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
     bam_id = store.bam_service_handler.get_bams(sample_ids)
-    hidden_cnv_comments = store.cnv_handler.hidden_cnv_comments(id)
+    hidden_cnv_comments = store.cnv_handler.hidden_cnv_comments(cnv_id)
 
     annotations = store.cnv_handler.get_cnv_annotations(cnv)
     return render_template(
@@ -878,165 +943,214 @@ def show_cnv(id):
     )
 
 
-@dna_bp.route("/cnv/uninterestcnv/<string:id>", methods=["POST"])
+@dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/uninterestcnv", methods=["POST"])
 @login_required
-def unmark_interesting_cnv(id):
+@require_sample_group_access("sample_id")
+@require("manage_cnvs", min_role="admin")
+def unmark_interesting_cnv(sample_id, cnv_id):
     """
     Unmark CNV as interesting
     """
-    store.cnv_handler.unmark_interesting_cnv(id)
-    return redirect(url_for("dna_bp.show_cnv", id=id))
+    store.cnv_handler.unmark_interesting_cnv(cnv_id)
+    return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
-@dna_bp.route("/cnv/interestcnv/<string:id>", methods=["POST"])
+@dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/interestcnv", methods=["POST"])
 @login_required
-def mark_interesting_cnv(id):
+@require_sample_group_access("sample_id")
+@require("manage_cnvs", min_role="admin")
+def mark_interesting_cnv(sample_id, cnv_id):
     """
     Mark CNV as interesting
     """
-    store.cnv_handler.mark_interesting_cnv(id)
-    return redirect(url_for("dna_bp.show_cnv", id=id))
+    store.cnv_handler.mark_interesting_cnv(cnv_id)
+    return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
-@dna_bp.route("/cnv/fpcnv/<string:id>", methods=["POST"])
+@dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/fpcnv", methods=["POST"])
 @login_required
-def mark_false_cnv(id):
+@require_sample_group_access("sample_id")
+@require("manage_cnvs", min_role="admin")
+def mark_false_cnv(sample_id, cnv_id):
     """
     Mark CNV as false positive
     """
-    store.cnv_handler.mark_false_positive_cnv(id)
-    return redirect(url_for("dna_bp.show_cnv", id=id))
+    store.cnv_handler.mark_false_positive_cnv(cnv_id)
+    return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
-@dna_bp.route("/cnv/unfpcnv/<string:id>", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>/unfpcnv", methods=["POST"])
 @login_required
-def unmark_false_cnv(id):
+@require_sample_group_access("sample_id")
+@require("manage_cnvs", min_role="admin")
+def unmark_false_cnv(sample_id, cnv_id):
     """
     Unmark CNV as false positive
     """
-    store.cnv_handler.unmark_false_positive_cnv(id)
-    return redirect(url_for("dna_bp.show_cnv", id=id))
+    store.cnv_handler.unmark_false_positive_cnv(cnv_id)
+    return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
-@dna_bp.route("/cnv/noteworthycnv/<string:id>", methods=["POST"])
+@dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/noteworthycnv", methods=["POST"])
 @login_required
-def mark_noteworthy_cnv(id):
+@require_sample_group_access("sample_id")
+@require("manage_cnvs", min_role="admin")
+def mark_noteworthy_cnv(sample_id, cnv_id):
     """
     Mark CNV as note worthy
     """
-    store.cnv_handler.noteworthy_cnv(id)
-    return redirect(url_for("dna_bp.show_cnv", id=id))
+    store.cnv_handler.noteworthy_cnv(cnv_id)
+    return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
-@dna_bp.route("/cnv/unnoteworthycnv/<string:id>", methods=["POST"])
+@dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/unnoteworthycnv", methods=["POST"])
 @login_required
-def unmark_noteworthy_cnv(id):
+@require_sample_group_access("sample_id")
+@require("manage_cnvs", min_role="admin")
+def unmark_noteworthy_cnv(sample_id, cnv_id):
     """
     Unmark CNV as note worthy
     """
-    store.cnv_handler.unnoteworthy_cnv(id)
-    return redirect(url_for("dna_bp.show_cnv", id=id))
+    store.cnv_handler.unnoteworthy_cnv(cnv_id)
+    return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
-@dna_bp.route("/cnv/hide_variant_comment/<string:cnv_id>", methods=["POST"])
+@dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/hide_cnv_comment", methods=["POST"])
 @login_required
-def hide_cnv_comment(cnv_id):
+@require("hide_variant_comment", min_role="admin")
+@require_sample_group_access("sample_id")
+def hide_cnv_comment(sample_id, cnv_id):
     """
     Hide CNV comment
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.cnv_handler.hide_cnvs_comment(cnv_id, comment_id)
-    return redirect(url_for("dna_bp.show_cnv", id=cnv_id))
+    return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
-@dna_bp.route("/cnv/unhide_variant_comment/<string:cnv_id>", methods=["POST"])
+@dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/unhide_cnv_comment", methods=["POST"])
 @login_required
-def unhide_cnv_comment(cnv_id):
+@require("unhide_variant_comment", min_role="admin")
+@require_sample_group_access("sample_id")
+def unhide_cnv_comment(sample_id, cnv_id):
     """
     Un Hide CNV comment
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.cnv_handler.unhide_cnvs_comment(cnv_id, comment_id)
-    return redirect(url_for("dna_bp.show_cnv", id=cnv_id))
+    return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
 ###### TRANSLOCATIONS VIEW PAGE #######
-@dna_bp.route("/transloc/<string:id>")
+@dna_bp.route("/<string:sample_id>/transloc/<string:transloc_id>")
 @login_required
-def show_transloc(id):
+@require_sample_group_access("sample_id")
+def show_transloc(sample_id, transloc_id):
     """
     Show Translocation view page
     """
-    transloc = store.transloc_handler.get_transloc(id)
+    transloc = store.transloc_handler.get_transloc(transloc_id)
     sample = store.sample_handler.get_sample_with_id((transloc["SAMPLE_ID"]))
     assay = util.common.get_assay_from_sample(sample)
     sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
     bam_id = store.bam_service_handler.get_bams(sample_ids)
+    hidden_transloc_comments = store.transloc_handler.hidden_transloc_comments(transloc_id)
 
     annotations = store.transloc_handler.get_transloc_annotations(transloc)
     return render_template(
         "show_transloc.html",
         tl=transloc,
         sample=sample,
+        assay=assay,
         classification=999,
         annotations=annotations,
         bam_id=bam_id,
+        hidden_comments=hidden_transloc_comments,
     )
 
 
-@dna_bp.route("/transloc/interesttransloc/<string:id>", methods=["POST"])
+@dna_bp.route(
+    "/<string:sample_id>/transloc/<string:transloc_id>/interesttransloc", methods=["POST"]
+)
 @login_required
-def mark_interesting_transloc(id):
-    store.transloc_handler.mark_interesting_transloc(id)
-    return redirect(url_for("dna_bp.show_transloc", id=id))
+@require_sample_group_access("sample_id")
+@require("manage_translocs", min_role="admin")
+def mark_interesting_transloc(sample_id, transloc_id):
+    store.transloc_handler.mark_interesting_transloc(transloc_id)
+    return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=transloc_id))
 
 
-@dna_bp.route("/transloc/uninteresttransloc/<string:id>", methods=["POST"])
+@dna_bp.route(
+    "/<string:sample_id>/transloc/<string:transloc_id>/uninteresttransloc",
+    methods=["POST"],
+)
 @login_required
-def unmark_interesting_transloc(id):
-    store.transloc_handler.unmark_interesting_transloc(id)
-    return redirect(url_for("dna_bp.show_transloc", id=id))
+@require_sample_group_access("sample_id")
+@require("manage_translocs", min_role="admin")
+def unmark_interesting_transloc(sample_id, transloc_id):
+    store.transloc_handler.unmark_interesting_transloc(transloc_id)
+    return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=transloc_id))
 
 
-@dna_bp.route("/transloc/fptransloc/<string:id>", methods=["POST"])
+@dna_bp.route(
+    "/<string:sample_id>/transloc/<string:transloc_id>/fptransloc",
+    methods=["POST"],
+)
 @login_required
-def mark_false_transloc(id):
-    store.transloc_handler.mark_false_positive_transloc(id)
-    return redirect(url_for("dna_bp.show_transloc", id=id))
+@require_sample_group_access("sample_id")
+@require("manage_translocs", min_role="admin")
+def mark_false_transloc(sample_id, transloc_id):
+    store.transloc_handler.mark_false_positive_transloc(transloc_id)
+    return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=transloc_id))
 
 
-@dna_bp.route("/transloc/unfptransloc/<string:id>", methods=["POST"])
+@dna_bp.route(
+    "/<string:sample_id>/transloc/<string:transloc_id>/unfptransloc",
+    methods=["POST"],
+)
 @login_required
-def unmark_false_transloc(id):
-    store.transloc_handler.unmark_false_positive_transloc(id)
-    return redirect(url_for("dna_bp.show_transloc", id=id))
+@require_sample_group_access("sample_id")
+@require("manage_translocs", min_role="admin")
+def unmark_false_transloc(sample_id, transloc_id):
+    store.transloc_handler.unmark_false_positive_transloc(transloc_id)
+    return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=transloc_id))
 
 
-@dna_bp.route("/transloc/hide_variant_comment/<string:var_id>", methods=["POST"])
+@dna_bp.route(
+    "/<string:sample_id>/transloc/<string:transloc_id>/hide_variant_comment", methods=["POST"]
+)
 @login_required
-def hide_transloc_comment(var_id):
+@require("hide_variant_comment", min_role="admin")
+@require_sample_group_access("sample_id")
+def hide_transloc_comment(sample_id, transloc_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.transloc_handler.hide_transloc_comment(var_id, comment_id)
-    return redirect(url_for("dna_bp.show_transloc", id=var_id))
+    store.transloc_handler.hide_transloc_comment(transloc_id, comment_id)
+    return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=transloc_id))
 
 
-@dna_bp.route("/transloc/unhide_variant_comment/<string:var_id>", methods=["POST"])
+@dna_bp.route(
+    "/<string:sample_id>/transloc/<string:transloc_id>/unhide_variant_comment", methods=["POST"]
+)
 @login_required
-def unhide_transloc_comment(var_id):
+@require("unhide_variant_comment", min_role="admin")
+@require_sample_group_access("sample_id")
+def unhide_transloc_comment(sample_id, transloc_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.transloc_handler.unhide_transloc_comment(var_id, comment_id)
-    return redirect(url_for("dna_bp.show_transloc", id=var_id))
+    store.transloc_handler.unhide_transloc_comment(transloc_id, comment_id)
+    return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=transloc_id))
 
 
 ##### PREVIEW REPORT ######
-@dna_bp.route("/sample/preview_report/<string:id>", methods=["GET", "POST"])
+@dna_bp.route("/sample/<string:sample_id>/preview_report", methods=["GET", "POST"])
 @login_required
-def generate_dna_report(id, *args, **kwargs):
+@require_sample_group_access("sample_id")
+@require("preview_report", min_role="user", min_level=9)
+def generate_dna_report(sample_id, *args, **kwargs):
 
-    sample = store.sample_handler.get_sample(id)  # id = name
+    sample = store.sample_handler.get_sample(sample_id)  # sample_id = name
 
     if not sample:
-        sample = store.sample_handler.get_sample_with_id(id)  # id = id
+        sample = store.sample_handler.get_sample_with_id(sample_id)  # sample_id = id
 
     assay = util.common.get_assay_from_sample(sample)
     subpanel = sample.get("subpanel")
@@ -1212,13 +1326,15 @@ def generate_dna_report(id, *args, **kwargs):
     )
 
 
-@dna_bp.route("/sample/report/save/<string:id>")
+@dna_bp.route("/sample/<string:sample_id>/report/save")
 @login_required
-def save_dna_report(id):
-    sample = store.sample_handler.get_sample(id)  # id = name
+@require_sample_group_access("sample_id")
+@require("save_dna_report", min_role="admin")
+def save_dna_report(sample_id):
+    sample = store.sample_handler.get_sample(sample_id)  # sample_id = name
 
     if not sample:
-        sample = store.sample_handler.get_sample_with_id(id)  # id = id
+        sample = store.sample_handler.get_sample_with_id(sample_id)  # sample_id = id
 
     assay = util.common.get_assay_from_sample(sample)
 
@@ -1228,9 +1344,11 @@ def save_dna_report(id):
         report_num = sample["report_num"] + 1
 
     # report file name
+    report_id = f"{sample_id}_{str(report_num)}"
     report_path = f"{app.config['REPORTS_BASE_PATH']}/{assay}"
-    # report_file = f"{app.config['REPORTS_BASE_PATH']}/{id}_{str(report_num)}.html"
-    report_file = f"{app.config['REPORTS_BASE_PATH']}/test.html"
+
+    report_file = f"{report_path}/{report_id}.html"
+    # report_file = f"{app.config['REPORTS_BASE_PATH']}/test.html"
 
     if not os.path.exists(report_path):
         flash(f"Creating directory {report_path}", "yellow")
@@ -1246,16 +1364,23 @@ def save_dna_report(id):
 
     # Attempt to write the report to a file
     try:
-        html = generate_dna_report(id, save=1)
+        html = generate_dna_report(sample_id=sample_id, save=1)
         if not util.common.write_report(html, report_file):
             raise AppError(
                 status_code=500,
-                message=f"Failed to save report {id}_{report_num}.html",
+                message=f"Failed to save report {sample_id}_{report_num}.html",
                 details="An issue occurred while writing the report to the file system.",
             )
 
-        # Success case
-        flash(f"Report id {id}_{report_num}.html is saved!", "green")
+        else:
+            # Add to database
+            store.sample_handler.save_report(
+                sample_id=sample_id,
+                report_num=report_num,
+                filepath=report_file,
+            )
+            # Success case
+            flash(f"Report id {sample_id}_{report_num}.html is saved!", "green")
 
     except Exception as e:
         # Distinguish between AppError and generic exceptions
@@ -1267,23 +1392,5 @@ def save_dna_report(id):
             # Handle unexpected errors
             flash("An unexpected error occurred. Please try again later.", "red")
             app.logger.exception(f"Unexpected error: {str(e)}")
-
-    # TODO: Uncomment this
-    # Add to database
-    # app.config["SAMPLES_COLL"].update(
-    #     {"name": id},
-    #     {
-    #         "$push": {
-    #             "reports": {
-    #                 "_id": ObjectId(),
-    #                 "report_num": report_num,
-    #                 "filepath": pdf_file,
-    #                 "author": current_user.username,
-    #                 "time_created": datetime.now(),
-    #             }
-    #         },
-    #         "$set": {"report_num": report_num},
-    #     },
-    # )
 
     return redirect(url_for("home_bp.home_screen"))

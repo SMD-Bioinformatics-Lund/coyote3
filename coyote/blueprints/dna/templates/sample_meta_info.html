@@ -5,7 +5,7 @@
   <!-- Sample Name (Will Wrap if Needed) -->
   <div class="text-sm font-semibold text-black flex flex-wrap items-center ml-2 mr-4 break-all">
     Sample:
-    <a href="{{ url_for('dna_bp.list_variants', id=sample.name) }}" class="ml-2 font-semibold text-blue-500 hover:underline">
+    <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="ml-2 font-semibold text-blue-500 hover:underline">
       {{ sample.name }}
     </a>
   </div>

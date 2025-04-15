@@ -4,7 +4,7 @@ Top level coyote
 
 from flask import abort
 from flask import current_app as app
-from flask import redirect, render_template, request, url_for
+from flask import redirect, render_template, request, url_for, send_from_directory, flash
 from flask_login import current_user
 
 # Legacy main-screen:
@@ -13,6 +13,9 @@ from coyote.extensions import store
 from coyote.blueprints.home import home_bp
 from coyote.blueprints.home.forms import SampleSearchForm
 from coyote.extensions import util
+from coyote.util.decorators.access import require_sample_group_access
+from coyote.services.auth.decorators import require
+import os
 
 
 @home_bp.route("/", methods=["GET", "POST"])
@@ -177,3 +180,30 @@ def main_screen(assay=None, status="live"):
         assay=assay,
         status=status,
     )
+
+
+@home_bp.route("/<string:sample_id>/reports/<string:report_id>")
+@login_required
+@require("view_reports", min_role="admin")
+@require_sample_group_access("sample_id")
+def view_report(sample_id, report_id):
+    """
+    View a saved report or serve a file if filepath is provided
+    """
+
+    # get the report path from the sample_id and report_id
+    report = store.sample_handler.get_report(sample_id, report_id)
+    print(report)
+
+    filepath = report.get("filepath", None)
+    if filepath:
+        # Get directory and filename
+        directory, filename = os.path.split(filepath)
+
+        # Check if file exists
+        if os.path.exists(filepath):
+            return send_from_directory(directory, filename)
+        else:
+            flash("Requested report file does not exist.", "red")
+
+    return redirect(url_for("dna_bp.home_screen"))

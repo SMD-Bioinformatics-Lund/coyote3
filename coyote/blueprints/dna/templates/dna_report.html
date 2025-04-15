@@ -4,13 +4,21 @@
 {% set germline = True if sample.name == "11400-19" %}
 
 {% if save != 1 %}
-<div
-  style="background-color:#FCC; border:1px solid #EAA; width:300px; text-align:center; padding:20px; margin:10px 10px 30px 10px;">
-  <b>*** PREVIEW OF REPORT ***</b><br><br>
-  <a target="_blank" class="button" href="{{ url_for('dna_bp.save_dna_report', id=sample.name ) }}">Finalize report</a>
-</div>
+  <div class="report-preview-card">
+    <h2 class="report-heading">*** PREVIEW OF REPORT ***</h2>
 
+    {% if has_access('save_dna_report', min_role='admin') %}
+      <a
+        href="{{ url_for('dna_bp.save_dna_report', sample_id=sample.name) }}"
+        class="report-button"
+      >
+        Finalize Report
+      </a>
+    {% endif %}
+  </div>
 {% endif %}
+
+
 <!--  Report Header -->
 <span class="report_header">{{ report_header }} - {{ sample.name }}</span>
 
@@ -460,69 +468,4 @@
       of Molecular Diagnostics, 2017.
   {% endif %}
 </div>
-
-
-<script>
-  var expanded = false;
-  function showCheckboxes() {
-    var checkboxes = document.getElementById("checkboxes");
-    if (!expanded) {
-      checkboxes.style.display = "block";
-      expanded = true;
-    } else {
-      checkboxes.style.display = "none";
-      expanded = false;
-    }
-  }
-
-  function show_lowcov() {
-    if (document.getElementById("lowcovlist_div").style.display == "none") {
-      document.getElementById("lowcovlist_div").style.display = "inline";
-    }
-    else {
-      document.getElementById("lowcovlist_div").style.display = "none";
-    }
-  }
-
-</script>
-
-<style>
-  .multiselect {
-    width: 100%;
-  }
-
-  .selectBox {
-    position: relative;
-  }
-
-  .selectBox select {
-    width: 100%;
-  }
-
-  .overSelect {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-  }
-
-  #checkboxes {
-    display: none;
-    border-bottom: 1px #bbb solid;
-    border-left: 1px #bbb solid;
-    border-right: 1px #bbb solid;
-    border-radius: 0px 0px 3px 3px;
-    background-color: #fff;
-  }
-
-  #checkboxes label {
-    display: block;
-  }
-
-  #checkboxes label:hover {
-    background-color: #f7f7ff;
-  }
-</style>
-
 {% endblock %}

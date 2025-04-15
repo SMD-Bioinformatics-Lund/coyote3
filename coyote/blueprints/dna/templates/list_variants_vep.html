@@ -108,7 +108,7 @@
         </div>
       {% endif %}
 
-      <div class="flex border-l-8 border-teal-400 mt-1">
+      <div class="flex border-l-8 border-brown-200 mt-1">
         <a href="#summary" 
           class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
             <span class="vertical-text">Summary</span>
@@ -130,6 +130,16 @@
             <span class="vertical-text">Low Cov</span>
         </a>
       </div>
+
+      {% if has_access('preview_dna_report', min_role='user', min_level=9) %}
+        <div class="flex border-l-8 border-teal-400  mt-1">
+          <a href="{{ url_for('dna_bp.generate_dna_report', sample_id=sample.name) }}" 
+            class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
+              <span class="vertical-text">Preview Report</span>
+          </a>
+        </div>
+      {% endif %}
+      
     </aside>
 
     <!-- MAIN CONTENT (Scrollable & Auto-Resizing) -->
@@ -154,12 +164,14 @@
             <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
               <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
                 <h2 class="text-sm font-semibold text-black">Variants Passing Filter Criteria</h2>
-                <img 
-                  src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
-                  alt="Export to CSV - SNVs" 
-                  onclick="exportTableToCSV('{{ sample.name }}.filtered.snvs.csv', 'snvs-table')" 
-                  class="w-6 h-6 transition-transform transform hover:scale-110"
-                />
+                {% if has_access("download_snvs", min_role="user", min_level=9) %}
+                  <img 
+                    src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
+                    alt="Export to CSV - SNVs" 
+                    onclick="exportTableToCSV('{{ sample.name }}.filtered.snvs.csv', 'snvs-table')" 
+                    class="w-6 h-6 transition-transform transform hover:scale-110"
+                  />
+                {% endif %}
               </div>
               {% if variants|length > 0 %}
                 <div class="overflow-auto relative">
@@ -198,7 +210,7 @@
                         {% set csq = var.INFO.selected_CSQ %}
                         {% set chr_pos = var.CHROM ~ ":" ~ var.POS %}
                         {# Build the final IGV URL #}
-                        {% if all_samples_bam_paths %}
+                        {% if all_samples_bam_paths and has_access("view_igv", min_role="user", min_level=9) %}
                           {% set igv_url = "http://localhost:60151/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ chr_pos %}
                           {% set igv_chr_pos = '<a href="' ~ igv_url ~ '">' ~ chr_pos ~ '</a>' %}
                         {% else %}
@@ -388,10 +400,8 @@
 
                         <!-- Chr:Pos -->
                         <td id="snv-table-row-chrPos" class="px-1">
-                          <div class="inline-block px-2 py-1 font-semibold text-white rounded-full transition-all duration-200 ease-in-out hover:bg-blue-400 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 
-                                      {% if assay == 'solid' and csq.mmhotspot %} bg-red-400 
-                                      {% else %} bg-gray-400 {% endif %}">
-                            {{ igv_chr_pos|safe }}
+                          <div class="inline-block px-2 py-1 font-semibold text-white rounded-full transition-all duration-200 ease-in-out hover:bg-blue-400 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 bg-gray-400">
+                              {{ igv_chr_pos|safe }}
                           </div>
                         </td>
 
@@ -426,7 +436,7 @@
 
                         <!-- View -->
                         <td>
-                          <a href="{{ url_for('dna_bp.show_variant', id=var._id) }}" 
+                          <a href="{{ url_for('dna_bp.show_variant', sample_id=sample.name, var_id=var._id) }}" 
                               class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
                             View
                           </a>
@@ -470,7 +480,7 @@
                 {% if has_cnv_image %}
                   <div class="cnv-image bg-transparent py-2 px-1">
                     <!-- Header with Toggle Switch -->
-                    <div class="flex justify-between items-center bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 tracking-wide capitalize">
+                    <div class="flex justify-between items-center bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 tracking-wide capitalize ">
                       <h2 class="text-sm">
                         CNV Profile
                       </h2>
@@ -504,10 +514,10 @@
                       {% set build = sample.genome_build if "genome_build" in sample else 37 %}
                       <!-- Image Container (Will be updated dynamically) -->
                       <div id="cnv-image-container" class="flex justify-center items-center">
-                        <a id="cnv-image-link" href="{{ url_for('dna_bp.show_any_plot', fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}" target="_blank">
+                        <a id="cnv-image-link" href="{{ url_for('dna_bp.show_any_plot', sample_id=sample.name, fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}" target="_blank">
                           <img id="cnv-image-img" 
                             class="rounded-lg border border-gray-300 shadow-lg transition duration-300 ease-in-out transform "
-                            src="{{ url_for('dna_bp.show_any_plot_rotated', fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}"
+                            src="{{ url_for('dna_bp.show_any_plot_rotated', sample_id=sample.name, fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}"
                           >
                         </a>
                       </div>
@@ -532,12 +542,14 @@
                     <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
                       <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg p-2 z-10">
                         <h2 class="text-sm font-semibold text-black">CNV Table</h2>
-                        <img 
-                          src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
-                          alt="Export to CSV - CNVs" 
-                          onclick="exportTableToCSV('{{ sample.name }}.filtered.cnvs.csv', 'cnvs-table')" 
-                          class="w-6 h-6 transition-transform transform hover:scale-110"
-                        />
+                        {% if has_access("download_cnvs", min_role="user", min_level=9) %}
+                          <img 
+                            src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
+                            alt="Export to CSV - CNVs" 
+                            onclick="exportTableToCSV('{{ sample.name }}.filtered.cnvs.csv', 'cnvs-table')" 
+                            class="w-6 h-6 transition-transform transform hover:scale-110"
+                          />
+                        {% endif %}
                       </div>
                       <div class="overflow-auto relative bg-transparent">
                         <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="cnvs-table">
@@ -655,7 +667,7 @@
                                   {% endif %}
                                 </td>
                                 <td class="w-4" id="cnv-table-row-view">
-                                  <a href="{{ url_for('dna_bp.show_cnv', id=cnv._id) }}" class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">view</a>
+                                  <a href="{{ url_for('dna_bp.show_cnv', sample_id=sample.name, cnv_id=cnv._id) }}" class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">view</a>
                                 </td>
                               </tr>
                             {% endfor %}
@@ -691,12 +703,14 @@
               <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
                 <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
                   <h2 class="text-sm font-semibold text-black">Gene fusions passing filter criteria</h2>
-                  <img 
-                    src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
-                    alt="Export to CSV - translocations" 
-                    onclick="exportTableToCSV('{{ sample.name }}.filtered.translocs.csv', 'transloc-table')" 
-                    class="w-6 h-6 transition-transform transform hover:scale-110"
-                  />
+                  {% if has_access("download_translocs", min_role="user", min_level=9) %}
+                    <img 
+                      src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
+                      alt="Export to CSV - translocations" 
+                      onclick="exportTableToCSV('{{ sample.name }}.filtered.translocs.csv', 'transloc-table')" 
+                      class="w-6 h-6 transition-transform transform hover:scale-110"
+                    />
+                  {% endif %}
                 </div>
                 {% if transloc and transloc.count() > 0 %}
                   <div class="overflow-auto relative">
@@ -749,7 +763,7 @@
                               {% endif %}
                             </td>
                             <td id="transloc-table-row-view">
-                              <a href="{{ url_for('dna_bp.show_transloc', id=tl._id) }}" class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">view</a>
+                              <a href="{{ url_for('dna_bp.show_transloc', sample_id=sample.name, transloc_id=tl._id) }}" class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">view</a>
                             </td>
                           </tr>
                         {% endfor %}
@@ -782,12 +796,14 @@
               <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
                 <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-200 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
                   <h2 class="text-sm font-semibold text-black">DNA fusions passing filter criteria</h2>
-                  <img 
-                    src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
-                    alt="Export to CSV - fusions" 
-                    onclick="exportTableToCSV('{{ sample.name }}.filtered.fusions.csv', 'fusions-table')" 
-                    class="w-6 h-6 transition-transform transform hover:scale-110"
-                  />
+                  {% if has_access("download_fusions", min_role="user", min_level=9) %}
+                    <img 
+                      src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
+                      alt="Export to CSV - fusions" 
+                      onclick="exportTableToCSV('{{ sample.name }}.filtered.fusions.csv', 'fusions-table')" 
+                      class="w-6 h-6 transition-transform transform hover:scale-110"
+                    />
+                  {% endif %}
                 </div>
                 {% if fusions and fusions|length > 0 %}
                   <div class="overflow-auto relative">
@@ -847,7 +863,7 @@
                               {{ fus.calls|uniq_callers|join("<br>")|safe }}
                             </td>
                             <td id="fusions-table-row-view">
-                              <a href="{{ url_for('dna_bp.show_fusion', id=fus._id) }}" class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">view</a>
+                              <a href="{{ url_for('dna_bp.show_fusion', sample_id=sample.name, id=fus._id) }}" class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">view</a>
                             </td>
                           </tr>
                         {% endfor %}
@@ -936,45 +952,46 @@
             </div>
 
             <!-- Add Comment Form -->
-            <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
-              <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-blue-200 to-green-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
-                <h2 class="text-sm font-semibold text-black">Write New Summary</h2>
-              </div>
-              <div class="overflow-auto relative" id="comments-box-div">
-                <form action="{{ url_for('common_bp.add_sample_comment', id=sample._id) }}" method="post">
-                  <textarea id="comment_textarea"
-                            name="sample_comment"
-                            placeholder="Type to write a new summary for {{ sample.name }} sample..."
-                            class="w-5/6 p-4 border border-gray-400 rounded mx-5 my-4 h-40"></textarea>
-            
-                  <!-- Buttons Row -->
-                  <div class="flex flex-wrap items-center gap-4 mx-5 mb-5">
-                    <input type="submit"
-                          value="Save"
-                          class="p-2 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg cursor-pointer">
-            
-                    <button type="button"
-                            onclick="addAIText()"
-                            class="p-2 text-black bg-gray-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-gray-500 hover:text-white hover:shadow-lg cursor-pointer">
-                      Suggest
-                    </button>
-            
-                    <button type="button"
-                            onclick="window.location.href='preview_report/{{ sample.name }}'"
-                            class="p-2 text-black bg-green-400 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-green-500 hover:text-white hover:shadow-lg cursor-pointer">
-                      Preview Report
-                    </button>
+            {% if has_access('add_sample_comment', min_role='user', min_level=9) %}
+              <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
+                <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-blue-200 to-green-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
+                  <h2 class="text-sm font-semibold text-black">Write New Summary</h2>
+                </div>
+                <div class="overflow-auto relative" id="comments-box-div">
+                  <form action="{{ url_for('common_bp.add_sample_comment', id=sample._id) }}" method="post">
+                    <textarea id="comment_textarea"
+                              name="sample_comment"
+                              placeholder="Type to write a new summary for {{ sample.name }} sample..."
+                              class="w-5/6 p-4 border border-gray-400 rounded mx-5 my-4 h-40"></textarea>
+              
+                    <!-- Buttons Row -->
+                    <div class="flex flex-wrap items-center gap-4 mx-5 mb-5">
+                      <input type="submit"
+                            value="Save"
+                            class="p-2 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg cursor-pointer">
+              
+                      <button type="button"
+                              onclick="addAIText()"
+                              class="p-2 text-black bg-gray-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-gray-500 hover:text-white hover:shadow-lg cursor-pointer">
+                        Suggest
+                      </button>
+                      {% if has_access('preview_dna_report', min_role='user', min_level=9) %}
+                        <button type="button"
+                                onclick="window.location.href='preview_report/{{ sample.name }}'"
+                                class="p-2 text-black bg-green-400 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-green-500 hover:text-white hover:shadow-lg cursor-pointer">
+                          Preview Report
+                        </button>
+                      {% endif %}
+                    </div>
+                  </form>
+              
+                  <!-- AI suggestion box -->
+                  <div id="suggestion" class="hidden">
+                    {{ ai_text }}
                   </div>
-                </form>
-            
-                <!-- AI suggestion box -->
-                <div id="suggestion" class="hidden">
-                  {{ ai_text }}
                 </div>
               </div>
-            </div>
-            
-
+            {% endif %}
 
           </div>
         </div>
@@ -997,12 +1014,14 @@
             <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
               <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-red-200 to-orange-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
                 <h2 class="text-sm font-semibold text-black">Low Coverage Regions</h2>
-                <img 
-                  src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
-                  alt="Export to CSV - lowcov" 
-                  onclick="exportTableToCSV('{{ sample.name }}.filtered.lowcov.csv', 'lowcov-table')" 
-                  class="w-6 h-6 transition-transform transform hover:scale-110"
-                />
+                {% if has_access("download_lovcov", min_role="user", min_level=9) %}
+                  <img 
+                    src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
+                    alt="Export to CSV - lowcov" 
+                    onclick="exportTableToCSV('{{ sample.name }}.filtered.lowcov.csv', 'lowcov-table')" 
+                    class="w-6 h-6 transition-transform transform hover:scale-110"
+                  />
+                {% endif %}
               </div>
               <div class="overflow-auto relative">
                 <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="lowcov-table">
@@ -1077,8 +1096,8 @@
       let imageLink = document.getElementById("cnv-image-link");
 
       // Store original and rotated image URLs
-      let originalImage = "{{ url_for('dna_bp.show_any_plot', fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}";
-      let rotatedImage = "{{ url_for('dna_bp.show_any_plot_rotated', fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}";
+      let originalImage = "{{ url_for('dna_bp.show_any_plot', sample_id=sample.name, fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}";
+      let rotatedImage = "{{ url_for('dna_bp.show_any_plot_rotated', sample_id=sample.name,  fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}";
 
       function updateToggleState() {
           if (toggle.checked) {

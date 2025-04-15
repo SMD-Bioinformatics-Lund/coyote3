@@ -6,9 +6,9 @@
       <h2 class="text-sm font-semibold">Control Panel</h2>
     </div>
     <div class="flex justify-between mt-2">
-      <button class="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-1 rounded text-xs mx-1" onclick="switchVisibility('fp', this);">Hide FPs</button>
+      <button class="bg-brown-400 hover:bg-brown-500 text-white font-semibold p-1 rounded text-xs mx-1" onclick="switchVisibility('fp', this);">Hide FPs</button>
       {% if assay == "solid" or assay == "gmsonco" %}
-          <button class="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-1 rounded text-xs mx-1" onclick="window.location.href='#'; show_germlinecnv(this);">Germline CNVs</button>    
+          <button class="bg-brown-400 hover:bg-brown-500 text-white font-semibold p-1 rounded text-xs mx-1" onclick="window.location.href='#'; show_germlinecnv(this);">Germline CNVs</button>    
       {% endif %}
     </div>
   </div>
@@ -16,11 +16,11 @@
   <hr class="broder border-gray-500 my-1">
 
   <!-- Variant actions -->
-  <div id="snv-actions" class="p-1 px-2 space-y-2 w-full text-xs">
+  <div id="snv-actions" class="p-1 px-2 space-y-2 w-full text-xs {% if not has_access('manage_snvs', min_role='admin') %}readonly opacity-70 select-none pointer-events-none{% endif %}">
     <div class="flex justify-between items-center mb-1">
       <h2 class="text-sm font-semibold">Modify Variants</h2>
     </div>
-    <form id="snv-actions-form" action="{{ url_for('dna_bp.classify_multi_variant', id=sample.name) }}" method="POST">
+    <form id="snv-actions-form" action="{{ url_for('dna_bp.classify_multi_variant', sample_id=sample.name) }}" method="POST">
       <!-- Sidebar Checkboxes -->
       <div class="flex flex-col">
         <label class="flex items-center text-xs">
@@ -49,7 +49,7 @@
 
   <hr class="broder border-gray-500 my-1">
 
-  <form action="" method="POST" name="form">
+  <form action="" method="POST" name="form" class="{% if not has_access('apply_dna_filters', min_role='admin') %}readonly opacity-70 select-none pointer-events-none{% endif %}">
     <div id="snv-filters" class="p-1 px-2 space-y-2 w-full text-xs">
       <div class="flex justify-between items-center mb-1">
         <h2 class="text-sm font-semibold">SNV Filters</h2>

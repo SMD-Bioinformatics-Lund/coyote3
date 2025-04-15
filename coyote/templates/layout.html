@@ -195,22 +195,33 @@
     <script>
 
       // JavaScript for Select2 Nav bar
-      document.addEventListener("DOMContentLoaded", () => {
-        document.querySelectorAll(".group-toggle").forEach(button => {
+      function setupGroupToggles() {
+        const groupButtons = document.querySelectorAll(".group-toggle");
+        const groupSections = document.querySelectorAll(".group-assays");
+    
+        groupButtons.forEach(button => {
           button.addEventListener("click", () => {
-            const group = button.dataset.group;
+            const selectedGroup = button.dataset.group;
+            const section = document.querySelector(`.group-assays[data-group="${selectedGroup}"]`);
     
-            document.querySelectorAll(".group-assays").forEach(g => {
-              g.style.display = g.dataset.group === group ? "flex" : "none";
-            });
+            const isVisible = section.style.display === "flex";
     
-            document.querySelectorAll(".group-toggle").forEach(b => {
-              b.classList.remove("bg-orange-100", "text-black");
-            });
-            button.classList.add("bg-orange-100", "text-black");
+            // Hide all sections
+            groupSections.forEach(g => g.style.display = "none");
+    
+            // Reset button highlights
+            groupButtons.forEach(b => b.classList.remove("bg-orange-100", "text-black"));
+    
+            if (!isVisible) {
+              // Show this one
+              section.style.display = "flex";
+              button.classList.add("bg-orange-100", "text-black");
+            }
           });
         });
-      });
+      }
+    
+      document.addEventListener("DOMContentLoaded", setupGroupToggles);
 
       // JavaScript for Action Modal
       function showActionModal({ url, title = "Confirm Action", message = "Are you sure you want to proceed?", confirmText = "Confirm", confirmColor = "blue" }) {

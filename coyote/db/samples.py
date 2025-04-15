@@ -1,5 +1,7 @@
 from bson.objectid import ObjectId
 from coyote.db.base import BaseHandler
+from datetime import datetime
+from flask_login import current_user
 
 
 class SampleHandler(BaseHandler):
@@ -260,3 +262,41 @@ class SampleHandler(BaseHandler):
         delete sample from db
         """
         return self.get_collection().delete_one({"_id": ObjectId(sample_oid)})
+
+    def save_report(self, sample_id: str, report_num: int, filepath: str) -> bool | None:
+        """
+        save report to sample
+        """
+        return self.get_collection().update(
+            {"name": sample_id},
+            {
+                "$push": {
+                    "reports": {
+                        "_id": ObjectId(),
+                        "report_num": report_num,
+                        "report_id": f"{sample_id}_{report_num}",
+                        "filepath": filepath,
+                        "author": current_user.username,
+                        "time_created": datetime.now(),
+                    }
+                },
+                "$set": {"report_num": report_num},
+            },
+        )
+
+    def get_report(self, sample_id: str, report_id: str) -> dict | None:
+        """
+        Get a specific report from the reports array of a sample document
+        """
+        doc = self.get_collection().find_one(
+            {"name": sample_id, "reports.report_id": report_id}, {"reports": 1}
+        )
+
+        if not doc:
+            return None
+
+        for report in doc.get("reports", []):
+            if report.get("report_id") == report_id:
+                return report
+
+        return None
