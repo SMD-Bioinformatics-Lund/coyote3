@@ -50,6 +50,7 @@
   <hr class="broder border-gray-500 my-1">
 
   <form action="" method="POST" name="form" class="{% if not has_access('apply_dna_filters', min_role='admin') %}readonly opacity-70 select-none pointer-events-none{% endif %}">
+
     <div id="snv-filters" class="p-1 px-2 space-y-2 w-full text-xs">
       <div class="flex justify-between items-center mb-1">
         <h2 class="text-sm font-semibold">SNV Filters</h2>
@@ -57,43 +58,57 @@
     
       {{ form.hidden_tag() }}
 
-      <div class="flex justify-between items-center text-xs">
-        <label class="text-gray-900">Depth</label>
-        <div class="flex items-center gap-1">
-          <span class="text-sm font-bold">&gt;</span>
-          {{ form.min_depth(size=2, default=sample.filter_min_depth, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
-        </div>
-      </div>
+      {{ form.warn_cov(type="hidden", default=sample.filters.warn_cov ) }}
+      {{ form.error_cov(type="hidden", default=sample.filters.error_cov) }}
+      {{ form.cnv_loss_cutoff(type="hidden", default=sample.filters.cnv_loss_cutoff) }}
+      {{ form.cnv_gain_cutoff(type="hidden", default=sample.filters.cnv_gain_cutoff) }}
+      
 
       <div class="flex justify-between items-center text-xs">
-        <label class="text-gray-900">Frequency</label>
+        <label class="text-gray-900">Min Depth</label>
         <div class="flex items-center gap-1">
-          <span class="text-sm font-bold">&gt;</span>
-          {{ form.min_freq(size=1, default=sample.filter_min_freq, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
+          <span class="text-sm font-bold">&ge;</span>
+          {{ form.min_depth(size=2, default=sample.filters.min_depth, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
         </div>
       </div>
 
       <div class="flex justify-between items-center text-xs">
         <label class="text-gray-900">Min Alt Count</label>
         <div class="flex items-center gap-1">
-          <span class="text-sm font-bold">&gt;</span>
-          {{ form.min_reads(size=1, default=sample.filter_min_reads, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
+          <span class="text-sm font-bold">&ge;</span>
+          {{ form.min_alt_reads(size=1, default=sample.filters.min_alt_reads, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
         </div>
       </div>
 
       <div class="flex justify-between items-center text-xs">
-        <label class="text-gray-900">Control Freq.</label>
+        <label class="text-gray-900">Min Freq.</label>
         <div class="flex items-center gap-1">
-          <span class="text-sm font-bold">&lt;</span>
-          {{ form.max_freq(size=1, default=sample.filter_max_freq, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
+          <span class="text-sm font-bold">&ge;</span>
+          {{ form.min_freq(size=1, default=sample.filters.min_freq, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
         </div>
       </div>
 
       <div class="flex justify-between items-center text-xs">
-        <label class="text-gray-900">Pop. Freq.</label>
+        <label class="text-gray-900">Max Freq.</label>
         <div class="flex items-center gap-1">
-          <span class="text-sm font-bold">&lt;</span>
-          {{ form.max_popfreq(size=1, default=sample.filter_max_popfreq, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
+          <span class="text-sm font-bold">&le;</span>
+          {{ form.max_freq(size=1, default=sample.filters.max_freq, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center text-xs">
+        <label class="text-gray-900">Max Ctrl. Freq.</label>
+        <div class="flex items-center gap-1">
+          <span class="text-sm font-bold">&le;</span>
+          {{ form.max_control_freq(size=1, default=sample.filters.max_control_freq, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center text-xs">
+        <label class="text-gray-900">Max Pop. Freq.</label>
+        <div class="flex items-center gap-1">
+          <span class="text-sm font-bold">&le;</span>
+          {{ form.max_popfreq(size=1, default=sample.filters.max_popfreq, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
         </div>
       </div>
 
@@ -149,11 +164,6 @@
         </div>
       </div>
       
-      <!-- SNV FILTER Buttons -->
-      <div class="flex justify-between mt-2">
-        <button class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-1 rounded text-xs mx-1" name="apply" value="apply" type="submit">Apply</button>
-        <button class="bg-orange-500 hover:bg-red-700 text-white font-semibold py-1 px-1 rounded text-xs mx-1" name="reset" value="reset" type="submit">Reset</button>
-      </div>
     </div>
 
     <hr class="broder border-gray-500 my-1">
@@ -168,8 +178,8 @@
       <div class="flex justify-between items-center text-xs">
         <label class="text-gray-900">Max size</label>
         <div class="flex items-center gap-1">
-          <span class="text-sm font-bold">&lt;</span>
-          {{ form.max_cnv_size(size=7, default=sample.max_cnv_size,class="border border-gray-300 rounded px-2 py-0.5 w-24") }}
+          <span class="text-sm font-bold">&le;</span>
+          {{ form.max_cnv_size(size=7, default=sample.filters.max_cnv_size,class="border border-gray-300 rounded px-2 py-0.5 w-24") }}
         </div>
       </div>
       
@@ -177,8 +187,26 @@
       <div class="flex justify-between items-center text-xs">
         <label class="text-gray-900">Min size</label>
         <div class="flex items-center gap-1">
-          <span class="text-sm font-bold">&gt;</span>
-          {{ form.min_cnv_size(size=7, default=sample.min_cnv_size, class="border border-gray-300 rounded px-2 py-0.5 w-24") }}
+          <span class="text-sm font-bold">&ge;</span>
+          {{ form.min_cnv_size(size=7, default=sample.filters.min_cnv_size, class="border border-gray-300 rounded px-2 py-0.5 w-24") }}
+        </div>
+      </div>
+
+      <!-- CNV Gain Ratio Lwer Cut off Filter -->
+      <div class="flex justify-between items-center text-xs">
+        <label class="text-gray-900">Gain Ratio</label>
+        <div class="flex items-center gap-1">
+          <span class="text-sm font-bold">&ge;</span>
+          {{ form.cnv_gain_cutoff(size=3, default=sample.filters.cnv_gain_cutoff,class="border border-gray-300 rounded px-2 py-0.5 w-24") }}
+        </div>
+      </div>
+      
+      <!-- CNV Loss Ratio Lwer Cut off Filter -->
+      <div class="flex justify-between items-center text-xs">
+        <label class="text-gray-900">Loss Ratio</label>
+        <div class="flex items-center gap-1">
+          <span class="text-sm font-bold">&le;</span>
+          {{ form.cnv_loss_cutoff(size=3, default=sample.filters.cnv_loss_cutoff, class="border border-gray-300 rounded px-2 py-0.5 w-24") }}
         </div>
       </div>
       

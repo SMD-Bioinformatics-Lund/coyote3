@@ -96,18 +96,20 @@
                         </div>
                       {% else %}
                         <div>
-                          <label class="block font-semibold text-xs mb-1">
-                            {{ field.label or key }} {% if field.required %}<span class="text-red-500">*</span>{% endif %} <span class="text-gray-500 text-xs font-normal">({{ field.type }})</span>
-                          </label>
+                          {% if field.type != 'bool'%}
+                            <label class="block font-semibold text-xs mb-1">
+                              {{ field.label or key }} {% if field.required %}<span class="text-red-500">*</span>{% endif %} <span class="text-gray-500 text-xs font-normal">({{ field.type }})</span>
+                            </label>
+                          {% endif %}
                           {% if field.type == 'int' %}
                             <input type="number" name="{{ full_key }}" step="1" inputmode="numeric" pattern="[0-9]+" placeholder="{{ field.placeholder or '' }}" value="{{ field.default | int }}" class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1" {% if full_key == 'version' %} disabled {% endif %}/>
                           {% elif field.type == 'float' %}
                             <input type="number" name="{{ full_key }}" step="0.01" placeholder="{{ field.placeholder or '' }}" value="{{ field.default }}" class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1" />
                           {% elif field.type == 'bool' %}
-                            <label class="inline-flex items-center gap-2 text-xs">
-                              <input type="checkbox" name="{{ full_key }}" value="true" class="accent-blue-600 rounded" {% if field.default %}checked{% endif %}>
-                              <span>{{ field.label or key }}</span>
-                            </label>
+                              <label class="mt-6 inline-flex items-center gap-2 text-xs font-semibold">
+                                <input type="checkbox" name="{{ full_key }}" value="true" class="accent-blue-600 rounded" {% if field.default %}checked{% endif %}>
+                                <span>{{ field.label or key }}</span>
+                              </label>
                           {% elif full_key in ['created_by', 'updated_by'] %}
                             <input type="text" name="{{ full_key }}" value="{{ current_user.email }}" readonly class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 text-gray-500" />
                           {% elif full_key in ['created_on', 'updated_on'] %}

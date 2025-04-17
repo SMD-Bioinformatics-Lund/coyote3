@@ -39,7 +39,9 @@ import io
 @login_required
 @require_sample_group_access("sample_id")
 def list_variants(sample_id):
-
+    """
+    List variants for a given sample.
+    """
     # Find sample data by name
     sample = store.sample_handler.get_sample(sample_id)  # sample_id = name
 
@@ -47,140 +49,125 @@ def list_variants(sample_id):
     if sample is None:
         sample = store.sample_handler.get_sample_with_id(sample_id)  # sample_id = id
 
+    sample_has_filters = sample.get("filters", None)
+
     # Get case and control samples
     sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
 
     ## Check the length of the sample groups from db, and if len is more than one, tumwgs-solid or tumwgs-hema takes the priority in new coyote
-    smp_grp = util.common.select_one_sample_group(sample.get("groups"))
+    sample_assay = util.common.select_one_sample_group(sample.get("groups"))
 
-    if smp_grp is None:
-        flash("No group found for sample using unknown-default group", "yellow")
-        smp_grp = "unknown-default"
+    if sample_assay is None:
+        flash("No assay group found for sample", "red")
+        return redirect(url_for("home_bp.home_screen"))
 
-    # Get group parameters from the sample group config file
-    group_params = util.common.get_group_parameters(smp_grp)
+    # New way to retrive assay group config from db assay configs
+    assay_config = store.assay_config_handler.get_assay_config_filtered(sample_assay)
 
-    if not group_params:
-        flash("No group parameters found for sample", "red")
-        group_params = util.common.get_unknown_default_parameters()
+    if not assay_config:
+        flash(f"No config found for the the assay {sample_assay}", "red")
+        return redirect(url_for("home_bp.home_screen"))
 
-    # Get group defaults from coyote config, if not found in group config
-    settings = util.common.get_group_defaults(group_params)
+    # Get assay group and subpanel for the sample
+    assay_group: str = assay_config.get("assay_group", "unknown")
+    subpanel: str | None = sample.get("subpanel")
+    app.logger.debug(f"Assay group: {assay_group} - Subpanel: {subpanel}")
 
-    # Get assay from sample
-    assay: str | None | Literal["unknown"] = util.common.get_assay_from_sample(sample)
-    subpanel = sample.get("subpanel")
+    # Load all genelist and panel names for the assay group
+    assay_group_genelists, assay_group_genelists_docs = store.panel_handler.get_assay_panels(
+        assay_group
+    )
+    assay_group_genelists_names = store.panel_handler.get_assay_panel_names(assay_group)
 
-    # get group config from app config instead
-    # app.logger.debug(app.config["GROUP_CONFIGS"])
-    # app.logger.debug(f"Settings: {settings}\n")
-    # app.logger.debug(f"subpanel: {subpanel}\n")
-    # app.logger.debug(f"the sample has these groups {smp_grp}")
+    # Adding the defualt gene lists to the assay_config, if use_diagnosis_genelist is set to true
+    if assay_config["FILTERS"].get("use_diagnosis_genelist", False) and subpanel:
+        if store.panel_handler.panel_exists(subpanel=subpanel, type="genelist"):
+            assay_config["FILTERS"]["genelists"].append(subpanel)
 
-    ## GENEPANELS ##
-    ## send over all defined gene panels per assay, to matching template ##
-    # app.logger.debug(f"Assay: {assay}\n")
-    # app.logger.debug(f"group_params: {group_params}\n")
-    # app.logger.debug(f"Config: {app.config.get('GROUP_FILTERS')}\n")
+    # Get filter settings from the sample and merge with assay config if sample does not have values
+    sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
+    sample_filters = deepcopy(sample.get("filters", {}))
 
-    gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
-    assay_panels = store.panel_handler.get_assay_panel_names(assay)
-    # app.logger.debug(f"Assay panels: {assay_panels}\n")
-    ## Default gene list. For samples with default_genelis_set=1 add a gene list to specific subtypes lunga, hjärna etc etc. Will fetch genelist from mongo collection.
-    # this only for assays that should have a default gene list. Will always be added to sample if not explicitely removed from form
+    # Update the sample filters with the default values from the assay config if the sameple is new and does not have any filters set
+    if sample_has_filters is None:
+        store.sample_handler.reset_sample_settings(sample["_id"], assay_config.get("FILTERS"))
 
-    # app.logger.debug(f"gene_lists: {gene_lists}\n")  # This has the gene lists only with the panel name as key
-    # app.logger.debug(f"genelists_assay: {genelists_assay}\n") # this is the whole doc from the db
-
-    if "default_genelist_set" in group_params and subpanel:
-        panel_genelist = store.panel_handler.get_panel(subpanel=subpanel, type="genelist")
-        if panel_genelist:
-            settings["default_checked_genelists"] = {f"genelist_{subpanel}": 1}
-
-    # Save new filter settings if submitted
     # Inherit FilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
-    if gene_lists:
-        for gene_list in gene_lists:
+    if assay_group_genelists:
+        for gene_list in assay_group_genelists:
             setattr(GeneForm, f"genelist_{gene_list}", BooleanField())
 
     form = GeneForm()
-    ###########################################################################
 
-    ## FORM FILTERS ##
+    ###########################################################################
     # Either reset sample to default filters or add the new filters from form.
     if request.method == "POST" and form.validate_on_submit():
         app.logger.debug(f"form data: {form.data}")
         _id = str(sample.get("_id"))
         # Reset filters to defaults
         if form.reset.data:
-            store.sample_handler.reset_sample_settings(_id, settings)
+            app.logger.debug("Resetting filters to default settings")
+            store.sample_handler.reset_sample_settings(_id, assay_config.get("FILTERS"))
         else:
             store.sample_handler.update_sample_settings(_id, form)
-            ## get sample again to recieve updated forms!
-            sample = store.sample_handler.get_sample_with_id(_id)
+
+        ## get sample again to recieve updated forms!
+        sample = store.sample_handler.get_sample_with_id(_id)
+        sample_filters = deepcopy(sample.get("filters"))
 
     ############################################################################
 
-    # Check if sample has hidden comments
+    # Check if the sample has hidden comments
     has_hidden_comments = store.sample_handler.hidden_sample_comments(sample.get("_id"))
 
-    ## get sample settings
-    sample_settings = util.common.get_sample_settings(sample, settings)
-
     # sample filters, either set, or default
-    cnv_effects = sample.get("checked_cnveffects", settings["default_checked_cnveffects"])
-    # app.logger.debug(f"sample: {sample}")
-    # app.logger.debug(f"settings: {settings}")
-    genelist_filter = sample.get("checked_genelists", settings["default_checked_genelists"])
-    # app.logger.debug(f"genelist_filter: {genelist_filter}")
-    genelist_filter_names = [
-        g_list.replace("genelist_", "")
-        for g_list in genelist_filter
-        if genelist_filter[g_list] == 1
-    ]
-    # app.logger.debug(f"genelist_filter_names: {genelist_filter_names}")
-    checked_genelist_dict = util.common.create_genelists_dict(genelist_filter_names, gene_lists)
+    cnv_effects = sample_filters.get("cnveffects", [])
+    genelist_filter = sample_filters.get("genelists", [])
+    checked_genelist_dict = util.common.create_genelists_dict(
+        genelist_filter, assay_group_genelists
+    )
 
-    filter_conseq = util.dna.get_filter_conseq_terms(sample_settings["csq_filter"].keys())
+    filter_conseq = util.dna.get_filter_conseq_terms(sample_filters.get("vep_consequences", []))
     filter_genes = util.common.create_filter_genelist(checked_genelist_dict)
     filter_cnveffects = util.dna.create_cnveffectlist(cnv_effects)
 
     # Add them to the form and update with the requested settings
-    form_data = deepcopy(sample_settings)
-    form_data.pop("csq_filter")
-    form_data.update(sample_settings["csq_filter"])
-    form_data.update(genelist_filter)
-    form_data.update(cnv_effects)
-    form_data.update({assay: 1})
+    form_data = deepcopy(sample_filters)
+    form_data.update(
+        {
+            **{k: True for k in sample_filters.get("vep_consequences", [])},
+            **{f"cnveffect_{k}": True for k in sample_filters.get("cnveffects", [])},
+            **{f"genelist_{k}": True for k in genelist_filter},
+            **{assay_group: True},
+        }
+    )
     form.process(data=form_data)
 
     # this is in config, but needs to be tested (2024-05-14) with a HD-sample of relevant name
     disp_pos = []
-    if "verif_samples" in group_params:
-        if sample["name"] in group_params["verif_samples"]:
-            disp_pos = group_params["verif_samples"][sample["name"]]
+    if "verification_samples" in assay_config:
+        if sample["name"] in assay_config["verification_samples"]:
+            disp_pos = assay_config["verification_samples"][sample["name"]]
 
     ## SNV FILTRATION STARTS HERE ! ##
     ##################################
-    ## The query should really be constructed according to some configed rules for a specific assay
-    app.logger.debug(f"assay: {assay}")
+    ## The query should really be constructed according to some configured rules for a specific assay
     query = build_query(
-        assay,
+        assay_group,
         {
             "id": str(sample["_id"]),
-            "max_freq": sample_settings["max_freq"],
-            "min_freq": sample_settings["min_freq"],
-            "min_depth": sample_settings["min_depth"],
-            "min_reads": sample_settings["min_reads"],
-            "max_popfreq": sample_settings["max_popfreq"],
+            "max_freq": sample_filters["max_freq"],
+            "min_freq": sample_filters["min_freq"],
+            "max_control_freq": sample_filters["max_control_freq"],
+            "min_depth": sample_filters["min_depth"],
+            "min_alt_reads": sample_filters["min_alt_reads"],
+            "max_popfreq": sample_filters["max_popfreq"],
             "filter_conseq": filter_conseq,
             "filter_genes": filter_genes,
             "disp_pos": disp_pos,
         },
     )
 
-    app.logger.debug(f"Sample Settings: {sample_settings}")
-    # app.logger.debug(f"filter genes: {filter_genes}")
     app.logger.debug(f"filter_genes_no: {len(filter_genes)}")
     app.logger.debug(f"Pos Filter: {len(disp_pos)}")
     # app.logger.debug(f"Query: {query}")
@@ -191,13 +178,13 @@ def list_variants(sample_id):
     app.logger.debug(f"variants: {len(variants)}")
 
     # Add blacklist data
-    variants = store.blacklist_handler.add_blacklist_data(variants, assay)
+    variants = store.blacklist_handler.add_blacklist_data(variants, assay_group)
 
     # Add global annotations for the variants
-    variants = util.dna.add_global_annotations(variants, assay, subpanel)
+    variants = util.dna.add_global_annotations(variants, assay_group, subpanel)
 
-    # Filter by population frequency
-    variants = util.dna.popfreq_filter(variants, float(sample_settings["max_popfreq"]))
+    # Filter by population frequency, the same as in the query
+    # variants = util.dna.popfreq_filter(variants, float(sample_filters["max_popfreq"]))
 
     # Add hotspot data
     variants = util.dna.hotspot_variant(variants)
@@ -212,7 +199,7 @@ def list_variants(sample_id):
     # this could maybe be something else than cosmic? config important regions?
     cosmic_ids = store.cosmic_handler.get_cosmic_ids(chr=low_cov_chrs)
 
-    if assay != "solid":
+    if assay_group != "solid":
         low_cov = util.dna.filter_low_coverage_with_cosmic(low_cov, cosmic_ids)
 
     # Get bams
@@ -223,14 +210,14 @@ def list_variants(sample_id):
     cnvwgs_iter_n = False
     biomarkers_iter = False
     transloc_iter = False
-    if group_params is not None and "DNA" in group_params:
-        if group_params["DNA"].get("CNV"):
+    if "DNA" in assay_config:
+        if assay_config["DNA"].get("CNV"):
             cnv_settings = {
-                assay: assay,
-                "sizefilter_max": sample_settings["max_cnv_size"],
-                "sizefilter_min": sample_settings["min_cnv_size"],
-                "cnvratio_lower": -0.3,
-                "cnvratio_upper": 0.3,
+                "assay": assay_group,
+                "max_cnv_size": sample_filters["max_cnv_size"],
+                "min_cnv_size": sample_filters["min_cnv_size"],
+                "cnv_loss_cutoff": sample_filters["cnv_loss_cutoff"],
+                "cnv_gain_cutoff": sample_filters["cnv_gain_cutoff"],
                 "filter_genes": filter_genes,
             }
             cnvwgs_iter = list(
@@ -238,19 +225,22 @@ def list_variants(sample_id):
                     sample_id=str(sample["_id"]), settings=cnv_settings
                 )
             )
-            # print(cnvwgs_iter[0])
             if filter_cnveffects:
                 cnvwgs_iter = util.dna.cnvtype_variant(cnvwgs_iter, filter_cnveffects)
 
             cnvwgs_iter = util.dna.cnv_organizegenes(cnvwgs_iter)
+
+            # Get normal cnvs
             cnvwgs_iter_n = list(
                 store.cnv_handler.get_sample_cnvs(sample_id=str(sample["_id"]), normal=True)
             )
-        if group_params["DNA"].get("OTHER"):
+
+        if assay_config["DNA"].get("BIOMARKERS"):
             biomarkers_iter = store.biomarker_handler.get_sample_biomarkers(
                 sample_id=str(sample["_id"])
             )
-        if group_params["DNA"].get("FUSIONS"):
+
+        if assay_config["DNA"].get("FUSIONS"):
             transloc_iter = store.transloc_handler.get_sample_translocations(
                 sample_id=str(sample["_id"])
             )
@@ -263,7 +253,7 @@ def list_variants(sample_id):
     conclusion = ""
     # ai_text, conclusion = util.generate_ai_text( assay, variants, filter_genes, genelist_filter, sample["groups"][0] )
     ## translocations (DNA fusions) and copy number variation. Works for solid so far, should work for myeloid, lymphoid
-    if assay == "solid":
+    if assay_group == "solid":
         transloc_iter_ai = store.transloc_handler.get_sample_translocations(
             sample_id=str(sample["_id"])
         )
@@ -271,13 +261,13 @@ def list_variants(sample_id):
             sample_id=str(sample["_id"])
         )
         ai_text_transloc = util.dna.generate_ai_text_nonsnv(
-            assay, transloc_iter_ai, sample["groups"][0], "transloc"
+            assay_group, transloc_iter_ai, sample["groups"][0], "transloc"
         )
         ai_text_cnv = util.dna.generate_ai_text_nonsnv(
-            assay, cnvwgs_iter, sample["groups"][0], "cnv"
+            assay_group, cnvwgs_iter, sample["groups"][0], "cnv"
         )
         ai_text_bio = util.dna.generate_ai_text_nonsnv(
-            assay, biomarkers_iter_ai, sample["groups"][0], "bio"
+            assay_group, biomarkers_iter_ai, sample["groups"][0], "bio"
         )
         ai_text = ai_text + ai_text_transloc + ai_text_cnv + ai_text_bio + conclusion
     else:
@@ -288,29 +278,22 @@ def list_variants(sample_id):
         if sample["cnv"].lower().endswith((".png", ".jpg", ".jpeg")):
             sample["cnvprofile"] = sample["cnv"]
 
-    print(f"Current User: {current_user.user_model.dict()}")
     return render_template(
         "list_variants_vep.html",
-        checked_genelists=genelist_filter,  # TODO: even this is reduntant I guess
-        assay_panels=assay_panels,
+        assay_panels=assay_group_genelists_names,
         variants=variants,
         disp_pos=disp_pos,
         sample=sample,
         sample_ids=sample_ids,
-        assay=assay,
+        assay=assay_group,
         hidden_comments=has_hidden_comments,
         form=form,
-        dispgenes=filter_genes,  # TODO: you dont need this as well
-        display_genelists=genelist_filter_names,  # TODO: not needed
-        gene_lists_dict=gene_lists,  # TODO: not needed
         checked_genelist_dict=checked_genelist_dict,
         low_cov=low_cov,
         ai_text=ai_text,
-        settings=settings,
+        settings=sample_filters,
         cnvwgs=cnvwgs_iter,
         cnvwgs_n=cnvwgs_iter_n,
-        sizefilter=sample_settings["max_cnv_size"],  # TODO: can remove
-        sizefilter_min=sample_settings["min_cnv_size"],  # TODO: can remove
         transloc=transloc_iter,
         biomarker=biomarkers_iter,
         vep_var_class_translations=app.config.get("REPORT_CONFIG").get(
@@ -1158,7 +1141,7 @@ def generate_dna_report(sample_id, *args, **kwargs):
     sample["num_samples"] = store.variant_handler.get_num_samples(str(sample["_id"]))
 
     ## send over all defined gene panels per assay, to matching template ##
-    gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
+    assay_group_genelists, assay_group_genelists_docs = store.panel_handler.get_assay_panels(assay)
 
     ## Check the length of the sample groups from db, and if len is more than one, tumwgs-solid or tumwgs-hema takes the priority in new coyote
     smp_grp = util.common.select_one_sample_group(sample.get("groups"))
@@ -1190,12 +1173,16 @@ def generate_dna_report(sample_id, *args, **kwargs):
         for g_list in genelist_filter
         if genelist_filter[g_list] == 1
     ]
-    checked_genelist_dict = util.common.create_genelists_dict(genelist_filter_names, gene_lists)
+    checked_genelist_dict = util.common.create_genelists_dict(
+        genelist_filter_names, assay_group_genelists
+    )
 
     ## displaynames for report
-    genelist_dispnames = util.common.get_genelist_dispnames(genelists_assay, checked_genelist_dict)
+    genelist_dispnames = util.common.get_genelist_dispnames(
+        assay_group_genelists_docs, checked_genelist_dict
+    )
 
-    panels = [panel.get("name") for panel in genelists_assay]
+    panels = [panel.get("name") for panel in assay_group_genelists_docs]
 
     ## get sample settings
     sample_settings = util.common.get_sample_settings(sample, settings)

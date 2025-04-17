@@ -89,10 +89,9 @@ class DNAUtility:
         """
         types = []
         for name in cnvtype:
-            effect = name.split("_", 1)[1]
-            if effect == "loss":
+            if name == "loss":
                 types.append("DEL")
-            if effect == "gain":
+            if name == "gain":
                 types.append("AMP")
         return types
 
@@ -997,7 +996,7 @@ class DNAUtility:
         var_p > var_c > var_g > fusionpoints > translocpoints > cnvvar
         """
         nomenclature = "p"  # default
-        variant = ""        # default value in case nothing is found
+        variant = ""  # default value in case nothing is found
 
         var_nomenclature = {
             "var_p": "p",  # priority 1
@@ -1016,7 +1015,6 @@ class DNAUtility:
                 break
 
         return nomenclature, variant
-
 
     @staticmethod
     def create_comment_doc(
@@ -1134,7 +1132,7 @@ class DNAUtility:
         for var in cnvs:
             if var["ratio"] > 0:
                 effect = "AMP"
-            if var["ratio"] < 0:
+            elif var["ratio"] < 0:
                 effect = "DEL"
             if effect in checked_effects:
                 filtered_cnvs.append(var)

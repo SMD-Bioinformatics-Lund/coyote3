@@ -39,6 +39,12 @@ class PanelsHandler(BaseHandler):
         panel = self.get_collection().find_one({"name": subpanel, "type": type})
         return panel
 
+    def panel_exists(self, type: str, subpanel: str) -> bool:
+        """
+        Check if a panel of given type and subpanel name exists in the collection.
+        """
+        return self.get_collection().count_documents({"name": subpanel, "type": type}, limit=1) > 0
+
     @lru_cache(maxsize=2)
     def get_unique_all_panel_gene_count(self) -> int:
         """

@@ -65,79 +65,102 @@ class SampleHandler(BaseHandler):
         """
         return self.get_collection().find({"_id": {"$in": sample_oids}}, {"name": 1})
 
-    def reset_sample_settings(self, sample_id: str, settings):
+    # TODO: Remove this function
+    # def reset_sample_settings(self, sample_id: str, settings):
+    #     """
+    #     reset sample to default settings
+    #     """
+    #     self.get_collection().update(
+    #         {"name": sample_id},
+    #         {
+    #             "$set": {
+    #                 "filter_max_freq": settings["default_max_freq"],
+    #                 "filter_min_freq": settings["default_min_freq"],
+    #                 "filter_min_depth": settings["default_mindepth"],
+    #                 "filter_min_reads": settings["default_min_reads"],
+    #                 "filter_min_spanreads": settings["default_spanreads"],
+    #                 "filter_min_spanpairs": settings["default_spanpairs"],
+    #                 "checked_csq": settings["default_checked_conseq"],
+    #                 "checked_genelists": settings["default_checked_genelists"],
+    #                 "filter_max_popfreq": settings["default_popfreq"],
+    #                 "checked_fusionlists": settings["default_checked_fusionlists"],
+    #                 "min_cnv_size": settings["default_min_cnv_size"],
+    #                 "max_cnv_size": settings["default_max_cnv_size"],
+    #                 "checked_cnveffects": settings["default_checked_cnveffects"],
+    #             }
+    #         },
+    #     )
+
+    def reset_sample_settings(self, sample_id: str, default_filters: dict):
         """
         reset sample to default settings
         """
+        # Remove unnecessary keys from default_filters
+        default_filters.pop("use_diagnosis_genelist", None)
+
         self.get_collection().update(
-            {"name": sample_id},
-            {
-                "$set": {
-                    "filter_max_freq": settings["default_max_freq"],
-                    "filter_min_freq": settings["default_min_freq"],
-                    "filter_min_depth": settings["default_mindepth"],
-                    "filter_min_reads": settings["default_min_reads"],
-                    "filter_min_spanreads": settings["default_spanreads"],
-                    "filter_min_spanpairs": settings["default_spanpairs"],
-                    "checked_csq": settings["default_checked_conseq"],
-                    "checked_genelists": settings["default_checked_genelists"],
-                    "filter_max_popfreq": settings["default_popfreq"],
-                    "checked_fusionlists": settings["default_checked_fusionlists"],
-                    "min_cnv_size": settings["default_min_cnv_size"],
-                    "max_cnv_size": settings["default_max_cnv_size"],
-                    "checked_cnveffects": settings["default_checked_cnveffects"],
-                }
-            },
+            {"_id": ObjectId(sample_id)}, {"$set": {"filters": default_filters}}
         )
 
     def update_sample_settings(self, sample_str: str, form):
         """
-        update sample settings according to form data
+        Update sample.filters based on FilterForm data
         """
-        checked_conseq = {}
-        checked_genelists = {}
-        checked_fusionlists = {}
-        checked_fusioneffects = {}
-        checked_fusioncallers = {}
-        checked_cnveffects = {}
-        for fieldname, value in form.data.items():
-            if value == True:
-                if fieldname.startswith("genelist"):
-                    checked_genelists[fieldname] = 1
-                elif fieldname.startswith("fusionlist"):
-                    checked_fusionlists[fieldname] = 1
-                elif fieldname.startswith(
-                    "fusioncaller"
-                ):  # donot change to fusioncallers, make it singular
-                    checked_fusioncallers[fieldname] = 1
-                elif fieldname.startswith("fusioneffect"):
-                    checked_fusioneffects[fieldname] = 1
-                elif fieldname.startswith("cnveffect"):
-                    checked_cnveffects[fieldname] = 1
-                else:
-                    checked_conseq[fieldname] = 1
+        form_data = form.data.copy()
 
-        self.get_collection().update(
+        # Remove non-filter fields
+        for key in ["csrf_token", "reset", "submit", "use_diagnosis_genelist"]:
+            form_data.pop(key, None)
+
+        # Extract Boolean categories
+        vep_consequences = []
+        genelists = []
+        fusionlists = []
+        fusioneffects = []
+        fusioncallers = []
+        cnveffects = []
+
+        keys_to_remove = []
+
+        for field, value in form_data.items():
+            if value is True:
+                if field.startswith("genelist_"):
+                    genelists.append(field.replace("genelist_", ""))
+                elif field.startswith("fusionlist_"):
+                    fusionlists.append(field.replace("fusionlist_", ""))
+                elif field.startswith("fusioncaller_"):
+                    fusioncallers.append(field.replace("fusioncaller_", ""))
+                elif field.startswith("fusioneffect_"):
+                    fusioneffects.append(field.replace("fusioneffect_", ""))
+                elif field.startswith("cnveffect_"):
+                    cnveffects.append(field.replace("cnveffect_", ""))
+                else:
+                    vep_consequences.append(field)
+                keys_to_remove.append(field)
+
+        # Clean up processed boolean keys
+        for k in keys_to_remove:
+            form_data.pop(k, None)
+
+        # Drop all remaining fields that are falsy (e.g. False, "", None)
+        form_data = {k: v for k, v in form_data.items() if v}
+
+        # Assemble final filters dict
+        filters = {
+            "vep_consequences": vep_consequences,
+            "genelists": genelists,
+            "fusionlists": fusionlists,
+            "fusioneffects": fusioneffects,
+            "fusion_callers": fusioncallers,
+            "cnveffects": cnveffects,
+            "use_diagnosis_genelist": bool(form.use_diagnosis_genelist.data),
+            **form_data,
+        }
+
+        # Now update the sample doc
+        self.get_collection().update_one(
             {"_id": ObjectId(sample_str)},
-            {
-                "$set": {
-                    "filter_max_freq": form.max_freq.data,
-                    "filter_min_freq": form.min_freq.data,
-                    "filter_min_depth": form.min_depth.data,
-                    "filter_min_reads": form.min_reads.data,
-                    "filter_min_spanreads": form.min_spanreads.data,
-                    "filter_min_spanpairs": form.min_spanpairs.data,
-                    "checked_csq": checked_conseq,
-                    "checked_genelists": checked_genelists,
-                    "filter_max_popfreq": form.max_popfreq.data,
-                    "checked_fusionlists": checked_fusionlists,
-                    "checked_fusioneffects": checked_fusioneffects,
-                    "checked_fusioncallers": checked_fusioncallers,
-                    "min_cnv_size": form.min_cnv_size.data,
-                    "max_cnv_size": form.max_cnv_size.data,
-                    "checked_cnveffects": checked_cnveffects,
-                }
-            },
+            {"$set": {"filters": filters}},
         )
 
     def add_sample_comment(self, sample_id: str, comment_doc: dict) -> None:

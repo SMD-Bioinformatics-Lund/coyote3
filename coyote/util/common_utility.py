@@ -141,6 +141,7 @@ class CommonUtility:
 
         return assay_names
 
+    # TODO: Remove
     @staticmethod
     def get_assay_from_sample(smp) -> Any | Literal["unknown"] | None:
         conf = app.config.get("ASSAY_MAPPER")
@@ -151,6 +152,39 @@ class CommonUtility:
                 return assay
         return "unknown"
 
+    @staticmethod
+    def merge_sample_settings_with_assay_config(sample_doc, assay_config) -> dict:
+        """
+        Merge assay_config FILTERS into sample_doc['filters'].
+        Existing sample values take priority. Missing values are filled from the assay_config.
+
+        Args:
+            sample_doc (dict): The sample document.
+            assay_config (dict): The full assay config with a 'FILTERS' section.
+
+        Returns:
+            dict: Updated sample_doc with 'filters' field merged.
+        """
+        filters_config = assay_config.get("FILTERS", {})
+        sample_filters = sample_doc.get("filters", {})
+
+        merged_filters = {}
+
+        for key, value in filters_config.items():
+            # If the key already exists and is non-empty in the sample's filters, keep it
+            if key in sample_filters and sample_filters[key]:
+                merged_filters[key] = sample_filters[key]
+            else:
+                merged_filters[key] = value
+
+        # If sample filters are empty, then update the sample doc with the default filters
+
+        # Update the sample_doc with the merged filters
+        sample_doc["filters"] = merged_filters
+        sample_doc.pop("use_diagnosis_genelist", None)  # Remove this key if it exists
+        return sample_doc
+
+    # TODO: Remove
     @staticmethod
     def get_group_defaults(group) -> Any | None:
         """

@@ -27,8 +27,8 @@ class CNVsHandler(BaseHandler):
                     # Ratio Condition: (cnv.ratio|float < -0.3 or cnv.ratio|float > 0.3)
                     {
                         "$or": [
-                            {"ratio": {"$lt": settings["cnvratio_lower"]}},
-                            {"ratio": {"$gt": settings["cnvratio_upper"]}},
+                            {"ratio": {"$lte": settings["cnv_loss_cutoff"]}},
+                            {"ratio": {"$gte": settings["cnv_gain_cutoff"]}},
                         ]
                     },
                     # Size and Ratio Condition:
@@ -36,8 +36,8 @@ class CNVsHandler(BaseHandler):
                         "$or": [
                             {
                                 "$and": [
-                                    {"size": {"$gt": settings["sizefilter_min"]}},
-                                    {"size": {"$lt": settings["sizefilter_max"]}},
+                                    {"size": {"$gte": settings["min_cnv_size"]}},
+                                    {"size": {"$lte": settings["max_cnv_size"]}},
                                 ]
                             },
                             {"ratio": {"$gt": 3}},

@@ -6,9 +6,9 @@ def build_query(which, settings):
     large_ins_regex = re.compile(r"\w{10,200}", re.IGNORECASE)
     gene_pos_filter = build_pos_genes_filter(settings)
 
-    # Myeloid requires settings: min_freq, min_depth, min_reads, max_freq, filter_conseq(list)
+    # Myeloid requires settings: min_freq, min_depth, min_alt_reads, max_control_freq, filter_conseq(list)
 
-    if which == "myeloid" or which == "fusion" or which == "tumwgs" or which == "unknown":
+    if which in {"myeloid", "hematology" "fusion", "tumwgs", "unknown"}:
         query = {
             "SAMPLE_ID": settings["id"],
             "$and": [
@@ -34,9 +34,12 @@ def build_query(which, settings):
                                     "GT": {
                                         "$elemMatch": {
                                             "type": "case",
-                                            "AF": {"$gte": float(settings["min_freq"])},
+                                            "AF": {
+                                                "$gte": float(settings["min_freq"]),
+                                                "$lte": float(settings["max_freq"]),
+                                            },
                                             "DP": {"$gte": float(settings["min_depth"])},
-                                            "VD": {"$gte": float(settings["min_reads"])},
+                                            "VD": {"$gte": float(settings["min_alt_reads"])},
                                         }
                                     }
                                 },
@@ -47,7 +50,9 @@ def build_query(which, settings):
                                             "GT": {
                                                 "$elemMatch": {
                                                     "type": "control",
-                                                    "AF": {"$lte": float(settings["max_freq"])},
+                                                    "AF": {
+                                                        "$lte": float(settings["max_control_freq"])
+                                                    },
                                                     "DP": {"$gte": float(settings["min_depth"])},
                                                 }
                                             }
@@ -134,9 +139,12 @@ def build_query(which, settings):
                 {
                     "GT": {
                         "$elemMatch": {
-                            "AF": {"$gte": float(settings["min_freq"])},
+                            "AF": {
+                                "$gte": float(settings["min_freq"]),
+                                "$lte": float(settings["max_freq"]),
+                            },
                             "DP": {"$gte": float(settings["min_depth"])},
-                            "VD": {"$gte": float(settings["min_reads"])},
+                            "VD": {"$gte": float(settings["min_alt_reads"])},
                         }
                     }
                 },
@@ -160,9 +168,12 @@ def build_query(which, settings):
                                     "GT": {
                                         "$elemMatch": {
                                             "type": "case",
-                                            "AF": {"$gte": float(settings["min_freq"])},
+                                            "AF": {
+                                                "$gte": float(settings["min_freq"]),
+                                                "$lte": float(settings["max_freq"]),
+                                            },
                                             "DP": {"$gte": float(settings["min_depth"])},
-                                            "VD": {"$gte": float(settings["min_reads"])},
+                                            "VD": {"$gte": float(settings["min_alt_reads"])},
                                         }
                                     }
                                 },
@@ -173,7 +184,9 @@ def build_query(which, settings):
                                             "GT": {
                                                 "$elemMatch": {
                                                     "type": "control",
-                                                    "AF": {"$lte": float(settings["max_freq"])},
+                                                    "AF": {
+                                                        "$lte": float(settings["max_control_freq"])
+                                                    },
                                                     "DP": {"$gte": float(settings["min_depth"])},
                                                 }
                                             }
@@ -188,28 +201,28 @@ def build_query(which, settings):
                                             "gnomad_frequency": {
                                                 "$exists": "true",
                                                 "$type": "number",
-                                                "$gt": float(settings["max_popfreq"]),
+                                                "$gte": float(settings["max_popfreq"]),
                                             }
                                         },
                                         {
                                             "gnomad_max": {
                                                 "$exists": "true",
                                                 "$type": "number",
-                                                "$gt": float(settings["max_popfreq"]),
+                                                "$gte": float(settings["max_popfreq"]),
                                             }
                                         },
                                         {
                                             "exac_frequency": {
                                                 "$exists": "true",
                                                 "$type": "number",
-                                                "$gt": float(settings["max_popfreq"]),
+                                                "$gte": float(settings["max_popfreq"]),
                                             }
                                         },
                                         {
                                             "thousandG_frequency": {
                                                 "$exists": "true",
                                                 "$type": "number",
-                                                "$gt": float(settings["max_popfreq"]),
+                                                "$gte": float(settings["max_popfreq"]),
                                             }
                                         },
                                     ],

@@ -25,7 +25,7 @@
 
   <!-- Collapsible Content (Open State) -->
   <div id="selected-genes-card-content" class="my-2 p-2 hidden rounded-2xl">
-    {% if display_genelists %}
+    {% if checked_genelist_dict %}
       <div class="flex flex-col gap-2">
         {% for glist, glist_genes in checked_genelist_dict.items() %}
           <div class="rounded-md shadow-md p-2 bg-transparent">

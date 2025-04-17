@@ -6,17 +6,35 @@ from wtforms.validators import InputRequired, NumberRange, Optional
 class FilterForm(FlaskForm):
     """Filter form"""
 
-    min_reads = IntegerField("minreads", validators=[InputRequired(), NumberRange(min=0)])
-    min_depth = IntegerField("mindepth", validators=[InputRequired(), NumberRange(min=0)])
-    min_freq = FloatField("Min freq", validators=[InputRequired(), NumberRange(min=0, max=1)])
-    max_freq = FloatField("Max freq", validators=[InputRequired(), NumberRange(min=0, max=1)])
-    max_popfreq = FloatField(
-        "Population freq", validators=[InputRequired(), NumberRange(min=0, max=1)]
-    )
-    min_cnv_size = IntegerField("Min CNV size", validators=[InputRequired(), NumberRange(min=1)])
-    max_cnv_size = IntegerField("Max CNV size", validators=[InputRequired(), NumberRange(min=2)])
 
-    # SNVs
+class FilterForm(FlaskForm):
+    """Filter form"""
+
+    # Core numeric filters
+    min_alt_reads = IntegerField("Min Alt Reads", validators=[InputRequired(), NumberRange(min=0)])
+    min_depth = IntegerField("Min Depth", validators=[InputRequired(), NumberRange(min=0)])
+    min_freq = FloatField("Min Freq", validators=[InputRequired(), NumberRange(min=0, max=1)])
+    max_freq = FloatField("Max Freq", validators=[InputRequired(), NumberRange(min=0, max=1)])
+    max_control_freq = FloatField(
+        "Max Control Freq", validators=[InputRequired(), NumberRange(min=0, max=1)]
+    )
+    max_popfreq = FloatField(
+        "Population Freq", validators=[InputRequired(), NumberRange(min=0, max=1)]
+    )
+    min_cnv_size = IntegerField("Min CNV Size", validators=[InputRequired(), NumberRange(min=1)])
+    max_cnv_size = IntegerField("Max CNV Size", validators=[InputRequired(), NumberRange(min=2)])
+    cnv_loss_cutoff = FloatField("CNV Loss Cutoff", validators=[InputRequired()])
+    cnv_gain_cutoff = FloatField("CNV Gain Cutoff", validators=[InputRequired()])
+    warn_cov = IntegerField(
+        "Coverage Warning Threshold", validators=[InputRequired(), NumberRange(min=0)]
+    )
+    error_cov = IntegerField(
+        "Coverage Error Threshold", validators=[InputRequired(), NumberRange(min=0)]
+    )
+    min_spanreads = IntegerField("Spanning Reads", validators=[Optional()])
+    min_spanpairs = IntegerField("Spanning Pairs", validators=[Optional()])
+
+    # VEP consequence booleans
     splicing = BooleanField()
     stop_gained = BooleanField()
     stop_lost = BooleanField()
@@ -33,15 +51,14 @@ class FilterForm(FlaskForm):
     regulatory = BooleanField()
     feature_elon_trunc = BooleanField()
 
-    # CNVs
-    cnveffect_loss = BooleanField(validators=[Optional()])
-    cnveffect_gain = BooleanField(validators=[Optional()])
+    # CNV effects
+    cnveffect_loss = BooleanField("CNV Loss", validators=[Optional()])
+    cnveffect_gain = BooleanField("CNV Gain", validators=[Optional()])
 
-    # Fusion
-    min_spanpairs = IntegerField("Spanning pairs", validators=[Optional()])
-    min_spanreads = IntegerField("Spanning reads", validators=[Optional()])
+    # Fusion and filtering features
+    use_diagnosis_genelist = BooleanField("Use Diagnosis Genelist")
 
-    ### assays filters
+    # TODO: Assay filters (existing) These are doubtful, do we need them?
     solid = BooleanField()
     myeloid = BooleanField()
     tumwgs = BooleanField()
@@ -49,7 +66,7 @@ class FilterForm(FlaskForm):
     parp = BooleanField()
     historic = BooleanField()
 
-    # reset button
+    # Reset button
     reset = BooleanField()
 
 
