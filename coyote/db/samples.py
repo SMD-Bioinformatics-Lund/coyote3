@@ -134,8 +134,9 @@ class SampleHandler(BaseHandler):
                     fusioneffects.append(field.replace("fusioneffect_", ""))
                 elif field.startswith("cnveffect_"):
                     cnveffects.append(field.replace("cnveffect_", ""))
-                else:
-                    vep_consequences.append(field)
+                elif field.startswith("vep_"):
+                    vep_consequences.append(field.replace("vep_", ""))
+
                 keys_to_remove.append(field)
 
         # Clean up processed boolean keys
@@ -147,14 +148,13 @@ class SampleHandler(BaseHandler):
 
         # Assemble final filters dict
         filters = {
+            **form_data,
             "vep_consequences": vep_consequences,
             "genelists": genelists,
             "fusionlists": fusionlists,
             "fusioneffects": fusioneffects,
             "fusion_callers": fusioncallers,
             "cnveffects": cnveffects,
-            "use_diagnosis_genelist": bool(form.use_diagnosis_genelist.data),
-            **form_data,
         }
 
         # Now update the sample doc

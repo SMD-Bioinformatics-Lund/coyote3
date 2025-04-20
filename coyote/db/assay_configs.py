@@ -71,3 +71,9 @@ class AssayConfigsHandler(BaseHandler):
         return self.get_collection().update_one(
             {"_id": assay_id}, {"$set": {"is_active": active_status}}
         )
+
+    def get_all_assay_groups(self) -> dict:
+        """
+        Retrieves a list of all assay groups from the collection.
+        """
+        return self.get_collection().distinct("assay_group")

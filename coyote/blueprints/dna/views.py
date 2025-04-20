@@ -21,7 +21,7 @@ from coyote.extensions import store, util
 from coyote.blueprints.dna import dna_bp, varqueries_notbad, filters
 from coyote.blueprints.home import home_bp
 from coyote.blueprints.dna.varqueries import build_query
-from coyote.blueprints.dna.forms import GeneForm, FilterForm
+from coyote.blueprints.dna.forms import DNAFilterForm, create_assay_group_form
 from coyote.errors.exceptions import AppError
 from typing import Literal, Any
 from datetime import datetime
@@ -68,8 +68,11 @@ def list_variants(sample_id):
         flash(f"No config found for the the assay {sample_assay}", "red")
         return redirect(url_for("home_bp.home_screen"))
 
-    # Get assay group and subpanel for the sample
+    # Get assay group and subpanel for the sample, sections to display
     assay_group: str = assay_config.get("assay_group", "unknown")
+    dna_sections = list(assay_config.get("DNA", {}).keys())
+    app.logger.debug(f"Assay group: {assay_group} - DNA config: {pformat(dna_sections)}")
+    display_sections_data = {}
     subpanel: str | None = sample.get("subpanel")
     app.logger.debug(f"Assay group: {assay_group} - Subpanel: {subpanel}")
 
@@ -95,9 +98,9 @@ def list_variants(sample_id):
     # Inherit FilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
     if assay_group_genelists:
         for gene_list in assay_group_genelists:
-            setattr(GeneForm, f"genelist_{gene_list}", BooleanField())
+            setattr(DNAFilterForm, f"genelist_{gene_list}", BooleanField())
 
-    form = GeneForm()
+    form = DNAFilterForm()
 
     ###########################################################################
     # Either reset sample to default filters or add the new filters from form.
@@ -135,7 +138,7 @@ def list_variants(sample_id):
     form_data = deepcopy(sample_filters)
     form_data.update(
         {
-            **{k: True for k in sample_filters.get("vep_consequences", [])},
+            **{f"vep_{k}": True for k in sample_filters.get("vep_consequences", [])},
             **{f"cnveffect_{k}": True for k in sample_filters.get("cnveffects", [])},
             **{f"genelist_{k}": True for k in genelist_filter},
             **{assay_group: True},
@@ -168,14 +171,9 @@ def list_variants(sample_id):
         },
     )
 
-    app.logger.debug(f"filter_genes_no: {len(filter_genes)}")
-    app.logger.debug(f"Pos Filter: {len(disp_pos)}")
-    # app.logger.debug(f"Query: {query}")
-
     variants_iter = store.variant_handler.get_case_variants(query)
 
     variants = list(variants_iter)
-    app.logger.debug(f"variants: {len(variants)}")
 
     # Add blacklist data
     variants = store.blacklist_handler.add_blacklist_data(variants, assay_group)
@@ -189,7 +187,50 @@ def list_variants(sample_id):
     # Add hotspot data
     variants = util.dna.hotspot_variant(variants)
 
+    display_sections_data["snvs"] = deepcopy(variants)
+
     ### SNV FILTRATION ENDS HERE ###
+
+    ## GET Other sections CNVs TRANSLOCS and OTHER BIOMARKERS ##
+    if "CNV" in dna_sections:
+        cnvs = list(
+            store.cnv_handler.get_sample_cnvs(
+                sample_id=str(sample["_id"]),
+                settings={
+                    "assay": assay_group,
+                    "max_cnv_size": sample_filters["max_cnv_size"],
+                    "min_cnv_size": sample_filters["min_cnv_size"],
+                    "cnv_loss_cutoff": sample_filters["cnv_loss_cutoff"],
+                    "cnv_gain_cutoff": sample_filters["cnv_gain_cutoff"],
+                    "filter_genes": filter_genes,
+                },
+            )
+        )
+        if filter_cnveffects:
+            cnvs = util.dna.cnvtype_variant(cnvs, filter_cnveffects)
+        cnvs = util.dna.cnv_organizegenes(cnvs)
+
+        display_sections_data["cnvs"] = deepcopy(cnvs)
+
+    if "BIOMARKER" in dna_sections:
+        display_sections_data["biomarkers"] = list(
+            store.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"]))
+        )
+
+    if "TRANSLOCATION" in dna_sections:
+        display_sections_data["translocs"] = list(
+            store.transloc_handler.get_sample_translocations(sample_id=str(sample["_id"]))
+        )
+
+    if "FUSION" in dna_sections:
+        display_sections_data["fusions"] = []
+
+    #################################################
+
+    # this is to allow old samples to view plots, cnv + cnvprofile clash. Old assays used cnv as the entry for the plot, newer assays use cnv for path to cnv-file that was loaded.
+    if "cnv" in sample:
+        if sample["cnv"].lower().endswith((".png", ".jpg", ".jpeg")):
+            sample["cnvprofile"] = sample["cnv"]
 
     # LOWCOV data, very computationally intense for samples with many regions
     low_cov = store.coverage_handler.get_sample_coverage(sample["name"])
@@ -202,51 +243,18 @@ def list_variants(sample_id):
     if assay_group != "solid":
         low_cov = util.dna.filter_low_coverage_with_cosmic(low_cov, cosmic_ids)
 
+    display_sections_data["low_cov"] = deepcopy(low_cov)
+
     # Get bams
     bam_id = store.bam_service_handler.get_bams(sample_ids)
 
-    ## GET CNVs TRANSLOCS and OTHER BIOMARKERS ##
-    cnvwgs_iter = False
-    cnvwgs_iter_n = False
-    biomarkers_iter = False
-    transloc_iter = False
-    if "DNA" in assay_config:
-        if assay_config["DNA"].get("CNV"):
-            cnv_settings = {
-                "assay": assay_group,
-                "max_cnv_size": sample_filters["max_cnv_size"],
-                "min_cnv_size": sample_filters["min_cnv_size"],
-                "cnv_loss_cutoff": sample_filters["cnv_loss_cutoff"],
-                "cnv_gain_cutoff": sample_filters["cnv_gain_cutoff"],
-                "filter_genes": filter_genes,
-            }
-            cnvwgs_iter = list(
-                store.cnv_handler.get_sample_cnvs(
-                    sample_id=str(sample["_id"]), settings=cnv_settings
-                )
-            )
-            if filter_cnveffects:
-                cnvwgs_iter = util.dna.cnvtype_variant(cnvwgs_iter, filter_cnveffects)
+    # Get Vep Meta data
+    vep_variant_class_meta = store.vep_meta_handler.get_variant_class_translations(
+        sample.get("vep", 103)
+    )
+    vep_conseq_meta = store.vep_meta_handler.get_conseq_translations(sample.get("vep", 103))
 
-            cnvwgs_iter = util.dna.cnv_organizegenes(cnvwgs_iter)
-
-            # Get normal cnvs
-            cnvwgs_iter_n = list(
-                store.cnv_handler.get_sample_cnvs(sample_id=str(sample["_id"]), normal=True)
-            )
-
-        if assay_config["DNA"].get("BIOMARKERS"):
-            biomarkers_iter = store.biomarker_handler.get_sample_biomarkers(
-                sample_id=str(sample["_id"])
-            )
-
-        if assay_config["DNA"].get("FUSIONS"):
-            transloc_iter = store.transloc_handler.get_sample_translocations(
-                sample_id=str(sample["_id"])
-            )
-
-    #################################################
-
+    ######## TODO: AI TEXT ##############
     ## "AI"-text depending on what analysis has been done. Add translocs and cnvs if marked as interesting (HRD and MSI?)
     ## SNVs, non-optional. Though only has rules for PARP + myeloid and solid
     ai_text = ""
@@ -264,7 +272,7 @@ def list_variants(sample_id):
             assay_group, transloc_iter_ai, sample["groups"][0], "transloc"
         )
         ai_text_cnv = util.dna.generate_ai_text_nonsnv(
-            assay_group, cnvwgs_iter, sample["groups"][0], "cnv"
+            assay_group, display_sections_data.get("cnvs"), sample["groups"][0], "cnv"
         )
         ai_text_bio = util.dna.generate_ai_text_nonsnv(
             assay_group, biomarkers_iter_ai, sample["groups"][0], "bio"
@@ -273,34 +281,21 @@ def list_variants(sample_id):
     else:
         ai_text = ai_text + conclusion
 
-    # this is to allow old samples to view plots, cnv + cnvprofile clash. Old assays used cnv as the entry for the plot, newer assays use cnv for path to cnv-file that was loaded.
-    if "cnv" in sample:
-        if sample["cnv"].lower().endswith((".png", ".jpg", ".jpeg")):
-            sample["cnvprofile"] = sample["cnv"]
-
     return render_template(
         "list_variants_vep.html",
-        assay_panels=assay_group_genelists_names,
-        variants=variants,
-        disp_pos=disp_pos,
         sample=sample,
         sample_ids=sample_ids,
         assay=assay_group,
-        hidden_comments=has_hidden_comments,
-        form=form,
+        dna_sections=dna_sections,
+        display_sections_data=display_sections_data,
+        assay_panels=assay_group_genelists_names,
         checked_genelist_dict=checked_genelist_dict,
-        low_cov=low_cov,
-        ai_text=ai_text,
-        settings=sample_filters,
-        cnvwgs=cnvwgs_iter,
-        cnvwgs_n=cnvwgs_iter_n,
-        transloc=transloc_iter,
-        biomarker=biomarkers_iter,
-        vep_var_class_translations=app.config.get("REPORT_CONFIG").get(
-            "VEP_VARIANT_CLASS_TRANSLATION"
-        ),
-        vep_conseq_translations=app.config.get("REPORT_CONFIG").get("VEP_CONSEQ_TRANSLATIONS"),
+        hidden_comments=has_hidden_comments,
+        vep_var_class_translations=vep_variant_class_meta,
+        vep_conseq_translations=vep_conseq_meta,
         bam_id=bam_id,
+        form=form,
+        ai_text=ai_text,
     )
 
 
@@ -594,31 +589,23 @@ def show_variant(sample_id, var_id):
 @login_required
 @require("view_gene_annotations", min_role="user", min_level=9)
 def gene_view_simple(gene_name):
-    annotations = store.annotation_handler.get_gene_annotations(gene_name)
+    AssayGroupForm = create_assay_group_form()
+    form = AssayGroupForm()
 
+    annotations = store.annotation_handler.get_gene_annotations(gene_name)
     annotations_dict = util.dna.process_gene_annotations(annotations)
-    form = FilterForm()
+
     checked_assays = []
-    if request.method == "POST":
-        if form.solid.data:
-            checked_assays.append("solid")
-        if form.myeloid.data:
-            checked_assays.append("myeloid")
-        if form.tumwgs.data:
-            checked_assays.append("tumwgs")
-        if form.lymphoid.data:
-            checked_assays.append("lymphoid")
-        if form.parp.data:
-            checked_assays.append("parp")
-        if form.historic.data:
-            checked_assays.append("historic")
+    if form.validate_on_submit():
+        checked_assays = [k for k, v in form.data.items() if v and k not in ["csrf_token"]]
+
     return render_template(
         "gene_view2.html",
-        annotations=annotations,
-        annodict=annotations_dict,
-        gene=gene_name,
         form=form,
         checked_assays=checked_assays,
+        gene=gene_name,
+        annotations=annotations,
+        annodict=annotations_dict,
     )
 
 

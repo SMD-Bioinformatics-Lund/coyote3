@@ -29,7 +29,8 @@
         </div>
       {% endif %}
 
-      {% if biomarker and biomarker.count() > 0 %}
+      {% if "BIOMARKER" in dna_sections %}
+        {% set biomarker = display_sections_data.get("biomarkers", []) %}
         {% for bio in biomarker %}
           {% if "MSIS" in bio %}
             <span class="text-base font-light pb-1">|</span>

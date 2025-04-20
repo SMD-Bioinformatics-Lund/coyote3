@@ -8,24 +8,15 @@
     <form action="" method="POST" name="assays" class="mb-4">
       <div class="bg-gray-50 border border-gray-300 rounded-lg p-2 mt-4 ml-2 shadow-sm w-full max-w-5xl">
         <div id="csq_checkboxes" class="flex flex-wrap gap-4 items-center ml-4">
-          <label class="flex items-center gap-2 text-sm text-gray-700">
-            {{ form.solid(checked=False) }} Solid
-          </label>
-          <label class="flex items-center gap-2 text-sm text-gray-700">
-            {{ form.myeloid(checked=False) }} Myeloid
-          </label>
-          <label class="flex items-center gap-2 text-sm text-gray-700">
-            {{ form.tumwgs(checked=False) }} Tumor-WGS
-          </label>
-          <label class="flex items-center gap-2 text-sm text-gray-700">
-            {{ form.lymphoid(checked=False) }} Lymphoid
-          </label>
-          <label class="flex items-center gap-2 text-sm text-gray-700">
-            {{ form.parp(checked=False) }} PARP
-          </label>
-          <label class="flex items-center gap-2 text-sm text-gray-700">
-            {{ form.historic(checked=False) }} Historic
-          </label>
+          {{ form.hidden_tag() }}
+
+          <div class="flex gap-4">
+            {% for field in form if field.name != "csrf_token" %}
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                {{ field }} {{ field.label.text }}
+              </label>
+            {% endfor %}
+          </div>
           <button type="submit" name="apply" value="apply" class="ml-auto bg-blue-400 hover:bg-blue-500 text-black hover:text-white text-sm font-medium py-1 px-4 rounded transition"> Apply </button>
           <a href="{{ url_for('dna_bp.gene_view', gene_name=gene ) }}" class="inline-block bg-blue-400 hover:bg-blue-500 text-black hover:text-white text-sm font-medium py-1 px-4 rounded transition"> Load full page </a>
         </div>

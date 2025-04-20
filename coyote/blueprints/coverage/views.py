@@ -24,7 +24,6 @@ from typing import Literal, Any
 from datetime import datetime
 from collections import defaultdict
 from flask_weasyprint import HTML, render_pdf
-from coyote.blueprints.dna.forms import GeneForm
 from coyote.util.decorators.access import require_sample_group_access, require_group_access
 from coyote.services.auth.decorators import require
 import os

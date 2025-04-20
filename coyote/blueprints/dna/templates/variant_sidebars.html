@@ -60,8 +60,6 @@
 
       {{ form.warn_cov(type="hidden", default=sample.filters.warn_cov ) }}
       {{ form.error_cov(type="hidden", default=sample.filters.error_cov) }}
-      {{ form.cnv_loss_cutoff(type="hidden", default=sample.filters.cnv_loss_cutoff) }}
-      {{ form.cnv_gain_cutoff(type="hidden", default=sample.filters.cnv_gain_cutoff) }}
       
 
       <div class="flex justify-between items-center text-xs">
@@ -124,21 +122,12 @@
       
         <!-- Conseq Dropdown Options -->
         <div id="csq_checkboxes" class="hidden border border-gray-400 mt-1 rounded shadow-md bg-gray-50 p-1 space-y-1">
-          <label for="splicing" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.splicing }} <span>Splicing</span></label>
-          <label for="stop_gained" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.stop_gained }} <span>Stop gain</span></label>
-          <label for="frameshift" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.frameshift }} <span>Frameshift indels</span></label>
-          <label for="stop_lost" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.stop_lost }} <span>Stop loss</span></label>
-          <label for="start_lost" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.start_lost }} <span>Start loss</span></label>
-          <label for="inframe_indel" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.inframe_indel }} <span>In-frame indels</span></label>
-          <label for="missense" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.missense }} <span>Missense</span></label>
-          <label for="other_coding" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.other_coding }} <span>Other coding</span></label>
-          <label for="synonymous" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.synonymous }} <span>Synonymous</span></label>
-          <label for="UTR" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.UTR }} <span>UTR</span></label>
-          <label for="non_coding" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.non_coding }} <span>Non-coding</span></label>
-          <label for="intronic" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.intronic }} <span>Intronic</span></label>
-          <label for="intergenic" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.intergenic }} <span>Intergenic</span></label>
-          <label for="regulatory" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.regulatory }} <span>Regulatory</span></label>
-          <label for="feature_elon_trunc" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.feature_elon_trunc }} <span>Feature elon/trunc</span></label>
+          {% for form_name, form_field in form._fields.items() if form_name.startswith('vep_') %}
+          <label for="{{ form_name }}" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">
+            {{ form_field }} <span>{{ form_field.label.text }}</span>
+          </label>
+        {% endfor %}
+        
         </div>
       </div>
       

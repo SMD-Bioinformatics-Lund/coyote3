@@ -1,13 +1,11 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, BooleanField, IntegerField, FloatField
 from wtforms.validators import InputRequired, NumberRange, Optional
+from coyote.extensions import store
+from wtforms.meta import DefaultMeta
 
 
-class FilterForm(FlaskForm):
-    """Filter form"""
-
-
-class FilterForm(FlaskForm):
+class DNAFilterForm(FlaskForm):
     """Filter form"""
 
     # Core numeric filters
@@ -23,85 +21,45 @@ class FilterForm(FlaskForm):
     )
     min_cnv_size = IntegerField("Min CNV Size", validators=[InputRequired(), NumberRange(min=1)])
     max_cnv_size = IntegerField("Max CNV Size", validators=[InputRequired(), NumberRange(min=2)])
-    cnv_loss_cutoff = FloatField("CNV Loss Cutoff", validators=[InputRequired()])
-    cnv_gain_cutoff = FloatField("CNV Gain Cutoff", validators=[InputRequired()])
+    cnv_loss_cutoff = FloatField("CNV Loss Cutoff", validators=[InputRequired(), NumberRange()])
+    cnv_gain_cutoff = FloatField("CNV Gain Cutoff", validators=[InputRequired(), NumberRange()])
     warn_cov = IntegerField(
         "Coverage Warning Threshold", validators=[InputRequired(), NumberRange(min=0)]
     )
     error_cov = IntegerField(
         "Coverage Error Threshold", validators=[InputRequired(), NumberRange(min=0)]
     )
-    min_spanreads = IntegerField("Spanning Reads", validators=[Optional()])
-    min_spanpairs = IntegerField("Spanning Pairs", validators=[Optional()])
 
-    # VEP consequence booleans
-    splicing = BooleanField()
-    stop_gained = BooleanField()
-    stop_lost = BooleanField()
-    start_lost = BooleanField()
-    frameshift = BooleanField()
-    inframe_indel = BooleanField()
-    missense = BooleanField()
-    other_coding = BooleanField()
-    synonymous = BooleanField()
-    UTR = BooleanField()
-    non_coding = BooleanField()
-    intronic = BooleanField()
-    intergenic = BooleanField()
-    regulatory = BooleanField()
-    feature_elon_trunc = BooleanField()
+    # VEP consequence boolean fields (prefixed with `vep_`)
+    vep_splicing = BooleanField("Splicing")
+    vep_stop_gained = BooleanField("Stop Gained")
+    vep_stop_lost = BooleanField("Stop Lost")
+    vep_start_lost = BooleanField("Start Lost")
+    vep_frameshift = BooleanField("Frameshift")
+    vep_inframe_indel = BooleanField("Inframe Indel")
+    vep_missense = BooleanField("Missense")
+    vep_other_coding = BooleanField("Other Coding")
+    vep_synonymous = BooleanField("Synonymous")
+    vep_UTR = BooleanField("UTR")
+    vep_non_coding = BooleanField("Non-Coding")
+    vep_intronic = BooleanField("Intronic")
+    vep_intergenic = BooleanField("Intergenic")
+    vep_regulatory = BooleanField("Regulatory")
+    vep_feature_elon_trunc = BooleanField("Feature Elongation/Truncation")
 
     # CNV effects
-    cnveffect_loss = BooleanField("CNV Loss", validators=[Optional()])
-    cnveffect_gain = BooleanField("CNV Gain", validators=[Optional()])
+    cnveffect_loss = BooleanField("CNV Loss")
+    cnveffect_gain = BooleanField("CNV Gain")
 
-    # Fusion and filtering features
+    # default genelist for the diagnosis/subpanel
     use_diagnosis_genelist = BooleanField("Use Diagnosis Genelist")
 
-    # TODO: Assay filters (existing) These are doubtful, do we need them?
-    solid = BooleanField()
-    myeloid = BooleanField()
-    tumwgs = BooleanField()
-    lymphoid = BooleanField()
-    parp = BooleanField()
-    historic = BooleanField()
-
     # Reset button
-    reset = BooleanField()
-
-
-class GeneForm(FilterForm):
-    pass
+    reset = BooleanField("reset")
 
 
 class FusionFilter(FlaskForm):
-
-    min_reads = IntegerField("minreads", validators=[Optional()])
-    min_depth = IntegerField("mindepth", validators=[Optional()])
-    min_freq = FloatField("Min freq", validators=[Optional()])
-    max_freq = FloatField("Max freq", validators=[Optional()])
-    max_popfreq = FloatField("Population freq", validators=[Optional()])
-    min_cnv_size = IntegerField("Min CNV size", validators=[Optional()])
-    max_cnv_size = IntegerField("Max CNV size", validators=[Optional()])
-
-    splicing = BooleanField()
-    stop_gained = BooleanField()
-    frameshift = BooleanField()
-    stop_lost = BooleanField()
-    start_lost = BooleanField()
-    inframe_indel = BooleanField()
-    missense = BooleanField()
-    other_coding = BooleanField()
-    synonymous = BooleanField()
-    UTR = BooleanField()
-    non_coding = BooleanField()
-    intronic = BooleanField()
-    intergenic = BooleanField()
-    regulatory = BooleanField()
-    feature_elon_trunc = BooleanField()
-
-    cnveffect_loss = BooleanField(validators=[Optional()])
-    cnveffect_gain = BooleanField(validators=[Optional()])
+    """Fusion filter form"""
 
     fusionlist_FCknown = BooleanField(validators=[Optional()])
     fusionlist_mitelman = BooleanField(validators=[Optional()])
@@ -116,4 +74,36 @@ class FusionFilter(FlaskForm):
     fusioneffect_inframe = BooleanField(validators=[Optional()])
     fusioneffect_outframe = BooleanField(validators=[Optional()])
 
-    reset = BooleanField()
+    # VEP consequence boolean fields (prefixed with `vep_`)
+    vep_splicing = BooleanField("Splicing")
+    vep_stop_gained = BooleanField("Stop Gained")
+    vep_stop_lost = BooleanField("Stop Lost")
+    vep_start_lost = BooleanField("Start Lost")
+    vep_frameshift = BooleanField("Frameshift")
+    vep_inframe_indel = BooleanField("Inframe Indel")
+    vep_missense = BooleanField("Missense")
+    vep_other_coding = BooleanField("Other Coding")
+    vep_synonymous = BooleanField("Synonymous")
+    vep_UTR = BooleanField("UTR")
+    vep_non_coding = BooleanField("Non-Coding")
+    vep_intronic = BooleanField("Intronic")
+    vep_intergenic = BooleanField("Intergenic")
+    vep_regulatory = BooleanField("Regulatory")
+    vep_feature_elon_trunc = BooleanField("Feature Elongation/Truncation")
+
+    reset = BooleanField("reset")
+
+
+def create_assay_group_form():
+    """Create a dynamic form class with assay group checkboxes"""
+    assay_groups = store.assay_config_handler.get_all_assay_groups()
+
+    fields = {
+        group: BooleanField(group.replace("_", " ").capitalize(), validators=[Optional()])
+        for group in assay_groups
+    }
+
+    fields["historic"] = BooleanField("Historic", validators=[Optional()])
+
+    # Dynamically create a FlaskForm class
+    return type("DynamicAssayGroupForm", (FlaskForm,), fields)
