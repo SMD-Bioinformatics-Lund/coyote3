@@ -164,6 +164,8 @@
                         <th class="py-3 font-semibold w-4" id="variant-table-header-interesting-irrelevant" data-nosort="true"></th>
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-gene">Gene</th>
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-hgvs">HGVS</th>
+                        <th class="px-2 py-3 font-semibold" id="variant-table-header-hgvs">Exon</th>
+                        <th class="px-2 py-3 font-semibold" id="variant-table-header-hgvs">Intron</th>
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-type">Type</th>
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-conseq">Consequence</th>
                         <th class="px-2 py-3 font-semibold max-w-15c" id="variant-table-header-popFreq">PopFreq %</th>
@@ -302,6 +304,16 @@
                           {% else %}
                             -
                           {% endif %}
+                        </td>
+
+                        <!-- Exon -->
+                        <td id="snv-table-row-exon" class="px-1">
+                          {{ csq.EXON | default("-", true) | safe }}
+                        </td>
+
+                        <!-- Exon -->
+                        <td id="snv-table-row-intron" class="px-1">
+                          {{ csq.INTRON | default("-", true) | safe }}
                         </td>
 
                         <!-- Variant Type -->
