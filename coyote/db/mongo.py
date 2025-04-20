@@ -26,6 +26,7 @@ from coyote.db.assay_configs import AssayConfigsHandler
 from coyote.db.schemas import SchemaHandler
 from coyote.db.roles import RolesHandler
 from coyote.db.permissions import PermissionsHandler
+from coyote.db.vep_meta import VEPMetaHandler
 
 
 class MongoAdapter:
@@ -107,3 +108,4 @@ class MongoAdapter:
         self.schema_handler = SchemaHandler(self)
         self.roles_handler = RolesHandler(self)
         self.permissions_handler = PermissionsHandler(self)
+        self.vep_meta_handler = VEPMetaHandler(self)
