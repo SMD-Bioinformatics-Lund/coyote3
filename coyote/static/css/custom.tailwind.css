@@ -1829,3 +1829,9 @@ th[data-order="desc"] .sort-arrow {
 .min-w-1800 { min-width: 1800px; }
 .min-w-1900 { min-width: 1900px; }
 .min-w-2000 { min-width: 2000px; }
+.line-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;  
+  overflow: hidden;
+}
