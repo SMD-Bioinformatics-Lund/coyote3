@@ -43,28 +43,55 @@ class VariantsHandler(BaseHandler):
         """
         return self.get_collection().find_one({"_id": ObjectId(id)})
 
-    def get_variant_in_other_samples(self, variant, assay=None) -> dict:
+    def get_variant_in_other_samples(self, variant, assay=None):
         """
-        Return same variant from other samples of a specific assay
+        Return same variant from other samples using a fast 2-query method.
+        Includes sample_name, groups, and GT for each variant.
         """
-        query = {
-            "simple_id": variant["simple_id"],
-            "SAMPLE_ID": {"$ne": variant["SAMPLE_ID"]},
+        current_sample_id = variant["SAMPLE_ID"]
+        simple_id = variant["simple_id"]
+
+        # Step 1: Fetch up to 20 variants with the same simple_id but from other samples
+        variants = list(
+            self.get_collection()
+            .find(
+                {"simple_id": simple_id, "SAMPLE_ID": {"$ne": current_sample_id}},
+                {
+                    "_id": 1,
+                    "SAMPLE_ID": 1,
+                    "simple_id": 1,
+                    "GT": 1,
+                    "fp": 1,
+                    "interesting": 1,
+                    "irrelevant": 1,
+                },
+            )
+            .limit(20)
+        )
+
+        # Step 2: Collect only the sample ObjectIds we need
+        sample_ids = {ObjectId(v["SAMPLE_ID"]) for v in variants}
+
+        # Step 3: Map sample_id -> {name, groups}
+        sample_map = {
+            str(s["_id"]): {"sample_name": s.get("name", "unknown"), "groups": s.get("groups", [])}
+            for s in self.adapter.samples_collection.find(
+                {"_id": {"$in": list(sample_ids)}}, {"_id": 1, "name": 1, "groups": 1}
+            )
         }
 
-        other_variants = self.get_collection().find(query).limit(20)
+        # Step 4: Attach GT to each sample_info
+        results = []
+        for v in variants:
+            sid = v["SAMPLE_ID"]
+            info = sample_map.get(sid, {"sample_name": "unknown", "groups": []})
+            info["GT"] = v.get("GT")
+            info["fp"] = v.get("fp", False)  # Add fp status if available
+            info["interesting"] = v.get("interesting", False)  # Add interesting status if available
+            info["irrelevant"] = v.get("irrelevant", False)  # Add irrelevant status if available
+            results.append(info)
 
-        sample_names = self.adapter.samples_collection.find({}, {"_id": 1, "name": 1, "groups": 1})
-        name = {}
-        for samp in sample_names:
-            name[str(samp["_id"])] = samp["name"]
-
-        other = []
-        for var in other_variants:
-            var["sample_name"] = name.get(var["SAMPLE_ID"], "unknown")
-            other.append(var.copy())
-
-        return other
+        return results
 
     def get_variants_by_gene(self, gene: str) -> dict:
         """

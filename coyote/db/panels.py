@@ -229,9 +229,9 @@ class PanelsHandler(BaseHandler):
         ]
         return list(self.get_collection().aggregate(query))[0].get("latestVersion", 0)
 
-    def get_assay_default_gene_list(self, assay: str):
+    def get_assay_gene_panel_genes(self, assay: str):
         """
-        Get default gene list for assay
+        Get all the genes for the assay panel itself
         """
         assay_gene_lists = self.get_collection().find({"assays": {"$in": [assay]}, "default": True})
         return assay_gene_lists

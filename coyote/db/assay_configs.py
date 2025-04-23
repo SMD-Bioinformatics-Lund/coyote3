@@ -77,3 +77,17 @@ class AssayConfigsHandler(BaseHandler):
         Retrieves a list of all assay groups from the collection.
         """
         return self.get_collection().distinct("assay_group")
+
+    def get_assay_group_mappings(self) -> dict:
+        """
+        Retrieves a list of all assay group mappings from the collection.
+        """
+        result = self.get_collection().find({}, {"_id": 1, "assay_group": 1})
+
+        mappings = {}
+        if result:
+            for assay in result:
+                if assay["_id"] not in mappings:
+                    mappings[assay["_id"]] = assay["assay_group"]
+
+        return mappings

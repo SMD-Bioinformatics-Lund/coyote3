@@ -8,19 +8,14 @@
     <h2 class="report-heading">*** PREVIEW OF REPORT ***</h2>
 
     {% if has_access('save_dna_report', min_role='admin') %}
-      <a
-        href="{{ url_for('dna_bp.save_dna_report', sample_id=sample.name) }}"
-        class="report-button"
-      >
-        Finalize Report
-      </a>
+      <a href="{{ url_for('dna_bp.save_dna_report', sample_id=sample.name) }}" class="report-button">Finalize Report</a>
     {% endif %}
   </div>
 {% endif %}
 
 
 <!--  Report Header -->
-<span class="report_header">{{ report_header }} - {{ sample.name }}</span>
+<span class="report_header">{{ assay_config.REPORT.header }} - {{ sample.name }}</span>
 
 <!--  Report Patient/Analysis Information -->
 <div class="report_div">
@@ -51,17 +46,17 @@
       <td class="top_report_key">Kontrollprovtyp</td>
       <td class="top_report_val">&lt;NORMAL_SAMPLE_TYPE&gt;</td>
     </tr>
-    {% if assay != "swea" and assay != "gmsonco" %}
+    {% if assay_group != "swea" and assay_group != "gmsonco" %}
     <tr>
       <td class="top_report_key">Frågeställning</td>
       <td class="top_report_val">
-        {% if assay == "myeloid" %}
+        {% if assay_group == "myeloid" %}
           {% if sample.num_samples == 2 %}
             Hematologisk neoplasi
           {% else %}
             &lt;DIAGNOSIS&gt;
           {% endif %}
-        {% elif assay == "solid" %}
+        {% elif assay_group == "solid" %}
           {% if 'subpanel' in sample %}
             {% if sample.subpanel == "BP" %}
               Bröst-Pilot
@@ -79,16 +74,12 @@
     </tr>
     <tr>
       <td class="top_report_key">Analysmetod</td>
-      <td class="top_report_val">{{analysis_method}}</td>
+      <td class="top_report_val">{{ assay_config.REPORT.analysis_method }}</td>
     </tr>
     <tr>
       <td class="top_report_key">Analys genomförd av</td>
       <td class="top_report_val">
-        {% if assay=="myeloid" %}
           Centrum för molekylär diagnostik (CMD) och Klinisk genetik och patologi
-        {% elif assay=="swea" or assay=="gmsonco" %}
-          Centrum för molekylär diagnostik (CMD)
-        {% endif %}
       </td>
     </tr>
     <tr>
@@ -110,48 +101,45 @@
 
 <!--  Variant Summary -->
 <span class="report_header">Analysresultat</span>
-<span class="report_header">Kliniskt relevanta SNVs och små INDELs</span>
-<table class="variant_table">
-  <tr>
-    <th>Gen</th>
-    <th>Variant</th>
-    <th>Variantfrekvens</th>
-    <th>Klassificering</th>
-    <!-- We are not using hotspot for now
-    {% if simple_variants | has_hotspot %}
-      <th>Hotspot*</th>
-    {% endif %}
-    -->
-  </tr>
-  {% for var in simple_variants %}
-      <tr>
-        <td>{{ var.symbol }}</td>
-        <td>{{ var.variant|unesc }}</td>
-        <td>{{ var.af|perc_no_dec }}</td>
-        <td>{{ var.class_short_desc }}</td>
-        <!-- We are not using hotspot for now
-        {% if simple_variants | has_hotspot %}
-          <td>{{ ','.join(var.hotspot)|safe }}</td>
-        {% endif %}
-        -->
-      </tr>
-  {% else %}
-      <tr>
-        <td>Inga detekterade varianter</td>
-      </tr>
-  {% endfor %}
-</table>
-
-<!-- We are not using hotspot for now 
-{% if assay == "solid"%}
-* MM:malignt melanom, CO: kolorektal, LU: lunga, GI: gastro-intestinal, CNS: centrala nervsystemet, D: generell solid
+{% if "SNV" in dna_sections %}
+  {% set variants = display_sections_data.snvs %}
+  <span class="report_header">Kliniskt relevanta SNVs och små INDELs</span>
+  <table class="variant_table">
+    <tr>
+      <th>Gen</th>
+      <th>Variant</th>
+      <th>Exon/Intron</th>
+      <th>Variantfrekvens</th>
+      <th>Klassificering</th>
+    </tr>
+    {% for var in variants %}
+        <tr>
+          <td>{{ var.symbol }}</td>
+          <td>{{ var.variant|unesc }}</td>
+          <td>
+            {% if var.exon %}
+              E{{ var.exon[0] }} of {{ var.exon[1] }}
+            {% elif var.intron %}
+              I{{ var.intron[0] }} of {{ var.intron[1] }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td>{{ var.af|perc_no_dec }}</td>
+          <td>{{ var.class_short_desc }}</td>
+        </tr>
+    {% else %}
+        <tr>
+          <td>Inga detekterade varianter</td>
+        </tr>
+    {% endfor %}
+  </table>
 {% endif %}
--->
 
 <!-- CNV Summary -->
-{% if cnvs %}
+{% if "CNV" in dna_sections %}
+  {% set cnvs = display_sections_data.cnvs %}
   <span class="report_header">Kliniskt relevanta kopietalsförändringar</span>
-  
   <table class="variant_table">
     <tr>
       <th>Gen(er)</th>
@@ -159,7 +147,6 @@
       <th>Typ</th>
       <th>Kopietal</th>
     </tr>
-    {% if cnvs and cnvs is iterable %}
       {% for cnv in cnvs %}
         <tr>
           <td>
@@ -187,99 +174,95 @@
           </td>
           <td>{{ 2*(2**cnv.ratio)|round(2) }}</td>
         </tr>
+      {% else %}
+        <tr>
+          <td>
+            Inga detekterade kopietalsförändringar.
+          </td>
+        </tr>
       {% endfor %}
-    {% else %}
-      <tr>
-        <td>
-          Inga detekterade kopietalsförändringar.
-        </td>
-      </tr>
-    {% endif %}
   </table>
 {% endif %}
 
 <!-- DNA Fusions Summary -->
-{% if translocs %}
+{% if "TRANSLOCATION" in dna_sections %}
+  {% set transloc = display_sections_data.translocs %}
   <span class="report_header">Kliniskt relevanta fusioner (DNA)</span>
-
   <table class="variant_table">
     <tr>
       <th>Gen 1</th>
       <th>Gen 2</th>
       <th>HGVS.p</th>
     </tr>
-    {% if translocs and translocs is iterable %}
-      {% for tl in translocs %}
-        {% set sel_ann = tl.INFO.MANE_ANN or tl.INFO.ANN[0] %}
-        {% set genes = sel_ann.Gene_Name.split('&') %}
-        <tr>
-          <td>{{ genes[0] }}</td>
-          <td>{{ genes[1] }}</td>
-          <td>{{ sel_ann.HGVSp|unesc }}</td>
-        </tr>
-      {% endfor %}
+    {% for tl in translocs %}
+      {% set sel_ann = tl.INFO.MANE_ANN or tl.INFO.ANN[0] %}
+      {% set genes = sel_ann.Gene_Name.split('&') %}
+      <tr>
+        <td>{{ genes[0] }}</td>
+        <td>{{ genes[1] }}</td>
+        <td>{{ sel_ann.HGVSp|unesc }}</td>
+      </tr>
     {% else %}
       <tr>
         <td>Inga detekterade fusioner</td>
       </tr>
-    {% endif %}
+    {% endfor %}
   </table>
 {% endif %}
 
 <!-- Biomarkers Summary -->
 {% if 1==0 %}
-  {% if biomarkers %}
-    <span class="report_header">Andra biomarkörer</span>
-    <table class="variant_table">
-      <tr>
-        <th>Markör</th>
-        <th>Värde</th>
-      </tr>
-      {% if biomarkers and biomarkers is iterable %}
-        {% for bio in biomarkers %}
-          {% if "MSIS" in bio %}
-            <tr>
-              <td>
-                MSI(Single)
-              </td>
-              <td>
-                {{bio.MSIS.perc}}%
-              </td>
-            </tr>
-          {% endif %}
-          {% if "MSIP" in bio %}
-            <tr>
-              <td>
-                MSI(Paired)
-              </td>
-              <td>
-                {{bio.MSIP.perc}}%
-              </td>
-            </tr>
-          {% endif %}
-          {% if "HRD" in bio %}
-            <tr>
-              <td>
-                HRD
-              </td>
-              <td>
-                {{bio.HRD.sum}}
-              </td>
-            </tr>
-          {% endif %}
-        {% endfor %}
-      {% else %}
+{% if "BIOMARKER" in dna_sections %}
+  {% set biomarkers = display_sections_data.biomarkers %}
+  <span class="report_header">Andra biomarkörer</span>
+  <table class="variant_table">
+    <tr>
+      <th>Markör</th>
+      <th>Värde</th>
+    </tr>
+    {% for bio in biomarkers %}
+      {% if "MSIS" in bio %}
         <tr>
           <td>
-            Inga biomarkörer uppmätta
+            MSI(Single)
           </td>
           <td>
-            -
+            {{bio.MSIS.perc}}%
           </td>
         </tr>
       {% endif %}
-    </table>
-  {% endif %}
+      {% if "MSIP" in bio %}
+        <tr>
+          <td>
+            MSI(Paired)
+          </td>
+          <td>
+            {{bio.MSIP.perc}}%
+          </td>
+        </tr>
+      {% endif %}
+      {% if "HRD" in bio %}
+        <tr>
+          <td>
+            HRD
+          </td>
+          <td>
+            {{bio.HRD.sum}}
+          </td>
+        </tr>
+      {% endif %}
+    {% else %}
+      <tr>
+        <td>
+          Inga biomarkörer uppmätta
+        </td>
+        <td>
+          -
+        </td>
+      </tr>
+    {% endfor %}
+  </table>
+{% endif %}
 {% endif %}
 
 <!--  Report Comments/Result Summary -->
@@ -303,20 +286,18 @@
 <br>
 
 <!-- CNV Profile for WGS samples -->
-{% if assay == "tumwgs" and cnv_profile_base64 is not none %}
+{% if display_sections_data.get('cnv_profile_base64') %}
   <span class="report_header">Kopietalsprofil, genomisk översikt</span>
   <div style="transform:rotate(90deg);">
-    <!-- <img style="width:900px; height:auto; padding:30px;" src="{{ url_for('dna_bp.show_any_plot', fn=sample.cnvprofile|basename , assay=assay, build=build ) }}"> -->
-    <img style="width:900px; height:auto; padding:30px;" src="data:image/png;base64,{{ cnv_profile_base64 }}">
+    <img style="width:900px; height:auto; padding:30px;" src="data:image/png;base64,{{ display_sections_data.cnv_profile_base64 }}">
   </div>
 <p style="page-break-after: always;"></p>
 {% endif %}
 
 <!-- Detailed list of each variants reported -->
-{% if simple_variants %}
+{% if variants %}
   <span class="report_header">Detekterade varianter</span>
-  {% for var in simple_variants %}
-
+  {% for var in variants %}
     <div class=report_div style="page-break-inside:avoid;">
       <table class='report_variant'>
         <tr>
@@ -338,8 +319,10 @@
           <td class="report_key">Transkript</td>
           <td class="var_report_val">
             {{ var.feature }}
-            {% if exon_info %}
-              , exon {{ exon_info[0] }}
+            {% if var.exon %}
+              , exon {{ var.exon[0] }}
+            {% elif var.intron %}
+              , intron {{ var.intron[0] }}
             {% endif %}
           </td>
         </tr>
@@ -424,9 +407,9 @@
 <!-- Analysis Description -->
 <span class="report_header">Analysbeskrivning</span>
 <div class="analysis_description">
-  {{ analysis_desc|safe }}
+  {{ assay_config.REPORT.analysis_desc|safe }}
 
-  <p>For gene lists see <a target="_blank" href={{ url_for('common_bp.get_sample_genelists', sample_id=sample.name, assay=assay, panel=panel ) }}>here</a></p>
+  <p>For gene lists see <a target="_blank" href={{ url_for('common_bp.get_sample_genelists', sample_id=sample.name, assay_group=assay_group ) }}>here</a></p>
 
   <!--
   <div>

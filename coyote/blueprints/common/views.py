@@ -90,9 +90,11 @@ def unhide_sample_comment(sample_id):
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
 
 
-@common_bp.route("/<string:sample_id>/<string:assay>/<string:panel>/genes", methods=["GET"])
+@common_bp.route("/<string:sample_id>/<string:assay_group>/genes", methods=["GET"])
 @login_required
-def get_sample_genelists(sample_id, assay, panel):
+@require_sample_group_access("sample_id")
+@require("view_report", min_role="admin")
+def get_sample_genelists(sample_id, assay_group):
     """
     Add genes to a sample
     """
@@ -100,37 +102,31 @@ def get_sample_genelists(sample_id, assay, panel):
     if not sample:
         sample = store.sample_handler.get_sample_with_id(sample_id)
 
-    sample_default_gene_list_names = list(sample.get("checked_genelists", {}).keys())
-    if sample_default_gene_list_names:
-        sample_default_gene_list_names = [
-            g_list.replace("genelist_", "") for g_list in sample_default_gene_list_names
-        ]
-    assay = util.common.get_assay_from_sample(sample)
+    sample_assay = util.common.select_one_sample_group(sample.get("groups"))
 
-    sample_default_genes_lists = store.panel_handler.get_assay_gene_list_by_name(
-        assay, sample_default_gene_list_names
+    sample_genelist_names = sample.get("filters", {}).get("genelists", [])
+    sample_genelists = store.panel_handler.get_assay_gene_list_by_name(
+        assay_group, sample_genelist_names
     )
-    group = sample.get("groups")
 
-    sample_default_genes_dict = {}
-    if sample_default_genes_lists:
-        for gene_list in sample_default_genes_lists:
-            sample_default_genes_dict[gene_list.get("displayname")] = gene_list.get("genes")
+    sample_genelist_dict = {}
+    if sample_genelists:
+        for genelist in sample_genelists:
+            sample_genelist_dict[genelist.get("displayname")] = genelist.get("genes")
 
-    assay_default_gene_lists = store.panel_handler.get_assay_default_gene_list(assay)
-    assay_default_genes = []
-    if assay_default_gene_lists:
-        for gene_list in assay_default_gene_lists:
-            print(gene_list)
-            assay_default_genes.extend(gene_list.get("genes"))
+    # Get all genes and lists for the assay
+    if not sample_genelist_dict:
+        assay_default_gene_lists = store.panel_handler.get_assay_gene_panel_genes(sample_assay)
+
+        if assay_default_gene_lists:
+            for genelist in assay_default_gene_lists:
+                sample_genelist_dict[genelist.get("displayname")] = genelist.get("genes")
 
     # TODO: TRY TO SAVE AS A EMBBED THING IN THE SAMPLE REPORT
     # list(set(assay_default_genes)), sample_default_genes_dict
     return render_template(
         "sample_genes.html",
         sample=sample,
-        assay=assay,
-        panel=panel,
-        assay_default_genelist=list(set(assay_default_genes)),
-        sample_filtered_genelists=sample_default_genes_dict,
+        assay=assay_group,
+        genelists=sample_genelist_dict,
     )

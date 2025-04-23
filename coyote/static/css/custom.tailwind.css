@@ -1728,6 +1728,30 @@
 .bg-fail { background-color: #8C1D1D; } /* Dark Maroon */
 
 
+/* Color Coding for Cancer Types (Subtle, Darker, and Color-Blind Friendly) */
+.bg-melanoma {
+  background-color: #fb6b6b; /* Darker red */
+}
+
+.bg-cns {
+  background-color: #76c7a6; /* Darker green */
+}
+
+.bg-lung {
+  background-color: #f57c94; /* Darker pink */
+}
+
+.bg-colon {
+  background-color: #bbbbbb; /* Darker gray */
+}
+
+.bg-gi {
+  background-color: #f8a488; /* Darker orange */
+}
+
+.bg-dna {
+  background-color: #f5a25d; /* Darker orange */
+}
 
 
 /* Style table headers for sorting */

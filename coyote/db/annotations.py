@@ -160,29 +160,6 @@ class AnnotationsHandler(BaseHandler):
 
         return list(self.get_collection().find(query).sort("time_created", -1).limit(1))
 
-    def add_alt_class(self, variant: dict, assay: str, subpanel: str) -> list[dict]:
-        """
-        Add alternative classifications to a list of variants based on the specified assay and subpanel.
-        Args:
-            variants (dict): A dict of a variant to be annotated.
-            assay (str): The type of assay being used (e.g., 'solid').
-            subpanel (str): The subpanel identifier for further filtering when assay is 'solid'.
-        Returns:
-            list: A list of variants with additional classifications added to them.
-
-        """
-        additional_classifications = self.get_additional_classifications(variant, assay, subpanel)
-        if additional_classifications:
-            additional_classifications[0].pop("_id", None)
-            additional_classifications[0].pop("author", None)
-            additional_classifications[0].pop("time_created", None)
-            additional_classifications[0]["class"] = int(additional_classifications[0]["class"])
-            variant["additional_classification"] = additional_classifications[0]
-        else:
-            variant["additional_classification"] = None
-
-        return variant
-
     def no_transid(self, nom):
         a = nom.split(":")
         if 1 < len(a):

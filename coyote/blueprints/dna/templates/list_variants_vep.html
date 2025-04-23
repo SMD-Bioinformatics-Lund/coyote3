@@ -243,7 +243,7 @@
                           <div class="flex items-center justify-center h-full">
                             {% if var.interesting == True %}
                               <span class="relative inline-block cursor-pointer"
-                                onmouseover="showTooltip(event, `<span class='text-green-400'>Variant is irrelevant</span>`)">
+                                onmouseover="showTooltip(event, `<span class='text-green-400'>Variant is interesting</span>`)">
                                 <img class="w-3 h-3" src="{{ url_for('static', filename='icons/heroicons_outline_24/exclamation-circle.svg') }}">
                             </span>
                             {% endif %}
@@ -506,10 +506,10 @@
                       {% set build = sample.genome_build if "genome_build" in sample else 37 %}
                       <!-- Image Container (Will be updated dynamically) -->
                       <div id="cnv-image-container" class="flex justify-center items-center">
-                        <a id="cnv-image-link" href="{{ url_for('dna_bp.show_any_plot', sample_id=sample.name, fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}" target="_blank">
+                        <a id="cnv-image-link" href="{{ url_for('dna_bp.show_any_plot', sample_id=sample.name, fn=sample.cnvprofile|basename) }}" target="_blank">
                           <img id="cnv-image-img" 
                             class="rounded-lg border border-gray-300 shadow-lg transition duration-300 ease-in-out transform "
-                            src="{{ url_for('dna_bp.show_any_plot_rotated', sample_id=sample.name, fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}"
+                            src="{{ url_for('dna_bp.show_any_plot_rotated', sample_id=sample.name, fn=sample.cnvprofile|basename) }}"
                           >
                         </a>
                       </div>

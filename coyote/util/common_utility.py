@@ -477,29 +477,16 @@ class CommonUtility:
         return display_names
 
     @staticmethod
-    def get_report_header(assay: str, sample: dict):
+    def get_report_header(assay: str, sample: dict, header: str) -> str:
         """
         Get report header based on assay and sample data
         """
-        header = (
-            app.config.get("REPORT_CONFIG", {})
-            .get("REPORT_HEADERS", {})
-            .get(assay, "Unknown assay")
-        )
         if assay == "myeloid" and sample.get("subpanel") == "Hem-Snabb":
             if sample.get("num_samples") == 2:
                 header += ": fullständig parad analys"
             else:
                 header += ": preliminär oparad analys"
         return header
-
-    @staticmethod
-    def get_analysis_method(assay: str):
-        """
-        Get analysis method based on assay
-        """
-        method = app.config.get("REPORT_CONFIG", {}).get("ANALYSIS_METHODS", {}).get(assay, "")
-        return method
 
     @staticmethod
     def check_report_exists(report_path: str) -> bool:
@@ -531,13 +518,14 @@ class CommonUtility:
         return base64_image
 
     @staticmethod
-    def get_plot(fn: str, assay: str, build: str = "38") -> bool:
+    def get_plot(fn: str, assay_config: dict = None) -> bool:
         """
         Check if plots should be shown in the report
         """
-        plot_dir = app.config.get("REPORT_CONFIG", {}).get("REPORT_PLOTS_PATH", {}).get(assay, "")
+        plot_dir = assay_config.get("REPORT", {}).get("plots_path", "")
         if plot_dir and fn:
             image_path = os.path.join(plot_dir, f"{fn}")
+            print(image_path)
             return CommonUtility.get_base64_image(image_path)
         return False
 

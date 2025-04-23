@@ -10,6 +10,7 @@ class Utility:
     def init_util(self):
         from coyote.blueprints.dna.util import DNAUtility
         from coyote.util.common_utility import CommonUtility
+        from coyote.util.report.report_util import ReportUtility
         from coyote.blueprints.home.util import HomeUtility
         from coyote.blueprints.rna.util import RNAUtility
         from coyote.blueprints.userprofile.util import ProfileUtility
@@ -27,3 +28,4 @@ class Utility:
         self.genepanels = GenePanelUtility()
         self.admin = AdminUtility()
         self.coverage = CoverageUtility()
+        self.report = ReportUtility()
