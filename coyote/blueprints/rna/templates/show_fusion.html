@@ -127,6 +127,28 @@
     <!-- Fusion Comment and picking and fusion info -->
     <section class="bg-transparent p-2 my-2 flex flex-wrap items-start relative gap-4" id="snv-information-cards">
 
+
+        <!-- Comment box -->
+        {% if current_user.get_role() != "readonly" %}
+        <div class="bg-white shadow-lg border-l-8 border-indigo-400 rounded-xl max-w-xl w-full" id="commenting-box-card">
+          <h2 class="text-sm font-semibold bg-indigo-100 text-gray-800 p-2 rounded-t-xl border-b border-gray-300">Add new comment/annotation</h2>
+          <div id="commenting_box" class="rounded-b-xl p-4">
+            <form action="{{ url_for('dna_bp.add_variant_comment', id=fusion._id) }}" method="post">
+              <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="w-full h-24 p-2 border border-gray-300 rounded-md focus:bg-yellow-100 mb-4 resize-y"></textarea>
+              <input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
+              <input type="hidden" name="gene2" value="{{ fusion.gene2 }}">
+              <input type="hidden" name="fusionpoints" value="{{sel_fus.breakpoint1}}^{{sel_fus.breakpoint2}}">
+              <div class="flex items-center justify-between">
+                <input type="submit" value="Save" class="bg-blue-500 text-white px-4 py-2 rounded-md shadow hover:bg-blue-600 transition">
+                <label class="inline-flex items-center text-sm text-gray-700 ml-4">
+                  <input type="checkbox" name="global" value="global" class="form-checkbox text-blue-500">
+                  <span class="ml-2">Use as global annotation</span>
+                </label>
+              </div>
+            </form>
+          </div>
+        </div>
+
       <!--Indidivual fusioncaller info -->
       <div class="bg-white shadow-lg border-l-8 mt-4 rounded-xl max-w-full w-full mt-4 p-4 overflow-x-auto">
         <h2 class="text-sm font-semibold bg-green-100 text-gray-800 px-4 py-2 rounded-t-xl border border-b-0 border-gray-300">
@@ -150,6 +172,8 @@
               </tr>
             </thead>
             <tbody>
+              <tbody x-data="{ expandedRow: null }">
+
               {% for call in fusion.calls %}
                 <tr class="{% if call.selected == 1 %}bg-yellow-100 hover:bg-green-100 font-semibold{% else %}hover:bg-gray-100{% endif %} border-t border-gray-300">
                   <td class="px-2 py-2">{{ fusion.gene1 }}</td>
@@ -161,27 +185,26 @@
                   <td class="px-2 py-2">{{ call.longestanchor }}</td>
                   <td class="px-2 py-2">{{ call.caller }}</td>
                   <td class="px-2 py-2 w-60 align-top">
-                    {% if call.desc %}
-                      <div x-data="{ expanded: false }" class="space-y-1">
-                        <div x-show="!expanded" x-cloak>
-                          {{ call.desc | format_fusion_desc_few(1) | safe }}
-                          <button 
-                            @click="expanded = true"
-                            class="text-blue-500 text-xs underline ml-1 focus:outline-none"
-                          >Show more</button
-                        </div>
-                        <div x-show="expanded" x-cloak>
-                          {{ call.desc | format_fusion_desc | safe }}
-                          <button 
-                            @click="expanded = false"
-                            class="text-blue-500 text-xs underline ml-1 focus:outline-none"
-                          >Show less</button>
-                        </div>
+                  {% if call.desc %}
+                    <div class="space-y-1">
+                      <div x-show="expandedRow !== {{ loop.index }}" x-cloak>
+                        {{ call.desc | format_fusion_desc_few(1) | safe }}
+                        <button 
+                          @click="expandedRow = {{ loop.index }}"
+                          class="text-blue-500 text-xs underline ml-1 focus:outline-none">Show more</button>
                       </div>
-                    {% else %}
-                      <span class="italic text-gray-400">No description</span>
-                    {% endif %}
+                      <div x-show="expandedRow === {{ loop.index }}" x-cloak>
+                        {{ call.desc | format_fusion_desc | safe }}
+                        <button 
+                          @click="expandedRow = null"
+                          class="text-blue-500 text-xs underline ml-1 focus:outline-none">Show less</button>
+                      </div>
+                    </div>
+                  {% else %}
+                    <span class="italic text-gray-400">No description</span>
+                  {% endif %}
                   </td>
+                  
                   <td class="px-2 py-2 text-center">
                     {% if call.selected == 1 %}
                       <span class="text-green-700 font-bold">Selected</span>
@@ -191,32 +214,14 @@
                     {% endif %}
                   </td>
                 </tr>
+                
               {% endfor %}
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Comment box -->
-      {% if current_user.get_role() != "readonly" %}
-      <div class="bg-white shadow-lg border-l-8 border-indigo-400 rounded-xl max-w-xl w-full" id="commenting-box-card">
-        <h2 class="text-sm font-semibold bg-indigo-100 text-gray-800 p-2 rounded-t-xl border-b border-gray-300">Add new comment/annotation</h2>
-        <div id="commenting_box" class="rounded-b-xl p-4">
-          <form action="{{ url_for('dna_bp.add_variant_comment', id=fusion._id) }}" method="post">
-            <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="w-full h-24 p-2 border border-gray-300 rounded-md focus:bg-yellow-100 mb-4 resize-y"></textarea>
-            <input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
-            <input type="hidden" name="gene2" value="{{ fusion.gene2 }}">
-            <input type="hidden" name="fusionpoints" value="{{sel_fus.breakpoint1}}^{{sel_fus.breakpoint2}}">
-            <div class="flex items-center justify-between">
-              <input type="submit" value="Save" class="bg-blue-500 text-white px-4 py-2 rounded-md shadow hover:bg-blue-600 transition">
-              <label class="inline-flex items-center text-sm text-gray-700 ml-4">
-                <input type="checkbox" name="global" value="global" class="form-checkbox text-blue-500">
-                <span class="ml-2">Use as global annotation</span>
-              </label>
-            </div>
-          </form>
-        </div>
-      </div>
+
 
 
 
