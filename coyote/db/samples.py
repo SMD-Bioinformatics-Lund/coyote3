@@ -65,32 +65,6 @@ class SampleHandler(BaseHandler):
         """
         return self.get_collection().find({"_id": {"$in": sample_oids}}, {"name": 1})
 
-    # TODO: Remove this function
-    # def reset_sample_settings(self, sample_id: str, settings):
-    #     """
-    #     reset sample to default settings
-    #     """
-    #     self.get_collection().update(
-    #         {"name": sample_id},
-    #         {
-    #             "$set": {
-    #                 "filter_max_freq": settings["default_max_freq"],
-    #                 "filter_min_freq": settings["default_min_freq"],
-    #                 "filter_min_depth": settings["default_mindepth"],
-    #                 "filter_min_reads": settings["default_min_reads"],
-    #                 "filter_min_spanreads": settings["default_spanreads"],
-    #                 "filter_min_spanpairs": settings["default_spanpairs"],
-    #                 "checked_csq": settings["default_checked_conseq"],
-    #                 "checked_genelists": settings["default_checked_genelists"],
-    #                 "filter_max_popfreq": settings["default_popfreq"],
-    #                 "checked_fusionlists": settings["default_checked_fusionlists"],
-    #                 "min_cnv_size": settings["default_min_cnv_size"],
-    #                 "max_cnv_size": settings["default_max_cnv_size"],
-    #                 "checked_cnveffects": settings["default_checked_cnveffects"],
-    #             }
-    #         },
-    #     )
-
     def reset_sample_settings(self, sample_id: str, default_filters: dict):
         """
         reset sample to default settings
@@ -286,10 +260,11 @@ class SampleHandler(BaseHandler):
         """
         return self.get_collection().delete_one({"_id": ObjectId(sample_oid)})
 
-    def save_report(self, sample_id: str, report_num: int, filepath: str) -> bool | None:
+    def save_report(self, sample_id: str, report_id: str, filepath: str) -> bool | None:
         """
         save report to sample
         """
+        report_num = int(report_id.split(".")[-1])
         return self.get_collection().update(
             {"name": sample_id},
             {
@@ -297,7 +272,7 @@ class SampleHandler(BaseHandler):
                     "reports": {
                         "_id": ObjectId(),
                         "report_num": report_num,
-                        "report_id": f"{sample_id}_{report_num}",
+                        "report_id": f"{report_id}",
                         "filepath": filepath,
                         "author": current_user.username,
                         "time_created": datetime.now(),

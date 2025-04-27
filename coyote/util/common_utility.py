@@ -489,23 +489,24 @@ class CommonUtility:
         return header
 
     @staticmethod
-    def check_report_exists(report_path: str) -> bool:
-        """
-        Check if report path exists
-        """
-        return os.path.exists(report_path)
-
-    @staticmethod
     def write_report(report_data: str, report_path: str) -> bool:
         """
-        Write report data to a file
+        Write report data to a file.
+
+        Args:
+            report_data (str): The content to write to the file.
+            report_path (str): The path where the report will be saved.
+
+        Returns:
+            bool: True if the report was written successfully, False otherwise.
         """
         try:
-            with open(report_path, "w") as report_file:
+            Path(report_path).parent.mkdir(parents=True, exist_ok=True)
+            with open(report_path, "w", encoding="utf-8") as report_file:
                 report_file.write(report_data)
             return True
-        except Exception as e:
-            app.logger.error(f"Error writing report to file: {e}")
+        except Exception as exc:
+            app.logger.error(f"Failed to write report to '{report_path}': {exc}")
             return False
 
     @staticmethod

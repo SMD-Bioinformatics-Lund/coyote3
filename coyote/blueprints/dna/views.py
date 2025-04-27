@@ -16,6 +16,7 @@ from flask import (
 from flask_login import current_user, login_required
 from pprint import pformat
 from copy import deepcopy
+from werkzeug import Response
 from wtforms import BooleanField
 from coyote.extensions import store, util
 from coyote.blueprints.dna import dna_bp, varqueries_notbad, filters
@@ -1100,7 +1101,26 @@ def unhide_transloc_comment(sample_id, transloc_id):
 @login_required
 @require_sample_group_access("sample_id")
 @require("preview_report", min_role="user", min_level=9)
-def generate_dna_report(sample_id, *args, **kwargs):
+def generate_dna_report(sample_id, **kwargs) -> Response | str:
+    """
+    Generate and render a DNA report for a given sample.
+    This function retrieves sample and assay configuration data, applies filters,
+    gathers variant and biomarker information, and prepares all necessary data
+    for rendering a comprehensive DNA report. The report includes SNVs, CNVs,
+    biomarkers, translocations, fusions, and low coverage regions, depending on
+    the assay configuration and available data.
+    Args:
+        sample_id (str): The identifier (name or ID) of the sample to generate the report for.
+        **kwargs: Additional keyword arguments. Supported:
+            - save (int, optional): If set, indicates the report should be saved.
+    Returns:
+        flask.Response: Rendered HTML template for the DNA report, or a redirect
+        response if required data is missing.
+    Side Effects:
+        - Flashes messages to the user if sample or assay configuration is missing.
+        - Redirects to the home screen if critical data is not found.
+        - Logs debug information about the assay group and configuration.
+    """
 
     sample = store.sample_handler.get_sample(sample_id)  # sample_id = name
 
@@ -1248,7 +1268,6 @@ def generate_dna_report(sample_id, *args, **kwargs):
     vep_variant_class_meta = store.vep_meta_handler.get_variant_class_translations(
         sample.get("vep", 103)
     )
-    vep_conseq_meta = store.vep_meta_handler.get_conseq_translations(sample.get("vep", 103))
 
     save = kwargs.get("save", 0)
     report_date = datetime.now().date()
@@ -1257,30 +1276,15 @@ def generate_dna_report(sample_id, *args, **kwargs):
         "dna_report.html",
         assay_config=assay_config,
         dna_sections=dna_sections,
-        # variants=variants,
         display_sections_data=display_sections_data,
-        # simple_variants=simple_variants,
         sample=sample,
-        # low_cov=low_cov,
-        translation=app.config.get("REPORT_CONFIG").get("REPORT_TRANS"),
+        translation=util.report.VARIANT_CLASS_TRANSLATION,
         vep_var_class_translations=vep_variant_class_meta,
-        # group=sample["groups"],
-        # cnvs=cnvs_iter,  # cnvs_list, TMP
-        # cnv_profile_base64=cnv_profile_base64,
-        # translocs=transloc_iter,  # not gmsonco
-        class_desc=app.config.get("REPORT_CONFIG").get("CLASS_DESC"),
-        class_desc_short=app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT"),
+        class_desc=util.report.TIER_DESC,
+        class_desc_short=util.report.TIER_SHORT_DESC,
         report_date=report_date,
-        dispgenes=filter_genes,
         save=save,
         assay_group=assay_group,
-        # biomarkers=biomarkers_iter,  # solid
-        checked_genelists=genelist_dispnames,  # solid
-        # report_header=report_header,
-        # analysis_method=analysis_method,
-        # analysis_desc=app.config.get("REPORT_CONFIG").get("ANALYSIS_DESCRIPTION", {}).get(assay_group),
-        # gene_table=app.config.get("REPORT_CONFIG").get("GENE_TABLE", {}).get(assay_group),
-        # panel=group_params.get("panel_name", assay_group),
     )
 
 
@@ -1288,67 +1292,74 @@ def generate_dna_report(sample_id, *args, **kwargs):
 @login_required
 @require_sample_group_access("sample_id")
 @require("save_dna_report", min_role="admin")
-def save_dna_report(sample_id):
-    sample = store.sample_handler.get_sample(sample_id)  # sample_id = name
-
+def save_dna_report(sample_id) -> Response:
+    """
+    Saves a DNA report for the specified sample.
+    This function retrieves a sample by its ID, determines the appropriate assay group,
+    and generates a DNA report in HTML format. The report is saved to a file system path
+    based on the assay group and sample information. If a report with the same name already
+    exists, an error is raised. The function also updates the sample's report records and
+    provides user feedback via flash messages.
+    Args:
+        sample_id (str): The unique identifier of the sample for which the DNA report is to be saved.
+    Returns:
+        werkzeug.wrappers.Response: A redirect response to the home screen.
+    Raises:
+        AppError: If a report with the same name already exists or if saving the report fails.
+    """
+    sample = store.sample_handler.get_sample(sample_id)
     if not sample:
-        sample = store.sample_handler.get_sample_with_id(sample_id)  # sample_id = id
+        sample = store.sample_handler.get_sample_with_id(sample_id)
+    if not sample:
+        flash("Sample not found.", "red")
+        return redirect(url_for("home_bp.home_screen"))
 
-    assay = util.common.get_assay_from_sample(sample)
+    sample_assay = util.common.select_one_sample_group(sample.get("groups"))
+    if not sample_assay:
+        flash("No assay group found for sample.", "red")
+        return redirect(url_for("home_bp.home_screen"))
 
-    # Get report number
-    report_num = 1
-    if "report_num" in sample:
-        report_num = sample["report_num"] + 1
+    assay_config = store.assay_config_handler.get_assay_config_filtered(sample_assay)
+    if not assay_config:
+        flash(f"No config found for the assay {sample_assay}.", "red")
+        return redirect(url_for("home_bp.home_screen"))
 
-    # report file name
-    report_id = f"{sample_id}_{str(report_num)}"
-    report_path = f"{app.config['REPORTS_BASE_PATH']}/{assay}"
+    assay_group = assay_config.get("assay_group", "unknown")
+    report_num = sample.get("report_num", 0) + 1
+    report_id = f"{sample_id}.{report_num}"
+    report_path = os.path.join(app.config["REPORTS_BASE_PATH"], assay_group)
+    os.makedirs(report_path, exist_ok=True)
+    report_file = os.path.join(report_path, f"{report_id}.html")
 
-    report_file = f"{report_path}/{report_id}.html"
-    # report_file = f"{app.config['REPORTS_BASE_PATH']}/test.html"
-
-    if not os.path.exists(report_path):
-        flash(f"Creating directory {report_path}", "yellow")
-        os.makedirs(report_path)
-
-    if util.common.check_report_exists(report_file):
-        flash("Report already exists", "red")
+    if os.path.exists(report_file):
+        flash("Report already exists.", "red")
+        app.logger.warning(f"Report file already exists: {report_file}")
         raise AppError(
             status_code=409,
             message="Report already exists with the requested name.",
             details=f"File name: {os.path.basename(report_file)}",
         )
 
-    # Attempt to write the report to a file
     try:
         html = generate_dna_report(sample_id=sample_id, save=1)
         if not util.common.write_report(html, report_file):
             raise AppError(
                 status_code=500,
-                message=f"Failed to save report {sample_id}_{report_num}.html",
-                details="An issue occurred while writing the report to the file system.",
+                message=f"Failed to save report {report_id}.html",
+                details="Could not write the report to the file system.",
             )
-
-        else:
-            # Add to database
-            store.sample_handler.save_report(
-                sample_id=sample_id,
-                report_num=report_num,
-                filepath=report_file,
-            )
-            # Success case
-            flash(f"Report id {sample_id}_{report_num}.html is saved!", "green")
-
-    except Exception as e:
-        # Distinguish between AppError and generic exceptions
-        if isinstance(e, AppError):
-            # Handle the application-specific error
-            flash(e.message, "red")
-            app.logger.error(f"AppError: {e.message} | Details: {e.details}")
-        else:
-            # Handle unexpected errors
-            flash("An unexpected error occurred. Please try again later.", "red")
-            app.logger.exception(f"Unexpected error: {str(e)}")
+        store.sample_handler.save_report(
+            sample_id=sample_id,
+            report_id=report_id,
+            filepath=report_file,
+        )
+        flash(f"Report {report_id}.html has been successfully saved.", "green")
+        app.logger.info(f"Report saved: {report_file}")
+    except AppError as app_err:
+        flash(app_err.message, "red")
+        app.logger.error(f"AppError: {app_err.message} | Details: {app_err.details}")
+    except Exception as exc:
+        flash("An unexpected error occurred while saving the report.", "red")
+        app.logger.exception(f"Unexpected error: {exc}")
 
     return redirect(url_for("home_bp.home_screen"))
