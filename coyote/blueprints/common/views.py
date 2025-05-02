@@ -9,6 +9,7 @@ from flask_login import current_user
 import traceback
 from coyote.util.decorators.access import require_sample_group_access
 from coyote.services.auth.decorators import require
+import json
 
 
 @common_bp.route("/errors/")
@@ -90,43 +91,28 @@ def unhide_sample_comment(sample_id):
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
 
 
-@common_bp.route("/<string:sample_id>/<string:assay_group>/genes", methods=["GET"])
-@login_required
-@require_sample_group_access("sample_id")
-@require("view_report", min_role="admin")
-def get_sample_genelists(sample_id, assay_group):
+@common_bp.route("/<string:sample_id>/<string:sample_assay>/genes", methods=["POST"])
+def get_sample_genelists(sample_id, sample_assay) -> str:
     """
-    Add genes to a sample
+    Retrieves and decrypts gene list and panel document data from the request form, then renders the 'sample_genes.html' template with the provided sample information.
+
+    Args:
+        sample_id (Any): The identifier for the sample.
+        sample_assay (Any): The assay type or identifier for the sample.
+
+    Returns:
+        str: Rendered HTML content for the 'sample_genes.html' template.
+
+    Raises:
+        KeyError: If required form fields ('enc_genelists' or 'enc_panel_doc') are missing.
+        Exception: If decryption or JSON decoding fails.
     """
-    sample = store.sample_handler.get_sample(sample_id)
-    if not sample:
-        sample = store.sample_handler.get_sample_with_id(sample_id)
+    enc_genelists = request.form["enc_genelists"]
+    enc_panel_doc = request.form["enc_panel_doc"]
 
-    sample_assay = util.common.select_one_sample_group(sample.get("groups"))
+    genelists = json.loads(app.config["FERNET"].decrypt(enc_genelists.encode()))
+    panel_doc = json.loads(app.config["FERNET"].decrypt(enc_panel_doc.encode()))
 
-    sample_genelist_names = sample.get("filters", {}).get("genelists", [])
-    sample_genelists = store.panel_handler.get_assay_gene_list_by_name(
-        assay_group, sample_genelist_names
-    )
-
-    sample_genelist_dict = {}
-    if sample_genelists:
-        for genelist in sample_genelists:
-            sample_genelist_dict[genelist.get("displayname")] = genelist.get("genes")
-
-    # Get all genes and lists for the assay
-    if not sample_genelist_dict:
-        assay_default_gene_lists = store.panel_handler.get_assay_gene_panel_genes(sample_assay)
-
-        if assay_default_gene_lists:
-            for genelist in assay_default_gene_lists:
-                sample_genelist_dict[genelist.get("displayname")] = genelist.get("genes")
-
-    # TODO: TRY TO SAVE AS A EMBBED THING IN THE SAMPLE REPORT
-    # list(set(assay_default_genes)), sample_default_genes_dict
     return render_template(
-        "sample_genes.html",
-        sample=sample,
-        assay=assay_group,
-        genelists=sample_genelist_dict,
+        "sample_genes.html", sample=sample_id, genelists=genelists, assay_panel_doc=panel_doc
     )

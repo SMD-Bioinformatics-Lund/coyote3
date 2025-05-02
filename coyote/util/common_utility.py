@@ -10,6 +10,8 @@ from io import BytesIO
 import base64
 from datetime import timedelta
 from hashlib import md5
+from cryptography.fernet import Fernet
+import base64, json
 
 
 class CommonUtility:
@@ -289,23 +291,68 @@ class CommonUtility:
         """
 
         filter_genes = []
-        for name, genes in genelist_dict.items():
-            filter_genes.extend(genes)
+        for genelist_id, genelist_values in genelist_dict.items():
+            if genelist_values.get("is_active", False):
+                filter_genes.extend(genelist_values["covered"])
 
         return list(set(filter_genes))
 
     @staticmethod
-    def create_genelists_dict(list_names: list, gene_lists: dict) -> dict:
+    def get_genes_covered_in_panel(genelists: dict, assay_panel_doc: list) -> dict:
         """
-        Creates a dictionary of gene lists from a list of selected gene lists.
-        Args:
-            gene_lists (list): A list of gene lists.
-            list_names (list): A list of gene list names.
-        Returns:
-            dict: A dictionary where keys are gene list names and values are lists of genes.
-        """
+        Filters the input gene lists to include only genes covered by the specified assay panel.
 
-        return {name: gene_lists[name] for name in list_names}
+        Args:
+            genelists (list[dict]):
+                A list of dictionaries, each containing a "genes" key with a list of gene names.
+            assay_panel_doc (list):
+                A list of gene names representing the genes covered by the assay panel.
+
+        Returns:
+            list[dict]:
+                A list of dictionaries in the same format as `genelists`, but with the "genes" lists filtered to include only those genes present in the assay panel.
+
+            covered_genelists = get_genes_covered_in_panel(genelists, assay_panel_doc)
+            # covered_genelists: [{"genes": ["BRCA1", "EGFR"]}, {"genes": ["KRAS"]}]
+        """
+        # Flatten all genes from the genelists into a set
+        covered_genes_set = set(assay_panel_doc.get("covered_genes", []))
+        updated_genelists = {}
+
+        for genelist_id, genelist_values in genelists.items():
+            genelist_genes = set(genelist_values.get("genes", []))
+            # Keep only genes present in the assay panel and move the rest to a separate list
+            genelist_values["covered"] = list(genelist_genes.intersection(covered_genes_set))
+            genelist_values["uncovered"] = list(genelist_genes.difference(covered_genes_set))
+            updated_genelists[genelist_id] = genelist_values
+
+        return updated_genelists
+
+    @staticmethod
+    def get_assay_genelist_names(genelists: dict) -> list:
+        """
+        Get the names of the gene lists for a specific assay.
+
+        Args:
+            genelists_dict (dict): A dictionary where keys are gene list names and values are lists of genes.
+
+        Returns:
+            list: A list of gene list names.
+        """
+        return [genelist["_id"] for genelist in genelists]
+
+    # @staticmethod
+    # def create_genelists_dict(list_names: list, gene_lists: dict) -> dict:
+    #     """
+    #     Creates a dictionary of gene lists from a list of selected gene lists.
+    #     Args:
+    #         gene_lists (list): A list of gene lists.
+    #         list_names (list): A list of gene list names.
+    #     Returns:
+    #         dict: A dictionary where keys are gene list names and values are lists of genes.
+    #     """
+
+    #     return {name: gene_lists[_id] for name in list_names}
 
     @staticmethod
     def get_active_branch_name() -> str | None:
@@ -551,3 +598,8 @@ class CommonUtility:
         groups_string = "-".join(groups_sorted)
         raw_key = f"{groups_string}:{status}:{search_str}"
         return f"samples:{md5(raw_key.encode()).hexdigest()}"  # safer to hash it
+
+    @staticmethod
+    def encrypt_json(data, fernet):
+        json_data = json.dumps(data, default=str)  # ← handles datetime
+        return fernet.encrypt(json_data.encode()).decode()

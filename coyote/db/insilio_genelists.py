@@ -84,3 +84,66 @@ class InsilicoGenelistHandler(BaseHandler):
         # TODO: Uncomment when gene collection is available
         # return list(self.genes_collection.find({"symbol": {"$in": symbols}}))
         return symbols
+
+    def genelist_exists(
+        self, type: str, subpanel: str, assay: str = None, is_active: bool = True
+    ) -> bool:
+        """
+        Check if a panel of given type and subpanel name exists in the collection.
+        """
+        query = {"name": subpanel, "type": type, "is_active": is_active}
+        if assay:
+            query["assays"] = assay
+        return self.get_collection().count_documents(query) > 0
+
+    def get_genelists_by_panel(self, panel_name: str, active: bool = True) -> list[dict]:
+        """
+        Retrieve all genelists associated with a specific panel, returning selected fields for each document.
+        """
+        projection: dict[str, int] = {
+            "genes": 0,
+            "created_on": 0,
+            "created_by": 0,
+            "changelog": 0,
+            "schema_version": 0,
+            "schema_name": 0,
+            "is_active": 0,
+        }
+        return list(
+            self.get_collection().find({"assays": panel_name, "is_active": active}, projection)
+        )
+
+    def get_genelists_ids(
+        self, panel_name: str, diagnosis: str, list_type: str, active: bool = True
+    ) -> list[str]:
+        """
+        Retrieve all genelists associated with a specific panel, returning only their IDs.
+        """
+        projection: dict[str, int] = {"_id": 1}
+        query = {
+            "assays": panel_name,
+            "diagnosis": diagnosis,
+            "list_type": list_type,
+            "is_active": active,
+        }
+        return [str(doc["_id"]) for doc in self.get_collection().find(query, projection)]
+
+    def get_genelist_docs_by_ids(self, genelist_ids: list) -> dict:
+        """
+        Retrieve selected fields from genelist documents for given IDs.
+        """
+        if not genelist_ids:
+            return {}
+
+        # Projection to fetch only needed fields
+        projection = {"_id": 1, "is_active": 1, "displayname": 1, "genes": 1}
+
+        # Query the database
+        cursor = self.get_collection().find({"_id": {"$in": genelist_ids}}, projection)
+
+        # Format result
+        result = {}
+        for doc in cursor:
+            _id = doc.pop("_id")
+            result[_id] = doc
+        return result

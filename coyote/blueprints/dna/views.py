@@ -70,23 +70,26 @@ def list_variants(sample_id):
         return redirect(url_for("home_bp.home_screen"))
 
     # Get assay group and subpanel for the sample, sections to display
-    assay_group: str = assay_config.get("assay_group", "unknown")
-    subpanel: str | None = sample.get("subpanel")
+    assay_group: str = assay_config.get("assay_group", "unknown")  # myeloid, solid, lymphoid
+    subpanel: str | None = sample.get("subpanel")  # breast, LP, lung, etc.
     dna_sections = list(assay_config.get("DNA", {}).keys())
     display_sections_data = {}
     app.logger.debug(f"Assay group: {assay_group} - DNA config: {pformat(dna_sections)}")
     app.logger.debug(f"Assay group: {assay_group} - Subpanel: {subpanel}")
 
-    # Load all genelist and panel names for the assay group
-    assay_group_genelists, assay_group_genelists_docs = store.panel_handler.get_assay_panels(
-        assay_group
-    )
-    assay_group_genelists_names = store.panel_handler.get_assay_panel_names(assay_group)
+    # Get the entire genelist for the sample panel
+    assay_panel_doc = store.panel_handler.get_panel(panel_name=sample_assay)
 
-    # Adding the defualt gene lists to the assay_config, if use_diagnosis_genelist is set to true
+    # Get the genelists for the sample panel
+    insilico_panel_genelists = store.insilico_genelist_handler.get_genelists_by_panel(sample_assay)
+    all_panel_genelist_names = util.common.get_assay_genelist_names(insilico_panel_genelists)
+
+    # Adding the default gene lists to the assay_config, if use_diagnosis_genelist is set to true
     if assay_config["FILTERS"].get("use_diagnosis_genelist", False) and subpanel:
-        if store.panel_handler.panel_exists(subpanel=subpanel, type="genelist"):
-            assay_config["FILTERS"]["genelists"].append(subpanel)
+        assay_default_config_genelist_ids = store.insilico_genelist_handler.get_genelists_ids(
+            sample_assay, subpanel, "genelist"
+        )
+        assay_config["FILTERS"]["genelists"].append(assay_default_config_genelist_ids)
 
     # Get filter settings from the sample and merge with assay config if sample does not have values
     sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
@@ -96,9 +99,9 @@ def list_variants(sample_id):
     if sample_has_filters is None:
         store.sample_handler.reset_sample_settings(sample["_id"], assay_config.get("FILTERS"))
 
-    # Inherit FilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
-    if assay_group_genelists:
-        for gene_list in assay_group_genelists:
+    # Inherit DNAFilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
+    if all_panel_genelist_names:
+        for gene_list in all_panel_genelist_names:
             setattr(DNAFilterForm, f"genelist_{gene_list}", BooleanField())
 
     form = DNAFilterForm()
@@ -126,13 +129,20 @@ def list_variants(sample_id):
 
     # sample filters, either set, or default
     cnv_effects = sample_filters.get("cnveffects", [])
-    genelist_filter = sample_filters.get("genelists", [])
-    checked_genelist_dict = util.common.create_genelists_dict(
-        genelist_filter, assay_group_genelists
+    checked_genelists = sample_filters.get("genelists", [])
+
+    # Get the genelists for the sample panel checked genelists from the filters
+    checked_genelists_genes_dict: list[dict] = (
+        store.insilico_genelist_handler.get_genelist_docs_by_ids(checked_genelists)
+    )
+    genes_covered_in_panel: list[dict] = util.common.get_genes_covered_in_panel(
+        checked_genelists_genes_dict, assay_panel_doc
     )
 
     filter_conseq = util.dna.get_filter_conseq_terms(sample_filters.get("vep_consequences", []))
-    filter_genes = util.common.create_filter_genelist(checked_genelist_dict)
+
+    # Create a unique list of genes from the selected genelists which are currently active in the panel
+    filter_genes = util.common.create_filter_genelist(genes_covered_in_panel)
     filter_cnveffects = util.dna.create_cnveffectlist(cnv_effects)
 
     # Add them to the form and update with the requested settings
@@ -141,7 +151,7 @@ def list_variants(sample_id):
         {
             **{f"vep_{k}": True for k in sample_filters.get("vep_consequences", [])},
             **{f"cnveffect_{k}": True for k in sample_filters.get("cnveffects", [])},
-            **{f"genelist_{k}": True for k in genelist_filter},
+            **{f"genelist_{k}": True for k in checked_genelists},
             **{assay_group: True},
         }
     )
@@ -288,8 +298,8 @@ def list_variants(sample_id):
         assay=assay_group,
         dna_sections=dna_sections,
         display_sections_data=display_sections_data,
-        assay_panels=assay_group_genelists_names,
-        checked_genelist_dict=checked_genelist_dict,
+        assay_panels=insilico_panel_genelists,
+        checked_genelists_dict=genes_covered_in_panel,
         hidden_comments=has_hidden_comments,
         vep_var_class_translations=vep_variant_class_meta,
         vep_conseq_translations=vep_conseq_meta,
@@ -304,7 +314,7 @@ def list_variants(sample_id):
 @login_required
 @require_sample_group_access("sample_id")
 @require("manage_snvs", min_role="admin")
-def classify_multi_variant(sample_id):
+def classify_multi_variant(sample_id) -> Response:
     """
     Classify multiple variants
     """
@@ -1151,10 +1161,17 @@ def generate_dna_report(sample_id, **kwargs) -> Response | str:
     # Get number of the samples in this report (paired, unpaired)
     sample["num_samples"] = store.variant_handler.get_num_samples(str(sample["_id"]))
 
+    # Get the entire genelist for the sample panel
+    assay_panel_doc = store.panel_handler.get_panel(panel_name=sample_assay)
+
+    # Get the genelists for the sample panel
+    insilico_panel_genelists = store.insilico_genelist_handler.get_genelists_by_panel(sample_assay)
+    all_panel_genelist_names = util.common.get_assay_genelist_names(insilico_panel_genelists)
+
     # Load all genelist and panel names for the assay group
-    assay_group_genelists, assay_group_genelists_docs = store.panel_handler.get_assay_panels(
-        assay_group
-    )
+    # assay_group_genelists, assay_group_genelists_docs = store.panel_handler.get_assay_panels(
+    #     assay_group
+    # )
 
     # sample filters
     if not sample.get("filters"):
@@ -1163,20 +1180,18 @@ def generate_dna_report(sample_id, **kwargs) -> Response | str:
     sample_filters = deepcopy(sample.get("filters", {}))
 
     # Get the genelist filters from the sample settings
-    genelist_filter = sample_filters.get("genelists", [])
-    checked_genelist_dict = util.common.create_genelists_dict(
-        genelist_filter, assay_group_genelists
+    checked_genelists = sample_filters.get("genelists", [])
+    checked_genelists_genes_dict: list[dict] = (
+        store.insilico_genelist_handler.get_genelist_docs_by_ids(checked_genelists)
     )
 
-    ## displaynames for report
-    genelist_dispnames = util.common.get_genelist_dispnames(
-        assay_group_genelists_docs, checked_genelist_dict
+    genes_covered_in_panel: list[dict] = util.common.get_genes_covered_in_panel(
+        checked_genelists_genes_dict, assay_panel_doc
     )
-
-    panels = [panel.get("name") for panel in assay_group_genelists_docs]
 
     filter_conseq = util.dna.get_filter_conseq_terms(sample_filters.get("vep_consequences", []))
-    filter_genes = util.common.create_filter_genelist(checked_genelist_dict)
+    # Create a unique list of genes from the selected genelists which are currently active in the panel
+    filter_genes = util.common.create_filter_genelist(genes_covered_in_panel)
 
     disp_pos = []
     if "verification_samples" in assay_config:
@@ -1271,6 +1286,8 @@ def generate_dna_report(sample_id, **kwargs) -> Response | str:
     save = kwargs.get("save", 0)
     report_date = datetime.now().date()
 
+    fernet = app.config["FERNET"]
+
     return render_template(
         "dna_report.html",
         assay_config=assay_config,
@@ -1283,7 +1300,9 @@ def generate_dna_report(sample_id, **kwargs) -> Response | str:
         class_desc_short=util.report.TIER_SHORT_DESC,
         report_date=report_date,
         save=save,
-        assay_group=assay_group,
+        sample_assay=sample_assay,
+        encrypted_panel_doc=util.common.encrypt_json(assay_panel_doc, fernet),
+        encrypted_genelists=util.common.encrypt_json(genes_covered_in_panel, fernet),
     )
 
 
@@ -1340,7 +1359,9 @@ def save_dna_report(sample_id) -> Response:
         )
 
     try:
+
         html = generate_dna_report(sample_id=sample_id, save=1)
+
         if not util.common.write_report(html, report_file):
             raise AppError(
                 status_code=500,

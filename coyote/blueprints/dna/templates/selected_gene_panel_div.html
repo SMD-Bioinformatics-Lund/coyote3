@@ -12,10 +12,10 @@
 
   <!-- Gene Lists Summary (Closed View) -->
   <div id="selected-genes-summary" class="text-sm font-medium rounded-2xl text-black mt-2 px-4 pb-2">
-    {% if checked_genelist_dict  %}
+    {% if checked_genelists_dict  %}
       <div class="flex flex-row gap-1">
-        {% for glist, glist_genes in checked_genelist_dict.items() %}
-          <span class="py-1 px-3 bg-gray-200 rounded-md text-xs shadow-sm hover:bg-green-200 transition">{{ glist }}: {{ glist_genes|length }} gene(s)</span>
+        {% for glist, glist_values in checked_genelists_dict.items() %}
+          <span class="py-1 px-3 rounded-md text-xs shadow-sm {% if glist_values.is_active %}bg-gray-200 hover:bg-green-200 {% else %}bg-orange-400 hover:bg-orange-600{% endif %} transition">{{ glist }}: {{ glist_values.covered|length }} of {{ glist_values.genes|length }} gene(s) covered</span>
         {% endfor %}
       </div>
     {% else %}
@@ -25,14 +25,22 @@
 
   <!-- Collapsible Content (Open State) -->
   <div id="selected-genes-card-content" class="my-2 p-2 hidden rounded-2xl">
-    {% if checked_genelist_dict %}
+    {% if checked_genelists_dict %}
       <div class="flex flex-col gap-2">
-        {% for glist, glist_genes in checked_genelist_dict.items() %}
+        {% for glist, glist_values in checked_genelists_dict.items() %}
           <div class="rounded-md shadow-md p-2 bg-transparent">
-            <b class="text-gray-800">{{ glist }} - {{ glist_genes|length }} gene(s):</b>
+            {% if glist_values.is_active %}
+              <b class="text-gray-800">{{ glist }} - {{ glist_values.covered|length }} of {{ glist_values.genes|length }} gene(s) covered:</b>
+            {% else %}
+              <b class="text-red-800">{{ glist }} - {{ glist_values.covered|length }} of {{ glist_values.genes|length }} gene(s) covered:  This is inactive and the filter has not been applied. Use a different genelist from the filters.</b>
+            {% endif %}
             <div class="my-1 flex flex-wrap gap-2 text-xs">
-              {% for gene in glist_genes %}
-                <span class="py-0.5 px-1 bg-gray-200 rounded-md text-xs shadow-sm hover:bg-green-200 transition">{{ gene }}</span>
+              {% for gene in glist_values.genes %}
+                {% if gene in glist_values.covered %}
+                  <span class="py-0.5 px-1 bg-green-200 rounded-md text-xs shadow-sm hover:bg-green-400 transition" title="This gene is covered in the panel">{{ gene }}</span>
+                {% else %}
+                  <span class="py-0.5 px-1 bg-orange-400 rounded-md text-xs shadow-sm hover:bg-orange-600 transition" title="This gene is not covered in the panel">{{ gene }}</span>
+                {% endif %}
               {% endfor %}
             </div>
           </div>

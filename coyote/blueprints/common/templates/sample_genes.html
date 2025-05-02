@@ -3,22 +3,24 @@
 <div class="flex w-full h-full overflow-hidden">
   <main class="overflow-y-auto p-4">
     <h1 class="text-2xl font-semibold ml-2 mb-6">Sample:
-      <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="ml-2 font-semibold text-blue-500 hover:underline">
-        {{ sample.name }}
+      <a href="{{ url_for('dna_bp.list_variants', sample_id=sample) }}" class="ml-2 font-semibold text-blue-500 hover:underline">
+        {{ sample }}
       </a>
     </h1>
-    {% if genelists %}
+
+      
+    <section id="genelists" class="px-2 py-1 my-2 relative">
       {% set table_no = 1 %}
-      <section id="genelists" class="px-2 py-1 my-2 relative">
-        {% for genelist_name, genelist_genes in genelists.items() %}
+      {% if genelists %}
+        {% for genelist_name, genelist_values in genelists.items() %}
           <div class="py-2 max-w-3xl align-left" id="genelist-{{genelist_name}}">
-            <h2 class="text-sm font-semibold text-black">Tabell {{ table_no }}: Gener inkluderade i <b>{{ genelist_name }}</b> panel</h2>
+            <h2 class="text-sm font-semibold text-black">Tabell {{ table_no }}: Gener inkluderade i <b>{{ genelist_name }}</b> insilico-panel</h2>
             <div class="py-2 relative">
               <table class="border border-gray-300 w-full text-xs text-left text-gray-700" id="snvs-table">
                 <tbody>
-                  {% for i in range(0, genelist_genes | length, 15) %}
+                  {% for i in range(0, genelist_values.covered | length, 15) %}
                     <tr class="even:bg-gray-50">
-                      {% for gene in genelist_genes[i:i+15] %}
+                      {% for gene in genelist_values.covered[i:i+15] %}
                         <td class="border border-gray-300 p-1">{{ gene }}</td>
                       {% endfor %}
                     </tr>
@@ -29,8 +31,29 @@
           </div>  
           {% set table_no = table_no + 1 %}
         {% endfor %}
-      </section>
-    {% endif %}
+      {% elif assay_panel_doc.covered_genes %}
+        <div class="py-2 max-w-3xl align-left">
+          <h2 class="text-sm font-semibold text-black">Tabell {{ table_no }}: Gener inkluderade i <b>{{ assay_panel_doc._id }}</b> panel</h2>
+          <div class="py-2 relative">
+            <table class="border border-gray-300 w-full text-xs text-left text-gray-700" id="snvs-table">
+              <tbody>
+                {% for i in range(0, assay_panel_doc.covered_genes | length, 15) %}
+                  <tr class="even:bg-gray-50">
+                    {% for gene in assay_panel_doc.covered_genes[i:i+15] %}
+                      <td class="border border-gray-300 p-1">{{ gene }}</td>
+                    {% endfor %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>  
+      {% else %}
+        <div class="py-4 text-gray-600">
+          <p>Inga genlistor tillgängliga för detta prov.</p>
+        </div>
+      {% endif %}
+    </section>
   </main>
 </div>
 {% endblock %}

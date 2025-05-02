@@ -15,6 +15,12 @@ class PanelsHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.panels_collection)
 
+    def get_panel(self, panel_name: str) -> list:
+        """
+        Get panel for a given panel_name/panel_id
+        """
+        return self.get_collection().find_one({"_id": panel_name})
+
     def get_all_panels(self) -> list:
         """Fetch all panels."""
         return list(self.get_collection().find({}, {"genes": 0}).sort([("created_on", -1)]))
@@ -38,9 +44,9 @@ class PanelsHandler(BaseHandler):
             )
         )
 
-    def get_panel(self, type: str, subpanel: str):
-        panel = self.get_collection().find_one({"name": subpanel, "type": type})
-        return panel
+    # def get_panel(self, type: str, subpanel: str):
+    #     panel = self.get_collection().find_one({"name": subpanel, "type": type})
+    #     return panel
 
     def get_panel_by_id(self, panel_id: str) -> dict:
         """

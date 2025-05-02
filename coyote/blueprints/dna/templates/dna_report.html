@@ -409,16 +409,16 @@
 <div class="analysis_description">
   {{ assay_config.REPORT.analysis_desc|safe }}
 
-  <p>For gene lists see <a target="_blank" href={{ url_for('common_bp.get_sample_genelists', sample_id=sample.name, assay_group=assay_group ) }}>here</a></p>
-
-  <!--
-  <div>
-    <a href="#" onclick="document.getElementById('hidden-genelist').style.display = 'block';">here</a>
-    <div id="hidden-genelist" style="display: none;">
-      {{ if }}
-    </div>
-  </div>
-  -->
+  <form id="genelist-form" action="{{ url_for('common_bp.get_sample_genelists', sample_id=sample.name, sample_assay=sample_assay, _external=True) }}" method="POST" target="_blank">
+    <input type="hidden" name="enc_genelists" id="enc-genelists-input">
+    <input type="hidden" name="enc_panel_doc" id="enc-panel-input">
+  </form>
+  
+  <p>
+    For gene lists see 
+    <a href="#" onclick="submitGenelistForm(event)" class="text-blue-600 hover:underline" target="_blank">here</a>
+  </p>
+  
 
   {% if not germline %}
     <p>
@@ -451,4 +451,27 @@
       of Molecular Diagnostics, 2017.
   {% endif %}
 </div>
+
+
+<!-- Embed assay_panel_doc -->
+
+<script type="application/json" id="encrypted-genelists">{{ encrypted_genelists }}</script>
+<script type="application/json" id="encrypted-panel-doc">{{ encrypted_panel_doc }}</script>
+
+<script>
+  // Function to submit the form with encrypted genelists and panel doc
+  function submitGenelistForm(e) {
+    e.preventDefault();
+  
+    const genelistsEnc = document.getElementById("encrypted-genelists").textContent.trim();
+    const panelEnc = document.getElementById("encrypted-panel-doc").textContent.trim();
+  
+    document.getElementById("enc-genelists-input").value = genelistsEnc;
+    document.getElementById("enc-panel-input").value = panelEnc;
+  
+    document.getElementById("genelist-form").submit();
+  }
+  </script>
+  
+
 {% endblock %}

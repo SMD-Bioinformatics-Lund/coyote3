@@ -7,6 +7,7 @@ from typing import Literal, Any
 
 from coyote.__version__ import __version__ as app_version
 from coyote.util.common_utility import CommonUtility
+from cryptography.fernet import Fernet
 
 # # Implement in the future?
 # from dotenv import load_dotenv
@@ -47,6 +48,9 @@ class DefaultConfig:
         "fusion": ["fusion", "fusion_validation_nf"],
         "WGS": ["tumwgs-solid", "tumwgs-hema"],
     }
+
+    FERNET_KEY = Fernet.generate_key()  # store this securely
+    FERNET = Fernet(FERNET_KEY)
 
     WTF_CSRF_ENABLED = True
     SECRET_KEY: str | None = os.getenv("FLASK_SECRET_KEY")
