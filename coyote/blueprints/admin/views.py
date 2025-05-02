@@ -28,6 +28,7 @@ from datetime import datetime
 import json
 import json5
 from pathlib import Path
+from pprint import pprint
 
 
 @admin_bp.route("/")
@@ -277,6 +278,7 @@ def delete_user(user_id) -> Response:
     # Log Action
     g.audit_metadata = {"user": user_id}
 
+    flash(f"User '{user_id}' deleted successfully.", "green")
     return redirect(url_for("admin_bp.manage_users"))
 
 
@@ -418,6 +420,8 @@ def edit_assay_config(assay_id) -> Response | str:
             updated_config["updated_on"] = datetime.utcnow()
             updated_config["updated_by"] = current_user.email
             updated_config["version"] = assay_config.get("version", 1) + 1
+            updated_config["schema_name"] = schema["_id"]
+            updated_config["schema_version"] = schema["version"]
 
             store.assay_config_handler.update_assay_config(assay_id, updated_config)
             flash("Assay configuration updated successfully.", "green")
@@ -447,10 +451,6 @@ def delete_assay_config(assay_id) -> Response:
     Returns:
         Response: Redirects to the assay configurations page or aborts with 404 if not found.
     """
-    config = store.assay_config_handler.get_assay_config(assay_id)
-    if not config:
-        return abort(404)
-
     store.assay_config_handler.delete_assay_config(assay_id)
     # Log Action
     g.audit_metadata = {"assay": assay_id}
@@ -1135,6 +1135,528 @@ def delete_role(role_id) -> Response:
     store.roles_handler.delete_role(role_id)
     flash(f"Role '{role_id}' deleted successfully.", "green")
     return redirect(url_for("admin_bp.list_roles"))
+
+
+# ================================================
+# ===== Assay Whole Panel Gene Lists PART =====
+# ================================================
+@admin_bp.route("/panels/manage", methods=["GET"])
+@require("view_panel", min_role="user", min_level=9)
+def manage_assay_panels():
+    """
+    Retrieve all assay panels and render the management template.
+
+    Returns:
+        Response: Rendered HTML template displaying all assay panels.
+    """
+    panels = store.panel_handler.get_all_assay_panels()
+    return render_template("panels/manage_panels.html", panels=panels)
+
+
+@admin_bp.route("/panels/new", methods=["GET", "POST"])
+@require("create_panel", min_role="manager", min_level=99)
+@log_action(action_name="create_panel", call_type="manager_call")
+def create_assay_panel():
+    """
+    Handle the creation of a new DNA assay panel based on active schemas.
+
+    Fetches active panel schemas, processes form submissions (including gene lists from text or file),
+    creates a new panel configuration, and saves it to the database. Handles both GET (form display)
+    and POST (form submission) requests.
+    """
+
+    # Fetch all active DNA assay schemas
+    active_schemas = store.schema_handler.get_schemas_by_filter(
+        schema_type="panel_config", schema_category="Panels", is_active=True
+    )
+
+    if not active_schemas:
+        flash("No active panel schemas found!", "red")
+        return redirect(url_for("admin_bp.manage_assay_panels"))
+
+    # Determine which schema to use
+    selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
+    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+
+    if not schema:
+        flash("Selected schema not found!", "red")
+        return redirect(url_for("admin_bp.manage_assay_panels"))
+
+    if request.method == "POST":
+        form_data = {
+            key: (
+                request.form.getlist(key)
+                if len(vals := request.form.getlist(key)) > 1
+                else request.form[key]
+            )
+            for key in request.form
+        }
+
+        # Process covered genes separately
+        covered_genes = []
+        if "genes_paste" in form_data and form_data["genes_paste"].strip():
+            covered_genes = [
+                g.strip()
+                for g in form_data["genes_paste"].replace(",", "\n").splitlines()
+                if g.strip()
+            ]
+        elif "genes_file" in request.files and request.files["genes_file"].filename:
+            file = request.files["genes_file"]
+            content = file.read().decode("utf-8")
+            covered_genes = [
+                g.strip() for g in content.replace(",", "\n").splitlines() if g.strip()
+            ]
+
+        config = util.admin.process_form_to_config(form_data, schema)
+        config["_id"] = config["panel_name"]
+        config["covered_genes"] = covered_genes
+        config["created_by"] = current_user.email
+        config["created_on"] = datetime.utcnow()
+        config["updated_by"] = current_user.email
+        config["updated_on"] = datetime.utcnow()
+        config["schema_name"] = schema["_id"]
+        config["schema_version"] = schema["version"]
+        config["version"] = 1
+
+        store.panel_handler.insert_panel(config)
+
+        # Log Action
+        g.audit_metadata = {"panel": config["_id"]}
+
+        flash(f"Panel {config['panel_name']} created successfully!", "green")
+        return redirect(url_for("admin_bp.manage_assay_panels"))
+
+    return render_template(
+        "panels/create_panel.html", schema=schema, schemas=active_schemas, selected_schema=schema
+    )
+
+
+@admin_bp.route("/panels/<assay_panel_id>/edit", methods=["GET", "POST"])
+@require("edit_panel", min_role="manager", min_level=99)
+@log_action(action_name="edit_panel", call_type="manager_call")
+def edit_assay_panel(assay_panel_id: str) -> str | Response:
+    """
+    Edit an existing assay panel by handling GET and POST requests.
+
+    On GET, renders the edit panel form. On POST, processes form data, updates the panel,
+    handles covered genes input, and saves changes to the database.
+    """
+
+    # Fetch the panel document
+    panel = store.panel_handler.get_panel_by_id(assay_panel_id)
+
+    # Fetch the schema
+    schema = store.schema_handler.get_schema("Panel-Config")
+
+    if request.method == "POST":
+        form_data = request.form.to_dict()
+
+        # Handle covered genes separately
+        covered_genes = []
+        if "genes_file" in request.files and request.files["genes_file"].filename:
+            file = request.files["genes_file"]
+            content = file.read().decode("utf-8")
+            covered_genes = [
+                g.strip() for g in content.replace(",", "\n").splitlines() if g.strip()
+            ]
+        elif "genes_paste" in form_data and form_data["genes_paste"].strip():
+            covered_genes = [
+                g.strip()
+                for g in form_data["genes_paste"].replace(",", "\n").splitlines()
+                if g.strip()
+            ]
+        else:
+            covered_genes = panel.get("covered_genes", [])
+
+        # Process form fields
+        updated = util.admin.process_form_to_config(form_data, schema)
+
+        print(updated)
+
+        # Carefully patch system fields
+        updated["covered_genes"] = covered_genes
+        updated["updated_by"] = current_user.email
+        updated["updated_on"] = datetime.utcnow()
+        updated["version"] = panel.get("version", 1) + 1
+        updated["schema_name"] = schema["_id"]
+        updated["schema_version"] = schema["version"]
+
+        # Update the panel
+        store.panel_handler.update_panel(assay_panel_id, updated)
+
+        # Audit
+        g.audit_metadata = {"panel": assay_panel_id}
+
+        flash(f"Panel '{panel['panel_name']}' updated successfully!", "green")
+        return redirect(url_for("admin_bp.manage_assay_panels"))
+
+    return render_template(
+        "panels/edit_panel.html",
+        panel=panel,
+        schema=schema,
+    )
+
+
+@admin_bp.route("/panels/<assay_panel_id>/toggle", methods=["POST", "GET"])
+@require("edit_panel", min_role="manager", min_level=99)
+@log_action(action_name="toggle_panel", call_type="manager_call")
+def toggle_assay_panel_active(assay_panel_id):
+    """
+    Toggle the active status of an assay panel by its ID.
+
+    Args:
+        assay_panel_id (str): The unique identifier of the assay panel.
+
+    Returns:
+        Response: Redirects to the manage assay panels page or aborts with 404 if panel not found.
+    """
+    panel = store.panel_handler.get_panel_by_id(assay_panel_id)
+    if not panel:
+        return abort(404)
+    new_status = not panel.get("is_active", False)
+    store.panel_handler.toggle_active(assay_panel_id, new_status)
+
+    # Log Action
+    g.audit_metadata = {
+        "panel": assay_panel_id,
+        "panel_status": "Active" if new_status else "Inactive",
+    }
+
+    flash(f"Panel '{assay_panel_id}' status toggled!", "green")
+    return redirect(url_for("admin_bp.manage_assay_panels"))
+
+
+@admin_bp.route("/panels/<assay_panel_id>/delete", methods=["GET"])
+@require("delete_panel", min_role="admin", min_level=99999)
+@log_action(action_name="delete_panel", call_type="admin_call")
+def delete_assay_panel(assay_panel_id):
+    """
+    Deletes an assay panel by its ID, logs the action, flashes a message, and redirects to the panel management page.
+
+    Args:
+        assay_panel_id (str): The unique identifier of the assay panel to delete.
+    """
+    store.panel_handler.delete_panel(assay_panel_id)
+
+    # Log Action
+    g.audit_metadata = {"panel": assay_panel_id}
+
+    flash(f"Panel '{assay_panel_id}' deleted!", "red")
+    return redirect(url_for("admin_bp.manage_assay_panels"))
+
+
+@admin_bp.route("/panels/<assay_panel_id>/view", methods=["GET"])
+@require("view_panel", min_role="user", min_level=9)
+def view_assay_panel(assay_panel_id) -> Response | str:
+    """
+    View details of an assay panel by its ID.
+
+    Retrieves the panel and its schema; if not found, flashes an error and redirects.
+    Renders the panel details template on success.
+    """
+
+    panel = store.panel_handler.get_panel_by_id(assay_panel_id)
+    if not panel:
+        flash(f"Panel '{assay_panel_id}' not found!", "red")
+        return redirect(url_for("admin_bp.manage_assay_panels"))
+
+    schema = store.schema_handler.get_schema("Panel-Config")
+
+    return render_template(
+        "panels/view_panel.html",
+        panel=panel,
+        schema=schema,
+    )
+
+
+# ====================================
+# ===== Insilico Gene Lists PART =====
+# ====================================
+@admin_bp.route("/genelists", methods=["GET"])
+@require("view_genelist", min_role="user", min_level=9)
+def manage_genelists() -> str:
+    """
+    Renders a template displaying all gene lists for management.
+
+    Returns:
+        Response: Rendered HTML page with all gene lists and is_public flag set to False.
+    """
+    genelists = store.insilico_genelist_handler.get_all_genelists()
+    return render_template("genelists/manage_genelists.html", genelists=genelists, is_public=False)
+
+
+# Create Genelist
+@admin_bp.route("/genelists/new", methods=["GET", "POST"])
+@require("create_genelist", min_role="manager", min_level=99)
+@log_action(action_name="create_genelist", call_type="manager_call")
+def create_genelist() -> Response | str:
+    """
+    Handles the creation of a new genelist via a web form.
+
+    - Fetches active genelist schemas and injects assay/group options.
+    - Processes form data and uploaded gene files or pasted genes.
+    - Validates and constructs the genelist config, then saves it.
+    - Provides user feedback and redirects as appropriate.
+    """
+    # Fetch all active GeneLists schemas
+    active_schemas = store.schema_handler.get_schemas_by_filter(
+        schema_type="genelist_config", schema_category="GeneLists", is_active=True
+    )
+
+    if not active_schemas:
+        flash("No active genelist schemas found!", "red")
+        return redirect(url_for("admin_bp.manage_genelists"))
+
+    # Determine which schema to use
+    selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
+    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+
+    if not schema:
+        flash("Genelist schema not found!", "red")
+        return redirect(url_for("admin_bp.manage_genelists"))
+
+    # Inject assay, groups options directly into schema field definition
+    available_groups = store.panel_handler.get_all_groups()
+    available_assays = store.panel_handler.get_all_assays()
+
+    schema["fields"]["assays"]["options"] = available_assays
+    schema["fields"]["groups"]["options"] = available_groups
+
+    if request.method == "POST":
+        form_data: dict[str, list[str] | str] = {
+            key: (
+                request.form.getlist(key)
+                if len(vals := request.form.getlist(key)) > 1
+                else request.form[key]
+            )
+            for key in request.form
+        }
+
+        # Handle genes
+        genes = []
+        if "genes_file" in request.files and request.files["genes_file"].filename:
+            file = request.files["genes_file"]
+            content = file.read().decode("utf-8")
+            genes = [g.strip() for g in content.replace(",", "\n").splitlines() if g.strip()]
+        elif "genes_paste" in form_data and form_data["genes_paste"].strip():
+            genes = [
+                g.strip()
+                for g in form_data["genes_paste"].replace(",", "\n").splitlines()
+                if g.strip()
+            ]
+
+        config = util.admin.process_form_to_config(form_data, schema)
+        config["_id"] = config["name"]
+        config["genes"] = genes
+        config["created_by"] = current_user.email
+        config["created_on"] = datetime.utcnow()
+        config["version"] = 1
+        config["schema_name"] = schema["_id"]
+        config["schema_version"] = schema["version"]
+        config["gene_count"] = len(genes)
+        config["changelog"] = []
+
+        store.insilico_genelist_handler.insert_genelist(config)
+
+        flash(f"Genelist {config['name']} created successfully!", "green")
+        return redirect(url_for("admin_bp.manage_genelists"))
+
+    return render_template(
+        "genelists/create_genelist.html",
+        schema=schema,
+        schemas=active_schemas,
+        selected_schema=schema,
+    )
+
+
+@admin_bp.route("/genelists/<genelist_id>/edit", methods=["GET", "POST"])
+@require("edit_genelist", min_role="manager", min_level=99)
+@log_action(action_name="edit_genelist", call_type="manager_call")
+def edit_genelist(genelist_id) -> Response | str:
+    """
+    Edit an existing genelist by handling GET and POST requests.
+
+    - On GET: Renders the edit form with current genelist data and schema options.
+    - On POST: Processes form data or uploaded file to update genelist fields, tracks changes in a changelog, and saves the updated genelist.
+    - Redirects and flashes messages on success or error.
+    """
+    genelist = store.insilico_genelist_handler.get_genelist(genelist_id)
+    if not genelist:
+        flash("Genelist not found!", "red")
+        return redirect(url_for("admin_bp.manage_genelists"))
+
+    schema = store.schema_handler.get_schema("Genelist-Config")
+
+    # Inject assay, groups options directly into schema field definition
+    available_groups = store.panel_handler.get_all_groups()
+    available_assays = store.panel_handler.get_all_assays()
+    schema["fields"]["assays"]["options"] = available_assays
+    schema["fields"]["groups"]["options"] = available_groups
+
+    if request.method == "POST":
+        form_data = {
+            key: (
+                request.form.getlist(key)
+                if len(vals := request.form.getlist(key)) > 1
+                else request.form[key]
+            )
+            for key in request.form
+        }
+
+        genes = []
+        if "genes_file" in request.files and request.files["genes_file"].filename:
+            file = request.files["genes_file"]
+            content = file.read().decode("utf-8")
+            genes = [g.strip() for g in content.replace(",", "\n").splitlines() if g.strip()]
+        elif "genes_paste" in form_data and form_data["genes_paste"].strip():
+            pasted = form_data["genes_paste"].replace(",", "\n")
+            genes = [g.strip() for g in pasted.splitlines() if g.strip()]
+        else:
+            genes = genelist.get("genes", [])
+
+        updated = util.admin.process_form_to_config(form_data, schema)
+
+        updated["_id"] = genelist["_id"]
+        updated["genes"] = genes
+        updated["created_by"] = genelist["created_by"]
+        updated["created_on"] = genelist["created_on"]
+        updated["version"] = genelist.get("version", 1) + 1
+        updated["gene_count"] = len(genes)
+
+        # Handle changelog
+        # Dynamically generate a description of what changed
+        changes = []
+        for field in ["genes", "assays", "groups"]:
+            added = set(updated.get(field, [])) - set(genelist.get(field, []))
+            removed = set(genelist.get(field, [])) - set(updated.get(field, []))
+            if added and removed:
+                changes.append(f"{field.capitalize()} updated.")
+            elif added:
+                changes.append(f"{field.capitalize()} added.")
+            elif removed:
+                changes.append(f"{field.capitalize()} removed.")
+        if not changes:
+            description = "No significant changes."
+        else:
+            description = " ".join(changes)
+
+        change_entry = {
+            "version": updated["version"],
+            "genes": {
+                "added": list(set(updated.get("genes", [])) - set(genelist.get("genes", []))),
+                "removed": list(set(genelist.get("genes", [])) - set(updated.get("genes", []))),
+            },
+            "assays": {
+                "added": list(set(updated.get("assays", [])) - set(genelist.get("assays", []))),
+                "removed": list(set(genelist.get("assays", [])) - set(updated.get("assays", []))),
+            },
+            "groups": {
+                "added": list(set(updated.get("groups", [])) - set(genelist.get("groups", []))),
+                "removed": list(set(genelist.get("groups", [])) - set(updated.get("groups", []))),
+            },
+            "description": description,
+            "updated_on": datetime.utcnow(),
+            "created_by": current_user.email,
+        }
+
+        # Append new changelog entry
+        existing_changelog = genelist.get("changelog", [])
+        updated["changelog"] = existing_changelog + [change_entry]
+
+        store.insilico_genelist_handler.update_genelist(genelist_id, updated)
+
+        # Log Action
+        g.audit_metadata = {"genelist": genelist_id, "description": description}
+
+        flash(f"Genelist '{genelist_id}' updated successfully!", "green")
+        return redirect(url_for("admin_bp.manage_genelists"))
+
+    return render_template("genelists/edit_genelist.html", genelist=genelist, schema=schema)
+
+
+@admin_bp.route("/genelists/<genelist_id>/toggle", methods=["GET"])
+@require("edit_genelist", min_role="manager", min_level=99)
+@log_action(action_name="toggle_genelist", call_type="manager_call")
+def toggle_genelist(genelist_id) -> Response:
+    """
+    Toggles the active status of a genelist by its ID.
+
+    Args:
+        genelist_id (str): The unique identifier of the genelist.
+
+    Returns:
+        Response: Redirects to the genelist management page or aborts with 404 if not found.
+    """
+    genelist = store.insilico_genelist_handler.get_genelist(genelist_id)
+    if not genelist:
+        return abort(404)
+
+    new_status = not genelist.get("is_active", True)
+
+    # Log Action
+    g.audit_metadata = {
+        "genelist": genelist_id,
+        "genelist_status": "Active" if new_status else "Inactive",
+    }
+
+    store.insilico_genelist_handler.toggle_genelist_active(genelist_id, new_status)
+
+    flash(f"Genelist: '{genelist_id}' is now {'active' if new_status else 'inactive'}.", "green")
+    return redirect(url_for("admin_bp.manage_genelists"))
+
+
+@admin_bp.route("/genelists/<genelist_id>/delete", methods=["GET"])
+@require("delete_genelist", min_role="admin", min_level=99999)
+@log_action(action_name="delete_genelist", call_type="admin_call")
+def delete_genelist(genelist_id) -> Response:
+    """
+    Deletes a genelist by its ID, logs the action for auditing, flashes a success message, and redirects to the genelist management page.
+
+    Args:
+        genelist_id (str): The unique identifier of the genelist to delete.
+    """
+    store.insilico_genelist_handler.delete_genelist(genelist_id)
+
+    # Log Action
+    g.audit_metadata = {"genelist": genelist_id}
+
+    flash(f"Genelist '{genelist_id}' deleted successfully!", "green")
+    return redirect(url_for("admin_bp.manage_genelists"))
+
+
+@admin_bp.route("/genelists/<genelist_id>/view", methods=["GET"])
+@require("view_genelist", min_role="user", min_level=9)
+def view_genelist(genelist_id) -> Response | str:
+    """
+    Display a genelist's details and optionally filter its genes by a selected assay.
+
+    Shows all genes by default, or only those covered by the selected assay panel if specified.
+    Redirects with an error if the genelist is not found.
+    """
+
+    genelist = store.insilico_genelist_handler.get_genelist(genelist_id)
+    if not genelist:
+        flash(f"Genelist '{genelist_id}' not found!", "red")
+        return redirect(url_for("admin_bp.manage_genelists"))
+
+    selected_assay = request.args.get("assay")
+
+    all_genes = genelist.get("genes", [])
+    assays = genelist.get("assays", [])
+
+    filtered_genes = all_genes
+    if selected_assay and selected_assay in assays:
+        panel = store.panel_handler.get_panel_by_id(selected_assay)
+        panel_genes = panel.get("covered_genes", []) if panel else []
+        filtered_genes = sorted(set(all_genes).intersection(panel_genes))
+
+    return render_template(
+        "genelists/view_genelist.html",
+        genelist=genelist,
+        selected_assay=selected_assay,
+        filtered_genes=filtered_genes,
+        is_public=False,
+    )
 
 
 # ===========================

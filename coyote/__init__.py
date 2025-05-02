@@ -11,6 +11,12 @@ from coyote.models.user import UserModel
 from coyote.extensions import store
 from pymongo.errors import ConnectionFailure
 import json
+from flask_caching import Cache
+import os
+
+
+# Initialize Flask-Caching
+cache = Cache()
 
 
 def init_app(testing: bool = False, debug: bool = False) -> Flask:
@@ -18,6 +24,12 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
     app = Flask(__name__, instance_relative_config=True)
     app.jinja_env.add_extension("jinja2.ext.do")
     app.jinja_env.filters["from_json"] = json.loads
+
+    # Load the configuration for cache
+    app.config["CACHE_TYPE"] = "redis"
+    app.config["CACHE_REDIS_URL"] = os.getenv("CACHE_REDIS_URL", "redis://redis:6379/0")
+    app.config["CACHE_DEFAULT_TIMEOUT"] = 300
+    app.config["CACHE_KEY_PREFIX"] = "coyote3_cache"
 
     # Allows cross-origin requests for CDM/api
     # /trends needs this to work.
@@ -177,6 +189,8 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
             "has_access": has_access,
         }
 
+    cache.init_app(app)
+    app.cache = cache
     return app
 
 
@@ -274,6 +288,12 @@ def register_blueprints(app) -> None:
     from coyote.blueprints.admin import admin_bp
 
     app.register_blueprint(admin_bp, url_prefix="/admin")
+
+    # register public bp
+    bp_debug_msg("public_bp")
+    from coyote.blueprints.public import public_bp
+
+    app.register_blueprint(public_bp, url_prefix="/public")
 
 
 def init_login_manager(app) -> None:

@@ -51,7 +51,7 @@ class UserModel(BaseModel):
         return self.dict(
             by_alias=True,
             exclude={"updated", "created", "last_login", "password"},
-            exclude_none=True,  # 🔥 this is the magic that removes None fields
+            exclude_none=True,
         )
 
     # -------------------- PROPERTIES & HELPERS --------------------

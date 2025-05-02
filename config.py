@@ -34,6 +34,20 @@ class DefaultConfig:
         "coyote.external@skane.se",
     }
 
+    # For the public assay map
+    # This is used in the public assay matrix
+    PUBLIC_ASSAY_MAP: dict[str, list[str]] = {
+        "ST-DNA": ["solid_GMSv3"],
+        "Hematology": ["hema_GMSv1"],
+        "Myeloid": ["myeloid_GMSv1"],
+        "Lymphoid": ["lymph_GMSv3"],
+        "PGx": ["PGxv1"],
+        "PARP": ["PARP_inhib"],
+        "ST-RNA": ["solidRNA_GMSv5"],
+        "fusion": ["fusion", "fusion_validation_nf"],
+        "WGS": ["tumwgs-solid", "tumwgs-hema"],
+    }
+
     WTF_CSRF_ENABLED = True
     SECRET_KEY: str | None = os.getenv("FLASK_SECRET_KEY")
 
@@ -58,106 +72,33 @@ class DefaultConfig:
     LDAP_SECRET = "secret"
     LDAP_USER_DN = "ou=people"
 
-    _PATH_GROUPS_CONFIG = "config/groups.toml"
-    GROUP_FILTERS: dict[str, Any] = {
-        "warn_cov": 500,
-        "error_cov": 100,
-        "default_popfreq": 1.0,
-        "default_mindepth": 100,
-        "default_spanreads": 0,
-        "default_spanpairs": 0,
-        "default_min_freq": 0.05,
-        "default_min_reads": 10,
-        "default_max_freq": 0.05,
-        "default_min_cnv_size": 100,
-        "default_max_cnv_size": 100000000,
-        "default_checked_conseq": {
-            "splicing": 1,
-            "stop_gained": 1,
-            "frameshift": 1,
-            "stop_lost": 1,
-            "start_lost": 1,
-            "inframe_indel": 1,
-            "missense": 1,
-            "other_coding": 1,
-        },
-        "default_checked_genelists": {},
-        "default_checked_fusionlists": {},
-        "default_checked_fusioneffects": [],
-        "default_checked_fusioncallers": [],
-        "default_checked_cnveffects": [],
-    }
-
-    # Is it redundant? Have a full set from the report.toml
-    TRANS: dict[str, str] = {
-        "nonsynonymous_SNV": "missense SNV",
-        "stopgain": "stop gain",
-        "frameshift_insertion": "frameshift ins",
-        "frameshift_deletion": "frameshift del",
-        "nonframeshift_insertion": "frameshift ins",
-        "nonframeshift_deletion": "frameshift del",
-        "missense_variant": "missense variant",
-        "feature_truncation": "feature truncation",
-        "frameshift_variant": "frameshift variant",
-    }
-
     # Report Config
-    _PATH_REPORT_CONFIG = "config/report.toml"
     REPORTS_BASE_PATH = "/data/bnf/dev/ram/Pipelines/Web_Developement/coyote_blueprinted/reports"
 
-    # For the app Nav Bar
-    ASSAY_GROUPS = {
-        "panels": {
-            "label": "PANELS",
-            "assays": {
-                "myeloid_GMSv1": {"label": "MYELOID", "url": "home_bp.panels_screen"},
-                "solid_GMSv3": {"label": "SOLID", "url": "home_bp.panels_screen"},
-                "PARP_inhib": {"label": "PARP", "url": "home_bp.panels_screen"},
-                "hema_GMSv1": {"label": "HEMA", "url": "home_bp.panels_screen"},
-                "lymphoid_GMSv1": {"label": "LYMPHOID", "url": "home_bp.panels_screen"},
-                "PGxV1": {"label": "PGx", "url": "home_bp.panels_screen"},
-            },
-        },
-        "rna": {
-            "label": "RNA",
-            "assays": {
-                "fusion": {"label": "MYELOID-RNA", "url": "home_bp.rna_screen"},
-                "solidRNA_GMSv5": {"label": "SOLID-RNA", "url": "home_bp.rna_screen"},
-            },
-        },
-        "tumwgs": {
-            "label": "TUMWGS",
-            "assays": {
-                "tumwgs-solid": {"label": "PEDIATRIC-SOLID", "url": "home_bp.tumwgs_screen"},
-                "tumwgs-hema": {"label": "HEMATOLOGY", "url": "home_bp.tumwgs_screen"},
-            },
-        },
-    }
-
-    ASSAY_MAPPER: dict[str, list[str]] = {
-        "exome": ["exome_trio"],
-        "myeloid": [
-            "myeloid",
-            "myeloid_vep",
-            "random",
-            "gms_myeloid",
-            "myeloid_GMSv1",
-            "myeloid_GMSv1_hg38",
-            "GMSHem",
-            # "lymphoid_GMSv1",
-        ],
-        "lymphoid": ["lymphoid", "lymphoid_vep", "lymphoid_GMSv1"],
-        "solid": ["solid_GMSv3"],
-        "swea": ["swea_ovarial"],
-        "devel": ["devel"],
-        "tumwgs": ["tumwgs", "tumwgs-solid", "tumwgs-hema"],
-        # "tumwgs-solid": ["tumwgs-solid"],
-        # "tumwgs-hema": ["tumwgs-hema"],
-        "tumor_exome": ["gisselsson", "mertens"],
-        "fusion": ["fusion", "fusion_validation_nf"],
-        "gmsonco": ["gmsonco", "PARP_inhib"],
-        "fusionrna": ["solidRNA_GMSv5"],
-    }
+    # ASSAY_MAPPER: dict[str, list[str]] = {
+    #     "exome": ["exome_trio"],
+    #     "myeloid": [
+    #         "myeloid",
+    #         "myeloid_vep",
+    #         "random",
+    #         "gms_myeloid",
+    #         "myeloid_GMSv1",
+    #         "myeloid_GMSv1_hg38",
+    #         "GMSHem",
+    #         # "lymphoid_GMSv1",
+    #     ],
+    #     "lymphoid": ["lymphoid", "lymphoid_vep", "lymphoid_GMSv1"],
+    #     "solid": ["solid_GMSv3"],
+    #     "swea": ["swea_ovarial"],
+    #     "devel": ["devel"],
+    #     "tumwgs": ["tumwgs", "tumwgs-solid", "tumwgs-hema"],
+    #     # "tumwgs-solid": ["tumwgs-solid"],
+    #     # "tumwgs-hema": ["tumwgs-hema"],
+    #     "tumor_exome": ["gisselsson", "mertens"],
+    #     "fusion": ["fusion", "fusion_validation_nf"],
+    #     "gmsonco": ["gmsonco", "PARP_inhib"],
+    #     "fusionrna": ["solidRNA_GMSv5"],
+    # }
 
     # REPORT_HEADERS: dict[str, str] = {
     #     "myeloid": "Analysrapport, myeloisk genpanel (NGS)",
@@ -237,13 +178,13 @@ class DefaultConfig:
         """
         return f"mongodb://{self.MONGO_HOST}:{self.MONGO_PORT}/{self.MONGO_DB_NAME}"
 
-    @property
-    def GROUP_CONFIGS(self) -> dict[str, Any]:
-        return toml.load(self._PATH_GROUPS_CONFIG)
+    # @property
+    # def GROUP_CONFIGS(self) -> dict[str, Any]:
+    #     return toml.load(self._PATH_GROUPS_CONFIG)
 
-    @property
-    def REPORT_CONFIG(self) -> dict[str, Any]:
-        return toml.load(self._PATH_REPORT_CONFIG)
+    # @property
+    # def REPORT_CONFIG(self) -> dict[str, Any]:
+    #     return toml.load(self._PATH_REPORT_CONFIG)
 
     @property
     def DB_COLLECTIONS_CONFIG(self) -> dict[str, Any]:
@@ -298,9 +239,9 @@ class TestConfig(DefaultConfig):
     LOGS = "logs/test"
     PRODUCTION = False
     # Paths to config files for testing:
-    _PATH_ASSAY_CONFIG = "tests/config/assays.conf.toml"
-    _PATH_CUTOFF_CONFIG = "tests/config/cutoffs.conf.toml"
-    _PATH_TABLE_CONFIG = "tests/config/tables.conf.toml"
+    # _PATH_ASSAY_CONFIG = "tests/config/assays.conf.toml"
+    # _PATH_CUTOFF_CONFIG = "tests/config/cutoffs.conf.toml"
+    # _PATH_TABLE_CONFIG = "tests/config/tables.conf.toml"
 
     APP_VERSION: str = f"{app_version}-Test (git: {CommonUtility.get_active_branch_name()})"
 

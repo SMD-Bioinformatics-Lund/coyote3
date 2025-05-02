@@ -1753,6 +1753,31 @@
   background-color: #f5a25d; /* Darker orange */
 }
 
+/* colors for genelists types */
+.bg-genelist {
+  background-color: #d1d2fa; /* Muted Light purple */
+}
+
+.bg-fusionlist {
+  background-color: #ccf9d8; /* Muted Mint Green */
+}
+
+.bg-cnvlist {
+  background-color: #ffe3c2; /* Muted Peach/Orange */
+}
+
+.text-genelist {
+  color: #6f3ee0; /* Deep Blue */
+}
+
+.text-fusionlist {
+  color: #166534; /* Deep Green */
+}
+
+.text-cnvlist {
+  color: #92400e; /* Deep Orange/Brown */
+}
+
 
 /* Style table headers for sorting */
 th {

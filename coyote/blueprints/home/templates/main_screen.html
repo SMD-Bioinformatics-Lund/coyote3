@@ -241,14 +241,14 @@
                       </td>
                       <td class="p-2 font-medium">
                         {% if has_access('view_reports', min_role='admin') %}
-                          {% for rep in sample.reports %}
-                            <a
-                            href="{{ url_for('home_bp.view_report', sample_id=sample.name, report_id=rep.report_id) }}"
-                            class="text-blue-500 hover:underline"
-                          >
-                            {{ rep.report_num }}
-                          </a>
-                          {% endfor %}
+                            {% for rep in sample.reports %}
+                              <a
+                                href="{{ url_for('home_bp.view_report', sample_id=sample.name, report_id=rep.report_id) }}"
+                                class="inline-block bg-blue-400 text-white px-2 py-0.5 rounded-lg text-xs font-bold mx-1 hover:bg-blue-500 transition"
+                              >
+                                {{ rep.report_num }}
+                              </a>
+                            {% endfor %}
                         {% else %}
                           No Access
                         {% endif %}

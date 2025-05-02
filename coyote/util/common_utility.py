@@ -9,6 +9,7 @@ from datetime import datetime
 from io import BytesIO
 import base64
 from datetime import timedelta
+from hashlib import md5
 
 
 class CommonUtility:
@@ -543,3 +544,10 @@ class CommonUtility:
         Get date a specified number of days ago
         """
         return datetime.now() - timedelta(days=days)
+
+    @staticmethod
+    def generate_sample_cache_key(user_groups, status, search_str) -> str:
+        groups_sorted = sorted(user_groups)
+        groups_string = "-".join(groups_sorted)
+        raw_key = f"{groups_string}:{status}:{search_str}"
+        return f"samples:{md5(raw_key.encode()).hexdigest()}"  # safer to hash it

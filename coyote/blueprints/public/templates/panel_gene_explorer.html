@@ -1,0 +1,121 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<div class="flex w-full h-full overflow-hidden">
+
+  <main class="flex-1 overflow-y-auto p-4 flex flex-col">
+    <section class="p-2 ml-2 mt-2">
+      <h1 class="text-xl font-bold mb-4">Assay Panel Gene Explorer</h1>
+
+      <!-- Panel (Assay) Selection -->
+      <div class="flex flex-wrap gap-3 mb-6">
+        {% for panel in panels %}
+          <a href="{{ url_for('public_bp.panel_gene_explorer', panel=panel) }}"
+              title="{{ config.PUBLIC_ASSAY_MAP[panel] | join(', ') }}"
+              class="inline-flex items-center px-2.5 py-1 rounded-full border text-sm font-semibold tracking-wide
+                    transition-all duration-200 ease-in-out transform border-gray-500
+                    {% if panel == selected_panel_name %}
+                      bg-blue-400 text-white shadow-md hover:bg-blue-500 hover:shadow-lg scale-110 
+                    {% else %}
+                      bg-white text-black shadow hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 hover:shadow-md hover:scale-110
+                    {% endif %}">
+            {{ panel }}
+          </a>
+        {% endfor %}
+      </div>
+
+
+      <!-- Subpanel (Diagnosis) Selection -->
+      {% if selected_panel_name and subpanels %}
+        <h2 class="text-md font-semibold mb-3 text-black">Select a diagnosis/subtype:</h2>
+        <div class="flex flex-wrap gap-3 mb-6">
+          {% for sub in subpanels %}
+            <a href="{{ url_for('public_bp.panel_gene_explorer', panel=selected_panel_name, subpanel=sub) }}"
+                class="inline-flex items-center px-2.5 py-1 rounded-2xl border text-xs font-medium tracking-wide
+                      transition-all duration-200 ease-in-out transform border-gray-500
+                      {% if sub == selected_subpanel_name %}
+                        bg-indigo-500 text-white shadow-md hover:bg-indigo-300 hover:text-black hover:shadow-lg scale-110
+                      {% else %}
+                        bg-white text-black shadow hover:bg-indigo-100 hover:border-indigo-500 hover:text-indigo-700 hover:shadow-md hover:scale-110
+                      {% endif %}">
+              {{ sub }}
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+
+      <!-- Gene Details Table -->
+      {% if gene_details %}
+        <div class="flex flex-row justify-between items-center gap-4 px-2 py-2">
+          <h2 class="text-base font-semibold text-black tracking-wide capitalize">Genes in diagnosis/subtype: {{ selected_subpanel_name }}</h2>
+          <div class="relative w-64">
+            <input type="text" id="search-genes" class="w-full border border-gray-300 rounded-lg py-2 pl-4 pr-10 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="Search Genes">
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="search genes" class="h-5 w-5 text-gray-500 cursor-pointer" onclick="document.getElementById('search-genes').focus()">
+            </div>
+          </div>
+        </div>
+        <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" id="genes-div" data-rows-per-page="25" pagination-button-color="blue" pagination-button-text-color="black">
+          <table id="genes-table" class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
+            <thead class="rounded-t-2xl overflow-hidden border-gray-800">
+              <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
+                <th class="p-2 font-normal">Gene Symbol</th>
+                <th class="p-2 font-normal">Description</th>
+                <th class="p-2 font-normal">Transcript</th>
+                <th class="p-2 font-normal">Comment</th>
+              </tr>
+            </thead>
+            <tbody id="genes-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
+              {% for gene in gene_details %}
+                <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
+                  <td class="p-2 font-medium">{{ gene }}</td>
+                  <td class="p-2 font-medium">{{ gene.description or '-' }}</td>
+                  <td class="p-2 font-medium">{{ gene.transcript or '-' }}</td>
+                  <td class="p-2 font-medium">{{ gene.comment or '-' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% elif selected_panel_name and selected_subpanel_name %}
+        <p class="mt-4 text-gray-500">No genes found for this diagnosis.</p>
+      {% endif %}
+    </section>
+  </main>
+</div>
+
+<script>
+
+  const input = document.getElementById('search-genes');
+  const body = document.getElementById('genes-body');
+  const container = document.getElementById('genes-div');
+  const rowsPerPage = parseInt(container.dataset.rowsPerPage) || 25;
+  const originalRows = [...body.querySelectorAll('tr')].map(r => r.cloneNode(true));
+  const id = body.id;
+
+  input.addEventListener('input', () => {
+    const term = input.value.toLowerCase().trim();
+
+    // Remove any existing pagination controls
+    container.querySelectorAll('[data-prev], [data-next], [data-page-info]').forEach(el => el.parentElement?.remove());
+
+    // Filter rows or reset
+    const filtered = term
+      ? originalRows.filter(row =>
+          [...row.querySelectorAll('td')].slice(0, 4).some(td =>
+            td.textContent.toLowerCase().includes(term)
+          )
+        )
+      : originalRows;
+
+    // Replace table body with filtered or full rows
+    body.innerHTML = '';
+    filtered.forEach(row => body.appendChild(row));
+
+    // Trigger pagination if needed
+    filtered.length > rowsPerPage ? initializePagination() : displayPage(1, id, rowsPerPage);
+  });
+</script>
+
+{% endblock %}

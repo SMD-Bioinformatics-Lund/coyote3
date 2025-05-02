@@ -12,6 +12,7 @@ def display_genepanels() -> str:
     """
     Gene Panels
     """
+    app.genepanels_logger.info("Genepanels logging ")
     assays = store.panel_handler.get_all_panel_assays()
     assays.sort()
 

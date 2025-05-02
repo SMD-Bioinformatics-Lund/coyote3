@@ -15,6 +15,10 @@ class PanelsHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.panels_collection)
 
+    def get_all_panels(self) -> list:
+        """Fetch all panels."""
+        return list(self.get_collection().find({}, {"genes": 0}).sort([("created_on", -1)]))
+
     def get_assay_panels(self, assay: str) -> list:
         panels = list(self.get_collection().find({"assays": {"$in": [assay]}}))
         gene_lists = {}
@@ -23,7 +27,6 @@ class PanelsHandler(BaseHandler):
                 gene_lists[panel["name"]] = panel["genes"]
         return gene_lists, panels
 
-    @lru_cache(maxsize=2)
     def get_assay_panel_names(self, assay: str) -> dict:
         """
         Get panel name, display name and panel type for a given assay
@@ -39,13 +42,101 @@ class PanelsHandler(BaseHandler):
         panel = self.get_collection().find_one({"name": subpanel, "type": type})
         return panel
 
+    def get_panel_by_id(self, panel_id: str) -> dict:
+        """
+        Get a panel by its ID
+        """
+        return self.get_collection().find_one({"_id": panel_id})
+
+    def get_genelist(self, genelist_id: str) -> dict:
+        """
+        Get a gene panel by its ID
+        """
+        return self.get_collection().find_one({"_id": genelist_id})
+
+    def insert_genelist(self, data: dict):
+        """
+        Insert a gene panel
+        """
+        return self.get_collection().insert_one(data)
+
+    def get_all_assay_panels(self) -> list:
+        """Fetch all panels and calculate covered_genes_count properly."""
+        return list(self.get_collection().find())
+
+    def insert_panel(self, data: dict):
+        """
+        Insert a gene panel
+        """
+        return self.get_collection().insert_one(data)
+
+    def update_panel(self, assay_panel_id, panel_data) -> None:
+        """
+        Update a panel's data in the database.
+        Args:
+            assay_panel_id: The unique identifier of the panel.
+            panel_data: The new data to replace the existing panel data.
+        Returns:
+            None
+        """
+        return self.get_collection().replace_one({"_id": assay_panel_id}, panel_data)
+
+    def toggle_active(self, panel_id: str, active_status: bool) -> bool:
+        """
+        Toggles the active status of a panel in the database.
+        Args:
+            panel_id (str): The unique identifier of the panel.
+            active_status (bool): The desired active status to set.
+        Returns:
+            bool: True if the update was successful, False otherwise.
+        """
+        return self.get_collection().update_one(
+            {"_id": panel_id}, {"$set": {"is_active": active_status}}
+        )
+
+    def delete_panel(self, panel_id: str) -> None:
+        """
+        Deletes a panel from the database by its unique ID.
+        Args:
+            panel_id: The unique identifier of the panel to be deleted.
+        Returns:
+            None
+        """
+        return self.get_collection().delete_one({"_id": panel_id})
+
+    def get_assay_panel_group_mappings(self) -> dict:
+        """Return a mapping of assay panel_name to its panel_group."""
+        cursor = self.get_collection().find(
+            {"is_active": True}, {"panel_name": 1, "panel_group": 1}
+        )
+        return {
+            doc["panel_name"]: doc.get("panel_group", "Unknown")
+            for doc in cursor
+            if "panel_name" in doc
+        }
+
+    def get_all_panels_summary(self) -> list[dict]:
+        """
+        Return all panel documents with only assay_name and group for summary views.
+        Example:
+        [
+            {"assay_name": "hema_GMSv1", "group": "hema"},
+            {"assay_name": "solid_GMSv3", "group": "solid"},
+            ...
+        ]
+        """
+        cursor = self.get_collection().find({}, {"_id": 0, "panel_name": 1, "panel_group": 1})
+        return [
+            {"panel_name": panel.get("panel_name"), "group": panel.get("panel_group", "Unknown")}
+            for panel in cursor
+        ]
+
     def panel_exists(self, type: str, subpanel: str) -> bool:
         """
         Check if a panel of given type and subpanel name exists in the collection.
         """
         return self.get_collection().count_documents({"name": subpanel, "type": type}, limit=1) > 0
 
-    @lru_cache(maxsize=2)
     def get_unique_all_panel_gene_count(self) -> int:
         """
         Get unique gene count from all the panels
@@ -67,7 +158,6 @@ class PanelsHandler(BaseHandler):
             app.logger.error(f"An error occurred: {e}")
             return 0
 
-    @lru_cache(maxsize=2)
     def get_assay_gene_counts(self):
         """
         Get a dictionary where assays are keys and counts of genes are values
@@ -87,7 +177,6 @@ class PanelsHandler(BaseHandler):
             app.logger.error(f"An error occurred: {e}")
             return {}
 
-    @lru_cache(maxsize=2)
     def get_genelist_gene_counts(self):
         """
         Get a dictionary where display names (gene list names) are keys and counts of genes are values
@@ -247,3 +336,23 @@ class PanelsHandler(BaseHandler):
             {"assays": {"$in": [assay]}, "name": {"$in": names_list}}
         )
         return assay_gene_lists
+
+    def get_all_genelists(self, filter_query: dict = None) -> list:
+        """
+        Returns all genelists matching a filter query.
+        """
+        filter_query = filter_query or {}
+        cursor = self.get_collection().find(filter_query).sort("created_on", -1)
+        return list(cursor)
+
+    def get_all_groups(self) -> list:
+        """
+        Fetch distinct groups across all genelists.
+        """
+        return self.get_collection().distinct("panel_group")
+
+    def get_all_assays(self) -> list:
+        """
+        Fetch distinct groups across all genelists.
+        """
+        return self.get_collection().distinct("panel_name")

@@ -46,19 +46,27 @@ def home_screen(status="live"):
 
     if status == "done" or search_mode in ["done", "both"]:
         done_samples = store.sample_handler.get_samples(
-            user_groups=user_groups, search_str=search_str, report=True, limit=limit_done_samples
+            user_groups=user_groups,
+            status=status,
+            search_str=search_str,
+            report=True,
+            limit=limit_done_samples,
         )
     elif status == "live":
         time_limit = util.common.get_date_days_ago(days=1000)
         done_samples = store.sample_handler.get_samples(
-            user_groups=user_groups, search_str=search_str, report=True, time_limit=time_limit
+            user_groups=user_groups,
+            status=status,
+            search_str=search_str,
+            report=True,
+            time_limit=time_limit,
         )
     else:
         done_samples = []
 
     if status == "live" or search_mode in ["live", "both"]:
         live_samples = store.sample_handler.get_samples(
-            user_groups=user_groups, search_str=search_str, report=False
+            user_groups=user_groups, status=status, search_str=search_str, report=False
         )
     else:
         live_samples = []
@@ -193,8 +201,6 @@ def view_report(sample_id, report_id):
 
     # get the report path from the sample_id and report_id
     report = store.sample_handler.get_report(sample_id, report_id)
-    print(report)
-
     filepath = report.get("filepath", None)
     if filepath:
         # Get directory and filename

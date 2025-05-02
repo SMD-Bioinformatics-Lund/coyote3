@@ -27,6 +27,7 @@ from coyote.db.schemas import SchemaHandler
 from coyote.db.roles import RolesHandler
 from coyote.db.permissions import PermissionsHandler
 from coyote.db.vep_meta import VEPMetaHandler
+from coyote.db.insilio_genelists import InsilicoGenelistHandler
 
 
 class MongoAdapter:
@@ -109,3 +110,4 @@ class MongoAdapter:
         self.roles_handler = RolesHandler(self)
         self.permissions_handler = PermissionsHandler(self)
         self.vep_meta_handler = VEPMetaHandler(self)
+        self.insilico_genelist_handler = InsilicoGenelistHandler(self)

@@ -2,41 +2,116 @@ from bson.objectid import ObjectId
 from coyote.db.base import BaseHandler
 from datetime import datetime
 from flask_login import current_user
+from coyote.util.common_utility import CommonUtility
+from flask import current_app as app
 
 
 class SampleHandler(BaseHandler):
     """
-    Sample handler from coyote["samples"]
+    SampleHandler provides methods for managing and querying sample documents in the database.
     """
 
     def __init__(self, adapter):
         super().__init__(adapter)
         self.set_collection(self.adapter.samples_collection)
 
-    def get_samples(
+    def _query_samples(
         self,
-        user_groups: list = [],
-        report: bool = False,
-        search_str: str = "",
+        user_groups: list,
+        report: bool,
+        search_str: str,
         limit=None,
         time_limit=None,
     ):
+        """
+        Query samples based on user groups, report status, search string, and optional time limit.
+        Args:
+            user_groups (list): List of user group identifiers to filter samples.
+            report (bool): Whether to include report-specific samples.
+            search_str (str): Search string to filter samples.
+            limit (int, optional): Maximum number of samples to return (default: None).
+            time_limit (datetime, optional): Time constraint for filtering samples (default: None).
+        Returns:
+            list: List of sample records matching the specified criteria.
+        Notes:
+            - If `report` is True, filters samples with report_num > 0 and time_created > time_limit.
+            - If `report` is False, filters samples with report_num = 0 or not present.
+            - If `search_str` is provided, filters samples by name using regex.
+        """
         query = {"groups": {"$in": user_groups}}
-        if report and time_limit:
+
+        if report:
             query["report_num"] = {"$gt": 0}
-            query["reports"] = {"$elemMatch": {"time_created": {"$gt": time_limit}}}
-        elif report and not time_limit:
-            query["report_num"] = {"$gt": 0}
+            if time_limit:
+                query["reports"] = {"$elemMatch": {"time_created": {"$gt": time_limit}}}
         else:
             query["$or"] = [{"report_num": {"$exists": False}}, {"report_num": 0}]
 
-        self.app.logger.info(f"this is my search string: {search_str}")
-        if len(search_str) > 0:
+        if search_str:
             query["name"] = {"$regex": search_str}
 
+        app.logger.debug(f"Sample query: {query}")
+
         samples = list(self.get_collection().find(query).sort("time_added", -1))
+
         if limit:
             samples = samples[:limit]
+
+        return samples
+
+    def get_samples(
+        self,
+        user_groups: list,
+        status: str = "live",
+        report: bool = False,
+        search_str: str = "",
+        limit: int = None,
+        time_limit=None,
+        use_cache: bool = True,
+        cache_timeout: int = 120,
+    ):
+        """
+        Retrieve sample records for the specified user groups, optionally using caching for performance.
+        Args:
+            user_groups (list): List of user group identifiers to filter samples.
+            status (str, optional): Status of the samples to retrieve (default: "live").
+            report (bool, optional): Whether to include report-specific samples (default: False).
+            search_str (str, optional): Search string to filter samples (default: "").
+            limit (int, optional): Maximum number of samples to return (default: None, returns all).
+            time_limit (optional): Time constraint for filtering samples (default: None).
+            use_cache (bool, optional): Whether to use cache for retrieving samples (default: True).
+            cache_timeout (int, optional): Cache timeout in seconds (default: 120).
+        Returns:
+            list: List of sample records matching the specified criteria.
+        Notes:
+            - Uses a cache key generated from user_groups, status, and search_str.
+            - If caching is enabled and a cache hit occurs, returns cached samples.
+            - On cache miss or if caching is disabled, queries the database and updates the cache.
+        """
+
+        cache_key = CommonUtility.generate_sample_cache_key(user_groups, status, search_str)
+
+        if use_cache:
+            samples = app.cache.get(cache_key)
+            if samples:
+                app.logger.info(f"[SAMPLES CACHE HIT] {cache_key}")
+                return samples
+            else:
+                app.logger.info(f"[SAMPLES CACHE MISS] {cache_key} — fetching from DB.")
+
+        # If no cache or use_cache=False, or cache miss
+        samples = self._query_samples(
+            user_groups=user_groups,
+            report=report,
+            search_str=search_str,
+            limit=limit,
+            time_limit=time_limit,
+        )
+
+        if use_cache:
+            app.cache.set(cache_key, samples, timeout=cache_timeout)
+            app.logger.debug(f"[SAMPLES CACHE SET] {cache_key} (timeout={cache_timeout}s)")
+
         return samples
 
     def get_sample(self, name: str):

@@ -78,6 +78,12 @@ class AssayConfigsHandler(BaseHandler):
         """
         return self.get_collection().distinct("assay_group")
 
+    def get_all_assay_names(self) -> dict:
+        """
+        Retrieves a list of all assay names from the collection.
+        """
+        return self.get_collection().distinct("assay_name")
+
     def get_assay_group_mappings(self) -> dict:
         """
         Retrieves a list of all assay group mappings from the collection.

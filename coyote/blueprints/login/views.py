@@ -42,8 +42,6 @@ def login():
 
         # 3. Merge role + build user model
         role_doc = store.roles_handler.get_role(user_doc.get("role")) or {}
-        print(user_doc)
-        print(role_doc)
         user_model = UserModel.from_mongo(user_doc, role_doc)
         user = User(user_model)
 

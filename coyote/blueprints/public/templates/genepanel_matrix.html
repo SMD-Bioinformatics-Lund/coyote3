@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+{% block title %}Gene Panel Matrix{% endblock %}
+{% block body %}
+<div class="flex w-full h-full overflow-hidden">
+  <main class="flex-1 overflow-y-auto p-4 flex flex-col">
+    <section class="p-2 ml-2 mt-2">
+      <div class="bg-blue-50 rounded-2xl shadow-xl p-4">
+
+        <h1 class="text-lg font-bold text-blue-500 mb-4">Panel-Genelist Matrix</h1>
+        <div class="overflow-x-auto">
+          <table class="table-auto bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
+            <thead class="rounded-t-2xl overflow-hidden border-gray-800">
+              <!-- First Header Row: Public Group Names -->
+              <tr class="border-b text-left border-gray-800 bg-blue-200 tracking-wider shadow-xl rounded-t-2xl">
+                <th class="p-2 font-normal">Genelist Name</th>
+                {% for group, assays in assay_grouped.items() %}
+                  <th class="p-2 font-normal border-l border-gray-400 text-center" colspan="{{ assays|length }}">
+                    {{ group }}
+                  </th>
+                {% endfor %}
+              </tr>
+
+              <!-- Second Header Row: Assay IDs -->
+              <tr class="border-b text-left border-gray-800 bg-blue-100 tracking-wider shadow-xl rounded-t-2xl">
+                <th class="p-2 font-normal">&nbsp;</th>
+                {% for group, assays in assay_grouped.items() %}
+                  {% for assay in assays %}
+                    <th class="p-2 font-normal">{{ assay }}</th>
+                  {% endfor %}
+                {% endfor %}
+              </tr>
+            </thead>
+
+            <tbody class="text-gray-800 rounded-b-2xl overflow-hidden">
+              {% for genelist in genelists %}
+                <tr class="border-t border-black hover:bg-blue-100 text-left last:rounded-b-2xl">
+                  <td class="p-2 font-medium bg-{{genelist.list_type}}">
+                    {{ genelist.displayname or genelist.name }} ({{ genelist.list_type[0]|upper }})
+                  </td>
+
+                  {% for group, assays in assay_grouped.items() %}
+                    {% for assay in assays %}
+                      <td class="px-2 py-1 text-center">
+                        {% if assay in genelist.assays %}
+                          <div class="flex justify-center items-center">
+                            <a href="{{ url_for('public_bp.view_genelist', genelist_id=genelist._id, assay=assay) }}">
+                              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/check-circle.svg') }}"
+                                    alt="Present"
+                                    class="h-5 w-5 text-gray-500 cursor-pointer transition transform hover:scale-110">
+                            </a>
+                          </div>
+                        {% endif %}
+                      </td>
+                    {% endfor %}
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </section>
+  </main>
+</div>
+{% endblock %}

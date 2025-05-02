@@ -148,3 +148,6 @@ scripts/migrate_variants_idref.py
 reports
 tests
 *dummy*
+
+# coyote
+redis_data

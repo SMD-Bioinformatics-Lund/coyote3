@@ -3,27 +3,22 @@ version: '3.9'
 # docker-compose up -d
 # docker-compose down
 services:
-  coyote3_app:
-    container_name: coyote3_app
-    build:
-      context: .
-      dockerfile: Dockerfile
-      network: host
-      target: coyote3_app
-    image: coyote3:3.0.0.alpha-3
-    network_mode: bridge
+  coyote3_app_beta1:
+    container_name: coyote3_app_beta1
+    image: coyote3:3.0.0.beta-1  # only this now
     ports:
-      - "8815:5000"
+      - "5816:8000"
+    env_file:
+      - .beta1.env
     environment:
-      - PYHTONDONTWRITEBYTECODE=1
+      - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
       - FLASK_APP=wsgi.py
-      - FLASK_MONGO_HOST=localhost
-      - FLASK_MONGO_PORT=27017
       - FLASK_DEBUG=1
-      - SCRIPT_NAME=''
       - TZ=Europe/Stockholm
     restart: always
+    depends_on:
+      - redis
     volumes:
       - ".git:/app/.git"
       - "./coyote:/app/coyote"
@@ -33,5 +28,18 @@ services:
       - "./wsgi.py:/app/wsgi.py"
       - "./gunicorn_config.py:/app/gunicorn_config.py"
       - "./logging_setup.py:/app/logging_setup.py"
+      - "/access:/access"
+      - "/media:/media"
+      - "/data:/data"
     command: "python3 wsgi.py"
 
+
+  redis:
+    container_name: redis
+    image: ramsainanduri/redis:7.4.3
+    ports:
+      - "6379:6379"
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    restart: unless-stopped
+    privileged: true

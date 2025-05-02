@@ -122,7 +122,7 @@
   const input = document.getElementById('search-assay');
   const body = document.getElementById('assay-config-list-body');
   const container = document.getElementById('assay-config-list');
-  const rowsPerPage = parseInt(container.dataset.rowsPerPage) || 15;
+  const rowsPerPage = parseInt(container.dataset.rowsPerPage) || 20;
   const originalRows = [...body.querySelectorAll('tr')].map(r => r.cloneNode(true));
   const id = body.id;
 

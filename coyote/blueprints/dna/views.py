@@ -1256,7 +1256,6 @@ def generate_dna_report(sample_id, **kwargs) -> Response | str:
     if assay_group != "solid":
         low_cov = util.dna.filter_low_coverage_with_cosmic(low_cov, cosmic_ids)
     # low_cov = store.coverage_handler.get_sample_coverage(sample["name"])
-    # print(list(low_cov))
     display_sections_data["low_cov"] = deepcopy(low_cov)
 
     # report header and date

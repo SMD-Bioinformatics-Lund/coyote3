@@ -15,11 +15,8 @@ class UsersHandler(BaseHandler):
         Args:
             adapter: The database adapter to interact with the users collection.
         """
-
         super().__init__(adapter)
         self.set_collection(self.adapter.users_collection)
-
-    coyote_users_collection: pymongo.collection.Collection
 
     def user(self, user_mail: str) -> dict:
         """
@@ -29,7 +26,6 @@ class UsersHandler(BaseHandler):
         Returns:
             dict: A dictionary representation of the user document.
         """
-
         return dict(self.get_collection().find_one({"email": user_mail}))
 
     def user_with_id(self, user_id: str) -> dict:
@@ -40,7 +36,6 @@ class UsersHandler(BaseHandler):
         Returns:
             dict: A dictionary representation of the user document.
         """
-
         return dict(self.get_collection().find_one({"_id": user_id}))
 
     def update_password(self, username, password_hash) -> None:
@@ -68,7 +63,6 @@ class UsersHandler(BaseHandler):
         Returns:
             bool: True if the user exists, False otherwise.
         """
-
         if not user_id and not email:
             return False
 
@@ -86,7 +80,6 @@ class UsersHandler(BaseHandler):
         Returns:
             None
         """
-
         return self.get_collection().insert_one(user_data)
 
     def get_all_users(self) -> list:
@@ -95,7 +88,6 @@ class UsersHandler(BaseHandler):
         Returns:
             list: A list of user documents.
         """
-
         return list(self.get_collection().find().sort([("fullname", pymongo.ASCENDING)]))
 
     def delete_user(self, user_id) -> None:
@@ -106,7 +98,6 @@ class UsersHandler(BaseHandler):
         Returns:
             None
         """
-
         return self.get_collection().delete_one({"_id": user_id})
 
     def update_user(self, user_id, user_data) -> None:
@@ -118,7 +109,6 @@ class UsersHandler(BaseHandler):
         Returns:
             None
         """
-
         return self.get_collection().replace_one({"_id": user_id}, user_data)
 
     def update_user_last_login(self, user_id: str):
@@ -141,7 +131,6 @@ class UsersHandler(BaseHandler):
         Returns:
             bool: True if the update was successful, False otherwise.
         """
-
         return self.get_collection().update_one(
             {"_id": user_id}, {"$set": {"is_active": active_status}}
         )

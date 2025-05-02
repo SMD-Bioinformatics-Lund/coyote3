@@ -53,24 +53,42 @@ class AdminUtility:
     @staticmethod
     def process_form_to_config(form: dict, schema: dict) -> dict:
         """
-        Process form data into an assay config dict based on schema field types.
-        Converts strings to appropriate Python types.
+        Process form data into a config dict based on schema field types.
+        Supports nested subschemas and list of subschemas.
         """
-
         config = {}
 
         for key, field in schema.get("fields", {}).items():
             if field["type"] == "subschema":
                 subschema = schema.get("subschemas", {}).get(field["schema"])
                 if subschema:
-                    sub_config = {}
-                    for subkey, subfield in subschema["fields"].items():
-                        form_key = f"{key}.{subkey}"
-                        if form_key in form:
-                            sub_config[subkey] = AdminUtility.cast_value(
-                                form[form_key], subfield["type"]
+                    if field.get("type") == "list":
+                        # Handle list of subschemas
+                        sub_configs = []
+                        # Assume form[key] is a list of dicts or json string
+                        if key in form:
+                            entries = (
+                                json.loads(form[key]) if isinstance(form[key], str) else form[key]
                             )
-                    config[key] = sub_config
+                            for entry in entries:
+                                sub_config = {}
+                                for subkey, subfield in subschema["fields"].items():
+                                    if subkey in entry:
+                                        sub_config[subkey] = AdminUtility.cast_value(
+                                            entry[subkey], subfield["type"]
+                                        )
+                                sub_configs.append(sub_config)
+                        config[key] = sub_configs
+                    else:
+                        # Normal nested dict subschema
+                        sub_config = {}
+                        for subkey, subfield in subschema["fields"].items():
+                            form_key = f"{key}.{subkey}"
+                            if form_key in form:
+                                sub_config[subkey] = AdminUtility.cast_value(
+                                    form[form_key], subfield["type"]
+                                )
+                        config[key] = sub_config
             else:
                 if key in form:
                     config[key] = AdminUtility.cast_value(form[key], field["type"])
@@ -81,28 +99,47 @@ class AdminUtility:
     def cast_value(value, field_type):
         """
         Casts a value to the specified field type.
-        Handles types: int, float, bool, list, json.
+        Handles types: int, float, bool, list, json safely.
         """
-        # flatten form data if it’s a list with single value
+
+        # Handle None or empty strings gracefully
+        if value is None or (isinstance(value, str) and value.strip() == ""):
+            if field_type in ["list", "json"]:
+                return [] if field_type == "list" else {}
+            return None
+
+        # Flatten list if needed
         if isinstance(value, list) and len(value) == 1 and field_type not in ["list", "json"]:
             value = value[0]
 
         if field_type == "int":
-            return int(float(value))  # handles both "5" and "5.0"
+            try:
+                return int(float(value))  # Safe parse
+            except (ValueError, TypeError):
+                return None
         elif field_type == "float":
-            return float(value)
+            try:
+                return float(value)
+            except (ValueError, TypeError):
+                return None
         elif field_type == "bool":
             return str(value).lower() in ["true", "1", "yes", "on"]
         elif field_type == "list":
-            try:
-                return json.loads(value) if isinstance(value, str) else value
-            except Exception:
-                return []
+            if isinstance(value, str):
+                try:
+                    return json.loads(value)
+                except Exception:
+                    # Fallback to simple comma split
+                    return [v.strip() for v in value.split(",") if v.strip()]
+            return value
         elif field_type == "json":
-            try:
-                return json.loads(value) if isinstance(value, str) else value
-            except Exception:
-                return {}
+            if isinstance(value, str):
+                try:
+                    return json.loads(value)
+                except Exception:
+                    return {}
+            return value
+
         return value
 
     @staticmethod
