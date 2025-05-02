@@ -271,12 +271,6 @@ def register_blueprints(app) -> None:
 
     app.register_blueprint(dashboard_bp, url_prefix="/")
 
-    # register genepanels bp
-    bp_debug_msg("genepanels_bp")
-    from coyote.blueprints.genepanels import genepanels_bp
-
-    app.register_blueprint(genepanels_bp, url_prefix="/genepanels")
-
     # register coverage bp
     bp_debug_msg("cov_bp")
     from coyote.blueprints.coverage import cov_bp

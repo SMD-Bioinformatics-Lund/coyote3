@@ -24,7 +24,7 @@ def profile():
         "profile.html",
         username=current_user.username,
         email=current_user.email,
-        role=current_user.role.value.title(),
+        role=current_user.role,
         groups=current_user.groups,
         fullname=current_user.fullname,
         csrf_token=csrf_token,
