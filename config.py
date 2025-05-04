@@ -49,6 +49,10 @@ class DefaultConfig:
         "WGS": ["tumwgs-solid", "tumwgs-hema"],
     }
 
+    # REDIS CACHE TIMEOUTS
+    CACHE_TIMEOUT_SAMPLES = 300  # 5 minutes
+
+    # Fernet key for encrypting sensitive data in the report
     FERNET_KEY = Fernet.generate_key()  # store this securely
     FERNET = Fernet(FERNET_KEY)
 
@@ -125,7 +129,11 @@ class DefaultConfig:
     # }
 
     CONSEQ_TERMS_MAPPER: dict[str, list[str]] = {
-        "splicing": ["splice_acceptor_variant", "splice_donor_variant", "splice_region_variant"],
+        "splicing": [
+            "splice_acceptor_variant",
+            "splice_donor_variant",
+            "splice_region_variant",
+        ],
         "stop_gained": ["stop_gained"],
         "frameshift": ["frameshift_variant"],
         "stop_lost": ["stop_lost"],
@@ -135,9 +143,16 @@ class DefaultConfig:
         "synonymous": ["stop_retained_variant", "synonymous_variant"],
         "other_coding": ["coding_sequence_variant"],
         "UTR": ["5_prime_UTR_variant", "3_prime_UTR_variant"],
-        "non_coding": ["non_coding_transcript_exon_variant", "non_coding_transcript_variant"],
+        "non_coding": [
+            "non_coding_transcript_exon_variant",
+            "non_coding_transcript_variant",
+        ],
         "intronic": ["intron_variant"],
-        "intergenic": ["intergenic_variant", "downstream_gene_variant", "upstream_gene_variant"],
+        "intergenic": [
+            "intergenic_variant",
+            "downstream_gene_variant",
+            "upstream_gene_variant",
+        ],
         "regulatory": ["regulatory_region_variant", "TF_binding_site_variant"],
         "feature_elon_trunc": ["feature_elongation", "feature_truncation"],
     }
@@ -195,9 +210,14 @@ class DefaultConfig:
 
         db_config: dict[str, Any] = toml.load(self._PATH_DB_COLLECTIONS_CONFIG)
 
-        if not all(db in db_config for db in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME]):
+        if not all(
+            db in db_config
+            for db in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME]
+        ):
             missing_dbs = [
-                db for db in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME] if db not in db_config
+                db
+                for db in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME]
+                if db not in db_config
             ]
             raise ValueError(
                 f"Database(s) {', '.join(missing_dbs)} not found in the database configuration. Check the config file. ({self._PATH_DB_COLLECTIONS_CONFIG})"
@@ -232,7 +252,9 @@ class DevelopmentConfig(DefaultConfig):
     LOGS = "logs/dev"
     PRODUCTION = False
     SECRET_KEY = "traskbatfluga"
-    APP_VERSION: str = f"{app_version}-DEV (git: {CommonUtility.get_active_branch_name()})"
+    APP_VERSION: str = (
+        f"{app_version}-DEV (git: {CommonUtility.get_active_branch_name()})"
+    )
 
 
 class TestConfig(DefaultConfig):
@@ -247,7 +269,9 @@ class TestConfig(DefaultConfig):
     # _PATH_CUTOFF_CONFIG = "tests/config/cutoffs.conf.toml"
     # _PATH_TABLE_CONFIG = "tests/config/tables.conf.toml"
 
-    APP_VERSION: str = f"{app_version}-Test (git: {CommonUtility.get_active_branch_name()})"
+    APP_VERSION: str = (
+        f"{app_version}-Test (git: {CommonUtility.get_active_branch_name()})"
+    )
 
     MONGO_HOST = "localhost"
     MONGO_PORT = 27017

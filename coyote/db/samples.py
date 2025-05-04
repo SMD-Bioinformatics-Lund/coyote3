@@ -4,6 +4,7 @@ from datetime import datetime
 from flask_login import current_user
 from coyote.util.common_utility import CommonUtility
 from flask import current_app as app
+from typing import Any
 
 
 class SampleHandler(BaseHandler):
@@ -43,16 +44,23 @@ class SampleHandler(BaseHandler):
         if report:
             query["report_num"] = {"$gt": 0}
             if time_limit:
-                query["reports"] = {"$elemMatch": {"time_created": {"$gt": time_limit}}}
+                query["reports"] = {
+                    "$elemMatch": {"time_created": {"$gt": time_limit}}
+                }
         else:
-            query["$or"] = [{"report_num": {"$exists": False}}, {"report_num": 0}]
+            query["$or"] = [
+                {"report_num": {"$exists": False}},
+                {"report_num": 0},
+            ]
 
         if search_str:
             query["name"] = {"$regex": search_str}
 
-        app.logger.debug(f"Sample query: {query}")
+        app.home_logger.debug(f"Sample query: {query}")
 
-        samples = list(self.get_collection().find(query).sort("time_added", -1))
+        samples = list(
+            self.get_collection().find(query).sort("time_added", -1)
+        )
 
         if limit:
             samples = samples[:limit]
@@ -69,7 +77,7 @@ class SampleHandler(BaseHandler):
         time_limit=None,
         use_cache: bool = True,
         cache_timeout: int = 120,
-    ):
+    ) -> Any | list:
         """
         Retrieve sample records for the specified user groups, optionally using caching for performance.
         Args:
@@ -88,8 +96,9 @@ class SampleHandler(BaseHandler):
             - If caching is enabled and a cache hit occurs, returns cached samples.
             - On cache miss or if caching is disabled, queries the database and updates the cache.
         """
+        cache_timeout = app.config.get("CACHE_TIMEOUT_SAMPLES", 120)
 
-        cache_key = CommonUtility.generate_sample_cache_key(user_groups, status, search_str)
+        cache_key = CommonUtility.generate_sample_cache_key(**locals())
 
         if use_cache:
             samples = app.cache.get(cache_key)
@@ -97,7 +106,9 @@ class SampleHandler(BaseHandler):
                 app.logger.info(f"[SAMPLES CACHE HIT] {cache_key}")
                 return samples
             else:
-                app.logger.info(f"[SAMPLES CACHE MISS] {cache_key} — fetching from DB.")
+                app.logger.info(
+                    f"[SAMPLES CACHE MISS] {cache_key} — fetching from DB."
+                )
 
         # If no cache or use_cache=False, or cache miss
         samples = self._query_samples(
@@ -110,7 +121,9 @@ class SampleHandler(BaseHandler):
 
         if use_cache:
             app.cache.set(cache_key, samples, timeout=cache_timeout)
-            app.logger.debug(f"[SAMPLES CACHE SET] {cache_key} (timeout={cache_timeout}s)")
+            app.logger.debug(
+                f"[SAMPLES CACHE SET] {cache_key} (timeout={cache_timeout}s)"
+            )
 
         return samples
 
@@ -138,7 +151,9 @@ class SampleHandler(BaseHandler):
         """
         get samples by object ids
         """
-        return self.get_collection().find({"_id": {"$in": sample_oids}}, {"name": 1})
+        return self.get_collection().find(
+            {"_id": {"$in": sample_oids}}, {"name": 1}
+        )
 
     def reset_sample_settings(self, sample_id: str, default_filters: dict):
         """
@@ -148,7 +163,8 @@ class SampleHandler(BaseHandler):
         default_filters.pop("use_diagnosis_genelist", None)
 
         self.get_collection().update(
-            {"_id": ObjectId(sample_id)}, {"$set": {"filters": default_filters}}
+            {"_id": ObjectId(sample_id)},
+            {"$set": {"filters": default_filters}},
         )
 
     def update_sample_settings(self, sample_str: str, form):
@@ -241,7 +257,9 @@ class SampleHandler(BaseHandler):
         get all samples
         """
         if report is None:
-            samples = self.get_collection().find().sort("time_added", -1).count()
+            samples = (
+                self.get_collection().find().sort("time_added", -1).count()
+            )
         elif report:
             # samples = [sample for sample in samples if sample.get("report_num", 0) > 0]
             samples = (
@@ -278,8 +296,12 @@ class SampleHandler(BaseHandler):
                 "$group": {
                     "_id": "$groups",
                     "total": {"$sum": 1},
-                    "report": {"$sum": {"$cond": [{"$gt": ["$report_num", 0]}, 1, 0]}},
-                    "pending": {"$sum": {"$cond": [{"$gt": ["$report_num", 0]}, 0, 1]}},
+                    "report": {
+                        "$sum": {"$cond": [{"$gt": ["$report_num", 0]}, 1, 0]}
+                    },
+                    "pending": {
+                        "$sum": {"$cond": [{"$gt": ["$report_num", 0]}, 0, 1]}
+                    },
                 }
             },
             {
@@ -298,7 +320,9 @@ class SampleHandler(BaseHandler):
             {"$project": {"_id": 0, "stats": 1}},
         ]
 
-        result = list(self.get_collection().aggregate(pipeline))[0].get("stats", [])
+        result = list(self.get_collection().aggregate(pipeline))[0].get(
+            "stats", []
+        )
         assay_specific_stats = {
             stat.get("group"): {
                 "total": stat.get("total", 0),
@@ -323,7 +347,12 @@ class SampleHandler(BaseHandler):
             query["name"] = {"$regex": search_str}
 
         if limit:
-            samples = self.get_collection().find(query).sort("time_added", -1).limit(limit)
+            samples = (
+                self.get_collection()
+                .find(query)
+                .sort("time_added", -1)
+                .limit(limit)
+            )
         else:
             samples = self.get_collection().find(query).sort("time_added", -1)
 
@@ -335,7 +364,9 @@ class SampleHandler(BaseHandler):
         """
         return self.get_collection().delete_one({"_id": ObjectId(sample_oid)})
 
-    def save_report(self, sample_id: str, report_id: str, filepath: str) -> bool | None:
+    def save_report(
+        self, sample_id: str, report_id: str, filepath: str
+    ) -> bool | None:
         """
         save report to sample
         """

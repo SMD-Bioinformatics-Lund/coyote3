@@ -2,31 +2,22 @@
 Coyote coverage for mane-transcripts
 """
 
-from flask import current_app as app
+from collections import defaultdict
 from flask import (
+    current_app as app,
+    jsonify,
     redirect,
     render_template,
     request,
     url_for,
-    send_from_directory,
-    flash,
-    abort,
-    jsonify,
 )
-from flask_login import current_user, login_required
-from pprint import pformat
-from wtforms import BooleanField
-from coyote.extensions import store, util
+from flask_login import login_required
 from coyote.blueprints.coverage import cov_bp
-from coyote.blueprints.home import home_bp
-from coyote.errors.exceptions import AppError
-from typing import Literal, Any
-from datetime import datetime
-from collections import defaultdict
-from flask_weasyprint import HTML, render_pdf
-from coyote.util.decorators.access import require_sample_group_access, require_group_access
-from coyote.services.auth.decorators import require
-import os
+from coyote.extensions import store, util
+from coyote.util.decorators.access import (
+    require_group_access,
+    require_sample_group_access,
+)
 
 
 @cov_bp.route("/<string:sample_id>", methods=["GET", "POST"])
@@ -40,25 +31,54 @@ def get_cov(sample_id):
     # cov_cutoff = 1500
     sample = store.sample_handler.get_sample(sample_id)
 
-    assay: str | None | Literal["unknown"] = util.common.get_assay_from_sample(sample)
-    gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
+    sample_assay = util.common.select_one_sample_group(sample.get("groups"))
+    assay_config = store.assay_config_handler.get_assay_config_filtered(
+        sample_assay
+    )
+    assay_group: str = assay_config.get(
+        "assay_group", "unknown"
+    )  # myeloid, solid, lymphoid
+    subpanel: str | None = sample.get("subpanel")  # breast, LP, lung, etc.
 
-    smp_grp = util.common.select_one_sample_group(sample.get("groups"))
+    # Get the entire genelist for the sample panel
+    assay_panel_doc = store.panel_handler.get_panel(panel_name=sample_assay)
+
     # Get group parameters from the sample group config file
-    group_params = util.common.get_group_parameters(smp_grp)
+    sample_filters = sample.get("filters", {})
 
-    # Get group defaults from coyote config, if not found in group config
-    settings = util.common.get_group_defaults(group_params)
-    genelist_filter = sample.get("checked_genelists", settings["default_checked_genelists"])
-    genelist_clean = [name.replace("genelist_", "") for name in genelist_filter]
+    # Checked genelists
+    checked_genelists = sample_filters.get("genelists", [])
 
-    checked_genelist_dict = util.common.create_genelists_dict(genelist_clean, gene_lists)
-    filter_genes = util.common.create_filter_genelist(checked_genelist_dict)
+    # Get the genelists for the sample panel checked genelists from the filters
+    if checked_genelists:
+        checked_genelists_genes_dict: list[dict] = (
+            store.insilico_genelist_handler.get_genelist_docs_by_ids(
+                checked_genelists
+            )
+        )
+        genes_covered_in_panel: list[dict] = (
+            util.common.get_genes_covered_in_panel(
+                checked_genelists_genes_dict, assay_panel_doc
+            )
+        )
+
+        # Create a unique list of genes from the selected genelists which are currently active in the panel
+        filter_genes = util.common.create_filter_genelist(
+            genes_covered_in_panel
+        )
+    else:
+        checked_genelists = assay_panel_doc.get("_id")
+        filter_genes = assay_panel_doc.get("covered_genes", [])
+
     cov_dict = store.coverage2_handler.get_sample_coverage(str(sample["_id"]))
     del cov_dict["_id"]
     del sample["_id"]
-    filtered_dict = util.coverage.filter_genes_from_form(cov_dict, filter_genes, smp_grp)
-    filtered_dict = util.coverage.find_low_covered_genes(filtered_dict, cov_cutoff, smp_grp)
+    filtered_dict = util.coverage.filter_genes_from_form(
+        cov_dict, filter_genes, assay_group
+    )
+    filtered_dict = util.coverage.find_low_covered_genes(
+        filtered_dict, cov_cutoff, assay_group
+    )
     cov_table = util.coverage.coverage_table(filtered_dict, cov_cutoff)
 
     filtered_dict = util.coverage.organize_data_for_d3(filtered_dict)
@@ -68,8 +88,8 @@ def get_cov(sample_id):
         coverage=filtered_dict,
         cov_cutoff=cov_cutoff,
         sample=sample,
-        genelists=genelist_clean,
-        smp_grp=smp_grp,
+        genelists=checked_genelists,
+        smp_grp=assay_group,
         cov_table=cov_table,
     )
 
@@ -120,10 +140,14 @@ def show_blacklisted_regions(group):
         elif entry["region"] == "probe":
             grouped_by_gene[entry["gene"]]["probe"] = entry
 
-    return render_template("show_blacklisted.html", blacklisted=grouped_by_gene, group=group)
+    return render_template(
+        "show_blacklisted.html", blacklisted=grouped_by_gene, group=group
+    )
 
 
-@cov_bp.route("/remove_blacklist/<string:obj_id>/<string:group>", methods=["GET"])
+@cov_bp.route(
+    "/remove_blacklist/<string:obj_id>/<string:group>", methods=["GET"]
+)
 @login_required
 @require_group_access("group")
 def remove_blacklist(obj_id, group):

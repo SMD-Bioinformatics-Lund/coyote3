@@ -1,9 +1,10 @@
-from coyote.db.base import BaseHandler
-from flask import current_app as app
-from functools import lru_cache
-from bson.objectid import ObjectId
 from datetime import datetime
+
+from bson.objectid import ObjectId
+from flask import current_app as app
 from flask_login import current_user
+
+from coyote.db.base import BaseHandler
 
 
 class PanelsHandler(BaseHandler):
@@ -33,20 +34,15 @@ class PanelsHandler(BaseHandler):
                 gene_lists[panel["name"]] = panel["genes"]
         return gene_lists, panels
 
-    def get_assay_panel_names(self, assay: str) -> dict:
+    def get_assay_panel_names(self, assay: str) -> list:
         """
         Get panel name, display name and panel type for a given assay
         """
-
         return list(
             self.get_collection().find(
                 {"assays": {"$in": [assay]}}, {"name": 1, "displayname": 1, "type": 1}
             )
         )
-
-    # def get_panel(self, type: str, subpanel: str):
-    #     panel = self.get_collection().find_one({"name": subpanel, "type": type})
-    #     return panel
 
     def get_panel_by_id(self, panel_id: str) -> dict:
         """
