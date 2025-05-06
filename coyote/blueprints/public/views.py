@@ -47,11 +47,13 @@ def view_genelist(genelist_id) -> Response | str:
     """
     genelist = store.insilico_genelist_handler.get_genelist(genelist_id)
     app.public_logger.info(
-        f"Genelist '{genelist_id}' not found!", extra={"genelist_id": genelist_id}
+        f"Genelist '{genelist_id}' not found!",
+        extra={"genelist_id": genelist_id},
     )
     if not genelist:
         app.public_logger.info(
-            f"Genelist '{genelist_id}' not found!", extra={"genelist_id": genelist_id}
+            f"Genelist '{genelist_id}' not found!",
+            extra={"genelist_id": genelist_id},
         )
         flash(f"Genelist '{genelist_id}' not found!", "red")
         return redirect(request.url)
@@ -63,7 +65,7 @@ def view_genelist(genelist_id) -> Response | str:
 
     filtered_genes = all_genes
     if selected_assay and selected_assay in assays:
-        panel = store.panel_handler.get_panel_by_id(selected_assay)
+        panel = store.panel_handler.get_panel(selected_assay)
         panel_genes = panel.get("covered_genes", []) if panel else []
         filtered_genes = (
             sorted(set(all_genes).intersection(panel_genes))
@@ -91,7 +93,7 @@ def genepanel_matrix() -> str:
     Returns:
         str: Rendered HTML page displaying the genelist-assay matrix.
     """
-    genelists = store.insilico_genelist_handler.get_all_genelists()
+    genelists = store.insilico_genelist_handler.get_all_gene_lists()
     public_assay_map = app.config["PUBLIC_ASSAY_MAP"]
 
     return render_template(
@@ -129,13 +131,21 @@ def panel_gene_explorer() -> str:
 
     if selected_panel_name:
         assay_ids = public_assay_map.get(selected_panel_name, [])
-        subpanels = store.insilico_genelist_handler.get_subpanels_for_assays(assay_ids)
+        subpanels = store.insilico_genelist_handler.get_subpanels_for_assays(
+            assay_ids
+        )
 
         if selected_subpanel_name:
-            gene_symbols = store.insilico_genelist_handler.get_genes_for_subpanel(
-                selected_subpanel_name
+            gene_symbols = (
+                store.insilico_genelist_handler.get_genes_for_subpanel(
+                    selected_subpanel_name
+                )
             )
-            gene_details = store.insilico_genelist_handler.get_gene_details_by_symbols(gene_symbols)
+            gene_details = (
+                store.insilico_genelist_handler.get_gene_details_by_symbols(
+                    gene_symbols
+                )
+            )
 
     return render_template(
         "panel_gene_explorer.html",

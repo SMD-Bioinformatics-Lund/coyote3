@@ -44,7 +44,6 @@
         </div>
       {% endif %}
 
-
       <!-- Gene Details Table -->
       {% if gene_details %}
         <div class="flex flex-row justify-between items-center gap-4 px-2 py-2">
@@ -60,19 +59,71 @@
           <table id="genes-table" class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
             <thead class="rounded-t-2xl overflow-hidden border-gray-800">
               <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
+                <th class="p-2 font-normal">HGNC ID</th>
                 <th class="p-2 font-normal">Gene Symbol</th>
+                <th class="p-2 font-normal">Locus</th>
+                <th class="p-2 font-normal">Alias Symbol</th>
+                <th class="p-2 font-normal">Previous Symbol</th>
+                <th class="p-2 font-normal">Gene Type</th>
+                <th class="p-2 font-normal">Ensembl Cannonical</th>
+                <th class="p-2 font-normal">Mane Select</th>
+                <th class="p-2 font-normal">Mane Select Plus Clinical</th>
                 <th class="p-2 font-normal">Description</th>
-                <th class="p-2 font-normal">Transcript</th>
-                <th class="p-2 font-normal">Comment</th>
               </tr>
             </thead>
             <tbody id="genes-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
               {% for gene in gene_details %}
                 <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
-                  <td class="p-2 font-medium">{{ gene }}</td>
-                  <td class="p-2 font-medium">{{ gene.description or '-' }}</td>
-                  <td class="p-2 font-medium">{{ gene.transcript or '-' }}</td>
-                  <td class="p-2 font-medium">{{ gene.comment or '-' }}</td>
+                  <td class="p-2 font-medium">{{ gene.hgnc_id.replace('HGNC:', '') }}</td>
+                  <td class="p-2 font-medium">{{ gene.hgnc_symbol }}</td>
+                  <td class="p-2 font-medium">{{ gene.locus }}</td>
+                  <td class="p-2 font-medium">
+                    <div class="flex flex-wrap gap-1">
+                      {% for alias in gene.alias_symbol %}
+                      <span class="bg-brown-100 text-black px-2 py-0.5 rounded-full">{{ alias }}</span>
+                      {% else %}
+                      <span>-</span>
+                      {% endfor %}
+                    </div>
+                  </td>
+                  <td class="p-2 font-medium">
+                    <div class="flex flex-wrap gap-1">
+                      {% for prev_symbol in gene.prev_symbol %}
+                      <span class="bg-purple-300 text-black px-2 py-0.5 rounded-full">{{ prev_symbol }}</span>
+                      {% else %}
+                      <span>-</span>
+                      {% endfor %}
+                    </div>
+                  </td>
+                  <td class="p-2 font-medium">
+                    <div class="flex flex-wrap gap-1">
+                      {% for g_type in gene.gene_type %}
+                      <span class="bg-{{g_type}} text-black px-2 py-0.5 rounded-full">{{ g_type }}</span>
+                      {% else %}
+                      <span>-</span>
+                      {% endfor %}
+                    </div>
+                  </td>
+                  <td class="p-2 font-medium text-center align-middle">
+                    <div class="flex justify-center items-center">
+                      {% if gene.ensembl_canonical %}
+                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/check-circle.svg') }}" alt="Ensembl Cannonical" class="h-5 w-5 text-gray-500 cursor-pointer">
+                      {% else %}
+                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/x-circle.svg') }}" alt="Not Ensembl Cannonical" class="h-5 w-5 text-gray-500 cursor-pointer">
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td class="p-2 font-medium">{{ gene.refseq_mane_select or '-' }}</td>
+                  <td class="p-2 font-medium">
+                    <div class="flex flex-wrap gap-1">
+                      {% for clincial_plus in gene.refseq_mane_plus_clinical %}
+                      <span class="bg-green-400 text-black px-2 py-0.5 rounded-full">{{ clincial_plus }}</span>
+                      {% else %}
+                      <span>-</span>
+                      {% endfor %}
+                    </div>
+                  </td>
+                  <td class="p-2 font-medium">{{ gene.gene_description|safe or '-' }}</td>
                 </tr>
               {% endfor %}
             </tbody>

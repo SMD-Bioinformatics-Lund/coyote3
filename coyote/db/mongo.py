@@ -27,7 +27,8 @@ from coyote.db.schemas import SchemaHandler
 from coyote.db.roles import RolesHandler
 from coyote.db.permissions import PermissionsHandler
 from coyote.db.vep_meta import VEPMetaHandler
-from coyote.db.insilio_genelists import InsilicoGenelistHandler
+from coyote.db.insilio_genelists import InsilicoGeneListHandler
+from coyote.db.hgnc_genes import GenesHandler
 
 
 class MongoAdapter:
@@ -76,7 +77,9 @@ class MongoAdapter:
             .get(self.app.config["BAM_SERVICE_DB_NAME"], {})
             .items()
         ):
-            setattr(self, bam_collection_name, self.bam_db[bam_collection_value])
+            setattr(
+                self, bam_collection_name, self.bam_db[bam_collection_value]
+            )
 
     def _setup_handlers(self):
         """
@@ -110,4 +113,5 @@ class MongoAdapter:
         self.roles_handler = RolesHandler(self)
         self.permissions_handler = PermissionsHandler(self)
         self.vep_meta_handler = VEPMetaHandler(self)
-        self.insilico_genelist_handler = InsilicoGenelistHandler(self)
+        self.insilico_genelist_handler = InsilicoGeneListHandler(self)
+        self.genes_handler = GenesHandler(self)

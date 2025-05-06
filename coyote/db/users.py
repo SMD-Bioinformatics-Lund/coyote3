@@ -1,4 +1,6 @@
-import pymongo
+# -*- coding: utf-8 -*-
+# This file contains the UsersHandler class for managing user data.import pymongo
+
 from coyote.db.base import BaseHandler
 from datetime import datetime
 from flask import flash
@@ -88,7 +90,7 @@ class UsersHandler(BaseHandler):
         Returns:
             list: A list of user documents.
         """
-        return list(self.get_collection().find().sort([("fullname", pymongo.ASCENDING)]))
+        return list(self.get_collection().find())
 
     def delete_user(self, user_id) -> None:
         """

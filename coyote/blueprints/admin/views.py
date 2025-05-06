@@ -74,9 +74,13 @@ def all_samples() -> str:
 
     limit_samples = 50
     groups = current_user.groups
-    samples = list(store.sample_handler.get_all_samples(groups, limit_samples, search_str))
+    samples = list(
+        store.sample_handler.get_all_samples(groups, limit_samples, search_str)
+    )
 
-    return render_template("samples/all_samples.html", all_samples=samples, form=form)
+    return render_template(
+        "samples/all_samples.html", all_samples=samples, form=form
+    )
 
 
 @admin_bp.route("/manage-samples/<string:sample_id>/delete", methods=["GET"])
@@ -149,7 +153,9 @@ def create_user() -> Response | str:
 
     # Fetch all active user schemas
     active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="user_config", schema_category="user_management", is_active=True
+        schema_type="user_config",
+        schema_category="user_management",
+        is_active=True,
     )
 
     if not active_schemas:
@@ -189,12 +195,16 @@ def create_user() -> Response | str:
         g.audit_metadata = {"user": user_data["username"]}
 
         # Hash the password
-        if "password" in user_data:
-            user_data["password"] = util.profile.hash_password(user_data["password"])
+        if "password" in user_data and user_data["password"]:
+            user_data["password"] = util.profile.hash_password(
+                user_data["password"]
+            )
 
         # Convert groups dict to list of active groups
         if "groups" in user_data and isinstance(user_data["groups"], dict):
-            user_data["groups"] = [key for key, val in user_data["groups"].items() if val]
+            user_data["groups"] = [
+                key for key, val in user_data["groups"].items() if val
+            ]
 
         store.user_handler.create_user(user_data)
         flash("User created successfully!", "green")
@@ -242,7 +252,9 @@ def edit_user(user_id) -> Response | str:
         updated_user["updated_by"] = current_user.email
 
         if "password" in updated_user:
-            updated_user["password"] = util.profile.hash_password(updated_user["password"])
+            updated_user["password"] = util.profile.hash_password(
+                updated_user["password"]
+            )
         else:
             updated_user["password"] = user_doc["password"]
 
@@ -259,7 +271,9 @@ def edit_user(user_id) -> Response | str:
         flash("User updated successfully.", "green")
         return redirect(url_for("admin_bp.manage_users"))
 
-    return render_template("users/user_edit.html", schema=schema, config=user_doc)
+    return render_template(
+        "users/user_edit.html", schema=schema, config=user_doc
+    )
 
 
 @admin_bp.route("/users/<user_id>/delete", methods=["GET"])
@@ -292,7 +306,9 @@ def validate_username() -> Response:
         Response: JSON response indicating whether the username exists.
     """
     username = request.json.get("username").lower()
-    return jsonify({"exists": store.user_handler.user_exists(user_id=username)})
+    return jsonify(
+        {"exists": store.user_handler.user_exists(user_id=username)}
+    )
 
 
 @admin_bp.route("/users/validate_email", methods=["POST"])
@@ -334,7 +350,10 @@ def toggle_user_active(user_id):
     }
 
     store.user_handler.toggle_active(user_id, new_status)
-    flash(f"User: '{user_id}' is now {'active' if new_status else 'inactive'}.", "green")
+    flash(
+        f"User: '{user_id}' is now {'active' if new_status else 'inactive'}.",
+        "green",
+    )
     return redirect(url_for("admin_bp.manage_users"))
 
 
@@ -356,7 +375,9 @@ def assay_configs() -> str:
         Response: Rendered HTML template displaying assay configurations.
     """
     assay_configs = store.assay_config_handler.get_all_assay_configs()
-    return render_template("assay_configs/assay_configs.html", assay_configs=assay_configs)
+    return render_template(
+        "assay_configs/assay_configs.html", assay_configs=assay_configs
+    )
 
 
 @admin_bp.route("/assay-configs/<assay_id>/toggle", methods=["POST", "GET"])
@@ -383,7 +404,10 @@ def toggle_assay_config_active(assay_id) -> Response:
         "assay_status": "Active" if new_status else "Inactive",
     }
     store.assay_config_handler.toggle_active(assay_id, new_status)
-    flash(f"Assay config '{assay_id}' is now {'active' if new_status else 'inactive'}.", "green")
+    flash(
+        f"Assay config '{assay_id}' is now {'active' if new_status else 'inactive'}.",
+        "green",
+    )
     return redirect(url_for("admin_bp.assay_configs"))
 
 
@@ -407,13 +431,22 @@ def edit_assay_config(assay_id) -> Response | str:
         form_data = request.form.to_dict()
 
         try:
-            updated_config = util.admin.process_form_to_config(form_data, schema)
+            updated_config = util.admin.process_form_to_config(
+                form_data, schema
+            )
 
-            current_clean = util.admin.clean_config_for_comparison(assay_config)
-            incoming_clean = util.admin.clean_config_for_comparison(updated_config)
+            current_clean = util.admin.clean_config_for_comparison(
+                assay_config
+            )
+            incoming_clean = util.admin.clean_config_for_comparison(
+                updated_config
+            )
 
             if current_clean == incoming_clean:
-                flash("No changes detected. Configuration was not updated.", "yellow")
+                flash(
+                    "No changes detected. Configuration was not updated.",
+                    "yellow",
+                )
                 return redirect(url_for("admin_bp.assay_configs"))
 
             # Proceed with update
@@ -423,7 +456,9 @@ def edit_assay_config(assay_id) -> Response | str:
             updated_config["schema_name"] = schema["_id"]
             updated_config["schema_version"] = schema["version"]
 
-            store.assay_config_handler.update_assay_config(assay_id, updated_config)
+            store.assay_config_handler.update_assay_config(
+                assay_id, updated_config
+            )
             flash("Assay configuration updated successfully.", "green")
             return redirect(url_for("admin_bp.assay_configs"))
 
@@ -434,7 +469,9 @@ def edit_assay_config(assay_id) -> Response | str:
         g.audit_metadata = {"assay": assay_id}
 
     return render_template(
-        "assay_configs/assay_config_edit.html", schema=schema, config=assay_config
+        "assay_configs/assay_config_edit.html",
+        schema=schema,
+        config=assay_config,
     )
 
 
@@ -616,7 +653,10 @@ def toggle_schema_active(schema_id) -> Response:
         "schema_status": "Active" if new_status else "Inactive",
     }
     store.schema_handler.toggle_active(schema_id, new_status)
-    flash(f"Schema '{schema_id}' is now {'active' if new_status else 'inactive'}.", "green")
+    flash(
+        f"Schema '{schema_id}' is now {'active' if new_status else 'inactive'}.",
+        "green",
+    )
     return redirect(url_for("admin_bp.schemas"))
 
 
@@ -644,7 +684,9 @@ def edit_schema(schema_id) -> str | Response:
             if errors:
                 for err in errors:
                     flash(f"{err}", "red")
-                return render_template("schemas/schema_edit.html", schema_blob=updated_schema)
+                return render_template(
+                    "schemas/schema_edit.html", schema_blob=updated_schema
+                )
         except json.JSONDecodeError as e:
             flash(f"Invalid JSON: {e}", "red")
             return redirect(request.url)
@@ -682,13 +724,17 @@ def create_schema() -> str | Response:
     if request.method == "POST":
         json_blob = request.form.get("json_blob")
         try:
-            parsed_schema = json.loads(json_blob)  # Parse without comments, use json5 if needed
+            parsed_schema = json.loads(
+                json_blob
+            )  # Parse without comments, use json5 if needed
 
             errors = util.admin.validate_schema_structure(parsed_schema)
             if errors:
                 for err in errors:
                     flash(f"{err}", "red")
-                return render_template("schemas/schema_create.html", initial_blob=parsed_schema)
+                return render_template(
+                    "schemas/schema_create.html", initial_blob=parsed_schema
+                )
 
             # Metadata
             parsed_schema["_id"] = parsed_schema.get("schema_name")
@@ -710,7 +756,9 @@ def create_schema() -> str | Response:
     # Load the initial schema template
     initial_blob = util.admin.load_json5_template()
 
-    return render_template("schemas/schema_create.html", initial_blob=initial_blob)
+    return render_template(
+        "schemas/schema_create.html", initial_blob=initial_blob
+    )
 
 
 @admin_bp.route("/schemas/<schema_id>/delete", methods=["GET"])
@@ -760,7 +808,9 @@ def list_permissions() -> str:
     grouped = {}
     for p in policies:
         grouped.setdefault(p["category"], []).append(p)
-    return render_template("access/permissions.html", grouped_permissions=grouped)
+    return render_template(
+        "access/permissions.html", grouped_permissions=grouped
+    )
 
 
 @admin_bp.route("/permissions/new", methods=["GET", "POST"])
@@ -773,7 +823,9 @@ def create_permission() -> Response | str:
     """
 
     active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="admin_config", schema_category="RBAC_permissions", is_active=True
+        schema_type="admin_config",
+        schema_category="RBAC_permissions",
+        is_active=True,
     )
     if not active_schemas:
         flash("No active permission schemas found!", "red")
@@ -839,12 +891,19 @@ def edit_permission(perm_id) -> Response | str:
     if request.method == "POST":
         form_data = request.form.to_dict(flat=True)
 
-        updated_permission = util.admin.process_form_to_config(form_data, schema)
+        updated_permission = util.admin.process_form_to_config(
+            form_data, schema
+        )
 
         current_clean = util.admin.clean_config_for_comparison(permission)
-        incoming_clean = util.admin.clean_config_for_comparison(updated_permission)
+        incoming_clean = util.admin.clean_config_for_comparison(
+            updated_permission
+        )
         if current_clean == incoming_clean:
-            flash("No changes detected. Permission policy was not updated.", "yellow")
+            flash(
+                "No changes detected. Permission policy was not updated.",
+                "yellow",
+            )
             return redirect(url_for("admin_bp.list_permissions"))
 
         # Proceed with update
@@ -859,7 +918,9 @@ def edit_permission(perm_id) -> Response | str:
         flash(f"Permission policy '{perm_id}' updated.", "green")
         return redirect(url_for("admin_bp.list_permissions"))
 
-    return render_template("access/edit_permission.html", schema=schema, config=permission)
+    return render_template(
+        "access/edit_permission.html", schema=schema, config=permission
+    )
 
 
 @admin_bp.route("/permissions/<perm_id>/toggle", methods=["POST", "GET"])
@@ -892,7 +953,10 @@ def toggle_permission_active(perm_id) -> Response:
         "permission_status": "Active" if new_status else "Inactive",
     }
     store.permissions_handler.toggle_active(perm_id, new_status)
-    flash(f"Permission '{perm_id}' is now {'Active' if new_status else 'Inactive'}.", "green")
+    flash(
+        f"Permission '{perm_id}' is now {'Active' if new_status else 'Inactive'}.",
+        "green",
+    )
     return redirect(url_for("admin_bp.list_permissions"))
 
 
@@ -961,7 +1025,9 @@ def create_role() -> Response | str:
     """
 
     active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="admin_config", schema_category="access_control", is_active=True
+        schema_type="admin_config",
+        schema_category="access_control",
+        is_active=True,
     )
 
     if not active_schemas:
@@ -1108,7 +1174,10 @@ def toggle_role_active(role_id) -> Response:
         "role_status": "Active" if new_status else "Inactive",
     }
     store.roles_handler.toggle_active(role_id, new_status)
-    flash(f"Role '{role_id}' is now {'Active' if new_status else 'Inactive'}.", "green")
+    flash(
+        f"Role '{role_id}' is now {'Active' if new_status else 'Inactive'}.",
+        "green",
+    )
     return redirect(url_for("admin_bp.list_roles"))
 
 
@@ -1197,14 +1266,21 @@ def create_assay_panel():
         if "genes_paste" in form_data and form_data["genes_paste"].strip():
             covered_genes = [
                 g.strip()
-                for g in form_data["genes_paste"].replace(",", "\n").splitlines()
+                for g in form_data["genes_paste"]
+                .replace(",", "\n")
+                .splitlines()
                 if g.strip()
             ]
-        elif "genes_file" in request.files and request.files["genes_file"].filename:
+        elif (
+            "genes_file" in request.files
+            and request.files["genes_file"].filename
+        ):
             file = request.files["genes_file"]
             content = file.read().decode("utf-8")
             covered_genes = [
-                g.strip() for g in content.replace(",", "\n").splitlines() if g.strip()
+                g.strip()
+                for g in content.replace(",", "\n").splitlines()
+                if g.strip()
             ]
 
         config = util.admin.process_form_to_config(form_data, schema)
@@ -1227,7 +1303,10 @@ def create_assay_panel():
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
     return render_template(
-        "panels/create_panel.html", schema=schema, schemas=active_schemas, selected_schema=schema
+        "panels/create_panel.html",
+        schema=schema,
+        schemas=active_schemas,
+        selected_schema=schema,
     )
 
 
@@ -1243,7 +1322,7 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
     """
 
     # Fetch the panel document
-    panel = store.panel_handler.get_panel_by_id(assay_panel_id)
+    panel = store.panel_handler.get_panel(assay_panel_id)
 
     # Fetch the schema
     schema = store.schema_handler.get_schema("Panel-Config")
@@ -1253,16 +1332,23 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
 
         # Handle covered genes separately
         covered_genes = []
-        if "genes_file" in request.files and request.files["genes_file"].filename:
+        if (
+            "genes_file" in request.files
+            and request.files["genes_file"].filename
+        ):
             file = request.files["genes_file"]
             content = file.read().decode("utf-8")
             covered_genes = [
-                g.strip() for g in content.replace(",", "\n").splitlines() if g.strip()
+                g.strip()
+                for g in content.replace(",", "\n").splitlines()
+                if g.strip()
             ]
         elif "genes_paste" in form_data and form_data["genes_paste"].strip():
             covered_genes = [
                 g.strip()
-                for g in form_data["genes_paste"].replace(",", "\n").splitlines()
+                for g in form_data["genes_paste"]
+                .replace(",", "\n")
+                .splitlines()
                 if g.strip()
             ]
         else:
@@ -1310,7 +1396,7 @@ def toggle_assay_panel_active(assay_panel_id):
     Returns:
         Response: Redirects to the manage assay panels page or aborts with 404 if panel not found.
     """
-    panel = store.panel_handler.get_panel_by_id(assay_panel_id)
+    panel = store.panel_handler.get_panel(assay_panel_id)
     if not panel:
         return abort(404)
     new_status = not panel.get("is_active", False)
@@ -1355,7 +1441,7 @@ def view_assay_panel(assay_panel_id) -> Response | str:
     Renders the panel details template on success.
     """
 
-    panel = store.panel_handler.get_panel_by_id(assay_panel_id)
+    panel = store.panel_handler.get_panel(assay_panel_id)
     if not panel:
         flash(f"Panel '{assay_panel_id}' not found!", "red")
         return redirect(url_for("admin_bp.manage_assay_panels"))
@@ -1381,8 +1467,10 @@ def manage_genelists() -> str:
     Returns:
         Response: Rendered HTML page with all gene lists and is_public flag set to False.
     """
-    genelists = store.insilico_genelist_handler.get_all_genelists()
-    return render_template("genelists/manage_genelists.html", genelists=genelists, is_public=False)
+    genelists = store.insilico_genelist_handler.get_all_gene_lists()
+    return render_template(
+        "genelists/manage_genelists.html", genelists=genelists, is_public=False
+    )
 
 
 # Create Genelist
@@ -1400,7 +1488,9 @@ def create_genelist() -> Response | str:
     """
     # Fetch all active GeneLists schemas
     active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="genelist_config", schema_category="GeneLists", is_active=True
+        schema_type="genelist_config",
+        schema_category="GeneLists",
+        is_active=True,
     )
 
     if not active_schemas:
@@ -1434,14 +1524,23 @@ def create_genelist() -> Response | str:
 
         # Handle genes
         genes = []
-        if "genes_file" in request.files and request.files["genes_file"].filename:
+        if (
+            "genes_file" in request.files
+            and request.files["genes_file"].filename
+        ):
             file = request.files["genes_file"]
             content = file.read().decode("utf-8")
-            genes = [g.strip() for g in content.replace(",", "\n").splitlines() if g.strip()]
+            genes = [
+                g.strip()
+                for g in content.replace(",", "\n").splitlines()
+                if g.strip()
+            ]
         elif "genes_paste" in form_data and form_data["genes_paste"].strip():
             genes = [
                 g.strip()
-                for g in form_data["genes_paste"].replace(",", "\n").splitlines()
+                for g in form_data["genes_paste"]
+                .replace(",", "\n")
+                .splitlines()
                 if g.strip()
             ]
 
@@ -1504,10 +1603,17 @@ def edit_genelist(genelist_id) -> Response | str:
         }
 
         genes = []
-        if "genes_file" in request.files and request.files["genes_file"].filename:
+        if (
+            "genes_file" in request.files
+            and request.files["genes_file"].filename
+        ):
             file = request.files["genes_file"]
             content = file.read().decode("utf-8")
-            genes = [g.strip() for g in content.replace(",", "\n").splitlines() if g.strip()]
+            genes = [
+                g.strip()
+                for g in content.replace(",", "\n").splitlines()
+                if g.strip()
+            ]
         elif "genes_paste" in form_data and form_data["genes_paste"].strip():
             pasted = form_data["genes_paste"].replace(",", "\n")
             genes = [g.strip() for g in pasted.splitlines() if g.strip()]
@@ -1528,7 +1634,9 @@ def edit_genelist(genelist_id) -> Response | str:
         changes = []
         for field in ["genes", "assays", "groups"]:
             added = set(updated.get(field, [])) - set(genelist.get(field, []))
-            removed = set(genelist.get(field, [])) - set(updated.get(field, []))
+            removed = set(genelist.get(field, [])) - set(
+                updated.get(field, [])
+            )
             if added and removed:
                 changes.append(f"{field.capitalize()} updated.")
             elif added:
@@ -1543,16 +1651,34 @@ def edit_genelist(genelist_id) -> Response | str:
         change_entry = {
             "version": updated["version"],
             "genes": {
-                "added": list(set(updated.get("genes", [])) - set(genelist.get("genes", []))),
-                "removed": list(set(genelist.get("genes", [])) - set(updated.get("genes", []))),
+                "added": list(
+                    set(updated.get("genes", []))
+                    - set(genelist.get("genes", []))
+                ),
+                "removed": list(
+                    set(genelist.get("genes", []))
+                    - set(updated.get("genes", []))
+                ),
             },
             "assays": {
-                "added": list(set(updated.get("assays", [])) - set(genelist.get("assays", []))),
-                "removed": list(set(genelist.get("assays", [])) - set(updated.get("assays", []))),
+                "added": list(
+                    set(updated.get("assays", []))
+                    - set(genelist.get("assays", []))
+                ),
+                "removed": list(
+                    set(genelist.get("assays", []))
+                    - set(updated.get("assays", []))
+                ),
             },
             "groups": {
-                "added": list(set(updated.get("groups", [])) - set(genelist.get("groups", []))),
-                "removed": list(set(genelist.get("groups", [])) - set(updated.get("groups", []))),
+                "added": list(
+                    set(updated.get("groups", []))
+                    - set(genelist.get("groups", []))
+                ),
+                "removed": list(
+                    set(genelist.get("groups", []))
+                    - set(updated.get("groups", []))
+                ),
             },
             "description": description,
             "updated_on": datetime.utcnow(),
@@ -1566,12 +1692,17 @@ def edit_genelist(genelist_id) -> Response | str:
         store.insilico_genelist_handler.update_genelist(genelist_id, updated)
 
         # Log Action
-        g.audit_metadata = {"genelist": genelist_id, "description": description}
+        g.audit_metadata = {
+            "genelist": genelist_id,
+            "description": description,
+        }
 
         flash(f"Genelist '{genelist_id}' updated successfully!", "green")
         return redirect(url_for("admin_bp.manage_genelists"))
 
-    return render_template("genelists/edit_genelist.html", genelist=genelist, schema=schema)
+    return render_template(
+        "genelists/edit_genelist.html", genelist=genelist, schema=schema
+    )
 
 
 @admin_bp.route("/genelists/<genelist_id>/toggle", methods=["GET"])
@@ -1599,9 +1730,14 @@ def toggle_genelist(genelist_id) -> Response:
         "genelist_status": "Active" if new_status else "Inactive",
     }
 
-    store.insilico_genelist_handler.toggle_genelist_active(genelist_id, new_status)
+    store.insilico_genelist_handler.toggle_genelist_active(
+        genelist_id, new_status
+    )
 
-    flash(f"Genelist: '{genelist_id}' is now {'active' if new_status else 'inactive'}.", "green")
+    flash(
+        f"Genelist: '{genelist_id}' is now {'active' if new_status else 'inactive'}.",
+        "green",
+    )
     return redirect(url_for("admin_bp.manage_genelists"))
 
 
@@ -1646,7 +1782,7 @@ def view_genelist(genelist_id) -> Response | str:
 
     filtered_genes = all_genes
     if selected_assay and selected_assay in assays:
-        panel = store.panel_handler.get_panel_by_id(selected_assay)
+        panel = store.panel_handler.get_panel(selected_assay)
         panel_genes = panel.get("covered_genes", []) if panel else []
         filtered_genes = sorted(set(all_genes).intersection(panel_genes))
 
@@ -1677,10 +1813,16 @@ def audit():
     """
 
     logs_path = Path(app.config["LOGS"], "audit")
-    cutoff_ts = datetime.utcnow().timestamp() - (30 * 24 * 60 * 60)  # last 30 days
+    cutoff_ts = datetime.utcnow().timestamp() - (
+        30 * 24 * 60 * 60
+    )  # last 30 days
 
     log_files = sorted(
-        [f for f in logs_path.glob("*.log*") if f.stat().st_mtime >= cutoff_ts],
+        [
+            f
+            for f in logs_path.glob("*.log*")
+            if f.stat().st_mtime >= cutoff_ts
+        ],
         key=lambda f: f.stat().st_mtime,
         reverse=True,
     )
