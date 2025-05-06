@@ -2,7 +2,6 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime, timedelta
 from typing import Any, Dict, Literal
-import colorlog
 from flask import request
 from pathlib import Path
 import os
@@ -34,7 +33,8 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
         for log_file in log_dir.glob(f"{base_prefix}*"):
             if (
                 log_file.is_file()
-                and log_file != Path(self.baseFilename)  # Don't delete current log
+                and log_file
+                != Path(self.baseFilename)  # Don't delete current log
                 and datetime.fromtimestamp(log_file.stat().st_mtime) < cutoff
             ):
                 try:

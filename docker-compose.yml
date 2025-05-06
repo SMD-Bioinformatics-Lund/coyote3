@@ -26,7 +26,7 @@ services:
       - "./logs:/app/logs"
       - "./config.py:/app/config.py"
       - "./wsgi.py:/app/wsgi.py"
-      - "./gunicorn_config.py:/app/gunicorn_config.py"
+      - "./gunicorn.conf.py:/app/gunicorn.conf.py"
       - "./logging_setup.py:/app/logging_setup.py"
       - "/access:/access"
       - "/media:/media"

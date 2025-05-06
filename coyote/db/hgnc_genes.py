@@ -1,19 +1,41 @@
 # -*- coding: utf-8 -*-
-# This file contains the GenesHandler class for managing HGNC gene data.
+"""
+GenesHandler module for Coyote3
+===============================
 
+This module defines the `GenesHandler` class used for accessing and managing
+HGNC gene data in MongoDB.
+
+It is part of the `coyote.db` package and extends the base handler functionality.
+
+Author: Coyote3 authors.
+License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
+"""
+
+# -------------------------------------------------------------------------
+# Imports
+# -------------------------------------------------------------------------
 from coyote.db.base import BaseHandler
 from flask import current_app as app
 
 
+# -------------------------------------------------------------------------
+# Class Definition
+# -------------------------------------------------------------------------
 class GenesHandler(BaseHandler):
     """
     Handler for managing HGNC gene data stored in the coyote database.
 
     This class provides methods to interact with HGNC gene information,
-    including retrieval and management of gene metadata.
+    including retrieval, management, and querying of gene metadata.
+    It is designed to facilitate efficient access to gene-related data
+    for downstream genomic analysis workflows.
     """
 
     def __init__(self, adapter):
+        """
+        Initialize the handler with a given adapter and bind the collection.
+        """
         super().__init__(adapter)
         self.set_collection(self.adapter.hgnc_genes_collection)
 

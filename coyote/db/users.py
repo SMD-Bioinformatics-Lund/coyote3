@@ -1,21 +1,39 @@
 # -*- coding: utf-8 -*-
-# This file contains the UsersHandler class for managing user data.import pymongo
+"""
+UsersHandler module for Coyote3
+===============================
 
+This module defines the `UsersHandler` class used for accessing and managing
+user data in MongoDB.
+
+It is part of the `coyote.db` package and extends the base handler functionality.
+
+Author: Coyote3 authors.
+License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
+"""
+
+# -------------------------------------------------------------------------
+# Imports
+# -------------------------------------------------------------------------
 from coyote.db.base import BaseHandler
 from datetime import datetime
 from flask import flash
 
 
+# -------------------------------------------------------------------------
+# Class Definition
+# -------------------------------------------------------------------------
 class UsersHandler(BaseHandler):
     """
-    Users handler from coyote["users"]
+    The UsersHandler class provides methods to manage user data in the database.
+
+    This class includes functionality for retrieving, creating, updating, and deleting user records,
+    as well as managing user-specific attributes such as passwords, active status, and last login timestamps.
     """
 
     def __init__(self, adapter):
         """
-        Initialize the user database handler with the specified adapter.
-        Args:
-            adapter: The database adapter to interact with the users collection.
+        Initialize the handler with a given adapter and bind the collection.
         """
         super().__init__(adapter)
         self.set_collection(self.adapter.users_collection)
@@ -63,16 +81,15 @@ class UsersHandler(BaseHandler):
             user_id (str, optional): The unique identifier of the user.
             email (str, optional): The email address of the user.
         Returns:
-            bool: True if the user exists, False otherwise.
+            bool: True if the user exists in the database, False otherwise.
         """
-        if not user_id and not email:
-            return False
-
         if email:
-            return self.get_collection().find_one({"email": email}) is not None
+            return bool(self.get_collection().find_one({"email": email}))
 
         if user_id:
-            return self.get_collection().find_one({"_id": user_id}) is not None
+            return bool(self.get_collection().find_one({"_id": user_id}))
+
+        return False
 
     def create_user(self, user_data: dict) -> None:
         """
@@ -90,7 +107,7 @@ class UsersHandler(BaseHandler):
         Returns:
             list: A list of user documents.
         """
-        return list(self.get_collection().find())
+        return list(self.get_collection().find().sort("fullname", 1))
 
     def delete_user(self, user_id) -> None:
         """

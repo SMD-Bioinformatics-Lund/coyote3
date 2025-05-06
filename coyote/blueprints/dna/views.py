@@ -22,6 +22,7 @@ from coyote.extensions import store, util
 from coyote.blueprints.dna import dna_bp, varqueries_notbad, filters
 from coyote.blueprints.home import home_bp
 from coyote.blueprints.dna.varqueries import build_query
+from coyote.blueprints.dna.cnvqueries import build_cnv_query
 from coyote.blueprints.dna.forms import DNAFilterForm, create_assay_group_form
 from coyote.errors.exceptions import AppError
 from typing import Literal, Any
@@ -244,19 +245,11 @@ def list_variants(sample_id):
 
     ## GET Other sections CNVs TRANSLOCS and OTHER BIOMARKERS ##
     if "CNV" in dna_sections:
-        cnvs = list(
-            store.cnv_handler.get_sample_cnvs(
-                sample_id=str(sample["_id"]),
-                settings={
-                    "assay": assay_group,
-                    "max_cnv_size": sample_filters["max_cnv_size"],
-                    "min_cnv_size": sample_filters["min_cnv_size"],
-                    "cnv_loss_cutoff": sample_filters["cnv_loss_cutoff"],
-                    "cnv_gain_cutoff": sample_filters["cnv_gain_cutoff"],
-                    "filter_genes": filter_genes,
-                },
-            )
+        cnv_query = build_cnv_query(
+            str(sample["_id"]),
+            filters={**sample_filters, "filter_genes": filter_genes},
         )
+        cnvs = store.cnv_handler.get_sample_cnvs(cnv_query)
         if filter_cnveffects:
             cnvs = util.dna.cnvtype_variant(cnvs, filter_cnveffects)
         cnvs = util.dna.cnv_organizegenes(cnvs)
@@ -271,12 +264,11 @@ def list_variants(sample_id):
         )
 
     if "TRANSLOCATION" in dna_sections:
-        display_sections_data["translocs"] = list(
+        display_sections_data["translocs"] = (
             store.transloc_handler.get_sample_translocations(
                 sample_id=str(sample["_id"])
             )
         )
-
     if "FUSION" in dna_sections:
         display_sections_data["fusions"] = []
 
@@ -1506,7 +1498,7 @@ def generate_dna_report(sample_id, **kwargs) -> Response | str:
         )
 
     if "TRANSLOCATION" in dna_sections:
-        display_sections_data["translocs"] = list(
+        display_sections_data["translocs"] = (
             store.transloc_handler.get_interesting_sample_translocations(
                 sample_id=str(sample["_id"])
             )

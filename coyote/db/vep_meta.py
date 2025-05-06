@@ -1,19 +1,40 @@
 # -*- coding: utf-8 -*-
-# This file contains the VEPMetaHandler class for managing VEP metadata.
+"""
+VEPMetaHandler module for managing VEP metadata
+===============================================
 
+This module provides the `VEPMetaHandler` class for handling VEP metadata stored
+in MongoDB, including translations and database information.
+
+It is part of the `coyote.db` package and extends the base handler functionality.
+
+Author: Coyote3 authors.
+License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
+"""
+
+# -------------------------------------------------------------------------
+# Imports
+# -------------------------------------------------------------------------
 from coyote.db.base import BaseHandler
 from flask import current_app as app
 
 
+# -------------------------------------------------------------------------
+# Class Definition
+# -------------------------------------------------------------------------
 class VEPMetaHandler(BaseHandler):
     """
-    Handler for managing VEP metadata stored in the coyote database.
+    VEPMetaHandler is a class for managing VEP metadata in the database.
 
-    This class provides methods to retrieve metadata, variant class translations,
-    consequence translations, and database information for specific VEP versions.
+    This class provides methods to retrieve metadata, including variant class
+    translations, consequence translations, and database information for
+    specific VEP versions and genome builds.
     """
 
     def __init__(self, adapter):
+        """
+        Initialize the handler with a given adapter and bind the collection.
+        """
         super().__init__(adapter)
         self.set_collection(self.adapter.vep_metadata_collection)
 

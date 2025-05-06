@@ -1,22 +1,48 @@
 # -*- coding: utf-8 -*-
-# This script defines a `PanelsHandler` class for managing gene panel database actions in a Flask application.
+"""
+PanelsHandler module for Coyote3
+================================
 
-from flask import current_app as app
+This module defines the `PanelsHandler` class used for accessing and managing
+gene panel data in MongoDB.
+
+It is part of the `coyote.db` package and extends the base handler functionality.
+
+Author: Coyote3 authors.
+License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
+"""
+
+# -------------------------------------------------------------------------
+# Imports
+# -------------------------------------------------------------------------
 from coyote.db.base import BaseHandler
 from typing import Any
 
 
+# -------------------------------------------------------------------------
+# Class Definition
+# -------------------------------------------------------------------------
 class PanelsHandler(BaseHandler):
     """
-    Coyote gene panels db actions
+    Coyote gene panels database handler.
 
-    This module defines the `PanelsHandler` class, which provides methods for managing
-    gene panel database actions in a Flask application. It includes functionality for
-    retrieving, inserting, updating, and deleting gene panel data, as well as performing
-    various queries and calculations related to gene panels.
+    The `PanelsHandler` class provides a comprehensive interface for managing
+    gene panel data stored in a MongoDB database. It extends the functionality
+    of the `BaseHandler` class and is designed to be used in a Flask application.
+
+    This class includes methods for performing CRUD (Create, Read, Update, Delete)
+    operations on gene panel data, as well as advanced queries and calculations
+    such as retrieving unique gene counts, toggling panel statuses, and fetching
+    distinct panel groups or assay names.
+
+    It is a core component of the `coyote.db` package, facilitating efficient
+    and organized access to gene panel information.
     """
 
     def __init__(self, adapter):
+        """
+        Initialize the handler with a given adapter and bind the collection.
+        """
         super().__init__(adapter)
         self.set_collection(self.adapter.panels_collection)
 

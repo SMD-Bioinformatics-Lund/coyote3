@@ -1,20 +1,41 @@
 # -*- coding: utf-8 -*-
-# This module provides the `InsilicoGenelistHandler` class for managing in-silico gene lists in a Flask application.
+"""
+InsilicoGeneListHandler module for Coyote3
+==========================================
 
+This module defines the `InsilicoGeneListHandler` class used for accessing and managing
+gene panel data in MongoDB.
+
+It is part of the `coyote.db` package and extends the base handler functionality.
+
+Author: Coyote3 authors.
+License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
+"""
+
+# -------------------------------------------------------------------------
+# Imports
+# -------------------------------------------------------------------------
 from coyote.db.base import BaseHandler
 from typing import Any
 
 
+# -------------------------------------------------------------------------
+# Class Definition
+# -------------------------------------------------------------------------
 class InsilicoGeneListHandler(BaseHandler):
     """
-    Coyote gene panels db actions
+    Coyote gene panels database handler
 
-    This module provides functionality for managing gene panel database actions.
-    It includes methods for retrieving, inserting, updating, and deleting gene panel data,
-    as well as performing various queries and calculations related to gene panels.
+    This class provides a comprehensive interface for managing gene panel data in the database.
+    It supports operations such as retrieving, inserting, updating, and deleting gene panel records.
+    Additionally, it includes methods for performing advanced queries, filtering, and calculations
+    related to gene panels, assays, diagnoses, and associated metadata.
     """
 
     def __init__(self, adapter):
+        """
+        Initialize the handler with a given adapter and bind the collection.
+        """
         super().__init__(adapter)
         self.set_collection(self.adapter.insilico_genelist_collection)
 

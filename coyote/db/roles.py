@@ -1,60 +1,141 @@
+# -*- coding: utf-8 -*-
+"""
+RolesHandler module for Coyote3
+===============================
+
+This module defines the `RolesHandler` class used for accessing and managing
+roles data in MongoDB.
+
+It is part of the `coyote.db` package and extends the base handler functionality.
+
+Author: Coyote3 authors.
+License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
+"""
+
+# -------------------------------------------------------------------------
+# Imports
+# -------------------------------------------------------------------------
 from coyote.db.base import BaseHandler
-from flask import current_app as app
-from functools import lru_cache
-from bson.objectid import ObjectId
-from datetime import datetime
-from flask_login import current_user
+from typing import Any
 
 
+# -------------------------------------------------------------------------
+# Class Definition
+# -------------------------------------------------------------------------
 class RolesHandler(BaseHandler):
     """
-    Coyote roles db actions
+    RolesHandler is a class that provides an interface for interacting with the roles data in the MongoDB collection.
+
+    This class extends the BaseHandler class and includes methods for performing CRUD operations, toggling role activity,
+    and retrieving role-specific data. It is designed to manage role documents efficiently and ensure seamless integration
+    with the database.
     """
 
     def __init__(self, adapter):
+        """
+        Initialize the handler with a given adapter and bind the collection.
+        """
         super().__init__(adapter)
         self.set_collection(self.adapter.roles_collection)
 
-    def get_all_roles(self) -> dict:
+    def get_all_roles(self) -> list:
         """
-        Get all roles
+        Retrieve all roles from the database.
+
+        This method fetches all role documents from the roles collection and sorts them
+        in descending order based on their `level` field.
+
+        Returns:
+            list: A list of role documents sorted by their `level` field in descending order.
         """
         return list(self.get_collection().find({}).sort("level", -1))
 
     def get_all_role_names(self) -> list:
         """
-        Get all role names
-        """
-        return [role["_id"] for role in self.get_collection().find({"is_active": True}, {"_id": 1})]
+        Retrieve all active role names.
 
-    def save_role(self, role_data: dict) -> dict:
+        This method fetches the names of all roles that are currently active in the database.
+
+        Returns:
+            list: A list of role names (IDs) for active roles.
         """
-        Save a role
+        return [
+            role["_id"]
+            for role in self.get_collection().find(
+                {"is_active": True}, {"_id": 1}
+            )
+        ]
+
+    def save_role(self, role_data: dict) -> Any:
+        """
+        Save a role.
+
+        This method inserts a new role document into the roles collection.
+
+        Args:
+            role_data (dict): A dictionary containing the role details to be saved.
+
+        Returns:
+            Any
         """
         self.get_collection().insert_one(role_data)
 
     def update_role(self, role_id: str, role_data: dict) -> dict:
         """
-        Update a role
+        Update a role.
+
+        This method updates an existing role document in the roles collection.
+
+        Args:
+            role_id (str): The unique identifier of the role to update.
+            role_data (dict): A dictionary containing the updated role details.
+
+        Returns:
+            dict: The updated role document.
         """
         self.get_collection().update_one({"_id": role_id}, {"$set": role_data})
         return self.get_role(role_id)
 
     def get_role(self, role_id: str) -> dict:
         """
-        Get a role
+        Retrieve a role document.
+
+        This method fetches a single role document from the database based on its unique identifier.
+
+        Args:
+            role_id (str): The unique identifier of the role to retrieve.
+
+        Returns:
+            dict: The role document if found, otherwise None.
         """
         return self.get_collection().find_one({"_id": role_id.lower()})
 
-    def delete_role(self, role_id: str) -> dict:
+    def delete_role(self, role_id: str) -> Any:
         """
-        Delete a role
+        Delete a role.
+
+        This method removes a role document from the database based on its unique identifier.
+
+        Args:
+            role_id (str): The unique identifier of the role to delete.
+
+        Returns:
+            Any: The result of the delete operation.
         """
         self.get_collection().delete_one({"_id": role_id})
 
-    def toggle_active(self, role_id: str, active_status: bool) -> bool:
+    def toggle_active(self, role_id: str, active_status: bool) -> Any:
         """
-        Toggles the active status of a role document by updating its 'is_active' field.
+        Toggle the active status of a role.
+
+        This method updates the `is_active` field of a role document to the specified active status.
+
+        Args:
+            role_id (str): The unique identifier of the role to update.
+            active_status (bool): The desired active status to set for the role.
+
+        Returns:
+            Any: The result of the update operation.
         """
         return self.get_collection().update_one(
             {"_id": role_id}, {"$set": {"is_active": active_status}}

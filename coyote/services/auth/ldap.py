@@ -1,3 +1,20 @@
+# -*- coding: utf-8 -*-
+"""
+LdapManager module for Coyote3
+==============================
+
+This module defines the `LdapManager` class used for managing LDAP connections
+and authentication in the Coyote3 application.
+
+It is part of the `coyote.extentions.ldap` package and extends the `LDAPConn` functionality.
+
+Author: Coyote3 authors.
+License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
+"""
+
+# -------------------------------------------------------------------------
+# Imports
+# -------------------------------------------------------------------------
 import logging
 import ssl
 
@@ -7,10 +24,41 @@ from ldap3 import ALL, SYNC, Server, Tls
 LOG = logging.getLogger(__name__)
 
 
+# -------------------------------------------------------------------------
+# Class Definition
+# -------------------------------------------------------------------------
 class LdapManager(LDAPConn):
-    """Interface to LDAP login"""
+    """
+    Interface to LDAP login.
 
-    def init_app(self, app):
+    This class extends the `LDAPConn` class from the `flask_ldapconn` package
+    and provides additional functionality for managing LDAP connections
+    and authentication in a Flask application.
+
+    Attributes:
+        tls (ldap3.Tls): Configured TLS settings for secure LDAP connections.
+        ldap_server (ldap3.Server): Configured LDAP server instance.
+
+    Methods:
+        init_app(app):
+            Initializes the LDAP manager with the given Flask application.
+            Configures default settings, sets up TLS, and creates the LDAP server instance.
+    """
+
+    def init_app(self, app) -> None:
+        """
+        Initializes the LDAP manager with the given Flask application.
+
+        This method sets up default configuration values for the application,
+        configures TLS settings, creates an LDAP server instance, and stores
+        the LDAP connection object in the application's extensions.
+
+        Args:
+            app (Flask): The Flask application instance to initialize the LDAP manager with.
+
+        Returns:
+            None
+        """
         ssl_defaults = ssl.get_default_verify_paths()
 
         # Default config
@@ -43,9 +91,11 @@ class LdapManager(LDAPConn):
         self.tls = Tls(
             local_private_key_file=app.config["LDAP_CLIENT_PRIVATE_KEY"],
             local_certificate_file=app.config["LDAP_CLIENT_CERT"],
-            validate=app.config["LDAP_REQUIRE_CERT"]
-            if app.config.get("LDAP_CLIENT_CERT")
-            else ssl.CERT_NONE,
+            validate=(
+                app.config["LDAP_REQUIRE_CERT"]
+                if app.config.get("LDAP_CLIENT_CERT")
+                else ssl.CERT_NONE
+            ),
             version=app.config["LDAP_TLS_VERSION"],
             ca_certs_file=app.config["LDAP_CA_CERTS_FILE"],
             valid_names=app.config["LDAP_VALID_NAMES"],
