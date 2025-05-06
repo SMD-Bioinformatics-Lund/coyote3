@@ -117,8 +117,8 @@ def list_variants(sample_id):
     )
     sample_filters = deepcopy(sample.get("filters", {}))
 
-    # Update the sample filters with the default values from the assay config if the sameple is new and does not have any filters set
-    if sample_has_filters is None:
+    # Update the sample filters with the default values from the assay config if the sample is new and does not have any filters set
+    if not sample_has_filters:
         store.sample_handler.reset_sample_settings(
             sample["_id"], assay_config.get("FILTERS")
         )
@@ -336,6 +336,8 @@ def list_variants(sample_id):
         )
     else:
         ai_text = ai_text + conclusion
+
+    print(form.data)
 
     return render_template(
         "list_variants_vep.html",

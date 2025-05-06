@@ -9,25 +9,45 @@ class DNAFilterForm(FlaskForm):
     """Filter form"""
 
     # Core numeric filters
-    min_alt_reads = IntegerField("Min Alt Reads", validators=[InputRequired(), NumberRange(min=0)])
-    min_depth = IntegerField("Min Depth", validators=[InputRequired(), NumberRange(min=0)])
-    min_freq = FloatField("Min Freq", validators=[InputRequired(), NumberRange(min=0, max=1)])
-    max_freq = FloatField("Max Freq", validators=[InputRequired(), NumberRange(min=0, max=1)])
+    min_alt_reads = IntegerField(
+        "Min Alt Reads", validators=[InputRequired(), NumberRange(min=0)]
+    )
+    min_depth = IntegerField(
+        "Min Depth", validators=[InputRequired(), NumberRange(min=0)]
+    )
+    min_freq = FloatField(
+        "Min Freq", validators=[InputRequired(), NumberRange(min=0, max=1)]
+    )
+    max_freq = FloatField(
+        "Max Freq", validators=[InputRequired(), NumberRange(min=0, max=1)]
+    )
     max_control_freq = FloatField(
-        "Max Control Freq", validators=[InputRequired(), NumberRange(min=0, max=1)]
+        "Max Control Freq",
+        validators=[InputRequired(), NumberRange(min=0, max=1)],
     )
     max_popfreq = FloatField(
-        "Population Freq", validators=[InputRequired(), NumberRange(min=0, max=1)]
+        "Population Freq",
+        validators=[InputRequired(), NumberRange(min=0, max=1)],
     )
-    min_cnv_size = IntegerField("Min CNV Size", validators=[InputRequired(), NumberRange(min=1)])
-    max_cnv_size = IntegerField("Max CNV Size", validators=[InputRequired(), NumberRange(min=2)])
-    cnv_loss_cutoff = FloatField("CNV Loss Cutoff", validators=[InputRequired(), NumberRange()])
-    cnv_gain_cutoff = FloatField("CNV Gain Cutoff", validators=[InputRequired(), NumberRange()])
+    min_cnv_size = IntegerField(
+        "Min CNV Size", validators=[InputRequired(), NumberRange(min=1)]
+    )
+    max_cnv_size = IntegerField(
+        "Max CNV Size", validators=[InputRequired(), NumberRange(min=2)]
+    )
+    cnv_loss_cutoff = FloatField(
+        "CNV Loss Cutoff", validators=[InputRequired(), NumberRange()]
+    )
+    cnv_gain_cutoff = FloatField(
+        "CNV Gain Cutoff", validators=[InputRequired(), NumberRange()]
+    )
     warn_cov = IntegerField(
-        "Coverage Warning Threshold", validators=[InputRequired(), NumberRange(min=0)]
+        "Coverage Warning Threshold",
+        validators=[InputRequired(), NumberRange(min=0)],
     )
     error_cov = IntegerField(
-        "Coverage Error Threshold", validators=[InputRequired(), NumberRange(min=0)]
+        "Coverage Error Threshold",
+        validators=[InputRequired(), NumberRange(min=0)],
     )
 
     # VEP consequence boolean fields (prefixed with `vep_`)
@@ -46,6 +66,9 @@ class DNAFilterForm(FlaskForm):
     vep_intergenic = BooleanField("Intergenic")
     vep_regulatory = BooleanField("Regulatory")
     vep_feature_elon_trunc = BooleanField("Feature Elongation/Truncation")
+    vep_transcript_structure = BooleanField("Transcript Structure")
+    vep_miRNA = BooleanField("miRNA")
+    vep_NMD = BooleanField("NMD")
 
     # CNV effects
     cnveffect_loss = BooleanField("CNV Loss")
@@ -68,8 +91,12 @@ class FusionFilter(FlaskForm):
     fusioncaller_fusioncatcher = BooleanField(validators=[Optional()])
     fusioncaller_starfusion = BooleanField(validators=[Optional()])
 
-    min_spanpairs = IntegerField("Spanning pairs", validators=[InputRequired(), NumberRange(min=0)])
-    min_spanreads = IntegerField("Spanning reads", validators=[InputRequired(), NumberRange(min=0)])
+    min_spanpairs = IntegerField(
+        "Spanning pairs", validators=[InputRequired(), NumberRange(min=0)]
+    )
+    min_spanreads = IntegerField(
+        "Spanning reads", validators=[InputRequired(), NumberRange(min=0)]
+    )
 
     fusioneffect_inframe = BooleanField(validators=[Optional()])
     fusioneffect_outframe = BooleanField(validators=[Optional()])
@@ -99,7 +126,9 @@ def create_assay_group_form():
     assay_groups = store.assay_config_handler.get_all_assay_groups()
 
     fields = {
-        group: BooleanField(group.replace("_", " ").capitalize(), validators=[Optional()])
+        group: BooleanField(
+            group.replace("_", " ").capitalize(), validators=[Optional()]
+        )
         for group in assay_groups
     }
 
