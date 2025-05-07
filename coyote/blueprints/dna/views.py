@@ -337,8 +337,6 @@ def list_variants(sample_id):
     else:
         ai_text = ai_text + conclusion
 
-    print(form.data)
-
     return render_template(
         "list_variants_vep.html",
         sample=sample,

@@ -177,7 +177,7 @@ class PanelsHandler(BaseHandler):
 
         Returns:
             dict: A dictionary mapping assay names to their respective gene counts
-                  and metadata.
+                and metadata.
         """
         docs = self.get_collection().find(
             {},

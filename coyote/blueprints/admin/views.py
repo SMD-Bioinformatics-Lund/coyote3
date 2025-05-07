@@ -174,11 +174,30 @@ def create_user() -> Response | str:
     available_roles = store.roles_handler.get_all_role_names()
     schema["fields"]["role"]["options"] = available_roles
 
+    # Inject permissions from permissions collections
+    permission_policies = store.permissions_handler.get_all(is_active=True)
+    if "permissions" in schema["fields"]:
+        schema["fields"]["permissions"]["options"] = [
+            {
+                "value": p["_id"],
+                "label": p.get("label", p["_id"]),
+                "category": p.get("category", "Uncategorized"),
+            }
+            for p in permission_policies
+        ]
+
+    # Inject groups from the assay_panels collections
+    assay_panels = store.panel_handler.get_all_assays()
+    schema["fields"]["groups"]["options"] = assay_panels
+
     if request.method == "POST":
         form_data = {
             key: (vals[0] if len(vals) == 1 else vals)
             for key, vals in request.form.to_dict(flat=False).items()
         }
+
+        permissions: list[str] = request.form.getlist("permissions") or []
+        groups: list[str] = request.form.getlist("groups") or []
 
         user_data = util.admin.process_form_to_config(form_data, schema)
         user_data["_id"] = user_data["username"]
@@ -190,6 +209,8 @@ def create_user() -> Response | str:
         user_data["updated_on"] = datetime.utcnow()
         user_data["email"] = user_data["email"].lower()
         user_data["username"] = user_data["username"].lower()
+        user_data["permissions"] = permissions
+        user_data["groups"] = groups
 
         # Log Action
         g.audit_metadata = {"user": user_data["username"]}
@@ -199,12 +220,6 @@ def create_user() -> Response | str:
             user_data["password"] = util.profile.hash_password(
                 user_data["password"]
             )
-
-        # Convert groups dict to list of active groups
-        if "groups" in user_data and isinstance(user_data["groups"], dict):
-            user_data["groups"] = [
-                key for key, val in user_data["groups"].items() if val
-            ]
 
         store.user_handler.create_user(user_data)
         flash("User created successfully!", "green")
@@ -239,11 +254,31 @@ def edit_user(user_id) -> Response | str:
     available_roles = store.roles_handler.get_all_role_names()
     schema["fields"]["role"]["options"] = available_roles
 
-    if "groups" in user_doc:
-        user_doc["groups"] = {group: True for group in user_doc["groups"]}
+    # Inject permissions from permissions collections
+    permission_policies = store.permissions_handler.get_all(is_active=True)
+
+    # Inject checkbox options directly into schema field definition
+    if "permissions" in schema["fields"]:
+        schema["fields"]["permissions"]["options"] = [
+            {
+                "value": p["_id"],
+                "label": p.get("label", p["_id"]),
+                "category": p.get("category", "Uncategorized"),
+            }
+            for p in permission_policies
+        ]
+
+    # Inject groups from the assay_panels collections
+    assay_panels = store.panel_handler.get_all_assays()
+    schema["fields"]["groups"]["options"] = assay_panels
+
+    # if "groups" in user_doc:
+    #     user_doc["groups"] = {group: True for group in user_doc["groups"]}
 
     if request.method == "POST":
         form_data = request.form.to_dict()
+        permissions = request.form.getlist("permissions") or []
+        groups = request.form.getlist("groups") or []
 
         updated_user = util.admin.process_form_to_config(form_data, schema)
 
@@ -260,9 +295,11 @@ def edit_user(user_id) -> Response | str:
 
         updated_user["email"] = updated_user["email"].lower()
         updated_user["username"] = updated_user["username"].lower()
-        updated_user["groups"] = list(updated_user.get("groups", {}).keys())
+        updated_user["groups"] = groups
         updated_user["schema_name"] = schema["_id"]
         updated_user["schema_version"] = schema["version"]
+        updated_user["permissions"] = permissions
+        updated_user["groups"] = groups
 
         # Log Action
         g.audit_metadata = {"user": user_id}
@@ -1285,7 +1322,7 @@ def create_assay_panel():
 
         config = util.admin.process_form_to_config(form_data, schema)
         config["_id"] = config["panel_name"]
-        config["covered_genes"] = covered_genes
+        config["covered_genes"] = list(set(covered_genes))
         config["created_by"] = current_user.email
         config["created_on"] = datetime.utcnow()
         config["updated_by"] = current_user.email
@@ -1360,7 +1397,7 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
         print(updated)
 
         # Carefully patch system fields
-        updated["covered_genes"] = covered_genes
+        updated["covered_genes"] = list(set(covered_genes))
         updated["updated_by"] = current_user.email
         updated["updated_on"] = datetime.utcnow()
         updated["version"] = panel.get("version", 1) + 1
@@ -1546,7 +1583,7 @@ def create_genelist() -> Response | str:
 
         config = util.admin.process_form_to_config(form_data, schema)
         config["_id"] = config["name"]
-        config["genes"] = genes
+        config["genes"] = list(set(genes))
         config["created_by"] = current_user.email
         config["created_on"] = datetime.utcnow()
         config["version"] = 1
@@ -1623,7 +1660,7 @@ def edit_genelist(genelist_id) -> Response | str:
         updated = util.admin.process_form_to_config(form_data, schema)
 
         updated["_id"] = genelist["_id"]
-        updated["genes"] = genes
+        updated["genes"] = list(set(genes))
         updated["created_by"] = genelist["created_by"]
         updated["created_on"] = genelist["created_on"]
         updated["version"] = genelist.get("version", 1) + 1
