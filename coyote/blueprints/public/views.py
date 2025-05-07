@@ -134,6 +134,8 @@ def panel_gene_explorer() -> str:
         subpanels = store.insilico_genelist_handler.get_subpanels_for_assays(
             assay_ids
         )
+        # Currently only one assay is selected, In future we should support multiple
+        gene_symbols = store.panel_handler.get_panel_genes(assay_ids[0])
 
         if selected_subpanel_name:
             gene_symbols = (
@@ -141,11 +143,12 @@ def panel_gene_explorer() -> str:
                     selected_subpanel_name
                 )
             )
-            gene_details = (
-                store.insilico_genelist_handler.get_gene_details_by_symbols(
-                    gene_symbols
-                )
+
+        gene_details = (
+            store.insilico_genelist_handler.get_gene_details_by_symbols(
+                gene_symbols
             )
+        )
 
     return render_template(
         "panel_gene_explorer.html",

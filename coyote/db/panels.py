@@ -218,3 +218,22 @@ class PanelsHandler(BaseHandler):
             list: A list of unique assay names (`panel_name`) from the database.
         """
         return self.get_collection().distinct("panel_name")
+
+    def get_panel_genes(self, panel_id: str) -> list:
+        """
+        Retrieve the genes associated with a specific panel.
+
+        This method queries the database collection to find a single document
+        that matches the provided `panel_id`. It then extracts and returns the
+        `covered_genes` field from the document.
+
+        Args:
+            panel_id (str): The unique identifier of the panel whose genes are to be retrieved.
+
+        Returns:
+            list: A list of genes associated with the specified panel.
+        """
+        doc = self.get_collection().find_one({"_id": panel_id})
+        if not doc:
+            return []
+        return doc.get("covered_genes", [])
