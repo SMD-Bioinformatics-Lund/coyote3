@@ -614,7 +614,6 @@ class CommonUtility:
         plot_dir = assay_config.get("REPORT", {}).get("plots_path", "")
         if plot_dir and fn:
             image_path = os.path.join(plot_dir, f"{fn}")
-            print(image_path)
             return CommonUtility.get_base64_image(image_path)
         return False
 
@@ -655,8 +654,6 @@ class CommonUtility:
 
         # Serialize to stable JSON
         raw_key = json.dumps(kwargs, sort_keys=True, separators=(",", ":"))
-
-        print(kwargs)
 
         # Return hashed cache key
         return f"samples:{md5(raw_key.encode()).hexdigest()}"

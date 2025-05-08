@@ -1394,8 +1394,6 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
         # Process form fields
         updated = util.admin.process_form_to_config(form_data, schema)
 
-        print(updated)
-
         # Carefully patch system fields
         updated["covered_genes"] = list(set(covered_genes))
         updated["updated_by"] = current_user.email

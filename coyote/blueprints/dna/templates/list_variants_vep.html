@@ -269,10 +269,10 @@
                             <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ csq.HGVSp|unesc|safe }}</span>`)">
                               <div class="relative flex inline-block">
                                 <div id="{{csq.Feature}}-hgvsp-short" class="truncate max-w-15c">
-                                  {{ csq.HGVSp|unesc|safe }}
+                                  {{ csq.HGVSp|one_letter_p|unesc|safe }}
                                 </div>
                                 <div id="{{csq.Feature}}-hgvsp-full" class="hidden break-all whitespace-normal">
-                                  {{ csq.HGVSp|unesc|safe }}
+                                  {{ csq.HGVSp|one_letter_p|unesc|safe }}
                                 </div>
                                 <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
                                         data-target="{{csq.Feature}}-hgvsp"
