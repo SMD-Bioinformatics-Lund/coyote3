@@ -40,8 +40,6 @@ def home_screen(status="live"):
         search_mode = search_slider_values[int(form.search_mode_slider.data)]
 
     limit_done_samples = 50
-    if request.args.get("all") == "1" or search_str:
-        limit_done_samples = None
 
     if not search_mode:
         search_mode = status
@@ -85,22 +83,32 @@ def home_screen(status="live"):
     else:
         live_samples = []
 
+    # TODO: We need to add sample_num to the sample object when we get the samples to make this even faster
     # Add date for latest report to done_samples
+    done_sample_ids = [str(s["_id"]) for s in done_samples]
+    done_gt_map = store.variant_handler.get_gt_lengths_by_sample_ids(
+        done_sample_ids
+    )
+
     for samp in done_samples:
-        if "reports" in samp and "time_created" in samp["reports"][-1]:
-            samp["last_report_time_created"] = samp["reports"][-1][
-                "time_created"
-            ]
-        else:
-            samp["last_report_time_created"] = 0
-        samp["num_samples"] = store.variant_handler.get_num_samples(
-            str(samp["_id"])
+        # Set last report time
+        samp["last_report_time_created"] = (
+            samp["reports"][-1]["time_created"]
+            if samp.get("reports") and samp["reports"][-1].get("time_created")
+            else 0
         )
 
+        # Set number of samples from GT length
+        samp["num_samples"] = done_gt_map.get(str(samp["_id"]), 0)
+
+    live_sample_ids = [str(s["_id"]) for s in live_samples]
+    gt_lengths_map = store.variant_handler.get_gt_lengths_by_sample_ids(
+        live_sample_ids
+    )
+
+    # Inject GT length into sample objects
     for samp in live_samples:
-        samp["num_samples"] = store.variant_handler.get_num_samples(
-            str(samp["_id"])
-        )
+        samp["num_samples"] = gt_lengths_map.get(str(samp["_id"]), 0)
 
     return render_template(
         "main_screen.html",

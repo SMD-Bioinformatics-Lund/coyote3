@@ -1,5 +1,6 @@
 from flask import Blueprint
 from flask import current_app as app
+import logging
 
 # Blueprint configuration
 dashboard_bp = Blueprint(
@@ -14,4 +15,4 @@ dashboard_bp = Blueprint(
 from coyote.blueprints.dashboard import views  # noqa: F401, E402
 
 
-app.dashboard_logger = app.logger.getChild("dashboard")
+app.dashboard_logger = logging.getLogger("coyote.dashboard")

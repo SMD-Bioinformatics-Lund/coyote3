@@ -66,7 +66,7 @@ class SampleHandler(BaseHandler):
             - If `report` is False, filters samples with report_num = 0 or not present.
             - If `search_str` is provided, filters samples by name using regex.
         """
-        query = {"groups": {"$in": user_groups}}
+        query: dict[str, dict[str, Any]] = {"groups": {"$in": user_groups}}
 
         if report:
             query["report_num"] = {"$gt": 0}
