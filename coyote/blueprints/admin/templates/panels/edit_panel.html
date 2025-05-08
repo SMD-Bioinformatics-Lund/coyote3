@@ -1,0 +1,140 @@
+{% extends "layout.html" %}
+{% block title %}Edit Assay Panel{% endblock %}
+{% block body %}
+<div class="flex w-full h-full overflow-hidden">
+  {% include "admin_sidebar.html" %}
+  <main class="flex-1 overflow-y-auto p-4 flex flex-col">
+
+    <section class="p-2 ml-2 mt-2">
+      <div class="bg-gray-50 border border-gray-200 rounded-2xl shadow-xl p-6">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="text-xl font-bold text-blue-500 tracking-wide capitalize flex gap-2 align-middle"><img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="Schema Edit Icon" class="h-6 w-6">Edit User - <i>{{panel._id}}</i></h1>
+          <div class="text-sm text-gray-700 flex items-center">
+            <span class="inline-flex items-center px-2 py-1 bg-blue-200 text-blue-700 font-semibold rounded-l-full">
+              {{ panel.schema_name }}
+            </span>
+            <span class="inline-flex items-center px-2 py-1 bg-orange-200 text-black font-semibold rounded-r-full ">
+              v{{ panel.schema_version }}
+            </span>
+          </div>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="space-y-6 text-sm text-gray-700">
+
+          <!-- Meta Information -->
+          <div class="bg-gray-100 border-l-4 border-blue-200 bg-blue-50 rounded-xl p-4 shadow-lg">
+            <div class="grid grid-cols-2 gap-4 py-4">
+              {% for key in schema.sections.meta %}
+                <div>
+                  <label class="text-xs font-semibold mb-1 block">
+                    {{ schema.fields[key].label }}
+                    {% if schema.fields[key].required %}<span class="text-red-500">*</span>{% endif %}
+                    <span class="text-gray-400">({{ schema.fields[key].type }})</span>
+                  </label>
+            
+                  {% if schema.fields[key].type == "bool" %}
+                    <input type="checkbox" name="{{ key }}" value="true"
+                      {% if panel[key] %}checked{% endif %}
+                      class="accent-blue-600 rounded">
+                  
+                  {% elif schema.fields[key].options %}
+                    <select name="{{ key }}"
+                      class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm {% if key in ['panel_name', 'version'] %}cursor-not-allowed text-gray-500{% endif %}"
+                      {% if key in ['panel_name', 'version'] %}readonly disabled{% endif %}>
+                      {% for option in schema.fields[key].options %}
+                        <option value="{{ option }}" {% if option == panel[key] %}selected{% endif %}>{{ option }}</option>
+                      {% endfor %}
+                    </select>
+            
+                  {% else %}
+                    <input type="text" name="{{ key }}"
+                      value="{{ panel[key] }}"
+                      class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm {% if key in ['panel_name', 'version'] %}cursor-not-allowed text-gray-500{% endif %}"
+                      {% if key in ['panel_name', 'version'] %}readonly{% endif %}>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+
+            <hr>
+
+            <!-- Technical Details -->
+            <h2 class="text-base font-bold text-blue-500 py-2">Technical Details</h2>
+
+            <div class="grid grid-cols-2 gap-4 py-4">
+              {% for key in schema.sections.technical_details %}
+                <div>
+                  <label class="text-xs font-semibold mb-1 block">
+                    {{ schema.fields[key].label }}
+                    <span class="text-gray-400">({{ schema.fields[key].type }})</span>
+                  </label>
+
+                  {% if schema.fields[key].options %}
+                    <select name="{{ key }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
+                      {% for option in schema.fields[key].options %}
+                        <option value="{{ option }}" {% if option == panel.get(key) %}selected{% endif %}>{{ option }}</option>
+                      {% endfor %}
+                    </select>
+                  {% else %}
+                    <input type="text" name="{{ key }}"
+                      value="{{ panel.get(key, '') }}"
+                      placeholder="{{ schema.fields[key].placeholder }}"
+                      class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+
+            <hr>
+
+            <!-- Covered Genes -->
+            <h2 class="text-base font-bold text-blue-500 py-2">Covered Genes</h2>
+
+            <div class="flex flex-col gap-4 items-start py-4">
+              <textarea name="genes_paste" rows="8"
+                class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm font-mono resize-y"
+                placeholder="Paste or edit genes, comma or newline separated">{{ panel.covered_genes | join(", ") }}</textarea>
+              <div class="flex flex-col">
+                <span class="text-xs font-semibold mb-2">OR Upload File</span>
+                <input type="file" name="genes_file" accept=".txt,.csv" class="text-xs">
+              </div>
+            </div>
+
+            <hr>
+
+            <!-- Metadata Info -->
+            <h2 class="text-base font-bold text-blue-500 py-2">Metadata</h2>
+
+            <div class="grid grid-cols-4 gap-4 py-4">
+              {% for field in ['created_by', 'created_on', 'updated_by', 'updated_on'] %}
+                <div>
+                  <label class="text-xs font-semibold mb-1 block">
+                    {{ schema.fields[field].label }}
+                    <span class="text-gray-400">({{ schema.fields[field].type }})</span>
+                  </label>
+
+                  <input type="{{ 'number' if schema.fields[field].type == 'float' else 'text' }}"
+                    name="{{ field }}"
+                    value="{{ panel.get(field) }}"
+                    readonly class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm text-gray-500 cursor-not-allowed">
+                </div>
+              {% endfor %}
+            </div>
+
+            <div class="text-right py-2">
+              <button type="submit" class="bg-blue-400 hover:bg-blue-500 text-white font-semibold px-6 py-2 rounded-lg">
+                Save Changes
+              </button>
+            </div>
+          </div>
+
+        </form>
+
+      </div>
+    </section>
+
+  </main>
+</div>
+{% endblock %}

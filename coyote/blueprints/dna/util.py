@@ -6,6 +6,7 @@ from datetime import datetime
 from flask_login import current_user
 from bson.objectid import ObjectId
 from coyote.util.common_utility import CommonUtility
+from coyote.util.report.report_util import ReportUtility
 from flask import current_app as app
 from coyote.extensions import store
 from bisect import bisect_left
@@ -89,10 +90,9 @@ class DNAUtility:
         """
         types = []
         for name in cnvtype:
-            effect = name.split("_", 1)[1]
-            if effect == "loss":
+            if name == "loss":
                 types.append("DEL")
-            if effect == "gain":
+            if name == "gain":
                 types.append("AMP")
         return types
 
@@ -257,10 +257,34 @@ class DNAUtility:
             # else:
             #     variants[var_idx]["additional_classification"] = None
 
-            variants[var_idx] = store.annotation_handler.add_alt_class(
-                variants[var_idx], assay, subpanel
-            )
+            variants[var_idx] = DNAUtility.add_alt_class(variants[var_idx], assay, subpanel)
         return variants
+
+    @staticmethod
+    def add_alt_class(variant: dict, assay: str, subpanel: str) -> list[dict]:
+        """
+        Add alternative classifications to a list of variants based on the specified assay and subpanel.
+        Args:
+            variants (dict): A dict of a variant to be annotated.
+            assay (str): The type of assay being used (e.g., 'solid').
+            subpanel (str): The subpanel identifier for further filtering when assay is 'solid'.
+        Returns:
+            list: A list of variants with additional classifications added to them.
+
+        """
+        additional_classifications = store.annotation_handler.get_additional_classifications(
+            variant, assay, subpanel
+        )
+        if additional_classifications:
+            additional_classifications[0].pop("_id", None)
+            additional_classifications[0].pop("author", None)
+            additional_classifications[0].pop("time_created", None)
+            additional_classifications[0]["class"] = int(additional_classifications[0]["class"])
+            variant["additional_classification"] = additional_classifications[0]
+        else:
+            variant["additional_classification"] = None
+
+        return variant
 
     @staticmethod
     def filter_variants_for_report(variants: list, filter_genes: list, assay: str) -> list:
@@ -291,13 +315,13 @@ class DNAUtility:
         return filtered_sorted_variants
 
     @staticmethod
-    def get_simple_variants_for_report(variants: list) -> list:
+    def get_simple_variants_for_report(variants: list, assay_config: dict) -> list:
         """
         Get simple variants for the report
         """
-        translation = app.config.get("REPORT_CONFIG", {}).get("REPORT_TRANS")
-        class_short_desc_list = app.config.get("REPORT_CONFIG", {}).get("CLASS_DESC_SHORT")
-        class_long_desc_list = app.config.get("REPORT_CONFIG", {}).get("CLASS_DESC")
+        translation = ReportUtility.VARIANT_CLASS_TRANSLATION
+        class_short_desc_list = ReportUtility.TIER_SHORT_DESC
+        class_long_desc_list = ReportUtility.TIER_DESC
         one_letter_p = app.jinja_env.filters["one_letter_p"]
         standard_HGVS = app.jinja_env.filters["standard_HGVS"]
         cdna = ""
@@ -341,16 +365,16 @@ class DNAUtility:
                     ]
 
             # Vairant class short description
-            if str(variant_class) in class_short_desc_list:
-                variant_class_short = class_short_desc_list[str(variant_class)]
+            if variant_class in class_short_desc_list:
+                variant_class_short = class_short_desc_list[variant_class]
             else:
-                variant_class_short = "None"
+                variant_class_short = "-"
 
             # Vairant class long description
-            if str(variant_class) in class_short_desc_list:
-                variant_class_long = class_long_desc_list[str(variant_class)]
+            if variant_class in class_short_desc_list:
+                variant_class_long = class_long_desc_list[variant_class]
             else:
-                variant_class_long = "None"
+                variant_class_long = "-"
 
             # Classification/variant type
             if var.get("INFO", {}).get("MYELOID_GERMLINE") == 1 or "GERMLINE" in var.get(
@@ -396,6 +420,8 @@ class DNAUtility:
                     "variant": variant,
                     "af": AF,
                     "symbol": selected_CSQ.get("SYMBOL"),
+                    "exon": selected_CSQ.get("EXON").split("/"),
+                    "intron": selected_CSQ.get("INTRON").split("/"),
                     "class": variant_class,
                     "class_short_desc": variant_class_short,
                     "class_long_desc": variant_class_long,
@@ -403,7 +429,6 @@ class DNAUtility:
                     "var_type": var_type,
                     "class_type": class_type,
                     "var_class": var.get("variant_class", ""),
-                    "exon_info": selected_CSQ.get("EXON", "").split("/"),
                     "feature": selected_CSQ.get("Feature", ""),
                     "consequence": consequence,
                     "cdna": cdna,
@@ -997,7 +1022,7 @@ class DNAUtility:
         var_p > var_c > var_g > fusionpoints > translocpoints > cnvvar
         """
         nomenclature = "p"  # default
-        variant = ""        # default value in case nothing is found
+        variant = ""  # default value in case nothing is found
 
         var_nomenclature = {
             "var_p": "p",  # priority 1
@@ -1017,7 +1042,6 @@ class DNAUtility:
 
         return nomenclature, variant
 
-
     @staticmethod
     def create_comment_doc(
         data: dict, nomenclature: str = "", variant: str = "", key: str = "text"
@@ -1028,7 +1052,7 @@ class DNAUtility:
         if data.get("global", None) == "global":
             doc = {
                 "text": data.get(key),  # common
-                "author": current_user.get_id(),  # common
+                "author": current_user.username,  # common
                 "time_created": datetime.now(),  # common
                 "variant": variant,  # common
                 "nomenclature": nomenclature,  # common
@@ -1053,7 +1077,7 @@ class DNAUtility:
                         "_id": ObjectId(),
                         "hidden": 0,
                         "text": data.get(key),
-                        "author": current_user.get_id(),
+                        "author": current_user.username,
                         "time_created": datetime.now(),
                     }
                 }
@@ -1134,7 +1158,7 @@ class DNAUtility:
         for var in cnvs:
             if var["ratio"] > 0:
                 effect = "AMP"
-            if var["ratio"] < 0:
+            elif var["ratio"] < 0:
                 effect = "DEL"
             if effect in checked_effects:
                 filtered_cnvs.append(var)

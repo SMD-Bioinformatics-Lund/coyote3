@@ -95,7 +95,7 @@
         </span>
       </p>
       <p><span class="font-semibold uppercase tracking-wide">Rapportdatum</span><br><span class="text-gray-800">{{ report_date }}</span></p>
-      <p><span class="font-semibold uppercase tracking-wide">Rapport genererad av</span><br><span class="text-gray-800">{{ current_user.get_fullname() }}</span></p>
+      <p><span class="font-semibold uppercase tracking-wide">Rapport genererad av</span><br><span class="text-gray-800">{{ current_user.fullname }}</span></p>
       <p><span class="font-semibold uppercase tracking-wide">Rapport-ID</span><br>
         <span class="text-gray-800">
           {% if sample.report_num is defined %}

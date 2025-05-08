@@ -14,7 +14,7 @@
 			</div>
 
       		<!-- Right Side: Variant Actions -->
-      		{% if current_user.get_role() != "readonly" %}
+      		{% if current_user.role != "readonly" %}
       		<div class="flex items-center space-x-4">
         		{% if fusion.fp == true %}
           		<form action="{{ url_for('rna_bp.unmark_false_fusion', id=fusion._id) }}" method="post">
@@ -128,7 +128,7 @@
 							The variant has not been classified
 						  {% endif %}
 						</div>
-						{% if current_user.get_role() != "readonly" %}
+						{% if current_user.role != "readonly" %}
 						<form id="form" action="{{ url_for('dna_bp.classify_variant', id=fusion._id) }}" method="post" class="inline-flex items-center space-x-2">
 							<input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
 							<input type="hidden" name="gene2" value="{{ fusion.gene2 }}">
@@ -147,7 +147,7 @@
 							<input type="hidden" name="fusionpoints" value="{{sel_fus.breakpoint1}}^{{sel_fus.breakpoint2}}">
 							{% if 'assay' in classification %}
 								<button id="remove" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer" title="Remove {{assay}} classifications" type="submit" onclick="return confirm('This will remove all tiering for {{assay}}, proceed?')">❌</button>
-							  {% elif 'admin' in current_user.get_groups() %}
+							  {% elif 'admin' in current_user.groups %}
 								<button id="remove" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer" title="Remove historic non-assay classifications" type="submit" onclick="return confirm('This will remove all tiering for historic tiering without assays assigned, proceed?')">❌</button>
 							  {% endif %}
 						</form>
@@ -157,7 +157,7 @@
 			</div>
 
 			<!-- Add comment-->
-			{% if current_user.get_role() != "readonly" %}
+			{% if current_user.role != "readonly" %}
 			<div class="w-full md:w-1/4 p-2">
 				<div class="bg-white shadow-md rounded-lg p-4 m-5">
 					<h2 class="text-base font-semibold mb-4 bg-blue-400 p-2 rounded">Add new comment/annotation</h2>
@@ -183,7 +183,7 @@
 
 
 			<!-- Variant Comments -->
-			{% if current_user.get_role() != "readonly" %}
+			{% if current_user.role != "readonly" %}
 			<div class="w-full md:w-1/4 p-2">
 				<div class="bg-white shadow-md rounded-lg p-4 m-5">
 					<h2 class="text-base font-semibold mb-4 bg-blue-400 p-2 rounded">Variant Specific Comments</h2>
@@ -286,7 +286,7 @@
 				</thead>
 				<tbody>
 				  {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
-					{% if current_user.get_role() != "readonly" or loop.first == True %}
+					{% if current_user.role != "readonly" or loop.first == True %}
 					  <tr class="hover:bg-blue-50">
 						<td class="px-2 py-2 border-b">
 						  {{ anno.author }}<br><small>{{ anno.time_created|human_date }}</small>

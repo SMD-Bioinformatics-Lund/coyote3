@@ -1,0 +1,159 @@
+{
+  // This is an example schema format
+  // Remove all the comment lines before submitting 
+
+
+  // Unique ID used as MongoDB _id (same as schema_name)
+  "_id": "Example-Config",
+
+  // Human-readable schema name
+  "schema_name": "Example-Config",
+
+  // Description of what this schema is used for
+  "description": "Default schema for all Example assay configurations",
+
+  // Type of the schema: e.g., assay_config, panel_config, report_config, etc.
+  "schema_type": "assay_config",
+
+  // Category of schema - useful to filter/query later (e.g. DNA, RNA, etc.)
+  "schema_category": "DNA",
+
+  // Is the schema active/visible in the system
+  "is_active": true,
+
+  // Sections are logical groups of fields shown together in the UI
+  "sections": {
+    "meta": ["assay_name", "assay_group", "version", "panel_name", "panel_technology", "created_by", "created_on", "updated_by", "updated_on", "is_active"],
+    "frequency": ["min_freq", "max_freq", "popfreq"],
+    "coverage": ["warn_cov", "error_cov", "min_reads"],
+    "cnv": ["min_cnv_size", "max_cnv_size", "min_cnv_ratio", "max_cnv_ratio"],
+    "vep": ["vep_consequences"],
+    "lists": ["genelists", "cnveffects", "fusionlists", "fusioneffects", "fusion_callers"],
+    "flags": ["DNA"],
+    "advanced_json": ["verification_samples", "query"],
+    "reporting": ["REPORT"]
+  },
+
+  // Field definitions for each key in the config
+  "fields": {
+    "assay_name": {
+      "type": "string",
+      "label": "Assay Name",
+      "required": true,
+      "placeholder": "e.g. myeloid_GMSv1"
+    },
+    "assay_group": {
+      "type": "string",
+      "label": "Assay Group",
+      "required": true,
+      "placeholder": "e.g. myeloid | lymphoid | solid"
+    },
+    "version": {
+      "type": "int",
+      "label": "Config Version",
+      "required": true,
+      "default": 1,
+      "placeholder": "e.g. 1"
+    },
+    "panel_name": {
+      "type": "string",
+      "label": "Panel Name",
+      "required": true
+    },
+    "panel_technology": {
+      "type": "string",
+      "label": "Technology",
+      "required": false
+    },
+    "is_active": {
+      "type": "bool",
+      "label": "Is Active",
+      "default": true,
+      "required": true
+    },
+    "min_freq": {
+      "type": "float",
+      "label": "Minimum Frequency",
+      "default": 0.01
+    },
+    "max_freq": {
+      "type": "float",
+      "label": "Maximum Frequency",
+      "default": 0.05
+    },
+    "popfreq": {
+      "type": "float",
+      "label": "Population Frequency",
+      "default": 0.01
+    },
+    "min_reads": {
+      "type": "int",
+      "label": "Minimum Reads",
+      "default": 5
+    },
+    "genelists": {
+      "type": "list",
+      "label": "Gene Lists",
+      "default": []
+    },
+    "verification_samples": {
+      "type": "json",
+      "label": "Verification Samples",
+      "default": {}
+    },
+    "query": {
+      "type": "json",
+      "label": "Query Parameters",
+      "default": {}
+    },
+    "DNA": {
+      "type": "subschema",
+      "schema": "DNA",
+      "label": "DNA Flags",
+      "required": true
+    },
+    "REPORT": {
+      "type": "subschema",
+      "schema": "REPORT",
+      "label": "Reporting Info",
+      "required": true
+    }
+  },
+
+  // Subschemas for structured groups like flags or report
+  "subschemas": {
+    "DNA": {
+      "type": "dict",
+      "fields": {
+        "SNV": { "type": "bool", "default": true, "label": "SNV" },
+        "CNV": { "type": "bool", "default": false, "label": "CNV" }
+        // Add other DNA flags as needed
+      }
+    },
+    "REPORT": {
+      "type": "dict",
+      "fields": {
+        "analysis_method": {
+          "type": "string",
+          "label": "Analysis Method",
+          "placeholder": "e.g. NGS analysis using panel xyz"
+        },
+        "header": {
+          "type": "string",
+          "label": "Report Header",
+          "placeholder": "e.g. Myeloid NGS Report"
+        },
+        "plots_path": {
+          "type": "string",
+          "label": "Path to Plots",
+          "placeholder": "e.g. /access/path/to/plots"
+        },
+        "analysis_desc": {
+          "type": "string",
+          "label": "Analysis Description",
+          "placeholder": "e.g. DNA was extracted and analyzed..."
+        }
+      }
+    }
+  }
+}

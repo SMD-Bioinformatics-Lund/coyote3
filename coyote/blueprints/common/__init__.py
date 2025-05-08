@@ -1,4 +1,5 @@
 from flask import Blueprint
+from flask import current_app as app
 
 # Blueprint configuration
 common_bp = Blueprint(
@@ -6,3 +7,5 @@ common_bp = Blueprint(
 )
 
 from coyote.blueprints.common import views  # noqa: F401, E402
+
+app.common_logger = app.logger.getChild("common")
