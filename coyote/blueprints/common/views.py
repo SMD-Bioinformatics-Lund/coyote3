@@ -42,7 +42,7 @@ def error_screen():
 @common_bp.route("/sample/<string:sample_id>/sample_comment", methods=["POST"])
 @login_required
 @require_sample_group_access("sample_id")
-@require("add_sample_comment", min_role="admin")
+@require("add_sample_comment", min_role="user", min_level=9)
 def add_sample_comment(sample_id):
     """
     Add Sample comment
@@ -59,9 +59,11 @@ def add_sample_comment(sample_id):
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
 
 
-@common_bp.route("/sample/<string:sample_id>/hide_sample_comment", methods=["POST"])
+@common_bp.route(
+    "/sample/<string:sample_id>/hide_sample_comment", methods=["POST"]
+)
 @require_sample_group_access("sample_id")
-@require("hide_sample_comment", min_role="admin")
+@require("hide_sample_comment", min_role="manager", min_level=99)
 @login_required
 def hide_sample_comment(sample_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
@@ -75,10 +77,12 @@ def hide_sample_comment(sample_id):
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
 
 
-@common_bp.route("/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"])
+@common_bp.route(
+    "/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"]
+)
 @login_required
 @require_sample_group_access("sample_id")
-@require("unhide_sample_comment", min_role="admin")
+@require("unhide_sample_comment", min_role="manager", min_level=99)
 def unhide_sample_comment(sample_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.sample_handler.unhide_sample_comment(sample_id, comment_id)
@@ -91,7 +95,9 @@ def unhide_sample_comment(sample_id):
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
 
 
-@common_bp.route("/<string:sample_id>/<string:sample_assay>/genes", methods=["POST"])
+@common_bp.route(
+    "/<string:sample_id>/<string:sample_assay>/genes", methods=["POST"]
+)
 def get_sample_genelists(sample_id, sample_assay) -> str:
     """
     Retrieves and decrypts gene list and panel document data from the request form, then renders the 'sample_genes.html' template with the provided sample information.
@@ -110,9 +116,16 @@ def get_sample_genelists(sample_id, sample_assay) -> str:
     enc_genelists = request.form["enc_genelists"]
     enc_panel_doc = request.form["enc_panel_doc"]
 
-    genelists = json.loads(app.config["FERNET"].decrypt(enc_genelists.encode()))
-    panel_doc = json.loads(app.config["FERNET"].decrypt(enc_panel_doc.encode()))
+    genelists = json.loads(
+        app.config["FERNET"].decrypt(enc_genelists.encode())
+    )
+    panel_doc = json.loads(
+        app.config["FERNET"].decrypt(enc_panel_doc.encode())
+    )
 
     return render_template(
-        "sample_genes.html", sample=sample_id, genelists=genelists, assay_panel_doc=panel_doc
+        "sample_genes.html",
+        sample=sample_id,
+        genelists=genelists,
+        assay_panel_doc=panel_doc,
     )

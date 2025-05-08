@@ -359,7 +359,7 @@ def list_variants(sample_id):
 @dna_bp.route("/<sample_id>/multi_class", methods=["POST"])
 @login_required
 @require_sample_group_access("sample_id")
-@require("manage_snvs", min_role="admin")
+@require("manage_snvs", min_role="user", min_level=9)
 def classify_multi_variant(sample_id) -> Response:
     """
     Classify multiple variants
@@ -932,7 +932,7 @@ def remove_classified_variant(sample_id, var_id):
     endpoint="add_translocation_comment",
 )
 @login_required
-@require("add_variant_comment", min_role="admin")
+@require("add_variant_comment", min_role="user", min_level=9)
 @require_sample_group_access("sample_id")
 def add_var_comment(sample_id, id=None, **kwargs):
     """
@@ -992,7 +992,7 @@ def add_var_comment(sample_id, id=None, **kwargs):
     methods=["POST"],
 )
 @login_required
-@require("hide_variant_comment", min_role="admin")
+@require("hide_variant_comment", min_role="manager", min_level=99)
 @require_sample_group_access("sample_id")
 def hide_variant_comment(sample_id, var_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
@@ -1007,7 +1007,7 @@ def hide_variant_comment(sample_id, var_id):
     methods=["POST"],
 )
 @login_required
-@require("unhide_variant_comment", min_role="admin")
+@require("unhide_variant_comment", min_role="manager", min_level=99)
 @require_sample_group_access("sample_id")
 def unhide_variant_comment(sample_id, var_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
@@ -1055,7 +1055,7 @@ def show_cnv(sample_id, cnv_id):
 )
 @login_required
 @require_sample_group_access("sample_id")
-@require("manage_cnvs", min_role="admin")
+@require("manage_cnvs", min_role="user", min_level=9)
 def unmark_interesting_cnv(sample_id, cnv_id):
     """
     Unmark CNV as interesting
@@ -1071,7 +1071,7 @@ def unmark_interesting_cnv(sample_id, cnv_id):
 )
 @login_required
 @require_sample_group_access("sample_id")
-@require("manage_cnvs", min_role="admin")
+@require("manage_cnvs", min_role="user", min_level=9)
 def mark_interesting_cnv(sample_id, cnv_id):
     """
     Mark CNV as interesting
@@ -1085,7 +1085,7 @@ def mark_interesting_cnv(sample_id, cnv_id):
 @dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/fpcnv", methods=["POST"])
 @login_required
 @require_sample_group_access("sample_id")
-@require("manage_cnvs", min_role="admin")
+@require("manage_cnvs", min_role="user", min_level=9)
 def mark_false_cnv(sample_id, cnv_id):
     """
     Mark CNV as false positive
@@ -1101,7 +1101,7 @@ def mark_false_cnv(sample_id, cnv_id):
 )
 @login_required
 @require_sample_group_access("sample_id")
-@require("manage_cnvs", min_role="admin")
+@require("manage_cnvs", min_role="user", min_level=9)
 def unmark_false_cnv(sample_id, cnv_id):
     """
     Unmark CNV as false positive
@@ -1117,7 +1117,7 @@ def unmark_false_cnv(sample_id, cnv_id):
 )
 @login_required
 @require_sample_group_access("sample_id")
-@require("manage_cnvs", min_role="admin")
+@require("manage_cnvs", min_role="user", min_level=9)
 def mark_noteworthy_cnv(sample_id, cnv_id):
     """
     Mark CNV as note worthy
@@ -1133,7 +1133,7 @@ def mark_noteworthy_cnv(sample_id, cnv_id):
 )
 @login_required
 @require_sample_group_access("sample_id")
-@require("manage_cnvs", min_role="admin")
+@require("manage_cnvs", min_role="user", min_level=9)
 def unmark_noteworthy_cnv(sample_id, cnv_id):
     """
     Unmark CNV as note worthy
@@ -1148,7 +1148,7 @@ def unmark_noteworthy_cnv(sample_id, cnv_id):
     "<string:sample_id>/cnv/<string:cnv_id>/hide_cnv_comment", methods=["POST"]
 )
 @login_required
-@require("hide_variant_comment", min_role="admin")
+@require("hide_variant_comment", min_role="manager", min_level=99)
 @require_sample_group_access("sample_id")
 def hide_cnv_comment(sample_id, cnv_id):
     """
@@ -1166,7 +1166,7 @@ def hide_cnv_comment(sample_id, cnv_id):
     methods=["POST"],
 )
 @login_required
-@require("unhide_variant_comment", min_role="admin")
+@require("unhide_variant_comment", min_role="manager", min_level=99)
 @require_sample_group_access("sample_id")
 def unhide_cnv_comment(sample_id, cnv_id):
     """
@@ -1215,7 +1215,7 @@ def show_transloc(sample_id, transloc_id):
 )
 @login_required
 @require_sample_group_access("sample_id")
-@require("manage_translocs", min_role="admin")
+@require("manage_translocs", min_role="user", min_level=9)
 def mark_interesting_transloc(sample_id, transloc_id):
     store.transloc_handler.mark_interesting_transloc(transloc_id)
     return redirect(
@@ -1233,7 +1233,7 @@ def mark_interesting_transloc(sample_id, transloc_id):
 )
 @login_required
 @require_sample_group_access("sample_id")
-@require("manage_translocs", min_role="admin")
+@require("manage_translocs", min_role="user", min_level=9)
 def unmark_interesting_transloc(sample_id, transloc_id):
     store.transloc_handler.unmark_interesting_transloc(transloc_id)
     return redirect(
@@ -1251,7 +1251,7 @@ def unmark_interesting_transloc(sample_id, transloc_id):
 )
 @login_required
 @require_sample_group_access("sample_id")
-@require("manage_translocs", min_role="admin")
+@require("manage_translocs", min_role="user", min_level=9)
 def mark_false_transloc(sample_id, transloc_id):
     store.transloc_handler.mark_false_positive_transloc(transloc_id)
     return redirect(
@@ -1269,7 +1269,7 @@ def mark_false_transloc(sample_id, transloc_id):
 )
 @login_required
 @require_sample_group_access("sample_id")
-@require("manage_translocs", min_role="admin")
+@require("manage_translocs", min_role="user", min_level=9)
 def unmark_false_transloc(sample_id, transloc_id):
     store.transloc_handler.unmark_false_positive_transloc(transloc_id)
     return redirect(
@@ -1286,7 +1286,7 @@ def unmark_false_transloc(sample_id, transloc_id):
     methods=["POST"],
 )
 @login_required
-@require("hide_variant_comment", min_role="admin")
+@require("hide_variant_comment", min_role="manager", min_level=99)
 @require_sample_group_access("sample_id")
 def hide_transloc_comment(sample_id, transloc_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
@@ -1305,7 +1305,7 @@ def hide_transloc_comment(sample_id, transloc_id):
     methods=["POST"],
 )
 @login_required
-@require("unhide_variant_comment", min_role="admin")
+@require("unhide_variant_comment", min_role="manager", min_level=99)
 @require_sample_group_access("sample_id")
 def unhide_transloc_comment(sample_id, transloc_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")

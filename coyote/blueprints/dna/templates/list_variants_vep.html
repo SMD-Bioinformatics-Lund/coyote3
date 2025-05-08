@@ -922,13 +922,13 @@
                             {% if comment.hidden != 1 %}
                               <form action="{{ url_for('common_bp.hide_sample_comment', sample_id=sample._id) }}#summary" method="post">
                                 <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                                <input id="hide_comment" type="image" class="w-5 {% if not has_access('hide_sample_comment', min_role='admin') %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
+                                <input id="hide_comment" type="image" class="w-5 {% if not has_access('hide_sample_comment', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
                               </form>
                             {% else %}
                               {% set hidden_exists = 1 %}
                               <form action="{{ url_for('common_bp.unhide_sample_comment', sample_id=sample._id) }}#summary" method="post">
                                 <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                                <input id="unhide_comment" type="image" class="w-5 {% if not has_access('unhide_sample_comment', min_role='admin') %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
+                                <input id="unhide_comment" type="image" class="w-5 {% if not has_access('unhide_sample_comment', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
                               </form>
                             {% endif %}
                           </td>
@@ -954,7 +954,7 @@
             </div>
 
             <!-- Add Comment Form -->
-            {% if has_access('add_sample_comment', min_role='admin') %}
+            {% if has_access('add_sample_comment', min_role='user', min_level=9) %}
               <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
                 <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-blue-200 to-green-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
                   <h2 class="text-sm font-semibold text-black">Write New Summary</h2>

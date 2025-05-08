@@ -52,7 +52,7 @@
 {% endif %}
 
 {# check permissions for dna cnv actions buttons #}
-{% set cnv_actions_disabled = not has_access('manage_cnvs', min_role='admin') %}
+{% set cnv_actions_disabled = not has_access('manage_cnvs', min_role='user', min_level=9) %}
 {% set cnv_actions_class = "opacity-70 select-none cursor-not-allowed pointer-events-none" if cnv_actions_disabled else "" %}
 {% set cnv_actions_attr = "disabled" if cnv_actions_disabled else "" %}
 
@@ -226,7 +226,7 @@
       <!-- Comment box, other tiering and pon -->
       <div class="flex flex-col gap-y-4 min-w-450 max-w-xl">
         <!-- Comment box -->
-        {% if has_access("add_cnv_comment", min_role="admin") %}
+        {% if has_access("add_cnv_comment", min_role="manager", min_level=99) %}
           <div class="bg-transparent w-full max-w-xl" id="commenting-box-card">
             <h2 class="text-sm font-semibold bg-gradient-to-b from-indigo-400 to-indigo-200 p-2 shadow-md rounded-t-lg break-all">Add new comment/annotation</h2>
             <div id="commenting_box" class="rounded-b-lg border border-gray-400 shadow-md p-2 overflow-x-auto">
@@ -293,7 +293,7 @@
 
       <div class="flex flex-col gap-y-4 min-w-450 max-w-xl items-start">
         <!-- CNV annotations -->
-        {% if has_access('view_global_variant_comment', min_role='admin') %}
+        {% if has_access('view_global_variant_comment', min_role='user', min_level=9) %}
           <div class="bg-gray-50 w-full max-w-xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="green" pagination-button-text-color="black" id="cnv-annotations">
             <h2 class="text-sm font-semibold bg-gradient-to-b from-green-400 to-green-200 p-2 shadow-lg rounded-t-lg break-all">CNV Annotations</h2>
             <div class="rounded-b-lg overflow-x-auto">
@@ -358,12 +358,12 @@
                         {% if comment.hidden != 1 %}
                           <form action="{{ url_for('dna_bp.hide_cnv_comment', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
                             <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                            <input id="hide_comment" type="image" class="w-5 {% if not has_access('hide_variant_comment', min_role='admin') %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
+                            <input id="hide_comment" type="image" class="w-5 {% if not has_access('hide_variant_comment', min_role='manager', min_level=9) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
                           </form>
                         {% else %}
                           <form action="{{ url_for('dna_bp.unhide_cnv_comment', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
                             <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                            <input id="unhide_comment" type="image" class="w-5 {% if not has_access('unhide_variant_comment', min_role='admin') %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
+                            <input id="unhide_comment" type="image" class="w-5 {% if not has_access('unhide_variant_comment', min_role='manager', min_level=9) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
                           </form>
                         {% endif %}
                       </td>

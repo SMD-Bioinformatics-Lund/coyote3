@@ -47,7 +47,7 @@ container_name="coyote3_app_beta-1"
 # ./scripts/update-to-latest-config.sh
 
 echo "Building docker image: '$image_name'"
-# docker build --no-cache --network host --target coyote3_app -t "$image_name" . 
+docker build --no-cache --network host --target coyote3_app -t "$image_name" . 
 
 docker stop coyote3_app_alpha
 docker rm coyote3_app_alpha
