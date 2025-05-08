@@ -9,4 +9,4 @@ home_bp = Blueprint(
 
 from coyote.blueprints.home import views  # noqa: F401, E402
 
-app.home_logger = logging.getLogger("home_logger")
+app.home_logger = logging.getLogger("coyote.home")
