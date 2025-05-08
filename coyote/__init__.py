@@ -30,10 +30,12 @@ from flask_login import current_user, login_user
 from coyote.services.auth.user_session import User
 from coyote.models.user import UserModel
 from coyote.extensions import store
+from coyote.util.misc import get_dynamic_assay_nav
 from pymongo.errors import ConnectionFailure
-import json
 from flask_caching import Cache
+from typing import Any
 import os
+import json
 
 
 # Initialize Flask-Caching
@@ -108,9 +110,16 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
             for role in store.roles_handler.get_all_roles()
         }
 
+        # Cache assay panels in app context
+        @app.context_processor
+        def inject_assay_nav() -> dict:
+            if current_user.is_authenticated:
+                return get_dynamic_assay_nav()
+            return {"dynamic_assay_nav": {}}
+
         # TODO: revit this function and remove unused things
         @app.context_processor
-        def inject_user_helpers():
+        def inject_user_helpers() -> dict[str, Any]:
             """
             Injects user-related helper functions into the Jinja2 template context.
 

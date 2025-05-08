@@ -123,19 +123,23 @@ def panels_screen(assay="myeloid_GMSv1", status="live"):
     return main_screen(assay, status)
 
 
-@home_bp.route("/rna/<string:assay>/<string:status>", methods=["GET", "POST"])
-@home_bp.route("/rna/<string:assay>", methods=["GET", "POST"])
+@home_bp.route("/wgs/<string:assay>/<string:status>", methods=["GET", "POST"])
+@home_bp.route("/wgs/<string:assay>", methods=["GET", "POST"])
 @login_required
-def rna_screen(assay="fusion", status="live"):
+def wgs_screen(assay="tumwgs-solid", status="live"):
     return main_screen(assay, status)
 
 
-@home_bp.route(
-    "/tumwgs/<string:assay>/<string:status>", methods=["GET", "POST"]
-)
-@home_bp.route("/tumwgs/<string:assay>", methods=["GET", "POST"])
+@home_bp.route("/rna/<string:assay>/<string:status>", methods=["GET", "POST"])
+@home_bp.route("/rna/<string:assay>", methods=["GET", "POST"])
 @login_required
-def tumwgs_screen(assay="tumwgs-solid", status="live"):
+def rna_panels_screen(assay="solidRNA_GMSv5", status="live"):
+    return main_screen(assay, status)
+
+
+@home_bp.route("/wts/<string:assay>", methods=["GET", "POST"])
+@login_required
+def rna_wts_screen(assay="fusion", status="live"):
     return main_screen(assay, status)
 
 

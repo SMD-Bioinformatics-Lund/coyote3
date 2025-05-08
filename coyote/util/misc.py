@@ -20,6 +20,9 @@ License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 import json
 from datetime import datetime
 from typing import Any
+from collections import defaultdict
+from coyote.extensions import store
+from flask_login import login_required, current_user
 
 
 # -------------------------------------------------------------------------
@@ -57,3 +60,53 @@ class EnhancedJSONEncoder(json.JSONEncoder):
                 obj.isoformat()
             )  # or use obj.strftime(...) for a custom format
         return super().default(obj)
+
+
+# -------------------------------------------------------------------------
+# Functions
+# -------------------------------------------------------------------------
+def get_dynamic_assay_nav() -> dict:
+
+    user_groups = current_user.groups or []
+    assays_panels = store.panel_handler.get_all_assay_panels()
+
+    nav = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+
+    URLS: dict[str, dict[str, str]] = {
+        "DNA": {
+            "WGS": "home_bp.wgs_screen",
+            "Panels": "home_bp.panels_screen",
+        },
+        "RNA": {
+            "WTS": "home_bp.rna_wts_screen",
+            "Panels": "home_bp.rna_panels_screen",
+        },
+    }
+
+    for assay_panel in assays_panels:
+        panel_type = assay_panel.get("panel_type", "NA").upper()  # DNA / RNA
+        tech = assay_panel.get(
+            "panel_technology", "Unknown"
+        )  # WGS / WTS / Panel-based NGS
+
+        if tech.startswith("Panel"):
+            tech = "Panels"
+
+        group = assay_panel.get(
+            "panel_group", "Uncategorized"
+        )  # Myeloid / Solid etc.
+        panel_name = assay_panel["_id"]
+
+        if group in user_groups or current_user.is_admin:
+            nav[panel_type][tech][group].append(
+                {
+                    "label": group.upper(),
+                    "url": URLS[panel_type][tech],
+                    "panel_name": panel_name,
+                    "group": group,
+                    "panel_type": panel_type,
+                    "panel_technology": tech,
+                }
+            )
+
+    return dict(dynamic_assay_nav=nav)

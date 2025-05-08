@@ -70,7 +70,8 @@ class DefaultConfig:
         "PGx": ["PGxv1"],
         "PARP": ["PARP_inhib"],
         "ST-RNA": ["solidRNA_GMSv5"],
-        "fusion": ["fusion", "fusion_validation_nf"],
+        "WTS-Fusion": ["fusion"],
+        "RNA-Fusion": ["RNA-fusion"],
         "WGS": ["tumwgs-solid", "tumwgs-hema"],
     }
 

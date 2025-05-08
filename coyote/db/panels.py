@@ -79,7 +79,7 @@ class PanelsHandler(BaseHandler):
             .sort([("created_on", -1)])
         )
 
-    def get_all_assay_panels(self) -> list:
+    def get_all_assay_panels(self, is_active: bool = True) -> list:
         """
         Fetch all panels and calculate covered_genes_count properly.
 
@@ -90,7 +90,7 @@ class PanelsHandler(BaseHandler):
         Returns:
             list: A list of all assay panel documents from the database.
         """
-        return list(self.get_collection().find())
+        return list(self.get_collection().find({"is_active": is_active}))
 
     def insert_panel(self, data: dict) -> Any:
         """
