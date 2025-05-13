@@ -1,0 +1,545 @@
+{
+    "_id": 113,
+    "created_by": "ram.nanduri",
+    "created_on": "2025-04-19T00:00:00Z",
+    "source": "https://www.ensembl.org/info/docs/tools/vep/script/vep_cache.html",
+    "vc_translation_source": "https://www.ensembl.org/info/genome/variation/prediction/classification.html#classes",
+    "conseq_translation_source": "https://www.ensembl.org/info/genome/variation/prediction/predicted_data.html",
+    "db_info": {
+        "GRCh38": {
+            "assembly_name": "GRCh38",
+            "assembly_accession": "GCA_000001405.40",
+            "genome_assembly": "GRCh38.p14",
+            "genome_build": "GRCh38",
+            "ensembl_version": "113",
+            "mane_version": "v1.3",
+            "gencode": "47",
+            "refseq": "GCF_000001405.40-RS_2023_10 (GCF_000001405.40_GRCh38.p14_genomic.gff)",
+            "regulatory_build": "1.0",
+            "polyphen": "2.2.3",
+            "sift": "6.2.1",
+            "dbsnp": "156",
+            "cosmic": "99",
+            "hgmd_public": "2020.4",
+            "clinvar": "2024-04",
+            "1000_genomes": "Phase 3 (remapped)",
+            "gnomad_exomes": "v4.1",
+            "gnomad_genomes": "v4.1"
+        },
+        "GRCh37": {
+            "assembly_name": "GRCh37",
+            "assembly_accession": "GCA_000001405.25",
+            "genome_assembly": "GRCh37.p13",
+            "genome_build": "GRCh37",
+            "ensembl_version": "113",
+            "mane_version": "n/a",
+            "gencode": "19",
+            "refseq": "105.20220307 (GCF_000001405.25_GRCh37.p13_genomic.gff)",
+            "regulatory_build": "1.0",
+            "polyphen": "2.2.2",
+            "sift": "5.2.2",
+            "dbsnp": "156",
+            "cosmic": "98",
+            "hgmd_public": "2020.4",
+            "clinvar": "2023-06",
+            "1000_genomes": "Phase 3",
+            "gnomad_exomes": "v4.1",
+            "gnomad_genomes": "v4.1"
+        }
+    },
+    "variant_class_translations": { 
+        "SNV": {
+            "short": "SNV",
+            "desc": "SNVs are single nucleotide positions in genomic DNA at which different sequence alternatives exist.",
+            "displayname": "Snv",
+            "so_term": "SO:0001483"
+        },
+        "substitution": {
+            "short": "sub",
+            "desc": "A sequence alteration where the length of the change in the variant is the same as that of the reference.",
+            "displayname": "Substitution",
+            "so_term": "SO:1000002"
+        },
+        "Alu_deletion": {
+            "short": "Alu-del",
+            "desc": "A deletion of an Alu mobile element with respect to a reference.",
+            "displayname": "Alu deletion",
+            "so_term": "SO:0002070"
+        },
+        "Alu_insertion": {
+            "short": "Alu-ins",
+            "desc": "An insertion of sequence from the Alu family of mobile elements.",
+            "displayname": "Alu insertion",
+            "so_term": "SO:0002063"
+        },
+        "HERV_deletion": {
+            "short": "HERV-del",
+            "desc": "A deletion of the HERV mobile element with respect to a reference.",
+            "displayname": "HERV deletion",
+            "so_term": "SO:0002067"
+        },
+        "HERV_insertion": {
+            "short": "HERV-ins",
+            "desc": "An insertion of sequence from the HERV family of mobile elements with respect to a reference.",
+            "displayname": "HERV insertion",
+            "so_term": "SO:0002187"
+        },
+        "LINE1_deletion": {
+            "short": "LINE1-del",
+            "desc": "A deletion of a LINE1 mobile element with respect to a reference.",
+            "displayname": "LINE1 deletion",
+            "so_term": "SO:0002069"
+        },
+        "LINE1_insertion": {
+            "short": "LINE1-ins",
+            "desc": "An insertion from the Line1 family of mobile elements.",
+            "displayname": "LINE1 insertion",
+            "so_term": "SO:0002064"
+        },
+        "SVA_deletion": {
+            "short": "SVA-del",
+            "desc": "A deletion of an SVA mobile element.",
+            "displayname": "SVA deletion",
+            "so_term": "SO:0002068"
+        },
+        "SVA_insertion": {
+            "short": "SVA-ins",
+            "desc": "An insertion of sequence from the SVA family of mobile elements.",
+            "displayname": "SVA insertion",
+            "so_term": "SO:0002065"
+        },
+        "complex_chromosomal_rearrangement": {
+            "short": "CCR",
+            "desc": "A contiguous cluster of translocations, usually the result of a single catastrophic event such as chromothripsis or chromoanasynthesis.",
+            "displayname": "Complex chromosomal rearrangement",
+            "so_term": "SO:0002062"
+        },
+        "complex_structural_alteration": {
+            "short": "CSA",
+            "desc": "A structural sequence alteration or rearrangement encompassing one or more genome fragments, with 4 or more breakpoints.",
+            "displayname": "Complex structural alteration",
+            "so_term": "SO:0001784"
+        },
+        "complex_substitution": {
+            "short": "cSub",
+            "desc": "When no simple or well defined DNA mutation event describes the observed DNA change, the keyword 'complex' should be used. Usually there are multiple equally plausible explanations for the change.",
+            "displayname": "Complex substitution",
+            "so_term": "SO:1000005"
+        },
+        "copy_number_gain": {
+            "short": "CN-gain",
+            "desc": "A sequence alteration whereby the copy number of a given regions is greater than the reference sequence.",
+            "displayname": "Copy number gain",
+            "so_term": "SO:0001742"
+        },
+        "copy_number_loss": {
+            "short": "CN-loss",
+            "desc": "A sequence alteration whereby the copy number of a given region is less than the reference sequence.",
+            "displayname": "Copy number loss",
+            "so_term": "SO:0001743"
+        },
+        "copy_number_variation": {
+            "short": "CNV",
+            "desc": "A variation that increases or decreases the copy number of a given region.",
+            "displayname": "Copy number variation",
+            "so_term": "SO:0001019"
+        },
+        "duplication": {
+            "short": "dup",
+            "desc": "An insertion which derives from, or is identical in sequence to, nucleotides present at a known location in the genome.",
+            "displayname": "Duplication",
+            "so_term": "SO:1000035"
+        },
+        "interchromosomal_breakpoint": {
+            "short": "inter-BP",
+            "desc": "A rearrangement breakpoint between two different chromosomes.",
+            "displayname": "Interchromosomal breakpoint",
+            "so_term": "SO:0001873"
+        },
+        "interchromosomal_translocation": {
+            "short": "inter-TL",
+            "desc": "A translocation where the regions involved are from different chromosomes.",
+            "displayname": "Interchromosomal translocation",
+            "so_term": "SO:0002060"
+        },
+        "intrachromosomal_breakpoint": {
+            "short": "intra-BP",
+            "desc": "A rearrangement breakpoint within the same chromosome.",
+            "displayname": "Intrachromosomal breakpoint",
+            "so_term": "SO:0001874"
+        },
+        "intrachromosomal_translocation": {
+            "short": "intra-TL",
+            "desc": "A translocation where the regions involved are from the same chromosome.",
+            "displayname": "Intrachromosomal translocation",
+            "so_term": "SO:0002061"
+        },
+        "inversion": {
+            "short": "inv",
+            "desc": "A continuous nucleotide sequence is inverted in the same position.",
+            "displayname": "Inversion",
+            "so_term": "SO:1000036"
+        },
+        "loss_of_heterozygosity": {
+            "short": "LOH",
+            "desc": "A functional variant whereby the sequence alteration causes a loss of function of one allele of a gene.",
+            "displayname": "Loss of heterozygosity",
+            "so_term": "SO:0001786"
+        },
+        "mobile_element_deletion": {
+            "short": "ME-del",
+            "desc": "A deletion of a mobile element when comparing a reference sequence (has mobile element) to a individual sequence (does not have mobile element).",
+            "displayname": "Mobile element deletion",
+            "so_term": "SO:0002066"
+        },
+        "mobile_element_insertion": {
+            "short": "ME-ins",
+            "desc": "A kind of insertion where the inserted sequence is a mobile element.",
+            "displayname": "Mobile element insertion",
+            "so_term": "SO:0001837"
+        },
+        "novel_sequence_insertion": {
+            "short": "novel-ins",
+            "desc": "An insertion the sequence of which cannot be mapped to the reference genome.",
+            "displayname": "Novel sequence insertion",
+            "so_term": "SO:0001838"
+        },
+        "short_tandem_repeat_variation": {
+            "short": "STR-var",
+            "desc": "A variation that expands or contracts a tandem repeat with regard to a reference.",
+            "displayname": "Short tandem repeat variation",
+            "so_term": "SO:0002096"
+        },
+        "tandem_duplication": {
+            "short": "tandem-dup",
+            "desc": "A duplication consisting of 2 identical adjacent regions.",
+            "displayname": "Tandem duplication",
+            "so_term": "SO:1000173"
+        },
+        "translocation": {
+            "short": "transloc",
+            "desc": "A region of nucleotide sequence that has translocated to a new position. The observed adjacency of two previously separated regions.",
+            "displayname": "Translocation",
+            "so_term": "SO:0000199"
+        },
+        "deletion": {
+            "short": "del",
+            "desc": "The point at which one or more contiguous nucleotides were excised.",
+            "displayname": "Deletion",
+            "so_term": "SO:0000159"
+        },
+        "indel": {
+            "short": "indel",
+            "desc": "A sequence alteration which included an insertion and a deletion, affecting 2 or more bases.",
+            "displayname": "Indel",
+            "so_term": "SO:1000032"
+        },
+        "insertion": {
+            "short": "ins",
+            "desc": "The sequence of one or more nucleotides added between two adjacent nucleotides in the sequence.",
+            "displayname": "Insertion",
+            "so_term": "SO:0000667"
+        },
+        "sequence_alteration": {
+            "short": "seq-alt",
+            "desc": "A sequence_alteration is a sequence_feature whose extent is the deviation from another sequence.",
+            "displayname": "Sequence alteration",
+            "so_term": "SO:0001059"
+        },
+        "probe": {
+            "short": "probe",
+            "desc": "A DNA sequence used experimentally to detect the presence or absence of a complementary nucleic acid.",
+            "displayname": "Probe",
+            "so_term": "SO:0000051"
+        }
+    },
+    "conseq_translations": {
+        "transcript_ablation": {
+            "short": "trans ablation",
+            "display": "Transcript ablation",
+            "desc": "A feature ablation whereby the deleted region includes a transcript feature",
+            "impact": "HIGH",
+            "so_term": "SO:0001893"
+        },
+        "splice_acceptor_variant": {
+            "short": "splice acceptor",
+            "display": "Splice acceptor variant",
+            "desc": "A splice variant that changes the 2 base region at the 3' end of an intron",
+            "impact": "HIGH",
+            "so_term": "SO:0001574"
+        },
+        "splice_donor_variant": {
+            "short": "splice donor",
+            "display": "Splice donor variant",
+            "desc": "A splice variant that changes the 2 base region at the 5' end of an intron",
+            "impact": "HIGH",
+            "so_term": "SO:0001575"
+        },
+        "stop_gained": {
+            "short": "stop gained",
+            "display": "Stop gained",
+            "desc": "A sequence variant whereby at least one base of a codon is changed, resulting in a premature stop codon, leading to a shortened transcript",
+            "impact": "HIGH",
+            "so_term": "SO:0001587"
+        },
+        "frameshift_variant": {
+            "short": "frameshift",
+            "display": "Frameshift variant",
+            "desc": "A sequence variant which causes a disruption of the translational reading frame, because the number of nucleotides inserted or deleted is not a multiple of three",
+            "impact": "HIGH",
+            "so_term": "SO:0001589"
+        },
+        "stop_lost": {
+            "short": "stop lost",
+            "display": "Stop lost",
+            "desc": "A sequence variant where at least one base of the terminator codon (stop) is changed, resulting in an elongated transcript",
+            "impact": "HIGH",
+            "so_term": "SO:0001578"
+        },
+        "start_lost": {
+            "short": "start lost",
+            "display": "Start lost",
+            "desc": "A codon variant that changes at least one base of the canonical start codon",
+            "impact": "HIGH",
+            "so_term": "SO:0002012"
+        },
+        "transcript_amplification": {
+            "short": "trans amp",
+            "display": "Transcript amplification",
+            "desc": "A feature amplification of a region containing a transcript",
+            "impact": "HIGH",
+            "so_term": "SO:0001889"
+        },
+        "feature_elongation": {
+            "short": "feat elongation",
+            "display": "Feature elongation",
+            "desc": "A sequence variant that causes the extension of a genomic feature, with regard to the reference sequence",
+            "impact": "HIGH",
+            "so_term": "SO:0001907"
+        },
+        "feature_truncation": {
+            "short": "feat truncation",
+            "display": "Feature truncation",
+            "desc": "A sequence variant that causes the reduction of a genomic feature, with regard to the reference sequence",
+            "impact": "HIGH",
+            "so_term": "SO:0001906"
+        },
+        "inframe_insertion": {
+            "short": "inframe ins",
+            "display": "Inframe insertion",
+            "desc": "An inframe non synonymous variant that inserts bases into in the coding sequence",
+            "impact": "MODERATE",
+            "so_term": "SO:0001821"
+        },
+        "inframe_deletion": {
+            "short": "inframe del",
+            "display": "Inframe deletion",
+            "desc": "An inframe non synonymous variant that deletes bases from the coding sequence",
+            "impact": "MODERATE",
+            "so_term": "SO:0001822"
+        },
+        "missense_variant": {
+            "short": "missense",
+            "display": "Missense variant",
+            "desc": "A sequence variant, that changes one or more bases, resulting in a different amino acid sequence but where the length is preserved",
+            "impact": "MODERATE",
+            "so_term": "SO:0001583"
+        },
+        "protein_altering_variant": {
+            "short": "protein alt",
+            "display": "Protein altering variant",
+            "desc": "A sequence_variant which is predicted to change the protein encoded in the coding sequence",
+            "impact": "MODERATE",
+            "so_term": "SO:0001818"
+        },
+        "splice_donor_5th_base_variant": {
+            "short": "splice 5th",
+            "display": "Splice donor 5th base variant",
+            "desc": "A sequence variant that causes a change at the 5th base pair after the start of the intron in the orientation of the transcript",
+            "impact": "LOW",
+            "so_term": "SO:0001787"
+        },
+        "splice_region_variant": {
+            "short": "splice region",
+            "display": "Splice region variant",
+            "desc": "A sequence variant in which a change has occurred within the region of the splice site, either within 1-3 bases of the exon or 3-8 bases of the intron",
+            "impact": "LOW",
+            "so_term": "SO:0001630"
+        },
+        "splice_donor_region_variant": {
+            "short": "splice donor reg",
+            "display": "Splice donor region variant",
+            "desc": "A sequence variant that falls in the region between the 3rd and 6th base after splice junction (5' end of intron)",
+            "impact": "LOW",
+            "so_term": "SO:0002170"
+        },
+        "splice_polypyrimidine_tract_variant": {
+            "short": "poly-pyrimidine",
+            "display": "Splice polypyrimidine tract variant",
+            "desc": "A sequence variant that falls in the polypyrimidine tract at 3' end of intron between 17 and 3 bases from the end (acceptor -3 to acceptor -17)",
+            "impact": "LOW",
+            "so_term": "SO:0002169"
+        },
+        "incomplete_terminal_codon_variant": {
+            "short": "incomplete codon",
+            "display": "Incomplete terminal codon variant",
+            "desc": "A sequence variant where at least one base of the final codon of an incompletely annotated transcript is changed",
+            "impact": "LOW",
+            "so_term": "SO:0001626"
+        },
+        "start_retained_variant": {
+            "short": "start retained",
+            "display": "Start retained variant",
+            "desc": "A sequence variant where at least one base in the start codon is changed, but the start remains",
+            "impact": "LOW",
+            "so_term": "SO:0002019"
+        },
+        "stop_retained_variant": {
+            "short": "stop retained",
+            "display": "Stop retained variant",
+            "desc": "A sequence variant where at least one base in the terminator codon is changed, but the terminator remains",
+            "impact": "LOW",
+            "so_term": "SO:0001567"
+        },
+        "synonymous_variant": {
+            "short": "synonymous",
+            "display": "Synonymous variant",
+            "desc": "A sequence variant where there is no resulting change to the encoded amino acid",
+            "impact": "LOW",
+            "so_term": "SO:0001819"
+        },
+        "coding_sequence_variant": {
+            "short": "coding seq",
+            "display": "Coding sequence variant",
+            "desc": "A sequence variant that changes the coding sequence",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001580"
+        },
+        "mature_miRNA_variant": {
+            "short": "mature miRNA",
+            "display": "Mature miRNA variant",
+            "desc": "A transcript variant located with the sequence of the mature miRNA",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001620"
+        },
+        "5_prime_UTR_variant": {
+            "short": "5' UTR",
+            "display": "5 prime UTR variant",
+            "desc": "A UTR variant of the 5' UTR",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001623"
+        },
+        "3_prime_UTR_variant": {
+            "short": "3' UTR",
+            "display": "3 prime UTR variant",
+            "desc": "A UTR variant of the 3' UTR",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001624"
+        },
+        "non_coding_transcript_exon_variant": {
+            "short": "nc exon",
+            "display": "Non coding transcript exon variant",
+            "desc": "A sequence variant that changes non-coding exon sequence in a non-coding transcript",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001792"
+        },
+        "intron_variant": {
+            "short": "intron",
+            "display": "Intron variant",
+            "desc": "A transcript variant occurring within an intron",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001627"
+        },
+        "NMD_transcript_variant": {
+            "short": "NMD",
+            "display": "NMD transcript variant",
+            "desc": "A variant in a transcript that is the target of NMD",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001621"
+        },
+        "non_coding_transcript_variant": {
+            "short": "nc transcript",
+            "display": "Non coding transcript variant",
+            "desc": "A transcript variant of a non coding RNA gene",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001619"
+        },
+        "coding_transcript_variant": {
+            "short": "coding transcript",
+            "display": "Coding transcript variant",
+            "desc": "A transcript variant of a protein coding gene",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001968"
+        },
+        "upstream_gene_variant": {
+            "short": "upstream",
+            "display": "Upstream gene variant",
+            "desc": "A sequence variant located 5' of a gene",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001631"
+        },
+        "downstream_gene_variant": {
+            "short": "downstream",
+            "display": "Downstream gene variant",
+            "desc": "A sequence variant located 3' of a gene",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001632"
+        },
+        "TFBS_ablation": {
+            "short": "TFBS ablation",
+            "display": "TFBS ablation",
+            "desc": "A feature ablation whereby the deleted region includes a transcription factor binding site",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001895"
+        },
+        "TFBS_amplification": {
+            "short": "TFBS amp",
+            "display": "TFBS amplification",
+            "desc": "A feature amplification of a region containing a transcription factor binding site",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001892"
+        },
+        "TF_binding_site_variant": {
+            "short": "TF site",
+            "display": "TF binding site variant",
+            "desc": "A sequence variant located within a transcription factor binding site",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001782"
+        },
+        "regulatory_region_ablation": {
+            "short": "reg ablation",
+            "display": "Regulatory region ablation",
+            "desc": "A feature ablation whereby the deleted region includes a regulatory region",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001894"
+        },
+        "regulatory_region_amplification": {
+            "short": "reg amp",
+            "display": "Regulatory region amplification",
+            "desc": "A feature amplification of a region containing a regulatory region",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001891"
+        },
+        "regulatory_region_variant": {
+            "short": "reg region",
+            "display": "Regulatory region variant",
+            "desc": "A sequence variant located within a regulatory region",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001566"
+        },
+        "intergenic_variant": {
+            "short": "intergenic",
+            "display": "Intergenic variant",
+            "desc": "A sequence variant located in the intergenic region, between genes",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001628"
+        },
+        "sequence_variant": {
+            "short": "seq var",
+            "display": "Sequence variant",
+            "desc": "A sequence_variant is a non exact copy of a sequence_feature or genome exhibiting one or more sequence_alteration",
+            "impact": "MODIFIER",
+            "so_term": "SO:0001060"
+        }
+    }
+}

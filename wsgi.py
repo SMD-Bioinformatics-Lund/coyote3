@@ -1,11 +1,21 @@
-"""Application entry point."""
+# -*- coding: utf-8 -*-
+"""
+WSGI Configuration for Coyote3
+==============================
 
+This file serves as the entry point for running the Coyote3 application in
+both development and production environments. It includes logging setup
+for Gunicorn and standalone modes.
+
+Author: Coyote3 authors
+License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
+"""
+
+# -------------------------------------------------------------------------
+# Imports
+# -------------------------------------------------------------------------
 import logging.config
-from logging import Logger
-from typing import Dict, Any
-
-from flask import Flask
-import gunicorn.glogging
+from typing import Any
 from coyote import init_app
 from logging_setup import custom_logging, add_unique_handlers
 import os
@@ -14,8 +24,12 @@ app = init_app()
 
 if __name__ != "__main__":
     print("Setting up Gunicorn logging.")
-    log_dir: str | Any = os.getenv("LOG_DIR", app.config.get("LOGS", "logs/prod"))
-    custom_logging(log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=True)
+    log_dir: str | Any = os.getenv(
+        "LOG_DIR", app.config.get("LOGS", "logs/prod")
+    )
+    custom_logging(
+        log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=True
+    )
 
     gunicorn_logger_error = logging.getLogger("gunicorn.error")
     gunicorn_logger_access = logging.getLogger("gunicorn.access")
@@ -30,5 +44,7 @@ if __name__ != "__main__":
 
 if __name__ == "__main__":
     log_dir = os.getenv("LOG_DIR", app.config.get("LOGS", "logs/prod"))
-    custom_logging(log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=False)
-    app.run(host="0.0.0.0")
+    custom_logging(
+        log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=False
+    )
+    app.run(host="0.0.0.0", port=8000, debug=True)

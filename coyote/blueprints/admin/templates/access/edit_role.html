@@ -1,0 +1,138 @@
+{% extends "layout.html" %}
+{% block title %}Edit Role{% endblock %}
+{% block body %}
+<div class="flex w-full h-full overflow-hidden">
+  {% include "admin_sidebar.html" %}
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+    <section class="p-2 ml-2 mt-2">
+      <div class="bg-blue-50 border border-gray-200 rounded-2xl shadow-xl p-6">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="text-xl font-bold text-blue-500 tracking-wide capitalize flex gap-2 align-middle">
+            <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="Edit Role Icon" class="h-6 w-6">
+            Edit Role - <i>{{ config._id }}</i>
+          </h1>
+          <div class="text-sm text-gray-700 flex items-center">
+            <span class="inline-flex items-center px-2 py-1 bg-blue-200 text-blue-700 font-semibold rounded-l-full">
+              {{ schema._id }}
+            </span>
+            <span class="inline-flex items-center px-2 py-1 bg-orange-200 text-black font-semibold rounded-r-full">
+              v{{ schema.version }}
+            </span>
+          </div>
+        </div>
+
+        <form method="POST" class="space-y-6 text-sm text-gray-700">
+          {% set readonly_keys = ['_id', 'label',  'created_by', 'created_on', 'updated_by', 'updated_on', 'version'] %}
+
+          {% for section, keys in schema.sections.items() %}
+            <div class="bg-gray-100 border border-blue-200 rounded-xl shadow-sm p-4">
+              <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') }}</h2>
+              <div class="grid grid-cols-3 gap-4">
+                {% for key in keys %}
+                  {% if schema.fields[key] %}
+                    {% set field = schema.fields[key] %}
+                    {% set is_disabled = key in readonly_keys %}
+
+                    {% if key == "permissions" and field.options %}
+                      {% set grouped = {} %}
+                      {% for opt in field.options %}
+                        {% set _ = grouped.setdefault(opt.category, []).append(opt) %}
+                      {% endfor %}
+                      <div class="flex flex-wrap gap-8 col-span-full">
+                        {% for category, options in grouped.items() %}
+                          <div class="mb-2">
+                            <h3 class="text-xs font-semibold text-gray-800 mb-1">{{ category }}</h3>
+                            <div class="flex flex-col flex-wrap gap-x-5 gap-y-2 text-xs">
+                              {% for opt in options %}
+                                <label class="inline-flex items-center gap-2">
+                                  <input type="checkbox" name="permissions" value="{{ opt.value }}"
+                                          class="accent-blue-600"
+                                          {% if opt.value in config.permissions %}checked{% endif %}>
+                                  {{ opt.label or opt.value }}
+                                </label>
+                              {% endfor %}
+                            </div>
+                          </div>
+                        {% endfor %}
+                      </div>
+
+                    {% elif field.type == "bool" %}
+                      <div class="flex items-center space-x-2">
+                        <input type="checkbox" name="{{ key }}" value="true"
+                                class="accent-blue-600 rounded"
+                                {% if config[key] %}checked{% endif %}
+                                {% if is_disabled %}disabled{% endif %}>
+                        <label class="text-xs font-semibold">
+                          {{ field.label or key }}
+                          {% if field.required %}<span class="text-red-500">*</span>{% endif %}
+                          <span class="text-gray-500">({{ field.type }})</span>
+                        </label>
+                      </div>
+
+                    {% else %}
+                      <div>
+                        <label class="block font-semibold text-xs mb-1">
+                          {{ field.label or key }}
+                          {% if field.required %}<span class="text-red-500">*</span>{% endif %}
+                          <span class="text-gray-500 text-xs font-normal">({{ field.type }})</span>
+                        </label>
+                        <input
+                          type="{{ 'number' if field.type in ['int', 'float'] else 'text' }}"
+                          name="{{ key }}"
+                          value="{{ config[key] }}"
+                          {% if field.type == 'int' %}step="1" inputmode="numeric" pattern="[0-9]+"{% elif field.type == 'float' %}step="0.01"{% endif %}
+                          class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 {% if is_disabled %}text-gray-500{% endif %}"
+                          placeholder="{{ field.placeholder or '' }}"
+                          {% if is_disabled %}readonly{% endif %}
+                        />
+                      </div>
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
+
+          <!-- Metadata Section -->
+          <div class="mb-6 border-l-4 border-gray-300 bg-gray-50 rounded-xl p-4 shadow-sm">
+            <h2 class="text-sm font-semibold text-gray-700 uppercase mb-3 tracking-wide">Metadata</h2>
+            <div class="grid grid-cols-3 gap-4">
+              <div>
+                <label class="block font-semibold text-xs mb-1">Created By</label>
+                <input type="text" name="created_by" value="{{ config.created_by or '-' }}" readonly
+                        class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 text-gray-500" />
+              </div>
+              <div>
+                <label class="block font-semibold text-xs mb-1">Created On</label>
+                <input type="text" name="created_on" value="{{ config.created_on or '-' }}" readonly
+                        class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 text-gray-500" />
+              </div>
+              <div>
+                <label class="block font-semibold text-xs mb-1">Updated By</label>
+                <input type="text" name="updated_by" value="{{ config.updated_by or '-' }}" readonly
+                        class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 text-gray-500" />
+              </div>
+              <div>
+                <label class="block font-semibold text-xs mb-1">Updated On</label>
+                <input type="text" name="updated_on" value="{{ config.updated_on | now }}" readonly
+                        class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 text-gray-500" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Save Button -->
+          <div class="text-right">
+            <button type="submit"
+                    class="bg-blue-300 hover:bg-blue-400 text-black font-semibold px-4 py-2 rounded-lg shadow-sm transition">
+              Save Changes
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </section>
+  </main>
+</div>
+{% endblock %}

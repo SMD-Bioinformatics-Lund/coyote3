@@ -1,19 +1,21 @@
-<!doctype html><html>
-<head>
-  <title>Sample Gene Lists</title>
-  <link href="{{ url_for('dna_bp.static', filename='css/report.css') }}" rel="stylesheet">
-  <script src="{{ url_for('static', filename='js/jquery-3.1.1.slim.min.js') }}"></script>
-</head>
+<!doctype html>
+<html lang="sv">
+  <head>
+    <title>Sample Gene Lists</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.2.2.19.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom_tailwind.css') }}">
+    <script src="{{ url_for('static', filename='js/jquery-3.1.1.slim.min.js') }}"></script>
+  </head>
 
-<body>
-<script type=text/javascript>
-  $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-</script>
+  <body>
+  <script type=text/javascript>
+    $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+  </script>
 
 
-<div class="page">
-  {% block body %}{% endblock %}
-</div>
 
-</body>
+  {% block body %}
+  {% endblock %}
+
+  </body>
 </html>

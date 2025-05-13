@@ -7,6 +7,9 @@ from coyote.extensions import store, util
 from flask import render_template
 from flask_login import current_user
 import traceback
+from coyote.util.decorators.access import require_sample_group_access
+from coyote.services.auth.decorators import require
+import json
 
 
 @common_bp.route("/errors/")
@@ -20,32 +23,47 @@ def error_screen():
     except ZeroDivisionError as e:
         error = traceback.format_exc()
 
-    if current_user.is_admin():
+    if current_user.is_admin:
         return render_template("error.html", error=error)
     else:
         return render_template("error.html", error=[])
 
 
-@common_bp.route("/sample/sample_comment/<string:id>", methods=["POST"])
+@common_bp.route(
+    "/dna/sample/<string:sample_id>/sample_comment",
+    methods=["POST"],
+    endpoint="add_dna_sample_comment",
+)
+@common_bp.route(
+    "/rna/sample/<string:sample_id>/sample_comment",
+    methods=["POST"],
+    endpoint="add_rna_sample_comment",
+)
+@common_bp.route("/sample/<string:sample_id>/sample_comment", methods=["POST"])
 @login_required
-def add_sample_comment(id):
+@require_sample_group_access("sample_id")
+@require("add_sample_comment", min_role="user", min_level=9)
+def add_sample_comment(sample_id):
     """
     Add Sample comment
     """
     data = request.form.to_dict()
     doc = util.dna.create_comment_doc(data, key="sample_comment")
-    store.sample_handler.add_sample_comment(id, doc)
+    store.sample_handler.add_sample_comment(sample_id, doc)
     flash("Sample comment added", "green")
-    sample = store.sample_handler.get_sample_with_id(id)
+    sample = store.sample_handler.get_sample_with_id(sample_id)
     assay = util.common.get_assay_from_sample(sample)
-    sample_type = util.common.get_sample_type(assay)
-    if sample_type == "dna":
-        return redirect(url_for("dna_bp.list_variants", id=id))
+    if request.endpoint == "common_bp.add_dna_sample_comment":
+        return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
     else:
-        return redirect(url_for("rna_bp.list_fusions", id=id))
+        return redirect(url_for("rna_bp.list_fusions", id=sample_id))
 
 
-@common_bp.route("/sample/hide_sample_comment/<string:sample_id>", methods=["POST"])
+@common_bp.route(
+    "/sample/<string:sample_id>/hide_sample_comment", methods=["POST"]
+)
+@require_sample_group_access("sample_id")
+@require("hide_sample_comment", min_role="manager", min_level=99)
 @login_required
 def hide_sample_comment(sample_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
@@ -54,13 +72,17 @@ def hide_sample_comment(sample_id):
     assay = util.common.get_assay_from_sample(sample)
     sample_type = util.common.get_sample_type(assay)
     if sample_type == "dna":
-        return redirect(url_for("dna_bp.list_variants", id=sample_id))
+        return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
     else:
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
 
 
-@common_bp.route("/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"])
+@common_bp.route(
+    "/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"]
+)
 @login_required
+@require_sample_group_access("sample_id")
+@require("unhide_sample_comment", min_role="manager", min_level=99)
 def unhide_sample_comment(sample_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.sample_handler.unhide_sample_comment(sample_id, comment_id)
@@ -68,52 +90,42 @@ def unhide_sample_comment(sample_id):
     assay = util.common.get_assay_from_sample(sample)
     sample_type = util.common.get_sample_type(assay)
     if sample_type == "dna":
-        return redirect(url_for("dna_bp.list_variants", id=sample_id))
+        return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
     else:
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
 
 
-@common_bp.route("/<string:sample_id>/<string:assay>/<string:panel>/genes", methods=["GET"])
-@login_required
-def get_sample_genelists(sample_id, assay, panel):
+@common_bp.route(
+    "/<string:sample_id>/<string:sample_assay>/genes", methods=["POST"]
+)
+def get_sample_genelists(sample_id, sample_assay) -> str:
     """
-    Add genes to a sample
+    Retrieves and decrypts gene list and panel document data from the request form, then renders the 'sample_genes.html' template with the provided sample information.
+
+    Args:
+        sample_id (Any): The identifier for the sample.
+        sample_assay (Any): The assay type or identifier for the sample.
+
+    Returns:
+        str: Rendered HTML content for the 'sample_genes.html' template.
+
+    Raises:
+        KeyError: If required form fields ('enc_genelists' or 'enc_panel_doc') are missing.
+        Exception: If decryption or JSON decoding fails.
     """
-    sample = store.sample_handler.get_sample(sample_id)
-    if not sample:
-        sample = store.sample_handler.get_sample_with_id(sample_id)
+    enc_genelists = request.form["enc_genelists"]
+    enc_panel_doc = request.form["enc_panel_doc"]
 
-    sample_default_gene_list_names = list(sample.get("checked_genelists", {}).keys())
-    if sample_default_gene_list_names:
-        sample_default_gene_list_names = [
-            g_list.replace("genelist_", "") for g_list in sample_default_gene_list_names
-        ]
-    assay = util.common.get_assay_from_sample(sample)
-
-    sample_default_genes_lists = store.panel_handler.get_assay_gene_list_by_name(
-        assay, sample_default_gene_list_names
+    genelists = json.loads(
+        app.config["FERNET"].decrypt(enc_genelists.encode())
     )
-    group = sample.get("groups")
+    panel_doc = json.loads(
+        app.config["FERNET"].decrypt(enc_panel_doc.encode())
+    )
 
-    sample_default_genes_dict = {}
-    if sample_default_genes_lists:
-        for gene_list in sample_default_genes_lists:
-            sample_default_genes_dict[gene_list.get("displayname")] = gene_list.get("genes")
-
-    assay_default_gene_lists = store.panel_handler.get_assay_default_gene_list(assay)
-    assay_default_genes = []
-    if assay_default_gene_lists:
-        for gene_list in assay_default_gene_lists:
-            print(gene_list)
-            assay_default_genes.extend(gene_list.get("genes"))
-
-    # TODO: TRY TO SAVE AS A EMBBED THING IN THE SAMPLE REPORT
-    # list(set(assay_default_genes)), sample_default_genes_dict
     return render_template(
         "sample_genes.html",
-        sample=sample,
-        assay=assay,
-        panel=panel,
-        assay_default_genelist=list(set(assay_default_genes)),
-        sample_filtered_genelists=sample_default_genes_dict,
+        sample=sample_id,
+        genelists=genelists,
+        assay_panel_doc=panel_doc,
     )
