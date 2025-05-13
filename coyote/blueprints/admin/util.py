@@ -4,7 +4,6 @@ from math import floor, log10
 import subprocess
 from datetime import datetime
 from flask_login import current_user
-from bson.objectid import ObjectId
 from coyote.util.common_utility import CommonUtility
 from coyote.blueprints.admin import validators
 from coyote.services.audit_logs.decorators import log_action
@@ -14,6 +13,8 @@ from coyote.extensions import store
 from bisect import bisect_left
 import json
 import os
+from typing import Any
+import hashlib
 
 
 class AdminUtility:
@@ -59,88 +60,252 @@ class AdminUtility:
         config = {}
 
         for key, field in schema.get("fields", {}).items():
-            if field["type"] == "subschema":
+            field_type = field.get(
+                "data_type", field.get("type")
+            )  # Support fallback to old schemas
+
+            if field_type == "subschema":
                 subschema = schema.get("subschemas", {}).get(field["schema"])
                 if subschema:
                     if field.get("type") == "list":
-                        # Handle list of subschemas
                         sub_configs = []
-                        # Assume form[key] is a list of dicts or json string
                         if key in form:
                             entries = (
-                                json.loads(form[key]) if isinstance(form[key], str) else form[key]
+                                json.loads(form[key])
+                                if isinstance(form[key], str)
+                                else form[key]
                             )
                             for entry in entries:
                                 sub_config = {}
-                                for subkey, subfield in subschema["fields"].items():
+                                for subkey, subfield in subschema[
+                                    "fields"
+                                ].items():
                                     if subkey in entry:
-                                        sub_config[subkey] = AdminUtility.cast_value(
-                                            entry[subkey], subfield["type"]
+                                        sub_config[subkey] = (
+                                            AdminUtility.cast_value(
+                                                entry[subkey],
+                                                subfield.get(
+                                                    "data_type",
+                                                    subfield["type"],
+                                                ),
+                                            )
                                         )
                                 sub_configs.append(sub_config)
                         config[key] = sub_configs
                     else:
-                        # Normal nested dict subschema
                         sub_config = {}
                         for subkey, subfield in subschema["fields"].items():
                             form_key = f"{key}.{subkey}"
                             if form_key in form:
                                 sub_config[subkey] = AdminUtility.cast_value(
-                                    form[form_key], subfield["type"]
+                                    form[form_key],
+                                    subfield.get(
+                                        "data_type", subfield["type"]
+                                    ),
                                 )
                         config[key] = sub_config
             else:
                 if key in form:
-                    config[key] = AdminUtility.cast_value(form[key], field["type"])
+                    config[key] = AdminUtility.cast_value(
+                        form[key], field_type
+                    )
 
         return config
 
     @staticmethod
-    def cast_value(value, field_type):
+    def cast_value(
+        value, field_type
+    ) -> str | int | float | bool | list[str] | dict | None | Any:
         """
         Casts a value to the specified field type.
-        Handles types: int, float, bool, list, json safely.
+        Handles types: int, float, bool, list, json, and schema-driven UI inputs.
         """
 
-        # Handle None or empty strings gracefully
+        # Handle None or empty string safely
         if value is None or (isinstance(value, str) and value.strip() == ""):
-            if field_type in ["list", "json"]:
-                return [] if field_type == "list" else {}
+            if field_type in [
+                "list",
+                "json",
+                "multi-select",
+                "checkbox-group",
+            ]:
+                return [] if field_type != "json" else {}
             return None
 
-        # Flatten list if needed
-        if isinstance(value, list) and len(value) == 1 and field_type not in ["list", "json"]:
+        # Normalize single-item lists
+        if (
+            isinstance(value, list)
+            and len(value) == 1
+            and field_type
+            not in ["list", "multi-select", "checkbox-group", "json"]
+        ):
             value = value[0]
 
         if field_type == "int":
             try:
-                return int(float(value))  # Safe parse
+                return int(float(value))
             except (ValueError, TypeError):
                 return None
+
         elif field_type == "float":
             try:
                 return float(value)
             except (ValueError, TypeError):
                 return None
+
         elif field_type == "bool":
             return str(value).lower() in ["true", "1", "yes", "on"]
-        elif field_type == "list":
+
+        elif field_type in ["list", "multi-select", "checkbox-group"]:
             if isinstance(value, str):
                 try:
                     return json.loads(value)
                 except Exception:
-                    # Fallback to simple comma split
                     return [v.strip() for v in value.split(",") if v.strip()]
             return value
-        elif field_type == "json":
+
+        elif field_type in ["json", "jsoneditor", "jsoneditor-or-upload"]:
             if isinstance(value, str):
                 try:
                     return json.loads(value)
                 except Exception:
-                    return {}
+                    return [v.strip() for v in value.splitlines() if v.strip()]
             return value
 
-        return value
+        return value  # default fallback
+
+    @staticmethod
+    def hash_config(config: dict) -> str:
+        """
+        Generate a deterministic SHA-256 hash of the config dictionary.
+
+        Ensures keys are sorted and values are serialized consistently.
+        """
+
+        def sanitize(value):
+            if isinstance(value, dict):
+                return {k: sanitize(value[k]) for k in sorted(value)}
+            elif isinstance(value, list):
+                return [sanitize(v) for v in value]
+            return value
+
+        # Strip volatile metadata keys (if any)
+        ignored_keys = {
+            "created_on",
+            "updated_on",
+            "created_by",
+            "updated_by",
+            "version_history",
+        }
+        sanitized = {k: v for k, v in config.items() if k not in ignored_keys}
+        stable_dict = sanitize(sanitized)
+
+        # Serialize deterministically
+        serialized = json.dumps(
+            stable_dict, sort_keys=True, separators=(",", ":")
+        )
+        return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def inject_version_history(
+        config: dict, user_email: str, is_new: bool = True
+    ) -> dict:
+        """
+        Initializes version history with delta-only logic.
+        If is_new, it adds an 'initial' flag instead of computing delta.
+        Otherwise, includes only changed/new/removed keys in the delta.
+        """
+        version = config.get("version", 1)
+        timestamp = config.get("created_on", datetime.utcnow())
+        hash_val = AdminUtility.hash_config(config)
+
+        if is_new:
+            delta = {"initial": True}
+        else:
+            # Compare with an empty baseline to detect truly added or changed fields
+            _, delta = AdminUtility.generate_version_delta({}, config)
+
+            # Clean empty sections
+            delta = {
+                k: v
+                for k, v in delta.items()
+                if v  # Only keep non-empty parts
+            }
+
+        version_entry = {
+            "version": version,
+            "timestamp": timestamp,
+            "user": user_email,
+            "delta": delta,
+            "hash": hash_val,
+        }
+
+        config["version_history"] = [version_entry]
+        return config
+
+    @staticmethod
+    def generate_version_delta(old: dict, new: dict) -> tuple[dict, dict]:
+        """
+        Compute the diff and delta between old and new versioned documents.
+
+        Returns:
+            - diff: dict of keys with {old, new} pairs
+            - delta: dict with 'only_in_old', 'only_in_new', and 'changed'
+        """
+        exclude_keys = {
+            "version",
+            "updated_by",
+            "updated_on",
+            "version_history",
+        }
+
+        diff = {
+            key: {"old": old.get(key), "new": new.get(key)}
+            for key in new
+            if old.get(key) != new.get(key) and key not in exclude_keys
+        }
+
+        delta = {
+            "only_in_old": {
+                k: old[k]
+                for k in old
+                if k not in new and k not in exclude_keys
+            },
+            "only_in_new": {
+                k: new[k]
+                for k in new
+                if k not in old and k not in exclude_keys
+            },
+            "changed": diff,
+        }
+
+        return diff, delta
+
+    @staticmethod
+    def apply_version_delta(base: dict, future_delta: dict) -> dict:
+        """
+        Restore the document to an earlier version using the delta from the *next* version.
+
+        For example, to restore version 3, apply the delta stored in version 4.
+        """
+        patched = base.copy()
+
+        # Restore removed or changed keys (revert to old values)
+        for key, old_val in future_delta.get("only_in_old", {}).items():
+            patched[key] = old_val
+
+        # Remove keys that were newly added in the next version
+        for key in future_delta.get("only_in_new", {}):
+            patched.pop(key, None)
+
+        # Restore changed keys to their old values
+        for key, change in future_delta.get("changed", {}).items():
+            if "old" in change:
+                patched[key] = change["old"]
+            else:
+                patched.pop(key, None)
+
+        return patched
 
     @staticmethod
     def clean_config_for_comparison(cfg):
@@ -165,7 +330,12 @@ class AdminUtility:
         This template is used for creating new schemas.
         """
         path = os.path.join(
-            app.root_path, "blueprints", "admin", "static", "schemas", "schema_template.json5"
+            app.root_path,
+            "blueprints",
+            "admin",
+            "static",
+            "schemas",
+            "schema_template.json5",
         )
         with open(path, "r", encoding="utf-8") as f:
             return f.read()
@@ -190,7 +360,9 @@ class AdminUtility:
         else:
             for section, keys in schema.get("sections", {}).items():
                 if not isinstance(keys, list):
-                    errors.append(f"Section '{section}' should contain a list of field keys")
+                    errors.append(
+                        f"Section '{section}' should contain a list of field keys"
+                    )
 
         # Ensure each field listed in sections is defined in fields or subschemas
         defined_fields = set(schema.get("fields", {}).keys())
@@ -205,7 +377,9 @@ class AdminUtility:
                 if "." in field:
                     parent, child = field.split(".", 1)
                     if parent in defined_subschemas:
-                        subschema_fields = defined_subschemas[parent].get("fields", {})
+                        subschema_fields = defined_subschemas[parent].get(
+                            "fields", {}
+                        )
                         if child in subschema_fields:
                             continue
 
@@ -235,7 +409,9 @@ class AdminUtility:
         for handler in actions:
             handler(sample_id)
             result = handler(sample_id)
-            collection_name = handler.__name__.replace("delete_sample_", "").replace("_handler", "")
+            collection_name = handler.__name__.replace(
+                "delete_sample_", ""
+            ).replace("_handler", "")
             if collection_name == "delete_sample":
                 collection_name = "sample"
             if result:

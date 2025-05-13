@@ -543,7 +543,7 @@ def create_dna_assay_config() -> Response | str:
     """
     # Fetch all active DNA assay schemas
     active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="assay_config", schema_category="DNA", is_active=True
+        schema_type="asp_config", schema_category="DNA", is_active=True
     )
 
     if not active_schemas:
@@ -1244,7 +1244,7 @@ def delete_role(role_id) -> Response:
 
 
 # ================================================
-# ===== Assay Whole Panel Gene Lists PART =====
+# ===== Assay Whole Panel Creation PART =====
 # ================================================
 @admin_bp.route("/panels/manage", methods=["GET"])
 @require("view_panel", min_role="user", min_level=9)
@@ -1255,7 +1255,7 @@ def manage_assay_panels():
     Returns:
         Response: Rendered HTML template displaying all assay panels.
     """
-    panels = store.panel_handler.get_all_assay_panels()
+    panels = store.panel_handler.get_all_assay_panels(is_active=None)
     return render_template("panels/manage_panels.html", panels=panels)
 
 
@@ -1264,23 +1264,21 @@ def manage_assay_panels():
 @log_action(action_name="create_panel", call_type="manager_call")
 def create_assay_panel():
     """
-    Handle the creation of a new DNA assay panel based on active schemas.
-
-    Fetches active panel schemas, processes form submissions (including gene lists from text or file),
-    creates a new panel configuration, and saves it to the database. Handles both GET (form display)
-    and POST (form submission) requests.
+    Create a new ASP panel using a schema-driven form.
+    Handles versioned document insertion and gene list parsing.
     """
+    from uuid import uuid4
 
-    # Fetch all active DNA assay schemas
     active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="panel_config", schema_category="Panels", is_active=True
+        schema_type="asp_schema",
+        schema_category="ASP",
+        is_active=True,
     )
 
     if not active_schemas:
         flash("No active panel schemas found!", "red")
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
-    # Determine which schema to use
     selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
     schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
 
@@ -1292,15 +1290,14 @@ def create_assay_panel():
         form_data = {
             key: (
                 request.form.getlist(key)
-                if len(vals := request.form.getlist(key)) > 1
+                if len(request.form.getlist(key)) > 1
                 else request.form[key]
             )
             for key in request.form
         }
 
-        # Process covered genes separately
         covered_genes = []
-        if "genes_paste" in form_data and form_data["genes_paste"].strip():
+        if form_data.get("genes_paste"):
             covered_genes = [
                 g.strip()
                 for g in form_data["genes_paste"]
@@ -1312,8 +1309,7 @@ def create_assay_panel():
             "genes_file" in request.files
             and request.files["genes_file"].filename
         ):
-            file = request.files["genes_file"]
-            content = file.read().decode("utf-8")
+            content = request.files["genes_file"].read().decode("utf-8")
             covered_genes = [
                 g.strip()
                 for g in content.replace(",", "\n").splitlines()
@@ -1321,22 +1317,30 @@ def create_assay_panel():
             ]
 
         config = util.admin.process_form_to_config(form_data, schema)
-        config["_id"] = config["panel_name"]
+        config["_id"] = config["assay_name"]
         config["covered_genes"] = list(set(covered_genes))
-        config["created_by"] = current_user.email
-        config["created_on"] = datetime.utcnow()
-        config["updated_by"] = current_user.email
-        config["updated_on"] = datetime.utcnow()
-        config["schema_name"] = schema["_id"]
-        config["schema_version"] = schema["version"]
-        config["version"] = 1
 
+        config.update(
+            {
+                "schema_name": schema["_id"],
+                "schema_version": schema["version"],
+                "version": 1,
+                "created_by": current_user.email,
+                "created_on": datetime.utcnow(),
+                "updated_by": current_user.email,
+                "updated_on": datetime.utcnow(),
+            }
+        )
+
+        # Inject version history (initial creation marker, no delta)
+        config = util.admin.inject_version_history(
+            config, current_user.email, is_new=True
+        )
+
+        print(f"Data: {config}")
         store.panel_handler.insert_panel(config)
-
-        # Log Action
         g.audit_metadata = {"panel": config["_id"]}
-
-        flash(f"Panel {config['panel_name']} created successfully!", "green")
+        flash(f"Panel {config['assay_name']} created successfully!", "green")
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
     return render_template(
@@ -1351,36 +1355,58 @@ def create_assay_panel():
 @require("edit_panel", min_role="manager", min_level=99)
 @log_action(action_name="edit_panel", call_type="manager_call")
 def edit_assay_panel(assay_panel_id: str) -> str | Response:
-    """
-    Edit an existing assay panel by handling GET and POST requests.
-
-    On GET, renders the edit panel form. On POST, processes form data, updates the panel,
-    handles covered genes input, and saves changes to the database.
-    """
-
-    # Fetch the panel document
     panel = store.panel_handler.get_panel(assay_panel_id)
+    schema = store.schema_handler.get_schema(
+        panel.get("schema_name", "ASP-Schema")
+    )
 
-    # Fetch the schema
-    schema = store.schema_handler.get_schema("Panel-Config")
+    if not panel or not schema:
+        flash("Panel or schema not found.", "red")
+        return redirect(url_for("admin_bp.manage_assay_panels"))
+
+    selected_version = request.args.get("version", type=int)
+    delta = None
+
+    # Apply restoration logic if an older version is requested
+    if selected_version and selected_version != panel.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(panel.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = panel["version_history"][version_index].get(
+                "delta", {}
+            )
+            panel = util.admin.apply_version_delta(panel, delta_blob)
+            delta = delta_blob
+            panel["_id"] = assay_panel_id
 
     if request.method == "POST":
-        form_data = request.form.to_dict()
+        form_data = {
+            key: (
+                request.form.getlist(key)
+                if len(request.form.getlist(key)) > 1
+                else request.form[key]
+            )
+            for key in request.form
+        }
 
-        # Handle covered genes separately
         covered_genes = []
         if (
             "genes_file" in request.files
             and request.files["genes_file"].filename
         ):
-            file = request.files["genes_file"]
-            content = file.read().decode("utf-8")
+            content = request.files["genes_file"].read().decode("utf-8")
             covered_genes = [
                 g.strip()
                 for g in content.replace(",", "\n").splitlines()
                 if g.strip()
             ]
-        elif "genes_paste" in form_data and form_data["genes_paste"].strip():
+        elif form_data.get("genes_paste"):
             covered_genes = [
                 g.strip()
                 for g in form_data["genes_paste"]
@@ -1391,30 +1417,89 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
         else:
             covered_genes = panel.get("covered_genes", [])
 
-        # Process form fields
         updated = util.admin.process_form_to_config(form_data, schema)
-
-        # Carefully patch system fields
+        updated["_id"] = panel["_id"]
         updated["covered_genes"] = list(set(covered_genes))
         updated["updated_by"] = current_user.email
         updated["updated_on"] = datetime.utcnow()
-        updated["version"] = panel.get("version", 1) + 1
+        updated["created_by"] = panel.get("created_by")
+        updated["created_on"] = panel.get("created_on")
         updated["schema_name"] = schema["_id"]
         updated["schema_version"] = schema["version"]
+        updated["version"] = panel.get("version", 1) + 1
 
-        # Update the panel
+        # Compute delta only
+        _, delta_blob = util.admin.generate_version_delta(panel, updated)
+
+        updated["version_history"] = panel.get("version_history", [])
+        updated["version_history"].append(
+            {
+                "version": updated["version"],
+                "timestamp": updated["updated_on"],
+                "user": current_user.email,
+                "delta": delta_blob,
+                "hash": util.admin.hash_config(updated),
+            }
+        )
+
         store.panel_handler.update_panel(assay_panel_id, updated)
-
-        # Audit
         g.audit_metadata = {"panel": assay_panel_id}
-
-        flash(f"Panel '{panel['panel_name']}' updated successfully!", "green")
+        flash(f"Panel '{panel['assay_name']}' updated successfully!", "green")
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
     return render_template(
         "panels/edit_panel.html",
+        schema=schema,
+        panel=panel,
+        selected_version=selected_version,
+        delta=delta,
+    )
+
+
+@admin_bp.route("/panels/<assay_panel_id>/view", methods=["GET"])
+@require("view_panel", min_role="user", min_level=9)
+def view_assay_panel(assay_panel_id) -> Response | str:
+    """
+    View details of an assay panel by its ID, optionally loading a historical version.
+    """
+    panel = store.panel_handler.get_panel(assay_panel_id)
+    if not panel:
+        flash(f"Panel '{assay_panel_id}' not found!", "red")
+        return redirect(url_for("admin_bp.manage_assay_panels"))
+
+    schema = store.schema_handler.get_schema(
+        panel.get("schema_name", "ASP-Schema")
+    )
+    selected_version = request.args.get("version", type=int)
+    delta = None
+
+    # If a specific version is requested and it's not the latest
+    if selected_version and selected_version != panel.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(panel.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = panel["version_history"][version_index].get(
+                "delta", {}
+            )
+            panel = util.admin.apply_version_delta(panel, delta_blob)
+            delta = delta_blob
+            panel["_id"] = assay_panel_id
+
+            current_panel = store.panel_handler.get_panel(assay_panel_id)
+            _, delta = util.admin.generate_version_delta(panel, current_panel)
+
+    return render_template(
+        "panels/view_panel.html",
         panel=panel,
         schema=schema,
+        selected_version=selected_version or panel.get("version"),
+        delta=delta,
     )
 
 
@@ -1464,30 +1549,6 @@ def delete_assay_panel(assay_panel_id):
 
     flash(f"Panel '{assay_panel_id}' deleted!", "red")
     return redirect(url_for("admin_bp.manage_assay_panels"))
-
-
-@admin_bp.route("/panels/<assay_panel_id>/view", methods=["GET"])
-@require("view_panel", min_role="user", min_level=9)
-def view_assay_panel(assay_panel_id) -> Response | str:
-    """
-    View details of an assay panel by its ID.
-
-    Retrieves the panel and its schema; if not found, flashes an error and redirects.
-    Renders the panel details template on success.
-    """
-
-    panel = store.panel_handler.get_panel(assay_panel_id)
-    if not panel:
-        flash(f"Panel '{assay_panel_id}' not found!", "red")
-        return redirect(url_for("admin_bp.manage_assay_panels"))
-
-    schema = store.schema_handler.get_schema("Panel-Config")
-
-    return render_template(
-        "panels/view_panel.html",
-        panel=panel,
-        schema=schema,
-    )
 
 
 # ====================================

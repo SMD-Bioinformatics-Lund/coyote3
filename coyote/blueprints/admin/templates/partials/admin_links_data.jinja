@@ -54,83 +54,6 @@
   'color': 'pink'
 }) %}
 {% do cards.append({
-  'url': url_for('admin_bp.assay_configs'),
-  'permission': 'view_assay_config',
-  'min_role': 'developer',
-  'min_level': 9999,
-  'icon': 'document-duplicate.svg',
-  'title': 'Manage Assay Configs',
-  'desc': 'Adjust assay/panel configuration',
-  'category': 'Assays',
-  'color': 'green'
-}) %}
-{% do cards.append({
-  'url': url_for('admin_bp.create_dna_assay_config'),
-  'permission': 'create_assay_config',
-  'min_role': 'developer',
-  'min_level': 9999,
-  'icon': 'document-plus.svg',
-  'title': 'New DNA Assay',
-  'desc': 'Add new DNA based assay to system',
-  'category': 'Assays',
-  'color': 'green'
-}) %}
-{% do cards.append({
-  'url': url_for('admin_bp.create_rna_assay_config'),
-  'permission': 'create_assay_config',
-  'min_role': 'developer',
-  'min_level': 9999,
-  'icon': 'document-plus.svg',
-  'title': 'New RNA Assay',
-  'desc': 'Add new RNA based assay to system',
-  'category': 'Assays',
-  'color': 'green'
-}) %}
-{% do cards.append({
-  'url': url_for('admin_bp.manage_assay_panels'),
-  'permission': 'manage_assay_panels',
-  'min_role': 'developer',
-  'min_level': 9999,
-  'icon': 'list-bullet.svg',
-  'title': 'Manage Assay Panels',
-  'desc': 'Manage assay panels',
-  'category': 'Assays panels',
-  'color': 'red'
-}) %}
-{% do cards.append({
-  'url': url_for('admin_bp.create_assay_panel'),
-  'permission': 'create_assay_panel',
-  'min_role': 'developer',
-  'min_level': 9999,
-  'icon': 'document-plus.svg',
-  'title': 'New Assay Panel',
-  'desc': 'Add new assay panel to system',
-  'category': 'Assays panels',
-  'color': 'red'
-}) %}
-{% do cards.append({
-  'url': url_for('admin_bp.manage_genelists'),
-  'permission': 'manage_genelists',
-  'min_role': 'developer',
-  'min_level': 9999,
-  'icon': 'list-bullet.svg',
-  'title': 'Manage GeneLists',
-  'desc': 'Manage in-silico gene lists',
-  'category': 'GeneLists',
-  'color': 'indigo'
-}) %}
-{% do cards.append({
-  'url': url_for('admin_bp.create_genelist'),
-  'permission': 'create_genelist',
-  'min_role': 'developer',
-  'min_level': 9999,
-  'icon': 'document-plus.svg',
-  'title': 'New Gene List',
-  'desc': 'Add new in-silico gene list to system',
-  'category': 'GeneLists',
-  'color': 'indigo'
-}) %}
-{% do cards.append({
   'url': url_for('admin_bp.list_permissions'),
   'permission': 'view_permission',
   'min_role': 'admin',
@@ -151,6 +74,83 @@
   'desc': 'Add new permission policy to system',
   'category': 'Permissions',
   'color': 'orange'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.manage_assay_panels'),
+  'permission': 'manage_assay_panels',
+  'min_role': 'developer',
+  'min_level': 9999,
+  'icon': 'list-bullet.svg',
+  'title': 'Manage ASPs',
+  'desc': 'Manage assay specific panels',
+  'category': 'ASP',
+  'color': 'red'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.create_assay_panel'),
+  'permission': 'create_assay_panel',
+  'min_role': 'developer',
+  'min_level': 9999,
+  'icon': 'document-plus.svg',
+  'title': 'New ASP',
+  'desc': 'Add new assay specific panel to system',
+  'category': 'ASP',
+  'color': 'red'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.assay_configs'),
+  'permission': 'view_assay_config',
+  'min_role': 'developer',
+  'min_level': 9999,
+  'icon': 'document-duplicate.svg',
+  'title': 'Manage ASPCs',
+  'desc': 'Adjust assay/panel specific configuration',
+  'category': 'ASPC',
+  'color': 'green'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.create_dna_assay_config'),
+  'permission': 'create_assay_config',
+  'min_role': 'developer',
+  'min_level': 9999,
+  'icon': 'document-plus.svg',
+  'title': 'New DNA ASPC',
+  'desc': 'Add new DNA based assay specific panel configuration to system',
+  'category': 'ASPC',
+  'color': 'green'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.create_rna_assay_config'),
+  'permission': 'create_assay_config',
+  'min_role': 'developer',
+  'min_level': 9999,
+  'icon': 'document-plus.svg',
+  'title': 'New RNA ASPC',
+  'desc': 'Add new RNA based assayspecific panel configuration to system',
+  'category': 'ASPC',
+  'color': 'green'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.manage_genelists'),
+  'permission': 'manage_genelists',
+  'min_role': 'developer',
+  'min_level': 9999,
+  'icon': 'list-bullet.svg',
+  'title': 'Manage ISGLs',
+  'desc': 'Manage in-silico gene lists',
+  'category': 'GeneLists',
+  'color': 'indigo'
+}) %}
+{% do cards.append({
+  'url': url_for('admin_bp.create_genelist'),
+  'permission': 'create_genelist',
+  'min_role': 'developer',
+  'min_level': 9999,
+  'icon': 'document-plus.svg',
+  'title': 'New ISGL',
+  'desc': 'Add new in-silico gene list to system',
+  'category': 'GeneLists',
+  'color': 'indigo'
 }) %}
 {% do cards.append({
   'url': url_for('admin_bp.schemas'),

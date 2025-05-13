@@ -84,16 +84,16 @@ def get_dynamic_assay_nav() -> dict:
     }
 
     for assay_panel in assays_panels:
-        panel_type = assay_panel.get("panel_type", "NA").upper()  # DNA / RNA
+        panel_type = assay_panel.get("asp_category", "NA").upper()  # DNA / RNA
         tech = assay_panel.get(
-            "panel_technology", "Unknown"
+            "asp_family", "Unknown"
         )  # WGS / WTS / Panel-based NGS
 
         if tech.startswith("Panel"):
             tech = "Panels"
 
         group = assay_panel.get(
-            "panel_group", "Uncategorized"
+            "asp_group", "Uncategorized"
         )  # Myeloid / Solid etc.
         panel_name = assay_panel["_id"]
 
@@ -101,7 +101,9 @@ def get_dynamic_assay_nav() -> dict:
             nav[panel_type][tech][group].append(
                 {
                     "label": group.upper(),
-                    "url": URLS[panel_type][tech],
+                    "url": URLS.get(panel_type, {}).get(
+                        tech, "home_bp.panels_screen"
+                    ),
                     "panel_name": panel_name,
                     "group": group,
                     "panel_type": panel_type,

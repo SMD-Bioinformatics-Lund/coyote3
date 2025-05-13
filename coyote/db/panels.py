@@ -90,7 +90,10 @@ class PanelsHandler(BaseHandler):
         Returns:
             list: A list of all assay panel documents from the database.
         """
-        return list(self.get_collection().find({"is_active": is_active}))
+        if is_active is not None:
+            return list(self.get_collection().find({"is_active": is_active}))
+        else:
+            return list(self.get_collection().find({}))
 
     def insert_panel(self, data: dict) -> Any:
         """
