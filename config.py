@@ -1,27 +1,86 @@
-"""Class-based Flask app configuration."""
+# -*- coding: utf-8 -*-
+"""
+Main Configuration Module for Coyote3
+=====================================
 
+This module defines the configuration classes for the Coyote3 application,
+including default, production, development, and testing configurations.
+
+It provides centralized settings for Flask, MongoDB, LDAP, and other
+application-specific configurations, ensuring consistency and flexibility
+across different environments.
+
+Author: Coyote3 authors.
+License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
+"""
+
+# -------------------------------------------------------------------------
+# Imports
+# -------------------------------------------------------------------------
 import os
-import ssl
 import toml
 from typing import Literal, Any
 
 from coyote.__version__ import __version__ as app_version
 from coyote.util.common_utility import CommonUtility
+from cryptography.fernet import Fernet
 
 # # Implement in the future?
 # from dotenv import load_dotenv
 # basedir = path.abspath(path.dirname(__file__))
 # load_dotenv(path.join(basedir, ".env"))
 
-"""
-CONFIG UTIL FUNCTIONS:
-"""
 
-
+# -------------------------------------------------------------------------
+# Class Definition
+# -------------------------------------------------------------------------
 class DefaultConfig:
+    """
+    Default configuration class for the Coyote3 application.
+
+    This class provides the base configuration settings for the application,
+    including application version, logging paths, MongoDB settings, LDAP
+    configurations, and other default values. It serves as the foundation
+    for other environment-specific configurations such as production,
+    development, and testing.
+    """
+
     APP_VERSION = app_version
     LOGS = "logs"
     PRODUCTION = False
+
+    INTERNAL_USERS = {
+        "coyote.admin@skane.se",
+        "coyote.developer@skane.se",
+        "coyote.tester@skane.se",
+        "coyote.manager@skane.se",
+        "coyote.user@skane.se",
+        "coyote.intern@skane.se",
+        "coyote.viewer@skane.se",
+        "coyote.external@skane.se",
+    }
+
+    # For the public assay map
+    # This is used in the public assay matrix
+    PUBLIC_ASSAY_MAP: dict[str, list[str]] = {
+        "ST-DNA": ["solid_GMSv3"],
+        "Hematology": ["hema_GMSv1"],
+        "Myeloid": ["myeloid_GMSv1"],
+        "Lymphoid": ["lymph_GMSv3"],
+        "PGx": ["PGxv1"],
+        "PARP": ["PARP_inhib"],
+        "ST-RNA": ["solidRNA_GMSv5"],
+        "WTS-Fusion": ["fusion"],
+        "RNA-Fusion": ["RNA-fusion"],
+        "WGS": ["tumwgs-solid", "tumwgs-hema"],
+    }
+
+    # REDIS CACHE TIMEOUTS
+    CACHE_TIMEOUT_SAMPLES = 10  # 5 minutes
+
+    # Fernet key for encrypting sensitive data in the report
+    FERNET_KEY = Fernet.generate_key()  # store this securely
+    FERNET = Fernet(FERNET_KEY)
 
     WTF_CSRF_ENABLED = True
     SECRET_KEY: str | None = os.getenv("FLASK_SECRET_KEY")
@@ -33,7 +92,7 @@ class DefaultConfig:
     # MONGO_DB_NAME = "coyote"
     MONGO_DB_NAME = os.getenv("COYOTE_DB", "coyote_dev_3")
     BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
-    _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections.toml"
+    _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections_new.toml"
 
     # Gens URI
     GENS_URI = os.getenv("GENS_URI", "http://10.231.229.34/gens/")
@@ -47,114 +106,103 @@ class DefaultConfig:
     LDAP_SECRET = "secret"
     LDAP_USER_DN = "ou=people"
 
-    _PATH_GROUPS_CONFIG = "config/groups.toml"
-    GROUP_FILTERS: dict[str, Any] = {
-        "warn_cov": 500,
-        "error_cov": 100,
-        "default_popfreq": 1.0,
-        "default_mindepth": 100,
-        "default_spanreads": 0,
-        "default_spanpairs": 0,
-        "default_min_freq": 0.05,
-        "default_min_reads": 10,
-        "default_max_freq": 0.05,
-        "default_min_cnv_size": 100,
-        "default_max_cnv_size": 100000000,
-        "default_checked_conseq": {
-            "splicing": 1,
-            "stop_gained": 1,
-            "frameshift": 1,
-            "stop_lost": 1,
-            "start_lost": 1,
-            "inframe_indel": 1,
-            "missense": 1,
-            "other_coding": 1,
-        },
-        "default_checked_genelists": {},
-        "default_checked_fusionlists": {},
-        "default_checked_fusioneffects": [],
-        "default_checked_fusioncallers": [],
-        "default_checked_cnveffects": [],
-    }
-
-    # Is it redundant? Have a full set from the report.toml
-    TRANS: dict[str, str] = {
-        "nonsynonymous_SNV": "missense SNV",
-        "stopgain": "stop gain",
-        "frameshift_insertion": "frameshift ins",
-        "frameshift_deletion": "frameshift del",
-        "nonframeshift_insertion": "frameshift ins",
-        "nonframeshift_deletion": "frameshift del",
-        "missense_variant": "missense variant",
-        "feature_truncation": "feature truncation",
-        "frameshift_variant": "frameshift variant",
-    }
-
     # Report Config
-    _PATH_REPORT_CONFIG = "config/report.toml"
     REPORTS_BASE_PATH = "/data/bnf/dev/ram/Pipelines/Web_Developement/coyote_blueprinted/reports"
 
-    ASSAY_MAPPER: dict[str, list[str]] = {
-        "exome": ["exome_trio"],
-        "myeloid": [
-            "myeloid",
-            "myeloid_vep",
-            "random",
-            "gms_myeloid",
-            "myeloid_GMSv1",
-            "myeloid_GMSv1_hg38",
-            "GMSHem",
-            # "lymphoid_GMSv1",
-        ],
-        "lymphoid": ["lymphoid", "lymphoid_vep", "lymphoid_GMSv1"],
-        "solid": ["solid_GMSv3"],
-        "swea": ["swea_ovarial"],
-        "devel": ["devel"],
-        "tumwgs": ["tumwgs", "tumwgs-solid", "tumwgs-hema"],
-        # "tumwgs-solid": ["tumwgs-solid"],
-        # "tumwgs-hema": ["tumwgs-hema"],
-        "tumor_exome": ["gisselsson", "mertens"],
-        "fusion": ["fusion", "fusion_validation_nf"],
-        "gmsonco": ["gmsonco", "PARP_inhib"],
-        "fusionrna": ["solidRNA_GMSv5"],
-    }
-
-    # REPORT_HEADERS: dict[str, str] = {
-    #     "myeloid": "Analysrapport, myeloisk genpanel (NGS)",
-    #     "swea": "Analysrapport, BRCA-panel (NGS)",
-    #     "lymphoid": "Analysrapport, lymfoid genpanel (NGS)",
-    #     "solid": "Analysrapport, solid tumörpanel (NGS)",
-    #     "gmsonco": "Analysrapport, panel inför PARP-hämmare (NGS)",
-    #     "tumwgs": "Analysrapport, somatisk WGS (NGS)",
-    #     "unknown": "Analysrapport, myeloisk genpanel (NGS)",
-    # }
-
-    # ANALYSIS_METHODS: dict[str, str] = {
-    #     "myeloid": "NGS-/MPS-analys med panelen GMS-myeloid v1.0 (191 gener)",
-    #     "swea": "SWEA BRCA-panel, endast BRCA1 och BRCA2",
-    #     "lymphoid": "",
-    #     "solid": "",
-    #     "gmsonco": "NGS-/MPS-analys med panelen Ärftlig solid cancer v1.0",
-    #     "tumwgs": "Helgenomsekvensering (WGS) med Illumina TruSeq DNA PCR-Free",
-    #     "unknown": "",
+    # CONSEQ_TERMS_MAPPER: dict[str, list[str]] = {
+    #     "splicing": [
+    #         "splice_acceptor_variant",
+    #         "splice_donor_variant",
+    #         "splice_region_variant",
+    #     ],
+    #     "stop_gained": ["stop_gained"],
+    #     "frameshift": ["frameshift_variant"],
+    #     "stop_lost": ["stop_lost"],
+    #     "start_lost": ["start_lost"],
+    #     "inframe_indel": ["inframe_insertion", "inframe_deletion"],
+    #     "missense": ["missense_variant", "protein_altering_variant"],
+    #     "synonymous": ["stop_retained_variant", "synonymous_variant"],
+    #     "other_coding": ["coding_sequence_variant"],
+    #     "UTR": ["5_prime_UTR_variant", "3_prime_UTR_variant"],
+    #     "non_coding": [
+    #         "non_coding_transcript_exon_variant",
+    #         "non_coding_transcript_variant",
+    #     ],
+    #     "intronic": ["intron_variant"],
+    #     "intergenic": [
+    #         "intergenic_variant",
+    #         "downstream_gene_variant",
+    #         "upstream_gene_variant",
+    #     ],
+    #     "regulatory": ["regulatory_region_variant", "TF_binding_site_variant"],
+    #     "feature_elon_trunc": ["feature_elongation", "feature_truncation"],
     # }
 
     CONSEQ_TERMS_MAPPER: dict[str, list[str]] = {
-        "splicing": ["splice_acceptor_variant", "splice_donor_variant", "splice_region_variant"],
+        "splicing": [
+            "splice_acceptor_variant",
+            "splice_donor_variant",
+            "splice_region_variant",
+        ],
         "stop_gained": ["stop_gained"],
         "frameshift": ["frameshift_variant"],
         "stop_lost": ["stop_lost"],
         "start_lost": ["start_lost"],
-        "inframe_indel": ["inframe_insertion", "inframe_deletion"],
-        "missense": ["missense_variant", "protein_altering_variant"],
-        "synonymous": ["stop_retained_variant", "synonymous_variant"],
-        "other_coding": ["coding_sequence_variant"],
-        "UTR": ["5_prime_UTR_variant", "3_prime_UTR_variant"],
-        "non_coding": ["non_coding_transcript_exon_variant", "non_coding_transcript_variant"],
-        "intronic": ["intron_variant"],
-        "intergenic": ["intergenic_variant", "downstream_gene_variant", "upstream_gene_variant"],
-        "regulatory": ["regulatory_region_variant", "TF_binding_site_variant"],
-        "feature_elon_trunc": ["feature_elongation", "feature_truncation"],
+        "transcript_structure": [
+            "transcript_ablation",
+            "transcript_amplification",
+        ],
+        "inframe_indel": [
+            "inframe_insertion",
+            "inframe_deletion",
+        ],
+        "missense": [
+            "missense_variant",
+            "protein_altering_variant",
+        ],
+        "synonymous": [
+            "stop_retained_variant",
+            "synonymous_variant",
+            "start_retained_variant",
+            "incomplete_terminal_codon_variant",
+        ],
+        "other_coding": [
+            "coding_sequence_variant",
+        ],
+        "UTR": [
+            "5_prime_UTR_variant",
+            "3_prime_UTR_variant",
+        ],
+        "miRNA": [
+            "mature_miRNA_variant",
+        ],
+        "NMD": [
+            "NMD_transcript_variant",
+        ],
+        "non_coding": [
+            "non_coding_transcript_exon_variant",
+            "non_coding_transcript_variant",
+        ],
+        "intronic": [
+            "intron_variant",
+        ],
+        "intergenic": [
+            "intergenic_variant",
+            "downstream_gene_variant",
+            "upstream_gene_variant",
+        ],
+        "regulatory": [
+            "regulatory_region_variant",
+            "regulatory_region_ablation",
+            "regulatory_region_amplification",
+            "TFBS_ablation",
+            "TFBS_amplification",
+            "TF_binding_site_variant",
+        ],
+        "feature_elon_trunc": [
+            "feature_elongation",
+            "feature_truncation",
+        ],
     }
 
     NCBI_CHR: dict[str, str] = {
@@ -193,26 +241,41 @@ class DefaultConfig:
     @property
     def MONGO_URI(self) -> str:
         """
-        Construct a mongo uri config property
+        Construct a MongoDB URI for connecting to the database.
+
+        This property dynamically generates the MongoDB connection URI
+        using the configured host, port, and database name.
+
+        Returns:
+            str: The MongoDB connection URI.
         """
         return f"mongodb://{self.MONGO_HOST}:{self.MONGO_PORT}/{self.MONGO_DB_NAME}"
 
     @property
-    def GROUP_CONFIGS(self) -> dict[str, Any]:
-        return toml.load(self._PATH_GROUPS_CONFIG)
-
-    @property
-    def REPORT_CONFIG(self) -> dict[str, Any]:
-        return toml.load(self._PATH_REPORT_CONFIG)
-
-    @property
     def DB_COLLECTIONS_CONFIG(self) -> dict[str, Any]:
+        """
+        Load and validate the database collections configuration.
 
+        This method reads the database collections configuration from a TOML file,
+        validates that the required databases are present, and filters the configuration
+        to include only the relevant databases.
+
+        Returns:
+            dict[str, Any]: A dictionary containing the filtered database collections configuration.
+
+        Raises:
+            ValueError: If any required database is missing from the configuration file.
+        """
         db_config: dict[str, Any] = toml.load(self._PATH_DB_COLLECTIONS_CONFIG)
 
-        if not all(db in db_config for db in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME]):
+        if not all(
+            db in db_config
+            for db in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME]
+        ):
             missing_dbs = [
-                db for db in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME] if db not in db_config
+                db
+                for db in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME]
+                if db not in db_config
             ]
             raise ValueError(
                 f"Database(s) {', '.join(missing_dbs)} not found in the database configuration. Check the config file. ({self._PATH_DB_COLLECTIONS_CONFIG})"
@@ -231,6 +294,11 @@ class DefaultConfig:
 class ProductionConfig(DefaultConfig):
     """
     Production configuration.
+
+    This class defines the configuration settings for the production
+    environment of the Coyote3 application. It inherits from the
+    `DefaultConfig` class and overrides specific attributes to suit
+    the production setup.
     """
 
     LOGS = "logs/prod"
@@ -242,27 +310,40 @@ class ProductionConfig(DefaultConfig):
 class DevelopmentConfig(DefaultConfig):
     """
     Development configuration.
+
+    This class defines the configuration settings for the development
+    environment of the Coyote3 application. It inherits from the
+    `DefaultConfig` class and overrides specific attributes to suit
+    the development setup.
     """
 
     LOGS = "logs/dev"
     PRODUCTION = False
     SECRET_KEY = "traskbatfluga"
-    APP_VERSION: str = f"{app_version}-DEV (git: {CommonUtility.get_active_branch_name()})"
+    APP_VERSION: str = (
+        f"{app_version}-DEV (git: {CommonUtility.get_active_branch_name()})"
+    )
 
 
 class TestConfig(DefaultConfig):
     """
-    For future test code.
+    Placeholder for future test code.
+
+    This docstring indicates that this section or class is reserved
+    for implementing test-related configurations or functionality
+    in the future.
     """
 
     LOGS = "logs/test"
     PRODUCTION = False
     # Paths to config files for testing:
-    _PATH_ASSAY_CONFIG = "tests/config/assays.conf.toml"
-    _PATH_CUTOFF_CONFIG = "tests/config/cutoffs.conf.toml"
-    _PATH_TABLE_CONFIG = "tests/config/tables.conf.toml"
+    # _PATH_ASSAY_CONFIG = "tests/config/assays.conf.toml"
+    # _PATH_CUTOFF_CONFIG = "tests/config/cutoffs.conf.toml"
+    # _PATH_TABLE_CONFIG = "tests/config/tables.conf.toml"
 
-    APP_VERSION: str = f"{app_version}-Test (git: {CommonUtility.get_active_branch_name()})"
+    APP_VERSION: str = (
+        f"{app_version}-Test (git: {CommonUtility.get_active_branch_name()})"
+    )
 
     MONGO_HOST = "localhost"
     MONGO_PORT = 27017

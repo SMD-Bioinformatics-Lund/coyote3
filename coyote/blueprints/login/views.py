@@ -3,42 +3,56 @@ from flask import current_app as app, flash
 from flask import redirect, render_template, request, url_for, session
 from flask_login import login_user, logout_user
 
-
 from coyote.blueprints.login import login_bp
-from coyote.blueprints.login.login import LoginForm, User
+from coyote.blueprints.login.forms import LoginForm
+
+from coyote.models.user import UserModel
+from coyote.services.auth.user_session import User
 from coyote.extensions import login_manager, mongo, ldap_manager, store
 
 
-# users_collection = mongo.cx["coyote"]["users"]
-
-# Login routes:
-
-
+# Login route
 @login_bp.route("/", methods=["GET", "POST"])
 def login():
     form = LoginForm()
 
     if request.method == "POST" and form.validate_on_submit():
-        username = str(form.username.data)
-        password = str(form.password.data)
-        if ldap_authenticate(username, password):
-            app.logger.info("anything?")
-            user_obj = store.user_handler.user(username)
-            role = user_obj.get("role", None)
-            user_obj = User(
-                user_obj["_id"],
-                user_obj["groups"],
-                role,
-                user_obj.get("fullname", "_id"),
-                user_obj.get("email", None),
-            )
-            login_user(user_obj)
-            return redirect(url_for("home_bp.home_screen"))
-        else:
-            app.logger.info("yes?")
-            return render_template("login.html", form=form, error="Invalid credentials")
+        username = form.username.data.strip()
+        password = form.password.data.strip()
 
-    return render_template("login.html", title="login", form=form)
+        # 1. Fetch user
+        user_doc = store.user_handler.user(username)
+        if not user_doc or not user_doc.get("is_active", True):
+            flash("User not found or inactive.", "red")
+            app.logger.warning(f"Login failed: user not found or inactive ({username})")
+            return render_template("login.html", form=form)
+
+        # 2. Authenticate
+        use_internal = username in app.config.get("INTERNAL_USERS", [])
+        valid = (
+            UserModel.validate_login(user_doc["password"], password)
+            if use_internal
+            else ldap_authenticate(username, password)
+        )
+
+        if not valid:
+            flash("Invalid credentials", "red")
+            app.logger.warning(f"Login failed: invalid credentials ({username})")
+            return render_template("login.html", form=form)
+
+        # 3. Merge role + build user model
+        role_doc = store.roles_handler.get_role(user_doc.get("role")) or {}
+        user_model = UserModel.from_mongo(user_doc, role_doc)
+        user = User(user_model)
+
+        # 4. Login and update last login timestamp
+        login_user(user)
+        store.user_handler.update_user_last_login(user_doc["_id"])
+        app.logger.info(f"User logged in: {username} (access_level: {user.access_level})")
+
+        return redirect(url_for("home_bp.home_screen"))
+
+    return render_template("login.html", title="Login", form=form)
 
 
 @login_bp.route("/logout")
@@ -48,17 +62,14 @@ def logout():
 
 
 @login_manager.user_loader
-def load_user(username):
-    user = store.user_handler.user_with_id(username)  # user id
-    if not user:
+def load_user(user_id: str):
+    user_doc = store.user_handler.user_with_id(user_id)
+    if not user_doc:
         return None
-    return User(
-        user["_id"],
-        user["groups"],
-        user.get("role", None),
-        user.get("fullname", "_id"),
-        user.get("email", None),
-    )
+
+    role_doc = store.roles_handler.get_role(user_doc.get("role")) or {}
+    user_model = UserModel.from_mongo(user_doc, role_doc)
+    return User(user_model)
 
 
 def ldap_authenticate(username, password):
@@ -72,6 +83,6 @@ def ldap_authenticate(username, password):
             attribute=app.config.get("LDAP_USER_LOGIN_ATTR"),
         )
     except Exception as ex:
-        flash(ex, "danger")
+        flash(ex, "red")
 
     return authorized

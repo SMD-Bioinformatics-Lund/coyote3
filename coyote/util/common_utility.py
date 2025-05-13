@@ -9,6 +9,9 @@ from datetime import datetime
 from io import BytesIO
 import base64
 from datetime import timedelta
+from hashlib import md5
+from cryptography.fernet import Fernet
+import base64, json
 
 
 class CommonUtility:
@@ -133,14 +136,17 @@ class CommonUtility:
     @staticmethod
     def assay_names_for_db_query(assay_category_name):
         # Ignore _restored
-        assay_names = CommonUtility.assay_config(assay_category_name.removesuffix("_restored")).get(
-            "include_assays"
-        )
+        assay_names = CommonUtility.assay_config(
+            assay_category_name.removesuffix("_restored")
+        ).get("include_assays")
         if assay_category_name.endswith("_restored"):
-            assay_names = [f"{assay_name}_restored" for assay_name in assay_names]
+            assay_names = [
+                f"{assay_name}_restored" for assay_name in assay_names
+            ]
 
         return assay_names
 
+    # TODO: Remove
     @staticmethod
     def get_assay_from_sample(smp) -> Any | Literal["unknown"] | None:
         conf = app.config.get("ASSAY_MAPPER")
@@ -152,6 +158,43 @@ class CommonUtility:
         return "unknown"
 
     @staticmethod
+    def merge_sample_settings_with_assay_config(
+        sample_doc, assay_config
+    ) -> dict:
+        """
+        Merge assay_config FILTERS into sample_doc['filters'].
+        Existing sample values take priority. Missing values are filled from the assay_config.
+
+        Args:
+            sample_doc (dict): The sample document.
+            assay_config (dict): The full assay config with a 'FILTERS' section.
+
+        Returns:
+            dict: Updated sample_doc with 'filters' field merged.
+        """
+        filters_config = assay_config.get("FILTERS", {})
+        sample_filters = sample_doc.get("filters", {})
+
+        merged_filters = {}
+
+        for key, value in filters_config.items():
+            # If the key already exists and is non-empty in the sample's filters, keep it
+            if key in sample_filters and sample_filters[key]:
+                merged_filters[key] = sample_filters[key]
+            else:
+                merged_filters[key] = value
+
+        # If sample filters are empty, then update the sample doc with the default filters
+
+        # Update the sample_doc with the merged filters
+        sample_doc["filters"] = merged_filters
+        sample_doc.pop(
+            "use_diagnosis_genelist", None
+        )  # Remove this key if it exists
+        return sample_doc
+
+    # TODO: Remove
+    @staticmethod
     def get_group_defaults(group) -> Any | None:
         """
         Return Default dict (either group defaults or coyote defaults) and setting per sample
@@ -159,8 +202,12 @@ class CommonUtility:
         settings = deepcopy(app.config.get("GROUP_FILTERS"))
         # Get group specific settings
         if group is not None:
-            settings["error_cov"] = int(group.get("error_cov", settings["error_cov"]))
-            settings["warn_cov"] = int(group.get("warn_cov", settings["warn_cov"]))
+            settings["error_cov"] = int(
+                group.get("error_cov", settings["error_cov"])
+            )
+            settings["warn_cov"] = int(
+                group.get("warn_cov", settings["warn_cov"])
+            )
             settings["default_popfreq"] = float(
                 group.get("default_popfreq", settings["default_popfreq"])
             )
@@ -183,10 +230,14 @@ class CommonUtility:
                 group.get("default_max_freq", settings["default_max_freq"])
             )
             settings["default_min_cnv_size"] = int(
-                group.get("default_min_cnv_size", settings["default_min_cnv_size"])
+                group.get(
+                    "default_min_cnv_size", settings["default_min_cnv_size"]
+                )
             )
             settings["default_max_cnv_size"] = int(
-                group.get("default_max_cnv_size", settings["default_max_cnv_size"])
+                group.get(
+                    "default_max_cnv_size", settings["default_max_cnv_size"]
+                )
             )
             settings["default_checked_conseq"] = group.get(
                 "default_checked_conseq", settings["default_checked_conseq"]
@@ -203,7 +254,9 @@ class CommonUtility:
             sample.get("filter_min_freq", settings["default_min_freq"])
         )
         sample_settings["min_reads"] = int(
-            float(sample.get("filter_min_reads", settings["default_min_reads"]))
+            float(
+                sample.get("filter_min_reads", settings["default_min_reads"])
+            )
         )
         sample_settings["max_freq"] = float(
             sample.get("filter_max_freq", settings["default_max_freq"])
@@ -236,10 +289,14 @@ class CommonUtility:
         """
         fusion_settings = {}
         fusion_settings["min_spanreads"] = int(
-            sample.get("filter_min_spanreads", settings.get("default_spanreads", 0))
+            sample.get(
+                "filter_min_spanreads", settings.get("default_spanreads", 0)
+            )
         )
         fusion_settings["min_spanpairs"] = int(
-            sample.get("filter_min_spanpairs", settings.get("default_spanpairs", 0))
+            sample.get(
+                "filter_min_spanpairs", settings.get("default_spanpairs", 0)
+            )
         )
         return fusion_settings
 
@@ -254,23 +311,74 @@ class CommonUtility:
         """
 
         filter_genes = []
-        for name, genes in genelist_dict.items():
-            filter_genes.extend(genes)
+        for genelist_id, genelist_values in genelist_dict.items():
+            if genelist_values.get("is_active", False):
+                filter_genes.extend(genelist_values["covered"])
 
         return list(set(filter_genes))
 
     @staticmethod
-    def create_genelists_dict(list_names: list, gene_lists: dict) -> dict:
+    def get_genes_covered_in_panel(
+        genelists: dict, assay_panel_doc: list
+    ) -> dict:
         """
-        Creates a dictionary of gene lists from a list of selected gene lists.
-        Args:
-            gene_lists (list): A list of gene lists.
-            list_names (list): A list of gene list names.
-        Returns:
-            dict: A dictionary where keys are gene list names and values are lists of genes.
-        """
+        Filters the input gene lists to include only genes covered by the specified assay panel.
 
-        return {name: gene_lists[name] for name in list_names}
+        Args:
+            genelists (list[dict]):
+                A list of dictionaries, each containing a "genes" key with a list of gene names.
+            assay_panel_doc (list):
+                A list of gene names representing the genes covered by the assay panel.
+
+        Returns:
+            list[dict]:
+                A list of dictionaries in the same format as `genelists`, but with the "genes" lists filtered to include only those genes present in the assay panel.
+
+            covered_genelists = get_genes_covered_in_panel(genelists, assay_panel_doc)
+            # covered_genelists: [{"genes": ["BRCA1", "EGFR"]}, {"genes": ["KRAS"]}]
+        """
+        # Flatten all genes from the genelists into a set
+        covered_genes_set = set(assay_panel_doc.get("covered_genes", []))
+        updated_genelists = {}
+
+        for genelist_id, genelist_values in genelists.items():
+            genelist_genes = set(genelist_values.get("genes", []))
+            # Keep only genes present in the assay panel and move the rest to a separate list
+            genelist_values["covered"] = list(
+                genelist_genes.intersection(covered_genes_set)
+            )
+            genelist_values["uncovered"] = list(
+                genelist_genes.difference(covered_genes_set)
+            )
+            updated_genelists[genelist_id] = genelist_values
+
+        return updated_genelists
+
+    @staticmethod
+    def get_assay_genelist_names(genelists: dict) -> list:
+        """
+        Get the names of the gene lists for a specific assay.
+
+        Args:
+            genelists_dict (dict): A dictionary where keys are gene list names and values are lists of genes.
+
+        Returns:
+            list: A list of gene list names.
+        """
+        return [genelist["_id"] for genelist in genelists]
+
+    # @staticmethod
+    # def create_genelists_dict(list_names: list, gene_lists: dict) -> dict:
+    #     """
+    #     Creates a dictionary of gene lists from a list of selected gene lists.
+    #     Args:
+    #         gene_lists (list): A list of gene lists.
+    #         list_names (list): A list of gene list names.
+    #     Returns:
+    #         dict: A dictionary where keys are gene list names and values are lists of genes.
+    #     """
+
+    #     return {name: gene_lists[_id] for name in list_names}
 
     @staticmethod
     def get_active_branch_name() -> str | None:
@@ -322,7 +430,9 @@ class CommonUtility:
         Function to get hg38 position
         """
 
-        hg38 = subprocess.check_output([app.config["HG38_POS_SCRIPT"], chr, pos]).decode("utf-8")
+        hg38 = subprocess.check_output(
+            [app.config["HG38_POS_SCRIPT"], chr, pos]
+        ).decode("utf-8")
         hg38_chr, hg38_pos = hg38.split(":")
 
         return hg38_chr, hg38_pos
@@ -371,7 +481,10 @@ class CommonUtility:
         if isinstance(data, list):
             return [CommonUtility.convert_object_id(item) for item in data]
         elif isinstance(data, dict):
-            return {key: CommonUtility.convert_object_id(value) for key, value in data.items()}
+            return {
+                key: CommonUtility.convert_object_id(value)
+                for key, value in data.items()
+            }
         elif isinstance(data, ObjectId):
             return str(data)
         else:
@@ -380,10 +493,13 @@ class CommonUtility:
     @staticmethod
     def convert_to_serializable(data) -> list | dict | str | Any:
         if isinstance(data, list):
-            return [CommonUtility.convert_to_serializable(item) for item in data]
+            return [
+                CommonUtility.convert_to_serializable(item) for item in data
+            ]
         elif isinstance(data, dict):
             return {
-                key: CommonUtility.convert_to_serializable(value) for key, value in data.items()
+                key: CommonUtility.convert_to_serializable(value)
+                for key, value in data.items()
             }
         elif isinstance(data, ObjectId):
             return str(data)
@@ -418,7 +534,9 @@ class CommonUtility:
         return smp_grp
 
     @staticmethod
-    def get_genelist_dispnames(genelists: dict, filter_list: None | list) -> str:
+    def get_genelist_dispnames(
+        genelists: dict, filter_list: None | list
+    ) -> str:
         """
         Get display names of genelists.
 
@@ -433,7 +551,9 @@ class CommonUtility:
             list[str]: A list of display names of the gene lists.
         """
         if filter_list is None:
-            display_names = [genelist.get("displayname") for genelist in genelists]
+            display_names = [
+                genelist.get("displayname") for genelist in genelists
+            ]
         else:
             display_names = [
                 genelist.get("displayname")
@@ -443,15 +563,10 @@ class CommonUtility:
         return display_names
 
     @staticmethod
-    def get_report_header(assay: str, sample: dict):
+    def get_report_header(assay: str, sample: dict, header: str) -> str:
         """
         Get report header based on assay and sample data
         """
-        header = (
-            app.config.get("REPORT_CONFIG", {})
-            .get("REPORT_HEADERS", {})
-            .get(assay, "Unknown assay")
-        )
         if assay == "myeloid" and sample.get("subpanel") == "Hem-Snabb":
             if sample.get("num_samples") == 2:
                 header += ": fullständig parad analys"
@@ -460,31 +575,26 @@ class CommonUtility:
         return header
 
     @staticmethod
-    def get_analysis_method(assay: str):
-        """
-        Get analysis method based on assay
-        """
-        method = app.config.get("REPORT_CONFIG", {}).get("ANALYSIS_METHODS", {}).get(assay, "")
-        return method
-
-    @staticmethod
-    def check_report_exists(report_path: str) -> bool:
-        """
-        Check if report path exists
-        """
-        return os.path.exists(report_path)
-
-    @staticmethod
     def write_report(report_data: str, report_path: str) -> bool:
         """
-        Write report data to a file
+        Write report data to a file.
+
+        Args:
+            report_data (str): The content to write to the file.
+            report_path (str): The path where the report will be saved.
+
+        Returns:
+            bool: True if the report was written successfully, False otherwise.
         """
         try:
-            with open(report_path, "w") as report_file:
+            Path(report_path).parent.mkdir(parents=True, exist_ok=True)
+            with open(report_path, "w", encoding="utf-8") as report_file:
                 report_file.write(report_data)
             return True
-        except Exception as e:
-            app.logger.error(f"Error writing report to file: {e}")
+        except Exception as exc:
+            app.logger.error(
+                f"Failed to write report to '{report_path}': {exc}"
+            )
             return False
 
     @staticmethod
@@ -497,11 +607,11 @@ class CommonUtility:
         return base64_image
 
     @staticmethod
-    def get_plot(fn: str, assay: str, build: str = "38") -> bool:
+    def get_plot(fn: str, assay_config: dict = None) -> bool:
         """
         Check if plots should be shown in the report
         """
-        plot_dir = app.config.get("REPORT_CONFIG", {}).get("REPORT_PLOTS_PATH", {}).get(assay, "")
+        plot_dir = assay_config.get("REPORT", {}).get("plots_path", "")
         if plot_dir and fn:
             image_path = os.path.join(plot_dir, f"{fn}")
             return CommonUtility.get_base64_image(image_path)
@@ -520,3 +630,35 @@ class CommonUtility:
         Get date a specified number of days ago
         """
         return datetime.now() - timedelta(days=days)
+
+    @staticmethod
+    def generate_sample_cache_key(**kwargs) -> str:
+        # Remove unneeded internal keys if present (e.g., 'self')
+        kwargs.pop("self", None)
+        kwargs.pop("use_cache", None)
+
+        # Normalize lists (e.g., user_groups)
+        if "user_groups" in kwargs and isinstance(kwargs["user_groups"], list):
+            kwargs["user_groups"] = sorted(kwargs["user_groups"])
+
+        from datetime import datetime
+
+        for key, value in kwargs.items():
+            if isinstance(value, datetime):
+                # Truncate to just the date
+                kwargs[key] = value.date().isoformat()
+            elif not isinstance(
+                value, (str, int, float, bool, type(None), list, dict)
+            ):
+                kwargs[key] = str(value)
+
+        # Serialize to stable JSON
+        raw_key = json.dumps(kwargs, sort_keys=True, separators=(",", ":"))
+
+        # Return hashed cache key
+        return f"samples:{md5(raw_key.encode()).hexdigest()}"
+
+    @staticmethod
+    def encrypt_json(data, fernet):
+        json_data = json.dumps(data, default=str)  # ← handles datetime
+        return fernet.encrypt(json_data.encode()).decode()

@@ -1,0 +1,157 @@
+{% extends "layout.html" %}
+{% block title %}Manage Panels{% endblock %}
+{% block body %}
+<div class="flex w-full h-full overflow-hidden">
+  {% include "admin_sidebar.html" %}
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+
+    <section class="p-2 ml-2 mt-2">
+      <div class="bg-blue-50 border-l-4 border-blue-400 rounded-2xl shadow-3xl p-4 relative overflow-hidden">
+
+        <div class="flex flex-row justify-between items-center gap-4 px-2 py-2">
+          <h2 class="text-base font-semibold text-black tracking-wide uppercase">Manage Assay Panels</h2>
+          <div class="relative w-64">
+            <input type="text" id="search-panels" class="w-full border border-gray-300 rounded-lg py-2 pl-4 pr-10 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="Search Panels">
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="search panels" class="h-5 w-5 text-gray-500 cursor-pointer" onclick="document.getElementById('search-panels').focus()">
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" id="panels-list" data-rows-per-page="20" pagination-button-color="blue" pagination-button-text-color="black">
+          <table id="panels-list-table" class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
+            <thead class="rounded-t-2xl overflow-hidden border-gray-800">
+              <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
+                <th class="p-2 font-normal">Panel Name</th>
+                <th class="p-2 font-normal">Display Name</th>
+                <th class="p-2 font-normal">Group</th>
+                <th class="p-2 font-normal">Type</th>
+                <th class="p-2 font-normal">Genes</th>
+                <th class="p-2 font-normal">Size</th>
+                <th class="p-2 font-normal">Technology</th>
+                <th class="p-2 font-normal">Version</th>
+                <th class="p-2 font-normal">Created</th>
+                <th class="p-2 font-normal">Updated</th>
+                <th class="p-2 font-normal">Status</th>
+                <th class="p-2 font-normal">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="panels-list-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
+              {% for panel in panels %}
+                <tr class="border-t border-gray-300 hover:bg-blue-100">
+                  <td class="p-2 font-medium">{{ panel.panel_name }}</td>
+                  <td class="p-2 font-medium">{{ panel.display_name }}</td>
+                  <td class="p-2 font-medium">{{ panel.panel_group }}</td>
+                  <td class="p-2 font-medium">{{ panel.panel_type }}</td>
+                  <td class="p-2 font-medium">{{ panel.covered_genes|length }}</td>
+                  <td class="p-2 font-medium">{{ panel.target_region_size }}</td>
+                  <td class="p-2 font-medium">{{ panel.panel_technology }}</td>
+                  <td class="p-2 font-medium">{{ panel.version }}</td>
+                  <td class="p-2 font-medium">
+                    <span class="block">{{ panel.created_by }}</span>
+                    <span class="text-gray-500 font-thin"><small>{{ panel.created_on | human_date }}</small></span>
+                  </td>
+            
+                  <td class="p-2 font-medium">
+                    <span class="block">{{ panel.updated_by }}</span>
+                    <span class="text-gray-500 font-thin"><small>{{ panel.updated_on | human_date }}</small></span>
+                  </td>
+                  <td class="p-2 font-medium">
+                    {% if panel.is_active %}
+                      <span class="text-green-600 font-semibold">Active</span>
+                    {% else %}
+                      <span class="text-red-500 font-semibold">Inactive</span>
+                    {% endif %}
+                  </td>
+                  <!-- Actions Column -->
+                  <td class="p-2 font-medium flex gap-2 flex-wrap">
+                    <a href="{{ url_for('admin_bp.view_assay_panel', assay_panel_id=panel._id) }}" 
+                      title="View" 
+                      class="font-medium text-gray-700 hover:text-blue-600">
+                      <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="View" class="w-5 cursor-pointer">
+                    </a>
+
+                    {% if has_access("edit_panel", min_role="manager", min_level=99) %}
+                      <button onclick="showActionModal({
+                          url: '{{ url_for('admin_bp.edit_assay_panel', assay_panel_id=panel._id) }}',
+                          title: 'Edit assay_panel configuration',
+                          message: 'Are you sure you want to edit <b>{{ panel._id }} </b> assay_panel configuration?',
+                          confirmText: 'Edit',
+                          confirmColor: 'blue'
+                        })"
+                        title="Edit"
+                        class="font-medium text-blue-600 hover:text-blue-800">
+                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
+                      </button>
+                      <button onclick="showActionModal({
+                          url: '{{ url_for('admin_bp.toggle_assay_panel_active', assay_panel_id=panel._id) }}',
+                          title: '{{ 'Deactivate' if panel.is_active else 'Activate' }} Schema',
+                          message: 'Are you sure you want to {{ 'deactivate' if panel.is_active else 'activate' }} <b>{{ panel._id }}</b>?',
+                          confirmText: '{{ 'Deactivate' if panel.is_active else 'Activate' }}',
+                          confirmColor: '{{ 'red' if panel.is_active else 'green' }}'
+                        })"
+                        title="{{ 'Deactivate' if panel.is_active else 'Activate' }}"
+                        class="font-medium {% if panel.is_active %}text-yellow-600 hover:text-yellow-800{% else %}text-green-600 hover:text-green-800{% endif %}">
+                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path-rounded-square.svg') }}" alt="toggle active" class="w-5 cursor-pointer">
+                      </button> 
+                    {% endif %}
+                    {% if has_access("delete_panel", min_role="admin", min_level=99999) %}
+                      <button onclick="showActionModal({
+                          url: '{{ url_for('admin_bp.delete_assay_panel', assay_panel_id=panel._id) }}',
+                          title: 'Delete assay_panel',
+                          message: 'Are you sure you want to delete <b>{{ panel._id }}</b> assay_panel configuration?',
+                          confirmText: 'Delete',
+                          confirmColor: 'red'
+                        })" title="Delete" class="text-red-500 hover:text-red-700 font-medium">
+                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/trash.svg') }}" alt="delete" class="w-5 cursor-pointer">
+                      </button>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% else %}
+                <tr>
+                  <td colspan="11" class="text-center py-4 text-gray-500">No Panels Found.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+
+  const input = document.getElementById('search-panels');
+  const body = document.getElementById('panels-list-body');
+  const container = document.getElementById('panels-list');
+  const rowsPerPage = parseInt(container.dataset.rowsPerPage) || 20;
+  const originalRows = [...body.querySelectorAll('tr')].map(r => r.cloneNode(true));
+  const id = body.id;
+
+  input.addEventListener('input', () => {
+    const term = input.value.toLowerCase().trim();
+
+    // Remove any existing pagination controls
+    container.querySelectorAll('[data-prev], [data-next], [data-page-info]').forEach(el => el.parentElement?.remove());
+
+    // Filter rows or reset
+    const filtered = term
+      ? originalRows.filter(row =>
+          [...row.querySelectorAll('td')].slice(0, 4).some(td =>
+            td.textContent.toLowerCase().includes(term)
+          )
+        )
+      : originalRows;
+
+    // Replace table body with filtered or full rows
+    body.innerHTML = '';
+    filtered.forEach(row => body.appendChild(row));
+
+    // Trigger pagination if needed
+    filtered.length > rowsPerPage ? initializePagination() : displayPage(1, id, rowsPerPage);
+  });
+</script>
+{% endblock %}
