@@ -104,7 +104,7 @@
       </td>
     </tr>
     <tr>
-      <td class="top_report_key">Rapport genererad av</td><td class="top_report_val">{{ current_user.get_fullname() }}</td>
+      <td class="top_report_key">Rapport genererad av</td><td class="top_report_val">{{ current_user.fullname }}</td>
     </tr>    
     <tr>
       <td class="top_report_key">Rapport-ID</td><td class="top_report_val">{{ sample.name }}.{% if sample.report_num is defined %}{{ sample.report_num + 1 }}{% else %}1{% endif %}</td>

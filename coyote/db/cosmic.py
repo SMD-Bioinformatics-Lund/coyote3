@@ -1,44 +1,58 @@
+# -*- coding: utf-8 -*-
+"""
+CosmicHandler module for Coyote3
+================================
+
+This module defines the `CosmicHandler` class used for accessing and managing
+COSMIC (Catalogue Of Somatic Mutations In Cancer) data in MongoDB.
+
+It is part of the `coyote.db` package and extends the base handler functionality.
+
+Author: Coyote3 authors.
+License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
+"""
+
+# -------------------------------------------------------------------------
+# Imports
+# -------------------------------------------------------------------------
 from coyote.db.base import BaseHandler
-from flask import flash
-from flask import current_app as app
 
 
+# -------------------------------------------------------------------------
+# Class Definition
+# -------------------------------------------------------------------------
 class CosmicHandler(BaseHandler):
     """
-    Cosmic handler from coyote["cosmic"]
+    The `CosmicHandler` class is responsible for managing and retrieving data
+    from the `cosmic` collection in the MongoDB database. It provides methods
+    to fetch cosmic IDs and variants based on specific criteria, such as
+    chromosome filters. This class ensures efficient querying and serves as
+    an interface between the application and the database for COSMIC data.
     """
 
     def __init__(self, adapter):
+        """
+        Initialize the handler with a given adapter and bind the collection.
+        """
         super().__init__(adapter)
         self.set_collection(self.adapter.cosmic_collection)
 
-    def get_cosmic_ids(self, chr: list = []) -> list:
+    def get_cosmic_ids(self, chr=None) -> list:
         """
-        Get cosmic ids for all the chromosomes or a specific chromosome
+        Retrieve cosmic IDs for all chromosomes or specific chromosomes.
+
+        This method queries the `cosmic` collection in the database to fetch
+        cosmic IDs. If no chromosome list is provided, it retrieves IDs for
+        all chromosomes. Otherwise, it filters the results based on the
+        provided chromosome list.
+
+        Args:
+            chr (list, optional): A list of chromosome names to filter by. Defaults to an empty list.
+
+        Returns:
+            list: A list of cosmic IDs matching the query criteria.
         """
-        if not chr:
-            cosmic_ids = self.get_collection().find()
-        else:
-            cosmic_ids = self.get_collection().find({"chr": {"$in": chr}})
-
-        return list(cosmic_ids) if cosmic_ids else []
-
-    # TODO: OLD FUNCTION, CAN BE REMOVED
-    def cosmic_variants_in_regions(self, data):
-        new_data = []
-        for region in data:
-            region["cosmic"] = []
-            cosmic_ids = self.get_collection().find(
-                {
-                    "chr": region["chr"],
-                    "start": {"$lte": region["end"]},
-                    "end": {"$gte": region["start"]},
-                },
-                {"id": 1, "cnt": 1},
-            )
-            for cosmic in cosmic_ids:
-                del cosmic["_id"]
-                region["cosmic"].append(cosmic)
-            new_data.append(region)
-
-        return new_data
+        chr = chr or []
+        query = {} if not chr else {"chr": {"$in": chr}}
+        cosmic_ids = self.get_collection().find(query)
+        return list(cosmic_ids)

@@ -1,0 +1,268 @@
+{
+  "_id": "User-Schema",
+  "schema_name": "User-Schema",
+  "description": "Schema for creating and managing user profiles in the system.",
+  "schema_type": "user",
+  "schema_category": "user_management",
+  "schema_subcategory": "user_profile",
+  "is_active": true,
+  "version": 1,
+  "sections": {
+    "user_info": [
+      "firstname",
+      "lastname",
+      "fullname",
+      "username",
+      "email",
+      "job_title",
+      "is_active"
+    ],
+    "user_access": [
+      "groups",
+      "role",
+      "permissions"
+    ],
+    "meta": [
+      "created_by",
+      "created_on",
+      "updated_by",
+      "updated_on"
+    ],
+    "security": [
+      "password"
+    ]
+  },
+  "fields": {
+    "email": {
+      "type": "string",
+      "label": "Email Address",
+      "required": true,
+      "placeholder": "e.g. user@skane.se",
+      "description": "The email address will be used for login and notifications.",
+      "validation": {
+        "type": "regex",
+        "pattern": "^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})$",
+        "message": "Please enter a valid email address."
+      }
+    },
+    "username": {
+      "type": "string",
+      "label": "User Name",
+      "required": true,
+      "placeholder": "e.g. john.doe",
+      "description": "The user name of the user. This will be displayed in the system.",
+      "default": "",
+      "validation": {
+        "type": "regex",
+        "pattern": "^[a-zA-Z0-9._-]{3,}$",
+        "message": "User name must be at least 3 characters long and can contain letters, numbers, dots, underscores, and hyphens."
+      }
+    },
+    "firstname": {
+      "type": "string",
+      "label": "First Name",
+      "required": true,
+      "placeholder": "e.g. John",
+      "description": "The first name of the user. This will be displayed in the system.",
+      "default": "",
+      "validation": {
+        "type": "regex",
+        "pattern": "^[a-zA-Z]+$",
+        "message": "Please enter a valid first name (letters only)."
+      }
+    },
+    "lastname": {
+      "type": "string",
+      "label": "Last Name",
+      "required": true,
+      "placeholder": "e.g. Doe",
+      "description": "The last name of the user. This will be displayed in the system.",
+      "default": "",
+      "validation": {
+        "type": "regex",
+        "pattern": "^[a-zA-Z]+$",
+        "message": "Please enter a valid last name (letters only)."
+      }
+    },
+    "fullname": {
+      "type": "string",
+      "label": "Full Name",
+      "required": true,
+      "placeholder": "e.g. John Doe",
+      "description": "The full name of the user. This will be displayed in the system.",
+      "default": "",
+      "validation": {
+        "type": "regex",
+        "pattern": "^[a-zA-Z\\s]+$",
+        "message": "Please enter a valid full name (letters and spaces only)."
+      }
+    },
+    "job_title": {
+      "type": "string",
+      "label": "Job Title",
+      "placeholder": "e.g. Bioinformatician, Geneticist",
+      "description": "The job title of the user. This will help in identifying the role within the organization.",
+      "default": "",
+      "validation": {
+        "type": "regex",
+        "pattern": "^[a-zA-Z\\s]+$",
+        "message": "Please enter a valid job title (letters and spaces only)."
+      }
+    },
+    "permissions": {
+      "type": "list",
+      "label": "Custom Permissions",
+      "placeholder": "e.g. ['finalize_report', 'add_report_comment', 'view_report']",
+      "description": "List of custom permissions for the user. Leave empty for default permissions.",
+      "default": [],
+      "required": true
+    },
+    "password": {
+      "type": "string",
+      "label": "Password",
+      "placeholder": "Leave blank to auto-generate",
+      "description": "The password for the user account. Leave blank to auto-generate a secure password.",
+      "default": ""
+    },
+    "is_active": {
+      "type": "bool",
+      "label": "Active Status",
+      "default": true,
+      "required": true,
+      "description": "Indicates whether the user account is active. Inactive accounts cannot log in."
+    },
+    "created_by": {
+      "type": "string",
+      "label": "Created By"
+    },
+    "updated_by": {
+      "type": "string",
+      "label": "Updated By"
+    },
+    "created_on": {
+      "type": "datetime",
+      "label": "Created On"
+    },
+    "updated_on": {
+      "type": "datetime",
+      "label": "Updated On"
+    },
+    "groups": {
+      "type": "subschema",
+      "schema": "groups",
+      "label": "User Groups",
+      "required": true
+    },
+    "role": {
+      "type": "radio",
+      "label": "System Role",
+      "required": true,
+      "default": "standard_user",
+      "options": [
+        "admin",
+        "developer",
+        "tester",
+        "group_manager",
+        "standard_user",
+        "viewer",
+        "external_user"
+      ],
+      "description": "The user's role determines the level of system access."
+    }
+  },
+  "subschemas": {
+    "groups": {
+      "type": "dict",
+      "fields": {
+        "myeloid_GMSv1_hg38": {
+          "type": "bool",
+          "default": false,
+          "label": "myeloid_GMSv1_hg38",
+          "required": true
+        },
+        "fusion": {
+          "type": "bool",
+          "default": false,
+          "label": "fusion",
+          "required": true
+        },
+        "lymph_GMSv3": {
+          "type": "bool",
+          "default": false,
+          "label": "lymph_GMSv3",
+          "required": true
+        },
+        "lymphoid_GMSv1": {
+          "type": "bool",
+          "default": false,
+          "label": "lymphoid_GMSv1",
+          "required": true
+        },
+        "lymphotrack_admin": {
+          "type": "bool",
+          "default": false,
+          "label": "lymphotrack_admin",
+          "required": true
+        },
+        "tumwgs": {
+          "type": "bool",
+          "default": false,
+          "label": "tumwgs",
+          "required": true
+        },
+        "myeloid_vep": {
+          "type": "bool",
+          "default": false,
+          "label": "myeloid_vep",
+          "required": true
+        },
+        "lymphotrack": {
+          "type": "bool",
+          "default": false,
+          "label": "lymphotrack",
+          "required": true
+        },
+        "solid_GMSv3": {
+          "type": "bool",
+          "default": false,
+          "label": "solid_GMSv3",
+          "required": true
+        },
+        "PARP_inhib": {
+          "type": "bool",
+          "default": false,
+          "label": "PARP_inhib",
+          "required": true
+        },
+        "myeloid_GMSv1": {
+          "type": "bool",
+          "default": false,
+          "label": "myeloid_GMSv1",
+          "required": true
+        },
+        "tumwgs-solid": {
+          "type": "bool",
+          "default": false,
+          "label": "tumwgs-solid",
+          "required": true
+        },
+        "tumwgs-hema": {
+          "type": "bool",
+          "default": false,
+          "label": "tumwgs-hema",
+          "required": true
+        },
+        "GMSHem": {
+          "type": "bool",
+          "default": false,
+          "label": "GMSHem",
+          "required": true
+        }
+      }
+    }
+  },
+  "created_on": "2025-04-02T22:55:54.328000",
+  "created_by": "ram.nanduri@skane.se",
+  "updated_on": "2025-04-02T22:55:54.328000",
+  "updated_by": "ram.nanduri@skane.se"
+}

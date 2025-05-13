@@ -1728,6 +1728,94 @@
 .bg-fail { background-color: #8C1D1D; } /* Dark Maroon */
 
 
+/* Color Coding for Cancer Types (Subtle, Darker, and Color-Blind Friendly) */
+.bg-melanoma {
+  background-color: #fb6b6b; /* Darker red */
+}
+
+.bg-cns {
+  background-color: #76c7a6; /* Darker green */
+}
+
+.bg-lung {
+  background-color: #f57c94; /* Darker pink */
+}
+
+.bg-colon {
+  background-color: #bbbbbb; /* Darker gray */
+}
+
+.bg-gi {
+  background-color: #f8a488; /* Darker orange */
+}
+
+.bg-dna {
+  background-color: #f5a25d; /* Darker orange */
+}
+
+/* colors for genelists types */
+.bg-genelist {
+  background-color: #d1d2fa; /* Muted Light purple */
+}
+
+.bg-fusionlist {
+  background-color: #ccf9d8; /* Muted Mint Green */
+}
+
+.bg-cnvlist {
+  background-color: #ffe3c2; /* Muted Peach/Orange */
+}
+
+.text-genelist {
+  color: #6f3ee0; /* Deep Blue */
+}
+
+.text-fusionlist {
+  color: #166534; /* Deep Green */
+}
+
+.text-cnvlist {
+  color: #92400e; /* Deep Orange/Brown */
+}
+
+/* bg colors for each gene type */
+/* Most Biologically Important */
+.bg-protein_coding                { background-color: #4F81BD; color: white; }  /* Strong blue */
+.bg-lncrna                        { background-color: #9BBB59; color: white; }  /* Green olive */
+.bg-mirna                         { background-color: #C0504D; color: white; }  /* Deep red */
+.bg-snrna                         { background-color: #8064A2; color: white; }  /* Violet */
+.bg-snorna                        { background-color: #F79646; color: white; }  /* Orange */
+
+/* Pseudogenes – grouped and colored similarly */
+.bg-processed_pseudogene          { background-color: #BDBDBD; color: black; }  /* Gray */
+.bg-unprocessed_pseudogene        { background-color: #D9D9D9; color: black; }
+.bg-unitary_pseudogene            { background-color: #E6E6E6; color: black; }
+.bg-transcribed_processed_pseudogene { background-color: #D9D9D9; color: black; }
+.bg-transcribed_unprocessed_pseudogene { background-color: #CCCCCC; color: black; }
+.bg-transcribed_unitary_pseudogene { background-color: #C0C0C0; color: black; }
+
+/* Other RNA types */
+.bg-mt_trna                       { background-color: #FFCC99; color: black; }
+.bg-mt_rrna                       { background-color: #FFD700; color: black; }  /* Golden */
+.bg-ribozyme                      { background-color: #F0E68C; color: black; }  /* Khaki */
+.bg-scarna                        { background-color: #FFE4B5; color: black; }  /* Moccasin */
+.bg-scrna                         { background-color: #D1E0E0; color: black; }
+
+/* Immune-related (IG/TR) */
+.bg-ig_v_gene                     { background-color: #8EAADB; color: white; }
+.bg-ig_d_gene                     { background-color: #A5A5A5; color: black; }
+.bg-tr_v_gene                     { background-color: #A9D08E; color: black; }
+.bg-tr_d_gene                     { background-color: #D99694; color: black; }
+
+/* Misc or rare */
+.bg-tec                           { background-color: #CFE2F3; color: black; }
+.bg-tr_c_gene                     { background-color: #FDE9D9; color: black; }
+.bg-tr_j_gene                     { background-color: #E2EFDA; color: black; }
+.bg-rrna                          { background-color: #DDEBF7; color: black; }
+.bg-rrna_pseudogene               { background-color: #E6B8B7; color: black; }
+.bg-vault_rna                     { background-color: #D9EAD3; color: black; }
+.bg-misc_rna                      { background-color: #EAD1DC; color: black; }
+
 
 
 /* Style table headers for sorting */

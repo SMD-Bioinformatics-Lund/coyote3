@@ -74,44 +74,22 @@
 
     <!-- LEFT SIDEBAR (Fixed Width, Full Height) -->
     <aside class="w-8 bg-transparent text-white flex flex-col">
-      <div class="flex border-l-8 border-yellow-400 mt-1">
-        <a href="#snv-indels" 
+
+      {% for dna_section in dna_sections %}
+        {% if dna_section != "BIOMARKER" %}
+          <div class="flex border-l-8 border-yellow-400 mt-1">
+            <a href="#{{ dna_section }}" 
+              class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
+                <span class="vertical-text">{{ dna_section }}</span>
+            </a>
+          </div>
+        {% endif %}
+      {% endfor %}
+
+      <div class="flex border-l-8 border-brown-200 mt-1">
+        <a href="#SUMMARY" 
           class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-            <span class="vertical-text">SNVs</span>
-        </a>
-      </div>
-
-      {% if cnvwgs or sample.cnvprofile %}
-        <div class="flex border-l-8 border-yellow-400">
-          <a href="#cnvs" 
-            class="relative bg-gray-500 text-white text-xs text-center mt-1 py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-              <span class="vertical-text">CNVs</span>
-          </a>
-        </div>
-      {% endif %}
-
-      {% if transloc %}
-        <div class="flex border-l-8 border-yellow-400">
-          <a href="#translocs" 
-            class="relative bg-gray-500 text-white text-xs text-center mt-1 py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-              <span class="vertical-text">TransLocs</span>
-          </a>
-        </div>
-      {% endif %}
-
-      {% if fusions %}
-        <div class="flex border-l-8 border-yellow-400 ">
-          <a href="#fusions" 
-            class="relative bg-gray-500 text-white text-xs text-center mt-1 py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-              <span class="vertical-text">Fusions</span>
-          </a>
-        </div>
-      {% endif %}
-
-      <div class="flex border-l-8 border-teal-400 mt-1">
-        <a href="#summary" 
-          class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-            <span class="vertical-text">Summary</span>
+            <span class="vertical-text">SUMMARY</span>
         </a>
       </div>
 
@@ -119,17 +97,26 @@
         <div class="flex border-l-8 border-orange-400 mt-1">
           <a href="{{ url_for('cov_bp.get_cov', sample_id=sample.name) }}" 
             class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-              <span class="vertical-text">Coverage</span>
+              <span class="vertical-text">COVERAGE</span>
           </a>
         </div>
       {% endif %}
 
       <div class="flex border-l-8 border-orange-400 ">
-        <a href="#lowcov" 
+        <a href="#LOW-COV" 
           class="relative bg-gray-500 text-white text-xs text-center mt-1 py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-            <span class="vertical-text">Low Cov</span>
+            <span class="vertical-text">LOW-COV</span>
         </a>
       </div>
+
+      {% if has_access('preview_dna_report', min_role='user', min_level=9) %}
+        <div class="flex border-l-8 border-teal-400  mt-1">
+          <a href="{{ url_for('dna_bp.generate_dna_report', sample_id=sample.name) }}" 
+            class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
+              <span class="vertical-text">Preview Report</span>
+          </a>
+        </div>
+      {% endif %}
     </aside>
 
     <!-- MAIN CONTENT (Scrollable & Auto-Resizing) -->
@@ -142,26 +129,29 @@
       {% include "selected_gene_panel_div.html" %}
 
       <!-- SNVs & Indels Card -->
-      <section id="snv-indels" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
-        <!-- SNV/Indels Header -->
-        <div class="overflow-x-auto relative">
-          <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">SNVs/Indels ({{ variants|length }})</h2>
-        </div>
-        
-        <div class="mx-auto py-2 " id="snvs-content">
-          <div class="flex flex-wrap gap-4">
-            <!-- SNVs/Indels Table -->
-            <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
-              <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
-                <h2 class="text-sm font-semibold text-black">Variants Passing Filter Criteria</h2>
-                <img 
-                  src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
-                  alt="Export to CSV - SNVs" 
-                  onclick="exportTableToCSV('{{ sample.name }}.filtered.snvs.csv', 'snvs-table')" 
-                  class="w-6 h-6 transition-transform transform hover:scale-110"
-                />
-              </div>
-              {% if variants|length > 0 %}
+      {% if "SNV" in dna_sections %}
+        {% set variants = display_sections_data.snvs %}
+        <section id="SNV" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
+          <!-- SNV/Indels Header -->
+          <div class="overflow-x-auto relative">
+            <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">SNVs/Indels ({{ variants|length }})</h2>
+          </div>
+          
+          <div class="mx-auto py-2 " id="snvs-content">
+            <div class="flex flex-wrap gap-4">
+              <!-- SNVs/Indels Table -->
+              <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
+                <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
+                  <h2 class="text-sm font-semibold text-black">Variants Passing Filter Criteria</h2>
+                  {% if has_access("download_snvs", min_role="user", min_level=9) %}
+                    <img 
+                      src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
+                      alt="Export to CSV - SNVs" 
+                      onclick="exportTableToCSV('{{ sample.name }}.filtered.snvs.csv', 'snvs-table')" 
+                      class="w-6 h-6 transition-transform transform hover:scale-110"
+                    />
+                  {% endif %}
+                </div>
                 <div class="overflow-auto relative">
                   <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="snvs-table">
                     <thead class="sortable capitalize tracking-wide rounded-t-lg bg-yellow-100">
@@ -174,6 +164,8 @@
                         <th class="py-3 font-semibold w-4" id="variant-table-header-interesting-irrelevant" data-nosort="true"></th>
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-gene">Gene</th>
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-hgvs">HGVS</th>
+                        <th class="px-2 py-3 font-semibold" id="variant-table-header-hgvs">Exon</th>
+                        <th class="px-2 py-3 font-semibold" id="variant-table-header-hgvs">Intron</th>
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-type">Type</th>
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-conseq">Consequence</th>
                         <th class="px-2 py-3 font-semibold max-w-15c" id="variant-table-header-popFreq">PopFreq %</th>
@@ -183,13 +175,15 @@
                           <th class="py-3 font-semibold" id="variant-table-header-hotspot">Hotspot</th>
                         {% endif %}
                         <th class="px-2 py-3 font-semibold max-w-30c" id="variant-table-header-flags">Flags</th>
-                        {% for gt in variants[0].GT|sort(attribute='type') %}
-                          {% if gt.type == "case" %}
-                            <th data-autoclick="true" class="px-1 py-3 font-semibold max-w-20c break-words whitespace-normal" id="variant-table-header-case">{{ gt.type }} ({{gt.sample}})</th>
-                          {% else %}
-                            <th class="px-2 py-3 font-semibold max-w-20c break-words whitespace-normal" id="variant-table-header-control">{{ gt.type }} ({{gt.sample}})</th>
-                          {% endif %}
-                        {% endfor %}
+                        {% if variants and variants[0].GT %}
+                          {% for gt in variants[0].GT|sort(attribute='type') %}
+                            {% if gt.type == "case" %}
+                              <th data-autoclick="true" class="px-1 py-3 font-semibold max-w-20c break-words whitespace-normal" id="variant-table-header-case">{{ gt.type }} ({{gt.sample}})</th>
+                            {% else %}
+                              <th class="px-2 py-3 font-semibold max-w-20c break-words whitespace-normal" id="variant-table-header-control">{{ gt.type }} ({{gt.sample}})</th>
+                            {% endif %}
+                          {% endfor %}
+                        {% endif %}
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-view" data-nosort="true">View</th>
                       </tr>
                     </thead>
@@ -198,7 +192,7 @@
                         {% set csq = var.INFO.selected_CSQ %}
                         {% set chr_pos = var.CHROM ~ ":" ~ var.POS %}
                         {# Build the final IGV URL #}
-                        {% if all_samples_bam_paths %}
+                        {% if all_samples_bam_paths and has_access("view_igv", min_role="user", min_level=9) %}
                           {% set igv_url = "http://localhost:60151/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ chr_pos %}
                           {% set igv_chr_pos = '<a href="' ~ igv_url ~ '">' ~ chr_pos ~ '</a>' %}
                         {% else %}
@@ -249,7 +243,7 @@
                           <div class="flex items-center justify-center h-full">
                             {% if var.interesting == True %}
                               <span class="relative inline-block cursor-pointer"
-                                onmouseover="showTooltip(event, `<span class='text-green-400'>Variant is irrelevant</span>`)">
+                                onmouseover="showTooltip(event, `<span class='text-green-400'>Variant is interesting</span>`)">
                                 <img class="w-3 h-3" src="{{ url_for('static', filename='icons/heroicons_outline_24/exclamation-circle.svg') }}">
                             </span>
                             {% endif %}
@@ -275,10 +269,10 @@
                             <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ csq.HGVSp|unesc|safe }}</span>`)">
                               <div class="relative flex inline-block">
                                 <div id="{{csq.Feature}}-hgvsp-short" class="truncate max-w-15c">
-                                  {{ csq.HGVSp|unesc|safe }}
+                                  {{ csq.HGVSp|one_letter_p|unesc|safe }}
                                 </div>
                                 <div id="{{csq.Feature}}-hgvsp-full" class="hidden break-all whitespace-normal">
-                                  {{ csq.HGVSp|unesc|safe }}
+                                  {{ csq.HGVSp|one_letter_p|unesc|safe }}
                                 </div>
                                 <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
                                         data-target="{{csq.Feature}}-hgvsp"
@@ -310,6 +304,16 @@
                           {% else %}
                             -
                           {% endif %}
+                        </td>
+
+                        <!-- Exon -->
+                        <td id="snv-table-row-exon" class="px-1">
+                          {{ csq.EXON | default("-", true) | safe }}
+                        </td>
+
+                        <!-- Exon -->
+                        <td id="snv-table-row-intron" class="px-1">
+                          {{ csq.INTRON | default("-", true) | safe }}
                         </td>
 
                         <!-- Variant Type -->
@@ -388,10 +392,8 @@
 
                         <!-- Chr:Pos -->
                         <td id="snv-table-row-chrPos" class="px-1">
-                          <div class="inline-block px-2 py-1 font-semibold text-white rounded-full transition-all duration-200 ease-in-out hover:bg-blue-400 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 
-                                      {% if assay == 'solid' and csq.mmhotspot %} bg-red-400 
-                                      {% else %} bg-gray-400 {% endif %}">
-                            {{ igv_chr_pos|safe }}
+                          <div class="inline-block px-2 py-1 font-semibold text-white rounded-full transition-all duration-200 ease-in-out hover:bg-blue-400 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 bg-gray-400">
+                              {{ igv_chr_pos|safe }}
                           </div>
                         </td>
 
@@ -419,42 +421,42 @@
                         {% for gt in var.GT|sort(attribute='type') %}
                           <td id="snv-table-row-{% if gt.type == 'case' %}case{% else %}control{% endif %}" 
                               sorttable_customkey="{{ gt.AF }}" class="px-1 ">
-                            <span class="{% if gt.DP < settings.error_cov %} text-red-600 {% elif gt.DP < settings.warn_cov %} text-orange-600 {% else %} text-gray-900 {% endif %}">
+                            <span class="{% if gt.DP < sample.filters.error_cov %} text-red-600 {% elif gt.DP < sample.filters.warn_cov %} text-orange-600 {% else %} text-gray-900 {% endif %}">
                               {{ '%0.1f'| format(100 * gt.AF|float) }}% ({{ gt.VD|int }} / {{ gt.DP|int }})
                           </td>
                         {% endfor %}
 
                         <!-- View -->
                         <td>
-                          <a href="{{ url_for('dna_bp.show_variant', id=var._id) }}" 
+                          <a href="{{ url_for('dna_bp.show_variant', sample_id=sample.name, var_id=var._id) }}" 
                               class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
                             View
                           </a>
                         </td>
-                      </tr>
-                    {% endfor %}
+                        </tr> 
+                      {% endfor %}
                     </tbody>
                   </table>
+                  {% if variants|length == 0 %}
+                    <em class="block text-center text-gray-500 text-sm italic bg-gray-50 p-4 rounded-b-lg border border-gray-300 shadow-md">No variants found with current filter settings!</em>
+                  {% endif %}
                 </div>
-              {% else %}
-                <div class="p-4 text-center">No variants available.</div>
-              {% endif %}
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      {% endif %}
 
 
-      <!-- CNVs Container -->
-      {% set has_cnv_image = sample.cnvprofile is not none %}
-      {% set has_cnv_table = cnvwgs or cnvwgs is iterable %}
-      
-      {% if has_cnv_table or has_cnv_image %}
-        <section id="cnvs" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative w-full">
+      <!-- CNVs Container -->  
+      {% set has_cnv_image = sample.cnvprofile is not none %}   
+      {% if "CNV" in dna_sections or has_cnv_image %}
+        {% set cnvs = display_sections_data.get('cnvs', []) %}
+        <section id="CNV" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative w-full">
           <!-- CNVs Header -->
           <div class="overflow-x-auto relative">
             <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">
-              CNVs {% if cnvwgs %}({{ cnvwgs|length }}){% endif %}
+              CNVs ({{ cnvs|length }})
             </h2>
           </div>
       
@@ -470,7 +472,7 @@
                 {% if has_cnv_image %}
                   <div class="cnv-image bg-transparent py-2 px-1">
                     <!-- Header with Toggle Switch -->
-                    <div class="flex justify-between items-center bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 tracking-wide capitalize">
+                    <div class="flex justify-between items-center bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 tracking-wide capitalize ">
                       <h2 class="text-sm">
                         CNV Profile
                       </h2>
@@ -504,40 +506,49 @@
                       {% set build = sample.genome_build if "genome_build" in sample else 37 %}
                       <!-- Image Container (Will be updated dynamically) -->
                       <div id="cnv-image-container" class="flex justify-center items-center">
-                        <a id="cnv-image-link" href="{{ url_for('dna_bp.show_any_plot', fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}" target="_blank">
+                        <a id="cnv-image-link" href="{{ url_for('dna_bp.show_any_plot', sample_id=sample.name, fn=sample.cnvprofile|basename) }}" target="_blank">
                           <img id="cnv-image-img" 
                             class="rounded-lg border border-gray-300 shadow-lg transition duration-300 ease-in-out transform "
-                            src="{{ url_for('dna_bp.show_any_plot_rotated', fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}"
+                            src="{{ url_for('dna_bp.show_any_plot_rotated', sample_id=sample.name, fn=sample.cnvprofile|basename) }}"
                           >
                         </a>
                       </div>
                       <!-- TODO: Correct the Gene link -->
-                      <div class="text-center my-4 pb-2 ">
+                      <div class="text-center my-4 pb-2 flex flex-wrap gap-x-4 justify-center">
                         {% if build|int == 38 %}
                           {% for type, sample_id in sample_ids.items() %}
-                            <br><a href="http://mtcmdpgm01.lund.skane.se/gens/{{sample_id}}?case_id={{sample_id}}&hg_type=38" class="text-blue-500 hover:underline hover:text-blue-800 transition-colors duration-300" target="_blank">Open <b>{{sample_id}}</b> ({{type}}) in Gens</a>
+                            <a href="http://mtcmdpgm01.lund.skane.se/gens/{{ sample_id }}?case_id={{ sample_id }}&hg_type=38"
+                                target="_blank"
+                                class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
+                              Open <b>{{ sample_id }}</b> ({{ type }}) in Gens
+                            </a><br>
                           {% endfor %}
                         {% else %}
-                          <br><a href="http://mtcmdpgm01.lund.skane.se/gens/{{ sample.name }}?case_id={{sample.name}}&region=1" class="text-blue-500 hover:underline hover:text-blue-800 transition-colors duration-300" target="_blank">Show in Gens</a>
+                          <a href="http://mtcmdpgm01.lund.skane.se/gens/{{ sample.name }}?case_id={{ sample.name }}&region=1"
+                              target="_blank"
+                              class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
+                            Show in Gens
+                          </a>
                         {% endif %}
                       </div>
                     </div>    
                   </div>
                 {% endif %}
-              
 
                 <!-- CNV Table -->
-                {% if has_cnv_table %} <!-- TODO: You get an empty list based on filters, so better take from the config -->
+                {% if "CNV" in dna_sections %}
                   <div class="cnv-table bg-transparent py-2">
                     <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
                       <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg p-2 z-10">
                         <h2 class="text-sm font-semibold text-black">CNV Table</h2>
-                        <img 
-                          src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
-                          alt="Export to CSV - CNVs" 
-                          onclick="exportTableToCSV('{{ sample.name }}.filtered.cnvs.csv', 'cnvs-table')" 
-                          class="w-6 h-6 transition-transform transform hover:scale-110"
-                        />
+                        {% if has_access("download_cnvs", min_role="user", min_level=9) %}
+                          <img 
+                            src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
+                            alt="Export to CSV - CNVs" 
+                            onclick="exportTableToCSV('{{ sample.name }}.filtered.cnvs.csv', 'cnvs-table')" 
+                            class="w-6 h-6 transition-transform transform hover:scale-110"
+                          />
+                        {% endif %}
                       </div>
                       <div class="overflow-auto relative bg-transparent">
                         <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="cnvs-table">
@@ -561,10 +572,10 @@
                             </tr>
                           </thead>
                           <tbody>
-                            {% for cnv in cnvwgs %}
+                            {% for cnv in cnvs %}
                               {% if cnv.interesting %}
                                 <tr class="bg-green-100 hover:bg-green-200 border-t border-gray-400 text-left" id="cnv-table-row-interesting">
-                              {% elif cnv.ratio > 3 and cnv.size > (sizefilter|int) %}
+                              {% elif cnv.ratio > 3 and cnv.size > (sample.filters.max_cnv_size|int) %}
                                 <tr class="bg-red-100 border-t border-gray-400 text-left" id="cnv-table-row">
                               {% else %}
                                 <tr class="border-t border-gray-400 text-left" id="cnv-table-row">
@@ -655,13 +666,13 @@
                                   {% endif %}
                                 </td>
                                 <td class="w-4" id="cnv-table-row-view">
-                                  <a href="{{ url_for('dna_bp.show_cnv', id=cnv._id) }}" class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">view</a>
+                                  <a href="{{ url_for('dna_bp.show_cnv', sample_id=sample.name, cnv_id=cnv._id) }}" class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">view</a>
                                 </td>
                               </tr>
                             {% endfor %}
                           </tbody>
                         </table>
-                        {% if cnvwgs|length == 0 %}
+                        {% if cnvs|length == 0 %}
                           <em class="block text-center text-gray-500 text-sm italic bg-gray-50 p-4 rounded-b-lg border border-gray-300 shadow-md">
                             No cnvs found with the current filter settings!
                             <br>
@@ -669,7 +680,7 @@
                         {% endif %}
                       </div>
                     </div>
-                  </div>  
+                  </div>
                 {% endif %}
               </div> <!-- End Flex Container -->
             </div> <!-- End Inner Dynamic Container -->
@@ -678,11 +689,12 @@
       {% endif %}
 
       <!-- Translocations Card -->
-      {% if transloc %}
-        <section id="translocs" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
+      {% if "TRANSLOCATION" in dna_sections %}
+        {% set transloc = display_sections_data.translocs %}
+        <section id="TRANSLOCATION" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
           <!-- Translocs Header -->
           <div class="overflow-x-auto relative">
-            <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">Translocations ({{ transloc.count() }})</h2>
+            <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">Translocations ({{ transloc|length }})</h2>
           </div>
           
           <div class="mx-auto py-2 " id="transloc-content">
@@ -691,76 +703,76 @@
               <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
                 <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
                   <h2 class="text-sm font-semibold text-black">Gene fusions passing filter criteria</h2>
-                  <img 
-                    src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
-                    alt="Export to CSV - translocations" 
-                    onclick="exportTableToCSV('{{ sample.name }}.filtered.translocs.csv', 'transloc-table')" 
-                    class="w-6 h-6 transition-transform transform hover:scale-110"
-                  />
+                  {% if has_access("download_translocs", min_role="user", min_level=9) %}
+                    <img 
+                      src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
+                      alt="Export to CSV - translocations" 
+                      onclick="exportTableToCSV('{{ sample.name }}.filtered.translocs.csv', 'transloc-table')" 
+                      class="w-6 h-6 transition-transform transform hover:scale-110"
+                    />
+                  {% endif %}
                 </div>
-                {% if transloc and transloc.count() > 0 %}
-                  <div class="overflow-auto relative">
-                    <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="transloc-table">
-                      <thead class="sortable capitalize tracking-wide rounded-t-lg bg-yellow-100">
-                        <tr id="transloc-table-header" class="border-b text-left border-gray-800">
-                          <th class="px-2 py-3 font-semibold" id="transloc-table-header-gene1">Gene 1</th>
-                          <th class="px-2 py-3 font-semibold" id="transloc-table-header-gene2">Gene 2</th>
-                          <th class="px-2 py-3 font-semibold" id="transloc-table-header-positions">Positions</th>
-                          <th class="px-2 py-3 font-semibold" id="transloc-table-header-type">Type</th>
-                          <th class="px-2 py-3 font-semibold" id="transloc-table-header-hgvs">HGVS</th>
-                          <th class="px-2 py-3 font-semibold" id="transloc-table-header-panel">Panel</th>
-                          <th class="px-2 py-3 font-semibold" id="transloc-table-header-status">Status</th>
-                          <th class="px-2 py-3 font-semibold" id="transloc-table-header-view">View</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {% for tl in transloc %}
-                          {% set ANN = tl.INFO.MANE_ANN or tl.INFO.ANN[0] %}
-                          {% set genes = ANN.Gene_Name.split('&') %}
-                          {% if tl.interesting %}
-                            <tr class="bg-green-100 hover:bg-green-200 border-t border-gray-400 text-left" id="transloc-table-row-interesting">
-                          {% else %}    
-                            <tr class="border-t border-gray-400 text-left" id="transloc-table-row">
-                          {% endif %}
+                <div class="overflow-auto relative">
+                  <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="transloc-table">
+                    <thead class="sortable capitalize tracking-wide rounded-t-lg bg-yellow-100">
+                      <tr id="transloc-table-header" class="border-b text-left border-gray-800">
+                        <th class="px-2 py-3 font-semibold" id="transloc-table-header-gene1">Gene 1</th>
+                        <th class="px-2 py-3 font-semibold" id="transloc-table-header-gene2">Gene 2</th>
+                        <th class="px-2 py-3 font-semibold" id="transloc-table-header-positions">Positions</th>
+                        <th class="px-2 py-3 font-semibold" id="transloc-table-header-type">Type</th>
+                        <th class="px-2 py-3 font-semibold" id="transloc-table-header-hgvs">HGVS</th>
+                        <th class="px-2 py-3 font-semibold" id="transloc-table-header-panel">Panel</th>
+                        <th class="px-2 py-3 font-semibold" id="transloc-table-header-status">Status</th>
+                        <th class="px-2 py-3 font-semibold" id="transloc-table-header-view">View</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for tl in transloc %}
+                        {% set ANN = tl.INFO.MANE_ANN or tl.INFO.ANN[0] %}
+                        {% set genes = ANN.Gene_Name.split('&') %}
+                        {% if tl.interesting %}
+                          <tr class="bg-green-100 hover:bg-green-200 border-t border-gray-400 text-left" id="transloc-table-row-interesting">
+                        {% else %}    
+                          <tr class="border-t border-gray-400 text-left" id="transloc-table-row">
+                        {% endif %}
 
-                            <td class="pl-2 py-2.5" id="transloc-table-row-gene1">
-                              {{ genes[0] }}
-                            </td>
-                            <td id="transloc-table-row-gene2">
-                              {{ genes[1] }}
-                            </td>
-                            <td id="transloc-table-row-positions">
-                              {{ tl.CHROM }}:{{ tl.POS }} {{ tl.ALT }}
-                            </td>
-                            <td id="transloc-table-row-type">
-                              {% for annot in ANN.Annotation %}
-                                {{ annot }}<br>
-                              {% endfor %}
-                            </td>
-                            <td id="transloc-table-row-hgvs">
-                              {{ ANN.HGVSp|unesc }}<br>{{ ANN.HGVSc|unesc }}
-                            </td>
-                            <td id="transloc-table-row-panel">
-                              {{ tl.INFO.PANEL }}
-                            </td>
-                            <td id="transloc-table-row-status">
-                              {% if tl.interesting %}
-                                report
-                              {% endif %}
-                            </td>
-                            <td id="transloc-table-row-view">
-                              <a href="{{ url_for('dna_bp.show_transloc', id=tl._id) }}" class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">view</a>
-                            </td>
-                          </tr>
-                        {% endfor %}
-                      </tbody>
-                    </table>
-                  </div>
-                {% else %}
-                  <em class="block text-center text-gray-800 text-sm italic bg-gray-100 p-4 rounded-b-lg border border-gray-300 shadow-md">
-                    No translocations found with the current filter settings!
-                    <br>
-                  </em> 
+                          <td class="pl-2 py-2.5" id="transloc-table-row-gene1">
+                            {{ genes[0] }}
+                          </td>
+                          <td id="transloc-table-row-gene2">
+                            {{ genes[1] }}
+                          </td>
+                          <td id="transloc-table-row-positions">
+                            {{ tl.CHROM }}:{{ tl.POS }} {{ tl.ALT }}
+                          </td>
+                          <td id="transloc-table-row-type">
+                            {% for annot in ANN.Annotation %}
+                              {{ annot }}<br>
+                            {% endfor %}
+                          </td>
+                          <td id="transloc-table-row-hgvs">
+                            {{ ANN.HGVSp|unesc }}<br>{{ ANN.HGVSc|unesc }}
+                          </td>
+                          <td id="transloc-table-row-panel">
+                            {{ tl.INFO.PANEL }}
+                          </td>
+                          <td id="transloc-table-row-status">
+                            {% if tl.interesting %}
+                              report
+                            {% endif %}
+                          </td>
+                          <td id="transloc-table-row-view">
+                            <a href="{{ url_for('dna_bp.show_transloc', sample_id=sample.name, transloc_id=tl._id) }}" class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">view</a>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                  {% if transloc|length == 0 %}
+                    <em class="block text-center text-gray-800 text-sm italic bg-gray-100 p-4 rounded-b-lg border border-gray-300 shadow-md">
+                      No translocations found with the current filter settings!
+                    </em> 
                 {% endif %}
               </div>
             </div>
@@ -769,8 +781,9 @@
       {% endif %}
 
       <!-- Fusion Card -->
-      {% if fusions %} <!-- TODO: CHECK THIS WITH TEST DATA -->
-        <section id="fusions" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
+      {% if "FUSION" in dna_sections %} <!-- TODO: CHECK THIS WITH TEST DATA -->
+        {% set fusions = display_sections_data.fusions %}
+        <section id="FUSION" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
           <!-- Fusions Header -->
           <div class="overflow-x-auto relative">
             <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">DNA Fusions ({{ fusions|length }})</h2>
@@ -782,78 +795,83 @@
               <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
                 <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-200 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
                   <h2 class="text-sm font-semibold text-black">DNA fusions passing filter criteria</h2>
-                  <img 
-                    src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
-                    alt="Export to CSV - fusions" 
-                    onclick="exportTableToCSV('{{ sample.name }}.filtered.fusions.csv', 'fusions-table')" 
-                    class="w-6 h-6 transition-transform transform hover:scale-110"
-                  />
+                  {% if has_access("download_fusions", min_role="user", min_level=9) %}
+                    <img 
+                      src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
+                      alt="Export to CSV - fusions" 
+                      onclick="exportTableToCSV('{{ sample.name }}.filtered.fusions.csv', 'fusions-table')" 
+                      class="w-6 h-6 transition-transform transform hover:scale-110"
+                    />
+                  {% endif %}
                 </div>
-                {% if fusions and fusions|length > 0 %}
-                  <div class="overflow-auto relative">
-                    <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="fusions-table">
-                      <thead class="sortable capitalize tracking-wide rounded-t-lg bg-yellow-100">
-                        <tr id="fusions-table-header" class="border-b text-left border-gray-800">
-                          <th class="px-2 py-3 font-semibold" id="fusion-table-header-gene1">Gene 1</th>
-                          <th class="px-2 py-3 font-semibold" id="fusion-table-header-gene2">Gene 2</th>
-                          <th class="px-2 py-3 font-semibold" id="fusion-table-header-effect">Effect</th>
-                          <th class="px-2 py-3 font-semibold" id="fusion-table-header-spanpairs">Spanning pairs</th>
-                          <th class="px-2 py-3 font-semibold" id="fusion-table-header-unique-spanpairs" data-autoclick="true">Unique spanning reads</th>
-                          <th class="px-2 py-3 font-semibold" id="fusion-table-header-fusion-points">Fusion points</th>
-                          <th class="px-2 py-3 font-semibold" id="fusion-table-header-tier">Tier</th>
-                          <th class="px-2 py-3 font-semibold" id="fusion-table-header-desc">Description</th>
-                          <th class="px-2 py-3 font-semibold" id="fusion-table-header-callers">Callers</th>
-                          <th class="px-2 py-3 font-semibold" id="fusion-table-header-view">View</th>
+                <div class="overflow-auto relative">
+                  <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="fusions-table">
+                    <thead class="sortable capitalize tracking-wide rounded-t-lg bg-yellow-100">
+                      <tr id="fusions-table-header" class="border-b text-left border-gray-800">
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-gene1">Gene 1</th>
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-gene2">Gene 2</th>
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-effect">Effect</th>
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-spanpairs">Spanning pairs</th>
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-unique-spanpairs" data-autoclick="true">Unique spanning reads</th>
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-fusion-points">Fusion points</th>
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-tier">Tier</th>
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-desc">Description</th>
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-callers">Callers</th>
+                        <th class="px-2 py-3 font-semibold" id="fusion-table-header-view">View</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for fus in fusions %}
+                        {% set genes = fus.genes.split('^') %}
+                        {% set sel_fus = (fus.calls|selectattr('selected', 'equalto', 1) |list)[0] %}
+                        {% if fus.blacklisted or fus.fp %}
+                          <tr class="bg-red-200 opacity-60 hover:bg-red-300 border-t border-gray-400 text-left"id="fusions-table-row-blacklisted">
+                        {% else %}
+                          <tr class="border-t border-gray-400 text-left" id="fusions-table-row">
+                        {% endif %}
+                          <td class="pl-2 py-2.5" id="fusions-table-row-gene1">
+                            {{ genes[0] }}
+                          </td>
+                          <td id="fusions-table-row-gene2">
+                            {{ genes[1] }}
+                          </td>
+                          <td id="fusions-table-row-effect">
+                            {{ sel_fus.effect }}
+                          </td>
+                          <td id="fusions-table-row-spanpairs">
+                            {{ sel_fus.spanpairs }}
+                          </td>
+                          <td id="fusions-table-row-unique-spanpairs">
+                            {{ sel_fus.spanreads }}
+                          </td>
+                          <td id="fusions-table-row-fusion-points">
+                            {{ sel_fus.breakpoint1 }}<br>{{ sel_fus.breakpoint2 }}
+                          </td>
+                          <td class="py-2 px-3 border-b border-gray-300 varlist" sorttable_customkey="{{ fus.classification.class }}"  id="fusions-table-row-tier">
+                            {% if fus.classification.class != 999 %}
+                              <div class="inline-flex items-center px-3 py-1 font-semibold rounded-full bg-tier{{ fus.classification.class }} text-white shadow-md">
+                                {{ fus.classification.class }}
+                              </div>
+                            {% endif %}
+                          </td>
+                          <td id="fusions-table-row-desc">
+                            {{ sel_fus.desc|format_fusion_desc|safe }}
+                          </td>
+                          <td id="fusions-table-row-callers">
+                            {{ fus.calls|uniq_callers|join("<br>")|safe }}
+                          </td>
+                          <td id="fusions-table-row-view">
+                            <a href="{{ url_for('dna_bp.show_fusion', sample_id=sample.name, id=fus._id) }}" class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">view</a>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {% for fus in fusions %}
-                          {% set genes = fus.genes.split('^') %}
-                          {% set sel_fus = (fus.calls|selectattr('selected', 'equalto', 1) |list)[0] %}
-                          {% if fus.blacklisted or fus.fp %}
-                            <tr class="bg-red-200 opacity-60 hover:bg-red-300 border-t border-gray-400 text-left"id="fusions-table-row-blacklisted">
-                          {% else %}
-                            <tr class="border-t border-gray-400 text-left" id="fusions-table-row">
-                          {% endif %}
-                            <td class="pl-2 py-2.5" id="fusions-table-row-gene1">
-                              {{ genes[0] }}
-                            </td>
-                            <td id="fusions-table-row-gene2">
-                              {{ genes[1] }}
-                            </td>
-                            <td id="fusions-table-row-effect">
-                              {{ sel_fus.effect }}
-                            </td>
-                            <td id="fusions-table-row-spanpairs">
-                              {{ sel_fus.spanpairs }}
-                            </td>
-                            <td id="fusions-table-row-unique-spanpairs">
-                              {{ sel_fus.spanreads }}
-                            </td>
-                            <td id="fusions-table-row-fusion-points">
-                              {{ sel_fus.breakpoint1 }}<br>{{ sel_fus.breakpoint2 }}
-                            </td>
-                            <td class="py-2 px-3 border-b border-gray-300 varlist" sorttable_customkey="{{ fus.classification.class }}"  id="fusions-table-row-tier">
-                              {% if fus.classification.class != 999 %}
-                                <div class="inline-flex items-center px-3 py-1 font-semibold rounded-full bg-tier{{ fus.classification.class }} text-white shadow-md">
-                                  {{ fus.classification.class }}
-                                </div>
-                              {% endif %}
-                            </td>
-                            <td id="fusions-table-row-desc">
-                              {{ sel_fus.desc|format_fusion_desc|safe }}
-                            </td>
-                            <td id="fusions-table-row-callers">
-                              {{ fus.calls|uniq_callers|join("<br>")|safe }}
-                            </td>
-                            <td id="fusions-table-row-view">
-                              <a href="{{ url_for('dna_bp.show_fusion', id=fus._id) }}" class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">view</a>
-                            </td>
-                          </tr>
-                        {% endfor %}
-                      </tbody>
-                    </table>
-                  </div>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                {% if fusions|length == 0 %}
+                  <em class="block text-center text-gray-800 text-sm italic bg-gray-100 p-4 rounded-b-lg border border-gray-300 shadow-md">
+                    No fusions found with the current filter settings!
+                  </em> 
                 {% endif %}
               </div>
             </div>
@@ -863,7 +881,7 @@
 
 
       <!-- Summary Comments Card -->
-      <section id="summary" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
+      <section id="SUMMARY" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
         <!-- Summary Header -->
         <div class="overflow-x-auto relative">
           <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">Summary</h2>
@@ -904,13 +922,13 @@
                             {% if comment.hidden != 1 %}
                               <form action="{{ url_for('common_bp.hide_sample_comment', sample_id=sample._id) }}#summary" method="post">
                                 <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                                <input id="hide_comment" type="image" class="w-5 hover:scale-105" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
+                                <input id="hide_comment" type="image" class="w-5 {% if not has_access('hide_sample_comment', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
                               </form>
                             {% else %}
                               {% set hidden_exists = 1 %}
                               <form action="{{ url_for('common_bp.unhide_sample_comment', sample_id=sample._id) }}#summary" method="post">
                                 <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                                <input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
+                                <input id="unhide_comment" type="image" class="w-5 {% if not has_access('unhide_sample_comment', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
                               </form>
                             {% endif %}
                           </td>
@@ -936,45 +954,46 @@
             </div>
 
             <!-- Add Comment Form -->
-            <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
-              <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-blue-200 to-green-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
-                <h2 class="text-sm font-semibold text-black">Write New Summary</h2>
-              </div>
-              <div class="overflow-auto relative" id="comments-box-div">
-                <form action="{{ url_for('common_bp.add_sample_comment', id=sample._id) }}" method="post">
-                  <textarea id="comment_textarea"
-                            name="sample_comment"
-                            placeholder="Type to write a new summary for {{ sample.name }} sample..."
-                            class="w-5/6 p-4 border border-gray-400 rounded mx-5 my-4 h-40"></textarea>
-            
-                  <!-- Buttons Row -->
-                  <div class="flex flex-wrap items-center gap-4 mx-5 mb-5">
-                    <input type="submit"
-                          value="Save"
-                          class="p-2 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg cursor-pointer">
-            
-                    <button type="button"
-                            onclick="addAIText()"
-                            class="p-2 text-black bg-gray-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-gray-500 hover:text-white hover:shadow-lg cursor-pointer">
-                      Suggest
-                    </button>
-            
-                    <button type="button"
-                            onclick="window.location.href='preview_report/{{ sample.name }}'"
-                            class="p-2 text-black bg-green-400 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-green-500 hover:text-white hover:shadow-lg cursor-pointer">
-                      Preview Report
-                    </button>
+            {% if has_access('add_sample_comment', min_role='user', min_level=9) %}
+              <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
+                <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-blue-200 to-green-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
+                  <h2 class="text-sm font-semibold text-black">Write New Summary</h2>
+                </div>
+                <div class="overflow-auto relative" id="comments-box-div">
+                  <form action="{{ url_for('common_bp.add_dna_sample_comment', sample_id=sample._id) }}" method="post">
+                    <textarea id="comment_textarea"
+                              name="sample_comment"
+                              placeholder="Type to write a new summary for {{ sample.name }} sample..."
+                              class="w-5/6 p-4 border border-gray-400 rounded mx-5 my-4 h-40"></textarea>
+              
+                    <!-- Buttons Row -->
+                    <div class="flex flex-wrap items-center gap-4 mx-5 mb-5">
+                      <input type="submit"
+                            value="Save"
+                            class="p-2 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg cursor-pointer">
+              
+                      <button type="button"
+                              onclick="addAIText()"
+                              class="p-2 text-black bg-gray-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-gray-500 hover:text-white hover:shadow-lg cursor-pointer">
+                        Suggest
+                      </button>
+                      {% if has_access('preview_dna_report', min_role='user', min_level=9) %}
+                        <button type="button"
+                                onclick="window.location.href='preview_report/{{ sample.name }}'"
+                                class="p-2 text-black bg-green-400 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-green-500 hover:text-white hover:shadow-lg cursor-pointer">
+                          Preview Report
+                        </button>
+                      {% endif %}
+                    </div>
+                  </form>
+              
+                  <!-- AI suggestion box -->
+                  <div id="suggestion" class="hidden">
+                    {{ ai_text }}
                   </div>
-                </form>
-            
-                <!-- AI suggestion box -->
-                <div id="suggestion" class="hidden">
-                  {{ ai_text }}
                 </div>
               </div>
-            </div>
-            
-
+            {% endif %}
 
           </div>
         </div>
@@ -982,7 +1001,7 @@
 
 
       <!-- Low Coverage Card old way -->
-      <section id="lowcov" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
+      <section id="LOW-COV" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
         <!-- Low Coverage Header -->
         <div class="overflow-x-auto relative">
           <div class="flex justify-between items-center">
@@ -997,12 +1016,14 @@
             <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
               <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-red-200 to-orange-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
                 <h2 class="text-sm font-semibold text-black">Low Coverage Regions</h2>
-                <img 
-                  src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
-                  alt="Export to CSV - lowcov" 
-                  onclick="exportTableToCSV('{{ sample.name }}.filtered.lowcov.csv', 'lowcov-table')" 
-                  class="w-6 h-6 transition-transform transform hover:scale-110"
-                />
+                {% if has_access("download_lovcov", min_role="user", min_level=9) %}
+                  <img 
+                    src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
+                    alt="Export to CSV - lowcov" 
+                    onclick="exportTableToCSV('{{ sample.name }}.filtered.lowcov.csv', 'lowcov-table')" 
+                    class="w-6 h-6 transition-transform transform hover:scale-110"
+                  />
+                {% endif %}
               </div>
               <div class="overflow-auto relative">
                 <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="lowcov-table">
@@ -1077,8 +1098,8 @@
       let imageLink = document.getElementById("cnv-image-link");
 
       // Store original and rotated image URLs
-      let originalImage = "{{ url_for('dna_bp.show_any_plot', fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}";
-      let rotatedImage = "{{ url_for('dna_bp.show_any_plot_rotated', fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}";
+      let originalImage = "{{ url_for('dna_bp.show_any_plot', sample_id=sample.name, fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}";
+      let rotatedImage = "{{ url_for('dna_bp.show_any_plot_rotated', sample_id=sample.name,  fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}";
 
       function updateToggleState() {
           if (toggle.checked) {

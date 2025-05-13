@@ -5,17 +5,16 @@
 <div class="flex w-full h-full overflow-hidden">
 
   <!-- LEFT SIDEBAR (Fixed Width, Full Height) -->
-  <aside class="w-[2%] bg-transparent text-white flex flex-col shrink-0">
-    <div class="flex border-l-8 border-blue-500">
-      <a href="{{ url_for(request.endpoint, assay=assay, status='done') }}" 
-        class="relative bg-gray-500 text-white text-xs sm:text-sm md:text-base text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
+  <aside class="w-8 bg-transparent text-white flex flex-col">
+    <div class="flex border-l-8 border-blue-400 mt-1">
+      <a href="{{ url_for(request.endpoint, assay=assay, status='done') }}"
+        class="relative bg-gray-500 text-white text-base text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
           <span class="vertical-text">Analysed</span>
       </a>
     </div>
-
-    <div class="flex border-l-8 border-green-500 mt-1">
-      <a href="{{ url_for(request.endpoint, assay=assay, status='live') }}" 
-        class="relative bg-gray-500 text-white text-xs sm:text-sm md:text-base text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
+    <div class="flex border-l-8 border-green-400 mt-1">
+      <a href="{{ url_for(request.endpoint, assay=assay, status='live') }}"
+        class="relative bg-gray-500 text-white text-base text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
           <span class="vertical-text">Pending</span>
       </a>
     </div>
@@ -93,14 +92,14 @@
       <div class="justify-start">
         {% if live_samples %}
           <div class="w-4/5 bg-blue-50 shadow-3xl rounded-2xl p-4 relative overflow-hidden">
-            <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" data-rows-per-page="10" pagination-button-color="blue">
+            <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" data-rows-per-page="30" pagination-button-color="blue">
               <span class="text-lg font-semibold">Live Samples</span>
-              <table class="min-w-full bg-transparent shadow-lg rounded-2xl text-xs my-2 overflow-hidden">
+              <table class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
                 <thead class="rounded-t-2xl overflow-hidden border-gray-800">
                   <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
                     <th class="p-2 font-normal"></th>
                     <th class="p-2 font-normal">Sample ID</th>
-                    <th class="p-2 font-normal">Group</th>
+                    <th class="p-2 font-normal">Assay</th>
                     <th class="p-2 font-normal">Diagnosis</th>
                     <th class="p-2 font-normal">BAM</th>
                     <th class="p-2 font-normal">QC</th>
@@ -121,7 +120,7 @@
                         {% if sample.groups|join('') == 'fusion' or sample.groups|join('') == 'solidRNA_GMSv5' %}
                           <a href="{{ url_for('rna_bp.list_fusions', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% else %}
-                          <a href="{{ url_for('dna_bp.list_variants', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                          <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% endif %}
                         {% if sample.comments|selectattr('hidden', 'equalto', 0)|list|length > 0 %}
                           *
@@ -172,18 +171,15 @@
         {% endif %}
         {% if done_samples %}
           <div class="w-4/5 bg-blue-50 shadow-3xl rounded-2xl p-3 mt-10 relative">
-            <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" data-rows-per-page="10" pagination-button-color="blue">
+            <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" data-rows-per-page="15" pagination-button-color="blue">
               <span class="text-lg font-semibold">Reported samples 
-                {% if show_all %}
-                  (<a href="?all=1" class="text-blue-500 hover:underline">show all</a>)
-                {% endif %}
               </span>
-              <table class="min-w-full bg-transparent shadow-lg rounded-2xl text-xs my-2 overflow-hidden">
+              <table class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
                 <thead class="rounded-t-2xl overflow-hidden border-gray-300">
                   <tr class="border-b text-left border-gray-600 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
                     <th class="p-2 font-normal"></th>
                     <th class="p-2 font-normal">Sample ID</th>
-                    <th class="p-2 font-normal">Group</th>
+                    <th class="p-2 font-normal">Assay</th>
                     <th class="p-2 font-normal">Diagnosis</th>
                     <th class="p-2 font-normal">When added</th>
                     <th class="p-2 font-normal">Last report</th>
@@ -203,7 +199,7 @@
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">
-                        <a href="{{ url_for('dna_bp.list_variants', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                        <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                       </td>
                       <td class="p-2 font-medium">
                         {% for grp in sample.groups %}
@@ -241,9 +237,18 @@
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">
-                        {% for rep in sample.reports %}
-                          <a href="{{rep.filepath}}" class="text-blue-500 hover:underline">{{ rep.report_num }}</a>
-                        {% endfor %}
+                        {% if has_access('view_reports', min_role='admin') %}
+                            {% for rep in sample.reports %}
+                              <a
+                                href="{{ url_for('home_bp.view_report', sample_id=sample.name, report_id=rep.report_id) }}"
+                                class="inline-block bg-blue-400 text-white px-2 py-0.5 rounded-lg text-xs font-bold mx-1 hover:bg-blue-500 transition"
+                              >
+                                {{ rep.report_num }}
+                              </a>
+                            {% endfor %}
+                        {% else %}
+                          No Access
+                        {% endif %}
                       </td>
                   </tr>
                   {% else %}

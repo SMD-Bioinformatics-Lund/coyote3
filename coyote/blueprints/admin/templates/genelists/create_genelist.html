@@ -1,0 +1,133 @@
+{% extends "layout.html" %}
+{% block title %}Create In-Silico Genelist{% endblock %}
+{% block body %}
+<div class="flex w-full h-full overflow-hidden">
+  {% include "admin_sidebar.html" %}
+  
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+    <section class="p-2 ml-2 mt-2">
+      <div class="bg-gray-50 border border-blue-200 rounded-2xl shadow-xl p-6">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="text-xl font-bold text-blue-500 tracking-wide capitalize flex gap-2 align-middle"><img src="{{ url_for('static', filename='icons/heroicons_outline_24/document-plus.svg') }}" alt="Insilico genelist Create Icon" class="h-6 w-6">Create New In-Silico Genelist</h1>
+          <div class="flex items-center gap-4">
+            <label for="schema-select" class="text-sm font-medium text-gray-800 font-semibold">Selected Schema:</label>
+            <form method="GET" action="{{ url_for('admin_bp.create_genelist') }}">
+              <select id="schema-select" name="schema_id" onchange="this.form.submit()"
+                      class="text-sm border border-gray-300 rounded-md shadow-sm px-2 py-1 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                {% for s in schemas %}
+                  <option value="{{ s._id }}" {% if s._id == selected_schema._id %}selected{% endif %}>
+                    {{ s._id }} (v{{ s.version }})
+                  </option>
+                {% endfor %}
+              </select>
+            </form>
+          </div>
+        </div>
+
+
+        <form method="POST" enctype="multipart/form-data" class="space-y-6 text-sm text-gray-700">
+
+          {% for section_name, keys in schema.sections.items() %}
+            {% if section_name not in ['gene_content', 'audit'] %}
+              <!-- Meta / Main Fields Section -->
+              <div class="border-l-4 border-blue-300 bg-blue-50 rounded-xl p-4 shadow-md">
+                <h2 class="text-sm font-bold text-blue-700 uppercase mb-4 tracking-wide">{{ section_name.replace('_', ' ') }}</h2>
+
+                <div class="grid grid-cols-4 gap-4">
+                  {% for key in keys %}
+                    {% if key in schema.fields %}
+                      <div>
+                        <label class="text-xs font-semibold mb-1 block">
+                          {{ schema.fields[key].label }}
+                          {% if schema.fields[key].required %}<span class="text-red-500">*</span>{% endif %}
+                          <span class="text-gray-400">({{ schema.fields[key].type }})</span>
+                        </label>
+
+                        {% if key == 'list_type' %}
+                          <select name="{{ key }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
+                            {% for option in schema.fields[key].options %}
+                              <option value="{{ option }}" {% if option == schema.fields[key].default %}selected{% endif %}>{{ option | capitalize }}</option>
+                            {% endfor %}
+                          </select>
+
+                        {% elif key in ['groups', 'assays'] %}
+                          <div class="flex flex-col flex-wrap gap-2">
+                            {% for option in schema.fields[key].options|sort %}
+                              <label class="inline-flex items-center gap-2 text-xs">
+                                <input type="checkbox" name="{{ key }}" value="{{ option }}" class="accent-blue-600 rounded">
+                                {{ option }}
+                              </label>
+                            {% endfor %}
+                          </div>
+
+                        {% elif schema.fields[key].type == 'bool' %}
+                          <input type="checkbox" name="{{ key }}" value="true" class="accent-blue-600 rounded" checked>
+
+                        {% elif schema.fields[key].type == 'list' %}
+                          <textarea name="{{ key }}" rows="3" placeholder="{{ schema.fields[key].placeholder }}"
+                            class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm font-mono resize-y"></textarea>
+
+                        {% else %}
+                          <input type="text" name="{{ key }}" placeholder="{{ schema.fields[key].placeholder }}"
+                            class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
+                        {% endif %}
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+          {% endfor %}
+
+          <!-- Genes -->
+          <div class="border-l-4 border-blue-300 bg-blue-50 rounded-xl p-4 shadow-md">
+            <h2 class="text-sm font-bold text-blue-700 uppercase mb-4 tracking-wide">Genes</h2>
+
+            <div class="flex flex-col gap-4">
+              <textarea name="genes_paste" rows="6" placeholder="Paste genes here, separated by comma or newline"
+                class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm font-mono resize-y"></textarea>
+              <div>
+                <span class="text-xs font-semibold block mb-2">Or Upload Gene File</span>
+                <input type="file" name="genes_file" accept=".txt,.csv" class="text-xs">
+              </div>
+            </div>
+          </div>
+
+          <!-- Metadata Section -->
+          <div class="border-l-4 border-blue-300 bg-blue-50 rounded-xl p-4 shadow-md">
+            <h2 class="text-sm font-bold text-blue-700 uppercase mb-4 tracking-wide">Metadata</h2>
+
+            <div class="grid grid-cols-4 gap-4">
+              {% for key in schema.sections.audit %}
+                {% if key in schema.fields and key != 'changelog' %}
+                  <div>
+                    <label class="text-xs font-semibold mb-1 block">
+                      {{ schema.fields[key].label }}
+                      <span class="text-gray-400">({{ schema.fields[key].type }})</span>
+                    </label>
+
+                    <input type="text" name="{{ key }}"
+                      value="{% if 'by' in key %}{{ current_user.email }}{% elif key == 'created_on' %}{{ '' | now }}{% elif key == 'version' %}1.0{% else %}{% endif %}"
+                      readonly
+                      class="w-full bg-blue-50 border border-blue-300 rounded-md p-2 text-sm text-gray-600 cursor-not-allowed">
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Save Button -->
+          <div class="text-right pt-4">
+            <button type="submit" class="bg-blue-300 hover:bg-blue-400 text-black font-semibold px-6 py-2 rounded-lg shadow-lg transition">
+              Save Panel
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </section>
+  </main>
+</div>
+{% endblock %}
