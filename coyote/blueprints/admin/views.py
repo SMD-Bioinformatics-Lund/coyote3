@@ -449,18 +449,19 @@ def create_dna_assay_config() -> Response | str:
     valid_assay_ids = []
 
     for p in assay_panels:
-        envs = store.assay_config_handler.get_assay_available_envs(
-            p["_id"], schema["fields"]["environment"]["options"]
-        )
-        if envs:
-            valid_assay_ids.append(p["_id"])
-            prefill_map[p["_id"]] = {
-                "display_name": p.get("display_name"),
-                "asp_group": p.get("asp_group"),
-                "asp_category": p.get("asp_category"),
-                "platform": p.get("platform"),
-                "environment": envs,
-            }
+        if p.get("asp_category") == "DNA":
+            envs = store.assay_config_handler.get_assay_available_envs(
+                p["_id"], schema["fields"]["environment"]["options"]
+            )
+            if envs:
+                valid_assay_ids.append(p["_id"])
+                prefill_map[p["_id"]] = {
+                    "display_name": p.get("display_name"),
+                    "asp_group": p.get("asp_group"),
+                    "asp_category": p.get("asp_category"),
+                    "platform": p.get("platform"),
+                    "environment": envs,
+                }
 
     # Inject only valid assay IDs into the schema
     schema["fields"]["assay_name"]["options"] = valid_assay_ids
@@ -788,7 +789,7 @@ def create_rna_assay_config() -> Response | str:
     """
     # Fetch all active RNA assay schemas
     active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="assay_config", schema_category="RNA", is_active=True
+        schema_type="asp_config", schema_category="RNA", is_active=True
     )
 
     if not active_schemas:
@@ -803,6 +804,36 @@ def create_rna_assay_config() -> Response | str:
         flash("Selected schema not found!", "red")
         return redirect(url_for("admin_bp.assay_configs"))
 
+    # Load all active assays from panel collection
+    assay_panels = store.panel_handler.get_all_panels(is_active=True)
+
+    # Build prefill_map and collect valid assay IDs
+    prefill_map = {}
+    valid_assay_ids = []
+
+    for p in assay_panels:
+        if p.get("asp_category") == "RNA":
+            envs = store.assay_config_handler.get_assay_available_envs(
+                p["_id"], schema["fields"]["environment"]["options"]
+            )
+            if envs:
+                valid_assay_ids.append(p["_id"])
+                prefill_map[p["_id"]] = {
+                    "display_name": p.get("display_name"),
+                    "asp_group": p.get("asp_group"),
+                    "asp_category": p.get("asp_category"),
+                    "platform": p.get("platform"),
+                    "environment": envs,
+                }
+
+    # Inject only valid assay IDs into the schema
+    schema["fields"]["assay_name"]["options"] = valid_assay_ids
+
+    schema["fields"]["created_by"]["default"] = current_user.email
+    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_by"]["default"] = current_user.email
+    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
+
     if request.method == "POST":
         form_data = {
             key: (vals[0] if len(vals) == 1 else vals)
@@ -811,20 +842,43 @@ def create_rna_assay_config() -> Response | str:
 
         config = util.admin.process_form_to_config(form_data, schema)
 
-        config["_id"] = config["assay_name"]
-        config["schema_name"] = schema["_id"]
-        config["schema_version"] = schema["version"]
-        config["version"] = 1
-        config["created_by"] = current_user.email
-        config["created_on"] = datetime.utcnow()
-        config["updated_by"] = current_user.email
-        config["updated_on"] = datetime.utcnow()
+        config.update(
+            {
+                "_id": f"{config['assay_name']}:{config['environment']}",
+                "schema_name": schema["_id"],
+                "schema_version": schema["version"],
+                "version": 1,
+            }
+        )
+
+        config = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=deepcopy(config),
+            is_new=True,
+        )
+
+        # Check if the config already exists
+        existing_config = store.assay_config_handler.get_assay_config(
+            config["_id"]
+        )
+        if existing_config:
+            flash(
+                f"Assay config '{config['assay_name']} for {config['environment']}' already exists!",
+                "red",
+            )
+        else:
+            store.assay_config_handler.insert_assay_config(config)
+            flash(
+                f"{config['assay_name']} : {config['environment']} assay config created!",
+                "green",
+            )
 
         # Log Action
-        g.audit_metadata = {"assay": config["assay_name"]}
+        g.audit_metadata = {
+            "assay": config["assay_name"],
+            "environment": config["environment"],
+        }
 
-        store.assay_config_handler.insert_assay_config(config)
-        flash(f"{config['assay_name']} assay config created!", "green")
         return redirect(url_for("admin_bp.assay_configs"))
 
     return render_template(
@@ -832,6 +886,7 @@ def create_rna_assay_config() -> Response | str:
         schema=schema,
         schemas=active_schemas,
         selected_schema=schema,
+        prefill_map_json=json.dumps(prefill_map),
     )
 
 
