@@ -148,10 +148,6 @@ class DefaultConfig:
         "frameshift": ["frameshift_variant"],
         "stop_lost": ["stop_lost"],
         "start_lost": ["start_lost"],
-        "transcript_structure": [
-            "transcript_ablation",
-            "transcript_amplification",
-        ],
         "inframe_indel": [
             "inframe_insertion",
             "inframe_deletion",
@@ -160,14 +156,18 @@ class DefaultConfig:
             "missense_variant",
             "protein_altering_variant",
         ],
+        "other_coding": [
+            "coding_sequence_variant",
+        ],
         "synonymous": [
             "stop_retained_variant",
             "synonymous_variant",
             "start_retained_variant",
             "incomplete_terminal_codon_variant",
         ],
-        "other_coding": [
-            "coding_sequence_variant",
+        "transcript_structure": [
+            "transcript_ablation",
+            "transcript_amplification",
         ],
         "UTR": [
             "5_prime_UTR_variant",

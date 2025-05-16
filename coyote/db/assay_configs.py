@@ -177,3 +177,32 @@ class AssayConfigsHandler(BaseHandler):
                     mappings[assay["_id"]] = assay["assay_group"]
 
         return mappings
+
+    def get_assay_available_envs(
+        self, assay_name: str, all_envs: list
+    ) -> list:
+        """
+        Retrieves a list of available environments for a specific assay configuration.
+
+        Args:
+            assay_name (str): The base assay name (e.g., "Demo").
+            all_envs (list): All supported environments (e.g., ["production", "development", "validation"]).
+
+        Returns:
+            list: A list of environments not yet used for this assay.
+        """
+        # Match _id like "Demo:production", "Demo:development", etc.
+        regex = f"^{assay_name}:"
+        assay_configs = self.get_collection().find(
+            {"_id": {"$regex": regex}}, {"_id": 1}
+        )
+
+        used_envs = set()
+        for config in assay_configs:
+            try:
+                _, env = config["_id"].split(":")
+                used_envs.add(env)
+            except ValueError:
+                continue  # skip malformed _id
+
+        return [env for env in all_envs if env not in used_envs]

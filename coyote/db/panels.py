@@ -62,22 +62,31 @@ class PanelsHandler(BaseHandler):
         """
         return self.get_collection().find_one({"_id": panel_name})
 
-    def get_all_panels(self) -> list:
+    def get_all_panels(self, is_active: bool | None = None) -> list:
         """
-        Fetch all panels.
+        Retrieve all panels, optionally filtered by active status.
 
-        This method retrieves all documents from the database collection
-        representing panels, excluding the `genes` field. The results are
-        sorted in descending order based on the `created_on` field.
+        This method fetches all panel documents from the database collection,
+        excluding the `covered_genes` and `version_history` fields for efficiency.
+        If `is_active` is specified, only panels matching the active status are returned.
+        The results are sorted in descending order by the `created_on` field.
+
+        Args:
+            is_active (bool | None): If provided, filters panels by their active status.
 
         Returns:
-            list: A list of all panel documents from the database.
+            list: A list of panel documents from the database.
         """
-        return list(
+        query = {}
+        if is_active is not None:
+            query["is_active"] = is_active
+
+        cursor = (
             self.get_collection()
-            .find({}, {"genes": 0})
-            .sort([("created_on", -1)])
+            .find(query, {"covered_genes": 0, "version_history": 0})
+            .sort("created_on", -1)
         )
+        return list(cursor)
 
     def get_all_assay_panels(self, is_active: bool = True) -> list:
         """
@@ -213,14 +222,21 @@ class PanelsHandler(BaseHandler):
         """
         return self.get_collection().distinct("panel_group")
 
-    def get_all_assays(self) -> list:
+    def get_all_assays(self, is_active: bool | None = None) -> list:
         """
         Fetch distinct assay names across all panels.
 
         Returns:
-            list: A list of unique assay names (`panel_name`) from the database.
+            list: A list of unique assay names (`assay_name`) from the database.
         """
-        return self.get_collection().distinct("panel_name")
+        if is_active is None:
+            return self.get_collection().distinct("assay_name")
+        else:
+            return (
+                self.get_collection()
+                .find({"is_active": is_active})
+                .distinct("assay_name")
+            )
 
     def get_panel_genes(self, panel_id: str) -> list:
         """

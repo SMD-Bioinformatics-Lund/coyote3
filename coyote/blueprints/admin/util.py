@@ -3,6 +3,7 @@ import re
 from math import floor, log10
 import subprocess
 from datetime import datetime
+from dateutil.parser import parse as parse_datetime
 from flask_login import current_user
 from coyote.util.common_utility import CommonUtility
 from coyote.blueprints.admin import validators
@@ -208,29 +209,38 @@ class AdminUtility:
 
     @staticmethod
     def inject_version_history(
-        config: dict, user_email: str, is_new: bool = True
+        user_email: str,
+        new_config: dict,
+        old_config: dict = {},
+        is_new: bool = True,
     ) -> dict:
         """
         Initializes version history with delta-only logic.
         If is_new, it adds an 'initial' flag instead of computing delta.
         Otherwise, includes only changed/new/removed keys in the delta.
         """
-        version = config.get("version", 1)
-        timestamp = config.get("created_on", datetime.utcnow())
-        hash_val = AdminUtility.hash_config(config)
+        version = new_config.get("version", 1)
+        version_history = old_config.pop("version_history", [])
+        raw_timestamp = new_config.get("created_on", datetime.utcnow())
+
+        # Ensure it's a real datetime object
+        if isinstance(raw_timestamp, str):
+            try:
+                timestamp = parse_datetime(raw_timestamp)
+            except Exception:
+                timestamp = datetime.utcnow()
+        else:
+            timestamp = raw_timestamp
+
+        hash_val = AdminUtility.hash_config(new_config)
 
         if is_new:
             delta = {"initial": True}
         else:
-            # Compare with an empty baseline to detect truly added or changed fields
-            _, delta = AdminUtility.generate_version_delta({}, config)
-
-            # Clean empty sections
-            delta = {
-                k: v
-                for k, v in delta.items()
-                if v  # Only keep non-empty parts
-            }
+            _, delta = AdminUtility.generate_version_delta(
+                old_config, new_config
+            )
+            delta = {k: v for k, v in delta.items() if v}
 
         version_entry = {
             "version": version,
@@ -240,8 +250,10 @@ class AdminUtility:
             "hash": hash_val,
         }
 
-        config["version_history"] = [version_entry]
-        return config
+        version_history.append(version_entry)
+
+        new_config["version_history"] = version_history
+        return new_config
 
     @staticmethod
     def generate_version_delta(old: dict, new: dict) -> tuple[dict, dict]:
@@ -306,6 +318,68 @@ class AdminUtility:
                 patched.pop(key, None)
 
         return patched
+
+    @staticmethod
+    def restructure_assay_config(flat_config: dict, schema: dict) -> dict:
+        """
+        Restructures a flat configuration dictionary into a nested format according to a provided schema.
+
+        Args:
+            flat_config (dict): The flat dictionary containing configuration key-value pairs.
+            schema (dict): The schema dictionary that defines the structure, including sections and their keys.
+
+        Returns:
+            dict: A nested dictionary where keys are organized into sections as specified by the schema.
+                For sections named "filters", keys are grouped under that section as a sub-dictionary.
+                Other keys are placed at the top level of the returned dictionary.
+
+        Example:
+            flat_config = {"a": 1, "b": 2, "filter1": 3}
+            schema = {"sections": {"filters": ["filter1"]}}
+            result = restructure_assay_config(flat_config, schema)
+        """
+        env_block = {}
+
+        schema_sections = schema.get("sections", {})
+
+        for section_name, section_keys in schema_sections.items():
+            if section_name in ["filters"]:
+                env_block[section_name] = {}
+            for key in section_keys:
+                if section_name in ["filters"]:
+                    env_block[section_name][key] = (
+                        flat_config[key] if key in flat_config else None
+                    )
+                else:
+                    env_block[key] = flat_config.get(key)
+
+        return env_block
+
+    @staticmethod
+    def flatten_config_for_form(config: dict, schema: dict) -> dict:
+        """
+        Flatten nested config sections (like filters, query, verification_samples) into a flat dict
+        so that schema-driven forms can render them easily.
+
+        Keys from top-level and nested sections (as defined in schema.sections) are merged into one dict.
+        """
+        flat = {}
+
+        section_keys = schema.get("sections", {})
+        for section_name, keys in section_keys.items():
+            for key in keys:
+                if key in config:
+                    flat[key] = config[key]
+                elif section_name in config and isinstance(
+                    config[section_name], dict
+                ):
+                    # Check nested sections like filters, query, verification_samples
+                    if key in config[section_name]:
+                        flat[key] = config[section_name][key]
+                else:
+                    flat[key] = None  # fallback if not found
+
+        return flat
 
     @staticmethod
     def clean_config_for_comparison(cfg):
