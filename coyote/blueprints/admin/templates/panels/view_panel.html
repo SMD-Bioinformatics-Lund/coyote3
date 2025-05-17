@@ -26,7 +26,7 @@
                           class="text-xs px-2 py-1 rounded-md border border-gray-300 bg-white">
                     {% for v in panel.version_history | reverse %}
                       <option value="{{ v.version }}" {% if selected_version == v.version %}selected{% endif %}>
-                        v{{ v.version }}
+                        v{{ v.version }} ({{ v.timestamp|human_date }})
                       </option>
                     {% endfor %}
                   </select>
@@ -42,7 +42,7 @@
                 {{ panel.schema_name }}
               </span>
               <span class="inline-flex items-center px-2 py-1 bg-orange-200 text-black font-semibold rounded-r-full">
-                v{{ panel.schema_version }}
+                v{{ panel.schema_version }} 
               </span>
             </div>
 
@@ -56,9 +56,9 @@
         </div>
 
         {% if selected_version and selected_version != panel.version and delta %}
-        <div class="mb-4 text-sm text-yellow-800 bg-yellow-50 border border-yellow-300 rounded-md p-3">
-          <p>You are viewing version <strong>v{{ selected_version }}</strong> restored into editor for comparison. All changes compared to current version <strong>v{{ panel.version }}</strong> are highlighted.</p>
-        </div>
+          <div class="mb-4 text-sm text-yellow-800 bg-yellow-50 border border-yellow-300 rounded-md p-3">
+            <p>You are viewing version <strong>v{{ selected_version }}</strong> restored into editor for comparison. All changes compared to current version <strong>v{{ panel.version }}</strong> are highlighted.</p>
+          </div>
         {% endif %}
 
         <div class="space-y-6 text-sm text-gray-700">
@@ -68,7 +68,11 @@
               <div class="grid grid-cols-3 gap-4">
                 {% for key in keys %}
                   {% set field = schema.fields[key] %}
-                  {% set value = panel.get(key) %}
+                  {% if key == 'version' and selected_version and selected_version != panel.version and delta %}
+                    {% set value = selected_version %}
+                  {% else %}
+                    {% set value = panel.get(key, field.default) %}
+                  {% endif %}
                   {% set is_changed = delta and key in delta.changed %}
                   {% set fullspan = field.display_type in ['textarea', 'jsoneditor-or-upload'] or field.data_type in ['json', 'dict'] %}
 
@@ -91,9 +95,7 @@
               </div>
             </div>
           {% endfor %}
-
         </div>
-
       </div>
     </section>
   </main>

@@ -14,7 +14,7 @@ from coyote.extensions import store
 from bisect import bisect_left
 import json
 import os
-from typing import Any
+from typing import Any, Union
 import hashlib
 
 
@@ -53,92 +53,34 @@ class AdminUtility:
         AdminUtility.deep_merge(config, updates)
 
     @staticmethod
-    def process_form_to_config(form: dict, schema: dict) -> dict:
-        """
-        Process form data into a config dict based on schema field types.
-        Supports nested subschemas and list of subschemas.
-        """
-        config = {}
-
-        for key, field in schema.get("fields", {}).items():
-            field_type = field.get(
-                "data_type", field.get("type")
-            )  # Support fallback to old schemas
-
-            if field_type == "subschema":
-                subschema = schema.get("subschemas", {}).get(field["schema"])
-                if subschema:
-                    if field.get("type") == "list":
-                        sub_configs = []
-                        if key in form:
-                            entries = (
-                                json.loads(form[key])
-                                if isinstance(form[key], str)
-                                else form[key]
-                            )
-                            for entry in entries:
-                                sub_config = {}
-                                for subkey, subfield in subschema[
-                                    "fields"
-                                ].items():
-                                    if subkey in entry:
-                                        sub_config[subkey] = (
-                                            AdminUtility.cast_value(
-                                                entry[subkey],
-                                                subfield.get(
-                                                    "data_type",
-                                                    subfield["type"],
-                                                ),
-                                            )
-                                        )
-                                sub_configs.append(sub_config)
-                        config[key] = sub_configs
-                    else:
-                        sub_config = {}
-                        for subkey, subfield in subschema["fields"].items():
-                            form_key = f"{key}.{subkey}"
-                            if form_key in form:
-                                sub_config[subkey] = AdminUtility.cast_value(
-                                    form[form_key],
-                                    subfield.get(
-                                        "data_type", subfield["type"]
-                                    ),
-                                )
-                        config[key] = sub_config
-            else:
-                if key in form:
-                    config[key] = AdminUtility.cast_value(
-                        form[key], field_type
-                    )
-
-        return config
-
-    @staticmethod
     def cast_value(
-        value, field_type
-    ) -> str | int | float | bool | list[str] | dict | None | Any:
-        """
-        Casts a value to the specified field type.
-        Handles types: int, float, bool, list, json, and schema-driven UI inputs.
-        """
-
-        # Handle None or empty string safely
+        value: Any, field_type: str
+    ) -> Union[str, int, float, bool, list, dict, None]:
         if value is None or (isinstance(value, str) and value.strip() == ""):
             if field_type in [
                 "list",
-                "json",
                 "multi-select",
+                "select",
                 "checkbox-group",
+                "checkbox",
             ]:
-                return [] if field_type != "json" else {}
+                return []
+            elif field_type in ["json", "jsoneditor", "jsoneditor-or-upload"]:
+                return {}
             return None
 
-        # Normalize single-item lists
         if (
             isinstance(value, list)
             and len(value) == 1
             and field_type
-            not in ["list", "multi-select", "checkbox-group", "json"]
+            not in [
+                "list",
+                "multi-select",
+                "select",
+                "checkbox-group",
+                "checkbox",
+                "json",
+            ]
         ):
             value = value[0]
 
@@ -147,33 +89,74 @@ class AdminUtility:
                 return int(float(value))
             except (ValueError, TypeError):
                 return None
-
         elif field_type == "float":
             try:
                 return float(value)
             except (ValueError, TypeError):
                 return None
-
         elif field_type == "bool":
             return str(value).lower() in ["true", "1", "yes", "on"]
-
-        elif field_type in ["list", "multi-select", "checkbox-group"]:
+        elif field_type in [
+            "list",
+            "multi-select",
+            "select",
+            "checkbox",
+            "checkbox-group",
+        ]:
             if isinstance(value, str):
                 try:
                     return json.loads(value)
                 except Exception:
                     return [v.strip() for v in value.split(",") if v.strip()]
             return value
-
         elif field_type in ["json", "jsoneditor", "jsoneditor-or-upload"]:
             if isinstance(value, str):
                 try:
                     return json.loads(value)
                 except Exception:
-                    return [v.strip() for v in value.splitlines() if v.strip()]
+                    return {}
             return value
+        return value
 
-        return value  # default fallback
+    @staticmethod
+    def process_form_to_config(form: dict, schema: dict) -> dict:
+        config = {}
+
+        for key, field in schema.get("fields", {}).items():
+            field_type = field.get("data_type")
+            if key in form:
+                config[key] = AdminUtility.cast_value(form[key], field_type)
+            elif field_type == "subschema" and "schema" in field:
+                subschema = schema.get("subschemas", {}).get(field["schema"])
+                if not subschema:
+                    config[key] = (
+                        [] if field.get("data_type") == "list" else {}
+                    )
+                else:
+                    config[key] = (
+                        [] if field.get("data_type") == "list" else {}
+                    )
+            else:
+                if field_type in [
+                    "list",
+                    "multi-select",
+                    "select",
+                    "checkbox",
+                    "checkbox-group",
+                ]:
+                    config[key] = []
+                elif field_type in [
+                    "json",
+                    "jsoneditor",
+                    "jsoneditor-or-upload",
+                ]:
+                    config[key] = {}
+                elif field_type == "bool":
+                    config[key] = False
+                else:
+                    config[key] = None
+
+        return config
 
     @staticmethod
     def hash_config(config: dict) -> str:

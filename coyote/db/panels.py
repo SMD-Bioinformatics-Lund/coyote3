@@ -215,12 +215,12 @@ class PanelsHandler(BaseHandler):
         Fetch distinct panel groups across all gene panels.
 
         This method queries the database collection to retrieve a list of unique
-        values for the `panel_group` field, which represents the grouping of panels.
+        values for the `asp_group` field, which represents the grouping of panels.
 
         Returns:
             list: A list of unique panel group names.
         """
-        return self.get_collection().distinct("panel_group")
+        return self.get_collection().distinct("asp_group")
 
     def get_all_assays(self, is_active: bool | None = None) -> list:
         """

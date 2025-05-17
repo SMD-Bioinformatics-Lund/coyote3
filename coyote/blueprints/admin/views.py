@@ -153,8 +153,8 @@ def create_user() -> Response | str:
 
     # Fetch all active user schemas
     active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="user_config",
-        schema_category="user_management",
+        schema_type="rbac_user",
+        schema_category="RBAC_user",
         is_active=True,
     )
 
@@ -176,19 +176,47 @@ def create_user() -> Response | str:
 
     # Inject permissions from permissions collections
     permission_policies = store.permissions_handler.get_all(is_active=True)
-    if "permissions" in schema["fields"]:
-        schema["fields"]["permissions"]["options"] = [
-            {
-                "value": p["_id"],
-                "label": p.get("label", p["_id"]),
-                "category": p.get("category", "Uncategorized"),
-            }
-            for p in permission_policies
-        ]
+    schema["fields"]["permissions"]["options"] = [
+        {
+            "value": p["_id"],
+            "label": p.get("label", p["_id"]),
+            "category": p.get("category", "Uncategorized"),
+        }
+        for p in permission_policies
+    ]
+    schema["fields"]["deny_permissions"]["options"] = [
+        {
+            "value": p["_id"],
+            "label": p.get("label", p["_id"]),
+            "category": p.get("category", "Uncategorized"),
+        }
+        for p in permission_policies
+    ]
 
-    # Inject groups from the assay_panels collections
-    assay_panels = store.panel_handler.get_all_assays()
-    schema["fields"]["groups"]["options"] = assay_panels
+    # Inject assay groups from the assay_panels collections
+    assay_groups = store.panel_handler.get_all_groups()
+    schema["fields"]["assay_groups"]["options"] = assay_groups
+
+    # get all assays for each group in a dict
+    assay_groups_panels = store.panel_handler.get_all_panels()
+    assay_group_map = {}
+
+    for _assay in assay_groups_panels:
+        group = _assay.get("asp_group")
+        if group not in assay_group_map:
+            assay_group_map[group] = []
+
+        group_map = {}
+        group_map["assay_name"] = _assay.get("assay_name")
+        group_map["display_name"] = _assay.get("display_name")
+        group_map["asp_category"] = _assay.get("asp_category")
+        assay_group_map[group].append(group_map)
+
+    # Inject meta autid
+    schema["fields"]["created_by"]["default"] = current_user.email
+    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_by"]["default"] = current_user.email
+    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
 
     if request.method == "POST":
         form_data = {
@@ -196,30 +224,30 @@ def create_user() -> Response | str:
             for key, vals in request.form.to_dict(flat=False).items()
         }
 
-        permissions: list[str] = request.form.getlist("permissions") or []
-        groups: list[str] = request.form.getlist("groups") or []
-
         user_data = util.admin.process_form_to_config(form_data, schema)
         user_data["_id"] = user_data["username"]
         user_data["schema_name"] = schema["_id"]
         user_data["schema_version"] = schema["version"]
-        user_data["created_by"] = current_user.email
-        user_data["created_on"] = datetime.utcnow()
-        user_data["updated_by"] = current_user.email
-        user_data["updated_on"] = datetime.utcnow()
         user_data["email"] = user_data["email"].lower()
         user_data["username"] = user_data["username"].lower()
-        user_data["permissions"] = permissions
-        user_data["groups"] = groups
-
-        # Log Action
-        g.audit_metadata = {"user": user_data["username"]}
 
         # Hash the password
-        if "password" in user_data and user_data["password"]:
+        if user_data["auth_source"] == "coyote3" and user_data["password"]:
             user_data["password"] = util.profile.hash_password(
                 user_data["password"]
             )
+        else:
+            user_data["password"] = None
+
+        # Inject version history with delta
+        user_data = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=deepcopy(user_data),
+            is_new=True,
+        )
+
+        # Log Action
+        g.audit_metadata = {"user": user_data["username"]}
 
         store.user_handler.create_user(user_data)
         flash("User created successfully!", "green")
@@ -230,6 +258,7 @@ def create_user() -> Response | str:
         schema=schema,
         schemas=active_schemas,
         selected_schema=schema,
+        assay_group_map=assay_group_map,
     )
 
 
@@ -258,27 +287,81 @@ def edit_user(user_id) -> Response | str:
     permission_policies = store.permissions_handler.get_all(is_active=True)
 
     # Inject checkbox options directly into schema field definition
-    if "permissions" in schema["fields"]:
-        schema["fields"]["permissions"]["options"] = [
-            {
-                "value": p["_id"],
-                "label": p.get("label", p["_id"]),
-                "category": p.get("category", "Uncategorized"),
-            }
-            for p in permission_policies
-        ]
+    permission_policies = store.permissions_handler.get_all(is_active=True)
+    schema["fields"]["permissions"]["options"] = [
+        {
+            "value": p["_id"],
+            "label": p.get("label", p["_id"]),
+            "category": p.get("category", "Uncategorized"),
+        }
+        for p in permission_policies
+    ]
+    schema["fields"]["deny_permissions"]["options"] = [
+        {
+            "value": p["_id"],
+            "label": p.get("label", p["_id"]),
+            "category": p.get("category", "Uncategorized"),
+        }
+        for p in permission_policies
+    ]
 
-    # Inject groups from the assay_panels collections
-    assay_panels = store.panel_handler.get_all_assays()
-    schema["fields"]["groups"]["options"] = assay_panels
+    schema["fields"]["permissions"]["default"] = user_doc.get("permissions")
+    schema["fields"]["deny_permissions"]["default"] = user_doc.get(
+        "deny_permissions"
+    )
 
-    # if "groups" in user_doc:
-    #     user_doc["groups"] = {group: True for group in user_doc["groups"]}
+    # Inject assay groups from the assay_panels collections
+    assay_groups = store.panel_handler.get_all_groups()
+    schema["fields"]["assay_groups"]["options"] = assay_groups
+    schema["fields"]["assay_groups"]["default"] = user_doc.get(
+        "assay_groups", []
+    )
+
+    # get all assays for each group in a dict
+    assay_groups_panels = store.panel_handler.get_all_panels()
+    assay_group_map = {}
+
+    for _assay in assay_groups_panels:
+        group = _assay.get("asp_group")
+        if group not in assay_group_map:
+            assay_group_map[group] = []
+
+        group_map = {}
+        group_map["assay_name"] = _assay.get("assay_name")
+        group_map["display_name"] = _assay.get("display_name")
+        group_map["asp_category"] = _assay.get("asp_category")
+        assay_group_map[group].append(group_map)
+
+    schema["fields"]["assays"]["default"] = user_doc.get("assays", [])
+
+    # --- Rewind logic ---
+    selected_version = request.args.get("version", type=int)
+    delta = None
+
+    if selected_version and selected_version != user_doc.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(user_doc.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = user_doc["version_history"][version_index].get(
+                "delta", {}
+            )
+            user_doc = util.admin.apply_version_delta(
+                deepcopy(user_doc), delta_blob
+            )
+            delta = delta_blob
+            user_doc["_id"] = user_id
 
     if request.method == "POST":
-        form_data = request.form.to_dict()
-        permissions = request.form.getlist("permissions") or []
-        groups = request.form.getlist("groups") or []
+        form_data = {
+            key: (vals[0] if len(vals) == 1 else vals)
+            for key, vals in request.form.to_dict(flat=False).items()
+        }
 
         updated_user = util.admin.process_form_to_config(form_data, schema)
 
@@ -286,20 +369,28 @@ def edit_user(user_id) -> Response | str:
         updated_user["updated_on"] = datetime.utcnow()
         updated_user["updated_by"] = current_user.email
 
-        if "password" in updated_user:
+        # Hash the password
+        if (
+            updated_user["auth_source"] == "coyote3"
+            and updated_user["password"]
+        ):
             updated_user["password"] = util.profile.hash_password(
                 updated_user["password"]
             )
         else:
-            updated_user["password"] = user_doc["password"]
+            updated_user["password"] = user_doc.get("password")
 
-        updated_user["email"] = updated_user["email"].lower()
-        updated_user["username"] = updated_user["username"].lower()
-        updated_user["groups"] = groups
         updated_user["schema_name"] = schema["_id"]
         updated_user["schema_version"] = schema["version"]
-        updated_user["permissions"] = permissions
-        updated_user["groups"] = groups
+        updated_user["version"] = user_doc.get("version", 1) + 1
+
+        # Inject version history with delta
+        updated_user = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=updated_user,
+            old_config=user_doc,
+            is_new=False,
+        )
 
         # Log Action
         g.audit_metadata = {"user": user_id}
@@ -309,7 +400,59 @@ def edit_user(user_id) -> Response | str:
         return redirect(url_for("admin_bp.manage_users"))
 
     return render_template(
-        "users/user_edit.html", schema=schema, config=user_doc
+        "users/user_edit.html",
+        schema=schema,
+        user=user_doc,
+        assay_group_map=assay_group_map,
+        selected_version=selected_version,
+        delta=delta,
+    )
+
+
+@admin_bp.route("/users/<user_id>/view", methods=["GET"])
+@require("view_user", min_role="admin", min_level=99999)
+@log_action("view_user", call_type="admin_call")
+def view_user(user_id: str) -> str | Response:
+    """
+    Displays a read-only view of a user's profile with optional version rewind.
+    """
+    user_doc = store.user_handler.user_with_id(user_id)
+    if not user_doc:
+        flash("User not found.", "red")
+        return redirect(url_for("admin_bp.manage_users"))
+
+    schema = store.schema_handler.get_schema(user_doc.get("schema_name"))
+    if not schema:
+        flash("Schema not found for user.", "red")
+        return redirect(url_for("admin_bp.manage_users"))
+
+    # Handle optional version rewind
+    selected_version = request.args.get("version", type=int)
+    delta = None
+    if selected_version and selected_version != user_doc.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(user_doc.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = user_doc["version_history"][version_index].get(
+                "delta", {}
+            )
+            delta = delta_blob  # Used for UI highlighting
+            user_doc = util.admin.apply_version_delta(
+                deepcopy(user_doc), delta_blob
+            )
+
+    return render_template(
+        "users/user_view.html",
+        schema=schema,
+        user=user_doc,
+        selected_version=selected_version or user_doc.get("version"),
+        delta=delta,
     )
 
 
@@ -470,6 +613,117 @@ def create_dna_assay_config() -> Response | str:
     schema["fields"]["vep_consequences"]["options"] = list(
         app.config.get("CONSEQ_TERMS_MAPPER", {}).keys()
     )
+
+    schema["fields"]["created_by"]["default"] = current_user.email
+    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_by"]["default"] = current_user.email
+    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
+
+    if request.method == "POST":
+        form_data = {
+            key: (vals[0] if len(vals) == 1 else vals)
+            for key, vals in request.form.to_dict(flat=False).items()
+        }
+
+        config = util.admin.process_form_to_config(form_data, schema)
+
+        config.update(
+            {
+                "_id": f"{config['assay_name']}:{config['environment']}",
+                "schema_name": schema["_id"],
+                "schema_version": schema["version"],
+                "version": 1,
+            }
+        )
+
+        config = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=deepcopy(config),
+            is_new=True,
+        )
+
+        # Check if the config already exists
+        existing_config = store.assay_config_handler.get_assay_config(
+            config["_id"]
+        )
+        if existing_config:
+            flash(
+                f"Assay config '{config['assay_name']} for {config['environment']}' already exists!",
+                "red",
+            )
+        else:
+            store.assay_config_handler.insert_assay_config(config)
+            flash(
+                f"{config['assay_name']} : {config['environment']} assay config created!",
+                "green",
+            )
+
+        # Log Action
+        g.audit_metadata = {
+            "assay": config["assay_name"],
+            "environment": config["environment"],
+        }
+
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    return render_template(
+        "assay_configs/assay_config_create.html",
+        schema=schema,
+        schemas=active_schemas,
+        selected_schema=schema,
+        prefill_map_json=json.dumps(prefill_map),
+    )
+
+
+@admin_bp.route("/assay-config/rna/new", methods=["GET", "POST"])
+@require("create_assay_config", min_role="developer", min_level=9999)
+@log_action(action_name="create_assay_config", call_type="developer_call")
+def create_rna_assay_config() -> Response | str:
+    """
+    Handles the creation of RNA assay configurations. Fetches active RNA schemas,
+    processes form data, and saves the configuration to the database.
+    """
+    # Fetch all active RNA assay schemas
+    active_schemas = store.schema_handler.get_schemas_by_filter(
+        schema_type="asp_config", schema_category="RNA", is_active=True
+    )
+
+    if not active_schemas:
+        flash("No active RNA schemas found!", "red")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    # Determine which schema to use
+    selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
+    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+
+    if not schema:
+        flash("Selected schema not found!", "red")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    # Load all active assays from panel collection
+    assay_panels = store.panel_handler.get_all_panels(is_active=True)
+
+    # Build prefill_map and collect valid assay IDs
+    prefill_map = {}
+    valid_assay_ids = []
+
+    for p in assay_panels:
+        if p.get("asp_category") == "RNA":
+            envs = store.assay_config_handler.get_assay_available_envs(
+                p["_id"], schema["fields"]["environment"]["options"]
+            )
+            if envs:
+                valid_assay_ids.append(p["_id"])
+                prefill_map[p["_id"]] = {
+                    "display_name": p.get("display_name"),
+                    "asp_group": p.get("asp_group"),
+                    "asp_category": p.get("asp_category"),
+                    "platform": p.get("platform"),
+                    "environment": envs,
+                }
+
+    # Inject only valid assay IDs into the schema
+    schema["fields"]["assay_name"]["options"] = valid_assay_ids
 
     schema["fields"]["created_by"]["default"] = current_user.email
     schema["fields"]["created_on"]["default"] = datetime.utcnow()
@@ -777,117 +1031,6 @@ def delete_assay_config(assay_id) -> Response:
 
     flash(f"Assay config '{assay_id}' deleted successfully.", "green")
     return redirect(url_for("admin_bp.assay_configs"))
-
-
-@admin_bp.route("/assay-config/rna/new", methods=["GET", "POST"])
-@require("create_assay_config", min_role="developer", min_level=9999)
-@log_action(action_name="create_assay_config", call_type="developer_call")
-def create_rna_assay_config() -> Response | str:
-    """
-    Handles the creation of RNA assay configurations. Fetches active RNA schemas,
-    processes form data, and saves the configuration to the database.
-    """
-    # Fetch all active RNA assay schemas
-    active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="asp_config", schema_category="RNA", is_active=True
-    )
-
-    if not active_schemas:
-        flash("No active RNA schemas found!", "red")
-        return redirect(url_for("admin_bp.assay_configs"))
-
-    # Determine which schema to use
-    selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
-    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
-
-    if not schema:
-        flash("Selected schema not found!", "red")
-        return redirect(url_for("admin_bp.assay_configs"))
-
-    # Load all active assays from panel collection
-    assay_panels = store.panel_handler.get_all_panels(is_active=True)
-
-    # Build prefill_map and collect valid assay IDs
-    prefill_map = {}
-    valid_assay_ids = []
-
-    for p in assay_panels:
-        if p.get("asp_category") == "RNA":
-            envs = store.assay_config_handler.get_assay_available_envs(
-                p["_id"], schema["fields"]["environment"]["options"]
-            )
-            if envs:
-                valid_assay_ids.append(p["_id"])
-                prefill_map[p["_id"]] = {
-                    "display_name": p.get("display_name"),
-                    "asp_group": p.get("asp_group"),
-                    "asp_category": p.get("asp_category"),
-                    "platform": p.get("platform"),
-                    "environment": envs,
-                }
-
-    # Inject only valid assay IDs into the schema
-    schema["fields"]["assay_name"]["options"] = valid_assay_ids
-
-    schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = datetime.utcnow()
-    schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
-
-    if request.method == "POST":
-        form_data = {
-            key: (vals[0] if len(vals) == 1 else vals)
-            for key, vals in request.form.to_dict(flat=False).items()
-        }
-
-        config = util.admin.process_form_to_config(form_data, schema)
-
-        config.update(
-            {
-                "_id": f"{config['assay_name']}:{config['environment']}",
-                "schema_name": schema["_id"],
-                "schema_version": schema["version"],
-                "version": 1,
-            }
-        )
-
-        config = util.admin.inject_version_history(
-            user_email=current_user.email,
-            new_config=deepcopy(config),
-            is_new=True,
-        )
-
-        # Check if the config already exists
-        existing_config = store.assay_config_handler.get_assay_config(
-            config["_id"]
-        )
-        if existing_config:
-            flash(
-                f"Assay config '{config['assay_name']} for {config['environment']}' already exists!",
-                "red",
-            )
-        else:
-            store.assay_config_handler.insert_assay_config(config)
-            flash(
-                f"{config['assay_name']} : {config['environment']} assay config created!",
-                "green",
-            )
-
-        # Log Action
-        g.audit_metadata = {
-            "assay": config["assay_name"],
-            "environment": config["environment"],
-        }
-
-        return redirect(url_for("admin_bp.assay_configs"))
-
-    return render_template(
-        "assay_configs/assay_config_create.html",
-        schema=schema,
-        schemas=active_schemas,
-        selected_schema=schema,
-        prefill_map_json=json.dumps(prefill_map),
-    )
 
 
 # ==============================

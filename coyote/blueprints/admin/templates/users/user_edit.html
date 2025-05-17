@@ -8,169 +8,341 @@
       <div class="bg-gray-50 border border-gray-200 rounded-2xl shadow-xl p-6">
 
         <!-- Header -->
-        <div class="flex items-center justify-between mb-6">
-          <h1 class="text-xl font-bold text-blue-500 tracking-wide capitalize flex gap-2 align-middle">
-            <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="Schema Edit Icon" class="h-6 w-6">
-            Edit User - <i>{{config._id}}</i>
-          </h1>
+        <div class="flex items-start justify-between mb-6">
+          <!-- Left: Title and version dropdown -->
+          <div class="flex flex-col gap-1">
+            <h1 class="text-xl font-bold text-blue-500 tracking-wide capitalize flex gap-2 items-center">
+              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/user.svg') }}" alt="Schema Edit Icon" class="h-6 w-6">
+              Edit User – <i>{{ user.username }}</i>
+            </h1>
+
+            {% if user.version_history %}
+              <div class="flex items-center gap-2 mt-2">
+                <label class="text-xs font-semibold text-gray-800">Version:</label>
+                <form method="GET">
+                  <select name="version" onchange="this.form.submit()" class="text-xs px-2 py-1 rounded-md border border-gray-300 bg-white">
+                    {% for v in user.version_history | reverse %}
+                      <option value="{{ v.version }}" {% if selected_version == v.version %}selected{% endif %}>
+                        v{{ v.version }} ({{ v.timestamp|human_date }})
+                      </option>
+                    {% endfor %}
+                  </select>
+                </form>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Right: Schema info -->
           <div class="text-sm text-gray-700 flex items-center">
             <span class="inline-flex items-center px-2 py-1 bg-blue-200 text-blue-700 font-semibold rounded-l-full">
-              {{ config.schema_name }}
+              {{ user.schema_name }}
             </span>
             <span class="inline-flex items-center px-2 py-1 bg-orange-200 text-black font-semibold rounded-r-full">
-              v{{ config.schema_version }}
+              v{{ user.schema_version }}
             </span>
           </div>
         </div>
 
-        <form method="POST" class="space-y-6 text-sm text-gray-700" id="editUserForm">
+
+        {% if selected_version and selected_version != user.version and delta %}
+        <div class="mb-4 text-sm text-yellow-800 bg-yellow-50 border border-yellow-300 rounded-md p-3">
+          <p>You are viewing version <strong>v{{ selected_version }}</strong> restored into editor for comparison. All changes compared to current version <strong>v{{ user.version }}</strong> are highlighted.</p>
+        </div>
+        {% endif %}
+
+        <form method="POST" id="userForm" class="space-y-6 text-sm text-gray-700">
           {% for section, keys in schema.sections.items() %}
-            <div class="bg-gray-100 border-l-4 border-blue-200 bg-blue-50 rounded-xl p-4 shadow-sm">
-              <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') }}</h2>
-              <div class="grid grid-cols-3 gap-4">
-                {% for key in keys %}
-                  {% set field = schema.fields[key] %}
-                  {% set disabled = key in ['fullname', 'username', 'schema_name', 'schema_version', 'email', 'created_by', 'created_on', 'updated_by', 'updated_on'] %}
-          
-                  {% if key == "permissions" and field.options %}
-                    {% set grouped = {} %}
-                    {% for opt in field.options %}
-                      {% set _ = grouped.setdefault(opt.category, []).append(opt) %}
-                    {% endfor %}
-                    <h3 class="text-sm font-semibold text-blue-800 col-span-full">Available permissions</h3>
-                    <div class="flex flex-wrap gap-4 col-span-full">
-                      {% for category, options in grouped.items() %}
-                        <div class="mb-2">
-                          <h4 class="text-xs font-semibold text-gray-800 mb-1">{{ category }}</h4>
-                          <div class="flex flex-col gap-y-2 text-xs">
-                            {% for opt in options %}
-                              <label class="inline-flex items-center gap-2">
-                                <input type="checkbox" name="permissions" value="{{ opt.value }}" class="accent-blue-600"
-                                  {% if opt.value in config.permissions %}checked{% endif %}>
-                                {{ opt.label or opt.value }}
+          <div class="mb-6 border-l-4 border-blue-300 bg-blue-50 rounded-xl shadow-lg p-4">
+            <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') | title }}</h2>
+            <div class="grid grid-cols-3 gap-4">
+              {% for key in keys %}
+                {% set field = schema.fields[key] %}
+                {% set value = user.get(key, field.default) %}
+                {% if not value%}
+                  {% set value = '' %}
+                {% endif %}
+                {% set is_readonly = field.readonly or ('readonly_mode' in field and 'edit' in field.readonly_mode) %}
+
+                {% set is_changed = delta and key in delta.changed %}
+                {% set fullspan = field.display_type in ['textarea', 'jsoneditor-or-upload'] or field.data_type in ['json', 'dict'] %}
+
+                {% if key in ["permissions", "deny_permissions"] %}
+                  <div class="{% if is_changed %}ring-2 ring-yellow-400 rounded-md p-1{% endif %} col-span-full">
+                    <h3 class="text-sm font-semibold text-gray-800 mb-1">{{ field.label }}</h3>
+                    <div class="flex gap-8 flex-wrap">
+                      {% set grouped = {} %}
+                      {% for opt in field.options %}
+                        {% set _ = grouped.setdefault(opt.category, []).append(opt) %}
+                      {% endfor %}
+                      {% for category, opts in grouped.items() %}
+                        <div>
+                          <h4 class="text-xs font-semibold text-blue-700 mb-1">{{ category }}</h4>
+                          <div class="flex flex-col flex-wrap gap-2">
+                            {% for opt in opts %}
+                              <label class="inline-flex items-center gap-2 text-xs">
+                                <input type="checkbox" name="{{ key }}" value="{{ opt.value }}" class="accent-blue-600" {% if value and opt.value in value %}checked{% endif %} {% if is_readonly %}disabled{% endif %}>
+                                {{ opt.label }}
                               </label>
                             {% endfor %}
                           </div>
                         </div>
                       {% endfor %}
                     </div>
-          
-                  {% elif key == "role" and field.options %}
-                    <div class="col-span-full">
-                      <h3 class="text-sm font-semibold text-blue-800 mb-1">System Role</h3>
-                      <div class="flex flex-wrap gap-4 text-xs">
-                        {% for option in field.options %}
-                          <label class="inline-flex items-center gap-2">
-                            <input type="radio" name="role" value="{{ option }}" class="accent-blue-600"
-                              {% if config.role == option %}checked{% endif %}>
-                            {{ option }}
-                          </label>
-                        {% endfor %}
-                      </div>
+                  </div>
+
+                {% elif key == "assays" %}
+                  <div class="{% if is_changed %}ring-2 ring-yellow-400 rounded-md p-1{% endif %}{% if fullspan %} col-span-3{% endif %}">
+                    <h3 class="text-sm font-semibold text-gray-800 mb-1">Assays</h3>
+                    <div id="assays-container" class="flex flex-wrap gap-3 text-xs">
+                      {% for group, assays in assay_group_map.items() %}
+                        <div data-group="{{ group }}" class="assay-block hidden">
+                          <h4 class="text-xs font-semibold text-blue-700 mb-1">{{ group }}</h4>
+                          <div class="flex flex-wrap gap-2">
+                            {% for assay in assays %}
+                              <label class="inline-flex items-center gap-1">
+                                <input type="checkbox" name="assays" value="{{ assay.assay_name }}" class="accent-blue-600" {% if assay.assay_name in user.assays %}checked{% endif %}> {{ assay.display_name }}
+                              </label>
+                            {% endfor %}
+                          </div>
+                        </div>
+                      {% endfor %}
                     </div>
-          
-                  {% elif key == "groups" and field.options %}
-                    <div class="col-span-full">
-                      <h3 class="text-sm font-semibold text-blue-800 mb-1">Assay Groups</h3>
-                      <div class="flex flex-wrap gap-4 text-xs">
-                        {% for option in field.options %}
-                          <label class="inline-flex items-center gap-2">
-                            <input type="checkbox" name="groups" value="{{ option }}" class="accent-blue-600"
-                              {% if option in config.groups %}checked{% endif %}>
-                            {{ option }}
-                          </label>
-                        {% endfor %}
-                      </div>
+                  </div>
+
+                {% elif field.display_type == "checkbox-group" %}
+                  <div class="{% if is_changed %}ring-2 ring-yellow-400 rounded-md p-1{% endif %}{% if fullspan %} col-span-3{% endif %}">
+                    <label class="text-sm font-semibold block mb-1">{{ field.label }}</label>
+                    <div class="flex flex-wrap gap-2 text-xs">
+                      {% for opt in field.options %}
+                        <label class="inline-flex items-center gap-2">
+                          <input type="checkbox" name="{{ key }}" value="{{ opt }}" class="accent-blue-600 group-toggle" {% if value and opt in value %}checked{% endif %} {% if is_readonly %}disabled{% endif %}> {{ opt }}
+                        </label>
+                      {% endfor %}
                     </div>
-                  {% elif field.type == 'bool' %}
-                    <div class="flex items-center space-x-2">
-                      <input type="checkbox" name="{{ key }}" value="true" class="accent-blue-600 rounded" {% if config[key] %}checked{% endif %} {% if disabled %}disabled{% endif %}>
-                      <label class="text-xs font-semibold">{{ field.label or key }} {% if field.required %}<span class="text-red-500">*</span>{% endif %}</label>
-                    </div>
-                  {% else %}
-                    <div>
-                      <label class="block font-semibold text-xs mb-1">
-                        {{ field.label or key }} {% if field.required %}<span class="text-red-500">*</span>{% endif %}
-                        <span class="text-gray-500 text-xs font-normal">({{ field.type }})</span>
-                      </label>
-                      <input
-                        type="{{ 'number' if field.type in ['int', 'float'] else 'text' }}"
-                        name="{{ key }}"
-                        id="{{ key }}"
-                        value="{{ config[key] }}"
-                        {% if field.type == 'int' %}step="1" inputmode="numeric"{% elif field.type == 'float' %}step="0.01"{% endif %}
-                        class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 {% if disabled %}text-gray-500{% endif %}"
-                        placeholder="{{ field.placeholder or '' }}"
-                        {% if disabled %}readonly{% endif %}
-                      />
-                    </div>
-                  {% endif %}
-                {% endfor %}
-              </div>
+                  </div>
+
+                {% elif field.display_type == "select" %}
+                  <select name="{{ key }}" id="{{ key }}" class="{% if is_changed %}ring-2 ring-yellow-400 {% endif %} w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm" {% if is_readonly %}readonly disabled{% endif %}>
+                    {% for opt in field.options %}
+                      <option value="{{ opt }}" {% if value == opt %}selected{% endif %}>{{ opt }}</option>
+                    {% endfor %}
+                  </select>
+
+                {% elif field.display_type == "multi-select" %}
+                  <select name="{{ key }}" multiple class="{% if is_changed %}ring-2 ring-yellow-400 {% endif %}w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm" {% if is_readonly %}readonly disabled{% endif %}>
+                    {% for opt in field.options %}
+                      <option value="{{ opt }}" {% if value and opt in value %}selected{% endif %}>{{ opt }}</option>
+                    {% endfor %}
+                  </select>
+
+                {% elif field.display_type == "checkbox" %}
+                  <div class="flex items-center space-x-2 {% if is_changed %}ring-2 ring-yellow-400 rounded-md p-1{% endif %}">
+                    <input type="checkbox" name="{{ key }}" value="true" class="accent-blue-600 rounded" {% if value %}checked{% endif %} {% if is_readonly %}disabled{% endif %}>
+                    <label class="text-xs font-semibold">{{ field.label }}</label>
+                  </div>
+
+                {% elif field.display_type == "password" %}
+                  <div id="password-wrapper" class="{% if is_changed %}ring-2 ring-yellow-400 rounded-md p-1{% endif %}{% if fullspan %} col-span-3{% endif %} flex flex-col hidden">
+                    <input type="password" id="password" name="password" placeholder="Enter password"
+                      data-minlength="{{ schema.fields.password.min_length or 10 }}"
+                      class="w-full max-w-3xl bg-gray-100 border border-gray-400 rounded-md p-2 text-sm mt-1">
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter password"
+                      class="w-full max-w-3xl bg-gray-100 border border-gray-400 rounded-md p-2 text-sm mt-1">
+                    <p id="password_match_msg" class="text-xs mt-1"></p>
+                  </div>
+
+                {% else %}
+                  <div class="{% if is_changed %}ring-2 ring-yellow-400 rounded-md p-1{% endif %}">
+                    <label class="text-xs font-semibold block mb-1">{{ field.label }}</label>
+                    <input type="text" name="{{ key }}" id="{{ key }}" placeholder="{{ field.placeholder }}" value="{{ value }}"
+                      {% if is_readonly %}readonly class="w-full bg-blue-50 border border-blue-300 text-gray-500 rounded-md p-2 text-sm"{% else %}
+                      class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm"{% endif %}>
+                  </div>
+                {% endif %}
+              {% endfor %}
             </div>
+          </div>
           {% endfor %}
-        
-          <!-- Save Button -->
-          <div class="text-right">
-            <button type="submit" class="bg-blue-300 hover:bg-blue-400 text-black font-semibold px-4 py-2 rounded-lg shadow-sm transition">
-              Save Changes
+
+          <div class="text-right pt-4">
+            <button type="submit" class="bg-blue-300 hover:bg-blue-400 text-black font-semibold px-6 py-2 rounded-lg shadow-lg transition">
+              Update User
             </button>
           </div>
         </form>
+
       </div>
     </section>
   </main>
 </div>
 
-
-
-
 <script>
   document.addEventListener("DOMContentLoaded", () => {
-    const fnameEl = document.querySelector('[id*="firstname"]');
-    const lnameEl = document.querySelector('[id*="lastname"]');
-    const fullInput = document.querySelector('[id*="fullname"]');
-  
-    function updateFullNameAndUsername() {
-      const fname = fnameEl?.value.trim() || "";
-      const lname = lnameEl?.value.trim() || "";
-      const fullName = `${fname} ${lname}`.trim();
-      const username = `${fname}.${lname}`.toLowerCase();
-      if (fullInput) fullInput.value = fullName;
-      const userInput = document.querySelector('[id*="username"]');
-      if (userInput) userInput.value = username;
-    }
-  
-    fnameEl?.addEventListener('input', updateFullNameAndUsername);
-    lnameEl?.addEventListener('input', updateFullNameAndUsername);
-  
-    // Remove password field if present
-    document.querySelectorAll('[id*="password"]').forEach((el) => {
-      const parentCard = el.closest('.grid > div') || el.closest('.col-span-full') || el.closest('div');
-      parentCard?.remove();
-    });
-  
-    // Prevent submission on empty required fields
-    const form = document.getElementById("editUserForm");
-    form.addEventListener("submit", (e) => {
-      const requiredFields = form.querySelectorAll("input[required], input[name='username'], input[name='email'], input[name='firstname'], input[name='lastname']");
-      let isValid = true;
-  
-      requiredFields.forEach(field => {
-        if (field.offsetParent !== null && field.value.trim() === "") {
-          field.classList.add("border-red-500");
-          isValid = false;
-        } else {
-          field.classList.remove("border-red-500");
-        }
-      });
-  
-      if (!isValid) {
-        e.preventDefault();
-        alert("Please fill all required fields.");
+    const fname = document.getElementById("firstname");
+    const lname = document.getElementById("lastname");
+    const fullname = document.getElementById("fullname");
+    const username = document.getElementById("username");
+    const email = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const confirmPasswordInput = document.getElementById("confirm_password");
+    const passwordMsg = document.getElementById("password_match_msg");
+    const authSource = document.querySelector('[name="auth_source"]');
+    const passwordWrapper = document.getElementById("password-wrapper");
+
+    // Auto-fill fullname and username
+    function updateFullAndUsername() {
+      const f = fname?.value.trim() || "";
+      const l = lname?.value.trim() || "";
+      const full = `${f} ${l}`.trim();
+      const user = `${f}.${l}`.toLowerCase();
+      if (fullname) fullname.value = full;
+      if (username) {
+        username.value = user;
+        checkUsername(user);
       }
-    });
+    }
+
+    // Username exists check
+    async function checkUsername(val = null) {
+      const value = val || username?.value.trim();
+      if (!value) return;
+      const res = await fetch("{{ url_for('admin_bp.validate_username') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: value })
+      });
+      const data = await res.json();
+      const msg = document.getElementById("username_check");
+      msg.textContent = data.exists ? "❌ Username already exists." : "✅ Username available.";
+      msg.className = data.exists ? "text-xs mt-1 text-red-500" : "text-xs mt-1 text-green-600";
+    }
+
+    // Email exists check
+    async function checkEmail() {
+      const val = email?.value.trim();
+      const msg = document.getElementById("email_check");
+      if (!val || !msg) return;
+
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+      if (!isEmail) {
+        msg.textContent = "❌ Invalid email format.";
+        msg.className = "text-xs mt-1 text-red-500";
+        return;
+      }
+
+      const res = await fetch("{{ url_for('admin_bp.validate_email') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: val })
+      });
+
+      const data = await res.json();
+      msg.textContent = data.exists ? "❌ Email already in use." : "✅ Email available.";
+      msg.className = data.exists ? "text-xs mt-1 text-red-500" : "text-xs mt-1 text-green-600";
+    }
+
+    // Password validation
+    function validatePassword() {
+      const pwd = passwordInput?.value.trim() || "";
+      const confirm = confirmPasswordInput?.value.trim() || "";
+      const minLen = parseInt(passwordInput?.dataset.minlength) || 10;
+      const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/;
+
+      if (!pwd) {
+        setPwdMsg("❌ Password cannot be empty.", "red");
+        return;
+      }
+      if (pwd.length < minLen) {
+        setPwdMsg(`❌ Password must be at least ${minLen} characters.`, "red");
+        return;
+      }
+      if (!regex.test(pwd)) {
+        setPwdMsg("❌ Must include uppercase, lowercase, number, and symbol.", "red");
+        return;
+      }
+      if (confirm && pwd !== confirm) {
+        setPwdMsg("❌ Passwords do not match.", "red");
+        return;
+      }
+      if (confirm && pwd === confirm) {
+        setPwdMsg("✅ Passwords match and are strong.", "green");
+      } else {
+        setPwdMsg("✅ Strong password.", "green");
+      }
+    }
+
+    function setPwdMsg(text, color) {
+      if (!passwordMsg) return;
+      passwordMsg.textContent = text;
+      passwordMsg.className = `text-xs mt-1 text-${color}-500`;
+    }
+
+    // Password visibility based on auth
+    function updatePasswordVisibility() {
+      if (!authSource || !passwordWrapper) return;
+      const value = authSource.value?.trim().toLowerCase();
+      passwordWrapper.style.display = value === "coyote3" ? "flex" : "none";
+    }
+
+    // Assay group <-> assay checkbox sync
+    function setupAssayBehavior() {
+      const groupToggles = document.querySelectorAll('.group-toggle');
+      const assayBlocks = document.querySelectorAll('.assay-block');
+
+      function updateAssayVisibility() {
+        const selectedGroups = Array.from(groupToggles)
+          .filter(cb => cb.checked)
+          .map(cb => cb.value);
+
+        assayBlocks.forEach(block => {
+          const group = block.getAttribute("data-group");
+          const visible = selectedGroups.includes(group);
+          block.classList.toggle("hidden", !visible);
+          if (visible) {
+            block.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+          } else {
+            block.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+          }
+        });
+      }
+
+      function syncGroupFromAssay() {
+        assayBlocks.forEach(block => {
+          const group = block.getAttribute("data-group");
+          const relatedGroupToggle = document.querySelector(`.group-toggle[value="${group}"]`);
+          const checkboxes = block.querySelectorAll('input[type="checkbox"]');
+          if (checkboxes.length === 1 && !checkboxes[0].checked) {
+            relatedGroupToggle.checked = false;
+            block.classList.add("hidden");
+          }
+        });
+      }
+
+      updateAssayVisibility();
+
+      groupToggles.forEach(cb => cb.addEventListener("change", updateAssayVisibility));
+
+      assayBlocks.forEach(block => {
+        block.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+          cb.addEventListener("change", syncGroupFromAssay);
+        });
+      });
+    }
+
+    // Event bindings
+    fname?.addEventListener("input", updateFullAndUsername);
+    lname?.addEventListener("input", updateFullAndUsername);
+    username?.addEventListener("input", () => checkUsername());
+    email?.addEventListener("input", checkEmail);
+    passwordInput?.addEventListener("input", validatePassword);
+    confirmPasswordInput?.addEventListener("input", validatePassword);
+    authSource?.addEventListener("change", updatePasswordVisibility);
+
+    // Initial setup
+    updateFullAndUsername();
+    updatePasswordVisibility();
+    setupAssayBehavior();
   });
 </script>
+
 {% endblock %}
-          
