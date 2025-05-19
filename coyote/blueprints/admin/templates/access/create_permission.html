@@ -54,7 +54,7 @@
                   <div>
                     <label class="text-xs font-semibold block mb-1">{{ field.label }}</label>
                     <input type="text" name="{{ key }}" placeholder="{{ field.placeholder }}"
-                      value="{{ value }}"
+                      value="{% if value is iterable and value is not string %}{{ value | join(', ') }}{% else %}{{ value }}{% endif %}"
                       {% if is_readonly %}readonly class="w-full bg-blue-50 border border-blue-300 text-gray-500 rounded-md p-2 text-sm"{% else %}
                       class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm"{% endif %}>
                   </div>

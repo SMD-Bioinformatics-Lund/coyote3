@@ -2210,8 +2210,8 @@ def create_genelist() -> Response | str:
     """
     # Fetch all active GeneLists schemas
     active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="genelist_config",
-        schema_category="GeneLists",
+        schema_type="isgl_config",
+        schema_category="ISGL",
         is_active=True,
     )
 
@@ -2227,12 +2227,30 @@ def create_genelist() -> Response | str:
         flash("Genelist schema not found!", "red")
         return redirect(url_for("admin_bp.manage_genelists"))
 
-    # Inject assay, groups options directly into schema field definition
-    available_groups = store.panel_handler.get_all_groups()
-    available_assays = store.panel_handler.get_all_assays()
+    # Inject assay groups from the assay_panels collections
+    assay_groups: list = store.panel_handler.get_all_groups()
+    schema["fields"]["assay_groups"]["options"] = assay_groups
 
-    schema["fields"]["assays"]["options"] = available_assays
-    schema["fields"]["groups"]["options"] = available_groups
+    # get all assays for each group in a dict
+    assay_groups_panels = store.panel_handler.get_all_panels()
+    assay_group_map = {}
+
+    for _assay in assay_groups_panels:
+        group = _assay.get("asp_group")
+        if group not in assay_group_map:
+            assay_group_map[group] = []
+
+        group_map = {}
+        group_map["assay_name"] = _assay.get("assay_name")
+        group_map["display_name"] = _assay.get("display_name")
+        group_map["asp_category"] = _assay.get("asp_category")
+        assay_group_map[group].append(group_map)
+
+    # Inject meta autid
+    schema["fields"]["created_by"]["default"] = current_user.email
+    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_by"]["default"] = current_user.email
+    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
 
     if request.method == "POST":
         form_data: dict[str, list[str] | str] = {
@@ -2269,13 +2287,16 @@ def create_genelist() -> Response | str:
         config = util.admin.process_form_to_config(form_data, schema)
         config["_id"] = config["name"]
         config["genes"] = list(set(genes))
-        config["created_by"] = current_user.email
-        config["created_on"] = datetime.utcnow()
-        config["version"] = 1
         config["schema_name"] = schema["_id"]
         config["schema_version"] = schema["version"]
         config["gene_count"] = len(genes)
-        config["changelog"] = []
+
+        # Inject version history with delta
+        config = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=deepcopy(config),
+            is_new=True,
+        )
 
         store.insilico_genelist_handler.insert_genelist(config)
 
@@ -2287,6 +2308,7 @@ def create_genelist() -> Response | str:
         schema=schema,
         schemas=active_schemas,
         selected_schema=schema,
+        assay_group_map=assay_group_map,
     )
 
 
@@ -2306,13 +2328,54 @@ def edit_genelist(genelist_id) -> Response | str:
         flash("Genelist not found!", "red")
         return redirect(url_for("admin_bp.manage_genelists"))
 
-    schema = store.schema_handler.get_schema("Genelist-Config")
+    schema = store.schema_handler.get_schema(genelist.get("schema_name"))
 
-    # Inject assay, groups options directly into schema field definition
-    available_groups = store.panel_handler.get_all_groups()
-    available_assays = store.panel_handler.get_all_assays()
-    schema["fields"]["assays"]["options"] = available_assays
-    schema["fields"]["groups"]["options"] = available_groups
+    # Inject assay groups from the assay_panels collections
+    assay_groups = store.panel_handler.get_all_groups()
+    schema["fields"]["assay_groups"]["options"] = assay_groups
+    schema["fields"]["assay_groups"]["default"] = genelist.get(
+        "assay_groups", []
+    )
+
+    # get all assays for each group in a dict
+    assay_groups_panels = store.panel_handler.get_all_panels()
+    assay_group_map = {}
+
+    for _assay in assay_groups_panels:
+        group = _assay.get("asp_group")
+        if group not in assay_group_map:
+            assay_group_map[group] = []
+
+        group_map = {}
+        group_map["assay_name"] = _assay.get("assay_name")
+        group_map["display_name"] = _assay.get("display_name")
+        group_map["asp_category"] = _assay.get("asp_category")
+        assay_group_map[group].append(group_map)
+
+    schema["fields"]["assays"]["default"] = genelist.get("assays", [])
+
+    # --- Rewind logic ---
+    selected_version = request.args.get("version", type=int)
+    delta = None
+
+    if selected_version and selected_version != genelist.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(genelist.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = genelist["version_history"][version_index].get(
+                "delta", {}
+            )
+            genelist = util.admin.apply_version_delta(
+                deepcopy(genelist), delta_blob
+            )
+            delta = delta_blob
+            genelist["_id"] = genelist_id
 
     if request.method == "POST":
         form_data = {
@@ -2323,6 +2386,8 @@ def edit_genelist(genelist_id) -> Response | str:
             )
             for key in request.form
         }
+
+        updated = util.admin.process_form_to_config(form_data, schema)
 
         genes = []
         if (
@@ -2342,88 +2407,35 @@ def edit_genelist(genelist_id) -> Response | str:
         else:
             genes = genelist.get("genes", [])
 
-        updated = util.admin.process_form_to_config(form_data, schema)
-
-        updated["_id"] = genelist["_id"]
         updated["genes"] = list(set(genes))
-        updated["created_by"] = genelist["created_by"]
-        updated["created_on"] = genelist["created_on"]
-        updated["version"] = genelist.get("version", 1) + 1
         updated["gene_count"] = len(genes)
 
-        # Handle changelog
-        # Dynamically generate a description of what changed
-        changes = []
-        for field in ["genes", "assays", "groups"]:
-            added = set(updated.get(field, [])) - set(genelist.get(field, []))
-            removed = set(genelist.get(field, [])) - set(
-                updated.get(field, [])
-            )
-            if added and removed:
-                changes.append(f"{field.capitalize()} updated.")
-            elif added:
-                changes.append(f"{field.capitalize()} added.")
-            elif removed:
-                changes.append(f"{field.capitalize()} removed.")
-        if not changes:
-            description = "No significant changes."
-        else:
-            description = " ".join(changes)
+        updated["version"] = genelist.get("version", 1) + 1
+        updated["schema_name"] = schema["_id"]
+        updated["schema_version"] = schema["version"]
 
-        change_entry = {
-            "version": updated["version"],
-            "genes": {
-                "added": list(
-                    set(updated.get("genes", []))
-                    - set(genelist.get("genes", []))
-                ),
-                "removed": list(
-                    set(genelist.get("genes", []))
-                    - set(updated.get("genes", []))
-                ),
-            },
-            "assays": {
-                "added": list(
-                    set(updated.get("assays", []))
-                    - set(genelist.get("assays", []))
-                ),
-                "removed": list(
-                    set(genelist.get("assays", []))
-                    - set(updated.get("assays", []))
-                ),
-            },
-            "groups": {
-                "added": list(
-                    set(updated.get("groups", []))
-                    - set(genelist.get("groups", []))
-                ),
-                "removed": list(
-                    set(genelist.get("groups", []))
-                    - set(updated.get("groups", []))
-                ),
-            },
-            "description": description,
-            "updated_on": datetime.utcnow(),
-            "created_by": current_user.email,
-        }
-
-        # Append new changelog entry
-        existing_changelog = genelist.get("changelog", [])
-        updated["changelog"] = existing_changelog + [change_entry]
-
+        # Inject version history with delta
+        updated = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=updated,
+            old_config=genelist,
+            is_new=False,
+        )
         store.insilico_genelist_handler.update_genelist(genelist_id, updated)
 
         # Log Action
-        g.audit_metadata = {
-            "genelist": genelist_id,
-            "description": description,
-        }
+        g.audit_metadata = {"genelist": genelist_id}
 
         flash(f"Genelist '{genelist_id}' updated successfully!", "green")
         return redirect(url_for("admin_bp.manage_genelists"))
 
     return render_template(
-        "genelists/edit_genelist.html", genelist=genelist, schema=schema
+        "genelists/edit_genelist.html",
+        isgl=genelist,
+        schema=schema,
+        assay_group_map=assay_group_map,
+        selected_version=selected_version,
+        delta=delta,
     )
 
 
@@ -2497,6 +2509,27 @@ def view_genelist(genelist_id) -> Response | str:
         flash(f"Genelist '{genelist_id}' not found!", "red")
         return redirect(url_for("admin_bp.manage_genelists"))
 
+    # Handle optional version rewind
+    selected_version = request.args.get("version", type=int)
+    delta = None
+    if selected_version and selected_version != genelist.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(genelist.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = genelist["version_history"][version_index].get(
+                "delta", {}
+            )
+            delta = delta_blob  # Used for UI highlighting
+            genelist = util.admin.apply_version_delta(
+                deepcopy(genelist), delta_blob
+            )
+
     selected_assay = request.args.get("assay")
 
     all_genes = genelist.get("genes", [])
@@ -2514,6 +2547,8 @@ def view_genelist(genelist_id) -> Response | str:
         selected_assay=selected_assay,
         filtered_genes=filtered_genes,
         is_public=False,
+        selected_version=selected_version or genelist.get("version"),
+        delta=delta,
     )
 
 
