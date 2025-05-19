@@ -61,6 +61,11 @@
                       <span class="text-gray-500 font-thin"><small>{{ perm.updated_on|human_date }}</small></span>
                     </td>
                     <td class="p-2 font-medium flex gap-2 flex-wrap">
+                      <a href="{{ url_for('admin_bp.view_permission', perm_id=perm._id) }}" 
+                        title="View" 
+                        class="font-medium text-gray-700 hover:text-blue-600">
+                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="View" class="w-5 cursor-pointer">
+                      </a>
                       {% if has_access("edit_permission", min_role="admin", min_level=99999) %}
                         <button onclick="showActionModal({
                             url: '{{ url_for('admin_bp.edit_permission', perm_id=perm._id) }}',

@@ -1243,8 +1243,8 @@ def create_permission() -> Response | str:
     """
 
     active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="admin_config",
-        schema_category="RBAC_permissions",
+        schema_type="acl_config",
+        schema_category="RBAC",
         is_active=True,
     )
     if not active_schemas:
@@ -1258,6 +1258,12 @@ def create_permission() -> Response | str:
         flash("Selected schema not found!", "red")
         return redirect(url_for("admin_bp.list_permissions"))
 
+    # Inject meta autid
+    schema["fields"]["created_by"]["default"] = current_user.email
+    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_by"]["default"] = current_user.email
+    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
+
     if request.method == "POST":
         form_data = {
             key: (vals[0] if len(vals) == 1 else vals)
@@ -1265,13 +1271,16 @@ def create_permission() -> Response | str:
         }
         policy = util.admin.process_form_to_config(form_data, schema)
 
-        policy["permission_name"] = policy["_id"]
-        policy["created_by"] = current_user.email
-        policy["updated_by"] = current_user.email
-        policy["created_on"] = datetime.utcnow().isoformat()
-        policy["updated_on"] = datetime.utcnow().isoformat()
+        policy["_id"] = policy["permission_name"]
         policy["schema_name"] = schema["_id"]
         policy["schema_version"] = schema["version"]
+
+        # Inject version history with delta
+        policy = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=deepcopy(policy),
+            is_new=True,
+        )
 
         store.permissions_handler.insert_permission(policy)
 
@@ -1308,28 +1317,53 @@ def edit_permission(perm_id) -> Response | str:
 
     schema = store.schema_handler.get_schema(permission.get("schema_name"))
 
+    # --- Rewind logic ---
+    selected_version = request.args.get("version", type=int)
+    delta = None
+
+    if selected_version and selected_version != permission.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(permission.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = permission["version_history"][version_index].get(
+                "delta", {}
+            )
+            permission = util.admin.apply_version_delta(
+                deepcopy(permission), delta_blob
+            )
+            delta = delta_blob
+            permission["_id"] = perm_id
+
     if request.method == "POST":
-        form_data = request.form.to_dict(flat=True)
+        form_data = {
+            key: (vals[0] if len(vals) == 1 else vals)
+            for key, vals in request.form.to_dict(flat=False).items()
+        }
 
         updated_permission = util.admin.process_form_to_config(
             form_data, schema
         )
 
-        current_clean = util.admin.clean_config_for_comparison(permission)
-        incoming_clean = util.admin.clean_config_for_comparison(
-            updated_permission
-        )
-        if current_clean == incoming_clean:
-            flash(
-                "No changes detected. Permission policy was not updated.",
-                "yellow",
-            )
-            return redirect(url_for("admin_bp.list_permissions"))
-
         # Proceed with update
         updated_permission["updated_on"] = datetime.utcnow()
         updated_permission["updated_by"] = current_user.email
         updated_permission["version"] = permission.get("version", 1) + 1
+        updated_permission["schema_name"] = schema["_id"]
+        updated_permission["schema_version"] = schema["version"]
+
+        # Inject version history with delta
+        updated_permission = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=updated_permission,
+            old_config=permission,
+            is_new=False,
+        )
 
         # Log Action
         g.audit_metadata = {"permission": perm_id}
@@ -1339,7 +1373,64 @@ def edit_permission(perm_id) -> Response | str:
         return redirect(url_for("admin_bp.list_permissions"))
 
     return render_template(
-        "access/edit_permission.html", schema=schema, config=permission
+        "access/edit_permission.html",
+        schema=schema,
+        permission=permission,
+        selected_version=selected_version,
+        delta=delta,
+    )
+
+
+@admin_bp.route("/permissions/<perm_id>/view", methods=["GET"])
+@require("view_permission", min_role="admin", min_level=99999)
+@log_action(action_name="view_permission", call_type="admin_call")
+def view_permission(perm_id) -> str | Response:
+    """
+    View a permission policy by its ID.
+
+    Args:
+        perm_id (str): The unique identifier of the permission policy to view.
+
+    Returns:
+        Response: Renders the view permission template or redirects if not found.
+    """
+    permission = store.permissions_handler.get(perm_id)
+    if not permission:
+        return abort(404)
+
+    schema = store.schema_handler.get_schema(permission.get("schema_name"))
+
+    if not schema:
+        flash("Schema for this permission is missing.", "red")
+        return redirect(url_for("admin_bp.list_permissions"))
+
+    # Handle optional version rewind
+    selected_version = request.args.get("version", type=int)
+    delta = None
+    if selected_version and selected_version != permission.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(permission.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = permission["version_history"][version_index].get(
+                "delta", {}
+            )
+            delta = delta_blob  # Used for UI highlighting
+            permission = util.admin.apply_version_delta(
+                deepcopy(permission), delta_blob
+            )
+
+    return render_template(
+        "access/view_permission.html",
+        schema=schema,
+        permission=permission,
+        selected_version=selected_version or permission.get("version"),
+        delta=delta,
     )
 
 
