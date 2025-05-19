@@ -194,7 +194,7 @@ def create_user() -> Response | str:
     ]
 
     # Inject assay groups from the assay_panels collections
-    assay_groups = store.panel_handler.get_all_groups()
+    assay_groups: list = store.panel_handler.get_all_groups()
     schema["fields"]["assay_groups"]["options"] = assay_groups
 
     # get all assays for each group in a dict
@@ -219,12 +219,12 @@ def create_user() -> Response | str:
     schema["fields"]["updated_on"]["default"] = datetime.utcnow()
 
     if request.method == "POST":
-        form_data = {
+        form_data: dict[str, str | list[str]] = {
             key: (vals[0] if len(vals) == 1 else vals)
             for key, vals in request.form.to_dict(flat=False).items()
         }
 
-        user_data = util.admin.process_form_to_config(form_data, schema)
+        user_data: dict = util.admin.process_form_to_config(form_data, schema)
         user_data["_id"] = user_data["username"]
         user_data["schema_name"] = schema["_id"]
         user_data["schema_version"] = schema["version"]
@@ -282,9 +282,6 @@ def edit_user(user_id) -> Response | str:
     # Inject Roles from the Roles collections
     available_roles = store.roles_handler.get_all_role_names()
     schema["fields"]["role"]["options"] = available_roles
-
-    # Inject permissions from permissions collections
-    permission_policies = store.permissions_handler.get_all(is_active=True)
 
     # Inject checkbox options directly into schema field definition
     permission_policies = store.permissions_handler.get_all(is_active=True)
@@ -1448,8 +1445,8 @@ def create_role() -> Response | str:
     """
 
     active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="admin_config",
-        schema_category="access_control",
+        schema_type="rbac_role",
+        schema_category="RBAC_role",
         is_active=True,
     )
 
@@ -1464,43 +1461,56 @@ def create_role() -> Response | str:
         flash("Selected schema not found!", "red")
         return redirect(url_for("admin_bp.list_roles"))
 
-    permission_policies = store.permissions_handler.get_all(is_active=True)
-
     # Inject checkbox options directly into schema field definition
-    if "permissions" in schema["fields"]:
-        schema["fields"]["permissions"]["options"] = [
-            {
-                "value": p["_id"],
-                "label": p.get("label", p["_id"]),
-                "category": p.get("category", "Uncategorized"),
-            }
-            for p in permission_policies
-        ]
+    permission_policies = store.permissions_handler.get_all(is_active=True)
+    schema["fields"]["permissions"]["options"] = [
+        {
+            "value": p["_id"],
+            "label": p.get("label", p["_id"]),
+            "category": p.get("category", "Uncategorized"),
+        }
+        for p in permission_policies
+    ]
+    schema["fields"]["deny_permissions"]["options"] = [
+        {
+            "value": p["_id"],
+            "label": p.get("label", p["_id"]),
+            "category": p.get("category", "Uncategorized"),
+        }
+        for p in permission_policies
+    ]
+
+    # inject audit data into the schema
+    schema["fields"]["created_by"]["default"] = current_user.email
+    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_by"]["default"] = current_user.email
+    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
 
     if request.method == "POST":
-        form_data = {
+        form_data: dict[str, str | list[str]] = {
             key: (vals[0] if len(vals) == 1 else vals)
             for key, vals in request.form.to_dict(flat=False).items()
         }
-        permissions = request.form.getlist("permissions") or []
 
-        policy = util.admin.process_form_to_config(form_data, schema)
+        role: dict = util.admin.process_form_to_config(form_data, schema)
 
-        policy["name"] = form_data.get("_id")
+        role["_id"] = role.get("name")
+        role["schema_name"] = schema["_id"]
+        role["schema_version"] = schema["version"]
 
-        policy["schema_name"] = schema["_id"]
-        policy["schema_version"] = schema["version"]
-        policy["permissions"] = permissions
-        policy["created_by"] = current_user.email
-        policy["created_on"] = datetime.utcnow().isoformat()
-        policy["updated_by"] = current_user.email
-        policy["updated_on"] = datetime.utcnow().isoformat()
+        # Inject version history with delta
+        role = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=deepcopy(role),
+            is_new=True,
+        )
 
         # Log Action
-        g.audit_metadata = {"role": policy["_id"]}
+        g.audit_metadata = {"role": role["_id"]}
 
-        store.roles_handler.save_role(policy)
-        flash(f"Role '{policy["_id"]}' created successfully.", "green")
+        store.roles_handler.save_role(role)
+        print(role)
+        flash(f"Role '{role["_id"]}' created successfully.", "green")
         return redirect(url_for("admin_bp.list_roles"))
 
     return render_template(
@@ -1533,34 +1543,74 @@ def edit_role(role_id) -> Response | str:
         return abort(404)
 
     schema = store.schema_handler.get_schema(role.get("schema_name"))
-    permission_policies = store.permissions_handler.get_all(is_active=True)
 
     # Inject checkbox options directly into schema field definition
-    if "permissions" in schema["fields"]:
-        schema["fields"]["permissions"]["options"] = [
-            {
-                "value": p["_id"],
-                "label": p.get("label", p["_id"]),
-                "category": p.get("category", "Uncategorized"),
-            }
-            for p in permission_policies
-        ]
+    permission_policies = store.permissions_handler.get_all(is_active=True)
+    schema["fields"]["permissions"]["options"] = [
+        {
+            "value": p["_id"],
+            "label": p.get("label", p["_id"]),
+            "category": p.get("category", "Uncategorized"),
+        }
+        for p in permission_policies
+    ]
+    schema["fields"]["deny_permissions"]["options"] = [
+        {
+            "value": p["_id"],
+            "label": p.get("label", p["_id"]),
+            "category": p.get("category", "Uncategorized"),
+        }
+        for p in permission_policies
+    ]
+
+    schema["fields"]["permissions"]["default"] = role.get("permissions")
+    schema["fields"]["deny_permissions"]["default"] = role.get(
+        "deny_permissions"
+    )
+
+    # --- Rewind logic ---
+    selected_version = request.args.get("version", type=int)
+    delta = None
+
+    if selected_version and selected_version != role.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(role.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = role["version_history"][version_index].get(
+                "delta", {}
+            )
+            role = util.admin.apply_version_delta(deepcopy(role), delta_blob)
+            delta = delta_blob
+            role["_id"] = role_id
 
     if request.method == "POST":
-        form_data = request.form.to_dict(flat=True)
-        permissions = request.form.getlist("permissions") or []
+        form_data = {
+            key: (vals[0] if len(vals) == 1 else vals)
+            for key, vals in request.form.to_dict(flat=False).items()
+        }
 
         updated_role = util.admin.process_form_to_config(form_data, schema)
-        current_clean = util.admin.clean_config_for_comparison(role)
-        incoming_clean = util.admin.clean_config_for_comparison(updated_role)
-        if current_clean == incoming_clean:
-            flash("No changes detected. Role was not updated.", "yellow")
-            return redirect(url_for("admin_bp.list_roles"))
 
-        updated_role["permissions"] = permissions
         updated_role["updated_by"] = current_user.email
-        updated_role["updated_on"] = datetime.utcnow().isoformat()
+        updated_role["updated_on"] = datetime.utcnow()
+        updated_role["schema_name"] = schema["_id"]
+        updated_role["schema_version"] = schema["version"]
         updated_role["version"] = role.get("version", 1) + 1
+        updated_role["_id"] = role.get("_id")
+
+        # Inject version history with delta
+        updated_role = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=updated_role,
+            old_config=role,
+            is_new=False,
+        )
 
         # Log Action
         g.audit_metadata = {"role": role_id}
@@ -1569,7 +1619,63 @@ def edit_role(role_id) -> Response | str:
         flash(f"Role '{role_id}' updated successfully.", "green")
         return redirect(url_for("admin_bp.list_roles"))
 
-    return render_template("access/edit_role.html", schema=schema, config=role)
+    return render_template(
+        "access/edit_role.html",
+        schema=schema,
+        role_doc=role,
+        selected_version=selected_version,
+        delta=delta,
+    )
+
+
+@admin_bp.route("/roles/<role_id>/view", methods=["GET"])
+@require("view_role", min_role="admin", min_level=99999)
+@log_action(action_name="view_role", call_type="admin_call")
+def view_role(role_id) -> Response | str:
+    """
+    View the details of a role by its ID.
+
+    Args:
+        role_id (str): The ID of the role to view.
+
+    Returns:
+        Response: Rendered HTML template displaying the role details.
+    """
+    role = store.roles_handler.get_role(role_id)
+    if not role:
+        return abort(404)
+
+    schema = store.schema_handler.get_schema(role.get("schema_name"))
+    if not schema:
+        flash("Schema for this role is missing.", "red")
+        return redirect(url_for("admin_bp.list_roles"))
+
+    # Handle optional version rewind
+    selected_version = request.args.get("version", type=int)
+    delta = None
+    if selected_version and selected_version != role.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(role.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = role["version_history"][version_index].get(
+                "delta", {}
+            )
+            delta = delta_blob  # Used for UI highlighting
+            role = util.admin.apply_version_delta(deepcopy(role), delta_blob)
+
+    return render_template(
+        "access/view_role.html",
+        schema=schema,
+        role_doc=role,
+        selected_version=selected_version or role.get("version"),
+        delta=delta,
+    )
 
 
 @admin_bp.route("/roles/<role_id>/toggle", methods=["POST", "GET"])
