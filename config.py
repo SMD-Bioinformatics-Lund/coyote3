@@ -50,14 +50,14 @@ class DefaultConfig:
     PRODUCTION = False
 
     INTERNAL_USERS = {
-        "coyote.admin@skane.se",
-        "coyote.developer@skane.se",
-        "coyote.tester@skane.se",
-        "coyote.manager@skane.se",
-        "coyote.user@skane.se",
-        "coyote.intern@skane.se",
-        "coyote.viewer@skane.se",
-        "coyote.external@skane.se",
+        "coyote3.admin@skane.se",
+        "coyote3.developer@skane.se",
+        "coyote3.tester@skane.se",
+        "coyote3.manager@skane.se",
+        "coyote3.user@skane.se",
+        "coyote3.intern@skane.se",
+        "coyote3.viewer@skane.se",
+        "coyote3.external@skane.se",
     }
 
     # For the public assay map

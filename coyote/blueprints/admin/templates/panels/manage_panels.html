@@ -43,7 +43,11 @@
                   <td class="p-2 font-medium">{{ panel.assay_name }}</td>
                   <td class="p-2 font-medium">{{ panel.display_name }}</td>
                   <td class="p-2 font-medium">{{ panel.asp_group }}</td>
-                  <td class="p-2 font-medium">{{ panel.asp_category }}</td>
+                  <td class="p-2 font-medium">
+                    <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold {% if panel.asp_category == 'DNA' %} bg-purple-600 {% elif panel.asp_category == 'RNA' %} bg-orange-600 {% else %} bg-gray-600 {% endif %} text-center">
+                      {{ panel.asp_category }}
+                    </span>
+                  </td>
                   <td class="p-2 font-medium">{{ panel.covered_genes|length }}</td>
                   <td class="p-2 font-medium">{{ panel.target_region_size }}</td>
                   <td class="p-2 font-medium">{{ panel.asp_family }}</td>

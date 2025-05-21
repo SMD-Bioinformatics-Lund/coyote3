@@ -107,7 +107,7 @@ class UsersHandler(BaseHandler):
         Returns:
             list: A list of user documents.
         """
-        return list(self.get_collection().find().sort("fullname", 1))
+        return list(self.get_collection().find().sort("firstname", 1))
 
     def delete_user(self, user_id) -> None:
         """

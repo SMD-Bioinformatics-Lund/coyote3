@@ -89,17 +89,23 @@
                     </div>
                   </div>
                 {% elif field.display_type == "select" %}
-                  <select name="{{ key }}" id="{{ key }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
-                    {% for opt in field.options %}
-                      <option value="{{ opt }}" {% if opt == value %}selected{% endif %}>{{ opt }}</option>
-                    {% endfor %}
-                  </select>
+                  <div>
+                    <label class="text-xs font-semibold block mb-1">{{ field.label }}</label>
+                    <select name="{{ key }}" id="{{ key }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
+                      {% for opt in field.options %}
+                        <option value="{{ opt }}" {% if opt == value %}selected{% endif %}>{{ opt }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
                 {% elif field.display_type == "multi-select" %}
-                  <select name="{{ key }}" id="{{ key }}" multiple class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
-                    {% for opt in field.options %}
-                      <option value="{{ opt }}" {% if value and opt in value %}selected{% endif %}>{{ opt }}</option>
-                    {% endfor %}
-                  </select>
+                  <div>
+                    <label class="text-xs font-semibold block mb-1">{{ field.label }}</label>
+                    <select name="{{ key }}" id="{{ key }}" multiple class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
+                      {% for opt in field.options %}
+                        <option value="{{ opt }}" {% if value and opt in value %}selected{% endif %}>{{ opt }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
                 {% elif field.display_type == "checkbox" %}
                   <div class="flex items-center space-x-2">
                     <input type="checkbox" name="{{ key }}" value="true" {% if value %}checked{% endif %} class="accent-blue-600 rounded">
@@ -107,6 +113,7 @@
                   </div>
                 {% elif field.display_type == "password" %}
                   <div id="password-wrapper" class="col-span-full flex flex-col">
+                    <label class="text-xs font-semibold block mb-1">{{ field.label }}</label>
                     <input type="password" id="password" name="password" placeholder="Enter password" data-minlength="{{ schema.fields.password.min_length or 10 }}" class=" w-full max-w-3xl bg-gray-100 border border-gray-400 rounded-md p-2 text-sm mt-1" placeholder="{{ field.placeholder }}">
                     <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter password" class=" w-full max-w-3xl bg-gray-100 border border-gray-400 rounded-md p-2 text-sm mt-1">
                     <p id="password_match_msg" class="text-xs mt-1"></p>
@@ -147,7 +154,7 @@
     const passwordInput = document.getElementById("password");
     const confirmPasswordInput = document.getElementById("confirm_password");
     const passwordMsg = document.getElementById("password_match_msg");
-    const authSource = document.querySelector('[name="auth_source"]');
+    const authSource = document.querySelector('[name="auth_type"]');
     const passwordWrapper = document.getElementById("password-wrapper");
 
     const groupToggles = document.querySelectorAll('.group-toggle');
@@ -291,6 +298,72 @@
     updateFullAndUsername();
     updateAssayVisibility();
     updatePasswordVisibility();
+
+    // ========== Role and Permission Handling ==========
+    const roleSelect = document.getElementById("role");
+    const permissionCheckboxes = document.querySelectorAll('input[name="permissions"]');
+    const denyPermissionCheckboxes = document.querySelectorAll('input[name="deny_permissions"]');
+  
+    const roleMap = {{ role_map | tojson | safe }};
+  
+    function updatePermissionsFromRole(roleId) {
+      if (!roleMap[roleId]) return;
+  
+      const selectedPerms = roleMap[roleId].permissions || [];
+      const deniedPerms = roleMap[roleId].deny_permissions || [];
+  
+      permissionCheckboxes.forEach(cb => {
+        cb.checked = selectedPerms.includes(cb.value);
+      });
+  
+      denyPermissionCheckboxes.forEach(cb => {
+        cb.checked = deniedPerms.includes(cb.value);
+      });
+  
+      highlightConflicts();
+    }
+  
+    function highlightConflicts() {
+      const selectedPerms = new Set();
+      const deniedPerms = new Set();
+  
+      permissionCheckboxes.forEach(cb => {
+        if (cb.checked) selectedPerms.add(cb.value);
+      });
+  
+      denyPermissionCheckboxes.forEach(cb => {
+        if (cb.checked) deniedPerms.add(cb.value);
+      });
+  
+      const allLabels = document.querySelectorAll('label.inline-flex');
+  
+      allLabels.forEach(label => {
+        const input = label.querySelector('input');
+        if (!input) return;
+  
+        const isConflict = selectedPerms.has(input.value) && deniedPerms.has(input.value);
+        if (isConflict) {
+          label.classList.add("ring", "ring-red-500", "ring-offset-1");
+        } else {
+          label.classList.remove("ring", "ring-red-500", "ring-offset-1");
+        }
+      });
+    }
+  
+    permissionCheckboxes.forEach(cb => cb.addEventListener("change", highlightConflicts));
+    denyPermissionCheckboxes.forEach(cb => cb.addEventListener("change", highlightConflicts));
+  
+    if (roleSelect) {
+      roleSelect.addEventListener("change", () => {
+        updatePermissionsFromRole(roleSelect.value);
+      });
+  
+      // Trigger on initial load
+      if (roleSelect.value) {
+        updatePermissionsFromRole(roleSelect.value);
+      }
+    }
+
   });
 </script>
 

@@ -121,7 +121,9 @@ def manage_users() -> str:
         flask.Response: The rendered HTML page displaying the list of users.
     """
     users = store.user_handler.get_all_users()
-    return render_template("users/manage_users.html", users=users)
+    roles = store.roles_handler.get_role_colors()
+    print(roles)
+    return render_template("users/manage_users.html", users=users, roles=roles)
 
 
 @admin_bp.route("/users/new", methods=["GET", "POST"])
@@ -174,6 +176,16 @@ def create_user() -> Response | str:
     available_roles = store.roles_handler.get_all_role_names()
     schema["fields"]["role"]["options"] = available_roles
 
+    # create a mapping of role_id to role_name, permissions, deny_permissions and level
+    all_roles = store.roles_handler.get_all_roles()
+    role_map = {}
+    for role in all_roles:
+        role_map[role["_id"]] = {
+            "permissions": role.get("permissions", []),
+            "deny_permissions": role.get("deny_permissions", []),
+            "level": role.get("level", 0),
+        }
+
     # Inject permissions from permissions collections
     permission_policies = store.permissions_handler.get_all(is_active=True)
     schema["fields"]["permissions"]["options"] = [
@@ -224,6 +236,18 @@ def create_user() -> Response | str:
             for key, vals in request.form.to_dict(flat=False).items()
         }
 
+        # Remove all the permissions that are already there in the role and add any additional permissions to the user doc
+        # This is to ensure that the user does not get duplicate permissions
+        role_permissions = role_map.get(form_data["role"], {})
+        form_data["permissions"] = list(
+            set(form_data.get("permissions", []))
+            - set(role_permissions.get("permissions", []))
+        )
+        form_data["deny_permissions"] = list(
+            set(form_data.get("deny_permissions", []))
+            - set(role_permissions.get("deny_permissions", []))
+        )
+
         user_data: dict = util.admin.process_form_to_config(form_data, schema)
         user_data["_id"] = user_data["username"]
         user_data["schema_name"] = schema["_id"]
@@ -259,6 +283,7 @@ def create_user() -> Response | str:
         schemas=active_schemas,
         selected_schema=schema,
         assay_group_map=assay_group_map,
+        role_map=role_map,
     )
 
 
@@ -301,6 +326,16 @@ def edit_user(user_id) -> Response | str:
         }
         for p in permission_policies
     ]
+
+    # create a mapping of role_id to role_name, permissions, deny_permissions and level
+    all_roles = store.roles_handler.get_all_roles()
+    role_map = {}
+    for role in all_roles:
+        role_map[role["_id"]] = {
+            "permissions": role.get("permissions", []),
+            "deny_permissions": role.get("deny_permissions", []),
+            "level": role.get("level", 0),
+        }
 
     schema["fields"]["permissions"]["default"] = user_doc.get("permissions")
     schema["fields"]["deny_permissions"]["default"] = user_doc.get(
@@ -362,6 +397,21 @@ def edit_user(user_id) -> Response | str:
 
         updated_user = util.admin.process_form_to_config(form_data, schema)
 
+        updated_user["permissions"] = list(
+            set(updated_user.get("permissions", []))
+            - set(
+                role_map.get(updated_user["role"], {}).get("permissions", [])
+            )
+        )
+        updated_user["deny_permissions"] = list(
+            set(updated_user.get("deny_permissions", []))
+            - set(
+                role_map.get(updated_user["role"], {}).get(
+                    "deny_permissions", []
+                )
+            )
+        )
+
         # Proceed with update
         updated_user["updated_on"] = datetime.utcnow()
         updated_user["updated_by"] = current_user.email
@@ -401,6 +451,7 @@ def edit_user(user_id) -> Response | str:
         schema=schema,
         user=user_doc,
         assay_group_map=assay_group_map,
+        role_map=role_map,
         selected_version=selected_version,
         delta=delta,
     )
@@ -1876,17 +1927,28 @@ def create_assay_panel():
     schema["fields"]["updated_on"]["default"] = datetime.utcnow()
 
     if request.method == "POST":
-        form_data = {
+        form_data: dict[str, list[str] | str] = {
             key: (
                 request.form.getlist(key)
-                if len(request.form.getlist(key)) > 1
+                if len(vals := request.form.getlist(key)) > 1
                 else request.form[key]
             )
             for key in request.form
         }
 
         covered_genes = []
-        if form_data.get("genes_paste"):
+        if (
+            "genes_file" in request.files
+            and request.files["genes_file"].filename
+        ):
+            file = request.files["genes_file"]
+            content = file.read().decode("utf-8")
+            covered_genes = [
+                g.strip()
+                for g in content.replace(",", "\n").splitlines()
+                if g.strip()
+            ]
+        elif "genes_paste" in form_data and form_data["genes_paste"].strip():
             covered_genes = [
                 g.strip()
                 for g in form_data["genes_paste"]
@@ -1894,20 +1956,14 @@ def create_assay_panel():
                 .splitlines()
                 if g.strip()
             ]
-        elif (
-            "genes_file" in request.files
-            and request.files["genes_file"].filename
-        ):
-            content = request.files["genes_file"].read().decode("utf-8")
-            covered_genes = [
-                g.strip()
-                for g in content.replace(",", "\n").splitlines()
-                if g.strip()
-            ]
+
+        covered_genes = list(set(deepcopy(covered_genes)))
+        covered_genes.sort()
 
         config = util.admin.process_form_to_config(form_data, schema)
         config["_id"] = config["assay_name"]
-        config["covered_genes"] = list(set(covered_genes))
+        config["covered_genes"] = covered_genes
+        config["covered_genes_count"] = len(covered_genes)
 
         config.update(
             {
@@ -1919,7 +1975,9 @@ def create_assay_panel():
 
         # Inject version history (initial creation marker, no delta)
         config = util.admin.inject_version_history(
-            user_email=config, new_config=current_user.email, is_new=True
+            user_email=current_user.email,
+            new_config=deepcopy(config),
+            is_new=True,
         )
 
         store.panel_handler.insert_panel(config)
@@ -1970,10 +2028,10 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
             panel["_id"] = assay_panel_id
 
     if request.method == "POST":
-        form_data = {
+        form_data: dict[str, list[str] | str] = {
             key: (
                 request.form.getlist(key)
-                if len(request.form.getlist(key)) > 1
+                if len(vals := request.form.getlist(key)) > 1
                 else request.form[key]
             )
             for key in request.form
@@ -1984,46 +2042,39 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
             "genes_file" in request.files
             and request.files["genes_file"].filename
         ):
-            content = request.files["genes_file"].read().decode("utf-8")
+            file = request.files["genes_file"]
+            content = file.read().decode("utf-8")
             covered_genes = [
                 g.strip()
                 for g in content.replace(",", "\n").splitlines()
                 if g.strip()
             ]
-        elif form_data.get("genes_paste"):
+        elif "genes_paste" in form_data and form_data["genes_paste"].strip():
+            pasted = form_data["genes_paste"].replace(",", "\n")
             covered_genes = [
-                g.strip()
-                for g in form_data["genes_paste"]
-                .replace(",", "\n")
-                .splitlines()
-                if g.strip()
+                g.strip() for g in pasted.splitlines() if g.strip()
             ]
         else:
             covered_genes = panel.get("covered_genes", [])
 
+        covered_genes = list(set(deepcopy(covered_genes)))
+        covered_genes.sort()
         updated = util.admin.process_form_to_config(form_data, schema)
         updated["_id"] = panel["_id"]
-        updated["covered_genes"] = list(set(covered_genes))
+        updated["covered_genes"] = covered_genes
+        updated["covered_genes_count"] = len(covered_genes)
         updated["updated_by"] = current_user.email
         updated["updated_on"] = datetime.utcnow()
-        updated["created_by"] = panel.get("created_by")
-        updated["created_on"] = panel.get("created_on")
         updated["schema_name"] = schema["_id"]
         updated["schema_version"] = schema["version"]
         updated["version"] = panel.get("version", 1) + 1
 
-        # Compute delta only
-        _, delta_blob = util.admin.generate_version_delta(panel, updated)
-
-        updated["version_history"] = panel.get("version_history", [])
-        updated["version_history"].append(
-            {
-                "version": updated["version"],
-                "timestamp": updated["updated_on"],
-                "user": current_user.email,
-                "delta": delta_blob,
-                "hash": util.admin.hash_config(updated),
-            }
+        # Inject version history with delta
+        updated = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=updated,
+            old_config=panel,
+            is_new=False,
         )
 
         store.panel_handler.update_panel(assay_panel_id, updated)
@@ -2173,7 +2224,7 @@ def delete_assay_panel(assay_panel_id):
     # Log Action
     g.audit_metadata = {"panel": assay_panel_id}
 
-    flash(f"Panel '{assay_panel_id}' deleted!", "red")
+    flash(f"Panel '{assay_panel_id}' deleted!", "green")
     return redirect(url_for("admin_bp.manage_assay_panels"))
 
 
@@ -2284,9 +2335,11 @@ def create_genelist() -> Response | str:
                 if g.strip()
             ]
 
+        genes = list(set(deepcopy(genes)))
+        genes.sort()
         config = util.admin.process_form_to_config(form_data, schema)
         config["_id"] = config["name"]
-        config["genes"] = list(set(genes))
+        config["genes"] = genes
         config["schema_name"] = schema["_id"]
         config["schema_version"] = schema["version"]
         config["gene_count"] = len(genes)
@@ -2407,12 +2460,15 @@ def edit_genelist(genelist_id) -> Response | str:
         else:
             genes = genelist.get("genes", [])
 
-        updated["genes"] = list(set(genes))
+        genes = list(set(deepcopy(genes)))
+        genes.sort()
+        updated["genes"] = genes
         updated["gene_count"] = len(genes)
-
-        updated["version"] = genelist.get("version", 1) + 1
+        updated["updated_by"] = current_user.email
+        updated["updated_on"] = datetime.utcnow()
         updated["schema_name"] = schema["_id"]
         updated["schema_version"] = schema["version"]
+        updated["version"] = genelist.get("version", 1) + 1
 
         # Inject version history with delta
         updated = util.admin.inject_version_history(

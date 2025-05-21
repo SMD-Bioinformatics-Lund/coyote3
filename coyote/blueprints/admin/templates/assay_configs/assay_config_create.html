@@ -124,6 +124,7 @@
                       <input type="{{ 'number' if field.data_type in ['int', 'float'] else 'text' }}"
                               name="{{ key }}" id="{{ key }}" placeholder="{{ field.placeholder }}"
                               value="{{ value or '' }}"
+                              step="any"
                               class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
                     {% endif %}
                   </div>

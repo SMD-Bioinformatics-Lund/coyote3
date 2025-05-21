@@ -83,7 +83,7 @@
                   <div class="flex flex-col col-span-full gap-1">
                     <label class="text-xs font-semibold block mb-1">{{ field.label }}</label>
                     <label class="text-xs text-gray-500 italic block">If both a gene list is pasted and a file is uploaded, the uploaded file will be used.</label>
-                    <textarea name="genes_paste" rows="6" placeholder="Paste genes here, separated by comma or newline"
+                    <textarea name="genes_paste" rows="6" placeholder="{{ field.placeholder }}"
                       class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm font-mono resize-y"></textarea>
                     <div>
                       <span class="text-xs font-semibold block mb-2">Or Upload Gene File</span>

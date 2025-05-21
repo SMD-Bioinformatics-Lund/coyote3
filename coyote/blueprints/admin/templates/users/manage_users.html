@@ -32,7 +32,7 @@
                   <th class="p-2 font-normal">Email</th>
                   <th class="p-2 font-normal">Job Title</th>
                   <th class="p-2 font-normal">Role</th>
-                  <th class="p-2 font-normal">Permissions</th>
+                  <th class="p-2 font-normal">Auth Type</th>
                   <th class="p-2 font-normal">Status</th>
                   <th class="p-2 font-normal">Last Login</th>
                   <th class="p-2 font-normal">Created</th>
@@ -42,17 +42,25 @@
               </thead>
               <tbody id="users-list-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
                 {% for user in users %}
-                  <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
+                  <tr class="border-t border-gray-400 hover:bg-{{ roles[user.role] }}-100 text-left last:rounded-b-2xl">
                     <td class="p-2 font-medium">{{ user._id }}</td>
-                    <td class="p-2 font-medium">{{ user.fullname }}</td>
+                    <td class="p-2 font-medium">{{ user.fullname.title() }}</td>
                     <td class="p-2 font-medium">{{ user.email }}</td>
                     <td class="p-2 font-medium">{{ user.job_title or '-' }}</td>
-                    <td class="p-2 font-medium">{{ user.role.replace('_', ' ').title() }}</td>
                     <td class="p-2 font-medium">
-                      {% if user.permissions %}
-                        {{ user.permissions|join(', ') }}
+                      <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-{{ roles[user.role] }}-500 text-center">
+                        {{ user.role.title() }}
+                      </span>
+                    </td>
+                    <td class="p-2 font-medium">
+                      {% if user.auth_type == 'coyote3' %}
+                        <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-brown-500 text-center">Local</span>
+                      {% elif user.auth_type == 'ldap' %}
+                        <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-blue-500 text-center">LDAP</span>
+                      {% elif user.auth_type == 'oauth' %}
+                        <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-yellow-500 text-center">OAuth</span>
                       {% else %}
-                        -
+                        <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-gray-500 text-center">Unknown</span>
                       {% endif %}
                     <td class="p-2 font-medium">
                       {% if user.is_active %}

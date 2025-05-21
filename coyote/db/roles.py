@@ -66,6 +66,21 @@ class RolesHandler(BaseHandler):
             )
         ]
 
+    def get_role_colors(self) -> list:
+        """
+        Retrieve all role colors.
+
+        This method fetches the colors of all roles from the database.
+
+        Returns:
+            list: A list of role colors.
+        """
+        roles = self.get_collection().find({}, {"color": 1})
+        roles_colors = {}
+        for role in roles:
+            roles_colors[role["_id"]] = role["color"]
+        return roles_colors
+
     def save_role(self, role_data: dict) -> Any:
         """
         Save a role.
@@ -139,4 +154,38 @@ class RolesHandler(BaseHandler):
         """
         return self.get_collection().update_one(
             {"_id": role_id}, {"$set": {"is_active": active_status}}
+        )
+
+    def get_all_roles_plus_permissions(self) -> list:
+        """
+        Retrieve all roles from the database.
+
+        This method fetches all role documents from the roles collection and sorts them
+        in descending order based on their `level` field.
+
+        Returns:
+            list: A list of role documents sorted by their `level` field in descending order.
+        """
+        return list(
+            self.get_collection().find(
+                {},
+                {"_id": 1, "name": 1, "permissions": 1, "deny_permissions": 1},
+            )
+        )
+
+    def get_role_permissions(self, role_id: str) -> dict:
+        """
+        Retrieve the permissions of a specific role.
+
+        This method fetches the permissions and deny_permissions fields of a role document
+        based on its unique identifier.
+
+        Args:
+            role_id (str): The unique identifier of the role to retrieve permissions for.
+
+        Returns:
+            dict: A dictionary containing the permissions and deny_permissions fields.
+        """
+        return self.get_collection().find_one(
+            {"_id": role_id}, {"permissions": 1, "deny_permissions": 1}
         )
