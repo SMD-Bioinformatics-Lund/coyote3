@@ -81,6 +81,7 @@ def list_variants(sample_id):
     subpanel: str | None = sample.get("subpanel")  # breast, LP, lung, etc.
     dna_sections = list(assay_config.get("DNA", {}).keys())
     display_sections_data = {}
+    summary_sections_data = {}
     app.logger.debug(
         f"Assay group: {assay_group} - DNA config: {pformat(dna_sections)}"
     )
@@ -200,7 +201,9 @@ def list_variants(sample_id):
     # this is in config, but needs to be tested (2024-05-14) with a HD-sample of relevant name
     disp_pos = []
     if "verification_samples" in assay_config:
+        print("Verification is assay")
         if sample["name"] in assay_config["verification_samples"]:
+            print("Sample is verification sample")
             disp_pos = assay_config["verification_samples"][sample["name"]]
 
     ## SNV FILTRATION STARTS HERE ! ##
@@ -231,8 +234,8 @@ def list_variants(sample_id):
     )
 
     # Add global annotations for the variants
-    variants = util.dna.add_global_annotations(variants, assay_group, subpanel)
-
+    variants, tiered_variants = util.dna.add_global_annotations(variants, assay_group, subpanel)
+    summary_sections_data['snvs'] = tiered_variants
     # Filter by population frequency, the same as in the query
     # variants = util.dna.popfreq_filter(variants, float(sample_filters["max_popfreq"]))
 
@@ -255,6 +258,11 @@ def list_variants(sample_id):
         cnvs = util.dna.cnv_organizegenes(cnvs)
 
         display_sections_data["cnvs"] = deepcopy(cnvs)
+        summary_sections_data["cnvs"] = list(
+            store.cnv_handler.get_interesting_sample_cnvs(
+                sample_id=str(sample["_id"])
+            )
+        )
 
     if "BIOMARKER" in dna_sections:
         display_sections_data["biomarkers"] = list(
@@ -262,6 +270,7 @@ def list_variants(sample_id):
                 sample_id=str(sample["_id"])
             )
         )
+        summary_sections_data['biomarkers'] = display_sections_data["biomarkers"]
 
     if "TRANSLOCATION" in dna_sections:
         display_sections_data["translocs"] = (
@@ -269,8 +278,14 @@ def list_variants(sample_id):
                 sample_id=str(sample["_id"])
             )
         )
+        summary_sections_data["translocs"] = (
+            store.transloc_handler.get_interesting_sample_translocations(
+                sample_id=str(sample["_id"])
+            )
+        )
     if "FUSION" in dna_sections:
         display_sections_data["fusions"] = []
+
 
     #################################################
 
@@ -310,32 +325,8 @@ def list_variants(sample_id):
     ## SNVs, non-optional. Though only has rules for PARP + myeloid and solid
     ai_text = ""
     conclusion = ""
-    # ai_text, conclusion = util.generate_ai_text( assay, variants, filter_genes, genelist_filter, sample["groups"][0] )
-    ## translocations (DNA fusions) and copy number variation. Works for solid so far, should work for myeloid, lymphoid
-    if assay_group == "solid":
-        transloc_iter_ai = store.transloc_handler.get_sample_translocations(
-            sample_id=str(sample["_id"])
-        )
-        biomarkers_iter_ai = store.biomarker_handler.get_sample_biomarkers(
-            sample_id=str(sample["_id"])
-        )
-        ai_text_transloc = util.dna.generate_ai_text_nonsnv(
-            assay_group, transloc_iter_ai, sample["groups"][0], "transloc"
-        )
-        ai_text_cnv = util.dna.generate_ai_text_nonsnv(
-            assay_group,
-            display_sections_data.get("cnvs"),
-            sample["groups"][0],
-            "cnv",
-        )
-        ai_text_bio = util.dna.generate_ai_text_nonsnv(
-            assay_group, biomarkers_iter_ai, sample["groups"][0], "bio"
-        )
-        ai_text = (
-            ai_text + ai_text_transloc + ai_text_cnv + ai_text_bio + conclusion
-        )
-    else:
-        ai_text = ai_text + conclusion
+    ai_text = util.bpcommon.generate_summary_text( assay_group, summary_sections_data, filter_genes, checked_genelists )
+
 
     return render_template(
         "list_variants_vep.html",
@@ -693,7 +684,7 @@ def gene_view(gene_name):
     app.logger.debug(f"gene specific variants: {len(variants)}")
 
     # TODO:  How slow is this????
-    variants = util.dna.add_global_annotations(variants, "assay", "subpanel")
+    variants, tiered_variants = util.dna.add_global_annotations(variants, "assay", "subpanel")
 
     variant_summary = defaultdict(dict)
     sample_oids = []
@@ -1027,7 +1018,8 @@ def show_cnv(sample_id, cnv_id):
     """
     cnv = store.cnv_handler.get_cnv(cnv_id)
     sample = store.sample_handler.get_sample_with_id((cnv["SAMPLE_ID"]))
-    sample_assay = util.common.get_assay_from_sample(sample)
+    sample_assay = util.common.select_one_sample_group(sample.get("groups"))
+    # sample_assay = util.common.get_assay_from_sample(sample)
     if sample_assay is None:
         flash("No assay group found for sample", "red")
         return redirect(url_for("home_bp.home_screen"))
@@ -1461,7 +1453,7 @@ def generate_dna_report(sample_id, **kwargs) -> Response | str:
     )
 
     # Add global annotations for the variants
-    variants = util.dna.add_global_annotations(variants, assay_group, subpanel)
+    variants, tiered_variants = util.dna.add_global_annotations(variants, assay_group, subpanel)
 
     # # Filter by population frequency
     # variants = util.dna.popfreq_filter(variants, float(sample_settings["max_popfreq"]))
