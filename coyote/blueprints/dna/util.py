@@ -235,10 +235,11 @@ class DNAUtility:
         return variants
 
     @staticmethod
-    def add_global_annotations(variants: list, assay: str, subpanel: str) -> list:
+    def add_global_annotations(variants: list, assay: str, subpanel: str) -> tuple:
         """
         Add global annotations to the variants
         """
+        selected_variants = []
         for var_idx, var in enumerate(variants):
             (
                 variants[var_idx]["global_annotations"],
@@ -246,6 +247,11 @@ class DNAUtility:
                 variants[var_idx]["other_classification"],
                 variants[var_idx]["annotations_interesting"],
             ) = store.annotation_handler.get_global_annotations(var, assay, subpanel)
+            classification = variants[var_idx]["classification"]
+            if classification is not None:
+                class_value = classification.get("class")
+                if class_value is not None and class_value < 999:
+                    selected_variants.append(variants[var_idx])
 
             # if (
             #     variants[var_idx]["classification"]["class"] == 999
@@ -258,7 +264,7 @@ class DNAUtility:
             #     variants[var_idx]["additional_classification"] = None
 
             variants[var_idx] = DNAUtility.add_alt_class(variants[var_idx], assay, subpanel)
-        return variants
+        return variants, selected_variants
 
     @staticmethod
     def add_alt_class(variant: dict, assay: str, subpanel: str) -> list[dict]:
