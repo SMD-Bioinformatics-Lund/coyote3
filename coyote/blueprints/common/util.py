@@ -17,9 +17,56 @@ class BPCommonUtility:
     Utility class for variants blueprint
     """
     @staticmethod
+    def generate_summary_text(assay_group, summary_sections_data, genes_chosen, checked_genelists):
+        text = ''
+        
+        # generic information about panel design and active genelists
+        text += BPCommonUtility.summarize_intro( genes_chosen, checked_genelists )
+        # get summary for SNVs
+        if 'snvs' in summary_sections_data:
+            text = text + "Kliniskt relevanta SNVs och små INDELs: \n"
+            class_vars, class_cnt = BPCommonUtility.sort_tiered_variants(summary_sections_data['snvs'], genes_chosen)
+            text = BPCommonUtility.summarize_tiered_snvs( class_vars, class_cnt, text)
+            if 1 in class_vars or 2 in class_vars or 3 in class_vars:
+                text += "\n\n"
+            else:
+                text += "Vid analysen har inga somatiskt förvärvade varianter i undersökta gener påvisats.\n\n"
+
+        if 'cnvs' in summary_sections_data:
+            if len(summary_sections_data['cnvs']) > 0:
+                text = text + "Kliniskt relevanta genspecifika kopietalsförändringar: \n"
+                text += BPCommonUtility.summarize_cnv(summary_sections_data['cnvs'])
+                text += "\n"
+        if 'translocs' in summary_sections_data:
+            if len(summary_sections_data['translocs']) > 0:
+                text = text + "Kliniskt relevanta genspecifika kopietalsförändringar: \n"
+                text += BPCommonUtility.summarize_transloc(summary_sections_data['translocs'])
+                text += "\n"
+        if 'fusions' in summary_sections_data:
+            ...
+        if 'biomarkers' in summary_sections_data:
+            text = text + "Andra kliniskt relevanta biomarkörer: \n"
+            text += BPCommonUtility.summarize_bio(summary_sections_data['biomarkers'])
+            text += "\n"
+        
+        accredited_assay = False # this should be configurable    
+        if accredited_assay:
+            accredited = ""
+        else:
+            accredited = "Analysen omfattas inte av ackrediteringen."
+        conclusion = (
+                "För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade varianter, var god se bifogad rapport. "
+                + accredited
+        )
+        text += conclusion
+        return text
+    
+    @staticmethod
     def summarize_intro( genes_chosen, checked_genelists ):
-        panel_name = "PLACEHOLDER"
-        INTRO = "DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar exoner i XX gener som inkluderas i PLACEHOLDER. Analysen avser somatiska varianter (hudbiopsi har använts som kontrollmaterial). För CEBPA undersöks även konstitutionella varianter.\n\n"
+        panel_name = "PLACEHOLDER" # this should be configurable
+        INTRO = "DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar exoner i XX gener som inkluderas i PH. Analysen avser somatiska varianter (hudbiopsi har använts som kontrollmaterial). För CEBPA undersöks även konstitutionella varianter.\n\n" # this should be configurable
+        IS_WGS = False # this should be configurable
+
         text = ""
         if len(checked_genelists) > 0:
             the_lists = []
@@ -33,28 +80,24 @@ class BPCommonUtility:
                 genepanel_plural = "orna "
             if len(genes_chosen) == 1:
                 gene_plural = "en "
-                definite_article = " vilken är inkluderad"
+                scope = " vilken är inkluderad i " + str(panel_name) + " sekvenseringspanel.\n\n"              
             else:
                 gene_plural = "erna "
-                definite_article = " vilka inkluderas"
+                scope = " vilka är inkluderade i " + str(panel_name) + " sekvenseringspanel.\n\n"
+            if IS_WGS:
+                scope = ""
             incl_genes_copy = genes_chosen[:]
             if len(genes_chosen) <= 20:
-                the_genes = CommonUtility.nl_join(incl_genes_copy, "samt")
+                the_genes = " som innefattar gen" + gene_plural + ": " + str(CommonUtility.nl_join(incl_genes_copy, "samt"))
             else:
-                the_genes = "som innefattar " + str(len(genes_chosen)) + " gener"
+                the_genes = " som innefattar " + str(len(genes_chosen)) + " gener"
             text += (
-                "DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar gen"
-                + gene_plural
-                + "i genlist"
-                + genepanel_plural
+                "DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar "
+                + "genlist" + str(genepanel_plural)
                 + ": "
-                + the_lists_spoken
-                + " "
+                + str(the_lists_spoken)
                 + the_genes
-                + definite_article
-                + " i "
-                + panel_name
-                + " sekvenseringspanel.\n\n"
+                + scope
             )
         else:
             text = INTRO
@@ -286,49 +329,6 @@ class BPCommonUtility:
         return text
 
     @staticmethod
-    def generate_summary_text(assay_group, summary_sections_data, genes_chosen, checked_genelists):
-        text = ''
-        
-        # generic information about panel design and active genelists
-        text += BPCommonUtility.summarize_intro( genes_chosen, checked_genelists )
-        # get summary for SNVs
-        if 'snvs' in summary_sections_data:
-            text = text + "Kliniskt relevanta SNVs och små INDELs: \n"
-            class_vars, class_cnt = BPCommonUtility.sort_tiered_variants(summary_sections_data['snvs'], genes_chosen)
-            text = BPCommonUtility.summarize_tiered_snvs( class_vars, class_cnt, text)
-            if 1 in class_vars or 2 in class_vars or 3 in class_vars:
-                text += "\n\n"
-            else:
-                text += "Vid analysen har inga somatiskt förvärvade varianter i undersökta gener påvisats.\n"
-
-        if 'cnvs' in summary_sections_data:
-            if len(summary_sections_data['cnvs']) > 0:
-                text = text + "Kliniskt relevanta genspecifika kopietalsförändringar: \n"
-                text += BPCommonUtility.summarize_cnv(summary_sections_data['cnvs'])
-            
-        if 'translocs' in summary_sections_data:
-            if len(summary_sections_data['translocs']) > 0:
-                text = text + "Kliniskt relevanta genspecifika kopietalsförändringar: \n"
-                text += BPCommonUtility.summarize_transloc(summary_sections_data['translocs'])
-        if 'fusions' in summary_sections_data:
-            ...
-        if 'biomarkers' in summary_sections_data:
-            text = text + "Andra kliniskt relevanta biomarkörer: \n"
-            text += BPCommonUtility.summarize_bio(summary_sections_data['biomarkers'])
-
-        accredited_assay = False
-        if accredited_assay:
-            accredited = ""
-        else:
-            accredited = "Analysen omfattas inte av ackrediteringen."
-        conclusion = (
-                "För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade varianter, var god se bifogad rapport. "
-                + accredited
-        )
-        text += conclusion
-        return text
-
-    @staticmethod
     def sort_tiered_variants( variants, genes_chosen ):
         class_vars = defaultdict(lambda: defaultdict(list))
         class_cnt = defaultdict(int)
@@ -355,8 +355,8 @@ class BPCommonUtility:
             2 : " av potentiell klinisk signifikans (Tier II)",
             3 : " av oklar klinisk signifikans (Tier III)"
         }
-
-        tiers_to_summarize = [1,2,3]
+        
+        tiers_to_summarize = [1,2,3] # this should be configurable
         for tier in tiers_to_summarize:
             if tier in class_vars:
                 if 1 in class_vars and 2 in class_vars and tier == 3:
@@ -401,108 +401,4 @@ class BPCommonUtility:
                     text += CommonUtility.nl_join(gene_texts, "och")
                 text += ". "
         return text
-
-    @staticmethod
-    def generate_ai_text_(assay, variants, incl_genes, genelists, group):
-        text = ""
-        conclusion = ""
-        if assay == "fusion":
-            text = "RNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar hela mRNA transkriptomet och avser detektion av fusionsgener.\n\nFör ytterligare information om utförd analys och beskrivning av eventuellt funna fusionsgener, var god se bifogad rapport. RNA-seq-analys har gjorts som led i ett utvecklingsarbete och har ej debiterats. Analysen omfattas inte av ackrediteringen."
-
-        if assay == "fusionrna":
-            text = "RNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar kända fusionsgener vid solid tumörsjukdom, se Analysbeskrivning nedan.\n\nFör ytterligare information om utförd analys och beskrivning av eventuellt funna fusionsgener, var god se bifogad rapport. Analysen omfattas inte av ackrediteringen."
-
-        if assay == "tumwgs":
-            text = "DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar hela genomet (WGS; whole genome sequencing) med indikationsspecifik analys av somatiska varianter (SNVs, indels, amplifieringar, homozygota deletioner samt större alleliska obalanser (förlust och överskott av genetiskt material). Korresponderande normalprov har använts som kontrollmaterial.\n\nFör ytterligare information om utförd analys och beskrivning av somatiskt förvärvade varianter, var god se bifogad rapport. Analysen omfattas inte av ackrediteringen."
-
-        if assay == "myeloid" or assay == "gmsonco" or assay == "solid":
-            text = ""
-
-            class_vars = defaultdict(lambda: defaultdict(list))
-            class_cnt = defaultdict(int)
-            for v in sorted(variants, key=lambda d: d["GT"][0]["AF"], reverse=True):
-                if "irrelevant" in v and v["irrelevant"] == True:
-                    continue
-                if len(incl_genes) > 0 and v["INFO"]["selected_CSQ"]["SYMBOL"] not in incl_genes:
-                    continue
-                percent = ""
-                for gt in v["GT"]:
-                    if gt["type"] == "case":
-                        percent = str(int(round(100 * gt["AF"], 0))) + "%"
-                class_vars[v["classification"]["class"]][
-                    v["INFO"]["selected_CSQ"]["SYMBOL"]
-                ].append(percent)
-                class_cnt[v["classification"]["class"]] += 1
-
-            first = 1
-
-            ## Use groups table from mongodb to determine things ##
-            group_config = app.config["GROUPS_COLL"].find_one({"_id": group})
-
-            if group_config:
-                if "panel_name" in group_config:
-                    panel_name = group_config["panel_name"]
-                ## fallback to original assay in coyote
-            else:
-                panel_name = "Illuminas TruSight Myeloid"
-
-            if len(genelists) > 0:
-                the_lists = []
-                for genelist in genelists:
-                    list_name = genelist[9:].upper()
-                    the_lists.append(list_name)
-                the_lists_spoken = CommonUtility.nl_join(the_lists, "samt")
-                if len(genelists) == 1:
-                    genepanel_plural = "en "
-                else:
-                    genepanel_plural = "erna "
-                if len(incl_genes) == 1:
-                    gene_plural = "en "
-                    definite_article = " vilken är inkluderad"
-                else:
-                    gene_plural = "erna "
-                    definite_article = " vilka inkluderas"
-                incl_genes_copy = incl_genes[:]
-                the_genes = CommonUtility.nl_join(incl_genes_copy, "samt")
-                text += (
-                    "DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar gen"
-                    + gene_plural
-                    + "(genpanel"
-                    + genepanel_plural
-                    + ": "
-                    + the_lists_spoken
-                    + ") "
-                    + the_genes
-                    + definite_article
-                    + " i "
-                    + panel_name
-                    + " sekvenseringspanel.\n\n"
-                )
-            else:
-                if group == "myeloid_GMSv1":
-                    text += (
-                        "DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar exoner i 191 gener som inkluderas i %s sekvenseringspanel. Analysen avser somatiska varianter (hudbiopsi har använts som kontrollmaterial). För CEBPA undersöks även konstitutionella varianter.\n\n"
-                        % panel_name
-                    )
-                elif group == "solid_GMSv3":
-                    text += (
-                        "DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar exoner i 560 gener som inkluderas i %s sekvenseringspanel. Analysen avser somatiska varianter (blodprov har använts som kontrollmaterial). För BRCA1 och BRCA2 undersöks även konstitutionella varianter.\n\n"
-                        % panel_name
-                    )
-                else:
-                    text += "DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar exoner och hotspot-regioner i 54 gener som inkluderas i Illuminas TruSight Myeloid sekvenseringspanel. Analysen avser somatiska varianter (hudbiopsi har använts som kontrollmaterial). För CEBPA undersöks även konstitutionella varianter.\n\n"
-
-            if group_config:
-                if "accredited" in group_config:
-                    if group_config["accredited"]:
-                        accredited = ""
-                    else:
-                        accredited = "Analysen omfattas inte av ackrediteringen."
-            else:
-                accredited = "Analysen omfattas inte av ackrediteringen."
-            conclusion = (
-                "\nFör ytterligare information om utförd analys och beskrivning av somatiskt förvärvade varianter, var god se bifogad rapport. "
-                + accredited
-            )
-
-        return text, conclusion
+  
