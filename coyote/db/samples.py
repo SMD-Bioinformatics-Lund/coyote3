@@ -45,7 +45,8 @@ class SampleHandler(BaseHandler):
 
     def _query_samples(
         self,
-        user_groups: list,
+        user_assays: list,
+        user_envs: list,
         report: bool,
         search_str: str,
         limit=None,
@@ -54,7 +55,7 @@ class SampleHandler(BaseHandler):
         """
         Query samples based on user groups, report status, search string, and optional time limit.
         Args:
-            user_groups (list): List of user group identifiers to filter samples.
+            user_assays (list): List of user group identifiers to filter samples.
             report (bool): Whether to include report-specific samples.
             search_str (str): Search string to filter samples.
             limit (int, optional): Maximum number of samples to return (default: None).
@@ -66,7 +67,14 @@ class SampleHandler(BaseHandler):
             - If `report` is False, filters samples with report_num = 0 or not present.
             - If `search_str` is provided, filters samples by name using regex.
         """
-        query: dict[str, dict[str, Any]] = {"groups": {"$in": user_groups}}
+        query: dict[str, dict[str, Any]] = {"groups": {"$in": user_assays}}
+
+        if "development" in user_envs:
+            query["dev"] = True
+        if "testing" in user_envs:
+            query["test"] = True
+        if "validation" in user_envs:
+            query["validation"] = True
 
         if report:
             query["report_num"] = {"$gt": 0}
@@ -96,7 +104,8 @@ class SampleHandler(BaseHandler):
 
     def get_samples(
         self,
-        user_groups: list,
+        user_assays: list,
+        user_envs: list = ["production"],
         status: str = "live",
         report: bool = False,
         search_str: str = "",
@@ -108,7 +117,7 @@ class SampleHandler(BaseHandler):
         """
         Retrieve sample records for the specified user groups, optionally using caching for performance.
         Args:
-            user_groups (list): List of user group identifiers to filter samples.
+            user_assays (list): List of user group identifiers to filter samples.
             status (str, optional): Status of the samples to retrieve (default: "live").
             report (bool, optional): Whether to include report-specific samples (default: False).
             search_str (str, optional): Search string to filter samples (default: "").
@@ -119,7 +128,7 @@ class SampleHandler(BaseHandler):
         Returns:
             list: List of sample records matching the specified criteria.
         Notes:
-            - Uses a cache key generated from user_groups, status, and search_str.
+            - Uses a cache key generated from user_assays, status, and search_str.
             - If caching is enabled and a cache hit occurs, returns cached samples.
             - On cache miss or if caching is disabled, queries the database and updates the cache.
         """
@@ -139,7 +148,8 @@ class SampleHandler(BaseHandler):
 
         # If no cache or use_cache=False, or cache miss
         samples = self._query_samples(
-            user_groups=user_groups,
+            user_assays=user_assays,
+            user_envs=user_envs,
             report=report,
             search_str=search_str,
             limit=limit,

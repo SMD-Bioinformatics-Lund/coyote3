@@ -67,48 +67,22 @@ class EnhancedJSONEncoder(json.JSONEncoder):
 # -------------------------------------------------------------------------
 def get_dynamic_assay_nav() -> dict:
 
-    user_groups = current_user.groups or []
-    assays_panels = store.panel_handler.get_all_assay_panels()
+    user_asp_map = current_user.asp_map  # or `assay_map`
 
-    nav = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+    nav = defaultdict(lambda: defaultdict(dict))
 
-    URLS: dict[str, dict[str, str]] = {
-        "DNA": {
-            "WGS": "home_bp.wgs_screen",
-            "Panels": "home_bp.panels_screen",
-        },
-        "RNA": {
-            "WTS": "home_bp.rna_wts_screen",
-            "Panels": "home_bp.rna_panels_screen",
-        },
-    }
-
-    for assay_panel in assays_panels:
-        panel_type = assay_panel.get("asp_category", "NA").upper()  # DNA / RNA
-        tech = assay_panel.get(
-            "asp_family", "Unknown"
-        )  # WGS / WTS / Panel-based NGS
-
-        if tech.startswith("Panel"):
-            tech = "Panels"
-
-        group = assay_panel.get(
-            "asp_group", "Uncategorized"
-        )  # Myeloid / Solid etc.
-        panel_name = assay_panel["_id"]
-
-        if group in user_groups or current_user.is_admin:
-            nav[panel_type][tech][group].append(
-                {
-                    "label": group.upper(),
-                    "url": URLS.get(panel_type, {}).get(
-                        tech, "home_bp.panels_screen"
-                    ),
-                    "panel_name": panel_name,
-                    "group": group,
+    for panel_type, tech_dict in user_asp_map.items():
+        for panel_tech, group_dict in tech_dict.items():
+            for group_name, assays in group_dict.items():
+                nav[panel_type][panel_tech][group_name] = {
+                    "label": group_name.upper(),
+                    "url": "home_bp.samples_home",
+                    "group": group_name,
                     "panel_type": panel_type,
-                    "panel_technology": tech,
+                    "panel_technology": panel_tech,
+                    "assays": assays,
                 }
-            )
+
+    print(nav)
 
     return dict(dynamic_assay_nav=nav)

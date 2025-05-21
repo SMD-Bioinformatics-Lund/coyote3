@@ -58,6 +58,7 @@ class DefaultConfig:
         "coyote3.intern@skane.se",
         "coyote3.viewer@skane.se",
         "coyote3.external@skane.se",
+        "coyote3.demo@skane.se",
     }
 
     # For the public assay map

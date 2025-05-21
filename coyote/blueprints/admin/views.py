@@ -256,7 +256,7 @@ def create_user() -> Response | str:
         user_data["username"] = user_data["username"].lower()
 
         # Hash the password
-        if user_data["auth_source"] == "coyote3" and user_data["password"]:
+        if user_data["auth_type"] == "coyote3" and user_data["password"]:
             user_data["password"] = util.profile.hash_password(
                 user_data["password"]
             )
@@ -417,10 +417,7 @@ def edit_user(user_id) -> Response | str:
         updated_user["updated_by"] = current_user.email
 
         # Hash the password
-        if (
-            updated_user["auth_source"] == "coyote3"
-            and updated_user["password"]
-        ):
+        if updated_user["auth_type"] == "coyote3" and updated_user["password"]:
             updated_user["password"] = util.profile.hash_password(
                 updated_user["password"]
             )

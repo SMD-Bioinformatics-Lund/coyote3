@@ -5,20 +5,25 @@
 <div class="flex w-full h-full overflow-hidden">
 
   <!-- LEFT SIDEBAR (Fixed Width, Full Height) -->
+  {% set extra_args = {} %}
+  {% if panel_type %}{% set _ = extra_args.update({'panel_type': panel_type}) %}{% endif %}
+  {% if panel_tech %}{% set _ = extra_args.update({'panel_tech': panel_tech}) %}{% endif %}
+  {% if assay_group %}{% set _ = extra_args.update({'assay_group': assay_group}) %}{% endif %}
   <aside class="w-8 bg-transparent text-white flex flex-col">
     <div class="flex border-l-8 border-blue-400 mt-1">
-      <a href="{{ url_for(request.endpoint, assay=assay, status='done') }}"
+      <a href="{{ url_for(request.endpoint, status='done', **extra_args) }}"
         class="relative bg-gray-500 text-white text-base text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-          <span class="vertical-text">Analysed</span>
+        <span class="vertical-text">Analysed</span>
       </a>
     </div>
     <div class="flex border-l-8 border-green-400 mt-1">
-      <a href="{{ url_for(request.endpoint, assay=assay, status='live') }}"
+      <a href="{{ url_for(request.endpoint, status='live', **extra_args) }}"
         class="relative bg-gray-500 text-white text-base text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-          <span class="vertical-text">Pending</span>
+        <span class="vertical-text">Pending</span>
       </a>
     </div>
   </aside>
+  
   
   <!-- MAIN CONTENT (Scrollable & Auto-Resizing) -->
   <main class="flex-1 bg-transparent overflow-y-auto p-4  flex flex-col">

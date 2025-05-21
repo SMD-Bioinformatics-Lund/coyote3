@@ -27,8 +27,18 @@ import os
 
 @home_bp.route("/", methods=["GET", "POST"])
 @home_bp.route("/<string:status>", methods=["GET", "POST"])
+@home_bp.route(
+    "/<string:panel_type>/<string:panel_tech>/<string:assay_group>",
+    methods=["GET", "POST"],
+)
+@home_bp.route(
+    "/<string:panel_type>/<string:panel_tech>/<string:assay_group>/<string:status>",
+    methods=["GET", "POST"],
+)
 @login_required
-def home_screen(status="live"):
+def samples_home(
+    panel_type=None, panel_tech=None, assay_group=None, status="live"
+):
 
     form = SampleSearchForm()
     search_str = ""
@@ -43,16 +53,28 @@ def home_screen(status="live"):
 
     if not search_mode:
         search_mode = status
-        show_all = True
     else:
         status = search_mode
-        show_all = False
 
-    user_groups = current_user.groups
+    user_envs = current_user.envs or ["production"]  # default to production
+    user_assays = current_user.assays
+
+    if panel_type and panel_tech and assay_group:
+        # Use current_user.asp_map which contains panel_type -> tech -> group -> [assays]
+        assay_list = (
+            current_user.asp_map.get(panel_type, {})
+            .get(panel_tech, {})
+            .get(assay_group, [])
+        )
+        accessible_assays = [a for a in assay_list if a in user_assays]
+    else:
+        # If no group selected, show all accessible assays
+        accessible_assays = user_assays
 
     if status == "done" or search_mode in ["done", "both"]:
         done_samples = store.sample_handler.get_samples(
-            user_groups=user_groups,
+            user_assays=accessible_assays,
+            user_envs=user_envs,
             status=status,
             search_str=search_str,
             report=True,
@@ -62,8 +84,9 @@ def home_screen(status="live"):
     elif status == "live":
         time_limit = util.common.get_date_days_ago(days=1000)
         done_samples = store.sample_handler.get_samples(
-            user_groups=user_groups,
+            user_assays=accessible_assays,
             status=status,
+            user_envs=user_envs,
             search_str=search_str,
             report=True,
             time_limit=time_limit,
@@ -74,8 +97,9 @@ def home_screen(status="live"):
 
     if status == "live" or search_mode in ["live", "both"]:
         live_samples = store.sample_handler.get_samples(
-            user_groups=user_groups,
+            user_assays=accessible_assays,
             status=status,
+            user_envs=user_envs,
             search_str=search_str,
             report=False,
             use_cache=True,
@@ -97,132 +121,8 @@ def home_screen(status="live"):
             if samp.get("reports") and samp["reports"][-1].get("time_created")
             else 0
         )
-
         # Set number of samples from GT length
         samp["num_samples"] = done_gt_map.get(str(samp["_id"]), 0)
-
-    # Set number of samples from GT length for live samples
-    live_sample_ids = [str(s["_id"]) for s in live_samples]
-    gt_lengths_map = store.variant_handler.get_gt_lengths_by_sample_ids(
-        live_sample_ids
-    )
-
-    # Inject GT length into sample objects
-    for samp in live_samples:
-        samp["num_samples"] = gt_lengths_map.get(str(samp["_id"]), 0)
-
-    return render_template(
-        "main_screen.html",
-        live_samples=live_samples,
-        done_samples=done_samples,
-        form=form,
-        assay=None,
-        status=status,
-        search_mode=search_mode,
-        show_all=show_all,
-    )
-
-
-@home_bp.route(
-    "/panels/<string:assay>/<string:status>", methods=["GET", "POST"]
-)
-@home_bp.route("/panels/<string:assay>", methods=["GET", "POST"])
-@login_required
-def panels_screen(assay="myeloid_GMSv1", status="live"):
-    return main_screen(assay, status)
-
-
-@home_bp.route("/wgs/<string:assay>/<string:status>", methods=["GET", "POST"])
-@home_bp.route("/wgs/<string:assay>", methods=["GET", "POST"])
-@login_required
-def wgs_screen(assay="tumwgs-solid", status="live"):
-    return main_screen(assay, status)
-
-
-@home_bp.route("/rna/<string:assay>/<string:status>", methods=["GET", "POST"])
-@home_bp.route("/rna/<string:assay>", methods=["GET", "POST"])
-@login_required
-def rna_panels_screen(assay="solidRNA_GMSv5", status="live"):
-    return main_screen(assay, status)
-
-
-@home_bp.route("/wts/<string:assay>", methods=["GET", "POST"])
-@login_required
-def rna_wts_screen(assay="fusion", status="live"):
-    return main_screen(assay, status)
-
-
-@home_bp.route("/<string:assay>", methods=["GET", "POST"])
-@home_bp.route("/<string:assay>/<string:status>", methods=["GET", "POST"])
-@login_required
-def main_screen(assay=None, status="live"):
-    if not assay:
-        return redirect(url_for("home_bp.home_screen"))
-
-    form = SampleSearchForm()
-    search_str = ""
-    search_slider_values = {1: "done", 2: "both", 3: "live"}
-    search_mode = None
-
-    if request.method == "POST" and form.validate_on_submit():
-        search_str = form.sample_search.data
-        search_mode = search_slider_values[int(form.search_mode_slider.data)]
-
-    limit_done_samples = 50
-
-    if not search_mode:
-        search_mode = status
-        show_all = True
-    else:
-        status = search_mode
-        show_all = False
-
-    user_groups = current_user.groups
-
-    if assay:
-        if assay in user_groups:
-            user_groups = [assay]
-        else:
-            user_groups = []
-
-    if status == "done" or search_mode in ["done", "both"]:
-        done_samples = store.sample_handler.get_samples(
-            user_groups=user_groups,
-            search_str=search_str,
-            report=True,
-            limit=limit_done_samples,
-        )
-    elif status == "live":
-        time_limit = util.common.get_date_days_ago(days=1000)
-        done_samples = store.sample_handler.get_samples(
-            user_groups=user_groups,
-            search_str=search_str,
-            report=True,
-            time_limit=time_limit,
-        )
-    else:
-        done_samples = []
-
-    if status == "live" or search_mode in ["live", "both"]:
-        live_samples = store.sample_handler.get_samples(
-            user_groups=user_groups, search_str=search_str, report=False
-        )
-    else:
-        live_samples = []
-
-    # Add date for latest report to done_samples
-    done_sample_ids = [str(s["_id"]) for s in done_samples]
-    done_gt_map = store.variant_handler.get_gt_lengths_by_sample_ids(
-        done_sample_ids
-    )
-
-    for samp in done_samples:
-        # Set last report time
-        samp["last_report_time_created"] = (
-            samp["reports"][-1]["time_created"]
-            if samp.get("reports") and samp["reports"][-1].get("time_created")
-            else 0
-        )
 
     # Set number of samples from GT length
     live_sample_ids = [str(s["_id"]) for s in live_samples]
@@ -235,12 +135,15 @@ def main_screen(assay=None, status="live"):
         samp["num_samples"] = gt_lengths_map.get(str(samp["_id"]), 0)
 
     return render_template(
-        "main_screen.html",
+        "samples_home.html",
         live_samples=live_samples,
         done_samples=done_samples,
         form=form,
-        assay=assay,
+        assay_group=assay_group,
+        panel_type=panel_type,
+        panel_tech=panel_tech,
         status=status,
+        search_mode=search_mode,
     )
 
 

@@ -6,7 +6,7 @@ from coyote import store
 
 def require_sample_group_access(sample_arg="sample_name"):
     """
-    Decorator to enforce group-based access using the sample name from the route.
+    Decorator to enforce assay-based access using the sample name from the route.
 
     Args:
         sample_arg (str): The name of the route argument containing the sample name.
@@ -18,7 +18,10 @@ def require_sample_group_access(sample_arg="sample_name"):
             sample_name = kwargs.get(sample_arg)
             if not sample_name:
                 flash(f"Missing `{sample_arg}` in route parameters", "red")
-                abort(400, description=f"Missing `{sample_arg}` in route parameters")
+                abort(
+                    400,
+                    description=f"Missing `{sample_arg}` in route parameters",
+                )
 
             sample = store.sample_handler.get_sample(sample_name)
             if not sample:
@@ -28,12 +31,15 @@ def require_sample_group_access(sample_arg="sample_name"):
                 flash("Sample not found", "red")
                 abort(404, description="Sample not found")
 
-            user_groups = set(current_user.groups or [])
+            user_assays = set(current_user.assays or [])
             sample_groups = set(sample.get("groups", []))
 
-            if not user_groups & sample_groups:
-                flash("Access denied: you do not belong to any of the sample's groups", "red")
-                abort(403, description="Access denied: sample group mismatch")
+            if not user_assays & sample_groups:
+                flash(
+                    "Access denied: you do not belong to any of the sample's groups",
+                    "red",
+                )
+                abort(403, description="Access denied: sample assay mismatch")
 
             g.sample = sample
             return view_func(*args, **kwargs)
@@ -43,23 +49,29 @@ def require_sample_group_access(sample_arg="sample_name"):
     return decorator
 
 
-def require_group_access(group_arg: str = "group"):
+def require_group_access(assay_arg: str = "assay"):
     """
-    Decorator to enforce group-based access control.
+    Decorator to enforce assay-based access control.
 
     Args:
-        group_arg (str): The name of the route argument that contains the target group name.
+        assay_arg (str): The name of the route argument that contains the target assay name.
     """
 
     def decorator(view_func):
         @wraps(view_func)
         def wrapper(*args, **kwargs):
-            user_groups = set(current_user.groups or [])
-            target_group = kwargs.get(group_arg)
+            user_assays = set(current_user.assays or [])
+            target_group = kwargs.get(assay_arg)
 
-            if not target_group or target_group not in user_groups:
-                flash("Access denied: You do not have permission to access this group.", "red")
-                abort(403, description="Access denied: You do not belong to the target group.")
+            if not target_group or target_group not in user_assays:
+                flash(
+                    "Access denied: You do not have permission to access this assay.",
+                    "red",
+                )
+                abort(
+                    403,
+                    description="Access denied: You do not belong to the target assay.",
+                )
 
             return view_func(*args, **kwargs)
 
