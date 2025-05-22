@@ -24,7 +24,8 @@ class BPCommonUtility:
         text += BPCommonUtility.summarize_intro( genes_chosen, checked_genelists )
         # get summary for SNVs
         if 'snvs' in summary_sections_data:
-            text = text + "Kliniskt relevanta SNVs och små INDELs: \n"
+            text = text + "## Kliniskt relevanta SNVs och små INDELs:"
+            text += "\n\n"
             class_vars, class_cnt = BPCommonUtility.sort_tiered_variants(summary_sections_data['snvs'], genes_chosen)
             text = BPCommonUtility.summarize_tiered_snvs( class_vars, class_cnt, text)
             if 1 in class_vars or 2 in class_vars or 3 in class_vars:
@@ -34,18 +35,19 @@ class BPCommonUtility:
 
         if 'cnvs' in summary_sections_data:
             if len(summary_sections_data['cnvs']) > 0:
-                text = text + "Kliniskt relevanta genspecifika kopietalsförändringar: \n"
+                text = text + "## Kliniskt relevanta genspecifika kopietalsförändringar:"
+                text += "\n\n"
                 text += BPCommonUtility.summarize_cnv(summary_sections_data['cnvs'])
                 text += "\n"
         if 'translocs' in summary_sections_data:
             if len(summary_sections_data['translocs']) > 0:
-                text = text + "Kliniskt relevanta genspecifika kopietalsförändringar: \n"
+                text = text + "## Kliniskt relevanta genspecifika DNA-fusioner: \n"
                 text += BPCommonUtility.summarize_transloc(summary_sections_data['translocs'])
                 text += "\n"
         if 'fusions' in summary_sections_data:
             ...
         if 'biomarkers' in summary_sections_data:
-            text = text + "Andra kliniskt relevanta biomarkörer: \n"
+            text = text + "## Andra kliniskt relevanta biomarkörer: \n"
             text += BPCommonUtility.summarize_bio(summary_sections_data['biomarkers'])
             text += "\n"
         

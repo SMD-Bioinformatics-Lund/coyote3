@@ -35,6 +35,8 @@ from coyote.services.auth.decorators import require
 from PIL import Image
 import os
 import io
+import markdown
+from markupsafe import Markup
 
 
 @dna_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])

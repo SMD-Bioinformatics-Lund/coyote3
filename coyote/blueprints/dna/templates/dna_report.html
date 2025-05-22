@@ -272,7 +272,7 @@
     {% if sample.comments|length > 0 %}
       {% for comment in sample.comments if comment.hidden != 1 %}
         {% if loop.last %}
-          {{ comment.text|format_comment|safe }}
+          {{ comment.text|markdown|safe }}
         {% endif %}
       {% endfor %}
     {% else %}

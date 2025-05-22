@@ -6,6 +6,7 @@ from math import floor, log10
 import dateutil
 import arrow
 from markupsafe import Markup
+import markdown
 from datetime import datetime
 import json
 
@@ -301,6 +302,9 @@ def format_comment(st):
     st = st.replace("\n", "<br />")
     return st
 
+@app.template_filter('markdown')
+def markdown_filter(s):
+    return markdown.markdown(s)
 
 @app.template_filter()
 def basename(path):
