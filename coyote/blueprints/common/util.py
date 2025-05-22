@@ -94,7 +94,7 @@ class BPCommonUtility:
             else:
                 the_genes = " som innefattar " + str(len(genes_chosen)) + " gener"
             text += (
-                "DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar "
+                "DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Analysen omfattar "
                 + "genlist" + str(genepanel_plural)
                 + ": "
                 + str(the_lists_spoken)
