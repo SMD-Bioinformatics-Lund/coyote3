@@ -24,6 +24,7 @@ class BPCommonUtility:
         text += BPCommonUtility.summarize_intro( genes_chosen, checked_genelists )
         # get summary for SNVs
         if 'snvs' in summary_sections_data:
+            # Clinically relevant SNVs and small indels
             text = text + "## Kliniskt relevanta SNVs och små INDELs:"
             text += "\n\n"
             class_vars, class_cnt = BPCommonUtility.sort_tiered_variants(summary_sections_data['snvs'], genes_chosen)
@@ -35,12 +36,14 @@ class BPCommonUtility:
 
         if 'cnvs' in summary_sections_data:
             if len(summary_sections_data['cnvs']) > 0:
+                # Clinically relevant genespecific copy number changes
                 text = text + "## Kliniskt relevanta genspecifika kopietalsförändringar:"
                 text += "\n\n"
                 text += BPCommonUtility.summarize_cnv(summary_sections_data['cnvs'])
                 text += "\n"
         if 'translocs' in summary_sections_data:
             if len(summary_sections_data['translocs']) > 0:
+                # Clinically relevant genespecific DNA-fusions
                 text = text + "## Kliniskt relevanta genspecifika DNA-fusioner: \n"
                 text += BPCommonUtility.summarize_transloc(summary_sections_data['translocs'])
                 text += "\n"
@@ -55,8 +58,10 @@ class BPCommonUtility:
         if accredited_assay:
             accredited = ""
         else:
+            # the analysis is not covered by the acreditaion
             accredited = "Analysen omfattas inte av ackrediteringen."
         conclusion = (
+                # for more information about the performed analysis and description of somatically gained variants, please see the attached report"
                 "För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade varianter, var god se bifogad rapport. "
                 + accredited
         )
@@ -82,9 +87,11 @@ class BPCommonUtility:
                 genepanel_plural = "orna "
             if len(genes_chosen) == 1:
                 gene_plural = "en "
+                # of which is in included in PH sequencing panel
                 scope = " vilken är inkluderad i " + str(panel_name) + " sekvenseringspanel.\n\n"              
             else:
                 gene_plural = "erna "
+                # of which is in included in PH sequencing panel
                 scope = " vilka är inkluderade i " + str(panel_name) + " sekvenseringspanel.\n\n"
             if IS_WGS:
                 scope = ""
@@ -94,6 +101,7 @@ class BPCommonUtility:
             else:
                 the_genes = " som innefattar " + str(len(genes_chosen)) + " gener"
             text += (
+                # DNA has been extracted from the sent sample and has been analyzed with massive parallel sequencing. The analysis encompasses
                 "DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Analysen omfattar "
                 + "genlist" + str(genepanel_plural)
                 + ": "
@@ -353,20 +361,20 @@ class BPCommonUtility:
     def summarize_tiered_snvs( class_vars, class_cnt, text ):
         first = 1
         tiers_text = {
-            1 : " av stark klinisk signifikans (Tier I)",
-            2 : " av potentiell klinisk signifikans (Tier II)",
-            3 : " av oklar klinisk signifikans (Tier III)"
+            1 : " av stark klinisk signifikans (Tier I)", # of clinical significance..
+            2 : " av potentiell klinisk signifikans (Tier II)", # of potential clinical significance..
+            3 : " av oklar klinisk signifikans (Tier III)" # of unknown clinical significance
         }
         
         tiers_to_summarize = [1,2,3] # this should be configurable
         for tier in tiers_to_summarize:
             if tier in class_vars:
                 if 1 in class_vars and 2 in class_vars and tier == 3:
-                    text += "Slutligen ses "
+                    text += "Slutligen ses " # Finally it is found
                 elif tier != 1 and (1 in class_vars or 2 in class_vars):
-                    text += "Vidare ses "
+                    text += "Vidare ses " # Further findings
                 else:
-                    text += "Vid analysen finner man "
+                    text += "Vid analysen finner man " # Analysis finds
 
                 num_vars = class_cnt[tier]
                 num_genes = len(class_vars[tier])
@@ -385,7 +393,7 @@ class BPCommonUtility:
                             + gene
                             + " (i "
                             + CommonUtility.nl_join(perc_arr, "respektive")
-                            + " av läsningarna)"
+                            + " av läsningarna)" # of the reads
                         )
                 elif num_genes > 1:
                     text += ": "
@@ -396,7 +404,7 @@ class BPCommonUtility:
                             t += "i "
                         t += CommonUtility.nl_join(perc_arr, "respektive")
                         if first == 1:
-                            t += " av läsningarna"
+                            t += " av läsningarna" # of the reads
                         t += ")"
                         gene_texts.append(t)
                         first = 0
