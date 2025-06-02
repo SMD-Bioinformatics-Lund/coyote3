@@ -2,6 +2,237 @@
 
 {% block body %}
 
+<<<<<<< Temporary merge branch 1
+{% set sel_fus = (fusion.calls|selectattr('selected', 'equalto', 1) |list)[0] %}
+
+<div class="flex w-full h-full overflow-hidden ">
+
+  <!-- Fusion Info left side bar -->
+  <aside class="w-80 bg-transparent text-black flex flex-col overflow-y-auto shadow-lg rounded-lg mr-2 ml-1 left-0 h-full border-r-2 border-t-2 border-brown-400">
+	
+	  <!-- Variant Wall -->
+    <div class="flex justify-center items-center bg-gradient-to-b from-brown-300 to-brown-200 py-2 rounded-t-md shadow-lg">
+    <img src="{{ url_for('static', filename='icons/heroicons_outline_24/bookmark.svg') }}" alt="Tag Icon" class="w-4 h-4 mr-2 opacity-80">
+      <h2 class="text-sm font-semibold capitalize tracking-wide text-black">Fusion Info</h2>
+	  </div>
+
+	  <!-- Table Container -->
+    <div class="overflow-auto shadow-lg bg-transparent p-0">
+      <table class="table-auto bg-blue-50 w-full text-xs text-black border-collapse">
+        <tbody class="break-all">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Gene 1 (5'):</th>
+            <td class="p-1 text-right font-medium"><a target="_blank" href="http://www.cbioportal.org/ln?q={{ fusion.gene1 }}" class="text-blue-600 underline">{{ fusion.gene1 }}</a>
+          </tr>
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Gene 2 (3'):</th>
+            <td class="p-1 text-right font-medium"><a target="_blank" href="http://www.cbioportal.org/ln?q={{ fusion.gene2 }}" class="text-blue-600 underline">{{ fusion.gene2 }}</a>
+          </tr>
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Breakpoint:</th>
+            <td class="p-1 text-right font-medium">{{sel_fus.breakpoint1}}<br>{{sel_fus.breakpoint2}}
+          </tr>
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Chromosome:</th>
+            <td class="p-1 text-right font-medium">
+          </tr>
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Mitelman:</th>
+            <td class="p-1 text-right font-medium"><a target="_blank" href="https://mitelmandatabase.isb-cgc.org/mb_search" class="text-blue-600 underline">link</a>
+          </tr>
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Atlas of GCOH:</th>
+            <td class="p-1 text-right font-medium"><a href="https://pubmed.ncbi.nlm.nih.gov/?term={{fusion.gene1}}%09{{fusion.gene2}}&btnG=Google+Search&domains=atlasgeneticsoncology.org&sitesearch=atlasgeneticsoncology.org&btnI" target="_blank" class="text-blue-500 hover:underline text-s">link</a></td>
+          </tr>
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Pubmed:</th>
+            <td class="p-1 text-right font-medium"><a target="_blank" href="https://pubmed.ncbi.nlm.nih.gov/?term={{fusion.gene1}}%3A%3A{{fusion.gene2}}" class="text-blue-600 underline">{{fusion.gene1}}::{{fusion.gene2}}</a></td>
+          </tr>
+        </tbody>
+      </table>
+	  </div>
+  </aside>
+
+  <main class="flex-1 bg-transparent overflow-y-auto py-2 px-1 flex flex-col">Selected_variants
+    
+    <!-- sample info -->
+    {% include "sample_meta_rna_info.html" %}
+
+    <!-- Tiering info -->
+    <section class="bg-gray-100 p-2 my-2 flex flex-wrap justify-between w-full shadow-lg rounded-xl relative gap-2 z-0 border-l-8 border-r-8 border-purple-400 whitespace-normal break-all" id="variant-info">
+
+      <!-- Variant Info Left Section -->
+      <div class="flex flex-col ml-2 mr-4">
+        <h2 class="text-base font-bold">{{ fusion.gene1 }}-{{ fusion.gene2}}</h2>
+      </div>
+
+      <!-- Right Section Tier info --> <!-- Change this with tooltip -->
+      <div class="flex flex-col text-right ml-2 mr-4 overflow-x-auto">
+        <h2 class="text-base font-bold pb-1">
+          Classify Variant
+        </h2>
+        <div class="flex flex-wrap items-center justify-end">
+          <!-- Tier Buttons -->
+          <form action="{{ url_for('dna_bp.classify_variant', id=fusion._id) }}" method="post">
+            <input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
+						<input type="hidden" name="gene2" value="{{ fusion.gene2 }}">
+						<input type="hidden" name="fusionpoints" value="{{sel_fus.breakpoint1}}^{{sel_fus.breakpoint2}}">
+
+            <input class="m-1 text-black text-sm px-3 py-1.5 rounded-md shadow-lg cursor-pointer cursor-pointer whitespace-normal break-all {% if classification.class != 1 %} bg-gray-300 transition-all duration-300 ease-in-out transform hover:translate-y-1 hover:bg-orange-500 {% else %} cursor-not-allowed font-bold text-white bg-tier{{ classification.class }} {% endif %}"  id="tier1" type="submit" value="Tier I" name="tier1" title="Tier I: Strong Clinical Significance">
+
+            <input class="m-1 text-black text-sm px-3 py-1.5 rounded-md shadow-lg cursor-pointer whitespace-normal break-all {% if classification.class != 2 %} bg-gray-300 hover:bg-yellow-400 transition-all duration-300 ease-in-out transform hover:translate-y-1 {% else %} cursor-not-allowed font-bold text-white bg-tier{{ classification.class}} {% endif %}" id="tier2" type="submit" name="tier2" value="Tier II" title="Tier II: Potential Clinical Significance">
+
+            <input class="m-1 text-black text-sm px-3 py-1.5 rounded-md shadow-lg cursor-pointer whitespace-normal break-all {% if classification.class != 3 %} bg-gray-300 hover:bg-blue-500 transition-all duration-300 ease-in-out transform hover:translate-y-1 {% else %} cursor-not-allowed font-bold text-white bg-tier{{ classification.class}} {% endif %}" id="tier3" type="submit" name="tier3" value="Tier III" title="Tier III: Unknown Clinical Significance">
+
+            <input class="m-1 text-black text-sm px-3 py-1.5 rounded-md shadow-lg  cursor-pointer whitespace-normal break-all {% if classification.class != 4 %}bg-gray-300 hover:bg-green-600 transition-all duration-300 ease-in-out transform hover:translate-y-1 {% else %} cursor-not-allowed font-bold text-white bg-tier{{ classification.class}} {% endif %}" id="tier4" type="submit" name="tier4" value="Tier IV" title="Tier IV: Benign">
+          </form>
+
+          <!-- Remove Tier Info -->
+          {% if classification.class != 999 %}
+          <form id="form" action="{{ url_for('dna_bp.remove_classified_variant', id=fusion._id) }}" method="post" class="inline-flex items-center space-x-2" >
+            <input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
+            <input type="hidden" name="gene2" value="{{ fusion.gene2 }}">
+            <input type="hidden" name="fusionpoints" value="{{sel_fus.breakpoint1}}^{{sel_fus.breakpoint2}}">
+            {% if 'assay' in classification %}
+              <button id="remove" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer" title="Remove {{assay}} classifications" type="submit" onclick="return confirm('This will remove all tiering for {{assay}}, proceed?')">❌</button>
+              {% elif 'admin' in current_user.get_groups() %}
+              <button id="remove" class="border-0 w-9 p-2 rounded-lg m-1 shadow-lg cursor-pointer" title="Remove historic non-assay classifications" type="submit" onclick="return confirm('This will remove all tiering for historic tiering without assays assigned, proceed?')">❌</button>
+              {% endif %}
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+
+    <!-- Fusion Action info -->
+    <section class="relative z-0 mt-2 ml-1 bg-gray-100 py-2 px-4 shadow-lg rounded-xl border-l-8 border-r-8 border-blue-400" id="variant-actions-buttons">
+      <div class="flex justify-between items-center">
+        <h2 class="text-sm font-semibold text-gray-800">FusionActions</h2>
+
+        <div class="flex gap-2">
+          <!-- False Positive Button -->
+          {% if fusion.fp == true %}
+            <form action="{{ url_for('rna_bp.unmark_false_fusion', id=fusion._id) }}" method="post">
+              <input class="bg-yellow-300 text-black text-xs px-4 py-2 rounded-md shadow hover:bg-yellow-200 transition-all cursor-pointer" type="submit" name="mark_fp" value="Unmark False Positive">
+            </form>
+          {% else %}
+            <form action="{{ url_for('rna_bp.mark_false_fusion', id=fusion._id) }}" method="post">
+              <input class="bg-gray-300 text-black text-xs px-4 py-2 rounded-md shadow hover:bg-yellow-100 transition-all cursor-pointer" type="submit" name="mark_fp" value="Mark as False Positive">
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <!-- Fusion Comment and picking and fusion info -->
+    <section class="bg-transparent p-2 my-2 flex flex-wrap items-start relative gap-4" id="snv-information-cards">
+
+
+        <!-- Comment box -->
+        {% if current_user.get_role() != "readonly" %}
+        <div class="bg-white shadow-lg border-l-8 border-indigo-400 rounded-xl max-w-xl w-full" id="commenting-box-card">
+          <h2 class="text-sm font-semibold bg-indigo-100 text-gray-800 p-2 rounded-t-xl border-b border-gray-300">Add new comment/annotation</h2>
+          <div id="commenting_box" class="rounded-b-xl p-4">
+            <form action="{{ url_for('dna_bp.add_variant_comment', id=fusion._id) }}" method="post">
+              <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="w-full h-24 p-2 border border-gray-300 rounded-md focus:bg-yellow-100 mb-4 resize-y"></textarea>
+              <input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
+              <input type="hidden" name="gene2" value="{{ fusion.gene2 }}">
+              <input type="hidden" name="fusionpoints" value="{{sel_fus.breakpoint1}}^{{sel_fus.breakpoint2}}">
+              <div class="flex items-center justify-between">
+                <input type="submit" value="Save" class="bg-blue-500 text-white px-4 py-2 rounded-md shadow hover:bg-blue-600 transition">
+                <label class="inline-flex items-center text-sm text-gray-700 ml-4">
+                  <input type="checkbox" name="global" value="global" class="form-checkbox text-blue-500">
+                  <span class="ml-2">Use as global annotation</span>
+                </label>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      <!--Indidivual fusioncaller info -->
+      <div class="bg-white shadow-lg border-l-8 mt-4 rounded-xl max-w-full w-full mt-4 p-4 overflow-x-auto">
+        <h2 class="text-sm font-semibold bg-green-100 text-gray-800 px-4 py-2 rounded-t-xl border border-b-0 border-gray-300">
+          Fusion calls from different fusioncallers
+        </h2>
+      
+        <div class="overflow-x-auto shadow-md rounded-b-lg border border-gray-300">
+          <table class="w-full text-xs text-gray-800 table-auto" id="fusions-callers-table">
+            <thead class="bg-yellow-100 capitalize tracking-wide">
+              <tr class="border-b border-gray-800 text-left">
+                <th class="px-2 py-3 font-semibold">Gene 1</th>
+                <th class="px-2 py-3 font-semibold">Gene 2</th>
+                <th class="px-2 py-3 font-semibold">Breakpoints</th>
+                <th class="px-2 py-3 font-semibold">Effect</th>
+                <th class="px-2 py-3 font-semibold">Spanning Pairs</th>
+                <th class="px-2 py-3 font-semibold">Spanning Reads</th>
+                <th class="px-2 py-3 font-semibold">Longest Anchor</th>
+                <th class="px-2 py-3 font-semibold">Caller</th>
+                <th class="px-2 py-3 font-semibold">Description</th>
+                <th class="px-2 py-3 font-semibold">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tbody x-data="{ expandedRow: null }">
+
+              {% for call in fusion.calls %}
+                <tr class="{% if call.selected == 1 %}bg-yellow-100 hover:bg-green-100 font-semibold{% else %}hover:bg-gray-100{% endif %} border-t border-gray-300">
+                  <td class="px-2 py-2">{{ fusion.gene1 }}</td>
+                  <td class="px-2 py-2">{{ fusion.gene2 }}</td>
+                  <td class="px-2 py-2 whitespace-nowrap">{{ call.breakpoint1 }}<br>{{ call.breakpoint2 }}</td>
+                  <td class="px-2 py-2">{{ call.effect }}</td>
+                  <td class="px-2 py-2">{{ call.spanpairs }}</td>
+                  <td class="px-2 py-2">{{ call.spanreads }}</td>
+                  <td class="px-2 py-2">{{ call.longestanchor }}</td>
+                  <td class="px-2 py-2">{{ call.caller }}</td>
+                  <td class="px-2 py-2 w-60 align-top">
+                  {% if call.desc %}
+                    <div class="space-y-1">
+                      <div x-show="expandedRow !== {{ loop.index }}" x-cloak>
+                        {{ call.desc | format_fusion_desc_few(1) | safe }}
+                        <button 
+                          @click="expandedRow = {{ loop.index }}"
+                          class="text-blue-500 text-xs underline ml-1 focus:outline-none">Show more</button>
+                      </div>
+                      <div x-show="expandedRow === {{ loop.index }}" x-cloak>
+                        {{ call.desc | format_fusion_desc | safe }}
+                        <button 
+                          @click="expandedRow = null"
+                          class="text-blue-500 text-xs underline ml-1 focus:outline-none">Show less</button>
+                      </div>
+                    </div>
+                  {% else %}
+                    <span class="italic text-gray-400">No description</span>
+                  {% endif %}
+                  </td>
+                  
+                  <td class="px-2 py-2 text-center">
+                    {% if call.selected == 1 %}
+                      <span class="text-green-700 font-bold">Selected</span>
+                    {% else %}
+                      <a href="{{ url_for('rna_bp.pick_fusioncall', id=fusion._id, callidx=loop.index, num_calls=fusion.calls|length) }}"
+                        class="text-blue-500 hover:underline text-sm">Pick</a>
+                    {% endif %}
+                  </td>
+                </tr>
+                
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+
+
+
+
+      {% endif %}
+    </section>
+
+  </main>
+
+
+=======
 <div class="container mx-auto p-5">
 	<div class="bg-white border-b border-gray-300 py-4">
 		<div class="flex justify-between items-center">
