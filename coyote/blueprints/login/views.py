@@ -20,15 +20,17 @@ def login():
         username = form.username.data.strip()
         password = form.password.data.strip()
 
-        # 1. Fetch user
+        # Fetch user
         user_doc = store.user_handler.user(username)
         if not user_doc or not user_doc.get("is_active", True):
             flash("User not found or inactive.", "red")
-            app.logger.warning(f"Login failed: user not found or inactive ({username})")
+            app.logger.warning(
+                f"Login failed: user not found or inactive ({username})"
+            )
             return render_template("login.html", form=form)
 
-        # 2. Authenticate
-        use_internal = username in app.config.get("INTERNAL_USERS", [])
+        # Authenticate
+        use_internal = user_doc.get("auth_type") == "coyote3"
         valid = (
             UserModel.validate_login(user_doc["password"], password)
             if use_internal
@@ -37,20 +39,24 @@ def login():
 
         if not valid:
             flash("Invalid credentials", "red")
-            app.logger.warning(f"Login failed: invalid credentials ({username})")
+            app.logger.warning(
+                f"Login failed: invalid credentials ({username})"
+            )
             return render_template("login.html", form=form)
 
-        # 3. Merge role + build user model
+        # Merge role + build user model
         role_doc = store.roles_handler.get_role(user_doc.get("role")) or {}
         user_model = UserModel.from_mongo(user_doc, role_doc)
         user = User(user_model)
 
-        # 4. Login and update last login timestamp
+        # Login and update last login timestamp
         login_user(user)
         store.user_handler.update_user_last_login(user_doc["_id"])
-        app.logger.info(f"User logged in: {username} (access_level: {user.access_level})")
+        app.logger.info(
+            f"User logged in: {username} (access_level: {user.access_level})"
+        )
 
-        return redirect(url_for("home_bp.home_screen"))
+        return redirect(url_for("home_bp.samples_home"))
 
     return render_template("login.html", title="Login", form=form)
 
@@ -79,7 +85,8 @@ def ldap_authenticate(username, password):
         authorized = ldap_manager.authenticate(
             username=username,
             password=password,
-            base_dn=app.config.get("LDAP_BASE_DN") or app.config.get("LDAP_BINDDN"),
+            base_dn=app.config.get("LDAP_BASE_DN")
+            or app.config.get("LDAP_BINDDN"),
             attribute=app.config.get("LDAP_USER_LOGIN_ATTR"),
         )
     except Exception as ex:

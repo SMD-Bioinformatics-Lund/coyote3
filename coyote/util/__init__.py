@@ -4,8 +4,7 @@ class Utility:
     """
 
     def __init__(self):
-        self.variant = None
-        self.common = None
+        pass
 
     def init_util(self):
         from coyote.blueprints.dna.util import DNAUtility

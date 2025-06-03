@@ -18,7 +18,7 @@ License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 import pymongo
 from coyote.db.samples import SampleHandler
 from coyote.db.users import UsersHandler
-from coyote.db.panels import PanelsHandler
+from coyote.db.asp import ASPHandler
 from coyote.db.variants import VariantsHandler
 from coyote.db.cnvs import CNVsHandler
 from coyote.db.translocs import TranslocsHandler
@@ -37,13 +37,13 @@ from coyote.db.coverage import CoverageHandler
 from coyote.db.cosmic import CosmicHandler
 from coyote.db.coverage2 import CoverageHandler2
 from coyote.db.group_coverage import GroupCoverageHandler
-from coyote.db.assay_configs import AssayConfigsHandler
+from coyote.db.asp_configs import ASPConfigHandler
 from coyote.db.schemas import SchemaHandler
 from coyote.db.roles import RolesHandler
 from coyote.db.permissions import PermissionsHandler
 from coyote.db.vep_meta import VEPMetaHandler
-from coyote.db.insilio_genelists import InsilicoGeneListHandler
-from coyote.db.hgnc_genes import GenesHandler
+from coyote.db.isgl import ISGLHandler
+from coyote.db.hgnc import HGNCHandler
 
 
 # -------------------------------------------------------------------------
@@ -147,43 +147,13 @@ class MongoAdapter:
 
         This method initializes various database operation handlers as attributes of the `MongoAdapter` instance.
         Each handler is responsible for managing a specific collection or set of operations in the database.
-
-        Handlers:
-            - `transloc_handler`: Manages translocation data.
-            - `cnv_handler`: Handles copy number variation (CNV) data.
-            - `variant_handler`: Manages variant data.
-            - `annotation_handler`: Handles annotation data.
-            - `sample_handler`: Manages sample data.
-            - `panel_handler`: Handles panel data.
-            - `canonical_handler`: Manages canonical data.
-            - `civic_handler`: Handles CIViC data.
-            - `iarc_tp53_handler`: Manages IARC TP53 data.
-            - `brca_handler`: Handles BRCA exchange data.
-            - `blacklist_handler`: Manages blacklist data.
-            - `expression_handler`: Handles expression data.
-            - `bam_service_handler`: Manages BAM service data.
-            - `oncokb_handler`: Handles OncoKB data.
-            - `user_handler`: Handles user data.
-            - `fusion_handler`: Manages fusion data.
-            - `biomarker_handler`: Handles biomarker data.
-            - `coverage_handler`: Manages coverage data.
-            - `cosmic_handler`: Handles COSMIC data.
-            - `coverage2_handler`: Manages secondary coverage data.
-            - `groupcov_handler`: Handles group coverage data.
-            - `assay_config_handler`: Manages assay configuration data.
-            - `schema_handler`: Handles schema data.
-            - `roles_handler`: Manages role data.
-            - `permissions_handler`: Handles permission data.
-            - `vep_meta_handler`: Manages VEP metadata.
-            - `insilico_genelist_handler`: Handles in silico gene list data.
-            - `genes_handler`: Manages HGNC gene data.
         """
         self.transloc_handler = TranslocsHandler(self)
         self.cnv_handler = CNVsHandler(self)
         self.variant_handler = VariantsHandler(self)
         self.annotation_handler = AnnotationsHandler(self)
         self.sample_handler = SampleHandler(self)
-        self.panel_handler = PanelsHandler(self)
+        self.asp_handler = ASPHandler(self)
         self.canonical_handler = CanonicalHandler(self)
         self.civic_handler = CivicHandler(self)
         self.iarc_tp53_handler = IARCTP53Handler(self)
@@ -199,10 +169,10 @@ class MongoAdapter:
         self.cosmic_handler = CosmicHandler(self)
         self.coverage2_handler = CoverageHandler2(self)
         self.groupcov_handler = GroupCoverageHandler(self)
-        self.assay_config_handler = AssayConfigsHandler(self)
+        self.aspc_handler = ASPConfigHandler(self)
         self.schema_handler = SchemaHandler(self)
         self.roles_handler = RolesHandler(self)
         self.permissions_handler = PermissionsHandler(self)
         self.vep_meta_handler = VEPMetaHandler(self)
-        self.insilico_genelist_handler = InsilicoGeneListHandler(self)
-        self.genes_handler = GenesHandler(self)
+        self.isgl_handler = ISGLHandler(self)
+        self.hgnc_handler = HGNCHandler(self)

@@ -45,7 +45,8 @@ class SampleHandler(BaseHandler):
 
     def _query_samples(
         self,
-        user_groups: list,
+        user_assays: list,
+        user_envs: list,
         report: bool,
         search_str: str,
         limit=None,
@@ -54,7 +55,7 @@ class SampleHandler(BaseHandler):
         """
         Query samples based on user groups, report status, search string, and optional time limit.
         Args:
-            user_groups (list): List of user group identifiers to filter samples.
+            user_assays (list): List of user group identifiers to filter samples.
             report (bool): Whether to include report-specific samples.
             search_str (str): Search string to filter samples.
             limit (int, optional): Maximum number of samples to return (default: None).
@@ -66,7 +67,10 @@ class SampleHandler(BaseHandler):
             - If `report` is False, filters samples with report_num = 0 or not present.
             - If `search_str` is provided, filters samples by name using regex.
         """
-        query: dict[str, dict[str, Any]] = {"groups": {"$in": user_groups}}
+        query: dict[str, dict[str, Any]] = {
+            "assay": {"$in": user_assays},
+            "profile": {"$in": user_envs},
+        }
 
         if report:
             query["report_num"] = {"$gt": 0}
@@ -96,7 +100,8 @@ class SampleHandler(BaseHandler):
 
     def get_samples(
         self,
-        user_groups: list,
+        user_assays: list,
+        user_envs: list = ["production"],
         status: str = "live",
         report: bool = False,
         search_str: str = "",
@@ -108,7 +113,7 @@ class SampleHandler(BaseHandler):
         """
         Retrieve sample records for the specified user groups, optionally using caching for performance.
         Args:
-            user_groups (list): List of user group identifiers to filter samples.
+            user_assays (list): List of user group identifiers to filter samples.
             status (str, optional): Status of the samples to retrieve (default: "live").
             report (bool, optional): Whether to include report-specific samples (default: False).
             search_str (str, optional): Search string to filter samples (default: "").
@@ -119,7 +124,7 @@ class SampleHandler(BaseHandler):
         Returns:
             list: List of sample records matching the specified criteria.
         Notes:
-            - Uses a cache key generated from user_groups, status, and search_str.
+            - Uses a cache key generated from user_assays, status, and search_str.
             - If caching is enabled and a cache hit occurs, returns cached samples.
             - On cache miss or if caching is disabled, queries the database and updates the cache.
         """
@@ -139,7 +144,8 @@ class SampleHandler(BaseHandler):
 
         # If no cache or use_cache=False, or cache miss
         samples = self._query_samples(
-            user_groups=user_groups,
+            user_assays=user_assays,
+            user_envs=user_envs,
             report=report,
             search_str=search_str,
             limit=limit,
@@ -154,7 +160,25 @@ class SampleHandler(BaseHandler):
 
         return samples
 
-    def get_sample(self, name: str) -> dict | None:
+    def get_sample(self, sample_key: str) -> dict:
+        """
+        Retrieve a sample document by its name or id.
+
+        This method fetches a sample document from the database using its name first,
+        and if not found, tries by its id.
+
+        Args:
+            sample_key (str): The name or id of the sample to retrieve.
+
+        Returns:
+            dict: The sample document if found, otherwise empty dict.
+        """
+        sample = self.get_sample_by_name(sample_key)
+        if not sample:
+            sample = self.get_sample_by_id(sample_key)
+        return sample if sample else {}
+
+    def get_sample_by_name(self, name: str) -> dict | None:
         """
         Retrieve a sample document by its name.
 
@@ -168,7 +192,7 @@ class SampleHandler(BaseHandler):
         """
         return self.get_collection().find_one({"name": name})
 
-    def get_sample_with_id(self, id: str) -> dict | None:
+    def get_sample_by_id(self, id: str) -> dict | None:
         """
         Retrieve a sample document by its unique identifier.
 
@@ -237,92 +261,21 @@ class SampleHandler(BaseHandler):
             {"$set": {"filters": default_filters}},
         )
 
-    def update_sample_settings(self, sample_str: str, form) -> Any:
+    def update_sample_filters(self, sample_id: str, filters: dict) -> None:
         """
-        Update the `filters` field of a sample document based on data from a `FilterForm`.
+        Update the filters of a sample document in the database.
 
-        This method processes the form data, extracts relevant filter fields, and updates the sample's `filters` field in the database.
+        This method updates the `filters` field of a sample document with the provided filters.
 
         Args:
-            sample_str (str): The unique identifier (ObjectId) of the sample to update.
-            form (FilterForm): The form containing filter data to apply.
+            sample_id (str): The unique identifier (ObjectId) of the sample to update.
+            filters (dict): A dictionary containing the new filter settings.
 
         Returns:
-            Any
+            None
         """
-        form_data = form.data.copy()
-
-        # Remove non-filter fields
-        for key in ["csrf_token", "reset", "submit", "use_diagnosis_genelist"]:
-            form_data.pop(key, None)
-
-        # Extract Boolean categories
-        vep_consequences = []
-        genelists = []
-        fusionlists = []
-        fusioneffects = []
-        fusioncallers = []
-        cnveffects = []
-
-        keys_to_remove = []
-        keys_to_add = set()
-
-        categories = {
-            "genelist_": "genelists",
-            "fusionlist_": "fusionlists",
-            "fusioncaller_": "fusioncallers",
-            "fusioneffect_": "fusioneffects",
-            "cnveffect_": "cnveffects",
-            "vep_": "vep_consequences",
-        }
-
-        for key, value in categories.items():
-            if any(k.startswith(key) for k in form_data.keys()):
-                keys_to_add.add(value)
-
-        for field, value in form_data.items():
-            if value is True:
-                if field.startswith("genelist_"):
-                    genelists.append(field.replace("genelist_", ""))
-                elif field.startswith("fusionlist_"):
-                    fusionlists.append(field.replace("fusionlist_", ""))
-                elif field.startswith("fusioncaller_"):
-                    fusioncallers.append(field.replace("fusioncaller_", ""))
-                elif field.startswith("fusioneffect_"):
-                    fusioneffects.append(field.replace("fusioneffect_", ""))
-                elif field.startswith("cnveffect_"):
-                    cnveffects.append(field.replace("cnveffect_", ""))
-                elif field.startswith("vep_"):
-                    vep_consequences.append(field.replace("vep_", ""))
-
-                keys_to_remove.append(field)
-
-        # Clean up processed boolean keys
-        for k in keys_to_remove:
-            form_data.pop(k, None)
-
-        # Drop all remaining fields that are falsy (e.g. False, "", None)
-        form_data = {k: v for k, v in form_data.items() if v}
-
-        # Assemble final filters dict
-        filters = {**form_data}
-
-        if "vep_consequences" in keys_to_add:
-            filters["vep_consequences"] = vep_consequences
-        if "genelists" in keys_to_add:
-            filters["genelists"] = genelists
-        if "fusionlists" in keys_to_add:
-            filters["fusionlists"] = fusionlists
-        if "fusioneffects" in keys_to_add:
-            filters["fusioneffects"] = fusioneffects
-        if "fusion_callers" in keys_to_add:
-            filters["fusion_callers"] = fusioncallers
-        if "cnveffects" in keys_to_add:
-            filters["cnveffects"] = cnveffects
-
-        # Now update the sample doc
         self.get_collection().update_one(
-            {"_id": ObjectId(sample_str)},
+            {"_id": ObjectId(sample_id)},
             {"$set": {"filters": filters}},
         )
 
@@ -480,15 +433,15 @@ class SampleHandler(BaseHandler):
         }
         return assay_specific_stats
 
-    def get_all_samples(self, groups=None, limit=None, search_str="") -> Any:
+    def get_all_samples(self, assays=None, limit=None, search_str="") -> Any:
         """
         Retrieve all samples from the database.
 
-        This method fetches all sample records, optionally filtered by user groups and/or a search string.
+        This method fetches all sample records, optionally filtered by user assays and/or a search string.
         It can also limit the number of results returned.
 
         Args:
-            groups (list, optional): A list of user group identifiers to filter the samples. Defaults to None.
+            assays (list, optional): A list of user group identifiers to filter the samples. Defaults to None.
             limit (int, optional): The maximum number of samples to return. If None, all matching samples are returned. Defaults to None.
             search_str (str, optional): A search string to filter samples by name using regex. Defaults to an empty string.
 
@@ -497,8 +450,8 @@ class SampleHandler(BaseHandler):
         """
         query = {}
 
-        if groups:
-            query = {"groups": {"$in": groups}}
+        if assays:
+            query = {"assay": {"$in": assays}}
 
         if len(search_str) > 0:
             query["name"] = {"$regex": search_str}

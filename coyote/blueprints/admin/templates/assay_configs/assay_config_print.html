@@ -1,0 +1,43 @@
+{% extends "print_layout.html" %}
+{% block title %}Assay Config Print{% endblock %}
+{% block body_class %}assay-config-print{% endblock %}
+
+{% block header_meta %}
+  Assay: {{ config.assay_name }}<br>
+  Env: {{ config.environment }}<br>
+  Version: v{{ config.version }}<br>
+  Schema: {{ config.schema_name }} v{{ config.schema_version }}
+{% endblock %}
+
+
+{% block page_vertical_bar %}
+  {{config.asp_category}} ASPC • {{ config.assay_name | upper}}
+{% endblock %}
+
+{% block content %}
+  {% for section, keys in schema.sections.items() %}
+    <h2 class="section-heading">{{ section.replace('_', ' ') | title }}</h2>
+    <table class="data-table">
+      <tbody>
+        {% for key in keys %}
+          {% set field = schema.fields[key] %}
+          {% set value = config.get(key) if config.get(key) is not none else field.default %}
+          <tr>
+            <th>{{ field.label }}</th>
+            <td>
+              {% if value is iterable and not value is string %}
+                {{ value | join(', ') }}
+              {% elif field.data_type in ['dict'] %}
+                {{ value  }}
+              {% else %}
+                {{ value or '—' }}
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endfor %}
+{% endblock %}
+
+

@@ -305,7 +305,7 @@
               {% endif %}
             </td>
           </tr>
-          {% if assay == "tumwgs" or assay == "fusion" %}
+          {% if assay_group in ["tumwgs", "fusion"] %}
           {% else %}
             <tr class="hover:bg-brown-100 shadow-md rounded-lg">
               <th class="p-1 font-semibold text-left w-1/2">Design Bed</th>
@@ -350,7 +350,7 @@
         <div class="flex flex-wrap items-center justify-end">
           <!-- Tier Buttons -->
           <form action="{{ url_for('dna_bp.classify_variant', sample_id=sample.name, var_id=variant._id) }}" method="post">
-            <input type="hidden" name="assay" value="{{ assay }}">
+            <input type="hidden" name="assay_group" value="{{ assay_group }}">
             <input type="hidden" name="subpanel" value="{{ subpanel }}">
             <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
             {% if sel_csq.HGVSc is defined %}
@@ -428,7 +428,7 @@
           <!-- Remove Tier Info -->
           {% if classification.class != 999 %}
             <form action="{{ url_for('dna_bp.remove_classified_variant', sample_id=sample.name, var_id=variant._id) }}" method="post">
-              <input type="hidden" name="assay" value="{{ assay }}">
+              <input type="hidden" name="assay_group" value="{{ assay_group }}">
               <input type="hidden" name="subpanel" value="{{ subpanel }}">
               <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
               {% if sel_csq.HGVSc is defined %}
@@ -440,11 +440,11 @@
               {% if classification and 'assay' in classification %}
               <input
                 class="m-1 bg-gray-300 text-black text-sm px-2 py-1 rounded-md shadow-lg cursor-pointer hover:bg-gray-400 transition-all duration-300 ease-in-out transform hover:translate-y-1 whitespace-normal break-all {{ remove_tier_classes }}"
-                title="Remove {{ assay }} classifications"
+                title="Remove {{ assay_group }} classifications"
                 id="remove"
                 type="submit"
                 value="❌ Tier"
-                onclick="return confirm('This will remove all tiering for {{ assay }}, proceed?')"
+                onclick="return confirm('This will remove all tiering for {{ assay_group }}, proceed?')"
                 {{ remove_tier_attr }}
               >
             {% elif current_user.is_admin %}
@@ -547,7 +547,7 @@
                     <span class="ml-2">Use as global annotation</span>
                   </label>
                 {% endif %}
-                <input type="hidden" name="assay" value="{{ assay }}">
+                <input type="hidden" name="assay_group" value="{{ assay_group }}">
                 <input type="hidden" name="subpanel" value="{{ subpanel }}">
               </form>
             </div>
@@ -634,7 +634,7 @@
                 <thead class="capitalize tracking-wide rounded-t-lg bg-blue-200">
                   <tr class="border-b text-left border-gray-800">
                     <th class="p-3 font-semibold">Sample</th>
-                    <th class="p-3 font-semibold">Assay</th>
+                    <th class="p-3 font-semibold">Assay Group</th>
                     <th class="p-3 font-semibold">Depth</th>
                     <th class="p-3 font-semibold">VAF</th>
                     <th class="p-3 font-semibold">Marked</th>
@@ -651,11 +651,9 @@
                           </a>
                       </td>
                       <td class="p-2">
-                        {% for group in doc.groups %}
-                          <div class="inline-block mb-1 cursor-pointer p-1 rounded-full bg-gray-300">
-                            <span>{{ assay_group_mappings[group] }}</span>
-                          </div>
-                        {% endfor %}
+                        <div class="inline-block mb-1 cursor-pointer p-1 rounded-full bg-gray-300">
+                          <span>{{ assay_group_mappings.get(doc.assay, doc.assay) }}</span>
+                        </div>
                       </td>
                       <td class="p-2">
                         {% if sample_gt %}
@@ -705,7 +703,7 @@
         <!-- Alternate Transcripts Information -->
         <div class="bg-gray-50 w-full max-w-xl shadow-md rounded-lg mb-1" id="alternate-transcripts-info">
           <h2 class="text-sm font-semibold bg-gradient-to-b from-purple-400 to-purple-200 p-2 shadow-md rounded-t-lg break-all">Alternate Transcripts             
-            {% if assay == "swea" or assay == "gmsonco" %}
+            {% if assay_group in ["swea", "gmsonco"] %}
               <a href="javascript:void(0)" onclick="switchVisibility_noncanonicaltranscripts('noncanonical_transcript')" class="text-blue-600 hover:underline">
                 Show/hide
               </a>
@@ -730,7 +728,7 @@
                     {% if csq.Feature == sel_csq.Feature %}
                       <tr class="bg-purple-100 hover:bg-green-100 border-t border-gray-400 text-left align-top">
                     {% else %}
-                      <tr {% if assay == "swea" or assay == "gmsonco" %}class="noncanonical_transcript visibility-collapsed border-t border-gray-400 text-left align-top"{% else %}class="hover:bg-purple-50 border-t border-gray-400 text-left align-top"{% endif %}>
+                      <tr {% if assay_group in ["swea", "gmsonco"] %}class="noncanonical_transcript visibility-collapsed border-t border-gray-400 text-left align-top"{% else %}class="hover:bg-purple-50 border-t border-gray-400 text-left align-top"{% endif %}>
                     {% endif %}
                     <td class="p-2">{{ csq.SYMBOL }}</td>
                     <td class="p-2">{{ csq.Feature }}</td>

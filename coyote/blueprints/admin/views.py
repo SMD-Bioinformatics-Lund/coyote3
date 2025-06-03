@@ -73,9 +73,9 @@ def all_samples() -> str:
         search_str = form.sample_search.data
 
     limit_samples = 50
-    groups = current_user.groups
+    assays = current_user.assays
     samples = list(
-        store.sample_handler.get_all_samples(groups, limit_samples, search_str)
+        store.sample_handler.get_all_samples(assays, limit_samples, search_str)
     )
 
     return render_template(
@@ -121,7 +121,8 @@ def manage_users() -> str:
         flask.Response: The rendered HTML page displaying the list of users.
     """
     users = store.user_handler.get_all_users()
-    return render_template("users/manage_users.html", users=users)
+    roles = store.roles_handler.get_role_colors()
+    return render_template("users/manage_users.html", users=users, roles=roles)
 
 
 @admin_bp.route("/users/new", methods=["GET", "POST"])
@@ -144,7 +145,7 @@ def create_user() -> Response | str:
         - "User created successfully!" (green): User created.
 
     Dependencies:
-        - `store.schema_handler.get_schemas_by_filter`: Fetch schemas.
+        - `store.schema_handler.get_schemas_by_category_type`: Fetch schemas.
         - `store.roles_handler.get_all_role_names`: Get roles.
         - `util.admin.process_form_to_config`: Process form data.
         - `util.profile.hash_password`: Hash password.
@@ -152,9 +153,9 @@ def create_user() -> Response | str:
     """
 
     # Fetch all active user schemas
-    active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="user_config",
-        schema_category="user_management",
+    active_schemas = store.schema_handler.get_schemas_by_category_type(
+        schema_type="rbac_user",
+        schema_category="RBAC_user",
         is_active=True,
     )
 
@@ -174,52 +175,93 @@ def create_user() -> Response | str:
     available_roles = store.roles_handler.get_all_role_names()
     schema["fields"]["role"]["options"] = available_roles
 
-    # Inject permissions from permissions collections
-    permission_policies = store.permissions_handler.get_all(is_active=True)
-    if "permissions" in schema["fields"]:
-        schema["fields"]["permissions"]["options"] = [
-            {
-                "value": p["_id"],
-                "label": p.get("label", p["_id"]),
-                "category": p.get("category", "Uncategorized"),
-            }
-            for p in permission_policies
-        ]
+    # create a mapping of role_id to role_name, permissions, deny_permissions and level
+    all_roles = store.roles_handler.get_all_roles()
+    role_map = {}
+    for role in all_roles:
+        role_map[role["_id"]] = {
+            "permissions": role.get("permissions", []),
+            "deny_permissions": role.get("deny_permissions", []),
+            "level": role.get("level", 0),
+        }
 
-    # Inject groups from the assay_panels collections
-    assay_panels = store.panel_handler.get_all_assays()
-    schema["fields"]["groups"]["options"] = assay_panels
+    # Inject permissions from permissions collections
+    permission_policies = store.permissions_handler.get_all_permissions(
+        is_active=True
+    )
+    schema["fields"]["permissions"]["options"] = [
+        {
+            "value": p["_id"],
+            "label": p.get("label", p["_id"]),
+            "category": p.get("category", "Uncategorized"),
+        }
+        for p in permission_policies
+    ]
+    schema["fields"]["deny_permissions"]["options"] = [
+        {
+            "value": p["_id"],
+            "label": p.get("label", p["_id"]),
+            "category": p.get("category", "Uncategorized"),
+        }
+        for p in permission_policies
+    ]
+
+    # Inject assay groups from the assay_panels collections
+    assay_groups: list = store.asp_handler.get_all_asp_groups()
+    schema["fields"]["assay_groups"]["options"] = assay_groups
+
+    # get all assays for each group in a dict
+    assay_groups_panels = store.asp_handler.get_all_asps()
+    assay_group_map = util.common.create_assay_group_map(assay_groups_panels)
+
+    # Inject meta autid
+    schema["fields"]["created_by"]["default"] = current_user.email
+    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_by"]["default"] = current_user.email
+    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
 
     if request.method == "POST":
-        form_data = {
+        form_data: dict[str, str | list[str]] = {
             key: (vals[0] if len(vals) == 1 else vals)
             for key, vals in request.form.to_dict(flat=False).items()
         }
 
-        permissions: list[str] = request.form.getlist("permissions") or []
-        groups: list[str] = request.form.getlist("groups") or []
+        # Remove all the permissions that are already there in the role and add any additional permissions to the user doc
+        # This is to ensure that the user does not get duplicate permissions
+        role_permissions = role_map.get(form_data["role"], {})
+        form_data["permissions"] = list(
+            set(form_data.get("permissions", []))
+            - set(role_permissions.get("permissions", []))
+        )
+        form_data["deny_permissions"] = list(
+            set(form_data.get("deny_permissions", []))
+            - set(role_permissions.get("deny_permissions", []))
+        )
 
-        user_data = util.admin.process_form_to_config(form_data, schema)
+        user_data: dict = util.admin.process_form_to_config(form_data, schema)
         user_data["_id"] = user_data["username"]
         user_data["schema_name"] = schema["_id"]
         user_data["schema_version"] = schema["version"]
-        user_data["created_by"] = current_user.email
-        user_data["created_on"] = datetime.utcnow()
-        user_data["updated_by"] = current_user.email
-        user_data["updated_on"] = datetime.utcnow()
         user_data["email"] = user_data["email"].lower()
         user_data["username"] = user_data["username"].lower()
-        user_data["permissions"] = permissions
-        user_data["groups"] = groups
-
-        # Log Action
-        g.audit_metadata = {"user": user_data["username"]}
 
         # Hash the password
-        if "password" in user_data and user_data["password"]:
+        if user_data["auth_type"] == "coyote3" and user_data["password"]:
             user_data["password"] = util.profile.hash_password(
                 user_data["password"]
             )
+        else:
+            user_data["password"] = None
+
+        # Inject version history with delta
+        user_data = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=deepcopy(user_data),
+            is_new=True,
+        )
+
+        # Log Action
+        g.audit_metadata = {"user": user_data["username"]}
 
         store.user_handler.create_user(user_data)
         flash("User created successfully!", "green")
@@ -230,6 +272,8 @@ def create_user() -> Response | str:
         schema=schema,
         schemas=active_schemas,
         selected_schema=schema,
+        assay_group_map=assay_group_map,
+        role_map=role_map,
     )
 
 
@@ -254,52 +298,135 @@ def edit_user(user_id) -> Response | str:
     available_roles = store.roles_handler.get_all_role_names()
     schema["fields"]["role"]["options"] = available_roles
 
-    # Inject permissions from permissions collections
-    permission_policies = store.permissions_handler.get_all(is_active=True)
-
     # Inject checkbox options directly into schema field definition
-    if "permissions" in schema["fields"]:
-        schema["fields"]["permissions"]["options"] = [
-            {
-                "value": p["_id"],
-                "label": p.get("label", p["_id"]),
-                "category": p.get("category", "Uncategorized"),
-            }
-            for p in permission_policies
-        ]
+    permission_policies = store.permissions_handler.get_all_permissions(
+        is_active=True
+    )
+    schema["fields"]["permissions"]["options"] = [
+        {
+            "value": p["_id"],
+            "label": p.get("label", p["_id"]),
+            "category": p.get("category", "Uncategorized"),
+        }
+        for p in permission_policies
+    ]
+    schema["fields"]["deny_permissions"]["options"] = [
+        {
+            "value": p["_id"],
+            "label": p.get("label", p["_id"]),
+            "category": p.get("category", "Uncategorized"),
+        }
+        for p in permission_policies
+    ]
 
-    # Inject groups from the assay_panels collections
-    assay_panels = store.panel_handler.get_all_assays()
-    schema["fields"]["groups"]["options"] = assay_panels
+    # create a mapping of role_id to role_name, permissions, deny_permissions and level
+    all_roles = store.roles_handler.get_all_roles()
+    role_map = {}
+    for role in all_roles:
+        role_map[role["_id"]] = {
+            "permissions": role.get("permissions", []),
+            "deny_permissions": role.get("deny_permissions", []),
+            "level": role.get("level", 0),
+        }
 
-    # if "groups" in user_doc:
-    #     user_doc["groups"] = {group: True for group in user_doc["groups"]}
+    schema["fields"]["permissions"]["default"] = user_doc.get("permissions")
+    schema["fields"]["deny_permissions"]["default"] = user_doc.get(
+        "deny_permissions"
+    )
+
+    # Inject assay groups from the assay_panels collections
+    assay_groups = store.asp_handler.get_all_asp_groups()
+    schema["fields"]["assay_groups"]["options"] = assay_groups
+    schema["fields"]["assay_groups"]["default"] = user_doc.get(
+        "assay_groups", []
+    )
+
+    # get all assays for each group in a dict
+    assay_groups_panels = store.asp_handler.get_all_asps()
+    assay_group_map = {}
+
+    for _assay in assay_groups_panels:
+        group = _assay.get("asp_group")
+        if group not in assay_group_map:
+            assay_group_map[group] = []
+
+        group_map = {}
+        group_map["assay_name"] = _assay.get("assay_name")
+        group_map["display_name"] = _assay.get("display_name")
+        group_map["asp_category"] = _assay.get("asp_category")
+        assay_group_map[group].append(group_map)
+
+    schema["fields"]["assays"]["default"] = user_doc.get("assays", [])
+
+    # --- Rewind logic ---
+    selected_version = request.args.get("version", type=int)
+    delta = None
+
+    if selected_version and selected_version != user_doc.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(user_doc.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = user_doc["version_history"][version_index].get(
+                "delta", {}
+            )
+            user_doc = util.admin.apply_version_delta(
+                deepcopy(user_doc), delta_blob
+            )
+            delta = delta_blob
+            user_doc["_id"] = user_id
 
     if request.method == "POST":
-        form_data = request.form.to_dict()
-        permissions = request.form.getlist("permissions") or []
-        groups = request.form.getlist("groups") or []
+        form_data = {
+            key: (vals[0] if len(vals) == 1 else vals)
+            for key, vals in request.form.to_dict(flat=False).items()
+        }
 
         updated_user = util.admin.process_form_to_config(form_data, schema)
+
+        updated_user["permissions"] = list(
+            set(updated_user.get("permissions", []))
+            - set(
+                role_map.get(updated_user["role"], {}).get("permissions", [])
+            )
+        )
+        updated_user["deny_permissions"] = list(
+            set(updated_user.get("deny_permissions", []))
+            - set(
+                role_map.get(updated_user["role"], {}).get(
+                    "deny_permissions", []
+                )
+            )
+        )
 
         # Proceed with update
         updated_user["updated_on"] = datetime.utcnow()
         updated_user["updated_by"] = current_user.email
 
-        if "password" in updated_user:
+        # Hash the password
+        if updated_user["auth_type"] == "coyote3" and updated_user["password"]:
             updated_user["password"] = util.profile.hash_password(
                 updated_user["password"]
             )
         else:
-            updated_user["password"] = user_doc["password"]
+            updated_user["password"] = user_doc.get("password")
 
-        updated_user["email"] = updated_user["email"].lower()
-        updated_user["username"] = updated_user["username"].lower()
-        updated_user["groups"] = groups
         updated_user["schema_name"] = schema["_id"]
         updated_user["schema_version"] = schema["version"]
-        updated_user["permissions"] = permissions
-        updated_user["groups"] = groups
+        updated_user["version"] = user_doc.get("version", 1) + 1
+
+        # Inject version history with delta
+        updated_user = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=updated_user,
+            old_config=user_doc,
+            is_new=False,
+        )
 
         # Log Action
         g.audit_metadata = {"user": user_id}
@@ -309,7 +436,60 @@ def edit_user(user_id) -> Response | str:
         return redirect(url_for("admin_bp.manage_users"))
 
     return render_template(
-        "users/user_edit.html", schema=schema, config=user_doc
+        "users/user_edit.html",
+        schema=schema,
+        user=user_doc,
+        assay_group_map=assay_group_map,
+        role_map=role_map,
+        selected_version=selected_version,
+        delta=delta,
+    )
+
+
+@admin_bp.route("/users/<user_id>/view", methods=["GET"])
+@require("view_user", min_role="admin", min_level=99999)
+@log_action("view_user", call_type="admin_call")
+def view_user(user_id: str) -> str | Response:
+    """
+    Displays a read-only view of a user's profile with optional version rewind.
+    """
+    user_doc = store.user_handler.user_with_id(user_id)
+    if not user_doc:
+        flash("User not found.", "red")
+        return redirect(url_for("admin_bp.manage_users"))
+
+    schema = store.schema_handler.get_schema(user_doc.get("schema_name"))
+    if not schema:
+        flash("Schema not found for user.", "red")
+        return redirect(url_for("admin_bp.manage_users"))
+
+    # Handle optional version rewind
+    selected_version = request.args.get("version", type=int)
+    delta = None
+    if selected_version and selected_version != user_doc.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(user_doc.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = user_doc["version_history"][version_index].get(
+                "delta", {}
+            )
+            delta = delta_blob  # Used for UI highlighting
+            user_doc = util.admin.apply_version_delta(
+                deepcopy(user_doc), delta_blob
+            )
+
+    return render_template(
+        "users/user_view.html",
+        schema=schema,
+        user=user_doc,
+        selected_version=selected_version or user_doc.get("version"),
+        delta=delta,
     )
 
 
@@ -386,7 +566,7 @@ def toggle_user_active(user_id):
         "user_status": "Active" if new_status else "Inactive",
     }
 
-    store.user_handler.toggle_active(user_id, new_status)
+    store.user_handler.toggle_user_active(user_id, new_status)
     flash(
         f"User: '{user_id}' is now {'active' if new_status else 'inactive'}.",
         "green",
@@ -411,9 +591,438 @@ def assay_configs() -> str:
     Returns:
         Response: Rendered HTML template displaying assay configurations.
     """
-    assay_configs = store.assay_config_handler.get_all_assay_configs()
+    assay_configs = store.aspc_handler.get_all_aspc()
     return render_template(
         "assay_configs/assay_configs.html", assay_configs=assay_configs
+    )
+
+
+@admin_bp.route("/assay-config/dna/new", methods=["GET", "POST"])
+@require("create_assay_config", min_role="developer", min_level=9999)
+@log_action(action_name="create_assay_config", call_type="developer_call")
+def create_dna_assay_config() -> Response | str:
+    """
+    Create a new DNA assay config using a schema-driven form.
+    Supports version history and panel-prefilled metadata.
+    """
+    # Load active schemas
+    active_schemas = store.schema_handler.get_schemas_by_category_type(
+        schema_type="asp_config", schema_category="DNA", is_active=True
+    )
+
+    if not active_schemas:
+        flash("No active DNA schemas found!", "red")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
+    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+
+    if not schema:
+        flash("Selected schema not found!", "red")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    # Load all active assays from panel collection
+    assay_panels = store.asp_handler.get_all_asps(is_active=True)
+
+    # Build prefill_map and collect valid assay IDs
+    prefill_map = {}
+    valid_assay_ids = []
+
+    for p in assay_panels:
+        if p.get("asp_category") == "DNA":
+            envs = store.aspc_handler.get_available_assay_envs(
+                p["_id"], schema["fields"]["environment"]["options"]
+            )
+            if envs:
+                valid_assay_ids.append(p["_id"])
+                prefill_map[p["_id"]] = {
+                    "display_name": p.get("display_name"),
+                    "asp_group": p.get("asp_group"),
+                    "asp_category": p.get("asp_category"),
+                    "platform": p.get("platform"),
+                    "environment": envs,
+                }
+
+    # Inject only valid assay IDs into the schema
+    schema["fields"]["assay_name"]["options"] = valid_assay_ids
+
+    # Inject other schema values
+    schema["fields"]["vep_consequences"]["options"] = list(
+        app.config.get("CONSEQ_TERMS_MAPPER", {}).keys()
+    )
+
+    schema["fields"]["created_by"]["default"] = current_user.email
+    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_by"]["default"] = current_user.email
+    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
+
+    if request.method == "POST":
+        form_data = {
+            key: (vals[0] if len(vals) == 1 else vals)
+            for key, vals in request.form.to_dict(flat=False).items()
+        }
+
+        # TODO: Update the process_form_to_config to handle JSON fields
+        form_data["verification_samples"] = json.loads(
+            request.form.get("verification_samples", "{}")
+        )
+
+        form_data["query"] = json.loads(request.form.get("query", "{}"))
+
+        config = util.admin.process_form_to_config(form_data, schema)
+
+        config.update(
+            {
+                "_id": f"{config['assay_name']}:{config['environment']}",
+                "schema_name": schema["_id"],
+                "schema_version": schema["version"],
+                "version": 1,
+            }
+        )
+
+        config = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=deepcopy(config),
+            is_new=True,
+        )
+
+        # Check if the config already exists
+        existing_config = store.aspc_handler.get_aspc_with_id(config["_id"])
+        if existing_config:
+            flash(
+                f"Assay config '{config['assay_name']} for {config['environment']}' already exists!",
+                "red",
+            )
+        else:
+            store.aspc_handler.create_aspc(config)
+            flash(
+                f"{config['assay_name']} : {config['environment']} assay config created!",
+                "green",
+            )
+
+        # Log Action
+        g.audit_metadata = {
+            "assay": config["assay_name"],
+            "environment": config["environment"],
+        }
+
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    return render_template(
+        "assay_configs/assay_config_create.html",
+        schema=schema,
+        schemas=active_schemas,
+        selected_schema=schema,
+        prefill_map_json=json.dumps(prefill_map),
+    )
+
+
+@admin_bp.route("/assay-config/rna/new", methods=["GET", "POST"])
+@require("create_assay_config", min_role="developer", min_level=9999)
+@log_action(action_name="create_assay_config", call_type="developer_call")
+def create_rna_assay_config() -> Response | str:
+    """
+    Handles the creation of RNA assay configurations. Fetches active RNA schemas,
+    processes form data, and saves the configuration to the database.
+    """
+    # Fetch all active RNA assay schemas
+    active_schemas = store.schema_handler.get_schemas_by_category_type(
+        schema_type="asp_config", schema_category="RNA", is_active=True
+    )
+
+    if not active_schemas:
+        flash("No active RNA schemas found!", "red")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    # Determine which schema to use
+    selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
+    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+
+    if not schema:
+        flash("Selected schema not found!", "red")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    # Load all active assays from panel collection
+    assay_panels = store.asp_handler.get_all_asps(is_active=True)
+
+    # Build prefill_map and collect valid assay IDs
+    prefill_map = {}
+    valid_assay_ids = []
+
+    for p in assay_panels:
+        if p.get("asp_category") == "RNA":
+            envs = store.aspc_handler.get_available_assay_envs(
+                p["_id"], schema["fields"]["environment"]["options"]
+            )
+            if envs:
+                valid_assay_ids.append(p["_id"])
+                prefill_map[p["_id"]] = {
+                    "display_name": p.get("display_name"),
+                    "asp_group": p.get("asp_group"),
+                    "asp_category": p.get("asp_category"),
+                    "platform": p.get("platform"),
+                    "environment": envs,
+                }
+
+    # Inject only valid assay IDs into the schema
+    schema["fields"]["assay_name"]["options"] = valid_assay_ids
+
+    schema["fields"]["created_by"]["default"] = current_user.email
+    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_by"]["default"] = current_user.email
+    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
+
+    if request.method == "POST":
+        form_data = {
+            key: (vals[0] if len(vals) == 1 else vals)
+            for key, vals in request.form.to_dict(flat=False).items()
+        }
+
+        config = util.admin.process_form_to_config(form_data, schema)
+
+        config.update(
+            {
+                "_id": f"{config['assay_name']}:{config['environment']}",
+                "schema_name": schema["_id"],
+                "schema_version": schema["version"],
+                "version": 1,
+            }
+        )
+
+        config = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=deepcopy(config),
+            is_new=True,
+        )
+
+        # Check if the config already exists
+        existing_config = store.aspc_handler.get_aspc_with_id(config["_id"])
+        if existing_config:
+            flash(
+                f"Assay config '{config['assay_name']} for {config['environment']}' already exists!",
+                "red",
+            )
+        else:
+            store.aspc_handler.create_aspc(config)
+            flash(
+                f"{config['assay_name']} : {config['environment']} assay config created!",
+                "green",
+            )
+
+        # Log Action
+        g.audit_metadata = {
+            "assay": config["assay_name"],
+            "environment": config["environment"],
+        }
+
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    return render_template(
+        "assay_configs/assay_config_create.html",
+        schema=schema,
+        schemas=active_schemas,
+        selected_schema=schema,
+        prefill_map_json=json.dumps(prefill_map),
+    )
+
+
+@admin_bp.route("/assay-config/<assay_id>/edit", methods=["GET", "POST"])
+@require("edit_assay_config", min_role="developer", min_level=9999)
+@log_action(action_name="edit_assay_config", call_type="developer_call")
+def edit_assay_config(assay_id) -> Response | str:
+    """Edit an existing DNA assay configuration with version rewind support."""
+
+    # --- Fetch config and schema ---
+    assay_config = store.aspc_handler.get_aspc_with_id(assay_id)
+    if not assay_config:
+        flash("Assay config not found.", "red")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    schema = store.schema_handler.get_schema(assay_config.get("schema_name"))
+    if not schema:
+        flash("Schema for this assay config is missing.", "red")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    # --- Inject dynamic options if needed ---
+    vep_terms = list(app.config.get("CONSEQ_TERMS_MAPPER", {}).keys())
+    if "vep_consequences" in schema["fields"]:
+        schema["fields"]["vep_consequences"]["options"] = vep_terms
+
+    # --- Rewind logic ---
+    selected_version = request.args.get("version", type=int)
+    delta = None
+
+    if selected_version and selected_version != assay_config.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(assay_config.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = assay_config["version_history"][version_index].get(
+                "delta", {}
+            )
+            assay_config = util.admin.apply_version_delta(
+                deepcopy(assay_config), delta_blob
+            )
+            delta = delta_blob
+            assay_config["_id"] = assay_id
+
+    # --- POST: handle form update ---
+    if request.method == "POST":
+        form_data = {
+            key: (
+                request.form.getlist(key)
+                if len(request.form.getlist(key)) > 1
+                else request.form[key]
+            )
+            for key in request.form
+        }
+
+        # TODO: Update the process_form_to_config to handle JSON fields
+        form_data["verification_samples"] = json.loads(
+            request.form.get("verification_samples", "{}")
+        )
+
+        form_data["query"] = json.loads(request.form.get("query", "{}"))
+
+        updated_config = util.admin.process_form_to_config(form_data, schema)
+
+        # Enrich with metadata
+        updated_config["_id"] = assay_config.get("_id")
+        updated_config["updated_on"] = datetime.utcnow()
+        updated_config["updated_by"] = current_user.email
+        updated_config["schema_name"] = schema["_id"]
+        updated_config["schema_version"] = schema["version"]
+        updated_config["version"] = assay_config.get("version", 1) + 1
+
+        # Inject version history with delta
+        updated_config = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=updated_config,
+            old_config=assay_config,
+            is_new=False,
+        )
+
+        store.aspc_handler.update_aspc(assay_id, updated_config)
+        g.audit_metadata = {
+            "assay": updated_config.get("assay_name"),
+            "environment": updated_config.get("environment"),
+        }
+
+        flash("Assay configuration updated successfully.", "green")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    return render_template(
+        "assay_configs/assay_config_edit.html",
+        schema=schema,
+        assay_config=assay_config,
+        selected_version=selected_version,
+        delta=delta,
+    )
+
+
+@admin_bp.route("/assay-config/<assay_id>/view", methods=["GET"])
+@require("view_assay_config", min_role="user", min_level=9)
+@log_action(action_name="view_assay_config", call_type="viewer_call")
+def view_assay_config(assay_id: str) -> str | Response:
+    """
+    View an existing DNA assay configuration with version rewind support.
+    """
+    assay_config = store.aspc_handler.get_aspc_with_id(assay_id)
+    if not assay_config:
+        flash("Assay config not found.", "red")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    schema = store.schema_handler.get_schema(assay_config.get("schema_name"))
+    if not schema:
+        flash("Schema for this assay config is missing.", "red")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    # Inject dynamic options like VEP consequences
+    if "vep_consequences" in schema["fields"]:
+        schema["fields"]["vep_consequences"]["options"] = list(
+            app.config.get("CONSEQ_TERMS_MAPPER", {}).keys()
+        )
+
+    selected_version = request.args.get("version", type=int)
+    delta = None
+
+    # Version rewind logic
+    if selected_version and selected_version != assay_config.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(assay_config.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = assay_config["version_history"][version_index].get(
+                "delta", {}
+            )
+            assay_config = util.admin.apply_version_delta(
+                deepcopy(assay_config), delta_blob
+            )
+            delta = delta_blob
+
+    return render_template(
+        "assay_configs/assay_config_view.html",
+        schema=schema,
+        assay_config=assay_config,
+        selected_version=selected_version or assay_config.get("version"),
+        delta=delta,
+    )
+
+
+@admin_bp.route("/assay-config/<assay_id>/print", methods=["GET"])
+@require("view_assay_config", min_role="user", min_level=9)
+@log_action(action_name="print_assay_config", call_type="viewer_call")
+def print_assay_config(assay_id: str) -> str | Response:
+    """
+    Compact printable view of assay configuration with optional version rewind.
+    """
+    assay_config = store.aspc_handler.get_aspc_with_id(assay_id)
+    if not assay_config:
+        flash("Assay config not found.", "red")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    schema = store.schema_handler.get_schema(assay_config.get("schema_name"))
+    if not schema:
+        flash("Schema not found for assay config.", "red")
+        return redirect(url_for("admin_bp.assay_configs"))
+
+    # Handle optional version rewind
+    selected_version = request.args.get("version", type=int)
+    if selected_version and selected_version != assay_config.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(assay_config.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = assay_config["version_history"][version_index].get(
+                "delta", {}
+            )
+            assay_config = util.admin.apply_version_delta(
+                deepcopy(assay_config), delta_blob
+            )
+            assay_config["_id"] = assay_id
+            assay_config["version"] = selected_version
+
+    return render_template(
+        "assay_configs/assay_config_print.html",
+        schema=schema,
+        config=assay_config,
+        now=datetime.utcnow(),
+        selected_version=selected_version,
     )
 
 
@@ -430,7 +1039,7 @@ def toggle_assay_config_active(assay_id) -> Response:
     Returns:
         Response: Redirects to the assay configurations page or aborts with 404 if not found.
     """
-    assay_config = store.assay_config_handler.get_assay_config(assay_id)
+    assay_config = store.aspc_handler.get_aspc_with_id(assay_id)
     if not assay_config:
         return abort(404)
 
@@ -440,76 +1049,12 @@ def toggle_assay_config_active(assay_id) -> Response:
         "assay": assay_id,
         "assay_status": "Active" if new_status else "Inactive",
     }
-    store.assay_config_handler.toggle_active(assay_id, new_status)
+    store.aspc_handler.toggle_aspc_active(assay_id, new_status)
     flash(
         f"Assay config '{assay_id}' is now {'active' if new_status else 'inactive'}.",
         "green",
     )
     return redirect(url_for("admin_bp.assay_configs"))
-
-
-@admin_bp.route("/assay-config/<assay_id>/edit", methods=["GET", "POST"])
-@require("edit_assay_config", min_role="developer", min_level=9999)
-@log_action(action_name="edit_assay_config", call_type="developer_call")
-def edit_assay_config(assay_id) -> Response | str:
-    """
-    Handle the editing of an assay configuration.
-
-    Args:
-        assay_id (str): The unique identifier of the assay configuration to edit.
-
-    Returns:
-        Response: Renders the edit template or redirects based on the request method and outcome.
-    """
-    assay_config = store.assay_config_handler.get_assay_config(assay_id)
-    schema = store.schema_handler.get_schema(assay_config.get("schema_name"))
-
-    if request.method == "POST":
-        form_data = request.form.to_dict()
-
-        try:
-            updated_config = util.admin.process_form_to_config(
-                form_data, schema
-            )
-
-            current_clean = util.admin.clean_config_for_comparison(
-                assay_config
-            )
-            incoming_clean = util.admin.clean_config_for_comparison(
-                updated_config
-            )
-
-            if current_clean == incoming_clean:
-                flash(
-                    "No changes detected. Configuration was not updated.",
-                    "yellow",
-                )
-                return redirect(url_for("admin_bp.assay_configs"))
-
-            # Proceed with update
-            updated_config["updated_on"] = datetime.utcnow()
-            updated_config["updated_by"] = current_user.email
-            updated_config["version"] = assay_config.get("version", 1) + 1
-            updated_config["schema_name"] = schema["_id"]
-            updated_config["schema_version"] = schema["version"]
-
-            store.assay_config_handler.update_assay_config(
-                assay_id, updated_config
-            )
-            flash("Assay configuration updated successfully.", "green")
-            return redirect(url_for("admin_bp.assay_configs"))
-
-        except Exception as e:
-            flash(f"Error: {e}", "red")
-
-        # Log Action
-        g.audit_metadata = {"assay": assay_id}
-
-    return render_template(
-        "assay_configs/assay_config_edit.html",
-        schema=schema,
-        config=assay_config,
-    )
 
 
 @admin_bp.route("/assay/<assay_id>/delete", methods=["GET"])
@@ -525,126 +1070,12 @@ def delete_assay_config(assay_id) -> Response:
     Returns:
         Response: Redirects to the assay configurations page or aborts with 404 if not found.
     """
-    store.assay_config_handler.delete_assay_config(assay_id)
+    store.aspc_handler.delete_aspc(assay_id)
     # Log Action
     g.audit_metadata = {"assay": assay_id}
 
     flash(f"Assay config '{assay_id}' deleted successfully.", "green")
     return redirect(url_for("admin_bp.assay_configs"))
-
-
-@admin_bp.route("/assay-config/dna/new", methods=["GET", "POST"])
-@require("create_assay_config", min_role="developer", min_level=9999)
-@log_action(action_name="create_assay_config", call_type="developer_call")
-def create_dna_assay_config() -> Response | str:
-    """
-    Handles the creation of a DNA assay configuration. Fetches active DNA schemas,
-    processes form data, and saves the configuration to the database.
-    """
-    # Fetch all active DNA assay schemas
-    active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="assay_config", schema_category="DNA", is_active=True
-    )
-
-    if not active_schemas:
-        flash("No active DNA schemas found!", "red")
-        return redirect(url_for("admin_bp.assay_configs"))
-
-    # Determine which schema to use
-    selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
-    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
-
-    if not schema:
-        flash("Selected schema not found!", "red")
-        return redirect(url_for("admin_bp.assay_configs"))
-
-    if request.method == "POST":
-        form_data = {
-            key: (vals[0] if len(vals) == 1 else vals)
-            for key, vals in request.form.to_dict(flat=False).items()
-        }
-
-        config = util.admin.process_form_to_config(form_data, schema)
-
-        config["_id"] = config["assay_name"]
-        config["schema_name"] = schema["_id"]
-        config["schema_version"] = schema["version"]
-        config["version"] = 1
-        config["created_by"] = current_user.email
-        config["created_on"] = datetime.utcnow()
-        config["updated_by"] = current_user.email
-        config["updated_on"] = datetime.utcnow()
-
-        # Log Action
-        g.audit_metadata = {"assay": config["assay_name"]}
-
-        store.assay_config_handler.insert_assay_config(config)
-        flash(f"{config['assay_name']} assay config created!", "green")
-        return redirect(url_for("admin_bp.assay_configs"))
-
-    return render_template(
-        "assay_configs/assay_config_create.html",
-        schema=schema,
-        schemas=active_schemas,
-        selected_schema=schema,
-    )
-
-
-@admin_bp.route("/assay-config/rna/new", methods=["GET", "POST"])
-@require("create_assay_config", min_role="developer", min_level=9999)
-@log_action(action_name="create_assay_config", call_type="developer_call")
-def create_rna_assay_config() -> Response | str:
-    """
-    Handles the creation of RNA assay configurations. Fetches active RNA schemas,
-    processes form data, and saves the configuration to the database.
-    """
-    # Fetch all active RNA assay schemas
-    active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="assay_config", schema_category="RNA", is_active=True
-    )
-
-    if not active_schemas:
-        flash("No active RNA schemas found!", "red")
-        return redirect(url_for("admin_bp.assay_configs"))
-
-    # Determine which schema to use
-    selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
-    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
-
-    if not schema:
-        flash("Selected schema not found!", "red")
-        return redirect(url_for("admin_bp.assay_configs"))
-
-    if request.method == "POST":
-        form_data = {
-            key: (vals[0] if len(vals) == 1 else vals)
-            for key, vals in request.form.to_dict(flat=False).items()
-        }
-
-        config = util.admin.process_form_to_config(form_data, schema)
-
-        config["_id"] = config["assay_name"]
-        config["schema_name"] = schema["_id"]
-        config["schema_version"] = schema["version"]
-        config["version"] = 1
-        config["created_by"] = current_user.email
-        config["created_on"] = datetime.utcnow()
-        config["updated_by"] = current_user.email
-        config["updated_on"] = datetime.utcnow()
-
-        # Log Action
-        g.audit_metadata = {"assay": config["assay_name"]}
-
-        store.assay_config_handler.insert_assay_config(config)
-        flash(f"{config['assay_name']} assay config created!", "green")
-        return redirect(url_for("admin_bp.assay_configs"))
-
-    return render_template(
-        "assay_configs/assay_config_create.html",
-        schema=schema,
-        schemas=active_schemas,
-        selected_schema=schema,
-    )
 
 
 # ==============================
@@ -689,7 +1120,7 @@ def toggle_schema_active(schema_id) -> Response:
         "schema": schema_id,
         "schema_status": "Active" if new_status else "Inactive",
     }
-    store.schema_handler.toggle_active(schema_id, new_status)
+    store.schema_handler.toggle_schema_active(schema_id, new_status)
     flash(
         f"Schema '{schema_id}' is now {'active' if new_status else 'inactive'}.",
         "green",
@@ -780,7 +1211,7 @@ def create_schema() -> str | Response:
             parsed_schema["updated_on"] = datetime.utcnow()
             parsed_schema["updated_by"] = current_user.email
 
-            store.schema_handler.insert_schema(parsed_schema)
+            store.schema_handler.create_schema(parsed_schema)
             flash("Schema created successfully!", "green")
             return redirect(url_for("admin_bp.schemas"))
 
@@ -841,9 +1272,11 @@ def list_permissions() -> str:
     Returns:
         str: Rendered HTML template with grouped permissions.
     """
-    policies = store.permissions_handler.get_all(is_active=False)
+    permission_policies = store.permissions_handler.get_all_permissions(
+        is_active=False
+    )
     grouped = {}
-    for p in policies:
+    for p in permission_policies:
         grouped.setdefault(p["category"], []).append(p)
     return render_template(
         "access/permissions.html", grouped_permissions=grouped
@@ -859,9 +1292,9 @@ def create_permission() -> Response | str:
     Renders a form for input and processes the form submission to store the policy.
     """
 
-    active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="admin_config",
-        schema_category="RBAC_permissions",
+    active_schemas = store.schema_handler.get_schemas_by_category_type(
+        schema_type="acl_config",
+        schema_category="RBAC",
         is_active=True,
     )
     if not active_schemas:
@@ -875,6 +1308,12 @@ def create_permission() -> Response | str:
         flash("Selected schema not found!", "red")
         return redirect(url_for("admin_bp.list_permissions"))
 
+    # Inject meta autid
+    schema["fields"]["created_by"]["default"] = current_user.email
+    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_by"]["default"] = current_user.email
+    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
+
     if request.method == "POST":
         form_data = {
             key: (vals[0] if len(vals) == 1 else vals)
@@ -882,15 +1321,18 @@ def create_permission() -> Response | str:
         }
         policy = util.admin.process_form_to_config(form_data, schema)
 
-        policy["permission_name"] = policy["_id"]
-        policy["created_by"] = current_user.email
-        policy["updated_by"] = current_user.email
-        policy["created_on"] = datetime.utcnow().isoformat()
-        policy["updated_on"] = datetime.utcnow().isoformat()
+        policy["_id"] = policy["permission_name"]
         policy["schema_name"] = schema["_id"]
         policy["schema_version"] = schema["version"]
 
-        store.permissions_handler.insert_permission(policy)
+        # Inject version history with delta
+        policy = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=deepcopy(policy),
+            is_new=True,
+        )
+
+        store.permissions_handler.create_new_policy(policy)
 
         # Log Action
         g.audit_metadata = {"permission": policy["_id"]}
@@ -925,28 +1367,53 @@ def edit_permission(perm_id) -> Response | str:
 
     schema = store.schema_handler.get_schema(permission.get("schema_name"))
 
+    # --- Rewind logic ---
+    selected_version = request.args.get("version", type=int)
+    delta = None
+
+    if selected_version and selected_version != permission.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(permission.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = permission["version_history"][version_index].get(
+                "delta", {}
+            )
+            permission = util.admin.apply_version_delta(
+                deepcopy(permission), delta_blob
+            )
+            delta = delta_blob
+            permission["_id"] = perm_id
+
     if request.method == "POST":
-        form_data = request.form.to_dict(flat=True)
+        form_data = {
+            key: (vals[0] if len(vals) == 1 else vals)
+            for key, vals in request.form.to_dict(flat=False).items()
+        }
 
         updated_permission = util.admin.process_form_to_config(
             form_data, schema
         )
 
-        current_clean = util.admin.clean_config_for_comparison(permission)
-        incoming_clean = util.admin.clean_config_for_comparison(
-            updated_permission
-        )
-        if current_clean == incoming_clean:
-            flash(
-                "No changes detected. Permission policy was not updated.",
-                "yellow",
-            )
-            return redirect(url_for("admin_bp.list_permissions"))
-
         # Proceed with update
         updated_permission["updated_on"] = datetime.utcnow()
         updated_permission["updated_by"] = current_user.email
         updated_permission["version"] = permission.get("version", 1) + 1
+        updated_permission["schema_name"] = schema["_id"]
+        updated_permission["schema_version"] = schema["version"]
+
+        # Inject version history with delta
+        updated_permission = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=updated_permission,
+            old_config=permission,
+            is_new=False,
+        )
 
         # Log Action
         g.audit_metadata = {"permission": perm_id}
@@ -956,7 +1423,64 @@ def edit_permission(perm_id) -> Response | str:
         return redirect(url_for("admin_bp.list_permissions"))
 
     return render_template(
-        "access/edit_permission.html", schema=schema, config=permission
+        "access/edit_permission.html",
+        schema=schema,
+        permission=permission,
+        selected_version=selected_version,
+        delta=delta,
+    )
+
+
+@admin_bp.route("/permissions/<perm_id>/view", methods=["GET"])
+@require("view_permission", min_role="admin", min_level=99999)
+@log_action(action_name="view_permission", call_type="admin_call")
+def view_permission(perm_id) -> str | Response:
+    """
+    View a permission policy by its ID.
+
+    Args:
+        perm_id (str): The unique identifier of the permission policy to view.
+
+    Returns:
+        Response: Renders the view permission template or redirects if not found.
+    """
+    permission = store.permissions_handler.get(perm_id)
+    if not permission:
+        return abort(404)
+
+    schema = store.schema_handler.get_schema(permission.get("schema_name"))
+
+    if not schema:
+        flash("Schema for this permission is missing.", "red")
+        return redirect(url_for("admin_bp.list_permissions"))
+
+    # Handle optional version rewind
+    selected_version = request.args.get("version", type=int)
+    delta = None
+    if selected_version and selected_version != permission.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(permission.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = permission["version_history"][version_index].get(
+                "delta", {}
+            )
+            delta = delta_blob  # Used for UI highlighting
+            permission = util.admin.apply_version_delta(
+                deepcopy(permission), delta_blob
+            )
+
+    return render_template(
+        "access/view_permission.html",
+        schema=schema,
+        permission=permission,
+        selected_version=selected_version or permission.get("version"),
+        delta=delta,
     )
 
 
@@ -989,7 +1513,7 @@ def toggle_permission_active(perm_id) -> Response:
         "permission": perm_id,
         "permission_status": "Active" if new_status else "Inactive",
     }
-    store.permissions_handler.toggle_active(perm_id, new_status)
+    store.permissions_handler.toggle_policy_active(perm_id, new_status)
     flash(
         f"Permission '{perm_id}' is now {'Active' if new_status else 'Inactive'}.",
         "green",
@@ -1022,7 +1546,7 @@ def delete_permission(perm_id) -> Response:
     # Log Action
     g.audit_metadata = {"permission": perm_id}
 
-    store.permissions_handler.delete_permission(perm_id)
+    store.permissions_handler.delete_policy(perm_id)
     flash(f"Permission policy '{perm_id}' deleted successfully.", "green")
     return redirect(url_for("admin_bp.list_permissions"))
 
@@ -1061,9 +1585,9 @@ def create_role() -> Response | str:
         Redirects to the roles list page or renders the role creation template.
     """
 
-    active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="admin_config",
-        schema_category="access_control",
+    active_schemas = store.schema_handler.get_schemas_by_category_type(
+        schema_type="rbac_role",
+        schema_category="RBAC_role",
         is_active=True,
     )
 
@@ -1078,43 +1602,58 @@ def create_role() -> Response | str:
         flash("Selected schema not found!", "red")
         return redirect(url_for("admin_bp.list_roles"))
 
-    permission_policies = store.permissions_handler.get_all(is_active=True)
-
     # Inject checkbox options directly into schema field definition
-    if "permissions" in schema["fields"]:
-        schema["fields"]["permissions"]["options"] = [
-            {
-                "value": p["_id"],
-                "label": p.get("label", p["_id"]),
-                "category": p.get("category", "Uncategorized"),
-            }
-            for p in permission_policies
-        ]
+    permission_policies = store.permissions_handler.get_all_permissions(
+        is_active=True
+    )
+    schema["fields"]["permissions"]["options"] = [
+        {
+            "value": p["_id"],
+            "label": p.get("label", p["_id"]),
+            "category": p.get("category", "Uncategorized"),
+        }
+        for p in permission_policies
+    ]
+    schema["fields"]["deny_permissions"]["options"] = [
+        {
+            "value": p["_id"],
+            "label": p.get("label", p["_id"]),
+            "category": p.get("category", "Uncategorized"),
+        }
+        for p in permission_policies
+    ]
+
+    # inject audit data into the schema
+    schema["fields"]["created_by"]["default"] = current_user.email
+    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_by"]["default"] = current_user.email
+    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
 
     if request.method == "POST":
-        form_data = {
+        form_data: dict[str, str | list[str]] = {
             key: (vals[0] if len(vals) == 1 else vals)
             for key, vals in request.form.to_dict(flat=False).items()
         }
-        permissions = request.form.getlist("permissions") or []
 
-        policy = util.admin.process_form_to_config(form_data, schema)
+        role: dict = util.admin.process_form_to_config(form_data, schema)
 
-        policy["name"] = form_data.get("_id")
+        role["_id"] = role.get("name")
+        role["schema_name"] = schema["_id"]
+        role["schema_version"] = schema["version"]
 
-        policy["schema_name"] = schema["_id"]
-        policy["schema_version"] = schema["version"]
-        policy["permissions"] = permissions
-        policy["created_by"] = current_user.email
-        policy["created_on"] = datetime.utcnow().isoformat()
-        policy["updated_by"] = current_user.email
-        policy["updated_on"] = datetime.utcnow().isoformat()
+        # Inject version history with delta
+        role = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=deepcopy(role),
+            is_new=True,
+        )
 
         # Log Action
-        g.audit_metadata = {"role": policy["_id"]}
+        g.audit_metadata = {"role": role["_id"]}
 
-        store.roles_handler.save_role(policy)
-        flash(f"Role '{policy["_id"]}' created successfully.", "green")
+        store.roles_handler.create_role(role)
+        print(role)
+        flash(f"Role '{role["_id"]}' created successfully.", "green")
         return redirect(url_for("admin_bp.list_roles"))
 
     return render_template(
@@ -1147,34 +1686,76 @@ def edit_role(role_id) -> Response | str:
         return abort(404)
 
     schema = store.schema_handler.get_schema(role.get("schema_name"))
-    permission_policies = store.permissions_handler.get_all(is_active=True)
 
     # Inject checkbox options directly into schema field definition
-    if "permissions" in schema["fields"]:
-        schema["fields"]["permissions"]["options"] = [
-            {
-                "value": p["_id"],
-                "label": p.get("label", p["_id"]),
-                "category": p.get("category", "Uncategorized"),
-            }
-            for p in permission_policies
-        ]
+    permission_policies = store.permissions_handler.get_all_permissions(
+        is_active=True
+    )
+    schema["fields"]["permissions"]["options"] = [
+        {
+            "value": p["_id"],
+            "label": p.get("label", p["_id"]),
+            "category": p.get("category", "Uncategorized"),
+        }
+        for p in permission_policies
+    ]
+    schema["fields"]["deny_permissions"]["options"] = [
+        {
+            "value": p["_id"],
+            "label": p.get("label", p["_id"]),
+            "category": p.get("category", "Uncategorized"),
+        }
+        for p in permission_policies
+    ]
+
+    schema["fields"]["permissions"]["default"] = role.get("permissions")
+    schema["fields"]["deny_permissions"]["default"] = role.get(
+        "deny_permissions"
+    )
+
+    # --- Rewind logic ---
+    selected_version = request.args.get("version", type=int)
+    delta = None
+
+    if selected_version and selected_version != role.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(role.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = role["version_history"][version_index].get(
+                "delta", {}
+            )
+            role = util.admin.apply_version_delta(deepcopy(role), delta_blob)
+            delta = delta_blob
+            role["_id"] = role_id
 
     if request.method == "POST":
-        form_data = request.form.to_dict(flat=True)
-        permissions = request.form.getlist("permissions") or []
+        form_data = {
+            key: (vals[0] if len(vals) == 1 else vals)
+            for key, vals in request.form.to_dict(flat=False).items()
+        }
 
         updated_role = util.admin.process_form_to_config(form_data, schema)
-        current_clean = util.admin.clean_config_for_comparison(role)
-        incoming_clean = util.admin.clean_config_for_comparison(updated_role)
-        if current_clean == incoming_clean:
-            flash("No changes detected. Role was not updated.", "yellow")
-            return redirect(url_for("admin_bp.list_roles"))
 
-        updated_role["permissions"] = permissions
         updated_role["updated_by"] = current_user.email
-        updated_role["updated_on"] = datetime.utcnow().isoformat()
+        updated_role["updated_on"] = datetime.utcnow()
+        updated_role["schema_name"] = schema["_id"]
+        updated_role["schema_version"] = schema["version"]
         updated_role["version"] = role.get("version", 1) + 1
+        updated_role["_id"] = role.get("_id")
+
+        # Inject version history with delta
+        updated_role = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=updated_role,
+            old_config=role,
+            is_new=False,
+        )
 
         # Log Action
         g.audit_metadata = {"role": role_id}
@@ -1183,7 +1764,63 @@ def edit_role(role_id) -> Response | str:
         flash(f"Role '{role_id}' updated successfully.", "green")
         return redirect(url_for("admin_bp.list_roles"))
 
-    return render_template("access/edit_role.html", schema=schema, config=role)
+    return render_template(
+        "access/edit_role.html",
+        schema=schema,
+        role_doc=role,
+        selected_version=selected_version,
+        delta=delta,
+    )
+
+
+@admin_bp.route("/roles/<role_id>/view", methods=["GET"])
+@require("view_role", min_role="admin", min_level=99999)
+@log_action(action_name="view_role", call_type="admin_call")
+def view_role(role_id) -> Response | str:
+    """
+    View the details of a role by its ID.
+
+    Args:
+        role_id (str): The ID of the role to view.
+
+    Returns:
+        Response: Rendered HTML template displaying the role details.
+    """
+    role = store.roles_handler.get_role(role_id)
+    if not role:
+        return abort(404)
+
+    schema = store.schema_handler.get_schema(role.get("schema_name"))
+    if not schema:
+        flash("Schema for this role is missing.", "red")
+        return redirect(url_for("admin_bp.list_roles"))
+
+    # Handle optional version rewind
+    selected_version = request.args.get("version", type=int)
+    delta = None
+    if selected_version and selected_version != role.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(role.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = role["version_history"][version_index].get(
+                "delta", {}
+            )
+            delta = delta_blob  # Used for UI highlighting
+            role = util.admin.apply_version_delta(deepcopy(role), delta_blob)
+
+    return render_template(
+        "access/view_role.html",
+        schema=schema,
+        role_doc=role,
+        selected_version=selected_version or role.get("version"),
+        delta=delta,
+    )
 
 
 @admin_bp.route("/roles/<role_id>/toggle", methods=["POST", "GET"])
@@ -1210,7 +1847,7 @@ def toggle_role_active(role_id) -> Response:
         "role": role_id,
         "role_status": "Active" if new_status else "Inactive",
     }
-    store.roles_handler.toggle_active(role_id, new_status)
+    store.roles_handler.toggle_role_active(role_id, new_status)
     flash(
         f"Role '{role_id}' is now {'Active' if new_status else 'Inactive'}.",
         "green",
@@ -1244,7 +1881,7 @@ def delete_role(role_id) -> Response:
 
 
 # ================================================
-# ===== Assay Whole Panel Gene Lists PART =====
+# ===== Assay Whole Panel Creation PART =====
 # ================================================
 @admin_bp.route("/panels/manage", methods=["GET"])
 @require("view_panel", min_role="user", min_level=9)
@@ -1255,7 +1892,7 @@ def manage_assay_panels():
     Returns:
         Response: Rendered HTML template displaying all assay panels.
     """
-    panels = store.panel_handler.get_all_assay_panels()
+    panels = store.asp_handler.get_all_asps()
     return render_template("panels/manage_panels.html", panels=panels)
 
 
@@ -1264,23 +1901,21 @@ def manage_assay_panels():
 @log_action(action_name="create_panel", call_type="manager_call")
 def create_assay_panel():
     """
-    Handle the creation of a new DNA assay panel based on active schemas.
-
-    Fetches active panel schemas, processes form submissions (including gene lists from text or file),
-    creates a new panel configuration, and saves it to the database. Handles both GET (form display)
-    and POST (form submission) requests.
+    Create a new ASP panel using a schema-driven form.
+    Handles versioned document insertion and gene list parsing.
     """
+    from uuid import uuid4
 
-    # Fetch all active DNA assay schemas
-    active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="panel_config", schema_category="Panels", is_active=True
+    active_schemas = store.schema_handler.get_schemas_by_category_type(
+        schema_type="asp_schema",
+        schema_category="ASP",
+        is_active=True,
     )
 
     if not active_schemas:
         flash("No active panel schemas found!", "red")
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
-    # Determine which schema to use
     selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
     schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
 
@@ -1288,8 +1923,14 @@ def create_assay_panel():
         flash("Selected schema not found!", "red")
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
+    # inject audit data into the schema
+    schema["fields"]["created_by"]["default"] = current_user.email
+    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_by"]["default"] = current_user.email
+    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
+
     if request.method == "POST":
-        form_data = {
+        form_data: dict[str, list[str] | str] = {
             key: (
                 request.form.getlist(key)
                 if len(vals := request.form.getlist(key)) > 1
@@ -1298,45 +1939,41 @@ def create_assay_panel():
             for key in request.form
         }
 
-        # Process covered genes separately
-        covered_genes = []
-        if "genes_paste" in form_data and form_data["genes_paste"].strip():
-            covered_genes = [
-                g.strip()
-                for g in form_data["genes_paste"]
-                .replace(",", "\n")
-                .splitlines()
-                if g.strip()
-            ]
-        elif (
-            "genes_file" in request.files
-            and request.files["genes_file"].filename
-        ):
-            file = request.files["genes_file"]
-            content = file.read().decode("utf-8")
-            covered_genes = [
-                g.strip()
-                for g in content.replace(",", "\n").splitlines()
-                if g.strip()
-            ]
+        covered_genes = util.admin.extract_gene_list(
+            request.files.get("genes_file"), form_data.get("genes_paste", "")
+        )
+
+        # Germline Genes
+        germline_genes = util.admin.extract_gene_list(
+            request.files.get("germline_genes_file"),
+            form_data.get("germline_genes_paste", ""),
+        )
 
         config = util.admin.process_form_to_config(form_data, schema)
-        config["_id"] = config["panel_name"]
-        config["covered_genes"] = list(set(covered_genes))
-        config["created_by"] = current_user.email
-        config["created_on"] = datetime.utcnow()
-        config["updated_by"] = current_user.email
-        config["updated_on"] = datetime.utcnow()
-        config["schema_name"] = schema["_id"]
-        config["schema_version"] = schema["version"]
-        config["version"] = 1
+        config["_id"] = config["assay_name"]
+        config["covered_genes"] = covered_genes
+        config["covered_genes_count"] = len(covered_genes)
+        config["germline_genes"] = germline_genes
+        config["germline_genes_count"] = len(germline_genes)
 
-        store.panel_handler.insert_panel(config)
+        config.update(
+            {
+                "schema_name": schema["_id"],
+                "schema_version": schema["version"],
+                "version": 1,
+            }
+        )
 
-        # Log Action
+        # Inject version history (initial creation marker, no delta)
+        config = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=deepcopy(config),
+            is_new=True,
+        )
+
+        store.asp_handler.create_asp(config)
         g.audit_metadata = {"panel": config["_id"]}
-
-        flash(f"Panel {config['panel_name']} created successfully!", "green")
+        flash(f"Panel {config['assay_name']} created successfully!", "green")
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
     return render_template(
@@ -1351,70 +1988,188 @@ def create_assay_panel():
 @require("edit_panel", min_role="manager", min_level=99)
 @log_action(action_name="edit_panel", call_type="manager_call")
 def edit_assay_panel(assay_panel_id: str) -> str | Response:
-    """
-    Edit an existing assay panel by handling GET and POST requests.
+    panel = store.asp_handler.get_asp(assay_panel_id)
+    schema = store.schema_handler.get_schema(
+        panel.get("schema_name", "ASP-Schema")
+    )
 
-    On GET, renders the edit panel form. On POST, processes form data, updates the panel,
-    handles covered genes input, and saves changes to the database.
-    """
+    if not panel or not schema:
+        flash("Panel or schema not found.", "red")
+        return redirect(url_for("admin_bp.manage_assay_panels"))
 
-    # Fetch the panel document
-    panel = store.panel_handler.get_panel(assay_panel_id)
+    selected_version = request.args.get("version", type=int)
+    delta = None
 
-    # Fetch the schema
-    schema = store.schema_handler.get_schema("Panel-Config")
+    # Apply restoration logic if an older version is requested
+    if selected_version and selected_version != panel.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(panel.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = panel["version_history"][version_index].get(
+                "delta", {}
+            )
+            panel = util.admin.apply_version_delta(panel, delta_blob)
+            delta = delta_blob
+            panel["_id"] = assay_panel_id
 
     if request.method == "POST":
-        form_data = request.form.to_dict()
+        form_data: dict[str, list[str] | str] = {
+            key: (
+                request.form.getlist(key)
+                if len(vals := request.form.getlist(key)) > 1
+                else request.form[key]
+            )
+            for key in request.form
+        }
 
-        # Handle covered genes separately
-        covered_genes = []
+        covered_genes = util.admin.extract_gene_list(
+            request.files.get("genes_file"),
+            form_data.get("genes_paste", ""),
+        )
+
         if (
-            "genes_file" in request.files
-            and request.files["genes_file"].filename
+            not "genes_file" in request.files
+            and not "genes_paste" in form_data
         ):
-            file = request.files["genes_file"]
-            content = file.read().decode("utf-8")
-            covered_genes = [
-                g.strip()
-                for g in content.replace(",", "\n").splitlines()
-                if g.strip()
-            ]
-        elif "genes_paste" in form_data and form_data["genes_paste"].strip():
-            covered_genes = [
-                g.strip()
-                for g in form_data["genes_paste"]
-                .replace(",", "\n")
-                .splitlines()
-                if g.strip()
-            ]
-        else:
             covered_genes = panel.get("covered_genes", [])
 
-        # Process form fields
-        updated = util.admin.process_form_to_config(form_data, schema)
+        # Germline Genes
+        germline_genes = util.admin.extract_gene_list(
+            request.files.get("germline_genes_file"),
+            form_data.get("germline_genes_paste", ""),
+        )
+        if (
+            not "germline_genes_file" in request.files
+            and not "germline_genes_paste" in form_data
+        ):
+            germline_genes = panel.get("germline_genes", [])
 
-        # Carefully patch system fields
-        updated["covered_genes"] = list(set(covered_genes))
+        updated = util.admin.process_form_to_config(form_data, schema)
+        updated["_id"] = panel["_id"]
+        updated["covered_genes"] = covered_genes
+        updated["covered_genes_count"] = len(covered_genes)
+        updated["germline_genes"] = germline_genes
+        updated["germline_genes_count"] = len(germline_genes)
         updated["updated_by"] = current_user.email
         updated["updated_on"] = datetime.utcnow()
-        updated["version"] = panel.get("version", 1) + 1
         updated["schema_name"] = schema["_id"]
         updated["schema_version"] = schema["version"]
+        updated["version"] = panel.get("version", 1) + 1
 
-        # Update the panel
-        store.panel_handler.update_panel(assay_panel_id, updated)
+        # Inject version history with delta
+        updated = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=updated,
+            old_config=panel,
+            is_new=False,
+        )
 
-        # Audit
+        store.asp_handler.update_asp(assay_panel_id, updated)
         g.audit_metadata = {"panel": assay_panel_id}
-
-        flash(f"Panel '{panel['panel_name']}' updated successfully!", "green")
+        flash(f"Panel '{panel['assay_name']}' updated successfully!", "green")
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
     return render_template(
         "panels/edit_panel.html",
+        schema=schema,
+        panel=panel,
+        selected_version=selected_version,
+        delta=delta,
+    )
+
+
+@admin_bp.route("/panels/<assay_panel_id>/view", methods=["GET"])
+@require("view_panel", min_role="user", min_level=9)
+def view_assay_panel(assay_panel_id) -> Response | str:
+    """
+    View details of an assay panel by its ID, optionally loading a historical version.
+    """
+    panel = store.asp_handler.get_asp(assay_panel_id)
+    if not panel:
+        flash(f"Panel '{assay_panel_id}' not found!", "red")
+        return redirect(url_for("admin_bp.manage_assay_panels"))
+
+    schema = store.schema_handler.get_schema(
+        panel.get("schema_name", "ASP-Schema")
+    )
+    selected_version = request.args.get("version", type=int)
+    delta = None
+
+    # If a specific version is requested and it's not the latest
+    if selected_version and selected_version != panel.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(panel.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = panel["version_history"][version_index].get(
+                "delta", {}
+            )
+            panel = util.admin.apply_version_delta(panel, delta_blob)
+            delta = delta_blob
+            panel["_id"] = assay_panel_id
+
+    return render_template(
+        "panels/view_panel.html",
         panel=panel,
         schema=schema,
+        selected_version=selected_version or panel.get("version"),
+        delta=delta,
+    )
+
+
+@admin_bp.route("/panels/<panel_id>/print", methods=["GET"])
+@require("view_panel", min_role="user", min_level=9)
+@log_action(action_name="print_assay_panel", call_type="viewer_call")
+def print_assay_panel(panel_id: str) -> str | Response:
+    """
+    Compact printable view of an assay panel with optional version rewind.
+    """
+    panel = store.asp_handler.get_asp(panel_id)
+    if not panel:
+        flash("Panel not found.", "red")
+        return redirect(url_for("admin_bp.manage_assay_panels"))
+
+    schema = store.schema_handler.get_schema(panel.get("schema_name"))
+    if not schema:
+        flash("Schema not found for panel.", "red")
+        return redirect(url_for("admin_bp.manage_assay_panels"))
+
+    # Handle optional version rewind
+    selected_version = request.args.get("version", type=int)
+    if selected_version and selected_version != panel.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(panel.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = panel["version_history"][version_index].get(
+                "delta", {}
+            )
+            panel = util.admin.apply_version_delta(deepcopy(panel), delta_blob)
+            panel["_id"] = panel_id
+            panel["version"] = selected_version
+
+    return render_template(
+        "panels/panel_print.html",
+        schema=schema,
+        config=panel,
+        now=datetime.utcnow(),
+        selected_version=selected_version,
     )
 
 
@@ -1431,11 +2186,11 @@ def toggle_assay_panel_active(assay_panel_id):
     Returns:
         Response: Redirects to the manage assay panels page or aborts with 404 if panel not found.
     """
-    panel = store.panel_handler.get_panel(assay_panel_id)
+    panel = store.asp_handler.get_asp(assay_panel_id)
     if not panel:
         return abort(404)
     new_status = not panel.get("is_active", False)
-    store.panel_handler.toggle_active(assay_panel_id, new_status)
+    store.asp_handler.toggle_asp_active(assay_panel_id, new_status)
 
     # Log Action
     g.audit_metadata = {
@@ -1457,37 +2212,13 @@ def delete_assay_panel(assay_panel_id):
     Args:
         assay_panel_id (str): The unique identifier of the assay panel to delete.
     """
-    store.panel_handler.delete_panel(assay_panel_id)
+    store.asp_handler.delete_asp(assay_panel_id)
 
     # Log Action
     g.audit_metadata = {"panel": assay_panel_id}
 
-    flash(f"Panel '{assay_panel_id}' deleted!", "red")
+    flash(f"Panel '{assay_panel_id}' deleted!", "green")
     return redirect(url_for("admin_bp.manage_assay_panels"))
-
-
-@admin_bp.route("/panels/<assay_panel_id>/view", methods=["GET"])
-@require("view_panel", min_role="user", min_level=9)
-def view_assay_panel(assay_panel_id) -> Response | str:
-    """
-    View details of an assay panel by its ID.
-
-    Retrieves the panel and its schema; if not found, flashes an error and redirects.
-    Renders the panel details template on success.
-    """
-
-    panel = store.panel_handler.get_panel(assay_panel_id)
-    if not panel:
-        flash(f"Panel '{assay_panel_id}' not found!", "red")
-        return redirect(url_for("admin_bp.manage_assay_panels"))
-
-    schema = store.schema_handler.get_schema("Panel-Config")
-
-    return render_template(
-        "panels/view_panel.html",
-        panel=panel,
-        schema=schema,
-    )
 
 
 # ====================================
@@ -1502,7 +2233,7 @@ def manage_genelists() -> str:
     Returns:
         Response: Rendered HTML page with all gene lists and is_public flag set to False.
     """
-    genelists = store.insilico_genelist_handler.get_all_gene_lists()
+    genelists = store.isgl_handler.get_all_isgl()
     return render_template(
         "genelists/manage_genelists.html", genelists=genelists, is_public=False
     )
@@ -1522,9 +2253,9 @@ def create_genelist() -> Response | str:
     - Provides user feedback and redirects as appropriate.
     """
     # Fetch all active GeneLists schemas
-    active_schemas = store.schema_handler.get_schemas_by_filter(
-        schema_type="genelist_config",
-        schema_category="GeneLists",
+    active_schemas = store.schema_handler.get_schemas_by_category_type(
+        schema_type="isgl_config",
+        schema_category="ISGL",
         is_active=True,
     )
 
@@ -1540,12 +2271,30 @@ def create_genelist() -> Response | str:
         flash("Genelist schema not found!", "red")
         return redirect(url_for("admin_bp.manage_genelists"))
 
-    # Inject assay, groups options directly into schema field definition
-    available_groups = store.panel_handler.get_all_groups()
-    available_assays = store.panel_handler.get_all_assays()
+    # Inject assay groups from the assay_panels collections
+    assay_groups: list = store.asp_handler.get_all_asp_groups()
+    schema["fields"]["assay_groups"]["options"] = assay_groups
 
-    schema["fields"]["assays"]["options"] = available_assays
-    schema["fields"]["groups"]["options"] = available_groups
+    # get all assays for each group in a dict
+    assay_groups_panels = store.asp_handler.get_all_asps()
+    assay_group_map = {}
+
+    for _assay in assay_groups_panels:
+        group = _assay.get("asp_group")
+        if group not in assay_group_map:
+            assay_group_map[group] = []
+
+        group_map = {}
+        group_map["assay_name"] = _assay.get("assay_name")
+        group_map["display_name"] = _assay.get("display_name")
+        group_map["asp_category"] = _assay.get("asp_category")
+        assay_group_map[group].append(group_map)
+
+    # Inject meta autid
+    schema["fields"]["created_by"]["default"] = current_user.email
+    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_by"]["default"] = current_user.email
+    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
 
     if request.method == "POST":
         form_data: dict[str, list[str] | str] = {
@@ -1579,18 +2328,23 @@ def create_genelist() -> Response | str:
                 if g.strip()
             ]
 
+        genes = list(set(deepcopy(genes)))
+        genes.sort()
         config = util.admin.process_form_to_config(form_data, schema)
         config["_id"] = config["name"]
-        config["genes"] = list(set(genes))
-        config["created_by"] = current_user.email
-        config["created_on"] = datetime.utcnow()
-        config["version"] = 1
+        config["genes"] = genes
         config["schema_name"] = schema["_id"]
         config["schema_version"] = schema["version"]
         config["gene_count"] = len(genes)
-        config["changelog"] = []
 
-        store.insilico_genelist_handler.insert_genelist(config)
+        # Inject version history with delta
+        config = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=deepcopy(config),
+            is_new=True,
+        )
+
+        store.isgl_handler.create_isgl(config)
 
         flash(f"Genelist {config['name']} created successfully!", "green")
         return redirect(url_for("admin_bp.manage_genelists"))
@@ -1600,6 +2354,7 @@ def create_genelist() -> Response | str:
         schema=schema,
         schemas=active_schemas,
         selected_schema=schema,
+        assay_group_map=assay_group_map,
     )
 
 
@@ -1614,18 +2369,59 @@ def edit_genelist(genelist_id) -> Response | str:
     - On POST: Processes form data or uploaded file to update genelist fields, tracks changes in a changelog, and saves the updated genelist.
     - Redirects and flashes messages on success or error.
     """
-    genelist = store.insilico_genelist_handler.get_genelist(genelist_id)
+    genelist = store.isgl_handler.get_isgl(genelist_id)
     if not genelist:
         flash("Genelist not found!", "red")
         return redirect(url_for("admin_bp.manage_genelists"))
 
-    schema = store.schema_handler.get_schema("Genelist-Config")
+    schema = store.schema_handler.get_schema(genelist.get("schema_name"))
 
-    # Inject assay, groups options directly into schema field definition
-    available_groups = store.panel_handler.get_all_groups()
-    available_assays = store.panel_handler.get_all_assays()
-    schema["fields"]["assays"]["options"] = available_assays
-    schema["fields"]["groups"]["options"] = available_groups
+    # Inject assay groups from the assay_panels collections
+    assay_groups = store.asp_handler.get_all_asp_groups()
+    schema["fields"]["assay_groups"]["options"] = assay_groups
+    schema["fields"]["assay_groups"]["default"] = genelist.get(
+        "assay_groups", []
+    )
+
+    # get all assays for each group in a dict
+    assay_groups_panels = store.asp_handler.get_all_asps()
+    assay_group_map = {}
+
+    for _assay in assay_groups_panels:
+        group = _assay.get("asp_group")
+        if group not in assay_group_map:
+            assay_group_map[group] = []
+
+        group_map = {}
+        group_map["assay_name"] = _assay.get("assay_name")
+        group_map["display_name"] = _assay.get("display_name")
+        group_map["asp_category"] = _assay.get("asp_category")
+        assay_group_map[group].append(group_map)
+
+    schema["fields"]["assays"]["default"] = genelist.get("assays", [])
+
+    # --- Rewind logic ---
+    selected_version = request.args.get("version", type=int)
+    delta = None
+
+    if selected_version and selected_version != genelist.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(genelist.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = genelist["version_history"][version_index].get(
+                "delta", {}
+            )
+            genelist = util.admin.apply_version_delta(
+                deepcopy(genelist), delta_blob
+            )
+            delta = delta_blob
+            genelist["_id"] = genelist_id
 
     if request.method == "POST":
         form_data = {
@@ -1636,6 +2432,8 @@ def edit_genelist(genelist_id) -> Response | str:
             )
             for key in request.form
         }
+
+        updated = util.admin.process_form_to_config(form_data, schema)
 
         genes = []
         if (
@@ -1655,88 +2453,38 @@ def edit_genelist(genelist_id) -> Response | str:
         else:
             genes = genelist.get("genes", [])
 
-        updated = util.admin.process_form_to_config(form_data, schema)
-
-        updated["_id"] = genelist["_id"]
-        updated["genes"] = list(set(genes))
-        updated["created_by"] = genelist["created_by"]
-        updated["created_on"] = genelist["created_on"]
-        updated["version"] = genelist.get("version", 1) + 1
+        genes = list(set(deepcopy(genes)))
+        genes.sort()
+        updated["genes"] = genes
         updated["gene_count"] = len(genes)
+        updated["updated_by"] = current_user.email
+        updated["updated_on"] = datetime.utcnow()
+        updated["schema_name"] = schema["_id"]
+        updated["schema_version"] = schema["version"]
+        updated["version"] = genelist.get("version", 1) + 1
 
-        # Handle changelog
-        # Dynamically generate a description of what changed
-        changes = []
-        for field in ["genes", "assays", "groups"]:
-            added = set(updated.get(field, [])) - set(genelist.get(field, []))
-            removed = set(genelist.get(field, [])) - set(
-                updated.get(field, [])
-            )
-            if added and removed:
-                changes.append(f"{field.capitalize()} updated.")
-            elif added:
-                changes.append(f"{field.capitalize()} added.")
-            elif removed:
-                changes.append(f"{field.capitalize()} removed.")
-        if not changes:
-            description = "No significant changes."
-        else:
-            description = " ".join(changes)
-
-        change_entry = {
-            "version": updated["version"],
-            "genes": {
-                "added": list(
-                    set(updated.get("genes", []))
-                    - set(genelist.get("genes", []))
-                ),
-                "removed": list(
-                    set(genelist.get("genes", []))
-                    - set(updated.get("genes", []))
-                ),
-            },
-            "assays": {
-                "added": list(
-                    set(updated.get("assays", []))
-                    - set(genelist.get("assays", []))
-                ),
-                "removed": list(
-                    set(genelist.get("assays", []))
-                    - set(updated.get("assays", []))
-                ),
-            },
-            "groups": {
-                "added": list(
-                    set(updated.get("groups", []))
-                    - set(genelist.get("groups", []))
-                ),
-                "removed": list(
-                    set(genelist.get("groups", []))
-                    - set(updated.get("groups", []))
-                ),
-            },
-            "description": description,
-            "updated_on": datetime.utcnow(),
-            "created_by": current_user.email,
-        }
-
-        # Append new changelog entry
-        existing_changelog = genelist.get("changelog", [])
-        updated["changelog"] = existing_changelog + [change_entry]
-
-        store.insilico_genelist_handler.update_genelist(genelist_id, updated)
+        # Inject version history with delta
+        updated = util.admin.inject_version_history(
+            user_email=current_user.email,
+            new_config=updated,
+            old_config=genelist,
+            is_new=False,
+        )
+        store.isgl_handler.update_isgl(genelist_id, updated)
 
         # Log Action
-        g.audit_metadata = {
-            "genelist": genelist_id,
-            "description": description,
-        }
+        g.audit_metadata = {"genelist": genelist_id}
 
         flash(f"Genelist '{genelist_id}' updated successfully!", "green")
         return redirect(url_for("admin_bp.manage_genelists"))
 
     return render_template(
-        "genelists/edit_genelist.html", genelist=genelist, schema=schema
+        "genelists/edit_genelist.html",
+        isgl=genelist,
+        schema=schema,
+        assay_group_map=assay_group_map,
+        selected_version=selected_version,
+        delta=delta,
     )
 
 
@@ -1753,7 +2501,7 @@ def toggle_genelist(genelist_id) -> Response:
     Returns:
         Response: Redirects to the genelist management page or aborts with 404 if not found.
     """
-    genelist = store.insilico_genelist_handler.get_genelist(genelist_id)
+    genelist = store.isgl_handler.get_isgl(genelist_id)
     if not genelist:
         return abort(404)
 
@@ -1765,9 +2513,7 @@ def toggle_genelist(genelist_id) -> Response:
         "genelist_status": "Active" if new_status else "Inactive",
     }
 
-    store.insilico_genelist_handler.toggle_genelist_active(
-        genelist_id, new_status
-    )
+    store.isgl_handler.toggle_isgl_active(genelist_id, new_status)
 
     flash(
         f"Genelist: '{genelist_id}' is now {'active' if new_status else 'inactive'}.",
@@ -1786,7 +2532,7 @@ def delete_genelist(genelist_id) -> Response:
     Args:
         genelist_id (str): The unique identifier of the genelist to delete.
     """
-    store.insilico_genelist_handler.delete_genelist(genelist_id)
+    store.isgl_handler.delete_isgl(genelist_id)
 
     # Log Action
     g.audit_metadata = {"genelist": genelist_id}
@@ -1805,10 +2551,31 @@ def view_genelist(genelist_id) -> Response | str:
     Redirects with an error if the genelist is not found.
     """
 
-    genelist = store.insilico_genelist_handler.get_genelist(genelist_id)
+    genelist = store.isgl_handler.get_isgl(genelist_id)
     if not genelist:
         flash(f"Genelist '{genelist_id}' not found!", "red")
         return redirect(url_for("admin_bp.manage_genelists"))
+
+    # Handle optional version rewind
+    selected_version = request.args.get("version", type=int)
+    delta = None
+    if selected_version and selected_version != genelist.get("version"):
+        version_index = next(
+            (
+                i
+                for i, v in enumerate(genelist.get("version_history", []))
+                if v["version"] == selected_version + 1
+            ),
+            None,
+        )
+        if version_index is not None:
+            delta_blob = genelist["version_history"][version_index].get(
+                "delta", {}
+            )
+            delta = delta_blob  # Used for UI highlighting
+            genelist = util.admin.apply_version_delta(
+                deepcopy(genelist), delta_blob
+            )
 
     selected_assay = request.args.get("assay")
 
@@ -1816,9 +2583,11 @@ def view_genelist(genelist_id) -> Response | str:
     assays = genelist.get("assays", [])
 
     filtered_genes = all_genes
+    panel_germline_genes = []
     if selected_assay and selected_assay in assays:
-        panel = store.panel_handler.get_panel(selected_assay)
+        panel = store.asp_handler.get_asp(selected_assay)
         panel_genes = panel.get("covered_genes", []) if panel else []
+        panel_germline_genes = panel.get("germline_genes", []) if panel else []
         filtered_genes = sorted(set(all_genes).intersection(panel_genes))
 
     return render_template(
@@ -1827,6 +2596,9 @@ def view_genelist(genelist_id) -> Response | str:
         selected_assay=selected_assay,
         filtered_genes=filtered_genes,
         is_public=False,
+        selected_version=selected_version or genelist.get("version"),
+        panel_germline_genes=panel_germline_genes,
+        delta=delta,
     )
 
 

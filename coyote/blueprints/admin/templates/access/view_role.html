@@ -1,11 +1,10 @@
 {% extends "layout.html" %}
-{% block title %}View Assay Panel{% endblock %}
+{% block title %}View Role{% endblock %}
 
 {% block body %}
 <div class="flex w-full h-full overflow-hidden">
   {% include "admin_sidebar.html" %}
   <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
-
     <section class="p-2 ml-2 mt-2">
       <div class="bg-gray-50 border border-gray-200 rounded-2xl shadow-xl p-6">
 
@@ -13,18 +12,18 @@
         <div class="flex items-start justify-between mb-6">
           <!-- Left: Title and version selector -->
           <div class="flex flex-col gap-1">
-            <h1 class="text-xl font-bold text-blue-500 tracking-wide capitalize flex gap-2 items-center">
+            <h1 class="text-xl font-bold text-blue-500 tracking-wide flex gap-2 items-center">
               <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="Schema View Icon" class="h-6 w-6">
-              View Panel – <i>{{ panel._id }}</i>
+              View Role  – <i>{{ role_doc._id }}</i>
             </h1>
 
-            {% if panel.version_history %}
+            {% if role_doc.version_history %}
               <div class="flex items-center gap-2 mt-1">
                 <label class="text-xs font-semibold text-gray-800">Version:</label>
                 <form method="GET">
                   <select name="version" onchange="this.form.submit()"
                           class="text-xs px-2 py-1 rounded-md border border-gray-300 bg-white">
-                    {% for v in panel.version_history | reverse %}
+                    {% for v in role_doc.version_history | reverse %}
                       <option value="{{ v.version }}" {% if selected_version == v.version %}selected{% endif %}>
                         v{{ v.version }} ({{ v.timestamp|human_date }})
                       </option>
@@ -39,48 +38,39 @@
           <div class="flex flex-col items-end gap-1 text-sm text-gray-700">
             <div class="flex items-center">
               <span class="inline-flex items-center px-2 py-1 bg-blue-200 text-blue-700 font-semibold rounded-l-full">
-                {{ panel.schema_name }}
+                {{ role_doc.schema_name }}
               </span>
               <span class="inline-flex items-center px-2 py-1 bg-orange-200 text-black font-semibold rounded-r-full">
-                v{{ panel.schema_version }} 
+                v{{ role_doc.schema_version }}
               </span>
             </div>
-
-            <!-- Print Button below schema badges -->
-            <a href="{{ url_for('admin_bp.print_assay_panel', panel_id=panel._id, version=selected_version) }}" target="_blank"
-              class="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline mt-1">
-              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/printer.svg') }}" alt="Schema View Icon" class="h-4 w-4">
-              Print / Export
-            </a>
           </div>
         </div>
 
-        {% if selected_version and selected_version != panel.version and delta %}
+        {% if selected_version and selected_version != role_doc.version and delta %}
           <div class="mb-4 text-sm text-yellow-800 bg-yellow-50 border border-yellow-300 rounded-md p-3">
-            <p>You are viewing version <strong>v{{ selected_version }}</strong> restored into editor for comparison. All changes compared to current version <strong>v{{ panel.version }}</strong> are highlighted.</p>
+            <p>You are viewing version <strong>v{{ selected_version }}</strong> restored into editor for comparison. All changes compared to current version <strong>v{{ role_doc.version }}</strong> are highlighted.</p>
           </div>
         {% endif %}
 
         <div class="space-y-6 text-sm text-gray-700">
           {% for section, keys in schema.sections.items() %}
-            <div class="mb-6 border-l-4 border-blue-200 bg-blue-50 rounded-xl p-4 shadow-lg">
+            <div class="mb-6 border-l-4 border-blue-300 bg-blue-50 rounded-xl p-4 shadow-lg">
               <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') | title }}</h2>
               <div class="grid grid-cols-3 gap-4">
                 {% for key in keys %}
                   {% set field = schema.fields[key] %}
-                  {% if key == 'version' and selected_version and selected_version != panel.version and delta %}
+                  {% if key == 'version' and selected_version and selected_version != role_doc.version and delta %}
                     {% set value = selected_version %}
                   {% else %}
-                    {% set value = panel.get(key, field.default) %}
+                    {% set value = role_doc.get(key, field.default) %}
                   {% endif %}
                   {% set is_changed = delta and key in delta.changed %}
                   {% set fullspan = field.display_type in ['textarea', 'jsoneditor-or-upload'] or field.data_type in ['json', 'dict'] %}
-
                   <div class="{% if is_changed %}ring-2 ring-yellow-400 rounded-md p-1{% endif %}{% if fullspan %} col-span-3{% endif %}">
                     <label class="text-xs font-semibold block mb-1">
                       {{ field.label }} <span class="text-gray-400">({{ field.data_type }})</span>
                     </label>
-
                     {% if field.data_type in ['list', 'multi-select', 'checkbox-group'] %}
                       <div class="text-xs bg-white border border-gray-200 rounded-md p-2 font-mono">
                         {{ value | join(', ') if value else '—' }}

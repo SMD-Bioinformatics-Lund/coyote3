@@ -1719,6 +1719,23 @@
 }
 
 
+/* colors for samples profiles and environments */
+.bg-production {
+  background-color: #216869;  /* Teal Green — stable, balanced */
+}
+
+.bg-development {
+  background-color: #3B5BA0;  /* Muted Blue — calm, in-progress */
+}
+
+.bg-testing {
+  background-color: #857D88;  /* Cool Mauve — neutral test phase */
+}
+
+.bg-validation {
+  background-color: #A37C27;  /* Soft Ochre — pre-production alert */
+}
+
 
 /* Color Coding for Variant Filters (Subtle, Darker, and Color-Blind Friendly) */
 .bg-pass { background-color: #166534; } /* Dark Emerald Green */

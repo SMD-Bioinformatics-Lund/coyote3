@@ -5,20 +5,25 @@
 <div class="flex w-full h-full overflow-hidden">
 
   <!-- LEFT SIDEBAR (Fixed Width, Full Height) -->
+  {% set extra_args = {} %}
+  {% if panel_type %}{% set _ = extra_args.update({'panel_type': panel_type}) %}{% endif %}
+  {% if panel_tech %}{% set _ = extra_args.update({'panel_tech': panel_tech}) %}{% endif %}
+  {% if assay_group %}{% set _ = extra_args.update({'assay_group': assay_group}) %}{% endif %}
   <aside class="w-8 bg-transparent text-white flex flex-col">
     <div class="flex border-l-8 border-blue-400 mt-1">
-      <a href="{{ url_for(request.endpoint, assay=assay, status='done') }}"
+      <a href="{{ url_for(request.endpoint, status='done', **extra_args) }}"
         class="relative bg-gray-500 text-white text-base text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-          <span class="vertical-text">Analysed</span>
+        <span class="vertical-text">Analysed</span>
       </a>
     </div>
     <div class="flex border-l-8 border-green-400 mt-1">
-      <a href="{{ url_for(request.endpoint, assay=assay, status='live') }}"
+      <a href="{{ url_for(request.endpoint, status='live', **extra_args) }}"
         class="relative bg-gray-500 text-white text-base text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-          <span class="vertical-text">Pending</span>
+        <span class="vertical-text">Pending</span>
       </a>
     </div>
   </aside>
+  
   
   <!-- MAIN CONTENT (Scrollable & Auto-Resizing) -->
   <main class="flex-1 bg-transparent overflow-y-auto p-4  flex flex-col">
@@ -101,6 +106,7 @@
                     <th class="p-2 font-normal">Sample ID</th>
                     <th class="p-2 font-normal">Assay</th>
                     <th class="p-2 font-normal">Diagnosis</th>
+                    <th class="p-2 font-normal">Profile</th>
                     <th class="p-2 font-normal">BAM</th>
                     <th class="p-2 font-normal">QC</th>
                     <th class="p-2 font-normal">When added</th>
@@ -117,6 +123,7 @@
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">
+                        {# TODO: This check should come from the sample doc with a special key #}
                         {% if sample.groups|join('') == 'fusion' or sample.groups|join('') == 'solidRNA_GMSv5' %}
                           <a href="{{ url_for('rna_bp.list_fusions', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% else %}
@@ -127,14 +134,17 @@
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">
-                        {% for grp in sample.groups %}
-                          {{ grp }}
-                        {% endfor %}
+                        {{ sample.assay}}
                       </td>
                       <td class="p-2 font-medium">
                         {% if "subpanel" in sample %}
                           {{ sample.subpanel }}
                         {% endif %}
+                      </td>
+                      <td class="p-2 font-medium">
+                        <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-{{ sample.profile or 'production' }} text-center">
+                          {{ sample.get('profile', '')[0]|upper or 'P' }}
+                        </span>
                       </td>
                       <td class="p-2 font-medium">
                         {% if sample.bam is defined %}
@@ -181,6 +191,7 @@
                     <th class="p-2 font-normal">Sample ID</th>
                     <th class="p-2 font-normal">Assay</th>
                     <th class="p-2 font-normal">Diagnosis</th>
+                    <th class="p-2 font-normal">Profile</th>
                     <th class="p-2 font-normal">When added</th>
                     <th class="p-2 font-normal">Last report</th>
                     <th class="p-2 font-normal">BAM</th>
@@ -202,14 +213,17 @@
                         <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                       </td>
                       <td class="p-2 font-medium">
-                        {% for grp in sample.groups %}
-                          {{ grp }}
-                        {% endfor %}
+                        {{ sample.assay }}
                       </td>
                       <td class="p-2 font-medium">
                         {% if "subpanel" in sample %}
                           {{ sample.subpanel }}
                         {% endif %}
+                      </td>
+                      <td class="p-2 font-medium">
+                        <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-{{ sample.profile or 'production' }} text-center">
+                          {{ sample.get('profile', '')[0]|upper or 'P' }}
+                        </span>
                       </td>
                       <td class="p-2 font-medium">
                         {{ sample.time_added|human_date }}

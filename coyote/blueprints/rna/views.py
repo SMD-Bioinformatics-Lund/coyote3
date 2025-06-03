@@ -10,8 +10,6 @@ from flask import (
     request,
     url_for,
     send_from_directory,
-    flash,
-    abort,
 )
 from flask_login import current_user, login_required
 
@@ -40,9 +38,10 @@ def list_fusions(id):
 
     """
     sample = store.sample_handler.get_sample(id)
+    assay_config_schema = {}
 
     if sample is None:
-        sample = store.sample_handler.get_sample_with_id(id)
+        sample = store.sample_handler.get_sample_by_id(id)
 
     sample_groups = sample.get("groups")
     if len(sample_groups) > 1:
@@ -63,7 +62,7 @@ def list_fusions(id):
     app.logger.info(f"the sample has these groups {smp_grp}")
     app.logger.info(f"this is the group from collection {group_params}")
 
-    gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
+    gene_lists, genelists_assay = store.asp_handler.get_assay_panels(assay)
     app.logger.info(
         f"this is the gene_lists, genelists_assay {gene_lists},{genelists_assay}"
     )
@@ -86,9 +85,11 @@ def list_fusions(id):
             )  ## this loop is not working
         # Change filters
         else:
-            store.sample_handler.update_sample_settings(_id, form)
+            store.sample_handler.update_sample_filters(
+                _id, form, assay_config_schema
+            )
             ## get sample again to recieve updated forms!
-            sample = store.sample_handler.get_sample_with_id(_id)
+            sample = store.sample_handler.get_sample_by_id(_id)
     ############################################################################
     # Check if sample has hidden comments
     has_hidden_comments = (
@@ -172,7 +173,10 @@ def list_fusions(id):
 @login_required
 def show_fusion(id):
     fusion = store.fusion_handler.get_fusion(id)
-    sample = store.sample_handler.get_sample_with_id(fusion["SAMPLE_ID"])
+    sample = store.sample_handler.get_sample_by_id(fusion["SAMPLE_ID"])
+    print("SAMPLE")
+    print(sample)
+
     annotations, classification = store.fusion_handler.get_fusion_annotations(
         fusion
     )

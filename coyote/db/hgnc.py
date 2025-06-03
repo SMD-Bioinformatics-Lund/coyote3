@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-GenesHandler module for Coyote3
+HGNCHandler module for Coyote3
 ===============================
 
-This module defines the `GenesHandler` class used for accessing and managing
+This module defines the `HGNCHandler` class used for accessing and managing
 HGNC gene data in MongoDB.
 
 It is part of the `coyote.db` package and extends the base handler functionality.
@@ -22,7 +22,7 @@ from flask import current_app as app
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class GenesHandler(BaseHandler):
+class HGNCHandler(BaseHandler):
     """
     Handler for managing HGNC gene data stored in the coyote database.
 
@@ -37,12 +37,21 @@ class GenesHandler(BaseHandler):
         Initialize the handler with a given adapter and bind the collection.
         """
         super().__init__(adapter)
-        self.set_collection(self.adapter.hgnc_genes_collection)
+        self.set_collection(self.adapter.hgnc_collection)
 
-    def get_gene_metadata(self, hgnc_id):
+    def get_metadata_by_hgnc_id(self, hgnc_id: str) -> dict:
+        """
+        Retrieve metadata for a gene using its HGNC ID.
+
+        Args:
+            hgnc_id (str): The HGNC ID of the gene.
+
+        Returns:
+            dict: The metadata dictionary for the specified gene.
+        """
         return self.get_collection().find({"_id": hgnc_id})
 
-    def get_metadata_by_symbol(self, symbol):
+    def get_metadata_by_symbol(self, symbol: str) -> dict:
         """
         Retrieve metadata for a gene by its symbol.
 
@@ -54,14 +63,19 @@ class GenesHandler(BaseHandler):
         """
         return self.get_collection().find({"hgnc_symbol": symbol})
 
-    def get_metadata_by_symbols(self, symbols):
+    def get_metadata_by_symbols(self, symbols: list[str]) -> list[dict]:
         """
-        Retrieve metadata for multiple genes by their symbols.
+        Fetch gene metadata for a list of gene symbols.
+
+        This method retrieves metadata for the provided list of gene symbols.
+        If the list is empty, it returns an empty list.
 
         Args:
-            symbols (list): A list of gene symbols.
+            symbols (list[str]): A list of gene symbols to fetch metadata for.
 
         Returns:
-            list: A list of metadata dictionaries for the genes.
+            list[dict]: A list of dictionaries containing gene metadata.
         """
+        if not symbols:
+            return []
         return self.get_collection().find({"hgnc_symbol": {"$in": symbols}})

@@ -75,12 +75,19 @@
               {% for gene in gene_details %}
                 <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
                   <td class="p-2 font-medium">{{ gene.hgnc_id.replace('HGNC:', '') }}</td>
-                  <td class="p-2 font-medium">{{ gene.hgnc_symbol }}</td>
+                  <td class="p-2 font-medium">
+                    <div class="flex flex-wrap gap-1">
+                      {{ gene.hgnc_symbol }}
+                      {% if gene.hgnc_symbol in germline_gene_symbols %}
+                        <span class="bg-yellow-500 hover:bg-yellow-400 text-black px-2 py-0.5 rounded-full">G</span>
+                      {% endif %}
+                    </div>
+                  </td>
                   <td class="p-2 font-medium">{{ gene.locus }}</td>
                   <td class="p-2 font-medium">
                     <div class="flex flex-wrap gap-1">
                       {% for alias in gene.alias_symbol %}
-                      <span class="bg-brown-100 text-black px-2 py-0.5 rounded-full">{{ alias }}</span>
+                      <span class="bg-brown-100 text-black px-2 py-0.5 rounded-full ml-2">{{ alias }}</span>
                       {% else %}
                       <span>-</span>
                       {% endfor %}

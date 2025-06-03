@@ -107,7 +107,7 @@ class UsersHandler(BaseHandler):
         Returns:
             list: A list of user documents.
         """
-        return list(self.get_collection().find().sort("fullname", 1))
+        return list(self.get_collection().find().sort("firstname", 1))
 
     def delete_user(self, user_id) -> None:
         """
@@ -141,7 +141,7 @@ class UsersHandler(BaseHandler):
             {"_id": user_id}, {"$set": {"last_login": datetime.utcnow()}}
         )
 
-    def toggle_active(self, user_id: str, active_status: bool) -> bool:
+    def toggle_user_active(self, user_id: str, active_status: bool) -> bool:
         """
         Toggles the active status of a user in the database.
         Args:
@@ -150,6 +150,4 @@ class UsersHandler(BaseHandler):
         Returns:
             bool: True if the update was successful, False otherwise.
         """
-        return self.get_collection().update_one(
-            {"_id": user_id}, {"$set": {"is_active": active_status}}
-        )
+        return self.toggle_active(user_id, active_status)

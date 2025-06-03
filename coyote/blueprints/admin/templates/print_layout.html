@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Print – {% block title %}{% endblock %}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 10mm 18mm 10mm;
+    }
+
+    @media print {
+      header, footer {
+        position: fixed;
+      }
+    
+      header {
+        top: 0;
+      }
+    
+      footer {
+        bottom: 0;
+      }
+    
+      body {
+        margin-top: 20px;
+        margin-bottom: 20px;
+      }
+    }
+
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      font-size: 9.5px;
+      color: #111;
+    }
+
+    header, footer {
+      background:rgb(170, 210, 251);
+      font-size: 11px;
+      color: #333;
+    }
+
+    header {
+      position: relative;
+      height: auto;
+      background: #f9fafb;
+      padding: 10px 20px 30px;
+      font-size: 11px;
+      color: #333;
+      margin-left: 20px;
+    }
+    
+    
+    footer {
+      position: fixed;
+      background: #f9fafb;
+      font-size: 11px;
+      color: #333;
+      padding: 10px 20px 30px;
+      margin-top: 20px;
+      text-align: center;
+      width: 100%
+    }
+    
+
+    .vertical-edge {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 5mm;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 2px 0px;
+      background: #e0f2fe;
+      z-index: 999;
+      overflow: hidden;
+    }
+    
+    .vertical-edge span {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      font-size: 8.5px;
+      font-weight: bold;
+      color: #1e40af;
+      margin: 2px 0;
+      white-space: nowrap;
+      letter-spacing: 1px;
+    }
+    
+
+    .content {
+      padding: 10px 20px 30px;
+      overflow: visible;
+    }
+    
+    
+    .logo-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-title img {
+      height: 35px;
+      width: 50px;
+    }
+
+    .app-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e3a8a;
+    }
+
+    .meta-header {
+      font-size: 9px;
+      line-height: 1.25;
+      text-align: right;
+    }
+
+    .section-container {
+      width: 100%;
+      background-color: #eff6ff;
+      margin-left: 25px;
+      border-left: 4px solid #60a5fa;
+      padding: 10px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+    }
+
+    .section-wrapper {
+      border-radius: 12px;
+    }
+
+    .section-heading {
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-left: 40px;
+      margin-top: 12px;
+      margin-bottom: 6px;
+    }
+
+    .data-table {
+      width: 90%;
+      padding-left: 10px;
+      font-size: 10px;
+      margin-bottom: 12px;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      background-color: #ffffff;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .data-table th,
+    .data-table td {
+      border: 1px solid #999;
+    }
+
+    
+    .data-table th {
+      background-color: #bfdbfe;
+      text-transform: uppercase;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      padding: 6px;
+      text-align: left;
+      width: 200px;
+      min-width: 150px;
+      max-width: 250px;
+    }
+
+    .data-table td {
+      padding: 6px;
+      font-weight: 500;
+      background-color: #ffffff;
+      text-align: left;
+      wrap: break-word;
+    }
+
+    pre {
+      margin: 0;
+      font-family: "Courier New", monospace;
+      font-size: 8.5px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <header id="page-header">
+    <div class="logo-title">
+      <img src="{{ url_for('static', filename='images/logo.png') }}">
+      <div class="app-name">Coyote3</div>
+    </div>
+    <div class="meta-header">
+      {% block header_meta %}
+      {% endblock %}
+    </div>
+  </header>
+
+  <div class="vertical-edge">
+    {% for _ in range(25) %}
+      <span>COYOTE3 • {% block page_vertical_bar %}{% endblock %} • CONFIDENTIAL •</span>
+    {% endfor %}
+  </div>
+  
+
+  <div class="section-container">
+    <div class="section-wrapper">
+      {% block content %}
+      {% endblock %}
+    </div>
+  </div>
+
+  <footer  id="page-footer">
+    <div>&copy; 2025 Coyote3 | Section for Molecular Diagnostics | Lund</div>
+    <div>Generated: {{ now.strftime('%Y-%m-%d %H:%M') }}</div>
+  </footer>
+
+</body>
+</html>

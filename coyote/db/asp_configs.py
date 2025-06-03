@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-AssayConfigsHandler module for Coyote3
+ASPConfigHandler module for Coyote3
 ======================================
 
-This module defines the `AssayConfigsHandler` class used for accessing and managing
+This module defines the `ASPConfigHandler` class used for accessing and managing
 assay configuration data in MongoDB.
 
 It is part of the `coyote.db` package and extends the base handler functionality.
@@ -23,9 +23,9 @@ from pymongo import cursor
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class AssayConfigsHandler(BaseHandler):
+class ASPConfigHandler(BaseHandler):
     """
-    AssayConfigsHandler is a class responsible for managing assay configuration data
+    ASPConfigHandler is a class responsible for managing assay configuration data
     stored in a MongoDB collection. It provides methods to perform CRUD operations
     on assay configurations, retrieve specific data, toggle the active status of an
     assay configuration, and manage assay groups and mappings. This class serves as
@@ -37,9 +37,9 @@ class AssayConfigsHandler(BaseHandler):
         Initialize the handler with a given adapter and bind the collection.
         """
         super().__init__(adapter)
-        self.set_collection(self.adapter.assay_configs_collection)
+        self.set_collection(self.adapter.aspc_collection)
 
-    def get_all_assay_configs(self) -> cursor.Cursor:
+    def get_all_aspc(self) -> cursor.Cursor:
         """
         Retrieves all assay configuration documents from the collection.
 
@@ -48,19 +48,35 @@ class AssayConfigsHandler(BaseHandler):
         """
         return self.get_collection().find({})
 
-    def get_assay_config(self, assay_id: str) -> dict | None:
+    def get_aspc(self, assay: str, profile: str = "production") -> dict | None:
         """
         Retrieves a specific assay configuration document by its ID.
 
         Args:
-            assay_id (str): The unique identifier of the assay configuration.
+            assay (str): The unique identifier of the assay configuration.
+            profile (str): The environment profile associated with the assay configuration (default is "production").
 
         Returns:
             dict | None: The assay configuration document if found, otherwise None.
         """
-        return self.get_collection().find_one({"_id": assay_id})
+        aspc_id = f"{assay}:{profile.lower()}"
+        return self.get_collection().find_one({"_id": aspc_id})
 
-    def get_assay_config_filtered(self, assay_id: str) -> dict | None:
+    def get_aspc_with_id(self, aspc_id: str) -> dict | None:
+        """
+        Retrieves a specific assay configuration document by its ID.
+
+        Args:
+            aspc_id (str): The unique identifier of the assay configuration. Usually formatted as "assay:profile".
+
+        Returns:
+            dict | None: The assay configuration document if found, otherwise None.
+        """
+        return self.get_collection().find_one({"_id": aspc_id})
+
+    def get_aspc_no_meta(
+        self, assay_id: str, profile: str = "production"
+    ) -> dict | None:
         """
         Retrieves a specific assay configuration document by its ID, ensuring it is active.
 
@@ -71,12 +87,14 @@ class AssayConfigsHandler(BaseHandler):
 
         Args:
             assay_id (str): The unique identifier of the assay configuration.
+            profile (str): The profile name to filter the assay configuration.
 
         Returns:
             dict: The filtered assay configuration document if found, otherwise `None`.
         """
+        aspc_id = f"{assay_id}:{profile.lower()}"
         return self.get_collection().find_one(
-            {"_id": assay_id, "is_active": True},
+            {"_id": aspc_id, "is_active": True},
             {
                 "updated_on": 0,
                 "updated_by": 0,
@@ -85,22 +103,22 @@ class AssayConfigsHandler(BaseHandler):
             },
         )
 
-    def update_assay_config(self, assay_id: str, data: dict) -> Any:
+    def update_aspc(self, aspc_id: str, data: dict) -> Any:
         """
         Updates an existing assay configuration document with new data.
 
         Args:
-            assay_id (str): The unique identifier of the assay configuration to update.
+            aspc_id (str): The unique identifier of the assay configuration to update. (assay:profile format)
             data (dict): A dictionary containing the fields to update and their new values.
 
         Returns:
             Any: The result of the update operation, typically a `pymongo.results.UpdateResult` object.
         """
         return self.get_collection().update_one(
-            {"_id": assay_id}, {"$set": data}
+            {"_id": aspc_id}, {"$set": data}
         )
 
-    def insert_assay_config(self, data: dict) -> Any:
+    def create_aspc(self, data: dict) -> Any:
         """
         Inserts a new assay configuration document into the collection.
 
@@ -112,7 +130,7 @@ class AssayConfigsHandler(BaseHandler):
         """
         return self.get_collection().insert_one(data)
 
-    def delete_assay_config(self, assay_id: str) -> Any:
+    def delete_aspc(self, assay_id: str) -> Any:
         """
         Deletes an assay configuration document by its ID.
 
@@ -124,56 +142,60 @@ class AssayConfigsHandler(BaseHandler):
         """
         return self.get_collection().delete_one({"_id": assay_id})
 
-    def toggle_active(self, assay_id: str, active_status: bool) -> bool:
+    def toggle_aspc_active(self, aspc_id: str, active_status: bool) -> bool:
         """
         Toggles the active status of an assay configuration document by updating its 'is_active' field.
 
         Args:
-            assay_id (str): The unique identifier of the assay configuration to update.
+            aspc_id (str): The unique identifier of the assay configuration to update.
             active_status (bool): The desired active status to set for the assay configuration.
 
         Returns:
             bool: True if the update was successful, False otherwise.
         """
-        return self.get_collection().update_one(
-            {"_id": assay_id}, {"$set": {"is_active": active_status}}
-        )
+        return self.toggle_active(aspc_id, active_status)
 
-    def get_all_assay_groups(self) -> dict:
-        """
-        Retrieves a distinct list of all assay groups from the collection.
-
-        Returns:
-            dict: A dictionary containing all unique assay groups.
-        """
-        return self.get_collection().distinct("assay_group")
-
-    def get_all_assay_names(self) -> dict:
+    def get_all_assay_names(self, is_active: bool | None = None) -> dict:
         """
         Retrieves a distinct list of all assay names from the collection.
 
         Returns:
             dict: A dictionary containing all unique assay names.
         """
-        return self.get_collection().distinct("assay_name")
+        if is_active is None:
+            return self.get_collection().distinct("assay_name")
+        else:
+            return (
+                self.get_collection()
+                .find({"is_active": is_active})
+                .distinct("assay_name")
+            )
 
-    def get_assay_group_mappings(self) -> dict:
+    def get_available_assay_envs(
+        self, assay_name: str, all_envs: list
+    ) -> list:
         """
-        Retrieves a dictionary mapping assay IDs to their respective assay groups.
+        Retrieves a list of available environments for a specific assay configuration.
 
-        This method queries the collection to fetch all documents, extracting the `_id`
-        and `assay_group` fields. It then constructs a dictionary where the keys are
-        assay IDs (`_id`) and the values are their corresponding assay groups.
+        Args:
+            assay_name (str): The base assay name (e.g., "Demo").
+            all_envs (list): All supported environments (e.g., ["production", "development", "validation"]).
 
         Returns:
-            dict: A dictionary mapping assay IDs to assay groups.
+            list: A list of environments not yet used for this assay.
         """
-        result = self.get_collection().find({}, {"_id": 1, "assay_group": 1})
+        # Match _id like "Demo:production", "Demo:development", etc.
+        regex = f"^{assay_name}:"
+        assay_configs = self.get_collection().find(
+            {"_id": {"$regex": regex}}, {"_id": 1}
+        )
 
-        mappings = {}
-        if result:
-            for assay in result:
-                if assay["_id"] not in mappings:
-                    mappings[assay["_id"]] = assay["assay_group"]
+        used_envs = set()
+        for config in assay_configs:
+            try:
+                _, env = config["_id"].split(":")
+                used_envs.add(env)
+            except ValueError:
+                continue  # skip malformed _id
 
-        return mappings
+        return [env for env in all_envs if env not in used_envs]

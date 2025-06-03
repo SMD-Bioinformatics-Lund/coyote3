@@ -38,7 +38,7 @@
             </thead>
             <tbody id="roles-list-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
               {% for role in roles %}
-              <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
+              <tr class="border-t border-gray-400 hover:bg-{{ role.color }}-100 text-left last:rounded-b-2xl">
                 <td class="p-2 font-medium ">
                   <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-{{ role.color }}-500 text-center">
                     {{ role._id }}
@@ -50,7 +50,7 @@
                   {% if role.permissions %}
                     <div class="flex flex-wrap gap-1">
                       {% for perm in role.permissions[:5] %}
-                        <span class="bg-gray-300 text-gray-700 px-2 py-0.5 rounded text-[10px] font-medium">{{ perm }}</span>
+                        <span class="bg-gray-300 text-gray-700 px-2 py-0.5 rounded text-xs font-medium">{{ perm }}</span>
                       {% endfor %}
                       {% if role.permissions | length > 5 %}
                         <span class="text-gray-500 text-xs">+{{ role.permissions | length - 5 }} more</span>
@@ -71,6 +71,11 @@
                 </td>
                 <td class="p-2 text-xs">{{ role.version or '-' }}</td>
                 <td class="p-2 font-medium flex gap-2 flex-wrap">
+                  <a href="{{ url_for('admin_bp.view_role', role_id=role._id) }}" 
+                    title="View" 
+                    class="font-medium text-gray-700 hover:text-blue-600">
+                    <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="View" class="w-5 cursor-pointer">
+                  </a>
                   {% if has_access("edit_role", min_role="admin", min_level=99999) %}
                     <button onclick="showActionModal({
                         url: '{{ url_for('admin_bp.edit_role', role_id=role._id) }}',

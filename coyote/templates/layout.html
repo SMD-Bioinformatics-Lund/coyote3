@@ -92,7 +92,7 @@
               class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path == url_for('dashboard_bp.dashboard') else 'hover:bg-indigo-200 font-semibold' }}">
               HOME
             </a>
-            <a href="{{ url_for('home_bp.home_screen') }}"
+            <a href="{{ url_for('home_bp.samples_home') }}"
               class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path.split('/')[-1] == 'samples' or curr_path.split('/')[-2] == 'samples'  else 'hover:bg-indigo-200 font-semibold' }}">
               SAMPLES
             </a>
@@ -112,67 +112,62 @@
             <div class="h-6 w-0.5 bg-gray-800 "></div>
           {% endif %}
 
+          {# Extract URL path segments #}
+          {% set path_parts = request.path.strip('/').split('/') %}
+          {% set selected_type = path_parts[1] if path_parts|length > 1 else None %}
+          {% set selected_tech = path_parts[2] if path_parts|length > 2 else None %}
+          {% set selected_group = path_parts[3] if path_parts|length > 3 else None %}
+
           <!-- DNA / RNA toggle buttons only -->
           <div class="flex flex-wrap items-center gap-x-2">
-            {% set selected_type = None %}
-            {% set selected_panel = None %}
-            {% for panel_type, technologies in dynamic_assay_nav.items() %}
-              {% for tech in technologies.values() %}
-                {% for group in tech.values() %}
-                  {% for panel in group %}
-                    {% if request.path.endswith(panel.panel_name) or panel.panel_name in request.path %}
-                      {% set selected_type = panel_type %}
-                      {% set selected_panel = panel.panel_name %}
-                    {% endif %}
-                  {% endfor %}
-                {% endfor %}
-              {% endfor %}
-            {% endfor %}
-
             {% for panel_type in dynamic_assay_nav.keys() %}
-              <button onclick="toggleAssay('{{ panel_type }}')"
-                      class="px-2 py-0.5 rounded-xl text-xs transition bg-indigo-200 hover:bg-orange-200"
-                      id="toggle-{{ panel_type }}">
+              <button
+                id="toggle-{{ panel_type }}"
+                onclick="toggleAssay('{{ panel_type }}')"
+                class="px-2 py-0.5 rounded-xl text-xs transition
+                      {% if selected_type == panel_type %}
+                        bg-orange-300 text-black font-bold
+                      {% else %}
+                        bg-indigo-200 hover:bg-orange-200
+                      {% endif %}">
                 {{ panel_type }}
               </button>
             {% endfor %}
           </div>
 
-          <!-- Assay context pills placed after all types -->
+          <!-- Assay context pills -->
           <div class="flex flex-nowrap gap-4 overflow-x-auto whitespace-nowrap items-start" id="assay-pills">
             {% for panel_type, technologies in dynamic_assay_nav.items() %}
-              <div class="assay-section hidden flex flex-nowrap items-center gap-4" data-type="{{ panel_type }}">
-                <!-- Separator between type buttons and contextual pills -->
+              <div class="assay-group-section {{ 'hidden' if panel_type != selected_type }} flex flex-nowrap items-center gap-4"
+                  data-type="{{ panel_type }}">
                 <div class="h-6 w-0.5 bg-gray-800"></div>
-                {% set tech_list = technologies.items() | list %}
-                {% for tech_index in range(tech_list|length) %}
-                  {% set tech_name, groupings = tech_list[tech_index] %}
-                  <div class="flex items-center gap-2">
 
+                {% for tech_name, groupings in technologies.items() %}
+                  <div class="flex items-center gap-2">
                     <span class="text-xs text-gray-700 font-medium uppercase pr-1">{{ tech_name }}</span>
-                    {% for group_name, panels in groupings.items() %}
-                      {% for panel in panels %}
-                        {% if current_user.is_admin or panel.panel_name in current_user.groups %}
-                          {% set is_selected = request.path.endswith(panel.panel_name) or panel.panel_name in request.path %}
-                          <a href="{{ url_for(panel.url, assay=panel.panel_name) }}"
-                              class="px-2 py-0.5 rounded-full font-semibold transition text-xs whitespace-nowrap
-                              {{ 'bg-yellow-300 text-black border border-yellow-500' if is_selected else 'bg-indigo-200 hover:bg-orange-300 text-gray-800' }}">
-                            {{ panel.label }}
-                          </a>
-                        {% endif %}
-                      {% endfor %}
+
+                    {% for group_name, panel_data in groupings.items() %}
+                      {% if current_user.is_admin or group_name in current_user.assay_groups %}
+                        {% set is_selected = group_name == selected_group %}
+                        <a href="{{ url_for(panel_data.url, panel_type=panel_type, panel_tech=tech_name, assay_group=group_name) }}"
+                          class="px-2 py-0.5 rounded-full font-semibold transition text-xs whitespace-nowrap
+                                  {% if is_selected %}
+                                    bg-yellow-300 text-black border border-yellow-500
+                                  {% else %}
+                                    bg-indigo-200 hover:bg-orange-300 text-gray-800
+                                  {% endif %}">
+                          {{ panel_data.label }}
+                        </a>
+                      {% endif %}
                     {% endfor %}
                   </div>
-                  {% if tech_index + 1 < tech_list|length %}
-                    <div class="h-6 w-0.5 bg-indigo-600"></div>
-                  {% endif %}
+                  <div class="h-6 w-0.5 bg-indigo-600"></div>
                 {% endfor %}
               </div>
             {% endfor %}
           </div>
         </div>
       </nav>
-
 
       <!-- MAIN CONTENT (SCROLLABLE GRID LAYOUT) -->
 
@@ -203,51 +198,69 @@
     <script>
 
       // JavaScript for Assay Navigation
-      const sections = document.querySelectorAll('.assay-section');
-      const toggles = document.querySelectorAll('[id^="toggle-"]');
-    
-      function toggleAssay(type) {
-        localStorage.setItem('selectedAssayType', type);
-        updateAssayNav(type, false);
-      }
-    
-      function updateAssayNav(type, auto) {
-        sections.forEach(section => {
-          section.classList.toggle('hidden', section.dataset.type !== type);
-        });
-    
+      document.addEventListener('DOMContentLoaded', () => {
+        const path = window.location.pathname.split('/').filter(Boolean);
+        const [ , selectedType, selectedTech, selectedGroup ] = path;
+      
+        const sections = document.querySelectorAll('.assay-group-section');
+        const toggles = document.querySelectorAll('[id^="toggle-"]');
+        const pills = document.querySelectorAll('#assay-pills a');
+      
+        function showType(type) {
+          sections.forEach(s => s.classList.toggle('hidden', s.dataset.type !== type));
+          toggles.forEach(t => {
+            const active = t.id === `toggle-${type}`;
+            t.classList.toggle('bg-orange-300', active);
+            t.classList.toggle('text-black', active);
+            t.classList.toggle('font-bold', active);
+            t.classList.toggle('bg-indigo-200', !active);
+          });
+        }
+      
+        function highlightPill() {
+          pills.forEach(p => {
+            const urlParts = new URL(p.href, window.location.origin).pathname.split('/').filter(Boolean);
+            const match = urlParts[1] === selectedType && urlParts[2] === selectedTech && urlParts[3] === selectedGroup;
+            p.classList.toggle('bg-yellow-300', match);
+            p.classList.toggle('text-black', match);
+            p.classList.toggle('border-yellow-500', match);
+            if (!match) {
+              p.classList.remove('bg-yellow-300', 'text-black', 'border-yellow-500');
+              p.classList.add('bg-indigo-200', 'hover:bg-orange-300', 'text-gray-800');
+            }
+          });
+        }
+      
+        // Initial load: show and highlight
+        if (selectedType) {
+          showType(selectedType);
+          highlightPill();
+        }
+      
+        // Toggle on click
         toggles.forEach(btn => {
-          btn.classList.remove('bg-orange-300', 'text-black', 'font-bold');
+          btn.addEventListener('click', e => {
+            const type = btn.id.replace('toggle-', '');
+            showType(type);
+            e.stopPropagation();
+          });
         });
-    
-        const activeToggle = document.getElementById(`toggle-${type}`);
-        if (activeToggle && !auto) {
-          activeToggle.classList.add('bg-orange-300', 'text-black', 'font-bold');
-        }
-      }
-    
-      window.addEventListener('DOMContentLoaded', () => {
-        const path = window.location.pathname;
-        let matchType = null;
-    
-        {% for panel_type, technologies in dynamic_assay_nav.items() %}
-          {% for tech in technologies.values() %}
-            {% for group in tech.values() %}
-              {% for panel in group %}
-                if (path.includes('{{ panel.panel_name }}')) {
-                  matchType = '{{ panel_type }}';
-                }
-              {% endfor %}
-            {% endfor %}
-          {% endfor %}
-        {% endfor %}
-    
-        if (matchType) {
-          updateAssayNav(matchType, true);
-          const activeToggle = document.getElementById(`toggle-${matchType}`);
-          activeToggle?.classList.add('bg-orange-300', 'text-black', 'font-bold');
-        }
+      
+        // Collapse only if URL doesn't match any pill
+        document.addEventListener('click', e => {
+          if (!e.target.closest('#assay-pills') && !e.target.closest('[id^="toggle-"]')) {
+            const matchExists = Array.from(pills).some(p =>
+              p.href.includes(`/${selectedType}/${selectedTech}/${selectedGroup}`)
+            );
+            if (!matchExists) {
+              sections.forEach(s => s.classList.add('hidden'));
+              toggles.forEach(t => t.classList.remove('bg-orange-300', 'text-black', 'font-bold'));
+            }
+          }
+        });
       });
+      
+
 
       // JavaScript for Action Modal
       function showActionModal({ url, title = "Confirm Action", message = "Are you sure you want to proceed?", confirmText = "Confirm", confirmColor = "blue" }) {
@@ -298,37 +311,37 @@
 
 
 
-        // Flash Message Animation
-        document.addEventListener("DOMContentLoaded", function () {
-          const alerts = document.querySelectorAll(".flash-message");
-          alerts.forEach((alert, index) => {
-            let timeoutId;
-      
-            function startTimeout() {
-              timeoutId = setTimeout(() => {
-                alert.classList.remove("translate-x-0", "opacity-100");
-                alert.classList.add("translate-x-full", "opacity-0");
-                setTimeout(() => alert.style.display = "none", 500);
-              }, 7000 + index * 100); // currently set tot 7 sec
-            }
-      
-            setTimeout(() => {
-              alert.classList.remove("translate-x-full", "opacity-0");
-              alert.classList.add("translate-x-0", "opacity-100");
-              startTimeout();
-            }, 100 + index * 100);
-      
-            alert.addEventListener("mouseenter", () => clearTimeout(timeoutId));
-            alert.addEventListener("mouseleave", startTimeout);
-      
-            alert.querySelector(".close-btn").addEventListener("click", function () {
-              clearTimeout(timeoutId);
+      // Flash Message Animation
+      document.addEventListener("DOMContentLoaded", function () {
+        const alerts = document.querySelectorAll(".flash-message");
+        alerts.forEach((alert, index) => {
+          let timeoutId;
+    
+          function startTimeout() {
+            timeoutId = setTimeout(() => {
               alert.classList.remove("translate-x-0", "opacity-100");
               alert.classList.add("translate-x-full", "opacity-0");
               setTimeout(() => alert.style.display = "none", 500);
-            });
+            }, 7000 + index * 100); // currently set tot 7 sec
+          }
+    
+          setTimeout(() => {
+            alert.classList.remove("translate-x-full", "opacity-0");
+            alert.classList.add("translate-x-0", "opacity-100");
+            startTimeout();
+          }, 100 + index * 100);
+    
+          alert.addEventListener("mouseenter", () => clearTimeout(timeoutId));
+          alert.addEventListener("mouseleave", startTimeout);
+    
+          alert.querySelector(".close-btn").addEventListener("click", function () {
+            clearTimeout(timeoutId);
+            alert.classList.remove("translate-x-0", "opacity-100");
+            alert.classList.add("translate-x-full", "opacity-0");
+            setTimeout(() => alert.style.display = "none", 500);
           });
         });
+      });
       
 
       // JavaScript for Tooltip functionality

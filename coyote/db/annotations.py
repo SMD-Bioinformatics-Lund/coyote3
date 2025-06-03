@@ -274,7 +274,7 @@ class AnnotationsHandler(BaseHandler):
             "time_created": datetime.now(),
             "variant": variant,
             "nomenclature": nomenclature,
-            "assay": variant_data.get("assay", None),
+            "assay": variant_data.get("assay_group", None),
             "subpanel": variant_data.get("subpanel", None),
         }
 
@@ -324,7 +324,7 @@ class AnnotationsHandler(BaseHandler):
                 {
                     "class": {"$exists": True},
                     "variant": variant,
-                    "assay": variant_data.get("assay", None),
+                    "assay": variant_data.get("assay_group", None),
                     "gene": variant_data.get("gene", None),
                     "nomenclature": nomenclature,
                     "subpanel": variant_data.get("subpanel", None),

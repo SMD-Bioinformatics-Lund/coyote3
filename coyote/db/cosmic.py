@@ -37,7 +37,7 @@ class CosmicHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.cosmic_collection)
 
-    def get_cosmic_ids(self, chr=None) -> list:
+    def get_cosmic_ids(self, chromosomes: list | None = None) -> list:
         """
         Retrieve cosmic IDs for all chromosomes or specific chromosomes.
 
@@ -47,12 +47,11 @@ class CosmicHandler(BaseHandler):
         provided chromosome list.
 
         Args:
-            chr (list, optional): A list of chromosome names to filter by. Defaults to an empty list.
+            chromosomes (list, None): A list of chromosome names to filter by. Defaults to an empty list.
 
         Returns:
             list: A list of cosmic IDs matching the query criteria.
         """
-        chr = chr or []
-        query = {} if not chr else {"chr": {"$in": chr}}
+        query = {} if not chr else {"chr": {"$in": chromosomes or []}}
         cosmic_ids = self.get_collection().find(query)
         return list(cosmic_ids)

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-InsilicoGeneListHandler module for Coyote3
+ISGLHandler module for Coyote3
 ==========================================
 
-This module defines the `InsilicoGeneListHandler` class used for accessing and managing
+This module defines the `ISGLHandler` class used for accessing and managing
 gene panel data in MongoDB.
 
 It is part of the `coyote.db` package and extends the base handler functionality.
@@ -22,9 +22,9 @@ from typing import Any
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
-class InsilicoGeneListHandler(BaseHandler):
+class ISGLHandler(BaseHandler):
     """
-    Coyote gene panels database handler
+    Coyote in silico gene panels database handler
 
     This class provides a comprehensive interface for managing gene panel data in the database.
     It supports operations such as retrieving, inserting, updating, and deleting gene panel records.
@@ -39,23 +39,29 @@ class InsilicoGeneListHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.insilico_genelist_collection)
 
-    def get_genelist(self, genelist_id: str) -> dict | None:
+    def get_isgl(
+        self, isgl_id: str, is_active: bool | None = None
+    ) -> dict | None:
         """
         Fetch a single gene list.
 
         This method retrieves a single gene list document from the database
-        collection based on the provided `genelist_id`.
+        collection based on the provided `isgl_id`.
 
         Args:
-            genelist_id (str): The unique identifier of the gene list to retrieve.
+            isgl_id (str): The unique identifier of the gene list to retrieve.
+            is_active (bool): Optional; if True, only active gene lists are considered.
 
         Returns:
             dict | None: A dictionary representing the gene list document if found,
             otherwise None.
         """
-        return self.get_collection().find_one({"_id": genelist_id})
+        query = {"_id": isgl_id}
+        if is_active is not None:
+            query["is_active"] = is_active
+        return self.get_collection().find_one(query)
 
-    def get_all_gene_lists(self) -> list:
+    def get_all_isgl(self, is_active: bool | None = None) -> list:
         """
         Fetch all gene lists.
 
@@ -66,13 +72,16 @@ class InsilicoGeneListHandler(BaseHandler):
         Returns:
             list: A list of all gene list documents from the database.
         """
+        query = {}
+        if is_active is not None:
+            query["is_active"] = is_active
         return list(
             self.get_collection()
-            .find({}, {"genes": 0})
+            .find(query, {"genes": 0})
             .sort([("created_on", -1)])
         )
 
-    def insert_genelist(self, config: dict) -> Any:
+    def create_isgl(self, data: dict) -> Any:
         """
         Insert a new gene list into the database.
 
@@ -80,124 +89,104 @@ class InsilicoGeneListHandler(BaseHandler):
         using the provided configuration dictionary.
 
         Args:
-            config (dict): A dictionary containing the gene list data to be inserted.
+            data (dict): A dictionary containing the gene list data to be inserted.
 
         Returns:
             pymongo.results.InsertOneResult: The result of the insert operation,
             including the ID of the inserted document.
         """
-        return self.get_collection().insert_one(config)
+        return self.get_collection().insert_one(data)
 
-    def update_genelist(self, genelist_id: str, updated_data: dict) -> Any:
+    def update_isgl(self, isgl_id: str, updated_data: dict) -> Any:
         """
         Update an existing gene list.
 
         This method replaces an existing gene list document in the database
-        with the provided updated data, identified by the `genelist_id`.
+        with the provided updated data, identified by the `isgl_id`.
 
         Args:
-            genelist_id (str): The unique identifier of the gene list to update.
+            isgl_id (str): The unique identifier of the gene list to update.
             updated_data (dict): A dictionary containing the updated gene list data.
 
         Returns:
             Any: The result of the replace operation, typically a `pymongo.results.UpdateResult` object.
         """
         return self.get_collection().replace_one(
-            {"_id": genelist_id}, updated_data
+            {"_id": isgl_id}, updated_data
         )
 
-    def toggle_genelist_active(
-        self, genelist_id: str, active_status: bool
-    ) -> bool:
+    def toggle_isgl_active(self, isgl_id: str, active_status: bool) -> bool:
         """
         Toggle the `is_active` field for a gene list.
 
         This method updates the `is_active` status of a specific gene list
-        document in the database, identified by the `genelist_id`.
+        document in the database, identified by the `isgl_id`.
 
         Args:
-            genelist_id (str): The unique identifier of the gene list to update.
+            isgl_id (str): The unique identifier of the gene list to update.
             active_status (bool): The new active status to set for the gene list.
 
         Returns:
             bool: True if the update operation was acknowledged, otherwise False.
         """
-        return self.get_collection().update_one(
-            {"_id": genelist_id}, {"$set": {"is_active": active_status}}
-        )
+        return self.toggle_active(isgl_id, active_status)
 
-    def delete_genelist(self, genelist_id: str) -> Any:
+    def delete_isgl(self, isgl_id: str) -> Any:
         """
         Delete a gene list.
 
         This method removes a gene list document from the database collection
-        based on the provided `genelist_id`.
+        based on the provided `isgl_id`.
 
         Args:
-            genelist_id (str): The unique identifier of the gene list to delete.
+            isgl_id (str): The unique identifier of the gene list to delete.
 
         Returns:
             pymongo.results.DeleteResult: The result of the delete operation,
             including information about the deletion.
         """
-        return self.get_collection().delete_one({"_id": genelist_id})
+        return self.get_collection().delete_one({"_id": isgl_id})
 
-    def get_diagnoses_for_assay_panel(self, panel_name: str) -> list[str]:
-        """
-        Retrieve unique diagnosis terms associated with a specific assay panel.
-
-        This method filters gene lists where the provided `panel_name` is included
-        in the `assays` field (a list in the database) and collects all unique
-        diagnosis terms.
-
-        Args:
-            panel_name (str): The name of the assay panel to filter gene lists by.
-
-        Returns:
-            list[str]: A sorted list of unique diagnosis terms associated with the assay panel.
-        """
-        docs = self.get_collection().find({"assays": panel_name})
-        diagnoses = set()
-        for doc in docs:
-            for diag in doc.get("diagnosis", []):
-                diagnoses.add(diag)
-        return sorted(diagnoses)
-
-    def get_subpanels_for_assays(self, assay_ids: list[str]) -> list[str]:
+    def get_subpanels_for_asp(self, asp_names: list[str]) -> list[str]:
         """
         Retrieve unique diagnosis terms associated with a list of assay IDs.
 
-        This method filters gene lists where any of the provided `assay_ids` are included
+        This method filters gene lists where any of the provided `asp_names` are included
         in the `assays` field (a list in the database) and collects all unique diagnosis terms.
 
         Args:
-            assay_ids (list[str]): A list of assay IDs to filter gene lists by.
+            asp_names (list[str]): A list of assay IDs to filter gene lists by.
 
         Returns:
             list[str]: A sorted list of unique diagnosis terms associated with the assay IDs.
         """
-        cursor = self.get_collection().find({"assays": {"$in": assay_ids}})
+        cursor = self.get_collection().find({"assays": {"$in": asp_names}})
         diagnoses = set()
         for doc in cursor:
             for diag in doc.get("diagnosis", []):
                 diagnoses.add(diag)
         return sorted(diagnoses)
 
-    def get_genes_for_subpanel(self, diagnosis_name: str) -> list[str]:
+    def get_asp_subpanel_genes(
+        self, asp_name: str, subpanel: str
+    ) -> list[str]:
         """
-        Retrieve gene symbols associated with a specific subpanel or diagnosis.
+        Retrieve gene symbols for a specific subpanel (diagnosis) within an assay.
 
-        This method queries the database for a document matching the given `diagnosis_name`
-        and retrieves the list of gene symbols associated with it.
+        Queries the database for a document where the given `asp_name` is present in the `assays` field
+        and the `diagnosis` field matches the provided `subpanel`. Returns the list of gene symbols
+        associated with that subpanel.
 
         Args:
-            diagnosis_name (str): The name of the diagnosis or subpanel to query.
+            asp_name (str): The assay ID to filter by.
+            subpanel (str): The diagnosis or subpanel name to query.
 
         Returns:
-            list[str]: A list of gene symbols associated with the specified diagnosis.
-            Returns an empty list if no matching document is found.
+            list[str]: List of gene symbols for the specified subpanel, or an empty list if not found.
         """
-        doc = self.get_collection().find_one({"diagnosis": diagnosis_name})
+        doc = self.get_collection().find_one(
+            {"assays": asp_name, "diagnosis": subpanel}
+        )
         return doc.get("genes", []) if doc else []
 
     def get_all_subpanels(self) -> list[str]:
@@ -218,7 +207,7 @@ class InsilicoGeneListHandler(BaseHandler):
             for d in doc.get("diagnosis", [])
         )
 
-    def get_all_genes_from_subpanels(self, subpanels) -> list[str]:
+    def get_all_subpanel_genes(self, subpanels) -> list[str]:
         """
         Retrieve all unique genes from a list of subpanels.
 
@@ -233,42 +222,17 @@ class InsilicoGeneListHandler(BaseHandler):
             list[str]: A list of unique gene symbols associated with the provided subpanels.
         """
         genes = set()
-        for diag in subpanels:
-            doc = self.get_collection().find_one({"diagnosis": diag})
+        docs = self.get_collection().find(
+            {"diagnosis": {"$in": subpanels}}, {"genes": 1}
+        )
+        for doc in docs:
             genes.update(doc.get("genes", []))
         return list(genes)
 
-    def get_gene_details_by_symbols(self, symbols: list[str]) -> list[dict]:
-        """
-        Fetch gene metadata for a list of gene symbols.
-
-        This method retrieves metadata for the provided list of gene symbols.
-        If the list is empty, it returns an empty list. The actual database query
-        is currently commented out and will need to be enabled when the gene
-        collection becomes available.
-
-        Args:
-            symbols (list[str]): A list of gene symbols to fetch metadata for.
-
-        Returns:
-            list[dict]: A list of dictionaries containing gene metadata. Currently,
-            it returns the input list of symbols as a placeholder.
-        """
-        if not symbols:
-            return []
-
-        return list(
-            self.adapter.genes_handler.get_metadata_by_symbols(symbols)
-        )
-
-    def genelist_exists(
+    def isgl_exists(
         self,
-        genelist_id: str,
+        isgl_id: str,
         is_active: bool = True,
-        diagnosis: str = None,
-        list_type: str = None,
-        assays: str = None,
-        group: str = None,
     ) -> bool:
         """
         Check if a gene list with specific attributes exists in the collection.
@@ -278,49 +242,40 @@ class InsilicoGeneListHandler(BaseHandler):
         optional filters such as `diagnosis`, `list_type`, `assays`, and `group`.
 
         Args:
-            genelist_id (str): The unique identifier of the gene list to check.
+            isgl_id (str): The unique identifier of the gene list to check.
             is_active (bool, optional): The active status of the gene list. Defaults to True.
-            diagnosis (str, optional): The diagnosis term to filter by. Defaults to None.
-            list_type (str, optional): The type of the gene list to filter by. Defaults to None.
-            assays (str, optional): The assay name to filter by. Defaults to None.
-            group (str, optional): The group name to filter by. Defaults to None.
 
         Returns:
             bool: True if a matching gene list document exists, otherwise False.
         """
         query = {
-            "_id": genelist_id,
+            "_id": isgl_id,
             "is_active": is_active,
         }
-        if diagnosis:
-            query["diagnosis"] = diagnosis
-        if list_type:
-            query["list_type"] = list_type
-        if assays:
-            query["assays"] = assays
-        if group:
-            query["group"] = group
         return self.get_collection().count_documents(query) > 0
 
-    def get_genelists_by_panel(
-        self, panel_name: str, active: bool = True
+    def get_isgl_by_asp(
+        self, asp_name: str, is_active: bool | None = None
     ) -> list[dict]:
         """
-        Retrieve all gene lists associated with a specific panel.
+        Retrieve all gene lists associated with a specific assay panel.
 
         This method queries the database collection for gene lists that match the
         specified panel name and active status. It excludes certain fields from
         the returned documents to reduce the payload size.
 
         Args:
-            panel_name (str): The name of the panel to filter gene lists by.
-            active (bool, optional): The active status of the gene lists to filter by.
+            asp_name (str): The name of the assay specific panel to filter gene lists by.
+            is_active (bool, optional): The active status of the gene lists to filter by.
                 Defaults to True.
 
         Returns:
             list[dict]: A list of dictionaries representing the gene lists that match
             the query, with selected fields excluded.
         """
+        query = {"assays": asp_name}
+        if is_active is not None:
+            query["is_active"]: is_active
         projection = {
             "genes": 0,
             "created_on": 0,
@@ -330,15 +285,15 @@ class InsilicoGeneListHandler(BaseHandler):
             "schema_name": 0,
             "is_active": 0,
         }
-        query = {"assays": panel_name, "is_active": active}
+
         return list(self.get_collection().find(query, projection))
 
-    def get_genelists_ids(
+    def get_isgl_ids(
         self,
-        panel_name: str,
-        diagnosis: str,
+        asp_name: str,
+        subpanel: str,
         list_type: str,
-        active: bool = True,
+        is_active: bool | None = None,
     ) -> list[str]:
         """
         Retrieve all gene list IDs associated with a specific panel.
@@ -348,10 +303,10 @@ class InsilicoGeneListHandler(BaseHandler):
         a list of IDs for the matching gene lists.
 
         Args:
-            panel_name (str): The name of the panel to filter gene lists by.
-            diagnosis (str): The diagnosis term to filter gene lists by.
+            asp_name (str): The name of the panel to filter gene lists by.
+            subpanel (str): The diagnosis term to filter gene lists by.
             list_type (str): The type of the gene list to filter by.
-            active (bool, optional): The active status of the gene lists to filter by.
+            is_active (bool, optional): The active status of the gene lists to filter by.
                 Defaults to True.
 
         Returns:
@@ -359,35 +314,36 @@ class InsilicoGeneListHandler(BaseHandler):
             gene lists.
         """
         query = {
-            "assays": panel_name,
-            "diagnosis": diagnosis,
+            "assays": asp_name,
+            "diagnosis": subpanel,
             "list_type": list_type,
-            "is_active": active,
         }
+        if is_active is not None:
+            query["is_active"] = is_active
         projection = {"_id": 1}
         return [
             str(doc["_id"])
             for doc in self.get_collection().find(query, projection)
         ]
 
-    def get_genelist_docs_by_ids(self, genelist_ids: list) -> dict:
+    def get_isgl_by_ids(self, isgl_ids: list) -> dict:
         """
         Retrieve selected fields from genelist documents for given IDs.
 
         This method queries the database collection for documents with IDs matching
-        the provided `genelist_ids`. It retrieves only the specified fields and
+        the provided `isgl_ids`. It retrieves only the specified fields and
         formats the result as a dictionary where the keys are the document IDs and
         the values are the remaining fields.
 
         Args:
-            genelist_ids (list): A list of gene list IDs to query.
+            isgl_ids (list): A list of gene list IDs to query.
 
         Returns:
             dict: A dictionary where the keys are the IDs of the gene lists and the
             values are dictionaries containing the selected fields. Returns an empty
-            dictionary if `genelist_ids` is empty.
+            dictionary if `isgl_ids` is empty.
         """
-        if not genelist_ids:
+        if not isgl_ids:
             return {}
 
         # Define the fields to include in the query result
@@ -395,7 +351,7 @@ class InsilicoGeneListHandler(BaseHandler):
 
         # Query the database for documents with matching IDs
         cursor = self.get_collection().find(
-            {"_id": {"$in": genelist_ids}}, projection
+            {"_id": {"$in": isgl_ids}}, projection
         )
 
         # Format the result as a dictionary with IDs as keys

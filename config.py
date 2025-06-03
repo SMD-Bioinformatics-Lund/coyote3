@@ -50,14 +50,15 @@ class DefaultConfig:
     PRODUCTION = False
 
     INTERNAL_USERS = {
-        "coyote.admin@skane.se",
-        "coyote.developer@skane.se",
-        "coyote.tester@skane.se",
-        "coyote.manager@skane.se",
-        "coyote.user@skane.se",
-        "coyote.intern@skane.se",
-        "coyote.viewer@skane.se",
-        "coyote.external@skane.se",
+        "coyote3.admin@skane.se",
+        "coyote3.developer@skane.se",
+        "coyote3.tester@skane.se",
+        "coyote3.manager@skane.se",
+        "coyote3.user@skane.se",
+        "coyote3.intern@skane.se",
+        "coyote3.viewer@skane.se",
+        "coyote3.external@skane.se",
+        "coyote3.demo@skane.se",
     }
 
     # For the public assay map
@@ -76,7 +77,7 @@ class DefaultConfig:
     }
 
     # REDIS CACHE TIMEOUTS
-    CACHE_TIMEOUT_SAMPLES = 10  # 5 minutes
+    CACHE_TIMEOUT_SAMPLES = 1  # 5 minutes
 
     # Fernet key for encrypting sensitive data in the report
     FERNET_KEY = Fernet.generate_key()  # store this securely
@@ -92,7 +93,7 @@ class DefaultConfig:
     # MONGO_DB_NAME = "coyote"
     MONGO_DB_NAME = os.getenv("COYOTE_DB", "coyote_dev_3")
     BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
-    _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections_new.toml"
+    _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections_beta2.toml"
 
     # Gens URI
     GENS_URI = os.getenv("GENS_URI", "http://10.231.229.34/gens/")
@@ -109,35 +110,6 @@ class DefaultConfig:
     # Report Config
     REPORTS_BASE_PATH = "/data/bnf/dev/ram/Pipelines/Web_Developement/coyote_blueprinted/reports"
 
-    # CONSEQ_TERMS_MAPPER: dict[str, list[str]] = {
-    #     "splicing": [
-    #         "splice_acceptor_variant",
-    #         "splice_donor_variant",
-    #         "splice_region_variant",
-    #     ],
-    #     "stop_gained": ["stop_gained"],
-    #     "frameshift": ["frameshift_variant"],
-    #     "stop_lost": ["stop_lost"],
-    #     "start_lost": ["start_lost"],
-    #     "inframe_indel": ["inframe_insertion", "inframe_deletion"],
-    #     "missense": ["missense_variant", "protein_altering_variant"],
-    #     "synonymous": ["stop_retained_variant", "synonymous_variant"],
-    #     "other_coding": ["coding_sequence_variant"],
-    #     "UTR": ["5_prime_UTR_variant", "3_prime_UTR_variant"],
-    #     "non_coding": [
-    #         "non_coding_transcript_exon_variant",
-    #         "non_coding_transcript_variant",
-    #     ],
-    #     "intronic": ["intron_variant"],
-    #     "intergenic": [
-    #         "intergenic_variant",
-    #         "downstream_gene_variant",
-    #         "upstream_gene_variant",
-    #     ],
-    #     "regulatory": ["regulatory_region_variant", "TF_binding_site_variant"],
-    #     "feature_elon_trunc": ["feature_elongation", "feature_truncation"],
-    # }
-
     CONSEQ_TERMS_MAPPER: dict[str, list[str]] = {
         "splicing": [
             "splice_acceptor_variant",
@@ -148,10 +120,6 @@ class DefaultConfig:
         "frameshift": ["frameshift_variant"],
         "stop_lost": ["stop_lost"],
         "start_lost": ["start_lost"],
-        "transcript_structure": [
-            "transcript_ablation",
-            "transcript_amplification",
-        ],
         "inframe_indel": [
             "inframe_insertion",
             "inframe_deletion",
@@ -160,14 +128,18 @@ class DefaultConfig:
             "missense_variant",
             "protein_altering_variant",
         ],
+        "other_coding": [
+            "coding_sequence_variant",
+        ],
         "synonymous": [
             "stop_retained_variant",
             "synonymous_variant",
             "start_retained_variant",
             "incomplete_terminal_codon_variant",
         ],
-        "other_coding": [
-            "coding_sequence_variant",
+        "transcript_structure": [
+            "transcript_ablation",
+            "transcript_amplification",
         ],
         "UTR": [
             "5_prime_UTR_variant",
