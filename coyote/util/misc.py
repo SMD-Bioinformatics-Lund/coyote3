@@ -112,7 +112,7 @@ def get_dynamic_assay_nav() -> dict:
     return dict(dynamic_assay_nav=nav)
 
 
-def get_sample_and_assay_config(sample_id: str) -> tuple | Response:
+def get_sample_and_assay_config(sample_id: str) -> tuple:
     """
     Fetches the sample, its assay configuration, and the formatted config schema for a given `sample_id`.
 

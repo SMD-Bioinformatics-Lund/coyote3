@@ -46,9 +46,10 @@ def list_variants(sample_id):
     """
     # Find sample data by name
 
-    sample, assay_config, assay_config_schema = get_sample_and_assay_config(
-        sample_id=sample_id
-    )
+    result = get_sample_and_assay_config(sample_id)
+    if isinstance(result, Response):
+        return result
+    sample, assay_config, assay_config_schema = result
 
     # sample = store.sample_handler.get_sample(sample_id)  # sample_id = name/id
     sample_has_filters = sample.get("filters", None)
@@ -188,11 +189,13 @@ def list_variants(sample_id):
 
     # this is in config, but needs to be tested (2024-05-14) with a HD-sample of relevant name
     disp_pos = []
+    verification_sample_used = None
     if assay_config.get("verification_samples"):
         verification_samples = assay_config.get("verification_samples")
         for veri_key, veri_value in verification_samples.items():
             if veri_key in sample["name"]:
                 disp_pos = verification_samples[veri_key]
+                verification_sample_used = veri_key
 
     ## SNV FILTRATION STARTS HERE ! ##
     ##################################
@@ -356,6 +359,7 @@ def list_variants(sample_id):
         bam_id=bam_id,
         form=form,
         ai_text=ai_text,
+        verification_sample_used=verification_sample_used,
         oncokb_genes=oncokb_genes,
     )
 
@@ -454,9 +458,10 @@ def classify_multi_variant(sample_id) -> Response:
 @require_sample_access("sample_id")
 def show_any_plot(sample_id, fn, angle=90):
 
-    sample, assay_config, assay_config_schema = get_sample_and_assay_config(
-        sample_id=sample_id
-    )
+    result = get_sample_and_assay_config(sample_id)
+    if isinstance(result, Response):
+        return result
+    sample, assay_config, assay_config_schema = result
     base_dir = assay_config.get("reporting", {}).get("plots_path", None)
 
     if base_dir:
@@ -489,9 +494,10 @@ def show_any_plot(sample_id, fn, angle=90):
 def show_variant(sample_id, var_id):
 
     variant = store.variant_handler.get_variant(var_id)
-    sample, assay_config, assay_config_schema = get_sample_and_assay_config(
-        sample_id=variant["SAMPLE_ID"]
-    )
+    result = get_sample_and_assay_config(sample_id)
+    if isinstance(result, Response):
+        return result
+    sample, assay_config, assay_config_schema = result
 
     # Get assay group and subpanel for the sample, sections to display
     assay_group: str = assay_config.get(
@@ -1003,9 +1009,10 @@ def show_cnv(sample_id, cnv_id):
     Show CNVs view page
     """
     cnv = store.cnv_handler.get_cnv(cnv_id)
-    sample, assay_config, assay_config_schema = get_sample_and_assay_config(
-        sample_id=cnv["SAMPLE_ID"]
-    )
+    result = get_sample_and_assay_config(sample_id)
+    if isinstance(result, Response):
+        return result
+    sample, assay_config, assay_config_schema = result
 
     # Get assay group and subpanel for the sample, sections to display
     assay_group: str = assay_config.get(
@@ -1174,9 +1181,10 @@ def show_transloc(sample_id, transloc_id):
     """
     transloc = store.transloc_handler.get_transloc(transloc_id)
 
-    sample, assay_config, assay_config_schema = get_sample_and_assay_config(
-        sample_id=transloc["SAMPLE_ID"]
-    )
+    result = get_sample_and_assay_config(sample_id)
+    if isinstance(result, Response):
+        return result
+    sample, assay_config, assay_config_schema = result
 
     # Get assay group and subpanel for the sample, sections to display
     assay_group: str = assay_config.get(
@@ -1345,9 +1353,10 @@ def generate_dna_report(sample_id, **kwargs) -> Response | str:
         - Logs debug information about the assay group and configuration.
     """
 
-    sample, assay_config, assay_config_schema = get_sample_and_assay_config(
-        sample_id=sample_id
-    )
+    result = get_sample_and_assay_config(sample_id)
+    if isinstance(result, Response):
+        return result
+    sample, assay_config, assay_config_schema = result
 
     ## get the assay from the sample, fallback to the first group if not set
     # TODO: This should be set in the sample doc and get it by the assay key in the sample and not by the group
@@ -1563,9 +1572,10 @@ def save_dna_report(sample_id) -> Response:
     Raises:
         AppError: If a report with the same name already exists or if saving the report fails.
     """
-    sample, assay_config, assay_config_schema = get_sample_and_assay_config(
-        sample_id=sample_id
-    )
+    result = get_sample_and_assay_config(sample_id)
+    if isinstance(result, Response):
+        return result
+    sample, assay_config, assay_config_schema = result
 
     assay_group = assay_config.get("assay_group", "unknown")
     report_num = sample.get("report_num", 0) + 1

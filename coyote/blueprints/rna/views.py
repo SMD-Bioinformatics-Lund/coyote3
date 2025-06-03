@@ -14,6 +14,7 @@ from flask import (
 from flask_login import current_user, login_required
 
 from coyote.blueprints.dna.forms import FusionFilter
+
 # from wtforms import BooleanField
 # from wtforms.validators import Optional
 from coyote.extensions import store, util
