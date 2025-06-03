@@ -128,6 +128,18 @@
       <!-- Selected Gene Panel Card -->
       {% include "selected_gene_panel_div.html" %}
 
+      {% if verification_sample_used %}
+        <!-- Verification Sample Card -->
+        <section class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
+          <div class="overflow-x-auto relative">
+            <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">Verification Sample</h2>
+          </div>
+          <div class="mx-2 py-2">
+            <p class="text-sm font-semibold text-yellow-700">Verification sample used: {{ verification_sample_used }}</p>
+          </div>
+        </section>
+      {% endif %}
+
       <!-- SNVs & Indels Card -->
       {% if "SNV" in analysis_sections %}
         {% set variants = display_sections_data.snvs %}
