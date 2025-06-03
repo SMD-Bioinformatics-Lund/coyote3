@@ -20,12 +20,12 @@ from coyote.extensions import store, util
 from coyote.blueprints.rna import rna_bp, filters
 from datetime import datetime
 from flask_weasyprint import HTML, render_pdf
-from coyote.util.decorators.access import require_sample_group_access
+from coyote.util.decorators.access import require_sample_access
 
 
 @rna_bp.route("/sample/<string:id>K=", methods=["GET", "POST"])
 @login_required
-@require_sample_group_access("sample_id")
+@require_sample_access("sample_id")
 def list_fusions(id):
     """
     Creates a functional elements to the fusion displays
