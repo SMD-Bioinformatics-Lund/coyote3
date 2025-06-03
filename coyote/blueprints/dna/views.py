@@ -296,6 +296,19 @@ def list_variants(sample_id):
         sample.get("vep", 103)
     )
 
+    # Oncokb information
+    oncokb_genes = []
+    for variant in variants:
+        oncokb_gene = store.oncokb_handler.get_oncokb_action_gene(
+            variant["INFO"]["selected_CSQ"]["SYMBOL"]
+        )
+        if oncokb_gene and "Hugo Symbol" in oncokb_gene:
+            name = oncokb_gene["Hugo Symbol"]
+            if name not in oncokb_genes:
+                oncokb_genes.append(name)
+
+    app.logger.info(f"oncokb_selected_genes : {oncokb_genes} ")
+
     ######## TODO: AI TEXT ##############
     ## "AI"-text depending on what analysis has been done. Add translocs and cnvs if marked as interesting (HRD and MSI?)
     ## SNVs, non-optional. Though only has rules for PARP + myeloid and solid
@@ -343,6 +356,7 @@ def list_variants(sample_id):
         bam_id=bam_id,
         form=form,
         ai_text=ai_text,
+        oncokb_genes=oncokb_genes,
     )
 
 

@@ -14,16 +14,18 @@ from flask import (
 from flask_login import current_user, login_required
 
 from coyote.blueprints.dna.forms import FusionFilter
-from wtforms import BooleanField
-from wtforms.validators import Optional
-from coyote.extensions import store
-from coyote.blueprints.rna import rna_bp
-from coyote.extensions import util
-from coyote.blueprints.rna import filters
+# from wtforms import BooleanField
+# from wtforms.validators import Optional
+from coyote.extensions import store, util
+from coyote.blueprints.rna import rna_bp, filters
+from datetime import datetime
+from flask_weasyprint import HTML, render_pdf
+from coyote.util.decorators.access import require_sample_group_access
 
 
-@rna_bp.route("/sample/<string:id>", methods=["GET", "POST"])
+@rna_bp.route("/sample/<string:id>K=", methods=["GET", "POST"])
 @login_required
+@require_sample_group_access("sample_id")
 def list_fusions(id):
     """
     Creates a functional elements to the fusion displays
@@ -70,8 +72,6 @@ def list_fusions(id):
 
     form = FusionFilter()
     ##
-    print("this is the form data")
-    print(form.data)
     ###########################################################################
     ## FORM FILTERS ##
     # Either reset sample to default filters or add the new filters from form.
@@ -132,7 +132,7 @@ def list_fusions(id):
             "calls": {
                 "$elemMatch": {
                     "spanreads": {"$gte": sample_settings["min_spanreads"]},
-                    "spanpairs": {"$gte": sample_settings["min_spanreads"]},
+                    "spanpairs": {"$gte": sample_settings["min_spanpairs"]},
                 }
             },
         }
@@ -154,7 +154,9 @@ def list_fusions(id):
             fusions[fus_idx]["classification"],
         ) = store.fusion_handler.get_fusion_annotations(fusions[fus_idx])
 
-    # app.logger.info(f"this is the fusion and fusion query,{fusions},{fusion_query}")
+    app.logger.info(
+        f"this is the fusion and fusion query,{fusions},{fusion_query}"
+    )
 
     # Your logic for handling RNA samples
     return render_template(
@@ -170,11 +172,11 @@ def list_fusions(id):
 @rna_bp.route("/fusion/<string:id>")
 @login_required
 def show_fusion(id):
-
     fusion = store.fusion_handler.get_fusion(id)
     sample = store.sample_handler.get_sample_by_id(fusion["SAMPLE_ID"])
     print("SAMPLE")
     print(sample)
+
     annotations, classification = store.fusion_handler.get_fusion_annotations(
         fusion
     )
@@ -234,3 +236,187 @@ def unhide_fusion_comment(var_id):
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.fusion_handler.unhide_fus_comment(var_id, comment_id)
     return redirect(url_for("rna_bp.show_variant", id=var_id))
+
+
+##### PREVIEW REPORT ####
+@rna_bp.route("/sample/preview_report/<string:id>", methods=["GET", "POST"])
+@login_required
+def generate_rna_report(id, *args, **kwargs):
+    sample = store.sample_handler.get_sample(id)
+
+    if not sample:
+        sample = store.sample_handler.get_sample_with_id(id)  # id = id
+
+    # print (sample)
+    assay = util.common.get_assay_from_sample(sample)
+
+    app.logger.info(f"sample : {sample}")
+
+    fusion_query = {"SAMPLE_ID": str(sample["_id"])}
+    # app.logger.info(f"fusion_query : {fusion_query}")
+
+    fusions = list(store.fusion_handler.get_sample_fusions(fusion_query))
+
+    for fus_idx, fus in enumerate(fusions):
+        # app.logger.info(f"these are fus, {fus_idx} {fus}")
+        (
+            fusions[fus_idx]["global_annotations"],
+            fusions[fus_idx]["classification"],
+        ) = store.fusion_handler.get_fusion_annotations(fusions[fus_idx])
+
+    class_desc = list(
+        app.config.get("REPORT_CONFIG").get("CLASS_DESC").values()
+    )
+    class_desc_short = list(
+        app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT").values()
+    )
+    analysis_desc = (
+        app.config.get("REPORT_CONFIG")
+        .get("ANALYSIS_DESCRIPTION", {})
+        .get(assay)
+    )
+
+    # app.logger.info(f"analysis_desc,{analysis_desc}")
+    # app.logger.info(f"fusions,{fusions}")
+    analysis_method = util.common.get_analysis_method(assay)
+    report_header = util.common.get_report_header(assay, sample)
+    report_date = datetime.now().date()
+    pdf = kwargs.get("pdf", 0)
+
+    return render_template(
+        "report_fusion.html",
+        assay=assay,
+        fusions=fusions,
+        report_header=report_header,
+        analysis_method=analysis_method,
+        analysis_desc=analysis_desc,
+        sample=sample,
+        class_desc=class_desc,
+        class_desc_short=class_desc_short,
+        report_date=report_date,
+        pdf=pdf,
+    )
+
+
+@rna_bp.route("/sample/report/pdf/<string:id>")
+@login_required
+def generate_report_pdf(id):
+    sample = store.sample_handler.get_sample(id)  # id = name
+
+    if not sample:
+        sample = store.sample_handler.get_sample_with_id(id)
+
+    assay = util.common.get_assay_from_sample(sample)
+
+    # Get report number
+    report_num = 1
+    if "report_num" in sample:
+        report_num = sample["report_num"] + 1
+
+    # PDF file name
+    pdf_file = "static/reports/" + id + "_" + str(report_num) + ".pdf"
+
+    # Generate PDF
+    html = ""
+    html = generate_rna_report(id, pdf=1)
+    HTML(string=html).write_pdf(pdf_file)
+
+    # Add to database
+    store.sample_handler.get_sample(id).update(
+        {"name": id},
+        {
+            "$push": {
+                "reports": {
+                    "_id": ObjectId(),
+                    "report_num": report_num,
+                    "filepath": pdf_file,
+                    "author": current_user.get_id(),
+                    "time_created": datetime.now(),
+                }
+            },
+            "$set": {"report_num": report_num},
+        },
+    )
+
+    # Render it!
+    return render_pdf(HTML(string=html))
+
+
+@rna_bp.route("/multi_class/<id>", methods=["POST"])
+@login_required
+def classify_multi_variant(id):
+    """
+    Classify multiple variants
+    """
+    print(f"var_form: {request.form.to_dict()}")
+    action = request.form.get("action")
+    print(f"action: {action}")
+    variants_to_modify = request.form.getlist("selected_object_id")
+    assay = request.form.get("assay", None)
+    subpanel = request.form.get("subpanel", None)
+    tier = request.form.get("tier", None)
+    irrelevant = request.form.get("irrelevant", None)
+    false_positive = request.form.get("false_positive", None)
+
+    if tier and action == "apply":
+        variants_iter = []
+        for variant in variants_to_modify:
+            var_iter = store.variant_handler.get_variant(str(variant))
+            variants_iter.append(var_iter)
+
+        for var in variants_iter:
+            selectec_csq = var["INFO"]["selected_CSQ"]
+            transcript = selectec_csq.get("Feature", None)
+            gene = selectec_csq.get("SYMBOL", None)
+            hgvs_p = selectec_csq.get("HGVSp", None)
+            hgvs_c = selectec_csq.get("HGVSc", None)
+            hgvs_g = f"{var['CHROM']}:{var['POS']}:{var['REF']}/{var['ALT']}"
+            consequence = selectec_csq.get("Consequence", None)
+            gene_oncokb = store.oncokb_handler.get_oncokb_gene(gene)
+            text = util.dna.create_annotation_text_from_gene(
+                gene, consequence, assay, gene_oncokb=gene_oncokb
+            )
+
+            nomenclature = "p"
+            if hgvs_p != "" and hgvs_p is not None:
+                variant = hgvs_p
+            elif hgvs_c != "" and hgvs_c is not None:
+                variant = hgvs_c
+                nomenclature = "c"
+            else:
+                variant = hgvs_g
+                nomenclature = "g"
+
+            variant_data = {
+                "gene": gene,
+                "assay": assay,
+                "subpanel": subpanel,
+                "transcript": transcript,
+            }
+
+            # Add the variant to the database with class
+            store.annotation_handler.insert_classified_variant(
+                variant, nomenclature, tier, variant_data
+            )
+
+            # Add the annotation text to the database
+            store.annotation_handler.insert_classified_variant(
+                variant, nomenclature, tier, variant_data, text=text
+            )
+            if irrelevant:
+                store.variant_handler.mark_irrelevant_var(var["_id"])
+    elif false_positive:
+        if action == "apply":
+            for variant in variants_to_modify:
+                store.variant_handler.mark_false_positive_var(variant)
+        elif action == "remove":
+            for variant in variants_to_modify:
+                store.variant_handler.unmark_false_positive_var(variant)
+    elif irrelevant:
+        if action == "apply":
+            for variant in variants_to_modify:
+                store.variant_handler.mark_irrelevant_var(variant)
+        elif action == "remove":
+            for variant in variants_to_modify:
+                store.variant_handler.unmark_irrelevant_var(variant)
+    return redirect(url_for("rna_bp.list_fusions", id=id))
