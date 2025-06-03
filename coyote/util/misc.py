@@ -21,8 +21,10 @@ import json
 from datetime import datetime
 from typing import Any
 from collections import defaultdict
-from coyote.extensions import store
+from coyote.extensions import store, util
 from flask_login import login_required, current_user
+from flask import flash, redirect, url_for, Response
+from copy import deepcopy
 
 
 # -------------------------------------------------------------------------
@@ -66,6 +68,30 @@ class EnhancedJSONEncoder(json.JSONEncoder):
 # Functions
 # -------------------------------------------------------------------------
 def get_dynamic_assay_nav() -> dict:
+    """
+    Generate a dynamic navigation structure for assays.
+
+    This function retrieves the user's accessible assay map (`asp_map`) and organizes it into a nested dictionary.
+    Each entry includes metadata such as the group name, panel type, technology, and associated assays.
+
+    The resulting structure is suitable for rendering navigation menus or other UI components.
+
+    Returns:
+        dict: A dictionary with the following structure:
+            {
+                "panel_type": {
+                    "panel_tech": {
+                        "group_name": {
+                            "label": str,  # Uppercase group name
+                            "url": str,    # URL for navigation
+                            "group": str,  # Group name
+                            "panel_type": str,  # Panel type
+                            "panel_technology": str,  # Panel technology
+                            "assays": list  # List of assays
+                        }
+                    }
+                }
+    """
 
     user_asp_map = current_user.asp_map  # or `assay_map`
 
@@ -83,6 +109,39 @@ def get_dynamic_assay_nav() -> dict:
                     "assays": assays,
                 }
 
-    print(nav)
-
     return dict(dynamic_assay_nav=nav)
+
+
+def get_sample_and_assay_config(sample_id: str) -> tuple | Response:
+    """
+    Fetches the sample, its assay configuration, and the formatted config schema for a given `sample_id`.
+
+    Validates the presence of the sample and its configuration. If either is missing, flashes an error and returns a redirect response.
+
+    Returns:
+        tuple: (sample, formatted_assay_config, assay_config_schema)
+        If a redirect is needed due to missing data, returns a Flask redirect response instead.
+    """
+    sample = store.sample_handler.get_sample(sample_id)
+    if not sample:
+        flash(f"Sample '{sample_id}' not found.", "red")
+        return redirect(url_for("home_bp.samples_home"))
+
+    assay_config = store.aspc_handler.get_aspc_no_meta(
+        sample.get("assay"), sample.get("profile", "production")
+    )
+
+    if not assay_config:
+        flash(
+            f"No config found for assay '{sample.get("assay")}' ({sample.get("profile", "production")})",
+            "red",
+        )
+        return redirect(url_for("home_bp.samples_home"))
+
+    schema_name = assay_config.get("schema_name")
+    assay_config_schema = store.schema_handler.get_schema(schema_name)
+    formatted_config = util.common.format_assay_config(
+        deepcopy(assay_config), assay_config_schema
+    )
+
+    return sample, formatted_config, assay_config_schema

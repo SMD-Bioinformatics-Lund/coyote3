@@ -172,19 +172,22 @@ class CommonUtility:
         Returns:
             dict: Updated sample_doc with 'filters' field merged.
         """
-        filters_config = assay_config.get("FILTERS", {})
+        filters_config = assay_config.get("filters", {})
         sample_filters = sample_doc.get("filters", {})
 
-        merged_filters = {}
-
-        for key, value in filters_config.items():
-            # If the key already exists and is non-empty in the sample's filters, keep it
-            if key in sample_filters and sample_filters[key]:
-                merged_filters[key] = sample_filters[key]
-            else:
-                merged_filters[key] = value
-
         # If sample filters are empty, then update the sample doc with the default filters
+        if not sample_filters:
+            merged_filters = deepcopy(filters_config)
+        else:
+            # If sample filters are not empty, then merge the default filters with the sample filters
+            merged_filters = {}
+
+            for key, value in filters_config.items():
+                # If the key already exists and is non-empty in the sample's filters, keep it
+                if key in sample_filters and sample_filters[key]:
+                    merged_filters[key] = sample_filters[key]
+                else:
+                    merged_filters[key] = value
 
         # Update the sample_doc with the merged filters
         sample_doc["filters"] = merged_filters
@@ -319,7 +322,7 @@ class CommonUtility:
 
     @staticmethod
     def get_genes_covered_in_panel(
-        genelists: dict, assay_panel_doc: list
+        genelists: dict, assay_panel_doc: dict
     ) -> dict:
         """
         Filters the input gene lists to include only genes covered by the specified assay panel.
@@ -327,8 +330,8 @@ class CommonUtility:
         Args:
             genelists (list[dict]):
                 A list of dictionaries, each containing a "genes" key with a list of gene names.
-            assay_panel_doc (list):
-                A list of gene names representing the genes covered by the assay panel.
+            assay_panel_doc (dict):
+                A dictionary representing the assay panel document, which contains a "covered_genes" key with a list of gene names.
 
         Returns:
             list[dict]:
@@ -360,25 +363,12 @@ class CommonUtility:
         Get the names of the gene lists for a specific assay.
 
         Args:
-            genelists_dict (dict): A dictionary where keys are gene list names and values are lists of genes.
+            genelists (dict): A dictionary where keys are gene list names and values are lists of genes.
 
         Returns:
             list: A list of gene list names.
         """
         return [genelist["_id"] for genelist in genelists]
-
-    # @staticmethod
-    # def create_genelists_dict(list_names: list, gene_lists: dict) -> dict:
-    #     """
-    #     Creates a dictionary of gene lists from a list of selected gene lists.
-    #     Args:
-    #         gene_lists (list): A list of gene lists.
-    #         list_names (list): A list of gene list names.
-    #     Returns:
-    #         dict: A dictionary where keys are gene list names and values are lists of genes.
-    #     """
-
-    #     return {name: gene_lists[_id] for name in list_names}
 
     @staticmethod
     def get_active_branch_name() -> str | None:
@@ -662,3 +652,126 @@ class CommonUtility:
     def encrypt_json(data, fernet):
         json_data = json.dumps(data, default=str)  # ← handles datetime
         return fernet.encrypt(json_data.encode()).decode()
+
+    @staticmethod
+    def format_assay_config(config: dict, schema: dict) -> dict:
+
+        if config is None:
+            config = {}
+        if schema is None:
+            schema = {}
+        filter_keys = schema.get("sections", {}).get("filters", [])
+        report_keys = schema.get("sections", {}).get("reporting", [])
+
+        config_filters = {}
+        config_report = {}
+        for key in filter_keys:
+            if key in config:
+                config_filters[key] = config.pop(key)
+            else:
+                config_filters[key] = schema["sections"]["filters"][key].get(
+                    "default"
+                )
+
+        for key in report_keys:
+            if key in config:
+                config_report[key] = config.pop(key)
+            else:
+                config_report[key] = schema["sections"]["reporting"][key].get(
+                    "default"
+                )
+
+        config["filters"] = config_filters
+        config["reporting"] = config_report
+        return config
+
+    @staticmethod
+    def format_filters_from_form(form_data, assay_config_schema: dict) -> dict:
+        """
+        Format filters from a WTForm (or dict) to match the schema.
+        """
+        # If it's a WTForm, convert it to a dict of name: data
+        if hasattr(form_data, "__iter__") and not isinstance(form_data, dict):
+            form_data = {field.name: field.data for field in form_data}
+
+        print("form_data", form_data)
+        fields = assay_config_schema.get("sections", {}).get("filters", [])
+
+        filters = {}
+        (
+            vep_consequences,
+            genelists,
+            fusionlists,
+            fusion_callers,
+            fusioneffects,
+            cnveffects,
+        ) = ([], [], [], [], [], [])
+
+        prefix_map = {
+            "vep_": vep_consequences,
+            "genelist_": genelists,
+            "fusionlist_": fusionlists,
+            "fusioncaller_": fusion_callers,
+            "fusioneffect_": fusioneffects,
+            "cnveffect_": cnveffects,
+        }
+
+        for k, v in form_data.items():
+            for prefix, target_list in prefix_map.items():
+                if isinstance(k, str) and k.startswith(prefix) and v:
+                    target_list.append(k.replace(prefix, ""))
+                    break
+
+        for _field in fields:
+            if _field == "vep_consequences":
+                filters["vep_consequences"] = vep_consequences
+            elif _field == "genelists":
+                filters["genelists"] = genelists
+            elif _field == "fusionlists":
+                filters["fusionlists"] = fusionlists
+            elif _field == "fusion_callers":
+                filters["fusion_callers"] = fusion_callers
+            elif _field == "fusioneffects":
+                filters["fusioneffects"] = fusioneffects
+            elif _field == "cnveffects":
+                filters["cnveffects"] = cnveffects
+            else:
+                filters[_field] = form_data.get(_field)
+
+        return filters
+
+    @staticmethod
+    def create_assay_group_map(assay_groups_panels: list) -> dict:
+        """
+        Create a mapping of assay groups to their respective panels.
+        """
+        assay_group_map = {}
+
+        for _assay in assay_groups_panels:
+            group = _assay.get("asp_group")
+            if group not in assay_group_map:
+                assay_group_map[group] = []
+
+            group_map = {}
+            group_map["assay_name"] = _assay.get("assay_name")
+            group_map["display_name"] = _assay.get("display_name")
+            group_map["asp_category"] = _assay.get("asp_category")
+            assay_group_map[group].append(group_map)
+
+        return assay_group_map
+
+    @staticmethod
+    def get_case_and_control_sample_ids(sample_doc: dict) -> dict:
+        """
+        Get case and control sample IDs from a sample document.
+        Returns a dictionary with 'case' and 'control' keys.
+        """
+        sample_ids = {}
+        case = sample_doc.get("case_id")
+        control = sample_doc.get("control_id")
+        if case:
+            sample_ids["case"] = case
+        if control:
+            sample_ids["control"] = control
+
+        return sample_ids

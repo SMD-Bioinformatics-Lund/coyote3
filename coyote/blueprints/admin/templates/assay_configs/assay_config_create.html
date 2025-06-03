@@ -38,7 +38,7 @@
                 {% for key in keys %}
                   {% set field = schema.fields[key] %}
                   {% set value = field.default %}
-                  <div class="{% if field.display_type in ['textarea', 'json', 'jsoneditor', 'jsoneditor-or-upload', 'checkbox-group'] %}col-span-3{% else %}w-full{% endif %}">
+                  <div class="{% if field.display_type in ['textarea', 'json', 'jsoneditor', 'jsoneditor-or-upload'] %}col-span-3{% else %}w-full{% endif %}">
                     <label class="text-xs font-semibold block mb-1">
                       {{ field.label }}{% if field.required %}<span class="text-red-500">*</span>{% endif %}
                       <span class="text-gray-400">({{ field.data_type }})</span>
@@ -80,7 +80,7 @@
                             {% if value %}checked{% endif %} class="accent-blue-600 rounded">
 
                     {% elif field.display_type == 'checkbox-group' %}
-                      <div class="flex flex-wrap gap-4" id="{{ key }}">
+                      <div class="flex flex-col gap-1" id="{{ key }}">
                         {% for opt in field.options %}
                           <label class="inline-flex items-center gap-x-1">
                             <input type="checkbox" name="{{ key }}" value="{{ opt }}"
@@ -116,9 +116,10 @@
                               class="text-xs text-gray-600">
                       </div>
 
-                    {% elif field.display_type in ['json', 'jsoneditor'] %}
+                      {% elif field.display_type in ['json', 'jsoneditor'] %}
                       <textarea name="{{ key }}" id="{{ key }}" rows="6" placeholder="{{ field.placeholder }}"
-                                class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y">{{ value | tojson(indent=2) if value else '' }}</textarea>
+                                class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y"
+                                spellcheck="false">{{ value | tojson if value else '{}' }}</textarea>                    
 
                     {% else %}
                       <input type="{{ 'number' if field.data_type in ['int', 'float'] else 'text' }}"

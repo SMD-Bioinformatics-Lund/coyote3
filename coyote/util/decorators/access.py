@@ -4,7 +4,7 @@ from flask_login import current_user
 from coyote import store
 
 
-def require_sample_group_access(sample_arg="sample_name"):
+def require_sample_access(sample_arg="sample_name"):
     """
     Decorator to enforce assay-based access using the sample name from the route.
 
@@ -25,16 +25,16 @@ def require_sample_group_access(sample_arg="sample_name"):
 
             sample = store.sample_handler.get_sample(sample_name)
             if not sample:
-                sample = store.sample_handler.get_sample_with_id(sample_name)
+                sample = store.sample_handler.get_sample_by_id(sample_name)
 
             if not sample:
                 flash("Sample not found", "red")
                 abort(404, description="Sample not found")
 
             user_assays = set(current_user.assays or [])
-            sample_groups = set(sample.get("groups", []))
+            sample_assay = sample.get("assay", "")
 
-            if not user_assays & sample_groups:
+            if sample_assay not in user_assays:
                 flash(
                     "Access denied: you do not belong to any of the sample's groups",
                     "red",
@@ -49,21 +49,21 @@ def require_sample_group_access(sample_arg="sample_name"):
     return decorator
 
 
-def require_group_access(assay_arg: str = "assay"):
+def require_group_access(group_arg: str = "assay"):
     """
     Decorator to enforce assay-based access control.
 
     Args:
-        assay_arg (str): The name of the route argument that contains the target assay name.
+        group_arg (str): The name of the route argument that contains the target group name.
     """
 
     def decorator(view_func):
         @wraps(view_func)
         def wrapper(*args, **kwargs):
-            user_assays = set(current_user.assays or [])
-            target_group = kwargs.get(assay_arg)
+            user_assay_groups = set(current_user.assay_groups or [])
+            target_group = kwargs.get(group_arg)
 
-            if not target_group or target_group not in user_assays:
+            if not target_group or target_group not in user_assay_groups:
                 flash(
                     "Access denied: You do not have permission to access this assay.",
                     "red",

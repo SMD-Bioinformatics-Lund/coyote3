@@ -75,7 +75,7 @@
     <!-- LEFT SIDEBAR (Fixed Width, Full Height) -->
     <aside class="w-8 bg-transparent text-white flex flex-col">
 
-      {% for dna_section in dna_sections %}
+      {% for dna_section in analysis_sections %}
         {% if dna_section != "BIOMARKER" %}
           <div class="flex border-l-8 border-yellow-400 mt-1">
             <a href="#{{ dna_section }}" 
@@ -129,7 +129,7 @@
       {% include "selected_gene_panel_div.html" %}
 
       <!-- SNVs & Indels Card -->
-      {% if "SNV" in dna_sections %}
+      {% if "SNV" in analysis_sections %}
         {% set variants = display_sections_data.snvs %}
         <section id="SNV" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
           <!-- SNV/Indels Header -->
@@ -450,7 +450,7 @@
 
       <!-- CNVs Container -->  
       {% set has_cnv_image = sample.cnvprofile is not none %}   
-      {% if "CNV" in dna_sections or has_cnv_image %}
+      {% if "CNV" in analysis_sections or has_cnv_image %}
         {% set cnvs = display_sections_data.get('cnvs', []) %}
         <section id="CNV" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative w-full">
           <!-- CNVs Header -->
@@ -536,7 +536,7 @@
                 {% endif %}
 
                 <!-- CNV Table -->
-                {% if "CNV" in dna_sections %}
+                {% if "CNV" in analysis_sections %}
                   <div class="cnv-table bg-transparent py-2">
                     <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
                       <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg p-2 z-10">
@@ -689,7 +689,7 @@
       {% endif %}
 
       <!-- Translocations Card -->
-      {% if "TRANSLOCATION" in dna_sections %}
+      {% if "TRANSLOCATION" in analysis_sections %}
         {% set transloc = display_sections_data.translocs %}
         <section id="TRANSLOCATION" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
           <!-- Translocs Header -->
@@ -781,7 +781,7 @@
       {% endif %}
 
       <!-- Fusion Card -->
-      {% if "FUSION" in dna_sections %} <!-- TODO: CHECK THIS WITH TEST DATA -->
+      {% if "FUSION" in analysis_sections %} <!-- TODO: CHECK THIS WITH TEST DATA -->
         {% set fusions = display_sections_data.fusions %}
         <section id="FUSION" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
           <!-- Fusions Header -->

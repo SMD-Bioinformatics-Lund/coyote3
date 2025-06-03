@@ -307,3 +307,21 @@ class BaseHandler:
         if data:
             return any(comment.get("hidden") for comment in data)
         return False
+
+    def toggle_active(self, doc_id: str, active: bool) -> Any:
+        """
+        Toggle the active status of a document.
+
+        This method updates the `active` field of a document in the collection
+        to indicate whether it is currently active or not.
+
+        Args:
+            doc_id (str): The unique identifier of the document to update.
+            active (bool): A boolean value indicating whether to set the document as active.
+
+        Returns:
+            Any: The result of the update operation.
+        """
+        return self.get_collection().update_one(
+            {"_id": doc_id}, {"$set": {"active": active}}
+        )

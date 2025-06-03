@@ -90,6 +90,13 @@
                         <span class="text-xs font-semibold mb-1">OR Upload File</span>
                         <input type="file" name="genes_file" accept=".txt,.csv" class="text-xs">
                       </div>
+                    {% elif field.display_type == 'jsoneditor-or-upload' and key == 'germline_genes' %}
+                      <label class="text-xs text-gray-500 italic block mb-1">If both a gene list is pasted and a file is uploaded, the uploaded file will be used.</label>
+                      <textarea name="germline_genes_paste" rows="6" placeholder="{{ field.placeholder }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y"></textarea>
+                      <div class="flex flex-col items-start mt-2">
+                        <span class="text-xs font-semibold mb-1">OR Upload File</span>
+                        <input type="file" name="germline_genes_file" accept=".txt,.csv" class="text-xs">
+                      </div>
 
                     {% else %}
                       <input type="{{ 'number' if field.data_type in ['int', 'float'] else 'text' }}"

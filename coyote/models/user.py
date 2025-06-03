@@ -13,7 +13,7 @@ class UserModel(BaseModel):
     assay_groups: List[str] = []
     assays: List[str] = []
     asp_map: dict = {}
-    envs: List[str] = []
+    environments: List[str] = []
     permissions: List[str] = []
     denied_permissions: List[str] = []
     access_level: int = 0
@@ -121,6 +121,10 @@ class UserModel(BaseModel):
     @property
     def is_admin(self):
         return self.role == "admin"
+
+    @property
+    def envs(self) -> List[str]:
+        return self.environments if self.environments else ["production"]
 
     def can_access_group(self, group: str) -> bool:
         return self.role == "admin" or group in self.assay_groups

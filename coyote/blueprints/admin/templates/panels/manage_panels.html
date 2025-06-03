@@ -27,6 +27,7 @@
                 <th class="p-2 font-normal">Group</th>
                 <th class="p-2 font-normal">Category</th>
                 <th class="p-2 font-normal">Genes</th>
+                <th class="p-2 font-normal">Germline</th>
                 <th class="p-2 font-normal">Size</th>
                 <th class="p-2 font-normal">Family</th>
                 <th class="p-2 font-normal">platform</th>
@@ -48,7 +49,8 @@
                       {{ panel.asp_category }}
                     </span>
                   </td>
-                  <td class="p-2 font-medium">{{ panel.covered_genes|length }}</td>
+                  <td class="p-2 font-medium">{{ panel.covered_genes_count }}</td>
+                  <td class="p-2 font-medium">{{ panel.germline_genes_count }}</td>
                   <td class="p-2 font-medium">{{ panel.target_region_size }}</td>
                   <td class="p-2 font-medium">{{ panel.asp_family }}</td>
                   <td class="p-2 font-medium">{{ panel.platform }}</td>

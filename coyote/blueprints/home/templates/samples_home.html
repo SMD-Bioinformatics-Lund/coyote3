@@ -106,6 +106,7 @@
                     <th class="p-2 font-normal">Sample ID</th>
                     <th class="p-2 font-normal">Assay</th>
                     <th class="p-2 font-normal">Diagnosis</th>
+                    <th class="p-2 font-normal">Profile</th>
                     <th class="p-2 font-normal">BAM</th>
                     <th class="p-2 font-normal">QC</th>
                     <th class="p-2 font-normal">When added</th>
@@ -122,6 +123,7 @@
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">
+                        {# TODO: This check should come from the sample doc with a special key #}
                         {% if sample.groups|join('') == 'fusion' or sample.groups|join('') == 'solidRNA_GMSv5' %}
                           <a href="{{ url_for('rna_bp.list_fusions', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% else %}
@@ -138,6 +140,11 @@
                         {% if "subpanel" in sample %}
                           {{ sample.subpanel }}
                         {% endif %}
+                      </td>
+                      <td class="p-2 font-medium">
+                        <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-{{ sample.profile or 'production' }} text-center">
+                          {{ sample.get('profile', '')[0]|upper or 'P' }}
+                        </span>
                       </td>
                       <td class="p-2 font-medium">
                         {% if sample.bam is defined %}
@@ -184,6 +191,7 @@
                     <th class="p-2 font-normal">Sample ID</th>
                     <th class="p-2 font-normal">Assay</th>
                     <th class="p-2 font-normal">Diagnosis</th>
+                    <th class="p-2 font-normal">Profile</th>
                     <th class="p-2 font-normal">When added</th>
                     <th class="p-2 font-normal">Last report</th>
                     <th class="p-2 font-normal">BAM</th>
@@ -211,6 +219,11 @@
                         {% if "subpanel" in sample %}
                           {{ sample.subpanel }}
                         {% endif %}
+                      </td>
+                      <td class="p-2 font-medium">
+                        <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-{{ sample.profile or 'production' }} text-center">
+                          {{ sample.get('profile', '')[0]|upper or 'P' }}
+                        </span>
                       </td>
                       <td class="p-2 font-medium">
                         {{ sample.time_added|human_date }}

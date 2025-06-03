@@ -25,7 +25,10 @@ class DNAUtility:
         genes = set()
         variants = []
         for var in var_iter:
-            if var["INFO"].get("selected_CSQ", {}).get("BIOTYPE") == "protein_coding":
+            if (
+                var["INFO"].get("selected_CSQ", {}).get("BIOTYPE")
+                == "protein_coding"
+            ):
                 genes.add(var["INFO"]["selected_CSQ"]["SYMBOL"])
             for csq in var["INFO"]["CSQ"]:
                 if csq["BIOTYPE"] == "protein_coding":
@@ -51,25 +54,14 @@ class DNAUtility:
             if hotspot_dict:
                 for hotspot_key, hotspot_elem in hotspot_dict.items():
                     if any("COS" in elem for elem in hotspot_elem):
-                        variant.setdefault("INFO", {}).setdefault("HOTSPOT", []).append(hotspot_key)
+                        variant.setdefault("INFO", {}).setdefault(
+                            "HOTSPOT", []
+                        ).append(hotspot_key)
             hotspots.append(variant)
         return hotspots
 
     @staticmethod
     def get_filter_conseq_terms(checked):
-
-        # NOT IMPLEMENTED!
-        # transcript_ablation
-        # transcript_amplification
-        # protein_altering_variant
-        # incomplete_terminal_codon_variant
-        # mature_miRNA_variant
-        # NMD_transcript_variant
-        # TFBS_ablation
-        # TFBS_amplification
-        # TF_binding_site_variant
-        # regulatory_region_ablation
-        # regulatory_region_amplification
 
         filter_conseq = []
         conf = app.config.get("CONSEQ_TERMS_MAPPER")
@@ -133,7 +125,9 @@ class DNAUtility:
                     pop_freq[k] = float(v)
 
             try:
-                if max_freq < 1 and any([freq > max_freq for freq in pop_freq.values()]):
+                if max_freq < 1 and any(
+                    [freq > max_freq for freq in pop_freq.values()]
+                ):
                     pass
                 else:
                     filtered_variants.append(var)
@@ -197,7 +191,10 @@ class DNAUtility:
                     if csq.get("CANONICAL") == "YES" and vep_canonical == -1:
                         vep_canonical = csq_idx
 
-                    if first_protcoding == -1 and csq_biotype == "protein_coding":
+                    if (
+                        first_protcoding == -1
+                        and csq_biotype == "protein_coding"
+                    ):
                         first_protcoding = csq_idx
 
         if vep_canonical >= 0:
@@ -231,11 +228,15 @@ class DNAUtility:
                 variants[var_idx]["classification"],
                 variants[var_idx]["other_classification"],
                 variants[var_idx]["annotations_interesting"],
-            ) = store.annotation_handler.get_global_annotations(variants[var_idx], assay, subpanel)
+            ) = store.annotation_handler.get_global_annotations(
+                variants[var_idx], assay, subpanel
+            )
         return variants
 
     @staticmethod
-    def add_global_annotations(variants: list, assay: str, subpanel: str) -> list:
+    def add_global_annotations(
+        variants: list, assay: str, subpanel: str
+    ) -> list:
         """
         Add global annotations to the variants
         """
@@ -245,19 +246,13 @@ class DNAUtility:
                 variants[var_idx]["classification"],
                 variants[var_idx]["other_classification"],
                 variants[var_idx]["annotations_interesting"],
-            ) = store.annotation_handler.get_global_annotations(var, assay, subpanel)
+            ) = store.annotation_handler.get_global_annotations(
+                var, assay, subpanel
+            )
 
-            # if (
-            #     variants[var_idx]["classification"]["class"] == 999
-            #     or not variants[var_idx]["classification"]
-            # ):
-            #     variants[var_idx] = store.annotation_handler.add_alt_class(
-            #         variants[var_idx], assay, subpanel
-            #     )
-            # else:
-            #     variants[var_idx]["additional_classification"] = None
-
-            variants[var_idx] = DNAUtility.add_alt_class(variants[var_idx], assay, subpanel)
+            variants[var_idx] = DNAUtility.add_alt_class(
+                variants[var_idx], assay, subpanel
+            )
         return variants
 
     @staticmethod
@@ -272,22 +267,30 @@ class DNAUtility:
             list: A list of variants with additional classifications added to them.
 
         """
-        additional_classifications = store.annotation_handler.get_additional_classifications(
-            variant, assay, subpanel
+        additional_classifications = (
+            store.annotation_handler.get_additional_classifications(
+                variant, assay, subpanel
+            )
         )
         if additional_classifications:
             additional_classifications[0].pop("_id", None)
             additional_classifications[0].pop("author", None)
             additional_classifications[0].pop("time_created", None)
-            additional_classifications[0]["class"] = int(additional_classifications[0]["class"])
-            variant["additional_classification"] = additional_classifications[0]
+            additional_classifications[0]["class"] = int(
+                additional_classifications[0]["class"]
+            )
+            variant["additional_classification"] = additional_classifications[
+                0
+            ]
         else:
             variant["additional_classification"] = None
 
         return variant
 
     @staticmethod
-    def filter_variants_for_report(variants: list, filter_genes: list, assay: str) -> list:
+    def filter_variants_for_report(
+        variants: list, filter_genes: list, assay: str
+    ) -> list:
         """
         Filter the variants for the report
         """
@@ -296,15 +299,19 @@ class DNAUtility:
                 var
                 for var in variants
                 if (
-                    var.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL") in filter_genes
+                    var.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL")
+                    in filter_genes
                     or len(filter_genes) == 0
                 )
                 and not var.get("blacklist")
                 and var.get("classification")
-                and var.get("classification", {}).get("class", 0) != 4
-                and var.get("classification", {}).get("class", 0) != 999
+                and var.get("classification", {}).get("class", 0)
+                not in [4, 999]
                 and not (
-                    (assay == "gmsonco" and var.get("classification", {}).get("class", 0) == 3)
+                    (
+                        assay == "gmsonco"
+                        and var.get("classification", {}).get("class", 0) == 3
+                    )
                     if assay != "tumwgs"
                     else False
                 )
@@ -315,7 +322,9 @@ class DNAUtility:
         return filtered_sorted_variants
 
     @staticmethod
-    def get_simple_variants_for_report(variants: list, assay_config: dict) -> list:
+    def get_simple_variants_for_report(
+        variants: list, assay_config: dict
+    ) -> list:
         """
         Get simple variants for the report
         """
@@ -353,7 +362,9 @@ class DNAUtility:
             if selected_CSQ.get("HGVSp", None):
                 if indel_size <= 20 or indel_size >= -20:
                     var_type = "snv"
-                    variant = standard_HGVS(one_letter_p(selected_CSQ.get("HGVSp")))
+                    variant = standard_HGVS(
+                        one_letter_p(selected_CSQ.get("HGVSp"))
+                    )
                     protein_changes = [
                         standard_HGVS(one_letter_p(selected_CSQ.get("HGVSp"))),
                         standard_HGVS(selected_CSQ.get("HGVSp")),
@@ -377,9 +388,9 @@ class DNAUtility:
                 variant_class_long = "-"
 
             # Classification/variant type
-            if var.get("INFO", {}).get("MYELOID_GERMLINE") == 1 or "GERMLINE" in var.get(
-                "FILTER", []
-            ):
+            if var.get("INFO", {}).get(
+                "MYELOID_GERMLINE"
+            ) == 1 or "GERMLINE" in var.get("FILTER", []):
                 class_type = "Konstitutionell"
             else:
                 class_type = "Somatisk"
@@ -403,7 +414,10 @@ class DNAUtility:
                         consequence = c
 
             # Allele Freq
-            if var.get("INFO", {}).get("SVTYPE") and selected_CSQ.get("SYMBOL") == "FLT3":
+            if (
+                var.get("INFO", {}).get("SVTYPE")
+                and selected_CSQ.get("SYMBOL") == "FLT3"
+            ):
                 AF = "N/A"
             else:
                 for gt in var.get("GT"):
@@ -434,7 +448,9 @@ class DNAUtility:
                     "cdna": cdna,
                     "protein_changes": protein_changes,
                     "global_annotations": var.get("global_annotations", []),
-                    "annotations_interesting": var.get("annotations_interesting", []),
+                    "annotations_interesting": var.get(
+                        "annotations_interesting", []
+                    ),
                     "comments": var.get("comments", []),
                 }
             )
@@ -480,25 +496,58 @@ class DNAUtility:
                         if genes[0] + " och " + genes[1] in interesting:
                             pass
                         else:
-                            interesting[genes[0] + " och " + genes[1]] = af_dict
+                            interesting[genes[0] + " och " + genes[1]] = (
+                                af_dict
+                            )
                         if "PR" in gt:
                             pr = gt["PR"].split(",")
                             af_pr = (
-                                round(float(pr[1]) / (float(pr[1]) + float(pr[0])), ndigits=3) * 100
+                                round(
+                                    float(pr[1])
+                                    / (float(pr[1]) + float(pr[0])),
+                                    ndigits=3,
+                                )
+                                * 100
                             )
-                            if af_pr > interesting[genes[0] + " och " + genes[1]]["af_pr"]:
-                                interesting[genes[0] + " och " + genes[1]]["af_pr"] = af_pr
+                            if (
+                                af_pr
+                                > interesting[genes[0] + " och " + genes[1]][
+                                    "af_pr"
+                                ]
+                            ):
+                                interesting[genes[0] + " och " + genes[1]][
+                                    "af_pr"
+                                ] = af_pr
                         if "SR" in gt:
                             sr = gt["SR"].split(",")
                             af_sr = (
-                                round(float(sr[1]) / (float(sr[1]) + float(sr[0])), ndigits=3) * 100
+                                round(
+                                    float(sr[1])
+                                    / (float(sr[1]) + float(sr[0])),
+                                    ndigits=3,
+                                )
+                                * 100
                             )
-                            if af_sr > interesting[genes[0] + " och " + genes[1]]["af_sr"]:
-                                interesting[genes[0] + " och " + genes[1]]["af_sr"] = af_sr
+                            if (
+                                af_sr
+                                > interesting[genes[0] + " och " + genes[1]][
+                                    "af_sr"
+                                ]
+                            ):
+                                interesting[genes[0] + " och " + genes[1]][
+                                    "af_sr"
+                                ] = af_sr
                     if "UR" in var["INFO"]:
                         af_ur = var["INFO"]["UR"]
-                        if af_ur > interesting[genes[0] + " och " + genes[1]]["af_ur"]:
-                            interesting[genes[0] + " och " + genes[1]]["af_ur"] = af_ur
+                        if (
+                            af_ur
+                            > interesting[genes[0] + " och " + genes[1]][
+                                "af_ur"
+                            ]
+                        ):
+                            interesting[genes[0] + " och " + genes[1]][
+                                "af_ur"
+                            ] = af_ur
         text = ""
         cl = 0
         for voi in interesting:
@@ -527,10 +576,20 @@ class DNAUtility:
                 )
                 af = 1
             elif interesting[voi]["af_sr"] > 0:
-                text += "i " + str(interesting[voi]["af_sr"]) + "%" + " av splittade läsningar"
+                text += (
+                    "i "
+                    + str(interesting[voi]["af_sr"])
+                    + "%"
+                    + " av splittade läsningar"
+                )
                 af = 1
             elif interesting[voi]["af_pr"]:
-                text += "i " + str(interesting[voi]["af_pr"]) + "%" + " av överspännande läsningar"
+                text += (
+                    "i "
+                    + str(interesting[voi]["af_pr"])
+                    + "%"
+                    + " av överspännande läsningar"
+                )
                 af = 1
             if interesting[voi]["af_ur"] > 0 and af > 0:
                 text += (
@@ -558,7 +617,13 @@ class DNAUtility:
         for var in variants:
             if "interesting" in var:
                 if var["interesting"]:
-                    coord = str(var["chr"]) + ":" + str(var["start"]) + "-" + str(var["end"])
+                    coord = (
+                        str(var["chr"])
+                        + ":"
+                        + str(var["start"])
+                        + "-"
+                        + str(var["end"])
+                    )
                     af_dict = {
                         "af_pr": 0,
                         "af_sr": 0,
@@ -587,8 +652,13 @@ class DNAUtility:
                         pass
                     else:
                         interesting[goi + ":" + suffix] = af_dict
-                    if other_genes > interesting[goi + ":" + suffix]["other_genes"]:
-                        interesting[goi + ":" + suffix]["other_genes"] = other_genes
+                    if (
+                        other_genes
+                        > interesting[goi + ":" + suffix]["other_genes"]
+                    ):
+                        interesting[goi + ":" + suffix][
+                            "other_genes"
+                        ] = other_genes
                     if "gatk" in var["callers"] or "cnvkit" in var["callers"]:
                         if cn > interesting[goi + ":" + suffix]["cn"]:
                             interesting[goi + ":" + suffix]["cn"] = cn
@@ -596,13 +666,23 @@ class DNAUtility:
                         if var["SR"] != 0:
                             sr = var["SR"].split("/")
                             af_sr = (
-                                round(float(sr[1]) / (float(sr[1]) + float(sr[0])), ndigits=3) * 100
+                                round(
+                                    float(sr[1])
+                                    / (float(sr[1]) + float(sr[0])),
+                                    ndigits=3,
+                                )
+                                * 100
                             )
                             interesting[goi + ":" + suffix]["af_sr"] = af_sr
                         if var["PR"] != 0:
                             pr = var["PR"].split("/")
                             af_pr = (
-                                round(float(pr[1]) / (float(pr[1]) + float(pr[0])), ndigits=3) * 100
+                                round(
+                                    float(pr[1])
+                                    / (float(pr[1]) + float(pr[0])),
+                                    ndigits=3,
+                                )
+                                * 100
                             )
                             interesting[goi + ":" + suffix]["af_pr"] = af_pr
         text = "\n"
@@ -634,9 +714,19 @@ class DNAUtility:
                     + " av splittade läsningar"
                 )
             elif interesting[voi]["af_sr"] > 0:
-                info += " i " + str(interesting[voi]["af_sr"]) + "%" + " av splittade läsningar"
+                info += (
+                    " i "
+                    + str(interesting[voi]["af_sr"])
+                    + "%"
+                    + " av splittade läsningar"
+                )
             elif interesting[voi]["af_pr"]:
-                info += " i " + str(interesting[voi]["af_pr"]) + "%" + " av överspännande läsningar"
+                info += (
+                    " i "
+                    + str(interesting[voi]["af_pr"])
+                    + "%"
+                    + " av överspännande läsningar"
+                )
 
             intro = [
                 "Vid analysen finner man en " + effect + " av " + gene,
@@ -702,10 +792,15 @@ class DNAUtility:
 
             class_vars = defaultdict(lambda: defaultdict(list))
             class_cnt = defaultdict(int)
-            for v in sorted(variants, key=lambda d: d["GT"][0]["AF"], reverse=True):
+            for v in sorted(
+                variants, key=lambda d: d["GT"][0]["AF"], reverse=True
+            ):
                 if "irrelevant" in v and v["irrelevant"] == True:
                     continue
-                if len(incl_genes) > 0 and v["INFO"]["selected_CSQ"]["SYMBOL"] not in incl_genes:
+                if (
+                    len(incl_genes) > 0
+                    and v["INFO"]["selected_CSQ"]["SYMBOL"] not in incl_genes
+                ):
                     continue
                 percent = ""
                 for gt in v["GT"]:
@@ -800,7 +895,12 @@ class DNAUtility:
                     text += ": "
                     gene_texts = []
                     for gene, perc_arr in class_vars[1].items():
-                        t = CommonUtility.nl_num(len(perc_arr), "n") + " i " + gene + " ("
+                        t = (
+                            CommonUtility.nl_num(len(perc_arr), "n")
+                            + " i "
+                            + gene
+                            + " ("
+                        )
                         if first == 1:
                             t += "i "
                         t += CommonUtility.nl_join(perc_arr, "respektive")
@@ -921,7 +1021,9 @@ class DNAUtility:
                     if group_config["accredited"]:
                         accredited = ""
                     else:
-                        accredited = "Analysen omfattas inte av ackrediteringen."
+                        accredited = (
+                            "Analysen omfattas inte av ackrediteringen."
+                        )
             else:
                 accredited = "Analysen omfattas inte av ackrediteringen."
             conclusion = (
@@ -939,7 +1041,9 @@ class DNAUtility:
 
         gtcalls = []
         for gt in variant["GT"]:
-            gtcalls.append(f"<li>{gt['sample']} : {gt['GT']} ({str(gt['AF'])})</li>")
+            gtcalls.append(
+                f"<li>{gt['sample']} : {gt['GT']} ({str(gt['AF'])})</li>"
+            )
         return gtcalls
 
     @staticmethod
@@ -949,8 +1053,12 @@ class DNAUtility:
         """
 
         tx_info = var["INFO"]["selected_CSQ"]
-        varid = f"{str(var['CHROM'])}_{str(var['POS'])}_{var['REF']}_{var['ALT']}"
-        hg38_chr, hg38_pos = CommonUtility.get_hg38_pos(str(var["CHROM"]), str(var["POS"]))
+        varid = (
+            f"{str(var['CHROM'])}_{str(var['POS'])}_{var['REF']}_{var['ALT']}"
+        )
+        hg38_chr, hg38_pos = CommonUtility.get_hg38_pos(
+            str(var["CHROM"]), str(var["POS"])
+        )
         ncbi_link = CommonUtility.get_ncbi_link(hg38_chr, hg38_pos)
         thermo_link = CommonUtility.get_thermo_link(hg38_chr, hg38_pos)
         gtcalls = DNAUtility.get_gt_calls(var)
@@ -967,9 +1075,7 @@ class DNAUtility:
         if len(tx_info.get("HGVSp")) > 0:
             hgvsp = tx_info.get("HGVSp", "-:-").split(":")[1]
 
-        tx_changes = (
-            f"<li>{tx_info['SYMBOL']} : {tx_info['Feature']} : exon{exon} : {hgvsc} : {hgvsp}</li>"
-        )
+        tx_changes = f"<li>{tx_info['SYMBOL']} : {tx_info['Feature']} : exon{exon} : {hgvsc} : {hgvsp}</li>"
 
         html = f"""
         <ul>
@@ -1044,7 +1150,10 @@ class DNAUtility:
 
     @staticmethod
     def create_comment_doc(
-        data: dict, nomenclature: str = "", variant: str = "", key: str = "text"
+        data: dict,
+        nomenclature: str = "",
+        variant: str = "",
+        key: str = "text",
     ) -> dict:
         """
         Create a variant comment document
@@ -1056,7 +1165,7 @@ class DNAUtility:
                 "time_created": datetime.now(),  # common
                 "variant": variant,  # common
                 "nomenclature": nomenclature,  # common
-                "assay": data.get("assay", None),  # common
+                "assay": data.get("assay_group", None),  # common
                 "subpanel": data.get("subpanel", None),  # common
             }
             if nomenclature not in ["f", "t", "cn"]:
@@ -1086,7 +1195,9 @@ class DNAUtility:
         return doc
 
     @staticmethod
-    def filter_low_coverage_with_cosmic(low_coverage: list, cosmic: list) -> list:
+    def filter_low_coverage_with_cosmic(
+        low_coverage: list, cosmic: list
+    ) -> list:
         """
         Filter low coverage variants with cosmic data
         """
@@ -1115,7 +1226,9 @@ class DNAUtility:
                     break
                 # if int(low_cov["start"]) >= int(cos["start"]) <= int(low_cov["end"]):
                 else:
-                    low_cov["cosmic"].append({k: v for k, v in cos.items() if k != "_id"})
+                    low_cov["cosmic"].append(
+                        {k: v for k, v in cos.items() if k != "_id"}
+                    )
             if len(low_cov["cosmic"]) > 0:
                 filtered_low_cov.append(low_cov)
 
@@ -1193,14 +1306,22 @@ class DNAUtility:
             if "class" in anno:
                 if "assay" in anno:
                     assub = anno["assay"] + ":" + anno["subpanel"]
-                    annotations_dict[assub][anno["variant"]]["latest_class"] = anno
+                    annotations_dict[assub][anno["variant"]][
+                        "latest_class"
+                    ] = anno
                 else:
-                    annotations_dict["historic:None"][anno["variant"]]["latest_class"] = anno
+                    annotations_dict["historic:None"][anno["variant"]][
+                        "latest_class"
+                    ] = anno
             if "text" in anno:
                 if "assay" in anno:
                     assub = anno["assay"] + ":" + anno["subpanel"]
-                    annotations_dict[assub][anno["variant"]]["latest_text"] = anno
+                    annotations_dict[assub][anno["variant"]][
+                        "latest_text"
+                    ] = anno
                 else:
-                    annotations_dict["historic:None"][anno["variant"]]["latest_text"] = anno
+                    annotations_dict["historic:None"][anno["variant"]][
+                        "latest_text"
+                    ] = anno
 
         return annotations_dict

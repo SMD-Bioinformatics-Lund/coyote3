@@ -4,7 +4,13 @@ Coyote case fusions
 
 from flask import abort
 from flask import current_app as app
-from flask import redirect, render_template, request, url_for, send_from_directory
+from flask import (
+    redirect,
+    render_template,
+    request,
+    url_for,
+    send_from_directory,
+)
 from flask_login import current_user, login_required
 
 from coyote.blueprints.dna.forms import FusionFilter
@@ -30,9 +36,10 @@ def list_fusions(id):
 
     """
     sample = store.sample_handler.get_sample(id)
+    assay_config_schema = {}
 
     if sample is None:
-        sample = store.sample_handler.get_sample_with_id(id)
+        sample = store.sample_handler.get_sample_by_id(id)
 
     sample_groups = sample.get("groups")
     if len(sample_groups) > 1:
@@ -47,12 +54,16 @@ def list_fusions(id):
     settings = util.common.get_group_defaults(group_params)
     assay = util.common.get_assay_from_sample(sample)
 
-    app.logger.info(app.config["GROUP_CONFIGS"])  # get group config from app config instead
+    app.logger.info(
+        app.config["GROUP_CONFIGS"]
+    )  # get group config from app config instead
     app.logger.info(f"the sample has these groups {smp_grp}")
     app.logger.info(f"this is the group from collection {group_params}")
 
-    gene_lists, genelists_assay = store.panel_handler.get_assay_panels(assay)
-    app.logger.info(f"this is the gene_lists, genelists_assay {gene_lists},{genelists_assay}")
+    gene_lists, genelists_assay = store.asp_handler.get_assay_panels(assay)
+    app.logger.info(
+        f"this is the gene_lists, genelists_assay {gene_lists},{genelists_assay}"
+    )
 
     # Save new filter settings if submitteds
     # Inherit FilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
@@ -69,19 +80,29 @@ def list_fusions(id):
         # Reset filters to defaults
         if form.reset.data == True:
             print("does it go throu this?")
-            store.sample_handler.reset_sample_settings(_id, settings)  ## this loop is not working
+            store.sample_handler.reset_sample_settings(
+                _id, settings
+            )  ## this loop is not working
         # Change filters
         else:
-            store.sample_handler.update_sample_settings(_id, form)
+            store.sample_handler.update_sample_filters(
+                _id, form, assay_config_schema
+            )
             ## get sample again to recieve updated forms!
-            sample = store.sample_handler.get_sample_with_id(_id)
+            sample = store.sample_handler.get_sample_by_id(_id)
     ############################################################################
     # Check if sample has hidden comments
-    has_hidden_comments = 1 if store.sample_handler.hidden_sample_comments(sample.get("_id")) else 0
+    has_hidden_comments = (
+        1
+        if store.sample_handler.hidden_sample_comments(sample.get("_id"))
+        else 0
+    )
 
     sample_settings = util.common.get_fusions_settings(sample, settings)
 
-    fusionlist_filter = sample.get("checked_fusionlists", settings["default_checked_fusionlists"])
+    fusionlist_filter = sample.get(
+        "checked_fusionlists", settings["default_checked_fusionlists"]
+    )
     fusioneffect_filter = sample.get(
         "checked_fusioneffects", settings["default_checked_fusioneffects"]
     )
@@ -90,7 +111,9 @@ def list_fusions(id):
     )
 
     # filter_fusionlist = util.fusion.create_fusiongenelist(fusionlist_filter)
-    filter_fusioneffects = util.rna.create_fusioneffectlist(fusioneffect_filter)
+    filter_fusioneffects = util.rna.create_fusioneffectlist(
+        fusioneffect_filter
+    )
     filter_fusioncaller = util.rna.create_fusioncallers(fusioncaller_filter)
 
     # app.logger.info(f"this is the sample {sample}")
@@ -126,9 +149,10 @@ def list_fusions(id):
 
     for fus_idx, fus in enumerate(fusions):
         # app.logger.info(f"these are fus, {fus_idx} {fus}")
-        (fusions[fus_idx]["global_annotations"], fusions[fus_idx]["classification"]) = (
-            store.fusion_handler.get_fusion_annotations(fusions[fus_idx])
-        )
+        (
+            fusions[fus_idx]["global_annotations"],
+            fusions[fus_idx]["classification"],
+        ) = store.fusion_handler.get_fusion_annotations(fusions[fus_idx])
 
     # app.logger.info(f"this is the fusion and fusion query,{fusions},{fusion_query}")
 
@@ -148,10 +172,12 @@ def list_fusions(id):
 def show_fusion(id):
 
     fusion = store.fusion_handler.get_fusion(id)
-    sample = store.sample_handler.get_sample_with_id(fusion["SAMPLE_ID"])
+    sample = store.sample_handler.get_sample_by_id(fusion["SAMPLE_ID"])
     print("SAMPLE")
     print(sample)
-    annotations, classification = store.fusion_handler.get_fusion_annotations(fusion)
+    annotations, classification = store.fusion_handler.get_fusion_annotations(
+        fusion
+    )
     print(annotations)
     print(classification)
 

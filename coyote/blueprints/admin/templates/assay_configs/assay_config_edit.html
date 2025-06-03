@@ -55,7 +55,7 @@
           {% for section, keys in schema.sections.items() %}
             <div class="mb-6 border-l-4 border-blue-200 bg-blue-50 rounded-xl p-4 shadow-lg">
               <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') | title }}</h2>
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div class="grid grid-cols-3 gap-4">
                 {% for key in keys %}
                   {% set field = schema.fields[key] %}
                   {% set value = assay_config.get(key) %}
@@ -114,6 +114,11 @@
 
                     {% elif field.display_type == 'textarea' %}
                       <textarea name="{{ key }}" rows="4" placeholder="{{ field.placeholder }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">{{ value }}</textarea>
+                    
+                    {% elif field.display_type in ['json', 'jsoneditor'] %}
+                      <textarea name="{{ key }}" id="{{ key }}" rows="6" placeholder="{{ field.placeholder }}"
+                                class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y">{{ value | tojson(indent=2) if value else '' }}
+                      </textarea>
 
                     {% elif field.display_type == 'jsoneditor-or-upload' %}
                       <textarea name="genes_paste" rows="6" placeholder="{{ field.placeholder }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y">{{ value | join(',') }}</textarea>

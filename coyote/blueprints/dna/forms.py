@@ -123,7 +123,7 @@ class FusionFilter(FlaskForm):
 
 def create_assay_group_form():
     """Create a dynamic form class with assay group checkboxes"""
-    assay_groups = store.assay_config_handler.get_all_assay_groups()
+    assay_groups = store.asp_handler.get_all_asp_groups()
 
     fields = {
         group: BooleanField(

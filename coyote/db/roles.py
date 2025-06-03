@@ -81,7 +81,7 @@ class RolesHandler(BaseHandler):
             roles_colors[role["_id"]] = role["color"]
         return roles_colors
 
-    def save_role(self, role_data: dict) -> Any:
+    def create_role(self, role_data: dict) -> Any:
         """
         Save a role.
 
@@ -139,7 +139,7 @@ class RolesHandler(BaseHandler):
         """
         self.get_collection().delete_one({"_id": role_id})
 
-    def toggle_active(self, role_id: str, active_status: bool) -> Any:
+    def toggle_role_active(self, role_id: str, active_status: bool) -> Any:
         """
         Toggle the active status of a role.
 
@@ -152,9 +152,7 @@ class RolesHandler(BaseHandler):
         Returns:
             Any: The result of the update operation.
         """
-        return self.get_collection().update_one(
-            {"_id": role_id}, {"$set": {"is_active": active_status}}
-        )
+        return self.toggle_active(role_id, active_status)
 
     def get_all_roles_plus_permissions(self) -> list:
         """

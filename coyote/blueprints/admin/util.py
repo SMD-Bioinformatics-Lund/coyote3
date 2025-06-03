@@ -109,7 +109,12 @@ class AdminUtility:
                 except Exception:
                     return [v.strip() for v in value.split(",") if v.strip()]
             return value
-        elif field_type in ["json", "jsoneditor", "jsoneditor-or-upload"]:
+        elif field_type in [
+            "json",
+            "jsoneditor",
+            "jsoneditor-or-upload",
+            "dict",
+        ]:
             if isinstance(value, str):
                 try:
                     return json.loads(value)
@@ -303,6 +308,43 @@ class AdminUtility:
         return patched
 
     @staticmethod
+    def extract_gene_list(
+        file_obj, pasted_text: str, doc: dict = None
+    ) -> list[str]:
+        """
+        Extracts a sorted, deduplicated gene list from either a file or pasted text.
+
+        Args:
+            file_obj (FileStorage | None): File-like object from request.files.get(...).
+            pasted_text (str): Raw text pasted into a textarea.
+            doc (dict | None): Optional document context, used when the route are in edit mode.
+
+        Returns:
+            list[str]: A sorted list of unique gene identifiers.
+        """
+        genes = []
+
+        # Process file if provided and has a filename
+        if file_obj and getattr(file_obj, "filename", ""):
+            content = file_obj.read().decode("utf-8")
+            genes = content
+
+        # If no valid file, fallback to pasted text
+        elif pasted_text and pasted_text.strip():
+            genes = pasted_text
+
+        else:
+            return []
+
+        gene_list = [
+            g.strip()
+            for g in genes.replace(",", "\n").splitlines()
+            if g.strip()
+        ]
+
+        return sorted(set(gene_list))
+
+    @staticmethod
     def restructure_assay_config(flat_config: dict, schema: dict) -> dict:
         """
         Restructures a flat configuration dictionary into a nested format according to a provided schema.
@@ -452,7 +494,7 @@ class AdminUtility:
         Deletes all traces of a sample from the database.
         This includes variants, CNVs, coverage, translocations, fusions, biomarkers, and the sample itself.
         """
-        sample_name = store.sample_handler.get_sample_with_id(sample_id)
+        sample_name = store.sample_handler.get_sample_by_id(sample_id)
         actions = [
             store.variant_handler.delete_sample_variants,
             store.cnv_handler.delete_sample_cnvs,

@@ -114,7 +114,7 @@
             <th class="p-1 font-semibold text-left w-1/2">Right Region</th>
             <td class="p-1 text-right font-medium">{{ igv_link_right|safe }}</td>
           </tr>
-          {% if assay == "tumwgs" or assay == "fusion" %}
+          {% if assay_group == "tumwgs" %}
           {% else %}
             <tr class="hover:bg-brown-100 shadow-md rounded-lg">
               <th class="p-1 font-semibold text-left w-1/2">Design Bed</th>
@@ -123,7 +123,7 @@
               </td>
             </tr>
           {% endif %}
-          {% if assay == "tumwgs" %}
+          {% if assay_group == "tumwgs" %}
             {% if sample.gensNorm %}
               <tr class="hover:bg-brown-100 shadow-md rounded-lg">
                 <th class="p-1 font-semibold text-left w-1/2">Gens Case URL</th>
@@ -240,7 +240,7 @@
                     <span class="ml-2">Use as global annotation</span>
                   </label>
                 {% endif %}
-                <input type="hidden" name="assay" value="{{ assay }}">
+                <input type="hidden" name="assay_group" value="{{ assay_group }}">
                 <input type="hidden" name="subpanel" value="{{ sample.get('subpanel', '') }}">
               </form>
             </div>

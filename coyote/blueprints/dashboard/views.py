@@ -83,11 +83,11 @@ def dashboard() -> str:
 
     # Get total genes analysed from all the panels
     unique_gene_count_all_panels = (
-        store.panel_handler.get_unique_all_panel_gene_count()
+        store.asp_handler.get_all_asps_unique_gene_count()
     )
 
     # Get gene counts in each panel
-    assay_gene_counts = store.panel_handler.get_assay_gene_counts()
+    assay_gene_counts = store.asp_handler.get_all_asp_gene_counts()
     genelist_gene_counts = 0
 
     # Total Assays analysed

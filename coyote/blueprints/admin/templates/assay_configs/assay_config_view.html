@@ -85,7 +85,7 @@
                         {{ value | join(', ') if value else '—' }}
                       </div>
                     {% elif field.data_type in ['json', 'dict'] %}
-                      <pre class="text-xs bg-white border border-gray-200 rounded-md p-2 font-mono whitespace-pre-wrap">{{ value | tojson(indent=2) }}</pre>
+                      <pre class="text-xs bg-white border border-gray-200 rounded-md p-2 font-mono whitespace-pre-wrap break-all">{{ value }}</pre>
                     {% else %}
                       <input type="text" readonly value="{{ value }}" class="w-full bg-blue-50 border border-blue-200 rounded-md p-2 text-sm text-gray-700 cursor-not-allowed">
                     {% endif %}

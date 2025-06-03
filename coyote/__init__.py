@@ -161,7 +161,7 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
                     store.roles_handler.get_role(fresh_user_data.get("role"))
                     or {}
                 )
-                asp_docs = store.panel_handler.get_all_assay_panels()
+                asp_docs = store.asp_handler.get_all_asps(is_active=True)
                 user_model = UserModel.from_mongo(
                     fresh_user_data, role_doc, asp_docs
                 )
@@ -230,7 +230,7 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
 
             if not (permission_ok or level_ok or role_ok):
                 flash("You do not have access to this page.", "red")
-                return redirect(url_for("home_bp.home_screen"))
+                return redirect(url_for("home_bp.samples_home"))
         return None
 
     @app.context_processor

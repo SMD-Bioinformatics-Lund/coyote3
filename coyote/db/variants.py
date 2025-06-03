@@ -40,6 +40,7 @@ class VariantsHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.variants_collection)
 
+    # TODO: This will be removed once the sample ids are set in the sample doc
     def get_sample_ids(self, sample_id: str) -> dict:
         """
         Retrieve sample IDs and their associated types for a given sample ID.
@@ -60,6 +61,7 @@ class VariantsHandler(BaseHandler):
                 ids[gt.get("type")] = gt.get("sample")
         return ids
 
+    # TODO: This will be removed once the sample num is set in the sample doc
     def get_num_samples(self, sample_id: str) -> int:
         """
         Get the number of samples associated with a given sample ID.
@@ -78,6 +80,7 @@ class VariantsHandler(BaseHandler):
         else:
             return 0
 
+    # TODO: This will be removed once the sample num is set in the sample doc
     def get_gt_lengths_by_sample_ids(
         self, sample_ids: list[str]
     ) -> dict[str, int]:
@@ -170,15 +173,15 @@ class VariantsHandler(BaseHandler):
         # Step 2: Collect only the sample ObjectIds we need
         sample_ids = {ObjectId(v["SAMPLE_ID"]) for v in variants}
 
-        # Step 3: Map sample_id -> {name, groups}
+        # Step 3: Map sample_id -> {name, assay}
         sample_map = {
             str(s["_id"]): {
                 "sample_name": s.get("name", "unknown"),
-                "groups": s.get("groups", []),
+                "assay": s.get("assay", "unknown"),
             }
             for s in self.adapter.samples_collection.find(
                 {"_id": {"$in": list(sample_ids)}},
-                {"_id": 1, "name": 1, "groups": 1},
+                {"_id": 1, "name": 1, "assay": 1},
             )
         }
 
@@ -187,7 +190,7 @@ class VariantsHandler(BaseHandler):
         for v in variants:
             sid = v["SAMPLE_ID"]
             info = sample_map.get(
-                sid, {"sample_name": "unknown", "groups": []}
+                sid, {"sample_name": "unknown", "assay": "unknown"}
             )
             info["GT"] = v.get("GT")
             info["fp"] = v.get("fp", False)  # Add fp status if available

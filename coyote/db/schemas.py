@@ -87,7 +87,7 @@ class SchemaHandler(BaseHandler):
             {"_id": schema_id}, updated_doc
         )
 
-    def toggle_active(self, schema_id: str, active_status: bool) -> Any:
+    def toggle_schema_active(self, schema_id: str, active_status: bool) -> Any:
         """
         Toggles the active status of a schema document.
 
@@ -98,11 +98,9 @@ class SchemaHandler(BaseHandler):
         Returns:
             Any: The result of the update operation.
         """
-        return self.get_collection().update_one(
-            {"_id": schema_id}, {"$set": {"is_active": active_status}}
-        )
+        return self.toggle_active(schema_id, active_status)
 
-    def insert_schema(self, schema_doc: dict) -> Any:
+    def create_schema(self, schema_doc: dict) -> Any:
         """
         Inserts a new schema document into the collection.
 
@@ -126,7 +124,7 @@ class SchemaHandler(BaseHandler):
         """
         return self.get_collection().delete_one({"_id": schema_id})
 
-    def get_schemas_by_filter(
+    def get_schemas_by_category_type(
         self,
         schema_category: str = None,
         schema_type: str = None,
