@@ -731,7 +731,7 @@ def unmark_false_variant(sample_id, var_id):
     """
     Unmark False Positive status of a variant in the database
     """
-    store.variant_handler.unmark_false_positive_var(id)
+    store.variant_handler.unmark_false_positive_var(var_id)
     return redirect(
         url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
     )
@@ -745,7 +745,7 @@ def mark_false_variant(sample_id, var_id):
     """
     Mark False Positive status of a variant in the database
     """
-    store.variant_handler.mark_false_positive_var(id)
+    store.variant_handler.mark_false_positive_var(var_id)
     return redirect(
         url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
     )
@@ -761,7 +761,7 @@ def unmark_interesting_variant(sample_id, var_id):
     """
     Unmark interesting status of a variant in the database
     """
-    store.variant_handler.unmark_interesting_var(id)
+    store.variant_handler.unmark_interesting_var(var_id)
     return redirect(
         url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
     )
@@ -777,7 +777,7 @@ def mark_interesting_variant(sample_id, var_id):
     """
     Mark interesting status of a variant in the database
     """
-    store.variant_handler.mark_interesting_var(id)
+    store.variant_handler.mark_interesting_var(var_id)
     return redirect(
         url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
     )
@@ -793,7 +793,7 @@ def unmark_irrelevant_variant(sample_id, var_id):
     """
     Unmark irrelevant status of a variant in the database
     """
-    store.variant_handler.unmark_irrelevant_var(id)
+    store.variant_handler.unmark_irrelevant_var(var_id)
     return redirect(
         url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
     )
@@ -809,7 +809,7 @@ def mark_irrelevant_variant(sample_id, var_id):
     """
     Mark irrelevant status of a variant in the database
     """
-    store.variant_handler.mark_irrelevant_var(id)
+    store.variant_handler.mark_irrelevant_var(var_id)
     return redirect(
         url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
     )
@@ -823,7 +823,7 @@ def mark_irrelevant_variant(sample_id, var_id):
 @require_sample_group_access("sample_id")
 def add_variant_to_blacklist(sample_id, var_id):
 
-    var = store.variant_handler.get_variant(id)
+    var = store.variant_handler.get_variant(var_id)
     sample = store.sample_handler.get_sample_with_id(var["SAMPLE_ID"])
     assay = util.common.get_assay_from_sample(sample)
     store.blacklist_handler.blacklist_variant(var, assay)
@@ -837,7 +837,7 @@ def add_variant_to_blacklist(sample_id, var_id):
 @require("manage_snvs", min_role="admin")
 @require_sample_group_access("sample_id")
 def order_sanger(sample_id, var_id):
-    variant = store.variant_handler.get_variant(id)
+    variant = store.variant_handler.get_variant(var_id)
     variants, protein_coding_genes = util.dna.get_protein_coding_genes(
         [variant]
     )

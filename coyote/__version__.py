@@ -9,7 +9,7 @@ Author: Coyote3 authors.
 License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
-__version__ = "3.0.0.beta-1"
+__version__ = "3.0.0.beta-2"
 
 
 # For easier access by build-scripts:

@@ -1,5 +1,6 @@
 from flask import Blueprint
 from flask import current_app as app
+import logging
 
 # Blueprint configuration
 admin_bp = Blueprint(
@@ -13,4 +14,4 @@ admin_bp = Blueprint(
 from coyote.blueprints.admin import views  # noqa: F401, E402
 from coyote.blueprints.admin import filters  # noqa: F401, E402
 
-app.admin_logger = app.logger.getChild("admin")
+app.admin_logger = logging.getLogger("coyote.admin")
