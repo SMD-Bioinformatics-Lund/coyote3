@@ -10,6 +10,16 @@
 #  the copyright holders.
 #
 
+"""
+This module initializes the common blueprint for the Coyote3 Flask application.
+
+- Registers the `common_bp` blueprint with template and static folders.
+- Sets up a logger for the common module.
+- Imports view handlers for the blueprint.
+
+Intended for use as part of the Coyote3 genomic data analysis framework.
+"""
+
 from flask import Blueprint
 from flask import current_app as app
 import logging

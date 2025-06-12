@@ -10,6 +10,20 @@
 #  the copyright holders.
 #
 
+"""
+This module initializes the DNA blueprint for the Coyote3 project.
+
+- Registers the `dna_bp` Flask blueprint for genomic data analysis routes.
+- Imports view and filter modules for DNA-related endpoints.
+- Configures a dedicated logger for DNA operations.
+
+Blueprint:
+    dna_bp: Flask blueprint for DNA-related routes.
+
+Logger:
+    app.dna_logger: Logger instance for DNA operations.
+"""
+
 from flask import Blueprint
 from flask import current_app as app
 import logging

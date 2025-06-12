@@ -10,9 +10,12 @@
 #  the copyright holders.
 #
 
+"""
+This module provides utility functions and classes for processing, annotating, and reporting DNA variants.
+It includes methods for variant classification, consequence selection, CNV handling, annotation text generation, and report preparation.
+"""
+
 from collections import defaultdict
-import re
-from math import floor, log10
 import subprocess
 from datetime import datetime
 from flask_login import current_user
@@ -26,13 +29,22 @@ from bisect import bisect_left
 
 class DNAUtility:
     """
-    Utility class for variants blueprint
+    DNAUtility provides static utility methods for processing, annotating, and reporting DNA variants.
+    It includes functions for variant classification, consequence selection, CNV handling, annotation text generation, and report preparation.
     """
 
     @staticmethod
     def get_protein_coding_genes(var_iter: list) -> tuple[list, list]:
         """
-        Get protein coding genes from a variant list
+        Extracts protein-coding genes from a list of variant dictionaries.
+
+        Args:
+            var_iter (list): List of variant dictionaries, each containing INFO and CSQ annotations.
+
+        Returns:
+            tuple[list, list]: A tuple containing:
+                - The list of variants (unchanged from input).
+                - A list of unique gene symbols annotated as protein_coding.
         """
         genes = set()
         variants = []
@@ -73,7 +85,16 @@ class DNAUtility:
         return hotspots
 
     @staticmethod
-    def get_filter_conseq_terms(checked):
+    def get_filter_conseq_terms(checked: list) -> list:
+        """
+        Returns a list of consequence terms mapped from the provided checked fields.
+
+        Args:
+            checked (list): List of field names to check against the consequence terms mapper.
+
+        Returns:
+            list: List of consequence terms corresponding to the checked fields.
+        """
 
         filter_conseq = []
         conf = app.config.get("CONSEQ_TERMS_MAPPER")
@@ -87,10 +108,12 @@ class DNAUtility:
         return filter_conseq
 
     @staticmethod
-    def create_cnveffectlist(cnvtype):
+    def create_cnveffectlist(cnvtype: list) -> list:
         """
-        This is stupid. It allows to filter CNVs depending on types. The filter in template is called
-        loss or gain, but the variants are annotated with DEL or AMP. This just translates between
+        Translates CNV filter types from user-friendly terms to annotation codes.
+
+        The filter in the template uses 'loss' or 'gain', but CNV variants are annotated as 'DEL' (deletion) or 'AMP' (amplification).
+        This function maps 'loss' to 'DEL' and 'gain' to 'AMP' for filtering purposes.
         """
         types = []
         for name in cnvtype:
@@ -103,7 +126,7 @@ class DNAUtility:
     @staticmethod
     def parse_allele_freq(freq, allele):
         """
-        Depricated Function, Will be removed in future versions
+        Deprecated function. This function is no longer maintained and will be removed in future versions.
         """
         # TODO: Remove this function
 
@@ -119,7 +142,17 @@ class DNAUtility:
         return "N/A"
 
     @staticmethod
-    def popfreq_filter(variants, max_freq):
+    def popfreq_filter(variants: list, max_freq: float) -> list:
+        """
+        Filter variants based on population frequency.
+
+        Args:
+            variants (list): List of variant dictionaries.
+            max_freq (float): Maximum allowed population frequency.
+
+        Returns:
+            list: Filtered list of variant dictionaries.
+        """
 
         filtered_variants = []
 
@@ -149,7 +182,16 @@ class DNAUtility:
         return filtered_variants
 
     @staticmethod
-    def format_pon(variant):
+    def format_pon(variant: dict) -> defaultdict:
+        """
+        Formats PON (Panel of Normals) information from a variant's INFO field into a nested defaultdict.
+
+        Args:
+            variant (dict): A variant dictionary containing an INFO field with PON-related keys.
+
+        Returns:
+            defaultdict: A nested dictionary where the first key is the variant class (vc), and the second key is the number type (numtype), mapping to the corresponding value from the INFO field.
+        """
         pon = defaultdict(dict)
         for i in variant["INFO"]:
             if "PON_" in i:
@@ -198,7 +240,7 @@ class DNAUtility:
                         csq_symbol
                     ) == DNAUtility.refseq_noversion(csq_feature):
                         db_canonical = csq_idx
-                        return (csq_arr[db_canonical], "db")
+                        return csq_arr[db_canonical], "db"
 
                     if csq.get("CANONICAL") == "YES" and vep_canonical == -1:
                         vep_canonical = csq_idx
@@ -210,14 +252,17 @@ class DNAUtility:
                         first_protcoding = csq_idx
 
         if vep_canonical >= 0:
-            return (csq_arr[vep_canonical], "vep")
+            return csq_arr[vep_canonical], "vep"
         elif first_protcoding >= 0:
-            return (csq_arr[first_protcoding], "random")
+            return csq_arr[first_protcoding], "random"
 
-        return (csq_arr[0], "random")
+        return csq_arr[0], "random"
 
     @staticmethod
-    def refseq_noversion(acc):
+    def refseq_noversion(acc: str) -> str:
+        """
+        Returns the RefSeq accession number without the version number.
+        """
         a = acc.split(".")
         return a[0]
 
@@ -226,7 +271,22 @@ class DNAUtility:
         variants: list, subpanel: str, assay: str, canonical_dict: dict
     ) -> list:
         """
-        Selects the VEP CSQ and adds additional annotations to the variant
+        Selects the VEP CSQ (Consequence) for each variant and adds additional annotations.
+
+        This method iterates over a list of variant dictionaries, selects the most appropriate
+        consequence annotation for each variant using the canonical transcript dictionary, and
+        updates the variant's INFO field with the selected consequence and selection criteria.
+        It also adds global annotations, classification, other classification, and interesting
+        annotations to each variant using the annotation handler from the store.
+
+        Args:
+            variants (list): List of variant dictionaries to annotate.
+            subpanel (str): Subpanel identifier used for annotation.
+            assay (str): Assay type used for annotation.
+            canonical_dict (dict): Dictionary mapping gene symbols to canonical transcript features.
+
+        Returns:
+            list: The list of variants with updated INFO and annotation fields.
         """
         # TODO:
         for var_idx, var in enumerate(variants):
@@ -250,7 +310,20 @@ class DNAUtility:
         variants: list, assay: str, subpanel: str
     ) -> list:
         """
-        Add global annotations to the variants
+        Add global annotations to each variant in the provided list.
+
+        This method iterates over the list of variant dictionaries, retrieves global annotations,
+        classification, other classification, and interesting annotations for each variant using
+        the annotation handler from the store, and updates the variant accordingly. It also adds
+        alternative classifications based on the specified assay and subpanel.
+
+        Args:
+            variants (list): List of variant dictionaries to annotate.
+            assay (str): The type of assay being used (e\.g\., 'solid').
+            subpanel (str): The subpanel identifier for further filtering.
+
+        Returns:
+            list: The list of variants with updated global annotations and classifications.
         """
         for var_idx, var in enumerate(variants):
             (
@@ -268,16 +341,17 @@ class DNAUtility:
         return variants
 
     @staticmethod
-    def add_alt_class(variant: dict, assay: str, subpanel: str) -> list[dict]:
+    def add_alt_class(variant: dict, assay: str, subpanel: str) -> dict:
         """
-        Add alternative classifications to a list of variants based on the specified assay and subpanel.
-        Args:
-            variants (dict): A dict of a variant to be annotated.
-            assay (str): The type of assay being used (e.g., 'solid').
-            subpanel (str): The subpanel identifier for further filtering when assay is 'solid'.
-        Returns:
-            list: A list of variants with additional classifications added to them.
+        Add alternative classifications to a variant based on the specified assay and subpanel.
 
+        Args:
+            variant (dict): A dictionary representing a variant to be annotated.
+            assay (str): The type of assay being used (e\.g\., 'solid').
+            subpanel (str): The subpanel identifier for further filtering when assay is 'solid'.
+
+        Returns:
+            dict: The variant dictionary with additional classifications added.
         """
         additional_classifications = (
             store.annotation_handler.get_additional_classifications(
@@ -304,7 +378,15 @@ class DNAUtility:
         variants: list, filter_genes: list, assay: str
     ) -> list:
         """
-        Filter the variants for the report
+        Filters variants for inclusion in the report based on gene, blacklist status, classification, and assay-specific rules.
+
+        Args:
+            variants (list): List of variant dictionaries to filter.
+            filter_genes (list): List of gene symbols to include. If empty, all genes are included.
+            assay (str): Assay type, used for additional filtering logic.
+
+        Returns:
+            list: Filtered and sorted list of variant dictionaries suitable for reporting.
         """
         filtered_sorted_variants = sorted(
             [
@@ -334,11 +416,18 @@ class DNAUtility:
         return filtered_sorted_variants
 
     @staticmethod
-    def get_simple_variants_for_report(
-        variants: list, assay_config: dict
-    ) -> list:
+    def get_simple_variants_for_report(variants: list) -> list:
         """
-        Get simple variants for the report
+        Get a simplified list of variant dictionaries for reporting purposes.
+
+        This method processes a list of variant dictionaries and extracts key information
+        such as chromosome, position, reference and alternate alleles, variant type,
+        classification, consequence, cDNA and protein changes, and relevant annotations.
+        It formats these details for inclusion in clinical or research reports.
+
+        Returns:
+            list: A list of dictionaries, each representing a simplified variant with
+            essential fields for reporting.
         """
         translation = ReportUtility.VARIANT_CLASS_TRANSLATION
         class_short_desc_list = ReportUtility.TIER_SHORT_DESC
@@ -488,7 +577,7 @@ class DNAUtility:
         return text
 
     @staticmethod
-    def summerize_fusion(variants):
+    def summerize_fusion(variants: list) -> str:
         """
         Smart-text for summerizing dna-fusions(translocations). Depending on what type
         of evidence is present it will add PR SR or UR and between what genes the trans-
@@ -571,9 +660,9 @@ class DNAUtility:
             ]
             if len(interesting) == 1 or cl == 1:
                 text += "\n" + intro[0] + " ("
-            elif len(interesting) == 2 and (cl > 1 and cl < len(interesting)):
+            elif len(interesting) == 2 and (1 < cl < len(interesting)):
                 text += "\n" + intro[1] + " ("
-            elif len(interesting) > 2 and cl == len(interesting):
+            elif 2 < len(interesting) == cl:
                 text += "\n" + intro[2] + " ("
             af = 0
             if interesting[voi]["af_pr"] > 0 and interesting[voi]["af_sr"] > 0:
@@ -619,7 +708,7 @@ class DNAUtility:
         return text
 
     @staticmethod
-    def summerize_cnv(variants):
+    def summerize_cnv(variants: list) -> str:
         """
         Smart-text for summerizing interesting CNV finds. Depending on what type of evidence is present
         it will present PR or SR for manta-like calls, and copy number calls for read-depth based calls.
@@ -747,16 +836,16 @@ class DNAUtility:
             ]
             if len(interesting) == 1 or cl == 1:
                 text += intro[0] + " (" + info
-            elif len(interesting) == 2 or (cl > 1 and cl < len(interesting)):
+            elif len(interesting) == 2 or (1 < cl < len(interesting)):
                 text += intro[1] + " (" + info
-            elif len(interesting) > 2 and cl == len(interesting):
+            elif 2 < len(interesting) == cl:
                 text += intro[2] + " (" + info
             text += "). "
         text += "\n"
         return text
 
     @staticmethod
-    def summerize_bio(variants):
+    def summerize_bio(variants: list) -> str:
         """
         Smart-text summerizing other biomarkers. Depending if the biomarker surpasses a set threshold it will present the result
         with an acompaning text.
@@ -788,6 +877,9 @@ class DNAUtility:
 
     @staticmethod
     def generate_ai_text(assay, variants, incl_genes, genelists, group):
+        """
+        Function to generate a text for the AI summary in the report.
+        """
         text = ""
         conclusion = ""
         if assay == "fusion":
@@ -1048,7 +1140,13 @@ class DNAUtility:
     @staticmethod
     def get_gt_calls(variant: dict) -> list:
         """
-        Get GT call data for the variant
+        Retrieve genotype (GT) call information for the given variant.
+
+        Args:
+            variant (dict): A variant dictionary containing a `GT` key with genotype call data.
+
+        Returns:
+            list: A list of HTML list item strings, each representing a sample's genotype and allele frequency.
         """
 
         gtcalls = []
@@ -1059,9 +1157,16 @@ class DNAUtility:
         return gtcalls
 
     @staticmethod
-    def compose_sanger_email(var: dict, sample_name: str) -> str:
+    def compose_sanger_email(var: dict, sample_name: str) -> tuple[str, dict]:
         """
-        Compose an email for the sanger order
+        Compose an email for the Sanger sequencing order.
+
+        Args:
+            var (dict): The variant dictionary containing variant and annotation information.
+            sample_name (str): The name of the sample for which the Sanger order is being composed.
+
+        Returns:
+            tuple[str, dict]: A tuple containing the HTML content for the email and the selected CSQ information.
         """
 
         tx_info = var["INFO"]["selected_CSQ"]
@@ -1107,9 +1212,16 @@ class DNAUtility:
         return html, tx_info
 
     @staticmethod
-    def send_sanger_email(html: str, gene: str) -> bool:
+    def send_sanger_email(html: str, gene: str) -> bool | str:
         """
-        Send Sanger Email
+        Send a Sanger sequencing order email using the provided HTML content and gene name.
+
+        Args:
+            html (str): The HTML content for the Sanger order email.
+            gene (str): The gene symbol associated with the Sanger order.
+
+        Returns:
+            bool | str: The result of the email sending operation.
         """
         return subprocess.check_output(
             [
@@ -1118,12 +1230,19 @@ class DNAUtility:
                 gene,
                 html,
             ]
-        ).decode("utf-8")
+        ).decode()
 
     @staticmethod
     def get_tier_classification(data: dict) -> int:
         """
-        Get the tier classification for the variant
+        Returns the tier classification for the given variant data dictionary.
+
+        The function checks for the presence of tier keys (`tier1`, `tier2`, `tier3`, `tier4`)
+        in the input dictionary and returns the corresponding classification number (1-4).
+        If no tier is found, it returns 0.
+
+        Returns:
+            int: The tier classification number (1-4), or 0 if not classified.
         """
         tiers = {"tier1": 1, "tier2": 2, "tier3": 3, "tier4": 4}
         class_num = 0
@@ -1134,10 +1253,17 @@ class DNAUtility:
         return class_num
 
     @staticmethod
-    def get_variant_nomenclature(data: dict) -> str:
+    def get_variant_nomenclature(data: dict) -> tuple[str, str]:
         """
-        Get the nomenclature for the variant based on priority:
-        var_p > var_c > var_g > fusionpoints > translocpoints > cnvvar
+        Get the nomenclature for the variant based on the following priority order:
+        1. var_p (protein change)
+        2. var_c (coding DNA change)
+        3. var_g (genomic change)
+        4. fusionpoints (fusion breakpoints)
+        5. translocpoints (translocation breakpoints)
+        6. cnvvar (copy number variant)
+        Returns:
+            tuple: A tuple containing the nomenclature and the variant value.
         """
         nomenclature = "p"  # default
         variant = ""  # default value in case nothing is found
@@ -1168,7 +1294,19 @@ class DNAUtility:
         key: str = "text",
     ) -> dict:
         """
-        Create a variant comment document
+        Create a variant comment document.
+
+        This function constructs a dictionary representing a comment on a variant, including metadata such as author, creation time, nomenclature, and assay information.
+        It supports both global and non-global comments, and can be customized with additional keys.
+
+        Args:
+            data (dict): Input data containing comment and variant information.
+            nomenclature (str, optional): The nomenclature type for the variant (e.g., 'p', 'c', 'g'). Defaults to "".
+            variant (str, optional): The variant string or identifier. Defaults to "".
+            key (str, optional): The key in `data` to use for the comment text. Defaults to "text".
+
+        Returns:
+            dict: A dictionary representing the comment document, ready for storage or further processing.
         """
         if data.get("global", None) == "global":
             doc = {
@@ -1211,7 +1349,17 @@ class DNAUtility:
         low_coverage: list, cosmic: list
     ) -> list:
         """
-        Filter low coverage variants with cosmic data
+        Filter low coverage variants using COSMIC data.
+
+        This function filters a list of low coverage variants by cross-referencing them with COSMIC (Catalogue Of Somatic Mutations In Cancer) data.
+        It returns only those low coverage variants that have matching entries in the provided COSMIC list.
+
+        Args:
+            low_coverage (list): List of low coverage variant dictionaries.
+            cosmic (list): List of COSMIC variant dictionaries.
+
+        Returns:
+            list: Filtered list of low coverage variants that have matches in COSMIC.
         """
         # Sort cosmic data by chromosome and start position for efficient searching
         if not cosmic:
@@ -1247,10 +1395,23 @@ class DNAUtility:
         return filtered_low_cov
 
     @staticmethod
-    def create_annotation_text_from_gene(gene, csq, assay_group, **kwargs):
+    def create_annotation_text_from_gene(
+        gene: str, csq: list, assay_group: str, **kwargs
+    ) -> str:
         """
-        create an automated text annotation for tier3 variants.
-        Also check if annotation exists for variant, dont add new
+        Generate an automated text annotation for tier 3 variants.
+
+        This function creates a default annotation text for variants classified as tier 3.
+        It also checks if an annotation already exists for the variant and avoids adding a new one if so.
+
+        Args:
+            gene (str): The gene symbol for the variant.
+            csq (list): List of consequence terms for the variant.
+            assay_group (str): The assay group (e.g., 'myeloid', 'solid').
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            str: The generated annotation text for the tier 3 variant.
         """
         first_csq = str(csq[0])
         ## Might need a prettier way of presenting variant type. In line with translation dict used in list_variants
@@ -1276,8 +1437,19 @@ class DNAUtility:
     @staticmethod
     def cnvtype_variant(cnvs: list, checked_effects: list) -> list:
         """
-        Filter CNVs by type
-        # TODO: Will be Depricated in future
+        Filter CNVs by type.
+
+        This function filters a list of CNV (Copy Number Variant) dictionaries based on the provided list of checked effects.
+
+        Args:
+         cnvs (list): List of CNV dictionaries to filter.
+         checked_effects (list): List of CNV effect types to include (e.g., 'DEL', 'AMP').
+
+        Returns:
+         list: Filtered list of CNV dictionaries matching the specified effects.
+
+        Note:
+         This function is marked as deprecated and may be removed in future versions.
         """
         filtered_cnvs = []
         for var in cnvs:
@@ -1292,7 +1464,17 @@ class DNAUtility:
     @staticmethod
     def cnv_organizegenes(cnvs: list) -> list:
         """
-        Organize CNV genes
+        Organize CNV genes.
+
+        This function processes a list of CNV (Copy Number Variant) dictionaries and organizes the gene information
+        for each CNV. It can be used to extract, group, or format gene data associated with CNVs for downstream analysis
+        or reporting.
+
+        Args:
+            cnvs (list): List of CNV dictionaries, each containing gene information.
+
+        Returns:
+            list: A list of organized gene data extracted or processed from the input CNVs.
         """
         fixed_cnvs_genes = []
         for var in cnvs:
@@ -1311,7 +1493,13 @@ class DNAUtility:
     @staticmethod
     def process_gene_annotations(annotations: dict) -> dict:
         """
-        Process gene annotations
+        Process gene annotations.
+
+        Args:
+            annotations (dict): A dictionary containing gene annotation data.
+
+        Returns:
+            dict: The processed gene annotation data.
         """
         annotations_dict = defaultdict(lambda: defaultdict(dict))
         for anno in annotations:

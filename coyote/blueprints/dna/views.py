@@ -1,7 +1,3 @@
-"""
-Coyote case variants
-"""
-
 #  Copyright (c) 2025 Coyote3 Project Authors
 #  All rights reserved.
 #
@@ -14,6 +10,10 @@ Coyote case variants
 #  the copyright holders.
 #
 
+"""
+Views for DNA variant, CNV, translocation, and biomarker management and reporting in the Coyote3 genomic analysis framework.
+"""
+
 from flask import current_app as app
 from flask import (
     redirect,
@@ -23,14 +23,12 @@ from flask import (
     send_from_directory,
     flash,
     send_file,
+    Response,
 )
 from flask_login import login_required
 from pprint import pformat
 from copy import deepcopy
-from werkzeug import Response
 from wtforms import BooleanField
-
-from coyote.blueprints.common import common_bp
 from coyote.extensions import store, util
 from coyote.blueprints.dna import dna_bp, filters
 from coyote.blueprints.dna.varqueries import build_query
@@ -40,7 +38,6 @@ from coyote.errors.exceptions import AppError
 from datetime import datetime
 from bson import ObjectId
 from collections import defaultdict
-from flask_weasyprint import HTML, render_pdf
 from coyote.util.decorators.access import require_sample_access
 from coyote.util.misc import get_sample_and_assay_config
 from coyote.services.auth.decorators import require
@@ -50,11 +47,21 @@ import io
 
 
 @dna_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])
-@login_required
 @require_sample_access("sample_id")
-def list_variants(sample_id):
+def list_variants(sample_id: str) -> Response | str:
     """
-    List variants for a given sample.
+    Displays a list of DNA variants for a given sample.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+
+    Returns:
+        Response | str: Rendered HTML template displaying the variants for the sample,
+        or a redirect/response if the sample or configuration is not found.
+
+    Side Effects:
+        - Flashes messages to the user if sample or assay configuration is missing.
+        - Logs information about selected OncoKB genes.
     """
     # Find sample data by name
 
@@ -99,7 +106,7 @@ def list_variants(sample_id):
         insilico_panel_genelists
     )
 
-    # Adding the default gene lists to the assay_config, if use_diagnosis_genelist is set to true
+    # Adding the default gene lists to the assay_config, if the use_diagnosis_genelist is set to true
     if assay_config.get("use_diagnosis_genelist", False) and subpanel:
         assay_default_config_genelist_ids = store.isgl_handler.get_isgl_ids(
             sample_assay, subpanel, "genelist", is_active=True
@@ -146,7 +153,7 @@ def list_variants(sample_id):
             )
             store.sample_handler.update_sample_filters(_id, filters_from_form)
 
-        ## get sample again to recieve updated forms!
+        ## get sample again to receive updated forms!
         sample = store.sample_handler.get_sample_by_id(_id)
         sample_filters = deepcopy(sample.get("filters"))
 
@@ -341,7 +348,7 @@ def list_variants(sample_id):
             ai_text + ai_text_transloc + ai_text_cnv + ai_text_bio + conclusion
         )
     else:
-        ai_text = ai_text + conclusion
+        ai_text += conclusion
 
     return render_template(
         "list_variants_vep.html",
@@ -368,17 +375,28 @@ def list_variants(sample_id):
 @login_required
 @require_sample_access("sample_id")
 @require("manage_snvs", min_role="user", min_level=9)
-def classify_multi_variant(sample_id) -> Response:
+def classify_multi_variant(sample_id: str) -> Response:
     """
-    Classify multiple variants
+    Classifies multiple variants for a given sample.
+
+    This endpoint processes a POST request to classify several variants at once.
+    It retrieves the action to perform, the list of selected variant object IDs, and optional classification parameters
+    such as assay group, subpanel, and tier from the form data. The function then applies the requested classification
+    action to the selected variants.
+
+    Args:
+        sample_id (str): The unique identifier of the sample whose variants are to be classified.
+
+    Returns:
+        flask.Response: A redirect or response indicating the result of the classification operation.
     """
     action = request.form.get("action")
     variants_to_modify = request.form.getlist("selected_object_id")
-    assay_group = request.form.get("assay_group", None)
-    subpanel = request.form.get("subpanel", None)
-    tier = request.form.get("tier", None)
-    irrelevant = request.form.get("irrelevant", None)
-    false_positive = request.form.get("false_positive", None)
+    assay_group = request.form.get("assay_group")
+    subpanel = request.form.get("subpanel")
+    tier = request.form.get("tier")
+    irrelevant = request.form.get("irrelevant")
+    false_positive = request.form.get("false_positive")
 
     if tier and action == "apply":
         bulk_docs = []
@@ -462,8 +480,18 @@ def classify_multi_variant(sample_id) -> Response:
 @dna_bp.route("/<string:sample_id>/plot/rotated/<string:fn>", endpoint="show_any_plot_rotated")  # type: ignore
 @login_required
 @require_sample_access("sample_id")
-def show_any_plot(sample_id, fn, angle=90):
+def show_any_plot(sample_id: str, fn: str, angle: int = 90) -> Response | str:
+    """
+    Displays a plot image for a given sample.
 
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        fn (str): The filename of the plot image to display.
+        angle (int, optional): The angle to rotate the image, defaults to 90.
+
+    Returns:
+        flask.Response | str: The image file as a response, or an error message.
+    """
     result = get_sample_and_assay_config(sample_id)
     if isinstance(result, Response):
         return result
@@ -497,8 +525,26 @@ def show_any_plot(sample_id, fn, angle=90):
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>")
 @login_required
 @require_sample_access("sample_id")
-def show_variant(sample_id, var_id):
+def show_variant(sample_id: str, var_id: str) -> Response | str:
+    """
+    Display detailed information for a specific DNA variant in a given sample.
 
+    This view retrieves the variant and associated sample and assay configuration,
+    gathers related data such as assay group, subpanel, and mappings, and prepares
+    all necessary information for rendering the variant detail template.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        var_id (str): The unique identifier of the variant.
+
+    Returns:
+        flask.Response | str: Rendered HTML template displaying the variant details,
+        or a redirect/response if the sample or configuration is not found.
+
+    Side Effects:
+        - May flash messages to the user if sample or configuration is missing.
+        - May log information about the variant or related data.
+    """
     variant = store.variant_handler.get_variant(var_id)
     result = get_sample_and_assay_config(sample_id)
     if isinstance(result, Response):
@@ -648,7 +694,20 @@ def show_variant(sample_id, var_id):
 @dna_bp.route("/gene_simple/<string:gene_name>", methods=["GET", "POST"])
 @login_required
 @require("view_gene_annotations", min_role="user", min_level=9)
-def gene_view_simple(gene_name):
+def gene_view_simple(gene_name: str) -> Response | str:
+    """
+    Display a simple gene annotation view.
+
+    This view renders a form for selecting assay groups and displays processed gene annotations
+    for the specified gene. If the form is submitted, it collects the checked assays.
+
+    Args:
+        gene_name (str): The name of the gene to display annotations for.
+
+    Returns:
+        flask.Response | str: Rendered HTML template for the gene view, or a redirect/response
+        if required data is missing.
+    """
     AssayGroupForm = create_assay_group_form()
     form = AssayGroupForm()
 
@@ -674,8 +733,25 @@ def gene_view_simple(gene_name):
 @dna_bp.route("/gene/<string:gene_name>", methods=["GET", "POST"])
 @login_required
 @require("view_gene_annotations", min_role="user", min_level=9)
-def gene_view(gene_name):
+def gene_view(gene_name: str) -> Response | str:
+    """
+    Display detailed gene-specific variant information.
 
+    This view retrieves and displays all variants associated with a given gene.
+    It fetches variants from the database, adds global annotations, and prepares
+    a summary for rendering in the gene-specific variant template.
+
+    Args:
+        gene_name (str): The name of the gene for which to display variant information.
+
+    Returns:
+        flask.Response | str: Rendered HTML template showing gene-specific variants,
+        or a redirect/response if required data is missing.
+
+    Side Effects:
+        - Logs the number of gene-specific variants.
+        - May perform slow operations when adding global annotations.
+    """
     variants_iter = store.variant_handler.get_variants_by_gene(gene_name)
     variants = list(variants_iter)
 
@@ -723,9 +799,16 @@ def gene_view(gene_name):
 @login_required
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
-def unmark_false_variant(sample_id, var_id):
+def unmark_false_variant(sample_id: str, var_id: str) -> Response:
     """
-    Unmark False Positive status of a variant in the database
+    Unmark the False Positive status of a variant in the database.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        var_id (str): The unique identifier of the variant.
+
+    Returns:
+        flask.Response: Redirects to the variant detail view after unmarking the variant as false positive.
     """
     store.variant_handler.unmark_false_positive_var(var_id)
     return redirect(
@@ -737,9 +820,16 @@ def unmark_false_variant(sample_id, var_id):
 @login_required
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
-def mark_false_variant(sample_id, var_id):
+def mark_false_variant(sample_id: str, var_id: str) -> Response:
     """
-    Mark False Positive status of a variant in the database
+    Mark a variant as False Positive in the database.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        var_id (str): The unique identifier of the variant.
+
+    Returns:
+        flask.Response: Redirects to the variant detail view after marking the variant as false positive.
     """
     store.variant_handler.mark_false_positive_var(var_id)
     return redirect(
@@ -750,12 +840,18 @@ def mark_false_variant(sample_id, var_id):
 @dna_bp.route(
     "/<string:sample_id>/var/<string:var_id>/uninterest", methods=["POST"]
 )
-@login_required
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
-def unmark_interesting_variant(sample_id, var_id):
+def unmark_interesting_variant(sample_id: str, var_id: str) -> Response:
     """
-    Unmark interesting status of a variant in the database
+    Removes the `interesting` status from a variant in the database.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        var_id (str): The unique identifier of the variant.
+
+    Returns:
+        flask.Response: Redirects to the variant detail view after unmarking the variant as interesting.
     """
     store.variant_handler.unmark_interesting_var(var_id)
     return redirect(
@@ -766,12 +862,18 @@ def unmark_interesting_variant(sample_id, var_id):
 @dna_bp.route(
     "/<string:sample_id>/var/<string:var_id>/interest", methods=["POST"]
 )
-@login_required
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
-def mark_interesting_variant(sample_id, var_id):
+def mark_interesting_variant(sample_id: str, var_id: str) -> Response:
     """
-    Mark interesting status of a variant in the database
+    Mark the `interesting` status of a variant in the database.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        var_id (str): The unique identifier of the variant.
+
+    Returns:
+        flask.Response: Redirects to the variant detail view after marking the variant as interesting.
     """
     store.variant_handler.mark_interesting_var(var_id)
     return redirect(
@@ -780,14 +882,20 @@ def mark_interesting_variant(sample_id, var_id):
 
 
 @dna_bp.route(
-    "/<string:sample_id>/var/<string:var_id>/unirrelevant", methods=["POST"]
+    "/<string:sample_id>/var/<string:var_id>/relevant", methods=["POST"]
 )
-@login_required
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
-def unmark_irrelevant_variant(sample_id, var_id):
+def unmark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
     """
-    Unmark irrelevant status of a variant in the database
+    Unmark the irrelevant status of a variant in the database.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        var_id (str): The unique identifier of the variant.
+
+    Returns:
+        flask.Response: Redirects to the variant detail view after unmarking the variant as irrelevant.
     """
     store.variant_handler.unmark_irrelevant_var(var_id)
     return redirect(
@@ -801,9 +909,16 @@ def unmark_irrelevant_variant(sample_id, var_id):
 @login_required
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
-def mark_irrelevant_variant(sample_id, var_id):
+def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
     """
-    Mark irrelevant status of a variant in the database
+    Mark irrelevant status of a variant in the database.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        var_id (str): The unique identifier of the variant.
+
+    Returns:
+        flask.Response: Redirects to the variant detail view after marking the variant as irrelevant.
     """
     store.variant_handler.mark_irrelevant_var(var_id)
     return redirect(
@@ -817,8 +932,17 @@ def mark_irrelevant_variant(sample_id, var_id):
 @login_required
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
-def add_variant_to_blacklist(sample_id, var_id):
+def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
+    """
+    Add a variant to the blacklist for a given sample.
 
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        var_id (str): The unique identifier of the variant.
+
+    Returns:
+        flask.Response: Redirects to the variant detail view after blacklisting the variant.
+    """
     var = store.variant_handler.get_variant(var_id)
     sample = store.sample_handler.get_sample_by_id(var["SAMPLE_ID"])
     assay = util.common.get_assay_from_sample(sample)
@@ -832,7 +956,17 @@ def add_variant_to_blacklist(sample_id, var_id):
 @login_required
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
-def order_sanger(sample_id, var_id):
+def order_sanger(sample_id: str, var_id: str) -> Response:
+    """
+    Order a Sanger sequencing for a specific variant in a sample.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        var_id (str): The unique identifier of the variant.
+
+    Returns:
+        flask.Response: Redirects to the variant detail view after ordering Sanger sequencing.
+    """
     variant = store.variant_handler.get_variant(var_id)
     variants, protein_coding_genes = util.dna.get_protein_coding_genes(
         [variant]
@@ -862,7 +996,17 @@ def order_sanger(sample_id, var_id):
 @login_required
 @require(permission="tier_dna_variant", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
-def classify_variant(sample_id, var_id):
+def classify_variant(sample_id: str, var_id: str) -> Response:
+    """
+    Classify a DNA variant based on the provided form data.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        var_id (str): The unique identifier of the variant.
+
+    Returns:
+        flask.Response: The response after classifying the variant.
+    """
     form_data = request.form.to_dict()
     class_num = util.dna.get_tier_classification(form_data)
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
@@ -886,7 +1030,17 @@ def classify_variant(sample_id, var_id):
 @login_required
 @require(permission="remove_dna_variant_tier", min_role="admin")
 @require_sample_access("sample_id")
-def remove_classified_variant(sample_id, var_id):
+def remove_classified_variant(sample_id: str, var_id: str) -> Response:
+    """
+    Remove a classified variant from the database.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        var_id (str): The unique identifier of the variant.
+
+    Returns:
+        flask.Response: Redirects to the variant detail view after removing the classified variant.
+    """
     form_data = request.form.to_dict()
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
     if nomenclature == "f":
@@ -923,11 +1077,20 @@ def remove_classified_variant(sample_id, var_id):
 @login_required
 @require("add_variant_comment", min_role="user", min_level=9)
 @require_sample_access("sample_id")
-def add_var_comment(sample_id, id=None, **kwargs):
+def add_var_comment(
+    sample_id: str, id: str = None, **kwargs
+) -> Response | str:
     """
-    Add a comment to a variant
-    """
+    Add a comment to a variant.
 
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        id (str, optional): The identifier of the variant, CNV, fusion, or translocation. Defaults to None.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Response | str: A redirect or rendered template after adding the comment.
+    """
     id = (
         id
         or request.view_args.get("var_id")
@@ -983,7 +1146,17 @@ def add_var_comment(sample_id, id=None, **kwargs):
 @login_required
 @require("hide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
-def hide_variant_comment(sample_id, var_id):
+def hide_variant_comment(sample_id: str, var_id: str) -> Response:
+    """
+    Hide a comment for a specific variant.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        var_id (str): The unique identifier of the variant.
+
+    Returns:
+        flask.Response: Redirects to the variant detail view after hiding the comment.
+    """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.variant_handler.hide_var_comment(var_id, comment_id)
     return redirect(
@@ -999,6 +1172,16 @@ def hide_variant_comment(sample_id, var_id):
 @require("unhide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
 def unhide_variant_comment(sample_id, var_id):
+    """
+    Unhide a previously hidden comment for a specific variant.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        var_id (str): The unique identifier of the variant.
+
+    Returns:
+        flask.Response: Redirects to the variant detail view after unhiding the comment.
+    """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.variant_handler.unhide_variant_comment(var_id, comment_id)
     return redirect(
@@ -1010,9 +1193,16 @@ def unhide_variant_comment(sample_id, var_id):
 @dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>")
 @login_required
 @require_sample_access("sample_id")
-def show_cnv(sample_id, cnv_id):
+def show_cnv(sample_id: str, cnv_id: str) -> Response | str:
     """
-    Show CNVs view page
+    Show CNVs view page.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        cnv_id (str): The unique identifier of the CNV.
+
+    Returns:
+        Response | str: Rendered HTML template for the CNV view or a redirect/response if not found.
     """
     cnv = store.cnv_handler.get_cnv(cnv_id)
     result = get_sample_and_assay_config(sample_id)
@@ -1049,14 +1239,22 @@ def show_cnv(sample_id, cnv_id):
 
 
 @dna_bp.route(
-    "<string:sample_id>/cnv/<string:cnv_id>/uninterestcnv", methods=["POST"]
+    "<string:sample_id>/cnv/<string:cnv_id>/unmarkinterestingcnv",
+    methods=["POST"],
 )
 @login_required
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
-def unmark_interesting_cnv(sample_id, cnv_id):
+def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
     """
-    Unmark CNV as interesting
+    Unmark CNV as interesting.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        cnv_id (str): The unique identifier of the CNV.
+
+    Returns:
+        flask.Response: Redirects to the CNV view after unmarking as interesting.
     """
     store.cnv_handler.unmark_interesting_cnv(cnv_id)
     return redirect(
@@ -1065,14 +1263,21 @@ def unmark_interesting_cnv(sample_id, cnv_id):
 
 
 @dna_bp.route(
-    "<string:sample_id>/cnv/<string:cnv_id>/interestcnv", methods=["POST"]
+    "<string:sample_id>/cnv/<string:cnv_id>/interestingcnv", methods=["POST"]
 )
 @login_required
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
-def mark_interesting_cnv(sample_id, cnv_id):
+def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
     """
-    Mark CNV as interesting
+    Mark CNV as interesting.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        cnv_id (str): The unique identifier of the CNV.
+
+    Returns:
+        flask.Response: Redirects to the CNV view after marking as interesting.
     """
     store.cnv_handler.mark_interesting_cnv(cnv_id)
     return redirect(
@@ -1084,9 +1289,16 @@ def mark_interesting_cnv(sample_id, cnv_id):
 @login_required
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
-def mark_false_cnv(sample_id, cnv_id):
+def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
     """
-    Mark CNV as false positive
+    Mark CNV as false positive.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        cnv_id (str): The unique identifier of the CNV.
+
+    Returns:
+        flask.Response: Redirects to the CNV view after marking as false positive.
     """
     store.cnv_handler.mark_false_positive_cnv(cnv_id)
     return redirect(
@@ -1100,9 +1312,16 @@ def mark_false_cnv(sample_id, cnv_id):
 @login_required
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
-def unmark_false_cnv(sample_id, cnv_id):
+def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
     """
-    Unmark CNV as false positive
+    Unmark CNV as false positive.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        cnv_id (str): The unique identifier of the CNV.
+
+    Returns:
+        flask.Response: Redirects to the CNV view after unmarking as false positive.
     """
     store.cnv_handler.unmark_false_positive_cnv(cnv_id)
     return redirect(
@@ -1116,9 +1335,16 @@ def unmark_false_cnv(sample_id, cnv_id):
 @login_required
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
-def mark_noteworthy_cnv(sample_id, cnv_id):
+def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
     """
-    Mark CNV as note worthy
+    Mark CNV as note worthy.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        cnv_id (str): The unique identifier of the CNV.
+
+    Returns:
+        flask.Response: Redirects to the CNV view after marking as note worthy.
     """
     store.cnv_handler.noteworthy_cnv(cnv_id)
     return redirect(
@@ -1127,14 +1353,21 @@ def mark_noteworthy_cnv(sample_id, cnv_id):
 
 
 @dna_bp.route(
-    "<string:sample_id>/cnv/<string:cnv_id>/unnoteworthycnv", methods=["POST"]
+    "<string:sample_id>/cnv/<string:cnv_id>/notnoteworthycnv", methods=["POST"]
 )
 @login_required
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
-def unmark_noteworthy_cnv(sample_id, cnv_id):
+def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
     """
-    Unmark CNV as note worthy
+    Unmark CNV as note worthy.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        cnv_id (str): The unique identifier of the CNV.
+
+    Returns:
+        flask.Response: Redirects to the CNV view after unmarking as note worthy.
     """
     store.cnv_handler.unnoteworthy_cnv(cnv_id)
     return redirect(
@@ -1148,9 +1381,16 @@ def unmark_noteworthy_cnv(sample_id, cnv_id):
 @login_required
 @require("hide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
-def hide_cnv_comment(sample_id, cnv_id):
+def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     """
-    Hide CNV comment
+    Hide CNV comment.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        cnv_id (str): The unique identifier of the CNV.
+
+    Returns:
+        Response: Redirects to the CNV view after hiding the comment.
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.cnv_handler.hide_cnvs_comment(cnv_id, comment_id)
@@ -1166,9 +1406,16 @@ def hide_cnv_comment(sample_id, cnv_id):
 @login_required
 @require("unhide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
-def unhide_cnv_comment(sample_id, cnv_id):
+def unhide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     """
-    Un Hide CNV comment
+    Unhide a previously hidden comment for a specific CNV.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        cnv_id (str): The unique identifier of the CNV.
+
+    Returns:
+        flask.Response: Redirects to the CNV view after unhiding the comment.
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.cnv_handler.unhide_cnvs_comment(cnv_id, comment_id)
@@ -1181,9 +1428,16 @@ def unhide_cnv_comment(sample_id, cnv_id):
 @dna_bp.route("/<string:sample_id>/transloc/<string:transloc_id>")
 @login_required
 @require_sample_access("sample_id")
-def show_transloc(sample_id, transloc_id):
+def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
     """
-    Show Translocation view page
+    Show Translocation view page.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        transloc_id (str): The unique identifier of the translocation.
+
+    Returns:
+        Response | str: Rendered HTML template for the translocation view or a redirect/response if not found.
     """
     transloc = store.transloc_handler.get_transloc(transloc_id)
 
@@ -1222,13 +1476,23 @@ def show_transloc(sample_id, transloc_id):
 
 
 @dna_bp.route(
-    "/<string:sample_id>/transloc/<string:transloc_id>/interesttransloc",
+    "/<string:sample_id>/transloc/<string:transloc_id>/interestingtransloc",
     methods=["POST"],
 )
 @login_required
 @require_sample_access("sample_id")
 @require("manage_translocs", min_role="user", min_level=9)
-def mark_interesting_transloc(sample_id, transloc_id):
+def mark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
+    """
+    Mark a translocation as interesting.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        transloc_id (str): The unique identifier of the translocation.
+
+    Returns:
+        flask.Response: Redirects to the translocation view after marking as interesting.
+    """
     store.transloc_handler.mark_interesting_transloc(transloc_id)
     return redirect(
         url_for(
@@ -1240,13 +1504,23 @@ def mark_interesting_transloc(sample_id, transloc_id):
 
 
 @dna_bp.route(
-    "/<string:sample_id>/transloc/<string:transloc_id>/uninteresttransloc",
+    "/<string:sample_id>/transloc/<string:transloc_id>/uninterestingtransloc",
     methods=["POST"],
 )
 @login_required
 @require_sample_access("sample_id")
 @require("manage_translocs", min_role="user", min_level=9)
-def unmark_interesting_transloc(sample_id, transloc_id):
+def unmark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
+    """
+    Unmark a translocation as interesting.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        transloc_id (str): The unique identifier of the translocation.
+
+    Returns:
+        flask.Response: Redirects to the translocation view after unmarking as interesting.
+    """
     store.transloc_handler.unmark_interesting_transloc(transloc_id)
     return redirect(
         url_for(
@@ -1264,7 +1538,17 @@ def unmark_interesting_transloc(sample_id, transloc_id):
 @login_required
 @require_sample_access("sample_id")
 @require("manage_translocs", min_role="user", min_level=9)
-def mark_false_transloc(sample_id, transloc_id):
+def mark_false_transloc(sample_id: str, transloc_id: str) -> Response:
+    """
+    Mark a translocation as false positive.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        transloc_id (str): The unique identifier of the translocation.
+
+    Returns:
+        flask.Response: Redirects to the translocation view after marking as false positive.
+    """
     store.transloc_handler.mark_false_positive_transloc(transloc_id)
     return redirect(
         url_for(
@@ -1276,13 +1560,23 @@ def mark_false_transloc(sample_id, transloc_id):
 
 
 @dna_bp.route(
-    "/<string:sample_id>/transloc/<string:transloc_id>/unfptransloc",
+    "/<string:sample_id>/transloc/<string:transloc_id>/ptransloc",
     methods=["POST"],
 )
 @login_required
 @require_sample_access("sample_id")
 @require("manage_translocs", min_role="user", min_level=9)
-def unmark_false_transloc(sample_id, transloc_id):
+def unmark_false_transloc(sample_id: str, transloc_id: str) -> Response:
+    """
+    Unmark a translocation as false positive.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        transloc_id (str): The unique identifier of the translocation.
+
+    Returns:
+        flask.Response: Redirects to the translocation view after unmarking as false positive.
+    """
     store.transloc_handler.unmark_false_positive_transloc(transloc_id)
     return redirect(
         url_for(
@@ -1300,7 +1594,17 @@ def unmark_false_transloc(sample_id, transloc_id):
 @login_required
 @require("hide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
-def hide_transloc_comment(sample_id, transloc_id):
+def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
+    """
+    Hide a comment for a specific translocation.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        transloc_id (str): The unique identifier of the translocation.
+
+    Returns:
+        flask.Response: Redirects to the translocation view after hiding the comment.
+    """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.transloc_handler.hide_transloc_comment(transloc_id, comment_id)
     return redirect(
@@ -1319,7 +1623,17 @@ def hide_transloc_comment(sample_id, transloc_id):
 @login_required
 @require("unhide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
-def unhide_transloc_comment(sample_id, transloc_id):
+def unhide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
+    """
+    Unhide a previously hidden comment for a specific translocation.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+        transloc_id (str): The unique identifier of the translocation.
+
+    Returns:
+        flask.Response: Redirects to the translocation view after unhiding the comment.
+    """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.transloc_handler.unhide_transloc_comment(transloc_id, comment_id)
     return redirect(
@@ -1338,21 +1652,25 @@ def unhide_transloc_comment(sample_id, transloc_id):
 @login_required
 @require_sample_access("sample_id")
 @require("preview_report", min_role="user", min_level=9)
-def generate_dna_report(sample_id, **kwargs) -> Response | str:
+def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     """
     Generate and render a DNA report for a given sample.
+
     This function retrieves sample and assay configuration data, applies filters,
     gathers variant and biomarker information, and prepares all necessary data
     for rendering a comprehensive DNA report. The report includes SNVs, CNVs,
     biomarkers, translocations, fusions, and low coverage regions, depending on
     the assay configuration and available data.
+
     Args:
         sample_id (str): The identifier (name or ID) of the sample to generate the report for.
         **kwargs: Additional keyword arguments. Supported:
-            - save (int, optional): If set, indicates the report should be saved.
+            save (int, optional): If set, indicates the report should be saved.
+
     Returns:
-        flask.Response: Rendered HTML template for the DNA report, or a redirect
+        Response | str: Rendered HTML template for the DNA report, or a redirect
         response if required data is missing.
+
     Side Effects:
         - Flashes messages to the user if sample or assay configuration is missing.
         - Redirects to the home screen if critical data is not found.
@@ -1550,18 +1868,22 @@ def generate_dna_report(sample_id, **kwargs) -> Response | str:
 @login_required
 @require_sample_access("sample_id")
 @require("save_dna_report", min_role="admin")
-def save_dna_report(sample_id) -> Response:
+def save_dna_report(sample_id: str) -> Response:
     """
     Saves a DNA report for the specified sample.
+
     This function retrieves a sample by its ID, determines the appropriate assay group,
     and generates a DNA report in HTML format. The report is saved to a file system path
     based on the assay group and sample information. If a report with the same name already
     exists, an error is raised. The function also updates the sample's report records and
     provides user feedback via flash messages.
+
     Args:
         sample_id (str): The unique identifier of the sample for which the DNA report is to be saved.
+
     Returns:
-        werkzeug.wrappers.Response: A redirect response to the home screen.
+        Response: A redirect response to the home screen.
+
     Raises:
         AppError: If a report with the same name already exists or if saving the report fails.
     """

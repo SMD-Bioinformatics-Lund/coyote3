@@ -14,7 +14,6 @@
 Coyote admin views.
 """
 
-from flask import current_app as app
 from flask import (
     redirect,
     render_template,
@@ -23,24 +22,21 @@ from flask import (
     flash,
     abort,
     jsonify,
+    g,
+    Response,
+    current_app as app,
 )
-from flask import g
-from flask.wrappers import Response
 from flask_login import current_user
-from werkzeug import Response
 from coyote.blueprints.admin import admin_bp
 from coyote.services.auth.decorators import require
 from coyote.services.audit_logs.decorators import log_action
 from coyote.blueprints.home.forms import SampleSearchForm
-from pprint import pformat
-from copy import deepcopy
 from coyote.extensions import store, util
-from typing import Literal, Any
-from datetime import datetime
+from datetime import datetime, timezone
+from copy import deepcopy
+from typing import Any
 import json
-import json5
 from pathlib import Path
-from pprint import pprint
 
 
 @admin_bp.route("/")
@@ -59,7 +55,7 @@ def admin_home() -> Any:
 # and redirecting to the list of all samples. It ensures proper cleanup and user redirection.
 @admin_bp.route("/manage-samples", methods=["GET", "POST"])
 @require("view_sample_global", min_role="developer", min_level=9999)
-def all_samples() -> str:
+def all_samples() -> str | Response:
     """
     Retrieve and display a list of samples with optional search functionality.
 
@@ -68,7 +64,7 @@ def all_samples() -> str:
     are limited to a predefined number and are filtered based on the current user's groups.
 
     Returns:
-        str: Rendered HTML template displaying the list of samples and the search form.
+       str | Response: Rendered HTML template displaying the list of samples and the search form.
 
     Template:
         samples/all_samples.html
@@ -98,7 +94,7 @@ def all_samples() -> str:
 @admin_bp.route("/manage-samples/<string:sample_id>/delete", methods=["GET"])
 @require("delete_sample_global", min_role="developer", min_level=9999)
 @log_action("delete_sample", call_type="admin_call")
-def delete_sample(sample_id) -> Response:
+def delete_sample(sample_id: str) -> Response:
     """
     Deletes a sample and all associated traces, then redirects to the list of all samples.
     Args:
@@ -122,7 +118,7 @@ def delete_sample(sample_id) -> Response:
 # including listing, creating, editing, deleting, and toggling user accounts.
 @admin_bp.route("/users", methods=["GET"])
 @require("view_user", min_role="admin", min_level=99999)
-def manage_users() -> str:
+def manage_users() -> str | Response:
     """
     Retrieve and display a list of all users.
 
@@ -226,11 +222,11 @@ def create_user() -> Response | str:
     assay_groups_panels = store.asp_handler.get_all_asps()
     assay_group_map = util.common.create_assay_group_map(assay_groups_panels)
 
-    # Inject meta autid
+    # Inject meta audit fields
     schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["created_on"]["default"] = datetime.now(timezone.utc)
     schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_on"]["default"] = datetime.now(timezone.utc)
 
     if request.method == "POST":
         form_data: dict[str, str | list[str]] = {
@@ -292,7 +288,7 @@ def create_user() -> Response | str:
 @admin_bp.route("/users/<user_id>/edit", methods=["GET", "POST"])
 @require("edit_user", min_role="admin", min_level=99999)
 @log_action("edit_user", call_type="admin_call")
-def edit_user(user_id) -> Response | str:
+def edit_user(user_id: str) -> Response | str:
     """
     Edit an existing user's details based on the provided user ID.
 
@@ -362,10 +358,11 @@ def edit_user(user_id) -> Response | str:
         if group not in assay_group_map:
             assay_group_map[group] = []
 
-        group_map = {}
-        group_map["assay_name"] = _assay.get("assay_name")
-        group_map["display_name"] = _assay.get("display_name")
-        group_map["asp_category"] = _assay.get("asp_category")
+        group_map = {
+            "assay_name": _assay.get("assay_name"),
+            "display_name": _assay.get("display_name"),
+            "asp_category": _assay.get("asp_category"),
+        }
         assay_group_map[group].append(group_map)
 
     schema["fields"]["assays"]["default"] = user_doc.get("assays", [])
@@ -417,7 +414,7 @@ def edit_user(user_id) -> Response | str:
         )
 
         # Proceed with update
-        updated_user["updated_on"] = datetime.utcnow()
+        updated_user["updated_on"] = datetime.now(timezone.utc)
         updated_user["updated_by"] = current_user.email
 
         # Hash the password
@@ -463,7 +460,13 @@ def edit_user(user_id) -> Response | str:
 @log_action("view_user", call_type="admin_call")
 def view_user(user_id: str) -> str | Response:
     """
-    Displays a read-only view of a user's profile with optional version rewind.
+    Renders a read-only view of a user's profile, allowing optional version rewind to display historical user data for auditing or review purposes.
+
+    Args:
+        user_id (str): The unique identifier of the user whose profile is being viewed.
+
+    Returns:
+        str \| Response: Rendered HTML template showing the user's profile, optionally at a previous version if specified.
     """
     user_doc = store.user_handler.user_with_id(user_id)
     if not user_doc:
@@ -508,7 +511,7 @@ def view_user(user_id: str) -> str | Response:
 @admin_bp.route("/users/<user_id>/delete", methods=["GET"])
 @require("delete_user", min_role="admin", min_level=99999)
 @log_action(action_name="delete_user", call_type="admin_call")
-def delete_user(user_id) -> Response:
+def delete_user(user_id: str) -> Response:
     """
     Deletes a user by their ID and redirects to the manage users page.
 
@@ -556,9 +559,9 @@ def validate_email():
 @admin_bp.route("/users/<user_id>/toggle", methods=["POST", "GET"])
 @require("edit_user", min_role="admin", min_level=99999)
 @log_action(action_name="edit_user", call_type="admin_call")
-def toggle_user_active(user_id):
+def toggle_user_active(user_id: str):
     """
-    Toggles the active status of an user configuration by its ID.
+    Toggles the active status of a user configuration by its ID.
 
     Args:
         user_id (str): The ID of the user configuration to toggle.
@@ -599,9 +602,16 @@ def toggle_user_active(user_id):
 @require("view_assay_config", min_role="developer", min_level=9999)
 def assay_configs() -> str:
     """
-    Fetch and render all assay configurations.
+    Fetches all assay configurations from the data store and renders them in the assay configuration management template.
+
     Returns:
-        Response: Rendered HTML template displaying assay configurations.
+        str: Rendered HTML template displaying all assay configurations.
+
+    Template:
+        assay_configs/assay_configs.html
+
+    Context:
+        assay_configs (list): List of all assay configuration objects.
     """
     assay_configs = store.aspc_handler.get_all_aspc()
     return render_template(
@@ -614,8 +624,16 @@ def assay_configs() -> str:
 @log_action(action_name="create_assay_config", call_type="developer_call")
 def create_dna_assay_config() -> Response | str:
     """
-    Create a new DNA assay config using a schema-driven form.
-    Supports version history and panel-prefilled metadata.
+    Creates a new DNA assay configuration using a schema-driven form.
+
+    - Handles both GET and POST requests.
+    - On GET: Loads active DNA schemas and renders the creation form.
+    - On POST: Processes form data, applies version history, and saves the new configuration.
+    - Supports pre-filling metadata from selected panels and tracks audit information.
+    - Displays success or error messages and redirects as appropriate.
+
+    Returns:
+        Response | str: Redirects to the assay configs page on success, or renders the creation form template.
     """
     # Load active schemas
     active_schemas = store.schema_handler.get_schemas_by_category_type(
@@ -664,9 +682,9 @@ def create_dna_assay_config() -> Response | str:
     )
 
     schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["created_on"]["default"] = datetime.now(timezone.utc)
     schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_on"]["default"] = datetime.now(timezone.utc)
 
     if request.method == "POST":
         form_data = {
@@ -734,8 +752,15 @@ def create_dna_assay_config() -> Response | str:
 @log_action(action_name="create_assay_config", call_type="developer_call")
 def create_rna_assay_config() -> Response | str:
     """
-    Handles the creation of RNA assay configurations. Fetches active RNA schemas,
-    processes form data, and saves the configuration to the database.
+    Creates a new RNA assay configuration.
+
+    - Loads active RNA assay schemas and renders the creation form (GET).
+    - Processes submitted form data, applies version history, and saves the configuration (POST).
+    - Prefills metadata from selected panels and tracks audit information.
+    - Displays success or error messages and redirects as appropriate.
+
+    Returns:
+        Response \| str: Redirects to the assay configs page on success, or renders the creation form template.
     """
     # Fetch all active RNA assay schemas
     active_schemas = store.schema_handler.get_schemas_by_category_type(
@@ -780,9 +805,9 @@ def create_rna_assay_config() -> Response | str:
     schema["fields"]["assay_name"]["options"] = valid_assay_ids
 
     schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["created_on"]["default"] = datetime.now(timezone.utc)
     schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_on"]["default"] = datetime.now(timezone.utc)
 
     if request.method == "POST":
         form_data = {
@@ -841,8 +866,21 @@ def create_rna_assay_config() -> Response | str:
 @admin_bp.route("/assay-config/<assay_id>/edit", methods=["GET", "POST"])
 @require("edit_assay_config", min_role="developer", min_level=9999)
 @log_action(action_name="edit_assay_config", call_type="developer_call")
-def edit_assay_config(assay_id) -> Response | str:
-    """Edit an existing DNA assay configuration with version rewind support."""
+def edit_assay_config(assay_id: str) -> Response | str:
+    """
+    Edit an existing DNA assay configuration with version rewind support.
+
+    This view allows users to edit a DNA assay configuration identified by its ID.
+    - On GET: Loads the current configuration and schema, supports loading a previous version if requested.
+    - On POST: Processes form data, updates covered and germline genes from file or text input, applies changes, and saves a new version with version history.
+    - Flashes messages and redirects on success or error.
+
+    Args:
+        assay_id (str): The unique identifier of the DNA assay configuration.
+
+    Returns:
+        Response | str: Renders the edit form or redirects after a successful update.
+    """
 
     # --- Fetch config and schema ---
     assay_config = store.aspc_handler.get_aspc_with_id(assay_id)
@@ -907,7 +945,7 @@ def edit_assay_config(assay_id) -> Response | str:
 
         # Enrich with metadata
         updated_config["_id"] = assay_config.get("_id")
-        updated_config["updated_on"] = datetime.utcnow()
+        updated_config["updated_on"] = datetime.now(timezone.utc)
         updated_config["updated_by"] = current_user.email
         updated_config["schema_name"] = schema["_id"]
         updated_config["schema_version"] = schema["version"]
@@ -944,7 +982,13 @@ def edit_assay_config(assay_id) -> Response | str:
 @log_action(action_name="view_assay_config", call_type="viewer_call")
 def view_assay_config(assay_id: str) -> str | Response:
     """
-    View an existing DNA assay configuration with version rewind support.
+    Displays the details of a DNA assay configuration, supporting version rewind.
+
+    Args:
+        assay_id (str): The unique identifier of the DNA assay configuration.
+
+    Returns:
+        str | Response: Renders the assay configuration view template, optionally showing a previous version if requested.
     """
     assay_config = store.aspc_handler.get_aspc_with_id(assay_id)
     if not assay_config:
@@ -998,7 +1042,13 @@ def view_assay_config(assay_id: str) -> str | Response:
 @log_action(action_name="print_assay_config", call_type="viewer_call")
 def print_assay_config(assay_id: str) -> str | Response:
     """
-    Compact printable view of assay configuration with optional version rewind.
+    Returns a compact, printable HTML view of an assay configuration, with optional support for viewing a previous version using version rewind.
+
+    Args:
+        assay_id (str): The unique identifier of the assay configuration.
+
+    Returns:
+        str | Response: Rendered HTML template for the printable assay configuration view, optionally showing a previous version if requested.
     """
     assay_config = store.aspc_handler.get_aspc_with_id(assay_id)
     if not assay_config:
@@ -1035,7 +1085,7 @@ def print_assay_config(assay_id: str) -> str | Response:
         "assay_configs/assay_config_print.html",
         schema=schema,
         config=assay_config,
-        now=datetime.utcnow(),
+        now=datetime.now(timezone.utc),
         selected_version=selected_version,
     )
 
@@ -1043,7 +1093,7 @@ def print_assay_config(assay_id: str) -> str | Response:
 @admin_bp.route("/assay-configs/<assay_id>/toggle", methods=["POST", "GET"])
 @require("edit_assay_config", min_role="developer", min_level=9999)
 @log_action(action_name="edit_assay_config", call_type="developer_call")
-def toggle_assay_config_active(assay_id) -> Response:
+def toggle_assay_config_active(assay_id: str) -> Response:
     """
     Toggles the active status of an assay configuration by its ID.
 
@@ -1074,7 +1124,7 @@ def toggle_assay_config_active(assay_id) -> Response:
 @admin_bp.route("/assay/<assay_id>/delete", methods=["GET"])
 @require("delete_assay_config", min_role="admin", min_level=99999)
 @log_action(action_name="delete_assay_config", call_type="admin_call")
-def delete_assay_config(assay_id) -> Response:
+def delete_assay_config(assay_id: str) -> Response:
     """
     Deletes the assay configuration for the given assay ID.
 
@@ -1113,7 +1163,7 @@ def schemas() -> str:
 @admin_bp.route("/schemas/<schema_id>/toggle", methods=["POST", "GET"])
 @require("edit_schema", min_role="developer", min_level=9999)
 @log_action(action_name="edit_schema", call_type="developer_call")
-def toggle_schema_active(schema_id) -> Response:
+def toggle_schema_active(schema_id: str) -> Response:
     """
     Toggles the active status of a schema by its ID.
 
@@ -1145,7 +1195,7 @@ def toggle_schema_active(schema_id) -> Response:
 @admin_bp.route("/schemas/<schema_id>/edit", methods=["GET", "POST"])
 @require("edit_schema", min_role="developer", min_level=9999)
 @log_action(action_name="edit_schema", call_type="developer_call")
-def edit_schema(schema_id) -> str | Response:
+def edit_schema(schema_id: str) -> str | Response:
     """
     Handle the editing of a schema by its ID.
 
@@ -1174,7 +1224,7 @@ def edit_schema(schema_id) -> str | Response:
             return redirect(request.url)
 
         # Optional: Add timestamp or updated_by tracking here
-        updated_schema["updated_on"] = datetime.utcnow()
+        updated_schema["updated_on"] = datetime.now(timezone.utc)
         updated_schema["updated_by"] = current_user.email
         updated_schema["version"] = schema_doc.get("version", 1) + 1
 
@@ -1198,9 +1248,12 @@ def edit_schema(schema_id) -> str | Response:
 @log_action(action_name="create_schema", call_type="developer_call")
 def create_schema() -> str | Response:
     """
-    Handles the creation of a new schema. Validates the schema structure,
-    stores metadata, and saves it to the database. Renders the schema creation
-    template on GET or in case of errors.
+    Handles the creation of a new schema.
+
+    This function processes both GET and POST requests. On GET, it renders the schema creation template. On POST, it validates the submitted schema structure, adds metadata such as timestamps and user information, and saves the schema to the database. If validation fails, it displays error messages and re-renders the form with the provided data.
+
+    Returns:
+        str | Response: Rendered HTML template for schema creation or a redirect after successful creation.
     """
 
     if request.method == "POST":
@@ -1220,9 +1273,9 @@ def create_schema() -> str | Response:
 
             # Metadata
             parsed_schema["_id"] = parsed_schema.get("schema_name")
-            parsed_schema["created_on"] = datetime.utcnow()
+            parsed_schema["created_on"] = datetime.now(timezone.utc)
             parsed_schema["created_by"] = current_user.email
-            parsed_schema["updated_on"] = datetime.utcnow()
+            parsed_schema["updated_on"] = datetime.now(timezone.utc)
             parsed_schema["updated_by"] = current_user.email
 
             store.schema_handler.create_schema(parsed_schema)
@@ -1246,15 +1299,15 @@ def create_schema() -> str | Response:
 @admin_bp.route("/schemas/<schema_id>/delete", methods=["GET"])
 @require("delete_schema", min_role="admin", min_level=99999)
 @log_action(action_name="delete_schema", call_type="admin_call")
-def delete_schema(schema_id) -> Response:
+def delete_schema(schema_id: str) -> Response:
     """
     Deletes a schema by its ID.
 
-    Args:
-        schema_id (str): The ID of the schema to delete.
+    Parameters:
+        schema_id (str): The unique identifier of the schema to delete.
 
     Returns:
-        Response: Redirects to the schemas page or aborts with a 404 if the schema is not found.
+        Response: Redirects to the schemas management page if successful, or aborts with a 404 error if the schema is not found.
     """
 
     schema = store.schema_handler.get_schema(schema_id)
@@ -1302,8 +1355,13 @@ def list_permissions() -> str:
 @log_action(action_name="create_permission", call_type="admin_call")
 def create_permission() -> Response | str:
     """
-    Handles the creation of a new permission policy based on a selected schema.
-    Renders a form for input and processes the form submission to store the policy.
+    Creates a new permission policy using a selected schema.
+
+    - On GET: Renders a form for entering permission details.
+    - On POST: Validates and processes the form submission, then stores the new permission policy.
+
+    Returns:
+        Response | str: Rendered HTML form for creation or a redirect after successful creation.
     """
 
     active_schemas = store.schema_handler.get_schemas_by_category_type(
@@ -1322,11 +1380,11 @@ def create_permission() -> Response | str:
         flash("Selected schema not found!", "red")
         return redirect(url_for("admin_bp.list_permissions"))
 
-    # Inject meta autid
+    # Inject meta audit
     schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["created_on"]["default"] = datetime.now(timezone.utc)
     schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_on"]["default"] = datetime.now(timezone.utc)
 
     if request.method == "POST":
         form_data = {
@@ -1365,7 +1423,7 @@ def create_permission() -> Response | str:
 @admin_bp.route("/permissions/<perm_id>/edit", methods=["GET", "POST"])
 @require("edit_permission", min_role="admin", min_level=99999)
 @log_action(action_name="edit_permission", call_type="admin_call")
-def edit_permission(perm_id) -> Response | str:
+def edit_permission(perm_id: str) -> Response | str:
     """
     Handle the editing of a permission policy.
 
@@ -1415,7 +1473,7 @@ def edit_permission(perm_id) -> Response | str:
         )
 
         # Proceed with update
-        updated_permission["updated_on"] = datetime.utcnow()
+        updated_permission["updated_on"] = datetime.now(timezone.utc)
         updated_permission["updated_by"] = current_user.email
         updated_permission["version"] = permission.get("version", 1) + 1
         updated_permission["schema_name"] = schema["_id"]
@@ -1448,7 +1506,7 @@ def edit_permission(perm_id) -> Response | str:
 @admin_bp.route("/permissions/<perm_id>/view", methods=["GET"])
 @require("view_permission", min_role="admin", min_level=99999)
 @log_action(action_name="view_permission", call_type="admin_call")
-def view_permission(perm_id) -> str | Response:
+def view_permission(perm_id: str) -> str | Response:
     """
     View a permission policy by its ID.
 
@@ -1501,7 +1559,7 @@ def view_permission(perm_id) -> str | Response:
 @admin_bp.route("/permissions/<perm_id>/toggle", methods=["POST", "GET"])
 @require("edit_permission", min_role="admin", min_level=99999)
 @log_action(action_name="edit_permission", call_type="admin_call")
-def toggle_permission_active(perm_id) -> Response:
+def toggle_permission_active(perm_id: str) -> Response:
     """
     Toggles the active status of a permission based on its ID.
 
@@ -1538,7 +1596,7 @@ def toggle_permission_active(perm_id) -> Response:
 @admin_bp.route("/permissions/<perm_id>/delete", methods=["GET"])
 @require("delete_permission", min_role="admin", min_level=99999)
 @log_action(action_name="delete_permission", call_type="admin_call")
-def delete_permission(perm_id) -> Response:
+def delete_permission(perm_id: str) -> Response:
     """
     Deletes a permission policy by its ID.
 
@@ -1639,9 +1697,9 @@ def create_role() -> Response | str:
 
     # inject audit data into the schema
     schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["created_on"]["default"] = datetime.now(timezone.utc)
     schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_on"]["default"] = datetime.now(timezone.utc)
 
     if request.method == "POST":
         form_data: dict[str, str | list[str]] = {
@@ -1682,7 +1740,7 @@ def create_role() -> Response | str:
 @admin_bp.route("/roles/<role_id>/edit", methods=["GET", "POST"])
 @require("edit_role", min_role="admin", min_level=99999)
 @log_action(action_name="edit_role", call_type="admin_call")
-def edit_role(role_id) -> Response | str:
+def edit_role(role_id: str) -> Response | str:
     """
     Handle the editing of a role by its ID.
 
@@ -1757,7 +1815,7 @@ def edit_role(role_id) -> Response | str:
         updated_role = util.admin.process_form_to_config(form_data, schema)
 
         updated_role["updated_by"] = current_user.email
-        updated_role["updated_on"] = datetime.utcnow()
+        updated_role["updated_on"] = datetime.now(timezone.utc)
         updated_role["schema_name"] = schema["_id"]
         updated_role["schema_version"] = schema["version"]
         updated_role["version"] = role.get("version", 1) + 1
@@ -1790,7 +1848,7 @@ def edit_role(role_id) -> Response | str:
 @admin_bp.route("/roles/<role_id>/view", methods=["GET"])
 @require("view_role", min_role="admin", min_level=99999)
 @log_action(action_name="view_role", call_type="admin_call")
-def view_role(role_id) -> Response | str:
+def view_role(role_id: str) -> Response | str:
     """
     View the details of a role by its ID.
 
@@ -1840,7 +1898,7 @@ def view_role(role_id) -> Response | str:
 @admin_bp.route("/roles/<role_id>/toggle", methods=["POST", "GET"])
 @require("edit_role", min_role="admin", min_level=99999)
 @log_action(action_name="edit_role", call_type="admin_call")
-def toggle_role_active(role_id) -> Response:
+def toggle_role_active(role_id: str) -> Response:
     """
     Toggles the active status of a role by its ID.
 
@@ -1872,7 +1930,7 @@ def toggle_role_active(role_id) -> Response:
 @admin_bp.route("/roles/<role_id>/delete", methods=["GET"])
 @require("delete_role", min_role="admin", min_level=99999)
 @log_action(action_name="delete_role", call_type="admin_call")
-def delete_role(role_id) -> Response:
+def delete_role(role_id: str) -> Response:
     """
     Deletes a role by its ID if it exists.
 
@@ -1915,11 +1973,14 @@ def manage_assay_panels():
 @log_action(action_name="create_panel", call_type="manager_call")
 def create_assay_panel():
     """
-    Create a new ASP panel using a schema-driven form.
-    Handles versioned document insertion and gene list parsing.
-    """
-    from uuid import uuid4
+    Creates a new Assay Panel (ASP) using a schema-driven form.
 
+    - Accepts both GET and POST requests.
+    - On GET: Renders the form for creating a new panel.
+    - On POST: Processes form data, parses gene lists, and inserts a versioned document into the database.
+    - Handles version history for auditability.
+    - Displays success or error messages as appropriate.
+    """
     active_schemas = store.schema_handler.get_schemas_by_category_type(
         schema_type="asp_schema",
         schema_category="ASP",
@@ -1939,9 +2000,9 @@ def create_assay_panel():
 
     # inject audit data into the schema
     schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["created_on"]["default"] = datetime.now(timezone.utc)
     schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_on"]["default"] = datetime.now(timezone.utc)
 
     if request.method == "POST":
         form_data: dict[str, list[str] | str] = {
@@ -2002,6 +2063,18 @@ def create_assay_panel():
 @require("edit_panel", min_role="manager", min_level=99)
 @log_action(action_name="edit_panel", call_type="manager_call")
 def edit_assay_panel(assay_panel_id: str) -> str | Response:
+    """
+    Edit an existing assay panel by its ID.
+
+    Retrieves the assay panel configuration and schema, processes form submissions
+    to update the panel, and handles version history and gene list updates.
+
+    Args:
+        assay_panel_id (str): The unique identifier of the assay panel to edit.
+
+    Returns:
+        str | Response: Renders the edit panel template or redirects after updating.
+    """
     panel = store.asp_handler.get_asp(assay_panel_id)
     schema = store.schema_handler.get_schema(
         panel.get("schema_name", "ASP-Schema")
@@ -2071,7 +2144,7 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
         updated["germline_genes"] = germline_genes
         updated["germline_genes_count"] = len(germline_genes)
         updated["updated_by"] = current_user.email
-        updated["updated_on"] = datetime.utcnow()
+        updated["updated_on"] = datetime.now(timezone.utc)
         updated["schema_name"] = schema["_id"]
         updated["schema_version"] = schema["version"]
         updated["version"] = panel.get("version", 1) + 1
@@ -2100,9 +2173,15 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
 
 @admin_bp.route("/panels/<assay_panel_id>/view", methods=["GET"])
 @require("view_panel", min_role="user", min_level=9)
-def view_assay_panel(assay_panel_id) -> Response | str:
+def view_assay_panel(assay_panel_id: str) -> Response | str:
     """
-    View details of an assay panel by its ID, optionally loading a historical version.
+    Displays the details of an assay panel by its ID.
+
+    Args:
+        assay_panel_id (str): The unique identifier of the assay panel.
+
+    Returns:
+        Response | str: Renders the assay panel view template, optionally showing a previous version if requested.
     """
     panel = store.asp_handler.get_asp(assay_panel_id)
     if not panel:
@@ -2115,7 +2194,7 @@ def view_assay_panel(assay_panel_id) -> Response | str:
     selected_version = request.args.get("version", type=int)
     delta = None
 
-    # If a specific version is requested and it's not the latest
+    # If a specific version is requested, and it's not the latest
     if selected_version and selected_version != panel.get("version"):
         version_index = next(
             (
@@ -2147,7 +2226,13 @@ def view_assay_panel(assay_panel_id) -> Response | str:
 @log_action(action_name="print_assay_panel", call_type="viewer_call")
 def print_assay_panel(panel_id: str) -> str | Response:
     """
-    Compact printable view of an assay panel with optional version rewind.
+    Returns a compact, printable HTML view of an assay panel, with optional support for viewing a previous version using version rewind.
+
+    Args:
+        panel_id (str): The unique identifier of the assay panel.
+
+    Returns:
+        str | Response: Rendered HTML template for the printable assay panel view, optionally showing a previous version if requested.
     """
     panel = store.asp_handler.get_asp(panel_id)
     if not panel:
@@ -2182,7 +2267,7 @@ def print_assay_panel(panel_id: str) -> str | Response:
         "panels/panel_print.html",
         schema=schema,
         config=panel,
-        now=datetime.utcnow(),
+        now=datetime.now(timezone.utc),
         selected_version=selected_version,
     )
 
@@ -2190,7 +2275,7 @@ def print_assay_panel(panel_id: str) -> str | Response:
 @admin_bp.route("/panels/<assay_panel_id>/toggle", methods=["POST", "GET"])
 @require("edit_panel", min_role="manager", min_level=99)
 @log_action(action_name="toggle_panel", call_type="manager_call")
-def toggle_assay_panel_active(assay_panel_id):
+def toggle_assay_panel_active(assay_panel_id: str) -> Response:
     """
     Toggle the active status of an assay panel by its ID.
 
@@ -2219,7 +2304,7 @@ def toggle_assay_panel_active(assay_panel_id):
 @admin_bp.route("/panels/<assay_panel_id>/delete", methods=["GET"])
 @require("delete_panel", min_role="admin", min_level=99999)
 @log_action(action_name="delete_panel", call_type="admin_call")
-def delete_assay_panel(assay_panel_id):
+def delete_assay_panel(assay_panel_id: str) -> Response:
     """
     Deletes an assay panel by its ID, logs the action, flashes a message, and redirects to the panel management page.
 
@@ -2298,17 +2383,18 @@ def create_genelist() -> Response | str:
         if group not in assay_group_map:
             assay_group_map[group] = []
 
-        group_map = {}
-        group_map["assay_name"] = _assay.get("assay_name")
-        group_map["display_name"] = _assay.get("display_name")
-        group_map["asp_category"] = _assay.get("asp_category")
+        group_map = {
+            "assay_name": _assay.get("assay_name"),
+            "display_name": _assay.get("display_name"),
+            "asp_category": _assay.get("asp_category"),
+        }
         assay_group_map[group].append(group_map)
 
-    # Inject meta autid
+    # Inject meta audit
     schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = datetime.utcnow()
+    schema["fields"]["created_on"]["default"] = datetime.now(timezone.utc)
     schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = datetime.utcnow()
+    schema["fields"]["updated_on"]["default"] = datetime.now(timezone.utc)
 
     if request.method == "POST":
         form_data: dict[str, list[str] | str] = {
@@ -2375,7 +2461,7 @@ def create_genelist() -> Response | str:
 @admin_bp.route("/genelists/<genelist_id>/edit", methods=["GET", "POST"])
 @require("edit_genelist", min_role="manager", min_level=99)
 @log_action(action_name="edit_genelist", call_type="manager_call")
-def edit_genelist(genelist_id) -> Response | str:
+def edit_genelist(genelist_id: str) -> Response | str:
     """
     Edit an existing genelist by handling GET and POST requests.
 
@@ -2406,10 +2492,11 @@ def edit_genelist(genelist_id) -> Response | str:
         if group not in assay_group_map:
             assay_group_map[group] = []
 
-        group_map = {}
-        group_map["assay_name"] = _assay.get("assay_name")
-        group_map["display_name"] = _assay.get("display_name")
-        group_map["asp_category"] = _assay.get("asp_category")
+        group_map = {
+            "assay_name": _assay.get("assay_name"),
+            "display_name": _assay.get("display_name"),
+            "asp_category": _assay.get("asp_category"),
+        }
         assay_group_map[group].append(group_map)
 
     schema["fields"]["assays"]["default"] = genelist.get("assays", [])
@@ -2472,7 +2559,7 @@ def edit_genelist(genelist_id) -> Response | str:
         updated["genes"] = genes
         updated["gene_count"] = len(genes)
         updated["updated_by"] = current_user.email
-        updated["updated_on"] = datetime.utcnow()
+        updated["updated_on"] = datetime.now(timezone.utc)
         updated["schema_name"] = schema["_id"]
         updated["schema_version"] = schema["version"]
         updated["version"] = genelist.get("version", 1) + 1
@@ -2505,7 +2592,7 @@ def edit_genelist(genelist_id) -> Response | str:
 @admin_bp.route("/genelists/<genelist_id>/toggle", methods=["GET"])
 @require("edit_genelist", min_role="manager", min_level=99)
 @log_action(action_name="toggle_genelist", call_type="manager_call")
-def toggle_genelist(genelist_id) -> Response:
+def toggle_genelist(genelist_id: str) -> Response:
     """
     Toggles the active status of a genelist by its ID.
 
@@ -2539,7 +2626,7 @@ def toggle_genelist(genelist_id) -> Response:
 @admin_bp.route("/genelists/<genelist_id>/delete", methods=["GET"])
 @require("delete_genelist", min_role="admin", min_level=99999)
 @log_action(action_name="delete_genelist", call_type="admin_call")
-def delete_genelist(genelist_id) -> Response:
+def delete_genelist(genelist_id: str) -> Response:
     """
     Deletes a genelist by its ID, logs the action for auditing, flashes a success message, and redirects to the genelist management page.
 
@@ -2557,7 +2644,7 @@ def delete_genelist(genelist_id) -> Response:
 
 @admin_bp.route("/genelists/<genelist_id>/view", methods=["GET"])
 @require("view_genelist", min_role="user", min_level=9)
-def view_genelist(genelist_id) -> Response | str:
+def view_genelist(genelist_id: str) -> Response | str:
     """
     Display a genelist's details and optionally filter its genes by a selected assay.
 
@@ -2634,7 +2721,7 @@ def audit():
     """
 
     logs_path = Path(app.config["LOGS"], "audit")
-    cutoff_ts = datetime.utcnow().timestamp() - (
+    cutoff_ts = datetime.now(timezone.utc).timestamp() - (
         30 * 24 * 60 * 60
     )  # last 30 days
 
@@ -2651,7 +2738,7 @@ def audit():
     logs_data = []
 
     for file in log_files:
-        with file.open("r") as f:
+        with file.open() as f:
             logs_data.extend([line.strip() for line in f])
 
     # Reverse the logs so the newest ones appear first

@@ -10,8 +10,11 @@
 #  the copyright holders.
 #
 
-# Schema validation for the Coyote application
-# This module contains functions to validate the schema of the Coyote application.
+"""
+Schema validation for the Coyote application
+This module contains functions to validate the schema of the Coyote application.
+"""
+
 REQUIRED_SCHEMA_KEYS = [
     "_id",
     "schema_name",

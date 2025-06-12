@@ -10,20 +10,18 @@
 #  the copyright holders.
 #
 
-from collections import defaultdict
-import re
-from math import floor, log10
-import subprocess
-from datetime import datetime
+"""
+Utility functions and classes for administrative operations in the Coyote3 framework.
+
+This module provides static methods for configuration management, form processing, versioning, gene list extraction, schema validation, and sample trace deletion. All methods are documented with their purpose, arguments, return values, and exceptions, following Python documentation best practices.
+"""
+
+from datetime import datetime, timezone
 from dateutil.parser import parse as parse_datetime
-from flask_login import current_user
-from coyote.util.common_utility import CommonUtility
 from coyote.blueprints.admin import validators
-from coyote.services.audit_logs.decorators import log_action
 from flask import current_app as app
 from flask import flash
 from coyote.extensions import store
-from bisect import bisect_left
 import json
 import os
 from typing import Any, Union
@@ -32,15 +30,34 @@ import hashlib
 
 class AdminUtility:
     """
-    Admin utility class for handling various admin-related tasks.
+    AdminUtility provides static methods for common administrative operations in the Coyote3 framework.
+
+    This class includes utilities for:
+    - Deep merging and casting configuration dictionaries
+    - Processing and validating form and schema data
+    - Managing version history and computing configuration deltas
+    - Extracting and restructuring gene lists and assay configurations
+    - Cleaning and flattening configuration data for comparison or form rendering
+    - Loading schema templates and deleting sample traces from the database
+
+    All methods are stateless and designed for use in admin-related workflows.
     """
 
     @staticmethod
-    def deep_merge(source, updates):
+    def deep_merge(source: dict, updates: dict) -> None:
         """
-        Recursively merge `updates` into `source`.
-        If a value is a dictionary and the key exists in source as a dictionary, merge it recursively.
-        Otherwise, overwrite the value.
+        Recursively merges the `updates` dictionary into the `source` dictionary.
+
+        - If a value in `updates` is a dictionary and the corresponding key in `source` is also a dictionary,
+          the merge is performed recursively for that key.
+        - For all other cases, the value from `updates` overwrites the value in `source`.
+
+        Args:
+            source (dict): The original dictionary to be updated in place.
+            updates (dict): The dictionary containing updates to merge into `source`.
+
+        Returns:
+            None: The function modifies `source` in place.
         """
         for key, value in updates.items():
             if isinstance(value, dict) and isinstance(source.get(key), dict):
@@ -49,10 +66,19 @@ class AdminUtility:
                 source[key] = value
 
     @staticmethod
-    def handle_json_merge_input(json_string, config):
+    def handle_json_merge_input(json_string: str, config: dict) -> None:
         """
-        Parses a JSON string and merges it into the existing assay config.
-        Raises ValueError if the string is not valid JSON or not a dict.
+        Parses a JSON string and merges its contents into the provided assay configuration dictionary.
+
+        Args:
+            json_string (str): The JSON string to parse and merge.
+            config (dict): The existing configuration dictionary to update in place.
+
+        Raises:
+            ValueError: If the input string is not valid JSON or does not represent a dictionary.
+
+        Returns:
+            None: The function modifies the `config` dictionary in place.
         """
         try:
             updates = json.loads(json_string)
@@ -68,6 +94,16 @@ class AdminUtility:
     def cast_value(
         value: Any, field_type: str
     ) -> Union[str, int, float, bool, list, dict, None]:
+        """
+        Casts the input value to the specified field type.
+
+        Args:
+            value (Any): The value to cast.
+            field_type (str): The target data type (e.g., 'int', 'float', 'bool', 'list', 'json', etc.).
+
+        Returns:
+            Union[str, int, float, bool, list, dict, None]: The value cast to the appropriate type, or None if casting fails.
+        """
         if value is None or (isinstance(value, str) and value.strip() == ""):
             if field_type in [
                 "list",
@@ -118,7 +154,7 @@ class AdminUtility:
             if isinstance(value, str):
                 try:
                     return json.loads(value)
-                except Exception:
+                except json.JSONDecodeError:
                     return [v.strip() for v in value.split(",") if v.strip()]
             return value
         elif field_type in [
@@ -130,13 +166,24 @@ class AdminUtility:
             if isinstance(value, str):
                 try:
                     return json.loads(value)
-                except Exception:
+                except json.JSONDecodeError:
                     return {}
             return value
         return value
 
     @staticmethod
     def process_form_to_config(form: dict, schema: dict) -> dict:
+        """
+        Converts a form dictionary into a configuration dictionary according to the provided schema.
+
+        Each field in the schema is processed:
+        - If present in the form, its value is cast to the correct type.
+        - If missing but defined as a subschema, initializes as an empty list or dict.
+        - Otherwise, sets a default value based on the field type (e\.g\., empty list, dict, False, or None).
+
+        Returns:
+            dict: The resulting configuration dictionary with values cast and structured per the schema.
+        """
         config = {}
 
         for key, field in schema.get("fields", {}).items():
@@ -178,12 +225,27 @@ class AdminUtility:
     @staticmethod
     def hash_config(config: dict) -> str:
         """
-        Generate a deterministic SHA-256 hash of the config dictionary.
+        Generate a deterministic SHA-256 hash of the given configuration dictionary.
 
-        Ensures keys are sorted and values are serialized consistently.
+        This method ensures that the hash is stable by:
+        - Removing volatile metadata fields (such as timestamps and user info).
+        - Recursively sorting dictionary keys and serializing values in a consistent manner.
+        - Using compact JSON serialization with sorted keys.
+
+        Args:
+            config (dict): The configuration dictionary to hash.
+
+        Returns:
+            str: The SHA-256 hexadecimal hash of the sanitized and serialized configuration.
         """
 
         def sanitize(value):
+            """
+            Recursively sanitize a value for deterministic hashing by:
+            - Sorting dictionary keys and recursively sanitizing their values.
+            - Recursively sanitizing list elements.
+            - Returning primitive values as-is.
+            """
             if isinstance(value, dict):
                 return {k: sanitize(value[k]) for k in sorted(value)}
             elif isinstance(value, list):
@@ -205,30 +267,45 @@ class AdminUtility:
         serialized = json.dumps(
             stable_dict, sort_keys=True, separators=(",", ":")
         )
-        return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+        return hashlib.sha256(serialized.encode()).hexdigest()
 
     @staticmethod
     def inject_version_history(
         user_email: str,
         new_config: dict,
-        old_config: dict = {},
+        old_config=None,
         is_new: bool = True,
     ) -> dict:
         """
-        Initializes version history with delta-only logic.
-        If is_new, it adds an 'initial' flag instead of computing delta.
-        Otherwise, includes only changed/new/removed keys in the delta.
+        Initializes the version history for a configuration dictionary using delta-only logic.
+
+        If `is_new` is True, an initial version entry is added with an 'initial' flag instead of a computed delta.
+        If `is_new` is False, only the changed, new, or removed keys are included in the delta, as determined by comparing
+        the old and new configurations.
+
+        Args:
+            user_email (str): The email address of the user making the change.
+            new_config (dict): The new configuration dictionary.
+            old_config (dict, optional): The previous configuration dictionary. Defaults to an empty dict.
+            is_new (bool, optional): Whether this is the initial version. Defaults to True.
+
+        Returns:
+            dict: The new configuration dictionary with an updated version history.
         """
+        if old_config is None:
+            old_config = {}
         version = new_config.get("version", 1)
         version_history = old_config.pop("version_history", [])
-        raw_timestamp = new_config.get("created_on", datetime.utcnow())
+        raw_timestamp = new_config.get(
+            "created_on", datetime.now(timezone.utc)
+        )
 
         # Ensure it's a real datetime object
         if isinstance(raw_timestamp, str):
             try:
                 timestamp = parse_datetime(raw_timestamp)
-            except Exception:
-                timestamp = datetime.utcnow()
+            except (ValueError, TypeError):
+                timestamp = datetime.now(timezone.utc)
         else:
             timestamp = raw_timestamp
 
@@ -258,11 +335,19 @@ class AdminUtility:
     @staticmethod
     def generate_version_delta(old: dict, new: dict) -> tuple[dict, dict]:
         """
-        Compute the diff and delta between old and new versioned documents.
+        Compute the difference and delta between two versioned configuration dictionaries.
+
+        Args:
+            old (dict): The original configuration dictionary.
+            new (dict): The updated configuration dictionary.
 
         Returns:
-            - diff: dict of keys with {old, new} pairs
-            - delta: dict with 'only_in_old', 'only_in_new', and 'changed'
+            tuple[dict, dict]:
+                - diff: A dictionary mapping keys to their old and new values where changes occurred.
+                - delta: A dictionary with the following structure:
+                    - 'only_in_old': Keys present only in the old configuration.
+                    - 'only_in_new': Keys present only in the new configuration.
+                    - 'changed': Keys whose values have changed, with their old and new values.
         """
         exclude_keys = {
             "version",
@@ -296,9 +381,19 @@ class AdminUtility:
     @staticmethod
     def apply_version_delta(base: dict, future_delta: dict) -> dict:
         """
-        Restore the document to an earlier version using the delta from the *next* version.
+        Restores a configuration dictionary to a previous version by applying the delta from the subsequent version.
 
-        For example, to restore version 3, apply the delta stored in version 4.
+        This method takes a base configuration and a delta (typically from the next version in the version history)
+        and reverts the configuration to its earlier state by:
+        - Restoring keys that were removed or changed to their previous values.
+        - Removing keys that were newly added in the next version.
+
+        Args:
+            base (dict): The configuration dictionary to revert.
+            future_delta (dict): The delta dictionary from the next version, containing 'only_in_old', 'only_in_new', and 'changed' keys.
+
+        Returns:
+            dict: The reverted configuration dictionary.
         """
         patched = base.copy()
 
@@ -320,22 +415,17 @@ class AdminUtility:
         return patched
 
     @staticmethod
-    def extract_gene_list(
-        file_obj, pasted_text: str, doc: dict = None
-    ) -> list[str]:
+    def extract_gene_list(file_obj, pasted_text: str) -> list[str]:
         """
         Extracts a sorted, deduplicated gene list from either a file or pasted text.
 
-        Args:
-            file_obj (FileStorage | None): File-like object from request.files.get(...).
-            pasted_text (str): Raw text pasted into a textarea.
-            doc (dict | None): Optional document context, used when the route are in edit mode.
+        Parameters:
+            file_obj (FileStorage \| None): A file-like object containing gene identifiers, typically from `request.files.get(...)`.
+            pasted_text (str): Raw text input containing gene identifiers, usually pasted into a textarea.
 
         Returns:
             list[str]: A sorted list of unique gene identifiers.
         """
-        genes = []
-
         # Process file if provided and has a filename
         if file_obj and getattr(file_obj, "filename", ""):
             content = file_obj.read().decode("utf-8")
@@ -367,13 +457,8 @@ class AdminUtility:
 
         Returns:
             dict: A nested dictionary where keys are organized into sections as specified by the schema.
-                For sections named "filters", keys are grouped under that section as a sub-dictionary.
+                For sections named ``filters``, keys are grouped under that section as a sub-dictionary.
                 Other keys are placed at the top level of the returned dictionary.
-
-        Example:
-            flat_config = {"a": 1, "b": 2, "filter1": 3}
-            schema = {"sections": {"filters": ["filter1"]}}
-            result = restructure_assay_config(flat_config, schema)
         """
         env_block = {}
 
@@ -395,10 +480,18 @@ class AdminUtility:
     @staticmethod
     def flatten_config_for_form(config: dict, schema: dict) -> dict:
         """
-        Flatten nested config sections (like filters, query, verification_samples) into a flat dict
-        so that schema-driven forms can render them easily.
+        Flatten a nested configuration dictionary into a flat dictionary for form rendering.
 
-        Keys from top-level and nested sections (as defined in schema.sections) are merged into one dict.
+        This method takes a configuration dictionary that may contain nested sections (such as `filters`, `query`, or `verification_samples`)
+        and flattens it so that all keys from both the top-level and nested sections (as defined in `schema.sections`) are present in a single dictionary.
+        This is useful for schema-driven forms that require a flat structure for rendering and processing.
+
+        Args:
+            config (dict): The nested configuration dictionary to flatten.
+            schema (dict): The schema dictionary defining the sections and their keys.
+
+        Returns:
+            dict: A flat dictionary with all keys from the top-level and nested sections.
         """
         flat = {}
 
@@ -419,9 +512,17 @@ class AdminUtility:
         return flat
 
     @staticmethod
-    def clean_config_for_comparison(cfg):
+    def clean_config_for_comparison(cfg: dict) -> dict:
         """
-        Cleans the config dictionary for comparison by removing metadata fields.
+        Removes metadata fields (such as timestamps, user info, and version) from the given configuration dictionary.
+
+        This utility is useful for preparing configuration data for direct value comparison by eliminating fields that are not relevant to the actual configuration content.
+
+        Args:
+            cfg (dict): The configuration dictionary to clean.
+
+        Returns:
+            dict: A shallow copy of the configuration dictionary with metadata fields removed.
         """
         cfg = dict(cfg)  # shallow copy
         for meta_key in [
@@ -435,10 +536,16 @@ class AdminUtility:
         return cfg
 
     @staticmethod
-    def load_json5_template():
+    def load_json5_template() -> str:
         """
         Loads the JSON5 schema template from the static directory.
-        This template is used for creating new schemas.
+
+        Returns:
+            str: The contents of the JSON5 schema template file as a string.
+
+        Raises:
+            FileNotFoundError: If the schema template file does not exist.
+            OSError: If there is an error reading the file.
         """
         path = os.path.join(
             app.root_path,
@@ -448,15 +555,21 @@ class AdminUtility:
             "schemas",
             "schema_template.json5",
         )
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return f.read()
 
     @staticmethod
     def validate_schema_structure(schema: dict) -> list[str]:
         """
-        Validates the structure of the schema.
-        Checks for required keys and ensures that sections are defined correctly.
-        Returns a list of error messages if any issues are found.
+        Validates the structure of the provided schema dictionary.
+
+        - Checks for required top-level keys as defined in `validators.REQUIRED_SCHEMA_KEYS`.
+        - Ensures the `sections` key is a dictionary, and each section contains a list of field names.
+        - Verifies that every field listed in sections is defined in either `fields` or `subschemas`.
+        - Supports dot notation for referencing subschema fields.
+
+        Returns:
+            list[str]: A list of error messages describing any structural issues found in the schema.
         """
         errors = []
 
@@ -504,7 +617,22 @@ class AdminUtility:
     def delete_all_sample_traces(sample_id: str):
         """
         Deletes all traces of a sample from the database.
-        This includes variants, CNVs, coverage, translocations, fusions, biomarkers, and the sample itself.
+
+        This method removes all associated records for the given sample, including:
+        - Variants
+        - CNVs (Copy Number Variations)
+        - Coverage data
+        - Trans-locations
+        - Fusions
+        - Biomarkers
+        - The sample record itself
+
+        Args:
+            sample_id (str): The unique identifier of the sample to delete.
+
+        Side Effects:
+            - Calls deletion handlers for each data type.
+            - Displays a flash message for each deletion result.
         """
         sample_name = store.sample_handler.get_sample_by_id(sample_id)
         actions = [

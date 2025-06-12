@@ -10,15 +10,25 @@
 #  the copyright holders.
 #
 
+"""
+This module defines Flask-WTF form classes for genomic data analysis and reporting in the Coyote3 project.
+"""
+
 from flask_wtf import FlaskForm
-from wtforms import StringField, BooleanField, IntegerField, FloatField
+from wtforms import BooleanField, IntegerField, FloatField
 from wtforms.validators import InputRequired, NumberRange, Optional
 from coyote.extensions import store
-from wtforms.meta import DefaultMeta
 
 
 class DNAFilterForm(FlaskForm):
-    """Filter form"""
+    """
+    Filter form for DNA variant analysis.
+
+    This form provides numeric and boolean filters for DNA variant data,
+    including read depth, allele frequency, CNV size, VEP consequences,
+    CNV effects, and genelist options. Used in the Coyote3 genomic analysis
+    workflow to allow users to customize variant filtering criteria.
+    """
 
     # Core numeric filters
     min_alt_reads = IntegerField(
@@ -94,7 +104,18 @@ class DNAFilterForm(FlaskForm):
 
 
 class FusionFilter(FlaskForm):
-    """Fusion filter form"""
+    """
+    FusionFilter is a Flask-WTF form for filtering gene fusion events in genomic data analysis.
+
+    This form provides boolean and numeric fields to filter fusion events based on:
+    - Known fusion lists (e\.g\., FCknown, Mitelman)
+    - Fusion caller tools (Arriba, FusionCatcher, STAR-Fusion)
+    - Minimum spanning pairs and reads
+    - Fusion effect types (in-frame, out-frame)
+    - VEP consequence categories (splicing, stop gained/lost, frameshift, etc\.)
+
+    Used in the Coyote3 workflow to allow users to customize fusion event filtering criteria.
+    """
 
     fusionlist_FCknown = BooleanField(validators=[Optional()])
     fusionlist_mitelman = BooleanField(validators=[Optional()])
@@ -134,7 +155,16 @@ class FusionFilter(FlaskForm):
 
 
 def create_assay_group_form():
-    """Create a dynamic form class with assay group checkboxes"""
+    """
+    Create a dynamic Flask-WTF form class with BooleanField checkboxes for each assay group.
+
+    This function queries all available assay groups from the ASP handler and generates a form
+    class with a BooleanField for each group, allowing users to select one or more groups.
+    An additional 'historic' checkbox is always included.
+
+    Returns:
+        type: A dynamically created subclass of FlaskForm with BooleanFields for each assay group.
+    """
     assay_groups = store.asp_handler.get_all_asp_groups()
 
     fields = {

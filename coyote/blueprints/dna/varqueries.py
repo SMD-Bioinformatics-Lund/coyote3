@@ -10,17 +10,33 @@
 #  the copyright holders.
 #
 
+"""
+This module is part of the Coyote3 codebase and provides query-building utilities for genomic data analysis.
+It defines functions to construct MongoDB queries for different analysis types (e.g., myeloid, solid, swea)
+based on user-provided settings, such as frequency thresholds, depth, gene filters, and variant consequences.
+"""
+
 import re
 
 
-def build_query(which, settings):
+def build_query(assay_group: str, settings: dict) -> dict:
+    """
+    Constructs a MongoDB query dictionary for genomic variant analysis based on the analysis type and user settings.
+
+    Args:
+        assay_group (str): The analysis type (e.g., "myeloid", "solid", "swea", etc.).
+        settings (dict): User-provided settings including frequency thresholds, depth, gene filters, and variant consequences.
+
+    Returns:
+        dict: A MongoDB query dictionary tailored to the specified analysis type and settings.
+    """
 
     large_ins_regex = re.compile(r"\w{10,200}", re.IGNORECASE)
     gene_pos_filter = build_pos_genes_filter(settings)
 
     # Myeloid requires settings: min_freq, min_depth, min_alt_reads, max_control_freq, filter_conseq(list)
 
-    if which in {"myeloid", "hematology", "fusion", "tumwgs", "unknown"}:
+    if assay_group in {"myeloid", "hematology", "fusion", "tumwgs", "unknown"}:
         query = {
             "SAMPLE_ID": settings["id"],
             "$and": [
@@ -174,7 +190,7 @@ def build_query(which, settings):
             ],
         }
 
-    if which == "swea" or which == "gmsonco":
+    if assay_group in ["swea", "gmsonco"]:
         query = {
             "SAMPLE_ID": settings["id"],
             "$and": [
@@ -203,7 +219,7 @@ def build_query(which, settings):
             ],
         }
 
-    if which == "solid":
+    if assay_group == "solid":
         query = {
             "SAMPLE_ID": settings["id"],
             "$and": [
@@ -372,10 +388,20 @@ def build_query(which, settings):
     return query
 
 
-## TERT NFKBIE
+def build_pos_genes_filter(settings: dict) -> dict:
+    """
+    Constructs a partial MongoDB query for filtering variants by position, gene, and optional flags.
 
+    Args:
+        settings (dict): User-provided settings that may include:
+            - disp_pos (list): List of positions to filter on.
+            - filter_genes (list): List of gene symbols to filter on.
+            - fp (str): Optional flag for filtering.
+            - irrelevant (str): Optional flag for filtering.
 
-def build_pos_genes_filter(settings):
+    Returns:
+        dict: A partial MongoDB query dictionary for use in variant queries.
+    """
     pos_list = settings.get("disp_pos", [])
     genes_list = settings.get("filter_genes", [])
     fp = settings.get("fp", "")
