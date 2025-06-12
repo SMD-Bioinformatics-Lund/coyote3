@@ -1,4 +1,16 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
+
 """
 AnnotationsHandler module for Coyote3
 =====================================
@@ -7,10 +19,8 @@ This module defines the `AnnotationsHandler` class used for accessing and managi
 annotation data in MongoDB.
 
 It is part of the `coyote.db` package and extends the base handler functionality.
-
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
+
 from copy import deepcopy
 
 # -------------------------------------------------------------------------
@@ -145,16 +155,12 @@ class AnnotationsHandler(BaseHandler):
                     if assay == assay_group and sub == subpanel:
                         latest_classification = anno
                     else:
-                        latest_classification_other[ass_sub] = anno[
-                            "class"
-                        ]
+                        latest_classification_other[ass_sub] = anno["class"]
                 else:
                     if assay == assay_group:
                         latest_classification = anno
                     else:
-                        latest_classification_other[ass_sub] = anno[
-                            "class"
-                        ]
+                        latest_classification_other[ass_sub] = anno["class"]
             elif "text" in anno:
                 assay = anno.get("assay", "NA")
                 sub = anno.get("subpanel", "NA")

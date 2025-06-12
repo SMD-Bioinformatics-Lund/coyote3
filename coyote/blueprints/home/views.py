@@ -1,8 +1,21 @@
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 """
 This module defines the routes and logic for the home page and report viewing in the Coyote application.
 It includes functionality for handling sample searches, filtering samples based on user access, and rendering
 the appropriate templates for the user interface.
 """
+
 
 from flask import abort
 from flask import current_app as app

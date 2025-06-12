@@ -1,4 +1,16 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
+
 """
 OnkoKBHandler module for Coyote3
 ================================
@@ -7,9 +19,6 @@ This module defines the `OnkoKBHandler` class used for accessing and managing
 OncoKB data in MongoDB.
 
 It is part of the `coyote.db` package and extends the base handler functionality.
-
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
 # -------------------------------------------------------------------------
@@ -91,7 +100,7 @@ class OnkoKBHandler(BaseHandler):
         """
         return self.adapter.oncokb_genes_collection.find_one({"name": gene})
 
-    def get_oncokb_action_gene(self,  gene: str) -> dict:
+    def get_oncokb_action_gene(self, gene: str) -> dict:
         """
         Get OncoKB actionable for a variant.
 
@@ -104,4 +113,6 @@ class OnkoKBHandler(BaseHandler):
         Returns:
             dict: A cursor object containing actionable OncoKB documents matching the query.
         """
-        return self.adapter.oncokb_actionable_collection.find_one({"Hugo Symbol": gene})
+        return self.adapter.oncokb_actionable_collection.find_one(
+            {"Hugo Symbol": gene}
+        )

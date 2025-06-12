@@ -1,3 +1,15 @@
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 from flask_wtf import FlaskForm
 from wtforms import (
     StringField,
@@ -7,7 +19,14 @@ from wtforms import (
     EmailField,
     BooleanField,
 )
-from wtforms.validators import DataRequired, Email, Optional, EqualTo, Length, Regexp
+from wtforms.validators import (
+    DataRequired,
+    Email,
+    Optional,
+    EqualTo,
+    Length,
+    Regexp,
+)
 from coyote.models.user import AppRole
 
 
@@ -29,11 +48,16 @@ class UserForm(FlaskForm):
     )
     email = EmailField("Email", validators=[DataRequired(), Email()])
     job_title = StringField("Job Title", validators=[Optional()])
-    groups = StringField("Groups (comma-separated)", validators=[DataRequired()])
+    groups = StringField(
+        "Groups (comma-separated)", validators=[DataRequired()]
+    )
 
     role = SelectField(
         "App Role",
-        choices=[(role.value, role.value.replace("_", " ").title()) for role in AppRole],
+        choices=[
+            (role.value, role.value.replace("_", " ").title())
+            for role in AppRole
+        ],
         validators=[DataRequired()],
     )
 
@@ -42,14 +66,23 @@ class UserForm(FlaskForm):
         validators=[
             DataRequired(),
             Length(min=15, message="Password must be at least 15 characters."),
-            Regexp(r"(?=.*[A-Z])", message="Must include at least one uppercase letter."),
+            Regexp(
+                r"(?=.*[A-Z])",
+                message="Must include at least one uppercase letter.",
+            ),
             Regexp(r"(?=.*\d)", message="Must include at least one digit."),
-            Regexp(r"(?=.*[\W_])", message="Must include at least one special character."),
+            Regexp(
+                r"(?=.*[\W_])",
+                message="Must include at least one special character.",
+            ),
         ],
     )
     confirm_password = PasswordField(
         "Confirm Password",
-        validators=[DataRequired(), EqualTo("password", message="Passwords must match.")],
+        validators=[
+            DataRequired(),
+            EqualTo("password", message="Passwords must match."),
+        ],
     )
 
     is_active = BooleanField("Is Active?", default=True)
@@ -68,14 +101,23 @@ class UserUpdateForm(UserForm):
         validators=[
             Optional(),
             Length(min=15, message="Password must be at least 15 characters."),
-            Regexp(r"(?=.*[A-Z])", message="Must include at least one uppercase letter."),
+            Regexp(
+                r"(?=.*[A-Z])",
+                message="Must include at least one uppercase letter.",
+            ),
             Regexp(r"(?=.*\d)", message="Must include at least one digit."),
-            Regexp(r"(?=.*[\W_])", message="Must include at least one special character."),
+            Regexp(
+                r"(?=.*[\W_])",
+                message="Must include at least one special character.",
+            ),
         ],
     )
     confirm_password = PasswordField(
         "Confirm New Password",
-        validators=[Optional(), EqualTo("password", message="Passwords must match.")],
+        validators=[
+            Optional(),
+            EqualTo("password", message="Passwords must match."),
+        ],
     )
 
     submit = SubmitField("Update User")

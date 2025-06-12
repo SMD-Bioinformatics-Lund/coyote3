@@ -1,3 +1,15 @@
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 from collections import defaultdict
 import re
 from math import floor, log10
@@ -30,7 +42,11 @@ class CoverageUtility:
                 )
             if "probes" in cov["genes"][gene]:
                 has_low = CoverageUtility.reg_low(
-                    cov["genes"][gene]["probes"], "probe", cutoff, gene, smp_grp
+                    cov["genes"][gene]["probes"],
+                    "probe",
+                    cutoff,
+                    gene,
+                    smp_grp,
                 )
             if has_low == True:
                 keep["genes"][gene] = cov["genes"][gene]
@@ -60,7 +76,9 @@ class CoverageUtility:
             if "probes" in filtered_dict["genes"][gene]:
                 probes = []
                 for probe in filtered_dict["genes"][gene]["probes"]:
-                    probes.append(filtered_dict["genes"][gene]["probes"][probe])
+                    probes.append(
+                        filtered_dict["genes"][gene]["probes"][probe]
+                    )
                 filtered_dict["genes"][gene]["probes"] = probes
             else:
                 filtered_dict["genes"][gene]["probes"] = []
@@ -71,7 +89,9 @@ class CoverageUtility:
     def filter_genes_from_form(cov_dict, filter_genes, smp_grp):
         filtered_dict = defaultdict(dict)
         for gene in cov_dict["genes"]:
-            blacklisted = store.groupcov_handler.is_gene_blacklisted(gene, smp_grp)
+            blacklisted = store.groupcov_handler.is_gene_blacklisted(
+                gene, smp_grp
+            )
             if gene in filter_genes and not blacklisted:
                 filtered_dict["genes"][gene] = cov_dict["genes"][gene]
         return filtered_dict
@@ -109,11 +129,15 @@ class CoverageUtility:
                         for exon in exons:
                             if (
                                 float(exon["cov"]) < cov_cutoff
-                                or float(gene_cov["probes"][probe]["cov"]) < cov_cutoff
+                                or float(gene_cov["probes"][probe]["cov"])
+                                < cov_cutoff
                             ):
                                 cov_table[gene][exon["nbr"]] = exon
                     else:
-                        if float(gene_cov["probes"][probe]["cov"]) < cov_cutoff:
+                        if (
+                            float(gene_cov["probes"][probe]["cov"])
+                            < cov_cutoff
+                        ):
                             cov_table[gene][probe] = gene_cov["probes"][probe]
             else:
                 """
@@ -124,7 +148,9 @@ class CoverageUtility:
                     if cov is not None:
                         cov = float(cov)
                         if cov < cov_cutoff:
-                            cov_table[gene][gene_cov["CDS"][exon]["nbr"]] = gene_cov["CDS"][exon]
+                            cov_table[gene][gene_cov["CDS"][exon]["nbr"]] = (
+                                gene_cov["CDS"][exon]
+                            )
 
         return cov_table
 

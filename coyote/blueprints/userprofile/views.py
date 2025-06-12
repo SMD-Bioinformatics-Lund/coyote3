@@ -1,3 +1,15 @@
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 # views.py
 
 from flask import render_template, redirect, url_for, flash, request, jsonify
@@ -56,7 +68,9 @@ def change_password(username):
         else:
             form.old_password.errors.append("Old password is incorrect")
 
-    return render_template("change_password.html", form=form, username=username)
+    return render_template(
+        "change_password.html", form=form, username=username
+    )
 
 
 @profile_bp.route("/update-info", methods=["POST"])

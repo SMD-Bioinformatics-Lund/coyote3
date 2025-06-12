@@ -1,4 +1,16 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
+
 """
 Coyote3 Miscellaneous Utilities
 =====================================
@@ -9,9 +21,6 @@ and other helper functions.
 
 It serves as a central point for managing these utility classes and
 functions used across the application.
-
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
 # -------------------------------------------------------------------------
