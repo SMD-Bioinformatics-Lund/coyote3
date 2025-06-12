@@ -42,7 +42,7 @@
 
 {# variant to display on the main top card #}
 {% if sel_csq.HGVSp %}
-  {% set show_variant = sel_csq.HGVSp | one_letter_p | unesc %}
+  {% set show_variant = sel_csq.HGVSp|one_letter_p|standard_HGVS|unesc %}
 {% elif sel_csq.HGVSc %}
   {% set show_variant = sel_csq.HGVSc %}
 {% else %}
@@ -130,7 +130,7 @@
               <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ sel_csq.HGVSp|unesc|safe }}</span>`)">
                 <div class="relative flex flex-wrap justify-end inline-block pr-1">
                   <div id="hgvsp-short" class="truncate max-w-15c">
-                    {{ sel_csq.HGVSp }}
+                    {{ sel_csq.HGVSp|unesc|safe }}
                   </div>
                   <div id="hgvsp-full" class="hidden break-all whitespace-normal">
                     {{ sel_csq.HGVSp|unesc|safe }}
@@ -211,6 +211,16 @@
               <td class="p-1 text-right font-medium">{{'%0.1f'| format(100*gt.AF|float) }}% ({{ gt.VD|int }} / {{ gt.DP|int }})</td>
             </tr>
           {% endfor %}
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Pop. Freq %</th>
+            <td class="p-1 text-right font-medium break-all">
+              {% if variant.gnomad_frequency != "" %}
+                {{ '%.3f' | format(100*variant.gnomad_frequency)}}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+          </tr>
           <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">CADD</th>
             <td class="p-1 text-right font-medium">
@@ -356,15 +366,15 @@
             {% if sel_csq.HGVSc is defined %}
               <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">
               <input type="hidden" name="transcript" value="{{ sel_csq.Feature }}">
-              <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|unesc }}">
-              <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc }}">
+              <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|unesc|safe }}">
+              <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc|safe }}">
             {% endif %}
             <input
             class="m-1 text-black text-sm px-2 py-1 rounded-md shadow-lg whitespace-normal break-all
-                    {% if classification.class != 1 %}
+                    {% if latest_classification.class != 1 %}
                       bg-gray-300 transition-all duration-300 ease-in-out transform hover:translate-y-1 hover:bg-orange-500
                     {% else %}
-                      cursor-not-allowed font-bold text-white bg-tier{{ classification.class }}
+                      cursor-not-allowed font-bold text-white bg-tier{{ latest_classification.class }}
                     {% endif %}
                     {{ dna_tier_classes }}"
             id="tier1"
@@ -377,10 +387,10 @@
 
           <input
           class="m-1 text-black text-sm px-2 py-1 rounded-md shadow-lg whitespace-normal break-all
-                  {% if classification.class != 2 %}
+                  {% if latest_classification.class != 2 %}
                     bg-gray-300 hover:bg-yellow-400 transition-all duration-300 ease-in-out transform hover:translate-y-1
                   {% else %}
-                    cursor-not-allowed font-bold text-white bg-tier{{ classification.class }}
+                    cursor-not-allowed font-bold text-white bg-tier{{ latest_classification.class }}
                   {% endif %}
                   {{ dna_tier_classes }}"
           id="tier2"
@@ -393,10 +403,10 @@
         
         <input
           class="m-1 text-black text-sm px-2 py-1 rounded-md shadow-lg whitespace-normal break-all
-                  {% if classification.class != 3 %}
+                  {% if latest_classification.class != 3 %}
                     bg-gray-300 hover:bg-blue-500 transition-all duration-300 ease-in-out transform hover:translate-y-1
                   {% else %}
-                    cursor-not-allowed font-bold text-white bg-tier{{ classification.class }}
+                    cursor-not-allowed font-bold text-white bg-tier{{ latest_classification.class }}
                   {% endif %}
                   {{ dna_tier_classes }}"
           id="tier3"
@@ -409,10 +419,10 @@
         
         <input
           class="m-1 text-black text-sm px-2 py-1 rounded-md shadow-lg whitespace-normal break-all
-                  {% if classification.class != 4 %}
+                  {% if latest_classification.class != 4 %}
                     bg-gray-300 hover:bg-green-600 transition-all duration-300 ease-in-out transform hover:translate-y-1
                   {% else %}
-                    cursor-not-allowed font-bold text-white bg-tier{{ classification.class }}
+                    cursor-not-allowed font-bold text-white bg-tier{{ latest_classification.class }}
                   {% endif %}
                   {{ dna_tier_classes }}"
           id="tier4"
@@ -426,7 +436,7 @@
           </form>
 
           <!-- Remove Tier Info -->
-          {% if classification.class != 999 %}
+          {% if latest_classification.class != 999 %}
             <form action="{{ url_for('dna_bp.remove_classified_variant', sample_id=sample.name, var_id=variant._id) }}" method="post">
               <input type="hidden" name="assay_group" value="{{ assay_group }}">
               <input type="hidden" name="subpanel" value="{{ subpanel }}">
@@ -437,7 +447,7 @@
                 <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|unesc }}">
                 <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc }}">
               {% endif %}
-              {% if classification and 'assay' in classification %}
+              {% if latest_classification and 'assay' in latest_classification %}
               <input
                 class="m-1 bg-gray-300 text-black text-sm px-2 py-1 rounded-md shadow-lg cursor-pointer hover:bg-gray-400 transition-all duration-300 ease-in-out transform hover:translate-y-1 whitespace-normal break-all {{ remove_tier_classes }}"
                 title="Remove {{ assay_group }} classifications"
@@ -567,7 +577,6 @@
                     <th class="p-3 font-semibold ">Tier</th>
                   </tr>
                 </thead>
-                <tbody>
                 <tbody id="other-tiering-info-body" class="{% if other_classifications|length > 1 %}border-b border-gray-400 {% endif %}">
                   {% for var in other_classifications %}
                     <tr class="hover:bg-orange-50 border-t border-gray-400 text-left align-top">
@@ -914,8 +923,65 @@
                 </tbody>
               </table>
             {% else %}
-              <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md break-all">No sample-specific variant comments available.</em>
+              <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md hover:bg-yellow-50 break-all">No sample-specific variant comments available.</em>
             {% endif %}
+          </div>
+        </div>
+
+        <!-- Population Frequencies -->
+        <div class="bg-gray-50 max-w-xl w-full shadow-md rounded-lg mb-1" id="population-frequencies-info">
+          <h2 class="text-sm font-semibold bg-gradient-to-b from-purple-400 to-purple-200 p-2 shadow-md rounded-t-lg break-all">Population Frequencies</h2>
+          <div class="rounded-b-lg overflow-x-auto">
+            <table class="w-full max-w-xl table-auto text-xs text-gray-800">
+              <thead class="capitalize tracking-wide rounded-t-lg bg-purple-100">
+                <tr class="border-b text-left border-gray-800">
+                  <th class="p-3 font-semibold ">Database</th>
+                  <th class="p-3 font-semibold ">Freq% (max: {{ sample.filters.max_popfreq}})</th>
+                </tr>
+              </thead>
+              <tbody id="population-frequencies-info-body">
+                <tr class="hover:bg-purple-50 border-t border-gray-400 text-left align-top">
+                  <td class="p-2 font-medium">gnomAD (default)</td>
+                  <td class="p-2 {% if variant.gnomad_frequency and variant.gnomad_frequency > sample.filters.max_popfreq %}text-red-500 font-semibold{% else %}text-gray-800{% endif %}">
+                    {% if variant.gnomad_frequency != "" %}
+                      {{ '%.3f' | format(100*variant.gnomad_frequency)}}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr class="hover:bg-purple-50 border-t border-gray-400 text-left align-top">
+                  <td class="p-2 font-medium">gnomAD MAX</td>
+                  <td class="p-2 {% if variant.gnomad_max and variant.gnomad_max > sample.filters.max_popfreq %}text-red-500 font-semibold{% else %}text-gray-800{% endif %}">
+                    {% if variant.gnomad_max != "" %}
+                      {{ '%.3f' | format(100*variant.gnomad_max)}}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr class="hover:bg-purple-50 border-t border-gray-400 text-left align-top">
+                  <td class="p-2 font-medium">1000 Genome</td>
+                  <td class="p-2 {% if variant.thousandG_frequency and variant.thousandG_frequency > sample.filters.max_popfreq %}text-red-500 font-semibold{% else %}text-gray-800{% endif %}">
+                    {% if variant.thousandG_frequency != "" %}
+                      {{ '%.3f' | format(100*variant.thousandG_frequency)}}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr class="hover:bg-purple-50 border-t border-gray-400 text-left align-top">
+                  <td class="p-2 font-medium">ExAC</td>
+                  <td class="p-2 {% if variant.exac_frequency and variant.exac_frequency > sample.filters.max_popfreq %}text-red-500 font-semibold{% else %}text-gray-800{% endif %}">
+                    {% if variant.exac_frequency != "" %}
+                      {{ '%.3f' | format(100*variant.exac_frequency)}}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -967,7 +1033,7 @@
                 {#{% set brca_exchange = {} %}#}
                 {% if brca_exchange is defined and brca_exchange is not none %}
                   {% set kb_flase = False %}
-                  <tr class="hover:bg-pink-50 border-b">
+                  <tr class="hover:bg-pink-50 border-t border-gray-400">
                     <td class="p-2 font-medium align-top">
                       <img class="w-12" alt="BRCA Exchange" src="{{ url_for('static', filename='images/brcaexchange_logo.jpg') }}">
                     </td>
@@ -981,6 +1047,7 @@
                         Citations: {{brca_exchange.enigma_clinsig_refs|pubmed_links|safe}}
                       {% endif %}
                     </td>
+                  </tr>
                 {% endif %}
 
                 <!-- OnkoKB Database -->
@@ -988,7 +1055,7 @@
                 {#{% set oncokb = {} %}#}
                 {% if oncokb is defined and oncokb is not none %}
                   {% set kb_flase = False %}
-                  <tr class="hover:bg-pink-50 border-b">
+                  <tr class="hover:bg-pink-50 border-t border-gray-400">
                     <td class="p-2 font-medium align-top">
                       <img class="w-12 pt-4" alt="OncoKB" src="{{ url_for('static', filename='images/oncokb_logo.png') }}">
                     </td>
@@ -1031,7 +1098,7 @@
                 <!-- CIVIC Database -->
                 {% if civic_gene is defined and civic_gene is not none %}
                   {% set kb_flase = False %}
-                  <tr class="hover:bg-pink-50 border-b">
+                  <tr class="hover:bg-pink-50 border-t border-gray-400">
                     <td class="p-2 font-medium align-top">
                       <img class="w-10 h-10 object-contain" alt="OncoKB" src="{{ url_for('static', filename='images/civic_logo.png') }}">
                     </td>
@@ -1050,7 +1117,7 @@
                 <!-- OnkoKB Gene Database -->
                 {% if oncokb_gene is defined and oncokb_gene is not none %}
                   {% set kb_flase = False %}
-                  <tr class="hover:bg-pink-50 border-b">
+                  <tr class="hover:bg-pink-50 border-t border-gray-400">
                     <td class="p-2 font-medium align-top">
                       <img class="w-12 pt-4" alt="OncoKB" src="{{ url_for('static', filename='images/oncokb_logo.png') }}">
                     </td>
@@ -1068,7 +1135,7 @@
                 <!-- IARC Database -->
                 {% if iarc_tp53 is defined and iarc_tp53 is not none %}
                   {% set kb_flase = False %}
-                  <tr class="hover:bg-pink-50 border-b">
+                  <tr class="hover:bg-pink-50 border-t border-gray-400">
                     <td class="p-2 font-medium align-top">
                       <img class="w-10 h-10 object-contain" alt="IARC TP53" src="{{ url_for('static', filename='images/iarctp53_logo.png') }}">
                       <p class="text-red-500 font-bold align-top">BETA!</p>

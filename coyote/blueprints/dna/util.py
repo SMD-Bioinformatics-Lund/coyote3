@@ -1235,7 +1235,7 @@ class DNAUtility:
         return filtered_low_cov
 
     @staticmethod
-    def create_annotation_text_from_gene(gene, csq, assay, **kwargs):
+    def create_annotation_text_from_gene(gene, csq, assay_group, **kwargs):
         """
         create an automated text annotation for tier3 variants.
         Also check if annotation exists for variant, dont add new
@@ -1244,9 +1244,9 @@ class DNAUtility:
         ## Might need a prettier way of presenting variant type. In line with translation dict used in list_variants
         consequence = first_csq.replace("_", " ")
         tumor_type = ""
-        if assay == "myeloid":
+        if assay_group == "myeloid":
             tumor_type = "hematologiska"
-        elif assay == "solid":
+        elif assay_group == "solid":
             tumor_type = "solida"
         else:
             tumor_type = ""

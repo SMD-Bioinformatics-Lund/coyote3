@@ -3,13 +3,13 @@ version: '3.9'
 # docker-compose up -d
 # docker-compose down
 services:
-  coyote3_app_saile:
-    container_name: coyote3_app_saile
-    image: coyote3:3.0.0.saile  # only this now
+  coyote3_app_beta2:
+    container_name: coyote3_app_beta2
+    image: coyote3:3.0.0.beta-2  # only this now
     ports:
-      - "8511:8000"
+      - "5816:8000"
     env_file:
-      - .saile.env
+      - .beta2.env
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
@@ -31,6 +31,7 @@ services:
       - "/access:/access"
       - "/media:/media"
       - "/data:/data"
+      - "/fs1:/fs1"
     command: "python3 wsgi.py"
 
 

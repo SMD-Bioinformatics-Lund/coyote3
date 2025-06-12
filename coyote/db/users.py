@@ -46,7 +46,8 @@ class UsersHandler(BaseHandler):
         Returns:
             dict: A dictionary representation of the user document.
         """
-        return dict(self.get_collection().find_one({"email": user_mail}))
+
+        return self.get_collection().find_one({"email": user_mail})
 
     def user_with_id(self, user_id: str) -> dict:
         """

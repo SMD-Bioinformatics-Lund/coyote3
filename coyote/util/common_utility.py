@@ -12,6 +12,7 @@ from datetime import timedelta
 from hashlib import md5
 from cryptography.fernet import Fernet
 import base64, json
+from flask_login import current_user
 
 
 class CommonUtility:
@@ -775,3 +776,65 @@ class CommonUtility:
             sample_ids["control"] = control
 
         return sample_ids
+
+    @staticmethod
+    def create_classified_variant_doc(
+        variant: str,
+        nomenclature: str,
+        class_num: int,
+        variant_data: dict,
+        **kwargs,
+    ) -> Any:
+        """
+        Insert a classified variant into the database.
+
+        This method creates a document representing a classified variant and inserts it into the MongoDB collection.
+        The document includes details such as the variant, nomenclature, classification, assay, subpanel, and additional
+        metadata like the author and creation time.
+
+        Args:
+            variant (str): The variant identifier (e.g., genomic location or variant ID).
+            nomenclature (str): The nomenclature type ('p', 'c', 'g', or 'f').
+            class_num (int): The classification number assigned to the variant.
+            variant_data (dict): A dictionary containing additional variant details, such as:
+                - assay_group (str): The assay type (e.g., 'solid').
+                - subpanel (str): The subpanel identifier.
+                - gene (str): The gene symbol (if applicable).
+                - transcript (str): The transcript identifier (if applicable).
+                - gene1 (str): The first gene symbol (if nomenclature is 'f').
+                - gene2 (str): The second gene symbol (if nomenclature is 'f').
+            **kwargs: Additional optional arguments, such as:
+                - text (str): A textual comment or description for the variant.
+
+        Returns:
+            Any: The result of the insert operation, which may include the inserted document ID or other relevant information.
+        """
+        document = {
+            "author": current_user.username,
+            "time_created": datetime.now(),
+            "variant": variant,
+            "nomenclature": nomenclature,
+            "assay": variant_data.get("assay_group", None),
+            "subpanel": variant_data.get("subpanel", None),
+        }
+
+        if "text" in kwargs:
+            document["text"] = kwargs["text"]
+        else:
+            document["class"] = class_num
+
+        if nomenclature != "f":
+            document["gene"] = variant_data.get("gene", None)
+            document["transcript"] = variant_data.get("transcript", None)
+        else:
+            document["gene1"] = variant_data.get("gene1", None)
+            document["gene2"] = variant_data.get("gene2", None)
+
+        return document
+
+    @staticmethod
+    def safe_json_load(data: Any, fallback=None) -> dict:
+        try:
+            return json.loads(data)
+        except json.JSONDecodeError:
+            return fallback or {}

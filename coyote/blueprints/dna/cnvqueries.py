@@ -9,6 +9,13 @@ def build_cnv_query(sample_id: str, filters: dict) -> dict:
         query = {
             "SAMPLE_ID": sample_id,
             "$and": [
+                # Filter by NORMAL status:
+                {
+                    "$or": [
+                        {"NORMAL": {"$ne": 1}},
+                        {"NORMAL": {"$exists": False}},
+                    ]
+                },
                 # Ratio Condition: (cnv.ratio|float < -0.3 or cnv.ratio|float > 0.3)
                 {
                     "$or": [

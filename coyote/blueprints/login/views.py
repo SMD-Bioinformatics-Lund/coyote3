@@ -17,15 +17,15 @@ def login():
     form = LoginForm()
 
     if request.method == "POST" and form.validate_on_submit():
-        username = form.username.data.strip()
+        email = form.username.data.strip()
         password = form.password.data.strip()
 
         # Fetch user
-        user_doc = store.user_handler.user(username)
+        user_doc = store.user_handler.user(email)
         if not user_doc or not user_doc.get("is_active", True):
             flash("User not found or inactive.", "red")
             app.logger.warning(
-                f"Login failed: user not found or inactive ({username})"
+                f"Login failed: user not found or inactive ({email})"
             )
             return render_template("login.html", form=form)
 
@@ -34,14 +34,12 @@ def login():
         valid = (
             UserModel.validate_login(user_doc["password"], password)
             if use_internal
-            else ldap_authenticate(username, password)
+            else ldap_authenticate(email, password)
         )
 
         if not valid:
             flash("Invalid credentials", "red")
-            app.logger.warning(
-                f"Login failed: invalid credentials ({username})"
-            )
+            app.logger.warning(f"Login failed: invalid credentials ({email})")
             return render_template("login.html", form=form)
 
         # Merge role + build user model
@@ -53,7 +51,7 @@ def login():
         login_user(user)
         store.user_handler.update_user_last_login(user_doc["_id"])
         app.logger.info(
-            f"User logged in: {username} (access_level: {user.access_level})"
+            f"User logged in: {email} (access_level: {user.access_level})"
         )
 
         return redirect(url_for("home_bp.samples_home"))

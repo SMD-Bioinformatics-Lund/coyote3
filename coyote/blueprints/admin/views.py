@@ -883,11 +883,13 @@ def edit_assay_config(assay_id) -> Response | str:
         }
 
         # TODO: Update the process_form_to_config to handle JSON fields
-        form_data["verification_samples"] = json.loads(
+        form_data["verification_samples"] = util.common.safe_json_load(
             request.form.get("verification_samples", "{}")
         )
 
-        form_data["query"] = json.loads(request.form.get("query", "{}"))
+        form_data["query"] = util.common.safe_json_load(
+            request.form.get("query", "{}")
+        )
 
         updated_config = util.admin.process_form_to_config(form_data, schema)
 

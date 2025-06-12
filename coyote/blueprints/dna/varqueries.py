@@ -90,46 +90,30 @@ def build_query(which, settings):
                                         },
                                     ]
                                 },
-                                # Filters if any of the population frequencies are above the max_popfreq
+                                # Filters if gnomad population frequency are above the max_popfreq
                                 {
-                                    "$nor": [
+                                    "$or": [
                                         {
                                             "gnomad_frequency": {
-                                                "$exists": "true",
+                                                "$exists": True,
                                                 "$type": "number",
-                                                "$gt": float(
+                                                "$lte": float(
                                                     settings["max_popfreq"]
                                                 ),
                                             }
                                         },
                                         {
-                                            "gnomad_max": {
-                                                "$exists": "true",
-                                                "$type": "number",
-                                                "$gt": float(
-                                                    settings["max_popfreq"]
-                                                ),
+                                            "gnomad_frequency": {
+                                                "$type": "string"
                                             }
                                         },
+                                        {"gnomad_frequency": None},
                                         {
-                                            "exac_frequency": {
-                                                "$exists": "true",
-                                                "$type": "number",
-                                                "$gt": float(
-                                                    settings["max_popfreq"]
-                                                ),
+                                            "gnomad_frequency": {
+                                                "$exists": False
                                             }
                                         },
-                                        {
-                                            "thousandG_frequency": {
-                                                "$exists": "true",
-                                                "$type": "number",
-                                                "$gt": float(
-                                                    settings["max_popfreq"]
-                                                ),
-                                            }
-                                        },
-                                    ],
+                                    ]
                                 },
                                 # Either variant fullfills Consequence-filter or is a structural variant in FLT3.
                                 {
@@ -278,46 +262,30 @@ def build_query(which, settings):
                                         },
                                     ]
                                 },
-                                # Filters if any of the population frequencies are above the max_popfreq
+                                # Filters if gnomad population frequency are above the max_popfreq
                                 {
-                                    "$nor": [
+                                    "$or": [
                                         {
                                             "gnomad_frequency": {
-                                                "$exists": "true",
+                                                "$exists": True,
                                                 "$type": "number",
-                                                "$gte": float(
+                                                "$lte": float(
                                                     settings["max_popfreq"]
                                                 ),
                                             }
                                         },
                                         {
-                                            "gnomad_max": {
-                                                "$exists": "true",
-                                                "$type": "number",
-                                                "$gte": float(
-                                                    settings["max_popfreq"]
-                                                ),
+                                            "gnomad_frequency": {
+                                                "$type": "string"
                                             }
                                         },
+                                        {"gnomad_frequency": None},
                                         {
-                                            "exac_frequency": {
-                                                "$exists": "true",
-                                                "$type": "number",
-                                                "$gte": float(
-                                                    settings["max_popfreq"]
-                                                ),
+                                            "gnomad_frequency": {
+                                                "$exists": False
                                             }
                                         },
-                                        {
-                                            "thousandG_frequency": {
-                                                "$exists": "true",
-                                                "$type": "number",
-                                                "$gte": float(
-                                                    settings["max_popfreq"]
-                                                ),
-                                            }
-                                        },
-                                    ],
+                                    ]
                                 },
                                 # Either variant fullfills Consequence-filter or is a promoter variant in TERT.
                                 {

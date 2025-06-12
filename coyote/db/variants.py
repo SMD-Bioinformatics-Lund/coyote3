@@ -253,6 +253,36 @@ class VariantsHandler(BaseHandler):
         """
         self.mark_false_positive(variant_id, fp)
 
+    def mark_false_positive_var_bulk(
+        self, variant_ids: list[str], fp: bool = True
+    ) -> Any:
+        """
+        Mark multiple variants as false positive.
+
+        Args:
+            variant_ids (list[str]): List of variant document IDs.
+            fp (bool, optional): The false positive status to set. Defaults to True.
+
+        Returns:
+            Any: The result of the bulk update operation.
+        """
+        return self.mark_false_positive_bulk(variant_ids, fp)
+
+    def unmark_false_positive_var_bulk(
+        self, variant_ids: list[str], fp: bool = False
+    ) -> Any:
+        """
+        Unmark multiple variants as false positive.
+
+        Args:
+            variant_ids (list[str]): List of variant document IDs.
+            fp (bool, optional): The false positive status to set. Defaults to False.
+
+        Returns:
+            Any: The result of the bulk update operation.
+        """
+        return self.mark_false_positive_bulk(variant_ids, fp)
+
     def mark_interesting_var(
         self, variant_id: str, interesting: bool = True
     ) -> Any:
@@ -324,6 +354,30 @@ class VariantsHandler(BaseHandler):
             Any: The result of the update operation.
         """
         self.mark_irrelevant(variant_id, irrelevant)
+
+    def mark_irrelevant_var_bulk(
+        self, variant_ids: list[str], irrelevant: bool = True
+    ) -> Any:
+        """
+        Mark multiple variants as irrelevant.
+
+        Args:
+            variant_ids (list[str]): List of variant document IDs.
+            irrelevant (bool, optional): The status to set. Defaults to True.
+        """
+        return self.mark_irrelevant_bulk(variant_ids, irrelevant)
+
+    def unmark_irrelevant_var_bulk(
+        self, variant_ids: list[str], irrelevant: bool = False
+    ) -> Any:
+        """
+        Unmark multiple variants as irrelevant.
+
+        Args:
+            variant_ids (list[str]): List of variant document IDs.
+            irrelevant (bool, optional): The status to set. Defaults to False.
+        """
+        return self.mark_irrelevant_bulk(variant_ids, irrelevant)
 
     def hide_var_comment(self, id: str, comment_id: str) -> Any:
         """

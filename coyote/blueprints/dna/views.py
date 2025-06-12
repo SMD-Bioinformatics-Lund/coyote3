@@ -273,19 +273,6 @@ def list_variants(sample_id):
         if sample["cnv"].lower().endswith((".png", ".jpg", ".jpeg")):
             sample["cnvprofile"] = sample["cnv"]
 
-    # LOWCOV data, very computationally intense for samples with many regions
-    low_cov = store.coverage_handler.get_sample_coverage(sample["name"])
-    low_cov_chrs = list(set([x["chr"] for x in low_cov]))
-
-    ## add cosmic to lowcov regions. Too many lowcov regions and this becomes very slow
-    # this could maybe be something else than cosmic? config important regions?
-    cosmic_ids = store.cosmic_handler.get_cosmic_ids(chromosomes=low_cov_chrs)
-
-    if assay_group != "solid":
-        low_cov = util.dna.filter_low_coverage_with_cosmic(low_cov, cosmic_ids)
-
-    display_sections_data["low_cov"] = deepcopy(low_cov)
-
     # Get bams
     bam_id = store.bam_service_handler.get_bams(sample_ids)
 
@@ -348,7 +335,7 @@ def list_variants(sample_id):
         "list_variants_vep.html",
         sample=sample,
         sample_ids=sample_ids,
-        assay=assay_group,
+        assay_group=assay_group,
         analysis_sections=analysis_sections,
         display_sections_data=display_sections_data,
         assay_panels=insilico_panel_genelists,
@@ -375,29 +362,30 @@ def classify_multi_variant(sample_id) -> Response:
     """
     action = request.form.get("action")
     variants_to_modify = request.form.getlist("selected_object_id")
-    assay = request.form.get("assay", None)
+    assay_group = request.form.get("assay_group", None)
     subpanel = request.form.get("subpanel", None)
     tier = request.form.get("tier", None)
     irrelevant = request.form.get("irrelevant", None)
     false_positive = request.form.get("false_positive", None)
 
     if tier and action == "apply":
-        variants_iter = []
-        for variant in variants_to_modify:
-            var_iter = store.variant_handler.get_variant(str(variant))
-            variants_iter.append(var_iter)
+        bulk_docs = []
+        for variant_id in variants_to_modify:
+            var = store.variant_handler.get_variant(str(variant_id))
+            if not var:
+                continue
 
-        for var in variants_iter:
-            selectec_csq = var["INFO"]["selected_CSQ"]
-            transcript = selectec_csq.get("Feature", None)
-            gene = selectec_csq.get("SYMBOL", None)
-            hgvs_p = selectec_csq.get("HGVSp", None)
-            hgvs_c = selectec_csq.get("HGVSc", None)
+            selected_csq = var.get("INFO", {}).get("selected_CSQ", {})
+            transcript = selected_csq.get("Feature")
+            gene = selected_csq.get("SYMBOL")
+            hgvs_p = selected_csq.get("HGVSp")
+            hgvs_c = selected_csq.get("HGVSc")
             hgvs_g = f"{var['CHROM']}:{var['POS']}:{var['REF']}/{var['ALT']}"
-            consequence = selectec_csq.get("Consequence", None)
+            consequence = selected_csq.get("Consequence")
             gene_oncokb = store.oncokb_handler.get_oncokb_gene(gene)
+
             text = util.dna.create_annotation_text_from_gene(
-                gene, consequence, assay, gene_oncokb=gene_oncokb
+                gene, consequence, assay_group, gene_oncokb=gene_oncokb
             )
 
             nomenclature = "p"
@@ -412,43 +400,49 @@ def classify_multi_variant(sample_id) -> Response:
 
             variant_data = {
                 "gene": gene,
-                "assay": assay,
+                "assay_group": assay_group,
                 "subpanel": subpanel,
                 "transcript": transcript,
             }
 
-            # Add the variant to the database with class
-            store.annotation_handler.insert_classified_variant(
+            class_doc = util.common.create_classified_variant_doc(
                 variant=variant,
                 nomenclature=nomenclature,
                 class_num=3,
                 variant_data=variant_data,
             )
 
+            bulk_docs.append(deepcopy(class_doc))
+
             # Add the annotation text to the database
-            store.annotation_handler.insert_classified_variant(
+            text_doc = util.common.create_classified_variant_doc(
                 variant=variant,
                 nomenclature=nomenclature,
                 class_num=3,
                 variant_data=variant_data,
                 text=text,
             )
-            if irrelevant:
-                store.variant_handler.mark_irrelevant_var(var["_id"])
+            bulk_docs.append(deepcopy(text_doc))
+
+        if bulk_docs:
+            store.annotation_handler.insert_annotation_bulk(bulk_docs)
+
     if false_positive:
         if action == "apply":
-            for variant in variants_to_modify:
-                store.variant_handler.mark_false_positive_var(variant)
+            store.variant_handler.mark_false_positive_var_bulk(
+                variants_to_modify
+            )
         elif action == "remove":
-            for variant in variants_to_modify:
-                store.variant_handler.unmark_false_positive_var(variant)
+            store.variant_handler.unmark_false_positive_var_bulk(
+                variants_to_modify
+            )
     if irrelevant:
         if action == "apply":
-            for variant in variants_to_modify:
-                store.variant_handler.mark_irrelevant_var(variant)
+            store.variant_handler.mark_irrelevant_var_bulk(variants_to_modify)
         elif action == "remove":
-            for variant in variants_to_modify:
-                store.variant_handler.unmark_irrelevant_var(variant)
+            store.variant_handler.unmark_irrelevant_var_bulk(
+                variants_to_modify
+            )
     return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
 
 
@@ -588,14 +582,14 @@ def show_variant(sample_id, var_id):
     # Get global annotations for the variant
     (
         annotations,
-        classification,
+        latest_classification,
         other_classifications,
         annotations_interesting,
     ) = store.annotation_handler.get_global_annotations(
         variant, assay_group, subpanel
     )
 
-    if not classification or classification.get("class") == 999:
+    if not latest_classification or latest_classification.get("class") == 999:
         variant = util.dna.add_alt_class(variant, assay_group, subpanel)
     else:
         variant["additional_classifications"] = None
@@ -616,7 +610,7 @@ def show_variant(sample_id, var_id):
         in_other=in_other,
         annotations=annotations,
         hidden_comments=has_hidden_comments,
-        classification=classification,
+        latest_classification=latest_classification,
         expression=expression,
         civic=civic,
         civic_gene=civic_gene,
@@ -885,10 +879,10 @@ def remove_classified_variant(sample_id, var_id):
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
     if nomenclature == "f":
         return redirect(url_for("rna_bp.show_fusion", id=var_id))
-    per_assay = store.annotation_handler.delete_classified_variant(
+    delete_result = store.annotation_handler.delete_classified_variant(
         variant, nomenclature, form_data
     )
-    app.logger.debug(per_assay)
+    app.logger.debug(delete_result)
     return redirect(
         url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
     )
@@ -1466,8 +1460,6 @@ def generate_dna_report(sample_id, **kwargs) -> Response | str:
         variants, filter_genes, assay_group
     )
 
-    print(f"variants lenfth: {len(variants)}")
-
     # Sample dict for the variant summary table in the report
     report_sections_data["snvs"] = util.dna.get_simple_variants_for_report(
         variants, assay_config
@@ -1480,6 +1472,8 @@ def generate_dna_report(sample_id, **kwargs) -> Response | str:
                 sample_id=str(sample["_id"])
             )
         )
+
+    if "CNV_PROFILE" in report_sections:
         report_sections_data["cnv_profile_base64"] = util.common.get_plot(
             os.path.basename(sample.get("cnvprofile", "")), assay_config
         )
@@ -1501,17 +1495,6 @@ def generate_dna_report(sample_id, **kwargs) -> Response | str:
     if "FUSION" in report_sections:
         report_sections_data["fusions"] = []
 
-    # TODO: LOW COV
-    # LOWCOV data, very computationally intense for samples with many regions
-    low_cov = store.coverage_handler.get_sample_coverage(sample["name"])
-    low_cov_chrs = list(set([x["chr"] for x in low_cov]))
-    cosmic_ids = store.cosmic_handler.get_cosmic_ids(chromosomes=low_cov_chrs)
-
-    if assay_group != "solid":
-        low_cov = util.dna.filter_low_coverage_with_cosmic(low_cov, cosmic_ids)
-    # low_cov = store.coverage_handler.get_sample_coverage(sample["name"])
-    report_sections_data["low_cov"] = deepcopy(low_cov)
-
     # report header and date
     assay_config["reporting"]["report_header"] = util.common.get_report_header(
         assay_group,
@@ -1530,8 +1513,6 @@ def generate_dna_report(sample_id, **kwargs) -> Response | str:
     report_date = datetime.now().date()
 
     fernet = app.config["FERNET"]
-
-    print(f"Report sections: {report_sections}")
 
     return render_template(
         "dna_report.html",
@@ -1577,12 +1558,14 @@ def save_dna_report(sample_id) -> Response:
         return result
     sample, assay_config, assay_config_schema = result
 
-    assay_group = assay_config.get("assay_group", "unknown")
-    report_num = sample.get("report_num", 0) + 1
-    report_id = f"{sample_id}.{report_num}"
-    report_path = os.path.join(app.config["REPORTS_BASE_PATH"], assay_group)
+    assay_group: str = assay_config.get("assay_group", "unknown")
+    report_num: int = sample.get("report_num", 0) + 1
+    report_id: str = f"{sample_id}.{report_num}"
+    report_path: str = os.path.join(
+        app.config["REPORTS_BASE_PATH"], assay_group
+    )
     os.makedirs(report_path, exist_ok=True)
-    report_file = os.path.join(report_path, f"{report_id}.html")
+    report_file: str = os.path.join(report_path, f"{report_id}.html")
 
     if os.path.exists(report_file):
         flash("Report already exists.", "red")
