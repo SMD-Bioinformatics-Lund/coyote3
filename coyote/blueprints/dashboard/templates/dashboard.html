@@ -11,14 +11,14 @@
         <h2 class="text-xl font-semibold mb-1">Total Samples</h2>
         <p class="text-4xl font-extrabold">{{ total_samples }}</p>
     </div>
-    <a href="{{ url_for('home_bp.home_screen', status="done") }}">
+    <a href="{{ url_for('home_bp.samples_home', status="done") }}">
       <div class="card bg-white text-black shadow-lg rounded-xl p-5 relative overflow-hidden border-4 border-green-400 transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl">
         <div class="fill bg-green-400" style="width: {{ analysed_samples / total_samples * 100 }}%;"></div>
             <h2 class="text-xl font-semibold mb-1 relative z-10">Samples Analysed</h2>
             <p class="text-4xl font-extrabold relative z-10">{{ analysed_samples }}</p>
       </div>
     </a>
-    <a href="{{ url_for('home_bp.home_screen') }}">
+    <a href="{{ url_for('home_bp.samples_home') }}">
       <div class="card bg-white text-black shadow-lg rounded-xl p-5 relative overflow-hidden border-4 border-red-400 transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl">
         <div class="fill bg-red-400" style="width: {{ pending_samples|int / total_samples|int * 100 }}%;"></div>
           <h2 class="text-xl font-semibold mb-1 relative z-10">Samples Pending</h2>

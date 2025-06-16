@@ -2,7 +2,6 @@
 {% block title %}View Genelist{% endblock %}
 {% block body %}
 <div class="flex w-full h-full overflow-hidden">
-
   {% if not is_public %}
     {% include "admin_sidebar.html" %}
   {% endif %}
@@ -23,6 +22,25 @@
             <div><span class="font-semibold">Created By:</span> {{ genelist.created_by }}</div>
             <div><span class="font-semibold">Created On:</span> {{ genelist.created_on | human_date }}</div>
           </div>
+
+          <!-- Version Selector -->
+          {% if genelist.version_history %}
+            <div class="mt-4">
+              <form method="GET">
+                {% if selected_assay %}
+                  <input type="hidden" name="assay" value="{{ selected_assay }}">
+                {% endif %}
+                <label class="text-xs font-semibold text-gray-800 mr-2">View Version:</label>
+                <select name="version" onchange="this.form.submit()" class="text-xs px-2 py-1 rounded-md border border-gray-300 bg-white">
+                  {% for v in genelist.version_history | reverse %}
+                    <option value="{{ v.version }}" {% if selected_version == v.version %}selected{% endif %}>
+                      v{{ v.version }} ({{ v.timestamp | human_date }})
+                    </option>
+                  {% endfor %}
+                </select>
+              </form>
+            </div>
+          {% endif %}
         </div>
 
         <!-- Assay Selector -->
@@ -30,6 +48,9 @@
           <div class="border-l-4 border-blue-300 bg-blue-50 rounded-xl p-4 shadow-md">
             <h2 class="text-sm font-bold text-blue-700 uppercase tracking-wide mb-2">Select Assay</h2>
             <form method="GET" action="" class="text-sm">
+              {% if selected_version %}
+                <input type="hidden" name="version" value="{{ selected_version }}">
+              {% endif %}
               <select name="assay" onchange="this.form.submit()" class="w-64 bg-white border border-gray-400 rounded-md p-2">
                 <option value="">-- Show All Genes --</option>
                 {% for assay in genelist.assays %}
@@ -53,7 +74,12 @@
 
           <ul class="list-disc pl-6 text-sm text-gray-800 max-h-[400px] overflow-y-auto">
             {% for gene in filtered_genes | sort %}
-              <li>{{ gene }}</li>
+              <li>
+                {{ gene }}
+                {% if gene in panel_germline_genes %}
+                  <span class="ml-2 px-2 py-0.5 text-xs font-semibold text-white bg-red-500 rounded-full">G</span>
+                {% endif %}
+              </li>
             {% endfor %}
           </ul>
         </div>

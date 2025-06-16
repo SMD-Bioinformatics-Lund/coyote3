@@ -1,3 +1,15 @@
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 from flask import current_app as app, render_template
 from flask_login import login_required
 from coyote.extensions import store, util
@@ -83,11 +95,11 @@ def dashboard() -> str:
 
     # Get total genes analysed from all the panels
     unique_gene_count_all_panels = (
-        store.panel_handler.get_unique_all_panel_gene_count()
+        store.asp_handler.get_all_asps_unique_gene_count()
     )
 
     # Get gene counts in each panel
-    assay_gene_counts = store.panel_handler.get_assay_gene_counts()
+    assay_gene_counts = store.asp_handler.get_all_asp_gene_counts()
     genelist_gene_counts = 0
 
     # Total Assays analysed

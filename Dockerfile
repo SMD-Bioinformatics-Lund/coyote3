@@ -40,11 +40,10 @@ COPY scripts/ ./scripts/
 
 # Runtime environment variables that should be overridden by docker-compose.yml or .env file
 ENV SCRIPT_NAME=""
-ENV COYOTE_LOG_LEVEL="INFO"
 # NOTE: Mongo settings (FLASK_MONGO_HOST etc) will be passed dynamically via docker-compose env_file
 
 # Gunicorn command (you can override with `command:` in docker-compose if needed)
-CMD ["gunicorn", "--timeout", "120", "-w", "2", "-e", "SCRIPT_NAME", "--log-level", "INFO", "--bind", "0.0.0.0:8000", "wsgi:app"]
+CMD ["gunicorn", "--timeout", "120", "-w", "2", "-e", "SCRIPT_NAME", "--log-level", "DEBUG", "--bind", "0.0.0.0:8000", "wsgi:app"]
 
 # (Optional) Stage 2: MongoDB Dev Stage (you probably don't need it unless developing Mongo inside same build)
 # FROM mongo:3.4-xenial as cdm_mongo_dev

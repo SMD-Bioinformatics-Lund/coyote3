@@ -1,4 +1,15 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 """
 SchemaHandler module for Coyote3
 ================================
@@ -7,9 +18,6 @@ This module defines the `SchemaHandler` class used for accessing and managing
 schema data in MongoDB.
 
 It is part of the `coyote.db` package and extends the base handler functionality.
-
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
 # -------------------------------------------------------------------------
@@ -87,7 +95,7 @@ class SchemaHandler(BaseHandler):
             {"_id": schema_id}, updated_doc
         )
 
-    def toggle_active(self, schema_id: str, active_status: bool) -> Any:
+    def toggle_schema_active(self, schema_id: str, active_status: bool) -> Any:
         """
         Toggles the active status of a schema document.
 
@@ -98,11 +106,9 @@ class SchemaHandler(BaseHandler):
         Returns:
             Any: The result of the update operation.
         """
-        return self.get_collection().update_one(
-            {"_id": schema_id}, {"$set": {"is_active": active_status}}
-        )
+        return self.toggle_active(schema_id, active_status)
 
-    def insert_schema(self, schema_doc: dict) -> Any:
+    def create_schema(self, schema_doc: dict) -> Any:
         """
         Inserts a new schema document into the collection.
 
@@ -126,7 +132,7 @@ class SchemaHandler(BaseHandler):
         """
         return self.get_collection().delete_one({"_id": schema_id})
 
-    def get_schemas_by_filter(
+    def get_schemas_by_category_type(
         self,
         schema_category: str = None,
         schema_type: str = None,

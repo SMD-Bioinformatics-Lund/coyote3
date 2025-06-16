@@ -1,3 +1,15 @@
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 import time
 import traceback
 from functools import wraps
@@ -22,7 +34,9 @@ def log_action(action_name: str = None, call_type: str = None):
             start_time = time.perf_counter()
 
             # Log start
-            logger.log(action=action, status="started", metadata=g.audit_metadata)
+            logger.log(
+                action=action, status="started", metadata=g.audit_metadata
+            )
 
             try:
                 result = func(*args, **kwargs)
@@ -40,7 +54,10 @@ def log_action(action_name: str = None, call_type: str = None):
                 g.audit_metadata["error"] = str(e)
                 g.audit_metadata["traceback"] = traceback.format_exc()
                 logger.log(
-                    action=action, status="failed", start_time=start_time, metadata=g.audit_metadata
+                    action=action,
+                    status="failed",
+                    start_time=start_time,
+                    metadata=g.audit_metadata,
                 )
                 raise
 

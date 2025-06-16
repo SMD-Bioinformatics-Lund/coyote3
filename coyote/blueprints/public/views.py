@@ -1,6 +1,19 @@
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 """
 Coyote Public Facing Routes
 """
+
 
 from flask import current_app as app
 from flask import (
@@ -20,7 +33,7 @@ from copy import deepcopy
 from werkzeug import Response
 from coyote.extensions import store, util
 from coyote.blueprints.public import public_bp
-from coyote.util.decorators.access import require_sample_group_access
+from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
 
 
@@ -45,11 +58,8 @@ def view_genelist(genelist_id) -> Response | str:
     Returns:
         flask.Response: The rendered template or a redirect response if the genelist is not found.
     """
-    genelist = store.insilico_genelist_handler.get_genelist(genelist_id)
-    app.public_logger.info(
-        f"Genelist '{genelist_id}' not found!",
-        extra={"genelist_id": genelist_id},
-    )
+    genelist = store.isgl_handler.get_isgl(genelist_id, is_active=True)
+
     if not genelist:
         app.public_logger.info(
             f"Genelist '{genelist_id}' not found!",
@@ -64,9 +74,11 @@ def view_genelist(genelist_id) -> Response | str:
     assays = genelist.get("assays", [])
 
     filtered_genes = all_genes
+    germline_genes = []
     if selected_assay and selected_assay in assays:
-        panel = store.panel_handler.get_panel(selected_assay)
+        panel = store.asp_handler.get_asp(selected_assay)
         panel_genes = panel.get("covered_genes", []) if panel else []
+        germline_genes = panel.get("germline_genes", []) if panel else []
         filtered_genes = (
             sorted(set(all_genes).intersection(panel_genes))
             if panel.get("panel_technology") != "WGS"
@@ -78,6 +90,7 @@ def view_genelist(genelist_id) -> Response | str:
         genelist=genelist,
         selected_assay=selected_assay,
         filtered_genes=filtered_genes,
+        germline_genes=germline_genes,
         is_public=True,
     )
 
@@ -93,7 +106,7 @@ def genepanel_matrix() -> str:
     Returns:
         str: Rendered HTML page displaying the genelist-assay matrix.
     """
-    genelists = store.insilico_genelist_handler.get_all_gene_lists()
+    genelists = store.isgl_handler.get_all_isgl(is_active=True)
     public_assay_map = app.config["PUBLIC_ASSAY_MAP"]
 
     return render_template(
@@ -128,27 +141,22 @@ def panel_gene_explorer() -> str:
 
     subpanels = []
     gene_details = []
+    germline_gene_symbols = []
 
     if selected_panel_name:
         assay_ids = public_assay_map.get(selected_panel_name, [])
-        subpanels = store.insilico_genelist_handler.get_subpanels_for_assays(
-            assay_ids
+        subpanels = store.isgl_handler.get_subpanels_for_asp(assay_ids)
+        # TODO: Currently only one assay is selected, In future we should support multiple
+        gene_symbols, germline_gene_symbols = store.asp_handler.get_asp_genes(
+            assay_ids[0]
         )
-        # Currently only one assay is selected, In future we should support multiple
-        gene_symbols = store.panel_handler.get_panel_genes(assay_ids[0])
 
         if selected_subpanel_name:
-            gene_symbols = (
-                store.insilico_genelist_handler.get_genes_for_subpanel(
-                    selected_subpanel_name
-                )
+            gene_symbols = store.isgl_handler.get_asp_subpanel_genes(
+                assay_ids[0], selected_subpanel_name
             )
 
-        gene_details = (
-            store.insilico_genelist_handler.get_gene_details_by_symbols(
-                gene_symbols
-            )
-        )
+        gene_details = store.hgnc_handler.get_metadata_by_symbols(gene_symbols)
 
     return render_template(
         "panel_gene_explorer.html",
@@ -157,4 +165,5 @@ def panel_gene_explorer() -> str:
         subpanels=subpanels,
         selected_subpanel_name=selected_subpanel_name,
         gene_details=gene_details,
+        germline_gene_symbols=germline_gene_symbols,
     )

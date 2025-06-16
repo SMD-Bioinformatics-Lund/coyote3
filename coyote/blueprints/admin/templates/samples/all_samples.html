@@ -48,6 +48,7 @@
                   <th class="p-2 font-normal">Sample Name</th>
                   <th class="p-2 font-normal">Groups</th>
                   <th class="p-2 font-normal">Diagnosis</th>
+                  <th class="p-2 font-normal">Profile</th>
                   <th class="p-2 font-normal">Reported</th>
                   <th class="p-2 font-normal text-center">Action</th>
                 </tr>
@@ -58,6 +59,11 @@
                     <td class="p-2 font-medium">{{ sample.name }}</td>
                     <td class="p-2 font-medium">{{ sample.groups | join(', ') }}</td>
                     <td class="p-2 font-medium">{{ sample.subpanel }}</td>
+                    <td class="p-2 font-medium">
+                      <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-{{ sample.profile or 'production' }} text-center">
+                        {{ sample.get('profile', '')[0]|upper or 'P' }}
+                      </span>
+                    </td>
                     <td class="p-2 font-medium">{{ 'Yes' if sample.get('reports') else 'No' }}</td>
                     <td class="p-2 font-medium flex gap-3">
                       {% if has_access("delete_sample_global", min_role="developer", min_level=9999) %}

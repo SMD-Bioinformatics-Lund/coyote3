@@ -1,3 +1,15 @@
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 from functools import wraps
 from flask import redirect, url_for, flash
 from flask_login import current_user
@@ -17,7 +29,7 @@ def require_admin(f):
 
         if not current_user.is_admin:
             flash("Admins only!", "red")
-            return redirect(url_for("home_bp.home_screen"))
+            return redirect(url_for("home_bp.samples_home"))
 
         return f(*args, **kwargs)
 
@@ -37,8 +49,10 @@ def require_permission(permission: str):
                 return redirect(url_for("login_bp.login"))
 
             if permission not in current_user.granted_permissions:
-                flash("You don’t have permission to perform this action.", "red")
-                return redirect(url_for("home_bp.home_screen"))
+                flash(
+                    "You don’t have permission to perform this action.", "red"
+                )
+                return redirect(url_for("home_bp.samples_home"))
 
             return f(*args, **kwargs)
 
@@ -59,9 +73,11 @@ def require_any_permission(*permissions):
                 flash("Login required.", "yellow")
                 return redirect(url_for("login_bp.login"))
 
-            if not any(p in current_user.granted_permissions for p in permissions):
+            if not any(
+                p in current_user.granted_permissions for p in permissions
+            ):
                 flash("You don’t have any of the required permissions.", "red")
-                return redirect(url_for("home_bp.home_screen"))
+                return redirect(url_for("home_bp.samples_home"))
 
             return f(*args, **kwargs)
 
@@ -82,10 +98,14 @@ def require_all_permissions(*permissions):
                 flash("Login required.", "yellow")
                 return redirect(url_for("login_bp.login"))
 
-            missing = [p for p in permissions if p not in current_user.granted_permissions]
+            missing = [
+                p
+                for p in permissions
+                if p not in current_user.granted_permissions
+            ]
             if missing:
                 flash(f"Missing permissions: {', '.join(missing)}", "red")
-                return redirect(url_for("home_bp.home_screen"))
+                return redirect(url_for("home_bp.samples_home"))
 
             return f(*args, **kwargs)
 
@@ -108,7 +128,7 @@ def require_min_access_level(min_level: int):
 
             if not current_user.has_min_access_level(min_level):
                 flash("Insufficient role level to access this page.", "red")
-                return redirect(url_for("home_bp.home_screen"))
+                return redirect(url_for("home_bp.samples_home"))
 
             return f(*args, **kwargs)
 
@@ -129,16 +149,20 @@ def require_role_or_permission(min_level=None, permission=None):
                 flash("Login required.", "yellow")
                 return redirect(url_for("login_bp.login"))
 
-            role_ok = min_level is not None and current_user.has_min_access_level(min_level)
+            role_ok = (
+                min_level is not None
+                and current_user.has_min_access_level(min_level)
+            )
             permission_ok = (
-                permission is not None and permission in current_user.granted_permissions
+                permission is not None
+                and permission in current_user.granted_permissions
             )
 
             if role_ok or permission_ok:
                 return f(*args, **kwargs)
 
             flash("You do not have access to this page.", "red")
-            return redirect(url_for("home_bp.home_screen"))
+            return redirect(url_for("home_bp.samples_home"))
 
         return wrapped
 

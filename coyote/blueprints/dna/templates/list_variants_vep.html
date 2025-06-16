@@ -75,7 +75,7 @@
     <!-- LEFT SIDEBAR (Fixed Width, Full Height) -->
     <aside class="w-8 bg-transparent text-white flex flex-col">
 
-      {% for dna_section in dna_sections %}
+      {% for dna_section in analysis_sections %}
         {% if dna_section != "BIOMARKER" %}
           <div class="flex border-l-8 border-yellow-400 mt-1">
             <a href="#{{ dna_section }}" 
@@ -102,13 +102,6 @@
         </div>
       {% endif %}
 
-      <div class="flex border-l-8 border-orange-400 ">
-        <a href="#LOW-COV" 
-          class="relative bg-gray-500 text-white text-xs text-center mt-1 py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-            <span class="vertical-text">LOW-COV</span>
-        </a>
-      </div>
-
       {% if has_access('preview_dna_report', min_role='user', min_level=9) %}
         <div class="flex border-l-8 border-teal-400  mt-1">
           <a href="{{ url_for('dna_bp.generate_dna_report', sample_id=sample.name) }}" 
@@ -127,9 +120,21 @@
 
       <!-- Selected Gene Panel Card -->
       {% include "selected_gene_panel_div.html" %}
-      
+
+      {% if verification_sample_used %}
+        <!-- Verification Sample Card -->
+        <section class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
+          <div class="overflow-x-auto relative">
+            <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">Verification Sample</h2>
+          </div>
+          <div class="mx-2 py-2">
+            <p class="text-sm font-semibold text-yellow-700">Verification sample used: {{ verification_sample_used }}</p>
+          </div>
+        </section>
+      {% endif %}
+
       <!-- SNVs & Indels Card -->
-      {% if "SNV" in dna_sections %}
+      {% if "SNV" in analysis_sections %}
         {% set variants = display_sections_data.snvs %}
         <section id="SNV" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
           <!-- SNV/Indels Header -->
@@ -167,11 +172,12 @@
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-hgvs">Exon</th>
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-hgvs">Intron</th>
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-type">Type</th>
+                        <th class="px-2 py-3 font-semibold" id="variant-table-header-type">Indel Size</th>
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-conseq">Consequence</th>
                         <th class="px-2 py-3 font-semibold max-w-15c" id="variant-table-header-popFreq">PopFreq %</th>
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-tier">Tier</th>
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-chrPos">Chr:Pos</th>
-                        {% if assay == "solid" %}
+                        {% if assay_group == "solid" %}
                           <th class="py-3 font-semibold" id="variant-table-header-hotspot">Hotspot</th>
                         {% endif %}
                         <th class="px-2 py-3 font-semibold max-w-30c" id="variant-table-header-flags">Flags</th>
@@ -191,6 +197,7 @@
                       {% for var in variants %}
                         {% set csq = var.INFO.selected_CSQ %}
                         {% set chr_pos = var.CHROM ~ ":" ~ var.POS %}
+                        {% set indel_size = var.ALT|length - var.REF|length %}
                         {# Build the final IGV URL #}
                         {% if all_samples_bam_paths and has_access("view_igv", min_role="user", min_level=9) %}
                           {% set igv_url = "http://localhost:60151/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ chr_pos %}
@@ -200,9 +207,9 @@
                         {% endif %}
 
                         {% if var.fp == True or ( var.blacklist and var.override_blacklist != true ) or var.irrelevant == True %}
-                          <tr class='bg-red-200 opacity-60 hover:bg-red-300 border-t border-gray-400 text-left fp' id="snv-table-row-fp">
+                          <tr class='bg-red-200 opacity-60 hover:bg-red-200 border-t border-gray-400 text-left fp' id="snv-table-row-fp">
                         {% else %}
-                          <tr class="border-t border-gray-400 text-left " id="snv-table-row">
+                          <tr class="border-t border-gray-400 text-left hover:bg-yellow-50" id="snv-table-row">
                         {% endif %}
 
                         <!-- Checkbox -->
@@ -330,6 +337,15 @@
                           {% endif %}
                         </td>
 
+                        <!-- Indel Size -->
+                        <td id="snv-table-row-indel-size" class="px-1">
+                          {% if indel_size != 0 %}
+                            {{ indel_size }} bp {% if indel_size < 0 %}DEL{% else %}INS{% endif %}
+                          {% else %}
+                            -
+                          {% endif %}
+                        </td>
+
                         <!-- Consequence -->
                         <td id="snv-table-row-conseq" class="lowercase h-full items-left align-middle px-1 py-1">
                           {% set consequences = csq.Consequence if csq.Consequence is iterable and csq.Consequence is not string else csq.Consequence.split('&') %}
@@ -355,14 +371,8 @@
                         <td class="font-semibold max-w-15c" id="snv-table-row-popFreq">
                           {% if "gnomad_frequency" in var and var.gnomad_frequency != "" %}
                             {{ '%.3f' | format(100*var.gnomad_frequency)}}<br>
-                          {% elif "gnomad_max" in var and var.gnomad_max != "" %}
-                            {{ '%.3f' | format(100*var.gnomad_max)}}<br>
-                          {% endif %}
-                          {% if var.exac_frequency %}
-                            ExAC: {{ var.exac_frequency|format_pop_freq(var.ALT)|safe }}<br>
-                          {% endif %}
-                          {% if var.thousandG_frequency %}
-                            1000G: {{ var.thousandG_frequency|format_pop_freq(var.ALT)|safe }}
+                          {% else %}
+                            -
                           {% endif %}
                         </td>
 
@@ -370,7 +380,7 @@
                         <td class="font-semibold px-1" id="snv-table-row-class">
                           {% if var.classification.class != 999 and var.classification.transcript == csq.Feature %}
                             <div class="inline-flex items-center px-3 py-1 font-semibold rounded-full bg-tier{{ var.classification.class }} text-white shadow-md">
-                              {% if assay in ["myeloid", "tumwgs"] or "assay" in var.classification %}
+                              {% if assay_group in ["myeloid", "tumwgs"] or "assay" in var.classification %}
                                 {{ var.classification.class }}
                               {% else %}
                                 *
@@ -387,6 +397,8 @@
                             <div class="inline-flex items-center px-3 py-1 font-semibold rounded-full bg-gray-400 text-white shadow-md">
                               ?
                             </div>
+                          {% else %}
+                              -
                           {% endif %}
                         </td>
 
@@ -398,7 +410,7 @@
                         </td>
 
                         <!-- Hotspot (Only Display if Assay is 'solid' and Hotspot Exists) -->
-                        {% if assay == "solid" %} 
+                        {% if assay_group == "solid" %} 
                           <td  id="snv-table-row-hotspot">
                             {% if var.INFO.HOTSPOT %}
                               <div class="inline-block px-1 py-1 font-semibold text-white rounded-full">
@@ -450,7 +462,7 @@
 
       <!-- CNVs Container -->  
       {% set has_cnv_image = sample.cnvprofile is not none %}   
-      {% if "CNV" in dna_sections or has_cnv_image %}
+      {% if "CNV" in analysis_sections or has_cnv_image %}
         {% set cnvs = display_sections_data.get('cnvs', []) %}
         <section id="CNV" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative w-full">
           <!-- CNVs Header -->
@@ -536,7 +548,7 @@
                 {% endif %}
 
                 <!-- CNV Table -->
-                {% if "CNV" in dna_sections %}
+                {% if "CNV" in analysis_sections %}
                   <div class="cnv-table bg-transparent py-2">
                     <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
                       <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg p-2 z-10">
@@ -557,14 +569,14 @@
                               <th class="px-2 py-3 font-semibold" id="cnv-table-header-genes">Genes</th>
                               <th class="px-2 py-3 font-semibold" id="cnv-table-header-region">Region</th>
                               <th class="px-2 py-3 font-semibold" id="cnv-table-header-size">Size (bp)</th>
-                              {% if assay == "solid" or assay == "gmsonco" %}
+                              {% if assay_group in ["solid", "gmsonco"] %}
                                 <th class="px-2 py-3 font-semibold" id="cnv-table-header-callers">Callers</th>
                               {% endif %}
                                 <th class="px-2 py-3 font-semibold" id="cnv-table-header-cn">Copy number</th>
                               {% if sample.purity %}
                                 <th class="px-1 py-3 font-semibold w-4" id="cnv-table-header-purity">Purity {{ sample.purity }}</th>
                               {% endif %}
-                              {% if assay == "solid" or assay == "gmsonco" %}
+                              {% if assay_group in ["solid", "gmsonco"] %}
                                 <th class="px-1 py-3 font-semibold" id="cnv-table-header-sr">SR (ref/alt)</th>
                               {% endif %}
                               <th class="px-1 py-3 font-semibold w-4" id="cnv-table-header-status">Status</th>
@@ -578,7 +590,7 @@
                               {% elif cnv.ratio > 3 and cnv.size > (sample.filters.max_cnv_size|int) %}
                                 <tr class="bg-red-100 border-t border-gray-400 text-left" id="cnv-table-row">
                               {% else %}
-                                <tr class="border-t border-gray-400 text-left" id="cnv-table-row">
+                                <tr class="border-t border-gray-400 text-left hover:bg-yellow-50" id="cnv-table-row">
                               {% endif %}
 
                                 <!-- Genes -->
@@ -610,12 +622,12 @@
                                 </td>
 
                                 <!-- Callers -->
-                                {% if assay == "solid" or assay == "gmsonco" %}
+                                {% if assay_group in ["solid", "gmsonco"] %}
                                   <td id="cnv-table-row-callers">
                                     {{ cnv.callers }}
                                   </td>
 
-                                  <!-- Copy Number for solid and gmsonco assay -->
+                                  <!-- Copy Number for solid and gmsonco -->
                                   {% if "gatk" in cnv.callers or "cnvkit" in cnv.callers %}
                                     <td id="cnv-table-row-ratio">
                                       {{ 2*(2**cnv.ratio)|round(2) }} ({{ cnv.ratio }})
@@ -643,7 +655,7 @@
                                       </td>
                                     {% endif %}
                                   {% else %}
-                                    {% if assay == "solid" %}
+                                    {% if assay_group == "solid" %}
                                       <td id="cnv-table-row-pr">
                                         -
                                       </td>
@@ -689,7 +701,7 @@
       {% endif %}
 
       <!-- Translocations Card -->
-      {% if "TRANSLOCATION" in dna_sections %}
+      {% if "TRANSLOCATION" in analysis_sections %}
         {% set transloc = display_sections_data.translocs %}
         <section id="TRANSLOCATION" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
           <!-- Translocs Header -->
@@ -733,7 +745,7 @@
                         {% if tl.interesting %}
                           <tr class="bg-green-100 hover:bg-green-200 border-t border-gray-400 text-left" id="transloc-table-row-interesting">
                         {% else %}    
-                          <tr class="border-t border-gray-400 text-left" id="transloc-table-row">
+                          <tr class="border-t border-gray-400 text-left hover:bg-yellow-50" id="transloc-table-row">
                         {% endif %}
 
                           <td class="pl-2 py-2.5" id="transloc-table-row-gene1">
@@ -781,7 +793,7 @@
       {% endif %}
 
       <!-- Fusion Card -->
-      {% if "FUSION" in dna_sections %} <!-- TODO: CHECK THIS WITH TEST DATA -->
+      {% if "FUSION" in analysis_sections %} <!-- TODO: CHECK THIS WITH TEST DATA -->
         {% set fusions = display_sections_data.fusions %}
         <section id="FUSION" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
           <!-- Fusions Header -->
@@ -827,7 +839,7 @@
                         {% if fus.blacklisted or fus.fp %}
                           <tr class="bg-red-200 opacity-60 hover:bg-red-300 border-t border-gray-400 text-left"id="fusions-table-row-blacklisted">
                         {% else %}
-                          <tr class="border-t border-gray-400 text-left" id="fusions-table-row">
+                          <tr class="border-t border-gray-400 text-left hover:bg-yellow-50" id="fusions-table-row">
                         {% endif %}
                           <td class="pl-2 py-2.5" id="fusions-table-row-gene1">
                             {{ genes[0] }}
@@ -999,70 +1011,6 @@
         </div>
       </section>
 
-
-      <!-- Low Coverage Card old way -->
-      <section id="LOW-COV" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
-        <!-- Low Coverage Header -->
-        <div class="overflow-x-auto relative">
-          <div class="flex justify-between items-center">
-            <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">Coverage</h2>
-            <button class="bg-yellow-500 hover:bg-yellow-700 text-black text-xs mr-2 mt-1 px-5 py-1.5 rounded-md shadow-lg cursor-pointer duration-100 ease-in-out transform hover:scale-101" href='#lowcov' onclick="show_lowcov();">Show</button>
-          </div>
-        </div>
-        
-        <div class="mx-auto py-2 " id="lowcov-content">
-          <div class="flex flex-wrap gap-4 ">
-            <!-- Low Cov locations Table -->
-            <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
-              <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-red-200 to-orange-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
-                <h2 class="text-sm font-semibold text-black">Low Coverage Regions</h2>
-                {% if has_access("download_lovcov", min_role="user", min_level=9) %}
-                  <img 
-                    src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
-                    alt="Export to CSV - lowcov" 
-                    onclick="exportTableToCSV('{{ sample.name }}.filtered.lowcov.csv', 'lowcov-table')" 
-                    class="w-6 h-6 transition-transform transform hover:scale-110"
-                  />
-                {% endif %}
-              </div>
-              <div class="overflow-auto relative">
-                <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="lowcov-table">
-                  <thead class="sortable capitalize tracking-wide rounded-t-lg bg-orange-100">
-                    <tr class="border-b text-left border-gray-800" id="lowcov-table-header">
-                      <th class="px-2 py-3 font-semibold" id="lowcov-table-header-region">Chromosomal region</th>
-                      <th class="px-2 py-3 font-semibold" id="lowcov-table-header-size">Size (bp)</th>
-                      <th class="px-2 py-3 font-semibold" id="lowcov-table-header-avgDepth" data-autoclick-once="true">Avg depth (x)</th>
-                      <th class="px-2 py-3 font-semibold" id="lowcov-table-header-amplicon">Amplicon</th>
-                      <th class="px-2 py-3 font-semibold" id="lowcov-table-header-cosmicIds">COSMIC variants</th>
-                    </tr>
-                  </thead>
-                  <tbody id="lowcov-table-body" style="display:none">
-                    {% for low in low_cov %}
-                      {% if low.avg_cov < 500 %}
-                        <tr class="bg-red-50 hover:bg-red-100 border-t border-gray-400 text-left" id="lowcov-table-row">
-                      {% else %}
-                        <tr class="hover:bg-yellow-50 border-t border-gray-400 text-left" id="lowcov-table-row">
-                      {% endif %}
-                        <td class="pl-2 py-2.5" id="lowcov-table-row-region">{{ low.chr }}:{{ low.start }}-{{ low.end }}</td>
-                        <td id="lowcov-table-row-size">{{ low.end - low.start + 1 }}</td>
-                        <td id="lowcov-table-row-avgDepth">{{ low.avg_cov|int }}</td>
-                        <td id="lowcov-table-row-amplicon">{{ low.amplicon }}</td>
-                        <td id="lowcov-table-row-cosmicIds">
-                          {% for cosm in low.cosmic %}
-                            <span class="block" title="{{ cosm['cnt'] }}">{{ cosm["id"] }} - {{ cosm["cnt"]["haematopoietic_and_lymphoid_tissue"] }}</span>
-                          {% endfor %}
-                        </td>
-                      </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-
     </main>
 
 
@@ -1098,8 +1046,8 @@
       let imageLink = document.getElementById("cnv-image-link");
 
       // Store original and rotated image URLs
-      let originalImage = "{{ url_for('dna_bp.show_any_plot', sample_id=sample.name, fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}";
-      let rotatedImage = "{{ url_for('dna_bp.show_any_plot_rotated', sample_id=sample.name,  fn=sample.cnvprofile|basename, assay=assay, build=build|int) }}";
+      let originalImage = "{{ url_for('dna_bp.show_any_plot', sample_id=sample.name, fn=sample.cnvprofile|basename) }}";
+      let rotatedImage = "{{ url_for('dna_bp.show_any_plot_rotated', sample_id=sample.name,  fn=sample.cnvprofile|basename) }}";
 
       function updateToggleState() {
           if (toggle.checked) {
@@ -1163,19 +1111,6 @@
       expanded = !expanded;
     }
     
-    function show_lowcov() {
-      var lowcovDiv = document.getElementById("lowcov-table-body");
-      var button = document.querySelector("button[onclick='show_lowcov();']");
-
-      if (lowcovDiv.style.display === "none") {
-          lowcovDiv.style.display = "";
-          button.textContent = "Hide";
-      } else {
-          lowcovDiv.style.display = "none";
-          button.textContent = "Show";
-      }
-    }
-
     
     function show_germlinecnv(button) {
       var germlineDiv = document.getElementById("germline_div");

@@ -25,15 +25,15 @@
               <thead class="rounded-t-2xl overflow-hidden border-gray-800">
                 <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
                   <th class="p-2 font-normal">Assay Name</th>
-                  <th class="p-2 font-normal">Panel Name</th>
+                  <th class="p-2 font-normal">Display Name</th>
+                  <th class="p-2 font-normal">Environment</th>
                   <th class="p-2 font-normal">Group</th>
-                  <th class="p-2 font-normal">Type</th>
-                  <th class="p-2 font-normal">Panel Technology</th>
+                  <th class="p-2 font-normal">Category</th>
+                  <th class="p-2 font-normal">Platform</th>
                   <th class="p-2 font-normal">Schema Name</th>
-                  <th class="p-2 font-normal">Schema Version</th>
                   <th class="p-2 font-normal">Created</th>
                   <th class="p-2 font-normal">Updated</th>
-                  <th class="p-2 font-normal">Version</th>
+                  <th class="p-2 font-normal">Current Version</th>
                   <th class="p-2 font-normal">Status</th>
                   <th class="p-2 font-normal">Actions</th>
                 </tr>
@@ -42,12 +42,12 @@
                 {% for assay in assay_configs %}
                 <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
                   <td class="p-2 font-medium">{{ assay.assay_name }}</td>
-                  <td class="p-2 font-medium">{{ assay.panel_name }}</td>
-                  <td class="p-2 font-medium">{{ assay.assay_group }}</td>
-                  <td class="p-2 font-medium">{{ assay.config_format }}</td>
-                  <td class="p-2 font-medium">{{ assay.panel_technology }}</td>
-                  <td class="p-2 font-medium">{{ assay.schema_name }}</td>
-                  <td class="p-2 font-medium">{{ assay.schema_version|int }}</td>
+                  <td class="p-2 font-medium">{{ assay.display_name }}</td>
+                  <td class="p-2 font-medium">{{ assay.environment }}</td>
+                  <td class="p-2 font-medium">{{ assay.asp_group }}</td>
+                  <td class="p-2 font-medium">{{ assay.asp_category }}</td>
+                  <td class="p-2 font-medium">{{ assay.platform }}</td>
+                  <td class="p-2 font-medium">{{ assay.schema_name }} - v{{ assay.schema_version|int }}</td>
                   <td class="p-2 font-medium">
                     <span class="block">{{ assay.created_by }}</span>
                     <span class="text-gray-500 font-thin"><small>{{ assay.created_on | human_date }}</small></span>
@@ -65,6 +65,11 @@
                     {% endif %}
                   </td>
                   <td class="p-2 font-medium flex gap-2 flex-wrap">
+                    <a href="{{ url_for('admin_bp.view_assay_config', assay_id=assay._id) }}" 
+                      title="View" 
+                      class="font-medium text-gray-700 hover:text-blue-600">
+                      <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="View" class="w-5 cursor-pointer">
+                    </a>
                     {% if has_access("edit_assay_config", min_role="manager", min_level=99) %}
                       <button onclick="showActionModal({
                           url: '{{ url_for('admin_bp.edit_assay_config', assay_id=assay._id) }}',

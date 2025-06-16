@@ -1,4 +1,16 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
+
 """
 CosmicHandler module for Coyote3
 ================================
@@ -7,9 +19,6 @@ This module defines the `CosmicHandler` class used for accessing and managing
 COSMIC (Catalogue Of Somatic Mutations In Cancer) data in MongoDB.
 
 It is part of the `coyote.db` package and extends the base handler functionality.
-
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
 # -------------------------------------------------------------------------
@@ -37,7 +46,7 @@ class CosmicHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.cosmic_collection)
 
-    def get_cosmic_ids(self, chr=None) -> list:
+    def get_cosmic_ids(self, chromosomes: list | None = None) -> list:
         """
         Retrieve cosmic IDs for all chromosomes or specific chromosomes.
 
@@ -47,12 +56,11 @@ class CosmicHandler(BaseHandler):
         provided chromosome list.
 
         Args:
-            chr (list, optional): A list of chromosome names to filter by. Defaults to an empty list.
+            chromosomes (list, None): A list of chromosome names to filter by. Defaults to an empty list.
 
         Returns:
             list: A list of cosmic IDs matching the query criteria.
         """
-        chr = chr or []
-        query = {} if not chr else {"chr": {"$in": chr}}
+        query = {} if not chr else {"chr": {"$in": chromosomes or []}}
         cosmic_ids = self.get_collection().find(query)
         return list(cosmic_ids)

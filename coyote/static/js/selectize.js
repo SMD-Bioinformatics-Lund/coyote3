@@ -1,17 +1,15 @@
-/**
- * sifter.js
- * Copyright (c) 2013 Brian Reavis & contributors
+/*
+ * Copyright (c) 2025 Coyote3 Project Authors
+ * All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this
- * file except in compliance with the License. You may obtain a copy of the License at:
- * http://www.apache.org/licenses/LICENSE-2.0
+ * This source file is part of the Coyote3 codebase.
+ * The Coyote3 project provides a framework for genomic data analysis,
+ * interpretation, reporting, and clinical diagnostics.
  *
- * Unless required by applicable law or agreed to in writing, software distributed under
- * the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
- * ANY KIND, either express or implied. See the License for the specific language
- * governing permissions and limitations under the License.
+ * Unauthorized use, distribution, or modification of this software or its
+ * components is strictly prohibited without prior written permission from
+ * the copyright holders.
  *
- * @author Brian Reavis <brian@thirdroute.com>
  */
 
 (function(root, factory) {

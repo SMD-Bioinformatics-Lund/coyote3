@@ -1,143 +1,182 @@
 {% extends "layout.html" %}
-{% block title %}Create Assay Config{% endblock %}
+{% block title %}Create DNA Assay Config{% endblock %}
+
 {% block body %}
 <div class="flex w-full h-full overflow-hidden">
-  <!-- Sidebar -->
   {% include "admin_sidebar.html" %}
   <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
-    <section  class="p-2 ml-2 mt-2">
+
+    <section class="p-2 ml-2 mt-2">
       <div class="bg-gray-50 border border-gray-200 rounded-2xl shadow-xl p-6">
 
         <!-- Header -->
         <div class="flex items-center justify-between mb-6">
-          <h1 class="text-xl font-bold text-blue-500 tracking-wide capitalize flex gap-2 align-middle"><img src="{{ url_for('static', filename='icons/heroicons_outline_24/document-plus.svg') }}" alt="Schema Create Icon" class="h-6 w-6">Create New {{schema.schema_category}} Assay Config</h1>
-          <div class="flex items-center gap-4">
-            <!-- Dropdown to select schema -->
-            <label for="schema-select" class="text-sm font-medium text-gray-800 font-semibold">Selected Schema:</label>
-            <form method="GET" action="{{ url_for('admin_bp.create_dna_assay_config') }}">
-              <select id="schema-select" name="schema_id" onchange="this.form.submit()"
-                      class="text-sm border border-gray-300 rounded-md shadow-sm px-2 py-1 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                {% for s in schemas %}
-                  <option value="{{ s._id }}" {% if s._id == selected_schema._id %}selected{% endif %}>
-                    {{ s._id }} (v{{ s.version }})
-                  </option>
-                {% endfor %}
-              </select>
-            </form>
-          </div>
+          <h1 class="text-xl font-bold text-blue-500 tracking-wide capitalize flex gap-2 align-middle">
+            <img src="{{ url_for('static', filename='icons/heroicons_outline_24/document-plus.svg') }}" class="h-6 w-6">
+            Create DNA Assay Config
+          </h1>
+          <form method="GET" action="{{ url_for('admin_bp.create_dna_assay_config') }}">
+            <label class="text-sm font-semibold text-gray-800">Schema:</label>
+            <select name="schema_id" onchange="this.form.submit()"
+              class="text-sm border border-gray-300 rounded-md shadow-sm px-2 py-1 bg-gray-50">
+              {% for s in schemas %}
+                <option value="{{ s._id }}" {% if s._id == selected_schema._id %}selected{% endif %}>
+                  {{ s._id }} (v{{ s.version }})
+                </option>
+              {% endfor %}
+            </select>
+          </form>
         </div>
 
-        <form method="POST" class="space-y-6 text-sm text-gray-700">
+        <!-- Form -->
+        <form method="POST" enctype="multipart/form-data" class="space-y-6 text-sm text-gray-700" id="assay-config-form">
 
-          <!-- Field Groups -->
           {% for section, keys in schema.sections.items() %}
-            <div class="mb-6 border-l-4 border-blue-200 bg-blue-50 rounded-xl p-4 shadow-sm">
-              <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') }}</h2>
-
-              <div class="grid grid-cols-4 gap-4">
-                {% set rendered_subschemas = [] %}
+            <div class="mb-6 border-l-4 border-blue-200 bg-blue-50 rounded-xl p-4 shadow-lg">
+              <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') | title }}</h2>
+              <div class="grid grid-cols-3 gap-4">
                 {% for key in keys %}
-                  {% set parts = key.split('.') %}
-                  {% set base_key = parts[0] %}
-                  {% set sub_key = parts[1] if parts | length > 1 else None %}
+                  {% set field = schema.fields[key] %}
+                  {% set value = field.default %}
+                  <div class="{% if field.display_type in ['textarea', 'json', 'jsoneditor', 'jsoneditor-or-upload'] %}col-span-3{% else %}w-full{% endif %}">
+                    <label class="text-xs font-semibold block mb-1">
+                      {{ field.label }}{% if field.required %}<span class="text-red-500">*</span>{% endif %}
+                      <span class="text-gray-400">({{ field.data_type }})</span>
+                    </label>
 
-                  {% if not sub_key and schema.fields[base_key] and schema.fields[base_key].type == 'subschema' and base_key not in rendered_subschemas %}
-                    {% set _ = rendered_subschemas.append(base_key) %}
-                    {% set subschema = schema.subschemas[schema.fields[base_key].schema] %}
-                    <div class="col-span-full">
-                      <h3 class="text-xs font-bold text-gray-600 mb-1">{{ schema.fields[base_key].label }}</h3>
-                      <div class="grid grid-cols-3 gap-2">
-                        {% for subkey, subfield in subschema.fields.items() %}
-                          {% set full_sub_key = base_key ~ '.' ~ subkey %}
-                          {% if subfield.type == 'bool' %}
-                            <div>
-                              <label class="inline-flex items-center gap-2 text-xs">
-                                <input type="checkbox" name="{{ full_sub_key }}" value="true" class="accent-blue-600 rounded" {% if subfield.default %}checked{% endif %}>
-                                {{ subfield.label or subkey }} {% if subfield.required %}<span class="text-red-500">*</span>{% endif %} <span class="text-gray-500">({{ subfield.type }})</span>
-                              </label>
-                            </div>
-                          {% elif subkey == 'analysis_desc' %}
-                            <div class="col-span-full">
-                              <label class="block font-semibold text-xs mb-1">
-                                {{ subfield.label or subkey }} {% if subfield.required %}<span class="text-red-500">*</span>{% endif %} <span class="text-gray-500">({{ subfield.type }})</span>
-                              </label>
-                              <textarea name="{{ full_sub_key }}" rows="8" class="w-full font-mono text-xs bg-gray-100 border border-gray-300 rounded-md shadow-sm p-2 resize-y" placeholder="{{ subfield.placeholder or '' }}">{{ subfield.default }}</textarea>
-                            </div>
-                          {% else %}
-                            <div>
-                              <label class="block font-semibold text-xs mb-1">
-                                {{ subfield.label or subkey }} {% if subfield.required %}<span class="text-red-500">*</span>{% endif %} <span class="text-gray-500">({{ subfield.type }})</span>
-                              </label>
-                              <input type="text" name="{{ full_sub_key }}" value="{{ subfield.default }}"
-                                      class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1" placeholder="{{ subfield.placeholder or '' }}">
-                            </div>
-                          {% endif %}
+                    {% if field.readonly %}
+                      <input type="text" name="{{ key }}" id="{{ key }}"
+                            value="{{ value or '' }}" readonly
+                            class="w-full bg-blue-50 border border-blue-300 rounded-md p-2 text-sm text-gray-600 cursor-not-allowed">
+
+                    {% elif key == 'assay_name' %}
+                      <select name="{{ key }}" id="assay_name"
+                              class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm"
+                              onchange="prefillFromAssay(this.value)">
+                        <option disabled {% if not value %}selected{% endif %} value>-- select an assay --</option>
+                        {% for opt in field.options %}
+                          <option value="{{ opt }}" {% if opt == value %}selected{% endif %}>{{ opt }}</option>
+                        {% endfor %}
+                      </select>
+
+                    {% elif field.display_type == 'select' %}
+                      <select name="{{ key }}" id="{{ key }}"
+                              class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
+                        {% for opt in field.options %}
+                          <option value="{{ opt }}" {% if opt == value %}selected{% endif %}>{{ opt }}</option>
+                        {% endfor %}
+                      </select>
+
+                    {% elif field.display_type == 'multi-select' %}
+                      <select name="{{ key }}" id="{{ key }}" multiple
+                              class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
+                        {% for opt in field.options %}
+                          <option value="{{ opt }}" {% if value and opt in value %}selected{% endif %}>{{ opt }}</option>
+                        {% endfor %}
+                      </select>
+
+                    {% elif field.display_type == 'checkbox' %}
+                      <input type="checkbox" name="{{ key }}" id="{{ key }}" value="true"
+                            {% if value %}checked{% endif %} class="accent-blue-600 rounded">
+
+                    {% elif field.display_type == 'checkbox-group' %}
+                      <div class="flex flex-col gap-1" id="{{ key }}">
+                        {% for opt in field.options %}
+                          <label class="inline-flex items-center gap-x-1">
+                            <input type="checkbox" name="{{ key }}" value="{{ opt }}"
+                                  {% if value and opt in value %}checked{% endif %}
+                                  class="accent-blue-600 rounded">
+                            <span class="text-xs">{{ opt }}</span>
+                          </label>
                         {% endfor %}
                       </div>
-                    </div>
-                  {% else %}
-                    {% if sub_key %}
-                      {% set subschema_field = schema.fields.get(base_key) %}
-                      {% set subschema = schema.subschemas.get(subschema_field.schema) if subschema_field else None %}
-                      {% set field = subschema.fields.get(sub_key) if subschema else None %}
-                      {% set full_key = base_key ~ '.' ~ sub_key %}
-                    {% else %}
-                      {% set field = schema.fields.get(base_key) %}
-                      {% set full_key = base_key %}
-                    {% endif %}
 
-                    {% if field and not (field.type == 'subschema') %}
-                      {% if field.type in ['json', 'list'] %}
-                        <div class="col-span-full">
-                          <label class="block font-semibold text-xs mb-1">
-                            {{ field.label or key }} {% if field.required %}<span class="text-red-500">*</span>{% endif %} <span class="text-gray-500 text-xs font-normal">({{ field.type }})</span>
+                    {% elif field.display_type == 'radio' %}
+                      <div class="flex flex-col gap-1" id="{{ key }}">
+                        {% for opt in field.options %}
+                          <label class="inline-flex items-center gap-2">
+                            <input type="radio" name="{{ key }}" value="{{ opt }}"
+                                  {% if opt == value %}checked{% endif %}
+                                  class="accent-blue-600">
+                            <span class="text-xs">{{ opt }}</span>
                           </label>
-                          <textarea name="{{ full_key }}" rows="6" placeholder="{{ field.placeholder or '' }}" class="w-full font-mono text-xs bg-gray-100 border border-gray-400 rounded-md shadow-sm p-2 resize-y">{{ field.default | tojson(indent=2) }}</textarea>
-                        </div>
-                      {% else %}
-                        <div>
-                          {% if field.type != 'bool'%}
-                            <label class="block font-semibold text-xs mb-1">
-                              {{ field.label or key }} {% if field.required %}<span class="text-red-500">*</span>{% endif %} <span class="text-gray-500 text-xs font-normal">({{ field.type }})</span>
-                            </label>
-                          {% endif %}
-                          {% if field.type == 'int' %}
-                            <input type="number" name="{{ full_key }}" step="1" inputmode="numeric" pattern="[0-9]+" placeholder="{{ field.placeholder or '' }}" value="{{ field.default | int }}" class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1" {% if full_key == 'version' %} disabled {% endif %}/>
-                          {% elif field.type == 'float' %}
-                            <input type="number" name="{{ full_key }}" step="0.01" placeholder="{{ field.placeholder or '' }}" value="{{ field.default }}" class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1" />
-                          {% elif field.type == 'bool' %}
-                              <label class="mt-6 inline-flex items-center gap-2 text-xs font-semibold">
-                                <input type="checkbox" name="{{ full_key }}" value="true" class="accent-blue-600 rounded" {% if field.default %}checked{% endif %}>
-                                <span>{{ field.label or key }}</span>
-                              </label>
-                          {% elif full_key in ['created_by', 'updated_by'] %}
-                            <input type="text" name="{{ full_key }}" value="{{ current_user.email }}" readonly class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 text-gray-500" />
-                          {% elif full_key in ['created_on', 'updated_on'] %}
-                            <input type="text" name="{{ full_key }}" value="{{ '' | now }}" readonly class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 text-gray-500" />
-                          {% elif full_key == 'config_format' %}
-                            <input type="text" name="{{ full_key }}" value="{{ field.default }}" readonly class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1 text-gray-500" />
-                          {% else %}
-                            <input type="text" name="{{ full_key }}" placeholder="{{ field.placeholder or '' }}" value="{{ field.default }}" class="w-full bg-gray-100 border border-gray-400 rounded-md shadow-sm px-2 py-1" />
-                          {% endif %}
-                        </div>
-                      {% endif %}
+                        {% endfor %}
+                      </div>
+
+                    {% elif field.display_type == 'textarea' %}
+                      <textarea name="{{ key }}" id="{{ key }}" rows="4" placeholder="{{ field.placeholder }}"
+                                class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">{{ value or '' }}</textarea>
+
+                    {% elif field.display_type == 'jsoneditor-or-upload' %}
+                      <textarea name="{{ key }}" id="{{ key }}" rows="6" placeholder="{{ field.placeholder }}"
+                                class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y">{{ value | tojson(indent=2) if value else '' }}</textarea>
+                      <div class="flex flex-col mt-2">
+                        <label for="{{ key }}_file" class="text-xs font-semibold mb-1">OR Upload File</label>
+                        <input type="file" name="{{ key }}_file" id="{{ key }}_file" accept=".json,.txt,.csv"
+                              class="text-xs text-gray-600">
+                      </div>
+
+                      {% elif field.display_type in ['json', 'jsoneditor'] %}
+                      <textarea name="{{ key }}" id="{{ key }}" rows="6" placeholder="{{ field.placeholder }}"
+                                class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y"
+                                spellcheck="false">{{ value | tojson if value else '{}' }}</textarea>                    
+
+                    {% else %}
+                      <input type="{{ 'number' if field.data_type in ['int', 'float'] else 'text' }}"
+                              name="{{ key }}" id="{{ key }}" placeholder="{{ field.placeholder }}"
+                              value="{{ value or '' }}"
+                              step="any"
+                              class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
                     {% endif %}
-                  {% endif %}
+                  </div>
                 {% endfor %}
               </div>
             </div>
           {% endfor %}
 
-          <!-- Save Button -->
-          <div class="text-right">
-            <button type="submit" class="bg-blue-300 hover:bg-blue-400 text-black font-semibold px-4 py-2 rounded-lg shadow-sm transition">
-              Save Changes
+          <!-- Submit -->
+          <div class="text-right pt-4">
+            <button type="submit" class="bg-blue-300 hover:bg-blue-400 text-black font-semibold px-6 py-2 rounded-lg shadow-lg transition">
+              Save Assay Config
             </button>
           </div>
+
         </form>
       </div>
     </section>
   </main>
 </div>
 
+<!-- JS: Prefill fields based on selected assay_name -->
+<script>
+  const prefillMap = {{ prefill_map_json | safe }};
+
+  function prefillFromAssay(assayId) {
+    const data = prefillMap[assayId];
+    if (!data) return;
+
+    const textFields = ['display_name', 'asp_group', 'asp_category', 'platform'];
+    textFields.forEach(field => {
+      const el = document.getElementById(field);
+      if (el) el.value = data[field] || '';
+    });
+
+    const envSelect = document.getElementById('environment');
+    if (envSelect) {
+      envSelect.innerHTML = '';
+      const defaultOpt = document.createElement('option');
+      defaultOpt.disabled = true;
+      defaultOpt.selected = true;
+      defaultOpt.textContent = '-- select environment --';
+      envSelect.appendChild(defaultOpt);
+
+      (data.environment || []).forEach(env => {
+        const opt = document.createElement('option');
+        opt.value = env;
+        opt.textContent = env;
+        envSelect.appendChild(opt);
+      });
+    }
+  }
+</script>
 {% endblock %}

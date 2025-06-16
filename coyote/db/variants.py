@@ -1,4 +1,15 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 """
 VariantsHandler module for Coyote3
 ==================================
@@ -6,9 +17,6 @@ VariantsHandler module for Coyote3
 This module defines the `VariantsHandler` class used for accessing and managing
 variant data in MongoDB.
 It is part of the `coyote.db` package and extends the base handler functionality.
-
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
 # -------------------------------------------------------------------------
@@ -40,6 +48,7 @@ class VariantsHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.variants_collection)
 
+    # TODO: This will be removed once the sample ids are set in the sample doc
     def get_sample_ids(self, sample_id: str) -> dict:
         """
         Retrieve sample IDs and their associated types for a given sample ID.
@@ -60,6 +69,7 @@ class VariantsHandler(BaseHandler):
                 ids[gt.get("type")] = gt.get("sample")
         return ids
 
+    # TODO: This will be removed once the sample num is set in the sample doc
     def get_num_samples(self, sample_id: str) -> int:
         """
         Get the number of samples associated with a given sample ID.
@@ -78,6 +88,7 @@ class VariantsHandler(BaseHandler):
         else:
             return 0
 
+    # TODO: This will be removed once the sample num is set in the sample doc
     def get_gt_lengths_by_sample_ids(
         self, sample_ids: list[str]
     ) -> dict[str, int]:
@@ -170,15 +181,15 @@ class VariantsHandler(BaseHandler):
         # Step 2: Collect only the sample ObjectIds we need
         sample_ids = {ObjectId(v["SAMPLE_ID"]) for v in variants}
 
-        # Step 3: Map sample_id -> {name, groups}
+        # Step 3: Map sample_id -> {name, assay}
         sample_map = {
             str(s["_id"]): {
                 "sample_name": s.get("name", "unknown"),
-                "groups": s.get("groups", []),
+                "assay": s.get("assay", "unknown"),
             }
             for s in self.adapter.samples_collection.find(
                 {"_id": {"$in": list(sample_ids)}},
-                {"_id": 1, "name": 1, "groups": 1},
+                {"_id": 1, "name": 1, "assay": 1},
             )
         }
 
@@ -187,7 +198,7 @@ class VariantsHandler(BaseHandler):
         for v in variants:
             sid = v["SAMPLE_ID"]
             info = sample_map.get(
-                sid, {"sample_name": "unknown", "groups": []}
+                sid, {"sample_name": "unknown", "assay": "unknown"}
             )
             info["GT"] = v.get("GT")
             info["fp"] = v.get("fp", False)  # Add fp status if available
@@ -249,6 +260,36 @@ class VariantsHandler(BaseHandler):
             Any: The result of the update operation.
         """
         self.mark_false_positive(variant_id, fp)
+
+    def mark_false_positive_var_bulk(
+        self, variant_ids: list[str], fp: bool = True
+    ) -> Any:
+        """
+        Mark multiple variants as false positive.
+
+        Args:
+            variant_ids (list[str]): List of variant document IDs.
+            fp (bool, optional): The false positive status to set. Defaults to True.
+
+        Returns:
+            Any: The result of the bulk update operation.
+        """
+        return self.mark_false_positive_bulk(variant_ids, fp)
+
+    def unmark_false_positive_var_bulk(
+        self, variant_ids: list[str], fp: bool = False
+    ) -> Any:
+        """
+        Unmark multiple variants as false positive.
+
+        Args:
+            variant_ids (list[str]): List of variant document IDs.
+            fp (bool, optional): The false positive status to set. Defaults to False.
+
+        Returns:
+            Any: The result of the bulk update operation.
+        """
+        return self.mark_false_positive_bulk(variant_ids, fp)
 
     def mark_interesting_var(
         self, variant_id: str, interesting: bool = True
@@ -321,6 +362,30 @@ class VariantsHandler(BaseHandler):
             Any: The result of the update operation.
         """
         self.mark_irrelevant(variant_id, irrelevant)
+
+    def mark_irrelevant_var_bulk(
+        self, variant_ids: list[str], irrelevant: bool = True
+    ) -> Any:
+        """
+        Mark multiple variants as irrelevant.
+
+        Args:
+            variant_ids (list[str]): List of variant document IDs.
+            irrelevant (bool, optional): The status to set. Defaults to True.
+        """
+        return self.mark_irrelevant_bulk(variant_ids, irrelevant)
+
+    def unmark_irrelevant_var_bulk(
+        self, variant_ids: list[str], irrelevant: bool = False
+    ) -> Any:
+        """
+        Unmark multiple variants as irrelevant.
+
+        Args:
+            variant_ids (list[str]): List of variant document IDs.
+            irrelevant (bool, optional): The status to set. Defaults to False.
+        """
+        return self.mark_irrelevant_bulk(variant_ids, irrelevant)
 
     def hide_var_comment(self, id: str, comment_id: str) -> Any:
         """
