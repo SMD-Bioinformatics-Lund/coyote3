@@ -370,14 +370,14 @@ class BPCommonUtility:
         }
         
         tiers_to_summarize = [1,2,3] # this should be configurable
-        for tier in tiers_to_summarize:
-            if tier in class_vars:
-                if 1 in class_vars and 2 in class_vars and tier == 3:
-                    text += "Slutligen ses " # Finally it is found
-                elif tier != 1 and (1 in class_vars or 2 in class_vars):
-                    text += "Vidare ses " # Further findings
+        present_tiers = [tier for tier in tiers_to_summarize if tier in class_vars]
+        for i, tier in enumerate(present_tiers):
+                if i == 0:
+                    text += "Vid analysen finner man "
+                elif i == len(present_tiers) - 1 and len(present_tiers) == 3:
+                    text += "Slutligen ses "
                 else:
-                    text += "Vid analysen finner man " # Analysis finds
+                    text += "Vidare ses "
 
                 num_vars = class_cnt[tier]
                 num_genes = len(class_vars[tier])
