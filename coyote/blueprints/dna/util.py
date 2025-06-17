@@ -319,7 +319,7 @@ class DNAUtility:
 
         Args:
             variants (list): List of variant dictionaries to annotate.
-            assay (str): The type of assay being used (e\.g\., 'solid').
+            assay (str): The type of assay being used (e.g., 'solid').
             subpanel (str): The subpanel identifier for further filtering.
 
         Returns:
@@ -347,7 +347,7 @@ class DNAUtility:
 
         Args:
             variant (dict): A dictionary representing a variant to be annotated.
-            assay (str): The type of assay being used (e\.g\., 'solid').
+            assay (str): The type of assay being used (e.g., 'solid').
             subpanel (str): The subpanel identifier for further filtering when assay is 'solid'.
 
         Returns:
@@ -416,18 +416,21 @@ class DNAUtility:
         return filtered_sorted_variants
 
     @staticmethod
-    def get_simple_variants_for_report(variants: list) -> list:
+    def get_simple_variants_for_report(
+        variants: list, assay_config: dict
+    ) -> list:
         """
-        Get a simplified list of variant dictionaries for reporting purposes.
+        Generate a simplified list of variant dictionaries for reporting.
 
-        This method processes a list of variant dictionaries and extracts key information
-        such as chromosome, position, reference and alternate alleles, variant type,
-        classification, consequence, cDNA and protein changes, and relevant annotations.
-        It formats these details for inclusion in clinical or research reports.
+        Args:
+            variants (list): List of variant dictionaries to process.
+            assay_config (dict): Assay configuration dictionary used for formatting and annotation.
 
         Returns:
-            list: A list of dictionaries, each representing a simplified variant with
-            essential fields for reporting.
+            list: A list of dictionaries, each containing essential fields (chromosome, position, alleles, type, classification, consequence, cDNA/protein changes, and annotations) for reporting.
+
+        Description:
+            Processes a list of variant dictionaries, extracting and formatting key information for inclusion in clinical or research reports.
         """
         translation = ReportUtility.VARIANT_CLASS_TRANSLATION
         class_short_desc_list = ReportUtility.TIER_SHORT_DESC

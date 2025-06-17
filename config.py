@@ -26,12 +26,14 @@ across different environments.
 # Imports
 # -------------------------------------------------------------------------
 import os
+from typing import Any, Literal
+
 import toml
-from typing import Literal, Any
+from cryptography.fernet import Fernet
 
 from coyote.__version__ import __version__ as app_version
 from coyote.util.common_utility import CommonUtility
-from cryptography.fernet import Fernet
+
 
 # # Implement in the future?
 # from dotenv import load_dotenv
@@ -57,18 +59,6 @@ class DefaultConfig:
     LOGS = "logs"
     PRODUCTION = False
 
-    INTERNAL_USERS = {
-        "coyote3.admin@skane.se",
-        "coyote3.developer@skane.se",
-        "coyote3.tester@skane.se",
-        "coyote3.manager@skane.se",
-        "coyote3.user@skane.se",
-        "coyote3.intern@skane.se",
-        "coyote3.viewer@skane.se",
-        "coyote3.external@skane.se",
-        "coyote3.demo@skane.se",
-    }
-
     # For the public assay map
     # This is used in the public assay matrix
     PUBLIC_ASSAY_MAP: dict[str, list[str]] = {
@@ -85,10 +75,11 @@ class DefaultConfig:
     }
 
     # REDIS CACHE TIMEOUTS
-    CACHE_TIMEOUT_SAMPLES = 1  # 5 minutes
+    CACHE_TIMEOUT_SAMPLES = 5  # 5 minutes
 
     # Fernet key for encrypting sensitive data in the report
-    FERNET_KEY = Fernet.generate_key()  # store this securely
+    # FERNET_KEY = Fernet.generate_key()  # store this securely
+    FERNET_KEY: str = os.getenv("COYOTE3_FERNET_KEY")
     FERNET = Fernet(FERNET_KEY)
 
     WTF_CSRF_ENABLED = True

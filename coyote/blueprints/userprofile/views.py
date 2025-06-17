@@ -10,9 +10,19 @@
 #  the copyright holders.
 #
 
-# views.py
+"""
+This module defines the user profile views for the Coyote3 project.
+"""
 
-from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask import (
+    render_template,
+    redirect,
+    url_for,
+    flash,
+    request,
+    jsonify,
+    Response,
+)
 from flask_login import current_user, login_required
 from werkzeug.security import generate_password_hash
 from coyote.extensions import store
@@ -20,15 +30,16 @@ from coyote.blueprints.userprofile.forms import PasswordChangeForm
 from coyote.services.auth.user_session import User
 from coyote.blueprints.userprofile import profile_bp
 from flask_wtf.csrf import generate_csrf
-from coyote.extensions import util
-from datetime import datetime
 
 
 @profile_bp.route("/", methods=["GET"])
 @login_required
-def profile():
+def profile() -> str | Response:
     """
-    Profile page for the user
+    Renders the profile page for the currently logged-in user.
+
+    Returns:
+        Response: Rendered HTML template for the user's profile page.
     """
     csrf_token = generate_csrf()
 
@@ -46,9 +57,15 @@ def profile():
 # TODO: Should be a ldap call currently disabled
 @profile_bp.route("/change-password/<username>", methods=["GET", "POST"])
 @login_required
-def change_password(username):
+def change_password(username: str) -> Response:
     """
-    Change password for a user
+    View to handle password change for a user.
+
+    Args:
+        username (str): The username of the user whose password is to be changed.
+
+    Returns:
+        Response: Renders the password change form on GET, processes the form on POST.
     """
 
     form = PasswordChangeForm()
@@ -75,9 +92,22 @@ def change_password(username):
 
 @profile_bp.route("/update-info", methods=["POST"])
 @login_required
-def update_info():
+def update_info() -> Response:
     """
-    Update current user's profile info (fullname, optionally groups if admin)
+    Update the current user's profile information.
+
+    This view handles updates to the user's full name and, if the user is an admin,
+    also allows updating the user's group memberships. The request must be a POST
+    with a JSON payload containing the fields to update.
+
+    Request JSON Example:
+        {
+            "fullname": "New Full Name",
+            "groups": ["group1", "group2"]  # Optional, admin only
+        }
+
+    Returns:
+        Response: A JSON response indicating success.
     """
     data = request.get_json() or {}
 

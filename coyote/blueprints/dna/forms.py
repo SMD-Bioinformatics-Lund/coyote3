@@ -108,11 +108,11 @@ class FusionFilter(FlaskForm):
     FusionFilter is a Flask-WTF form for filtering gene fusion events in genomic data analysis.
 
     This form provides boolean and numeric fields to filter fusion events based on:
-    - Known fusion lists (e\.g\., FCknown, Mitelman)
+    - Known fusion lists (e.g., FCknown, Mitelman)
     - Fusion caller tools (Arriba, FusionCatcher, STAR-Fusion)
     - Minimum spanning pairs and reads
     - Fusion effect types (in-frame, out-frame)
-    - VEP consequence categories (splicing, stop gained/lost, frameshift, etc\.)
+    - VEP consequence categories (splicing, stop gained/lost, frameshift, etc.)
 
     Used in the Coyote3 workflow to allow users to customize fusion event filtering criteria.
     """

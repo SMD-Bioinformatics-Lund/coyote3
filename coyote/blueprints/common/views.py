@@ -149,14 +149,17 @@ def get_sample_genelists(sample_id: str, sample_assay: str) -> str:
         KeyError: If required form fields ('enc_genelists' or 'enc_panel_doc') are missing.
         Exception: If decryption or JSON decoding fails.
     """
-    enc_genelists = request.form["enc_genelists"]
-    enc_panel_doc = request.form["enc_panel_doc"]
+    enc_genelists = request.form.get("enc_genelists")
+    enc_panel_doc = request.form.get("enc_panel_doc")
+    enc_sample_filters = request.form.get("enc_sample_filters")
 
-    genelists = json.loads(
-        app.config["FERNET"].decrypt(enc_genelists.encode())
-    )
-    panel_doc = json.loads(
-        app.config["FERNET"].decrypt(enc_panel_doc.encode())
+    fernet_key = app.config.get("FERNET_KEY")
+
+    genelists = json.loads(fernet_key.decrypt(enc_genelists.encode()))
+    panel_doc = json.loads(fernet_key.decrypt(enc_panel_doc.encode()))
+
+    sample_filters = json.loads(
+        fernet_key.decrypt(enc_sample_filters.encode())
     )
 
     return render_template(
@@ -164,4 +167,5 @@ def get_sample_genelists(sample_id: str, sample_assay: str) -> str:
         sample=sample_id,
         genelists=genelists,
         assay_panel_doc=panel_doc,
+        sample_filters=sample_filters,
     )

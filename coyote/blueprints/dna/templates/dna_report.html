@@ -412,6 +412,7 @@
   <form id="genelist-form" action="{{ url_for('common_bp.get_sample_genelists', sample_id=sample.name, sample_assay=sample_assay, _external=True) }}" method="POST" target="_blank">
     <input type="hidden" name="enc_genelists" id="enc-genelists-input">
     <input type="hidden" name="enc_panel_doc" id="enc-panel-input">
+    <input type="hidden" name="enc_sample_filters" id="enc-sample-filters-input">
   </form>
   
   <p>
@@ -457,6 +458,7 @@
 
 <script type="application/json" id="encrypted-genelists">{{ encrypted_genelists }}</script>
 <script type="application/json" id="encrypted-panel-doc">{{ encrypted_panel_doc }}</script>
+<script type="application/json" id="encrypted-sample-filters">{{ encrypted_sample_filters }}</script>
 
 <script>
   // Function to submit the form with encrypted genelists and panel doc
@@ -465,9 +467,11 @@
   
     const genelistsEnc = document.getElementById("encrypted-genelists").textContent.trim();
     const panelEnc = document.getElementById("encrypted-panel-doc").textContent.trim();
+    const sampleFiltersEnc = document.getElementById("encrypted-sample-filters").textContent.trim();
   
     document.getElementById("enc-genelists-input").value = genelistsEnc;
     document.getElementById("enc-panel-input").value = panelEnc;
+    document.getElementById("enc-sample-filters-input").value = sampleFiltersEnc;
   
     document.getElementById("genelist-form").submit();
   }

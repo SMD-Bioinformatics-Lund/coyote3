@@ -10,22 +10,34 @@
 #  the copyright holders.
 #
 
+
+"""
+Utility functions for user profile management, including password hashing and user data formatting.
+"""
+
 from datetime import datetime
-from collections import defaultdict
-import re
-from flask import current_app as app
 from werkzeug.security import generate_password_hash
 
 
 class ProfileUtility:
     """
-    Utility class for user profiles
+    Utility class for user profile management.
+
+    Provides static methods for:
+    - Hashing user passwords securely.
+    - Formatting new user data for storage, including hashing passwords and setting timestamps.
     """
 
     @staticmethod
-    def hash_password(password):
+    def hash_password(password: str) -> str:
         """
-        Hash a password
+        Hash a password using PBKDF2 with SHA256.
+
+        Args:
+            password (str): The plain text password to hash.
+
+        Returns:
+            str: The securely hashed password.
         """
         return generate_password_hash(
             password,
@@ -33,9 +45,21 @@ class ProfileUtility:
         )
 
     @staticmethod
-    def format_new_user_data(form_data):
+    def format_new_user_data(form_data: dict) -> dict:
         """
-        Format new user data
+        Format new user data for storage.
+
+        Args:
+            form_data (dict): Dictionary containing user input fields. Expected keys are:
+                - "username": str, the user's unique identifier.
+                - "email": str, the user's email address.
+                - "fullname": str, the user's full name.
+                - "groups": str, comma-separated group names.
+                - "role": str, the user's role.
+                - "password": str, the user's plain text password.
+
+        Returns:
+            dict: Formatted user data with hashed password and timestamps.
         """
         user_data = {
             "_id": form_data["username"],

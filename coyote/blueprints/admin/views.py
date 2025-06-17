@@ -466,7 +466,7 @@ def view_user(user_id: str) -> str | Response:
         user_id (str): The unique identifier of the user whose profile is being viewed.
 
     Returns:
-        str \| Response: Rendered HTML template showing the user's profile, optionally at a previous version if specified.
+        str | Response: Rendered HTML template showing the user's profile, optionally at a previous version if specified.
     """
     user_doc = store.user_handler.user_with_id(user_id)
     if not user_doc:
@@ -760,7 +760,7 @@ def create_rna_assay_config() -> Response | str:
     - Displays success or error messages and redirects as appropriate.
 
     Returns:
-        Response \| str: Redirects to the assay configs page on success, or renders the creation form template.
+        Response | str: Redirects to the assay configs page on success, or renders the creation form template.
     """
     # Fetch all active RNA assay schemas
     active_schemas = store.schema_handler.get_schemas_by_category_type(

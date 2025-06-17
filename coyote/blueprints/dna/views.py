@@ -350,6 +350,8 @@ def list_variants(sample_id: str) -> Response | str:
     else:
         ai_text += conclusion
 
+    print(assay_config)
+
     return render_template(
         "list_variants_vep.html",
         sample=sample,
@@ -1860,6 +1862,9 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
         encrypted_panel_doc=util.common.encrypt_json(assay_panel_doc, fernet),
         encrypted_genelists=util.common.encrypt_json(
             genes_covered_in_panel, fernet
+        ),
+        encrypted_sample_filters=util.common.encrypt_json(
+            sample_filters, fernet
         ),
     )
 

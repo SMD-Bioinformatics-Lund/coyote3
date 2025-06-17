@@ -14,7 +14,7 @@ services:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
       - FLASK_APP=wsgi.py
-      - FLASK_DEBUG=1
+      - FLASK_DEBUG=0
       - TZ=Europe/Stockholm
     restart: always
     depends_on:
@@ -36,7 +36,7 @@ services:
 
 
   redis:
-    container_name: redis
+    container_name: redis_coyote3_beta2
     image: ramsainanduri/redis:7.4.3
     ports:
       - "6379:6379"

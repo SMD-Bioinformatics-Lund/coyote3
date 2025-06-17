@@ -10,27 +10,42 @@
 #  the copyright holders.
 #
 
+"""
+This module defines WTForms forms for user authentication and management in the Coyote3 project.
+
+Classes:
+    PasswordChangeForm: Form for changing a user's password with strong validation.
+    SearchUserForm: Form for searching users by username.
+"""
+
+
 from flask_wtf import FlaskForm
 from wtforms import (
     StringField,
     PasswordField,
     SubmitField,
-    SelectField,
-    EmailField,
 )
 from wtforms.validators import (
     DataRequired,
-    Email,
-    Optional,
     EqualTo,
     Length,
     Regexp,
 )
-from coyote.extensions import store
 
 
 # PasswordChangeForm
 class PasswordChangeForm(FlaskForm):
+    """
+    WTForms form for changing a user's password with strong validation requirements.
+
+    Fields:
+        old_password (PasswordField): The user's current password. Required.
+        new_password (PasswordField): The new password. Must be at least 15 characters,
+            contain at least one uppercase letter, one digit, and one special character.
+        confirm_password (PasswordField): Confirmation of the new password. Must match new_password.
+        submit (SubmitField): Button to submit the form.
+    """
+
     old_password = PasswordField("Old Password", validators=[DataRequired()])
     new_password = PasswordField(
         "New Password",
@@ -64,5 +79,13 @@ class PasswordChangeForm(FlaskForm):
 
 
 class SearchUserForm(FlaskForm):
+    """
+    WTForms form for searching users by username.
+
+    Fields:
+        username (StringField): The username to search for. Required.
+        submit (SubmitField): Button to submit the search form.
+    """
+
     username = StringField("Username", validators=[DataRequired()])
     submit = SubmitField("Search")

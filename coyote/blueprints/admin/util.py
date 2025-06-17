@@ -179,7 +179,7 @@ class AdminUtility:
         Each field in the schema is processed:
         - If present in the form, its value is cast to the correct type.
         - If missing but defined as a subschema, initializes as an empty list or dict.
-        - Otherwise, sets a default value based on the field type (e\.g\., empty list, dict, False, or None).
+        - Otherwise, sets a default value based on the field type (e.g., empty list, dict, False, or None).
 
         Returns:
             dict: The resulting configuration dictionary with values cast and structured per the schema.
@@ -420,7 +420,7 @@ class AdminUtility:
         Extracts a sorted, deduplicated gene list from either a file or pasted text.
 
         Parameters:
-            file_obj (FileStorage \| None): A file-like object containing gene identifiers, typically from `request.files.get(...)`.
+            file_obj (FileStorage | None): A file-like object containing gene identifiers, typically from `request.files.get(...)`.
             pasted_text (str): Raw text input containing gene identifiers, usually pasted into a textarea.
 
         Returns:

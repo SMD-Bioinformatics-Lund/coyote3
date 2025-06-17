@@ -10,18 +10,51 @@
 #  the copyright holders.
 #
 
+"""
+This module provides Flask decorators for enforcing access control based on sample or assay group.
+Decorators:
+    - require_sample_access: Restricts access to users with permission for a specific sample's assay.
+    - require_group_access: Restricts access to users belonging to a specified assay group.
+"""
+
 from functools import wraps
 from flask import abort, g, flash
 from flask_login import current_user
 from coyote import store
 
 
-def require_sample_access(sample_arg="sample_name"):
+def require_sample_access(sample_arg="sample_name") -> callable:
     """
-    Decorator to enforce assay-based access using the sample name from the route.
+    Flask route decorator to enforce assay-based sample access control.
+
+    This decorator ensures that:
+      - The user is authenticated (implicitly assumed).
+      - A sample is fetched from the route parameter (`sample_arg`) via name or ID.
+      - The sample exists.
+      - The user has access to the sample's assay, based on their allowed `current_user.assays`.
+
+    If any of the above checks fail:
+      - An appropriate flash message is shown (for UI feedback).
+      - A corresponding HTTP error is raised (`400`, `404`, or `403`).
+
+    Upon success:
+      - The matched `sample` object is stored in `flask.g.sample` for downstream use.
 
     Args:
-        sample_arg (str): The name of the route argument containing the sample name.
+        sample_arg (str): The name of the route parameter that contains the sample name or ID.
+                          Defaults to `"sample_name"`.
+
+    Usage:
+        ```python
+        @app.route("/samples/<sample_name>/details")
+        @require_sample_access("sample_name")
+        def sample_details(sample_name):
+            sample = g.sample
+            ...
+        ```
+
+    Returns:
+        Callable: The decorated view function with sample access validation.
     """
 
     def decorator(view_func):
@@ -61,12 +94,33 @@ def require_sample_access(sample_arg="sample_name"):
     return decorator
 
 
-def require_group_access(group_arg: str = "assay"):
+def require_group_access(group_arg: str = "assay") -> callable:
     """
-    Decorator to enforce assay-based access control.
+    Flask route decorator to enforce access control based on assay group membership.
+
+    This decorator ensures that:
+      - The currently logged-in user has access to the target group (e.g., assay group) specified in the route.
+      - The route must include a parameter (default: "assay") that identifies the group to check.
+      - The user must have that group in their `current_user.assay_groups` list.
+
+    If the check fails:
+      - A flash message is shown for UI feedback.
+      - A 403 Forbidden error is raised with a descriptive message.
 
     Args:
         group_arg (str): The name of the route argument that contains the target group name.
+                         Defaults to `"assay"`.
+
+    Usage:
+        ```python
+        @app.route("/panels/<assay>/overview")
+        @require_group_access("assay")
+        def view_assay_panel(assay):
+            ...
+        ```
+
+    Returns:
+        Callable: The decorated route function with enforced group access control.
     """
 
     def decorator(view_func):

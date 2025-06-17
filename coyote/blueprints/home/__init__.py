@@ -10,6 +10,22 @@
 #  the copyright holders.
 #
 
+
+"""
+This module initializes the Home blueprint for the Coyote3 project.
+
+- Registers the `home_bp` Flask blueprint for home page and dashboard routes.
+- Imports view modules for home-related endpoints.
+- Configures a dedicated logger for Home operations.
+
+Blueprint:
+    home_bp: Flask blueprint for home-related routes.
+
+Logger:
+    app.home_logger: Logger instance for Home operations.
+
+"""
+
 from flask import Blueprint
 from flask import current_app as app
 import logging

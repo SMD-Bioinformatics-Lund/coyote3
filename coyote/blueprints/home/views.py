@@ -16,10 +16,8 @@ It includes functionality for handling sample searches, filtering samples based 
 the appropriate templates for the user interface.
 """
 
-
-from flask import abort
-from flask import current_app as app
 from flask import (
+    Response,
     redirect,
     render_template,
     request,
@@ -49,7 +47,10 @@ import os
 )
 @login_required
 def samples_home(
-    panel_type=None, panel_tech=None, assay_group=None, status="live"
+    panel_type: str | None = None,
+    panel_tech: str | None = None,
+    assay_group: str | None = None,
+    status: str = "live",
 ):
     """
     Handles the main logic for the samples home page. This includes:
@@ -58,10 +59,10 @@ def samples_home(
     - Displaying live and completed samples.
 
     Args:
-        panel_type (str, optional): The type of panel (e.g., DNA, RNA). Defaults to None.
-        panel_tech (str, optional): The technology used for the panel. Defaults to None.
-        assay_group (str, optional): The assay group to filter samples. Defaults to None.
-        status (str, optional): The status of the samples to display ('live' or 'done'). Defaults to "live".
+        panel_type (str, Optional): The type of panel (e.g., DNA, RNA). Defaults to None.
+        panel_tech (str, Optional): The technology used for the panel. Defaults to None.
+        assay_group (str, Optional): The assay group to filter samples. Defaults to None.
+        status (str): The status of the samples to display ('live' or 'done'). Defaults to "live".
 
     Returns:
         Response: Renders the `samples_home.html` template with the filtered samples and form data.
@@ -179,16 +180,20 @@ def samples_home(
 @login_required
 @require("view_reports", min_role="admin")
 @require_sample_access("sample_id")
-def view_report(sample_id, report_id):
+def view_report(sample_id: str, report_id: str) -> str | Response:
     """
-    Handles the logic for viewing a saved report or serving a report file.
+    View a saved report or serve a report file for a given sample.
+
+    This function retrieves the report details using the provided sample and report IDs.
+    If the report file exists, it is served to the user. If not, the user is redirected
+    to the home screen with an error message.
 
     Args:
-        sample_id (str): The ID of the sample associated with the report.
-        report_id (str): The ID of the report to view.
+        sample_id (str): The unique identifier of the sample associated with the report.
+        report_id (str): The unique identifier of the report to view.
 
     Returns:
-        Response: Serves the report file if it exists, or redirects to the home screen with an error message.
+        Response: The report file if it exists, otherwise a redirect response to the home screen.
     """
     # Retrieve the report details using the sample and report IDs
     report = store.sample_handler.get_report(sample_id, report_id)

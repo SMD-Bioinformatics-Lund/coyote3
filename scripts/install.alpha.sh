@@ -57,9 +57,6 @@ container_name="coyote3_app_alpha-3"
 #     echo "Warning! ALAMUT_API_KEY_PATH is undefined. Did you set it in .env?"
 # fi
 
-# echo "Running configuration update script."
-# ./scripts/update-to-latest-config.sh
-
 echo "Building docker image: '$image_name'"
 docker build --no-cache --network host --target coyote3_app -t "$image_name" . 
 

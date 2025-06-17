@@ -10,6 +10,21 @@
 #  the copyright holders.
 #
 
+
+"""
+This module initializes the RNA blueprint for the Coyote3 project.
+
+- Sets up the Flask blueprint for RNA-related routes.
+- Imports the RNA views.
+- Configures a logger for RNA events.
+
+Blueprint:
+    rna_bp: Flask Blueprint for RNA functionality.
+
+Logger:
+    app.rna_logger: Logger instance for RNA events.
+"""
+
 from flask import Blueprint
 from flask import current_app as app
 import logging
