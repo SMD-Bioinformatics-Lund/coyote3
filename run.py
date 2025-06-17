@@ -1,13 +1,22 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
+
 """
 Run Configuration for Coyote3
 =============================
 
 This file contains the entry point and configuration for running the Coyote3
 application, including logging setup for both Gunicorn and standalone modes.
-
-Author: Coyote3 authors
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
 # -------------------------------------------------------------------------
@@ -48,7 +57,7 @@ if __name__ != "__main__":
     app.logger.error("This is an error message")
 
 if __name__ == "__main__":
-    app = init_app(testing=False, debug=False)
+    app = init_app(testing=False, debug=True)
     log_dir = os.getenv("LOG_DIR", app.config.get("LOGS", "logs/prod"))
     custom_logging(
         log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=False

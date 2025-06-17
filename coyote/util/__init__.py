@@ -1,11 +1,22 @@
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 class Utility:
     """
     This class is used to store all the utility classes that are used in the
     """
 
     def __init__(self):
-        self.variant = None
-        self.common = None
+        pass
 
     def init_util(self):
         from coyote.blueprints.dna.util import DNAUtility
@@ -17,6 +28,7 @@ class Utility:
         from coyote.blueprints.dashboard.util import DashBoardUtility
         from coyote.blueprints.admin.util import AdminUtility
         from coyote.blueprints.coverage.util import CoverageUtility
+        from coyote.blueprints.common.util import BPCommonUtility
 
         self.dna = DNAUtility()
         self.common = CommonUtility()
@@ -27,3 +39,4 @@ class Utility:
         self.admin = AdminUtility()
         self.coverage = CoverageUtility()
         self.report = ReportUtility()
+        self.bpcommon = BPCommonUtility()

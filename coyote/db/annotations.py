@@ -1,4 +1,16 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
+
 """
 AnnotationsHandler module for Coyote3
 =====================================
@@ -7,10 +19,9 @@ This module defines the `AnnotationsHandler` class used for accessing and managi
 annotation data in MongoDB.
 
 It is part of the `coyote.db` package and extends the base handler functionality.
-
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
+
+from copy import deepcopy
 
 # -------------------------------------------------------------------------
 # Imports
@@ -21,6 +32,7 @@ from pymongo.results import DeleteResult
 from flask import flash
 from flask_login import current_user
 from typing import Any
+from urllib.parse import unquote
 
 
 # -------------------------------------------------------------------------
@@ -44,8 +56,36 @@ class AnnotationsHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.annotations_collection)
 
+    def insert_annotation_bulk(self, annotations: list) -> Any:
+        """
+        Insert multiple annotations into the database in bulk.
+
+        This method takes a list of annotation dictionaries and inserts them
+        into the MongoDB collection. It is designed for efficiency when
+        handling multiple annotations at once.
+
+        Args:
+            annotations (list): A list of dictionaries, each representing an
+                                annotation to be inserted.
+
+        Returns:
+            Any: The result of the insert operation, which may include the
+                 inserted document IDs or other relevant information.
+        """
+        if not annotations:
+            return None
+
+        # Create a deep copy to avoid modifying the original list
+        annotations_copy = deepcopy(annotations)
+        if self.get_collection().insert_many(annotations_copy):
+            flash(f"Inserted {len(annotations_copy)} annotations", "green")
+            return True
+        else:
+            flash("Failed to insert annotations", "red")
+            return False
+
     def get_global_annotations(
-        self, variant: dict, assay: str, subpanel: str
+        self, variant: dict, assay_group: str, subpanel: str
     ) -> tuple:
         """
         Retrieve global annotations for a given variant, assay, and subpanel.
@@ -59,7 +99,7 @@ class AnnotationsHandler(BaseHandler):
             variant (dict): A dictionary containing variant details, including
                             'CHROM', 'POS', 'REF', 'ALT', and 'INFO' with
                             'selected_CSQ' data.
-            assay (str): The type of assay being used (e.g., 'solid').
+            assay_group (str): The type of assay being used (e.g., 'solid').
             subpanel (str): The subpanel identifier for further filtering when
                             assay is 'solid'.
 
@@ -75,50 +115,27 @@ class AnnotationsHandler(BaseHandler):
         """
         genomic_location = f"{str(variant['CHROM'])}:{str(variant['POS'])}:{variant['REF']}/{variant['ALT']}"
         selected_CSQ = variant["INFO"]["selected_CSQ"]
-        if len(selected_CSQ["HGVSp"]) > 0:
-            annotations = (
-                self.get_collection()
-                .find(
-                    {
-                        "gene": selected_CSQ["SYMBOL"],
-                        "$or": [
-                            {
-                                "nomenclature": "p",
-                                "variant": selected_CSQ["HGVSp"],
-                            },
-                            {
-                                "nomenclature": "c",
-                                "variant": selected_CSQ["HGVSc"],
-                            },
-                            {"nomenclature": "g", "variant": genomic_location},
-                        ],
-                    }
-                )
-                .sort("time_created", 1)
+
+        annotations = (
+            self.get_collection()
+            .find(
+                {
+                    "gene": selected_CSQ["SYMBOL"],
+                    "$or": [
+                        {
+                            "nomenclature": "p",
+                            "variant": unquote(selected_CSQ.get("HGVSp")),
+                        },
+                        {
+                            "nomenclature": "c",
+                            "variant": unquote(selected_CSQ.get("HGVSc")),
+                        },
+                        {"nomenclature": "g", "variant": genomic_location},
+                    ],
+                }
             )
-        elif len(selected_CSQ["HGVSc"]) > 0:
-            annotations = (
-                self.get_collection()
-                .find(
-                    {
-                        "gene": selected_CSQ["SYMBOL"],
-                        "$or": [
-                            {
-                                "nomenclature": "c",
-                                "variant": selected_CSQ["HGVSc"],
-                            },
-                            {"nomenclature": "g", "variant": genomic_location},
-                        ],
-                    }
-                )
-                .sort("time_created", 1)
-            )
-        else:
-            annotations = (
-                self.get_collection()
-                .find({"nomenclature": "g", "variant": genomic_location})
-                .sort("time_created", 1)
-            )
+            .sort("time_created", 1)
+        )
 
         latest_classification = {"class": 999}
         latest_classification_other = {}
@@ -126,56 +143,34 @@ class AnnotationsHandler(BaseHandler):
         annotations_interesting = {}
 
         for anno in annotations:
+            ## collect latest for current assay (if latest not assigned pick that)
+            ## also collect latest anno for all other assigned assays (including non-assays)
+            ## special rule for assays with subpanels, solid, tumwgs maybe lymph?
             if "class" in anno:
                 anno["class"] = int(anno["class"])
-                ## collect latest for current assay (if latest not assigned pick that)
-                ## also collect latest anno for all other assigned assays (including non-assays)
-                ## special rule for assays with subpanels, solid, tumwgs maybe lymph?
-                try:
-                    if assay == "solid":
-                        if (
-                            anno["assay"] == assay
-                            and anno["subpanel"] == subpanel
-                        ):
-                            latest_classification = anno
-                        else:
-                            ass_sub = f"{anno['assay']}:{anno['subpanel']}"
-                            latest_classification_other[ass_sub] = anno[
-                                "class"
-                            ]
+                assay = anno.get("assay", "NA")
+                sub = anno.get("subpanel", "NA")
+                ass_sub = f"{assay}:{sub}"
+                if assay_group == "solid":
+                    if assay == assay_group and sub == subpanel:
+                        latest_classification = anno
                     else:
-                        if anno["assay"] == assay:
-                            latest_classification = anno
-                        else:
-                            ass_sub = f"{anno['assay']}:{anno['subpanel']}"
-                            latest_classification_other[ass_sub] = anno[
-                                "class"
-                            ]
-                except:
-                    latest_classification = None
-                    latest_classification_other[
-                        f"{anno.get('assay', 'NA')}:{anno.get('subpanel', 'NA')}"
-                    ] = anno["class"]
+                        latest_classification_other[ass_sub] = anno["class"]
+                else:
+                    if assay == assay_group:
+                        latest_classification = anno
+                    else:
+                        latest_classification_other[ass_sub] = anno["class"]
             elif "text" in anno:
-                try:
-                    if assay == "solid":
-                        if (
-                            anno["assay"] == assay
-                            and anno["subpanel"] == subpanel
-                        ):
-                            ass_sub = f"{anno['assay']}:{anno['subpanel']}"
-                            annotations_interesting[ass_sub] = anno
-                            annotations_arr.append(anno)
-                        else:
-                            annotations_arr.append(anno)
-                    else:
-                        if anno["assay"] == assay:
-                            annotations_interesting[anno["assay"]] = anno
-                            annotations_arr.append(anno)
-                        else:
-                            annotations_arr.append(anno)
-                except:
-                    annotations_arr.append(anno)
+                assay = anno.get("assay", "NA")
+                sub = anno.get("subpanel", "NA")
+                if assay_group == "solid":
+                    if assay == assay_group and sub == subpanel:
+                        ass_sub = f"{assay}:{sub}"
+                        annotations_interesting[ass_sub] = anno
+                elif assay == assay_group:
+                    annotations_interesting[assay] = anno
+                annotations_arr.append(anno)
 
         latest_other_arr = []
         for latest_assay in latest_classification_other:
@@ -196,7 +191,7 @@ class AnnotationsHandler(BaseHandler):
         )
 
     def get_additional_classifications(
-        self, variant: dict, assay: str, subpanel: str
+        self, variant: dict, assay_group: str, subpanel: str
     ) -> list:
         """
         Retrieve additional classifications for a given variant based on specified assay and subpanel.
@@ -206,7 +201,7 @@ class AnnotationsHandler(BaseHandler):
         Args:
             variant (dict): A dictionary containing variant details including 'transcripts', 'HGVSp',
                             'HGVSc', and 'genes'.
-            assay (str): The type of assay being used (e.g., 'solid').
+            assay_group (str): The type of assay being used (e.g., 'solid').
             subpanel (str): The subpanel identifier for further filtering when assay is 'solid'.
         Returns:
             list: A list of annotations that match the query criteria, sorted by the time they were created.
@@ -227,10 +222,10 @@ class AnnotationsHandler(BaseHandler):
                 {"nomenclature": "c", "variant": {"$in": hgvsc}},
                 {"nomenclature": "g", "variant": variant["simple_id"]},
             ],
-            "assay": assay,
+            "assay": assay_group,
             "class": {"$exists": True},
         }
-        if assay == "solid":
+        if assay_group == "solid":
             query["subpanel"] = subpanel
 
         return list(
@@ -274,7 +269,7 @@ class AnnotationsHandler(BaseHandler):
             "time_created": datetime.now(),
             "variant": variant,
             "nomenclature": nomenclature,
-            "assay": variant_data.get("assay", None),
+            "assay": variant_data.get("assay_group", None),
             "subpanel": variant_data.get("subpanel", None),
         }
 
@@ -290,12 +285,13 @@ class AnnotationsHandler(BaseHandler):
             document["gene1"] = variant_data.get("gene1", None)
             document["gene2"] = variant_data.get("gene2", None)
 
-        if self.get_collection().insert_one(document):
+        result = self.get_collection().insert_one(document)
+        if result:
             flash("Variant classified", "green")
         else:
             flash("Variant classification failed", "red")
 
-        return None
+        return result
 
     def delete_classified_variant(
         self, variant: str, nomenclature: str, variant_data: dict
@@ -319,12 +315,13 @@ class AnnotationsHandler(BaseHandler):
         Returns:
             list | DeleteResult: A list of matching documents or the result of the delete operation.
         """
-        num_assay = list(
+        print(variant_data)
+        classified_docs = list(
             self.get_collection().find(
                 {
                     "class": {"$exists": True},
                     "variant": variant,
-                    "assay": variant_data.get("assay", None),
+                    "assay": variant_data.get("assay_group", None),
                     "gene": variant_data.get("gene", None),
                     "nomenclature": nomenclature,
                     "subpanel": variant_data.get("subpanel", None),
@@ -332,8 +329,8 @@ class AnnotationsHandler(BaseHandler):
             )
         )
         ## If variant has no match to current assay, it has an historical variant, i.e. not assigned to an assay. THIS IS DANGEROUS, maybe limit to admin?
-        if len(num_assay) == 0 and current_user.is_admin:
-            per_assay = list(
+        if len(classified_docs) == 0 and current_user.is_admin:
+            delete_result = list(
                 self.get_collection().find(  # may be change it to delete later
                     {
                         "class": {"$exists": True},
@@ -344,18 +341,18 @@ class AnnotationsHandler(BaseHandler):
                 )
             )
         else:
-            per_assay = self.get_collection().delete_many(
+            delete_result = self.get_collection().delete_many(
                 {
                     "class": {"$exists": True},
                     "variant": variant,
-                    "assay": variant_data.get("assay", None),
+                    "assay": variant_data.get("assay_group", None),
                     "gene": variant_data.get("gene", None),
                     "nomenclature": nomenclature,
                     "subpanel": variant_data.get("subpanel", None),
                 }
             )
 
-        return per_assay
+        return delete_result
 
     def get_gene_annotations(self, gene_name: str) -> list:
         """

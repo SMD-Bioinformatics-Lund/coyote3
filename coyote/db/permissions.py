@@ -1,4 +1,16 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
+
 """
 PermissionsHandler module for Coyote3
 =====================================
@@ -7,9 +19,6 @@ This module defines the `PermissionsHandler` class used for accessing and managi
 permissions data in MongoDB.
 
 It is part of the `coyote.db` package and extends the base handler functionality.
-
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
 # -------------------------------------------------------------------------
@@ -38,7 +47,7 @@ class PermissionsHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.permissions_collection)
 
-    def get_all(self, is_active=True) -> List[dict]:
+    def get_all_permissions(self, is_active=True) -> List[dict]:
         """
         Retrieve all permissions.
 
@@ -103,21 +112,21 @@ class PermissionsHandler(BaseHandler):
             is not None
         )
 
-    def get(self, perm_id: str) -> Optional[dict]:
+    def get_permission(self, permission_id: str) -> Optional[dict]:
         """
         Retrieve a permission document.
 
         This method fetches a single permission document from the database based on its unique identifier.
 
         Args:
-        perm_id (str): The unique identifier of the permission to retrieve.
+        permission_id (str): The unique identifier of the permission to retrieve.
 
         Returns:
         Optional[dict]: The permission document if found, otherwise None.
         """
-        return self.get_collection().find_one({"_id": perm_id})
+        return self.get_collection().find_one({"_id": permission_id})
 
-    def insert_permission(self, policy: dict) -> Any:
+    def create_new_policy(self, policy: dict) -> Any:
         """
         Insert a single permission policy into the collection.
 
@@ -131,50 +140,53 @@ class PermissionsHandler(BaseHandler):
         """
         self.get_collection().insert_one(policy)
 
-    def update_policy(self, perm_id: str, data: dict) -> Any:
+    def update_policy(self, permission_id: str, data: dict) -> Any:
         """
         Update a permission policy.
 
         This method updates an existing permission document in the permissions collection.
 
         Args:
-            perm_id (str): The unique identifier of the permission to update.
+            permission_id (str): The unique identifier of the permission to update.
             data (dict): A dictionary containing the updated permission details.
 
         Returns:
             Any: The result of the update operation.
         """
         return self.get_collection().update_one(
-            {"_id": perm_id}, {"$set": data}
+            {"_id": permission_id}, {"$set": data}
         )
 
-    def toggle_active(self, perm_id: str, active_status: bool) -> Any:
+    def toggle_policy_active(
+        self, permission_id: str, active_status: bool
+    ) -> Any:
         """
         Toggle the active status of a permission.
 
         This method updates the `is_active` field of a permission document to the specified active status.
 
         Args:
-            perm_id (str): The unique identifier of the permission to update.
+            permission_id (str): The unique identifier of the permission to update.
             active_status (bool): The desired active status to set for the permission.
 
         Returns:
             Any: The result of the update operation.
         """
-        return self.get_collection().update_one(
-            {"_id": perm_id}, {"$set": {"is_active": active_status}}
+        return self.toggle_active(
+            permission_id,
+            active_status,
         )
 
-    def delete_permission(self, perm_id: str) -> Any:
+    def delete_policy(self, permission_id: str) -> Any:
         """
         Delete a permission document.
 
         This method removes a permission document from the permissions collection based on its unique identifier.
 
         Args:
-            perm_id (str): The unique identifier of the permission to delete.
+            permission_id (str): The unique identifier of the permission to delete.
 
         Returns:
             Any: The result of the delete operation.
         """
-        return self.get_collection().delete_one({"_id": perm_id})
+        return self.get_collection().delete_one({"_id": permission_id})

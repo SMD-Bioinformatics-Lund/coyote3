@@ -1,9 +1,9 @@
 {% extends "layout.html" %}
-{% block title %}Create Assay Panel{% endblock %}
+{% block title %}Create ASP{% endblock %}
+
 {% block body %}
 <div class="flex w-full h-full overflow-hidden">
   {% include "admin_sidebar.html" %}
-
   <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
 
     <section class="p-2 ml-2 mt-2">
@@ -11,139 +11,104 @@
 
         <!-- Header -->
         <div class="flex items-center justify-between mb-6">
-          <h1 class="text-xl font-bold text-blue-500 tracking-wide capitalize flex gap-2 align-middle"><img src="{{ url_for('static', filename='icons/heroicons_outline_24/document-plus.svg') }}" alt="Schema Create Icon" class="h-6 w-6">Add New Assay Panel</h1>
-          <div class="flex items-center gap-4">
-            <form method="GET" action="{{ url_for('admin_bp.create_assay_panel') }}">
-              <label for="schema-select" class="text-sm font-medium text-gray-800 font-semibold">Selected Schema:</label>
-              <select id="schema-select" name="schema_id" onchange="this.form.submit()"
-                      class="text-sm border border-gray-300 rounded-md shadow-sm px-2 py-1 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                {% for s in schemas %}
-                  <option value="{{ s._id }}" {% if s._id == selected_schema._id %}selected{% endif %}>
-                    {{ s._id }} (v{{ s.version }})
-                  </option>
-                {% endfor %}
-              </select>
-            </form>
-          </div>
+          <h1 class="text-xl font-bold text-blue-500 tracking-wide capitalize flex gap-2 align-middle">
+            <img src="{{ url_for('static', filename='icons/heroicons_outline_24/document-plus.svg') }}" class="h-6 w-6">
+            Add New Assay Panel
+          </h1>
+          <form method="GET" action="{{ url_for('admin_bp.create_assay_panel') }}">
+            <label class="text-sm font-semibold text-gray-800">Schema:</label>
+            <select name="schema_id" onchange="this.form.submit()"
+              class="text-sm border border-gray-300 rounded-md shadow-sm px-2 py-1 bg-gray-50">
+              {% for s in schemas %}
+                <option value="{{ s._id }}" {% if s._id == selected_schema._id %}selected{% endif %}>{{ s._id }} (v{{ s.version }})</option>
+              {% endfor %}
+            </select>
+          </form>
         </div>
 
         <form method="POST" enctype="multipart/form-data" class="space-y-6 text-sm text-gray-700">
 
-          <!-- Meta Section -->
-          <div class="mb-6 border-l-4 border-blue-200 bg-blue-50 rounded-xl p-4 shadow-lg">
-            <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">Panel Metadata</h2>
-
-            <div class="grid grid-cols-2 gap-4">
-              {% for key in schema.sections.meta %}
-                <div>
-                  <label class="text-xs font-semibold block mb-1">
-                    {{ schema.fields[key].label }}
-                    {% if schema.fields[key].required %}<span class="text-red-500">*</span>{% endif %}
-                    <span class="text-gray-400">({{ schema.fields[key].type }})</span>
-                  </label>
-
-                  {% if key == 'version' %}
-                    <input type="number" name="{{ key }}" value="1.0" readonly
-                      class="w-full bg-blue-50 border border-blue-300 rounded-md p-2 text-sm text-gray-600 cursor-not-allowed">
-                  {% elif schema.fields[key].type == "bool" %}
-                    <input type="checkbox" name="{{ key }}" value="true" checked
-                      class="accent-blue-600 rounded">
-                  {% elif schema.fields[key].options %}
-                    <select name="{{ key }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
-                      {% for option in schema.fields[key].options %}
-                        <option value="{{ option }}">{{ option }}</option>
-                      {% endfor %}
-                    </select>
-                  {% else %}
-                    <input type="text" name="{{ key }}" placeholder="{{ schema.fields[key].placeholder }}"
-                      class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
-                  {% endif %}
-                </div>
-              {% endfor %}
-            </div>
-          </div>
-
-          <!-- Technical Section -->
-          <div class="mb-6 border-l-4 border-blue-200 bg-blue-50 rounded-xl p-4 shadow-lg">
-            <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">Technical Details</h2>
-          
-            <div class="grid grid-cols-2 gap-4">
-              {% for key in schema.sections.technical_details %}
-                <div>
-                  <label class="text-xs font-semibold block mb-1">
-                    {{ schema.fields[key].label }}
-                    <span class="text-gray-400">({{ schema.fields[key].type }})</span>
-                  </label>
-          
-                  {% if schema.fields[key].options %}
-                    <select name="{{ key }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
-                      {% for option in schema.fields[key].options %}
-                        <option value="{{ option }}"
-                          {% if option == schema.fields[key].default %} selected {% endif %}>
-                          {{ option }}
-                        </option>
-                      {% endfor %}
-                    </select>
-                  {% else %}
-                    <input type="{{ 'number' if schema.fields[key].type == 'float' else 'text' }}"
-                      name="{{ key }}"
-                      placeholder="{{ schema.fields[key].placeholder }}"
-                      value="{{ schema.fields[key].default }}"
-                      class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
-                  {% endif %}
-                </div>
-              {% endfor %}
-            </div>
-          </div>
-          
-
-          <!-- Covered Genes -->
-          <div class="mb-6 border-l-4 border-blue-200 bg-blue-50 rounded-xl p-4 shadow-lg">
-            <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">
-              {{ schema.fields["covered_genes"].label }}
-              <span class="text-gray-400">({{ schema.fields["covered_genes"].type }})</span>
-            </h2>
-
-            <div class="flex flex-col gap-4 items-start">
-              <textarea name="genes_paste" rows="6" placeholder="{{ schema.fields['covered_genes'].placeholder }}"
-                class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y"></textarea>
-
-              <div class="flex flex-col items-start">
-                <span class="text-xs font-semibold mb-2">OR Upload File</span>
-                <input type="file" name="genes_file" accept=".txt,.csv" class="text-xs">
-              </div>
-            </div>
-          </div>
-
-          <!-- Metadata (Readonly) -->
-          <div class="mb-6 border-l-4 border-blue-200 bg-blue-50 rounded-xl p-4 shadow-lg">
-            <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">Metadata</h2>
-          
-            <div class="grid grid-cols-4 gap-4">
-              {% for key in schema.sections.audit %}
-                {% if key != 'version' %}
-                  <div>
+          {% for section, keys in schema.sections.items() %}
+            <div class="mb-6 border-l-4 border-blue-200 bg-blue-50 rounded-xl p-4 shadow-lg">
+              <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') | title }}</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for key in keys %}
+                  {% set field = schema.fields[key] %}
+                  <div class="w-full {% if field.display_type in ['checkbox-group', 'radio'] %}col-span-1 flex flex-col gap-1{% endif %}">
                     <label class="text-xs font-semibold block mb-1">
-                      {{ schema.fields[key].label }}
-                      <span class="text-gray-400">({{ schema.fields[key].type }})</span>
+                      {{ field.label }}{% if field.required %}<span class="text-red-500">*</span>{% endif %}
+                      <span class="text-gray-400">({{ field.data_type }})</span>
                     </label>
-          
-                    {% if key == 'created_by' or key == 'updated_by' %}
-                      <input type="text" name="{{ key }}" value="{{ current_user.email }}"
-                        readonly class="w-full bg-blue-50 border border-blue-300 rounded-md p-2 text-sm text-gray-600 cursor-not-allowed">
-                    {% elif key == 'created_on' or key == 'updated_on' %}
-                      <input type="text" name="{{ key }}" value="{{ '' | now }}"
-                        readonly class="w-full bg-blue-50 border border-blue-300 rounded-md p-2 text-sm text-gray-600 cursor-not-allowed">
+
+                    {% if field.readonly %}
+                      <input type="text" name="{{ key }}" value="{{ field.default or '' }}" readonly class="w-full bg-blue-50 border border-blue-300 rounded-md p-2 text-sm text-gray-600 cursor-not-allowed">
+
+                    {% elif field.display_type == 'select' %}
+                      <select name="{{ key }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
+                        {% for opt in field.options %}
+                          <option value="{{ opt }}" {% if opt == field.default %}selected{% endif %}>{{ opt }}</option>
+                        {% endfor %}
+                      </select>
+
+                    {% elif field.display_type == 'multi-select' %}
+                      <select name="{{ key }}" multiple class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
+                        {% for opt in field.options %}
+                          <option value="{{ opt }}" {% if opt in field.default %}selected{% endif %}>{{ opt }}</option>
+                        {% endfor %}
+                      </select>
+
+                    {% elif field.display_type == 'checkbox' %}
+                      <input type="checkbox" name="{{ key }}" value="true" {% if field.default %}checked{% endif %} class="accent-blue-600 rounded">
+
+                    {% elif field.display_type == 'checkbox-group' %}
+                      <div class="flex flex-col gap-1">
+                        {% for opt in field.options %}
+                          <label class="inline-flex items-center gap-2">
+                            <input type="checkbox" name="{{ key }}" value="{{ opt }}" class="accent-blue-600 rounded">
+                            <span class="text-xs">{{ opt }}</span>
+                          </label>
+                        {% endfor %}
+                      </div>
+
+                    {% elif field.display_type == 'radio' %}
+                      <div class="flex flex-col gap-1">
+                        {% for opt in field.options %}
+                          <label class="inline-flex items-center gap-2">
+                            <input type="radio" name="{{ key }}" value="{{ opt }}" {% if opt == field.default %}checked{% endif %} class="accent-blue-600">
+                            <span class="text-xs">{{ opt }}</span>
+                          </label>
+                        {% endfor %}
+                      </div>
+
+                    {% elif field.display_type == 'textarea' %}
+                      <textarea name="{{ key }}" rows="4" placeholder="{{ field.placeholder }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">{{ field.default or '' }}</textarea>
+
+                    {% elif field.display_type == 'jsoneditor-or-upload' and key == 'covered_genes' %}
+                      <label class="text-xs text-gray-500 italic block mb-1">If both a gene list is pasted and a file is uploaded, the uploaded file will be used.</label>
+                      <textarea name="genes_paste" rows="6" placeholder="{{ field.placeholder }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y"></textarea>
+                      <div class="flex flex-col items-start mt-2">
+                        <span class="text-xs font-semibold mb-1">OR Upload File</span>
+                        <input type="file" name="genes_file" accept=".txt,.csv" class="text-xs">
+                      </div>
+                    {% elif field.display_type == 'jsoneditor-or-upload' and key == 'germline_genes' %}
+                      <label class="text-xs text-gray-500 italic block mb-1">If both a gene list is pasted and a file is uploaded, the uploaded file will be used.</label>
+                      <textarea name="germline_genes_paste" rows="6" placeholder="{{ field.placeholder }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y"></textarea>
+                      <div class="flex flex-col items-start mt-2">
+                        <span class="text-xs font-semibold mb-1">OR Upload File</span>
+                        <input type="file" name="germline_genes_file" accept=".txt,.csv" class="text-xs">
+                      </div>
+
                     {% else %}
-                      <input type="text" name="{{ key }}" value=""
-                        readonly class="w-full bg-blue-50 border border-blue-300 rounded-md p-2 text-sm text-gray-600 cursor-not-allowed">
+                      <input type="{{ 'number' if field.data_type in ['int', 'float'] else 'text' }}"
+                              name="{{ key }}" placeholder="{{ field.placeholder }}"
+                              value="{{ field.default or '' }}"
+                              class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
                     {% endif %}
                   </div>
-                {% endif %}
-              {% endfor %}
+                {% endfor %}
+              </div>
             </div>
-          </div>
-          
+          {% endfor %}
 
           <!-- Submit -->
           <div class="text-right pt-4">
@@ -153,10 +118,8 @@
           </div>
 
         </form>
-
       </div>
     </section>
-
   </main>
 </div>
 {% endblock %}

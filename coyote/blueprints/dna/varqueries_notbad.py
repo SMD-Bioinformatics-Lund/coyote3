@@ -1,3 +1,15 @@
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 from flask import current_app as app
 import re
 
@@ -21,7 +33,9 @@ def build_query(sample_settings, group) -> dict:
         genes = ["ABC", "DEF"]
         germline_genes = []
         for gene in genes:
-            germline_genes.append({"INFO.CSQ": {"$elemMatch": {"SYMBOL": {gene}}}})
+            germline_genes.append(
+                {"INFO.CSQ": {"$elemMatch": {"SYMBOL": {gene}}}}
+            )
         if germline_genes:
             germ.append({"$or": germline_genes})
         globalor.append(germ)
@@ -54,7 +68,11 @@ def build_query(sample_settings, group) -> dict:
     )
     ## VEP CSQ ##
     default_csq = {
-        "INFO.CSQ": {"$elemMatch": {"Consequence": {"$in": sample_settings["filter_conseq"]}}}
+        "INFO.CSQ": {
+            "$elemMatch": {
+                "Consequence": {"$in": sample_settings["filter_conseq"]}
+            }
+        }
     }
     # Any configured thing that should overwrite VEP-CSQ
     test = 1

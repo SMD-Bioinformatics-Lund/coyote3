@@ -1,4 +1,15 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 """
 UsersHandler module for Coyote3
 ===============================
@@ -7,9 +18,6 @@ This module defines the `UsersHandler` class used for accessing and managing
 user data in MongoDB.
 
 It is part of the `coyote.db` package and extends the base handler functionality.
-
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
 # -------------------------------------------------------------------------
@@ -46,7 +54,8 @@ class UsersHandler(BaseHandler):
         Returns:
             dict: A dictionary representation of the user document.
         """
-        return dict(self.get_collection().find_one({"email": user_mail}))
+
+        return self.get_collection().find_one({"email": user_mail})
 
     def user_with_id(self, user_id: str) -> dict:
         """
@@ -107,7 +116,7 @@ class UsersHandler(BaseHandler):
         Returns:
             list: A list of user documents.
         """
-        return list(self.get_collection().find().sort("fullname", 1))
+        return list(self.get_collection().find().sort("firstname", 1))
 
     def delete_user(self, user_id) -> None:
         """
@@ -141,7 +150,7 @@ class UsersHandler(BaseHandler):
             {"_id": user_id}, {"$set": {"last_login": datetime.utcnow()}}
         )
 
-    def toggle_active(self, user_id: str, active_status: bool) -> bool:
+    def toggle_user_active(self, user_id: str, active_status: bool) -> bool:
         """
         Toggles the active status of a user in the database.
         Args:
@@ -150,6 +159,4 @@ class UsersHandler(BaseHandler):
         Returns:
             bool: True if the update was successful, False otherwise.
         """
-        return self.get_collection().update_one(
-            {"_id": user_id}, {"$set": {"is_active": active_status}}
-        )
+        return self.toggle_active(user_id, active_status)

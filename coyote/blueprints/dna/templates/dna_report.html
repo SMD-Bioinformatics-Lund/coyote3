@@ -15,7 +15,7 @@
 
 
 <!--  Report Header -->
-<span class="report_header">{{ assay_config.REPORT.header }} - {{ sample.name }}</span>
+<span class="report_header">{{ assay_config.reporting.report_header }} - {{ sample.name }}</span>
 
 <!--  Report Patient/Analysis Information -->
 <div class="report_div">
@@ -74,7 +74,7 @@
     </tr>
     <tr>
       <td class="top_report_key">Analysmetod</td>
-      <td class="top_report_val">{{ assay_config.REPORT.analysis_method }}</td>
+      <td class="top_report_val">{{ assay_config.reporting.analysis_method }}</td>
     </tr>
     <tr>
       <td class="top_report_key">Analys genomförd av</td>
@@ -101,8 +101,8 @@
 
 <!--  Variant Summary -->
 <span class="report_header">Analysresultat</span>
-{% if "SNV" in dna_sections %}
-  {% set variants = display_sections_data.snvs %}
+{% if "SNV" in report_sections %}
+  {% set variants = report_sections_data.snvs %}
   <span class="report_header">Kliniskt relevanta SNVs och små INDELs</span>
   <table class="variant_table">
     <tr>
@@ -137,8 +137,8 @@
 {% endif %}
 
 <!-- CNV Summary -->
-{% if "CNV" in dna_sections %}
-  {% set cnvs = display_sections_data.cnvs %}
+{% if "CNV" in report_sections %}
+  {% set cnvs = report_sections_data.cnvs %}
   <span class="report_header">Kliniskt relevanta kopietalsförändringar</span>
   <table class="variant_table">
     <tr>
@@ -185,8 +185,8 @@
 {% endif %}
 
 <!-- DNA Fusions Summary -->
-{% if "TRANSLOCATION" in dna_sections %}
-  {% set transloc = display_sections_data.translocs %}
+{% if "TRANSLOCATION" in report_sections %}
+  {% set transloc = report_sections_data.translocs %}
   <span class="report_header">Kliniskt relevanta fusioner (DNA)</span>
   <table class="variant_table">
     <tr>
@@ -212,8 +212,8 @@
 
 <!-- Biomarkers Summary -->
 {% if 1==0 %}
-{% if "BIOMARKER" in dna_sections %}
-  {% set biomarkers = display_sections_data.biomarkers %}
+{% if "BIOMARKER" in report_sections %}
+  {% set biomarkers = report_sections_data.biomarkers %}
   <span class="report_header">Andra biomarkörer</span>
   <table class="variant_table">
     <tr>
@@ -272,7 +272,7 @@
     {% if sample.comments|length > 0 %}
       {% for comment in sample.comments if comment.hidden != 1 %}
         {% if loop.last %}
-          {{ comment.text|format_comment|safe }}
+          {{ comment.text|markdown|safe }}
         {% endif %}
       {% endfor %}
     {% else %}
@@ -286,10 +286,10 @@
 <br>
 
 <!-- CNV Profile for WGS samples -->
-{% if display_sections_data.get('cnv_profile_base64') %}
+{% if report_sections_data.get('cnv_profile_base64') %}
   <span class="report_header">Kopietalsprofil, genomisk översikt</span>
   <div style="transform:rotate(90deg);">
-    <img style="width:900px; height:auto; padding:30px;" src="data:image/png;base64,{{ display_sections_data.cnv_profile_base64 }}">
+    <img style="width:900px; height:auto; padding:30px;" src="data:image/png;base64,{{ report_sections_data.cnv_profile_base64 }}">
   </div>
 <p style="page-break-after: always;"></p>
 {% endif %}
@@ -407,7 +407,7 @@
 <!-- Analysis Description -->
 <span class="report_header">Analysbeskrivning</span>
 <div class="analysis_description">
-  {{ assay_config.REPORT.analysis_desc|safe }}
+  {{ assay_config.reporting.report_description|safe }}
 
   <form id="genelist-form" action="{{ url_for('common_bp.get_sample_genelists', sample_id=sample.name, sample_assay=sample_assay, _external=True) }}" method="POST" target="_blank">
     <input type="hidden" name="enc_genelists" id="enc-genelists-input">

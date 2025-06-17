@@ -1,6 +1,19 @@
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 """
 Coyote coverage for mane-transcripts
 """
+
 
 from collections import defaultdict
 from flask import (
@@ -16,13 +29,13 @@ from coyote.blueprints.coverage import cov_bp
 from coyote.extensions import store, util
 from coyote.util.decorators.access import (
     require_group_access,
-    require_sample_group_access,
+    require_sample_access,
 )
 
 
 @cov_bp.route("/<string:sample_id>", methods=["GET", "POST"])
 @login_required
-@require_sample_group_access("sample_id")
+@require_sample_access("sample_id")
 def get_cov(sample_id):
     cov_cutoff = 500
     if request.method == "POST":
@@ -32,8 +45,9 @@ def get_cov(sample_id):
     sample = store.sample_handler.get_sample(sample_id)
 
     sample_assay = util.common.select_one_sample_group(sample.get("groups"))
-    assay_config = store.assay_config_handler.get_assay_config_filtered(
-        sample_assay
+    sample_profile = sample.get("profile", "production")
+    assay_config = store.aspc_handler.get_aspc_no_meta(
+        sample_assay, sample_profile
     )
     assay_group: str = assay_config.get(
         "assay_group", "unknown"
@@ -41,7 +55,7 @@ def get_cov(sample_id):
     subpanel: str | None = sample.get("subpanel")  # breast, LP, lung, etc.
 
     # Get the entire genelist for the sample panel
-    assay_panel_doc = store.panel_handler.get_panel(panel_name=sample_assay)
+    assay_panel_doc = store.asp_handler.get_asp(asp_name=sample_assay)
 
     # Get group parameters from the sample group config file
     sample_filters = sample.get("filters", {})
@@ -52,9 +66,7 @@ def get_cov(sample_id):
     # Get the genelists for the sample panel checked genelists from the filters
     if checked_genelists:
         checked_genelists_genes_dict: list[dict] = (
-            store.insilico_genelist_handler.get_genelist_docs_by_ids(
-                checked_genelists
-            )
+            store.isgl_handler.get_isgl_by_ids(checked_genelists)
         )
         genes_covered_in_panel: list[dict] = (
             util.common.get_genes_covered_in_panel(

@@ -114,7 +114,6 @@ venv*
 ENV/
 env.bak/
 venv.bak/
-
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -154,3 +153,6 @@ redis_data
 
 # idea
 .idea/
+
+# Docker compose
+docker-compose.beta1.yml

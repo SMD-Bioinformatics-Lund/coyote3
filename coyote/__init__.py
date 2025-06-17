@@ -1,4 +1,16 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
+
 """
 Meta Information
 ================
@@ -13,9 +25,6 @@ Key Responsibilities:
 - Register blueprints for modular application structure.
 - Enforce permissions and access control.
 - Provide centralized logging configuration.
-
-Author: Coyote3 Development Team
-License: Copyright (c) 2025 Coyote3 Development Team. All rights reserved.
 """
 
 # -------------------------------------------------------------------------
@@ -161,7 +170,10 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
                     store.roles_handler.get_role(fresh_user_data.get("role"))
                     or {}
                 )
-                user_model = UserModel.from_mongo(fresh_user_data, role_doc)
+                asp_docs = store.asp_handler.get_all_asps(is_active=True)
+                user_model = UserModel.from_mongo(
+                    fresh_user_data, role_doc, asp_docs
+                )
                 updated_user = User(user_model)
 
                 # Re-login only if things have changed
@@ -227,7 +239,7 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
 
             if not (permission_ok or level_ok or role_ok):
                 flash("You do not have access to this page.", "red")
-                return redirect(url_for("home_bp.home_screen"))
+                return redirect(url_for("home_bp.samples_home"))
         return None
 
     @app.context_processor
