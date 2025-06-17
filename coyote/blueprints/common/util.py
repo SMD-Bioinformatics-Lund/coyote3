@@ -53,8 +53,8 @@ class BPCommonUtility:
             text = text + "## Andra kliniskt relevanta biomarkörer: \n"
             text += BPCommonUtility.summarize_bio(summary_sections_data['biomarkers'])
             text += "\n"
-        
-        accredited_assay = False # this should be configurable    
+
+        accredited_assay = assay_panel_doc.get("accredited", False)
         if accredited_assay:
             accredited = ""
         else:
@@ -75,6 +75,7 @@ class BPCommonUtility:
 
         # add text about control sample used
         controll_tissue = "hudbiopsi" # this needs to be configurable
+        # The analysis was done for somatic variants (tissue_type was used as controlmaterial)
         paired_add = f"Analysen avser somatiska varianter ({controll_tissue} har använts som kontrollmaterial). "
         if len(sample_ids) == 2:
             text += paired_add
