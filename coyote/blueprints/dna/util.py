@@ -420,7 +420,7 @@ class DNAUtility:
         return filtered_sorted_variants
 
     @staticmethod
-    def get_simple_variants_for_report(variants: list) -> list:
+    def get_simple_variants_for_report(variants: list, assay_config: dict) -> list:
         """
         Get a simplified list of variant dictionaries for reporting purposes.
 
