@@ -17,11 +17,11 @@ class BPCommonUtility:
     Utility class for variants blueprint
     """
     @staticmethod
-    def generate_summary_text(assay_group, summary_sections_data, genes_chosen, checked_genelists):
+    def generate_summary_text(sample_ids, assay_config, assay_panel_doc, summary_sections_data, genes_chosen, checked_genelists):
         text = ''
         
         # generic information about panel design and active genelists
-        text += BPCommonUtility.summarize_intro( genes_chosen, checked_genelists )
+        text += BPCommonUtility.summarize_intro( sample_ids, genes_chosen, checked_genelists, assay_config, assay_panel_doc )
         # get summary for SNVs
         if 'snvs' in summary_sections_data:
             # Clinically relevant SNVs and small indels
@@ -69,12 +69,16 @@ class BPCommonUtility:
         return text
     
     @staticmethod
-    def summarize_intro( genes_chosen, checked_genelists ):
-        panel_name = "PLACEHOLDER" # this should be configurable
-        INTRO = "DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar exoner i XX gener som inkluderas i PH. Analysen avser somatiska varianter (hudbiopsi har använts som kontrollmaterial). För CEBPA undersöks även konstitutionella varianter.\n\n" # this should be configurable
-        IS_WGS = False # this should be configurable
+    def summarize_intro( sample_ids, genes_chosen, checked_genelists, assay_config, assay_panel_doc ):
+        text = assay_config['reporting']['general_report_summary']
+        germline_intersection = list(set(assay_panel_doc['germline_genes']) & set(genes_chosen))
 
-        text = ""
+        # add text about control sample used
+        controll_tissue = "hudbiopsi" # this needs to be configurable
+        paired_add = f"Analysen avser somatiska varianter ({controll_tissue} har använts som kontrollmaterial). "
+        if len(sample_ids) == 2:
+            text += paired_add
+        
         if len(checked_genelists) > 0:
             the_lists = []
             for genelist in checked_genelists:
@@ -82,19 +86,13 @@ class BPCommonUtility:
                 the_lists.append(list_name)
             the_lists_spoken = CommonUtility.nl_join(the_lists, "samt")
             if len(checked_genelists) == 1:
-                genepanel_plural = "an "
+                genepanel_plural = "an"
             else:
-                genepanel_plural = "orna "
+                genepanel_plural = "orna"
             if len(genes_chosen) == 1:
-                gene_plural = "en "
-                # of which is in included in PH sequencing panel
-                scope = " vilken är inkluderad i " + str(panel_name) + " sekvenseringspanel.\n\n"              
+                gene_plural = "en"         
             else:
-                gene_plural = "erna "
-                # of which is in included in PH sequencing panel
-                scope = " vilka är inkluderade i " + str(panel_name) + " sekvenseringspanel.\n\n"
-            if IS_WGS:
-                scope = ""
+                gene_plural = "erna"
             incl_genes_copy = genes_chosen[:]
             if len(genes_chosen) <= 20:
                 the_genes = " som innefattar gen" + gene_plural + ": " + str(CommonUtility.nl_join(incl_genes_copy, "samt"))
@@ -102,15 +100,20 @@ class BPCommonUtility:
                 the_genes = " som innefattar " + str(len(genes_chosen)) + " gener"
             text += (
                 # DNA has been extracted from the sent sample and has been analyzed with massive parallel sequencing. The analysis encompasses
-                "DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Analysen omfattar "
+                "Analysen omfattar "
                 + "genlist" + str(genepanel_plural)
                 + ": "
                 + str(the_lists_spoken)
                 + the_genes
-                + scope
+                + ". "
             )
-        else:
-            text = INTRO
+            if len(sample_ids) == 2:
+                if len(germline_intersection) > 1:
+                    germ_spoken = str(CommonUtility.nl_join(incl_genes_copy, "samt"))
+                else:
+                    germ_spoken = germline_intersection[0]
+                text += f"För {germ_spoken} undersöks även konstitutionella varianter."
+        text += "\n\n"
         return text
 
     @staticmethod
