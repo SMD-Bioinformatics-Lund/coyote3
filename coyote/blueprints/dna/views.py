@@ -46,6 +46,7 @@ import os
 import io
 import markdown
 from markupsafe import Markup
+from pprint import pprint
 
 
 @dna_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])
@@ -97,9 +98,6 @@ def list_variants(sample_id: str) -> Response | str:
     analysis_sections = assay_config.get("analysis_types", [])
     display_sections_data = {}
     summary_sections_data = {}
-    app.logger.debug(
-        f"Assay group: {assay_group} - DNA config: {pformat(dna_sections)}"
-    )
     app.logger.debug(f"Assay group: {assay_group} - Subpanel: {subpanel}")
 
     # Get the entire genelist for the sample panel
@@ -298,7 +296,7 @@ def list_variants(sample_id: str) -> Response | str:
 
     if "FUSION" in analysis_sections:
         display_sections_data["fusions"] = []
-                summary_sections_data["translocs"] = (
+        summary_sections_data["translocs"] = (
             store.transloc_handler.get_interesting_sample_translocations(
                 sample_id=str(sample["_id"])
             )
@@ -342,7 +340,7 @@ def list_variants(sample_id: str) -> Response | str:
     ## SNVs, non-optional. Though only has rules for PARP + myeloid and solid
     ai_text = ""
     conclusion = ""
-    ai_text = util.bpcommon.generate_summary_text( assay_group, summary_sections_data, filter_genes, checked_genelists )
+    ai_text = util.bpcommon.generate_summary_text( sample_ids, assay_config, assay_panel_doc, summary_sections_data, filter_genes, checked_genelists )
 
     return render_template(
         "list_variants_vep.html",
