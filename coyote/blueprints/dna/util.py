@@ -325,20 +325,24 @@ class DNAUtility:
         Returns:
             list: The list of variants with updated global annotations and classifications.
         """
+        selected_variants = []
         for var_idx, var in enumerate(variants):
             (
                 variants[var_idx]["global_annotations"],
                 variants[var_idx]["classification"],
                 variants[var_idx]["other_classification"],
                 variants[var_idx]["annotations_interesting"],
-            ) = store.annotation_handler.get_global_annotations(
-                var, assay, subpanel
-            )
+            ) = store.annotation_handler.get_global_annotations(var, assay, subpanel)
+            classification = variants[var_idx]["classification"]
+            if classification is not None:
+                class_value = classification.get("class")
+                if class_value is not None and class_value < 999:
+                    selected_variants.append(variants[var_idx])
 
             variants[var_idx] = DNAUtility.add_alt_class(
                 variants[var_idx], assay, subpanel
             )
-        return variants
+        return variants, selected_variants
 
     @staticmethod
     def add_alt_class(variant: dict, assay: str, subpanel: str) -> dict:
