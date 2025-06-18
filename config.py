@@ -79,8 +79,7 @@ class DefaultConfig:
 
     # Fernet key for encrypting sensitive data in the report
     # FERNET_KEY = Fernet.generate_key()  # store this securely
-    FERNET_KEY: str = os.getenv("COYOTE3_FERNET_KEY")
-    FERNET = Fernet(FERNET_KEY)
+    FERNET = Fernet(os.getenv("COYOTE3_FERNET_KEY"))
 
     WTF_CSRF_ENABLED = True
     SECRET_KEY: str | None = os.getenv("FLASK_SECRET_KEY")

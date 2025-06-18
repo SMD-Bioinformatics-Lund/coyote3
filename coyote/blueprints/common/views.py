@@ -153,13 +153,13 @@ def get_sample_genelists(sample_id: str, sample_assay: str) -> str:
     enc_panel_doc = request.form.get("enc_panel_doc")
     enc_sample_filters = request.form.get("enc_sample_filters")
 
-    fernet_key = app.config.get("FERNET_KEY")
+    fernet_obj = app.config.get("FERNET")
 
-    genelists = json.loads(fernet_key.decrypt(enc_genelists.encode()))
-    panel_doc = json.loads(fernet_key.decrypt(enc_panel_doc.encode()))
+    genelists = json.loads(fernet_obj.decrypt(enc_genelists.encode()))
+    panel_doc = json.loads(fernet_obj.decrypt(enc_panel_doc.encode()))
 
     sample_filters = json.loads(
-        fernet_key.decrypt(enc_sample_filters.encode())
+        fernet_obj.decrypt(enc_sample_filters.encode())
     )
 
     return render_template(

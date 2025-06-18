@@ -308,7 +308,7 @@ class DNAUtility:
     @staticmethod
     def add_global_annotations(
         variants: list, assay: str, subpanel: str
-    ) -> list:
+    ) -> tuple[list, list]:
         """
         Add global annotations to each variant in the provided list.
 
@@ -332,7 +332,9 @@ class DNAUtility:
                 variants[var_idx]["classification"],
                 variants[var_idx]["other_classification"],
                 variants[var_idx]["annotations_interesting"],
-            ) = store.annotation_handler.get_global_annotations(var, assay, subpanel)
+            ) = store.annotation_handler.get_global_annotations(
+                var, assay, subpanel
+            )
             classification = variants[var_idx]["classification"]
             if classification is not None:
                 class_value = classification.get("class")
@@ -587,8 +589,8 @@ class DNAUtility:
     def summerize_fusion(variants: list) -> str:
         """
         Smart-text for summerizing dna-fusions(translocations). Depending on what type
-        of evidence is present it will add PR SR or UR and between what genes the trans-
-        location as occured.
+        of evidence is present it will add PR SR or UR and between what genes the
+        translocation as occured.
         """
         interesting = {}
         for var in variants:
@@ -854,7 +856,7 @@ class DNAUtility:
     @staticmethod
     def summerize_bio(variants: list) -> str:
         """
-        Smart-text summerizing other biomarkers. Depending if the biomarker surpasses a set threshold it will present the result
+        Smart-text summerizing other biomarkers. Depending upon if the biomarker surpasses a set threshold it will present the result
         with an acompaning text.
         """
         text = ""
