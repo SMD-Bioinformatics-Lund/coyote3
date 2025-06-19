@@ -249,8 +249,10 @@ def list_variants(sample_id: str) -> Response | str:
     )
 
     # Add global annotations for the variants
-    variants, tiered_variants = util.dna.add_global_annotations(variants, assay_group, subpanel)
-    summary_sections_data['snvs'] = tiered_variants
+    variants, tiered_variants = util.dna.add_global_annotations(
+        variants, assay_group, subpanel
+    )
+    summary_sections_data["snvs"] = tiered_variants
     # Filter by population frequency, the same as in the query
     # variants = util.dna.popfreq_filter(variants, float(sample_filters["max_popfreq"]))
 
@@ -285,7 +287,9 @@ def list_variants(sample_id: str) -> Response | str:
                 sample_id=str(sample["_id"])
             )
         )
-        summary_sections_data['biomarkers'] = display_sections_data["biomarkers"]
+        summary_sections_data["biomarkers"] = display_sections_data[
+            "biomarkers"
+        ]
 
     if "TRANSLOCATION" in analysis_sections:
         display_sections_data["translocs"] = (
@@ -340,7 +344,14 @@ def list_variants(sample_id: str) -> Response | str:
     ## SNVs, non-optional. Though only has rules for PARP + myeloid and solid
     ai_text = ""
     conclusion = ""
-    ai_text = util.bpcommon.generate_summary_text( sample_ids, assay_config, assay_panel_doc, summary_sections_data, filter_genes, checked_genelists )
+    ai_text = util.bpcommon.generate_summary_text(
+        sample_ids,
+        assay_config,
+        assay_panel_doc,
+        summary_sections_data,
+        filter_genes,
+        checked_genelists,
+    )
 
     print(assay_config)
 
@@ -752,7 +763,9 @@ def gene_view(gene_name: str) -> Response | str:
     app.logger.debug(f"gene specific variants: {len(variants)}")
 
     # TODO:  How slow is this????
-    variants, tiered_variants = util.dna.add_global_annotations(variants, "assay", "subpanel")
+    variants, tiered_variants = util.dna.add_global_annotations(
+        variants, "assay", "subpanel"
+    )
 
     variant_summary = defaultdict(dict)
     sample_oids = []
@@ -1771,7 +1784,9 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     )
 
     # Add global annotations for the variants
-    variants, tiered_variants = util.dna.add_global_annotations(variants, assay_group, subpanel)
+    variants, tiered_variants = util.dna.add_global_annotations(
+        variants, assay_group, subpanel
+    )
 
     # # Filter by population frequency
     # variants = util.dna.popfreq_filter(variants, float(sample_settings["max_popfreq"]))
@@ -1889,11 +1904,12 @@ def save_dna_report(sample_id: str) -> Response:
         return result
     sample, assay_config, assay_config_schema = result
 
-    assay_group: str = assay_config.get("assay_group", "unknown")
+    assay_group: str = assay_config.get("asp_group", "unknown")
     report_num: int = sample.get("report_num", 0) + 1
     report_id: str = f"{sample_id}.{report_num}"
     report_path: str = os.path.join(
-        app.config["REPORTS_BASE_PATH"], assay_group
+        app.config.get("REPORTS_BASE_PATH", "reports"),
+        assay_config.get("reporting", {}).get("report_path", assay_group),
     )
     os.makedirs(report_path, exist_ok=True)
     report_file: str = os.path.join(report_path, f"{report_id}.html")
@@ -1908,7 +1924,6 @@ def save_dna_report(sample_id: str) -> Response:
         )
 
     try:
-
         html = generate_dna_report(sample_id=sample_id, save=1)
 
         if not util.common.write_report(html, report_file):

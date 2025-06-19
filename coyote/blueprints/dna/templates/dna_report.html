@@ -30,10 +30,14 @@
     </tr>
     <tr>
       <td class="top_report_key">Prov-ID</td>
-      <td class="top_report_val">{{ sample.name }};
-        &lt;TUMOR_CREATION_DATE&gt;{% if sample.num_samples == 2 %}
-        (Kontrollprov: &lt;PAIRED_SAMPLE_NAME&gt;;&lt;TUMOR_NORMAL_CREATION_DATE&gt;){% endif %}</td>
+      <td class="top_report_val">{{ sample.name }}
     </tr>
+    {% if sample.num_samples == 2 %}
+      <tr>
+        <td class="top_report_key">KontrollProv-ID</td>
+        <td class="top_report_val">{{ sample.control_id }}
+      </tr>
+    {% endif %}
     <tr>
       <td class="top_report_key">Registreringsdatum</td>
       <td class="top_report_val">&lt;REGISTRATION_DATE&gt;</td>
@@ -42,11 +46,7 @@
         <td class="top_report_key">Provtyp</td>
         <td class="top_report_val">&lt;TUMOR_SAMPLE_TYPE&gt;</td>
     </tr>
-    <tr>
-      <td class="top_report_key">Kontrollprovtyp</td>
-      <td class="top_report_val">&lt;NORMAL_SAMPLE_TYPE&gt;</td>
-    </tr>
-    {% if assay_group != "swea" and assay_group != "gmsonco" %}
+    {% if assay_group not in ["swea", "gmsonco"] %}
     <tr>
       <td class="top_report_key">Frågeställning</td>
       <td class="top_report_val">

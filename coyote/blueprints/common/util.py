@@ -16,42 +16,72 @@ class BPCommonUtility:
     """
     Utility class for variants blueprint
     """
+
     @staticmethod
-    def generate_summary_text(sample_ids, assay_config, assay_panel_doc, summary_sections_data, genes_chosen, checked_genelists):
-        text = ''
-        
+    def generate_summary_text(
+        sample_ids,
+        assay_config,
+        assay_panel_doc,
+        summary_sections_data,
+        genes_chosen,
+        checked_genelists,
+    ):
+        text = ""
+
         # generic information about panel design and active genelists
-        text += BPCommonUtility.summarize_intro( sample_ids, genes_chosen, checked_genelists, assay_config, assay_panel_doc )
+        text += BPCommonUtility.summarize_intro(
+            sample_ids,
+            genes_chosen,
+            checked_genelists,
+            assay_config,
+            assay_panel_doc,
+        )
         # get summary for SNVs
-        if 'snvs' in summary_sections_data:
+        if "snvs" in summary_sections_data:
             # Clinically relevant SNVs and small indels
             text = text + "## Kliniskt relevanta SNVs och små INDELs:"
             text += "\n\n"
-            class_vars, class_cnt = BPCommonUtility.sort_tiered_variants(summary_sections_data['snvs'], genes_chosen)
-            text = BPCommonUtility.summarize_tiered_snvs( class_vars, class_cnt, text)
+            class_vars, class_cnt = BPCommonUtility.sort_tiered_variants(
+                summary_sections_data["snvs"], genes_chosen
+            )
+            text = BPCommonUtility.summarize_tiered_snvs(
+                class_vars, class_cnt, text
+            )
             if 1 in class_vars or 2 in class_vars or 3 in class_vars:
                 text += "\n\n"
             else:
                 text += "Vid analysen har inga somatiskt förvärvade varianter i undersökta gener påvisats.\n\n"
 
-        if 'cnvs' in summary_sections_data:
-            if len(summary_sections_data['cnvs']) > 0:
+        if "cnvs" in summary_sections_data:
+            if len(summary_sections_data["cnvs"]) > 0:
                 # Clinically relevant genespecific copy number changes
-                text = text + "## Kliniskt relevanta genspecifika kopietalsförändringar:"
+                text = (
+                    text
+                    + "## Kliniskt relevanta genspecifika kopietalsförändringar:"
+                )
                 text += "\n\n"
-                text += BPCommonUtility.summarize_cnv(summary_sections_data['cnvs'])
+                text += BPCommonUtility.summarize_cnv(
+                    summary_sections_data["cnvs"]
+                )
                 text += "\n"
-        if 'translocs' in summary_sections_data:
-            if len(summary_sections_data['translocs']) > 0:
+        if "translocs" in summary_sections_data:
+            if len(summary_sections_data["translocs"]) > 0:
                 # Clinically relevant genespecific DNA-fusions
-                text = text + "## Kliniskt relevanta genspecifika DNA-fusioner: \n"
-                text += BPCommonUtility.summarize_transloc(summary_sections_data['translocs'])
+                text = (
+                    text
+                    + "## Kliniskt relevanta genspecifika DNA-fusioner: \n"
+                )
+                text += BPCommonUtility.summarize_transloc(
+                    summary_sections_data["translocs"]
+                )
                 text += "\n"
-        if 'fusions' in summary_sections_data:
+        if "fusions" in summary_sections_data:
             ...
-        if 'biomarkers' in summary_sections_data:
+        if "biomarkers" in summary_sections_data:
             text = text + "## Andra kliniskt relevanta biomarkörer: \n"
-            text += BPCommonUtility.summarize_bio(summary_sections_data['biomarkers'])
+            text += BPCommonUtility.summarize_bio(
+                summary_sections_data["biomarkers"]
+            )
             text += "\n"
 
         accredited_assay = assay_panel_doc.get("accredited", False)
@@ -61,25 +91,37 @@ class BPCommonUtility:
             # the analysis is not covered by the acreditaion
             accredited = "Analysen omfattas inte av ackrediteringen."
         conclusion = (
-                # for more information about the performed analysis and description of somatically gained variants, please see the attached report"
-                "För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade varianter, var god se bifogad rapport. "
-                + accredited
+            # for more information about the performed analysis and description of somatically gained variants, please see the attached report"
+            "För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade varianter, var god se bifogad rapport. "
+            + accredited
         )
         text += conclusion
         return text
-    
+
     @staticmethod
-    def summarize_intro( sample_ids, genes_chosen, checked_genelists, assay_config, assay_panel_doc ):
-        text = assay_config['reporting']['general_report_summary']
-        germline_intersection = list(set(assay_panel_doc['germline_genes']) & set(genes_chosen))
+    def summarize_intro(
+        sample_ids,
+        genes_chosen,
+        checked_genelists,
+        assay_config,
+        assay_panel_doc,
+    ):
+
+        text = (
+            assay_config.get("reporting", {}).get("general_report_summary", "")
+            or ""
+        )
+        germline_intersection = list(
+            set(assay_panel_doc["germline_genes"]) & set(genes_chosen)
+        )
 
         # add text about control sample used
-        controll_tissue = "hudbiopsi" # this needs to be configurable
+        controll_tissue = "hudbiopsi"  # this needs to be configurable
         # The analysis was done for somatic variants (tissue_type was used as controlmaterial)
         paired_add = f"Analysen avser somatiska varianter ({controll_tissue} har använts som kontrollmaterial). "
         if len(sample_ids) == 2:
             text += paired_add
-        
+
         if len(checked_genelists) > 0:
             the_lists = []
             for genelist in checked_genelists:
@@ -91,18 +133,26 @@ class BPCommonUtility:
             else:
                 genepanel_plural = "orna"
             if len(genes_chosen) == 1:
-                gene_plural = "en"         
+                gene_plural = "en"
             else:
                 gene_plural = "erna"
             incl_genes_copy = genes_chosen[:]
             if len(genes_chosen) <= 20:
-                the_genes = " som innefattar gen" + gene_plural + ": " + str(CommonUtility.nl_join(incl_genes_copy, "samt"))
+                the_genes = (
+                    " som innefattar gen"
+                    + gene_plural
+                    + ": "
+                    + str(CommonUtility.nl_join(incl_genes_copy, "samt"))
+                )
             else:
-                the_genes = " som innefattar " + str(len(genes_chosen)) + " gener"
+                the_genes = (
+                    " som innefattar " + str(len(genes_chosen)) + " gener"
+                )
             text += (
                 # DNA has been extracted from the sent sample and has been analyzed with massive parallel sequencing. The analysis encompasses
                 "Analysen omfattar "
-                + "genlist" + str(genepanel_plural)
+                + "genlist"
+                + str(genepanel_plural)
                 + ": "
                 + str(the_lists_spoken)
                 + the_genes
@@ -110,7 +160,9 @@ class BPCommonUtility:
             )
             if len(sample_ids) == 2:
                 if len(germline_intersection) > 1:
-                    germ_spoken = str(CommonUtility.nl_join(incl_genes_copy, "samt"))
+                    germ_spoken = str(
+                        CommonUtility.nl_join(incl_genes_copy, "samt")
+                    )
                 else:
                     germ_spoken = germline_intersection[0]
                 text += f"För {germ_spoken} undersöks även konstitutionella varianter."
@@ -138,25 +190,58 @@ class BPCommonUtility:
                         if genes[0] + " och " + genes[1] in interesting:
                             pass
                         else:
-                            interesting[genes[0] + " och " + genes[1]] = af_dict
+                            interesting[genes[0] + " och " + genes[1]] = (
+                                af_dict
+                            )
                         if "PR" in gt:
                             pr = gt["PR"].split(",")
                             af_pr = (
-                                round(float(pr[1]) / (float(pr[1]) + float(pr[0])), ndigits=3) * 100
+                                round(
+                                    float(pr[1])
+                                    / (float(pr[1]) + float(pr[0])),
+                                    ndigits=3,
+                                )
+                                * 100
                             )
-                            if af_pr > interesting[genes[0] + " och " + genes[1]]["af_pr"]:
-                                interesting[genes[0] + " och " + genes[1]]["af_pr"] = af_pr
+                            if (
+                                af_pr
+                                > interesting[genes[0] + " och " + genes[1]][
+                                    "af_pr"
+                                ]
+                            ):
+                                interesting[genes[0] + " och " + genes[1]][
+                                    "af_pr"
+                                ] = af_pr
                         if "SR" in gt:
                             sr = gt["SR"].split(",")
                             af_sr = (
-                                round(float(sr[1]) / (float(sr[1]) + float(sr[0])), ndigits=3) * 100
+                                round(
+                                    float(sr[1])
+                                    / (float(sr[1]) + float(sr[0])),
+                                    ndigits=3,
+                                )
+                                * 100
                             )
-                            if af_sr > interesting[genes[0] + " och " + genes[1]]["af_sr"]:
-                                interesting[genes[0] + " och " + genes[1]]["af_sr"] = af_sr
+                            if (
+                                af_sr
+                                > interesting[genes[0] + " och " + genes[1]][
+                                    "af_sr"
+                                ]
+                            ):
+                                interesting[genes[0] + " och " + genes[1]][
+                                    "af_sr"
+                                ] = af_sr
                     if "UR" in var["INFO"]:
                         af_ur = var["INFO"]["UR"]
-                        if af_ur > interesting[genes[0] + " och " + genes[1]]["af_ur"]:
-                            interesting[genes[0] + " och " + genes[1]]["af_ur"] = af_ur
+                        if (
+                            af_ur
+                            > interesting[genes[0] + " och " + genes[1]][
+                                "af_ur"
+                            ]
+                        ):
+                            interesting[genes[0] + " och " + genes[1]][
+                                "af_ur"
+                            ] = af_ur
         text = ""
         cl = 0
         for voi in interesting:
@@ -185,10 +270,20 @@ class BPCommonUtility:
                 )
                 af = 1
             elif interesting[voi]["af_sr"] > 0:
-                text += "i " + str(interesting[voi]["af_sr"]) + "%" + " av splittade läsningar"
+                text += (
+                    "i "
+                    + str(interesting[voi]["af_sr"])
+                    + "%"
+                    + " av splittade läsningar"
+                )
                 af = 1
             elif interesting[voi]["af_pr"]:
-                text += "i " + str(interesting[voi]["af_pr"]) + "%" + " av överspännande läsningar"
+                text += (
+                    "i "
+                    + str(interesting[voi]["af_pr"])
+                    + "%"
+                    + " av överspännande läsningar"
+                )
                 af = 1
             if interesting[voi]["af_ur"] > 0 and af > 0:
                 text += (
@@ -216,7 +311,13 @@ class BPCommonUtility:
         for var in variants:
             if "interesting" in var:
                 if var["interesting"]:
-                    coord = str(var["chr"]) + ":" + str(var["start"]) + "-" + str(var["end"])
+                    coord = (
+                        str(var["chr"])
+                        + ":"
+                        + str(var["start"])
+                        + "-"
+                        + str(var["end"])
+                    )
                     af_dict = {
                         "af_pr": 0,
                         "af_sr": 0,
@@ -245,8 +346,13 @@ class BPCommonUtility:
                         pass
                     else:
                         interesting[goi + ":" + suffix] = af_dict
-                    if other_genes > interesting[goi + ":" + suffix]["other_genes"]:
-                        interesting[goi + ":" + suffix]["other_genes"] = other_genes
+                    if (
+                        other_genes
+                        > interesting[goi + ":" + suffix]["other_genes"]
+                    ):
+                        interesting[goi + ":" + suffix][
+                            "other_genes"
+                        ] = other_genes
                     if "gatk" in var["callers"] or "cnvkit" in var["callers"]:
                         if cn > interesting[goi + ":" + suffix]["cn"]:
                             interesting[goi + ":" + suffix]["cn"] = cn
@@ -254,13 +360,23 @@ class BPCommonUtility:
                         if var["SR"] != 0:
                             sr = var["SR"].split("/")
                             af_sr = (
-                                round(float(sr[1]) / (float(sr[1]) + float(sr[0])), ndigits=3) * 100
+                                round(
+                                    float(sr[1])
+                                    / (float(sr[1]) + float(sr[0])),
+                                    ndigits=3,
+                                )
+                                * 100
                             )
                             interesting[goi + ":" + suffix]["af_sr"] = af_sr
                         if var["PR"] != 0:
                             pr = var["PR"].split("/")
                             af_pr = (
-                                round(float(pr[1]) / (float(pr[1]) + float(pr[0])), ndigits=3) * 100
+                                round(
+                                    float(pr[1])
+                                    / (float(pr[1]) + float(pr[0])),
+                                    ndigits=3,
+                                )
+                                * 100
                             )
                             interesting[goi + ":" + suffix]["af_pr"] = af_pr
         text = ""
@@ -292,9 +408,19 @@ class BPCommonUtility:
                     + " av splittade läsningar"
                 )
             elif interesting[voi]["af_sr"] > 0:
-                info += " i " + str(interesting[voi]["af_sr"]) + "%" + " av splittade läsningar"
+                info += (
+                    " i "
+                    + str(interesting[voi]["af_sr"])
+                    + "%"
+                    + " av splittade läsningar"
+                )
             elif interesting[voi]["af_pr"]:
-                info += " i " + str(interesting[voi]["af_pr"]) + "%" + " av överspännande läsningar"
+                info += (
+                    " i "
+                    + str(interesting[voi]["af_pr"])
+                    + "%"
+                    + " av överspännande läsningar"
+                )
 
             intro = [
                 "Vid analysen finner man en " + effect + " av " + gene,
@@ -343,13 +469,18 @@ class BPCommonUtility:
         return text
 
     @staticmethod
-    def sort_tiered_variants( variants, genes_chosen ):
+    def sort_tiered_variants(variants, genes_chosen):
         class_vars = defaultdict(lambda: defaultdict(list))
         class_cnt = defaultdict(int)
-        for v in sorted(variants, key=lambda d: d["GT"][0]["AF"], reverse=True):
+        for v in sorted(
+            variants, key=lambda d: d["GT"][0]["AF"], reverse=True
+        ):
             if "irrelevant" in v and v["irrelevant"] == True:
                 continue
-            if len(genes_chosen) > 0 and v["INFO"]["selected_CSQ"]["SYMBOL"] not in genes_chosen:
+            if (
+                len(genes_chosen) > 0
+                and v["INFO"]["selected_CSQ"]["SYMBOL"] not in genes_chosen
+            ):
                 continue
             percent = ""
             for gt in v["GT"]:
@@ -360,59 +491,65 @@ class BPCommonUtility:
             ].append(percent)
             class_cnt[v["classification"]["class"]] += 1
         return class_vars, class_cnt
-    
+
     @staticmethod
-    def summarize_tiered_snvs( class_vars, class_cnt, text ):
+    def summarize_tiered_snvs(class_vars, class_cnt, text):
         first = 1
         tiers_text = {
-            1 : " av stark klinisk signifikans (Tier I)", # of clinical significance..
-            2 : " av potentiell klinisk signifikans (Tier II)", # of potential clinical significance..
-            3 : " av oklar klinisk signifikans (Tier III)" # of unknown clinical significance
+            1: " av stark klinisk signifikans (Tier I)",  # of clinical significance..
+            2: " av potentiell klinisk signifikans (Tier II)",  # of potential clinical significance..
+            3: " av oklar klinisk signifikans (Tier III)",  # of unknown clinical significance
         }
-        
-        tiers_to_summarize = [1,2,3] # this should be configurable
-        present_tiers = [tier for tier in tiers_to_summarize if tier in class_vars]
-        for i, tier in enumerate(present_tiers):
-                if i == 0:
-                    text += "Vid analysen finner man "
-                elif i == len(present_tiers) - 1 and len(present_tiers) == 3:
-                    text += "Slutligen ses "
-                else:
-                    text += "Vidare ses "
 
-                num_vars = class_cnt[tier]
-                num_genes = len(class_vars[tier])
-                plural = "er" if num_vars > 1 else ""
-                text += (
-                    CommonUtility.nl_num(num_vars, "n")
-                    + " variant"
-                    + plural
-                    + tiers_text[tier]
-                )
-                if num_genes == 1:
+        tiers_to_summarize = [1, 2, 3]  # this should be configurable
+        present_tiers = [
+            tier for tier in tiers_to_summarize if tier in class_vars
+        ]
+        for i, tier in enumerate(present_tiers):
+            if i == 0:
+                text += "Vid analysen finner man "
+            elif i == len(present_tiers) - 1 and len(present_tiers) == 3:
+                text += "Slutligen ses "
+            else:
+                text += "Vidare ses "
+
+            num_vars = class_cnt[tier]
+            num_genes = len(class_vars[tier])
+            plural = "er" if num_vars > 1 else ""
+            text += (
+                CommonUtility.nl_num(num_vars, "n")
+                + " variant"
+                + plural
+                + tiers_text[tier]
+            )
+            if num_genes == 1:
+                first = 0
+                for gene, perc_arr in class_vars[tier].items():
+                    text += (
+                        " i "
+                        + gene
+                        + " (i "
+                        + CommonUtility.nl_join(perc_arr, "respektive")
+                        + " av läsningarna)"  # of the reads
+                    )
+            elif num_genes > 1:
+                text += ": "
+                gene_texts = []
+                for gene, perc_arr in class_vars[tier].items():
+                    t = (
+                        CommonUtility.nl_num(len(perc_arr), "n")
+                        + " i "
+                        + gene
+                        + " ("
+                    )
+                    if first == 1:
+                        t += "i "
+                    t += CommonUtility.nl_join(perc_arr, "respektive")
+                    if first == 1:
+                        t += " av läsningarna"  # of the reads
+                    t += ")"
+                    gene_texts.append(t)
                     first = 0
-                    for gene, perc_arr in class_vars[tier].items():
-                        text += (
-                            " i "
-                            + gene
-                            + " (i "
-                            + CommonUtility.nl_join(perc_arr, "respektive")
-                            + " av läsningarna)" # of the reads
-                        )
-                elif num_genes > 1:
-                    text += ": "
-                    gene_texts = []
-                    for gene, perc_arr in class_vars[tier].items():
-                        t = CommonUtility.nl_num(len(perc_arr), "n") + " i " + gene + " ("
-                        if first == 1:
-                            t += "i "
-                        t += CommonUtility.nl_join(perc_arr, "respektive")
-                        if first == 1:
-                            t += " av läsningarna" # of the reads
-                        t += ")"
-                        gene_texts.append(t)
-                        first = 0
-                    text += CommonUtility.nl_join(gene_texts, "och")
-                text += ". "
+                text += CommonUtility.nl_join(gene_texts, "och")
+            text += ". "
         return text
-  

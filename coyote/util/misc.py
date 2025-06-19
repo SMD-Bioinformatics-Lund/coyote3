@@ -121,7 +121,16 @@ def get_dynamic_assay_nav() -> dict:
                     "assays": assays,
                 }
 
-    return dict(dynamic_assay_nav=nav)
+    # Convert to a sorted dict at each level
+    sorted_nav = {
+        pt: {
+            ptech: dict(sorted(groups.items()))
+            for ptech, groups in sorted(techs.items())
+        }
+        for pt, techs in sorted(nav.items())
+    }
+
+    return dict(dynamic_assay_nav=sorted_nav)
 
 
 def get_sample_and_assay_config(sample_id: str) -> tuple:

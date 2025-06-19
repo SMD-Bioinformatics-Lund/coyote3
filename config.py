@@ -106,7 +106,8 @@ class DefaultConfig:
     LDAP_USER_DN = "ou=people"
 
     # Report Config
-    REPORTS_BASE_PATH = "/data/bnf/dev/ram/Pipelines/Web_Developement/coyote_blueprinted/reports"
+    # REPORTS_BASE_PATH = "/data/bnf/dev/ram/Pipelines/Web_Developement/coyote_blueprinted/reports"
+    REPORTS_BASE_PATH = "/data/lymphotrack/cll_results/saved_cll_reports/"
 
     CONSEQ_TERMS_MAPPER: dict[str, list[str]] = {
         "splicing": [
@@ -306,10 +307,6 @@ class TestConfig(DefaultConfig):
 
     LOGS = "logs/test"
     PRODUCTION = False
-    # Paths to config files for testing:
-    # _PATH_ASSAY_CONFIG = "tests/config/assays.conf.toml"
-    # _PATH_CUTOFF_CONFIG = "tests/config/cutoffs.conf.toml"
-    # _PATH_TABLE_CONFIG = "tests/config/tables.conf.toml"
 
     APP_VERSION: str = (
         f"{app_version}-Test (git: {CommonUtility.get_active_branch_name()})"
