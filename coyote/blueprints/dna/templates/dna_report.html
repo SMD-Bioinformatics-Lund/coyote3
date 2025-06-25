@@ -415,15 +415,40 @@
     <input type="hidden" name="enc_sample_filters" id="enc-sample-filters-input">
   </form>
   
+  {% set ns = namespace(table_no=1) %}
+  <div>
+    {% for genelist_name, genelist_values in genes_covered_in_panel.items() %}
+      {% if genelist_name != sample.assay %}
+        <p><b>Tabell {{ ns.table_no }}: Gener inkluderade i <i>{{ genelist_name }}</i> insilico-panel</b></p>
+        <div>
+          <table class="genetable" id="snvs-table">
+            <tbody>
+              {% for i in range(0, genelist_values.covered | length, 15) %}
+                <tr>
+                  {% for gene in genelist_values.covered[i:i+15] %}
+                    <td>{{ gene }}</td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% set ns.table_no = ns.table_no + 1 %}
+      {% endif %}
+    {% endfor %}
+  </div>
+
+
   <p>
-    For gene lists see 
-    <a href="#" onclick="submitGenelistForm(event)" class="text-blue-600 hover:underline" target="_blank">here</a>
+    For complete panel gene lists, and configurations, see 
+    <a href="#" onclick="submitGenelistForm(event)" class="text-blue-600 hover:underline" target="_blank">here.</a> 
+    <br>Or, for ASP genelist, visit <a href="{{url_for("public_bp.asp_genes",asp_id=sample.assay, _external=True)}}"> {{url_for("public_bp.asp_genes",asp_id=sample.assay , _external=True)}} </a>
   </p>
-  
+
 
   {% if not germline %}
     <p>
-    <b>Tabell 1: Förklaring av klassificering</b>
+    <b>Tabell {{ns.table_no}}: Förklaring av klassificering</b>
     <p>
     <table class="info">
       <tr>

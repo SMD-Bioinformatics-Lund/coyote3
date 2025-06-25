@@ -162,6 +162,6 @@ def get_sample_genelists(sample_id: str, sample_assay: str) -> str:
         "sample_genes.html",
         sample=sample_id,
         genelists=genelists,
-        assay_panel_doc=panel_doc,
+        asp_config=panel_doc,
         sample_filters=sample_filters,
     )

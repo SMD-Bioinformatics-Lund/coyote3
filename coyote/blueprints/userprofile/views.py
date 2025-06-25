@@ -27,15 +27,18 @@ from coyote.blueprints.userprofile import profile_bp
 @login_required
 def user_profile(user_id: str) -> str | Response:
     """
-    Renders the profile page for the currently logged-in user.
+    Displays the profile page for the currently logged-in user.
 
-    This view retrieves the user's profile information and renders it in a template.
-    It requires the user to be logged in.
+    This view checks if the requested user ID matches the logged-in user's username.
+    If not, it returns a 403 Forbidden error. Otherwise, it renders the user's profile
+    page using the shared admin view.
+
+    Args:
+        user_id (str): The username of the user whose profile is being viewed.
 
     Returns:
-        Response: Rendered HTML template for the user's profile page.
+        str | Response: Rendered HTML template for the user's profile page or a Flask Response.
     """
-    # Fetch user from DB (if needed)
     if user_id != current_user.username:
         abort(403)
     return view_user(user_id)

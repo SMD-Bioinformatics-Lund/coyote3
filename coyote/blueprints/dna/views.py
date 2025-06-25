@@ -1830,6 +1830,7 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
         report_date=report_date,
         save=save,
         sample_assay=sample_assay,
+        genes_covered_in_panel=genes_covered_in_panel,
         encrypted_panel_doc=util.common.encrypt_json(assay_panel_doc, fernet),
         encrypted_genelists=util.common.encrypt_json(
             genes_covered_in_panel, fernet

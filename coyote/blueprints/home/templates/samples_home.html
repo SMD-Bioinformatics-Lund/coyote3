@@ -26,10 +26,10 @@
   
   
   <!-- MAIN CONTENT (Scrollable & Auto-Resizing) -->
-  <main class="flex-1 bg-transparent overflow-y-auto p-4  flex flex-col">
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
 
     <!-- Search Bar -->
-    <section id="sample-search" class="mt-2">
+    <section id="sample-search" class="mt-2 flex">
       <form action="" method="POST" class="flex items-center space-x-4 relative max-w-lg w-full">
         {{ form.hidden_tag() }}
     
@@ -90,6 +90,12 @@
           </div>
         </div>
       </form>
+
+      <button id="toggle-other-profile"
+        class="inline-flex items-center px-4 py-1.5 mx-4 rounded-lg bg-gray-100 text-sm font-medium text-gray-700 hover:bg-blue-300 shadow-md transition duration-300">
+        Only Prod. Samples
+      </button>
+    
     </section>
 
     <!-- Sample Table -->
@@ -114,7 +120,8 @@
                 </thead>
                 <tbody id="pagination-table-body-live" class="text-gray-800 rounded-b-2xl overflow-hidden">
                   {% for sample in live_samples %}
-                    <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
+                    {% set sample_profile = sample.get('profile', '')[0]|upper or 'P' %}
+                    <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile {% endif %}">
                       <td class="p-2 font-medium text-center">
                         {% if "num_samples" in sample %}
                           {% for n in range(sample.num_samples) %}
@@ -143,7 +150,7 @@
                       </td>
                       <td class="p-2 font-medium">
                         <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-{{ sample.profile or 'production' }} text-center">
-                          {{ sample.get('profile', '')[0]|upper or 'P' }}
+                          {{ sample_profile }}
                         </span>
                       </td>
                       <td class="p-2 font-medium">
@@ -201,7 +208,8 @@
                 </thead>
                 <tbody id="pagination-table-body-done"class="text-gray-700 rounded-b-2xl border-gray-300">
                   {% for sample in done_samples|sort(attribute="last_report_time_created", reverse=True) %}
-                    <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
+                    {% set sample_profile = sample.get('profile', '')[0]|upper or 'P' %}
+                    <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile {% endif %}">
                       <td class="p-2 font-medium text-center">
                         {% if "num_samples" in sample %}
                           {% for n in range(sample.num_samples) %}
@@ -299,6 +307,10 @@
     sliderThumb.style.left = `${percentage}%`;
   }
 
+  document.getElementById("toggle-other-profile").addEventListener("click", function () {
+    const rows = document.querySelectorAll("tr.other_profile");
+    rows.forEach(row => row.classList.toggle("hidden"));
+  });
   
   
 </script>
