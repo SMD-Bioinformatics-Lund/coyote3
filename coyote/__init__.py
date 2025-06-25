@@ -119,7 +119,7 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
             for role in store.roles_handler.get_all_roles()
         }
 
-        # Cache assay panels in app context
+        # Cache assay asp in app context
         @app.context_processor
         def inject_assay_nav() -> dict:
             """

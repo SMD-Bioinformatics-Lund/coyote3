@@ -60,6 +60,9 @@ def require_sample_access(sample_arg="sample_name") -> callable:
     def decorator(view_func):
         @wraps(view_func)
         def wrapper(*args, **kwargs):
+            if not current_user.is_authenticated:
+                flash("You must be logged in to access this resource", "red")
+                abort(401, description="Unauthorized: User not authenticated")
             sample_name = kwargs.get(sample_arg)
             if not sample_name:
                 flash(f"Missing `{sample_arg}` in route parameters", "red")
@@ -113,7 +116,7 @@ def require_group_access(group_arg: str = "assay") -> callable:
 
     Usage:
         ```python
-        @app.route("/panels/<assay>/overview")
+        @app.route("/asp/<assay>/overview")
         @require_group_access("assay")
         def view_assay_panel(assay):
             ...
@@ -126,6 +129,10 @@ def require_group_access(group_arg: str = "assay") -> callable:
     def decorator(view_func):
         @wraps(view_func)
         def wrapper(*args, **kwargs):
+            if not current_user.is_authenticated:
+                flash("You must be logged in to access this resource", "red")
+                abort(401, description="Unauthorized: User not authenticated")
+
             user_assay_groups = set(current_user.assay_groups or [])
             target_group = kwargs.get(group_arg)
 

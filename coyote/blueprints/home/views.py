@@ -177,7 +177,6 @@ def samples_home(
 
 
 @home_bp.route("/<string:sample_id>/reports/<string:report_id>")
-@login_required
 @require("view_reports", min_role="admin")
 @require_sample_access("sample_id")
 def view_report(sample_id: str, report_id: str) -> str | Response:

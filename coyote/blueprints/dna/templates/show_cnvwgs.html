@@ -226,7 +226,7 @@
       <!-- Comment box, other tiering and pon -->
       <div class="flex flex-col gap-y-4 min-w-450 max-w-xl">
         <!-- Comment box -->
-        {% if has_access("add_cnv_comment", min_role="manager", min_level=99) %}
+        {% if has_access("add_variant_comment", min_role="manager", min_level=99) %}
           <div class="bg-transparent w-full max-w-xl" id="commenting-box-card">
             <h2 class="text-sm font-semibold bg-gradient-to-b from-indigo-400 to-indigo-200 p-2 shadow-md rounded-t-lg break-all">Add new comment/annotation</h2>
             <div id="commenting_box" class="rounded-b-lg border border-gray-400 shadow-md p-2 overflow-x-auto">
@@ -293,7 +293,7 @@
 
       <div class="flex flex-col gap-y-4 min-w-450 max-w-xl items-start">
         <!-- CNV annotations -->
-        {% if has_access('view_global_variant_comment', min_role='user', min_level=9) %}
+        {% if has_access(min_role='user', min_level=9) %}
           <div class="bg-gray-50 w-full max-w-xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="green" pagination-button-text-color="black" id="cnv-annotations">
             <h2 class="text-sm font-semibold bg-gradient-to-b from-green-400 to-green-200 p-2 shadow-lg rounded-t-lg break-all">CNV Annotations</h2>
             <div class="rounded-b-lg overflow-x-auto">

@@ -14,7 +14,7 @@
 Public routes for the Coyote3 application.
 
 These routes provide access to public-facing genomic data views, including genelist display,
-genepanel matrix visualization, and gene explorer panels for public assays.
+genepanel matrix visualization, and gene explorer asp for public assays.
 """
 
 from flask import current_app as app
@@ -122,7 +122,7 @@ def panel_gene_explorer() -> str:
 
     Returns:
         flask.Response: Rendered HTML template with context:
-            - panels: List of available public assay panel names.
+            - asp: List of available public assay panel names.
             - selected_panel_name: Name of the selected panel.
             - subpanels: List of subpanels for the selected panel.
             - selected_subpanel_name: Name of the selected subpanel.

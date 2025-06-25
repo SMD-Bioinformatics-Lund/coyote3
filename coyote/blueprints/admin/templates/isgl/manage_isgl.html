@@ -92,7 +92,7 @@
                     </a>
                   
 
-                    {% if has_access("edit_genelist", min_role="manager", min_level=99) and not is_public %}
+                    {% if has_access("edit_isgl", min_role="manager", min_level=99) and not is_public %}
                       <button onclick="showActionModal({
                           url: '{{ url_for('admin_bp.edit_genelist', genelist_id=genelist._id) }}',
                           title: 'Edit genelist configuration',
@@ -116,7 +116,7 @@
                         <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path-rounded-square.svg') }}" alt="toggle active" class="w-5 cursor-pointer">
                       </button> 
                     {% endif %}
-                    {% if has_access("delete_genelist", min_role="admin", min_level=99999) and not is_public %}
+                    {% if has_access("delete_isgl", min_role="admin", min_level=99999) and not is_public %}
                       <button onclick="showActionModal({
                           url: '{{ url_for('admin_bp.delete_genelist', genelist_id=genelist._id) }}',
                           title: 'Delete genelist',

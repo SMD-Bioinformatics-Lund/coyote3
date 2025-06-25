@@ -45,7 +45,6 @@ class Utility:
         from coyote.util.report.report_util import ReportUtility
         from coyote.blueprints.home.util import HomeUtility
         from coyote.blueprints.rna.util import RNAUtility
-        from coyote.blueprints.userprofile.util import ProfileUtility
         from coyote.blueprints.dashboard.util import DashBoardUtility
         from coyote.blueprints.admin.util import AdminUtility
         from coyote.blueprints.coverage.util import CoverageUtility
@@ -55,7 +54,6 @@ class Utility:
         self.common = CommonUtility()
         self.main = HomeUtility()
         self.rna = RNAUtility()
-        self.profile = ProfileUtility()
         self.dashboard = DashBoardUtility()
         self.admin = AdminUtility()
         self.coverage = CoverageUtility()

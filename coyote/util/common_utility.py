@@ -1123,7 +1123,7 @@ class CommonUtility:
     @staticmethod
     def create_assay_group_map(assay_groups_panels: list) -> dict:
         """
-        Create a dictionary mapping each assay group to a list of its associated panels.
+        Create a dictionary mapping each assay group to a list of its associated asp.
 
         Args:
             assay_groups_panels (list): A list of dictionaries, each representing an assay panel with keys such as

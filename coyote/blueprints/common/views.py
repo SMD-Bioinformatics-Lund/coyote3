@@ -15,7 +15,6 @@ This module defines Flask view functions for handling error screens and sample c
 """
 
 from flask import Response, redirect, request, url_for, flash
-from flask_login import login_required
 from flask import current_app as app
 from coyote.blueprints.common import common_bp
 from coyote.extensions import store, util
@@ -58,7 +57,6 @@ def error_screen() -> str | Response:
     endpoint="add_rna_sample_comment",
 )
 @common_bp.route("/sample/<string:sample_id>/sample_comment", methods=["POST"])
-@login_required
 @require_sample_access("sample_id")
 @require("add_sample_comment", min_role="user", min_level=9)
 def add_sample_comment(sample_id: str) -> Response:
@@ -82,7 +80,6 @@ def add_sample_comment(sample_id: str) -> Response:
 )
 @require_sample_access("sample_id")
 @require("hide_sample_comment", min_role="manager", min_level=99)
-@login_required
 def hide_sample_comment(sample_id: str) -> Response:
     """
     Hides a sample comment for the given sample.
@@ -107,7 +104,6 @@ def hide_sample_comment(sample_id: str) -> Response:
 @common_bp.route(
     "/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"]
 )
-@login_required
 @require_sample_access("sample_id")
 @require("unhide_sample_comment", min_role="manager", min_level=99)
 def unhide_sample_comment(sample_id: str) -> Response:

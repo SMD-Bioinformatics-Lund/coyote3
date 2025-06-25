@@ -25,7 +25,6 @@ from flask import (
     send_file,
     Response,
 )
-from flask_login import login_required
 from pprint import pformat
 from copy import deepcopy
 from wtforms import BooleanField
@@ -44,9 +43,6 @@ from coyote.services.auth.decorators import require
 from PIL import Image
 import os
 import io
-import markdown
-from markupsafe import Markup
-from pprint import pprint
 
 
 @dna_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])
@@ -377,7 +373,6 @@ def list_variants(sample_id: str) -> Response | str:
 
 # TODO
 @dna_bp.route("/<sample_id>/multi_class", methods=["POST"])
-@login_required
 @require_sample_access("sample_id")
 @require("manage_snvs", min_role="user", min_level=9)
 def classify_multi_variant(sample_id: str) -> Response:
@@ -483,7 +478,6 @@ def classify_multi_variant(sample_id: str) -> Response:
 
 @dna_bp.route("/<string:sample_id>/plot/<string:fn>", endpoint="show_any_plot")  # type: ignore
 @dna_bp.route("/<string:sample_id>/plot/rotated/<string:fn>", endpoint="show_any_plot_rotated")  # type: ignore
-@login_required
 @require_sample_access("sample_id")
 def show_any_plot(sample_id: str, fn: str, angle: int = 90) -> Response | str:
     """
@@ -528,7 +522,6 @@ def show_any_plot(sample_id: str, fn: str, angle: int = 90) -> Response | str:
 
 ## Individual variant view ##
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>")
-@login_required
 @require_sample_access("sample_id")
 def show_variant(sample_id: str, var_id: str) -> Response | str:
     """
@@ -697,7 +690,6 @@ def show_variant(sample_id: str, var_id: str) -> Response | str:
 
 
 @dna_bp.route("/gene_simple/<string:gene_name>", methods=["GET", "POST"])
-@login_required
 @require("view_gene_annotations", min_role="user", min_level=9)
 def gene_view_simple(gene_name: str) -> Response | str:
     """
@@ -736,7 +728,6 @@ def gene_view_simple(gene_name: str) -> Response | str:
 
 
 @dna_bp.route("/gene/<string:gene_name>", methods=["GET", "POST"])
-@login_required
 @require("view_gene_annotations", min_role="user", min_level=9)
 def gene_view(gene_name: str) -> Response | str:
     """
@@ -803,7 +794,6 @@ def gene_view(gene_name: str) -> Response | str:
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/unfp", methods=["POST"])
-@login_required
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def unmark_false_variant(sample_id: str, var_id: str) -> Response:
@@ -824,7 +814,6 @@ def unmark_false_variant(sample_id: str, var_id: str) -> Response:
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/fp", methods=["POST"])
-@login_required
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def mark_false_variant(sample_id: str, var_id: str) -> Response:
@@ -913,7 +902,6 @@ def unmark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
 @dna_bp.route(
     "/<string:sample_id>/var/<string:var_id>/irrelevant", methods=["POST"]
 )
-@login_required
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
@@ -936,7 +924,6 @@ def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
 @dna_bp.route(
     "/<string:sample_id>/var/<string:var_id>/blacklist", methods=["POST"]
 )
-@login_required
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
@@ -960,7 +947,6 @@ def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
 @dna_bp.route(
     "/<string:sample_id>/var/<string:var_id>/ordersanger", methods=["POST"]
 )
-@login_required
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def order_sanger(sample_id: str, var_id: str) -> Response:
@@ -1000,8 +986,7 @@ def order_sanger(sample_id: str, var_id: str) -> Response:
 @dna_bp.route(
     "/<string:sample_id>/var/<string:var_id>/classify", methods=["POST"]
 )
-@login_required
-@require(permission="tier_dna_variant", min_role="manager", min_level=99)
+@require(permission="assign_tier", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
 def classify_variant(sample_id: str, var_id: str) -> Response:
     """
@@ -1034,8 +1019,7 @@ def classify_variant(sample_id: str, var_id: str) -> Response:
 @dna_bp.route(
     "/<string:sample_id>/var/<string:var_id>/rmclassify", methods=["POST"]
 )
-@login_required
-@require(permission="remove_dna_variant_tier", min_role="admin")
+@require(permission="remove_tier", min_role="admin")
 @require_sample_access("sample_id")
 def remove_classified_variant(sample_id: str, var_id: str) -> Response:
     """
@@ -1081,7 +1065,6 @@ def remove_classified_variant(sample_id: str, var_id: str) -> Response:
     methods=["POST"],
     endpoint="add_translocation_comment",
 )
-@login_required
 @require("add_variant_comment", min_role="user", min_level=9)
 @require_sample_access("sample_id")
 def add_var_comment(
@@ -1150,7 +1133,6 @@ def add_var_comment(
     "/<string:sample_id>/var/<string:var_id>/hide_variant_comment",
     methods=["POST"],
 )
-@login_required
 @require("hide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
 def hide_variant_comment(sample_id: str, var_id: str) -> Response:
@@ -1175,7 +1157,6 @@ def hide_variant_comment(sample_id: str, var_id: str) -> Response:
     "/<string:sample_id>/var/<string:var_id>/unhide_variant_comment",
     methods=["POST"],
 )
-@login_required
 @require("unhide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
 def unhide_variant_comment(sample_id, var_id):
@@ -1198,7 +1179,6 @@ def unhide_variant_comment(sample_id, var_id):
 
 ###### CNVS VIEW PAGE #######
 @dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>")
-@login_required
 @require_sample_access("sample_id")
 def show_cnv(sample_id: str, cnv_id: str) -> Response | str:
     """
@@ -1249,7 +1229,6 @@ def show_cnv(sample_id: str, cnv_id: str) -> Response | str:
     "<string:sample_id>/cnv/<string:cnv_id>/unmarkinterestingcnv",
     methods=["POST"],
 )
-@login_required
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
@@ -1272,7 +1251,6 @@ def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
 @dna_bp.route(
     "<string:sample_id>/cnv/<string:cnv_id>/interestingcnv", methods=["POST"]
 )
-@login_required
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
@@ -1293,7 +1271,6 @@ def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
 
 
 @dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/fpcnv", methods=["POST"])
-@login_required
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
@@ -1316,7 +1293,6 @@ def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
 @dna_bp.route(
     "/<string:sample_id>/cnv/<string:cnv_id>/unfpcnv", methods=["POST"]
 )
-@login_required
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
@@ -1339,7 +1315,6 @@ def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
 @dna_bp.route(
     "<string:sample_id>/cnv/<string:cnv_id>/noteworthycnv", methods=["POST"]
 )
-@login_required
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
@@ -1362,7 +1337,6 @@ def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
 @dna_bp.route(
     "<string:sample_id>/cnv/<string:cnv_id>/notnoteworthycnv", methods=["POST"]
 )
-@login_required
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
@@ -1385,7 +1359,6 @@ def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
 @dna_bp.route(
     "<string:sample_id>/cnv/<string:cnv_id>/hide_cnv_comment", methods=["POST"]
 )
-@login_required
 @require("hide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
 def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
@@ -1410,7 +1383,6 @@ def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     "<string:sample_id>/cnv/<string:cnv_id>/unhide_cnv_comment",
     methods=["POST"],
 )
-@login_required
 @require("unhide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
 def unhide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
@@ -1433,7 +1405,6 @@ def unhide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
 
 ###### TRANSLOCATIONS VIEW PAGE #######
 @dna_bp.route("/<string:sample_id>/transloc/<string:transloc_id>")
-@login_required
 @require_sample_access("sample_id")
 def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
     """
@@ -1486,7 +1457,6 @@ def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
     "/<string:sample_id>/transloc/<string:transloc_id>/interestingtransloc",
     methods=["POST"],
 )
-@login_required
 @require_sample_access("sample_id")
 @require("manage_translocs", min_role="user", min_level=9)
 def mark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
@@ -1514,7 +1484,6 @@ def mark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
     "/<string:sample_id>/transloc/<string:transloc_id>/uninterestingtransloc",
     methods=["POST"],
 )
-@login_required
 @require_sample_access("sample_id")
 @require("manage_translocs", min_role="user", min_level=9)
 def unmark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
@@ -1542,7 +1511,6 @@ def unmark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
     "/<string:sample_id>/transloc/<string:transloc_id>/fptransloc",
     methods=["POST"],
 )
-@login_required
 @require_sample_access("sample_id")
 @require("manage_translocs", min_role="user", min_level=9)
 def mark_false_transloc(sample_id: str, transloc_id: str) -> Response:
@@ -1570,7 +1538,6 @@ def mark_false_transloc(sample_id: str, transloc_id: str) -> Response:
     "/<string:sample_id>/transloc/<string:transloc_id>/ptransloc",
     methods=["POST"],
 )
-@login_required
 @require_sample_access("sample_id")
 @require("manage_translocs", min_role="user", min_level=9)
 def unmark_false_transloc(sample_id: str, transloc_id: str) -> Response:
@@ -1598,7 +1565,6 @@ def unmark_false_transloc(sample_id: str, transloc_id: str) -> Response:
     "/<string:sample_id>/transloc/<string:transloc_id>/hide_variant_comment",
     methods=["POST"],
 )
-@login_required
 @require("hide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
 def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
@@ -1627,7 +1593,6 @@ def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
     "/<string:sample_id>/transloc/<string:transloc_id>/unhide_variant_comment",
     methods=["POST"],
 )
-@login_required
 @require("unhide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
 def unhide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
@@ -1656,7 +1621,6 @@ def unhide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
 @dna_bp.route(
     "/sample/<string:sample_id>/preview_report", methods=["GET", "POST"]
 )
-@login_required
 @require_sample_access("sample_id")
 @require("preview_report", min_role="user", min_level=9)
 def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
@@ -1877,9 +1841,8 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
 
 
 @dna_bp.route("/sample/<string:sample_id>/report/save")
-@login_required
 @require_sample_access("sample_id")
-@require("save_dna_report", min_role="admin")
+@require("create_report", min_role="admin")
 def save_dna_report(sample_id: str) -> Response:
     """
     Saves a DNA report for the specified sample.

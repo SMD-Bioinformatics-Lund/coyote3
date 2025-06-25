@@ -49,7 +49,7 @@
 
   <hr class="broder border-gray-500 my-1">
 
-  <form action="" method="POST" name="form" class="{% if not has_access('apply_dna_filters', min_role='user', min_level=9) %}readonly opacity-70 select-none pointer-events-none{% endif %}">
+  <form action="" method="POST" name="form" class="{% if not has_access('apply_variant_filters', min_role='user', min_level=9) %}readonly opacity-70 select-none pointer-events-none{% endif %}">
 
     <div id="snv-filters" class="p-1 px-2 space-y-2 w-full text-xs">
       <div class="flex justify-between items-center mb-1">

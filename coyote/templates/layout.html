@@ -68,7 +68,7 @@
             <!-- Dropdown Menu -->
             <div id="userDropdown" class="hidden absolute right-0 mt-2 w-40 bg-indigo-50 rounded-lg shadow-lg">
               <a href="{{ url_for('dashboard_bp.dashboard') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Dashboard</a>
-              <a href="{{ url_for('profile_bp.profile') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Profile</a>
+              <a href="{{ url_for('profile_bp.user_profile', user_id=current_user.username ) }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Profile</a>
               {% if password_changed_enabled %}
                 <a href="{{ url_for('profile_bp.change_password', username=current_user.username) }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100 ">Change Password</a>
               {% endif %}

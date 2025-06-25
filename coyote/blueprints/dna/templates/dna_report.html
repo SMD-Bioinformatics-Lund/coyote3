@@ -7,7 +7,7 @@
   <div class="report-preview-card">
     <h2 class="report-heading">*** PREVIEW OF REPORT ***</h2>
 
-    {% if has_access('save_dna_report', min_role='admin') %}
+    {% if has_access('create_report', min_role='admin') %}
       <a href="{{ url_for('dna_bp.save_dna_report', sample_id=sample.name) }}" class="report-button">Finalize Report</a>
     {% endif %}
   </div>

@@ -93,7 +93,7 @@ def dashboard() -> str:
     # unique_fp_counts: int = store.variant_handler.get_unique_fp_count()  # Change it back
     unique_fp_counts: int = 10
 
-    # Get total genes analysed from all the panels
+    # Get total genes analysed from all the asp
     unique_gene_count_all_panels = (
         store.asp_handler.get_all_asps_unique_gene_count()
     )

@@ -93,7 +93,7 @@ class UserModel(BaseModel):
                 continue
 
             if "Panel" in asp.get("asp_family", "NA"):
-                asp_technology = "panels"
+                asp_technology = "asp"
             else:
                 asp_technology = asp.get("asp_family", "NA")
 
