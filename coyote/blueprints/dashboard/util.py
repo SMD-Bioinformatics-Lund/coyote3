@@ -10,16 +10,14 @@
 #  the copyright holders.
 #
 
-from functools import lru_cache
-from datetime import datetime
+from hashlib import md5
 from collections import defaultdict, OrderedDict
-from typing import Dict, Tuple, List, Generator, Any
-from coyote.util.common_utility import CommonUtility
 
 
 class DashBoardUtility:
     """
-    Utility class for Dashboard blueprint
+    Utility class providing helper methods for formatting and processing dashboard-related data,
+    such as classified statistics, assay statistics, ASP gene statistics, and cache key generation.
     """
 
     @staticmethod
@@ -39,7 +37,14 @@ class DashBoardUtility:
     @staticmethod
     def format_classified_stats(class_stats_dict: dict) -> dict:
         """
-        Format classified stats
+        Formats classified statistics by converting nomenclature codes to descriptive names
+        and organizing the data into an ordered dictionary grouped by nomenclature and class.
+
+        Args:
+            class_stats_dict (dict): A dictionary containing classified statistics.
+
+        Returns:
+            dict: An ordered dictionary with formatted classified statistics grouped by nomenclature and class.
         """
         class_stats = OrderedDict()
 
@@ -69,7 +74,13 @@ class DashBoardUtility:
     @staticmethod
     def format_assay_classified_stats(class_stats_dict: dict) -> dict:
         """
-        Format classified stats
+        Formats classified statistics for assays.
+
+        Args:
+            class_stats_dict (dict): A dictionary containing classified statistics.
+
+        Returns:
+            dict: An ordered dictionary with formatted classified statistics grouped by assay and nomenclature.
         """
         assay_class_stats = OrderedDict()
 
@@ -97,7 +108,13 @@ class DashBoardUtility:
     @staticmethod
     def format_asp_gene_stats(data: dict) -> dict:
         """
-        Format ASP gene stats
+        Formats ASP gene statistics by grouping details based on the `asp_group` field.
+
+        Args:
+            data (dict): A list of documents containing ASP gene statistics.
+
+        Returns:
+            dict: A dictionary grouping ASP gene details by their `asp_group` value.
         """
         result = {}
         for doc in data:
@@ -111,3 +128,17 @@ class DashBoardUtility:
             group = details.get("asp_group", "Unknown")
             grouped[group].append(details)
         return grouped
+
+    @staticmethod
+    def generate_dashboard_chache_key(username: str) -> str:
+        """
+        Generates a cache key for dashboard data based on the provided username.
+
+        Args:
+            username (str): The username for which to generate the cache key.
+
+        Returns:
+            str: A unique cache key string for the user's dashboard data.
+        """
+        raw_key = f"dashboard_data_{username}"
+        return f"samples:{md5(raw_key.encode()).hexdigest()}"
