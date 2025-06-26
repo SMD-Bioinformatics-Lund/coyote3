@@ -191,21 +191,16 @@ class ASPHandler(BaseHandler):
         docs = self.get_collection().find(
             {},
             {
-                "covered_genes": 1,
+                "covered_genes_count": 1,
+                "germline_genes_count": 1,
                 "assay_name": 1,
                 "display_name": 1,
                 "asp_group": 1,
+                "accredited": 1,
             },
         )
-        result = {
-            doc["panel_name"]: {
-                "gene_count": len(doc["covered_genes"]),
-                "display_name": doc["display_name"],
-                "asp_group": doc["asp_group"],
-            }
-            for doc in docs
-        }
-        return result
+
+        return docs
 
     def get_all_asp_groups(self) -> list:
         """

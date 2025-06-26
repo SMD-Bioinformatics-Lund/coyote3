@@ -93,3 +93,21 @@ class DashBoardUtility:
         if None in assay_class_stats:
             assay_class_stats["no_assay"] = assay_class_stats.pop(None)
         return assay_class_stats
+
+    @staticmethod
+    def format_asp_gene_stats(data: dict) -> dict:
+        """
+        Format ASP gene stats
+        """
+        result = {}
+        for doc in data:
+            doc_dict = dict(doc)
+            key = doc_dict.pop("_id", None)
+            if key is not None:
+                result[key] = doc_dict
+
+        grouped = defaultdict(list)
+        for assay_id, details in result.items():
+            group = details.get("asp_group", "Unknown")
+            grouped[group].append(details)
+        return grouped

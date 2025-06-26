@@ -342,7 +342,7 @@ class SampleHandler(BaseHandler):
         """
         return self.hidden_comments(id)
 
-    def get_all_sample_counts(self, report=None) -> list:
+    def get_all_sample_counts(self, report: bool | None = None) -> list:
         """
         Retrieve the total count of all samples in the database.
 
@@ -384,7 +384,45 @@ class SampleHandler(BaseHandler):
 
         return samples
 
-    def get_assay_specific_sample_stats(self) -> dict:
+    def user_sample_counts_by_assay(
+        self, report: bool | None = None, assays: list = None
+    ) -> dict:
+        """
+        Retrieve the count of samples for each assay group.
+        This method aggregates sample counts by assay groups, returning a dictionary
+        where each key is an assay group and the value is the count of samples in that group.
+        Args:
+            assays (list, optional): A list of assay groups to filter the samples. If None, counts all samples.
+        Returns:
+            dict: A dictionary where each key is an assay group and the value is the count of samples in that group.
+        """
+        samples = []
+        if report is None and assays is None:
+            samples = (
+                self.get_collection().find().sort("time_added", -1).count()
+            )
+        elif assays and report is None:
+            samples = (
+                self.get_collection()
+                .find({"assay": {"$in": assays}})
+                .sort("time_added", -1)
+                .count()
+            )
+
+        pipeline = [
+            {"$match": {"assay": {"$in": assays}}} if assays else {},
+            {"$group": {"_id": "$assay", "count": {"$sum": 1}}},
+            {"$project": {"_id": 0, "assay": "$_id", "count": 1}},
+        ]
+        if assays is None:
+            pipeline = [
+                {"$group": {"_id": "$assay", "count": {"$sum": 1}}},
+                {"$project": {"_id": 0, "assay": "$_id", "count": 1}},
+            ]
+        result = list(self.get_collection().aggregate(pipeline))
+        return {item["assay"]: item["count"] for item in result}
+
+    def get_assay_specific_sample_stats(self, assays: list = None) -> dict:
         """
         Retrieve assay-specific statistics.
 
@@ -399,48 +437,38 @@ class SampleHandler(BaseHandler):
                 - 'report': Number of samples with reports.
                 - 'pending': Number of samples without reports.
         """
-        pipeline = [
-            {"$unwind": "$groups"},
+        pipeline = []
+
+        if assays:
+            pipeline.append({"$match": {"assay": {"$in": assays}}})
+
+        pipeline.append(
             {
                 "$group": {
-                    "_id": "$groups",
+                    "_id": {"assay": "$assay"},
                     "total": {"$sum": 1},
-                    "report": {
+                    "analysed": {
                         "$sum": {"$cond": [{"$gt": ["$report_num", 0]}, 1, 0]}
                     },
                     "pending": {
                         "$sum": {"$cond": [{"$gt": ["$report_num", 0]}, 0, 1]}
                     },
                 }
-            },
-            {
-                "$group": {
-                    "_id": None,
-                    "stats": {
-                        "$push": {
-                            "group": "$_id",
-                            "total": "$total",
-                            "report": "$report",
-                            "pending": "$pending",
-                        }
-                    },
-                }
-            },
-            {"$project": {"_id": 0, "stats": 1}},
-        ]
-
-        result = list(self.get_collection().aggregate(pipeline))[0].get(
-            "stats", []
-        )
-        assay_specific_stats = {
-            stat.get("group"): {
-                "total": stat.get("total", 0),
-                "report": stat.get("report", 0),
-                "pending": stat.get("pending", 0),
             }
-            for stat in result
-        }
-        return assay_specific_stats
+        )
+
+        result = list(self.get_collection().aggregate(pipeline))
+
+        assay_group_stats = {}
+        for doc in result:
+            assay = doc["_id"]["assay"]
+            assay_group_stats[assay] = {
+                "total": doc.get("total", 0),
+                "analysed": doc.get("analysed", 0),
+                "pending": doc.get("pending", 0),
+            }
+
+        return assay_group_stats
 
     def get_all_samples(self, assays=None, limit=None, search_str="") -> Any:
         """

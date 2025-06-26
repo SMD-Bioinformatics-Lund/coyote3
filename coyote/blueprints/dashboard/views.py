@@ -9,13 +9,17 @@
 #  components is strictly prohibited without prior written permission from
 #  the copyright holders.
 #
+from copy import deepcopy
 
-from flask import current_app as app, render_template
+from flask import render_template
 from flask_login import login_required
 from coyote.extensions import store, util
 from coyote.blueprints.dashboard import dashboard_bp
 import json
 from collections import OrderedDict
+from flask_login import current_user
+from flask import current_app as app
+from time import time
 
 
 @dashboard_bp.route("/", methods=["GET", "POST"])
@@ -26,72 +30,58 @@ def dashboard() -> str:
     """
     Dashboard
     """
+
     total_samples_count = store.sample_handler.get_all_sample_counts()
     analysed_samples_count = store.sample_handler.get_all_sample_counts(
         report=True
     )
-    pending_samples_count = store.sample_handler.get_all_sample_counts(
-        report=False
+    pending_samples_count = total_samples_count - analysed_samples_count
+
+    # User specific samples stats, assay and group wise
+    user_samples_stats = store.sample_handler.get_assay_specific_sample_stats(
+        assays=current_user.assays
     )
 
-    assay_specific_stats = (
-        store.sample_handler.get_assay_specific_sample_stats()
-    )  # Change it back
-    print(total_samples_count, analysed_samples_count, pending_samples_count)
-
-    # Data for the charts based on assay
-    total_samples_data = {
-        assay: stats.get("total")
-        for assay, stats in assay_specific_stats.items()
-    }
-    analysed_samples_data = {
-        assay: stats.get("report")
-        for assay, stats in assay_specific_stats.items()
-    }
-    pending_samples_data = {
-        assay: stats.get("total") - stats.get("report")
-        for assay, stats in assay_specific_stats.items()
-    }
-
-    class_stats = util.dashboard.format_classified_stats(
-        store.annotation_handler.get_classified_stats()
-    )
-    assay_class_stats = util.dashboard.format_assay_classified_stats(
-        store.annotation_handler.get_assay_classified_stats()
-    )
-
-    # Get total variants in the db
-    total_variant_counts = (
+    ##### Generic Variant Stats
+    variant_stats = {}
+    variant_stats["total_variants"] = (
         store.variant_handler.get_total_variant_counts()
-    )  # Change it back
+    )
+
     # Get all unique variants
-    # unique_variant_counts = (
-    #     store.variant_handler.get_unique_total_variant_counts()
-    # )  # Change it back
-    unique_variant_counts = 12
+    variant_stats["unique_variants"] = (
+        store.variant_handler.get_unique_total_variant_counts()
+    )
 
     # get unique variants Snps
-    # unique_snps_counts = store.variant_handler.get_unique_snp_count() # Change it back
-    unique_snps_counts = 10
+    variant_stats["unique_snps"] = store.variant_handler.get_unique_snp_count()
 
     # get unique CNVs
-    unique_cnv_counts: int = store.cnv_handler.get_unique_cnv_count()
+    variant_stats[
+        "unique_cnvs"
+    ]: int = store.cnv_handler.get_unique_cnv_count()
+
     # get unique Translocations
-    unique_transloc_counts: int = (
-        store.transloc_handler.get_unique_transloc_count()
-    )
+    variant_stats[
+        "unique_translocs"
+    ]: int = store.transloc_handler.get_unique_transloc_count()
 
     # get unique RNA fusions
-    unique_fusion_counts: int = store.fusion_handler.get_unique_fusion_count()
+    variant_stats[
+        "unique_fusions"
+    ]: int = store.fusion_handler.get_unique_fusion_count()
 
     # Get total blacklisted variants
-    unique_blacklist_counts: int = (
-        store.blacklist_handler.get_unique_blacklist_count()
-    )
+    variant_stats[
+        "unique_blacklist_variants"
+    ]: int = store.blacklist_handler.get_unique_blacklist_count()
 
     # Get total False positive variants
-    # unique_fp_counts: int = store.variant_handler.get_unique_fp_count()  # Change it back
-    unique_fp_counts: int = 10
+    variant_stats[
+        "unique_fps"
+    ]: int = store.variant_handler.get_unique_fp_count()  # Change it back
+
+    ### Generic Variant Stats End
 
     # Get total genes analysed from all the asp
     unique_gene_count_all_panels = (
@@ -99,34 +89,34 @@ def dashboard() -> str:
     )
 
     # Get gene counts in each panel
-    assay_gene_counts = store.asp_handler.get_all_asp_gene_counts()
-    genelist_gene_counts = 0
+    asp_gene_counts = store.asp_handler.get_all_asp_gene_counts()
+    asp_gene_counts = util.dashboard.format_asp_gene_stats(
+        deepcopy(asp_gene_counts)
+    )
 
+    # TODO: Add more stats here
     # Total Assays analysed
-    total_assay_count = 0
+    # total_assay_count = 0
 
+    # TODO: Add more stats here
     # Variant Caller specific stats
+    # class_stats = util.dashboard.format_classified_stats(
+    #    store.annotation_handler.get_classified_stats()
+    # )
+
+    # assay_class_stats = util.dashboard.format_assay_classified_stats(
+    #    store.annotation_handler.get_assay_classified_stats()
+    # )
 
     return render_template(
         "dashboard.html",
         total_samples=total_samples_count,
         analysed_samples=analysed_samples_count,
         pending_samples=pending_samples_count,
-        total_samples_data=total_samples_data,
-        analysed_samples_data=analysed_samples_data,
-        pending_samples_data=pending_samples_data,
-        class_stats_data=json.dumps(class_stats),
-        assay_class_stats_data=json.dumps(assay_class_stats),
-        unique_variant_counts=unique_variant_counts,
-        unique_snps_counts=unique_snps_counts,
-        unique_cnv_counts=unique_cnv_counts,
-        unique_transloc_counts=unique_transloc_counts,
-        unique_fusion_counts=unique_fusion_counts,
-        unique_blacklist_counts=unique_blacklist_counts,
-        unique_fp_counts=unique_fp_counts,
-        total_variant_counts=total_variant_counts,
+        # class_stats_data=json.dumps(class_stats),
+        # assay_class_stats_data=json.dumps(assay_class_stats),
+        variant_stats=variant_stats,
         unique_gene_count_all_panels=unique_gene_count_all_panels,
-        total_assay_count=total_assay_count,
-        assay_gene_counts=assay_gene_counts,
-        genelist_gene_counts=genelist_gene_counts,
+        assay_gene_stats_grouped=asp_gene_counts,
+        user_samples_stats=user_samples_stats,
     )

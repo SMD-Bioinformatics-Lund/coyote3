@@ -123,17 +123,4 @@ class BlacklistHandler(BaseHandler):
             int: The count of unique blacklist entries. Returns 0 if no entries are found
                  or if an error occurs during the aggregation.
         """
-        query = [
-            {"$group": {"_id": {"pos": "$pos"}}},
-            {"$group": {"_id": None, "uniqueBlacklistCount": {"$sum": 1}}},
-        ]
-
-        try:
-            result = list(self.get_collection().aggregate(query))
-            if result:
-                return result[0].get("uniqueBlacklistCount", 0)
-            else:
-                return 0
-        except Exception as e:
-            app.logger.error(f"An error occurred: {e}")
-            return 0
+        return len(self.get_collection().distinct("pos")) or 0

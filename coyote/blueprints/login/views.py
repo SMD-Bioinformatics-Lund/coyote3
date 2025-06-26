@@ -88,7 +88,7 @@ def login() -> str | Response:
             f"User logged in: {email} (access_level: {user.access_level})"
         )
 
-        return redirect(url_for("home_bp.samples_home"))
+        return redirect(url_for("dashboard_bp.dashboard"))
 
     return render_template("login.html", title="Login", form=form)
 
