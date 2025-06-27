@@ -265,7 +265,13 @@
 
                         <!-- Gene -->
                         <td id="snv-table-row-gene">
-                          {{ csq.SYMBOL }} {{ var.INFO.PANEL|format_panel_flag_snv|safe }}
+                          {% if csq.SYMBOL in oncokb_genes %}
+                            <a target="_blank" href="https://www.oncokb.org/actionable-genes#hugoSymbol={{csq.SYMBOL}}&sections=Tx" class="text-red-600 underline">{{csq.SYMBOL}}
+                          {% else %}
+                            <span>{{ csq.SYMBOL }}</span>
+                          {% endif %}
+                          
+                          {{ var.INFO.PANEL | format_panel_flag_snv | safe }}
                         </td>
 
                         <!-- HGVS -->
