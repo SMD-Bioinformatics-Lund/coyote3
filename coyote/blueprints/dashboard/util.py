@@ -21,20 +21,6 @@ class DashBoardUtility:
     """
 
     @staticmethod
-    def convert_annotations_to_hashable(annotations):
-        # Helper function to convert datetime to string
-        def datetime_to_hashable(dt):
-            return dt.isoformat()
-
-        converted = []
-        for annotation in annotations:
-            annotation["time_created"] = datetime_to_hashable(
-                annotation["time_created"]
-            )
-            converted.append(frozenset(annotation.items()))
-        return tuple(converted)
-
-    @staticmethod
     def format_classified_stats(class_stats_dict: dict) -> dict:
         """
         Formats classified statistics by converting nomenclature codes to descriptive names
@@ -141,4 +127,4 @@ class DashBoardUtility:
             str: A unique cache key string for the user's dashboard data.
         """
         raw_key = f"dashboard_data_{username}"
-        return f"samples:{md5(raw_key.encode()).hexdigest()}"
+        return f"dashboard:{md5(raw_key.encode()).hexdigest()}"

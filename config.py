@@ -75,7 +75,7 @@ class DefaultConfig:
     }
 
     # REDIS CACHE TIMEOUTS
-    CACHE_TIMEOUT_SAMPLES = 5  # 5 minutes
+    CACHE_TIMEOUT_SAMPLES = 300  # 300 secs, 5 minutes
 
     # Fernet key for encrypting sensitive data in the report
     # FERNET_KEY = Fernet.generate_key()  # store this securely

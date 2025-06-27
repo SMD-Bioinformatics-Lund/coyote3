@@ -249,8 +249,6 @@ def list_variants(sample_id: str) -> Response | str:
         variants, assay_group, subpanel
     )
     summary_sections_data["snvs"] = tiered_variants
-    # Filter by population frequency, the same as in the query
-    # variants = util.dna.popfreq_filter(variants, float(sample_filters["max_popfreq"]))
 
     # Add hotspot data
     variants = util.dna.hotspot_variant(variants)
@@ -414,7 +412,7 @@ def classify_multi_variant(sample_id: str) -> Response:
             consequence = selected_csq.get("Consequence")
             gene_oncokb = store.oncokb_handler.get_oncokb_gene(gene)
 
-            text = util.dna.create_annotation_text_from_gene(
+            text = util.bpcommon.create_annotation_text_from_gene(
                 gene, consequence, assay_group, gene_oncokb=gene_oncokb
             )
 
@@ -709,7 +707,7 @@ def gene_view_simple(gene_name: str) -> Response | str:
     form = AssayGroupForm()
 
     annotations = store.annotation_handler.get_gene_annotations(gene_name)
-    annotations_dict = util.dna.process_gene_annotations(annotations)
+    annotations_dict = util.bpcommon.process_gene_annotations(annotations)
 
     checked_assays = []
     if form.validate_on_submit():
@@ -945,45 +943,6 @@ def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
 
 
 @dna_bp.route(
-    "/<string:sample_id>/var/<string:var_id>/ordersanger", methods=["POST"]
-)
-@require("manage_snvs", min_role="admin")
-@require_sample_access("sample_id")
-def order_sanger(sample_id: str, var_id: str) -> Response:
-    """
-    Order a Sanger sequencing for a specific variant in a sample.
-
-    Args:
-        sample_id (str): The unique identifier of the sample.
-        var_id (str): The unique identifier of the variant.
-
-    Returns:
-        flask.Response: Redirects to the variant detail view after ordering Sanger sequencing.
-    """
-    variant = store.variant_handler.get_variant(var_id)
-    variants, protein_coding_genes = util.dna.get_protein_coding_genes(
-        [variant]
-    )
-    var = variants[0]
-    sample = store.sample_handler.get_sample_by_id(var["SAMPLE_ID"])
-    canonical_dict = store.canonical_handler.get_canonical_by_genes(
-        list(protein_coding_genes)
-    )
-
-    var["INFO"]["selected_CSQ"], var["INFO"]["selected_CSQ_criteria"] = (
-        util.select_csq(var["INFO"]["CSQ"], canonical_dict)
-    )
-
-    html, tx_info = util.dna.compose_sanger_email(var, sample["name"])
-
-    email_status = util.dna.send_sanger_email(html, tx_info["SYMBOL"])
-
-    return redirect(
-        url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
-    )
-
-
-@dna_bp.route(
     "/<string:sample_id>/var/<string:var_id>/classify", methods=["POST"]
 )
 @require(permission="assign_tier", min_role="manager", min_level=99)
@@ -1000,7 +959,7 @@ def classify_variant(sample_id: str, var_id: str) -> Response:
         flask.Response: The response after classifying the variant.
     """
     form_data = request.form.to_dict()
-    class_num = util.dna.get_tier_classification(form_data)
+    class_num = util.common.get_tier_classification(form_data)
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
     if class_num != 0:
         store.annotation_handler.insert_classified_variant(
@@ -1092,7 +1051,7 @@ def add_var_comment(
     # If global checkbox. Save variant with the protein, coding och genomic nomenclature in decreasing priority
     form_data = request.form.to_dict()
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
-    doc = util.dna.create_comment_doc(
+    doc = util.bpcommon.create_comment_doc(
         form_data, nomenclature=nomenclature, variant=variant
     )
     _type = form_data.get("global", None)
@@ -1751,9 +1710,6 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     variants, tiered_variants = util.dna.add_global_annotations(
         variants, assay_group, subpanel
     )
-
-    # # Filter by population frequency
-    # variants = util.dna.popfreq_filter(variants, float(sample_settings["max_popfreq"]))
 
     # Add hotspot data
     variants = util.dna.hotspot_variant(variants)

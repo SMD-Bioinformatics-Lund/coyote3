@@ -52,8 +52,10 @@ def dashboard() -> str:
             unique_gene_count_all_panels,
             asp_gene_counts,
         ) = app.cache.get(cache_key)
+        app.logger.info(f"Dashboard cache hit for {cache_key}")
 
     else:
+        app.logger.info(f"Dashboard cache miss for {cache_key}")
         total_samples_count = store.sample_handler.get_all_sample_counts()
         analysed_samples_count = store.sample_handler.get_all_sample_counts(
             report=True

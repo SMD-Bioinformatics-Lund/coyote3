@@ -25,7 +25,7 @@ from flask import (
 )
 from flask_login import current_user, login_required
 
-from coyote.blueprints.dna.forms import FusionFilter
+from coyote.blueprints.rna.forms import FusionFilter
 
 from coyote.extensions import store, util
 from coyote.blueprints.rna import rna_bp
@@ -473,7 +473,7 @@ def classify_multi_variant(id: str) -> Response:
             hgvs_g = f"{var['CHROM']}:{var['POS']}:{var['REF']}/{var['ALT']}"
             consequence = selectec_csq.get("Consequence", None)
             gene_oncokb = store.oncokb_handler.get_oncokb_gene(gene)
-            text = util.dna.create_annotation_text_from_gene(
+            text = util.bpcommon.create_annotation_text_from_gene(
                 gene, consequence, assay, gene_oncokb=gene_oncokb
             )
 

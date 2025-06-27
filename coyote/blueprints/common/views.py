@@ -64,7 +64,7 @@ def add_sample_comment(sample_id: str) -> Response:
     Add Sample comment
     """
     data = request.form.to_dict()
-    doc = util.dna.create_comment_doc(data, key="sample_comment")
+    doc = util.bpcommon.create_comment_doc(data, key="sample_comment")
     store.sample_handler.add_sample_comment(sample_id, doc)
     flash("Sample comment added", "green")
     sample = store.sample_handler.get_sample_by_id(sample_id)
