@@ -84,9 +84,7 @@ class SampleHandler(BaseHandler):
         if report:
             query["report_num"] = {"$gt": 0}
             if time_limit:
-                query["reports"] = {
-                    "$elemMatch": {"time_created": {"$gt": time_limit}}
-                }
+                query["reports"] = {"$elemMatch": {"time_created": {"$gt": time_limit}}}
         else:
             query["$or"] = [
                 {"report_num": {"$exists": False}},
@@ -98,9 +96,7 @@ class SampleHandler(BaseHandler):
 
         app.home_logger.debug(f"Sample query: {query}")
 
-        samples = list(
-            self.get_collection().find(query).sort("time_added", -1)
-        )
+        samples = list(self.get_collection().find(query).sort("time_added", -1))
 
         if limit:
             samples = samples[:limit]
@@ -137,7 +133,7 @@ class SampleHandler(BaseHandler):
             - If caching is enabled and a cache hit occurs, returns cached samples.
             - On cache miss or if caching is disabled, queries the database and updates the cache.
         """
-        cache_timeout = app.config.get("CACHE_TIMEOUT_SAMPLES", 120)
+        cache_timeout = app.config.get("CACHE_DEFAULT_TIMEOUT", 0)
 
         cache_key = CommonUtility.generate_sample_cache_key(**locals())
 
@@ -147,9 +143,7 @@ class SampleHandler(BaseHandler):
                 app.logger.info(f"[SAMPLES CACHE HIT] {cache_key}")
                 return samples
             else:
-                app.logger.info(
-                    f"[SAMPLES CACHE MISS] {cache_key} — fetching from DB."
-                )
+                app.logger.info(f"[SAMPLES CACHE MISS] {cache_key} — fetching from DB.")
 
         # If no cache or use_cache=False, or cache miss
         samples = self._query_samples(
@@ -163,9 +157,7 @@ class SampleHandler(BaseHandler):
 
         if use_cache:
             app.cache.set(cache_key, samples, timeout=cache_timeout)
-            app.logger.debug(
-                f"[SAMPLES CACHE SET] {cache_key} (timeout={cache_timeout}s)"
-            )
+            app.logger.debug(f"[SAMPLES CACHE SET] {cache_key} (timeout={cache_timeout}s)")
 
         return samples
 
@@ -241,13 +233,9 @@ class SampleHandler(BaseHandler):
         Returns:
           Any: A cursor to the list of sample documents containing only the `name` field.
         """
-        return self.get_collection().find(
-            {"_id": {"$in": sample_oids}}, {"name": 1}
-        )
+        return self.get_collection().find({"_id": {"$in": sample_oids}}, {"name": 1})
 
-    def reset_sample_settings(
-        self, sample_id: str, default_filters: dict
-    ) -> Any:
+    def reset_sample_settings(self, sample_id: str, default_filters: dict) -> Any:
         """
         Reset a sample to its default settings.
 
@@ -356,9 +344,7 @@ class SampleHandler(BaseHandler):
         """
         samples = []
         if report is None:
-            samples = (
-                self.get_collection().find().sort("time_added", -1).count()
-            )
+            samples = self.get_collection().find().sort("time_added", -1).count()
         elif report:
             samples = (
                 self.get_collection()
@@ -384,9 +370,7 @@ class SampleHandler(BaseHandler):
 
         return samples
 
-    def user_sample_counts_by_assay(
-        self, report: bool | None = None, assays: list = None
-    ) -> dict:
+    def user_sample_counts_by_assay(self, report: bool | None = None, assays: list = None) -> dict:
         """
         Retrieve the count of samples for each assay group.
         This method aggregates sample counts by assay groups, returning a dictionary
@@ -398,9 +382,7 @@ class SampleHandler(BaseHandler):
         """
         samples = []
         if report is None and assays is None:
-            samples = (
-                self.get_collection().find().sort("time_added", -1).count()
-            )
+            samples = self.get_collection().find().sort("time_added", -1).count()
         elif assays and report is None:
             samples = (
                 self.get_collection()
@@ -447,12 +429,8 @@ class SampleHandler(BaseHandler):
                 "$group": {
                     "_id": {"assay": "$assay"},
                     "total": {"$sum": 1},
-                    "analysed": {
-                        "$sum": {"$cond": [{"$gt": ["$report_num", 0]}, 1, 0]}
-                    },
-                    "pending": {
-                        "$sum": {"$cond": [{"$gt": ["$report_num", 0]}, 0, 1]}
-                    },
+                    "analysed": {"$sum": {"$cond": [{"$gt": ["$report_num", 0]}, 1, 0]}},
+                    "pending": {"$sum": {"$cond": [{"$gt": ["$report_num", 0]}, 0, 1]}},
                 }
             }
         )
@@ -494,12 +472,7 @@ class SampleHandler(BaseHandler):
             query["name"] = {"$regex": search_str}
 
         if limit:
-            samples = (
-                self.get_collection()
-                .find(query)
-                .sort("time_added", -1)
-                .limit(limit)
-            )
+            samples = self.get_collection().find(query).sort("time_added", -1).limit(limit)
         else:
             samples = self.get_collection().find(query).sort("time_added", -1)
 
@@ -517,9 +490,7 @@ class SampleHandler(BaseHandler):
         """
         return self.get_collection().delete_one({"_id": ObjectId(sample_oid)})
 
-    def save_report(
-        self, sample_id: str, report_id: str, filepath: str
-    ) -> bool | None:
+    def save_report(self, sample_id: str, report_id: str, filepath: str) -> bool | None:
         """
         Save a report to a sample document in the database.
 

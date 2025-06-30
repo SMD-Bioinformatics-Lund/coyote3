@@ -7,7 +7,7 @@ services:
     container_name: coyote3_app_beta2
     image: coyote3:3.0.0.beta-2  # only this now
     ports:
-      - "5816:8000"
+      - "5816:8000" # external:internal
     env_file:
       - .beta2.env
     environment:
@@ -17,8 +17,6 @@ services:
       - FLASK_DEBUG=0
       - TZ=Europe/Stockholm
     restart: always
-    depends_on:
-      - redis
     volumes:
       - ".git:/app/.git"
       - "./coyote:/app/coyote"
@@ -32,6 +30,7 @@ services:
       - "/media:/media"
       - "/data:/data"
       - "/fs1:/fs1"
+      - "/mnt:/mnt"
     command: "python3 wsgi.py"
 
 
@@ -39,7 +38,7 @@ services:
     container_name: redis_coyote3_beta2
     image: ramsainanduri/redis:7.4.3
     ports:
-      - "6379:6379"
+      - "5817:6379"  # external:internal
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
     restart: unless-stopped

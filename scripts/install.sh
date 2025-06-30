@@ -84,7 +84,7 @@ docker run \
         -v $PWD/config:/app/config \
         -v $PWD/logs:/app/logs \
         -v /access:/access \
-	-v /media:/media \
+	      -v /media:/media \
         -v /data:/data \
         -p "$PORT_NBR:8000" \
         --name "$container_name" \

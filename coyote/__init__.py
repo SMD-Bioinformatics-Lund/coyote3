@@ -32,7 +32,7 @@ Key Responsibilities:
 from flask import Flask, request, redirect, url_for, flash
 from flask_cors import CORS
 import config
-from . import extensions
+from coyote import extensions
 from .errors import register_error_handlers
 from flask_login import current_user, login_user
 from coyote.services.auth.user_session import User
@@ -42,7 +42,6 @@ from coyote.util.misc import get_dynamic_assay_nav
 from pymongo.errors import ConnectionFailure
 from flask_caching import Cache
 from typing import Any
-import os
 import json
 
 
@@ -69,14 +68,6 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
     app.jinja_env.add_extension("jinja2.ext.do")
     app.jinja_env.filters["from_json"] = json.loads
 
-    # Load the configuration for cache
-    app.config["CACHE_TYPE"] = "redis"
-    app.config["CACHE_REDIS_URL"] = os.getenv(
-        "CACHE_REDIS_URL", "redis://redis:6379/0"
-    )
-    app.config["CACHE_DEFAULT_TIMEOUT"] = 300
-    app.config["CACHE_KEY_PREFIX"] = "coyote3_cache"
-
     # Allows cross-origin requests for CDM/api
     # /trends needs this to work.
     CORS(app)
@@ -97,9 +88,7 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
 
     else:
         app.logger.info("Loading config.ProductionConfig")
-        app.config.from_object(
-            config.ProductionConfig()
-        )  # Note initialization of Config
+        app.config.from_object(config.ProductionConfig())  # Note initialization of Config
 
     app.logger.info("Initializing app extensions + blueprints:")
     with app.app_context():
@@ -115,9 +104,15 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
 
         # Cache roles access levels in app context
         app.role_access_levels = {
-            role["_id"]: role.get("level", 0)
-            for role in store.roles_handler.get_all_roles()
+            role["_id"]: role.get("level", 0) for role in store.roles_handler.get_all_roles()
         }
+
+        @app.context_processor
+        def inject_config():
+            """
+            Injects the application configuration into the Jinja2 template context.
+            """
+            return dict(app_config=app.config)
 
         # Cache assay asp in app context
         @app.context_processor
@@ -177,8 +172,7 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
             return {
                 "user_has": lambda p: current_user.is_authenticated
                 and current_user.has_permission(p),
-                "user_is": lambda r: current_user.is_authenticated
-                and current_user.role == r,
+                "user_is": lambda r: current_user.is_authenticated and current_user.role == r,
                 "user_in_group": lambda g: current_user.is_authenticated
                 and current_user.in_group(g),
                 "pretty_role": lambda r: r.value.replace("_", " ").title(),
@@ -209,18 +203,11 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
             None
         """
         if current_user.is_authenticated:
-            fresh_user_data = store.user_handler.user_with_id(
-                current_user.username
-            )
+            fresh_user_data = store.user_handler.user_with_id(current_user.username)
             if fresh_user_data:
-                role_doc = (
-                    store.roles_handler.get_role(fresh_user_data.get("role"))
-                    or {}
-                )
+                role_doc = store.roles_handler.get_role(fresh_user_data.get("role")) or {}
                 asp_docs = store.asp_handler.get_all_asps(is_active=True)
-                user_model = UserModel.from_mongo(
-                    fresh_user_data, role_doc, asp_docs
-                )
+                user_model = UserModel.from_mongo(fresh_user_data, role_doc, asp_docs)
                 updated_user = User(user_model)
 
                 # Re-login only if things have changed
@@ -229,9 +216,7 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
 
                 if current != updated:
                     login_user(updated_user)
-                    app.logger.debug(
-                        f"Session refreshed: {updated_user.username}"
-                    )
+                    app.logger.debug(f"Session refreshed: {updated_user.username}")
 
     @app.before_request
     def enforce_permissions() -> None:
@@ -291,15 +276,9 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
                 and required_permission not in current_user.denied_permissions
             )
 
-            level_ok = (
-                required_level is not None
-                and current_user.access_level >= required_level
-            )
+            level_ok = required_level is not None and current_user.access_level >= required_level
 
-            role_ok = (
-                required_role is not None
-                and current_user.access_level >= resolved_role_level
-            )
+            role_ok = required_role is not None and current_user.access_level >= resolved_role_level
 
             if not (permission_ok or level_ok or role_ok):
                 flash("You do not have access to this page.", "red")
@@ -383,10 +362,7 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
             Returns:
                 bool: True if the user is authenticated and meets the level requirement; False otherwise.
             """
-            return (
-                current_user.is_authenticated
-                and current_user.access_level >= level
-            )
+            return current_user.is_authenticated and current_user.access_level >= level
 
         def min_role(role_name: str) -> bool:
             """
@@ -417,9 +393,7 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
         _min_level = min_level
         _can = can
 
-        def has_access(
-            permission: str = None, min_role: str = None, min_level: int = None
-        ) -> bool:
+        def has_access(permission: str = None, min_role: str = None, min_level: int = None) -> bool:
             """
             Evaluates whether the current user has access based on permission, role, or access level.
 
@@ -494,7 +468,7 @@ def init_db(app) -> None:
 
     app.logger.info("Initializing MongoDB...")
 
-    mongo_uri = app.config.get("MONGO_URI", "not set")
+    mongo_uri = app.config.get("MONGO_URI")
     app.logger.info(f"Connecting to MongoDB at: {mongo_uri}")
 
     # Initialize the PyMongo extension
