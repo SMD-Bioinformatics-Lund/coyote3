@@ -48,6 +48,7 @@ def list_fusions(sample_id):
         return result
     sample, assay_config, assay_config_schema = result
 
+
     # sample = store.sample_handler.get_sample(sample_id)  # sample_id = name/id
     sample_has_filters = sample.get("filters", None)
 
@@ -143,10 +144,13 @@ def list_fusions(sample_id):
         sample.get("_id")
     )
     
+    # app.logger.info(
+    #     f"this is the assayConfigs in the assay {assay_config_schema}"
+    # )
+
     app.logger.info(
         f"this is the filters in the sample {sample_filters}"
     )
-
 
     checked_fusionlists  = sample_filters.get("fusionlists", [])
     checked_fusioncallers = sample_filters.get("fusion_callers", [])
@@ -184,7 +188,7 @@ def list_fusions(sample_id):
         ) = store.fusion_handler.get_fusion_annotations(fusions[fus_idx])
 
     app.logger.info(
-        f"this is the fusion and fusion query,{fusions},{fusion_query}"
+        f"this is the fusion and fusion query {fusion_query}"
     )
 
     # Your logic for handling RNA samples

@@ -1,17 +1,17 @@
-import os
-from copy import deepcopy
-from pathlib import Path
-import subprocess
-from flask import current_app as app
-from typing import Any, Literal, Dict, Tuple
-from bson import ObjectId
-from datetime import datetime
-from io import BytesIO
 import base64
-from datetime import timedelta
+import json
+import os
+import subprocess
+from copy import deepcopy
+from datetime import datetime, timedelta
 from hashlib import md5
+from io import BytesIO
+from pathlib import Path
+from typing import Any, Dict, Literal, Tuple
+
+from bson import ObjectId
 from cryptography.fernet import Fernet
-import base64, json
+from flask import current_app as app
 
 
 class CommonUtility:
@@ -696,6 +696,7 @@ class CommonUtility:
 
         print("form_data", form_data)
         fields = assay_config_schema.get("sections", {}).get("filters", [])
+        print("fields", fields)
 
         filters = {}
         (
@@ -703,7 +704,7 @@ class CommonUtility:
             genelists,
             fusionlists,
             fusion_callers,
-            fusioneffects,
+            fusion_effects,
             cnveffects,
         ) = ([], [], [], [], [], [])
 
@@ -712,7 +713,7 @@ class CommonUtility:
             "genelist_": genelists,
             "fusionlist_": fusionlists,
             "fusioncaller_": fusion_callers,
-            "fusioneffect_": fusioneffects,
+            "fusioneffect_": fusion_effects,
             "cnveffect_": cnveffects,
         }
 
@@ -731,8 +732,8 @@ class CommonUtility:
                 filters["fusionlists"] = fusionlists
             elif _field == "fusion_callers":
                 filters["fusion_callers"] = fusion_callers
-            elif _field == "fusioneffects":
-                filters["fusioneffects"] = fusioneffects
+            elif _field == "fusion_effects":
+                filters["fusion_effects"] = fusion_effects
             elif _field == "cnveffects":
                 filters["cnveffects"] = cnveffects
             else:

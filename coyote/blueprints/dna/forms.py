@@ -1,8 +1,9 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, BooleanField, IntegerField, FloatField
-from wtforms.validators import InputRequired, NumberRange, Optional
-from coyote.extensions import store
+from wtforms import BooleanField, FloatField, IntegerField, StringField
 from wtforms.meta import DefaultMeta
+from wtforms.validators import InputRequired, NumberRange, Optional
+
+from coyote.extensions import store
 
 
 class DNAFilterForm(FlaskForm):
@@ -91,12 +92,18 @@ class FusionFilter(FlaskForm):
     fusioncaller_fusioncatcher = BooleanField(validators=[Optional()])
     fusioncaller_starfusion = BooleanField(validators=[Optional()])
 
-    min_spanpairs = IntegerField(
+    spanning_reads =IntegerField(
         "Spanning pairs", validators=[InputRequired(), NumberRange(min=0)]
     )
-    min_spanreads = IntegerField(
+    spanning_pairs = IntegerField(
         "Spanning reads", validators=[InputRequired(), NumberRange(min=0)]
     )
+    # min_spanpairs = IntegerField(
+    #     "Spanning pairs", validators=[InputRequired(), NumberRange(min=0)]
+    # )
+    # min_spanreads = IntegerField(
+    #     "Spanning reads", validators=[InputRequired(), NumberRange(min=0)]
+    # )
 
     fusioneffect_inframe = BooleanField(validators=[Optional()])
     fusioneffect_outframe = BooleanField(validators=[Optional()])
