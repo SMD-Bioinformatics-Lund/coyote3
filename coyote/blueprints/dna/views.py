@@ -25,7 +25,6 @@ from flask import (
     send_file,
     Response,
 )
-from flask_login import login_required
 from pprint import pformat
 from copy import deepcopy
 from wtforms import BooleanField
@@ -44,9 +43,6 @@ from coyote.services.auth.decorators import require
 from PIL import Image
 import os
 import io
-import markdown
-from markupsafe import Markup
-from pprint import pprint
 
 
 @dna_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])
@@ -249,10 +245,10 @@ def list_variants(sample_id: str) -> Response | str:
     )
 
     # Add global annotations for the variants
-    variants, tiered_variants = util.dna.add_global_annotations(variants, assay_group, subpanel)
-    summary_sections_data['snvs'] = tiered_variants
-    # Filter by population frequency, the same as in the query
-    # variants = util.dna.popfreq_filter(variants, float(sample_filters["max_popfreq"]))
+    variants, tiered_variants = util.dna.add_global_annotations(
+        variants, assay_group, subpanel
+    )
+    summary_sections_data["snvs"] = tiered_variants
 
     # Add hotspot data
     variants = util.dna.hotspot_variant(variants)
@@ -285,7 +281,9 @@ def list_variants(sample_id: str) -> Response | str:
                 sample_id=str(sample["_id"])
             )
         )
-        summary_sections_data['biomarkers'] = display_sections_data["biomarkers"]
+        summary_sections_data["biomarkers"] = display_sections_data[
+            "biomarkers"
+        ]
 
     if "TRANSLOCATION" in analysis_sections:
         display_sections_data["translocs"] = (
@@ -340,7 +338,16 @@ def list_variants(sample_id: str) -> Response | str:
     ## SNVs, non-optional. Though only has rules for PARP + myeloid and solid
     ai_text = ""
     conclusion = ""
-    ai_text = util.bpcommon.generate_summary_text( sample_ids, assay_config, assay_panel_doc, summary_sections_data, filter_genes, checked_genelists )
+    ai_text = util.bpcommon.generate_summary_text(
+        sample_ids,
+        assay_config,
+        assay_panel_doc,
+        summary_sections_data,
+        filter_genes,
+        checked_genelists,
+    )
+
+    print(assay_config)
 
     return render_template(
         "list_variants_vep.html",
@@ -364,7 +371,6 @@ def list_variants(sample_id: str) -> Response | str:
 
 # TODO
 @dna_bp.route("/<sample_id>/multi_class", methods=["POST"])
-@login_required
 @require_sample_access("sample_id")
 @require("manage_snvs", min_role="user", min_level=9)
 def classify_multi_variant(sample_id: str) -> Response:
@@ -406,7 +412,7 @@ def classify_multi_variant(sample_id: str) -> Response:
             consequence = selected_csq.get("Consequence")
             gene_oncokb = store.oncokb_handler.get_oncokb_gene(gene)
 
-            text = util.dna.create_annotation_text_from_gene(
+            text = util.bpcommon.create_annotation_text_from_gene(
                 gene, consequence, assay_group, gene_oncokb=gene_oncokb
             )
 
@@ -470,7 +476,6 @@ def classify_multi_variant(sample_id: str) -> Response:
 
 @dna_bp.route("/<string:sample_id>/plot/<string:fn>", endpoint="show_any_plot")  # type: ignore
 @dna_bp.route("/<string:sample_id>/plot/rotated/<string:fn>", endpoint="show_any_plot_rotated")  # type: ignore
-@login_required
 @require_sample_access("sample_id")
 def show_any_plot(sample_id: str, fn: str, angle: int = 90) -> Response | str:
     """
@@ -515,7 +520,6 @@ def show_any_plot(sample_id: str, fn: str, angle: int = 90) -> Response | str:
 
 ## Individual variant view ##
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>")
-@login_required
 @require_sample_access("sample_id")
 def show_variant(sample_id: str, var_id: str) -> Response | str:
     """
@@ -684,7 +688,6 @@ def show_variant(sample_id: str, var_id: str) -> Response | str:
 
 
 @dna_bp.route("/gene_simple/<string:gene_name>", methods=["GET", "POST"])
-@login_required
 @require("view_gene_annotations", min_role="user", min_level=9)
 def gene_view_simple(gene_name: str) -> Response | str:
     """
@@ -704,7 +707,7 @@ def gene_view_simple(gene_name: str) -> Response | str:
     form = AssayGroupForm()
 
     annotations = store.annotation_handler.get_gene_annotations(gene_name)
-    annotations_dict = util.dna.process_gene_annotations(annotations)
+    annotations_dict = util.bpcommon.process_gene_annotations(annotations)
 
     checked_assays = []
     if form.validate_on_submit():
@@ -723,7 +726,6 @@ def gene_view_simple(gene_name: str) -> Response | str:
 
 
 @dna_bp.route("/gene/<string:gene_name>", methods=["GET", "POST"])
-@login_required
 @require("view_gene_annotations", min_role="user", min_level=9)
 def gene_view(gene_name: str) -> Response | str:
     """
@@ -750,7 +752,9 @@ def gene_view(gene_name: str) -> Response | str:
     app.logger.debug(f"gene specific variants: {len(variants)}")
 
     # TODO:  How slow is this????
-    variants, tiered_variants = util.dna.add_global_annotations(variants, "assay", "subpanel")
+    variants, tiered_variants = util.dna.add_global_annotations(
+        variants, "assay", "subpanel"
+    )
 
     variant_summary = defaultdict(dict)
     sample_oids = []
@@ -788,7 +792,6 @@ def gene_view(gene_name: str) -> Response | str:
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/unfp", methods=["POST"])
-@login_required
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def unmark_false_variant(sample_id: str, var_id: str) -> Response:
@@ -809,7 +812,6 @@ def unmark_false_variant(sample_id: str, var_id: str) -> Response:
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/fp", methods=["POST"])
-@login_required
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def mark_false_variant(sample_id: str, var_id: str) -> Response:
@@ -898,7 +900,6 @@ def unmark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
 @dna_bp.route(
     "/<string:sample_id>/var/<string:var_id>/irrelevant", methods=["POST"]
 )
-@login_required
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
@@ -921,7 +922,6 @@ def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
 @dna_bp.route(
     "/<string:sample_id>/var/<string:var_id>/blacklist", methods=["POST"]
 )
-@login_required
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
@@ -943,50 +943,9 @@ def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
 
 
 @dna_bp.route(
-    "/<string:sample_id>/var/<string:var_id>/ordersanger", methods=["POST"]
-)
-@login_required
-@require("manage_snvs", min_role="admin")
-@require_sample_access("sample_id")
-def order_sanger(sample_id: str, var_id: str) -> Response:
-    """
-    Order a Sanger sequencing for a specific variant in a sample.
-
-    Args:
-        sample_id (str): The unique identifier of the sample.
-        var_id (str): The unique identifier of the variant.
-
-    Returns:
-        flask.Response: Redirects to the variant detail view after ordering Sanger sequencing.
-    """
-    variant = store.variant_handler.get_variant(var_id)
-    variants, protein_coding_genes = util.dna.get_protein_coding_genes(
-        [variant]
-    )
-    var = variants[0]
-    sample = store.sample_handler.get_sample_by_id(var["SAMPLE_ID"])
-    canonical_dict = store.canonical_handler.get_canonical_by_genes(
-        list(protein_coding_genes)
-    )
-
-    var["INFO"]["selected_CSQ"], var["INFO"]["selected_CSQ_criteria"] = (
-        util.select_csq(var["INFO"]["CSQ"], canonical_dict)
-    )
-
-    html, tx_info = util.dna.compose_sanger_email(var, sample["name"])
-
-    email_status = util.dna.send_sanger_email(html, tx_info["SYMBOL"])
-
-    return redirect(
-        url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
-    )
-
-
-@dna_bp.route(
     "/<string:sample_id>/var/<string:var_id>/classify", methods=["POST"]
 )
-@login_required
-@require(permission="tier_dna_variant", min_role="manager", min_level=99)
+@require(permission="assign_tier", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
 def classify_variant(sample_id: str, var_id: str) -> Response:
     """
@@ -1000,7 +959,7 @@ def classify_variant(sample_id: str, var_id: str) -> Response:
         flask.Response: The response after classifying the variant.
     """
     form_data = request.form.to_dict()
-    class_num = util.dna.get_tier_classification(form_data)
+    class_num = util.common.get_tier_classification(form_data)
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
     if class_num != 0:
         store.annotation_handler.insert_classified_variant(
@@ -1019,8 +978,7 @@ def classify_variant(sample_id: str, var_id: str) -> Response:
 @dna_bp.route(
     "/<string:sample_id>/var/<string:var_id>/rmclassify", methods=["POST"]
 )
-@login_required
-@require(permission="remove_dna_variant_tier", min_role="admin")
+@require(permission="remove_tier", min_role="admin")
 @require_sample_access("sample_id")
 def remove_classified_variant(sample_id: str, var_id: str) -> Response:
     """
@@ -1066,7 +1024,6 @@ def remove_classified_variant(sample_id: str, var_id: str) -> Response:
     methods=["POST"],
     endpoint="add_translocation_comment",
 )
-@login_required
 @require("add_variant_comment", min_role="user", min_level=9)
 @require_sample_access("sample_id")
 def add_var_comment(
@@ -1094,7 +1051,7 @@ def add_var_comment(
     # If global checkbox. Save variant with the protein, coding och genomic nomenclature in decreasing priority
     form_data = request.form.to_dict()
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
-    doc = util.dna.create_comment_doc(
+    doc = util.bpcommon.create_comment_doc(
         form_data, nomenclature=nomenclature, variant=variant
     )
     _type = form_data.get("global", None)
@@ -1135,7 +1092,6 @@ def add_var_comment(
     "/<string:sample_id>/var/<string:var_id>/hide_variant_comment",
     methods=["POST"],
 )
-@login_required
 @require("hide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
 def hide_variant_comment(sample_id: str, var_id: str) -> Response:
@@ -1160,7 +1116,6 @@ def hide_variant_comment(sample_id: str, var_id: str) -> Response:
     "/<string:sample_id>/var/<string:var_id>/unhide_variant_comment",
     methods=["POST"],
 )
-@login_required
 @require("unhide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
 def unhide_variant_comment(sample_id, var_id):
@@ -1183,7 +1138,6 @@ def unhide_variant_comment(sample_id, var_id):
 
 ###### CNVS VIEW PAGE #######
 @dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>")
-@login_required
 @require_sample_access("sample_id")
 def show_cnv(sample_id: str, cnv_id: str) -> Response | str:
     """
@@ -1234,7 +1188,6 @@ def show_cnv(sample_id: str, cnv_id: str) -> Response | str:
     "<string:sample_id>/cnv/<string:cnv_id>/unmarkinterestingcnv",
     methods=["POST"],
 )
-@login_required
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
@@ -1257,7 +1210,6 @@ def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
 @dna_bp.route(
     "<string:sample_id>/cnv/<string:cnv_id>/interestingcnv", methods=["POST"]
 )
-@login_required
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
@@ -1278,7 +1230,6 @@ def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
 
 
 @dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/fpcnv", methods=["POST"])
-@login_required
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
@@ -1301,7 +1252,6 @@ def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
 @dna_bp.route(
     "/<string:sample_id>/cnv/<string:cnv_id>/unfpcnv", methods=["POST"]
 )
-@login_required
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
@@ -1324,7 +1274,6 @@ def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
 @dna_bp.route(
     "<string:sample_id>/cnv/<string:cnv_id>/noteworthycnv", methods=["POST"]
 )
-@login_required
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
@@ -1347,7 +1296,6 @@ def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
 @dna_bp.route(
     "<string:sample_id>/cnv/<string:cnv_id>/notnoteworthycnv", methods=["POST"]
 )
-@login_required
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
@@ -1370,7 +1318,6 @@ def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
 @dna_bp.route(
     "<string:sample_id>/cnv/<string:cnv_id>/hide_cnv_comment", methods=["POST"]
 )
-@login_required
 @require("hide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
 def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
@@ -1395,7 +1342,6 @@ def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     "<string:sample_id>/cnv/<string:cnv_id>/unhide_cnv_comment",
     methods=["POST"],
 )
-@login_required
 @require("unhide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
 def unhide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
@@ -1418,7 +1364,6 @@ def unhide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
 
 ###### TRANSLOCATIONS VIEW PAGE #######
 @dna_bp.route("/<string:sample_id>/transloc/<string:transloc_id>")
-@login_required
 @require_sample_access("sample_id")
 def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
     """
@@ -1471,7 +1416,6 @@ def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
     "/<string:sample_id>/transloc/<string:transloc_id>/interestingtransloc",
     methods=["POST"],
 )
-@login_required
 @require_sample_access("sample_id")
 @require("manage_translocs", min_role="user", min_level=9)
 def mark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
@@ -1499,7 +1443,6 @@ def mark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
     "/<string:sample_id>/transloc/<string:transloc_id>/uninterestingtransloc",
     methods=["POST"],
 )
-@login_required
 @require_sample_access("sample_id")
 @require("manage_translocs", min_role="user", min_level=9)
 def unmark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
@@ -1527,7 +1470,6 @@ def unmark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
     "/<string:sample_id>/transloc/<string:transloc_id>/fptransloc",
     methods=["POST"],
 )
-@login_required
 @require_sample_access("sample_id")
 @require("manage_translocs", min_role="user", min_level=9)
 def mark_false_transloc(sample_id: str, transloc_id: str) -> Response:
@@ -1555,7 +1497,6 @@ def mark_false_transloc(sample_id: str, transloc_id: str) -> Response:
     "/<string:sample_id>/transloc/<string:transloc_id>/ptransloc",
     methods=["POST"],
 )
-@login_required
 @require_sample_access("sample_id")
 @require("manage_translocs", min_role="user", min_level=9)
 def unmark_false_transloc(sample_id: str, transloc_id: str) -> Response:
@@ -1583,7 +1524,6 @@ def unmark_false_transloc(sample_id: str, transloc_id: str) -> Response:
     "/<string:sample_id>/transloc/<string:transloc_id>/hide_variant_comment",
     methods=["POST"],
 )
-@login_required
 @require("hide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
 def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
@@ -1612,7 +1552,6 @@ def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
     "/<string:sample_id>/transloc/<string:transloc_id>/unhide_variant_comment",
     methods=["POST"],
 )
-@login_required
 @require("unhide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
 def unhide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
@@ -1641,7 +1580,6 @@ def unhide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
 @dna_bp.route(
     "/sample/<string:sample_id>/preview_report", methods=["GET", "POST"]
 )
-@login_required
 @require_sample_access("sample_id")
 @require("preview_report", min_role="user", min_level=9)
 def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
@@ -1769,10 +1707,9 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     )
 
     # Add global annotations for the variants
-    variants, tiered_variants = util.dna.add_global_annotations(variants, assay_group, subpanel)
-
-    # # Filter by population frequency
-    # variants = util.dna.popfreq_filter(variants, float(sample_settings["max_popfreq"]))
+    variants, tiered_variants = util.dna.add_global_annotations(
+        variants, assay_group, subpanel
+    )
 
     # Add hotspot data
     variants = util.dna.hotspot_variant(variants)
@@ -1849,17 +1786,20 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
         report_date=report_date,
         save=save,
         sample_assay=sample_assay,
+        genes_covered_in_panel=genes_covered_in_panel,
         encrypted_panel_doc=util.common.encrypt_json(assay_panel_doc, fernet),
         encrypted_genelists=util.common.encrypt_json(
             genes_covered_in_panel, fernet
+        ),
+        encrypted_sample_filters=util.common.encrypt_json(
+            sample_filters, fernet
         ),
     )
 
 
 @dna_bp.route("/sample/<string:sample_id>/report/save")
-@login_required
 @require_sample_access("sample_id")
-@require("save_dna_report", min_role="admin")
+@require("create_report", min_role="admin")
 def save_dna_report(sample_id: str) -> Response:
     """
     Saves a DNA report for the specified sample.
@@ -1884,11 +1824,12 @@ def save_dna_report(sample_id: str) -> Response:
         return result
     sample, assay_config, assay_config_schema = result
 
-    assay_group: str = assay_config.get("assay_group", "unknown")
+    assay_group: str = assay_config.get("asp_group", "unknown")
     report_num: int = sample.get("report_num", 0) + 1
     report_id: str = f"{sample_id}.{report_num}"
     report_path: str = os.path.join(
-        app.config["REPORTS_BASE_PATH"], assay_group
+        app.config.get("REPORTS_BASE_PATH", "reports"),
+        assay_config.get("reporting", {}).get("report_path", assay_group),
     )
     os.makedirs(report_path, exist_ok=True)
     report_file: str = os.path.join(report_path, f"{report_id}.html")
@@ -1903,7 +1844,6 @@ def save_dna_report(sample_id: str) -> Response:
         )
 
     try:
-
         html = generate_dna_report(sample_id=sample_id, save=1)
 
         if not util.common.write_report(html, report_file):

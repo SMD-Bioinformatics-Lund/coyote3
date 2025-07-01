@@ -10,22 +10,44 @@
 #  the copyright holders.
 #
 
-# login_bp dependencies
-from flask import current_app as app, flash
-from flask import redirect, render_template, request, url_for, session
+"""
+This module defines authentication views for the Coyote3 application.
+"""
+
+
+from flask import (
+    Response,
+    current_app as app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_login import login_user, logout_user
 
 from coyote.blueprints.login import login_bp
 from coyote.blueprints.login.forms import LoginForm
-
+from coyote.extensions import ldap_manager, login_manager, store
 from coyote.models.user import UserModel
 from coyote.services.auth.user_session import User
-from coyote.extensions import login_manager, mongo, ldap_manager, store
 
 
 # Login route
-@login_bp.route("/", methods=["GET", "POST"])
-def login():
+@login_bp.route("/login", methods=["GET", "POST"])
+def login() -> str | Response:
+    """
+    Handle user login for the Coyote3 application.
+
+    Renders the login form on GET requests. On POST, validates the form,
+    authenticates the user using either internal (Coyote3) or LDAP authentication
+    based on the user's configured auth type, and logs the user in if credentials
+    are valid. Redirects to the home page on success, or re-renders the login form
+    with error messages on failure.
+
+    Returns:
+        Response: Rendered login template or redirect to home page.
+    """
     form = LoginForm()
 
     if request.method == "POST" and form.validate_on_submit():
@@ -36,9 +58,7 @@ def login():
         user_doc = store.user_handler.user(email)
         if not user_doc or not user_doc.get("is_active", True):
             flash("User not found or inactive.", "red")
-            app.logger.warning(
-                f"Login failed: user not found or inactive ({email})"
-            )
+            app.logger.warning(f"Login failed: user not found or inactive ({email})")
             return render_template("login.html", form=form)
 
         # Authenticate
@@ -62,23 +82,39 @@ def login():
         # Login and update last login timestamp
         login_user(user)
         store.user_handler.update_user_last_login(user_doc["_id"])
-        app.logger.info(
-            f"User logged in: {email} (access_level: {user.access_level})"
-        )
+        app.logger.info(f"User logged in: {email} (access_level: {user.access_level})")
 
-        return redirect(url_for("home_bp.samples_home"))
+        return redirect(url_for("dashboard_bp.dashboard"))
 
     return render_template("login.html", title="Login", form=form)
 
 
 @login_bp.route("/logout")
-def logout():
+def logout() -> Response:
+    """
+    Log out the current user and redirect to the login page.
+
+    This view logs out the user using Flask-Login's `logout_user` function,
+    then redirects to the login page.
+
+    Returns:
+        Response: Redirect to the login page.
+    """
     logout_user()
     return redirect(url_for("login_bp.login"))
 
 
 @login_manager.user_loader
-def load_user(user_id: str):
+def load_user(user_id: str) -> User | None:
+    """
+    Load a user for Flask-Login session management.
+
+    Args:
+        user_id (str): The unique identifier of the user.
+
+    Returns:
+        User | None: The authenticated User object if found, otherwise None.
+    """
     user_doc = store.user_handler.user_with_id(user_id)
     if not user_doc:
         return None
@@ -88,18 +124,28 @@ def load_user(user_id: str):
     return User(user_model)
 
 
-def ldap_authenticate(username, password):
+# TODO: Move to LDAP service/Utils
+def ldap_authenticate(username: str, password: str) -> bool:
+    """
+    Authenticate a user against the configured LDAP server.
+
+    Args:
+        username (str): The username or login identifier.
+        password (str): The user's password.
+
+    Returns:
+        bool: True if authentication succeeds, False otherwise.
+    """
     authorized = False
 
     try:
         authorized = ldap_manager.authenticate(
             username=username,
             password=password,
-            base_dn=app.config.get("LDAP_BASE_DN")
-            or app.config.get("LDAP_BINDDN"),
+            base_dn=app.config.get("LDAP_BASE_DN") or app.config.get("LDAP_BINDDN"),
             attribute=app.config.get("LDAP_USER_LOGIN_ATTR"),
         )
     except Exception as ex:
-        flash(ex, "red")
+        flash(str(ex), "red")
 
     return authorized

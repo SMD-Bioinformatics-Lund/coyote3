@@ -21,11 +21,22 @@ log_dir = os.getenv("LOG_DIR", "logs/prod")
 
 def when_ready(server):
     """
-    Callback executed when the Gunicorn server is ready.
+    Gunicorn server lifecycle hook: Executes once the server is ready to accept requests.
 
-    This function sets up logging for the Gunicorn server using the
-    `setup_gunicorn_logging` function from the `logging_setup` module.
+    This function is used to perform post-startup configurations such as
+    initializing structured logging for the Gunicorn server. It is typically
+    referenced via the `when_ready` config setting in a Gunicorn configuration file.
 
-    :param server: The Gunicorn server instance.
+    Args:
+        server: The Gunicorn Arbiter instance representing the running server.
+                This is passed automatically by Gunicorn during startup.
+
+    Side Effects:
+        Initializes and configures the logging system by calling
+        `logging_setup.setup_gunicorn_logging`.
+
+    Example:
+        Add the following to your Gunicorn config:
+            when_ready = mymodule.when_ready
     """
     logging_setup.setup_gunicorn_logging(log_dir, is_production=True)

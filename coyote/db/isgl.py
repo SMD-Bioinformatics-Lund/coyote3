@@ -32,12 +32,12 @@ from typing import Any
 # -------------------------------------------------------------------------
 class ISGLHandler(BaseHandler):
     """
-    Coyote in silico gene panels database handler
+    Coyote in silico gene asp database handler
 
     This class provides a comprehensive interface for managing gene panel data in the database.
     It supports operations such as retrieving, inserting, updating, and deleting gene panel records.
     Additionally, it includes methods for performing advanced queries, filtering, and calculations
-    related to gene panels, assays, diagnoses, and associated metadata.
+    related to gene asp, assays, diagnoses, and associated metadata.
     """
 
     def __init__(self, adapter):

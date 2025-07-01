@@ -35,7 +35,6 @@ from coyote.db.expression import ExpressionHandler
 from coyote.db.blacklist import BlacklistHandler
 from coyote.db.oncokb import OnkoKBHandler
 from coyote.db.bam_service import BamServiceHandler
-from coyote.db.canonical import CanonicalHandler
 from coyote.db.civic import CivicHandler
 from coyote.db.iarc_tp53 import IARCTP53Handler
 from coyote.db.brcaexchange import BRCAHandler
@@ -162,7 +161,6 @@ class MongoAdapter:
         self.annotation_handler = AnnotationsHandler(self)
         self.sample_handler = SampleHandler(self)
         self.asp_handler = ASPHandler(self)
-        self.canonical_handler = CanonicalHandler(self)
         self.civic_handler = CivicHandler(self)
         self.iarc_tp53_handler = IARCTP53Handler(self)
         self.brca_handler = BRCAHandler(self)

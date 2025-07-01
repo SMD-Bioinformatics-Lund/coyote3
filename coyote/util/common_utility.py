@@ -10,32 +10,53 @@
 #  the copyright holders.
 #
 
+"""
+Coyote3 Common Utility
+===============================
+This file contains utility functions and helper methods for common operations
+used throughout the Coyote3 project, including configuration handling,
+data formatting, serialization, and reporting.
+"""
+
 import os
 from copy import deepcopy
 from pathlib import Path
 import subprocess
+
+from cryptography.fernet import Fernet
 from flask import current_app as app
 from typing import Any, Literal, Dict, Tuple
 from bson import ObjectId
 from datetime import datetime
-from io import BytesIO
-import base64
 from datetime import timedelta
 from hashlib import md5
-from cryptography.fernet import Fernet
 import base64, json
 from flask_login import current_user
 
 
 class CommonUtility:
     """
-    List of util functions, mostly shared across Coyote main, rna and other blueprints.
+    Collection of utility functions and helper methods for common operations
+    used throughout the Coyote3 project. These utilities include configuration
+    handling, data formatting, serialization, reporting, and other shared logic
+    across Coyote main, RNA, and other blueprints.
     """
 
     @staticmethod
-    def get_simple_id(variant):
+    def get_simple_id(variant: dict) -> str:
         """
-        Get a simple id for a variant
+        Generate a simple identifier for a variant.
+
+        This method returns a simple string identifier for a variant dictionary. If the variant contains
+        a "simple_id" key, its value is returned. Otherwise, the identifier is constructed using the
+        "CHROM", "POS", "REF", and "ALT" fields in the format: "{CHROM}_{POS}_{REF}_{ALT}".
+
+        Args:
+            variant (dict): A dictionary representing a variant, expected to contain at least the keys
+                "CHROM", "POS", "REF", and "ALT".
+
+        Returns:
+            str: The simple identifier for the variant.
         """
         return variant.get(
             "simple_id",
@@ -44,6 +65,18 @@ class CommonUtility:
 
     @staticmethod
     def assay_config(assay_name: str = None) -> dict:
+        """
+        Retrieve assay configuration data from the application config.
+
+        If `assay_name` is provided, returns the configuration for that specific assay.
+        If not provided, returns the entire assays configuration dictionary.
+
+        Args:
+            assay_name (str, optional): The name of the assay to retrieve configuration for.
+
+        Returns:
+            dict: The configuration dictionary for the specified assay, or all assays if no name is given.
+        """
         conf = app.config.get("ASSAYS")
         if conf is None:
             return {}
@@ -56,7 +89,13 @@ class CommonUtility:
     @staticmethod
     def get_group_parameters(group: str) -> dict:
         """
-        Get group paramters data
+        Retrieve configuration parameters for a specific group.
+
+        Args:
+            group (str): The name of the group to retrieve parameters for.
+
+        Returns:
+            dict: A deep copy of the group's configuration parameters if found, otherwise an empty dictionary.
         """
         conf = app.config.get("GROUP_CONFIGS")
         if conf is not None:
@@ -64,22 +103,32 @@ class CommonUtility:
         return {}
 
     @staticmethod
-    def get_unknown_default_parameters(grp: str = "unknown-default") -> dict:
-        """
-        Get group paramters data
-        """
-        conf = app.config.get("GROUP_CONFIGS")
-        if conf is not None:
-            return deepcopy(conf.get("unknown-default"))
-        return {}
-
-    @staticmethod
     def table_config() -> dict:
+        """
+        Retrieve the table configuration from the application config.
+
+        Returns:
+            dict: A deep copy of the table configuration dictionary, or None if not set.
+        """
         conf = app.config.get("TABLE")
         return deepcopy(conf)
 
     @staticmethod
     def cutoff_config(assay_name: str, sample_type: str = None) -> dict:
+        """
+        Retrieve cutoff configuration for a given assay and optional sample type.
+
+        This method fetches the cutoff values from the application configuration for the specified
+        assay. If a sample type is provided, it returns the cutoffs specific to that sample type.
+        If no cutoffs are defined for the assay or sample type, an empty dictionary is returned.
+
+        Args:
+            assay_name (str): The name of the assay to retrieve cutoffs for.
+            sample_type (str, optional): The sample type to retrieve cutoffs for.
+
+        Returns:
+            dict: The cutoff configuration for the specified assay and sample type, or an empty dict if not found.
+        """
         conf = app.config.get("CUTOFFS")
         if conf is None:
             return {}
@@ -95,28 +144,70 @@ class CommonUtility:
         return deepcopy(conf)
 
     @staticmethod
-    def assay_info_vars(assay_name) -> list:
+    def assay_info_vars(assay_name: str) -> list:
+        """
+        Retrieve the list of sample information variables for a given assay.
+
+        Args:
+            assay_name (str): The name of the assay to retrieve information variables for.
+
+        Returns:
+            list: A list of sample information variable names defined in the assay configuration, or None if not found.
+        """
         assay = CommonUtility.assay_config(assay_name)
         return assay.get("sample_info")
 
     @staticmethod
-    def assay_qc_vars(assay_name) -> list:
+    def assay_qc_vars(assay_name: str) -> list:
+        """
+        Retrieve the list of sample quality control (QC) variable names for a given assay.
+
+        Args:
+            assay_name (str): The name of the assay to retrieve QC variable names for.
+
+        Returns:
+            list: A list of QC variable names defined in the assay configuration, or None if not found.
+        """
         assay = CommonUtility.assay_config(assay_name)
         return assay.get("sample_qc")
 
     @staticmethod
     def assays_in_assay_group(assay_name: str) -> list:
+        """
+        Retrieve the list of assays included in a given assay group.
+
+        Args:
+            assay_name (str): The name of the assay group to retrieve included assays for.
+
+        Returns:
+            list: A list of assay names included in the specified assay group, or None if not found.
+        """
         return CommonUtility.assay_config(assay_name).get("include_assays")
 
     @staticmethod
-    def has_subtypes(assay_name) -> bool:
+    def has_subtypes(assay_name: str) -> bool:
+        """
+        Check if the given assay has subtypes defined in its configuration.
+
+        Args:
+            assay_name (str): The name of the assay to check.
+
+        Returns:
+            bool: True if the assay has subtypes, False otherwise.
+        """
         assay_conf = CommonUtility.assay_config(assay_name)
         return "subtypes" in assay_conf
 
     @staticmethod
     def get_sample_subtypes(assay_name: str) -> list:
         """
-        Get list of available subtypes for assay defined in assays.config
+        Get the list of available subtypes for a given assay as defined in the assay configuration.
+
+        Args:
+            assay_name (str): The name of the assay to retrieve subtypes for.
+
+        Returns:
+            list: A list of subtype names if defined, otherwise None.
         """
         assay = CommonUtility.assay_config(assay_name)
         subtypes = assay.get("subtypes", {})
@@ -124,7 +215,24 @@ class CommonUtility:
         return subtypes
 
     @staticmethod
-    def subtype_id_var(assay_name) -> list:
+    def subtype_id_var(assay_name: str) -> list:
+        """
+        Retrieve the subtype ID column(s) for a given assay.
+
+        This method checks if the specified assay has subtypes defined in its configuration.
+        If subtypes are enabled, it returns the value of the "subtype_id_col" key from the assay configuration.
+        If subtypes are not enabled, it returns None.
+        If "subtype_id_col" is missing when subtypes are enabled, an AttributeError is raised.
+
+        Args:
+            assay_name (str): The name of the assay to retrieve the subtype ID column(s) for.
+
+        Returns:
+            list: The subtype ID column(s) if defined, otherwise None.
+
+        Raises:
+            AttributeError: If subtypes are enabled but "subtype_id_col" is not defined in the assay configuration.
+        """
         if not CommonUtility.has_subtypes(assay_name):
             return None
 
@@ -142,12 +250,32 @@ class CommonUtility:
 
     @staticmethod
     def assay_exists(assay_name: str) -> bool:
-        """Check if assay defined in config"""
+        """
+        Check if the given assay is defined in the configuration.
+
+        Args:
+            assay_name (str): The name of the assay to check.
+
+        Returns:
+            bool: True if the assay is defined in the configuration, False otherwise.
+        """
         conf = CommonUtility.assay_config()
         return assay_name in conf
 
     @staticmethod
-    def assay_names_for_db_query(assay_category_name):
+    def assay_names_for_db_query(assay_category_name: str) -> list:
+        """
+        Retrieve the list of assay names for a given assay category, handling restored categories.
+
+        If the category name ends with "_restored", appends "_restored" to each included assay name.
+        Otherwise, returns the list of included assays as defined in the configuration.
+
+        Args:
+            assay_category_name (str): The name of the assay category to query.
+
+        Returns:
+            list: A list of assay names for database queries, possibly with "_restored" suffixes.
+        """
         # Ignore _restored
         assay_names = CommonUtility.assay_config(
             assay_category_name.removesuffix("_restored")
@@ -161,7 +289,20 @@ class CommonUtility:
 
     # TODO: Remove
     @staticmethod
-    def get_assay_from_sample(smp) -> Any | Literal["unknown"] | None:
+    def get_assay_from_sample(smp: dict) -> Any | Literal["unknown"] | None:
+        """
+        Determine the assay name for a given sample based on its group membership.
+
+        This function checks the sample's groups against the assay mapping configuration
+        and returns the corresponding assay name if a match is found. If no match is found,
+        it returns "unknown". If the configuration is missing, it returns None.
+
+        Args:
+            smp (dict): The sample dictionary, expected to contain a "groups" key with a list of group names.
+
+        Returns:
+            Any | Literal["unknown"] | None: The assay name if found, "unknown" if no match, or None if configuration is missing.
+        """
         conf = app.config.get("ASSAY_MAPPER")
         if conf is None:
             return None
@@ -172,7 +313,7 @@ class CommonUtility:
 
     @staticmethod
     def merge_sample_settings_with_assay_config(
-        sample_doc, assay_config
+        sample_doc: dict, assay_config: dict
     ) -> dict:
         """
         Merge assay_config FILTERS into sample_doc['filters'].
@@ -211,9 +352,16 @@ class CommonUtility:
 
     # TODO: Remove
     @staticmethod
-    def get_group_defaults(group) -> Any | None:
+    def get_group_defaults(group: dict) -> Any | None:
         """
-        Return Default dict (either group defaults or coyote defaults) and setting per sample
+        Return a dictionary of default group filter settings.
+
+        If a group is provided, its specific settings will override the global defaults
+        from the application config. Returns the resulting settings dictionary.
+        Args:
+            group (dict or None): Group-specific settings to override defaults, or None for only defaults.
+        Returns:
+            dict: The merged group filter settings.
         """
         settings = deepcopy(app.config.get("GROUP_FILTERS"))
         # Get group specific settings
@@ -263,7 +411,17 @@ class CommonUtility:
     @staticmethod
     def get_sample_settings(sample, settings) -> dict:
         """
-        get sample settings or use default
+        Get sample settings for a given sample or use default settings.
+
+        This method retrieves filter and threshold settings for a sample, using values from the sample if present,
+        or falling back to the provided default settings.
+
+        Args:
+            sample (dict): The sample dictionary containing possible filter settings.
+            settings (dict): The default settings to use if sample-specific values are missing.
+
+        Returns:
+            dict: A dictionary of sample settings with applied defaults.
         """
         sample_settings = {}
         sample_settings["min_freq"] = float(
@@ -295,13 +453,19 @@ class CommonUtility:
         return sample_settings
 
     @staticmethod
-    def get_fusions_settings(sample, settings) -> dict:
+    def get_fusions_settings(sample: dict, settings: dict) -> dict:
         """
-        get sample fusion setting or use default
+        Get sample fusion settings or use default values.
+
+        This method retrieves fusion-related filter settings for a sample, using values from the sample if present,
+        or falling back to the provided default settings.
 
         Args:
-            sample (_type_): sample string
-            settings (_type_): dictionary of the default sample settings
+            sample (dict): The sample dictionary containing possible fusion filter settings.
+            settings (dict): The default settings to use if sample-specific values are missing.
+
+        Returns:
+            dict: A dictionary with fusion filter settings applied.
         """
         fusion_settings = {}
         fusion_settings["min_spanreads"] = int(
@@ -319,11 +483,19 @@ class CommonUtility:
     @staticmethod
     def create_filter_genelist(genelist_dict: dict) -> list:
         """
-        Create a list of genes from a dictionary of gene lists.
+        Create a list of unique genes from a dictionary of gene lists.
+
+        Iterates through the provided `genelist_dict`, collecting all genes from the
+        "covered" field of each active gene list (where "is_active" is True), and returns
+        a deduplicated list of these genes.
+
         Args:
-            genelist_dict (dict): A dictionary where keys are gene list names and values are lists of genes.
+            genelist_dict (dict): A dictionary where keys are gene list names and values are
+                dictionaries containing gene list details, including "is_active" (bool) and
+                "covered" (list of genes).
+
         Returns:
-            list: A list of genes.
+            list: A list of unique genes from all active gene lists.
         """
 
         filter_genes = []
@@ -404,7 +576,17 @@ class CommonUtility:
                     return line.partition("refs/heads/")[2]
 
     @staticmethod
-    def nl_num(i, gender) -> Any | str:
+    def nl_num(i: int, gender: str) -> Any | str:
+        """
+        Return the Swedish word for a number, optionally using the neuter form for 'one'.
+
+        Args:
+            i (int): The number to convert (0-12 returns Swedish word, otherwise returns the number as string).
+            gender (str): If 't', use the neuter form for 'one' ("ett"), otherwise use the common form ("en").
+
+        Returns:
+            str: The Swedish word for the number if 0-12, otherwise the number as a string.
+        """
         names = [
             "noll",
             "en",
@@ -430,7 +612,18 @@ class CommonUtility:
     @staticmethod
     def get_hg38_pos(chr: str, pos: str) -> tuple:
         """
-        Function to get hg38 position
+        Get the hg38 genomic position for a given chromosome and position.
+
+        This function calls an external script (specified in the application config as HG38_POS_SCRIPT)
+        with the provided chromosome and position as arguments. It returns the chromosome and position
+        in hg38 coordinates as a tuple.
+
+        Args:
+            chr (str): The chromosome identifier (e.g., 'chr1', '1').
+            pos (str): The position on the chromosome.
+
+        Returns:
+            tuple: A tuple containing the hg38 chromosome and position as strings.
         """
 
         hg38 = subprocess.check_output(
@@ -443,20 +636,43 @@ class CommonUtility:
     @staticmethod
     def get_ncbi_link(chr: str, pos: str) -> str:
         """
-        Function to generate a link to NCBI genomic region
+        Generate an HTML link to the NCBI genomic region for a given chromosome and position.
+
+        Returns a hyperlink to the NCBI nuccore page, displaying the genomic region
+        centered at the specified position (±500 bases).
+
+        Returns:
+            str: HTML anchor tag linking to the NCBI genomic region.
         """
-        _chr = app.config["NCBI_CHR"].get("chr")
+        _chr = app.config["NCBI_CHR"].get(chr)
         return f'<a href="https://www.ncbi.nlm.nih.gov/nuccore/{_chr}?report=fasta&from={int(pos) - 500}&to={int(pos) + 500}">NCBI genomic region</a>'
 
     @staticmethod
     def get_thermo_link(chr: str, pos: str) -> str:
         """
-        Function to generate a link to ThermoFisher genomic region
+        Generate an HTML link to the ThermoFisher genomic region for a given chromosome and position.
+
+        Args:
+            chr (str): The chromosome identifier.
+            pos (str): The position on the chromosome.
+
+        Returns:
+            str: HTML anchor tag linking to the ThermoFisher genomic region for ordering primers.
         """
         return f'<a href="https://www.thermofisher.com/order/genome-database/searchResults?searchMode=keyword&CID=&ICID=&productTypeSelect=ceprimer&targetTypeSelect=ceprimer_all&alternateTargetTypeSelect=&alternateProductTypeSelect=&originalCount=0&species=Homo+sapiens&otherSpecies=&additionalFilter=ceprimer-human-exome&keyword=&sequenceInput=&selectedInputType=&chromosome={chr}&chromStart={pos}&chromStop={pos}&vcfUpload=&multiChromoSome=&batchText=&batchUpload=&sequenceUpload=&multiSequence=&multiSequenceNames=&priorSearchTerms=%28NR%29">Order primers from ThermoFisher</a>'
 
     @staticmethod
-    def nl_join(arr, joiner):
+    def nl_join(arr: list, joiner: str) -> str:
+        """
+        Join a list of strings in a natural language style using the given joiner.
+
+        Args:
+            arr (list): List of strings to join.
+            joiner (str): The word to use as the conjunction (e.g., "and", "or").
+
+        Returns:
+            str: The joined string in natural language format.
+        """
         if len(arr) == 1:
             return arr[0]
         if len(arr) == 2:
@@ -467,20 +683,49 @@ class CommonUtility:
 
     @staticmethod
     def get_sample_type(assay: str) -> str:
+        """
+        Returns the sample type as a string based on the assay name.
+
+        If the assay is not "fusion" or "fusionrna", returns "dna".
+        Otherwise, returns "rna".
+
+        Args:
+            assay (str): The name of the assay.
+
+        Returns:
+            str: "dna" if the assay is not a fusion assay, otherwise "rna".
+        """
         if assay not in ["fusion", "fusionrna"]:
             return "dna"
         else:
             return "rna"
 
     @staticmethod
-    def filter_non_zero_data(data) -> dict:
+    def filter_non_zero_data(data: dict) -> dict:
         """
-        Remove Non Zero items
+        Remove items from the dictionary where the value is not greater than zero.
+
+        Returns a new dictionary containing only the items with values greater than zero.
+
+        Args:
+            data (dict): The input dictionary to filter.
+
+        Returns:
+            dict: A dictionary with only items where the value is greater than zero.
         """
         return {k: v for k, v in data.items() if v > 0}
 
     @staticmethod
-    def convert_object_id(data) -> list | dict | str | Any:
+    def convert_object_id(data: Any) -> list | dict | str | Any:
+        """
+        Recursively convert all `ObjectId` instances in a list or dictionary to their string representation.
+
+        Args:
+            data (list | dict | ObjectId | Any): The input data structure to process.
+
+        Returns:
+            list | dict | str | Any: The data structure with all `ObjectId` instances converted to strings.
+        """
         if isinstance(data, list):
             return [CommonUtility.convert_object_id(item) for item in data]
         elif isinstance(data, dict):
@@ -494,7 +739,16 @@ class CommonUtility:
             return data
 
     @staticmethod
-    def convert_to_serializable(data) -> list | dict | str | Any:
+    def convert_to_serializable(data: Any) -> list | dict | str | Any:
+        """
+        Recursively convert data to a JSON-serializable format.
+
+        This method traverses lists and dictionaries, converting any `ObjectId` to a string
+        and any `datetime` object to its ISO 8601 string representation. Other types are returned as-is.
+
+        Returns:
+            list | dict | str | Any: The input data structure with all `ObjectId` and `datetime` instances converted to serializable strings.
+        """
         if isinstance(data, list):
             return [
                 CommonUtility.convert_to_serializable(item) for item in data
@@ -513,18 +767,40 @@ class CommonUtility:
 
     @staticmethod
     def dict_to_tuple(d: Dict) -> Tuple:
-        """Convert a dictionary to a tuple of sorted key-value pairs."""
+        """
+        Convert a dictionary to a tuple of sorted key-value pairs.
+
+        This method takes a dictionary and returns a tuple containing its key-value pairs,
+        sorted by key. This is useful for creating hashable representations of dictionaries,
+        such as for use as cache keys or in sets.
+
+        Args:
+            d (dict): The dictionary to convert.
+
+        Returns:
+            tuple: A tuple of (key, value) pairs sorted by key.
+        """
         return tuple(sorted(d.items()))
 
     @staticmethod
     def tuple_to_dict(t: Tuple) -> Dict:
-        """Convert a tuple of sorted key-value pairs back to a dictionary."""
+        """Convert a tuple of sorted key-value pairs back to a dictionary.
+
+        Args:
+            t (Tuple): A tuple of (key, value) pairs, typically produced by dict_to_tuple.
+
+        Returns:
+            dict: The reconstructed dictionary from the tuple of pairs.
+        """
         return dict(t)
 
     @staticmethod
     def select_one_sample_group(sample_groups: list) -> str:
         """
-        Selects the first sample group from the list of sample groups or select the first one if there is tumwgs.
+        Select the appropriate sample group from a list of sample groups.
+
+        If there are multiple sample groups, prioritize and return "tumwgs-solid" or "tumwgs-hema" if present.
+        Otherwise, return the first sample group in the list.
         """
         ## Check the length of the sample groups from db, and if len is more than one, tumwgs-solid or tumwgs-hema takes the priority in new coyote
         if len(sample_groups) > 1:
@@ -568,7 +844,19 @@ class CommonUtility:
     @staticmethod
     def get_report_header(assay: str, sample: dict, header: str) -> str:
         """
-        Get report header based on assay and sample data
+        Get the report header string based on the assay type and sample data.
+
+        If the assay is "myeloid" and the sample's "subpanel" is "Hem-Snabb", the header is modified:
+        - If "num_samples" is 2, appends ": fullständig parad analys" (full paired analysis).
+        - Otherwise, appends ": preliminär oparad analys" (preliminary unpaired analysis).
+
+        Args:
+            assay (str): The assay name.
+            sample (dict): The sample data dictionary.
+            header (str): The initial header string.
+
+        Returns:
+            str: The formatted report header.
         """
         if assay == "myeloid" and sample.get("subpanel") == "Hem-Snabb":
             if sample.get("num_samples") == 2:
@@ -581,6 +869,9 @@ class CommonUtility:
     def write_report(report_data: str, report_path: str) -> bool:
         """
         Write report data to a file.
+
+        Writes the provided `report_data` string to the file specified by `report_path`.
+        Creates any necessary parent directories if they do not exist.
 
         Args:
             report_data (str): The content to write to the file.
@@ -603,7 +894,13 @@ class CommonUtility:
     @staticmethod
     def get_base64_image(image_path: str) -> str:
         """
-        Get base64 encoded image
+        Get a base64-encoded string representation of an image file.
+
+        Args:
+            image_path (str): The file path to the image.
+
+        Returns:
+            str: The base64-encoded string of the image content.
         """
         with open(image_path, "rb") as image_file:
             base64_image = base64.b64encode(image_file.read()).decode("utf-8")
@@ -612,7 +909,19 @@ class CommonUtility:
     @staticmethod
     def get_plot(fn: str, assay_config: dict = None) -> bool:
         """
-        Check if plots should be shown in the report
+        Check if plots should be shown in the report.
+
+        This method determines whether plots should be included in the report based on the provided
+        assay configuration and file name. If a valid plot directory and file name are given, it
+        returns the base64-encoded image content; otherwise, it returns False.
+
+        Args:
+            fn (str): The file name of the plot image.
+            assay_config (dict, optional): The assay configuration dictionary, expected to contain
+                a 'REPORT' section with a 'plots_path' key.
+
+        Returns:
+            str | bool: The base64-encoded image string if the plot exists, otherwise False.
         """
         plot_dir = assay_config.get("REPORT", {}).get("plots_path", "")
         if plot_dir and fn:
@@ -623,19 +932,39 @@ class CommonUtility:
     @staticmethod
     def get_date_today() -> str:
         """
-        Get today's date
+        Get today's date as a string in YYYY-MM-DD format.
+
+        Returns:
+            str: The current date in ISO format (YYYY-MM-DD).
         """
         return datetime.now().strftime("%Y-%m-%d")
 
     @staticmethod
     def get_date_days_ago(days: int) -> str:
         """
-        Get date a specified number of days ago
+        Get the date a specified number of days ago as a string in YYYY-MM-DD format.
+
+        Args:
+            days (int): The number of days to subtract from today.
+
+        Returns:
+            str: The date in ISO format (YYYY-MM-DD) for the specified days ago.
         """
         return datetime.now() - timedelta(days=days)
 
     @staticmethod
     def generate_sample_cache_key(**kwargs) -> str:
+        """
+        Generate a stable cache key for sample data.
+
+        This method creates a unique, stable cache key string based on the provided keyword arguments.
+        It removes internal-use keys (such as 'self' and 'use_cache'), sorts any list of user groups,
+        normalizes datetime values to date strings, and serializes the arguments to a JSON string.
+        The resulting string is hashed using MD5 and prefixed with 'samples:'.
+
+        Returns:
+            str: A stable cache key for the sample data.
+        """
         # Remove unneeded internal keys if present (e.g., 'self')
         kwargs.pop("self", None)
         kwargs.pop("use_cache", None)
@@ -662,13 +991,37 @@ class CommonUtility:
         return f"samples:{md5(raw_key.encode()).hexdigest()}"
 
     @staticmethod
-    def encrypt_json(data, fernet):
+    def encrypt_json(data: dict, fernet: Fernet) -> str:
+        """
+        Encrypt a JSON-serializable dictionary using the provided Fernet key.
+
+        Args:
+            data (dict): The dictionary to encrypt. Must be JSON-serializable.
+            fernet (Fernet): The Fernet encryption object used to encrypt the data.
+
+        Returns:
+            str: The encrypted string representation of the JSON data.
+        """
         json_data = json.dumps(data, default=str)  # ← handles datetime
         return fernet.encrypt(json_data.encode()).decode()
 
     @staticmethod
     def format_assay_config(config: dict, schema: dict) -> dict:
+        """
+        Format the assay configuration dictionary to match the provided schema.
 
+        This method restructures the `config` dictionary so that its keys and default values
+        align with the sections and fields defined in the `schema` dictionary. It separates
+        filter and reporting keys into their respective sub-dictionaries, using defaults from
+        the schema if a key is missing in the config.
+
+        Args:
+            config (dict): The assay configuration dictionary to format.
+            schema (dict): The schema dictionary defining expected sections and default values.
+
+        Returns:
+            dict: The formatted assay configuration dictionary matching the schema structure.
+        """
         if config is None:
             config = {}
         if schema is None:
@@ -699,9 +1052,23 @@ class CommonUtility:
         return config
 
     @staticmethod
-    def format_filters_from_form(form_data, assay_config_schema: dict) -> dict:
+    def format_filters_from_form(
+        form_data: Any, assay_config_schema: dict
+    ) -> dict:
         """
         Format filters from a WTForm (or dict) to match the schema.
+
+        This function takes filter data from a WTForm or a dictionary and formats it to match the expected
+        structure defined by the provided assay configuration schema. It extracts filter fields, groups
+        prefixed fields (such as vep consequences, genelists, fusionlists, etc.) into lists, and returns
+        a dictionary of filters that aligns with the schema.
+
+        Args:
+            form_data: The WTForm or dictionary containing filter data.
+            assay_config_schema (dict): The schema dictionary defining filter sections and expected fields.
+
+        Returns:
+            dict: A dictionary of filters formatted according to the schema.
         """
         # If it's a WTForm, convert it to a dict of name: data
         if hasattr(form_data, "__iter__") and not isinstance(form_data, dict):
@@ -756,7 +1123,15 @@ class CommonUtility:
     @staticmethod
     def create_assay_group_map(assay_groups_panels: list) -> dict:
         """
-        Create a mapping of assay groups to their respective panels.
+        Create a dictionary mapping each assay group to a list of its associated asp.
+
+        Args:
+            assay_groups_panels (list): A list of dictionaries, each representing an assay panel with keys such as
+                "asp_group", "assay_name", "display_name", and "asp_category".
+
+        Returns:
+            dict: A dictionary where each key is an assay group name and the value is a list of panel dictionaries
+            containing "assay_name", "display_name", and "asp_category".
         """
         assay_group_map = {}
 
@@ -776,8 +1151,17 @@ class CommonUtility:
     @staticmethod
     def get_case_and_control_sample_ids(sample_doc: dict) -> dict:
         """
-        Get case and control sample IDs from a sample document.
-        Returns a dictionary with 'case' and 'control' keys.
+        Retrieve case and control sample IDs from a sample document.
+
+        This method extracts the 'case_id' and 'control_id' fields from the provided sample document
+        and returns them in a dictionary with the keys 'case' and 'control'. If either field is missing,
+        it will be omitted from the result.
+
+        Args:
+            sample_doc (dict): The sample document containing possible 'case_id' and 'control_id' fields.
+
+        Returns:
+            dict: A dictionary with 'case' and/or 'control' keys mapped to their respective IDs.
         """
         sample_ids = {}
         case = sample_doc.get("case_id")
@@ -846,6 +1230,20 @@ class CommonUtility:
 
     @staticmethod
     def safe_json_load(data: Any, fallback=None) -> dict:
+        """
+        Safely load JSON data from a string.
+
+        Attempts to parse the input `data` as JSON and return the resulting dictionary.
+        If parsing fails due to a `JSONDecodeError`, returns the provided `fallback` dictionary,
+        or an empty dictionary if no fallback is specified.
+
+        Args:
+            data (Any): The JSON string to parse.
+            fallback (dict, optional): The dictionary to return if parsing fails. Defaults to None.
+
+        Returns:
+            dict: The parsed JSON dictionary, or the fallback/empty dictionary on failure.
+        """
         try:
             return json.loads(data)
         except json.JSONDecodeError:

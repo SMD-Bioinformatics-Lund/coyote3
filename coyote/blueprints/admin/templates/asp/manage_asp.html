@@ -13,7 +13,7 @@
           <div class="relative w-64">
             <input type="text" id="search-panels" class="w-full border border-gray-300 rounded-lg py-2 pl-4 pr-10 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="Search Panels">
             <div class="absolute inset-y-0 right-0 flex items-center pr-3">
-              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="search panels" class="h-5 w-5 text-gray-500 cursor-pointer" onclick="document.getElementById('search-panels').focus()">
+              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="search panels" class="h-5 w-5 text-gray-500 cursor-pointer" onclick="document.getElementById('search-asp').focus()">
             </div>
           </div>
         </div>
@@ -79,7 +79,7 @@
                       <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="View" class="w-5 cursor-pointer">
                     </a>
 
-                    {% if has_access("edit_panel", min_role="manager", min_level=99) %}
+                    {% if has_access("edit_asp", min_role="manager", min_level=99) %}
                       <button onclick="showActionModal({
                           url: '{{ url_for('admin_bp.edit_assay_panel', assay_panel_id=panel._id) }}',
                           title: 'Edit assay_panel configuration',
@@ -103,7 +103,7 @@
                         <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path-rounded-square.svg') }}" alt="toggle active" class="w-5 cursor-pointer">
                       </button> 
                     {% endif %}
-                    {% if has_access("delete_panel", min_role="admin", min_level=99999) %}
+                    {% if has_access("delete_asp", min_role="admin", min_level=99999) %}
                       <button onclick="showActionModal({
                           url: '{{ url_for('admin_bp.delete_assay_panel', assay_panel_id=panel._id) }}',
                           title: 'Delete assay_panel',
@@ -132,9 +132,9 @@
 
 <script>
 
-  const input = document.getElementById('search-panels');
-  const body = document.getElementById('panels-list-body');
-  const container = document.getElementById('panels-list');
+  const input = document.getElementById('search-asp');
+  const body = document.getElementById('asp-list-body');
+  const container = document.getElementById('asp-list');
   const rowsPerPage = parseInt(container.dataset.rowsPerPage) || 20;
   const originalRows = [...body.querySelectorAll('tr')].map(r => r.cloneNode(true));
   const id = body.id;

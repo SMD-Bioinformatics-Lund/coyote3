@@ -469,103 +469,32 @@ class VariantsHandler(BaseHandler):
         Returns:
             int: The total count of unique variants in the collection.
         """
-        query = [
-            {
-                "$group": {
-                    "_id": {
-                        "CHROM": "$CHROM",
-                        "POS": "$POS",
-                        "REF": "$REF",
-                        "ALT": "$ALT",
-                    }
-                }
-            },
-            {"$group": {"_id": None, "uniqueVariantsCount": {"$sum": 1}}},
-            {"$project": {"_id": 0, "uniqueVariantsCount": 1}},
-        ]
-        try:
-            return tuple(self.get_collection().aggregate(query))[0].get(
-                "uniqueVariantsCount", 0
-            )
-        except:
-            return 0
+        return len(self.get_collection().distinct("simple_id")) or 0
 
     def get_unique_snp_count(self) -> int:
         """
         Get the count of unique SNP (Single Nucleotide Polymorphism) variants.
 
-        This method filters variants where both the REF (reference allele) and ALT (alternate allele)
-        are one of the nucleotides A, T, G, or C, and counts the unique occurrences based on
-        chromosome (CHROM), position (POS), REF, and ALT.
+        This method retrieves all unique variant `simple_id`s where the `variant_class` is "SNV"
+        (Single Nucleotide Variant), which typically represents SNPs, and returns their count.
 
         Returns:
-            int: The count of unique SNP variants in the collection.
+            int: The number of unique SNP variants in the collection.
         """
-        query = [
-            {
-                "$match": {
-                    "REF": {"$in": ["A", "T", "G", "C"]},
-                    "ALT": {"$in": ["A", "T", "G", "C"]},
-                }
-            },
-            {
-                "$group": {
-                    "_id": {
-                        "CHROM": "$CHROM",
-                        "POS": "$POS",
-                        "REF": "$REF",
-                        "ALT": "$ALT",
-                    }
-                }
-            },
-            {"$group": {"_id": None, "uniqueVariantsCount": {"$sum": 1}}},
-        ]
-
-        try:
-            result = list(self.get_collection().aggregate(query))
-            if result:
-                return result[0].get("uniqueVariantsCount", 0)
-            else:
-                return 0
-        except Exception as e:
-            app.logger.error(f"An error occurred: {e}")
-            return 0
+        snp_ids = self.get_collection().distinct(
+            "simple_id", {"variant_class": "SNV"}
+        )
+        return len(snp_ids) or 0
 
     def get_unique_fp_count(self) -> int:
         """
         Get the count of unique false positive variants.
 
-        This method filters variants marked as false positives (`fp: True`) and counts
-        the unique occurrences based on chromosome (`CHROM`), position (`POS`),
-        reference allele (`REF`), and alternate allele (`ALT`).
-
         Returns:
-            int: The count of unique false positive variants in the collection.
+            int: The number of unique variants marked as false positive in the collection.
         """
-        query = [
-            {"$match": {"fp": True}},
-            {
-                "$group": {
-                    "_id": {
-                        "CHROM": "$CHROM",
-                        "POS": "$POS",
-                        "REF": "$REF",
-                        "ALT": "$ALT",
-                    }
-                }
-            },
-            {"$group": {"_id": None, "uniqueVariantsCount": {"$sum": 1}}},
-        ]
-
-        try:
-            result = list(self.get_collection().aggregate(query))
-            if result:
-                return result[0].get("uniqueVariantsCount", 0)
-            else:
-                return 0
-        except Exception as e:
-            app.logger.error(f"An error occurred: {e}")
-            return 0
+        fps = self.get_collection().distinct("simple_id", {"fp": True})
+        return len(fps) or 0
 
     def delete_sample_variants(self, sample_oid: str) -> Any:
         """

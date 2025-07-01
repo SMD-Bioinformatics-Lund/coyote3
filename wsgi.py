@@ -24,21 +24,20 @@ for Gunicorn and standalone modes.
 # Imports
 # -------------------------------------------------------------------------
 import logging.config
+from pprint import pformat
 from typing import Any
 from coyote import init_app
 from logging_setup import custom_logging, add_unique_handlers
 import os
 
 app = init_app()
+app.secret_key = app.config.get("SECRET_KEY")
+
 
 if __name__ != "__main__":
     print("Setting up Gunicorn logging.")
-    log_dir: str | Any = os.getenv(
-        "LOG_DIR", app.config.get("LOGS", "logs/prod")
-    )
-    custom_logging(
-        log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=True
-    )
+    log_dir: str | Any = os.getenv("LOG_DIR", app.config.get("LOGS", "logs/prod"))
+    custom_logging(log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=True)
 
     gunicorn_logger_error = logging.getLogger("gunicorn.error")
     gunicorn_logger_access = logging.getLogger("gunicorn.access")
@@ -49,11 +48,8 @@ if __name__ != "__main__":
 
     # Set the app logger level to the gunicorn error logger level (you can choose which one to match)
     app.logger.setLevel(gunicorn_logger_error.level)
-    app.logger.error("This is an error message")
 
 if __name__ == "__main__":
     log_dir = os.getenv("LOG_DIR", app.config.get("LOGS", "logs/prod"))
-    custom_logging(
-        log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=False
-    )
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    custom_logging(log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=False)
+    app.run(host="0.0.0.0", port=8000, debug=os.getenv("FLASK_DEBUG", 0))

@@ -34,7 +34,6 @@ from coyote.util.decorators.access import (
 
 
 @cov_bp.route("/<string:sample_id>", methods=["GET", "POST"])
-@login_required
 @require_sample_access("sample_id")
 def get_cov(sample_id):
     cov_cutoff = 500
@@ -135,7 +134,6 @@ def update_gene_status():
 
 
 @cov_bp.route("/blacklisted/<string:group>", methods=["GET", "POST"])
-@login_required
 @require_group_access("group")
 def show_blacklisted_regions(group):
     """
@@ -160,7 +158,6 @@ def show_blacklisted_regions(group):
 @cov_bp.route(
     "/remove_blacklist/<string:obj_id>/<string:group>", methods=["GET"]
 )
-@login_required
 @require_group_access("group")
 def remove_blacklist(obj_id, group):
     """

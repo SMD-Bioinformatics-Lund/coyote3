@@ -16,10 +16,10 @@
 
 echo "Hello."
 
-if [[ -f ".env" ]]
+if [[ -f ".alpha_env" ]]
 then
     echo ".env exists in project root. Sourcing!"
-    source .env
+    source .alpha_env
 fi
 
 # Subpath at which Coyote3 is hosted:
@@ -27,14 +27,14 @@ fi
 SCRIPT_NAME=""
 
 # Port number to host Coyote3 at
-PORT_NBR=5814
+PORT_NBR=5815
 
 # Build Coyote3 docker image and start on lennart
 version=$(python ./coyote/__version__.py)
 echo "Deploying Coyote3 v${version} on lennart."
 
-image_name="coyote3:$version-dev"
-container_name="coyote3_app"
+image_name="coyote3:$version"
+container_name="coyote3_app_alpha-3"
 
 # # Fail build if unable to access Coyote secret key:
 # if [[ -z "${SECRET_KEY_COYOTE_PATH}" ]]; then
@@ -57,14 +57,11 @@ container_name="coyote3_app"
 #     echo "Warning! ALAMUT_API_KEY_PATH is undefined. Did you set it in .env?"
 # fi
 
-# echo "Running configuration update script."
-# ./scripts/update-to-latest-config.sh
-
 echo "Building docker image: '$image_name'"
-# docker build --no-cache --network host --target coyote3_app -t "$image_name" . 
+docker build --no-cache --network host --target coyote3_app -t "$image_name" . 
 
-docker stop coyote3_app
-docker rm coyote3_app
+docker stop coyote3_app_alpha
+docker rm coyote3_app_alpha
 
 echo "Starting docker container $container_name"
 # echo -e "docker run -e FLASK_MONGO_HOST=172.17.0.1 -e FLASK_MONGO_PORT=27017 -e FLASK_DEBUG=0 -e SCRIPT_NAME=${SCRIPT_NAME} -e TZ=Europe/Stockholm --dns 10.212.226.10 --mount type=bind,source=$(pwd)/config,target=/app/config  -v ./logs:/app/logs -p $PORT_NBR:8000 --name $container_name --restart=always -d $image_name"
@@ -95,6 +92,6 @@ docker run \
 echo "Done!"
 echo "Bye."
 
-    #    -e FLASK_BAM_ALAMUT_API_KEY=${ALAMUT_API_KEY} \
-    #    -e FLASK_BAM_ALAMUT_INSTITUTION=${ALAMUT_INSTITUTION} \
-    #    -e FLASK_SECRET_KEY=${SECRET_KEY} \
+#    -e FLASK_BAM_ALAMUT_API_KEY=${ALAMUT_API_KEY} \
+#    -e FLASK_BAM_ALAMUT_INSTITUTION=${ALAMUT_INSTITUTION} \
+#    -e FLASK_SECRET_KEY=${SECRET_KEY} \

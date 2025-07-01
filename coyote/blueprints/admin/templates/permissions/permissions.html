@@ -66,7 +66,7 @@
                         class="font-medium text-gray-700 hover:text-blue-600">
                         <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="View" class="w-5 cursor-pointer">
                       </a>
-                      {% if has_access("edit_permission", min_role="admin", min_level=99999) %}
+                      {% if has_access("edit_permission_policy", min_role="admin", min_level=99999) %}
                         <button onclick="showActionModal({
                             url: '{{ url_for('admin_bp.edit_permission', perm_id=perm._id) }}',
                             title: 'Edit Permission Policy',
@@ -90,7 +90,7 @@
                           <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path-rounded-square.svg') }}" alt="toggle active" class="w-5 cursor-pointer">
                         </button>
                       {% endif %}
-                      {% if has_access("delete_permission", min_role="admin", min_level=99999) %}
+                      {% if has_access("delete_permission_policy", min_role="admin", min_level=99999) %}
                         <button onclick="showActionModal({
                             url: '{{ url_for('admin_bp.delete_permission', perm_id=perm._id) }}',
                             title: 'Delete Permission Policy',

@@ -15,7 +15,6 @@ This module defines Flask view functions for handling error screens and sample c
 """
 
 from flask import Response, redirect, request, url_for, flash
-from flask_login import login_required
 from flask import current_app as app
 from coyote.blueprints.common import common_bp
 from coyote.extensions import store, util
@@ -58,7 +57,6 @@ def error_screen() -> str | Response:
     endpoint="add_rna_sample_comment",
 )
 @common_bp.route("/sample/<string:sample_id>/sample_comment", methods=["POST"])
-@login_required
 @require_sample_access("sample_id")
 @require("add_sample_comment", min_role="user", min_level=9)
 def add_sample_comment(sample_id: str) -> Response:
@@ -66,7 +64,7 @@ def add_sample_comment(sample_id: str) -> Response:
     Add Sample comment
     """
     data = request.form.to_dict()
-    doc = util.dna.create_comment_doc(data, key="sample_comment")
+    doc = util.bpcommon.create_comment_doc(data, key="sample_comment")
     store.sample_handler.add_sample_comment(sample_id, doc)
     flash("Sample comment added", "green")
     sample = store.sample_handler.get_sample_by_id(sample_id)
@@ -82,7 +80,6 @@ def add_sample_comment(sample_id: str) -> Response:
 )
 @require_sample_access("sample_id")
 @require("hide_sample_comment", min_role="manager", min_level=99)
-@login_required
 def hide_sample_comment(sample_id: str) -> Response:
     """
     Hides a sample comment for the given sample.
@@ -107,7 +104,6 @@ def hide_sample_comment(sample_id: str) -> Response:
 @common_bp.route(
     "/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"]
 )
-@login_required
 @require_sample_access("sample_id")
 @require("unhide_sample_comment", min_role="manager", min_level=99)
 def unhide_sample_comment(sample_id: str) -> Response:
@@ -149,19 +145,23 @@ def get_sample_genelists(sample_id: str, sample_assay: str) -> str:
         KeyError: If required form fields ('enc_genelists' or 'enc_panel_doc') are missing.
         Exception: If decryption or JSON decoding fails.
     """
-    enc_genelists = request.form["enc_genelists"]
-    enc_panel_doc = request.form["enc_panel_doc"]
+    enc_genelists = request.form.get("enc_genelists")
+    enc_panel_doc = request.form.get("enc_panel_doc")
+    enc_sample_filters = request.form.get("enc_sample_filters")
 
-    genelists = json.loads(
-        app.config["FERNET"].decrypt(enc_genelists.encode())
-    )
-    panel_doc = json.loads(
-        app.config["FERNET"].decrypt(enc_panel_doc.encode())
+    fernet_obj = app.config.get("FERNET")
+
+    genelists = json.loads(fernet_obj.decrypt(enc_genelists.encode()))
+    panel_doc = json.loads(fernet_obj.decrypt(enc_panel_doc.encode()))
+
+    sample_filters = json.loads(
+        fernet_obj.decrypt(enc_sample_filters.encode())
     )
 
     return render_template(
         "sample_genes.html",
         sample=sample_id,
         genelists=genelists,
-        assay_panel_doc=panel_doc,
+        asp_config=panel_doc,
+        sample_filters=sample_filters,
     )

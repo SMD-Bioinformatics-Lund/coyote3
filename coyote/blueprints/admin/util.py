@@ -33,7 +33,6 @@ class AdminUtility:
     AdminUtility provides static methods for common administrative operations in the Coyote3 framework.
 
     This class includes utilities for:
-    - Deep merging and casting configuration dictionaries
     - Processing and validating form and schema data
     - Managing version history and computing configuration deltas
     - Extracting and restructuring gene lists and assay configurations
@@ -42,53 +41,6 @@ class AdminUtility:
 
     All methods are stateless and designed for use in admin-related workflows.
     """
-
-    @staticmethod
-    def deep_merge(source: dict, updates: dict) -> None:
-        """
-        Recursively merges the `updates` dictionary into the `source` dictionary.
-
-        - If a value in `updates` is a dictionary and the corresponding key in `source` is also a dictionary,
-          the merge is performed recursively for that key.
-        - For all other cases, the value from `updates` overwrites the value in `source`.
-
-        Args:
-            source (dict): The original dictionary to be updated in place.
-            updates (dict): The dictionary containing updates to merge into `source`.
-
-        Returns:
-            None: The function modifies `source` in place.
-        """
-        for key, value in updates.items():
-            if isinstance(value, dict) and isinstance(source.get(key), dict):
-                AdminUtility.deep_merge(source[key], value)
-            else:
-                source[key] = value
-
-    @staticmethod
-    def handle_json_merge_input(json_string: str, config: dict) -> None:
-        """
-        Parses a JSON string and merges its contents into the provided assay configuration dictionary.
-
-        Args:
-            json_string (str): The JSON string to parse and merge.
-            config (dict): The existing configuration dictionary to update in place.
-
-        Raises:
-            ValueError: If the input string is not valid JSON or does not represent a dictionary.
-
-        Returns:
-            None: The function modifies the `config` dictionary in place.
-        """
-        try:
-            updates = json.loads(json_string)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON: {e}")
-
-        if not isinstance(updates, dict):
-            raise ValueError("Top-level JSON must be an object")
-
-        AdminUtility.deep_merge(config, updates)
 
     @staticmethod
     def cast_value(
@@ -179,7 +131,7 @@ class AdminUtility:
         Each field in the schema is processed:
         - If present in the form, its value is cast to the correct type.
         - If missing but defined as a subschema, initializes as an empty list or dict.
-        - Otherwise, sets a default value based on the field type (e\.g\., empty list, dict, False, or None).
+        - Otherwise, sets a default value based on the field type (e.g., empty list, dict, False, or None).
 
         Returns:
             dict: The resulting configuration dictionary with values cast and structured per the schema.
@@ -420,7 +372,7 @@ class AdminUtility:
         Extracts a sorted, deduplicated gene list from either a file or pasted text.
 
         Parameters:
-            file_obj (FileStorage \| None): A file-like object containing gene identifiers, typically from `request.files.get(...)`.
+            file_obj (FileStorage | None): A file-like object containing gene identifiers, typically from `request.files.get(...)`.
             pasted_text (str): Raw text input containing gene identifiers, usually pasted into a textarea.
 
         Returns:
@@ -445,71 +397,6 @@ class AdminUtility:
         ]
 
         return sorted(set(gene_list))
-
-    @staticmethod
-    def restructure_assay_config(flat_config: dict, schema: dict) -> dict:
-        """
-        Restructures a flat configuration dictionary into a nested format according to a provided schema.
-
-        Args:
-            flat_config (dict): The flat dictionary containing configuration key-value pairs.
-            schema (dict): The schema dictionary that defines the structure, including sections and their keys.
-
-        Returns:
-            dict: A nested dictionary where keys are organized into sections as specified by the schema.
-                For sections named ``filters``, keys are grouped under that section as a sub-dictionary.
-                Other keys are placed at the top level of the returned dictionary.
-        """
-        env_block = {}
-
-        schema_sections = schema.get("sections", {})
-
-        for section_name, section_keys in schema_sections.items():
-            if section_name in ["filters"]:
-                env_block[section_name] = {}
-            for key in section_keys:
-                if section_name in ["filters"]:
-                    env_block[section_name][key] = (
-                        flat_config[key] if key in flat_config else None
-                    )
-                else:
-                    env_block[key] = flat_config.get(key)
-
-        return env_block
-
-    @staticmethod
-    def flatten_config_for_form(config: dict, schema: dict) -> dict:
-        """
-        Flatten a nested configuration dictionary into a flat dictionary for form rendering.
-
-        This method takes a configuration dictionary that may contain nested sections (such as `filters`, `query`, or `verification_samples`)
-        and flattens it so that all keys from both the top-level and nested sections (as defined in `schema.sections`) are present in a single dictionary.
-        This is useful for schema-driven forms that require a flat structure for rendering and processing.
-
-        Args:
-            config (dict): The nested configuration dictionary to flatten.
-            schema (dict): The schema dictionary defining the sections and their keys.
-
-        Returns:
-            dict: A flat dictionary with all keys from the top-level and nested sections.
-        """
-        flat = {}
-
-        section_keys = schema.get("sections", {})
-        for section_name, keys in section_keys.items():
-            for key in keys:
-                if key in config:
-                    flat[key] = config[key]
-                elif section_name in config and isinstance(
-                    config[section_name], dict
-                ):
-                    # Check nested sections like filters, query, verification_samples
-                    if key in config[section_name]:
-                        flat[key] = config[section_name][key]
-                else:
-                    flat[key] = None  # fallback if not found
-
-        return flat
 
     @staticmethod
     def clean_config_for_comparison(cfg: dict) -> dict:

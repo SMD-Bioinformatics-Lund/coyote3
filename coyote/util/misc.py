@@ -31,8 +31,9 @@ from datetime import datetime
 from typing import Any
 from collections import defaultdict
 from coyote.extensions import store, util
-from flask_login import login_required, current_user
-from flask import flash, redirect, url_for, Response
+from flask_login import current_user
+from flask import flash, redirect, url_for
+from flask import current_app as app
 from copy import deepcopy
 
 
@@ -67,9 +68,7 @@ class EnhancedJSONEncoder(json.JSONEncoder):
             TypeError: If the object type is not supported.
         """
         if isinstance(obj, datetime):
-            return (
-                obj.isoformat()
-            )  # or use obj.strftime(...) for a custom format
+            return obj.isoformat()  # or use obj.strftime(...) for a custom format
         return super().default(obj)
 
 
@@ -78,28 +77,31 @@ class EnhancedJSONEncoder(json.JSONEncoder):
 # -------------------------------------------------------------------------
 def get_dynamic_assay_nav() -> dict:
     """
-    Generate a dynamic navigation structure for assays.
+    Generates a dynamic navigation structure for assays.
 
-    This function retrieves the user's accessible assay map (`asp_map`) and organizes it into a nested dictionary.
-    Each entry includes metadata such as the group name, panel type, technology, and associated assays.
+    Retrieves the current user's accessible assay map (`asp_map`) and organizes it into a nested dictionary structure.
+    Each entry contains metadata such as the group name, panel type, technology, and associated assays.
 
-    The resulting structure is suitable for rendering navigation menus or other UI components.
+    The resulting dictionary is suitable for rendering navigation menus or other UI components.
 
     Returns:
-        dict: A dictionary with the following structure:
+        dict: A dictionary with the structure:
             {
-                "panel_type": {
-                    "panel_tech": {
-                        "group_name": {
-                            "label": str,  # Uppercase group name
-                            "url": str,    # URL for navigation
-                            "group": str,  # Group name
-                            "panel_type": str,  # Panel type
-                            "panel_technology": str,  # Panel technology
-                            "assays": list  # List of assays
+                "dynamic_assay_nav": {
+                    "panel_type": {
+                        "panel_tech": {
+                            "group_name": {
+                                "label": str,  # Uppercase group name
+                                "url": str,    # URL for navigation
+                                "group": str,  # Group name
+                                "panel_type": str,  # Panel type
+                                "panel_technology": str,  # Panel technology
+                                "assays": list  # List of assays
+                            }
                         }
                     }
                 }
+            }
     """
 
     user_asp_map = current_user.asp_map  # or `assay_map`
@@ -118,14 +120,31 @@ def get_dynamic_assay_nav() -> dict:
                     "assays": assays,
                 }
 
-    return dict(dynamic_assay_nav=nav)
+    # Convert to a sorted dict at each level
+    def sort_nested_dict(d):
+        """
+        Recursively sorts a nested dictionary by keys.
+        """
+        if isinstance(d, dict):
+            return dict(sorted((k, sort_nested_dict(v)) for k, v in d.items()))
+        return d
+
+    sorted_nav = sort_nested_dict(nav)
+
+    app.logger.info(sorted_nav)
+
+    return dict(dynamic_assay_nav=sorted_nav)
 
 
 def get_sample_and_assay_config(sample_id: str) -> tuple:
     """
     Fetches the sample, its assay configuration, and the formatted config schema for a given `sample_id`.
 
-    Validates the presence of the sample and its configuration. If either is missing, flashes an error and returns a redirect response.
+    Checks if the sample exists using the provided `sample_id`. If not found, flashes an error and redirects to the samples home page.
+
+    If the sample exists, retrieves its assay configuration. If the configuration is missing, flashes an error and redirects to the samples home page.
+
+    If both the sample and its configuration are found, fetches the associated schema and formats the configuration.
 
     Returns:
         tuple: (sample, formatted_assay_config, assay_config_schema)
@@ -149,8 +168,6 @@ def get_sample_and_assay_config(sample_id: str) -> tuple:
 
     schema_name = assay_config.get("schema_name")
     assay_config_schema = store.schema_handler.get_schema(schema_name)
-    formatted_config = util.common.format_assay_config(
-        deepcopy(assay_config), assay_config_schema
-    )
+    formatted_config = util.common.format_assay_config(deepcopy(assay_config), assay_config_schema)
 
     return sample, formatted_config, assay_config_schema
