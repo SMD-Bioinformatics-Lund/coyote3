@@ -35,6 +35,7 @@ from coyote.services.auth.user_session import User
 
 # Login route
 @login_bp.route("/login", methods=["GET", "POST"])
+@login_bp.route("/", methods=["GET", "POST"])
 def login() -> str | Response:
     """
     Handle user login for the Coyote3 application.
