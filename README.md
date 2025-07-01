@@ -82,6 +82,7 @@ Coyote3 is built using Python’s **Flask** web framework and structured with a 
 
 Each major functionality is organized into a Flask blueprint:
 
+- `home` – Landing page and samples dashboard
 - `dna` – DNA variant search, filter, review
 - `rna` – RNA fusion events
 - `coverage` – Depth metrics by panel/sample
@@ -90,6 +91,7 @@ Each major functionality is organized into a Flask blueprint:
 - `profile` – User-specific data and logs
 - `login` – LDAP auth and session handling
 - `public` – Minimal open endpoints (optional)
+- `userprofile` – User-specific settings and preferences
 
 ---
 
@@ -122,6 +124,18 @@ Coyote3 is architected to support lab-specific workflows and pipelines:
 - **Schema-aware editing of variant data and QC thresholds**
 
 ---
+
+## Installation
+To install Coyote3, follow these steps:
+1. Clone the repository:
+  ```bash
+    git clone git@github.com:SMD-Bioinformatics-Lund/coyote3.git
+    cd coyote3
+  ```
+2. Run the setup script:
+  ```bash
+    ./scripts/install.sh
+  ```
 
 ## License
 
