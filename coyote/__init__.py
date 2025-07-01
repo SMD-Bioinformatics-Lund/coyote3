@@ -552,7 +552,7 @@ def register_blueprints(app) -> None:
     bp_debug_msg("login_bp")
     from coyote.blueprints.login import login_bp
 
-    app.register_blueprint(login_bp, url_prefix="/coyote")
+    app.register_blueprint(login_bp, url_prefix="/")
 
     # User Profile Stuff
     bp_debug_msg("profile_bp")
@@ -582,7 +582,7 @@ def register_blueprints(app) -> None:
     bp_debug_msg("dashboard_bp")
     from coyote.blueprints.dashboard import dashboard_bp
 
-    app.register_blueprint(dashboard_bp, url_prefix="/")
+    app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
 
     # register coverage bp
     bp_debug_msg("cov_bp")

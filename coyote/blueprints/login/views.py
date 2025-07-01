@@ -34,7 +34,7 @@ from coyote.services.auth.user_session import User
 
 
 # Login route
-@login_bp.route("/", methods=["GET", "POST"])
+@login_bp.route("/login", methods=["GET", "POST"])
 def login() -> str | Response:
     """
     Handle user login for the Coyote3 application.
@@ -58,9 +58,7 @@ def login() -> str | Response:
         user_doc = store.user_handler.user(email)
         if not user_doc or not user_doc.get("is_active", True):
             flash("User not found or inactive.", "red")
-            app.logger.warning(
-                f"Login failed: user not found or inactive ({email})"
-            )
+            app.logger.warning(f"Login failed: user not found or inactive ({email})")
             return render_template("login.html", form=form)
 
         # Authenticate
@@ -84,9 +82,7 @@ def login() -> str | Response:
         # Login and update last login timestamp
         login_user(user)
         store.user_handler.update_user_last_login(user_doc["_id"])
-        app.logger.info(
-            f"User logged in: {email} (access_level: {user.access_level})"
-        )
+        app.logger.info(f"User logged in: {email} (access_level: {user.access_level})")
 
         return redirect(url_for("dashboard_bp.dashboard"))
 
@@ -128,6 +124,7 @@ def load_user(user_id: str) -> User | None:
     return User(user_model)
 
 
+# TODO: Move to LDAP service/Utils
 def ldap_authenticate(username: str, password: str) -> bool:
     """
     Authenticate a user against the configured LDAP server.
@@ -145,8 +142,7 @@ def ldap_authenticate(username: str, password: str) -> bool:
         authorized = ldap_manager.authenticate(
             username=username,
             password=password,
-            base_dn=app.config.get("LDAP_BASE_DN")
-            or app.config.get("LDAP_BINDDN"),
+            base_dn=app.config.get("LDAP_BASE_DN") or app.config.get("LDAP_BINDDN"),
             attribute=app.config.get("LDAP_USER_LOGIN_ATTR"),
         )
     except Exception as ex:

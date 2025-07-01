@@ -22,23 +22,22 @@ application-specific configurations, ensuring consistency and flexibility
 across different environments.
 """
 
+
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
 import os
 from typing import Any, Literal
-
 import toml
 from cryptography.fernet import Fernet
-
 from coyote.__version__ import __version__ as app_version
 from coyote.util.common_utility import CommonUtility
+from dotenv import load_dotenv
+from os import path
 
-
-# # Implement in the future?
-# from dotenv import load_dotenv
-# basedir = path.abspath(path.dirname(__file__))
-# load_dotenv(path.join(basedir, ".env"))
+# Load environment variables from a .env file if present
+basedir = path.abspath(path.dirname(__file__))
+load_dotenv(path.join(basedir, ".env"))
 
 
 # -------------------------------------------------------------------------
@@ -70,15 +69,15 @@ class DefaultConfig:
     FERNET = Fernet(os.getenv("COYOTE3_FERNET_KEY"))
 
     WTF_CSRF_ENABLED = True
-    SECRET_KEY: str | None = os.getenv("FLASK_SECRET_KEY")
+    SECRET_KEY: str | None = os.getenv("SECRET_KEY")
 
-    SESSION_COOKIE_NAME = "coyote3.0"
+    SESSION_COOKIE_NAME = "coyote3"
 
     MONGO_HOST: str = os.getenv("FLASK_MONGO_HOST") or "localhost"
     MONGO_PORT: str | Literal[27017] = os.getenv("FLASK_MONGO_PORT") or 27017
-    MONGO_DB_NAME = os.getenv("COYOTE_DB", "coyote_dev_3")
+    MONGO_DB_NAME = os.getenv("COYOTE3_DB_NAME", "coyote3")
     BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
-    _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections_beta2.toml"
+    _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
 
     LDAP_HOST = "ldap://mtlucmds1.lund.skane.se"
     LDAP_BASE_DN = "dc=skane,dc=se"
@@ -105,7 +104,7 @@ class DefaultConfig:
     }
 
     # Gens URI
-    GENS_URI = os.getenv("GENS_URI", "http://10.231.229.34/gens/")
+    GENS_URI = os.getenv("GENS_URI", "http://mtcmdpgm01.lund.skane.se/gens/")
 
     # Report Config
     REPORTS_BASE_PATH = os.getenv("REPORTS_BASE_PATH", "/mnt/clarity")
@@ -265,7 +264,8 @@ class ProductionConfig(DefaultConfig):
     LOGS = "logs/prod"
     PRODUCTION = True
     APP_VERSION: str = f"{app_version}"
-    SECRET_KEY: str | None = os.getenv("FLASK_SECRET_KEY")
+    SECRET_KEY: str | None = os.getenv("SECRET_KEY")
+    DEBUG: bool = False
 
 
 class DevelopmentConfig(DefaultConfig):
@@ -278,7 +278,7 @@ class DevelopmentConfig(DefaultConfig):
     the development setup.
     """
 
-    MONGO_DB_NAME = os.getenv("COYOTE_DB", "coyote_dev_3")
+    MONGO_DB_NAME = os.getenv("COYOTE3_DB_NAME", "coyote_dev_3")
     BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
     _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections_beta2.toml"
 
@@ -286,6 +286,7 @@ class DevelopmentConfig(DefaultConfig):
     PRODUCTION = False
     SECRET_KEY = "traskbatfluga"
     APP_VERSION: str = f"{app_version}-DEV (git: {CommonUtility.get_active_branch_name()})"
+    DEBUG: bool = True
 
 
 class TestConfig(DefaultConfig):
@@ -297,7 +298,7 @@ class TestConfig(DefaultConfig):
     in the future.
     """
 
-    MONGO_DB_NAME = os.getenv("COYOTE_DB", "coyote3_test")
+    MONGO_DB_NAME = os.getenv("COYOTE3_DB_NAME", "coyote3_test")
     BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
     _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections_beta2.toml"
 
@@ -309,3 +310,4 @@ class TestConfig(DefaultConfig):
     SECRET_KEY = "traskbatfluga"
     TESTING = True
     LOGIN_DISABLED = True
+    DEBUG: bool = True

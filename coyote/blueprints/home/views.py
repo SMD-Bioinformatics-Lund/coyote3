@@ -26,12 +26,14 @@ from flask import (
     flash,
 )
 from flask_login import current_user, login_required
+from flask import current_app as app
 from coyote.extensions import store
 from coyote.blueprints.home import home_bp
 from coyote.blueprints.home.forms import SampleSearchForm
 from coyote.extensions import util
 from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
+from coyote.util.misc import get_sample_and_assay_config
 import os
 
 
@@ -92,9 +94,7 @@ def samples_home(
     # Filter accessible assays based on the provided panel type, technology, and assay group
     if panel_type and panel_tech and assay_group:
         assay_list = (
-            current_user.asp_map.get(panel_type, {})
-            .get(panel_tech, {})
-            .get(assay_group, [])
+            current_user.asp_map.get(panel_type, {}).get(panel_tech, {}).get(assay_group, [])
         )
         accessible_assays = [a for a in assay_list if a in user_assays]
     else:
@@ -141,9 +141,7 @@ def samples_home(
 
     # Add metadata to completed samples (e.g., last report time, number of samples)
     done_sample_ids = [str(s["_id"]) for s in done_samples]
-    done_gt_map = store.variant_handler.get_gt_lengths_by_sample_ids(
-        done_sample_ids
-    )
+    done_gt_map = store.variant_handler.get_gt_lengths_by_sample_ids(done_sample_ids)
 
     for samp in done_samples:
         samp["last_report_time_created"] = (
@@ -155,9 +153,7 @@ def samples_home(
 
     # Add metadata to live samples (e.g., number of samples)
     live_sample_ids = [str(s["_id"]) for s in live_samples]
-    gt_lengths_map = store.variant_handler.get_gt_lengths_by_sample_ids(
-        live_sample_ids
-    )
+    gt_lengths_map = store.variant_handler.get_gt_lengths_by_sample_ids(live_sample_ids)
 
     for samp in live_samples:
         samp["num_samples"] = gt_lengths_map.get(str(samp["_id"]), 0)
@@ -196,7 +192,18 @@ def view_report(sample_id: str, report_id: str) -> str | Response:
     """
     # Retrieve the report details using the sample and report IDs
     report = store.sample_handler.get_report(sample_id, report_id)
+    report_name = report.get("report_name", None)
     filepath = report.get("filepath", None)
+
+    if not filepath:
+        result = get_sample_and_assay_config(sample_id)
+        if isinstance(result, Response):
+            return result
+        sample, assay_config, assay_config_schema = result
+
+        report_sub_dir = assay_config.get("reporting", {}).get("report_folder", "")
+
+        filepath = f"{app.config.get('REPORTS_BASE_PATH', '')}/{report_sub_dir}/{report_name}"
 
     if filepath:
         # Extract the directory and filename from the file path

@@ -31,8 +31,9 @@ from datetime import datetime
 from typing import Any
 from collections import defaultdict
 from coyote.extensions import store, util
-from flask_login import login_required, current_user
-from flask import flash, redirect, url_for, Response
+from flask_login import current_user
+from flask import flash, redirect, url_for
+from flask import current_app as app
 from copy import deepcopy
 
 
@@ -67,9 +68,7 @@ class EnhancedJSONEncoder(json.JSONEncoder):
             TypeError: If the object type is not supported.
         """
         if isinstance(obj, datetime):
-            return (
-                obj.isoformat()
-            )  # or use obj.strftime(...) for a custom format
+            return obj.isoformat()  # or use obj.strftime(...) for a custom format
         return super().default(obj)
 
 
@@ -122,13 +121,17 @@ def get_dynamic_assay_nav() -> dict:
                 }
 
     # Convert to a sorted dict at each level
-    sorted_nav = {
-        pt: {
-            ptech: dict(sorted(groups.items()))
-            for ptech, groups in sorted(techs.items())
-        }
-        for pt, techs in sorted(nav.items())
-    }
+    def sort_nested_dict(d):
+        """
+        Recursively sorts a nested dictionary by keys.
+        """
+        if isinstance(d, dict):
+            return dict(sorted((k, sort_nested_dict(v)) for k, v in d.items()))
+        return d
+
+    sorted_nav = sort_nested_dict(nav)
+
+    app.logger.info(sorted_nav)
 
     return dict(dynamic_assay_nav=sorted_nav)
 
@@ -165,8 +168,6 @@ def get_sample_and_assay_config(sample_id: str) -> tuple:
 
     schema_name = assay_config.get("schema_name")
     assay_config_schema = store.schema_handler.get_schema(schema_name)
-    formatted_config = util.common.format_assay_config(
-        deepcopy(assay_config), assay_config_schema
-    )
+    formatted_config = util.common.format_assay_config(deepcopy(assay_config), assay_config_schema)
 
     return sample, formatted_config, assay_config_schema

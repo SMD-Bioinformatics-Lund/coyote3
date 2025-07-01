@@ -31,38 +31,32 @@ class DNAFilterForm(FlaskForm):
     """
 
     # Core numeric filters
-    min_alt_reads = IntegerField(
-        "Min Alt Reads", validators=[InputRequired(), NumberRange(min=0)]
-    )
-    min_depth = IntegerField(
-        "Min Depth", validators=[InputRequired(), NumberRange(min=0)]
-    )
+    min_alt_reads = IntegerField("Min Alt Reads", validators=[InputRequired(), NumberRange(min=0)])
+    min_depth = IntegerField("Min Depth", validators=[InputRequired(), NumberRange(min=0)])
     min_freq = FloatField(
-        "Min Freq", validators=[InputRequired(), NumberRange(min=0, max=1)]
+        "Min Freq",
+        validators=[InputRequired(), NumberRange(min=0, max=1)],
+        render_kw={"step": "any", "min": "0", "max": "1", "type": "number"},
     )
     max_freq = FloatField(
-        "Max Freq", validators=[InputRequired(), NumberRange(min=0, max=1)]
+        "Max Freq",
+        validators=[InputRequired(), NumberRange(min=0, max=1)],
+        render_kw={"step": "any", "min": "0", "max": "1", "type": "number"},
     )
     max_control_freq = FloatField(
         "Max Control Freq",
         validators=[InputRequired(), NumberRange(min=0, max=1)],
+        render_kw={"step": "any", "min": "0", "max": "1", "type": "number"},
     )
     max_popfreq = FloatField(
         "Population Freq",
         validators=[InputRequired(), NumberRange(min=0, max=1)],
+        render_kw={"step": "any", "min": "0", "max": "1", "type": "number"},
     )
-    min_cnv_size = IntegerField(
-        "Min CNV Size", validators=[InputRequired(), NumberRange(min=1)]
-    )
-    max_cnv_size = IntegerField(
-        "Max CNV Size", validators=[InputRequired(), NumberRange(min=2)]
-    )
-    cnv_loss_cutoff = FloatField(
-        "CNV Loss Cutoff", validators=[InputRequired(), NumberRange()]
-    )
-    cnv_gain_cutoff = FloatField(
-        "CNV Gain Cutoff", validators=[InputRequired(), NumberRange()]
-    )
+    min_cnv_size = IntegerField("Min CNV Size", validators=[InputRequired(), NumberRange(min=1)])
+    max_cnv_size = IntegerField("Max CNV Size", validators=[InputRequired(), NumberRange(min=2)])
+    cnv_loss_cutoff = FloatField("CNV Loss Cutoff", validators=[InputRequired(), NumberRange()])
+    cnv_gain_cutoff = FloatField("CNV Gain Cutoff", validators=[InputRequired(), NumberRange()])
     warn_cov = IntegerField(
         "Coverage Warning Threshold",
         validators=[InputRequired(), NumberRange(min=0)],
@@ -117,9 +111,7 @@ def create_assay_group_form():
     assay_groups = store.asp_handler.get_all_asp_groups()
 
     fields = {
-        group: BooleanField(
-            group.replace("_", " ").capitalize(), validators=[Optional()]
-        )
+        group: BooleanField(group.replace("_", " ").capitalize(), validators=[Optional()])
         for group in assay_groups
     }
 

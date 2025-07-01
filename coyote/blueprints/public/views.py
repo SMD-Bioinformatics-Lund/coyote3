@@ -79,7 +79,7 @@ def view_genelist(genelist_id: str) -> Response | str:
         )
 
     return render_template(
-        "genelists/view_genelist.html",
+        "isgl/view_isgl.html",
         genelist=genelist,
         selected_assay=selected_assay,
         filtered_genes=filtered_genes,
@@ -144,9 +144,7 @@ def panel_gene_explorer() -> str:
         assay_ids = public_assay_map.get(selected_panel_name, [])
         subpanels = store.isgl_handler.get_subpanels_for_asp(assay_ids)
         # TODO: Currently only one assay is selected, In future we should support multiple
-        gene_symbols, germline_gene_symbols = store.asp_handler.get_asp_genes(
-            assay_ids[0]
-        )
+        gene_symbols, germline_gene_symbols = store.asp_handler.get_asp_genes(assay_ids[0])
 
         if selected_subpanel_name:
             gene_symbols = store.isgl_handler.get_asp_subpanel_genes(
@@ -179,9 +177,7 @@ def asp_genes(asp_id: str) -> str:
     Returns:
         str: Rendered HTML page showing the genes for the specified public assay panel.
     """
-    gene_symbols, germline_gene_symbols = store.asp_handler.get_asp_genes(
-        asp_id
-    )
+    gene_symbols, germline_gene_symbols = store.asp_handler.get_asp_genes(asp_id)
     gene_details = store.hgnc_handler.get_metadata_by_symbols(gene_symbols)
 
     return render_template(

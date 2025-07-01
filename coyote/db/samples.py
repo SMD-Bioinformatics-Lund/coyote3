@@ -511,6 +511,8 @@ class SampleHandler(BaseHandler):
                         "_id": ObjectId(),
                         "report_num": report_num,
                         "report_id": f"{report_id}",
+                        "report_type": "html",
+                        "report_name": f"{report_id}.html",
                         "filepath": filepath,
                         "author": current_user.username,
                         "time_created": datetime.now(),

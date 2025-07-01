@@ -3,13 +3,13 @@ version: '3.9'
 # docker-compose up -d
 # docker-compose down
 services:
-  coyote3_app_beta2:
-    container_name: coyote3_app_beta2
-    image: coyote3:3.0.0.beta-2  # only this now
+  coyote3_app:
+    container_name: coyote3_app
+    image: coyote3:3.0.0  # only this now
     ports:
-      - "5816:8000" # external:internal
+      - "5814:8000" # external:internal
     env_file:
-      - .beta2.env
+      - .env
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
@@ -19,23 +19,17 @@ services:
     restart: always
     volumes:
       - ".git:/app/.git"
-      - "./coyote:/app/coyote"
-      - "./config:/app/config"
-      - "./logs:/app/logs"
-      - "./config.py:/app/config.py"
-      - "./wsgi.py:/app/wsgi.py"
-      - "./gunicorn.conf.py:/app/gunicorn.conf.py"
-      - "./logging_setup.py:/app/logging_setup.py"
+      - "/data/coyote3/logs:/app/logs"
       - "/access:/access"
       - "/media:/media"
       - "/data:/data"
       - "/fs1:/fs1"
-      - "/mnt:/mnt"
+      - "/mnt/clarity:/mnt/clarity"
     command: "python3 wsgi.py"
 
 
   redis:
-    container_name: redis_coyote3_beta2
+    container_name: redis_coyote3
     image: ramsainanduri/redis:7.4.3
     ports:
       - "5817:6379"  # external:internal
