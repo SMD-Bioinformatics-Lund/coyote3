@@ -15,10 +15,11 @@ License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 # Imports
 # -------------------------------------------------------------------------
 import logging.config
-from typing import Any
-from coyote import init_app
-from logging_setup import custom_logging, add_unique_handlers
 import os
+from typing import Any
+
+from coyote import init_app
+from logging_setup import add_unique_handlers, custom_logging
 
 app = init_app()
 

@@ -1,9 +1,12 @@
-from flask import current_app as app, render_template
-from flask_login import login_required
-from coyote.extensions import store, util
-from coyote.blueprints.dashboard import dashboard_bp
 import json
 from collections import OrderedDict
+
+from flask import current_app as app
+from flask import render_template
+from flask_login import login_required
+
+from coyote.blueprints.dashboard import dashboard_bp
+from coyote.extensions import store, util
 
 
 @dashboard_bp.route("/", methods=["GET", "POST"])

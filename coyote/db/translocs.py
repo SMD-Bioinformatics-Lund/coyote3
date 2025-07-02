@@ -16,8 +16,9 @@ License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 # Imports
 # -------------------------------------------------------------------------
 from bson.objectid import ObjectId
-from coyote.db.base import BaseHandler
 from flask import current_app as app
+
+from coyote.db.base import BaseHandler
 
 
 # -------------------------------------------------------------------------

@@ -1,16 +1,17 @@
-from flask import abort, redirect, request, url_for, flash
-from flask_login import login_required
+import json
+import traceback
+from copy import deepcopy
+
+from flask import abort
 from flask import current_app as app
+from flask import flash, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
+
 from coyote.blueprints.common import common_bp
 from coyote.blueprints.home import home_bp
 from coyote.extensions import store, util
-from flask import render_template
-from flask_login import current_user
-import traceback
-from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
-import json
-from copy import deepcopy
+from coyote.util.decorators.access import require_sample_access
 
 
 @common_bp.route("/errors/")

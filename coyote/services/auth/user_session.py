@@ -1,4 +1,5 @@
 from flask_login import UserMixin
+
 from coyote.models.user import UserModel
 
 

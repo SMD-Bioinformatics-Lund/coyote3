@@ -2,33 +2,34 @@
 Coyote admin views.
 """
 
+import json
+from copy import deepcopy
+from datetime import datetime
+from pathlib import Path
+from pprint import pformat, pprint
+from typing import Any, Literal
+
+import json5
+from flask import abort
 from flask import current_app as app
 from flask import (
+    flash,
+    g,
+    jsonify,
     redirect,
     render_template,
     request,
     url_for,
-    flash,
-    abort,
-    jsonify,
 )
-from flask import g
 from flask.wrappers import Response
 from flask_login import current_user
 from werkzeug import Response
+
 from coyote.blueprints.admin import admin_bp
-from coyote.services.auth.decorators import require
-from coyote.services.audit_logs.decorators import log_action
 from coyote.blueprints.home.forms import SampleSearchForm
-from pprint import pformat
-from copy import deepcopy
 from coyote.extensions import store, util
-from typing import Literal, Any
-from datetime import datetime
-import json
-import json5
-from pathlib import Path
-from pprint import pprint
+from coyote.services.audit_logs.decorators import log_action
+from coyote.services.auth.decorators import require
 
 
 @admin_bp.route("/")

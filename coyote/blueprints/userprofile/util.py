@@ -1,6 +1,7 @@
-from datetime import datetime
-from collections import defaultdict
 import re
+from collections import defaultdict
+from datetime import datetime
+
 from flask import current_app as app
 from werkzeug.security import generate_password_hash
 

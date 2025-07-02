@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional, Set
 from datetime import datetime
+from typing import List, Optional, Set
+
+from pydantic import BaseModel, EmailStr, Field
 from werkzeug.security import check_password_hash
 
 

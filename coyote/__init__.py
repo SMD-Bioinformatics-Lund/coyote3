@@ -18,25 +18,27 @@ Author: Coyote3 Development Team
 License: Copyright (c) 2025 Coyote3 Development Team. All rights reserved.
 """
 
+import json
+import os
+from typing import Any
+
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from flask import Flask, request, redirect, url_for, flash
+from flask import Flask, flash, redirect, request, url_for
+from flask_caching import Cache
 from flask_cors import CORS
+from flask_login import current_user, login_user
+from pymongo.errors import ConnectionFailure
+
 import config
+from coyote.extensions import store
+from coyote.models.user import UserModel
+from coyote.services.auth.user_session import User
+from coyote.util.misc import get_dynamic_assay_nav
+
 from . import extensions
 from .errors import register_error_handlers
-from flask_login import current_user, login_user
-from coyote.services.auth.user_session import User
-from coyote.models.user import UserModel
-from coyote.extensions import store
-from coyote.util.misc import get_dynamic_assay_nav
-from pymongo.errors import ConnectionFailure
-from flask_caching import Cache
-from typing import Any
-import os
-import json
-
 
 # Initialize Flask-Caching
 cache = Cache()

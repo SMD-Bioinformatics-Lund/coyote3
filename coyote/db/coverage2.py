@@ -12,11 +12,12 @@ Author: Coyote3 authors.
 License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
+from flask import current_app as app
+
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
 from coyote.db.base import BaseHandler
-from flask import current_app as app
 
 
 # -------------------------------------------------------------------------

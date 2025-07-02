@@ -1,8 +1,10 @@
 import time
 import traceback
 from functools import wraps
-from coyote.services.audit_logs.logger import AuditLogger
+
 from flask import g
+
+from coyote.services.audit_logs.logger import AuditLogger
 
 
 def log_action(action_name: str = None, call_type: str = None):
@@ -22,7 +24,9 @@ def log_action(action_name: str = None, call_type: str = None):
             start_time = time.perf_counter()
 
             # Log start
-            logger.log(action=action, status="started", metadata=g.audit_metadata)
+            logger.log(
+                action=action, status="started", metadata=g.audit_metadata
+            )
 
             try:
                 result = func(*args, **kwargs)
@@ -40,7 +44,10 @@ def log_action(action_name: str = None, call_type: str = None):
                 g.audit_metadata["error"] = str(e)
                 g.audit_metadata["traceback"] = traceback.format_exc()
                 logger.log(
-                    action=action, status="failed", start_time=start_time, metadata=g.audit_metadata
+                    action=action,
+                    status="failed",
+                    start_time=start_time,
+                    metadata=g.audit_metadata,
                 )
                 raise
 

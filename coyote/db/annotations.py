@@ -12,15 +12,17 @@ Author: Coyote3 authors.
 License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
+from datetime import datetime
+from typing import Any
+
+from flask import flash
+from flask_login import current_user
+from pymongo.results import DeleteResult
+
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
 from coyote.db.base import BaseHandler
-from datetime import datetime
-from pymongo.results import DeleteResult
-from flask import flash
-from flask_login import current_user
-from typing import Any
 
 
 # -------------------------------------------------------------------------

@@ -10,11 +10,12 @@ Author: Coyote3 authors.
 License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
+import os
+
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
 import logging_setup
-import os
 
 log_dir = os.getenv("LOG_DIR", "logs/prod")
 

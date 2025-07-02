@@ -1,7 +1,8 @@
-from functools import lru_cache
+from collections import OrderedDict, defaultdict
 from datetime import datetime
-from collections import defaultdict, OrderedDict
-from typing import Dict, Tuple, List, Generator, Any
+from functools import lru_cache
+from typing import Any, Dict, Generator, List, Tuple
+
 from coyote.util.common_utility import CommonUtility
 
 
@@ -18,7 +19,9 @@ class DashBoardUtility:
 
         converted = []
         for annotation in annotations:
-            annotation["time_created"] = datetime_to_hashable(annotation["time_created"])
+            annotation["time_created"] = datetime_to_hashable(
+                annotation["time_created"]
+            )
             converted.append(frozenset(annotation.items()))
         return tuple(converted)
 

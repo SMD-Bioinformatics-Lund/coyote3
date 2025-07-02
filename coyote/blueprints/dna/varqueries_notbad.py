@@ -1,5 +1,6 @@
-from flask import current_app as app
 import re
+
+from flask import current_app as app
 
 
 def build_query(sample_settings, group) -> dict:
@@ -21,7 +22,9 @@ def build_query(sample_settings, group) -> dict:
         genes = ["ABC", "DEF"]
         germline_genes = []
         for gene in genes:
-            germline_genes.append({"INFO.CSQ": {"$elemMatch": {"SYMBOL": {gene}}}})
+            germline_genes.append(
+                {"INFO.CSQ": {"$elemMatch": {"SYMBOL": {gene}}}}
+            )
         if germline_genes:
             germ.append({"$or": germline_genes})
         globalor.append(germ)
@@ -54,7 +57,11 @@ def build_query(sample_settings, group) -> dict:
     )
     ## VEP CSQ ##
     default_csq = {
-        "INFO.CSQ": {"$elemMatch": {"Consequence": {"$in": sample_settings["filter_conseq"]}}}
+        "INFO.CSQ": {
+            "$elemMatch": {
+                "Consequence": {"$in": sample_settings["filter_conseq"]}
+            }
+        }
     }
     # Any configured thing that should overwrite VEP-CSQ
     test = 1

@@ -91,7 +91,7 @@ class OnkoKBHandler(BaseHandler):
         """
         return self.adapter.oncokb_genes_collection.find_one({"name": gene})
 
-    def get_oncokb_action_gene(self,  gene: str) -> dict:
+    def get_oncokb_action_gene(self, gene: str) -> dict:
         """
         Get OncoKB actionable for a variant.
 
@@ -104,4 +104,6 @@ class OnkoKBHandler(BaseHandler):
         Returns:
             dict: A cursor object containing actionable OncoKB documents matching the query.
         """
-        return self.adapter.oncokb_actionable_collection.find_one({"Hugo Symbol": gene})
+        return self.adapter.oncokb_actionable_collection.find_one(
+            {"Hugo Symbol": gene}
+        )

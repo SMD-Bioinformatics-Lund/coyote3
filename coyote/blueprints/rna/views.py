@@ -5,15 +5,15 @@ Coyote case fusions
 from copy import deepcopy
 from datetime import datetime
 
+from flask import abort
+from flask import current_app as app
 from flask import (
-    abort,
     redirect,
     render_template,
     request,
     send_from_directory,
     url_for,
 )
-from flask import current_app as app
 from flask_login import current_user, login_required
 from flask_weasyprint import HTML, render_pdf
 from werkzeug import Response
@@ -48,7 +48,6 @@ def list_fusions(sample_id):
         return result
     sample, assay_config, assay_config_schema = result
 
-
     # sample = store.sample_handler.get_sample(sample_id)  # sample_id = name/id
     sample_has_filters = sample.get("filters", None)
 
@@ -70,7 +69,6 @@ def list_fusions(sample_id):
     assay_group: str = assay_config.get(
         "asp_group", "unknown"
     )  # myeloid, solid, lymphoid
-
 
     subpanel: str | None = sample.get("subpanel")  # breast, LP, lung, etc.
     analysis_sections = assay_config.get("analysis_types", [])
@@ -113,9 +111,8 @@ def list_fusions(sample_id):
         for gene_list in all_panel_genelist_names:
             setattr(DNAFilterForm, f"genelist_{gene_list}", BooleanField())
 
-
     form = FusionFilter()
-  
+
     ###########################################################################
     # Either reset sample to default filters or add the new filters from form.
     if request.method == "POST" and form.validate_on_submit():
@@ -143,40 +140,58 @@ def list_fusions(sample_id):
     has_hidden_comments = store.sample_handler.hidden_sample_comments(
         sample.get("_id")
     )
-    
+
     # app.logger.info(
     #     f"this is the assayConfigs in the assay {assay_config_schema}"
     # )
 
-    app.logger.info(
-        f"this is the filters in the sample {sample_filters}"
-    )
+    app.logger.info(f"this is the filters in the sample {sample_filters}")
 
-    checked_fusionlists  = sample_filters.get("fusionlists", [])
+    checked_fusionlists = sample_filters.get("fusionlists", [])
     checked_fusioncallers = sample_filters.get("fusion_callers", [])
     checked_fusioneffects = sample_filters.get("fusion_effects", [])
 
+    app.logger.info(
+        f"this is the form list {checked_fusionlists} {checked_fusioncallers} {checked_fusioneffects}"
+    )
 
-    app.logger.info(f"this is the form list {checked_fusionlists} {checked_fusioncallers} {checked_fusioneffects}")
-
-
-    fusion_query = { 
+    fusion_query = {
         "SAMPLE_ID": str(sample["_id"]),
-        "calls": {
-            "$elemMatch": {
-                "spanreads": {"$gte": sample_filters["spanning_reads"]},
-                "spanpairs": {"$gte": sample_filters["spanning_pairs"]},
-                }
-            },
+        "calls.spanpairs": {"$gte": sample_filters["spanning_reads"]},
+        "calls.spanreads": {"$gte": sample_filters["spanning_pairs"]},
+    }
+
+    if checked_fusioneffects:
+        fusion_query["calls.effect"] = {
+            "$in": sample_filters.get("fusion_effects", [])
         }
-        # if fusioneffect_filter:
-        #     fusion_query["calls.effect"] = {"$in": sample_filters["fusion_effect"]}
-        # if filter_fusioncaller:
-        #     fusion_query["calls.caller"] = {"$in": sample_filters["fusion_callers"]}
-        # if "fusionlist_FCknown" in sample_filters["fusion_list"]:
-        #     fusion_query["calls.desc"] = {"$regex": "known"}
-        # if "fusionlist_mitelman" in fusionlist_filter:
-        #     fusion_query["calls.desc"] = {"$regex": "mitelman"}
+
+    if checked_fusioncallers:
+        fusion_query["calls.caller"] = {
+            "$in": sample_filters.get("fusion_callers", [])
+        }
+
+    if "mitelman" in checked_fusionlists:
+        fusion_query["calls.desc"] = {"$regex": "mitelman"}
+
+    if "FCknown" in checked_fusionlists:
+        fusion_query["calls.desc"] = {"$regex": "known"}
+
+    # "calls": {
+    #     "$elemMatch": {
+    #         "spanreads": {"$gte": int(sample_filters["spanning_reads"])},
+    #         "spanpairs": {"$gte": int(sample_filters["spanning_pairs"])},
+    #         }
+    #     },
+    # }
+
+    #     fusion_query["calls.effect"] = {"$in": cleaned_filtername}
+    # if filter_fusioncaller:
+    #      fusion_query["calls.caller"] = {"$in": sample_filters["fusion_callers"]}
+    # if "fusionlist_FCknown " in sample_filters["fusion_list"]:
+    #      fusion_query["calls.desc"] = {"$regex": "known"}
+    # if "fusionlist_mitelman" in fusionlist_filter:
+    #      fusion_query["calls.desc"] = {"$regex": "mitelman"}
 
     fusions = list(store.fusion_handler.get_sample_fusions(fusion_query))
 
@@ -187,9 +202,7 @@ def list_fusions(sample_id):
             fusions[fus_idx]["classification"],
         ) = store.fusion_handler.get_fusion_annotations(fusions[fus_idx])
 
-    app.logger.info(
-        f"this is the fusion and fusion query {fusion_query}"
-    )
+    app.logger.info(f"this is the fusion and fusion query {fusion_query}")
 
     # Your logic for handling RNA samples
     return render_template(

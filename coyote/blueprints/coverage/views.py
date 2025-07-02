@@ -3,15 +3,11 @@ Coyote coverage for mane-transcripts
 """
 
 from collections import defaultdict
-from flask import (
-    current_app as app,
-    jsonify,
-    redirect,
-    render_template,
-    request,
-    url_for,
-)
+
+from flask import current_app as app
+from flask import jsonify, redirect, render_template, request, url_for
 from flask_login import login_required
+
 from coyote.blueprints.coverage import cov_bp
 from coyote.extensions import store, util
 from coyote.util.decorators.access import (

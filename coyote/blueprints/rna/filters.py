@@ -1,9 +1,10 @@
-from flask import current_app as app
 import os
 from urllib.parse import unquote
-from markupsafe import Markup, escape
+
 import arrow
 import dateutil
+from flask import current_app as app
+from markupsafe import Markup, escape
 
 
 @app.template_filter()
@@ -11,22 +12,75 @@ def format_fusion_desc_few(st, preview_count=None):
     if not st:
         return ""
 
-    good_terms = set([
-        "mitelman", "18cancers", "known", "oncogene", "cgp", "cancer", "cosmic", "gliomas", 
-        "oesophagus", "tumor", "pancreases", "prostates", "tcga", "ticdb", "high",
-    ])
-    verybad_terms = set([
-        "1000genomes", "banned", "bodymap2", "cacg", "conjoing", "cortex", "cta", "ctb", 
-        "ctc", "ctd", "distance1000bp", "ensembl_fully_overlapping", "ensembl_same_strand_overlapping",
-        "gtex", "hpa", "matched-normal", "mt", "non_cancer_tissues", "non_tumor_cells",
-        "pair_pseudo_genes", "paralogs", "readthrough", "refseq_fully_overlapping", "rp11", "rp", 
-        "rrna", "similar_reads", "similar_symbols", "ucsc_fully_overlapping", "ucsc_same_strand_overlapping",
-    ])
-    bad_terms = set([
-        "distance100kbp", "distance10kbp", "duplicates", "ensembl_partially_overlapping", "fragments",
-        "healthy", "short_repeats", "long_repeats", "partial-matched-normal",
-        "refseq_partially_overlapping", "short_distance", "ucsc_partially_overlapping",
-    ])
+    good_terms = set(
+        [
+            "mitelman",
+            "18cancers",
+            "known",
+            "oncogene",
+            "cgp",
+            "cancer",
+            "cosmic",
+            "gliomas",
+            "oesophagus",
+            "tumor",
+            "pancreases",
+            "prostates",
+            "tcga",
+            "ticdb",
+            "high",
+        ]
+    )
+    verybad_terms = set(
+        [
+            "1000genomes",
+            "banned",
+            "bodymap2",
+            "cacg",
+            "conjoing",
+            "cortex",
+            "cta",
+            "ctb",
+            "ctc",
+            "ctd",
+            "distance1000bp",
+            "ensembl_fully_overlapping",
+            "ensembl_same_strand_overlapping",
+            "gtex",
+            "hpa",
+            "matched-normal",
+            "mt",
+            "non_cancer_tissues",
+            "non_tumor_cells",
+            "pair_pseudo_genes",
+            "paralogs",
+            "readthrough",
+            "refseq_fully_overlapping",
+            "rp11",
+            "rp",
+            "rrna",
+            "similar_reads",
+            "similar_symbols",
+            "ucsc_fully_overlapping",
+            "ucsc_same_strand_overlapping",
+        ]
+    )
+    bad_terms = set(
+        [
+            "distance100kbp",
+            "distance10kbp",
+            "duplicates",
+            "ensembl_partially_overlapping",
+            "fragments",
+            "healthy",
+            "short_repeats",
+            "long_repeats",
+            "partial-matched-normal",
+            "refseq_partially_overlapping",
+            "short_distance",
+            "ucsc_partially_overlapping",
+        ]
+    )
 
     term_to_class = {
         **{term: "bg-green-500 text-white" for term in good_terms},
@@ -50,7 +104,6 @@ def format_fusion_desc_few(st, preview_count=None):
             html_parts.append("<br>")
 
     return Markup("".join(html_parts))
-
 
 
 @app.template_filter()
@@ -138,12 +191,16 @@ def format_fusion_desc(st):
         **{
             term: "bg-red-500 text-white" for term in verybad_terms
         },  # red background for very bad terms
-        **{term: "bg-pink-500 text-white" for term in bad_terms},  # blue background for bad terms
+        **{
+            term: "bg-pink-500 text-white" for term in bad_terms
+        },  # blue background for bad terms
     }
 
     # Truncate to first three words (for display purposes)
     terms = st.split(",")
-    truncated_terms = terms[:100]  # considering max 9 terms (3 rows of 3 terms)
+    truncated_terms = terms[
+        :100
+    ]  # considering max 9 terms (3 rows of 3 terms)
 
     html_parts = []
     for i, v in enumerate(truncated_terms):
@@ -170,11 +227,14 @@ def uniq_callers(calls):
 @app.template_filter()
 def human_date(value):
     time_zone = "CET"
-    return arrow.get(value).replace(tzinfo=dateutil.tz.gettz(time_zone)).humanize()
+    return (
+        arrow.get(value)
+        .replace(tzinfo=dateutil.tz.gettz(time_zone))
+        .humanize()
+    )
 
 
 @app.template_filter()
 def format_comment(st):
     st = st.replace("\n", "<br />")
     return st
-

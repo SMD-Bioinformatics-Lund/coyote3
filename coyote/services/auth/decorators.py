@@ -1,7 +1,8 @@
 from functools import wraps
-from flask import redirect, url_for, flash
-from flask_login import current_user
+
 from flask import current_app as app
+from flask import flash, redirect, url_for
+from flask_login import current_user
 
 
 def require_admin(f):

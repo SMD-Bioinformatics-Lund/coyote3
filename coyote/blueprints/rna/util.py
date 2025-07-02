@@ -1,12 +1,14 @@
-from collections import defaultdict
 import re
-from math import floor, log10
 import subprocess
+from collections import defaultdict
 from datetime import datetime
-from flask_login import current_user
+from math import floor, log10
+
 from bson.objectid import ObjectId
-from coyote.util.common_utility import CommonUtility
 from flask import current_app as app
+from flask_login import current_user
+
+from coyote.util.common_utility import CommonUtility
 
 
 class RNAUtility:
@@ -33,10 +35,10 @@ class RNAUtility:
         """
         effects = []
         for name in eff_names:
-            effect = name.split("_", 1)[1]
-            if effect == "inframe":
+            ## effect = name.split("_", 1)[1]
+            if name == "inframe":
                 effects.append("in-frame")
-            if effect == "outframe":
+            if name == "outframe":
                 effects.append("out-of-frame")
 
         return effects

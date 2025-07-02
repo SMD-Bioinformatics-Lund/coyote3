@@ -1,8 +1,10 @@
-from flask import current_app as app
-from coyote.util.misc import EnhancedJSONEncoder
-from markupsafe import Markup
 import json
 from datetime import datetime
+
+from flask import current_app as app
+from markupsafe import Markup
+
+from coyote.util.misc import EnhancedJSONEncoder
 
 
 @app.template_filter("now")

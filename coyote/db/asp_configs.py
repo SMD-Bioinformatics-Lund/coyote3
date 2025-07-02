@@ -12,12 +12,14 @@ Author: Coyote3 authors.
 License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
+from typing import Any
+
+from pymongo import cursor
+
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
 from coyote.db.base import BaseHandler
-from typing import Any
-from pymongo import cursor
 
 
 # -------------------------------------------------------------------------

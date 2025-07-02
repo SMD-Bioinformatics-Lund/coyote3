@@ -1,6 +1,7 @@
+import logging
+
 from flask import Blueprint
 from flask import current_app as app
-import logging
 
 # Blueprint configuration
 cov_bp = Blueprint(

@@ -92,7 +92,7 @@ class FusionFilter(FlaskForm):
     fusioncaller_fusioncatcher = BooleanField(validators=[Optional()])
     fusioncaller_starfusion = BooleanField(validators=[Optional()])
 
-    spanning_reads =IntegerField(
+    spanning_reads = IntegerField(
         "Spanning pairs", validators=[InputRequired(), NumberRange(min=0)]
     )
     spanning_pairs = IntegerField(

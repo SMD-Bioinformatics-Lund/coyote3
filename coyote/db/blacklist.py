@@ -12,12 +12,13 @@ Author: Coyote3 authors.
 License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
+from flask import current_app as app
+from flask import flash
+
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
 from coyote.db.base import BaseHandler
-from flask import flash
-from flask import current_app as app
 from coyote.util.common_utility import CommonUtility
 
 

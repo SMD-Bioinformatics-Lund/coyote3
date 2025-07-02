@@ -1,15 +1,17 @@
-from collections import defaultdict
 import re
-from math import floor, log10
 import subprocess
+from bisect import bisect_left
+from collections import defaultdict
 from datetime import datetime
-from flask_login import current_user
+from math import floor, log10
+
 from bson.objectid import ObjectId
+from flask import current_app as app
+from flask_login import current_user
+
+from coyote.extensions import store
 from coyote.util.common_utility import CommonUtility
 from coyote.util.report.report_util import ReportUtility
-from flask import current_app as app
-from coyote.extensions import store
-from bisect import bisect_left
 
 
 class DNAUtility:

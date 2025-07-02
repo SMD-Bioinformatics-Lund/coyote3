@@ -1,14 +1,13 @@
 # login_bp dependencies
-from flask import current_app as app, flash
-from flask import redirect, render_template, request, url_for, session
+from flask import current_app as app
+from flask import flash, redirect, render_template, request, session, url_for
 from flask_login import login_user, logout_user
 
 from coyote.blueprints.login import login_bp
 from coyote.blueprints.login.forms import LoginForm
-
+from coyote.extensions import ldap_manager, login_manager, mongo, store
 from coyote.models.user import UserModel
 from coyote.services.auth.user_session import User
-from coyote.extensions import login_manager, mongo, ldap_manager, store
 
 
 # Login route

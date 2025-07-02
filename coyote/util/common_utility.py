@@ -733,13 +733,30 @@ class CommonUtility:
             elif _field == "fusion_callers":
                 filters["fusion_callers"] = fusion_callers
             elif _field == "fusion_effects":
-                filters["fusion_effects"] = fusion_effects
+                filters["fusion_effects"] = (
+                    CommonUtility.create_fusioneffectlist(fusion_effects)
+                )
             elif _field == "cnveffects":
                 filters["cnveffects"] = cnveffects
             else:
                 filters[_field] = form_data.get(_field)
 
         return filters
+
+    @staticmethod
+    def create_fusioneffectlist(eff_names):
+        """
+        This function translates filter-names in template to what is annotated. More verbose?
+        """
+        effects = []
+        for name in eff_names:
+            ## effect = name.split("_", 1)[1]
+            if name == "inframe":
+                effects.append("in-frame")
+            if name == "outframe":
+                effects.append("out-of-frame")
+
+        return effects
 
     @staticmethod
     def create_assay_group_map(assay_groups_panels: list) -> dict:

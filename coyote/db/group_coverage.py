@@ -12,11 +12,12 @@ Author: Coyote3 authors.
 License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
+from bson.objectid import ObjectId
+
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
 from coyote.db.base import BaseHandler
-from bson.objectid import ObjectId
 
 
 # -------------------------------------------------------------------------

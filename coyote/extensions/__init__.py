@@ -19,10 +19,10 @@ License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 # -------------------------------------------------------------------------
 from flask_login import LoginManager
 from flask_pymongo import PyMongo
+
 from coyote.db.mongo import MongoAdapter
 from coyote.services.auth.ldap import LdapManager
 from coyote.util import Utility
-
 
 # -------------------------------------------------------------------------
 # Shared Variables and Objects

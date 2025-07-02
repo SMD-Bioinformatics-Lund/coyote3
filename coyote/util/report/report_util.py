@@ -1,10 +1,11 @@
+import base64
 import os
 from copy import deepcopy
-from pathlib import Path
-from flask import current_app as app
-from typing import Any, Literal, Dict, Tuple
 from datetime import datetime
-import base64
+from pathlib import Path
+from typing import Any, Dict, Literal, Tuple
+
+from flask import current_app as app
 
 
 class ReportUtility:

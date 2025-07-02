@@ -14,12 +14,13 @@ License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 # Imports
 # -------------------------------------------------------------------------
 import logging.config
-from typing import Any
-from flask import Flask
-from coyote import init_app
-from logging_setup import custom_logging, add_unique_handlers
 import os
+from typing import Any
 
+from flask import Flask
+
+from coyote import init_app
+from logging_setup import add_unique_handlers, custom_logging
 
 # Command to run this
 # gunicorn -w 2 -b 10.231.229.20:8000 run:app

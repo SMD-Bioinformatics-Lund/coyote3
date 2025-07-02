@@ -1,6 +1,7 @@
+import logging
+
 from flask import Blueprint
 from flask import current_app as app
-import logging
 
 # Blueprint configuration
 rna_bp = Blueprint(
@@ -8,6 +9,5 @@ rna_bp = Blueprint(
 )
 
 from coyote.blueprints.rna import views  # noqa: F401, E402
-
 
 app.rna_logger = logging.getLogger("coyote.rna")

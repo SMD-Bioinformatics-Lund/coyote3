@@ -1,6 +1,8 @@
 from functools import wraps
-from flask import abort, g, flash
+
+from flask import abort, flash, g
 from flask_login import current_user
+
 from coyote import store
 
 

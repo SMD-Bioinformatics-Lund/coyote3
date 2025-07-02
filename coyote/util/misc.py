@@ -18,13 +18,15 @@ License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 # Imports
 # -------------------------------------------------------------------------
 import json
+from collections import defaultdict
+from copy import deepcopy
 from datetime import datetime
 from typing import Any
-from collections import defaultdict
+
+from flask import Response, flash, redirect, url_for
+from flask_login import current_user, login_required
+
 from coyote.extensions import store, util
-from flask_login import login_required, current_user
-from flask import flash, redirect, url_for, Response
-from copy import deepcopy
 
 
 # -------------------------------------------------------------------------

@@ -2,26 +2,27 @@
 Coyote Public Facing Routes
 """
 
+from copy import deepcopy
+from pprint import pformat
+
+from flask import abort
 from flask import current_app as app
 from flask import (
+    flash,
     redirect,
     render_template,
     request,
-    url_for,
-    send_from_directory,
-    flash,
-    abort,
     send_file,
+    send_from_directory,
+    url_for,
 )
 from flask_login import current_user, login_required
-from pprint import pformat
-from copy import deepcopy
-
 from werkzeug import Response
-from coyote.extensions import store, util
+
 from coyote.blueprints.public import public_bp
-from coyote.util.decorators.access import require_sample_access
+from coyote.extensions import store, util
 from coyote.services.auth.decorators import require
+from coyote.util.decorators.access import require_sample_access
 
 
 @public_bp.route("/genelists/<genelist_id>/view", methods=["GET"])

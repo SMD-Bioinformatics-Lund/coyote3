@@ -18,12 +18,13 @@ License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 # Imports
 # -------------------------------------------------------------------------
 import os
+from typing import Any, Literal
+
 import toml
-from typing import Literal, Any
+from cryptography.fernet import Fernet
 
 from coyote.__version__ import __version__ as app_version
 from coyote.util.common_utility import CommonUtility
-from cryptography.fernet import Fernet
 
 # # Implement in the future?
 # from dotenv import load_dotenv

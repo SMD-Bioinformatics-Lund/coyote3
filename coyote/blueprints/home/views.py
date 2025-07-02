@@ -4,24 +4,25 @@ It includes functionality for handling sample searches, filtering samples based 
 the appropriate templates for the user interface.
 """
 
+import os
+
 from flask import abort
 from flask import current_app as app
 from flask import (
+    flash,
     redirect,
     render_template,
     request,
-    url_for,
     send_from_directory,
-    flash,
+    url_for,
 )
 from flask_login import current_user, login_required
-from coyote.extensions import store
+
 from coyote.blueprints.home import home_bp
 from coyote.blueprints.home.forms import SampleSearchForm
-from coyote.extensions import util
-from coyote.util.decorators.access import require_sample_access
+from coyote.extensions import store, util
 from coyote.services.auth.decorators import require
-import os
+from coyote.util.decorators.access import require_sample_access
 
 
 @home_bp.route("/", methods=["GET", "POST"])

@@ -1,15 +1,16 @@
 # views.py
 
-from flask import render_template, redirect, url_for, flash, request, jsonify
-from flask_login import current_user, login_required
-from werkzeug.security import generate_password_hash
-from coyote.extensions import store
-from coyote.blueprints.userprofile.forms import PasswordChangeForm
-from coyote.services.auth.user_session import User
-from coyote.blueprints.userprofile import profile_bp
-from flask_wtf.csrf import generate_csrf
-from coyote.extensions import util
 from datetime import datetime
+
+from flask import flash, jsonify, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
+from flask_wtf.csrf import generate_csrf
+from werkzeug.security import generate_password_hash
+
+from coyote.blueprints.userprofile import profile_bp
+from coyote.blueprints.userprofile.forms import PasswordChangeForm
+from coyote.extensions import store, util
+from coyote.services.auth.user_session import User
 
 
 @profile_bp.route("/", methods=["GET"])
@@ -56,7 +57,9 @@ def change_password(username):
         else:
             form.old_password.errors.append("Old password is incorrect")
 
-    return render_template("change_password.html", form=form, username=username)
+    return render_template(
+        "change_password.html", form=form, username=username
+    )
 
 
 @profile_bp.route("/update-info", methods=["POST"])

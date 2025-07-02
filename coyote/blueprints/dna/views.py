@@ -2,39 +2,40 @@
 Coyote case variants
 """
 
+import io
+import os
+from collections import defaultdict
+from copy import deepcopy
+from datetime import datetime
+from pprint import pformat
+
+from bson import ObjectId
 from flask import current_app as app
 from flask import (
+    flash,
     redirect,
     render_template,
     request,
-    url_for,
-    send_from_directory,
-    flash,
     send_file,
+    send_from_directory,
+    url_for,
 )
 from flask_login import login_required
-from pprint import pformat
-from copy import deepcopy
+from flask_weasyprint import HTML, render_pdf
+from PIL import Image
 from werkzeug import Response
 from wtforms import BooleanField
 
 from coyote.blueprints.common import common_bp
-from coyote.extensions import store, util
 from coyote.blueprints.dna import dna_bp, filters
-from coyote.blueprints.dna.varqueries import build_query
 from coyote.blueprints.dna.cnvqueries import build_cnv_query
 from coyote.blueprints.dna.forms import DNAFilterForm, create_assay_group_form
+from coyote.blueprints.dna.varqueries import build_query
 from coyote.errors.exceptions import AppError
-from datetime import datetime
-from bson import ObjectId
-from collections import defaultdict
-from flask_weasyprint import HTML, render_pdf
+from coyote.extensions import store, util
+from coyote.services.auth.decorators import require
 from coyote.util.decorators.access import require_sample_access
 from coyote.util.misc import get_sample_and_assay_config
-from coyote.services.auth.decorators import require
-from PIL import Image
-import os
-import io
 
 
 @dna_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])

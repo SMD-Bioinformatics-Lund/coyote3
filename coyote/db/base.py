@@ -12,16 +12,18 @@ Author: Coyote3 authors.
 License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
+from datetime import datetime
+from typing import Any
+
+import pymongo
+
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
 from bson.objectid import ObjectId
-from flask_login import current_user
-from typing import Any
 from flask import current_app as app
 from flask import flash
-from datetime import datetime
-import pymongo
+from flask_login import current_user
 
 
 # -------------------------------------------------------------------------

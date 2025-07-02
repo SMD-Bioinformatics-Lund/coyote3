@@ -12,12 +12,14 @@ Author: Coyote3 authors.
 License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
+from datetime import datetime
+
+from flask import flash
+
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
 from coyote.db.base import BaseHandler
-from datetime import datetime
-from flask import flash
 
 
 # -------------------------------------------------------------------------

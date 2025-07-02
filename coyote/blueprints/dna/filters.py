@@ -1,13 +1,14 @@
-from flask import current_app as app
-import os
-import urllib
-import re
-from math import floor, log10
-import dateutil
-import arrow
-from markupsafe import Markup
-from datetime import datetime
 import json
+import os
+import re
+import urllib
+from datetime import datetime
+from math import floor, log10
+
+import arrow
+import dateutil
+from flask import current_app as app
+from markupsafe import Markup
 
 
 @app.template_filter("has_hotspot")
@@ -167,10 +168,18 @@ def format_filter(filters):
             seen_flags.add(f)
             continue
         elif "FAIL" in f and f not in seen_flags:
-            text, css_class, tooltip = f, "bg-fail", "Failure due to quality issues"
+            text, css_class, tooltip = (
+                f,
+                "bg-fail",
+                "Failure due to quality issues",
+            )
             seen_flags.add(f)
         elif "WARN" in f and f not in seen_flags:
-            text, css_class, tooltip = f, "bg-warn", "Warning due to quality concerns"
+            text, css_class, tooltip = (
+                f,
+                "bg-warn",
+                "Warning due to quality concerns",
+            )
             seen_flags.add(f)
         else:
             continue  # Ignore unknown filters
@@ -277,13 +286,33 @@ def format_fusion_desc(st):
             v_str = v_str.replace("<", "&lt;")
             v_str = v_str.replace(">", "&gt;")
             if v in good_terms:
-                html = html + "<span class='fusion fusion-good'>" + v_str + "</span>"
+                html = (
+                    html
+                    + "<span class='fusion fusion-good'>"
+                    + v_str
+                    + "</span>"
+                )
             elif v in verybad_terms:
-                html = html + "<span class='fusion fusion-verybad'>" + v_str + "</span>"
+                html = (
+                    html
+                    + "<span class='fusion fusion-verybad'>"
+                    + v_str
+                    + "</span>"
+                )
             elif v in bad_terms:
-                html = html + "<span class='fusion fusion-bad'>" + v_str + "</span>"
+                html = (
+                    html
+                    + "<span class='fusion fusion-bad'>"
+                    + v_str
+                    + "</span>"
+                )
             else:
-                html = html + "<span class='fusion fusion-neutral'>" + v_str + "</span>"
+                html = (
+                    html
+                    + "<span class='fusion fusion-neutral'>"
+                    + v_str
+                    + "</span>"
+                )
 
     return html
 
@@ -469,7 +498,11 @@ def three_dec(val):
 @app.template_filter()
 def human_date(value):
     time_zone = "CET"
-    return arrow.get(value).replace(tzinfo=dateutil.tz.gettz(time_zone)).humanize()
+    return (
+        arrow.get(value)
+        .replace(tzinfo=dateutil.tz.gettz(time_zone))
+        .humanize()
+    )
 
 
 @app.template_filter()

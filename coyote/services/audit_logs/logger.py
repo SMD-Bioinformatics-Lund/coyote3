@@ -1,10 +1,11 @@
-import logging
 import json
+import logging
 import time
-from functools import wraps
 from datetime import datetime
-from flask import g, request, has_request_context, session
+from functools import wraps
+
 from flask import current_app as app
+from flask import g, has_request_context, request, session
 from flask_login import current_user
 
 
@@ -13,7 +14,12 @@ class AuditLogger:
         self.logger = logging.getLogger(logger_name)
 
     def log(
-        self, action: str, status: str, start_time=None, metadata: dict = None, status_code=None
+        self,
+        action: str,
+        status: str,
+        start_time=None,
+        metadata: dict = None,
+        status_code=None,
     ):
         if not has_request_context():
             return
