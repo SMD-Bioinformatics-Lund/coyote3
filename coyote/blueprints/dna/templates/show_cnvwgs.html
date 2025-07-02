@@ -128,20 +128,20 @@
               <tr class="hover:bg-brown-100 shadow-md rounded-lg">
                 <th class="p-1 font-semibold text-left w-1/2">Gens Case URL</th>
                 <td class="p-1 text-right font-medium">
-                  <a class="text-blue-600 underline" href="hhttp://mtcmdpgm01.lund.skane.se/gens/{{ sample.gens }}?case_id={{sample.gens}}&region={{cnv.chr}}:{{cnv.start-1000}}-{{cnv.end+1000}}" target='_blank'>{{ sample.gens }}</a>
+                  <a class="text-blue-600 underline" href="{{app_config.GENS_URI}}/{{ sample.gens }}?case_id={{sample.gens}}&region={{cnv.chr}}:{{cnv.start-1000}}-{{cnv.end+1000}}" target='_blank'>{{ sample.gens }}</a>
                 </td>
               </tr>
               <tr class="hover:bg-brown-100 shadow-md rounded-lg">
                 <th class="p-1 font-semibold text-left w-1/2">Gens Control URL</th>
                 <td class="p-1 text-right font-medium">
-                  <a class="text-blue-600 underline" href="hhttp://mtcmdpgm01.lund.skane.se/gens/{{ sample.gensNorm }}?case_id={{sample.gensNorm}}&region={{cnv.chr}}:{{cnv.start-1000}}-{{cnv.end+1000}}" target='_blank'> {{ sample.gensNorm }} </a>
+                  <a class="text-blue-600 underline" href="{{app_config.GENS_URI}}{{ sample.gensNorm }}?case_id={{sample.gensNorm}}&region={{cnv.chr}}:{{cnv.start-1000}}-{{cnv.end+1000}}" target='_blank'> {{ sample.gensNorm }} </a>
                 </td>
               </tr>
             {% else %}
               <tr class="hover:bg-brown-100 shadow-md rounded-lg">
                 <th class="p-1 font-semibold text-left w-1/2">Gens URL</th>
                 <td class="p-1 text-right font-medium">
-                  <a class="text-blue-600 underline" href="hhttp://mtcmdpgm01.lund.skane.se/gens/{{gens_id}}?case_id={{gene_id}}&region=1">{{ gens_id }}</a>
+                  <a class="text-blue-600 underline" href="{{app_config.GENS_URI}}/{{gens_id}}?case_id={{gene_id}}&region=1">{{ gens_id }}</a>
                 </td>
               </tr>
             {% endif %}
@@ -150,7 +150,7 @@
               <tr class="hover:bg-brown-100 shadow-md rounded-lg">
                 <th class="p-1 font-semibold text-left w-1/2 capitalize">Gens {{type}}</th>
                 <td class="p-1 text-right font-medium">
-                  <a class="text-blue-600 underline" href="http://mtcmdpgm01.lund.skane.se/gens/{{sample_id}}?case_id={{sample_id}}&region={{cnv.chr}}:{{cnv.start-1000}}-{{cnv.end+1000}}" target='_blank'><b>{{sample_id}}</b></a>
+                  <a class="text-blue-600 underline" href="{{app_config.GENS_URI}}/{{sample_id}}?case_id={{sample_id}}&region={{cnv.chr}}:{{cnv.start-1000}}-{{cnv.end+1000}}" target='_blank'><b>{{sample_id}}</b></a>
                 </td>
               </tr>
             {% endfor %}

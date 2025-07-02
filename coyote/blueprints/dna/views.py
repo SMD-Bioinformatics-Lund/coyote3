@@ -1399,6 +1399,10 @@ def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
         transloc_id
     )
 
+    vep_conseq_meta = store.vep_meta_handler.get_conseq_translations(
+        sample.get("vep", 103)
+    )
+
     annotations = store.transloc_handler.get_transloc_annotations(transloc)
     return render_template(
         "show_transloc.html",
@@ -1408,6 +1412,7 @@ def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
         classification=999,
         annotations=annotations,
         bam_id=bam_id,
+        vep_conseq_translations=vep_conseq_meta,
         hidden_comments=hidden_transloc_comments,
     )
 

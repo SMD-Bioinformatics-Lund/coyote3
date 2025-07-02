@@ -1016,7 +1016,7 @@
 
         <!-- Knowledge Base -->
         <div class="bg-gray-50 w-full max-w-xl shadow-md rounded-lg mb-1" id="knowledge-base-card">
-          {% set kb_flase = True %}
+          {% set kb_false = True %}
           <h2 class="text-sm font-semibold bg-gradient-to-b from-pink-400 to-pink-200 p-2 shadow-md rounded-t-lg break-all">Knowledge Base</h2>
           <div class="rounded-b-lg overflow-x-auto">
             <table class="w-full max-w-xl table-auto text-xs text-gray-800">
@@ -1032,7 +1032,7 @@
                 <!-- TODO: Update this to the latest design when testing -->
                 {#{% set brca_exchange = {} %}#}
                 {% if brca_exchange is defined and brca_exchange is not none %}
-                  {% set kb_flase = False %}
+                  {% set kb_false = False %}
                   <tr class="hover:bg-pink-50 border-t border-gray-400">
                     <td class="p-2 font-medium align-top">
                       <img class="w-12" alt="BRCA Exchange" src="{{ url_for('static', filename='images/brcaexchange_logo.jpg') }}">
@@ -1054,7 +1054,7 @@
                 <!-- TODO: Update this to the latest design when testing -->
                 {#{% set oncokb = {} %}#}
                 {% if oncokb is defined and oncokb is not none %}
-                  {% set kb_flase = False %}
+                  {% set kb_false = False %}
                   <tr class="hover:bg-pink-50 border-t border-gray-400">
                     <td class="p-2 font-medium align-top">
                       <img class="w-12 pt-4" alt="OncoKB" src="{{ url_for('static', filename='images/oncokb_logo.png') }}">
@@ -1097,7 +1097,7 @@
                 
                 <!-- CIVIC Database -->
                 {% if civic_gene is defined and civic_gene is not none %}
-                  {% set kb_flase = False %}
+                  {% set kb_false = False %}
                   <tr class="hover:bg-pink-50 border-t border-gray-400">
                     <td class="p-2 font-medium align-top">
                       <img class="w-10 h-10 object-contain" alt="OncoKB" src="{{ url_for('static', filename='images/civic_logo.png') }}">
@@ -1116,7 +1116,7 @@
                 
                 <!-- OnkoKB Gene Database -->
                 {% if oncokb_gene is defined and oncokb_gene is not none %}
-                  {% set kb_flase = False %}
+                  {% set kb_false = False %}
                   <tr class="hover:bg-pink-50 border-t border-gray-400">
                     <td class="p-2 font-medium align-top">
                       <img class="w-12 pt-4" alt="OncoKB" src="{{ url_for('static', filename='images/oncokb_logo.png') }}">
@@ -1134,7 +1134,7 @@
 
                 <!-- IARC Database -->
                 {% if iarc_tp53 is defined and iarc_tp53 is not none %}
-                  {% set kb_flase = False %}
+                  {% set kb_false = False %}
                   <tr class="hover:bg-pink-50 border-t border-gray-400">
                     <td class="p-2 font-medium align-top">
                       <img class="w-10 h-10 object-contain" alt="IARC TP53" src="{{ url_for('static', filename='images/iarctp53_logo.png') }}">
@@ -1217,7 +1217,7 @@
                 {% endif %}
               </tbody>
             </table>
-            {% if kb_flase %}
+            {% if kb_false %}
               <em class="block text-center text-gray-500 text-sm italic bg-gray-50 p-4 rounded-b-lg border border-gray-300 shadow-md break-all">No knowledge available.</em>
             {% endif %}
           </div>

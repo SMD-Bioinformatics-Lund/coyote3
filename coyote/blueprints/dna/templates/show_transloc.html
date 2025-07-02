@@ -37,8 +37,8 @@
 {% if all_samples_bam_paths and has_access("view_igv", min_role="user", min_level=9) %}
   {% set igv_url_gene1 = "http://localhost:60151/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ gene_1_locus %}
   {% set igv_url_gene2 = "http://localhost:60151/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ gene_2_locus %}
-  {% set igv_link_gene1 = '<a href="' ~ igv_url ~ '" class="text-blue-600 underline">' ~ gene_1_locus ~ '</a>' %}
-  {% set igv_link_gene2 = '<a href="' ~ igv_url_left ~ '" class="text-blue-600 underline">' ~ gene_2_locus ~ '</a>' %}
+  {% set igv_link_gene1 = '<a href="' ~ igv_url_gene1 ~ '" class="text-blue-600 underline">' ~ gene_1_locus ~ '</a>' %}
+  {% set igv_link_gene2 = '<a href="' ~ igv_url_gene2 ~ '" class="text-blue-600 underline">' ~ gene_2_locus ~ '</a>' %}
 
 {% else %}
   {% set igv_url_gene1 = none %}
@@ -92,7 +92,7 @@
                   {% else %}
                     {{ annot }}
                   {% endif %}`)">
-                  {% if conannotseq in vep_conseq_translations %}
+                  {% if annot in vep_conseq_translations %}
                       {{ vep_conseq_translations[annot].short }}
                   {% else %}
                     {{ annot }}
