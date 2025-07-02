@@ -130,9 +130,6 @@ def get_dynamic_assay_nav() -> dict:
         return d
 
     sorted_nav = sort_nested_dict(nav)
-
-    app.logger.info(sorted_nav)
-
     return dict(dynamic_assay_nav=sorted_nav)
 
 

@@ -134,9 +134,6 @@ def list_fusions(id: str) -> str | Response:
     app.logger.info(f"this is the form data {form.data}")
     app.logger.info(f"this is the sample and settings  {settings}")
     app.logger.info(f"this is the sample_settings {sample_settings}")
-    # print(fusionlist_filter)
-    # print (filter_fusionlist)
-    # print(filter_fusioneffects)
 
     # app.logger.info(f"this is the sample,{sample}")
     ## Change this to fusionquery.py
@@ -202,15 +199,10 @@ def show_fusion(id: str) -> Response:
     """
     fusion = store.fusion_handler.get_fusion(id)
     sample = store.sample_handler.get_sample_by_id(fusion["SAMPLE_ID"])
-    print("SAMPLE")
-    print(sample)
 
     annotations, classification = store.fusion_handler.get_fusion_annotations(
         fusion
     )
-    print(annotations)
-    print(classification)
-
     return render_template(
         "show_fusion.html",
         fusion=fusion,
@@ -448,9 +440,9 @@ def classify_multi_variant(id: str) -> Response:
     Returns:
         Response: Redirects to the fusion list page after processing the classification actions.
     """
-    print(f"var_form: {request.form.to_dict()}")
+
     action = request.form.get("action")
-    print(f"action: {action}")
+
     variants_to_modify = request.form.getlist("selected_object_id")
     assay = request.form.get("assay", None)
     subpanel = request.form.get("subpanel", None)

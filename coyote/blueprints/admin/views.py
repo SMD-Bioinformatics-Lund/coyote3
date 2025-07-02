@@ -1171,7 +1171,6 @@ def create_role() -> Response | str:
         g.audit_metadata = {"role": role["_id"]}
 
         store.roles_handler.create_role(role)
-        print(role)
         flash(f"Role '{role["_id"]}' created successfully.", "green")
         return redirect(url_for("admin_bp.list_roles"))
 

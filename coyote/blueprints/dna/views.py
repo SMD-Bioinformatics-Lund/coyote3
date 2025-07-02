@@ -347,8 +347,6 @@ def list_variants(sample_id: str) -> Response | str:
         checked_genelists,
     )
 
-    print(assay_config)
-
     return render_template(
         "list_variants_vep.html",
         sample=sample,
