@@ -5,15 +5,15 @@ Coyote case fusions
 from copy import deepcopy
 from datetime import datetime
 
-from flask import abort
-from flask import current_app as app
 from flask import (
+    abort,
     redirect,
     render_template,
     request,
     send_from_directory,
     url_for,
 )
+from flask import current_app as app
 from flask_login import current_user, login_required
 from flask_weasyprint import HTML, render_pdf
 from werkzeug import Response
