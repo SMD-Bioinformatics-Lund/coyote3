@@ -17,7 +17,14 @@ All routes require user authentication and appropriate sample access.
 
 from datetime import datetime
 
-from flask import Response, redirect, render_template, request, url_for
+from flask import (
+    abort,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    url_for,
+)
 from flask import current_app as app
 from flask_login import current_user, login_required
 from flask_weasyprint import HTML, render_pdf
