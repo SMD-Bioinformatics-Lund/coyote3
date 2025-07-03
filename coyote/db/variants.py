@@ -1,4 +1,15 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 """
 VariantsHandler module for Coyote3
 ==================================
@@ -6,9 +17,6 @@ VariantsHandler module for Coyote3
 This module defines the `VariantsHandler` class used for accessing and managing
 variant data in MongoDB.
 It is part of the `coyote.db` package and extends the base handler functionality.
-
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
 from typing import Any
@@ -255,6 +263,36 @@ class VariantsHandler(BaseHandler):
         """
         self.mark_false_positive(variant_id, fp)
 
+    def mark_false_positive_var_bulk(
+        self, variant_ids: list[str], fp: bool = True
+    ) -> Any:
+        """
+        Mark multiple variants as false positive.
+
+        Args:
+            variant_ids (list[str]): List of variant document IDs.
+            fp (bool, optional): The false positive status to set. Defaults to True.
+
+        Returns:
+            Any: The result of the bulk update operation.
+        """
+        return self.mark_false_positive_bulk(variant_ids, fp)
+
+    def unmark_false_positive_var_bulk(
+        self, variant_ids: list[str], fp: bool = False
+    ) -> Any:
+        """
+        Unmark multiple variants as false positive.
+
+        Args:
+            variant_ids (list[str]): List of variant document IDs.
+            fp (bool, optional): The false positive status to set. Defaults to False.
+
+        Returns:
+            Any: The result of the bulk update operation.
+        """
+        return self.mark_false_positive_bulk(variant_ids, fp)
+
     def mark_interesting_var(
         self, variant_id: str, interesting: bool = True
     ) -> Any:
@@ -326,6 +364,30 @@ class VariantsHandler(BaseHandler):
             Any: The result of the update operation.
         """
         self.mark_irrelevant(variant_id, irrelevant)
+
+    def mark_irrelevant_var_bulk(
+        self, variant_ids: list[str], irrelevant: bool = True
+    ) -> Any:
+        """
+        Mark multiple variants as irrelevant.
+
+        Args:
+            variant_ids (list[str]): List of variant document IDs.
+            irrelevant (bool, optional): The status to set. Defaults to True.
+        """
+        return self.mark_irrelevant_bulk(variant_ids, irrelevant)
+
+    def unmark_irrelevant_var_bulk(
+        self, variant_ids: list[str], irrelevant: bool = False
+    ) -> Any:
+        """
+        Unmark multiple variants as irrelevant.
+
+        Args:
+            variant_ids (list[str]): List of variant document IDs.
+            irrelevant (bool, optional): The status to set. Defaults to False.
+        """
+        return self.mark_irrelevant_bulk(variant_ids, irrelevant)
 
     def hide_var_comment(self, id: str, comment_id: str) -> Any:
         """
@@ -409,103 +471,32 @@ class VariantsHandler(BaseHandler):
         Returns:
             int: The total count of unique variants in the collection.
         """
-        query = [
-            {
-                "$group": {
-                    "_id": {
-                        "CHROM": "$CHROM",
-                        "POS": "$POS",
-                        "REF": "$REF",
-                        "ALT": "$ALT",
-                    }
-                }
-            },
-            {"$group": {"_id": None, "uniqueVariantsCount": {"$sum": 1}}},
-            {"$project": {"_id": 0, "uniqueVariantsCount": 1}},
-        ]
-        try:
-            return tuple(self.get_collection().aggregate(query))[0].get(
-                "uniqueVariantsCount", 0
-            )
-        except:
-            return 0
+        return len(self.get_collection().distinct("simple_id")) or 0
 
     def get_unique_snp_count(self) -> int:
         """
         Get the count of unique SNP (Single Nucleotide Polymorphism) variants.
 
-        This method filters variants where both the REF (reference allele) and ALT (alternate allele)
-        are one of the nucleotides A, T, G, or C, and counts the unique occurrences based on
-        chromosome (CHROM), position (POS), REF, and ALT.
+        This method retrieves all unique variant `simple_id`s where the `variant_class` is "SNV"
+        (Single Nucleotide Variant), which typically represents SNPs, and returns their count.
 
         Returns:
-            int: The count of unique SNP variants in the collection.
+            int: The number of unique SNP variants in the collection.
         """
-        query = [
-            {
-                "$match": {
-                    "REF": {"$in": ["A", "T", "G", "C"]},
-                    "ALT": {"$in": ["A", "T", "G", "C"]},
-                }
-            },
-            {
-                "$group": {
-                    "_id": {
-                        "CHROM": "$CHROM",
-                        "POS": "$POS",
-                        "REF": "$REF",
-                        "ALT": "$ALT",
-                    }
-                }
-            },
-            {"$group": {"_id": None, "uniqueVariantsCount": {"$sum": 1}}},
-        ]
-
-        try:
-            result = list(self.get_collection().aggregate(query))
-            if result:
-                return result[0].get("uniqueVariantsCount", 0)
-            else:
-                return 0
-        except Exception as e:
-            app.logger.error(f"An error occurred: {e}")
-            return 0
+        snp_ids = self.get_collection().distinct(
+            "simple_id", {"variant_class": "SNV"}
+        )
+        return len(snp_ids) or 0
 
     def get_unique_fp_count(self) -> int:
         """
         Get the count of unique false positive variants.
 
-        This method filters variants marked as false positives (`fp: True`) and counts
-        the unique occurrences based on chromosome (`CHROM`), position (`POS`),
-        reference allele (`REF`), and alternate allele (`ALT`).
-
         Returns:
-            int: The count of unique false positive variants in the collection.
+            int: The number of unique variants marked as false positive in the collection.
         """
-        query = [
-            {"$match": {"fp": True}},
-            {
-                "$group": {
-                    "_id": {
-                        "CHROM": "$CHROM",
-                        "POS": "$POS",
-                        "REF": "$REF",
-                        "ALT": "$ALT",
-                    }
-                }
-            },
-            {"$group": {"_id": None, "uniqueVariantsCount": {"$sum": 1}}},
-        ]
-
-        try:
-            result = list(self.get_collection().aggregate(query))
-            if result:
-                return result[0].get("uniqueVariantsCount", 0)
-            else:
-                return 0
-        except Exception as e:
-            app.logger.error(f"An error occurred: {e}")
-            return 0
+        fps = self.get_collection().distinct("simple_id", {"fp": True})
+        return len(fps) or 0
 
     def delete_sample_variants(self, sample_oid: str) -> Any:
         """

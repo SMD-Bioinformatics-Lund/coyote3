@@ -1,4 +1,15 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 """
 ISGLHandler module for Coyote3
 ==========================================
@@ -7,9 +18,6 @@ This module defines the `ISGLHandler` class used for accessing and managing
 gene panel data in MongoDB.
 
 It is part of the `coyote.db` package and extends the base handler functionality.
-
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
 from typing import Any
@@ -25,12 +33,12 @@ from coyote.db.base import BaseHandler
 # -------------------------------------------------------------------------
 class ISGLHandler(BaseHandler):
     """
-    Coyote in silico gene panels database handler
+    Coyote in silico gene asp database handler
 
     This class provides a comprehensive interface for managing gene panel data in the database.
     It supports operations such as retrieving, inserting, updating, and deleting gene panel records.
     Additionally, it includes methods for performing advanced queries, filtering, and calculations
-    related to gene panels, assays, diagnoses, and associated metadata.
+    related to gene asp, assays, diagnoses, and associated metadata.
     """
 
     def __init__(self, adapter):

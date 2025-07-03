@@ -1,3 +1,22 @@
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
+"""
+Custom Jinja2 template filters for Flask apps in the Coyote3 framework.
+
+These filters help format, annotate, and transform genomic variant and clinical data
+for display in web-based reports.
+"""
+
 import os
 from urllib.parse import unquote
 
@@ -9,6 +28,17 @@ from markupsafe import Markup, escape
 
 @app.template_filter()
 def format_fusion_desc_few(st, preview_count=None):
+    """
+    Jinja2 filter to format a comma-separated string of fusion description terms
+    into styled HTML spans for display in reports.
+
+    Args:
+        st (str): Comma-separated string of fusion description terms.
+        preview_count (int, optional): If provided, limits the number of terms displayed.
+
+    Returns:
+        Markup: HTML markup with each term styled according to its category.
+    """
     if not st:
         return ""
 
@@ -107,7 +137,17 @@ def format_fusion_desc_few(st, preview_count=None):
 
 
 @app.template_filter()
-def format_fusion_desc(st):
+def format_fusion_desc(st: str) -> str:
+    """
+    Jinja2 filter to format a comma-separated string of fusion description terms
+    into styled HTML spans for display in reports.
+
+    Args:
+        st (str): Comma-separated string of fusion description terms.
+
+    Returns:
+        str: HTML markup with each term styled according to its category.
+    """
     if not st:
         return ""
 
@@ -217,13 +257,23 @@ def format_fusion_desc(st):
 
 
 @app.template_filter()
-def uniq_callers(calls):
+def uniq_callers(calls: list) -> set:
+    """
+    Jinja2 filter to extract unique caller names from a list of call dictionaries.
+
+    Args:
+        calls (list): List of dictionaries, each containing a 'caller' key.
+
+    Returns:
+        set: Set of unique caller names.
+    """
     callers = []
     for c in calls:
         callers.append(c["caller"])
     return set(callers)
 
 
+# TODO: Redundant, consider removing
 @app.template_filter()
 def human_date(value):
     time_zone = "CET"
@@ -235,6 +285,15 @@ def human_date(value):
 
 
 @app.template_filter()
-def format_comment(st):
+def format_comment(st: str) -> str:
+    """
+    Jinja2 filter to format comments by replacing newline characters with <br /> tags.
+
+    Args:
+        st (str): The comment string to format.
+
+    Returns:
+        str: The formatted comment string with newlines replaced by <br />.
+    """
     st = st.replace("\n", "<br />")
     return st

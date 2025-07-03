@@ -3,17 +3,17 @@
 ![MongoDB](https://img.shields.io/badge/database-MongoDB-brightgreen)
 ![Dockerized](https://img.shields.io/badge/docker-ready-blue)
 ![License](https://img.shields.io/badge/license-Proprietary-red)
-# Coyote – Genomic Variant Interpretation & Reporting Platform
+# Coyote3 – Genomic Variant Interpretation & Reporting Platform
 
-**Coyote** is a secure, scalable, and extensible web application designed as a one-stop solution for **genomic variant interpretation**, **data management**, and **clinical reporting**. Built by the **Section for Molecular Diagnostics (SMD), Lund**, Coyote streamlines complex diagnostics workflows into a unified interface for clinical geneticists, bioinformaticians, and laboratory personnel.
+**Coyote3** is a secure, scalable, and extensible web application designed as a one-stop solution for **genomic variant interpretation**, **data management**, and **clinical reporting**. Built by the **Section for Molecular Diagnostics (SMD), Lund**, Coyote3 streamlines complex diagnostics workflows into a unified interface for clinical geneticists, bioinformaticians, and laboratory personnel.
 
 ---
 
 ## Overview
 
-Coyote serves as a comprehensive platform for managing and interpreting DNA and RNA variant data within a clinical diagnostics context. It supports detailed analysis, collaborative review, and permission-controlled access to variant annotations, assay configurations, and reporting assets.
+Coyote3 serves as a comprehensive platform for managing and interpreting DNA and RNA variant data within a clinical diagnostics context. It supports detailed analysis, collaborative review, and permission-controlled access to variant annotations, assay configurations, and reporting assets.
 
-Coyote is engineered to meet the needs of modern molecular diagnostics laboratories by offering:
+Coyote3 is engineered to meet the needs of modern molecular diagnostics laboratories by offering:
 
 - Secure and auditable access to variant data
 - Seamless integration with existing directory (LDAP) and storage systems (MongoDB)
@@ -24,7 +24,7 @@ Coyote is engineered to meet the needs of modern molecular diagnostics laborator
 
 ## Purpose
 
-Coyote was developed to address the growing complexity and regulatory requirements in **clinical genomics**, particularly:
+Coyote3 was developed to address the growing complexity and regulatory requirements in **clinical genomics**, particularly:
 
 - Ensuring secure, traceable access to sensitive patient-derived variant data
 - Supporting multi-assay, multi-user workflows across DNA and RNA pipelines
@@ -35,7 +35,7 @@ Coyote was developed to address the growing complexity and regulatory requiremen
 
 ## Who Built It?
 
-Coyote is developed and maintained by the bioinformaticians at **Section for Molecular Diagnostics (SMD)**, **Lund**, in close collaboration with clinical geneticists. The system is in active use for diagnostics casework, variant interpretation, and report creation.
+Coyote3 is developed and maintained by the bioinformaticians at **Section for Molecular Diagnostics (SMD)**, **Lund**, in close collaboration with clinical geneticists. The system is in active use for diagnostics casework, variant interpretation, and report creation.
 
 ---
 
@@ -65,7 +65,7 @@ Coyote is developed and maintained by the bioinformaticians at **Section for Mol
 
 ## Architecture
 
-Coyote is built using Python’s **Flask** web framework and structured with a **modular blueprint-based architecture**.
+Coyote3 is built using Python’s **Flask** web framework and structured with a **modular blueprint-based architecture**.
 
 | Layer            | Technology / Pattern                            |
 |------------------|--------------------------------------------------|
@@ -82,6 +82,7 @@ Coyote is built using Python’s **Flask** web framework and structured with a *
 
 Each major functionality is organized into a Flask blueprint:
 
+- `home` – Landing page and samples dashboard
 - `dna` – DNA variant search, filter, review
 - `rna` – RNA fusion events
 - `coverage` – Depth metrics by panel/sample
@@ -90,6 +91,7 @@ Each major functionality is organized into a Flask blueprint:
 - `profile` – User-specific data and logs
 - `login` – LDAP auth and session handling
 - `public` – Minimal open endpoints (optional)
+- `userprofile` – User-specific settings and preferences
 
 ---
 
@@ -114,7 +116,7 @@ Documentation for environment setup, deployment, and schema initialization is av
 
 ## Extensibility
 
-Coyote is architected to support lab-specific workflows and pipelines:
+Coyote3 is architected to support lab-specific workflows and pipelines:
 
 - **Custom assay configuration UI**
 - **Dynamic filtering and gene set expansion**
@@ -122,6 +124,18 @@ Coyote is architected to support lab-specific workflows and pipelines:
 - **Schema-aware editing of variant data and QC thresholds**
 
 ---
+
+## Installation
+To install Coyote3, follow these steps:
+1. Clone the repository:
+  ```bash
+    git clone git@github.com:SMD-Bioinformatics-Lund/coyote3.git
+    cd coyote3
+  ```
+2. Run the setup script:
+  ```bash
+    ./scripts/install.sh
+  ```
 
 ## License
 

@@ -1,23 +1,67 @@
-import json
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
+"""
+This module provides a collection of Jinja2 template filters for use in Flask-based
+genomic data analysis and reporting applications. The filters support formatting,
+annotation, and transformation of variant and clinical data for display in web templates.
+
+Key functionalities include:
+- Formatting variant filters, flags, and annotations as HTML badges or tooltips.
+- Converting and formatting dates, percentages, and frequencies.
+- Handling gene panel strings, fusion descriptions, and amino acid codes.
+- Generating PubMed links and processing comments for display.
+- Utility filters for string manipulation, set operations, and rounding.
+"""
+
 import os
 import re
-import urllib
 from datetime import datetime
 from math import floor, log10
+from urllib.parse import unquote
 
 import arrow
-import dateutil
+import markdown
+from dateutil import tz
 from flask import current_app as app
 from markupsafe import Markup
 
 
 @app.template_filter("has_hotspot")
-def has_hotspot_filter(variants):
+def has_hotspot_filter(variants: list) -> bool:
+    """
+    Returns True if any variant in the list has the 'hotspot' key set to a truthy value.
+
+    Args:
+        variants (list): List of variant dictionaries.
+
+    Returns:
+        bool: True if any variant has 'hotspot' set, otherwise False.
+    """
     return any(variant.get("hotspot") for variant in variants)
 
 
 @app.template_filter()
-def format_panel_flag_snv(panel_str):
+def format_panel_flag_snv(panel_str: str) -> str:
+    """
+    Formats a gene panel string for SNV (single nucleotide variant) flags as HTML badges.
+
+    Args:
+        panel_str (str): A string containing gene panel information, typically in the format
+                         'classification:variant_type' separated by commas for multiple entries.
+
+    Returns:
+        str: HTML string with formatted badges for each classification and variant type.
+    """
     if not panel_str:
         return ""
     genes = panel_str.split(",")
@@ -53,13 +97,31 @@ def format_panel_flag_snv(panel_str):
 
 
 @app.template_filter()
-def sortable_date(value):
+def sortable_date(value: datetime | str) -> str:
+    """
+    Converts a date or datetime value to a sortable string by removing dashes, spaces, colons, and periods.
+
+    Args:
+        value: The date or datetime value to be formatted.
+
+    Returns:
+        str: A string representation of the date with special characters removed, suitable for sorting.
+    """
     s = str(value).translate("- :.")
     return s
 
 
 @app.template_filter()
-def standard_HGVS(st):
+def standard_HGVS(st: str | None) -> str:
+    """
+    Formats a standard HGVS string by removing the version number after the last dot and wrapping it in parentheses.
+
+    Args:
+        st (str | None): The HGVS string to format, e.g., 'NM_000546.5'.
+
+    Returns:
+        str: The formatted HGVS string with the version in parentheses, e.g., 'NM_000546.(5)'. Returns an empty string if input is None or empty.
+    """
     if st:
         parts = st.rsplit(".", 1)
         standard = parts[0] + ".(" + parts[1] + ")"
@@ -69,13 +131,32 @@ def standard_HGVS(st):
 
 
 @app.template_filter()
-def perc_no_dec(val):
-    if val and (val != "" or val != "NA"):
-        return f"{str(int(round(100 * val, 0)))}%"
+def perc_no_dec(val: float | None) -> str | None:
+    """
+    Converts a float value to a percentage string with no decimal places.
+
+    Args:
+        val (float | None): The value to convert (e.g., 0.25 for 25%).
+
+    Returns:
+        str | None: The formatted percentage string (e.g., '25%'), or None if input is invalid.
+    """
+    if isinstance(val, (int, float)) and val not in ("", "NA", None):
+        return f"{int(round(100 * val, 0))}%"
+    return None
 
 
 @app.template_filter()
-def format_tier(st):
+def format_tier(st: int | str) -> str:
+    """
+    Formats a tier value as a human-readable string.
+
+    Args:
+        st (int | str): The tier value (1, 2, 3, 4 or string).
+
+    Returns:
+        str: The formatted tier string (e.g., 'Tier I'), or the original value if not 1-4.
+    """
     if st == 1:
         return "Tier I"
     if st == 2:
@@ -88,8 +169,16 @@ def format_tier(st):
 
 
 @app.template_filter()
-def format_filter(filters):
-    """Formats variant filters into colored badges with tooltips and wrapping behavior"""
+def format_filter(filters: list) -> str:
+    """
+    Formats a list of variant filters as HTML badges with appropriate colors and tooltips.
+
+    Args:
+        filters (list): List of filter strings applied to a variant.
+
+    Returns:
+        str: HTML string with formatted badges for each filter, including tooltips and color coding.
+    """
 
     # Define color categories and tooltips
     filter_classes = {
@@ -194,7 +283,17 @@ def format_filter(filters):
 
 
 @app.template_filter()
-def intersect(l1, l2):
+def intersect(l1: list, l2: list) -> bool:
+    """
+    Checks if there is any overlap between two lists.
+
+    Args:
+        l1 (list): First list.
+        l2 (list): Second list.
+
+    Returns:
+        bool: True if there is at least one common element, False otherwise.
+    """
     overlap = list(set(l1) & set(l2))
     if len(overlap) > 0:
         return True
@@ -203,15 +302,33 @@ def intersect(l1, l2):
 
 
 @app.template_filter()
-def unesc(st):
+def unesc(st: str | None) -> str:
+    """
+    Decodes a percent-encoded string using URL decoding.
+
+    Args:
+        st (str | None): The percent-encoded string to decode.
+
+    Returns:
+        str: The decoded string, or an empty string if the input is None or empty.
+    """
     if st and len(st) > 0:
-        return urllib.parse.unquote(st)
+        return unquote(st)
     else:
         return ""
 
 
 @app.template_filter()
-def format_fusion_desc(st):
+def format_fusion_desc(st: str | None) -> str:
+    """
+    Formats a fusion description string by categorizing each term as good, bad, very bad, or neutral, and wraps them in corresponding HTML span elements for display.
+
+    Args:
+        st (str | None): A comma-separated string of fusion description terms.
+
+    Returns:
+        str: HTML string with each term wrapped in a span with a class indicating its category.
+    """
     html = ""
 
     good_terms = [
@@ -318,7 +435,16 @@ def format_fusion_desc(st):
 
 
 @app.template_filter()
-def uniq_callers(calls):
+def uniq_callers(calls: list) -> set:
+    """
+    Extracts unique caller names from a list of call dictionaries.
+
+    Args:
+        calls (list): List of dictionaries, each containing a "caller" key.
+
+    Returns:
+        set: Set of unique caller names.
+    """
     callers = []
     for c in calls:
         callers.append(c["caller"])
@@ -326,25 +452,66 @@ def uniq_callers(calls):
 
 
 @app.template_filter()
-def format_comment(st):
+def format_comment(st: str | None) -> str:
+    """
+    Formats a comment string for HTML display by replacing newlines with <br /> tags.
+
+    Args:
+        st (str | None): The comment string to format.
+
+    Returns:
+        str: The formatted comment string with newlines replaced by <br />.
+    """
     st = st.replace("\n", "<br />")
     return st
 
+@app.template_filter('markdown')
+def markdown_filter(s):
+    return markdown.markdown(s)
 
 @app.template_filter()
-def basename(path):
+def basename(path: str) -> str:
+    """
+    Extracts and returns the base name (the final component) from a given file path.
+
+    Args:
+        path (str): The file path from which to extract the base name.
+
+    Returns:
+        str: The base name of the file path.
+    """
     return os.path.basename(path)
 
 
 @app.template_filter()
-def no_transid(nom):
+def no_transid(nom: str) -> str | None:
+    """
+    Extracts the transcript ID from a colon-separated string.
+
+    Args:
+        nom (str): A string in the format 'gene:transcript_id'.
+
+    Returns:
+        str | None: The transcript ID if present, otherwise None.
+    """
     a = nom.split(":")
     if 1 < len(a):
         return a[1]
 
+    return None
+
 
 @app.template_filter(name="format_hotspot_note")
-def format_hotspot_note(dummy):
+def format_hotspot_note(dummy) -> str:
+    """
+    Generates a legend of hotspot types as colored HTML badges for display in templates.
+
+    Args:
+        dummy: Placeholder argument (not used).
+
+    Returns:
+        str: HTML string with colored badges and their corresponding cancer type descriptions.
+    """
     html = ""
     html += "<span class='inline-block p-1 m-1 text-xs text-white bg-melanoma rounded-full'>MM: Malignt Melanom</span>&nbsp;"
     html += "<span class='inline-block p-1 m-1 text-xs text-white bg-cns rounded-full'>CNS: Centrala Nervsystemet</span>&nbsp;"
@@ -356,7 +523,7 @@ def format_hotspot_note(dummy):
 
 
 @app.template_filter()
-def format_hotspot(filters):
+def format_hotspot(filters: list) -> str:
     """
     Gives hotspot icons a special color depending on what type of hotspot. This function really is only useful for
     solid cancers and very specific to the SomaticPanelPipeline VEP annotation.
@@ -382,7 +549,16 @@ def format_hotspot(filters):
 @app.template_filter()
 def one_letter_p(st: str) -> str | None:
     """
-    Convert three-letter amino acid code to one-letter code.
+    Converts a three-letter amino acid code to its corresponding one-letter code.
+
+    Returns the input string with all three-letter amino acid codes replaced by their one-letter equivalents.
+    If the input is None or empty, returns an empty string.
+
+    Args:
+        st (str): The string containing three-letter amino acid codes.
+
+    Returns:
+        str | None: The string with three-letter codes replaced by one-letter codes, or an empty string if input is None.
     """
     aa = {
         "Cys": "C",
@@ -416,7 +592,17 @@ def one_letter_p(st: str) -> str | None:
 
 
 @app.template_filter()
-def ellipsify(st, l):
+def ellipsify(st: str, l: int) -> str:
+    """
+    Truncates a string to a specified length and adds an ellipsis with a tooltip showing the full string.
+
+    Args:
+        st (str): The input string to truncate.
+        l (int): The maximum length of the truncated string.
+
+    Returns:
+        str: The truncated string with an ellipsis and a tooltip containing the full string if it exceeds the specified length.
+    """
     if len(st) <= l:
         return st
     else:
@@ -424,7 +610,16 @@ def ellipsify(st, l):
 
 
 @app.template_filter()
-def multirow(st):
+def multirow(st: str | list) -> str:
+    """
+    Joins a list or a string (split by '&') into a multi-row HTML string separated by <br> tags.
+
+    Args:
+        st (str | list): The input, either a list of strings or a single string with '&' as separator.
+
+    Returns:
+        str: The joined string with <br> tags for multi-row display.
+    """
     if isinstance(st, list):
         return "<br>".join(st)
     else:
@@ -432,21 +627,49 @@ def multirow(st):
 
 
 @app.template_filter()
-def round_to_3(x):
+def round_to_3(x: float | int) -> float:
+    """
+    Rounds a number to 3 significant digits.
+
+    Args:
+        x (float | int): The number to round.
+
+    Returns:
+        float: The number rounded to 3 significant digits, or 0 if x is 0.
+    """
     if x == 0:
         return 0
     return round(x, -int(floor(log10(abs(x)))) + 2)
 
 
 @app.template_filter()
-def format_gnomad(st):
+def format_gnomad(st: str | None) -> str:
+    """
+    Formats a gnomAD frequency value as a percentage string with up to 3 significant digits.
+
+    Args:
+        st (str | None): The gnomAD frequency value as a string (e.g., '0.000123').
+
+    Returns:
+        str: The formatted frequency as a percentage string (e.g., '0.0123%'), or '-' if input is None or empty.
+    """
     if not st:
         return "-"
-    return str(round_to_3(float(st * 100))) + "%"
+    return str(round_to_3(float(st) * 100)) + "%"
 
 
 @app.template_filter()
-def format_pop_freq(st, allele_to_show):
+def format_pop_freq(st: str, allele_to_show: str) -> str:
+    """
+    Formats a population frequency string for a specific allele as a percentage with up to 3 significant digits.
+
+    Args:
+        st (str): Population frequency string, with allele:frequency pairs separated by '&', e.g., 'A:0.001&C:0.002'.
+        allele_to_show (str): The allele for which to display the frequency.
+
+    Returns:
+        str: The formatted frequency as a percentage string (e.g., '0.1%'), '-' if input is empty, or 'N/A' if the allele is not found.
+    """
     if not st:
         return "-"
     if len(allele_to_show) > 1:
@@ -460,15 +683,33 @@ def format_pop_freq(st, allele_to_show):
     return "N/A"
 
 
-def remove_prefix(text, prefix):
+def remove_prefix(text: str, prefix: str) -> str:
+    """
+    Removes the specified prefix from the given text if it starts with that prefix.
+
+    Args:
+        text (str): The input string to process.
+        prefix (str): The prefix to remove from the input string.
+
+    Returns:
+        str: The string with the prefix removed if present, otherwise the original string.
+    """
     if text.startswith(prefix):
         return text[len(prefix) :]
     return text
 
 
 @app.template_filter()
-def pubmed_links(st):
+def pubmed_links(st: str | None) -> str:
+    """
+    Converts a comma-separated string of PubMed IDs (optionally prefixed with 'PMID:') into a series of numbered HTML links.
 
+    Args:
+        st (str | None): A string containing PubMed IDs separated by commas, e.g., 'PMID:12345,PMID:67890' or '12345,67890'.
+
+    Returns:
+        str: An HTML string with each PubMed ID converted to a numbered link, or '-' if input is None or empty.
+    """
     if not st:
         return "-"
     pids = re.split(r",\s*", st)
@@ -485,28 +726,61 @@ def pubmed_links(st):
         )
 
     outstr = outstr.rstrip()
-    outstr = outstr + "]</b>"
+    outstr += "]</b>"
 
     return outstr
 
 
 @app.template_filter()
-def three_dec(val):
+def three_dec(val: float | int) -> str:
+    """
+    Converts a numeric value to a percentage string with up to 3 significant digits.
+
+    Args:
+        val: The numeric value to convert (e.g., 0.01234 for 1.234%).
+
+    Returns:
+        str: The value multiplied by 100, rounded to 3 significant digits, as a string.
+    """
     return str(round_to_3(float(val) * 100))
 
 
 @app.template_filter()
-def human_date(value):
-    time_zone = "CET"
-    return (
-        arrow.get(value)
-        .replace(tzinfo=dateutil.tz.gettz(time_zone))
-        .humanize()
-    )
+def human_date(value: datetime | str) -> str:
+    """
+    Converts a date or datetime value to a human-readable relative time string
+    (e.g., '3 days ago') in Central European Time (CET).
+
+    Args:
+        value (datetime | str): The input date or datetime string.
+
+    Returns:
+        str: A human-readable relative time string in CET timezone.
+    """
+    if not value:
+        return "N/A"
+
+    try:
+        # Parse string to datetime if needed
+        dt = arrow.get(value)
+    except (arrow.parser.ParserError, ValueError, TypeError):
+        return "Invalid date"
+
+    cet = tz.gettz("Europe/Stockholm")
+    return dt.to(cet).humanize()
 
 
 @app.template_filter()
-def array_uniq(arr):
+def array_uniq(arr: list) -> set:
+    """
+    Returns a set of unique elements from the input list.
+
+    Args:
+        arr (list): The list from which to extract unique elements.
+
+    Returns:
+        set: A set containing the unique elements from the input list.
+    """
     uniq = set()
     for a in arr:
         uniq.add(a)
@@ -514,7 +788,17 @@ def array_uniq(arr):
 
 
 @app.template_filter()
-def format_oncokbtext(st):
+def format_oncokbtext(st: str) -> str:
+    """
+    Formats ONCOKB text for HTML display by replacing newlines with <br /> tags and converting
+    any (PMID:...) references into numbered PubMed links.
+
+    Args:
+        st (str): The ONCOKB text string to format.
+
+    Returns:
+        str: The formatted string with newlines replaced by <br /> and PubMed references as links.
+    """
     st = st.replace("\n", "<br />")
     l = re.findall(r"\(PMID:.*?\)", st)
     i = 0
@@ -527,7 +811,7 @@ def format_oncokbtext(st):
 
         linked_str = ""
         for pmid in pmids:
-            i = i + 1
+            i += 1
             linked_str = (
                 linked_str
                 + "<a href='https://www.ncbi.nlm.nih.gov/pubmed/"
@@ -544,5 +828,16 @@ def format_oncokbtext(st):
 
 
 @app.template_filter()
-def regex_replace(s, find, replace):
+def regex_replace(s: str, find: str, replace: str) -> str:
+    """
+    Replaces all occurrences of a regex pattern in a string with a replacement string.
+
+    Args:
+        s (str): The input string to process.
+        find (str): The regex pattern to search for.
+        replace (str): The replacement string.
+
+    Returns:
+        str: The string with all matches of the pattern replaced.
+    """
     return re.sub(find, replace, s)

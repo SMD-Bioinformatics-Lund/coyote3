@@ -1,4 +1,15 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 """
 Main Configuration Module for Coyote3
 =====================================
@@ -9,27 +20,26 @@ including default, production, development, and testing configurations.
 It provides centralized settings for Flask, MongoDB, LDAP, and other
 application-specific configurations, ensuring consistency and flexibility
 across different environments.
-
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
+
 
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
 import os
+from os import path
 from typing import Any, Literal
 
 import toml
 from cryptography.fernet import Fernet
+from dotenv import load_dotenv
 
 from coyote.__version__ import __version__ as app_version
 from coyote.util.common_utility import CommonUtility
 
-# # Implement in the future?
-# from dotenv import load_dotenv
-# basedir = path.abspath(path.dirname(__file__))
-# load_dotenv(path.join(basedir, ".env"))
+# Load environment variables from a .env file if present
+basedir = path.abspath(path.dirname(__file__))
+load_dotenv(path.join(basedir, ".env"))
 
 
 # -------------------------------------------------------------------------
@@ -50,17 +60,35 @@ class DefaultConfig:
     LOGS = "logs"
     PRODUCTION = False
 
-    INTERNAL_USERS = {
-        "coyote3.admin@skane.se",
-        "coyote3.developer@skane.se",
-        "coyote3.tester@skane.se",
-        "coyote3.manager@skane.se",
-        "coyote3.user@skane.se",
-        "coyote3.intern@skane.se",
-        "coyote3.viewer@skane.se",
-        "coyote3.external@skane.se",
-        "coyote3.demo@skane.se",
-    }
+    # REDIS CACHE TIMEOUTS
+    CACHE_DEFAULT_TIMEOUT = 300  # 300 secs, 5 minutes
+    CACHE_KEY_PREFIX = "coyote3_cache"
+    CACHE_TYPE = "RedisCache"
+    CACHE_REDIS_HOST = os.getenv("CACHE_REDIS_HOST", "localhost")
+    CACHE_REDIS_URL = os.getenv("CACHE_REDIS_URL", "redis://localhost:6379/0")
+
+    # Fernet key for encrypting sensitive data in the report
+    FERNET = Fernet(os.getenv("COYOTE3_FERNET_KEY"))
+
+    WTF_CSRF_ENABLED = True
+    SECRET_KEY: str | None = os.getenv("SECRET_KEY")
+
+    SESSION_COOKIE_NAME = "coyote3"
+
+    MONGO_HOST: str = os.getenv("FLASK_MONGO_HOST") or "localhost"
+    MONGO_PORT: str | Literal[27017] = os.getenv("FLASK_MONGO_PORT") or 27017
+    MONGO_DB_NAME = os.getenv("COYOTE3_DB_NAME", "coyote3")
+    BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
+    _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
+
+    LDAP_HOST = "ldap://mtlucmds1.lund.skane.se"
+    LDAP_BASE_DN = "dc=skane,dc=se"
+    LDAP_USER_LOGIN_ATTR = "mail"
+    LDAP_USE_SSL = False
+    LDAP_USE_TLS = True
+    LDAP_BINDDN = "cn=admin,dc=skane,dc=se"
+    LDAP_SECRET = "secret"
+    LDAP_USER_DN = "ou=people"
 
     # For the public assay map
     # This is used in the public assay matrix
@@ -77,39 +105,11 @@ class DefaultConfig:
         "WGS": ["tumwgs-solid", "tumwgs-hema"],
     }
 
-    # REDIS CACHE TIMEOUTS
-    CACHE_TIMEOUT_SAMPLES = 1  # 5 minutes
-
-    # Fernet key for encrypting sensitive data in the report
-    FERNET_KEY = Fernet.generate_key()  # store this securely
-    FERNET = Fernet(FERNET_KEY)
-
-    WTF_CSRF_ENABLED = True
-    SECRET_KEY: str | None = os.getenv("FLASK_SECRET_KEY")
-
-    SESSION_COOKIE_NAME = "coyote3.0"
-
-    MONGO_HOST: str = os.getenv("FLASK_MONGO_HOST") or "localhost"
-    MONGO_PORT: str | Literal[27017] = os.getenv("FLASK_MONGO_PORT") or 27017
-    # MONGO_DB_NAME = "coyote"
-    MONGO_DB_NAME = os.getenv("COYOTE_DB", "coyote_dev_3")
-    BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
-    _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections_beta2.toml"
-
     # Gens URI
-    GENS_URI = os.getenv("GENS_URI", "http://10.231.229.34/gens/")
-
-    LDAP_HOST = "ldap://mtlucmds1.lund.skane.se"
-    LDAP_BASE_DN = "dc=skane,dc=se"
-    LDAP_USER_LOGIN_ATTR = "mail"
-    LDAP_USE_SSL = False
-    LDAP_USE_TLS = True
-    LDAP_BINDDN = "cn=admin,dc=skane,dc=se"
-    LDAP_SECRET = "secret"
-    LDAP_USER_DN = "ou=people"
+    GENS_URI = os.getenv("GENS_URI", "http://mtcmdpgm01.lund.skane.se/gens/")
 
     # Report Config
-    REPORTS_BASE_PATH = "/data/bnf/dev/ram/Pipelines/Web_Developement/coyote_blueprinted/reports"
+    REPORTS_BASE_PATH = os.getenv("REPORTS_BASE_PATH", "/data/coyote3/reports")
 
     CONSEQ_TERMS_MAPPER: dict[str, list[str]] = {
         "splicing": [
@@ -205,12 +205,6 @@ class DefaultConfig:
         "Y": "NC_000024",
     }
 
-    # UTILITY EXTERNAL SCRIPTS
-    HG38_POS_SCRIPT = "/data/bnf/scripts/hg38_pos.pl"
-    SANGER_EMAIL_SCRIPT = "/data/bnf/scripts/email_sanger.pl"
-    SANGER_EMAIL_RECEPIENTS = "ram.nanduri@skane.se, bjorn.hallstrom@skane.se"
-    SANGER_URL = "http://10.0.224.63/coyote/var/"
-
     @property
     def MONGO_URI(self) -> str:
         """
@@ -241,14 +235,9 @@ class DefaultConfig:
         """
         db_config: dict[str, Any] = toml.load(self._PATH_DB_COLLECTIONS_CONFIG)
 
-        if not all(
-            db in db_config
-            for db in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME]
-        ):
+        if not all(db in db_config for db in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME]):
             missing_dbs = [
-                db
-                for db in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME]
-                if db not in db_config
+                db for db in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME] if db not in db_config
             ]
             raise ValueError(
                 f"Database(s) {', '.join(missing_dbs)} not found in the database configuration. Check the config file. ({self._PATH_DB_COLLECTIONS_CONFIG})"
@@ -277,7 +266,8 @@ class ProductionConfig(DefaultConfig):
     LOGS = "logs/prod"
     PRODUCTION = True
     APP_VERSION: str = f"{app_version}"
-    SECRET_KEY: str | None = os.getenv("FLASK_SECRET_KEY")
+    SECRET_KEY: str | None = os.getenv("SECRET_KEY")
+    DEBUG: bool = False
 
 
 class DevelopmentConfig(DefaultConfig):
@@ -290,12 +280,15 @@ class DevelopmentConfig(DefaultConfig):
     the development setup.
     """
 
+    MONGO_DB_NAME = os.getenv("COYOTE3_DB_NAME", "coyote_dev_3")
+    BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
+    _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections_beta2.toml"
+
     LOGS = "logs/dev"
     PRODUCTION = False
     SECRET_KEY = "traskbatfluga"
-    APP_VERSION: str = (
-        f"{app_version}-DEV (git: {CommonUtility.get_active_branch_name()})"
-    )
+    APP_VERSION: str = f"{app_version}-DEV (git: {CommonUtility.get_active_branch_name()})"
+    DEBUG: bool = True
 
 
 class TestConfig(DefaultConfig):
@@ -307,20 +300,16 @@ class TestConfig(DefaultConfig):
     in the future.
     """
 
+    MONGO_DB_NAME = os.getenv("COYOTE3_DB_NAME", "coyote3_test")
+    BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
+    _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections_beta2.toml"
+
     LOGS = "logs/test"
     PRODUCTION = False
-    # Paths to config files for testing:
-    # _PATH_ASSAY_CONFIG = "tests/config/assays.conf.toml"
-    # _PATH_CUTOFF_CONFIG = "tests/config/cutoffs.conf.toml"
-    # _PATH_TABLE_CONFIG = "tests/config/tables.conf.toml"
 
-    APP_VERSION: str = (
-        f"{app_version}-Test (git: {CommonUtility.get_active_branch_name()})"
-    )
-
-    MONGO_HOST = "localhost"
-    MONGO_PORT = 27017
+    APP_VERSION: str = f"{app_version}-Test (git: {CommonUtility.get_active_branch_name()})"
 
     SECRET_KEY = "traskbatfluga"
     TESTING = True
     LOGIN_DISABLED = True
+    DEBUG: bool = True

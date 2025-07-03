@@ -1,4 +1,15 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 """
 MongoAdapter module for Coyote3
 ===============================
@@ -7,9 +18,6 @@ This module defines the `MongoAdapter` class used for managing database connecti
 and initializing handlers for MongoDB operations.
 
 It is part of the `coyote.db` package.
-
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
 # -------------------------------------------------------------------------
@@ -21,10 +29,6 @@ from coyote.db.annotations import AnnotationsHandler
 from coyote.db.asp import ASPHandler
 from coyote.db.asp_configs import ASPConfigHandler
 from coyote.db.bam_service import BamServiceHandler
-from coyote.db.biomarkers import BiomarkerHandler
-from coyote.db.blacklist import BlacklistHandler
-from coyote.db.brcaexchange import BRCAHandler
-from coyote.db.canonical import CanonicalHandler
 from coyote.db.civic import CivicHandler
 from coyote.db.cnvs import CNVsHandler
 from coyote.db.cosmic import CosmicHandler
@@ -155,7 +159,6 @@ class MongoAdapter:
         self.annotation_handler = AnnotationsHandler(self)
         self.sample_handler = SampleHandler(self)
         self.asp_handler = ASPHandler(self)
-        self.canonical_handler = CanonicalHandler(self)
         self.civic_handler = CivicHandler(self)
         self.iarc_tp53_handler = IARCTP53Handler(self)
         self.brca_handler = BRCAHandler(self)

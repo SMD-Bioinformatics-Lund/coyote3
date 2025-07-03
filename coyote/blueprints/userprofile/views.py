@@ -1,86 +1,42 @@
-# views.py
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
 
-from datetime import datetime
+"""
+This module defines the user profile views for the Coyote3 project.
+"""
 
-from flask import flash, jsonify, redirect, render_template, request, url_for
+from flask import Response, abort
 from flask_login import current_user, login_required
-from flask_wtf.csrf import generate_csrf
-from werkzeug.security import generate_password_hash
 
+from coyote.blueprints.admin.views import view_user
 from coyote.blueprints.userprofile import profile_bp
-from coyote.blueprints.userprofile.forms import PasswordChangeForm
-from coyote.extensions import store, util
-from coyote.services.auth.user_session import User
 
 
-@profile_bp.route("/", methods=["GET"])
+@profile_bp.route("/<user_id>/view", methods=["GET"])
 @login_required
-def profile():
+def user_profile(user_id: str) -> str | Response:
     """
-    Profile page for the user
+    Displays the profile page for the currently logged-in user.
+
+    This view checks if the requested user ID matches the logged-in user's username.
+    If not, it returns a 403 Forbidden error. Otherwise, it renders the user's profile
+    page using the shared admin view.
+
+    Args:
+        user_id (str): The username of the user whose profile is being viewed.
+
+    Returns:
+        str | Response: Rendered HTML template for the user's profile page or a Flask Response.
     """
-    csrf_token = generate_csrf()
-
-    return render_template(
-        "profile.html",
-        username=current_user.username,
-        email=current_user.email,
-        role=current_user.role,
-        groups=current_user.groups,
-        fullname=current_user.fullname,
-        csrf_token=csrf_token,
-    )
-
-
-# TODO: Should be a ldap call currently disabled
-@profile_bp.route("/change-password/<username>", methods=["GET", "POST"])
-@login_required
-def change_password(username):
-    """
-    Change password for a user
-    """
-
-    form = PasswordChangeForm()
-    user = store.user_handler.user_with_id(username)
-
-    if form.validate_on_submit():
-        if user and User.validate_login(user.password, form.old_password.data):
-            store.user_handler.update_password(
-                username,
-                generate_password_hash(
-                    form.new_password.data,
-                    method="pbkdf2:sha256",
-                ),
-            )
-            flash("Password updated successfully", "green")
-            return redirect(url_for("profile_bp.profile"))
-        else:
-            form.old_password.errors.append("Old password is incorrect")
-
-    return render_template(
-        "change_password.html", form=form, username=username
-    )
-
-
-@profile_bp.route("/update-info", methods=["POST"])
-@login_required
-def update_info():
-    """
-    Update current user's profile info (fullname, optionally groups if admin)
-    """
-    data = request.get_json() or {}
-
-    user_id = current_user.username
-    fullname = data.get("fullname", "").strip()
-    groups = data.get("groups", [])
-
-    if fullname:
-        store.user_handler.update_user_fullname(user_id, fullname)
-
-    if current_user.is_admin and isinstance(groups, list):
-        store.user_handler.update_user_groups(user_id, groups)
-
-    # Optionally update timestamp
-    store.user_handler.update_user_timestamp(user_id, field="updated")
-
-    return jsonify({"status": "success"})
+    if user_id != current_user.username:
+        abort(403)
+    return view_user(user_id)

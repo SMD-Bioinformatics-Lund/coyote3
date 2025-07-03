@@ -1,4 +1,15 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 """
 ASPHandler module for Coyote3
 ================================
@@ -8,8 +19,6 @@ assay specific panel data in MongoDB.
 
 It is part of the `coyote.db` package and extends the base handler functionality.
 
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
 from typing import Any
@@ -25,7 +34,7 @@ from coyote.db.base import BaseHandler
 # -------------------------------------------------------------------------
 class ASPHandler(BaseHandler):
     """
-    Coyote assay specific panels database handler.
+    Coyote assay specific asp database handler.
 
     The `ASPHandler` class provides a comprehensive interface for managing
     assay specific panel data stored in a MongoDB database. It extends the functionality
@@ -65,7 +74,7 @@ class ASPHandler(BaseHandler):
 
     def get_all_asps(self, is_active: bool | None = None) -> list:
         """
-        Retrieve all assay specific panels (ASPs), optionally filtered by active status.
+        Retrieve all assay specific asp (ASPs), optionally filtered by active status.
 
         This method fetches all panel documents from the database collection,
         excluding the `covered_genes` and `version_history` fields for efficiency.
@@ -73,7 +82,7 @@ class ASPHandler(BaseHandler):
         The results are sorted in descending order by the `created_on` field.
 
         Args:
-            is_active (bool | None): If provided, filters panels by their active status.
+            is_active (bool | None): If provided, filters asp by their active status.
 
         Returns:
             list: A list of panel documents from the database.
@@ -148,14 +157,14 @@ class ASPHandler(BaseHandler):
 
     def get_all_asps_unique_gene_count(self) -> int:
         """
-        Calculate the total number of unique genes across all panels.
+        Calculate the total number of unique genes across all asp.
 
         This method queries the database collection to retrieve the `covered_genes` field
         for all documents. It then aggregates all the genes into a set to ensure uniqueness
         and calculates the total count of unique genes.
 
         Returns:
-            int: The total count of unique genes across all panels.
+            int: The total count of unique genes across all asp.
         """
         docs = self.get_collection().find({}, {"covered_genes": 1})
         all_genes = set()
@@ -183,28 +192,23 @@ class ASPHandler(BaseHandler):
         docs = self.get_collection().find(
             {},
             {
-                "covered_genes": 1,
+                "covered_genes_count": 1,
+                "germline_genes_count": 1,
                 "assay_name": 1,
                 "display_name": 1,
                 "asp_group": 1,
+                "accredited": 1,
             },
         )
-        result = {
-            doc["panel_name"]: {
-                "gene_count": len(doc["covered_genes"]),
-                "display_name": doc["display_name"],
-                "asp_group": doc["asp_group"],
-            }
-            for doc in docs
-        }
-        return result
+
+        return docs
 
     def get_all_asp_groups(self) -> list:
         """
-        Fetch distinct groups across all assay specific panels.
+        Fetch distinct groups across all assay specific asp.
 
         This method queries the database collection to retrieve a list of unique
-        values for the `asp_group` field, which represents the grouping of panels.
+        values for the `asp_group` field, which represents the grouping of asp.
 
         Returns:
             list: A list of unique panel group names.
@@ -213,7 +217,7 @@ class ASPHandler(BaseHandler):
 
     def get_all_assays(self, is_active: bool | None = None) -> list:
         """
-        Fetch distinct assay names across all assay specific panels.
+        Fetch distinct assay names across all assay specific asp.
 
         Returns:
             list: A list of unique assay names (`assay_name`) from the database.

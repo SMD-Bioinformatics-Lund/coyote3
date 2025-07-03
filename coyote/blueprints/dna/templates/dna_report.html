@@ -7,7 +7,7 @@
   <div class="report-preview-card">
     <h2 class="report-heading">*** PREVIEW OF REPORT ***</h2>
 
-    {% if has_access('save_dna_report', min_role='admin') %}
+    {% if has_access('create_report', min_role='admin') %}
       <a href="{{ url_for('dna_bp.save_dna_report', sample_id=sample.name) }}" class="report-button">Finalize Report</a>
     {% endif %}
   </div>
@@ -30,10 +30,14 @@
     </tr>
     <tr>
       <td class="top_report_key">Prov-ID</td>
-      <td class="top_report_val">{{ sample.name }};
-        &lt;TUMOR_CREATION_DATE&gt;{% if sample.num_samples == 2 %}
-        (Kontrollprov: &lt;PAIRED_SAMPLE_NAME&gt;;&lt;TUMOR_NORMAL_CREATION_DATE&gt;){% endif %}</td>
+      <td class="top_report_val">{{ sample.name }}
     </tr>
+    {% if sample.num_samples == 2 %}
+      <tr>
+        <td class="top_report_key">KontrollProv-ID</td>
+        <td class="top_report_val">{{ sample.control_id }}
+      </tr>
+    {% endif %}
     <tr>
       <td class="top_report_key">Registreringsdatum</td>
       <td class="top_report_val">&lt;REGISTRATION_DATE&gt;</td>
@@ -42,11 +46,7 @@
         <td class="top_report_key">Provtyp</td>
         <td class="top_report_val">&lt;TUMOR_SAMPLE_TYPE&gt;</td>
     </tr>
-    <tr>
-      <td class="top_report_key">Kontrollprovtyp</td>
-      <td class="top_report_val">&lt;NORMAL_SAMPLE_TYPE&gt;</td>
-    </tr>
-    {% if assay_group != "swea" and assay_group != "gmsonco" %}
+    {% if assay_group not in ["swea", "gmsonco"] %}
     <tr>
       <td class="top_report_key">Frågeställning</td>
       <td class="top_report_val">
@@ -272,7 +272,7 @@
     {% if sample.comments|length > 0 %}
       {% for comment in sample.comments if comment.hidden != 1 %}
         {% if loop.last %}
-          {{ comment.text|format_comment|safe }}
+          {{ comment.text|markdown|safe }}
         {% endif %}
       {% endfor %}
     {% else %}
@@ -412,17 +412,43 @@
   <form id="genelist-form" action="{{ url_for('common_bp.get_sample_genelists', sample_id=sample.name, sample_assay=sample_assay, _external=True) }}" method="POST" target="_blank">
     <input type="hidden" name="enc_genelists" id="enc-genelists-input">
     <input type="hidden" name="enc_panel_doc" id="enc-panel-input">
+    <input type="hidden" name="enc_sample_filters" id="enc-sample-filters-input">
   </form>
   
+  {% set ns = namespace(table_no=1) %}
+  <div>
+    {% for genelist_name, genelist_values in genes_covered_in_panel.items() %}
+      {% if genelist_name != sample.assay %}
+        <p><b>Tabell {{ ns.table_no }}: Gener inkluderade i <i>{{ genelist_name }}</i> insilico-panel</b></p>
+        <div>
+          <table class="genetable" id="snvs-table">
+            <tbody>
+              {% for i in range(0, genelist_values.covered | length, 15) %}
+                <tr>
+                  {% for gene in genelist_values.covered[i:i+15] %}
+                    <td>{{ gene }}</td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% set ns.table_no = ns.table_no + 1 %}
+      {% endif %}
+    {% endfor %}
+  </div>
+
+
   <p>
-    For gene lists see 
-    <a href="#" onclick="submitGenelistForm(event)" class="text-blue-600 hover:underline" target="_blank">here</a>
+    For complete panel gene lists, and configurations, see 
+    <a href="#" onclick="submitGenelistForm(event)" class="text-blue-600 hover:underline" target="_blank">here.</a> 
+    <br>Or, for ASP genelist, visit <a href="{{url_for("public_bp.asp_genes",asp_id=sample.assay, _external=True)}}"> {{url_for("public_bp.asp_genes",asp_id=sample.assay , _external=True)}} </a>
   </p>
-  
+
 
   {% if not germline %}
     <p>
-    <b>Tabell 1: Förklaring av klassificering</b>
+    <b>Tabell {{ns.table_no}}: Förklaring av klassificering</b>
     <p>
     <table class="info">
       <tr>
@@ -457,6 +483,7 @@
 
 <script type="application/json" id="encrypted-genelists">{{ encrypted_genelists }}</script>
 <script type="application/json" id="encrypted-panel-doc">{{ encrypted_panel_doc }}</script>
+<script type="application/json" id="encrypted-sample-filters">{{ encrypted_sample_filters }}</script>
 
 <script>
   // Function to submit the form with encrypted genelists and panel doc
@@ -465,9 +492,11 @@
   
     const genelistsEnc = document.getElementById("encrypted-genelists").textContent.trim();
     const panelEnc = document.getElementById("encrypted-panel-doc").textContent.trim();
+    const sampleFiltersEnc = document.getElementById("encrypted-sample-filters").textContent.trim();
   
     document.getElementById("enc-genelists-input").value = genelistsEnc;
     document.getElementById("enc-panel-input").value = panelEnc;
+    document.getElementById("enc-sample-filters-input").value = sampleFiltersEnc;
   
     document.getElementById("genelist-form").submit();
   }

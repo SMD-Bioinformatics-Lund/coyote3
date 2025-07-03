@@ -1,0 +1,212 @@
+{
+  "_id": "User-Schema",
+  "schema_name": "User-Schema",
+  "schema_type": "rbac_user",
+  "schema_category": "RBAC_user",
+  "version": 1,
+  "is_active": true,
+  "description": "Schema for creating and managing user profiles in the system.",
+  "sections": {
+    "user_info": [
+      "firstname",
+      "lastname",
+      "fullname",
+      "username",
+      "email",
+      "job_title",
+      "auth_type",
+      "role",
+      "is_active"
+    ],
+    "user_access": [
+      "assay_groups",
+      "assays",
+      "environments",
+      "permissions",
+      "deny_permissions"
+    ],
+    "security": [
+      "password"
+    ],
+    "audit": [
+      "created_by",
+      "created_on",
+      "updated_by",
+      "updated_on"
+    ]
+  },
+  "fields": {
+    "firstname": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "First Name",
+      "required": true,
+      "placeholder": "e.g. John"
+    },
+    "lastname": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Last Name",
+      "required": true,
+      "placeholder": "e.g. Doe"
+    },
+    "fullname": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Full Name",
+      "required": true,
+      "placeholder": "e.g. John Doe",
+      "readonly_mode": [
+        "edit"
+      ]
+    },
+    "username": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Username",
+      "required": true,
+      "placeholder": "e.g. john.doe",
+      "readonly_mode": [
+        "edit"
+      ]
+    },
+    "email": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Email Address",
+      "required": true,
+      "placeholder": "e.g. user@skane.se",
+      "readonly_mode": [
+        "edit"
+      ]
+    },
+    "job_title": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Job Title",
+      "required": true,
+      "placeholder": "e.g. Bioinformatician, Geneticist"
+    },
+    "auth_type": {
+      "data_type": "string",
+      "display_type": "select",
+      "label": "Authentication Type",
+      "required": true,
+      "options": [
+        "coyote3",
+        "ldap"
+      ],
+      "default": "ldap"
+    },
+    "is_active": {
+      "data_type": "bool",
+      "display_type": "checkbox",
+      "label": "Active Status",
+      "default": true,
+      "required": true
+    },
+    "assay_groups": {
+      "data_type": "list",
+      "display_type": "checkbox-group",
+      "label": "Assay Groups",
+      "required": true,
+      "dynamic_options": true,
+      "description": "Select assay groups to enable fine-grained access. Checking a group will list its assays.",
+      "options": [],
+      "default": []
+    },
+    "assays": {
+      "data_type": "list",
+      "display_type": "checkbox-group",
+      "label": "Assays",
+      "required": true,
+      "dynamic_options": true,
+      "description": "All assays belonging to selected groups will be listed here. By default all are selected.",
+      "options": [],
+      "default": []
+    },
+    "environments": {
+      "data_type": "list",
+      "display_type": "checkbox-group",
+      "label": "Environment",
+      "required": true,
+      "options": [
+        "production",
+        "development",
+        "testing",
+        "validation"
+      ],
+      "default": [
+        "production"
+      ]
+    },
+    "role": {
+      "data_type": "string",
+      "display_type": "select",
+      "label": "System Role",
+      "required": true,
+      "default": "user",
+      "options": []
+    },
+    "permissions": {
+      "data_type": "list",
+      "display_type": "checkbox-group",
+      "label": "Custom Permissions",
+      "required": false,
+      "dynamic_options": true,
+      "description": "Select custom permissions to grant this user.",
+      "options": [],
+      "default": []
+    },
+    "deny_permissions": {
+      "data_type": "list",
+      "display_type": "checkbox-group",
+      "label": "Denied Permissions",
+      "required": false,
+      "dynamic_options": true,
+      "description": "Select permissions to explicitly deny for this user. Deny overrides any granted permissions.",
+      "options": [],
+      "default": []
+    },
+    "password": {
+      "data_type": "string",
+      "display_type": "password",
+      "label": "Password",
+      "placeholder": "Leave blank to auto-generate (local only)",
+      "required_if": {
+        "auth_source": "local"
+      },
+      "default": "",
+      "min_length": 10
+    },
+    "created_by": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Created By",
+      "readonly": true
+    },
+    "created_on": {
+      "data_type": "datetime",
+      "display_type": "datetime",
+      "label": "Created On",
+      "readonly": true
+    },
+    "updated_by": {
+      "data_type": "string",
+      "display_type": "text",
+      "label": "Updated By",
+      "readonly": true
+    },
+    "updated_on": {
+      "data_type": "datetime",
+      "display_type": "datetime",
+      "label": "Updated On",
+      "readonly": true
+    }
+  },
+  "subschemas": {},
+  "created_on": "2025-05-21T10:35:28.032000",
+  "created_by": "coyote3.admin@skane.se",
+  "updated_on": "2025-05-21T10:35:28.032000",
+  "updated_by": "coyote3.admin@skane.se"
+}

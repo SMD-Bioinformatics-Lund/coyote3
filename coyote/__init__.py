@@ -1,8 +1,19 @@
-# -*- coding: utf-8 -*-
-"""
-Meta Information
-================
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
 
+
+"""
+Coyote3 Meta Information
+=====================================
 This file serves as the entry point for the Coyote3 application, initializing
 the Flask app, configuring extensions, and registering blueprints. It also
 handles centralized logging setup for both application and Gunicorn.
@@ -13,9 +24,6 @@ Key Responsibilities:
 - Register blueprints for modular application structure.
 - Enforce permissions and access control.
 - Provide centralized logging configuration.
-
-Author: Coyote3 Development Team
-License: Copyright (c) 2025 Coyote3 Development Team. All rights reserved.
 """
 
 import json
@@ -32,6 +40,7 @@ from flask_login import current_user, login_user
 from pymongo.errors import ConnectionFailure
 
 import config
+from coyote import extensions
 from coyote.extensions import store
 from coyote.models.user import UserModel
 from coyote.services.auth.user_session import User
@@ -44,31 +53,24 @@ from .errors import register_error_handlers
 cache = Cache()
 
 
-def init_app(testing: bool = False, debug: bool = False) -> Flask:
+def init_app(testing: bool = False, development: bool = False) -> Flask:
     """
-    Create and configure the Flask application.
+    Creates and configures the Flask application instance.
 
-    This function initializes a Flask application instance, sets up configurations,
-    and integrates various extensions and blueprints.
+    Initializes the Flask app, loads configuration based on the environment,
+    and integrates extensions such as caching, database, authentication, and blueprints.
+    Also sets up centralized logging and context processors for user and permission helpers.
 
-    :param testing: Flag to indicate if the app is in testing mode.
-    :type testing: bool
-    :param debug: Flag to indicate if the app is in debug mode.
-    :type debug: bool
-    :return: Configured Flask application instance.
-    :rtype: Flask
+    Args:
+        testing (bool): If True, loads testing configuration.
+        development (bool): If True, loads development configuration and enables debug mode.
+
+    Returns:
+        Flask: The configured Flask application instance.
     """
     app = Flask(__name__, instance_relative_config=True)
     app.jinja_env.add_extension("jinja2.ext.do")
     app.jinja_env.filters["from_json"] = json.loads
-
-    # Load the configuration for cache
-    app.config["CACHE_TYPE"] = "redis"
-    app.config["CACHE_REDIS_URL"] = os.getenv(
-        "CACHE_REDIS_URL", "redis://redis:6379/0"
-    )
-    app.config["CACHE_DEFAULT_TIMEOUT"] = 300
-    app.config["CACHE_KEY_PREFIX"] = "coyote3_cache"
 
     # Allows cross-origin requests for CDM/api
     # /trends needs this to work.
@@ -78,8 +80,9 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
         app.logger.info("Testing mode ON.")
         app.logger.info("Loading config.TestConfig")
         app.config.from_object(config.TestConfig())
+        app.debug = True
 
-    elif debug:
+    elif development:
         app.logger.warning(
             "Debug mode ON. "
             "(Jag ropar ut mitt innersta hav, jag ropar ut all min skit och allt mitt skav!)"
@@ -90,9 +93,7 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
 
     else:
         app.logger.info("Loading config.ProductionConfig")
-        app.config.from_object(
-            config.ProductionConfig()
-        )  # Note initialization of Config
+        app.config.from_object(config.ProductionConfig())  # Note initialization of Config
 
     app.logger.info("Initializing app extensions + blueprints:")
     with app.app_context():
@@ -108,13 +109,33 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
 
         # Cache roles access levels in app context
         app.role_access_levels = {
-            role["_id"]: role.get("level", 0)
-            for role in store.roles_handler.get_all_roles()
+            role["_id"]: role.get("level", 0) for role in store.roles_handler.get_all_roles()
         }
 
-        # Cache assay panels in app context
+        @app.context_processor
+        def inject_config():
+            """
+            Injects the application configuration into the Jinja2 template context.
+            """
+            return dict(app_config=app.config)
+
+        # Cache assay asp in app context
         @app.context_processor
         def inject_assay_nav() -> dict:
+            """
+            Flask context processor to inject dynamic assay navigation data into all templates.
+
+            This processor runs automatically during template rendering and makes
+            `dynamic_assay_nav` available in the Jinja2 context.
+
+            Behavior:
+                - If the user is authenticated, returns a dictionary from `get_dynamic_assay_nav()`.
+                - If the user is not authenticated, returns an empty `dynamic_assay_nav` dictionary.
+
+            Returns:
+                dict: A dictionary containing `dynamic_assay_nav` for use in templates.
+                      Example: {"dynamic_assay_nav": {...}}
+            """
             if current_user.is_authenticated:
                 return get_dynamic_assay_nav()
             return {"dynamic_assay_nav": {}}
@@ -123,19 +144,40 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
         @app.context_processor
         def inject_user_helpers() -> dict[str, Any]:
             """
-            Injects user-related helper functions into the Jinja2 template context.
+            Injects user-related helper functions and flags into the Jinja2 template context.
 
-            This context processor provides utility functions for checking user permissions,
-            roles, and group memberships, as well as formatting roles for display.
+            This context processor makes common user access checks and formatting utilities
+            available globally to all templates. These helpers simplify conditional rendering
+            based on user permissions, roles, and group membership.
 
-            :return: A dictionary of helper functions for user-related operations.
-            :rtype: dict
+            Returns:
+                dict[str, Any]: A dictionary containing helper lambdas and context flags.
+
+            Injected Helpers:
+                - `user_has(p: str) -> bool`:
+                    Returns True if the current user has the specified permission.
+                - `user_is(r: str) -> bool`:
+                    Returns True if the current user's role matches the given role.
+                - `user_in_group(g: str) -> bool`:
+                    Returns True if the user belongs to the given group.
+                - `pretty_role(r: Enum | str) -> str`:
+                    Converts a role name (e.g., 'group_manager') into a readable format (e.g., 'Group Manager').
+                - `password_change_enabled`:
+                    Boolean flag to control conditional rendering of password change UI.
+
+            Example (Jinja2 Template):
+                {% if user_has("samples:edit") %}
+                    <a href="/samples/edit">Edit Sample</a>
+                {% endif %}
+
+                {% if user_is("admin") %}
+                    <span class="badge">Administrator</span>
+                {% endif %}
             """
             return {
                 "user_has": lambda p: current_user.is_authenticated
                 and current_user.has_permission(p),
-                "user_is": lambda r: current_user.is_authenticated
-                and current_user.role == r,
+                "user_is": lambda r: current_user.is_authenticated and current_user.role == r,
                 "user_in_group": lambda g: current_user.is_authenticated
                 and current_user.in_group(g),
                 "pretty_role": lambda r: r.value.replace("_", " ").title(),
@@ -144,29 +186,33 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
 
     # Refresh user session with latest data from the database before each request.
     @app.before_request
-    def refresh_user_session():
+    def refresh_user_session() -> None:
         """
-        Refreshes the user session with the latest data from the database.
+        Refreshes the current user's session data before each request.
 
-        This function is executed before each request to ensure that the current user's
-        session is updated with the most recent information from the database. If any
-        changes are detected in the user's data, the session is refreshed.
+        This `before_request` hook ensures that any updates to the user's profile, role,
+        permissions, or assay access are reflected immediately in the session without requiring logout.
 
-        :return: None
+        Behavior:
+            - If the user is authenticated:
+                - Fetches the latest user document from the database.
+                - Rebuilds the `UserModel` with updated role and assay configuration.
+                - Compares the current session user data to the freshly loaded data.
+                - If changes are detected (e.g., permission updates, role changes):
+                    - Re-authenticates the user to update the session state.
+
+        This is useful in environments where user data can change dynamically during a session,
+        such as through an admin panel or external provisioning system.
+
+        Returns:
+            None
         """
         if current_user.is_authenticated:
-            fresh_user_data = store.user_handler.user_with_id(
-                current_user.username
-            )
+            fresh_user_data = store.user_handler.user_with_id(current_user.username)
             if fresh_user_data:
-                role_doc = (
-                    store.roles_handler.get_role(fresh_user_data.get("role"))
-                    or {}
-                )
+                role_doc = store.roles_handler.get_role(fresh_user_data.get("role")) or {}
                 asp_docs = store.asp_handler.get_all_asps(is_active=True)
-                user_model = UserModel.from_mongo(
-                    fresh_user_data, role_doc, asp_docs
-                )
+                user_model = UserModel.from_mongo(fresh_user_data, role_doc, asp_docs)
                 updated_user = User(user_model)
 
                 # Re-login only if things have changed
@@ -175,20 +221,35 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
 
                 if current != updated:
                     login_user(updated_user)
-                    app.logger.debug(
-                        f"Session refreshed: {updated_user.username}"
-                    )
+                    app.logger.debug(f"Session refreshed: {updated_user.username}")
 
     @app.before_request
-    def enforce_permissions():
+    def enforce_permissions() -> None:
         """
-        Enforces permissions for the current request.
+        Enforces role- or permission-based access control before processing each request.
 
-        This function checks if the current user has the required permissions, access level,
-        or role to access the requested view. If the user does not meet the requirements,
-        they are redirected to the appropriate page.
+        This `before_request` hook checks if the target view function has access control metadata
+        defined using the `@require(...)` decorator. It then validates whether the current user
+        satisfies at least one of the following:
 
-        :return: None
+            - Has the required permission (`required_permission`)
+            - Meets the required access level (`required_access_level`)
+            - Has a role equal to or above the required role (`required_role_name`)
+
+        If the route defines any of these requirements and the user is not authenticated,
+        the user is redirected to the login page.
+
+        If the user is authenticated but fails to meet **all** of the defined criteria,
+        a flash message is shown and the user is redirected to the default home page.
+
+        Requirements are expected to be attached to view functions via the `@require(...)`
+        decorator which sets the following attributes:
+            - `required_permission`
+            - `required_access_level`
+            - `required_role_name`
+
+        Returns:
+            None: Either continues processing the request or redirects the user on failure.
         """
         view = app.view_functions.get(request.endpoint)
         if not view:
@@ -220,15 +281,9 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
                 and required_permission not in current_user.denied_permissions
             )
 
-            level_ok = (
-                required_level is not None
-                and current_user.access_level >= required_level
-            )
+            level_ok = required_level is not None and current_user.access_level >= required_level
 
-            role_ok = (
-                required_role is not None
-                and current_user.access_level >= resolved_role_level
-            )
+            role_ok = required_role is not None and current_user.access_level >= resolved_role_level
 
             if not (permission_ok or level_ok or role_ok):
                 flash("You do not have access to this page.", "red")
@@ -240,25 +295,55 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
         """
         Injects permission-related helper functions into the Jinja2 template context.
 
-        This context processor provides utility functions for checking user permissions,
-        minimum access levels, and roles, as well as a shortcut for combined access checks.
+        This context processor provides global utility functions to simplify access control
+        logic within templates. These helpers enable you to conditionally render UI elements
+        based on permissions, roles, or access levels.
 
-        :return: A dictionary of helper functions for permission-related operations.
-        :rtype: dict
+        Injected Template Helpers:
+            - `can(permission: str) -> bool`: Returns True if the user has the specified permission
+              and it is not explicitly denied.
+            - `min_level(level: int) -> bool`: Returns True if the user has an access level ≥ `level`.
+            - `min_role(role_name: str) -> bool`: Returns True if the user's role is ≥ the given role.
+            - `has_access(permission=None, min_role=None, min_level=None) -> bool`: Returns True if the
+              user meets **any** of the provided access criteria.
+
+        Example (Jinja2 Template):
+            ```jinja2
+            {% if can("samples:view") %}
+                <a href="/samples">View Samples</a>
+            {% endif %}
+
+            {% if min_level(999) %}
+                <span class="badge">Tester or above</span>
+            {% endif %}
+
+            {% if has_access(permission="config:edit", min_role="admin") %}
+                <a href="/admin/config">Edit Config</a>
+            {% endif %}
+            ```
+
+        Returns:
+            dict[str, Callable]: A dictionary of access-checking functions available in all templates.
         """
 
         def can(permission: str) -> bool:
             """
-            Checks if the current user has a specific permission.
+            Checks whether the current user has a specific permission.
 
-            This function verifies whether the current user is authenticated and has the
-            specified permission, ensuring that the permission is not explicitly denied.
+            This helper is intended for use in Flask templates or internal access checks.
+            It confirms that the user is authenticated, explicitly granted the given permission,
+            and not explicitly denied it.
 
-            :param permission: The permission to check.
-            :type permission: str
-            :return: True if the user has the permission, False otherwise.
-            :rtype: bool
+            This enables support for fine-grained permission models, where permissions may
+            be denied even if granted via role or default assignment.
+
+            Args:
+                permission (str): The name of the permission to check (e.g., "samples:edit").
+
+            Returns:
+                bool: True if the user is authenticated, has the permission, and it is not denied.
             """
+
             return (
                 current_user.is_authenticated
                 and permission in current_user.permissions
@@ -267,32 +352,40 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
 
         def min_level(level: int) -> bool:
             """
-            Checks if the current user has a minimum access level.
+            Checks whether the current user meets a minimum access level requirement.
 
-            This function verifies whether the current user is authenticated and has an
-            access level greater than or equal to the specified level.
+            This function is typically used in templates or access logic to verify that the user:
+              - Is authenticated.
+              - Has an access level greater than or equal to the specified threshold.
 
-            :param level: The minimum access level required.
-            :type level: int
-            :return: True if the user meets the access level requirement, False otherwise.
-            :rtype: bool
+            It supports tiered role-based access control where access levels are numeric
+            (e.g., viewer = 1, user = 9, manager = 99, admin = 99999).
+
+            Args:
+                level (int): The minimum access level required to access a resource.
+
+            Returns:
+                bool: True if the user is authenticated and meets the level requirement; False otherwise.
             """
-            return (
-                current_user.is_authenticated
-                and current_user.access_level >= level
-            )
+            return current_user.is_authenticated and current_user.access_level >= level
 
         def min_role(role_name: str) -> bool:
             """
-            Checks if the current user has a minimum role.
+            Checks whether the current user satisfies a minimum role requirement.
 
-            This function verifies whether the current user is authenticated and has an
-            access level greater than or equal to the level associated with the specified role.
+            This function verifies:
+              - The user is authenticated.
+              - The user's access level is greater than or equal to the level associated with the given role name.
 
-            :param role_name: The name of the role to check.
-            :type role_name: str
-            :return: True if the user meets the role requirement, False otherwise.
-            :rtype: bool
+            Role access levels are resolved using `app.role_access_levels`, which maps role names
+            (e.g., "viewer", "user", "admin") to numeric levels for hierarchical access enforcement.
+
+            Args:
+                role_name (str): The name of the role to check against (e.g., "admin", "group_manager").
+
+            Returns:
+                bool: True if the user is authenticated and has an access level ≥ the specified role's level.
+                      False otherwise.
             """
             if not current_user.is_authenticated:
                 return False
@@ -305,24 +398,33 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
         _min_level = min_level
         _can = can
 
-        def has_access(
-            permission: str = None, min_role: str = None, min_level: int = None
-        ) -> bool:
+        def has_access(permission: str = None, min_role: str = None, min_level: int = None) -> bool:
             """
-            Shortcut to check access via permission, role, or level.
+            Evaluates whether the current user has access based on permission, role, or access level.
 
-            This function evaluates whether the current user has access based on one or more
-            criteria: a specific permission, a minimum role, or a minimum access level. If no
-            criteria are provided, it defaults to granting access.
+            This function serves as a flexible shortcut for checking any combination of:
+              - A specific granted permission (not denied).
+              - A minimum role, resolved via `app.role_access_levels`.
+              - A numeric minimum access level.
 
-            :param permission: The specific permission to check (optional).
-            :type permission: str or None
-            :param min_role: The minimum role required for access (optional).
-            :type min_role: str or None
-            :param min_level: The minimum access level required for access (optional).
-            :type min_level: int or None
-            :return: True if the user meets any of the specified criteria, False otherwise.
-            :rtype: bool
+            Access is granted if **any** of the provided criteria are satisfied. If no criteria
+            are passed, the function defaults to allowing access.
+
+            Args:
+                permission (str, optional): A specific permission to check (e.g., "samples:edit").
+                min_role (str, optional): The minimum role name required (e.g., "admin").
+                min_level (int, optional): The minimum numeric access level required (e.g., 999).
+
+            Returns:
+                bool: True if the user is authenticated and satisfies at least one of the access checks,
+                      or if no checks are defined. False otherwise.
+
+            Example:
+                ```jinja2
+                {% if has_access(permission="users:edit", min_role="manager") %}
+                    <button>Edit User</button>
+                {% endif %}
+                ```
             """
             if not current_user.is_authenticated:
                 return False
@@ -352,19 +454,26 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
 
 def init_db(app) -> None:
     """
-    Initializes the database connection for the application.
+    Initializes the MongoDB database connection for the Flask application.
 
-    This function sets up the connection to the MongoDB database using the
-    configuration provided in the Flask application instance. It also verifies
-    the connection by performing a basic ping operation.
+    This function sets up the application's connection to MongoDB using
+    parameters defined in the Flask config (e.g., `MONGO_URI`, `DB_NAME`).
+    It also performs a health check via a `ping` command to ensure the
+    database is reachable.
 
-    :param app: The Flask application instance.
-    :type app: Flask
-    :raises RuntimeError: If the connection to MongoDB fails.
+    This function should be called during application startup to ensure
+    database availability and to register the connection for later use.
+
+    Args:
+        app (Flask): The Flask application instance containing configuration settings.
+
+    Raises:
+        RuntimeError: If the database connection or health check (ping) fails.
     """
+
     app.logger.info("Initializing MongoDB...")
 
-    mongo_uri = app.config.get("MONGO_URI", "not set")
+    mongo_uri = app.config.get("MONGO_URI")
     app.logger.info(f"Connecting to MongoDB at: {mongo_uri}")
 
     # Initialize the PyMongo extension
@@ -388,8 +497,8 @@ def init_store(app) -> None:
     provided in the Flask application instance. It ensures that the store
     is properly initialized and ready for use.
 
-    :param app: The Flask application instance.
-    :type app: Flask
+    Args:
+        app (Flask): The Flask application instance.
     """
     app.logger.info(f"Initializing MongoAdapter at: {app.config['MONGO_URI']}")
     extensions.store.init_from_app(app)
@@ -397,13 +506,14 @@ def init_store(app) -> None:
 
 def init_utility(app) -> None:
     """
-    Initializes utility extensions for the application.
+    Initializes utility extensions for the Flask application.
 
-    This function sets up utility extensions required for the application.
-    It ensures that all necessary utilities are properly initialized.
+    This function sets up utility extensions required for the application,
+    ensuring that all necessary utilities are properly initialized and available
+    throughout the app.
 
-    :param app: The Flask application instance.
-    :type app: Flask
+    Args:
+        app (Flask): The Flask application instance.
     """
     app.logger.info("Initializing Utility")
     extensions.util.init_util()
@@ -411,14 +521,17 @@ def init_utility(app) -> None:
 
 def register_blueprints(app) -> None:
     """
-    Registers all blueprints for the application.
+    Registers all blueprints for the Flask application.
 
-    This function imports and registers all the blueprints used in the application.
-    Each blueprint corresponds to a specific module or feature, and they are
-    registered with appropriate URL prefixes to organize the application's routes.
+    This function imports and registers each blueprint used in the application.
+    Each blueprint represents a module or feature, and is registered with a
+    specific URL prefix to organize the application's routes.
 
-    :return: None
-    :rtype: None
+    Args:
+        app (Flask): The Flask application instance.
+
+    Returns:
+        None
     """
     app.logger.info("Initializing blueprints")
 
@@ -444,7 +557,7 @@ def register_blueprints(app) -> None:
     bp_debug_msg("login_bp")
     from coyote.blueprints.login import login_bp
 
-    app.register_blueprint(login_bp, url_prefix="/coyote")
+    app.register_blueprint(login_bp, url_prefix="/")
 
     # User Profile Stuff
     bp_debug_msg("profile_bp")
@@ -474,7 +587,7 @@ def register_blueprints(app) -> None:
     bp_debug_msg("dashboard_bp")
     from coyote.blueprints.dashboard import dashboard_bp
 
-    app.register_blueprint(dashboard_bp, url_prefix="/")
+    app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
 
     # register coverage bp
     bp_debug_msg("cov_bp")
@@ -497,13 +610,13 @@ def register_blueprints(app) -> None:
 
 def init_login_manager(app) -> None:
     """
-    Initializes the login manager for the application.
+    Initializes the login manager for the Flask application.
 
-    This function sets up the login manager extension for the Flask application,
-    specifying the login view to redirect unauthenticated users.
+    This function sets up the login manager extension for the Flask app and
+    specifies the login view to redirect unauthenticated users.
 
-    :param app: The Flask application instance.
-    :type app: Flask
+    Args:
+        app (Flask): The Flask application instance.
     """
     app.logger.debug("Initializing login_manager")
     extensions.login_manager.init_app(app)
@@ -512,13 +625,13 @@ def init_login_manager(app) -> None:
 
 def init_ldap(app):
     """
-    Initializes the LDAP manager for the application.
+    Initializes the LDAP manager for the Flask application.
 
-    This function sets up the LDAP manager extension for the Flask application,
-    allowing integration with an LDAP server for authentication and user management.
+    This function sets up the LDAP manager extension for the Flask app,
+    enabling integration with an LDAP server for authentication and user management.
 
-    :param app: The Flask application instance.
-    :type app: Flask
+    Args:
+        app (Flask): The Flask application instance.
     """
     app.logger.debug("Initializing ldap login_manager")
     extensions.ldap_manager.init_app(app)

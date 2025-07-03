@@ -1,4 +1,15 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 """
 CoverageHandler module for Coyote3
 ==================================
@@ -7,9 +18,6 @@ This module defines the `BaseHandler` class used for accessing and managing
 generic data in MongoDB.
 
 It is part of the `coyote.db` package and will be used as a base class for the rest of the handlers in this package.
-
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
 from datetime import datetime
@@ -168,6 +176,39 @@ class BaseHandler:
                 "red",
             )
 
+    def mark_false_positive_bulk(self, var_ids: list[str], fp: bool) -> Any:
+        """
+        Mark or unmark multiple variants as false positive in bulk.
+
+        Args:
+            var_ids (list[str]): List of variant document IDs (as strings).
+            fp (bool): True to mark as false positive, False to unmark.
+
+        Returns:
+            Any: The result of the bulk write operation.
+        """
+        if not var_ids:
+            flash("No variants provided for false positive update.", "yellow")
+            return None
+
+        bulk = self.get_collection().initialize_unordered_bulk_op()
+
+        for vid in var_ids:
+            bulk.find({"_id": ObjectId(vid)}).update({"$set": {"fp": fp}})
+
+        try:
+            result = bulk.execute()
+            modified = result.get("nModified", 0)
+            flash(
+                f"{modified} variant(s) {'marked' if fp else 'unmarked'} as False Positive",
+                "green",
+            )
+        except Exception as e:
+            flash(f"Bulk update failed: {str(e)}", "red")
+            return None
+
+        return result
+
     def mark_interesting(self, var_id: str, interesting: bool) -> Any:
         """
         Mark a variant as interesting.
@@ -223,6 +264,43 @@ class BaseHandler:
                 f"Failed to {'mark' if irrelevant else 'unmark'} variant as Irrelevant",
                 "red",
             )
+
+    def mark_irrelevant_bulk(
+        self, var_ids: list[str], irrelevant: bool
+    ) -> Any:
+        """
+        Mark or unmark multiple variants as irrelevant in bulk.
+
+        Args:
+            var_ids (list[str]): List of variant document IDs (as strings).
+            irrelevant (bool): True to mark as irrelevant, False to unmark.
+
+        Returns:
+            Any: The result of the bulk write operation.
+        """
+        if not var_ids:
+            flash("No variants provided for irrelevant update.", "yellow")
+            return None
+
+        bulk = self.get_collection().initialize_unordered_bulk_op()
+
+        for vid in var_ids:
+            bulk.find({"_id": ObjectId(vid)}).update(
+                {"$set": {"irrelevant": irrelevant}}
+            )
+
+        try:
+            result = bulk.execute()
+            modified = result.get("nModified", 0)
+            flash(
+                f"{modified} variant(s) {'marked' if irrelevant else 'unmarked'} as Irrelevant",
+                "green",
+            )
+        except Exception as e:
+            flash(f"Bulk update failed: {str(e)}", "red")
+            return None
+
+        return result
 
     def mark_noteworthy(self, var_id: str, noteworthy: bool) -> Any:
         """

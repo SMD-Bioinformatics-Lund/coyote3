@@ -1,13 +1,22 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
+
 """
 Centralized Logging Configuration
 =================================
 
 This file contains the centralized logging configuration for the Coyote3 application,
 designed to handle both application and Gunicorn logging.
-
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
 # -------------------------------------------------------------------------
@@ -86,26 +95,27 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
 
     def doRollover(self) -> None:
         """
-        Performs the log file rollover and triggers cleanup of old log files.
+        Perform log file rollover and clean up old log files.
 
-        This method first calls the parent class's `doRollover` method to handle
-        the actual log file rotation. Afterward, it invokes the `clean_old_log_files`
-        method to delete log files that are older than the specified retention period.
+        This method first calls the parent class's `doRollover` to rotate the log file.
+        After rotation, it calls `clean_old_log_files` to remove log files older than the
+        configured retention period.
 
-        :return: None
+        Returns:
+            None
         """
         super().doRollover()
         self.clean_old_log_files()
 
     def clean_old_log_files(self) -> None:
         """
-        Deletes log files older than the specified retention period.
+        Removes log files older than the configured retention period.
 
-        This method calculates a cutoff date based on the `days_to_keep` attribute
-        and removes all log files in the same directory as the current log file
-        that are older than this cutoff date.
+        Calculates a cutoff date using the `days_to_keep` attribute and deletes all log files
+        in the current log directory that were last modified before this cutoff.
 
-        :raises Exception: If an error occurs while deleting a log file.
+        Raises:
+            Exception: If an error occurs while deleting a log file.
         """
         cutoff = datetime.now() - timedelta(days=self.days_to_keep)
         log_dir = Path(self.baseFilename).parent
@@ -131,18 +141,17 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
 # -------------------------------------------------------------------------
 def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
     """
-    Generates a custom logging configuration dictionary.
+    Returns a logging configuration dictionary for the Coyote3 application.
 
-    This function creates a logging configuration tailored for the Coyote3 application.
-    It defines handlers, loggers, formatters, and filters based on the provided log directory
-    and environment (production or development).
+    The configuration includes handlers, loggers, formatters, and filters,
+    and is customized based on the provided log directory and environment.
 
-    :param log_dir: The directory where log files will be stored.
-    :type log_dir: str
-    :param is_production: A flag indicating whether the application is running in production mode.
-    :type is_production: bool
-    :return: A dictionary containing the logging configuration.
-    :rtype: Dict[str, Any]
+    Args:
+        log_dir (str): Directory where log files will be stored.
+        is_production (bool): True if running in production mode, otherwise False.
+
+    Returns:
+        Dict[str, Any]: Logging configuration dictionary.
     """
     today = datetime.now().strftime("%Y-%m-%d")
 
@@ -280,15 +289,16 @@ def setup_gunicorn_logging(log_dir: str, is_production: bool = False) -> None:
     """
     Sets up logging for Gunicorn.
 
-    This function configures logging for the Gunicorn server using a custom logging
-    configuration. It ensures that log directories are created and applies the
-    logging configuration for Gunicorn.
+    Configures logging for the Gunicorn server using a custom logging configuration.
+    - Ensures log directories exist.
+    - Applies the logging configuration for Gunicorn.
 
-    :param log_dir: The directory where log files will be stored.
-    :type log_dir: str
-    :param is_production: A flag indicating whether the application is running in production mode.
-    :type is_production: bool
-    :raises Exception: If an error occurs during the logging setup.
+    Args:
+        log_dir (str): Directory where log files will be stored.
+        is_production (bool): Whether the application is running in production mode.
+
+    Raises:
+        Exception: If an error occurs during the logging setup.
     """
     try:
         for sub in ["audit", "info", "error", "debug"]:
@@ -301,17 +311,16 @@ def setup_gunicorn_logging(log_dir: str, is_production: bool = False) -> None:
 
 def setup_app_logging(log_dir: str, is_production: bool = False) -> None:
     """
-    Sets up application logging.
+    Sets up logging for the application.
 
-    This function configures logging for the application using a custom logging
-    configuration. It ensures that log directories are created and applies the
-    logging configuration for the application.
+    Configures logging using a custom configuration, ensuring log directories exist and applying the configuration.
 
-    :param log_dir: The directory where log files will be stored.
-    :type log_dir: str
-    :param is_production: A flag indicating whether the application is running in production mode.
-    :type is_production: bool
-    :raises Exception: If an error occurs during the logging setup.
+    Args:
+        log_dir (str): Directory where log files will be stored.
+        is_production (bool): Whether the application is running in production mode.
+
+    Raises:
+        Exception: If an error occurs during the logging setup.
     """
     try:
         for sub in ["audit", "info", "error", "debug"]:
@@ -328,17 +337,18 @@ def custom_logging(
     """
     Configures custom logging for the application or Gunicorn.
 
-    This function determines whether to set up logging for the application or Gunicorn
-    based on the `gunicorn_logging` flag. It ensures that the appropriate logging
-    configuration is applied.
+    Parameters
+    ----------
+    log_dir : str
+        The directory where log files will be stored.
+    is_production : bool, optional
+        Indicates whether the application is running in production mode.
+    gunicorn_logging : bool, optional
+        If True, configures logging for Gunicorn; otherwise, for the application.
 
-    :param log_dir: The directory where log files will be stored.
-    :type log_dir: str
-    :param is_production: A flag indicating whether the application is running in production mode.
-    :type is_production: bool
-    :param gunicorn_logging: A flag indicating whether to configure logging for Gunicorn.
-    :type gunicorn_logging: bool
-    :return: None
+    Returns
+    -------
+    None
     """
     if gunicorn_logging:
         setup_gunicorn_logging(log_dir, is_production)
@@ -348,16 +358,20 @@ def custom_logging(
 
 def add_unique_handlers(logger, handlers):
     """
-    Adds unique handlers to a logger.
+    Add only unique handlers to a logger.
 
-    This function ensures that only unique handlers are added to the specified logger.
-    It checks the class name of each handler to avoid duplicates.
+    Ensures that each handler is added to the logger only once, based on the handler's class name.
 
-    :param logger: The logger instance to which handlers will be added.
-    :type logger: logging.Logger
-    :param handlers: A list of handlers to add to the logger.
-    :type handlers: list[logging.Handler]
-    :return: None
+    Parameters
+    ----------
+    logger : logging.Logger
+        The logger instance to which handlers will be added.
+    handlers : list[logging.Handler]
+        A list of handlers to add to the logger.
+
+    Returns
+    -------
+    None
     """
     existing_handlers = {h.__class__.__name__ for h in logger.handlers}
     for handler in handlers:

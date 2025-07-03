@@ -1,4 +1,15 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 """
 UsersHandler module for Coyote3
 ===============================
@@ -7,9 +18,6 @@ This module defines the `UsersHandler` class used for accessing and managing
 user data in MongoDB.
 
 It is part of the `coyote.db` package and extends the base handler functionality.
-
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
 from datetime import datetime
@@ -48,7 +56,8 @@ class UsersHandler(BaseHandler):
         Returns:
             dict: A dictionary representation of the user document.
         """
-        return dict(self.get_collection().find_one({"email": user_mail}))
+
+        return self.get_collection().find_one({"email": user_mail})
 
     def user_with_id(self, user_id: str) -> dict:
         """

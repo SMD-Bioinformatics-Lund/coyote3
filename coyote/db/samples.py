@@ -1,4 +1,15 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
 """
 SampleHandler module for Coyote3
 ================================
@@ -7,13 +18,8 @@ This module defines the `SampleHandler` class used for accessing and managing
 sample data in MongoDB.
 
 It is part of the `coyote.db` package and extends the base handler functionality.
-
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
-from datetime import datetime
-from typing import Any
 
 # -------------------------------------------------------------------------
 # Imports
@@ -77,9 +83,7 @@ class SampleHandler(BaseHandler):
         if report:
             query["report_num"] = {"$gt": 0}
             if time_limit:
-                query["reports"] = {
-                    "$elemMatch": {"time_created": {"$gt": time_limit}}
-                }
+                query["reports"] = {"$elemMatch": {"time_created": {"$gt": time_limit}}}
         else:
             query["$or"] = [
                 {"report_num": {"$exists": False}},
@@ -91,9 +95,7 @@ class SampleHandler(BaseHandler):
 
         app.home_logger.debug(f"Sample query: {query}")
 
-        samples = list(
-            self.get_collection().find(query).sort("time_added", -1)
-        )
+        samples = list(self.get_collection().find(query).sort("time_added", -1))
 
         if limit:
             samples = samples[:limit]
@@ -130,7 +132,7 @@ class SampleHandler(BaseHandler):
             - If caching is enabled and a cache hit occurs, returns cached samples.
             - On cache miss or if caching is disabled, queries the database and updates the cache.
         """
-        cache_timeout = app.config.get("CACHE_TIMEOUT_SAMPLES", 120)
+        cache_timeout = app.config.get("CACHE_DEFAULT_TIMEOUT", 0)
 
         cache_key = CommonUtility.generate_sample_cache_key(**locals())
 
@@ -140,9 +142,7 @@ class SampleHandler(BaseHandler):
                 app.logger.info(f"[SAMPLES CACHE HIT] {cache_key}")
                 return samples
             else:
-                app.logger.info(
-                    f"[SAMPLES CACHE MISS] {cache_key} — fetching from DB."
-                )
+                app.logger.info(f"[SAMPLES CACHE MISS] {cache_key} — fetching from DB.")
 
         # If no cache or use_cache=False, or cache miss
         samples = self._query_samples(
@@ -156,9 +156,7 @@ class SampleHandler(BaseHandler):
 
         if use_cache:
             app.cache.set(cache_key, samples, timeout=cache_timeout)
-            app.logger.debug(
-                f"[SAMPLES CACHE SET] {cache_key} (timeout={cache_timeout}s)"
-            )
+            app.logger.debug(f"[SAMPLES CACHE SET] {cache_key} (timeout={cache_timeout}s)")
 
         return samples
 
@@ -234,13 +232,9 @@ class SampleHandler(BaseHandler):
         Returns:
           Any: A cursor to the list of sample documents containing only the `name` field.
         """
-        return self.get_collection().find(
-            {"_id": {"$in": sample_oids}}, {"name": 1}
-        )
+        return self.get_collection().find({"_id": {"$in": sample_oids}}, {"name": 1})
 
-    def reset_sample_settings(
-        self, sample_id: str, default_filters: dict
-    ) -> Any:
+    def reset_sample_settings(self, sample_id: str, default_filters: dict) -> Any:
         """
         Reset a sample to its default settings.
 
@@ -335,7 +329,7 @@ class SampleHandler(BaseHandler):
         """
         return self.hidden_comments(id)
 
-    def get_all_sample_counts(self, report=None) -> list:
+    def get_all_sample_counts(self, report: bool | None = None) -> list:
         """
         Retrieve the total count of all samples in the database.
 
@@ -349,9 +343,7 @@ class SampleHandler(BaseHandler):
         """
         samples = []
         if report is None:
-            samples = (
-                self.get_collection().find().sort("time_added", -1).count()
-            )
+            samples = self.get_collection().find().sort("time_added", -1).count()
         elif report:
             samples = (
                 self.get_collection()
@@ -377,7 +369,41 @@ class SampleHandler(BaseHandler):
 
         return samples
 
-    def get_assay_specific_sample_stats(self) -> dict:
+    def user_sample_counts_by_assay(self, report: bool | None = None, assays: list = None) -> dict:
+        """
+        Retrieve the count of samples for each assay group.
+        This method aggregates sample counts by assay groups, returning a dictionary
+        where each key is an assay group and the value is the count of samples in that group.
+        Args:
+            assays (list, optional): A list of assay groups to filter the samples. If None, counts all samples.
+        Returns:
+            dict: A dictionary where each key is an assay group and the value is the count of samples in that group.
+        """
+        samples = []
+        if report is None and assays is None:
+            samples = self.get_collection().find().sort("time_added", -1).count()
+        elif assays and report is None:
+            samples = (
+                self.get_collection()
+                .find({"assay": {"$in": assays}})
+                .sort("time_added", -1)
+                .count()
+            )
+
+        pipeline = [
+            {"$match": {"assay": {"$in": assays}}} if assays else {},
+            {"$group": {"_id": "$assay", "count": {"$sum": 1}}},
+            {"$project": {"_id": 0, "assay": "$_id", "count": 1}},
+        ]
+        if assays is None:
+            pipeline = [
+                {"$group": {"_id": "$assay", "count": {"$sum": 1}}},
+                {"$project": {"_id": 0, "assay": "$_id", "count": 1}},
+            ]
+        result = list(self.get_collection().aggregate(pipeline))
+        return {item["assay"]: item["count"] for item in result}
+
+    def get_assay_specific_sample_stats(self, assays: list = None) -> dict:
         """
         Retrieve assay-specific statistics.
 
@@ -392,48 +418,34 @@ class SampleHandler(BaseHandler):
                 - 'report': Number of samples with reports.
                 - 'pending': Number of samples without reports.
         """
-        pipeline = [
-            {"$unwind": "$groups"},
-            {
-                "$group": {
-                    "_id": "$groups",
-                    "total": {"$sum": 1},
-                    "report": {
-                        "$sum": {"$cond": [{"$gt": ["$report_num", 0]}, 1, 0]}
-                    },
-                    "pending": {
-                        "$sum": {"$cond": [{"$gt": ["$report_num", 0]}, 0, 1]}
-                    },
-                }
-            },
-            {
-                "$group": {
-                    "_id": None,
-                    "stats": {
-                        "$push": {
-                            "group": "$_id",
-                            "total": "$total",
-                            "report": "$report",
-                            "pending": "$pending",
-                        }
-                    },
-                }
-            },
-            {"$project": {"_id": 0, "stats": 1}},
-        ]
+        pipeline = []
 
-        result = list(self.get_collection().aggregate(pipeline))[0].get(
-            "stats", []
-        )
-        assay_specific_stats = {
-            stat.get("group"): {
-                "total": stat.get("total", 0),
-                "report": stat.get("report", 0),
-                "pending": stat.get("pending", 0),
+        if assays:
+            pipeline.append({"$match": {"assay": {"$in": assays}}})
+
+        pipeline.append(
+            {
+                "$group": {
+                    "_id": {"assay": "$assay"},
+                    "total": {"$sum": 1},
+                    "analysed": {"$sum": {"$cond": [{"$gt": ["$report_num", 0]}, 1, 0]}},
+                    "pending": {"$sum": {"$cond": [{"$gt": ["$report_num", 0]}, 0, 1]}},
+                }
             }
-            for stat in result
-        }
-        return assay_specific_stats
+        )
+
+        result = list(self.get_collection().aggregate(pipeline))
+
+        assay_group_stats = {}
+        for doc in result:
+            assay = doc["_id"]["assay"]
+            assay_group_stats[assay] = {
+                "total": doc.get("total", 0),
+                "analysed": doc.get("analysed", 0),
+                "pending": doc.get("pending", 0),
+            }
+
+        return assay_group_stats
 
     def get_all_samples(self, assays=None, limit=None, search_str="") -> Any:
         """
@@ -459,12 +471,7 @@ class SampleHandler(BaseHandler):
             query["name"] = {"$regex": search_str}
 
         if limit:
-            samples = (
-                self.get_collection()
-                .find(query)
-                .sort("time_added", -1)
-                .limit(limit)
-            )
+            samples = self.get_collection().find(query).sort("time_added", -1).limit(limit)
         else:
             samples = self.get_collection().find(query).sort("time_added", -1)
 
@@ -482,9 +489,7 @@ class SampleHandler(BaseHandler):
         """
         return self.get_collection().delete_one({"_id": ObjectId(sample_oid)})
 
-    def save_report(
-        self, sample_id: str, report_id: str, filepath: str
-    ) -> bool | None:
+    def save_report(self, sample_id: str, report_id: str, filepath: str) -> bool | None:
         """
         Save a report to a sample document in the database.
 
@@ -505,6 +510,8 @@ class SampleHandler(BaseHandler):
                         "_id": ObjectId(),
                         "report_num": report_num,
                         "report_id": f"{report_id}",
+                        "report_type": "html",
+                        "report_name": f"{report_id}.html",
                         "filepath": filepath,
                         "author": current_user.username,
                         "time_created": datetime.now(),

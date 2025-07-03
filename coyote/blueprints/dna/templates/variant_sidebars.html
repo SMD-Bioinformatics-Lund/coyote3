@@ -7,13 +7,13 @@
     </div>
     <div class="flex justify-between mt-2">
       <button class="bg-brown-400 hover:bg-brown-500 text-white font-semibold p-1 rounded text-xs mx-1" onclick="switchVisibility('fp', this);">Hide FPs</button>
-      {% if assay == "solid" or assay == "gmsonco" %}
+      {% if assay_group in ["solid", "gmsonco"] %}
           <button class="bg-brown-400 hover:bg-brown-500 text-white font-semibold p-1 rounded text-xs mx-1" onclick="window.location.href='#'; show_germlinecnv(this);">Germline CNVs</button>    
       {% endif %}
     </div>
   </div>
 
-  <hr class="broder border-gray-500 my-1">
+  <hr class="border border-gray-500 my-1">
 
   <!-- Variant actions -->
   <div id="snv-actions" class="p-1 px-2 space-y-2 w-full text-xs {% if not has_access('manage_snvs', min_role='user', min_level=9) %}readonly opacity-70 select-none pointer-events-none{% endif %}">
@@ -39,7 +39,7 @@
 
       <!-- Submit Buttons -->
       <div class="flex justify-between mt-2">
-        <input type="hidden" name="assay" value="{{ assay }}">
+        <input type="hidden" name="assay_group" value="{{ assay_group }}">
         <input type="hidden" name="subpanel" value="{{ sample.subpanel }}">
         <button type="button" onclick="submitSNVSidebarForm('apply')" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-1 rounded text-xs mx-1">Apply</button>
         <button type="button" onclick="submitSNVSidebarForm('remove')" class="bg-orange-500 hover:bg-red-700 text-white font-semibold py-1 px-1 rounded text-xs mx-1">Remove</button>
@@ -47,9 +47,9 @@
     </form>
   </div>
 
-  <hr class="broder border-gray-500 my-1">
+  <hr class="border border-gray-500 my-1">
 
-  <form action="" method="POST" name="form" class="{% if not has_access('apply_dna_filters', min_role='user', min_level=9) %}readonly opacity-70 select-none pointer-events-none{% endif %}">
+  <form action="" method="POST" name="form" class="{% if not has_access('apply_variant_filters', min_role='user', min_level=9) %}readonly opacity-70 select-none pointer-events-none{% endif %}">
 
     <div id="snv-filters" class="p-1 px-2 space-y-2 w-full text-xs">
       <div class="flex justify-between items-center mb-1">
@@ -82,7 +82,7 @@
         <label class="text-gray-900">Min Freq.</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&ge;</span>
-          {{ form.min_freq(size=1, default=sample.filters.min_freq, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
+          {{ form.min_freq(size=1, step="any", min=0, max=1, default=sample.filters.min_freq, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
         </div>
       </div>
 
@@ -90,7 +90,7 @@
         <label class="text-gray-900">Max Freq.</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&le;</span>
-          {{ form.max_freq(size=1, default=sample.filters.max_freq, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
+          {{ form.max_freq(size=1, step="any", min=0, max=1, default=sample.filters.max_freq, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
         </div>
       </div>
 
@@ -98,7 +98,7 @@
         <label class="text-gray-900">Max Ctrl. Freq.</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&le;</span>
-          {{ form.max_control_freq(size=1, default=sample.filters.max_control_freq, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
+          {{ form.max_control_freq(size=1, step="any", min=0, max=1, default=sample.filters.max_control_freq, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
         </div>
       </div>
 
@@ -106,7 +106,7 @@
         <label class="text-gray-900">Max Pop. Freq.</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&le;</span>
-          {{ form.max_popfreq(size=1, default=sample.filters.max_popfreq, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
+          {{ form.max_popfreq(size=1, step="any", min=0, max=1, default=sample.filters.max_popfreq, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
         </div>
       </div>
 
@@ -155,7 +155,7 @@
       
     </div>
 
-    <hr class="broder border-gray-500 my-1">
+    <hr class="border border-gray-500 my-1">
     
     <div id="cnv-filters" class="p-1 px-2 space-y-2 w-full text-xs">
       <!-- CNV filters -->

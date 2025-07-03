@@ -1,4 +1,14 @@
-import re
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
 
 from flask import current_app as app
 
@@ -9,13 +19,13 @@ def build_query(sample_settings, group) -> dict:
     """
     query = {}
     query["SAMPLE_ID"] = sample_settings["id"]
-
+    group_query = group.get("query")
     ## Global OR-statement, will override everything else
     globalor = []
 
     # Show GERMLINE for paired or not, and with the option to override pipeline settings for genes. Default query NO germline
     ## check in config if germline should be forced to view
-    if "GERM in CONFIG":
+    if group_query != None and "GERMLINE" in group_query:
         ## get override germline genes from config
         germ = []
         germ.append({"FILTER": {"$in": ["GERMLINE"]}})
@@ -83,8 +93,11 @@ def build_query(sample_settings, group) -> dict:
     ## ADD ALL AND-statements to GLOBAL OR
     globalor.append({"$and": form_list})
 
-    ## ADD the global or to the query
-    query["$or"] = globalor
+    ## ADD the global OR to the query, or just use default AND-statement
+    if no_or_statements > 0:
+        query["$or"] = globalor
+    else:
+        query['$and'] = form_list
 
     return query
 
@@ -103,4 +116,13 @@ def FLT_LARGE_INS():
             },
         ]
     }
-    return flt3
+    return large_ins
+
+def REGULATORY_VARIANTS():
+    """
+    define if some promoter variants should show for specific genes
+
+    1 gene: '$and' : { genesymbol : gene}, { csq: TF_BINDING, REGULATORY }
+    2 or more genes: '$and' : {'$or' : { genesymbol:gene1}, { genesymbol:gene2}, { genesymbol:gene3} }, { csq: TF_BINDING, REGULATORY }
+    """
+    

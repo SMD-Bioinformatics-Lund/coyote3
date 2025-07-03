@@ -1,4 +1,16 @@
-# -*- coding: utf-8 -*-
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
+
+
 """
 BlacklistHandler module for Coyote3
 ===================================
@@ -7,9 +19,6 @@ This module defines the `BlacklistHandler` class used for accessing and managing
 blacklist data in MongoDB.
 
 It is part of the `coyote.db` package and extends the base handler functionality.
-
-Author: Coyote3 authors.
-License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 """
 
 from flask import current_app as app
@@ -115,17 +124,4 @@ class BlacklistHandler(BaseHandler):
             int: The count of unique blacklist entries. Returns 0 if no entries are found
                  or if an error occurs during the aggregation.
         """
-        query = [
-            {"$group": {"_id": {"pos": "$pos"}}},
-            {"$group": {"_id": None, "uniqueBlacklistCount": {"$sum": 1}}},
-        ]
-
-        try:
-            result = list(self.get_collection().aggregate(query))
-            if result:
-                return result[0].get("uniqueBlacklistCount", 0)
-            else:
-                return 0
-        except Exception as e:
-            app.logger.error(f"An error occurred: {e}")
-            return 0
+        return len(self.get_collection().distinct("pos")) or 0

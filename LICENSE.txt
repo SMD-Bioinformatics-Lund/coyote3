@@ -1,0 +1,10 @@
+Copyright (c) 2025 Coyote Project Authors
+All rights reserved.
+
+This software is proprietary and confidential. It is intended for internal use only
+within authorized departments and institutions. Redistribution, commercial use,
+or modification of this software is not permitted without explicit written consent
+from the copyright holders.
+
+If you are a hospital, research institution, or collaborator and wish to use or
+contribute to this software, please contact [ram.nanduri@skane.se, viktor.henmyr@skane.se] for licensing terms.

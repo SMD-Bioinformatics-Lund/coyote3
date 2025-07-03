@@ -1,23 +1,38 @@
-import json
-import traceback
-from copy import deepcopy
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
 
-from flask import abort
+"""
+This module defines Flask view functions for handling error screens and sample comment operations within the Coyote3 project. It includes routes for displaying errors, adding, hiding, and unhiding sample comments, and retrieving gene lists for samples. Access control and user authentication are enforced via decorators.
+"""
+
+import json
+
+from flask import Response, flash, redirect, render_template, request, url_for
 from flask import current_app as app
-from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from coyote.blueprints.common import common_bp
-from coyote.blueprints.home import home_bp
 from coyote.extensions import store, util
 from coyote.services.auth.decorators import require
 from coyote.util.decorators.access import require_sample_access
 
 
 @common_bp.route("/errors/")
-def error_screen():
+def error_screen() -> str | Response:
     """
-    Error screen
+    Renders a generic error screen.
+
+    If the current user is an admin, detailed error information is displayed.
+    Otherwise, a generic error message is shown.
     """
     # TODO Example Error Code, should be removed later /modified
     try:
@@ -42,15 +57,14 @@ def error_screen():
     endpoint="add_rna_sample_comment",
 )
 @common_bp.route("/sample/<string:sample_id>/sample_comment", methods=["POST"])
-@login_required
 @require_sample_access("sample_id")
 @require("add_sample_comment", min_role="user", min_level=9)
-def add_sample_comment(sample_id):
+def add_sample_comment(sample_id: str) -> Response:
     """
     Add Sample comment
     """
     data = request.form.to_dict()
-    doc = util.dna.create_comment_doc(data, key="sample_comment")
+    doc = util.bpcommon.create_comment_doc(data, key="sample_comment")
     store.sample_handler.add_sample_comment(sample_id, doc)
     flash("Sample comment added", "green")
     sample = store.sample_handler.get_sample_by_id(sample_id)
@@ -66,8 +80,16 @@ def add_sample_comment(sample_id):
 )
 @require_sample_access("sample_id")
 @require("hide_sample_comment", min_role="manager", min_level=99)
-@login_required
-def hide_sample_comment(sample_id):
+def hide_sample_comment(sample_id: str) -> Response:
+    """
+    Hides a sample comment for the given sample.
+
+    Args:
+        sample_id (str): The identifier of the sample.
+
+    Returns:
+        Response: Redirects to the appropriate variant or fusion list page based on sample type.
+    """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.sample_handler.hide_sample_comment(sample_id, comment_id)
     sample = store.sample_handler.get_sample_by_id(sample_id)
@@ -82,10 +104,18 @@ def hide_sample_comment(sample_id):
 @common_bp.route(
     "/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"]
 )
-@login_required
 @require_sample_access("sample_id")
 @require("unhide_sample_comment", min_role="manager", min_level=99)
-def unhide_sample_comment(sample_id):
+def unhide_sample_comment(sample_id: str) -> Response:
+    """
+    Unhides a previously hidden sample comment for the given sample.
+
+    Args:
+        sample_id (str): The identifier of the sample.
+
+    Returns:
+        Response: Redirects to the appropriate variant or fusion list page based on sample type.
+    """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.sample_handler.unhide_sample_comment(sample_id, comment_id)
     sample = store.sample_handler.get_sample_by_id(sample_id)
@@ -100,7 +130,7 @@ def unhide_sample_comment(sample_id):
 @common_bp.route(
     "/<string:sample_id>/<string:sample_assay>/genes", methods=["POST"]
 )
-def get_sample_genelists(sample_id, sample_assay) -> str:
+def get_sample_genelists(sample_id: str, sample_assay: str) -> str:
     """
     Retrieves and decrypts gene list and panel document data from the request form, then renders the 'sample_genes.html' template with the provided sample information.
 
@@ -115,19 +145,23 @@ def get_sample_genelists(sample_id, sample_assay) -> str:
         KeyError: If required form fields ('enc_genelists' or 'enc_panel_doc') are missing.
         Exception: If decryption or JSON decoding fails.
     """
-    enc_genelists = request.form["enc_genelists"]
-    enc_panel_doc = request.form["enc_panel_doc"]
+    enc_genelists = request.form.get("enc_genelists")
+    enc_panel_doc = request.form.get("enc_panel_doc")
+    enc_sample_filters = request.form.get("enc_sample_filters")
 
-    genelists = json.loads(
-        app.config["FERNET"].decrypt(enc_genelists.encode())
-    )
-    panel_doc = json.loads(
-        app.config["FERNET"].decrypt(enc_panel_doc.encode())
+    fernet_obj = app.config.get("FERNET")
+
+    genelists = json.loads(fernet_obj.decrypt(enc_genelists.encode()))
+    panel_doc = json.loads(fernet_obj.decrypt(enc_panel_doc.encode()))
+
+    sample_filters = json.loads(
+        fernet_obj.decrypt(enc_sample_filters.encode())
     )
 
     return render_template(
         "sample_genes.html",
         sample=sample_id,
         genelists=genelists,
-        assay_panel_doc=panel_doc,
+        asp_config=panel_doc,
+        sample_filters=sample_filters,
     )

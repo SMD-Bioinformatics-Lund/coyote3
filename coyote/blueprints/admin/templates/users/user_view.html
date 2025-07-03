@@ -3,7 +3,9 @@
 
 {% block body %}
 <div class="flex w-full h-full overflow-hidden">
-  {% include "admin_sidebar.html" %}
+  {% if "admin" in request.path %}
+    {% include "admin_sidebar.html" %}
+  {% endif %}
   <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
     <section class="p-2 ml-2 mt-2">
       <div class="bg-gray-50 border border-gray-200 rounded-2xl shadow-xl p-6">
@@ -17,7 +19,7 @@
               View User – <i>{{ user._id }}</i>
             </h1>
 
-            {% if user.version_history %}
+            {% if user.version_history and "admin" in request.path %}
               <div class="flex items-center gap-2 mt-1">
                 <label class="text-xs font-semibold text-gray-800">Version:</label>
                 <form method="GET">

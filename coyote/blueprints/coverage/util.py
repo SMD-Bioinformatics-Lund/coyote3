@@ -1,27 +1,50 @@
-import re
-import subprocess
-from bisect import bisect_left
-from collections import defaultdict
-from datetime import datetime
-from math import floor, log10
+#  Copyright (c) 2025 Coyote3 Project Authors
+#  All rights reserved.
+#
+#  This source file is part of the Coyote3 codebase.
+#  The Coyote3 project provides a framework for genomic data analysis,
+#  interpretation, reporting, and clinical diagnostics.
+#
+#  Unauthorized use, distribution, or modification of this software or its
+#  components is strictly prohibited without prior written permission from
+#  the copyright holders.
+#
 
-from bson.objectid import ObjectId
-from flask import current_app as app
-from flask_login import current_user
+"""
+Utility functions for processing genomic coverage data, including identification of low-covered genes and regions, data organization for visualization, gene filtering, and probe-to-exon assignment. Designed for use within the Coyote3 genomic analysis framework.
+"""
+
+from collections import defaultdict
 
 from coyote.extensions import store
-from coyote.util.common_utility import CommonUtility
 
 
 class CoverageUtility:
     """
-    This class contains utility functions for coverage data processing.
+    CoverageUtility provides static methods for processing genomic coverage data.
+
+    Main functionalities:
+    - Identifies low-covered genes and regions based on coverage cutoffs.
+    - Organizes data structures for visualization (e.g., for JavaScript/D3).
+    - Filters genes based on user input and blacklist status.
+    - Assigns probes to exons for accurate mapping.
+    - Generates condensed coverage tables for reporting.
+
+    Intended for use within the Coyote3 genomic analysis framework.
     """
 
     @staticmethod
-    def find_low_covered_genes(cov, cutoff, smp_grp):
+    def find_low_covered_genes(cov: dict, cutoff: float, smp_grp: str) -> dict:
         """
-        find low covered parts in defined regions of interest
+        Identifies low-covered regions within specified genes of interest.
+
+        Args:
+            cov (dict): Coverage data structured by gene, containing subregions such as 'CDS' and 'probes'.
+            cutoff (float): Coverage threshold below which a region is considered low-covered.
+            smp_grp (str): Sample group identifier for blacklist checks.
+
+        Returns:
+            dict: Dictionary of genes with at least one region below the coverage cutoff and not blacklisted.
         """
         keep = defaultdict(dict)
         for gene in cov["genes"]:
@@ -38,15 +61,24 @@ class CoverageUtility:
                     gene,
                     smp_grp,
                 )
-            if has_low == True:
+            if has_low:
                 keep["genes"][gene] = cov["genes"][gene]
         return keep
 
     @staticmethod
-    def organize_data_for_d3(filtered_dict):
+    def organize_data_for_d3(filtered_dict: dict) -> dict:
         """
-        This is for javascript. Data imported as dicts to make blacklisting easier
-        but needs to be as lists for javascript to jsonify correctly in plot functions
+        Converts gene, exon, and probe data from dictionary format to lists for JavaScript visualization.
+
+        This transformation is necessary because data is initially structured as dictionaries to facilitate
+        blacklisting and filtering operations in Python. However, JavaScript visualization libraries (such as D3)
+        require data in list format for proper JSON serialization and plotting.
+
+        Args:
+            filtered_dict (dict): Dictionary containing gene coverage data with nested dictionaries for exons, CDS, and probes.
+
+        Returns:
+            dict: The input dictionary with 'exons', 'CDS', and 'probes' fields converted to lists for each gene.
         """
         for gene in filtered_dict["genes"]:
             if "exons" in filtered_dict["genes"][gene]:
@@ -76,7 +108,20 @@ class CoverageUtility:
         return filtered_dict
 
     @staticmethod
-    def filter_genes_from_form(cov_dict, filter_genes, smp_grp):
+    def filter_genes_from_form(
+        cov_dict: dict, filter_genes: list, smp_grp: str
+    ) -> dict:
+        """
+        Filters the genes in the coverage dictionary, keeping only those present in the provided list and not blacklisted for the given sample group.
+
+        Args:
+            cov_dict (dict): Dictionary containing gene coverage data.
+            filter_genes (list): List of gene names to retain.
+            smp_grp (str): Sample group identifier for blacklist checking.
+
+        Returns:
+            dict: Filtered dictionary containing only allowed genes.
+        """
         filtered_dict = defaultdict(dict)
         for gene in cov_dict["genes"]:
             blacklisted = store.groupcov_handler.is_gene_blacklisted(
@@ -87,9 +132,22 @@ class CoverageUtility:
         return filtered_dict
 
     @staticmethod
-    def reg_low(region_dict, region, cutoff, gene, smp_grp):
+    def reg_low(
+        region_dict: dict, region: str, cutoff: float, gene: str, smp_grp: str
+    ) -> bool:
         """
-        filter against cutoff ignore if region is blacklisted
+        Checks if any region in the given region dictionary has coverage below the specified cutoff,
+        ignoring regions that are blacklisted for the given gene, region type, and sample group.
+
+        Args:
+            region_dict (dict): Dictionary of regions (e.g., exons or probes) with coverage information.
+            region (str): The type of region (e.g., 'CDS', 'probe').
+            cutoff (float): Coverage threshold below which a region is considered low-covered.
+            gene (str): Gene name.
+            smp_grp (str): Sample group identifier for blacklist checks.
+
+        Returns:
+            bool: True if at least one non-blacklisted region is below the cutoff, False otherwise.
         """
         has_low = False
         for reg in region_dict:
@@ -103,9 +161,16 @@ class CoverageUtility:
         return has_low
 
     @staticmethod
-    def coverage_table(cov_dict, cov_cutoff):
+    def coverage_table(cov_dict: dict, cov_cutoff: float) -> defaultdict:
         """
-        organize data to be presented condensed in table format
+        Organizes coverage data into a condensed table format for reporting.
+
+        Args:
+            cov_dict (dict): Dictionary containing gene coverage data.
+            cov_cutoff (float): Coverage threshold for identifying low-covered regions.
+
+        Returns:
+            defaultdict: Nested dictionary summarizing low-covered exons or probes per gene.
         """
         cov_table = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
         for gene in cov_dict["genes"]:
@@ -145,9 +210,16 @@ class CoverageUtility:
         return cov_table
 
     @staticmethod
-    def assign_to_exon(probe, gene_cov):
+    def assign_to_exon(probe: str, gene_cov: dict) -> list:
         """
-        assign probe to correct exon(cds)
+        Assigns a probe to the correct exon(s) (CDS) based on genomic coordinate overlap.
+
+        Args:
+            probe: The probe identifier (key) in the gene coverage dictionary.
+            gene_cov (dict): Dictionary containing 'probes' and 'CDS' (exons) with their start and end positions.
+
+        Returns:
+            list: List of exon (CDS) dictionaries that overlap with the given probe.
         """
         exons = []
         for exon in gene_cov["CDS"]:

@@ -1,571 +1,172 @@
 {% extends "layout.html" %}
 {% block style %}
-  <link href="{{ url_for('dashboard_bp.static', filename='css/db_style.css') }}" rel="stylesheet">
+  <script src="{{ url_for('dashboard_bp.static', filename='js/apexcharts.js') }}"></script>
 {% endblock %}
 
+
 {% block body %}
-<div class="mx-auto py-10 m-5 px-10">
-  <!-- Top Cards Row -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-    <div class="card bg-gradient-to-r from-blue-400 to-blue-600 text-black shadow-lg rounded-xl p-5 relative overflow-hidden transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl">
-        <h2 class="text-xl font-semibold mb-1">Total Samples</h2>
-        <p class="text-4xl font-extrabold">{{ total_samples }}</p>
-    </div>
-    <a href="{{ url_for('home_bp.samples_home', status="done") }}">
-      <div class="card bg-white text-black shadow-lg rounded-xl p-5 relative overflow-hidden border-4 border-green-400 transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl">
-        <div class="fill bg-green-400" style="width: {{ analysed_samples / total_samples * 100 }}%;"></div>
-            <h2 class="text-xl font-semibold mb-1 relative z-10">Samples Analysed</h2>
-            <p class="text-4xl font-extrabold relative z-10">{{ analysed_samples }}</p>
+<div class="flex w-full h-full overflow-hidden">
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+
+    <!-- Total Samples Horizontal Visual Bar -->
+    <section class="bg-blue-50 shadow-lg rounded-xl px-2 py-2 my-2 relative">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-lg font-semibold text-black px-2">Samples Progress Overview</h2>
+        <span class="text-sm font-semibold text-black px-4">Total: {{ total_samples }}</span>
       </div>
-    </a>
-    <a href="{{ url_for('home_bp.samples_home') }}">
-      <div class="card bg-white text-black shadow-lg rounded-xl p-5 relative overflow-hidden border-4 border-red-400 transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl">
-        <div class="fill bg-red-400" style="width: {{ pending_samples|int / total_samples|int * 100 }}%;"></div>
-          <h2 class="text-xl font-semibold mb-1 relative z-10">Samples Pending</h2>
-          <p class="text-4xl font-extrabold relative z-10">{{ pending_samples }}</p>
+      <div class="relative h-8 bg-purple-100 rounded-full overflow-hidden">
+        <div class="absolute left-0 top-0 h-full bg-pink-300 transition-all duration-700"
+            style="width: {{ (analysed_samples / total_samples * 100) | round(2) }}%;">
+        </div>
+        <div class="absolute inset-0 flex justify-between items-center px-4 text-xs font-semibold text-black">
+          <span>Analysed: {{ analysed_samples }}</span>
+          <span>Pending: {{ pending_samples }}</span>
+        </div>
       </div>
-    </a>
-  </div>
-  <div class="grid grid-cols-1 md:grid-cols-7 gap-8 mb-10">
-    <div class="card bg-gradient-to-r from-yellow-400 to-yellow-600 text-black shadow-lg rounded-xl p-5 relative overflow-hidden break-words transition duration-100 ease-in-out transform hover:scale-105 hover:shadow-2xl">
-      <p class="text-2xl font-extrabold">{{ total_variant_counts }}</p>
-      <h2 class="text-xl font-semibold mb-1">Total Variants</h2>
-  </div>
-    <div class="card bg-gradient-to-r from-yellow-400 to-yellow-600 text-black shadow-lg rounded-xl p-5 relative overflow-hidden break-words transition duration-100 ease-in-out transform hover:scale-105 hover:shadow-2xl">
-        <p class="text-2xl font-extrabold">{{ unique_variant_counts }}</p>
-        <h2 class="text-xl font-semibold mb-2">Unique Variants</h2>
-    </div>
-    <div class="card bg-gradient-to-r from-purple-400 to-purple-600 text-black shadow-lg rounded-xl p-5 relative overflow-hidden break-words transition duration-100 ease-in-out transform hover:scale-105 hover:shadow-2xl">
-        <p class="text-2xl font-extrabold">{{ unique_snps_counts }}</p>
-        <h2 class="text-xl font-semibold mb-2">SNPs</h2>
-    </div>
-    <div class="card bg-gradient-to-r from-indigo-400 to-indigo-600 text-black shadow-lg rounded-xl p-5 relative overflow-hidden break-words transition duration-100 ease-in-out transform hover:scale-105 hover:shadow-2xl">
-        <p class="text-2xl font-extrabold">{{ unique_variant_counts - unique_snps_counts }}</p>
-        <h2 class="text-xl font-semibold mb-2">Indels</h2>
-    </div>
-    <div class="card bg-gradient-to-r from-red-400 to-red-600 text-black shadow-lg rounded-xl p-8 relative overflow-hidden break-words  transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-2xl">
-      <p class="text-2xl font-extrabold">{{ unique_cnv_counts }}</p>
-      <h2 class="text-xl font-semibold mb-2">CNVs</h2>
-    </div>
-    <div class="card bg-gradient-to-r from-green-400 to-green-600 text-black shadow-lg rounded-xl p-5 relative overflow-hidden break-words transition duration-100 ease-in-out transform hover:scale-105 hover:shadow-2xl">
-      <p class="text-2xl font-extrabold">{{ unique_transloc_counts }}</p>
-      <h2 class="text-xl font-semibold mb-2">Trans locations</h2>
-    </div>
-    <div class="card bg-gradient-to-r from-gray-400 to-gray-600 text-black shadow-lg rounded-xl p-5 relative overflow-hidden break-words transition duration-100 ease-in-out transform hover:scale-105 hover:shadow-2xl">
-      <p class="text-2xl font-extrabold">{{ unique_fusion_counts }}</p>
-      <h2 class="text-xl font-semibold mb-2">Fusions</h2>
-    </div>
-    <div class="card bg-gradient-to-r from-blue-400 to-blue-600 text-black shadow-lg rounded-xl p-5 relative overflow-hidden break-words transition duration-100 ease-in-out transform hover:scale-105 hover:shadow-2xl">
-      <p class="text-2xl font-extrabold">{{ unique_blacklist_counts }}</p>
-      <h2 class="text-xl font-semibold mb-2">Blacklisted</h2>
-    </div>
-    <div class="card bg-gradient-to-r from-blue-400 to-blue-600 text-black shadow-lg rounded-xl p-5 relative overflow-hidden break-words transition duration-100 ease-in-out transform hover:scale-105 hover:shadow-2xl">
-      <p class="text-2xl font-extrabold">{{ unique_fp_counts }}</p>
-      <h2 class="text-xl font-semibold mb-2">False Positive</h2>
-    </div>
-    <div class="card bg-gradient-to-r from-blue-400 to-blue-600 text-black shadow-lg rounded-xl p-5 relative overflow-hidden break-words transition duration-100 ease-in-out transform hover:scale-105 hover:shadow-2xl">
-      <p class="text-2xl font-extrabold">{{ unique_gene_count_all_panels }}</p>
-      <h2 class="text-xl font-semibold mb-2">Genes<br>(all panels)</h2>
-    </div>
-    <div class="card bg-gradient-to-r from-blue-400 to-blue-600 text-black shadow-lg rounded-xl p-5 relative overflow-hidden break-words transition duration-100 ease-in-out transform hover:scale-105 hover:shadow-2xl">
-      <p class="text-2xl font-extrabold">{{ total_assay_count }}</p>
-      <h2 class="text-xl font-semibold mb-2">Assays</h2>
-    </div>
-  </div>
+    </section>
 
-  <!-- Modern Chart Row -->
-  <div class="flex justify-center mb-10">
-    <div class="card bg-white shadow-lg rounded-xl p-4 w-1/3 m-4">
-      <canvas id="multiLevelChart" width="50" height="50"></canvas>
-    </div>
+    <!-- Middle Row: Variant Stats + User Stats -->
+    <section class="bg-transparent relative">
+      <div class="grid grid-cols-{{ 2 if user_samples_stats else 1 }} gap-6">
+        <!-- Variant Stats -->
+        <div class="bg-blue-50 flex flex-col gap-4 w-full break-all p-4 my-4 mr-4 shadow-lg rounded-xl">
+          <h3 class="text-xl font-bold text-black mb-2">Variant Stats</h3>
+          <div class="grid grid-cols-4 gap-5">
+            <div class="bg-yellow-100 p-4 rounded-xl shadow-lg text-center">
+              <p class="text-3xl font-bold">{{ variant_stats.total_variants }}</p>
+              <p class="text-sm text-gray-700">Total Variants</p>
+            </div>
+            <div class="bg-yellow-200 p-4 rounded-xl shadow-lg text-center">
+              <p class="text-3xl font-bold">{{ variant_stats.unique_variants }}</p>
+              <p class="text-sm text-gray-700">Unique Variants</p>
+            </div>
+            <div class="bg-purple-200 p-4 rounded-xl shadow-lg text-center">
+              <p class="text-3xl font-bold">{{ variant_stats.unique_snps }}</p>
+              <p class="text-sm text-gray-700">SNPs</p>
+            </div>
+            <div class="bg-purple-300 p-4 rounded-xl shadow-lg text-center">
+              <p class="text-3xl font-bold">{{ variant_stats.unique_variants - variant_stats.unique_snps }}</p>
+              <p class="text-sm text-gray-700">Indels</p>
+            </div>
+            <div class="bg-red-200 p-4 rounded-xl shadow-lg text-center">
+              <p class="text-3xl font-bold">{{ variant_stats.unique_cnvs }}</p>
+              <p class="text-sm text-gray-700">CNVs</p>
+            </div>
+            <div class="bg-pink-200 p-4 rounded-xl shadow-lg text-center">
+              <p class="text-3xl font-bold">{{ variant_stats.unique_translocs }}</p>
+              <p class="text-sm text-gray-700">Translocations</p>
+            </div>
+            <div class="bg-blue-200 p-4 rounded-xl shadow-lg text-center">
+              <p class="text-3xl font-bold">{{ variant_stats.unique_fusions }}</p>
+              <p class="text-sm text-gray-700">Fusions</p>
+            </div>
+            <div class="bg-gray-300 p-4 rounded-xl shadow-lg text-center">
+              <p class="text-3xl font-bold">{{ variant_stats.unique_blacklist_variants }}</p>
+              <p class="text-sm text-gray-700">Blacklisted</p>
+            </div>
+            <div class="bg-gray-400 p-4 rounded-xl shadow-lg text-center">
+              <p class="text-3xl font-bold">{{ variant_stats.unique_fps }}</p>
+              <p class="text-sm text-gray-700">False Positives</p>
+            </div>
+          </div>
+        </div>
+    
+        {% if user_samples_stats %}
+        <!-- User Specific Sample Stats -->
+        
+        <div class="bg-blue-50 flex flex-col gap-4 w-full break-all p-4 my-4 mr-4 shadow-lg rounded-xl" >
+          <h3 class="text-xl font-bold text-black mb-2">My Progress</h3>
+          <div class="grid grid-cols-3 gap-5">
+            {% for assay, stats in user_samples_stats.items() %}
+              {% set percent = (stats.analysed / stats.total * 100) | round(1) if stats.total > 0 else 0 %}
+              <div class="bg-orange-50 shadow-lg rounded-lg p-4">
+                <div class="flex justify-between mb-1">
+                  <h3 class="text-sm font-medium text-black pr-5">{{ assay }}</h3>
+                  <span class="text-xs font-semibold text-black pl-5">{{ stats.analysed }} / {{ stats.total }}</span>
+                </div>
+                <div class="w-full bg-gray-300 rounded-full h-3">
+                  <div class="bg-blue-500 h-3 rounded-full transition-all duration-500" style="width: {{ percent }}%;"></div>
+                </div>
+                <div class="text-right text-xs text-black mt-1">Pending: {{ stats.pending }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </section>
 
-    <!-- Classification Stats Row -->
-    <div class="card bg-white shadow-lg rounded-xl p-4 w-1/3 m-4">
-      <canvas id="classificationChart" width="50" height="50"></canvas>
-    </div>
+    <section class="bg-blue-50 rounded-xl px-6 py-6 my-6 shadow-md">
+      <h2 class="text-xl font-bold text-black mb-2">Gene Coverage per Assay</h2>
+      <div id="geneChart" class="w-full max-w-6xl mx-auto my-8 bg-white p-4 rounded-xl shadow"></div>
+    </section>
+  </main>
 
-    <!-- Assay Stats Row -->
-    <div class="card bg-white shadow-lg rounded-xl p-4 w-1/3 m-4">
-      <canvas id="assayChart" width="50" height="50"></canvas>
-    </div>
-  </div>
-
-  <div class="flex justify-center mb-5">
-    <!-- Gene Counts per assay -->
-    <div class="card bg-white shadow-lg rounded-xl p-4 w-1/3 m-4">
-      <canvas id="assayGeneCountsChart" width="50" height="50"></canvas>
-    </div>
-
-    <!-- Gene Counts per genelist -->
-    <div class="card bg-white shadow-lg rounded-xl p-4 w-1/2 m-4">
-      <canvas id="genelistGeneCountsChart" width="50" height="30"></canvas>
-    </div>
-  </div>
 </div>
 
-<!-- Include Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script type="text/javascript">
-  const totalSamplesData = {{ total_samples_data | safe }};
-  const analysedSamplesData = {{ analysed_samples_data | safe }};
-  const pendingSamplesData = {{ pending_samples_data | safe }};
-  const classStatsData = {{ class_stats_data | safe }};
-  const assayClassStatsData = {{ assay_class_stats_data | safe }};
-  const assayGeneCountsData = {{ assay_gene_counts | safe }};
-  const genelistGeneCountsData = {{ genelist_gene_counts | safe }};
 
-  function createMultiLevelChart(ctx) {
-    const totalLabels = Object.keys(totalSamplesData);
-    const totalValues = Object.values(totalSamplesData);
-    const analysedValues = Object.values(analysedSamplesData);
-    const pendingValues = Object.values(pendingSamplesData);
-
-    const colors = totalLabels.map((_, index) => `hsl(${index * 360 / totalLabels.length}, 70%, 50%)`);
-
-    new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: totalLabels,
-        datasets: [
-          {
-            label: 'Total Samples',
-            data: totalValues,
-            backgroundColor: colors,
-            borderColor: '#fff',
-            borderWidth: 8,  // Increased borderWidth to create gap between rings
-            hoverOffset: 10,
-          },
-          {
-            label: 'Analysed Samples',
-            data: analysedValues,
-            backgroundColor: colors,
-            borderColor: '#fff',
-            borderWidth: 8,  // Increased borderWidth to create gap between rings
-            hoverOffset: 10,
-          },
-          {
-            label: 'Pending Samples',
-            data: pendingValues,
-            backgroundColor: colors,
-            borderColor: '#fff',
-            borderWidth: 8,  // Increased borderWidth to create gap between rings
-            hoverOffset: 10,
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        cutout: '60%',
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              color: '#243b55',
-              padding: 10,
-              font: {
-                size: 10,
-                weight: 'normal'
-              }
-            }
-          },
-          title: {
-            display: true,
-            text: 'Samples Overview Per Assay and Status',
-            color: '#243b55',
-            font: {
-              size: 18,
-              weight: 'bold'
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const label = context.label || '';
-                const value = context.raw;
-                return `${label}: ${value}`;
-              }
-            }
-          },
-          annotation: {
-            annotations: {
-              text1: {
-                type: 'label',
-                xValue: 'Total Samples',
-                yValue: 0,
-                content: ['Total Samples'],
-                color: '#000',
-                font: {
-                  size: 14
-                },
-                position: 'outside'
-              },
-              text2: {
-                type: 'label',
-                xValue: 'Analysed Samples',
-                yValue: 0,
-                content: ['Analysed Samples'],
-                color: '#000',
-                font: {
-                  size: 14
-                },
-                position: 'outside'
-              },
-              text3: {
-                type: 'label',
-                xValue: 'Pending Samples',
-                yValue: 0,
-                content: ['Pending Samples'],
-                color: '#000',
-                font: {
-                  size: 14
-                },
-                position: 'outside'
-              }
-            }
-          }
-        },
-        animation: {
-          animateScale: true,
-          animateRotate: true
-        },
-        hover: {
-          onHover: function(e) {
-            const point = this.getElementAtEvent(e);
-            if (point.length) e.target.style.cursor = 'pointer';
-            else e.target.style.cursor = 'default';
-          }
-        }
+<script>
+  function renderGroupedAssayGeneChart(containerId, groupedData) {
+    const labels = [];
+    const coveredGenes = [];
+    const germlineGenes = [];
+  
+    for (const group in groupedData) {
+      for (const assay of groupedData[group]) {
+        labels.push(assay.display_name || assay.assay_name);
+        coveredGenes.push(assay.covered_genes_count || 0);
+        germlineGenes.push(assay.germline_genes_count || 0);
       }
-    });
-  }
-
-  function createClassificationBarChart(ctx, data, title) {
-    const categories = Object.keys(data);
-    const classLabels = [];
-    const datasetMap = {};
-
-    // Gather all unique class labels
-    categories.forEach(category => {
-      const classData = data[category];
-      Object.keys(classData).forEach(classLabel => {
-        if (!classLabels.includes(classLabel)) {
-          classLabels.push(classLabel);
-        }
-      });
-    });
-
-    // Prepare dataset for each class label
-    classLabels.forEach(classLabel => {
-      datasetMap[classLabel] = {
-        label: `Class ${classLabel}`,
-        data: [],
-        backgroundColor: `hsl(${classLabel * 90}, 70%, 50%)`,  // Different colors for each class
-        borderColor: '#fff',
-        borderWidth: 2,
-        hoverOffset: 10,
-      };
-    });
-
-    // Fill data for each class in each category
-    categories.forEach(category => {
-      const classData = data[category];
-      classLabels.forEach(classLabel => {
-        const value = classData[classLabel] || 0;
-        datasetMap[classLabel].data.push(value);
-      });
-    });
-
-    const datasets = Object.values(datasetMap);
-
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: categories,
-        datasets: datasets
+    }
+  
+    const options = {
+      chart: {
+        type: 'bar',
+        height: 360,
+        toolbar: { show: false },
+        animations: { easing: 'easeinout', speed: 300 }
       },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: {
-              color: '#243b55',
-              font: {
-                size: 10,
-                weight: 'normal'
-              }
-            }
-          },
-          title: {
-            display: true,
-            text: title,
-            color: '#243b55',
-            font: {
-              size: 18,
-              weight: 'bold'
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const label = context.dataset.label || '';
-                const value = context.raw;
-                return `${label}: ${value}`;
-              }
-            }
-          }
-        },
-        scales: {
-          x: {
-            title: {
-              display: true,
-              text: 'Nomenclature',
-              color: '#243b55',
-              font: {
-                size: 14,
-                weight: 'bold'
-              }
-            }
-          },
-          y: {
-            title: {
-              display: true,
-              text: 'Counts',
-              color: '#243b55',
-              font: {
-                size: 14,
-                weight: 'bold'
-              }
-            },
-            beginAtZero: true  // Ensure the y-axis starts at 0
-          }
-        },
-        animation: {
-          animateScale: true,
-          animateRotate: true
-        },
-        hover: {
-          onHover: function(e) {
-            const point = this.getElementAtEvent(e);
-            if (point.length) e.target.style.cursor = 'pointer';
-            else e.target.style.cursor = 'default';
-          }
+      series: [
+        { name: 'Covered Genes', data: coveredGenes },
+        { name: 'Germline Genes', data: germlineGenes }
+      ],
+      xaxis: {
+        categories: labels,
+        labels: {
+          rotate: -30,
+          style: { fontSize: '12px' }
         }
-      }
-    });
-  }
-
-  function createAssayBarChart(ctx, data, title) {
-    const assays = Object.keys(data);
-    const classLabels = new Set();
-    const datasetMap = {};
-
-    // Collect all unique class labels across all assays
-    assays.forEach(assay => {
-      const subCategoryData = data[assay];
-      Object.keys(subCategoryData).forEach(subCategory => {
-        const classData = subCategoryData[subCategory];
-        Object.keys(classData).forEach(classLabel => {
-          classLabels.add(classLabel);
-        });
-      });
-    });
-
-    // Convert classLabels set to array
-    const classLabelsArray = Array.from(classLabels);
-
-    // Initialize datasets for each class
-    classLabelsArray.forEach((classLabel, index) => {
-      datasetMap[classLabel] = {
-        label: `Class ${classLabel}`,
-        data: [],
-        backgroundColor: `hsl(${index * 90}, 70%, 50%)`,
-        borderColor: '#fff',
-        borderWidth: 2,
-        hoverOffset: 10,
-      };
-    });
-
-    // Populate datasets with data
-    assays.forEach(assay => {
-      const subCategoryData = data[assay];
-      classLabelsArray.forEach(classLabel => {
-        let totalCount = 0;
-        Object.keys(subCategoryData).forEach(subCategory => {
-          const classData = subCategoryData[subCategory] || {};
-          totalCount += classData[classLabel] || 0;
-        });
-        datasetMap[classLabel].data.push(totalCount);
-      });
-    });
-
-    const datasets = Object.values(datasetMap);
-
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: assays,
-        datasets: datasets
       },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: {
-              color: '#243b55',
-              font: {
-                size: 10,
-                weight: 'normal'
-              }
-            }
-          },
-          title: {
-            display: true,
-            text: title,
-            color: '#243b55',
-            font: {
-              size: 18,
-              weight: 'bold'
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const label = context.dataset.label || '';
-                const value = context.raw;
-                return `${label}: ${value}`;
-              }
-            }
-          }
-        },
-        scales: {
-          x: {
-            title: {
-              display: true,
-              text: 'Assays',
-              color: '#243b55',
-              font: {
-                size: 14,
-                weight: 'bold'
-              }
-            }
-          },
-          y: {
-            title: {
-              display: true,
-              text: 'Counts',
-              color: '#243b55',
-              font: {
-                size: 14,
-                weight: 'bold'
-              }
-            },
-            beginAtZero: true  // Ensure the y-axis starts at 0
-          }
-        },
-        animation: {
-          animateScale: true,
-          animateRotate: true
-        },
-        hover: {
-          onHover: function(e) {
-            const point = this.getElementAtEvent(e);
-            if (point.length) e.target.style.cursor = 'pointer';
-            else e.target.style.cursor = 'default';
-          }
+      plotOptions: {
+        bar: {
+          horizontal: false,
+          columnWidth: '40%',
+          borderRadius: 6
         }
-      }
-    });
-  }
-
-  function createBarChart(ctx, data, title) {
-    const labels = Object.keys(data);
-    const values = Object.values(data);
-
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: title,
-          data: values,
-          backgroundColor: 'rgba(75, 192, 192, 0.2)',
-          borderColor: 'rgba(75, 192, 192, 1)',
-          borderWidth: 1
-        }]
       },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            display: false
-          },
-          title: {
-            display: true,
-            text: title,
-            color: '#243b55',
-            font: {
-              size: 18,
-              weight: 'bold'
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const label = context.label || '';
-                const value = context.raw;
-                return `${label}: ${value}`;
-              }
-            }
-          }
-        },
-        scales: {
-          x: {
-            title: {
-              display: true,
-              text: 'Categories',
-              color: '#243b55',
-              font: {
-                size: 14,
-                weight: 'bold'
-              }
-            }
-          },
-          y: {
-            title: {
-              display: true,
-              text: 'Counts',
-              color: '#243b55',
-              font: {
-                size: 14,
-                weight: 'bold'
-              }
-            },
-            beginAtZero: true  // Ensure the y-axis starts at 0
-          }
-        },
-        animation: {
-          animateScale: true,
-          animateRotate: true
-        },
-        hover: {
-          onHover: function(e) {
-            const point = this.getElementAtEvent(e);
-            if (point.length) e.target.style.cursor = 'pointer';
-            else e.target.style.cursor = 'default';
-          }
-        }
+      colors: ['#2563EB', '#F97316'],
+      dataLabels: { enabled: false },
+      legend: {
+        position: 'top',
+        fontSize: '14px',
+      },
+      tooltip: {
+        y: { formatter: val => `${val} genes` }
+      },
+      grid: {
+        borderColor: '#E5E7EB',
+        row: { colors: ['#F9FAFB', 'transparent'], opacity: 0.5 }
       }
-    });
+    };
+  
+    const chart = new ApexCharts(document.querySelector(`#${containerId}`), options);
+    chart.render();
   }
+  const assayGeneStatsGrouped = {{ assay_gene_stats_grouped | tojson }};
+  renderGroupedAssayGeneChart("geneChart", assayGeneStatsGrouped);
+  </script>
+  
 
-  window.onload = function() {
-    createMultiLevelChart(document.getElementById('multiLevelChart'));
-    createClassificationBarChart(document.getElementById('classificationChart'), classStatsData, 'Variant Classification Stats');
-    createAssayBarChart(document.getElementById('assayChart'), assayClassStatsData, 'Assay Specific Variant Classification Stats');
-    createBarChart(document.getElementById('assayGeneCountsChart'), assayGeneCountsData, 'Assay Gene Counts');
-    createBarChart(document.getElementById('genelistGeneCountsChart'), genelistGeneCountsData, 'Gene List Gene Counts');
-  };
-</script>
+
+
 {% endblock %}

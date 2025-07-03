@@ -6,6 +6,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+
 
 # C extensions
 *.so
@@ -143,7 +145,7 @@ app.log*
 test
 logs/
 example_dev*
-scripts/migrate_variants_idref.py
+migration_scripts
 reports
 tests
 *dummy*
@@ -153,3 +155,6 @@ redis_data
 
 # idea
 .idea/
+
+# Docker compose
+docker-compose.beta1.yml
