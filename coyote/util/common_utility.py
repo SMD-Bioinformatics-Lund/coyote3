@@ -18,19 +18,19 @@ used throughout the Coyote3 project, including configuration handling,
 data formatting, serialization, and reporting.
 """
 
+import base64
+import json
 import os
-from copy import deepcopy
-from pathlib import Path
 import subprocess
+from copy import deepcopy
+from datetime import datetime, timedelta
+from hashlib import md5
+from pathlib import Path
+from typing import Any, Dict, Literal, Tuple
 
+from bson import ObjectId
 from cryptography.fernet import Fernet
 from flask import current_app as app
-from typing import Any, Literal, Dict, Tuple
-from bson import ObjectId
-from datetime import datetime
-from datetime import timedelta
-from hashlib import md5
-import base64, json
 from flask_login import current_user
 
 
@@ -1052,23 +1052,9 @@ class CommonUtility:
         return config
 
     @staticmethod
-    def format_filters_from_form(
-        form_data: Any, assay_config_schema: dict
-    ) -> dict:
+    def format_filters_from_form(form_data, assay_config_schema: dict) -> dict:
         """
         Format filters from a WTForm (or dict) to match the schema.
-
-        This function takes filter data from a WTForm or a dictionary and formats it to match the expected
-        structure defined by the provided assay configuration schema. It extracts filter fields, groups
-        prefixed fields (such as vep consequences, genelists, fusionlists, etc.) into lists, and returns
-        a dictionary of filters that aligns with the schema.
-
-        Args:
-            form_data: The WTForm or dictionary containing filter data.
-            assay_config_schema (dict): The schema dictionary defining filter sections and expected fields.
-
-        Returns:
-            dict: A dictionary of filters formatted according to the schema.
         """
         # If it's a WTForm, convert it to a dict of name: data
         if hasattr(form_data, "__iter__") and not isinstance(form_data, dict):
@@ -1076,6 +1062,7 @@ class CommonUtility:
 
         print("form_data", form_data)
         fields = assay_config_schema.get("sections", {}).get("filters", [])
+        print("fields", fields)
 
         filters = {}
         (
@@ -1083,7 +1070,7 @@ class CommonUtility:
             genelists,
             fusionlists,
             fusion_callers,
-            fusioneffects,
+            fusion_effects,
             cnveffects,
         ) = ([], [], [], [], [], [])
 
@@ -1092,7 +1079,7 @@ class CommonUtility:
             "genelist_": genelists,
             "fusionlist_": fusionlists,
             "fusioncaller_": fusion_callers,
-            "fusioneffect_": fusioneffects,
+            "fusioneffect_": fusion_effects,
             "cnveffect_": cnveffects,
         }
 
@@ -1111,8 +1098,10 @@ class CommonUtility:
                 filters["fusionlists"] = fusionlists
             elif _field == "fusion_callers":
                 filters["fusion_callers"] = fusion_callers
-            elif _field == "fusioneffects":
-                filters["fusioneffects"] = fusioneffects
+            elif _field == "fusion_effects":
+                filters["fusion_effects"] = (
+                    CommonUtility.create_fusioneffectlist(fusion_effects)
+                )
             elif _field == "cnveffects":
                 filters["cnveffects"] = cnveffects
             else:
@@ -1120,6 +1109,21 @@ class CommonUtility:
 
         return filters
 
+    @staticmethod
+    def create_fusioneffectlist(eff_names):
+        """
+        This function translates filter-names in template to what is annotated. More verbose?
+        """
+        effects = []
+        for name in eff_names:
+            ## effect = name.split("_", 1)[1]
+            if name == "inframe":
+                effects.append("in-frame")
+            if name == "outframe":
+                effects.append("out-of-frame")
+
+        return effects
+    
     @staticmethod
     def create_assay_group_map(assay_groups_panels: list) -> dict:
         """

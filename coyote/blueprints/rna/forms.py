@@ -16,8 +16,9 @@ It provides Flask-WTF forms to customize filtering criteria, including fusion li
 """
 
 from flask_wtf import FlaskForm
-from wtforms import BooleanField, IntegerField, FloatField
+from wtforms import BooleanField, FloatField, IntegerField
 from wtforms.validators import InputRequired, NumberRange, Optional
+
 from coyote.extensions import store
 
 
@@ -42,12 +43,19 @@ class FusionFilter(FlaskForm):
     fusioncaller_fusioncatcher = BooleanField(validators=[Optional()])
     fusioncaller_starfusion = BooleanField(validators=[Optional()])
 
-    min_spanpairs = IntegerField(
+    spanning_reads = IntegerField(
         "Spanning pairs", validators=[InputRequired(), NumberRange(min=0)]
     )
-    min_spanreads = IntegerField(
+    spanning_pairs = IntegerField(
         "Spanning reads", validators=[InputRequired(), NumberRange(min=0)]
     )
+
+    # min_spanpairs = IntegerField(
+    #     "Spanning pairs", validators=[InputRequired(), NumberRange(min=0)]
+    # )
+    # min_spanreads = IntegerField(
+    #     "Spanning reads", validators=[InputRequired(), NumberRange(min=0)]
+    # )
 
     fusioneffect_inframe = BooleanField(validators=[Optional()])
     fusioneffect_outframe = BooleanField(validators=[Optional()])

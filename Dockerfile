@@ -1,5 +1,5 @@
 # Stage 1: App Build
-FROM python:3.12.0-slim-bullseye as coyote3_app
+FROM python:3.12.0-slim-bullseye as coyote3_saile
 
 LABEL base_image="python:3.12-slim"
 LABEL about.home="https://github.com/Clinical-Genomics-Lund/coyote3"
@@ -34,14 +34,14 @@ RUN mkdir ./redis_data
 
 # Copy source code
 COPY config/ ./config/
-COPY config.py wsgi.py gunicorn.conf.py logging_setup.py .coyote3_env ./
-COPY .coyote3_env ./.env
+COPY config.py wsgi.py gunicorn.conf.py logging_setup.py  ./
+COPY .saile.env ./.env
 COPY coyote/ ./coyote/
 COPY docs/ ./docs/
 COPY CHANGELOG.md README.md LICENSE.txt ./
 
 # Runtime environment variables that should be overridden by docker-compose.yml or .env file
-ENV SCRIPT_NAME="/coyote3"
+ENV SCRIPT_NAME=""
 
 # Gunicorn command (you can override with `command:` in docker-compose if needed)
 #CMD ["gunicorn", "--timeout", "120", "-w", "2", "-e", "SCRIPT_NAME", "--log-level", "INFO", "--bind", "0.0.0.0:8000", "wsgi:app"]
