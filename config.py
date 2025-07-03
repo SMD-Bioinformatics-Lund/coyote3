@@ -107,7 +107,7 @@ class DefaultConfig:
     GENS_URI = os.getenv("GENS_URI", "http://mtcmdpgm01.lund.skane.se/gens/")
 
     # Report Config
-    REPORTS_BASE_PATH = os.getenv("REPORTS_BASE_PATH", "/mnt/clarity")
+    REPORTS_BASE_PATH = os.getenv("REPORTS_BASE_PATH", "/data/coyote3/reports")
 
     CONSEQ_TERMS_MAPPER: dict[str, list[str]] = {
         "splicing": [

@@ -30,7 +30,7 @@ from coyote import init_app
 from logging_setup import custom_logging, add_unique_handlers
 import os
 
-app = init_app()
+app = init_app(testing=bool(int(os.getenv("TESTING", 0))), development=bool(int(os.getenv("DEVELOPMENT", 0))))
 app.secret_key = app.config.get("SECRET_KEY")
 
 
@@ -50,6 +50,7 @@ if __name__ != "__main__":
     app.logger.setLevel(gunicorn_logger_error.level)
 
 if __name__ == "__main__":
+    print("Running Coyote3 in standalone mode.")
     log_dir = os.getenv("LOG_DIR", app.config.get("LOGS", "logs/prod"))
     custom_logging(log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=False)
-    app.run(host="0.0.0.0", port=8000, debug=os.getenv("FLASK_DEBUG", 0))
+    app.run(host="0.0.0.0", port=8000, debug=bool(int(os.getenv("FLASK_DEBUG", 0))))

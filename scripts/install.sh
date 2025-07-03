@@ -25,11 +25,11 @@
 echo "Starting Coyote3 Deployment..."
 
 # Source the .env file if it exists
-if [[ -f ".env" ]]; then
-    echo ".env file found. Loading environment variables..."
-    source .env
+if [[ -f ".coyote3_env" ]]; then
+    echo ".coyote3_env file found. Loading environment variables..."
+    source .coyote3_env
 else
-    echo "No .env file found in project root. Continuing without it."
+    echo "No .coyote3_env file found in project root. Continuing without it."
 fi
 
 # Set application context path (adjust if hosted under a different subpath)
@@ -47,7 +47,7 @@ container_name="coyote3_app"
 
 # Optional: Uncomment this to force rebuild without cache
 # echo "Building Docker image: $image_name"
-docker build --no-cache --network host --target coyote3_app -t "$image_name" .
+docker build --no-cache --network host --target $container_name -t "$image_name" .
 
 # Stop and remove any existing container with the same name
 echo "Stopping and removing existing container (if any)..."
@@ -56,20 +56,20 @@ docker rm "$container_name" >/dev/null 2>&1
 
 # build redis image if it does not exist
 docker inspect redis_coyote3 >/dev/null 2>&1 \
-  && docker start redis_coyote3 \
-  || docker run -d --name redis_coyote3 --network coyote3-net --restart=unless-stopped -p 5817:6379 ramsainanduri/redis:7.4.3
+    && docker start redis_coyote3 \
+    || docker run -d --name redis_coyote3 --network coyote3-net --restart=unless-stopped -p 5817:6379 ramsainanduri/redis:7.4.3
 
 
 # Start the Docker container
 echo "Starting Docker container: $container_name"
 docker run \
-    -e FLASK_MONGO_HOST='172.17.0.1' \
-    -e FLASK_MONGO_PORT='27017' \
-    -e FLASK_DEBUG=0 \
+    -e FLASK_MONGO_HOST=${FLASK_MONGO_HOST} \
+    -e FLASK_MONGO_PORT=${FLASK_MONGO_PORT} \
+    -e FLASK_DEBUG=${FLASK_DEBUG} \
     -e SCRIPT_NAME="${SCRIPT_NAME}" \
     -e FLASK_SECRET_KEY="${SECRET_KEY}" \
     -e TZ='Europe/Stockholm' \
-    --dns "10.212.226.10" \
+    --dns "${APP_DNS}" \
     -v /data/coyote3/logs:/app/logs \
     -v /access:/access \
     -v /media:/media \

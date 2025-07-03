@@ -49,7 +49,7 @@ import json
 cache = Cache()
 
 
-def init_app(testing: bool = False, debug: bool = False) -> Flask:
+def init_app(testing: bool = False, development: bool = False) -> Flask:
     """
     Creates and configures the Flask application instance.
 
@@ -59,7 +59,7 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
 
     Args:
         testing (bool): If True, loads testing configuration.
-        debug (bool): If True, loads development configuration and enables debug mode.
+        development (bool): If True, loads development configuration and enables debug mode.
 
     Returns:
         Flask: The configured Flask application instance.
@@ -76,8 +76,9 @@ def init_app(testing: bool = False, debug: bool = False) -> Flask:
         app.logger.info("Testing mode ON.")
         app.logger.info("Loading config.TestConfig")
         app.config.from_object(config.TestConfig())
+        app.debug = True
 
-    elif debug:
+    elif development:
         app.logger.warning(
             "Debug mode ON. "
             "(Jag ropar ut mitt innersta hav, jag ropar ut all min skit och allt mitt skav!)"

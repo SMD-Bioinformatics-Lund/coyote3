@@ -1248,3 +1248,23 @@ class CommonUtility:
             return json.loads(data)
         except json.JSONDecodeError:
             return fallback or {}
+
+    @staticmethod
+    def get_tier_classification(data: dict) -> int:
+        """
+        Returns the tier classification for the given variant data dictionary.
+
+        The function checks for the presence of tier keys (`tier1`, `tier2`, `tier3`, `tier4`)
+        in the input dictionary and returns the corresponding classification number (1-4).
+        If no tier is found, it returns 0.
+
+        Returns:
+            int: The tier classification number (1-4), or 0 if not classified.
+        """
+        tiers = {"tier1": 1, "tier2": 2, "tier3": 3, "tier4": 4}
+        class_num = 0
+        for key, value in tiers.items():
+            if data.get(key, None) is not None:
+                class_num = value
+
+        return class_num
