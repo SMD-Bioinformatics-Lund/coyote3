@@ -148,6 +148,7 @@ example_dev*
 migration_scripts
 reports
 tests
+bugs
 *dummy*
 
 # coyote
@@ -157,4 +158,4 @@ redis_data
 .idea/
 
 # Docker compose
-docker-compose.beta1.yml
+docker-compose.dev.yml

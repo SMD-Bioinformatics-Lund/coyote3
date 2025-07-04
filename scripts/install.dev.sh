@@ -76,7 +76,6 @@ docker run \
     -v /media:/media \
     -v /data:/data \
     -v /fs1:/fs1 \
-    -v /mnt/clarity:/mnt/clarity \
     -v /data/bnf/dev/ram/Pipelines/Web_Developement/coyote3/coyote:/app/coyote \
     -v /data/bnf/dev/ram/Pipelines/Web_Developement/coyote3/config:/app/config \
     -v /data/bnf/dev/ram/Pipelines/Web_Developement/coyote3/config.py:/app/config.py \

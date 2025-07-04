@@ -2446,7 +2446,7 @@ def create_genelist() -> Response | str:
         return redirect(url_for("admin_bp.manage_genelists"))
 
     return render_template(
-        "isgl/create_iagl.html",
+        "isgl/create_isgl.html",
         schema=schema,
         schemas=active_schemas,
         selected_schema=schema,

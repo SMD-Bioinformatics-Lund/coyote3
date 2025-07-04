@@ -7,33 +7,39 @@ services:
     container_name: coyote3_app
     image: coyote3:3.0.0  # only this now
     ports:
-      - "5814:8000" # external:internal
+      - "5814:8000"
     env_file:
-      - .env
+      - .coyote3_env
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
       - FLASK_APP=wsgi.py
       - FLASK_DEBUG=0
+      - SCRIPT_NAME="/coyote3"
       - TZ=Europe/Stockholm
     restart: always
+    networks:
+      - coyote3-net
     volumes:
-      - ".git:/app/.git"
-      - "/data/coyote3/logs:/app/logs"
       - "/access:/access"
       - "/media:/media"
       - "/data:/data"
       - "/fs1:/fs1"
-      - "/mnt/clarity:/mnt/clarity"
     command: "python3 wsgi.py"
 
 
-  redis:
+  redis_coyote3:
     container_name: redis_coyote3
     image: ramsainanduri/redis:7.4.3
     ports:
-      - "5817:6379"  # external:internal
+      - "5817:6379"
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
+    networks:
+      - coyote3-net
     restart: unless-stopped
     privileged: true
+
+networks:
+  coyote3-net:
+    external: true

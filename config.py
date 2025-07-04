@@ -69,9 +69,6 @@ class DefaultConfig:
     FERNET = Fernet(os.getenv("COYOTE3_FERNET_KEY"))
 
     WTF_CSRF_ENABLED = True
-    SECRET_KEY: str | None = os.getenv("SECRET_KEY")
-
-    SESSION_COOKIE_NAME = "coyote3"
 
     MONGO_HOST: str = os.getenv("FLASK_MONGO_HOST") or "localhost"
     MONGO_PORT: str | Literal[27017] = os.getenv("FLASK_MONGO_PORT") or 27017
@@ -265,6 +262,7 @@ class ProductionConfig(DefaultConfig):
     PRODUCTION = True
     APP_VERSION: str = f"{app_version}"
     SECRET_KEY: str | None = os.getenv("SECRET_KEY")
+    SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_prod")
     DEBUG: bool = False
 
 
@@ -284,7 +282,8 @@ class DevelopmentConfig(DefaultConfig):
 
     LOGS = "logs/dev"
     PRODUCTION = False
-    SECRET_KEY = "traskbatfluga"
+    SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_dev")
+    SECRET_KEY = os.getenv("SECRET_KEY")
     APP_VERSION: str = f"{app_version}-DEV (git: {CommonUtility.get_active_branch_name()})"
     DEBUG: bool = True
 
@@ -304,10 +303,11 @@ class TestConfig(DefaultConfig):
 
     LOGS = "logs/test"
     PRODUCTION = False
+    SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_test")
+    SECRET_KEY = os.getenv("SECRET_KEY")
 
     APP_VERSION: str = f"{app_version}-Test (git: {CommonUtility.get_active_branch_name()})"
 
-    SECRET_KEY = "traskbatfluga"
     TESTING = True
     LOGIN_DISABLED = True
     DEBUG: bool = True
