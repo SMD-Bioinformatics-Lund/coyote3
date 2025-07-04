@@ -24,13 +24,14 @@ from flask import (
     request,
     url_for,
 )
-from flask_login import login_user, logout_user
+from flask_login import login_required, login_user, logout_user
 
 from coyote.blueprints.login import login_bp
 from coyote.blueprints.login.forms import LoginForm
 from coyote.extensions import ldap_manager, login_manager, store
 from coyote.models.user import UserModel
 from coyote.services.auth.user_session import User
+from flask_login import current_user
 
 
 # Login route
@@ -49,6 +50,9 @@ def login() -> str | Response:
     Returns:
         Response: Rendered login template or redirect to home page.
     """
+    if current_user.is_authenticated:
+        # If user is already authenticated, redirect to the dashboard
+        return redirect(url_for("dashboard_bp.dashboard"))
     form = LoginForm()
 
     if request.method == "POST" and form.validate_on_submit():
@@ -91,6 +95,7 @@ def login() -> str | Response:
 
 
 @login_bp.route("/logout")
+@login_required
 def logout() -> Response:
     """
     Log out the current user and redirect to the login page.
