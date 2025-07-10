@@ -6,6 +6,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+
 
 # C extensions
 *.so
@@ -106,14 +108,14 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+.*env
 .venv
 env/
 venv/
+venv*
 ENV/
 env.bak/
 venv.bak/
-
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -136,3 +138,24 @@ dmypy.json
 config.git.hash
 /config/
 .dir-locals.el
+run_dev.py
+*.backup*
+*.backup_default
+app.log*
+test
+logs/
+example_dev*
+migration_scripts
+reports
+tests
+bugs
+*dummy*
+
+# coyote
+redis_data
+
+# idea
+.idea/
+
+# Docker compose
+docker-compose.dev.yml

@@ -1,0 +1,130 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<div class="flex w-full h-full overflow-hidden">
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+    <section id="assay_form" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
+
+    <form action="" method="POST" name="assays" class="mb-4">
+      <div class="bg-gray-50 border border-gray-300 rounded-lg p-2 mt-4 ml-2 shadow-sm w-full max-w-5xl">
+        <div id="csq_checkboxes" class="flex flex-wrap gap-4 items-center ml-4">
+          {{ form.hidden_tag() }}
+
+          <div class="flex gap-4">
+            {% for field in form if field.name != "csrf_token" %}
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                {{ field }} {{ field.label.text }}
+              </label>
+            {% endfor %}
+          </div>
+          <button type="submit" name="apply" value="apply" class="ml-auto bg-blue-400 hover:bg-blue-500 text-black hover:text-white text-sm font-medium py-1 px-4 rounded transition"> Apply </button>
+          <a href="{{ url_for('dna_bp.gene_view', gene_name=gene ) }}" class="inline-block bg-blue-400 hover:bg-blue-500 text-black hover:text-white text-sm font-medium py-1 px-4 rounded transition"> Load full page </a>
+        </div>
+      </div>
+    </form>
+
+    <!-- Table -->
+    <div class="justify-start">
+      <div class="w-4/5  shadow-3xl rounded-2xl p-4 relative overflow-hidden">
+        <div class="overflow-x-auto rounded-2xl shadow-3xl relative">
+          <span class="text-lg font-semibold">Gene Annotations</span>
+          <table class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
+            <thead class="rounded-t-2xl overflow-hidden border-gray-800 sortable">
+              <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
+            <th class="p-2 font-normal">Variant P</th>
+            <th class="p-2 font-normal">Tier</th>
+            <th class="p-2 font-normal">Comment</th>
+            <th class="p-2 font-normal">Author</th>
+            <th class="p-2 font-normal" data-autoclick="true">Time added</th>
+            <th class="p-2 font-normal">Assay<br><small class="text-gray-500 font-normal">subpanel</small></th>
+          </tr>
+        </thead>
+        <tbody class="text-gray-800 rounded-b-lg overflow-hidden">
+          {% set ns = namespace(has_annotations=false) %}
+
+          {% for assub, var in annodict.items() %}
+            {% set assay = assub.split(':')[0] %}
+            {% set subpanel = assub.split(':')[1] %}
+          
+            {% if assay in checked_assays or checked_assays|length == 0 %}
+              {% for var, anno in var.items() %}
+                {% set ns.has_annotations = true %}
+                <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
+                  <td class="p-2 font-medium">
+                    {% if anno.latest_text %}
+                      <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ anno.latest_text.variant|unesc|safe }}</span>`)">
+                        <div class="relative flex inline-block">
+                          <div id="id-{{anno.latest_text.variant}}-short" class="truncate max-w-30c">
+                            {{ anno.latest_text.variant|unesc|safe }}
+                          </div>
+                          <div id="id-{{anno.latest_text.variant}}-full" class="hidden break-all whitespace-normal">
+                            {{ anno.latest_text.variant|unesc|safe }}
+                          </div>
+                          <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
+                                  data-target="id-{{anno.latest_text.variant}}"
+                                  onclick="toggleLongText(this)">
+                            [+]
+                          </button>
+                        </div>
+                      </span>
+                    {% elif anno.latest_class %}
+                      <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ anno.latest_class.variant|unesc|safe }}</span>`)">
+                        <div class="relative flex inline-block">
+                          <div id="id-{{anno.latest_class.variant}}-short" class="truncate max-w-30c">
+                            {{ anno.latest_class.variant|unesc|safe }}
+                          </div>
+                          <div id="id-{{anno.latest_class.variant}}-full" class="hidden break-all whitespace-normal">
+                            {{ anno.latest_class.variant|unesc|safe }}
+                          </div>
+                          <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
+                                  data-target="id-{{anno.latest_class.variant}}"
+                                  onclick="toggleLongText(this)">
+                            [+]
+                          </button>
+                        </div>
+                      </span>
+                    {% endif %}
+                  </td>
+                  <td class="p-2 font-medium">
+                    {% if anno.latest_class and anno.latest_class.class != 999 %}
+                      <div class="inline-flex items-center px-3 py-1 font-semibold rounded-full bg-tier{{ anno.latest_class.class }} text-white shadow-md">
+                        {{ anno.latest_class.class }}
+                      </div>
+                    {% endif %}
+                  </td>
+                  <td class="p-2 font-medium">
+                    {% if anno.latest_text %}
+                      {{ anno.latest_text.text }}
+                    {% endif %}
+                  </td>
+                  <td class="p-2 font-medium">
+                    {% if anno.latest_text %}
+                      {{ anno.latest_text.author }}
+                    {% endif %}
+                  </td>
+                  <td class="px-3 py-2" sorttable_customkey="{% if anno.latest_text %}{{ anno.latest_text.time_created|sortable_date }}{% elif anno.latest_class %}{{ anno.latest_class.time_created|sortable_date }}{% endif %}">
+                    {% if anno.latest_text %}
+                      {{ anno.latest_text.time_created|human_date }}
+                    {% elif anno.latest_class %}
+                      {{ anno.latest_class.time_created|human_date }}
+                    {% endif %}
+                  </td>
+                  <td class="p-2 font-medium">
+                    {{ assay }}<br><small class="text-gray-500">{{ subpanel }}</small>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          {% endfor %}
+          {% if not ns.has_annotations %}
+            <tr class="border-b border-gray-300">
+              <td colspan="6" class="p-4 text-center text-sm text-gray-800 font-medium italic">No gene annotations.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+{% endblock %}

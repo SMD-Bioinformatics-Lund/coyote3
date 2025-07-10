@@ -1,0 +1,421 @@
+{% extends "layout.html" %}
+
+{% block body %}
+
+{% set gens_id = sample.name|replace("-wgs","",1) %}
+{% set cnv_region =  cnv.chr ~ ":" ~ cnv.start ~ "-" ~ cnv.end %}
+{% set cnv_region_left = cnv.chr ~ ":" ~ (cnv.start - 50) ~ "-" ~ (cnv.start + 50) %}
+{% set cnv_region_right = cnv.chr ~ ":" ~ (cnv.end - 50) ~ "-" ~ (cnv.end + 50) %}
+{% set cnv_type = 'AMP' if cnv.ratio > 0 else 'DEL' %}
+
+
+
+
+
+{% set subfolder = {'dir': "None"} %}
+{% set all_samples_bam_paths = [] %}
+
+{# Collect all BAM paths #}
+{% for sample_id, bam_paths in bam_id.items() %}
+  {% for path in bam_paths %}
+    {% set list1 = path.split('/') %}
+    {% if subfolder.update({ 'dir': list1[0] }) %} {% endif %}
+    {% set _ = all_samples_bam_paths.append("/R:" ~ path) %}
+  {% endfor %}
+{% endfor %}
+
+
+{# Creating design_bed_url as well #}
+{% if subfolder.dir != "None" and subfolder.dir != "tumwgs" %}
+  {% set design_bed = "http://localhost:60151/load?file=/R:" ~ subfolder.dir ~ "/BED/design.bed"  %}
+  {% set design_bed_url = '<a href="' ~ design_bed ~ '" class="text-blue-600 underline">' ~ "open" ~ '</a>'%}
+  {% set _ = all_samples_bam_paths.append("/R:" ~ subfolder.dir ~ "/BED/design.bed") %}
+{% else %}
+  {% set design_bed_url = '-' %}
+{% endif %}
+
+{# Build the final IGV URL #}
+{% if all_samples_bam_paths and has_access("view_igv", min_role="user", min_level=9)  %}
+  {% set igv_url = "http://localhost:60151/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ cnv_region %}
+  {% set igv_url_left = "http://localhost:60151/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ cnv_region_left %}
+  {% set igv_url_right = "http://localhost:60151/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ cnv_region_right %}
+  {% set igv_link = '<a href="' ~ igv_url ~ '" class="text-blue-600 underline">' ~ cnv_region ~ '</a>' %}
+  {% set igv_link_left = '<a href="' ~ igv_url_left ~ '" class="text-blue-600 underline">' ~ cnv_region_left ~ '</a>' %}
+  {% set igv_link_right = '<a href="' ~ igv_url_right ~ '" class="text-blue-600 underline">' ~ cnv_region_right ~ '</a>' %}
+{% else %}
+  {% set igv_url = none %}
+  {% set igv_url_left = none %}
+  {% set igv_url_right = none %}
+  {% set igv_link = cnv_region %}
+  {% set igv_link_left = cnv_region_left %}
+  {% set igv_link_right = cnv_region_right %}
+{% endif %}
+
+{# check permissions for dna cnv actions buttons #}
+{% set cnv_actions_disabled = not has_access('manage_cnvs', min_role='user', min_level=9) %}
+{% set cnv_actions_class = "opacity-70 select-none cursor-not-allowed pointer-events-none" if cnv_actions_disabled else "" %}
+{% set cnv_actions_attr = "disabled" if cnv_actions_disabled else "" %}
+
+<div class="flex w-full h-full overflow-hidden ">
+  <!-- CNV Wall left side bar -->
+  <aside class="w-80 bg-transparent text-black flex flex-col overflow-y-auto shadow-lg rounded-lg mr-2 ml-1 left-0 h-full border-r-2 border-t-2 border-brown-400">
+
+    <!-- CNV Wall -->
+    <div class="flex justify-center items-center bg-gradient-to-b from-brown-300 to-brown-200 py-2 rounded-t-md shadow-lg">
+      <img src="{{ url_for('static', filename='icons/heroicons_outline_24/bookmark.svg') }}" alt="Tag Icon" class="w-4 h-4 mr-2 opacity-80">
+      <h2 class="text-sm font-semibold capitalize tracking-wide text-black">CNV Wall</h2>
+    </div>
+
+    <!-- Table Container -->
+    <div class="overflow-auto shadow-lg bg-transparent p-0">
+      <table class="table-auto bg-blue-50 w-full text-xs text-black border-collapse">
+        <tbody class="break-all">
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Type</th>
+            <td class="p-1 text-right font-medium">
+              {{ cnv_type }}
+            </td>
+          </tr>
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Size</th>
+            <td class="p-1 text-right font-medium">{{cnv.size}} bp</td>
+          </tr>
+          {% if "gatk" in cnv.callers or "cnvkit" in cnv.callers or 'callers' not in cnv %}
+            <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+              <th class="p-1 font-semibold text-left w-1/2">Call</th>
+              <td class="p-1 text-right font-medium">{{ 2*(2**cnv.ratio)|round(2) }} copies</td>
+            </tr>
+            <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+              <th class="p-1 font-semibold text-left w-1/2">Log2 ratio</th>
+              <td class="p-1 text-right font-medium">{{ cnv.ratio|round(2) }}</td>
+            </tr>
+          {% endif %}
+          {% if cnv.PR %}
+            <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+              <th class="p-1 font-semibold text-left w-1/2">Spanning Paired Reads</th>
+              <td class="p-1 text-right font-medium">{{ cnv.PR }}</td>
+            </tr>
+          {% endif %}
+          {% if cnv.SR %}
+            <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+              <th class="p-1 font-semibold text-left w-1/2">Spanning Paired Reads</th>
+              <td class="p-1 text-right font-medium">{{ cnv.SR }}</td>
+            </tr>
+          {% endif %}
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Region</th>
+            <td class="p-1 text-right font-medium">{{ igv_link|safe }}</td>
+          </tr>
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Left Region</th>
+            <td class="p-1 text-right font-medium">{{ igv_link_left|safe }}</td>
+          </tr>
+          <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+            <th class="p-1 font-semibold text-left w-1/2">Right Region</th>
+            <td class="p-1 text-right font-medium">{{ igv_link_right|safe }}</td>
+          </tr>
+          {% if assay_group == "tumwgs" %}
+          {% else %}
+            <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+              <th class="p-1 font-semibold text-left w-1/2">Design Bed</th>
+              <td class="p-1 text-right font-medium">
+                {{design_bed_url|safe}}
+              </td>
+            </tr>
+          {% endif %}
+          {% if assay_group == "tumwgs" %}
+            {% if sample.gensNorm %}
+              <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+                <th class="p-1 font-semibold text-left w-1/2">Gens Case URL</th>
+                <td class="p-1 text-right font-medium">
+                  <a class="text-blue-600 underline" href="{{app_config.GENS_URI}}/{{ sample.gens }}?case_id={{sample.gens}}&region={{cnv.chr}}:{{cnv.start-1000}}-{{cnv.end+1000}}" target='_blank'>{{ sample.gens }}</a>
+                </td>
+              </tr>
+              <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+                <th class="p-1 font-semibold text-left w-1/2">Gens Control URL</th>
+                <td class="p-1 text-right font-medium">
+                  <a class="text-blue-600 underline" href="{{app_config.GENS_URI}}{{ sample.gensNorm }}?case_id={{sample.gensNorm}}&region={{cnv.chr}}:{{cnv.start-1000}}-{{cnv.end+1000}}" target='_blank'> {{ sample.gensNorm }} </a>
+                </td>
+              </tr>
+            {% else %}
+              <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+                <th class="p-1 font-semibold text-left w-1/2">Gens URL</th>
+                <td class="p-1 text-right font-medium">
+                  <a class="text-blue-600 underline" href="{{app_config.GENS_URI}}/{{gens_id}}?case_id={{gene_id}}&region=1">{{ gens_id }}</a>
+                </td>
+              </tr>
+            {% endif %}
+          {% else %}
+            {% for type, sample_id in sample_ids.items() %}
+              <tr class="hover:bg-brown-100 shadow-md rounded-lg">
+                <th class="p-1 font-semibold text-left w-1/2 capitalize">Gens {{type}}</th>
+                <td class="p-1 text-right font-medium">
+                  <a class="text-blue-600 underline" href="{{app_config.GENS_URI}}/{{sample_id}}?case_id={{sample_id}}&region={{cnv.chr}}:{{cnv.start-1000}}-{{cnv.end+1000}}" target='_blank'><b>{{sample_id}}</b></a>
+                </td>
+              </tr>
+            {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+  </aside>
+
+  <main class="flex-1 bg-transparent overflow-y-auto py-2 px-1 flex flex-col">
+
+    <!-- sample info -->
+    {% include "sample_meta_info.html" %}
+
+    <!-- CNV Main Info Card  -->
+    <section class="bg-gray-100 p-2 my-2 flex flex-wrap justify-between w-full shadow-lg rounded-xl relative gap-2 z-0 border-l-8 border-r-8 border-purple-400 whitespace-normal break-all" id="cnv-info">
+      <!-- CNV Info Left Section -->
+      <div class="flex flex-col ml-2 mr-4" id="cnv-info-left">
+        <h2 class="text-base font-bold">
+          {{ cnv_type }} ({{cnv.size}} bp): {{igv_link|safe}}
+        </h2>
+        <p class="text-sm font-normal py-1 my-1">
+          Called by: {{ cnv.callers }}
+        </p>
+      </div>
+
+      <!-- Top buttons for links and actions -->
+      <div class="flex flex-wrap items-start justify-end ml-auto mr-4 gap-2" id="cnv-action-buttons">
+        <div class="relative">
+          <div class="absolute top-0 left-0 w-full h-1 bg-yellow-400 break-all"></div>
+          {% if cnv.fp == true %}
+            <form action="{{ url_for('dna_bp.unmark_false_cnv', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+              <input class="relative bg-yellow-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{cnv_actions_class}}" type="submit" name="mark_fp" value="Unmark False Positive" {{cnv_actions_attr}}>
+            </form>
+          {% else %}
+            <form action="{{ url_for('dna_bp.mark_false_cnv', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+              <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-yellow-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{cnv_actions_class}}" type="submit" name="mark_fp" value="Mark as False Positive" {{cnv_actions_attr}}>
+            </form>
+          {% endif %}
+        </div>
+        <div class="relative">
+          <div class="absolute top-0 left-0 w-full h-1 bg-green-400"></div>
+          {% if cnv.interesting == true %}
+            <form action="{{ url_for('dna_bp.unmark_interesting_cnv', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+              <input class="relative bg-green-200 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{cnv_actions_class}}" type="submit" name="exclude_from_report" value="Exclude from report" {{cnv_actions_attr}}>
+            </form>
+          {% else %}
+            <form action="{{ url_for('dna_bp.mark_interesting_cnv', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+              <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-green-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{cnv_actions_class}}" type="submit" name="include_in_report" value="Include in report" {{cnv_actions_attr}}>
+            </form>
+          {% endif %}
+        </div>
+        <div class="relative">
+          <div class="absolute top-0 left-0 w-full h-1 bg-brown-500"></div>
+          {% if cnv.noteworthy == true %}
+            <form action="{{ url_for('dna_bp.unmark_noteworthy_cnv', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+              <input class="relative bg-brown-200 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{cnv_actions_class}}" type="submit" name="mark_irr" value="Unmark as interesting" {{cnv_actions_attr}}>
+            </form>
+          {% else %}
+            <form action="{{ url_for('dna_bp.mark_noteworthy_cnv', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+              <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-brown-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{cnv_actions_class}}" type="submit" name="mark_irr" value="Mark as interesting" {{cnv_actions_attr}}>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- other information cards -->
+    <section class="bg-transparent p-2 my-2 flex flex-wrap items-start relative gap-4" id="cnv-information-cards">
+      <!-- Comment box, other tiering and pon -->
+      <div class="flex flex-col gap-y-4 min-w-450 max-w-xl">
+        <!-- Comment box -->
+        {% if has_access("add_variant_comment", min_role="manager", min_level=99) %}
+          <div class="bg-transparent w-full max-w-xl" id="commenting-box-card">
+            <h2 class="text-sm font-semibold bg-gradient-to-b from-indigo-400 to-indigo-200 p-2 shadow-md rounded-t-lg break-all">Add new comment/annotation</h2>
+            <div id="commenting_box" class="rounded-b-lg border border-gray-400 shadow-md p-2 overflow-x-auto">
+              <form action="{{ url_for('dna_bp.add_cnv_comment', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+                <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="h-40 w-full p-2 border border-gray-300 rounded-lg focus:bg-yellow-50 mb-4"></textarea><br>
+                <input type="hidden" name="cnvvar" value="{{cnv.chr}}:{{cnv.start}}-{{cnv.end}}">
+                <input type="submit" value="Save" class="bg-blue-500 text-white py-1 px-2 mx-1 mb-1 rounded-lg cursor-pointer shadow-md">&nbsp;&nbsp;
+                {% if has_access("add_global_variant_comment", min_role="admin") %}
+                  <label class="items-center">
+                    <input type="checkbox" name="global" value="global" class="form-checkbox text-blue-500">
+                    <span class="ml-2">Use as global annotation</span>
+                  </label>
+                {% endif %}
+                <input type="hidden" name="assay_group" value="{{ assay_group }}">
+                <input type="hidden" name="subpanel" value="{{ sample.get('subpanel', '') }}">
+              </form>
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Aditional Annotation genes -->
+        <div class="bg-gray-50 w-full max-w-xl shadow-md rounded-lg mb-1" id="additional-annotations-info">
+          <h2 class="text-sm font-semibold bg-gradient-to-b from-purple-400 to-purple-200 p-2 shadow-md rounded-t-lg break-all">Additional Annotations</h2>
+          <div class="rounded-b-lg overflow-x-auto">
+            <table class="w-full max-w-xl text-xs text-gray-800 mx-auto">
+              <thead class="capitalize tracking-wide rounded-t-lg bg-purple-200">
+                <tr class="border-b text-left border-gray-800">
+                  <th class="px-1 py-2 font-semibold">Genes from panel</th>
+                  <th class="px-1 py-2 font-semibold">Other Overlaping Genes</th>
+                </tr>
+              </thead>
+              <tbody id="additional-annotations-info-body" class="border-b border-gray-400">
+                <tr class="hover:bg-purple-100 border-t border-gray-400 text-left align-top">
+                  <td class="p-2 w-1/2">
+                    {% for gene in cnv.genes %}
+                      {% if gene.class %}
+                        <div class="mb-1">
+                          <div class="inline-block px-1 py-1 cursor-pointer rounded-full bg-gray-100 hover:bg-purple-200">
+                            {{ gene.gene }}
+                          </div>
+                          <span class="text-xs text-gray-600">– (CNV type: {{ gene.cnv_type }})</span>
+                        </div>
+                      {% endif %}
+                    {% endfor %}
+                  </td>                  
+                  <td class="p-2">
+                    <div class="flex flex-wrap gap-1">
+                      {% for gene in cnv.genes %}
+                        {% if not gene.class %}
+                          <div class="px-2 py-1 cursor-pointer rounded-full bg-gray-100 hover:bg-purple-200">
+                            {{ gene.gene }}
+                          </div>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+                  </td>                  
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="flex flex-col gap-y-4 min-w-450 max-w-xl items-start">
+        <!-- CNV annotations -->
+        {% if has_access(min_role='user', min_level=9) %}
+          <div class="bg-gray-50 w-full max-w-xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="green" pagination-button-text-color="black" id="cnv-annotations">
+            <h2 class="text-sm font-semibold bg-gradient-to-b from-green-400 to-green-200 p-2 shadow-lg rounded-t-lg break-all">CNV Annotations</h2>
+            <div class="rounded-b-lg overflow-x-auto">
+              {% if annotations|length > 0 %}
+                <table class="w-full max-w-xl table-auto text-xs text-gray-800 mb-1">
+                  <thead class="capitalize tracking-wide rounded-t-lg bg-green-100">
+                    <tr class="border-b text-left border-gray-800">
+                      <th class="p-3 font-semibold w-1/6">Who</th>
+                      <th class="p-3 font-semibold w-4/6">Annotation</th>
+                      <th class="p-3 font-semibold w-4/6">Type</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cnv-annotations-body" class="{% if annotations|length > 1 %}border-b border-gray-400 {% endif %}">
+                    {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
+                      {% if loop.first == True %}
+                        <tr class="hover:bg-green-100 border-t border-gray-400 text-left align-top">
+                          <td class="p-2 font-medium">{{ anno.author }}<br><small>{{ anno.time_created|human_date }}</small></td>
+                          <td class="p-2" onclick="addText(event)">{{ anno.text|format_comment|safe }}</td>
+                          <td class="p-2">
+                            {% if "assay" in anno %}
+                              {{ anno.assay }}<br><small>{{ anno.subpanel }}</small>
+                            {% else %}
+                              historic
+                            {% endif %}
+                          </td>
+                        </tr>
+                      {% endif %}
+                    {% endfor %}
+                  </tbody>
+                </table>
+              {% else %}
+                <em class="block text-center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md break-all">No cnv annotations available.</em>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+
+
+        <!-- Sample Specific CNV comments -->
+        <div class="bg-gray-50 w-full max-w-xl shadow-md rounded-lg mb-1" id="cnv-comments">
+          <h2 class="text-sm font-semibold bg-gradient-to-b from-yellow-400 to-yellow-200 p-2 shadow-md rounded-t-lg break-all">Sample-Specific Variant Comments</h2>
+          <div class="rounded-b-lg overflow-x-auto">
+            {% if cnv.comments|length > 0  %}
+              <table class="w-full max-w-xl table-auto text-xs text-gray-800">
+                <thead class="capitalize tracking-wide rounded-t-lg bg-yellow-100">
+                  <tr class="border-b text-left border-gray-800">
+                    <th class="p-3 font-semibold w-1/6">Who</th>
+                    <th class="p-3 font-semibold w-4/6">Comment</th>
+                    <th class="p-3 font-semibold w-1/6">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="cnv-comments-body" class="{% if cnv.comments|length > 1 %}border-b border-gray-400 {% endif %}">
+                  {% for comment in cnv.comments|sort(attribute='time_created', reverse=True) %}
+                    {% if comment.hidden != 1 %}
+                      <tr class="hover:bg-yellow-50 border-t border-gray-400 text-left align-top">
+                    {% else %}
+                      <tr class="bg-red-100 hover:bg-red-200 opacity-30 border-t border-gray-400 text-left align-top hidden hidden_comment">
+                    {% endif %}
+                      <td class="p-2 font-medium">{{ comment.author }}<br><small>{{ comment.time_created|human_date }}</small></td>
+                      <td class="p-2" onclick="addText(event)">{{ comment.text|format_comment|safe }}</td>
+                      <td class="p-2">
+                        {% if comment.hidden != 1 %}
+                          <form action="{{ url_for('dna_bp.hide_cnv_comment', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+                            <input type="hidden" name="comment_id" value="{{ comment._id }}">
+                            <input id="hide_comment" type="image" class="w-5 {% if not has_access('hide_variant_comment', min_role='manager', min_level=9) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
+                          </form>
+                        {% else %}
+                          <form action="{{ url_for('dna_bp.unhide_cnv_comment', sample_id=sample.name, cnv_id=cnv._id) }}" method="post">
+                            <input type="hidden" name="comment_id" value="{{ comment._id }}">
+                            <input id="unhide_comment" type="image" class="w-5 {% if not has_access('unhide_variant_comment', min_role='manager', min_level=9) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
+                          </form>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                  {% if hidden_comments %}
+                    <tr>
+                      <td colspan=3 class="py-2 px-4 border-t border-gray-300 text-center text-sm text-gray-800">
+                        <a href="javascript:void(0);" onclick="switchVisibility_comments('hidden_comment')">
+                          Show/Hide Deleted Comments
+                        </a>
+                      </td>
+                    </tr>
+                {% endif %}
+                </tbody>
+              </table>
+            {% else %}
+              <em class="block text
+              -center text-gray-600 text-sm italic p-4 rounded-b-lg border border-gray-300 shadow-md break-all">No sample-specific cnv comments available.</em>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+</div>
+
+<script type="text/javascript">
+
+  window.onload = function() {
+    $('[data-autoclick="true"]').click();
+    $('[data-autoclick="true"]').click();
+  };
+
+  function addText(event) {
+    var targ = event.target || event.srcElement;
+    if (!targ.closest('tr').classList.contains('hidden_comment')) {
+      document.getElementById("comment_textarea").value = targ.textContent || targ.innerText;
+    }
+  }
+
+  function switchVisibility_comments(class_name) {
+    var elems = document.getElementsByClassName(class_name);
+    for (var i = 0; i < elems.length; i++) {
+      elems[i].classList.toggle('hidden');
+    }
+  }
+</script>
+
+{% endblock %}
+

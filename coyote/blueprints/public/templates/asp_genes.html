@@ -1,0 +1,140 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<div class="flex w-full h-full overflow-hidden">
+
+  <main class="flex-1 overflow-y-auto p-4 flex flex-col">
+    <section class="p-2 ml-2 mt-2">
+      <h2 class="text-lg font-bold mb-4 ml-3">ASP Genes: <i>{{asp_id}}</i></h2>
+
+      <!-- Gene Details Table -->
+      {% if gene_details %}
+        <div class="flex flex-row justify-between items-center gap-4 px-2 py-2">
+          <div class="relative w-64">
+            <input type="text" id="search-genes" class="w-full border border-gray-300 rounded-lg py-2 pl-10 pr-10 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="Search Genes">
+            <div class="absolute inset-y-0 left-0 flex items-center pl-3">
+              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="search genes" class="h-5 w-5 text-gray-500 cursor-pointer" onclick="document.getElementById('search-genes').focus()">
+            </div>
+          </div>
+        </div>
+        <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" id="genes-div" data-rows-per-page="25" pagination-button-color="blue" pagination-button-text-color="black">
+          <table id="genes-table" class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
+            <thead class="rounded-t-2xl overflow-hidden border-gray-800">
+              <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
+                <th class="p-2 font-normal">HGNC ID</th>
+                <th class="p-2 font-normal">Gene Symbol</th>
+                <th class="p-2 font-normal">Locus</th>
+                <th class="p-2 font-normal">Alias Symbol</th>
+                <th class="p-2 font-normal">Previous Symbol</th>
+                <th class="p-2 font-normal">Gene Type</th>
+                <th class="p-2 font-normal">Ensembl Cannonical</th>
+                <th class="p-2 font-normal">Mane Select</th>
+                <th class="p-2 font-normal">Mane Select Plus Clinical</th>
+                <th class="p-2 font-normal">Description</th>
+              </tr>
+            </thead>
+            <tbody id="genes-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
+              {% for gene in gene_details %}
+                <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
+                  <td class="p-2 font-medium">{{ gene.hgnc_id.replace('HGNC:', '') }}</td>
+                  <td class="p-2 font-medium">
+                    <div class="flex flex-wrap gap-1">
+                      {{ gene.hgnc_symbol }}
+                      {% if gene.hgnc_symbol in germline_gene_symbols %}
+                        <span class="bg-yellow-500 hover:bg-yellow-400 text-black px-2 py-0.5 rounded-full">G</span>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td class="p-2 font-medium">{{ gene.locus }}</td>
+                  <td class="p-2 font-medium">
+                    <div class="flex flex-wrap gap-1">
+                      {% for alias in gene.alias_symbol %}
+                      <span class="bg-brown-100 text-black px-2 py-0.5 rounded-full ml-2">{{ alias }}</span>
+                      {% else %}
+                      <span>-</span>
+                      {% endfor %}
+                    </div>
+                  </td>
+                  <td class="p-2 font-medium">
+                    <div class="flex flex-wrap gap-1">
+                      {% for prev_symbol in gene.prev_symbol %}
+                      <span class="bg-purple-300 text-black px-2 py-0.5 rounded-full">{{ prev_symbol }}</span>
+                      {% else %}
+                      <span>-</span>
+                      {% endfor %}
+                    </div>
+                  </td>
+                  <td class="p-2 font-medium">
+                    <div class="flex flex-wrap gap-1">
+                      {% for g_type in gene.gene_type %}
+                      <span class="bg-{{g_type}} text-black px-2 py-0.5 rounded-full">{{ g_type }}</span>
+                      {% else %}
+                      <span>-</span>
+                      {% endfor %}
+                    </div>
+                  </td>
+                  <td class="p-2 font-medium text-center align-middle">
+                    <div class="flex justify-center items-center">
+                      {% if gene.ensembl_canonical %}
+                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/check-circle.svg') }}" alt="Ensembl Cannonical" class="h-5 w-5 text-gray-500 cursor-pointer">
+                      {% else %}
+                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/x-circle.svg') }}" alt="Not Ensembl Cannonical" class="h-5 w-5 text-gray-500 cursor-pointer">
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td class="p-2 font-medium">{{ gene.refseq_mane_select or '-' }}</td>
+                  <td class="p-2 font-medium">
+                    <div class="flex flex-wrap gap-1">
+                      {% for clincial_plus in gene.refseq_mane_plus_clinical %}
+                      <span class="bg-green-400 text-black px-2 py-0.5 rounded-full">{{ clincial_plus }}</span>
+                      {% else %}
+                      <span>-</span>
+                      {% endfor %}
+                    </div>
+                  </td>
+                  <td class="p-2 font-medium">{{ gene.gene_description|safe or '-' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% elif selected_panel_name and selected_subpanel_name %}
+        <p class="mt-4 text-gray-500">No genes found for this diagnosis.</p>
+      {% endif %}
+    </section>
+  </main>
+</div>
+
+<script>
+  const input = document.getElementById('search-genes');
+  const body = document.getElementById('genes-body');
+  const container = document.getElementById('genes-div');
+  const rowsPerPage = parseInt(container.dataset.rowsPerPage) || 25;
+  const originalRows = [...body.querySelectorAll('tr')].map(r => r.cloneNode(true));
+  const id = body.id;
+
+  input.addEventListener('input', () => {
+    const term = input.value.toLowerCase().trim();
+
+    // Remove any existing pagination controls
+    container.querySelectorAll('[data-prev], [data-next], [data-page-info]').forEach(el => el.parentElement?.remove());
+
+    // Filter rows or reset
+    const filtered = term
+      ? originalRows.filter(row =>
+          [...row.querySelectorAll('td')].slice(0, 4).some(td =>
+            td.textContent.toLowerCase().includes(term)
+          )
+        )
+      : originalRows;
+
+    // Replace table body with filtered or full rows
+    body.innerHTML = '';
+    filtered.forEach(row => body.appendChild(row));
+
+    // Trigger pagination if needed
+    filtered.length > rowsPerPage ? initializePagination() : displayPage(1, id, rowsPerPage);
+  });
+</script>
+
+{% endblock %}

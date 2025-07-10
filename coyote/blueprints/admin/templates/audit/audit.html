@@ -1,0 +1,118 @@
+{% extends "layout.html" %}
+{% block title %}Audit Logs{% endblock %}
+
+{% block body %}
+<div class="flex w-full h-full overflow-hidden">
+  <!-- Sidebar -->
+  {% include "admin_sidebar.html" %}
+
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+    <section id="audit-logs-section" class="p-2 ml-2 mt-2">
+      <div class="justify-start">
+        <div class="w-full bg-blue-50 shadow-3xl rounded-2xl p-4 relative overflow-hidden border-l-4 border-blue-400">
+          <!-- Header -->
+          <div class="flex flex-col  gap-4 px-2 py-2">
+            <h2 class="text-base font-semibold text-black tracking-wide uppercase">Audit Logs</h2>
+          </div>
+
+          <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination"  id="audit-logs" data-rows-per-page="25" pagination-button-color="blue" pagination-button-text-color="black">
+            <table id="audit-logs-table" class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
+              <thead class="rounded-t-2xl overflow-hidden border-gray-800">
+                <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
+                  <th class="p-2 font-normal">Level</th>
+                  <th class="p-2 font-normal">Status</th>
+                  <th class="p-2 font-normal">Timestamp</th>
+                  <th class="p-2 font-normal">User</th>
+                  <th class="p-2 font-normal">Action</th>
+                  <th class="p-2 font-normal">Duration</th>
+                  <th class="p-2 font-normal w-5/12">Extra</th>
+                  <th class="p-2 font-normal">Details</th>
+                </tr>
+              </thead>
+              <tbody id="audit-logs-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
+                {% for line in logs %}
+                  {% set parts = line.split(' - ', 6) %}
+                  {% if parts|length == 7 %}
+                    {% set timestamp = parts[0].strip('[]') %}
+                    {% set level = parts[3].strip('[]') %}
+                    {% set json_data = parts[6] %}
+                    {% set log = json_data | safe | from_json %}
+                    {% if log.status in ['success', 'failed', 'error'] %}
+                      <tr class="border-t border-gray-400 hover:bg-blue-50 text-left last:rounded-b-2xl">
+                        <td class="p-2">
+                          <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold text-white 
+                            {% if level == 'ERROR' %}
+                              bg-red-600
+                            {% elif level == 'WARNING' %}
+                              bg-orange-600
+                            {% elif level == 'DEBUG' %}
+                              bg-purple-600
+                            {% else %}
+                              bg-blue-700
+                            {% endif %}
+                          ">
+                            {{ level }}
+                          </span>
+                        </td>
+                        <td class="p-2 text-left">
+                          <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold text-white
+                            {% if log.status == 'success' %}
+                              bg-green-600
+                            {% elif log.status == 'failed' %}
+                              bg-orange-600
+                            {% else %}
+                              bg-red-600
+                            {% endif %}">
+                            {{ log.status or "N/A" }}
+                          </span>
+                        </td>
+                        <td class="p-2 font-medium whitespace-nowrap">{{ timestamp }}</td>                    
+                        <td class="p-2 font-medium text-left align-middle">
+                          <div class="flex flex-col items-left justify-center leading-snug">
+                            <span class="font-semibold">{{ log.user or "N/A" }}</span>
+                            <small class="text-gray-600 text-xs">({{ log.role or "NA" }})</small>
+                          </div>
+                        </td>                        
+                        <td class="p-2 font-medium">{{ log.action or "—" }}</td>
+                        <td class="p-2">{{ log.duration_ms or "—" }}</td>
+                        <td class="p-2 text-xs text-gray-800">
+                          {% if log.extra %}
+                            <div class="space-y-0.5">
+                              {% for k, v in log.extra.items() %}
+                                <div><span class="font-semibold text-black">{{ k }}:</span> {{ v }}</div>
+                              {% endfor %}
+                            </div>
+                          {% else %}
+                            —
+                          {% endif %}
+                        </td>
+                        <td class="p-2 text-xs text-gray-600">
+                          {% set keys_to_exclude = ['timestamp', 'user', 'role', 'action', 'status', 'duration_ms', 'extra', 'level'] %}
+                          <div class="space-y-0.5">
+                            {% for key, val in log.items() if key not in keys_to_exclude %}
+                              <div>
+                                <span class="font-semibold text-black">{{ key }}:</span>
+                                <span class="text-gray-800">
+                                  {% if val is string and val|length > 30 %}
+                                    {{ val[:30] }}...
+                                  {% else %}
+                                    {{ val }}
+                                  {% endif %}
+                                </span>
+                              </div>
+                            {% endfor %}
+                          </div>
+                        </td>            
+                      </tr>
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+{% endblock %}

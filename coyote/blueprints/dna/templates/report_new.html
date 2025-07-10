@@ -1,0 +1,247 @@
+{% extends "report_layout.html" %}
+{% block body %}
+
+{% if pdf != 1 %}
+<div class="bg-red-200 border border-red-400 w-full text-center p-2 mb-2 flex justify-between items-center">
+    <b>*** PREVIEW OF REPORT ***</b>
+    <a target="_blank" class="bg-blue-400 hover:bg-blue-600 text-black font-bold py-1 px-3 rounded" href="pdf/{{sample.name}}">Finalize report</a>
+</div>
+{% endif %}
+
+
+<div class="max-w-4xl mx-auto mt-6 bg-white">
+
+  <!-- Report Title -->
+  <h1 class="text-xl tracking-wide font-bold text-left">DNA Analysis Profile (NGS)</h1>
+</div>
+
+<!-- OLD FORMAT REPORT HHEADER
+<span class="report_header">{{ report_header }} - {{ sample.name }}</span>
+-->
+
+<!-- Meta Info Section -->
+<div class="max-w-3xl mx-auto bg-white rounded-lg border-b">
+  <!-- Top Red Bar -->
+  <div class="w-full h-2 bg-green-400 rounded-t-lg"></div>
+
+  <!-- Section Header Row -->
+  <div class="flex space-x-4 bg-green-100 border-b-1 border-green-100">
+    <div class="w-1/3 font-bold uppercase tracking-wide py-1 px-1 rounded-t-md">Patient</div>
+    <div class="w-1/3 font-bold uppercase tracking-wide py-1 px-1 rounded-t-md">Specimen</div>
+    <div class="w-1/3 font-bold uppercase tracking-wide py-1 px-1 rounded-t-md">LAB</div>
+  </div>
+
+  <!-- Content Rows -->
+  <div class="grid grid-cols-3 gap-4 mt-4 mb-2 text-sm">
+    
+    <!-- Patient Section -->
+    <div class="space-y-1 px-1 text-xs">
+      <p><span class="font-semibold uppercase tracking-wide">Patientnamn</span><br><span class="text-gray-800">&lt;PATIENT_NAME&gt;</span></p>
+      <p><span class="font-semibold uppercase tracking-wide">Personnummer</span><br><span class="text-gray-800">&lt;PERSONAL_INDENITY_NUMBER&gt;</span></p>
+      <p><span class="font-semibold uppercase tracking-wide">Frågeställning</span><br>
+        <span class="text-gray-800">
+          {% if assay == "myeloid" %}
+            {% if sample.num_samples == 2 %}
+              Hematologisk neoplasi
+            {% else %}
+              &lt;DIAGNOSIS&gt;
+            {% endif %}
+          {% elif assay == "solid" %}
+            {% if 'subpanel' in sample %}
+              {% if sample.subpanel == "BP" %}
+                Bröst-Pilot
+              {% else %}
+                {{sample.subpanel}}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        </span>
+      </p>
+      <p><span class="font-semibold uppercase tracking-wide">Date of Birth</span><br><span class="text-gray-800">11/23/1988</span></p>
+      <p><span class="font-semibold uppercase tracking-wide">Sex</span><br><span class="text-gray-800">Female</span></p>
+    </div>
+
+    <!-- Specimen Section -->
+    <div class="space-y-1 text-xs">
+      <p><span class="font-semibold uppercase tracking-wide">Prov-ID</span><br><span class="text-gray-800">{{ sample.name }}</span></p>
+      <p><span class="font-semibold uppercase tracking-wide">Provtyp</span><br><span class="text-gray-800">Tumörprov</span></p>
+      <p><span class="font-semibold uppercase tracking-wide">Tissue Type</span><br><span class="text-gray-800">&lt;TISSUE_TYPE&gt; (&lt;NUCLEOTIDE_TYPE&gt;)</span></p>
+      <p><span class="font-semibold uppercase tracking-wide">Tumor Creation Date</span><br>
+        <span class="text-gray-800">
+          {% if tumor_creation_date %}
+            {{tumor_creation_date}}
+          {% else %}
+            N/A
+          {% endif %}
+        </span>
+      </p>
+      {% if not germline and sample.num_samples == 2 %}
+        <p><span class="font-semibold uppercase tracking-wide">Control Creation Date</span><br><span class="text-gray-800">&lt;CONTROL_CREATION_DATE&gt;</span></p>
+      {% endif %}
+      {% if sample.num_samples == 2 %}
+        <p><span class="font-semibold uppercase tracking-wide">Kontrollprov</span><br><span class="text-gray-800">&lt;CONTROL_SAMPLE&gt;</span></p>
+        <p><span class="font-semibold uppercase tracking-wide">KontrollProvtyp</span><br><span class="text-gray-800">&lt;CONTROL_SAMPLE_TYPE&gt;</span></p>
+      {% endif %}
+      <p><span class="font-semibold uppercase tracking-wide">Registreringsdatum</span><br><span class="text-gray-800">&lt;REGISTRATION_DATE&gt;</span></p>
+      <p><span class="font-semibold uppercase tracking-wide">% Tumor Cellularity</span><br><span class="text-gray-800">25</span></p>
+    </div>
+
+    <!-- Lab Section -->
+    <div class="space-y-1 text-xs">
+      <p><span class="font-semibold uppercase tracking-wide">Sequencing Method</span><br><span class="text-gray-800">Illumina</span></p>
+      <p><span class="font-semibold uppercase tracking-wide">Analysmetod</span><br>
+        <span class="text-gray-800">
+          {{ analysis_method }}
+        </span>
+      </p>
+      <p><span class="font-semibold uppercase tracking-wide">Rapportdatum</span><br><span class="text-gray-800">{{ report_date }}</span></p>
+      <p><span class="font-semibold uppercase tracking-wide">Rapport genererad av</span><br><span class="text-gray-800">{{ current_user.fullname }}</span></p>
+      <p><span class="font-semibold uppercase tracking-wide">Rapport-ID</span><br>
+        <span class="text-gray-800">
+          {% if sample.report_num is defined %}
+            {{ sample.name }}.{{ sample.report_num + 1 }}
+          {% else %}
+            {{ sample.name }}.1
+          {% endif %}
+        </span>
+      </p>
+      <p><span class="font-semibold uppercase tracking-wide">Analys genomförd av</span><br>
+        <span class="text-gray-800">
+          {% if assay=="myeloid" or assay=="solid" %}
+            Centrum för molekylär diagnostik (CMD) och Klinisk genetik och patologi
+          {% elif assay=="swea" or assay=="gmsonco" %}
+            Centrum för molekylär diagnostik (CMD)
+          {% endif %}
+        </span>
+      </p>
+    </div>
+  </div>  
+</div>
+
+<!-- Analysis Results Section -->
+<div class="mx-auto rounded-lg border-b">
+  <h2 class="text-lg font-bold text-left pt-4">Analysresultat</h2>
+  <div class="w-full h-2 bg-green-400 rounded-t-lg"></div>
+  <table class="w-full ">
+    <thead class="bg-green-100">
+      <tr>
+        <th class="font-bold uppercase tracking-wide py-1">Variant</th>
+        <th class="font-bold uppercase tracking-wide py-1">Variantfrekvens</th>
+        <th class="font-bold uppercase tracking-wide py-1">Klassificering</th>
+        {% if simple_variants | has_hotspot %}
+          <th class="font-bold uppercase tracking-wide py-1">Hotspot*</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for var in simple_variants %}
+        <tr class="py-1 text-center pb-2">
+          <td>
+            <span class="font-bold uppercase tracking-wide">{{ var.symbol }}</span><br>
+            <span class="text-xs">
+              {{ var.variant|unesc }}
+            </span>
+          </td>
+          <td class="py-1">{{ var.af|perc_no_dec }}</td>
+          <td class="py-1">{{ var.class }}</td>
+          {% if simple_variants | has_hotspot %}
+            <td class="py-1 text-black">{{ var.hotspot|format_hotspot|safe }}</td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Hotspot Note Section -->
+<div class="mx-auto rounded-lg border-b">
+  {% if simple_variants | has_hotspot %}
+  <div class="mt-6 mb-1 p-1 text-xs border-t-4 border-yellow-500 text-yellow-700 rounded-lg">
+      {{ '' | format_hotspot_note | safe }}
+  </div>
+{% endif %}
+</div>
+
+
+<!-- CNVs Section -->
+{% if cnvs %}
+  <div class="mx-auto rounded-lg border-b">
+    <h2 class="text-lg font-bold text-left pt-4">Kliniskt relevanta genspecifika kopietalsförändringar</h2>
+    <div class="w-full h-2 bg-green-400 rounded-t-lg"></div>
+    <table class="w-full ">
+      <thead class="bg-green-100">
+        <tr>
+          <th class="font-bold uppercase tracking-wide py-1">Gen(er)</th>
+          <th class="font-bold uppercase tracking-wide py-1">Storlek</th>
+          <th class="font-bold uppercase tracking-wide py-1">Typ</th>
+          <th class="font-bold uppercase tracking-wide py-1">Kopietal</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cnv in cnvs %}
+          <tr class="py-1 text-center pb-2">
+            <td>
+              <span class="font-bold uppercase tracking-wide">{{ var.symbol }}</span><br>
+              <span class="text-xs">
+                {{ var.variant|unesc }}
+              </span>
+            </td>
+            <td class="py-1">{{ var.af|perc_no_dec }}</td>
+            <td class="py-1">{{ var.class }}</td>
+            {% if simple_variants | has_hotspot %}
+              <td class="py-1 text-black">{{ var.hotspot|format_hotspot|safe }}</td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+
+<!-- Fusions/Translocations Section -->
+{% if translocs %}
+  <div class="mx-auto rounded-lg border-b">
+    <h2 class="text-lg font-bold text-left pt-4">Analysresultat</h2>
+    <div class="w-full h-2 bg-green-400 rounded-t-lg"></div>
+    <table class="w-full ">
+      <thead class="bg-green-100">
+        <tr>
+          <th class="font-bold uppercase tracking-wide py-1">Variant</th>
+          <th class="font-bold uppercase tracking-wide py-1">Variantfrekvens</th>
+          <th class="font-bold uppercase tracking-wide py-1">Klassificering</th>
+          {% if simple_variants | has_hotspot %}
+            <th class="font-bold uppercase tracking-wide py-1">Hotspot*</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for var in simple_variants %}
+          <tr class="py-1 text-center pb-2">
+            <td>
+              <span class="font-bold uppercase tracking-wide">{{ var.symbol }}</span><br>
+              <span class="text-xs">
+                {{ var.variant|unesc }}
+              </span>
+            </td>
+            <td class="py-1">{{ var.af|perc_no_dec }}</td>
+            <td class="py-1">{{ var.class }}</td>
+            {% if simple_variants | has_hotspot %}
+              <td class="py-1 text-black">{{ var.hotspot|format_hotspot|safe }}</td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+
+
+<!-- Summary Section -->
+<div class="mt-1 p-1 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 rounded-lg">
+  <p class="text-xs font-semibold">
+    summary
+  </p>
+</div>
+
+
+{% endblock %}

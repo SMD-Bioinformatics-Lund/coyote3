@@ -1,0 +1,153 @@
+{% extends "layout.html" %}
+{% block title %}Create ISGL{% endblock %}
+{% block body %}
+<div class="flex w-full h-full overflow-hidden">
+  {% include "admin_sidebar.html" %}
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+    <section class="p-2 ml-2 mt-2">
+      <div class="bg-gray-50 border border-gray-200 rounded-2xl shadow-xl p-6">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="text-xl font-bold text-blue-500 tracking-wide flex gap-2 items-center">
+            <img src="{{ url_for('static', filename='icons/heroicons_outline_24/document-plus.svg') }}" class="h-6 w-6">
+            Create New In-Silico Genelist
+          </h1>
+          <form method="GET" action="{{ url_for('admin_bp.create_user') }}">
+            <label class="text-sm font-semibold text-gray-800">Schema:</label>
+            <select name="schema_id" onchange="this.form.submit()" class="text-sm border border-gray-300 rounded-md shadow-sm px-2 py-1 bg-gray-50">
+              {% for s in schemas %}
+                <option value="{{ s._id }}" {% if s._id == selected_schema._id %}selected{% endif %}>{{ s._id }} (v{{ s.version }})</option>
+              {% endfor %}
+            </select>
+          </form>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="space-y-6 text-sm text-gray-700">
+          {% for section, keys in schema.sections.items() %}
+          <div class="mb-6 border-l-4 border-blue-300 bg-blue-50 rounded-xl shadow-lg p-4">
+            <h2 class="text-sm font-semibold text-blue-700 uppercase mb-3 tracking-wide">{{ section.replace('_', ' ') | title }}</h2>
+            <div class="grid grid-cols-3 gap-4">
+              {% for key in keys %}
+                {% set field = schema.fields[key] %}
+                {% set value = field.default %}
+                {% set is_readonly = field.readonly or (field.readonly_mode is defined and 'create' in field.readonly_mode) %}
+                {% if key == "assays" %}
+                  <div class="col-span-full">
+                    <h3 class="text-sm font-semibold text-gray-800 mb-1">Assays</h3>
+                    <div id="assays-container" class="flex flex-wrap gap-10 text-xs">
+                      {% for group, assays in assay_group_map.items() %}
+                        <div data-group="{{ group }}" class="assay-block hidden">
+                          <h4 class="text-xs font-semibold text-blue-700 mb-1">{{ group }}</h4>
+                          <div class="flex flex-col flex-wrap gap-2">
+                            {% for assay in assays %}
+                              <label class="inline-flex items-center gap-1 {% if assay.asp_category == 'RNA' %} text-yellow-700 font-semibold {% else %} text-gray-800 {% endif %}">
+                                <input type="checkbox" name="assays" value="{{ assay.assay_name }}" checked
+                                        class="rounded {% if assay.asp_category == 'RNA' %} accent-yellow-700 {% else %} accent-blue-600 {% endif %}">
+                                {{ assay.assay_name }}
+                              </label>
+                            {% endfor %}
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                {% elif field.display_type == "checkbox-group" %}
+                  <div class="col-span-full">
+                    <label class="text-sm font-semibold block mb-1">{{ field.label }}</label>
+                    <div class="flex flex-wrap gap-2 text-xs">
+                      {% for opt in field.options %}
+                        <label class="inline-flex items-center gap-2">
+                          <input type="checkbox" name="{{ key }}" value="{{ opt }}" class="accent-blue-600 group-toggle"
+                            {% if field.default and opt in field.default %}checked{% endif %}>
+                          {{ opt }}
+                        </label>
+                      {% endfor %}
+                    </div>
+                  </div>
+                {% elif field.display_type == "select" %}
+                  <div>
+                    <label class="text-xs font-semibold block mb-1">{{ field.label }}</label>
+                    <select name="{{ key }}" id="{{ key }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">
+                      {% for opt in field.options %}
+                        <option value="{{ opt }}" {% if opt == value %}selected{% endif %}>{{ opt }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                {% elif field.display_type == "checkbox" %}
+                  <div class="flex items-center space-x-2">
+                    <input type="checkbox" name="{{ key }}" value="true" {% if value %}checked{% endif %} class="accent-blue-600 rounded">
+                    <label class="text-xs font-semibold">{{ field.label }}</label>
+                  </div>
+                {% elif section == "gene_content" %}
+                  <div class="flex flex-col col-span-full gap-1">
+                    <label class="text-xs font-semibold block mb-1">{{ field.label }}</label>
+                    <label class="text-xs text-gray-500 italic block">If both a gene list is pasted and a file is uploaded, the uploaded file will be used.</label>
+                    <textarea name="genes_paste" rows="6" placeholder="{{ field.placeholder }}"
+                      class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm font-mono resize-y"></textarea>
+                    <div>
+                      <span class="text-xs font-semibold block mb-2">Or Upload Gene File</span>
+                      <input type="file" name="genes_file" accept=".txt,.csv" class="text-xs">
+                    </div>
+                  </div>
+                {% else %}
+                  <div>
+                    <label class="text-xs font-semibold block mb-1">{{ field.label }}</label>
+                    <input type="text" name="{{ key }}" id="{{ key }}" placeholder="{{ field.placeholder }}" value="{% if value is iterable and value is not string %}{{ value | join(', ') }}{% else %}{{ value }}{% endif %}"
+                      {% if is_readonly %}readonly class="w-full bg-blue-50 border border-blue-300 text-gray-500 rounded-md p-2 text-sm"{% else %}
+                      class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm"{% endif %}>
+                    {% if key == "username" %}<p id="username_check" class="text-xs mt-1"></p>{% endif %}
+                    {% if key == "email" %}<p id="email_check" class="text-xs mt-1"></p>{% endif %}
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+          <div class="text-right pt-4">
+            <button type="submit" class="bg-blue-300 hover:bg-blue-400 text-black font-semibold px-6 py-2 rounded-lg shadow-lg transition">
+              Save ISGL
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const groupToggles = document.querySelectorAll('.group-toggle');
+    const assayBlocks = document.querySelectorAll('.assay-block');
+
+    // ========== Assay Visibility Toggle Based on Groups ==========
+    function updateAssayVisibility() {
+      const selectedGroups = Array.from(groupToggles)
+        .filter(cb => cb.checked)
+        .map(cb => cb.value);
+
+      assayBlocks.forEach(block => {
+        const group = block.getAttribute("data-group");
+        const checkboxes = block.querySelectorAll('input[type="checkbox"]');
+        if (selectedGroups.includes(group)) {
+          block.classList.remove("hidden");
+          checkboxes.forEach(cb => cb.checked = true);
+        } else {
+          block.classList.add("hidden");
+          checkboxes.forEach(cb => cb.checked = false);
+        }
+      });
+    }
+
+    // ========== Event Bindings ==========
+    groupToggles.forEach(cb => cb.addEventListener("change", updateAssayVisibility));
+
+    // ========== Initial Execution ==========
+    updateAssayVisibility();
+
+  });
+</script>
+
+
+{% endblock %}

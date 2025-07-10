@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+{% block title %}Error{% endblock %}
+
+{% block body %}
+<div class="container mx-auto px-4 py-8">
+    <div class="bg-white shadow-md rounded-lg p-6 text-center">
+        <h3 class="text-2xl font-semibold text-red-600">Oops... An error occurred.</h3>
+        <br>
+        <div class="errors text-gray-700 whitespace-pre-line">
+            {% if error %}
+                <p>{{ error }}</p>
+            {% endif %}
+            {% if details %}
+                <p class="text-sm text-gray-500 mt-2">{{ details }}</p>
+            {% endif %}
+        </div>
+        <hr class="my-4">
+        <a href="{{ url_for('home_bp.samples_home') }}" class="text-blue-500 hover:underline text-lg">Return to Home Page</a>
+    </div>
+</div>
+{% endblock %}

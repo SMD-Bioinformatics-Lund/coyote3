@@ -1,0 +1,68 @@
+<section id="selected_gene_list" class="bg-blue-50 shadow-lg rounded-xl my-2">
+  <!-- Toggle Button -->
+  <div class="flex justify-between items-center bg-blue-50 text-black rounded-t-xl px-4 py-1 cursor-pointer hover:bg-purple-200 transition" onclick="toggleCard1()">
+    <h2 class="text-base font-semibold tracking-wide uppercase">Gene Panel(s)</h2>
+    <!-- Toggle Icon -->
+    <button class="focus:outline-none">
+      <img id="arrow-icon" src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-double-up.svg') }}" 
+            alt="Toggle Selected Genes Filters" 
+            class="w-6 h-6 transform transition-transform duration-300 filter rotate-180">
+    </button>
+  </div>
+
+  <!-- Gene Lists Summary (Closed View) -->
+  <div id="selected-genes-summary" class="text-sm font-medium rounded-2xl text-black mt-2 px-4 pb-2">
+    {% if checked_genelists_dict  %}
+      <div class="flex flex-row gap-1">
+        {% for glist, glist_values in checked_genelists_dict.items() %}
+          <span class="py-1 px-3 rounded-md text-xs shadow-sm {% if glist_values.is_active %}bg-gray-200 hover:bg-green-200 {% else %}bg-orange-400 hover:bg-orange-600{% endif %} transition">{{ glist }}: {{ glist_values.covered|length }} of {{ glist_values.genes|length }} gene(s) covered</span>
+        {% endfor %}
+      </div>
+    {% else %}
+      <span class="font-bold block text-gray-600">No genelist filters applied</span>
+    {% endif %}
+  </div>
+
+  <!-- Collapsible Content (Open State) -->
+  <div id="selected-genes-card-content" class="my-2 p-2 hidden rounded-2xl">
+    {% if checked_genelists_dict %}
+      <div class="flex flex-col gap-2">
+        {% for glist, glist_values in checked_genelists_dict.items() %}
+          <div class="rounded-md shadow-md p-2 bg-transparent">
+            {% if glist_values.is_active %}
+              <b class="text-gray-800">{{ glist }} - {{ glist_values.covered|length }} of {{ glist_values.genes|length }} gene(s) covered:</b>
+            {% else %}
+              <b class="text-red-800">{{ glist }} - {{ glist_values.covered|length }} of {{ glist_values.genes|length }} gene(s) covered:  This is inactive and the filter has not been applied. Use a different genelist from the filters.</b>
+            {% endif %}
+            <div class="my-1 flex flex-wrap gap-2 text-xs">
+              {% for gene in glist_values.genes %}
+                {% if gene in glist_values.covered %}
+                  <span class="py-0.5 px-1 bg-green-200 rounded-md text-xs shadow-sm hover:bg-green-400 transition" title="This gene is covered in the panel">{{ gene }}</span>
+                {% else %}
+                  <span class="py-0.5 px-1 bg-orange-400 rounded-md text-xs shadow-sm hover:bg-orange-600 transition" title="This gene is not covered in the panel">{{ gene }}</span>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <span class="font-semibold text-gray-600 block">No genefilter applied</span>
+    {% endif %}
+  </div>
+</section>
+
+<script>
+function toggleCard1() {
+    let content = document.getElementById("selected-genes-card-content");
+    let arrowIcon = document.getElementById("arrow-icon");
+
+    if (content.classList.contains("hidden")) {
+        content.classList.remove("hidden");
+        arrowIcon.classList.remove("rotate-180");
+    } else {
+        content.classList.add("hidden");
+        arrowIcon.classList.add("rotate-180");
+    }
+}
+</script>

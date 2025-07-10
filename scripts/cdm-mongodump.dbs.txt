@@ -1,7 +1,0 @@
-CMD files
-CMD runs
-coyote users
-bjorn samples
-bjorn log
-breaxpress samples
-BAM_Service samples
