@@ -30,6 +30,7 @@ from flask import request
 from pathlib import Path
 import os
 from gunicorn import glogging
+from flask_login import current_user
 
 
 # -------------------------------------------------------------------------
@@ -56,6 +57,11 @@ class RequestFilter(logging.Filter):
         """
         record.remote_addr = request.remote_addr if request else "N/A"
         record.host = request.host if request else "N/A"
+
+        if current_user and current_user.is_authenticated:
+            record.user = (current_user.username or 'anonymous')
+        else:
+            record.user = '-'
         return True
 
 
@@ -153,6 +159,16 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
         Dict[str, Any]: Logging configuration dictionary.
     """
     today = datetime.now().strftime("%Y-%m-%d")
+    _this_year = datetime.now().strftime("%Y")
+    _this_month = datetime.now().strftime("%m")
+    _this_day = datetime.now().strftime("%d")
+
+    date_folder = f"{_this_year}/{_this_month}/{_this_day}"
+
+    (Path(log_dir) / "info"/_this_year/_this_month/_this_day).mkdir(parents=True, exist_ok=True)
+    (Path(log_dir) / "error"/_this_year/_this_month/_this_day).mkdir(parents=True, exist_ok=True)
+    (Path(log_dir) / "debug"/_this_year/_this_month/_this_day).mkdir(parents=True, exist_ok=True)
+    (Path(log_dir) / "audit"/_this_year/_this_month/_this_day).mkdir(parents=True, exist_ok=True)
 
     handlers = {
         "console": {
@@ -172,29 +188,29 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
             "()": "logging_setup.CustomTimedRotatingFileHandler",
             "formatter": "standard",
             "filters": ["request_filter"],
-            "filename": f"{log_dir}/info/{today}.log",
+            "filename": f"{log_dir}/info/{date_folder}/{today}.log",
             "when": "midnight",
             "interval": 1,
             "backupCount": 0,
-            "days_to_keep": 30,
+            "days_to_keep": 90,
         },
         "file_error": {
             "level": "ERROR",
             "()": "logging_setup.CustomTimedRotatingFileHandler",
             "formatter": "standard",
             "filters": ["request_filter"],
-            "filename": f"{log_dir}/error/{today}.log",
+            "filename": f"{log_dir}/error/{date_folder}/{today}.log",
             "when": "midnight",
             "interval": 1,
             "backupCount": 0,  # let days_to_keep handle deletion
-            "days_to_keep": 30,
+            "days_to_keep": 90,
         },
         "audit": {
             "level": "INFO",
             "()": "logging_setup.CustomTimedRotatingFileHandler",
             "formatter": "standard",
             "filters": ["request_filter"],
-            "filename": f"{log_dir}/audit/{today}.log",
+            "filename": f"{log_dir}/audit/{date_folder}/{today}.log",
             "when": "midnight",  # rotate daily
             "interval": 1,
             "backupCount": 0,  # let days_to_keep handle deletion
@@ -208,7 +224,7 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
             "()": "logging_setup.CustomTimedRotatingFileHandler",
             "formatter": "standard",
             "filters": ["request_filter"],
-            "filename": f"{log_dir}/debug/{today}.log",
+            "filename": f"{log_dir}/debug/{date_folder}/{today}.log",
             "when": "midnight",
             "backupCount": 15,
             "days_to_keep": 15,
@@ -254,17 +270,17 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
         "handlers": handlers,
         "formatters": {
             "generic": {
-                "format": "%(asctime)s - [%(process)d] - [%(name)s] - [%(levelname)s] - %(message)s",
+                "format": "%(asctime)s - [%(process)d] - [%(name)s] - [%(levelname)s] - [%(user)s] - %(message)s",
                 "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
                 "class": "logging.Formatter",
             },
             "standard": {
-                "format": "%(asctime)s - [%(process)d] - [%(name)s] - [%(levelname)s] - [%(remote_addr)s] - [%(host)s] - %(message)s",
+                "format": "%(asctime)s - [%(process)d] - [%(name)s] - [%(levelname)s] - [%(remote_addr)s] - [%(host)s] - [%(user)s] - %(message)s",
                 "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
                 "class": "logging.Formatter",
             },
             "colorized": {
-                "format": "%(log_color)s%(asctime)s - [%(process)d] - [%(name)s] - [%(levelname)s] - [%(remote_addr)s] - [%(host)s] - %(message)s",
+                "format": "%(log_color)s%(asctime)s - [%(process)d] - [%(name)s] - [%(levelname)s] - [%(remote_addr)s] - [%(host)s] - [%(user)s] - %(message)s",
                 "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
                 "class": "colorlog.ColoredFormatter",
                 "log_colors": {
