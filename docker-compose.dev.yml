@@ -23,7 +23,7 @@ services:
       - ".git:/app/.git"
       - "./coyote:/app/coyote"
       - "./config:/app/config"
-      - "./logs:/app/logs"
+      - "/data/coyote3/logs:/app/logs"
       - "./docs:/app/docs"
       - "./config.py:/app/config.py"
       - "./wsgi.py:/app/wsgi.py"
