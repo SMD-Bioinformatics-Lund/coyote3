@@ -847,7 +847,7 @@ class CommonUtility:
         Get the report header string based on the assay type and sample data.
 
         If the assay is "myeloid" and the sample's "subpanel" is "Hem-Snabb", the header is modified:
-        - If "num_samples" is 2, appends ": fullständig parad analys" (full paired analysis).
+        - If "sample_no" is 2, appends ": fullständig parad analys" (full paired analysis).
         - Otherwise, appends ": preliminär oparad analys" (preliminary unpaired analysis).
 
         Args:
@@ -859,7 +859,7 @@ class CommonUtility:
             str: The formatted report header.
         """
         if assay == "myeloid" and sample.get("subpanel") == "Hem-Snabb":
-            if sample.get("num_samples") == 2:
+            if sample.get("sample_no") == 2:
                 header += ": fullständig parad analys"
             else:
                 header += ": preliminär oparad analys"

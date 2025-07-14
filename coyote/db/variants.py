@@ -70,25 +70,6 @@ class VariantsHandler(BaseHandler):
         return ids
 
     # TODO: This will be removed once the sample num is set in the sample doc
-    def get_num_samples(self, sample_id: str) -> int:
-        """
-        Get the number of samples associated with a given sample ID.
-
-        Args:
-            sample_id (str): The ID of the sample to retrieve.
-
-        Returns:
-            int: The number of samples found for the given sample ID.
-        """
-        gt = self.get_collection().find_one(
-            {"SAMPLE_ID": sample_id}, {"GT": 1}
-        )
-        if gt:
-            return len(gt.get("GT"))
-        else:
-            return 0
-
-    # TODO: This will be removed once the sample num is set in the sample doc
     def get_gt_lengths_by_sample_ids(
         self, sample_ids: list[str]
     ) -> dict[str, int]:

@@ -30,12 +30,12 @@
     </tr>
     <tr>
       <td class="top_report_key">Prov-ID</td>
-      <td class="top_report_val">{{ sample.name }}
+      <td class="top_report_val">{{ sample.case_id }}</td>
     </tr>
-    {% if sample.num_samples == 2 %}
+    {% if sample.sample_no == 2 %}
       <tr>
         <td class="top_report_key">KontrollProv-ID</td>
-        <td class="top_report_val">{{ sample.control_id }}
+        <td class="top_report_val">{{ sample.control_id }}</td>
       </tr>
     {% endif %}
     <tr>
@@ -51,7 +51,7 @@
       <td class="top_report_key">Frågeställning</td>
       <td class="top_report_val">
         {% if assay_group == "myeloid" %}
-          {% if sample.num_samples == 2 %}
+          {% if sample.sample_no == 2 %}
             Hematologisk neoplasi
           {% else %}
             &lt;DIAGNOSIS&gt;
