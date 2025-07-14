@@ -57,14 +57,8 @@ def list_fusions(id: str) -> str | Response:
     if sample is None:
         sample = store.sample_handler.get_sample_by_id(id)
 
-    sample_groups = sample.get("groups")
-    if len(sample_groups) > 1:
-        for group in sample_groups:
-            if group in ["tumwgs-solid", "tumwgs-hema"]:
-                smp_grp = group
-                break
-    else:
-        smp_grp = sample["groups"][0]
+
+    smp_grp = sample.get("assay", "unknown")
 
     group_params = util.common.get_group_parameters(smp_grp)
     settings = util.common.get_group_defaults(group_params)

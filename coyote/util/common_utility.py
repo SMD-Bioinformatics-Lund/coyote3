@@ -795,24 +795,6 @@ class CommonUtility:
         return dict(t)
 
     @staticmethod
-    def select_one_sample_group(sample_groups: list) -> str:
-        """
-        Select the appropriate sample group from a list of sample groups.
-
-        If there are multiple sample groups, prioritize and return "tumwgs-solid" or "tumwgs-hema" if present.
-        Otherwise, return the first sample group in the list.
-        """
-        ## Check the length of the sample groups from db, and if len is more than one, tumwgs-solid or tumwgs-hema takes the priority in new coyote
-        if len(sample_groups) > 1:
-            for group in sample_groups:
-                if group in ["tumwgs-solid", "tumwgs-hema"]:
-                    smp_grp = group
-                    break
-        else:
-            smp_grp = sample_groups[0]
-        return smp_grp
-
-    @staticmethod
     def get_genelist_dispnames(
         genelists: dict, filter_list: None | list
     ) -> str:
