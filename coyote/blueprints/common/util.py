@@ -299,7 +299,7 @@ class BPCommonUtility:
             or ""
         )
         germline_intersection = list(
-            set(assay_panel_doc["germline_genes"]) & set(genes_chosen)
+            set(assay_panel_doc.get("germline_genes", [])) & set(genes_chosen)
         )
 
         # add text about control sample used
@@ -345,14 +345,10 @@ class BPCommonUtility:
                 + the_genes
                 + ". "
             )
-            if len(sample_ids) == 2:
-                if len(germline_intersection) > 1:
-                    germ_spoken = str(
-                        CommonUtility.nl_join(incl_genes_copy, "samt")
-                    )
-                else:
-                    germ_spoken = germline_intersection[0]
+            if len(sample_ids) == 2 and germline_intersection:
+                germ_spoken = str( CommonUtility.nl_join(germline_intersection, "samt"))
                 text += f"För {germ_spoken} undersöks även konstitutionella varianter."
+
         text += "\n\n"
         return text
 
