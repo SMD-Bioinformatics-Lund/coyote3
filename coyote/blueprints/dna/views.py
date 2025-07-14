@@ -1636,11 +1636,6 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     )
     app.logger.debug(f"Assay group: {assay_group} - Subpanel: {subpanel}")
 
-    # Get number of the samples in this report (paired, unpaired)
-    sample["num_samples"] = store.variant_handler.get_num_samples(
-        str(sample["_id"])
-    )
-
     # Get the entire genelist for the sample panel
     assay_panel_doc = store.asp_handler.get_asp(asp_name=sample_assay)
 
