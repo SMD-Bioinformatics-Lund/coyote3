@@ -123,8 +123,8 @@
                     {% set sample_profile = sample.get('profile', '')[0]|upper or 'P' %}
                     <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile {% endif %}">
                       <td class="p-2 font-medium text-center">
-                        {% if "num_samples" in sample %}
-                          {% for n in range(sample.num_samples) %}
+                        {% if "sample_no" in sample %}
+                          {% for n in range(sample.sample_no) %}
                             &#9679;
                           {% endfor %}
                         {% endif %}
@@ -211,8 +211,8 @@
                     {% set sample_profile = sample.get('profile', '')[0]|upper or 'P' %}
                     <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile {% endif %}">
                       <td class="p-2 font-medium text-center">
-                        {% if "num_samples" in sample %}
-                          {% for n in range(sample.num_samples) %}
+                        {% if "sample_no" in sample %}
+                          {% for n in range(sample.sample_no) %}
                             &#9679;
                           {% endfor %}
                         {% endif %}

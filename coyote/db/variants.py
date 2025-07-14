@@ -69,30 +69,6 @@ class VariantsHandler(BaseHandler):
                 ids[gt.get("type")] = gt.get("sample")
         return ids
 
-    # TODO: This will be removed once the sample num is set in the sample doc
-    def get_gt_lengths_by_sample_ids(
-        self, sample_ids: list[str]
-    ) -> dict[str, int]:
-        """
-        For each SAMPLE_ID, fetch one document and get the length of the 'GT' field (a list).
-
-        Args:
-            sample_ids (list[str]): List of SAMPLE_IDs to look up.
-
-        Returns:
-            dict[str, int]: Mapping of SAMPLE_ID to length of GT array.
-        """
-        pipeline = [
-            {"$match": {"SAMPLE_ID": {"$in": sample_ids}}},
-            {"$sort": {"_id": 1}},
-            {"$group": {"_id": "$SAMPLE_ID", "GT": {"$first": "$GT"}}},
-        ]
-        results = self.get_collection().aggregate(pipeline)
-        return {
-            r["_id"]: len(r["GT"]) if isinstance(r.get("GT"), list) else 0
-            for r in results
-        }
-
     def get_case_variants(self, query: dict):
         """
         Retrieve variants based on a constructed query.
