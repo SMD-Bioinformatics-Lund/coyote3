@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.0.1
+### BugFix
+hotfix: report paired status key update - replaced `sample_num` with the correct key `sample.sample_no` to get the number of samples (case/control)
+
 ## v3.0.0
 ### Added
 - Initial release.- Initial release.
