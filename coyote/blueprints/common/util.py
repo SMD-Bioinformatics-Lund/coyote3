@@ -345,12 +345,9 @@ class BPCommonUtility:
                 + the_genes
                 + ". "
             )
-            if len(sample_ids) == 2:
-                if len(germline_intersection) > 0:
-                    germ_spoken = str(
-                        CommonUtility.nl_join(incl_genes_copy, "samt")
-                    )
-                    text += f"För {germ_spoken} undersöks även konstitutionella varianter."
+            if len(sample_ids) == 2 and germline_intersection:
+                germ_spoken = str( CommonUtility.nl_join(germline_intersection, "samt"))
+                text += f"För {germ_spoken} undersöks även konstitutionella varianter."
 
         text += "\n\n"
         return text
