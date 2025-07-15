@@ -1,7 +1,6 @@
 {% extends "report_layout.html" %}
+{% block title %}DNA Variant Report{% endblock %}
 {% block body %}
-
-{% set germline = True if sample.name == "11400-19" %}
 
 {% if save != 1 %}
   <div class="report-preview-card">
