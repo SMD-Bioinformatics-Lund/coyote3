@@ -248,6 +248,7 @@ def list_variants(sample_id: str) -> Response | str:
     variants, tiered_variants = util.dna.add_global_annotations(
         variants, assay_group, subpanel
     )
+
     summary_sections_data["snvs"] = tiered_variants
 
     # Add hotspot data

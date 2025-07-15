@@ -1,0 +1,95 @@
+You're seeing duplicate report entries with the same report_id because two requests are being processed almost simultaneously, and your backend likely doesn't enforce atomicity or uniqueness for that report creation logic.
+
+Root Cause:
+
+Both requests compute the same report_num (probably by reading the current value and adding 1).
+
+They both insert a new report document before either has committed changes.
+
+There’s no locking or constraint to prevent it.
+
+This is a classic race condition.
+
+> db.samples.findOne({'name':'25MD08436'})
+{
+        "_id" : ObjectId("68662af34c350b33e3c4275f"),
+        "groups" : [
+                "hema_GMSv1"
+        ],
+        "subpanel" : "KLL",
+        "name" : "25MD08436",
+        "clarity-sample-id" : "GEN1202A408",
+        "clarity-pool-id" : "122-541690",
+        "genome_build" : 38,
+        "vcf_files" : "/access/gmshem/vcf/25MD08436.final.filtered.vcf",
+        "sample_no" : 1,
+        "case_id" : "25MD08436",
+        "control_id" : null,
+        "profile" : "production",
+        "assay" : "hema_GMSv1",
+        "cnv" : "/access/gmshem/cnv/25MD08436.cnvs.merged.json",
+        "cnvprofile" : "/access/gmshem/plots/25MD08436.modeled.png",
+        "cov" : "/access/gmshem/QC/25MD08436.cov.json",
+        "time_added" : ISODate("2025-07-03T07:02:11.397Z"),
+        "filters" : {
+                "max_freq" : 1,
+                "min_freq" : 0.02,
+                "min_depth" : 100,
+                "min_alt_reads" : 5,
+                "max_control_freq" : 0.05,
+                "max_popfreq" : 0.01,
+                "min_cnv_size" : 1,
+                "max_cnv_size" : 5000000,
+                "cnv_loss_cutoff" : -0.1,
+                "cnv_gain_cutoff" : 0.1,
+                "warn_cov" : 500,
+                "error_cov" : 100,
+                "vep_consequences" : [
+                        "splicing",
+                        "stop_gained",
+                        "stop_lost",
+                        "start_lost",
+                        "frameshift",
+                        "inframe_indel",
+                        "missense",
+                        "other_coding"
+                ],
+                "cnveffects" : [
+                        "loss",
+                        "gain"
+                ],
+                "genelists" : [ ]
+        },
+        "comments" : [
+                {
+                        "_id" : ObjectId("68664876b7a5d0f3e6bbf7dd"),
+                        "hidden" : 0,
+                        "text" : "DNA har extraherats från insänt prov och analyserats med massivt parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar exoner i 385 gener som inkluderas i GMS-HEM v1.1 sekvenseringspanel. Analysen omfattar genlistan: KLL som innefattar generna: BCL2, PLCG2, SF3B1, BIRC3, BTK, NOTCH1 samt TP53. \r\n\r\nVid analysen har inga somatiskt förvärvade varianter i undersökta gener påvisats.\r\n\r\nFör ytterligare information om utförd analys och beskrivning av somatiskt förvärvade varianter, var god se bifogad rapport.",
+                        "author" : "linda.arvidsson",
+                        "time_created" : ISODate("2025-07-03T11:08:06.956Z")
+                }
+        ],
+        "reports" : [
+                {
+                        "_id" : ObjectId("686797b91c4032f3bf5c7b9c"),
+                        "report_num" : 1,
+                        "report_id" : "25MD08436.1",
+                        "report_type" : "html",
+                        "report_name" : "25MD08436.1.html",
+                        "filepath" : "/data/coyote3/reports/hematology/25MD08436.1.html",
+                        "author" : "linda.arvidsson",
+                        "time_created" : ISODate("2025-07-04T10:58:33.774Z")
+                },
+                {
+                        "_id" : ObjectId("686797ba45c28f90210228f9"),
+                        "report_num" : 1,
+                        "report_id" : "25MD08436.1",
+                        "report_type" : "html",
+                        "report_name" : "25MD08436.1.html",
+                        "filepath" : "/data/coyote3/reports/hematology/25MD08436.1.html",
+                        "author" : "linda.arvidsson",
+                        "time_created" : ISODate("2025-07-04T10:58:34.210Z")
+                }
+        ],
+        "report_num" : 1
+}
