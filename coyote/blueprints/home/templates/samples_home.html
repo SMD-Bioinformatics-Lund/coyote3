@@ -123,15 +123,15 @@
                     {% set sample_profile = sample.get('profile', '')[0]|upper or 'P' %}
                     <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile {% endif %}">
                       <td class="p-2 font-medium text-center">
-                        {% if "num_samples" in sample %}
-                          {% for n in range(sample.num_samples) %}
+                        {% if "sample_no" in sample %}
+                          {% for n in range(sample.sample_no) %}
                             &#9679;
                           {% endfor %}
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">
-                        {# TODO: This check should come from the sample doc with a special key #}
-                        {% if sample.groups|join('') == 'fusion' or sample.groups|join('') == 'solidRNA_GMSv5' %}
+                        {# TODO: Probable should have keys like, panel/analysis type to re direct #}
+                        {% if sample.assay in ['fusion', 'solidRNA_GMSv5']%}
                           <a href="{{ url_for('rna_bp.list_fusions', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% else %}
                           <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
@@ -211,8 +211,8 @@
                     {% set sample_profile = sample.get('profile', '')[0]|upper or 'P' %}
                     <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile {% endif %}">
                       <td class="p-2 font-medium text-center">
-                        {% if "num_samples" in sample %}
-                          {% for n in range(sample.num_samples) %}
+                        {% if "sample_no" in sample %}
+                          {% for n in range(sample.sample_no) %}
                             &#9679;
                           {% endfor %}
                         {% endif %}

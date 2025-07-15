@@ -43,7 +43,7 @@ def get_cov(sample_id):
     # cov_cutoff = 1500
     sample = store.sample_handler.get_sample(sample_id)
 
-    sample_assay = util.common.select_one_sample_group(sample.get("groups"))
+    sample_assay = sample.get("assay", "unknown")
     sample_profile = sample.get("profile", "production")
     assay_config = store.aspc_handler.get_aspc_no_meta(
         sample_assay, sample_profile

@@ -441,12 +441,12 @@
 							{% if comment.hidden != 1 %}
 							  <form action="{{ url_for('rna_bp.hide_fusion_comment', fus_id=fusion._id) }}" method="post">
 								<input type="hidden" name="comment_id" value="{{ comment._id }}">
-								<input id="hide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/delete.png') }}">
+								<input id="hide_comment" type="image" class="w-5" src="{{ url_for('static', filename='icons/heroicons_outline_24/trash.svg') }}">
 							  </form>
 							{% else %}
 							  <form action="{{ url_for('rna_bp.unhide_fusion_comment', fus_id=fusion._id) }}" method="post">
 								<input type="hidden" name="comment_id" value="{{ comment._id }}">
-								<input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/unhide.png') }}">
+								<input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
 							  </form>
 							{% endif %}
 						  </td>

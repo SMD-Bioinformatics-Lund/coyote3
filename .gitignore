@@ -148,7 +148,7 @@ example_dev*
 migration_scripts
 reports
 tests
-bugs
+./bugs
 *dummy*
 
 # coyote

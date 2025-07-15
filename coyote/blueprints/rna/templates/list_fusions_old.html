@@ -252,7 +252,7 @@
                               z-index: 1;
                               width: 200px;
                               height: 100%;
-                              margin: 0px 0px;
+                              margin: 0 0;
                               border: 1px solid rgb(50, 50, 50);">
                               <div style="position:absolute;z-index:-1;width:{{ (c.score * 100)|string }}%;height:100%;background-color:#acf;"></div>
                             {{ '%0.2f'| format(c.score) }}
@@ -300,7 +300,7 @@
                       z-index: 1;
                       width: 200px;
                       height: 100%;
-                      margin: 0px 0px;
+                      margin: 0 0;
                       border: 1px solid rgb(50, 50, 50);
                     "
                   >
@@ -328,7 +328,7 @@
                       z-index: 1;
                       width: 200px;
                       height: 100%;
-                      margin: 0px 0px;
+                      margin: 0 0;
                       border: 1px solid rgb(50, 50, 50);
                     "
                   >
@@ -391,13 +391,13 @@
               {% if comment.hidden != 1 %}
                 <form action="{{ url_for('common_bp.hide_sample_comment', sample_id=sample._id) }}" method="post">
                   <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                  <input id="hide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/delete.png') }}">
+                  <input id="hide_comment" type="image" class="w-5" src="{{ url_for('static', filename='icons/heroicons_outline_24/trash.svg') }}">
                 </form>
               {% else %}
                 {% set hidden_exists = 1 %}
                 <form action="{{ url_for('common_bp.unhide_sample_comment', sample_id=sample._id) }}" method="post">
                   <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                  <input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='images/unhide.png') }}">
+                  <input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
                 </form>
               {% endif %}
             </td>
@@ -520,7 +520,7 @@
     border-bottom: 1px #bbb solid;
     border-left: 1px #bbb solid;
     border-right: 1px #bbb solid;
-    border-radius: 0px 0px 3px 3px;
+    border-radius: 0 0 3px 3px;
     background-color: #fff;
   }
 
