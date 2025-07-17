@@ -99,7 +99,7 @@ class ASPHandler(BaseHandler):
 
     def create_asp(self, data: dict) -> Any:
         """
-        Insert a assay specific panel into the database.
+        Insert an assay specific panel into the database.
 
         This method adds a new assay specific panel document to the database collection.
 
