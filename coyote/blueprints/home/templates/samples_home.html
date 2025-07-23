@@ -110,9 +110,14 @@
                   <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
                     <th class="p-2 font-normal"></th>
                     <th class="p-2 font-normal">Sample ID</th>
+                    <th class="p-2 font-normal">Case ID</th>
+                    <th class="p-2 font-normal">Clarity Case ID</th>
+                    <th class="p-2 font-normal">Control ID</th>
+                    <th class="p-2 font-normal">Clarity Control ID</th>
                     <th class="p-2 font-normal">Assay</th>
                     <th class="p-2 font-normal">Diagnosis</th>
                     <th class="p-2 font-normal">Profile</th>
+                    <th class="p-2 font-normal">Sequencing Scope</th>
                     <th class="p-2 font-normal">BAM</th>
                     <th class="p-2 font-normal">QC</th>
                     <th class="p-2 font-normal">When added</th>
@@ -141,6 +146,18 @@
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">
+                        {{ sample.case_id or '-' }}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {{ sample.get('case', {}).get('clarity_id', '-') }}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {{ sample.control_id or '-' }}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {{ sample.get('control', {}).get('clarity_id', '-') }}
+                      </td>
+                      <td class="p-2 font-medium">
                         {{ sample.assay}}
                       </td>
                       <td class="p-2 font-medium">
@@ -153,6 +170,14 @@
                           {{ sample_profile }}
                         </span>
                       </td>
+                      <td class="p-2 font-medium">
+                        {% if sample.sequencing_scope %}
+                          <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-blue-500 text-center">
+                            {{ sample.sequencing_scope }}
+                          </span>
+                        {% else %}
+                          -
+                        {% endif %}
                       <td class="p-2 font-medium">
                         {% if sample.bam is defined %}
                           <a href="{{ sample.bam }}" class="text-blue-500 hover:underline">BAM</a>
@@ -196,9 +221,14 @@
                   <tr class="border-b text-left border-gray-600 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
                     <th class="p-2 font-normal"></th>
                     <th class="p-2 font-normal">Sample ID</th>
+                    <th class="p-2 font-normal">Case ID</th>
+                    <th class="p-2 font-normal">Clarity Case ID</th>
+                    <th class="p-2 font-normal">Control ID</th>
+                    <th class="p-2 font-normal">Clarity Control ID</th>
                     <th class="p-2 font-normal">Assay</th>
                     <th class="p-2 font-normal">Diagnosis</th>
                     <th class="p-2 font-normal">Profile</th>
+                    <th class="p-2 font-normal">Sequencing Scope</th>
                     <th class="p-2 font-normal">When added</th>
                     <th class="p-2 font-normal">Last report</th>
                     <th class="p-2 font-normal">BAM</th>
@@ -221,6 +251,18 @@
                         <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                       </td>
                       <td class="p-2 font-medium">
+                        {{ sample.case_id or '-' }}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {{ sample.get('case', {}).get('clarity_id', '-') }}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {{ sample.control_id or '-' }}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {{ sample.get('control', {}).get('clarity_id', '-') }}
+                      </td>
+                      <td class="p-2 font-medium">
                         {{ sample.assay }}
                       </td>
                       <td class="p-2 font-medium">
@@ -238,6 +280,15 @@
                       </td>
                       <td class="p-2 font-medium">
                         {{ sample.last_report_time_created|human_date }}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {% if sample.sequencing_scope %}
+                          <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-blue-500 text-center">
+                            {{ sample.sequencing_scope }}
+                          </span>
+                        {% else %}
+                          -
+                        {% endif %}
                       </td>
                       <td class="p-2 font-medium">
                         {% if sample.bam is defined %}

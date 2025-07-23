@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.0.3
+### Report Filename Update
+- Report should follow a naming structure of <CASE_ID>_<CLARITY_CASE_ID>-<CONTROL_ID>_<CLARITY_CONTROL_ID>.<REPORT_NUM>.html for paired samples and <CASE_ID>_<CLARITY_CASE_ID>.<REPORT_NUM>.html for unpaired samples.
+- static files cleanup -> css, icons, images
+- replaced groups with assays where needed
+- 
+
 ## v3.0.2
 ### BugFix
 Fixed an IndexError in the variant summary generation logic where an empty germline intersection caused the summary view to crash. Now safely handles cases with no overlapping germline variants.

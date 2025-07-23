@@ -87,9 +87,7 @@ def list_variants(sample_id: str) -> Response | str:
     sample_profile = sample.get("profile", "production")
 
     # Get assay group and subpanel for the sample, sections to display
-    assay_group: str = assay_config.get(
-        "asp_group", "unknown"
-    )  # myeloid, solid, lymphoid
+    assay_group: str = assay_config.get("asp_group", "unknown")  # myeloid, solid, lymphoid
     subpanel: str | None = sample.get("subpanel")  # breast, LP, lung, etc.
     analysis_sections = assay_config.get("analysis_types", [])
     display_sections_data = {}
@@ -100,33 +98,23 @@ def list_variants(sample_id: str) -> Response | str:
     assay_panel_doc = store.asp_handler.get_asp(asp_name=sample_assay)
 
     # Get the genelists for the sample panel
-    insilico_panel_genelists = store.isgl_handler.get_isgl_by_asp(
-        sample_assay, is_active=True
-    )
-    all_panel_genelist_names = util.common.get_assay_genelist_names(
-        insilico_panel_genelists
-    )
+    insilico_panel_genelists = store.isgl_handler.get_isgl_by_asp(sample_assay, is_active=True)
+    all_panel_genelist_names = util.common.get_assay_genelist_names(insilico_panel_genelists)
 
     # Adding the default gene lists to the assay_config, if the use_diagnosis_genelist is set to true
     if assay_config.get("use_diagnosis_genelist", False) and subpanel:
         assay_default_config_genelist_ids = store.isgl_handler.get_isgl_ids(
             sample_assay, subpanel, "genelist", is_active=True
         )
-        assay_config["filters"]["genelists"].extend(
-            assay_default_config_genelist_ids
-        )
+        assay_config["filters"]["genelists"].extend(assay_default_config_genelist_ids)
 
     # Get filter settings from the sample and merge with assay config if sample does not have values
-    sample = util.common.merge_sample_settings_with_assay_config(
-        sample, assay_config
-    )
+    sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
     sample_filters = deepcopy(sample.get("filters", {}))
 
     # Update the sample filters with the default values from the assay config if the sample is new and does not have any filters set
     if not sample_has_filters:
-        store.sample_handler.reset_sample_settings(
-            sample["_id"], assay_config.get("filters")
-        )
+        store.sample_handler.reset_sample_settings(sample["_id"], assay_config.get("filters"))
 
     # Inherit DNAFilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
     if all_panel_genelist_names:
@@ -142,16 +130,10 @@ def list_variants(sample_id: str) -> Response | str:
         _id = str(sample.get("_id"))
         # Reset filters to defaults
         if form.reset.data:
-            app.logger.info(
-                f"Resetting filters to default settings for the sample {sample_id}"
-            )
-            store.sample_handler.reset_sample_settings(
-                _id, assay_config.get("filters", {})
-            )
+            app.logger.info(f"Resetting filters to default settings for the sample {sample_id}")
+            store.sample_handler.reset_sample_settings(_id, assay_config.get("filters", {}))
         else:
-            filters_from_form = util.common.format_filters_from_form(
-                form, assay_config_schema
-            )
+            filters_from_form = util.common.format_filters_from_form(form, assay_config_schema)
             store.sample_handler.update_sample_filters(_id, filters_from_form)
 
         ## get sample again to receive updated forms!
@@ -161,29 +143,21 @@ def list_variants(sample_id: str) -> Response | str:
     ############################################################################
 
     # Check if the sample has hidden comments
-    has_hidden_comments = store.sample_handler.hidden_sample_comments(
-        sample.get("_id")
-    )
+    has_hidden_comments = store.sample_handler.hidden_sample_comments(sample.get("_id"))
 
     # sample filters, either set, or default
     cnv_effects = sample_filters.get("cnveffects", [])
     checked_genelists = sample_filters.get("genelists", [])
 
     # Get the genelists for the sample panel checked genelists from the filters
-    checked_genelists_genes_dict: list[dict] = (
-        store.isgl_handler.get_isgl_by_ids(checked_genelists)
-    )
-    genes_covered_in_panel: list[dict] = (
-        util.common.get_genes_covered_in_panel(
-            checked_genelists_genes_dict, assay_panel_doc
-        )
+    checked_genelists_genes_dict: list[dict] = store.isgl_handler.get_isgl_by_ids(checked_genelists)
+    genes_covered_in_panel: list[dict] = util.common.get_genes_covered_in_panel(
+        checked_genelists_genes_dict, assay_panel_doc
     )
 
     # TODO: We can get the list of germline genes for the panel or selected genelists
 
-    filter_conseq = util.dna.get_filter_conseq_terms(
-        sample_filters.get("vep_consequences", [])
-    )
+    filter_conseq = util.dna.get_filter_conseq_terms(sample_filters.get("vep_consequences", []))
 
     # Create a unique list of genes from the selected genelists which are currently active in the panel
     filter_genes = util.common.create_filter_genelist(genes_covered_in_panel)
@@ -193,14 +167,8 @@ def list_variants(sample_id: str) -> Response | str:
     form_data = deepcopy(sample_filters)
     form_data.update(
         {
-            **{
-                f"vep_{k}": True
-                for k in sample_filters.get("vep_consequences", [])
-            },
-            **{
-                f"cnveffect_{k}": True
-                for k in sample_filters.get("cnveffects", [])
-            },
+            **{f"vep_{k}": True for k in sample_filters.get("vep_consequences", [])},
+            **{f"cnveffect_{k}": True for k in sample_filters.get("cnveffects", [])},
             **{f"genelist_{k}": True for k in checked_genelists},
             **{assay_group: True},
         }
@@ -240,14 +208,10 @@ def list_variants(sample_id: str) -> Response | str:
     variants = list(variants_iter)
 
     # Add blacklist data
-    variants = store.blacklist_handler.add_blacklist_data(
-        variants, assay_group
-    )
+    variants = store.blacklist_handler.add_blacklist_data(variants, assay_group)
 
     # Add global annotations for the variants
-    variants, tiered_variants = util.dna.add_global_annotations(
-        variants, assay_group, subpanel
-    )
+    variants, tiered_variants = util.dna.add_global_annotations(variants, assay_group, subpanel)
 
     summary_sections_data["snvs"] = tiered_variants
 
@@ -271,26 +235,18 @@ def list_variants(sample_id: str) -> Response | str:
 
         display_sections_data["cnvs"] = deepcopy(cnvs)
         summary_sections_data["cnvs"] = list(
-            store.cnv_handler.get_interesting_sample_cnvs(
-                sample_id=str(sample["_id"])
-            )
+            store.cnv_handler.get_interesting_sample_cnvs(sample_id=str(sample["_id"]))
         )
 
     if "BIOMARKER" in analysis_sections:
         display_sections_data["biomarkers"] = list(
-            store.biomarker_handler.get_sample_biomarkers(
-                sample_id=str(sample["_id"])
-            )
+            store.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"]))
         )
-        summary_sections_data["biomarkers"] = display_sections_data[
-            "biomarkers"
-        ]
+        summary_sections_data["biomarkers"] = display_sections_data["biomarkers"]
 
     if "TRANSLOCATION" in analysis_sections:
-        display_sections_data["translocs"] = (
-            store.transloc_handler.get_sample_translocations(
-                sample_id=str(sample["_id"])
-            )
+        display_sections_data["translocs"] = store.transloc_handler.get_sample_translocations(
+            sample_id=str(sample["_id"])
         )
 
     if "FUSION" in analysis_sections:
@@ -312,14 +268,10 @@ def list_variants(sample_id: str) -> Response | str:
     bam_id = store.bam_service_handler.get_bams(sample_ids)
 
     # Get Vep Meta data
-    vep_variant_class_meta = (
-        store.vep_meta_handler.get_variant_class_translations(
-            sample.get("vep", 103)
-        )
-    )
-    vep_conseq_meta = store.vep_meta_handler.get_conseq_translations(
+    vep_variant_class_meta = store.vep_meta_handler.get_variant_class_translations(
         sample.get("vep", 103)
     )
+    vep_conseq_meta = store.vep_meta_handler.get_conseq_translations(sample.get("vep", 103))
 
     # Oncokb information
     oncokb_genes = []
@@ -456,20 +408,14 @@ def classify_multi_variant(sample_id: str) -> Response:
 
     if false_positive:
         if action == "apply":
-            store.variant_handler.mark_false_positive_var_bulk(
-                variants_to_modify
-            )
+            store.variant_handler.mark_false_positive_var_bulk(variants_to_modify)
         elif action == "remove":
-            store.variant_handler.unmark_false_positive_var_bulk(
-                variants_to_modify
-            )
+            store.variant_handler.unmark_false_positive_var_bulk(variants_to_modify)
     if irrelevant:
         if action == "apply":
             store.variant_handler.mark_irrelevant_var_bulk(variants_to_modify)
         elif action == "remove":
-            store.variant_handler.unmark_irrelevant_var_bulk(
-                variants_to_modify
-            )
+            store.variant_handler.unmark_irrelevant_var_bulk(variants_to_modify)
     return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
 
 
@@ -547,9 +493,7 @@ def show_variant(sample_id: str, var_id: str) -> Response | str:
     sample, assay_config, assay_config_schema = result
 
     # Get assay group and subpanel for the sample, sections to display
-    assay_group: str = assay_config.get(
-        "asp_group", "unknown"
-    )  # myeloid, solid, lymphoid
+    assay_group: str = assay_config.get("asp_group", "unknown")  # myeloid, solid, lymphoid
     subpanel: str | None = sample.get("subpanel")  # breast, LP, lung, etc.
 
     # Get assay groups mappings with the sample assay
@@ -561,21 +505,16 @@ def show_variant(sample_id: str, var_id: str) -> Response | str:
     has_hidden_comments = store.variant_handler.hidden_var_comments(var_id)
 
     # TODO: We have to find a way to present this data
-    expression = store.expression_handler.get_expression_data(
-        list(variant.get("transcripts"))
-    )
+    expression = store.expression_handler.get_expression_data(list(variant.get("transcripts")))
 
-    variant = store.blacklist_handler.add_blacklist_data(
-        [variant], assay_group
-    )[0]
+    variant = store.blacklist_handler.add_blacklist_data([variant], assay_group)[0]
 
     # Find civic data
     variant_desc = "NOTHING_IN_HERE"
     if (
         variant["INFO"]["selected_CSQ"]["SYMBOL"] == "CALR"
         and variant["INFO"]["selected_CSQ"]["EXON"] == "9/9"
-        and "frameshift_variant"
-        in variant["INFO"]["selected_CSQ"]["Consequence"]
+        and "frameshift_variant" in variant["INFO"]["selected_CSQ"]["Consequence"]
     ):
         variant_desc = "EXON 9 FRAMESHIFT"
     if (
@@ -587,9 +526,7 @@ def show_variant(sample_id: str, var_id: str) -> Response | str:
 
     civic = store.civic_handler.get_civic_data(variant, variant_desc)
 
-    civic_gene = store.civic_handler.get_civic_gene_info(
-        variant["INFO"]["selected_CSQ"]["SYMBOL"]
-    )
+    civic_gene = store.civic_handler.get_civic_gene_info(variant["INFO"]["selected_CSQ"]["SYMBOL"])
 
     # Find OncoKB data
     oncokb_hgvsp = []
@@ -607,12 +544,8 @@ def show_variant(sample_id: str, var_id: str) -> Response | str:
         oncokb_hgvsp.append("Truncating Mutations")
 
     oncokb = store.oncokb_handler.get_oncokb_anno(variant, oncokb_hgvsp)
-    oncokb_action = store.oncokb_handler.get_oncokb_action(
-        variant, oncokb_hgvsp
-    )
-    oncokb_gene = store.oncokb_handler.get_oncokb_gene(
-        variant["INFO"]["selected_CSQ"]["SYMBOL"]
-    )
+    oncokb_action = store.oncokb_handler.get_oncokb_action(variant, oncokb_hgvsp)
+    oncokb_gene = store.oncokb_handler.get_oncokb_gene(variant["INFO"]["selected_CSQ"]["SYMBOL"])
 
     # Find BRCA-exchange data
     brca_exchange = store.brca_handler.get_brca_data(variant, assay_group)
@@ -638,9 +571,7 @@ def show_variant(sample_id: str, var_id: str) -> Response | str:
         latest_classification,
         other_classifications,
         annotations_interesting,
-    ) = store.annotation_handler.get_global_annotations(
-        variant, assay_group, subpanel
-    )
+    ) = store.annotation_handler.get_global_annotations(variant, assay_group, subpanel)
 
     if not latest_classification or latest_classification.get("class") == 999:
         variant = util.dna.add_alt_class(variant, assay_group, subpanel)
@@ -648,14 +579,10 @@ def show_variant(sample_id: str, var_id: str) -> Response | str:
         variant["additional_classifications"] = None
 
     # Get Vep Meta data
-    vep_variant_class_meta = (
-        store.vep_meta_handler.get_variant_class_translations(
-            sample.get("vep", 103)
-        )
-    )
-    vep_conseq_meta = store.vep_meta_handler.get_conseq_translations(
+    vep_variant_class_meta = store.vep_meta_handler.get_variant_class_translations(
         sample.get("vep", 103)
     )
+    vep_conseq_meta = store.vep_meta_handler.get_conseq_translations(sample.get("vep", 103))
 
     return render_template(
         "show_variant_vep.html",
@@ -710,9 +637,7 @@ def gene_view_simple(gene_name: str) -> Response | str:
 
     checked_assays = []
     if form.validate_on_submit():
-        checked_assays = [
-            k for k, v in form.data.items() if v and k not in ["csrf_token"]
-        ]
+        checked_assays = [k for k, v in form.data.items() if v and k not in ["csrf_token"]]
 
     return render_template(
         "gene_view2.html",
@@ -751,9 +676,7 @@ def gene_view(gene_name: str) -> Response | str:
     app.logger.debug(f"gene specific variants: {len(variants)}")
 
     # TODO:  How slow is this????
-    variants, tiered_variants = util.dna.add_global_annotations(
-        variants, "assay", "subpanel"
-    )
+    variants, tiered_variants = util.dna.add_global_annotations(variants, "assay", "subpanel")
 
     variant_summary = defaultdict(dict)
     sample_oids = []
@@ -785,9 +708,7 @@ def gene_view(gene_name: str) -> Response | str:
     for sample in samples:
         sample_names[str(sample["_id"])] = sample["name"]
 
-    return render_template(
-        "gene_view.html", variants=variant_summary, sample_names=sample_names
-    )
+    return render_template("gene_view.html", variants=variant_summary, sample_names=sample_names)
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/unfp", methods=["POST"])
@@ -805,9 +726,7 @@ def unmark_false_variant(sample_id: str, var_id: str) -> Response:
         flask.Response: Redirects to the variant detail view after unmarking the variant as false positive.
     """
     store.variant_handler.unmark_false_positive_var(var_id)
-    return redirect(
-        url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
-    )
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/fp", methods=["POST"])
@@ -825,14 +744,10 @@ def mark_false_variant(sample_id: str, var_id: str) -> Response:
         flask.Response: Redirects to the variant detail view after marking the variant as false positive.
     """
     store.variant_handler.mark_false_positive_var(var_id)
-    return redirect(
-        url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
-    )
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
-@dna_bp.route(
-    "/<string:sample_id>/var/<string:var_id>/uninterest", methods=["POST"]
-)
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/uninterest", methods=["POST"])
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def unmark_interesting_variant(sample_id: str, var_id: str) -> Response:
@@ -847,14 +762,10 @@ def unmark_interesting_variant(sample_id: str, var_id: str) -> Response:
         flask.Response: Redirects to the variant detail view after unmarking the variant as interesting.
     """
     store.variant_handler.unmark_interesting_var(var_id)
-    return redirect(
-        url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
-    )
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
-@dna_bp.route(
-    "/<string:sample_id>/var/<string:var_id>/interest", methods=["POST"]
-)
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/interest", methods=["POST"])
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def mark_interesting_variant(sample_id: str, var_id: str) -> Response:
@@ -869,14 +780,10 @@ def mark_interesting_variant(sample_id: str, var_id: str) -> Response:
         flask.Response: Redirects to the variant detail view after marking the variant as interesting.
     """
     store.variant_handler.mark_interesting_var(var_id)
-    return redirect(
-        url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
-    )
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
-@dna_bp.route(
-    "/<string:sample_id>/var/<string:var_id>/relevant", methods=["POST"]
-)
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/relevant", methods=["POST"])
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def unmark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
@@ -891,14 +798,10 @@ def unmark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
         flask.Response: Redirects to the variant detail view after unmarking the variant as irrelevant.
     """
     store.variant_handler.unmark_irrelevant_var(var_id)
-    return redirect(
-        url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
-    )
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
-@dna_bp.route(
-    "/<string:sample_id>/var/<string:var_id>/irrelevant", methods=["POST"]
-)
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/irrelevant", methods=["POST"])
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
@@ -913,14 +816,10 @@ def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
         flask.Response: Redirects to the variant detail view after marking the variant as irrelevant.
     """
     store.variant_handler.mark_irrelevant_var(var_id)
-    return redirect(
-        url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
-    )
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
-@dna_bp.route(
-    "/<string:sample_id>/var/<string:var_id>/blacklist", methods=["POST"]
-)
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/blacklist", methods=["POST"])
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
@@ -941,9 +840,7 @@ def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
     return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, id=id))
 
 
-@dna_bp.route(
-    "/<string:sample_id>/var/<string:var_id>/classify", methods=["POST"]
-)
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/classify", methods=["POST"])
 @require(permission="assign_tier", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
 def classify_variant(sample_id: str, var_id: str) -> Response:
@@ -969,14 +866,10 @@ def classify_variant(sample_id: str, var_id: str) -> Response:
         if nomenclature == "f":
             return redirect(url_for("rna_bp.show_fusion", id=var_id))
 
-    return redirect(
-        url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
-    )
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
-@dna_bp.route(
-    "/<string:sample_id>/var/<string:var_id>/rmclassify", methods=["POST"]
-)
+@dna_bp.route("/<string:sample_id>/var/<string:var_id>/rmclassify", methods=["POST"])
 @require(permission="remove_tier", min_role="admin")
 @require_sample_access("sample_id")
 def remove_classified_variant(sample_id: str, var_id: str) -> Response:
@@ -998,9 +891,7 @@ def remove_classified_variant(sample_id: str, var_id: str) -> Response:
         variant, nomenclature, form_data
     )
     app.logger.debug(delete_result)
-    return redirect(
-        url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
-    )
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
 @dna_bp.route(
@@ -1025,9 +916,7 @@ def remove_classified_variant(sample_id: str, var_id: str) -> Response:
 )
 @require("add_variant_comment", min_role="user", min_level=9)
 @require_sample_access("sample_id")
-def add_var_comment(
-    sample_id: str, id: str = None, **kwargs
-) -> Response | str:
+def add_var_comment(sample_id: str, id: str = None, **kwargs) -> Response | str:
     """
     Add a comment to a variant.
 
@@ -1050,9 +939,7 @@ def add_var_comment(
     # If global checkbox. Save variant with the protein, coding och genomic nomenclature in decreasing priority
     form_data = request.form.to_dict()
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
-    doc = util.bpcommon.create_comment_doc(
-        form_data, nomenclature=nomenclature, variant=variant
-    )
+    doc = util.bpcommon.create_comment_doc(form_data, nomenclature=nomenclature, variant=variant)
     _type = form_data.get("global", None)
     if _type == "global":
         store.annotation_handler.add_anno_comment(doc)
@@ -1061,30 +948,20 @@ def add_var_comment(
     if nomenclature == "f":
         if _type != "global":
             store.fusion_handler.add_fusion_comment(id, doc)
-        return redirect(
-            url_for("rna_bp.show_fusion", sample_id=sample_id, id=id)
-        )
+        return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, id=id))
     elif nomenclature == "t":
         if _type != "global":
             store.transloc_handler.add_transloc_comment(id, doc)
-        return redirect(
-            url_for(
-                "dna_bp.show_transloc", sample_id=sample_id, transloc_id=id
-            )
-        )
+        return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=id))
     elif nomenclature == "cn":
         if _type != "global":
             store.cnv_handler.add_cnv_comment(id, doc)
-        return redirect(
-            url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=id)
-        )
+        return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=id))
     else:
         if _type != "global":
             store.variant_handler.add_var_comment(id, doc)
 
-    return redirect(
-        url_for("dna_bp.show_variant", sample_id=sample_id, var_id=id)
-    )
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=id))
 
 
 @dna_bp.route(
@@ -1106,9 +983,7 @@ def hide_variant_comment(sample_id: str, var_id: str) -> Response:
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.variant_handler.hide_var_comment(var_id, comment_id)
-    return redirect(
-        url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
-    )
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
 @dna_bp.route(
@@ -1130,9 +1005,7 @@ def unhide_variant_comment(sample_id, var_id):
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.variant_handler.unhide_variant_comment(var_id, comment_id)
-    return redirect(
-        url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id)
-    )
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
 ###### CNVS VIEW PAGE #######
@@ -1156,9 +1029,7 @@ def show_cnv(sample_id: str, cnv_id: str) -> Response | str:
     sample, assay_config, assay_config_schema = result
 
     # Get assay group and subpanel for the sample, sections to display
-    assay_group: str = assay_config.get(
-        "asp_group", "unknown"
-    )  # myeloid, solid, lymphoid
+    assay_group: str = assay_config.get("asp_group", "unknown")  # myeloid, solid, lymphoid
 
     # TODO: This should be set in the sample doc and get it by the sample ids in the sample
     sample_ids = util.common.get_case_and_control_sample_ids(sample)
@@ -1201,14 +1072,10 @@ def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
         flask.Response: Redirects to the CNV view after unmarking as interesting.
     """
     store.cnv_handler.unmark_interesting_cnv(cnv_id)
-    return redirect(
-        url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id)
-    )
+    return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
-@dna_bp.route(
-    "<string:sample_id>/cnv/<string:cnv_id>/interestingcnv", methods=["POST"]
-)
+@dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/interestingcnv", methods=["POST"])
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
@@ -1223,9 +1090,7 @@ def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
         flask.Response: Redirects to the CNV view after marking as interesting.
     """
     store.cnv_handler.mark_interesting_cnv(cnv_id)
-    return redirect(
-        url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id)
-    )
+    return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
 @dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/fpcnv", methods=["POST"])
@@ -1243,14 +1108,10 @@ def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
         flask.Response: Redirects to the CNV view after marking as false positive.
     """
     store.cnv_handler.mark_false_positive_cnv(cnv_id)
-    return redirect(
-        url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id)
-    )
+    return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
-@dna_bp.route(
-    "/<string:sample_id>/cnv/<string:cnv_id>/unfpcnv", methods=["POST"]
-)
+@dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>/unfpcnv", methods=["POST"])
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
@@ -1265,14 +1126,10 @@ def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
         flask.Response: Redirects to the CNV view after unmarking as false positive.
     """
     store.cnv_handler.unmark_false_positive_cnv(cnv_id)
-    return redirect(
-        url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id)
-    )
+    return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
-@dna_bp.route(
-    "<string:sample_id>/cnv/<string:cnv_id>/noteworthycnv", methods=["POST"]
-)
+@dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/noteworthycnv", methods=["POST"])
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
@@ -1287,14 +1144,10 @@ def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
         flask.Response: Redirects to the CNV view after marking as note worthy.
     """
     store.cnv_handler.noteworthy_cnv(cnv_id)
-    return redirect(
-        url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id)
-    )
+    return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
-@dna_bp.route(
-    "<string:sample_id>/cnv/<string:cnv_id>/notnoteworthycnv", methods=["POST"]
-)
+@dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/notnoteworthycnv", methods=["POST"])
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
@@ -1309,14 +1162,10 @@ def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
         flask.Response: Redirects to the CNV view after unmarking as note worthy.
     """
     store.cnv_handler.unnoteworthy_cnv(cnv_id)
-    return redirect(
-        url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id)
-    )
+    return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
-@dna_bp.route(
-    "<string:sample_id>/cnv/<string:cnv_id>/hide_cnv_comment", methods=["POST"]
-)
+@dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/hide_cnv_comment", methods=["POST"])
 @require("hide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
 def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
@@ -1332,9 +1181,7 @@ def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.cnv_handler.hide_cnvs_comment(cnv_id, comment_id)
-    return redirect(
-        url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id)
-    )
+    return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
 @dna_bp.route(
@@ -1356,9 +1203,7 @@ def unhide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.cnv_handler.unhide_cnvs_comment(cnv_id, comment_id)
-    return redirect(
-        url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id)
-    )
+    return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
 ###### TRANSLOCATIONS VIEW PAGE #######
@@ -1383,9 +1228,7 @@ def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
     sample, assay_config, assay_config_schema = result
 
     # Get assay group and subpanel for the sample, sections to display
-    assay_group: str = assay_config.get(
-        "asp_group", "unknown"
-    )  # myeloid, solid, lymphoid
+    assay_group: str = assay_config.get("asp_group", "unknown")  # myeloid, solid, lymphoid
 
     # TODO: This should be set in the sample doc and get it by the sample ids in the sample
     sample_ids = util.common.get_case_and_control_sample_ids(sample)
@@ -1394,13 +1237,9 @@ def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
         # This is a fallback for older samples that do not have case/control samples set
         sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
     bam_id = store.bam_service_handler.get_bams(sample_ids)
-    hidden_transloc_comments = store.transloc_handler.hidden_transloc_comments(
-        transloc_id
-    )
+    hidden_transloc_comments = store.transloc_handler.hidden_transloc_comments(transloc_id)
 
-    vep_conseq_meta = store.vep_meta_handler.get_conseq_translations(
-        sample.get("vep", 103)
-    )
+    vep_conseq_meta = store.vep_meta_handler.get_conseq_translations(sample.get("vep", 103))
 
     annotations = store.transloc_handler.get_transloc_annotations(transloc)
     return render_template(
@@ -1581,9 +1420,7 @@ def unhide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
 
 
 ##### PREVIEW REPORT ######
-@dna_bp.route(
-    "/sample/<string:sample_id>/preview_report", methods=["GET", "POST"]
-)
+@dna_bp.route("/sample/<string:sample_id>/preview_report", methods=["GET", "POST"])
 @require_sample_access("sample_id")
 @require("preview_report", min_role="user", min_level=9)
 def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
@@ -1616,8 +1453,7 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
         return result
     sample, assay_config, assay_config_schema = result
 
-    ## get the assay from the sample, fallback to the first group if not set
-    # TODO: This should be set in the sample doc and get it by the assay key in the sample and not by the group
+    ## get the assay from the sample
     sample_assay = sample.get("assay", None)
 
     if sample_assay is None:
@@ -1627,49 +1463,33 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     # Get assay group and subpanel for the sample, sections to display
     assay_group: str = assay_config.get("asp_group", "unknown")
     subpanel = sample.get("subpanel")
-    report_sections = assay_config.get("reporting", {}).get(
-        "report_sections", []
-    )
+    report_sections = assay_config.get("reporting", {}).get("report_sections", [])
     report_sections_data = {}
-    app.logger.debug(
-        f"Assay group: {assay_group} - DNA config: {pformat(report_sections)}"
-    )
+    app.logger.debug(f"Assay group: {assay_group} - DNA config: {pformat(report_sections)}")
     app.logger.debug(f"Assay group: {assay_group} - Subpanel: {subpanel}")
 
     # Get the entire genelist for the sample panel
     assay_panel_doc = store.asp_handler.get_asp(asp_name=sample_assay)
 
     # Get the genelists for the sample panel
-    insilico_panel_genelists = store.isgl_handler.get_isgl_by_asp(
-        sample_assay, is_active=True
-    )
-    all_panel_genelist_names = util.common.get_assay_genelist_names(
-        insilico_panel_genelists
-    )
+    insilico_panel_genelists = store.isgl_handler.get_isgl_by_asp(sample_assay, is_active=True)
+    all_panel_genelist_names = util.common.get_assay_genelist_names(insilico_panel_genelists)
 
     # sample filters
     if not sample.get("filters"):
-        sample = util.common.merge_sample_settings_with_assay_config(
-            sample, assay_config
-        )
+        sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
 
     sample_filters = deepcopy(sample.get("filters", {}))
 
     # Get the genelist filters from the sample settings
     checked_genelists = sample_filters.get("genelists", [])
-    checked_genelists_genes_dict: list[dict] = (
-        store.isgl_handler.get_isgl_by_ids(checked_genelists)
+    checked_genelists_genes_dict: list[dict] = store.isgl_handler.get_isgl_by_ids(checked_genelists)
+
+    genes_covered_in_panel: list[dict] = util.common.get_genes_covered_in_panel(
+        checked_genelists_genes_dict, assay_panel_doc
     )
 
-    genes_covered_in_panel: list[dict] = (
-        util.common.get_genes_covered_in_panel(
-            checked_genelists_genes_dict, assay_panel_doc
-        )
-    )
-
-    filter_conseq = util.dna.get_filter_conseq_terms(
-        sample_filters.get("vep_consequences", [])
-    )
+    filter_conseq = util.dna.get_filter_conseq_terms(sample_filters.get("vep_consequences", []))
     # Create a unique list of genes from the selected genelists which are currently active in the panel
     filter_genes = util.common.create_filter_genelist(genes_covered_in_panel)
 
@@ -1701,34 +1521,24 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     variants = list(variants_iter)
 
     # Add blacklist data
-    variants = store.blacklist_handler.add_blacklist_data(
-        variants, assay=assay_group
-    )
+    variants = store.blacklist_handler.add_blacklist_data(variants, assay=assay_group)
 
     # Add global annotations for the variants
-    variants, tiered_variants = util.dna.add_global_annotations(
-        variants, assay_group, subpanel
-    )
+    variants, tiered_variants = util.dna.add_global_annotations(variants, assay_group, subpanel)
 
     # Add hotspot data
     variants = util.dna.hotspot_variant(variants)
 
     # Filter variants for report
-    variants = util.dna.filter_variants_for_report(
-        variants, filter_genes, assay_group
-    )
+    variants = util.dna.filter_variants_for_report(variants, filter_genes, assay_group)
 
     # Sample dict for the variant summary table in the report
-    report_sections_data["snvs"] = util.dna.get_simple_variants_for_report(
-        variants, assay_config
-    )
+    report_sections_data["snvs"] = util.dna.get_simple_variants_for_report(variants, assay_config)
 
     ## GET CNVs TRANSLOCS and OTHER BIOMARKERS ##
     if "CNV" in report_sections:
         report_sections_data["cnvs"] = list(
-            store.cnv_handler.get_interesting_sample_cnvs(
-                sample_id=str(sample["_id"])
-            )
+            store.cnv_handler.get_interesting_sample_cnvs(sample_id=str(sample["_id"]))
         )
 
     if "CNV_PROFILE" in report_sections:
@@ -1738,9 +1548,7 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
 
     if "BIOMARKER" in report_sections:
         report_sections_data["biomarkers"] = list(
-            store.biomarker_handler.get_sample_biomarkers(
-                sample_id=str(sample["_id"])
-            )
+            store.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"]))
         )
 
     if "TRANSLOCATION" in report_sections:
@@ -1761,10 +1569,8 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     )
 
     # Get Vep Meta data
-    vep_variant_class_meta = (
-        store.vep_meta_handler.get_variant_class_translations(
-            sample.get("vep", 103)
-        )
+    vep_variant_class_meta = store.vep_meta_handler.get_variant_class_translations(
+        sample.get("vep", 103)
     )
 
     save = kwargs.get("save", 0)
@@ -1785,14 +1591,11 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
         report_date=report_date,
         save=save,
         sample_assay=sample_assay,
+        assay_group=assay_group,
         genes_covered_in_panel=genes_covered_in_panel,
         encrypted_panel_doc=util.common.encrypt_json(assay_panel_doc, fernet),
-        encrypted_genelists=util.common.encrypt_json(
-            genes_covered_in_panel, fernet
-        ),
-        encrypted_sample_filters=util.common.encrypt_json(
-            sample_filters, fernet
-        ),
+        encrypted_genelists=util.common.encrypt_json(genes_covered_in_panel, fernet),
+        encrypted_sample_filters=util.common.encrypt_json(sample_filters, fernet),
     )
 
 
@@ -1823,9 +1626,24 @@ def save_dna_report(sample_id: str) -> Response:
         return result
     sample, assay_config, assay_config_schema = result
 
+    case_id = sample.get("case_id")
+    control_id = sample.get("control_id")
+    clarity_case_id = sample.get('case', {}).get("clarity_id")
+    clarity_control_id = sample.get('control', {}).get("clarity_id")
+
+
     assay_group: str = assay_config.get("asp_group", "unknown")
     report_num: int = sample.get("report_num", 0) + 1
-    report_id: str = f"{sample_id}.{report_num}"
+
+    # Report Name format for paired samples: "{CASE_ID}_{CLARITY_CASE_ID}-{CONTROL_ID}_{CLARITY_CONTROL_ID}.{REPORT_NUM}.html
+    # Report Name format for unpaired samples: "{CASE_ID}_{CLARITY_CASE_ID}.{REPORT_NUM}.html
+    # Clarity ID is always unique
+
+    if control_id:
+        report_id: str = f"{case_id}_{clarity_case_id}-{control_id}_{clarity_control_id}.{report_num}"
+    else:
+        report_id: str = f"{case_id}_{clarity_case_id}.{report_num}"
+
     report_path: str = os.path.join(
         app.config.get("REPORTS_BASE_PATH", "reports"),
         assay_config.get("reporting", {}).get("report_path", assay_group),
@@ -1860,9 +1678,7 @@ def save_dna_report(sample_id: str) -> Response:
         app.logger.info(f"Report saved: {report_file}")
     except AppError as app_err:
         flash(app_err.message, "red")
-        app.logger.error(
-            f"AppError: {app_err.message} | Details: {app_err.details}"
-        )
+        app.logger.error(f"AppError: {app_err.message} | Details: {app_err.details}")
     except Exception as exc:
         flash("An unexpected error occurred while saving the report.", "red")
         app.logger.exception(f"Unexpected error: {exc}")
