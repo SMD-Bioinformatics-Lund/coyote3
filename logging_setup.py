@@ -1,159 +1,157 @@
-#  Copyright (c) 2025 Coyote3 Project Authors
-#  All rights reserved.
+# Copyright (c) 2025 Coyote3 Project Authors
+# All rights reserved.
 #
-#  This source file is part of the Coyote3 codebase.
-#  The Coyote3 project provides a framework for genomic data analysis,
-#  interpretation, reporting, and clinical diagnostics.
+# This source file is part of the Coyote3 codebase.
+# The Coyote3 project provides a framework for genomic data analysis,
+# interpretation, reporting, and clinical diagnostics.
 #
-#  Unauthorized use, distribution, or modification of this software or its
-#  components is strictly prohibited without prior written permission from
-#  the copyright holders.
-#
-
+# Unauthorized use, distribution, or modification of this software or its
+# components is strictly prohibited without prior written permission from
+# the copyright holders.
 
 """
 Centralized Logging Configuration
 =================================
 
 This file contains the centralized logging configuration for the Coyote3 application,
-designed to handle both application and Gunicorn logging.
+designed to handle both application and Gunicorn logging with daily rotation,
+UTC timestamps, single-folder log storage, and optional log cleanup.
 """
 
-# -------------------------------------------------------------------------
-# Imports
-# -------------------------------------------------------------------------
 import logging
+import logging.config
 from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime, timedelta
 from typing import Any, Dict, Literal
-from flask import request
+from flask import request, has_request_context
+from flask_login import current_user
 from pathlib import Path
 import os
 from gunicorn import glogging
 
 
-# -------------------------------------------------------------------------
-# Class Definitions
-# -------------------------------------------------------------------------
 class RequestFilter(logging.Filter):
     """
-    A logging filter that adds request-specific information to log records.
+    A logging filter that enriches log records with Flask request and user context.
 
-    This filter adds the `remote_addr` and `host` attributes to log records,
-    which are derived from the current Flask request context. If no request
-    context is available, default values of "N/A" are used.
+    Adds the following fields to each log record:
+    - `remote_addr`: The remote IP address of the client making the request, or "N/A" if unavailable.
+    - `host`: The host header of the request, or "N/A" if unavailable.
+    - `user`: The username of the currently authenticated user, or "-" if not authenticated.
+
+    This enables log formatters to include request and user information in log outputs,
+    improving traceability and auditability in a Flask application.
     """
-
     def filter(self, record) -> Literal[True]:
         """
-        Filters log records to add request-specific information such as `remote_addr` and `host`.
-
-        If a Flask request context is available, it extracts the `remote_addr` and `host` from the request.
-        Otherwise, it defaults these values to "N/A".
-
-        :param record: The log record to be filtered.
-        :return: Always returns True to ensure the record is logged.
+        Enriches the log record with request and user context.
+        Args:
+            record (logging.LogRecord): The log record to be enriched.
+        Returns:
+            True: Always returns True to allow the log record to be processed.
         """
-        record.remote_addr = request.remote_addr if request else "N/A"
-        record.host = request.host if request else "N/A"
+        if has_request_context():
+            record.remote_addr = request.remote_addr or "N/A"
+            record.host = request.host or "N/A"
+            record.user = current_user.username if current_user.is_authenticated else "-"
+        else:
+            record.remote_addr = "N/A"
+            record.host = "N/A"
+            record.user = "-"
         return True
 
 
 class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
     """
-    CustomTimedRotatingFileHandler
-    ==============================
-
-    A custom implementation of the `TimedRotatingFileHandler` that includes
-    automatic cleanup of old log files based on a specified retention period.
-
-    Attributes:
-    -----------
-    days_to_keep : int
-        The number of days to retain log files. Files older than this will be deleted.
-
-    Methods:
-    --------
-    doRollover():
-        Performs the log file rollover and triggers cleanup of old log files.
-
-    clean_old_log_files():
-        Deletes log files older than the specified retention period.
+    Extends TimedRotatingFileHandler to add support for:
+    - UTC rotation
+    - UTF-8 encoding
+    - Log cleanup based on days_to_keep and delete_old
     """
-
-    def __init__(self, *args, days_to_keep=15, **kwargs) -> None:
-        """
-        Initializes the CustomTimedRotatingFileHandler.
-
-        :param args: Positional arguments passed to the parent class.
-        :param days_to_keep: The number of days to retain log files. Files older than this will be deleted.
-        :param kwargs: Keyword arguments passed to the parent class.
-        """
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, days_to_keep=15, log_dir="logs", delete_old=True, **kwargs):
+        kwargs.setdefault("encoding", "utf-8")
+        kwargs.setdefault("utc", True)
         self.days_to_keep = days_to_keep
+        self.delete_old = delete_old
+        self.log_dir = log_dir
+        super().__init__(*args, **kwargs)
+        self.level_name = logging.getLevelName(self.level).lower()
 
-    def doRollover(self) -> None:
+    def _update_filename(self):
+        now = datetime.utcnow()
+        self.baseFilename = get_utc_log_path(self.log_dir, self.level_name, now)
+        Path(self.baseFilename).parent.mkdir(parents=True, exist_ok=True)
+
+    def doRollover(self):
         """
-        Perform log file rollover and clean up old log files.
-
-        This method first calls the parent class's `doRollover` to rotate the log file.
-        After rotation, it calls `clean_old_log_files` to remove log files older than the
-        configured retention period.
-
-        Returns:
-            None
+        Perform the rollover operation, which includes:
+        - Rotating the log file based on time
+        - Cleaning up old log files if delete_old is True
         """
         super().doRollover()
-        self.clean_old_log_files()
+        self._update_filename()
+        if self.delete_old:
+            self.clean_old_log_files()
 
-    def clean_old_log_files(self) -> None:
+    def get_year_level_path(self, base_path: Path, log_root: str) -> Path:
         """
-        Removes log files older than the configured retention period.
-
-        Calculates a cutoff date using the `days_to_keep` attribute and deletes all log files
-        in the current log directory that were last modified before this cutoff.
-
-        Raises:
-            Exception: If an error occurs while deleting a log file.
+        Traverse until you find the logs/YYYY directory reliably
         """
-        cutoff = datetime.now() - timedelta(days=self.days_to_keep)
-        log_dir = Path(self.baseFilename).parent
+        for parent in base_path.parents:
+            if parent.name.isdigit() and parent.parent.name == log_root:
+                return parent
+        return base_path.parent  # fallback to immediate parent
 
-        # 🔥 Match everything that starts with the same base filename
-        base_prefix = Path(self.baseFilename).stem  # e.g., '2025-04-09'
-        for log_file in log_dir.glob(f"{base_prefix}*"):
-            if (
-                log_file.is_file()
-                and log_file
-                != Path(self.baseFilename)  # Don't delete current log
-                and datetime.fromtimestamp(log_file.stat().st_mtime) < cutoff
-            ):
-                try:
+    def clean_old_log_files(self):
+        """
+        Deletes log files older than days_to_keep from the log directory.
+        This method navigates up to the YYYY level directory and removes
+        any log files that are older than the specified number of days.
+        """
+        cutoff = datetime.utcnow() - timedelta(days=self.days_to_keep)
+        root_dir = self.get_year_level_path(Path(self.baseFilename), self.log_dir)  # navigate up to YYYY level
+        for log_file in root_dir.rglob("*.log"):
+            try:
+                if datetime.utcfromtimestamp(log_file.stat().st_mtime) < cutoff:
                     os.remove(log_file)
-                    print(f"Deleted old log file: {log_file}")
-                except Exception as e:
-                    print(f"Error deleting file {log_file}: {e}")
+                    logging.getLogger("coyote").info(f"Deleted old log: {log_file}")
+            except Exception as e:
+                logging.getLogger("coyote").error(f"Error deleting log {log_file}: {e}")
 
 
-# -------------------------------------------------------------------------
-# Function Definitions
-# -------------------------------------------------------------------------
+def get_utc_log_path(log_dir: str, level: str, now: datetime = None) -> str:
+    """
+    Generates a UTC timestamped log file path based on the provided log directory and log level.
+    The log file is organized into a folder structure based on the current date (YYYY/MM/DD),
+    and the filename includes the log level.
+    Args:
+        log_dir (str): The base directory where log files will be stored.
+        level (str): The log level for the file (e.g., "info", "error", "debug", "audit").
+    Returns:
+        str: The full path to the log file, including the directory and filename.
+    """
+    if now is None:
+        now = datetime.utcnow()
+    folder = Path(log_dir) / now.strftime("%Y/%m/%d")
+    folder.mkdir(parents=True, exist_ok=True)
+    filename = now.strftime(f"%Y-%m-%d.{level}.log")
+    return str(folder / filename)
+
+
 def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
     """
-    Returns a logging configuration dictionary for the Coyote3 application.
-
-    The configuration includes handlers, loggers, formatters, and filters,
-    and is customized based on the provided log directory and environment.
-
+    Generates a custom logging configuration dictionary for the Coyote3 application.
+    This configuration includes:
+    - Handlers for console and file logging with daily rotation
+    - Formatters for standard and colorized output
+    - Loggers for application, Gunicorn error, and access logs
+    - A filter to enrich log records with request and user context
     Args:
-        log_dir (str): Directory where log files will be stored.
-        is_production (bool): True if running in production mode, otherwise False.
-
+        log_dir (str): The directory where log files will be stored.
+        is_production (bool): Flag indicating if the application is in production mode.
     Returns:
-        Dict[str, Any]: Logging configuration dictionary.
+        Dict[str, Any]: A dictionary containing the logging configuration.
     """
-    today = datetime.now().strftime("%Y-%m-%d")
-
     handlers = {
         "console": {
             "class": "colorlog.StreamHandler",
@@ -161,44 +159,41 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
             "stream": "ext://sys.stdout",
             "filters": ["request_filter"],
         },
-        "error_console": {
-            "class": "colorlog.StreamHandler",
-            "formatter": "colorized",
-            "stream": "ext://sys.stderr",
-            "filters": ["request_filter"],
-        },
         "file_info": {
             "level": "INFO",
             "()": "logging_setup.CustomTimedRotatingFileHandler",
             "formatter": "standard",
             "filters": ["request_filter"],
-            "filename": f"{log_dir}/info/{today}.log",
+            "filename": get_utc_log_path(log_dir, "info"),
             "when": "midnight",
             "interval": 1,
             "backupCount": 0,
-            "days_to_keep": 30,
+            "days_to_keep": 90,
+            "delete_old": True,
         },
         "file_error": {
             "level": "ERROR",
             "()": "logging_setup.CustomTimedRotatingFileHandler",
             "formatter": "standard",
             "filters": ["request_filter"],
-            "filename": f"{log_dir}/error/{today}.log",
+            "filename": get_utc_log_path(log_dir, "error"),
             "when": "midnight",
             "interval": 1,
-            "backupCount": 0,  # let days_to_keep handle deletion
-            "days_to_keep": 30,
+            "backupCount": 0,
+            "days_to_keep": 90,
+            "delete_old": True,
         },
         "audit": {
             "level": "INFO",
             "()": "logging_setup.CustomTimedRotatingFileHandler",
             "formatter": "standard",
             "filters": ["request_filter"],
-            "filename": f"{log_dir}/audit/{today}.log",
-            "when": "midnight",  # rotate daily
+            "filename": get_utc_log_path(log_dir, "audit"),
+            "when": "midnight",
             "interval": 1,
-            "backupCount": 0,  # let days_to_keep handle deletion
-            "days_to_keep": 180,  # or 365, depending on org policy
+            "backupCount": 0,
+            "days_to_keep": 180,
+            "delete_old": True,
         },
     }
 
@@ -208,63 +203,54 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
             "()": "logging_setup.CustomTimedRotatingFileHandler",
             "formatter": "standard",
             "filters": ["request_filter"],
-            "filename": f"{log_dir}/debug/{today}.log",
+            "filename": get_utc_log_path(log_dir, "debug"),
             "when": "midnight",
-            "backupCount": 15,
+            "interval": 1,
+            "backupCount": 0,
             "days_to_keep": 15,
+            "delete_old": True,
         }
 
     loggers = {
         "coyote": {
             "level": "DEBUG" if not is_production else "INFO",
-            "handlers": ["console", "file_info", "file_error"]
-            + (["file_debug"] if not is_production else []),
+            "handlers": ["console", "file_info", "file_error"] + (["file_debug"] if not is_production else []),
             "propagate": False,
-            "qualname": "coyote",
         },
         "gunicorn.error": {
             "level": "INFO",
             "handlers": ["console", "file_error"],
             "propagate": True,
-            "qualname": "gunicorn.error",
         },
         "gunicorn.access": {
             "level": "INFO",
             "handlers": ["console", "file_info"],
             "propagate": True,
-            "qualname": "gunicorn.access",
         },
         "audit": {
             "level": "INFO",
             "handlers": ["audit", "console"],
             "propagate": False,
-            "qualname": "audit",
         },
     }
 
     return {
         "version": 1,
         "disable_existing_loggers": False,
-        "root": {
-            "level": "INFO",
-            "handlers": ["console", "file_info", "file_error"]
-            + (["file_debug"] if not is_production else []),
-        },
         "loggers": loggers,
         "handlers": handlers,
+        "root": {
+            "level": "INFO",
+            "handlers": ["console", "file_info", "file_error"] + (["file_debug"] if not is_production else []),
+        },
         "formatters": {
-            "generic": {
-                "format": "%(asctime)s - [%(process)d] - [%(name)s] - [%(levelname)s] - %(message)s",
-                "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
-                "class": "logging.Formatter",
-            },
             "standard": {
-                "format": "%(asctime)s - [%(process)d] - [%(name)s] - [%(levelname)s] - [%(remote_addr)s] - [%(host)s] - %(message)s",
+                "format": "%(asctime)s - [%(process)d] - [%(name)s] - [%(levelname)s] - [%(remote_addr)s] - [%(host)s] - [%(user)s] - %(message)s",
                 "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
                 "class": "logging.Formatter",
             },
             "colorized": {
-                "format": "%(log_color)s%(asctime)s - [%(process)d] - [%(name)s] - [%(levelname)s] - [%(remote_addr)s] - [%(host)s] - %(message)s",
+                "format": "%(log_color)s%(asctime)s - [%(process)d] - [%(name)s] - [%(levelname)s] - [%(remote_addr)s] - [%(host)s] - [%(user)s] - %(message)s",
                 "datefmt": "[%Y-%m-%d %H:%M:%S %z]",
                 "class": "colorlog.ColoredFormatter",
                 "log_colors": {
@@ -279,75 +265,44 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
         "filters": {
             "request_filter": {
                 "()": RequestFilter,
-            }
+            },
         },
     }
 
 
-def setup_gunicorn_logging(log_dir: str, is_production: bool = False) -> None:
+def setup_app_logging(log_dir: str, is_production: bool = False):
     """
-    Sets up logging for Gunicorn.
-
-    Configures logging for the Gunicorn server using a custom logging configuration.
-    - Ensures log directories exist.
-    - Applies the logging configuration for Gunicorn.
-
+    Sets up the application logging configuration using a custom configuration dictionary.
     Args:
-        log_dir (str): Directory where log files will be stored.
-        is_production (bool): Whether the application is running in production mode.
-
-    Raises:
-        Exception: If an error occurs during the logging setup.
+        log_dir (str): The directory where log files will be stored.
+        is_production (bool): Flag indicating if the application is in production mode.
+    Returns:
+        None
     """
-    try:
-        for sub in ["audit", "info", "error", "debug"]:
-            (Path(log_dir) / sub).mkdir(parents=True, exist_ok=True)
-        glogging.dictConfig(get_custom_config(log_dir, is_production))
-    except Exception as e:
-        print(f"Failed to setup gunicorn logging: {e}")
-        raise
+    logging.config.dictConfig(get_custom_config(log_dir, is_production))
 
 
-def setup_app_logging(log_dir: str, is_production: bool = False) -> None:
+def setup_gunicorn_logging(log_dir: str, is_production: bool = False):
     """
-    Sets up logging for the application.
-
-    Configures logging using a custom configuration, ensuring log directories exist and applying the configuration.
-
+    Sets up the Gunicorn logging configuration using a custom configuration dictionary.
     Args:
-        log_dir (str): Directory where log files will be stored.
-        is_production (bool): Whether the application is running in production mode.
-
-    Raises:
-        Exception: If an error occurs during the logging setup.
+        log_dir (str): The directory where log files will be stored.
+        is_production (bool): Flag indicating if the application is in production mode.
+    Returns:
+        None
     """
-    try:
-        for sub in ["audit", "info", "error", "debug"]:
-            (Path(log_dir) / sub).mkdir(parents=True, exist_ok=True)
-        logging.config.dictConfig(get_custom_config(log_dir, is_production))
-    except Exception as e:
-        print(f"Failed to setup app logging: {e}")
-        raise
+    glogging.dictConfig(get_custom_config(log_dir, is_production))
 
 
-def custom_logging(
-    log_dir: str, is_production: bool = False, gunicorn_logging: bool = False
-) -> None:
+def custom_logging(log_dir: str, is_production: bool = False, gunicorn_logging: bool = False):
     """
-    Configures custom logging for the application or Gunicorn.
-
-    Parameters
-    ----------
-    log_dir : str
-        The directory where log files will be stored.
-    is_production : bool, optional
-        Indicates whether the application is running in production mode.
-    gunicorn_logging : bool, optional
-        If True, configures logging for Gunicorn; otherwise, for the application.
-
-    Returns
-    -------
-    None
+    Configures logging for the Coyote3 application, either for Gunicorn or the Flask app.
+    Args:
+        log_dir (str): The directory where log files will be stored.
+        is_production (bool): Flag indicating if the application is in production mode.
+        gunicorn_logging (bool): Flag indicating if Gunicorn logging should be configured.
+    Returns:
+        None
     """
     if gunicorn_logging:
         setup_gunicorn_logging(log_dir, is_production)
@@ -357,20 +312,12 @@ def custom_logging(
 
 def add_unique_handlers(logger, handlers):
     """
-    Add only unique handlers to a logger.
-
-    Ensures that each handler is added to the logger only once, based on the handler's class name.
-
-    Parameters
-    ----------
-    logger : logging.Logger
-        The logger instance to which handlers will be added.
-    handlers : list[logging.Handler]
-        A list of handlers to add to the logger.
-
-    Returns
-    -------
-    None
+    Adds unique handlers to a logger if they are not already present.
+    Args:
+        logger (logging.Logger): The logger to which handlers will be added.
+        handlers (list): A list of logging.Handler instances to add to the logger.
+    Returns:
+        None
     """
     existing_handlers = {h.__class__.__name__ for h in logger.handlers}
     for handler in handlers:

@@ -14,18 +14,18 @@
     <section id="admin-sample-search" class="mt-2 pl-4">
       <form action="" method="POST" class="flex items-center space-x-4 relative max-w-lg w-full">
     
-      <div class="relative group flex-grow">
-        <input 
-          type="text" 
-          name="sample_search" 
-          id="search-input" 
-          value="{{ search_str or '' }}" 
-          class="border border-gray-500 rounded-full py-1 pl-10 pr-4 focus:outline-none focus:border-blue-500 w-full" 
-          placeholder="Search samples">
-        
-        <!-- Search Icon -->
-        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="Sample Search Icon" class=" transition-transform duration-500 transform hover:scale-110 hover:rotate-6 absolute left-1 top-1 pb-1 h-7 w-9 text-gray-700 cursor-pointer hover:text-blue-500" onclick="document.getElementById('search-input').focus()">
-      </div>
+        <div class="relative group flex-grow">
+          <input 
+            type="text" 
+            name="sample_search" 
+            id="search-input" 
+            value="{{ search_str or '' }}" 
+            class="border border-gray-500 rounded-full py-1 pl-10 pr-4 focus:outline-none focus:border-blue-500 w-full" 
+            placeholder="Search samples">
+          
+          <!-- Search Icon -->
+          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="Sample Search Icon" class=" transition-transform duration-500 transform hover:scale-110 hover:rotate-6 absolute left-1 top-1 pb-1 h-7 w-9 text-gray-700 cursor-pointer hover:text-blue-500" onclick="document.getElementById('search-input').focus()">
+        </div>
 
       </form>
     </section>
@@ -45,8 +45,12 @@
             <table id="samples-list-table" class="min-w-full bg-transparent shadow-lg rounded-2xl text-xs my-2 overflow-hidden">
               <thead class="rounded-t-2xl overflow-hidden border-gray-800">
                 <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
-                  <th class="p-2 font-normal">Sample Name</th>
-                  <th class="p-2 font-normal">Groups</th>
+                  <th class="p-2 font-normal">Sample ID</th>
+                  <th class="p-2 font-normal">Case ID</th>
+                  <th class="p-2 font-normal">Clarity Case ID</th>
+                  <th class="p-2 font-normal">Control ID</th>
+                  <th class="p-2 font-normal">Clarity Control ID</th>
+                  <th class="p-2 font-normal">Assay</th>
                   <th class="p-2 font-normal">Diagnosis</th>
                   <th class="p-2 font-normal">Profile</th>
                   <th class="p-2 font-normal">Reported</th>
@@ -57,7 +61,11 @@
                 {% for sample in all_samples %}
                   <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
                     <td class="p-2 font-medium">{{ sample.name }}</td>
-                    <td class="p-2 font-medium">{{ sample.groups | join(', ') }}</td>
+                    <td class="p-2 font-medium">{{ sample.case_id }}</td>
+                    <td class="p-2 font-medium">{{ sample.get('case', {}).get('clarity_id', '-') }}</td>
+                    <td class="p-2 font-medium">{{ sample.control_id or '-' }}</td>
+                    <td class="p-2 font-medium">{{ sample.get('control', {}).get('clarity_id', '-') }}</td>
+                    <td class="p-2 font-medium">{{ sample.assay }}</td>
                     <td class="p-2 font-medium">{{ sample.subpanel }}</td>
                     <td class="p-2 font-medium">
                       <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-{{ sample.profile or 'production' }} text-center">
@@ -80,9 +88,9 @@
                     </td>
                   </tr>
                 {% else %}
-                <tr class="border-b border-gray-300">
-                  <td colspan="5" class="p-2 font-medium text-center">No samples found.</td>
-                </tr>
+                  <tr class="border-b border-gray-300">
+                    <td colspan="5" class="p-2 font-medium text-center">No samples found.</td>
+                  </tr>
                 {% endfor %}
               </tbody>
             </table>

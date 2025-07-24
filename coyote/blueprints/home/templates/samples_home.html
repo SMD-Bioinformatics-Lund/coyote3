@@ -110,9 +110,14 @@
                   <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
                     <th class="p-2 font-normal"></th>
                     <th class="p-2 font-normal">Sample ID</th>
+                    <th class="p-2 font-normal">Case ID</th>
+                    <th class="p-2 font-normal">Clarity Case ID</th>
+                    <th class="p-2 font-normal">Control ID</th>
+                    <th class="p-2 font-normal">Clarity Control ID</th>
                     <th class="p-2 font-normal">Assay</th>
                     <th class="p-2 font-normal">Diagnosis</th>
                     <th class="p-2 font-normal">Profile</th>
+                    <th class="p-2 font-normal">Sequencing Scope</th>
                     <th class="p-2 font-normal">BAM</th>
                     <th class="p-2 font-normal">QC</th>
                     <th class="p-2 font-normal">When added</th>
@@ -123,15 +128,15 @@
                     {% set sample_profile = sample.get('profile', '')[0]|upper or 'P' %}
                     <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile {% endif %}">
                       <td class="p-2 font-medium text-center">
-                        {% if "num_samples" in sample %}
-                          {% for n in range(sample.num_samples) %}
+                        {% if "sample_no" in sample %}
+                          {% for n in range(sample.sample_no) %}
                             &#9679;
                           {% endfor %}
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">
-                        {# TODO: This check should come from the sample doc with a special key #}
-                        {% if sample.groups|join('') == 'fusion' or sample.groups|join('') == 'solidRNA_GMSv5' %}
+                        {# TODO: Probable should have keys like, panel/analysis type to re direct #}
+                        {% if sample.assay in ['fusion', 'solidRNA_GMSv5']%}
                           <a href="{{ url_for('rna_bp.list_fusions', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% else %}
                           <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
@@ -139,6 +144,18 @@
                         {% if sample.comments|selectattr('hidden', 'equalto', 0)|list|length > 0 %}
                           *
                         {% endif %}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {{ sample.case_id or '-' }}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {{ sample.get('case', {}).get('clarity_id', '-') }}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {{ sample.control_id or '-' }}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {{ sample.get('control', {}).get('clarity_id', '-') }}
                       </td>
                       <td class="p-2 font-medium">
                         {{ sample.assay}}
@@ -153,6 +170,14 @@
                           {{ sample_profile }}
                         </span>
                       </td>
+                      <td class="p-2 font-medium">
+                        {% if sample.sequencing_scope %}
+                          <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-blue-500 text-center">
+                            {{ sample.sequencing_scope }}
+                          </span>
+                        {% else %}
+                          -
+                        {% endif %}
                       <td class="p-2 font-medium">
                         {% if sample.bam is defined %}
                           <a href="{{ sample.bam }}" class="text-blue-500 hover:underline">BAM</a>
@@ -196,9 +221,14 @@
                   <tr class="border-b text-left border-gray-600 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
                     <th class="p-2 font-normal"></th>
                     <th class="p-2 font-normal">Sample ID</th>
+                    <th class="p-2 font-normal">Case ID</th>
+                    <th class="p-2 font-normal">Clarity Case ID</th>
+                    <th class="p-2 font-normal">Control ID</th>
+                    <th class="p-2 font-normal">Clarity Control ID</th>
                     <th class="p-2 font-normal">Assay</th>
                     <th class="p-2 font-normal">Diagnosis</th>
                     <th class="p-2 font-normal">Profile</th>
+                    <th class="p-2 font-normal">Sequencing Scope</th>
                     <th class="p-2 font-normal">When added</th>
                     <th class="p-2 font-normal">Last report</th>
                     <th class="p-2 font-normal">BAM</th>
@@ -211,14 +241,26 @@
                     {% set sample_profile = sample.get('profile', '')[0]|upper or 'P' %}
                     <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile {% endif %}">
                       <td class="p-2 font-medium text-center">
-                        {% if "num_samples" in sample %}
-                          {% for n in range(sample.num_samples) %}
+                        {% if "sample_no" in sample %}
+                          {% for n in range(sample.sample_no) %}
                             &#9679;
                           {% endfor %}
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">
                         <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                      </td>
+                      <td class="p-2 font-medium">
+                        {{ sample.case_id or '-' }}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {{ sample.get('case', {}).get('clarity_id', '-') }}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {{ sample.control_id or '-' }}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {{ sample.get('control', {}).get('clarity_id', '-') }}
                       </td>
                       <td class="p-2 font-medium">
                         {{ sample.assay }}
@@ -238,6 +280,15 @@
                       </td>
                       <td class="p-2 font-medium">
                         {{ sample.last_report_time_created|human_date }}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {% if sample.sequencing_scope %}
+                          <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-blue-500 text-center">
+                            {{ sample.sequencing_scope }}
+                          </span>
+                        {% else %}
+                          -
+                        {% endif %}
                       </td>
                       <td class="p-2 font-medium">
                         {% if sample.bam is defined %}
