@@ -109,7 +109,7 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
                 logging.getLogger("coyote").error(f"Error deleting log {log_file}: {e}")
 
 
-def get_utc_log_path(log_dir: str, level: str) -> str:
+def get_utc_log_path(log_dir: str, level: str, now: datetime = None) -> str:
     """
     Generates a UTC timestamped log file path based on the provided log directory and log level.
     The log file is organized into a folder structure based on the current date (YYYY/MM/DD),
