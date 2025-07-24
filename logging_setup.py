@@ -75,6 +75,7 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
         self.delete_old = delete_old
         self.log_dir = log_dir
         super().__init__(*args, **kwargs)
+        self.level_name = logging.getLevelName(self.level).lower()
 
     def _update_filename(self):
         now = datetime.utcnow()
@@ -92,6 +93,15 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
         if self.delete_old:
             self.clean_old_log_files()
 
+    def get_year_level_path(self, base_path: Path, log_root: str) -> Path:
+        """
+        Traverse until you find the logs/YYYY directory reliably
+        """
+        for parent in base_path.parents:
+            if parent.name.isdigit() and parent.parent.name == log_root:
+                return parent
+        return base_path.parent  # fallback to immediate parent
+
     def clean_old_log_files(self):
         """
         Deletes log files older than days_to_keep from the log directory.
@@ -99,7 +109,7 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
         any log files that are older than the specified number of days.
         """
         cutoff = datetime.utcnow() - timedelta(days=self.days_to_keep)
-        root_dir = Path(self.baseFilename).parents[3]  # navigate up to YYYY level
+        root_dir = self.get_year_level_path(Path(self.baseFilename), self.log_dir)  # navigate up to YYYY level
         for log_file in root_dir.rglob("*.log"):
             try:
                 if datetime.utcfromtimestamp(log_file.stat().st_mtime) < cutoff:
@@ -120,7 +130,8 @@ def get_utc_log_path(log_dir: str, level: str, now: datetime = None) -> str:
     Returns:
         str: The full path to the log file, including the directory and filename.
     """
-    now = datetime.utcnow()
+    if now is None:
+        now = datetime.utcnow()
     folder = Path(log_dir) / now.strftime("%Y/%m/%d")
     folder.mkdir(parents=True, exist_ok=True)
     filename = now.strftime(f"%Y-%m-%d.{level}.log")
