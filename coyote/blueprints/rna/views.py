@@ -78,9 +78,7 @@ def list_fusions(sample_id):
     sample_profile = sample.get("profile", "production")
 
     # Get assay group and subpanel for the sample, sections to display
-    assay_group: str = assay_config.get(
-        "asp_group", "unknown"
-    )  # myeloid, solid, lymphoid
+    assay_group: str = assay_config.get("asp_group", "unknown")  # myeloid, solid, lymphoid
 
     subpanel: str | None = sample.get("subpanel")  # breast, LP, lung, etc.
     analysis_sections = assay_config.get("analysis_types", [])
@@ -90,33 +88,23 @@ def list_fusions(sample_id):
     assay_panel_doc = store.asp_handler.get_asp(asp_name=sample_assay)
 
     # Get the genelists for the sample panel
-    insilico_panel_genelists = store.isgl_handler.get_isgl_by_asp(
-        sample_assay, is_active=True
-    )
-    all_panel_genelist_names = util.common.get_assay_genelist_names(
-        insilico_panel_genelists
-    )
+    insilico_panel_genelists = store.isgl_handler.get_isgl_by_asp(sample_assay, is_active=True)
+    all_panel_genelist_names = util.common.get_assay_genelist_names(insilico_panel_genelists)
 
     # Adding the default gene lists to the assay_config, if use_diagnosis_genelist is set to true
     if assay_config.get("use_diagnosis_genelist", False) and subpanel:
         assay_default_config_genelist_ids = store.isgl_handler.get_isgl_ids(
             sample_assay, subpanel, "genelist", is_active=True
         )
-        assay_config["filters"]["genelists"].extend(
-            assay_default_config_genelist_ids
-        )
+        assay_config["filters"]["genelists"].extend(assay_default_config_genelist_ids)
 
     # Get filter settings from the sample and merge with assay config if sample does not have values
-    sample = util.common.merge_sample_settings_with_assay_config(
-        sample, assay_config
-    )
+    sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
     sample_filters = deepcopy(sample.get("filters", {}))
 
     # Update the sample filters with the default values from the assay config if the sample is new and does not have any filters set
     if not sample_has_filters:
-        store.sample_handler.reset_sample_settings(
-            sample["_id"], assay_config.get("filters")
-        )
+        store.sample_handler.reset_sample_settings(sample["_id"], assay_config.get("filters"))
 
     # Inherit DNAFilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
     if all_panel_genelist_names:
@@ -131,16 +119,10 @@ def list_fusions(sample_id):
         _id = str(sample.get("_id"))
         # Reset filters to defaults
         if form.reset.data:
-            app.logger.info(
-                f"Resetting filters to default settings for the sample {sample_id}"
-            )
-            store.sample_handler.reset_sample_settings(
-                _id, assay_config.get("filters", {})
-            )
+            app.logger.info(f"Resetting filters to default settings for the sample {sample_id}")
+            store.sample_handler.reset_sample_settings(_id, assay_config.get("filters", {}))
         else:
-            filters_from_form = util.common.format_filters_from_form(
-                form, assay_config_schema
-            )
+            filters_from_form = util.common.format_filters_from_form(form, assay_config_schema)
             store.sample_handler.update_sample_filters(_id, filters_from_form)
 
         ## get sample again to recieve updated forms!
@@ -149,9 +131,7 @@ def list_fusions(sample_id):
 
     ############################################################################
     # Check if the sample has hidden comments
-    has_hidden_comments = store.sample_handler.hidden_sample_comments(
-        sample.get("_id")
-    )
+    has_hidden_comments = store.sample_handler.hidden_sample_comments(sample.get("_id"))
 
     # app.logger.info(
     #     f"this is the assayConfigs in the assay {assay_config_schema}"
@@ -174,14 +154,10 @@ def list_fusions(sample_id):
     }
 
     if checked_fusioneffects:
-        fusion_query["calls.effect"] = {
-            "$in": sample_filters.get("fusion_effects", [])
-        }
+        fusion_query["calls.effect"] = {"$in": sample_filters.get("fusion_effects", [])}
 
     if checked_fusioncallers:
-        fusion_query["calls.caller"] = {
-            "$in": sample_filters.get("fusion_callers", [])
-        }
+        fusion_query["calls.caller"] = {"$in": sample_filters.get("fusion_callers", [])}
 
     if "mitelman" in checked_fusionlists:
         fusion_query["calls.desc"] = {"$regex": "mitelman"}
@@ -227,9 +203,9 @@ def list_fusions(sample_id):
     )
 
 
-@rna_bp.route("/fusion/<string:id>")
-@login_required
-def show_fusion(id: str) -> Response:
+@rna_bp.route("/<string:sample_id>/fusion/<string:fusion_id>")
+@require_sample_access("sample_id")
+def show_fusion(sample_id: str, fusion_id: str) -> Response:
     """
     Display details for a specific RNA fusion event.
 
@@ -244,19 +220,19 @@ def show_fusion(id: str) -> Response:
         Response: Rendered HTML template with fusion, sample, annotations,
         and classification data.
     """
-    fusion = store.fusion_handler.get_fusion(id)
+    fusion = store.fusion_handler.get_fusion(fusion_id)
     sample = store.sample_handler.get_sample_by_id(fusion["SAMPLE_ID"])
 
-    annotations, classification = store.fusion_handler.get_fusion_annotations(
-        fusion
-    )
-    return render_template(
-        "show_fusion.html",
+    annotations, classification = store.fusion_handler.get_fusion_annotations(fusion)
+   
+    return render_template ( 
+        "show_fusion.html", 
         fusion=fusion,
         sample=sample,
+        sample_id=sample["_id"],
         annotations=annotations,
         classification=classification,
-    )
+    ) # type: ignore
 
 
 @rna_bp.route("/fusion/fp/<string:id>", methods=["POST"])
@@ -384,17 +360,9 @@ def generate_rna_report(id, *args, **kwargs):
             fusions[fus_idx]["classification"],
         ) = store.fusion_handler.get_fusion_annotations(fusions[fus_idx])
 
-    class_desc = list(
-        app.config.get("REPORT_CONFIG").get("CLASS_DESC").values()
-    )
-    class_desc_short = list(
-        app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT").values()
-    )
-    analysis_desc = (
-        app.config.get("REPORT_CONFIG")
-        .get("ANALYSIS_DESCRIPTION", {})
-        .get(assay)
-    )
+    class_desc = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC").values())
+    class_desc_short = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT").values())
+    analysis_desc = app.config.get("REPORT_CONFIG").get("ANALYSIS_DESCRIPTION", {}).get(assay)
 
     # app.logger.info(f"analysis_desc,{analysis_desc}")
     # app.logger.info(f"fusions,{fusions}")

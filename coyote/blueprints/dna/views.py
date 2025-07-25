@@ -14,35 +14,37 @@
 Views for DNA variant, CNV, translocation, and biomarker management and reporting in the Coyote3 genomic analysis framework.
 """
 
-from flask import current_app as app
+import io
+import os
+from collections import defaultdict
+from copy import deepcopy
+from datetime import datetime
+from pprint import pformat
+
+from bson import ObjectId
 from flask import (
+    Response,
+    flash,
     redirect,
     render_template,
     request,
-    url_for,
-    send_from_directory,
-    flash,
     send_file,
-    Response,
+    send_from_directory,
+    url_for,
 )
-from pprint import pformat
-from copy import deepcopy
+from flask import current_app as app
+from PIL import Image
 from wtforms import BooleanField
-from coyote.extensions import store, util
+
 from coyote.blueprints.dna import dna_bp, filters
-from coyote.blueprints.dna.varqueries import build_query
 from coyote.blueprints.dna.cnvqueries import build_cnv_query
 from coyote.blueprints.dna.forms import DNAFilterForm, create_assay_group_form
+from coyote.blueprints.dna.varqueries import build_query
 from coyote.errors.exceptions import AppError
-from datetime import datetime
-from bson import ObjectId
-from collections import defaultdict
+from coyote.extensions import store, util
+from coyote.services.auth.decorators import require
 from coyote.util.decorators.access import require_sample_access
 from coyote.util.misc import get_sample_and_assay_config
-from coyote.services.auth.decorators import require
-from PIL import Image
-import os
-import io
 
 
 @dna_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])
@@ -170,14 +172,8 @@ def list_variants(sample_id: str) -> Response | str:
     checked_genelists = sample_filters.get("genelists", [])
 
     # Get the genelists for the sample panel checked genelists from the filters
-    checked_genelists_genes_dict: list[dict] = (
-        store.isgl_handler.get_isgl_by_ids(checked_genelists)
-    )
-    genes_covered_in_panel: list[dict] = (
-        util.common.get_genes_covered_in_panel(
-            checked_genelists_genes_dict, assay_panel_doc
-        )
-    )
+    checked_genelists_genes_dict: list[dict] = (store.isgl_handler.get_isgl_by_ids(checked_genelists))
+    genes_covered_in_panel: list[dict] = ( util.common.get_genes_covered_in_panel ( checked_genelists_genes_dict, assay_panel_doc))
 
     # TODO: We can get the list of germline genes for the panel or selected genelists
 

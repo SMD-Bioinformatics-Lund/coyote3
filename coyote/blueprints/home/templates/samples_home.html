@@ -1,299 +1,390 @@
-{% extends "layout.html" %}
-
-{% block body %}
+{% extends "layout.html" %} {% block body %}
 <!-- FLEX CONTAINER: Sidebar (Fixed) + Main Content (Scrollable)-->
 <div class="flex w-full h-full overflow-hidden">
-
   <!-- LEFT SIDEBAR (Fixed Width, Full Height) -->
-  {% set extra_args = {} %}
-  {% if panel_type %}{% set _ = extra_args.update({'panel_type': panel_type}) %}{% endif %}
-  {% if panel_tech %}{% set _ = extra_args.update({'panel_tech': panel_tech}) %}{% endif %}
-  {% if assay_group %}{% set _ = extra_args.update({'assay_group': assay_group}) %}{% endif %}
+  {% set extra_args = {} %} {% if panel_type %}{% set _ =
+  extra_args.update({'panel_type': panel_type}) %}{% endif %} {% if panel_tech
+  %}{% set _ = extra_args.update({'panel_tech': panel_tech}) %}{% endif %} {% if
+  assay_group %}{% set _ = extra_args.update({'assay_group': assay_group}) %}{%
+  endif %}
   <aside class="w-8 bg-transparent text-white flex flex-col">
     <div class="flex border-l-8 border-blue-400 mt-1">
-      <a href="{{ url_for(request.endpoint, status='done', **extra_args) }}"
-        class="relative bg-gray-500 text-white text-base text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
+      <a
+        href="{{ url_for(request.endpoint, status='done', **extra_args) }}"
+        class="relative bg-gray-500 text-white text-base text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1"
+      >
         <span class="vertical-text">Analysed</span>
       </a>
     </div>
     <div class="flex border-l-8 border-green-400 mt-1">
-      <a href="{{ url_for(request.endpoint, status='live', **extra_args) }}"
-        class="relative bg-gray-500 text-white text-base text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
+      <a
+        href="{{ url_for(request.endpoint, status='live', **extra_args) }}"
+        class="relative bg-gray-500 text-white text-base text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1"
+      >
         <span class="vertical-text">Pending</span>
       </a>
     </div>
   </aside>
-  
-  
+
   <!-- MAIN CONTENT (Scrollable & Auto-Resizing) -->
   <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
-
     <!-- Search Bar -->
     <section id="sample-search" class="mt-2 flex">
-      <form action="" method="POST" class="flex items-center space-x-4 relative max-w-lg w-full">
+      <form
+        action=""
+        method="POST"
+        class="flex items-center space-x-4 relative max-w-lg w-full"
+      >
         {{ form.hidden_tag() }}
-    
+
         <div class="relative group flex-grow min-w-[250px]">
-          <input 
-            type="text" 
-            name="sample_search" 
-            id="search-input" 
-            value="{{ search_str or '' }}" 
-            class="border border-gray-500 rounded-full py-1 pl-10 pr-4 focus:outline-none focus:border-blue-500 w-full" 
-            placeholder="Search samples">
-          
+          <input
+            type="text"
+            name="sample_search"
+            id="search-input"
+            value="{{ search_str or '' }}"
+            class="border border-gray-500 rounded-full py-1 pl-10 pr-4 focus:outline-none focus:border-blue-500 w-full"
+            placeholder="Search samples"
+          />
+
           <!-- Search Icon -->
-          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="Search Icon" class=" transition-transform duration-500 transform hover:scale-110 hover:rotate-6 absolute left-1 top-1 pb-1 h-7 w-9 text-gray-700 cursor-pointer hover:text-blue-500" onclick="document.getElementById('search-input').focus()">
+          <img
+            src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}"
+            alt="Search Icon"
+            class="transition-transform duration-500 transform hover:scale-110 hover:rotate-6 absolute left-1 top-1 pb-1 h-7 w-9 text-gray-700 cursor-pointer hover:text-blue-500"
+            onclick="document.getElementById('search-input').focus()"
+          />
         </div>
-    
+
         <!-- Compact Three-Way Toggle -->
         <div class="relative w-32">
-          <div class="relative flex bg-blue-50 rounded-full border border-gray-400 h-8 overflow-hidden">
+          <div
+            class="relative flex bg-blue-50 rounded-full border border-gray-400 h-8 overflow-hidden"
+          >
             <!-- Slider -->
-            <div 
-              id="slider-thumb" 
+            <div
+              id="slider-thumb"
               class="absolute top-0 h-full w-1/3 bg-orange-300 transition-all duration-200 ease-in-out rounded-full"
-              style="left: calc({% if search_mode == 'done' %}0%{% elif search_mode == 'both' %}33.33%{% else %}66.66%{% endif %});">
-            </div>
-    
+              style="
+                left: calc(
+                  {% if search_mode == 'done' %}0%{% elif search_mode == 'both' %}33.33%{%
+                    else %}66.66%{% endif %}
+                );
+              "
+            ></div>
+
             <!-- Options -->
-            <label class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm">
-              <input 
-                type="radio" 
-                name="search_mode_slider" 
-                value="1" 
-                class="absolute inset-0 opacity-0 cursor-pointer" 
-                onclick="moveSlider(0)" 
-                {% if search_mode == 'done' %}checked{% endif %}>
+            <label
+              class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm"
+            >
+              <input type="radio" name="search_mode_slider" value="1"
+              class="absolute inset-0 opacity-0 cursor-pointer"
+              onclick="moveSlider(0)" {% if search_mode == 'done' %}checked{%
+              endif %}>
               <span class="text-xs font-bold text-gray-800">Done</span>
             </label>
-            <label class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm">
-              <input 
-                type="radio" 
-                name="search_mode_slider" 
-                value="2" 
-                class="absolute inset-0 opacity-0 cursor-pointer" 
-                onclick="moveSlider(33.33)" 
-                {% if search_mode == 'both' %}checked{% endif %}>
+            <label
+              class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm"
+            >
+              <input type="radio" name="search_mode_slider" value="2"
+              class="absolute inset-0 opacity-0 cursor-pointer"
+              onclick="moveSlider(33.33)" {% if search_mode == 'both'
+              %}checked{% endif %}>
               <span class="text-xs font-bold text-gray-800">All</span>
             </label>
-            <label class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm">
-              <input 
-                type="radio" 
-                name="search_mode_slider" 
-                value="3" 
-                class="absolute inset-0 opacity-0 cursor-pointer" 
-                onclick="moveSlider(66.66)" 
-                {% if search_mode == 'live' %}checked{% endif %}>
+            <label
+              class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm"
+            >
+              <input type="radio" name="search_mode_slider" value="3"
+              class="absolute inset-0 opacity-0 cursor-pointer"
+              onclick="moveSlider(66.66)" {% if search_mode == 'live'
+              %}checked{% endif %}>
               <span class="text-xs font-bold text-gray-800">Live</span>
             </label>
           </div>
         </div>
       </form>
 
-      <button id="toggle-other-profile"
-        class="inline-flex items-center px-4 py-1.5 mx-4 rounded-lg bg-gray-100 text-sm font-medium text-gray-700 hover:bg-blue-300 shadow-md transition duration-300">
+      <button
+        id="toggle-other-profile"
+        class="inline-flex items-center px-4 py-1.5 mx-4 rounded-lg bg-gray-100 text-sm font-medium text-gray-700 hover:bg-blue-300 shadow-md transition duration-300"
+      >
         Only Prod. Samples
       </button>
-    
     </section>
 
     <!-- Sample Table -->
     <section class="p-2 ml-2 mt-2">
       <div class="justify-start">
         {% if live_samples %}
-          <div class="w-4/5 bg-blue-50 shadow-3xl rounded-2xl p-4 relative overflow-hidden">
-            <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" data-rows-per-page="30" pagination-button-color="blue">
-              <span class="text-lg font-semibold">Live Samples</span>
-              <table class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
-                <thead class="rounded-t-2xl overflow-hidden border-gray-800">
-                  <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
-                    <th class="p-2 font-normal"></th>
-                    <th class="p-2 font-normal">Sample ID</th>
-                    <th class="p-2 font-normal">Assay</th>
-                    <th class="p-2 font-normal">Diagnosis</th>
-                    <th class="p-2 font-normal">Profile</th>
-                    <th class="p-2 font-normal">BAM</th>
-                    <th class="p-2 font-normal">QC</th>
-                    <th class="p-2 font-normal">When added</th>
-                  </tr>
-                </thead>
-                <tbody id="pagination-table-body-live" class="text-gray-800 rounded-b-2xl overflow-hidden">
-                  {% for sample in live_samples %}
-                    {% set sample_profile = sample.get('profile', '')[0]|upper or 'P' %}
-                    <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile {% endif %}">
-                      <td class="p-2 font-medium text-center">
-                        {% if "num_samples" in sample %}
-                          {% for n in range(sample.num_samples) %}
-                            &#9679;
-                          {% endfor %}
-                        {% endif %}
-                      </td>
-                      <td class="p-2 font-medium">
-                        {# TODO: This check should come from the sample doc with a special key #}
-                        {% if sample.groups|join('') == 'fusion' or sample.groups|join('') == 'solidRNA_GMSv5' %}
-                          <a href="{{ url_for('rna_bp.list_fusions', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
-                        {% else %}
-                          <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
-                        {% endif %}
-                        {% if sample.comments|selectattr('hidden', 'equalto', 0)|list|length > 0 %}
-                          *
-                        {% endif %}
-                      </td>
-                      <td class="p-2 font-medium">
-                        {{ sample.assay}}
-                      </td>
-                      <td class="p-2 font-medium">
-                        {% if "subpanel" in sample %}
-                          {{ sample.subpanel }}
-                        {% endif %}
-                      </td>
-                      <td class="p-2 font-medium">
-                        <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-{{ sample.profile or 'production' }} text-center">
-                          {{ sample_profile }}
-                        </span>
-                      </td>
-                      <td class="p-2 font-medium">
-                        {% if sample.bam is defined %}
-                          <a href="{{ sample.bam }}" class="text-blue-500 hover:underline">BAM</a>
-                          <a href="{{ sample.bam }}.bai" class="text-blue-500 hover:underline">BAI</a>
-                        {% endif %}
-                      </td>
-                      <td class="p-2 font-medium">
-                        {% if sample.QC is defined %}
-                          {% for qc in sample.QC|sort(attribute='sample_id') %}
-                            {% if "500" in qc.pct_above_x %}
-                              <a href="sampleqc/{{ sample._id }}" class="text-blue-500 hover:underline">{{ '%0.0f'|format(qc.pct_above_x["500"]|float) }}%</a>
-                            {% elif "tot_reads" in qc and "mapped_pct" in qc %}
-                              <a href="sampleqc/{{ sample._id }}" class="text-blue-500 hover:underline">{{ '%0.0f'|format((qc.tot_reads/1000000)|float) }} M</a>
-                            {% else %}
-                              <a href="sampleqc/{{ sample._id }}" class="text-blue-500 hover:underline">0%</a>
-                            {% endif %}
-                          {% endfor %}
-                        {% endif %}
-                      </td>
-                      <td class="p-2 font-medium">
-                        {{ sample.time_added|human_date }}
-                      </td>
-                    </tr>
-                  {% else %}
-                    <tr class="border-b border-gray-300">
-                      <td colspan="6" class="p-2 font-medium text-center">No live samples.</td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
+        <div
+          class="w-4/5 bg-blue-50 shadow-3xl rounded-2xl p-4 relative overflow-hidden"
+        >
+          <div
+            class="overflow-x-auto rounded-2xl shadow-3xl relative pagination"
+            data-rows-per-page="30"
+            pagination-button-color="blue"
+          >
+            <span class="text-lg font-semibold">Live Samples</span>
+            <table
+              class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden"
+            >
+              <thead class="rounded-t-2xl overflow-hidden border-gray-800">
+                <tr
+                  class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl"
+                >
+                  <th class="p-2 font-normal"></th>
+                  <th class="p-2 font-normal">Sample ID</th>
+                  <th class="p-2 font-normal">Assay</th>
+                  <th class="p-2 font-normal">Diagnosis</th>
+                  <th class="p-2 font-normal">Profile</th>
+                  <th class="p-2 font-normal">BAM</th>
+                  <th class="p-2 font-normal">QC</th>
+                  <th class="p-2 font-normal">When added</th>
+                </tr>
+              </thead>
+              <tbody
+                id="pagination-table-body-live"
+                class="text-gray-800 rounded-b-2xl overflow-hidden"
+              >
+                {% for sample in live_samples %} {% set sample_profile =
+                sample.get('profile', '')[0]|upper or 'P' %}
+                <tr
+                  class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile {% endif %}"
+                >
+                  <td class="p-2 font-medium text-center">
+                    {% if "num_samples" in sample %} {% for n in
+                    range(sample.num_samples) %} &#9679; {% endfor %} {% endif
+                    %}
+                  </td>
+                  <td class="p-2 font-medium">
+                    {# TODO: This check should come from the sample doc with a
+                    special key #} {% if sample.groups|join('') == 'fusion' or
+                    sample.groups|join('') == 'solidRNA_GMSv5' %}
+                    <a
+                      href="{{ url_for('rna_bp.list_fusions', sample_id=sample.name) }}"
+                      class="text-blue-500 hover:underline"
+                      >{{ sample.name }}</a
+                    >
+                    {% else %}
+                    <a
+                      href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}"
+                      class="text-blue-500 hover:underline"
+                      >{{ sample.name }}</a
+                    >
+                    {% endif %} {% if sample.comments|selectattr('hidden',
+                    'equalto', 0)|list|length > 0 %} * {% endif %}
+                  </td>
+                  <td class="p-2 font-medium">{{ sample.assay}}</td>
+                  <td class="p-2 font-medium">
+                    {% if "subpanel" in sample %} {{ sample.subpanel }} {% endif
+                    %}
+                  </td>
+                  <td class="p-2 font-medium">
+                    <span
+                      class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-{{ sample.profile or 'production' }} text-center"
+                    >
+                      {{ sample_profile }}
+                    </span>
+                  </td>
+                  <td class="p-2 font-medium">
+                    {% if sample.bam is defined %}
+                    <a
+                      href="{{ sample.bam }}"
+                      class="text-blue-500 hover:underline"
+                      >BAM</a
+                    >
+                    <a
+                      href="{{ sample.bam }}.bai"
+                      class="text-blue-500 hover:underline"
+                      >BAI</a
+                    >
+                    {% endif %}
+                  </td>
+                  <td class="p-2 font-medium">
+                    {% if sample.QC is defined %} {% for qc in
+                    sample.QC|sort(attribute='sample_id') %} {% if "500" in
+                    qc.pct_above_x %}
+                    <a
+                      href="sampleqc/{{ sample._id }}"
+                      class="text-blue-500 hover:underline"
+                      >{{ '%0.0f'|format(qc.pct_above_x["500"]|float) }}%</a
+                    >
+                    {% elif "tot_reads" in qc and "mapped_pct" in qc %}
+                    <a
+                      href="sampleqc/{{ sample._id }}"
+                      class="text-blue-500 hover:underline"
+                      >{{ '%0.0f'|format((qc.tot_reads/1000000)|float) }} M</a
+                    >
+                    {% else %}
+                    <a
+                      href="sampleqc/{{ sample._id }}"
+                      class="text-blue-500 hover:underline"
+                      >0%</a
+                    >
+                    {% endif %} {% endfor %} {% endif %}
+                  </td>
+                  <td class="p-2 font-medium">
+                    {{ sample.time_added|human_date }}
+                  </td>
+                </tr>
+                {% else %}
+                <tr class="border-b border-gray-300">
+                  <td colspan="6" class="p-2 font-medium text-center">
+                    No live samples.
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
-        {% endif %}
-        {% if done_samples %}
-          <div class="w-4/5 bg-blue-50 shadow-3xl rounded-2xl p-3 mt-10 relative">
-            <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" data-rows-per-page="15" pagination-button-color="blue">
-              <span class="text-lg font-semibold">Reported samples 
-              </span>
-              <table class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
-                <thead class="rounded-t-2xl overflow-hidden border-gray-300">
-                  <tr class="border-b text-left border-gray-600 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
-                    <th class="p-2 font-normal"></th>
-                    <th class="p-2 font-normal">Sample ID</th>
-                    <th class="p-2 font-normal">Assay</th>
-                    <th class="p-2 font-normal">Diagnosis</th>
-                    <th class="p-2 font-normal">Profile</th>
-                    <th class="p-2 font-normal">When added</th>
-                    <th class="p-2 font-normal">Last report</th>
-                    <th class="p-2 font-normal">BAM</th>
-                    <th class="p-2 font-normal">QC</th>
-                    <th class="p-2 font-normal">Reports</th>
-                  </tr>
-                </thead>
-                <tbody id="pagination-table-body-done"class="text-gray-700 rounded-b-2xl border-gray-300">
-                  {% for sample in done_samples|sort(attribute="last_report_time_created", reverse=True) %}
-                    {% set sample_profile = sample.get('profile', '')[0]|upper or 'P' %}
-                    <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile {% endif %}">
-                      <td class="p-2 font-medium text-center">
-                        {% if "num_samples" in sample %}
-                          {% for n in range(sample.num_samples) %}
-                            &#9679;
-                          {% endfor %}
-                        {% endif %}
-                      </td>
-                      <td class="p-2 font-medium">
-                        <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
-                      </td>
-                      <td class="p-2 font-medium">
-                        {{ sample.assay }}
-                      </td>
-                      <td class="p-2 font-medium">
-                        {% if "subpanel" in sample %}
-                          {{ sample.subpanel }}
-                        {% endif %}
-                      </td>
-                      <td class="p-2 font-medium">
-                        <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-{{ sample.profile or 'production' }} text-center">
-                          {{ sample.get('profile', '')[0]|upper or 'P' }}
-                        </span>
-                      </td>
-                      <td class="p-2 font-medium">
-                        {{ sample.time_added|human_date }}
-                      </td>
-                      <td class="p-2 font-medium">
-                        {{ sample.last_report_time_created|human_date }}
-                      </td>
-                      <td class="p-2 font-medium">
-                        {% if sample.bam is defined %}
-                          <a href="{{ sample.bam }}" class="text-blue-500 hover:underline">BAM</a>
-                          <a href="{{ sample.bam }}.bai" class="text-blue-500 hover:underline">BAI</a>
-                        {% endif %}
-                      </td>
-                      <td class="p-2 font-medium">
-                        {% if sample.QC is defined %}
-                          {% for qc in sample.QC|sort(attribute='sample_id') %}
-                            {% if "500" in qc.pct_above_x %}
-                              <a href="sampleqc/{{ sample._id }}" class="text-blue-500 hover:underline">{{ '%0.0f'|format(qc.pct_above_x["500"]|float) }}%</a>
-                            {% elif "tot_reads" in qc and "mapped_pct" in qc %}
-                              <a href="sampleqc/{{ sample._id }}" class="text-blue-500 hover:underline">{{ '%0.0f'|format((qc.tot_reads/1000000)|float) }} M</a>
-                            {% else %}
-                              <a href="sampleqc/{{ sample._id }}" class="text-blue-500 hover:underline">0%</a>
-                            {% endif %}
-                          {% endfor %}
-                        {% endif %}
-                      </td>
-                      <td class="p-2 font-medium">
-                        {% if has_access('view_reports', min_role='admin') %}
-                            {% for rep in sample.reports %}
-                              <a
-                                href="{{ url_for('home_bp.view_report', sample_id=sample.name, report_id=rep.report_id) }}"
-                                class="inline-block bg-blue-400 text-white px-2 py-0.5 rounded-lg text-xs font-bold mx-1 hover:bg-blue-500 transition"
-                              >
-                                {{ rep.report_num }}
-                              </a>
-                            {% endfor %}
-                        {% else %}
-                          No Access
-                        {% endif %}
-                      </td>
-                  </tr>
-                  {% else %}
-                    <tr class="border-b border-gray-300">
-                      <td colspan="8" class="p-2 font-medium text-center">No samples.</td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
+        </div>
+        {% endif %} {% if done_samples %}
+        <div class="w-4/5 bg-blue-50 shadow-3xl rounded-2xl p-3 mt-10 relative">
+          <div
+            class="overflow-x-auto rounded-2xl shadow-3xl relative pagination"
+            data-rows-per-page="15"
+            pagination-button-color="blue"
+          >
+            <span class="text-lg font-semibold">Reported samples </span>
+            <table
+              class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden"
+            >
+              <thead class="rounded-t-2xl overflow-hidden border-gray-300">
+                <tr
+                  class="border-b text-left border-gray-600 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl"
+                >
+                  <th class="p-2 font-normal"></th>
+                  <th class="p-2 font-normal">Sample ID</th>
+                  <th class="p-2 font-normal">Assay</th>
+                  <th class="p-2 font-normal">Diagnosis</th>
+                  <th class="p-2 font-normal">Profile</th>
+                  <th class="p-2 font-normal">When added</th>
+                  <th class="p-2 font-normal">Last report</th>
+                  <th class="p-2 font-normal">BAM</th>
+                  <th class="p-2 font-normal">QC</th>
+                  <th class="p-2 font-normal">Reports</th>
+                </tr>
+              </thead>
+              <tbody
+                id="pagination-table-body-done"
+                class="text-gray-700 rounded-b-2xl border-gray-300"
+              >
+                {% for sample in
+                done_samples|sort(attribute="last_report_time_created",
+                reverse=True) %} {% set sample_profile = sample.get('profile',
+                '')[0]|upper or 'P' %}
+                <tr
+                  class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile {% endif %}"
+                >
+                  <td class="p-2 font-medium text-center">
+                    {% if "num_samples" in sample %} {% for n in
+                    range(sample.num_samples) %} &#9679; {% endfor %} {% endif
+                    %}
+                  </td>
+                  <td class="p-2 font-medium">
+                    <a
+                      href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}"
+                      class="text-blue-500 hover:underline"
+                      >{{ sample.name }}</a
+                    >
+                  </td>
+                  <td class="p-2 font-medium">{{ sample.assay }}</td>
+                  <td class="p-2 font-medium">
+                    {% if "subpanel" in sample %} {{ sample.subpanel }} {% endif
+                    %}
+                  </td>
+                  <td class="p-2 font-medium">
+                    <span
+                      class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-{{ sample.profile or 'production' }} text-center"
+                    >
+                      {{ sample.get('profile', '')[0]|upper or 'P' }}
+                    </span>
+                  </td>
+                  <td class="p-2 font-medium">
+                    {{ sample.time_added|human_date }}
+                  </td>
+                  <td class="p-2 font-medium">
+                    {{ sample.last_report_time_created|human_date }}
+                  </td>
+                  <td class="p-2 font-medium">
+                    {% if sample.bam is defined %}
+                    <a
+                      href="{{ sample.bam }}"
+                      class="text-blue-500 hover:underline"
+                      >BAM</a
+                    >
+                    <a
+                      href="{{ sample.bam }}.bai"
+                      class="text-blue-500 hover:underline"
+                      >BAI</a
+                    >
+                    {% endif %}
+                  </td>
+                  <td class="p-2 font-medium">
+                    {% if sample.QC is defined %} {% for qc in
+                    sample.QC|sort(attribute='sample_id') %} {% if "500" in
+                    qc.pct_above_x %}
+                    <a
+                      href="sampleqc/{{ sample._id }}"
+                      class="text-blue-500 hover:underline"
+                      >{{ '%0.0f'|format(qc.pct_above_x["500"]|float) }}%</a
+                    >
+                    {% elif "tot_reads" in qc and "mapped_pct" in qc %}
+                    <a
+                      href="sampleqc/{{ sample._id }}"
+                      class="text-blue-500 hover:underline"
+                      >{{ '%0.0f'|format((qc.tot_reads/1000000)|float) }} M</a
+                    >
+                    {% else %}
+                    <a
+                      href="sampleqc/{{ sample._id }}"
+                      class="text-blue-500 hover:underline"
+                      >0%</a
+                    >
+                    {% endif %} {% endfor %} {% endif %}
+                  </td>
+                  <td class="p-2 font-medium">
+                    {% if has_access('view_reports', min_role='admin') %} {% for
+                    rep in sample.reports %}
+                    <a
+                      href="{{ url_for('home_bp.view_report', sample_id=sample.name, report_id=rep.report_id) }}"
+                      class="inline-block bg-blue-400 text-white px-2 py-0.5 rounded-lg text-xs font-bold mx-1 hover:bg-blue-500 transition"
+                    >
+                      {{ rep.report_num }}
+                    </a>
+                    {% endfor %} {% else %} No Access {% endif %}
+                  </td>
+                </tr>
+                {% else %}
+                <tr class="border-b border-gray-300">
+                  <td colspan="8" class="p-2 font-medium text-center">
+                    No samples.
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
-        {% endif %}
-    
-        {% if not live_samples and not done_samples %}
-          <div class="w-full min-h-full bg-yellow-50 border-l-4 border-yellow-400 shadow-md rounded-2xl p-6 relative overflow-hidden">
-            <div class="flex flex-col items-center justify-center text-yellow-800 py-6 px-4">
-              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/exclamation-triangle.svg') }}" 
-                  alt="No Samples found" 
-                  class="h-12 w-12 text-yellow-500 mb-4">
-              <p class="text-lg font-semibold">Uh-oh.. No samples found</p>
-              <p class="text-sm text-yellow-700 mt-1">Try adjusting the filters or search to find your samples.</p>
-            </div>
+        </div>
+        {% endif %} {% if not live_samples and not done_samples %}
+        <div
+          class="w-full min-h-full bg-yellow-50 border-l-4 border-yellow-400 shadow-md rounded-2xl p-6 relative overflow-hidden"
+        >
+          <div
+            class="flex flex-col items-center justify-center text-yellow-800 py-6 px-4"
+          >
+            <img
+              src="{{ url_for('static', filename='icons/heroicons_outline_24/exclamation-triangle.svg') }}"
+              alt="No Samples found"
+              class="h-12 w-12 text-yellow-500 mb-4"
+            />
+            <p class="text-lg font-semibold">Uh-oh.. No samples found</p>
+            <p class="text-sm text-yellow-700 mt-1">
+              Try adjusting the filters or search to find your samples.
+            </p>
           </div>
+        </div>
         {% endif %}
       </div>
     </section>
@@ -301,20 +392,17 @@
 </div>
 
 <script>
-
   function moveSlider(percentage) {
-    const sliderThumb = document.getElementById('slider-thumb');
+    const sliderThumb = document.getElementById("slider-thumb");
     sliderThumb.style.left = `${percentage}%`;
   }
 
-  document.getElementById("toggle-other-profile").addEventListener("click", function () {
-    const rows = document.querySelectorAll("tr.other_profile");
-    rows.forEach(row => row.classList.toggle("hidden"));
-  });
-  
-  
+  document
+    .getElementById("toggle-other-profile")
+    .addEventListener("click", function () {
+      const rows = document.querySelectorAll("tr.other_profile");
+      rows.forEach((row) => row.classList.toggle("hidden"));
+    });
 </script>
-
-
 
 {% endblock %}
