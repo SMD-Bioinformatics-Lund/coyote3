@@ -11,6 +11,6 @@ Welcome to the official documentation for **Coyote3**, a Flask‑based bioinform
   - [Util Module](util-module.md)
   - [Models Module](models-module.md)
   - [Errors Module](errors-module.md)
-- Appendices: [Schemas](appendices/schemas.md), [Error Codes](appendices/error-codes.md), [Glossary](appendices/glossary.md)
+- Appendices: [Schemas](appendices/schemas.md), [Error Codes](appendices/error-codes.md), [Glossary](appendices/glossary.md), [Logging](appendices/logging.md)
 
 For code contributions, please follow our developer guide.
