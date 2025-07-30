@@ -28,7 +28,7 @@ from flask_login import login_required, login_user, logout_user
 
 from coyote.blueprints.login import login_bp
 from coyote.blueprints.login.forms import LoginForm
-from coyote.extensions import ldap_manager, login_manager, store
+from coyote.extensions import ldap_manager, login_manager, store, util
 from coyote.models.user import UserModel
 from coyote.services.auth.user_session import User
 from flask_login import current_user
@@ -71,7 +71,7 @@ def login() -> str | Response:
         valid = (
             UserModel.validate_login(user_doc["password"], password)
             if use_internal
-            else ldap_authenticate(email, password)
+            else util.login.ldap_authenticate(email, password)
         )
 
         if not valid:
@@ -128,30 +128,3 @@ def load_user(user_id: str) -> User | None:
     role_doc = store.roles_handler.get_role(user_doc.get("role")) or {}
     user_model = UserModel.from_mongo(user_doc, role_doc)
     return User(user_model)
-
-
-# TODO: Move to LDAP service/Utils
-def ldap_authenticate(username: str, password: str) -> bool:
-    """
-    Authenticate a user against the configured LDAP server.
-
-    Args:
-        username (str): The username or login identifier.
-        password (str): The user's password.
-
-    Returns:
-        bool: True if authentication succeeds, False otherwise.
-    """
-    authorized = False
-
-    try:
-        authorized = ldap_manager.authenticate(
-            username=username,
-            password=password,
-            base_dn=app.config.get("LDAP_BASE_DN") or app.config.get("LDAP_BINDDN"),
-            attribute=app.config.get("LDAP_USER_LOGIN_ATTR"),
-        )
-    except Exception as ex:
-        flash(str(ex), "red")
-
-    return authorized
