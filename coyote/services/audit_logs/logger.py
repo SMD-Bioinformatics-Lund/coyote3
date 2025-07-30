@@ -25,7 +25,6 @@ and comprehensive audit trails for security and compliance purposes.
 import logging
 import json
 import time
-from functools import wraps
 from datetime import datetime
 from flask import g, request, has_request_context, session
 from flask import current_app as app
@@ -87,6 +86,19 @@ class AuditLogger:
         metadata: dict = None,
         status_code=None,
     ):
+        """
+        Logs a structured audit event with contextual metadata.
+
+        Args:
+            action (str): The action performed by the user or system.
+            status (str): The result status of the action (e.g., "success", "failure").
+            start_time (float, optional): The start time of the action for duration calculation.
+            metadata (dict, optional): Additional metadata to include in the log entry.
+            status_code (int, optional): HTTP status code associated with the action.
+
+        Returns:
+            None
+        """
         if not has_request_context():
             return
 

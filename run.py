@@ -26,7 +26,7 @@ import logging.config
 from typing import Any
 from flask import Flask
 from coyote import init_app
-from logging_setup import custom_logging, add_unique_handlers
+from logging.logging_setup import custom_logging, add_unique_handlers
 import os
 
 
