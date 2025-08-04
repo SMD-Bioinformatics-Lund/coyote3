@@ -1574,6 +1574,10 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
 
     fernet = app.config["FERNET"]
 
+    for var in report_sections_data["snvs"]:
+        if var["symbol"] == "PHF6":
+            print(f"Variants: {var}")
+
     return render_template(
         "dna_report.html",
         assay_config=assay_config,

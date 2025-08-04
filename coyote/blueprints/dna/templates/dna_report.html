@@ -86,9 +86,9 @@
       <td class="top_report_val">{{ current_user.fullname }}</td>
     </tr>
     <tr>
-      {% set report_name = sample.case_id + "_" + sample.case.clarity_id %}
+      {% set report_name = sample.get("case_id", "NONE") + "_" + sample.get("case", {}).get("clarity_id", "NONE") %}
       {% if sample.control_id %}
-        {% set report_name = report_name + "-" + sample.control_id + "_" + sample.control.clarity_id %}
+        {% set report_name = report_name + "-" + sample.get("control_id", "NONE") + "_" + sample.get("control",{}).get("clarity_id", "NONE") %}
       {% endif %}
       <td class="top_report_key">Rapport-ID</td>
       <td class="top_report_val">
@@ -121,9 +121,9 @@
           <td>{{ var.variant|unesc }}</td>
           <td>
             {% if var.exon %}
-              E{{ var.exon[0] }} of {{ var.exon[1] }}
+              E: {{ var.exon[0] }} of {{ var.exon[1] }}
             {% elif var.intron %}
-              I{{ var.intron[0] }} of {{ var.intron[1] }}
+              I: {{ var.intron[0] }} of {{ var.intron[1] }}
             {% else %}
               -
             {% endif %}
@@ -138,6 +138,8 @@
     {% endfor %}
   </table>
 {% endif %}
+
+<p>Note: p = protein, c = cDNA, g = genomic, E = Exon, I = Intron </p>
 
 <!-- CNV Summary -->
 {% if "CNV" in report_sections %}
