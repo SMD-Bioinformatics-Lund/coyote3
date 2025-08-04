@@ -114,6 +114,7 @@ class SampleHandler(BaseHandler):
         time_limit=None,
         use_cache: bool = True,
         cache_timeout: int = 120,
+        reload: bool = False,
     ) -> Any | list:
         """
         Retrieve sample records for the specified user groups, optionally using caching for performance.
@@ -139,9 +140,11 @@ class SampleHandler(BaseHandler):
 
         if use_cache:
             samples = app.cache.get(cache_key)
-            if samples:
+            if samples and not reload:
                 app.logger.info(f"[SAMPLES CACHE HIT] {cache_key}")
                 return samples
+            elif samples and reload:
+                app.logger.info(f"[SAMPLES CACHE HIT] {cache_key} — but reloading from DB since reload is set to True.")
             else:
                 app.logger.info(f"[SAMPLES CACHE MISS] {cache_key} — fetching from DB.")
 

@@ -53,6 +53,7 @@ def samples_home(
     panel_tech: str | None = None,
     assay_group: str | None = None,
     status: str = "live",
+    reload: bool = False,
 ):
     """
     Handles the main logic for the samples home page. This includes:
@@ -65,6 +66,7 @@ def samples_home(
         panel_tech (str, Optional): The technology used for the panel. Defaults to None.
         assay_group (str, Optional): The assay group to filter samples. Defaults to None.
         status (str): The status of the samples to display ('live' or 'done'). Defaults to "live".
+        reload (bool): Whether to reload the samples. Defaults to False.
 
     Returns:
         Response: Renders the `samples_home.html` template with the filtered samples and form data.
@@ -110,6 +112,7 @@ def samples_home(
             report=True,
             limit=limit_done_samples,
             use_cache=True,
+            reload=reload,
         )
     # Fetch live samples if the status is 'live'
     elif status == "live":
@@ -122,6 +125,7 @@ def samples_home(
             report=True,
             time_limit=time_limit,
             use_cache=True,
+            reload=reload,
         )
     else:
         done_samples = []
@@ -135,6 +139,7 @@ def samples_home(
             search_str=search_str,
             report=False,
             use_cache=True,
+            reload=reload,
         )
     else:
         live_samples = []

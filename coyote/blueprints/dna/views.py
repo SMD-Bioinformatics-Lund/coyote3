@@ -13,6 +13,7 @@
 """
 Views for DNA variant, CNV, translocation, and biomarker management and reporting in the Coyote3 genomic analysis framework.
 """
+from importlib import reload
 
 from flask import current_app as app
 from flask import (
@@ -1678,4 +1679,4 @@ def save_dna_report(sample_id: str) -> Response:
         flash("An unexpected error occurred while saving the report.", "red")
         app.logger.exception(f"Unexpected error: {exc}")
 
-    return redirect(url_for("home_bp.samples_home"))
+    return redirect(url_for("home_bp.samples_home", reload=True))
