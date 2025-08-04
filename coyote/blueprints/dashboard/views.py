@@ -114,12 +114,10 @@ def dashboard() -> str:
         timeout=cache_timeout,
     )
 
-    # TODO: Add to the cache as well
     # TODO: Add more stats here
     # Total Assays analysed
     # total_assay_count = 0
 
-    # TODO: Add more stats here
     # Variant Caller specific stats
     # class_stats = util.dashboard.format_classified_stats(
     #    store.annotation_handler.get_classified_stats()

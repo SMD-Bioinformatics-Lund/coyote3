@@ -73,17 +73,14 @@ def list_variants(sample_id: str) -> Response | str:
     sample_has_filters = sample.get("filters", None)
 
     # Get case and control samples
-    # TODO: Should be available in the sample doc instead of processing the sample again
     sample_ids = util.common.get_case_and_control_sample_ids(sample)
     if not sample_ids:
         sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
 
     ## get the assay from the sample, fallback to the first group if not set
-    # TODO: This should be set in the sample doc and get it by the assay key in the sample and not by the group
     sample_assay = sample.get("assay")
 
     # Get the profile from the sample, fallback to production if not set
-    # TODO: This should be set in the sample doc and get it by the profile key in the sample
     sample_profile = sample.get("profile", "production")
 
     # Get assay group and subpanel for the sample, sections to display
@@ -154,8 +151,6 @@ def list_variants(sample_id: str) -> Response | str:
     genes_covered_in_panel: list[dict] = util.common.get_genes_covered_in_panel(
         checked_genelists_genes_dict, assay_panel_doc
     )
-
-    # TODO: We can get the list of germline genes for the panel or selected genelists
 
     filter_conseq = util.dna.get_filter_conseq_terms(sample_filters.get("vep_consequences", []))
 
@@ -320,7 +315,6 @@ def list_variants(sample_id: str) -> Response | str:
     )
 
 
-# TODO
 @dna_bp.route("/<sample_id>/multi_class", methods=["POST"])
 @require_sample_access("sample_id")
 @require("manage_snvs", min_role="user", min_level=9)
@@ -834,9 +828,12 @@ def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
         flask.Response: Redirects to the variant detail view after blacklisting the variant.
     """
     var = store.variant_handler.get_variant(var_id)
-    sample = store.sample_handler.get_sample_by_id(var["SAMPLE_ID"])
-    assay = util.common.get_assay_from_sample(sample)
-    store.blacklist_handler.blacklist_variant(var, assay)
+    result = get_sample_and_assay_config(sample_id)
+    if isinstance(result, Response):
+        return result
+    sample, assay_config, assay_config_schema = result
+    assay_group: str = assay_config.get("asp_group", "unknown")  # myeloid, solid, lymphoid
+    store.blacklist_handler.blacklist_variant(var, assay_group)
     return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, id=id))
 
 
@@ -1031,7 +1028,6 @@ def show_cnv(sample_id: str, cnv_id: str) -> Response | str:
     # Get assay group and subpanel for the sample, sections to display
     assay_group: str = assay_config.get("asp_group", "unknown")  # myeloid, solid, lymphoid
 
-    # TODO: This should be set in the sample doc and get it by the sample ids in the sample
     sample_ids = util.common.get_case_and_control_sample_ids(sample)
     if not sample_ids:
         # If no case and control samples found, get sample ids from the variant
@@ -1230,7 +1226,6 @@ def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
     # Get assay group and subpanel for the sample, sections to display
     assay_group: str = assay_config.get("asp_group", "unknown")  # myeloid, solid, lymphoid
 
-    # TODO: This should be set in the sample doc and get it by the sample ids in the sample
     sample_ids = util.common.get_case_and_control_sample_ids(sample)
     if not sample_ids:
         # If no case and control samples found, get sample ids from the variant

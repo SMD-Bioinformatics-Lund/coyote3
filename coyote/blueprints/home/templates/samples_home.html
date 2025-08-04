@@ -135,10 +135,9 @@
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">
-                        {# TODO: Probable should have keys like, panel/analysis type to re direct #}
-                        {% if sample.assay in ['fusion', 'solidRNA_GMSv5']%}
+                        {% if sample.get("omics_layer", "").lower() == "rna" %}
                           <a href="{{ url_for('rna_bp.list_fusions', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
-                        {% else %}
+                        {% elif sample.get("omics_layer", "").lower() == "dna" %}
                           <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% endif %}
                         {% if sample.comments|selectattr('hidden', 'equalto', 0)|list|length > 0 %}
@@ -276,12 +275,6 @@
                         </span>
                       </td>
                       <td class="p-2 font-medium">
-                        {{ sample.time_added|human_date }}
-                      </td>
-                      <td class="p-2 font-medium">
-                        {{ sample.last_report_time_created|human_date }}
-                      </td>
-                      <td class="p-2 font-medium">
                         {% if sample.sequencing_scope %}
                           <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-blue-500 text-center">
                             {{ sample.sequencing_scope }}
@@ -289,6 +282,12 @@
                         {% else %}
                           -
                         {% endif %}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {{ sample.time_added|human_date }}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {{ sample.last_report_time_created|human_date }}
                       </td>
                       <td class="p-2 font-medium">
                         {% if sample.bam is defined %}

@@ -26,26 +26,6 @@ from coyote.services.auth.decorators import require
 import json
 
 
-@common_bp.route("/errors/")
-def error_screen() -> str | Response:
-    """
-    Renders a generic error screen.
-
-    If the current user is an admin, detailed error information is displayed.
-    Otherwise, a generic error message is shown.
-    """
-    # TODO Example Error Code, should be removed later /modified
-    try:
-        error = 1 / 0
-    except ZeroDivisionError as e:
-        error = traceback.format_exc()
-
-    if current_user.is_admin:
-        return render_template("error.html", error=error)
-    else:
-        return render_template("error.html", error=[])
-
-
 @common_bp.route(
     "/dna/sample/<string:sample_id>/sample_comment",
     methods=["POST"],
@@ -67,8 +47,6 @@ def add_sample_comment(sample_id: str) -> Response:
     doc = util.bpcommon.create_comment_doc(data, key="sample_comment")
     store.sample_handler.add_sample_comment(sample_id, doc)
     flash("Sample comment added", "green")
-    sample = store.sample_handler.get_sample_by_id(sample_id)
-    assay = util.common.get_assay_from_sample(sample)
     if request.endpoint == "common_bp.add_dna_sample_comment":
         return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
     else:
@@ -93,12 +71,15 @@ def hide_sample_comment(sample_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.sample_handler.hide_sample_comment(sample_id, comment_id)
     sample = store.sample_handler.get_sample_by_id(sample_id)
-    assay = util.common.get_assay_from_sample(sample)
-    sample_type = util.common.get_sample_type(assay)
-    if sample_type == "dna":
+
+    if sample.get("omics_layer", "").lower() == "dna":
         return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
-    else:
+    elif sample.get("omics_layer", "").lower() == "rna":
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
+    else:
+        app.logger.info(f"Unrecognized omics type {sample["name"]}! Unable to redirect to the sample page")
+        flash("Unrecognized omics type! Unable to redirect to the sample page", "red")
+        return redirect(url_for("home_bp.samples_home"))
 
 
 @common_bp.route(
@@ -119,12 +100,14 @@ def unhide_sample_comment(sample_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     store.sample_handler.unhide_sample_comment(sample_id, comment_id)
     sample = store.sample_handler.get_sample_by_id(sample_id)
-    assay = util.common.get_assay_from_sample(sample)
-    sample_type = util.common.get_sample_type(assay)
-    if sample_type == "dna":
+    if sample.get("omics_layer", "").lower() == "dna":
         return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
-    else:
+    elif sample.get("omics_layer", "").lower() == "rna":
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
+    else:
+        app.logger.info(f"Unrecognized omics type {sample["name"]}! Unable to redirect to the sample page")
+        flash("Unrecognized omics type! Unable to redirect to the sample page", "red")
+        return redirect(url_for("home_bp.samples_home"))
 
 
 @common_bp.route(

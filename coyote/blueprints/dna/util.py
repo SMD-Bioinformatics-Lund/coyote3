@@ -16,15 +16,10 @@ It includes methods for variant classification, consequence selection, CNV handl
 """
 
 from collections import defaultdict
-import subprocess
-from datetime import datetime
-from flask_login import current_user
-from bson.objectid import ObjectId
-from coyote.util.common_utility import CommonUtility
 from coyote.util.report.report_util import ReportUtility
 from flask import current_app as app
 from coyote.extensions import store
-from bisect import bisect_left
+
 
 
 class DNAUtility:

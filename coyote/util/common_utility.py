@@ -287,30 +287,6 @@ class CommonUtility:
 
         return assay_names
 
-    # TODO: Remove
-    @staticmethod
-    def get_assay_from_sample(smp: dict) -> Any | Literal["unknown"] | None:
-        """
-        Determine the assay name for a given sample based on its group membership.
-
-        This function checks the sample's groups against the assay mapping configuration
-        and returns the corresponding assay name if a match is found. If no match is found,
-        it returns "unknown". If the configuration is missing, it returns None.
-
-        Args:
-            smp (dict): The sample dictionary, expected to contain a "groups" key with a list of group names.
-
-        Returns:
-            Any | Literal["unknown"] | None: The assay name if found, "unknown" if no match, or None if configuration is missing.
-        """
-        conf = app.config.get("ASSAY_MAPPER")
-        if conf is None:
-            return None
-        for assay, groups in conf.items():
-            if any(g in smp["groups"] for g in groups):
-                return assay
-        return "unknown"
-
     @staticmethod
     def merge_sample_settings_with_assay_config(
         sample_doc: dict, assay_config: dict
@@ -349,108 +325,6 @@ class CommonUtility:
             "use_diagnosis_genelist", None
         )  # Remove this key if it exists
         return sample_doc
-
-    # TODO: Remove
-    @staticmethod
-    def get_group_defaults(group: dict) -> Any | None:
-        """
-        Return a dictionary of default group filter settings.
-
-        If a group is provided, its specific settings will override the global defaults
-        from the application config. Returns the resulting settings dictionary.
-        Args:
-            group (dict or None): Group-specific settings to override defaults, or None for only defaults.
-        Returns:
-            dict: The merged group filter settings.
-        """
-        settings = deepcopy(app.config.get("GROUP_FILTERS"))
-        # Get group specific settings
-        if group is not None:
-            settings["error_cov"] = int(
-                group.get("error_cov", settings["error_cov"])
-            )
-            settings["warn_cov"] = int(
-                group.get("warn_cov", settings["warn_cov"])
-            )
-            settings["default_popfreq"] = float(
-                group.get("default_popfreq", settings["default_popfreq"])
-            )
-            settings["default_mindepth"] = int(
-                group.get("default_mindepth", settings["default_mindepth"])
-            )
-            settings["default_spanreads"] = int(
-                group.get("default_spanreads", settings["default_spanreads"])
-            )
-            settings["default_spanpairs"] = int(
-                group.get("default_spanpairs", settings["default_spanpairs"])
-            )
-            settings["default_min_freq"] = float(
-                group.get("default_min_freq", settings["default_min_freq"])
-            )
-            settings["default_min_reads"] = int(
-                group.get("default_min_reads", settings["default_min_reads"])
-            )
-            settings["default_max_freq"] = float(
-                group.get("default_max_freq", settings["default_max_freq"])
-            )
-            settings["default_min_cnv_size"] = int(
-                group.get(
-                    "default_min_cnv_size", settings["default_min_cnv_size"]
-                )
-            )
-            settings["default_max_cnv_size"] = int(
-                group.get(
-                    "default_max_cnv_size", settings["default_max_cnv_size"]
-                )
-            )
-            settings["default_checked_conseq"] = group.get(
-                "default_checked_conseq", settings["default_checked_conseq"]
-            )
-        return settings
-
-    @staticmethod
-    def get_sample_settings(sample, settings) -> dict:
-        """
-        Get sample settings for a given sample or use default settings.
-
-        This method retrieves filter and threshold settings for a sample, using values from the sample if present,
-        or falling back to the provided default settings.
-
-        Args:
-            sample (dict): The sample dictionary containing possible filter settings.
-            settings (dict): The default settings to use if sample-specific values are missing.
-
-        Returns:
-            dict: A dictionary of sample settings with applied defaults.
-        """
-        sample_settings = {}
-        sample_settings["min_freq"] = float(
-            sample.get("filter_min_freq", settings["default_min_freq"])
-        )
-        sample_settings["min_reads"] = int(
-            float(
-                sample.get("filter_min_reads", settings["default_min_reads"])
-            )
-        )
-        sample_settings["max_freq"] = float(
-            sample.get("filter_max_freq", settings["default_max_freq"])
-        )
-        sample_settings["min_depth"] = int(
-            float(sample.get("filter_min_depth", settings["default_mindepth"]))
-        )
-        sample_settings["max_popfreq"] = float(
-            sample.get("filter_max_popfreq", settings["default_popfreq"])
-        )
-        sample_settings["csq_filter"] = sample.get(
-            "checked_csq", settings["default_checked_conseq"]
-        )
-        sample_settings["min_cnv_size"] = int(
-            float(sample.get("min_cnv_size", settings["default_min_cnv_size"]))
-        )
-        sample_settings["max_cnv_size"] = int(
-            float(sample.get("max_cnv_size", settings["default_max_cnv_size"]))
-        )
-        return sample_settings
 
     @staticmethod
     def get_fusions_settings(sample: dict, settings: dict) -> dict:
