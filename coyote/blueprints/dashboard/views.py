@@ -14,7 +14,7 @@ from copy import deepcopy
 from flask import render_template
 from flask_login import login_required
 from coyote.extensions import store, util
-from coyote.blueprints.dashboard import dashboard_bp
+from coyote.blueprints.dashboard import dashboard_bp, filters
 from flask_login import current_user
 from flask import current_app as app
 
@@ -47,6 +47,7 @@ def dashboard() -> str:
             variant_stats,
             unique_gene_count_all_panels,
             asp_gene_counts,
+            sample_stats
         ) = app.cache.get(cache_key)
         app.logger.info(f"Dashboard cache hit for {cache_key}")
 
@@ -99,6 +100,14 @@ def dashboard() -> str:
         asp_gene_counts = store.asp_handler.get_all_asp_gene_counts()
         asp_gene_counts = util.dashboard.format_asp_gene_stats(deepcopy(asp_gene_counts))
 
+        # Sample env stats
+        sample_stats = {}
+
+        sample_stats["profiles"] = store.sample_handler.get_profile_counts()
+        sample_stats["omics_layers"] = store.sample_handler.get_omics_counts()
+        sample_stats["sequencing_scopes"] = store.sample_handler.get_sequencing_scope_counts()
+        sample_stats["pair_count"] = store.sample_handler.get_paired_sample_counts()
+
     # Check if the cache exists and is still valid
     app.cache.set(
         cache_key,
@@ -110,6 +119,7 @@ def dashboard() -> str:
             variant_stats,
             unique_gene_count_all_panels,
             asp_gene_counts,
+            sample_stats
         ),
         timeout=cache_timeout,
     )
@@ -138,4 +148,5 @@ def dashboard() -> str:
         unique_gene_count_all_panels=unique_gene_count_all_panels,
         assay_gene_stats_grouped=asp_gene_counts,
         user_samples_stats=user_samples_stats,
+        sample_stats=sample_stats
     )

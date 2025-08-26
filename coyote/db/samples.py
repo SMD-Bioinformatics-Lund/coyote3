@@ -548,3 +548,87 @@ class SampleHandler(BaseHandler):
                 return report
 
         return None
+
+    def get_profile_counts(self) -> dict:
+        """
+        Retrieve the count of samples for each profile.
+
+        This method aggregates sample counts by profile groups, returning a dictionary
+        where each key is a profile and the value is the count of samples in that profile.
+
+        Returns:
+            dict: A dictionary where each key is a profile and the value is the count of samples in that profile.
+        """
+        pipeline = [
+            {"$group": {"_id": "$profile", "count": {"$sum": 1}}},
+            {"$project": {"_id": 0, "profile": "$_id", "count": 1}},
+        ]
+        result = list(self.get_collection().aggregate(pipeline))
+        return {item["profile"]: item["count"] for item in result}
+
+    def get_omics_counts(self) -> dict:
+        """
+        Retrieve the count of samples for each omics type.
+
+        This method aggregates sample counts by omics types, returning a dictionary
+        where each key is an omics type and the value is the count of samples in that omics type.
+
+        Returns:
+            dict: A dictionary where each key is an omics type and the value is the count of samples in that omics type.
+        """
+        pipeline = [
+            {"$group": {"_id": "$omics_layer", "count": {"$sum": 1}}},
+            {"$project": {"_id": 0, "omics_layer": "$_id", "count": 1}},
+        ]
+        result = list(self.get_collection().aggregate(pipeline))
+        return {item["omics_layer"]: item["count"] for item in result}
+
+    def get_sequencing_scope_counts(self) -> dict:
+        """
+        Retrieve the count of samples for each sequencing scope.
+
+        This method aggregates sample counts by sequencing scopes, returning a dictionary
+        where each key is a sequencing scope and the value is the count of samples in that scope.
+
+        Returns:
+            dict: A dictionary where each key is a sequencing scope and the value is the count of samples in that scope.
+        """
+        pipeline = [
+            {"$group": {"_id": "$sequencing_scope", "count": {"$sum": 1}}},
+            {"$project": {"_id": 0, "sequencing_scope": "$_id", "count": 1}},
+        ]
+        result = list(self.get_collection().aggregate(pipeline))
+        return {item["sequencing_scope"]: item["count"] for item in result}
+
+
+    def get_paired_sample_counts(self) -> dict:
+        """
+        Retrieve the count of paired, unpaired, and samples without a paired key.
+
+        This method aggregates sample counts based on the `paired` field, returning a dictionary
+        where each key is a boolean indicating whether the sample is paired (True) or unpaired (False),
+        and None for samples without a paired key.
+
+        Returns:
+            dict: A dictionary with keys True, False, and None representing paired, unpaired, and missing paired status.
+        """
+        pipeline = [
+            {
+                "$group": {
+                    "_id": "$paired",
+                    "count": {"$sum": 1}
+                }
+            }
+        ]
+        result = list(self.get_collection().aggregate(pipeline))
+        # Ensure all three keys (True, False, None) are present in the result
+        counts = {"paired": 0, "unpaired": 0, "unknown": 0}
+        for item in result:
+            if item["_id"] is True:
+                counts["paired"] = item["count"]
+            elif item["_id"] is False:
+                counts["unpaired"] = item["count"]
+            else:
+                counts["unknown"] = item["count"]
+
+        return counts

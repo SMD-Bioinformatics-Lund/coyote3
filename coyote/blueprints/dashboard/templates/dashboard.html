@@ -25,47 +25,65 @@
       </div>
     </section>
 
-    <!-- Middle Row: Variant Stats + User Stats -->
+    <!-- Second Row: Variant Stats + User Stats -->
     <section class="bg-transparent relative">
       <div class="grid grid-cols-{{ 2 if user_samples_stats else 1 }} gap-6">
         <!-- Variant Stats -->
         <div class="bg-blue-50 flex flex-col gap-4 w-full break-all p-4 my-4 mr-4 shadow-lg rounded-xl">
           <h3 class="text-xl font-bold text-black mb-2">Variant Stats</h3>
-          <div class="grid grid-cols-4 gap-5">
-            <div class="bg-yellow-100 p-4 rounded-xl shadow-lg text-center">
-              <p class="text-3xl font-bold">{{ variant_stats.total_variants }}</p>
+          <div class="grid grid-cols-3 gap-5">
+            <div class="bg-yellow-100 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
+              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.total_variants }}</span>`)">
+                {{ variant_stats.total_variants|shorten_number }}
+              </p>
               <p class="text-sm text-gray-700">Total Variants</p>
             </div>
-            <div class="bg-yellow-200 p-4 rounded-xl shadow-lg text-center">
-              <p class="text-3xl font-bold">{{ variant_stats.unique_variants }}</p>
+            <div class="bg-yellow-200 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
+              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.unique_variants }}</span>`)">
+                {{ variant_stats.unique_variants|shorten_number }}
+              </p>
               <p class="text-sm text-gray-700">Unique Variants</p>
             </div>
-            <div class="bg-purple-200 p-4 rounded-xl shadow-lg text-center">
-              <p class="text-3xl font-bold">{{ variant_stats.unique_snps }}</p>
+            <div class="bg-purple-200 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
+              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.unique_snps }}</span>`)">
+                {{ variant_stats.unique_snps|shorten_number }}
+              </p>
               <p class="text-sm text-gray-700">SNPs</p>
             </div>
-            <div class="bg-purple-300 p-4 rounded-xl shadow-lg text-center">
-              <p class="text-3xl font-bold">{{ variant_stats.unique_variants - variant_stats.unique_snps }}</p>
+            <div class="bg-purple-300 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
+              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.unique_variants - variant_stats.unique_snps }}</span>`)">
+                {{ (variant_stats.unique_variants - variant_stats.unique_snps)|shorten_number }}
+              </p>
               <p class="text-sm text-gray-700">Indels</p>
             </div>
-            <div class="bg-red-200 p-4 rounded-xl shadow-lg text-center">
-              <p class="text-3xl font-bold">{{ variant_stats.unique_cnvs }}</p>
+            <div class="bg-red-200 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
+              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.unique_cnvs }}</span>`)">
+                {{ variant_stats.unique_cnvs|shorten_number }}
+              </p>
               <p class="text-sm text-gray-700">CNVs</p>
             </div>
-            <div class="bg-pink-200 p-4 rounded-xl shadow-lg text-center">
-              <p class="text-3xl font-bold">{{ variant_stats.unique_translocs }}</p>
+            <div class="bg-pink-200 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
+              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.unique_translocs }}</span>`)">
+                {{ variant_stats.unique_translocs|shorten_number }}
+              </p>
               <p class="text-sm text-gray-700">Translocations</p>
             </div>
-            <div class="bg-blue-200 p-4 rounded-xl shadow-lg text-center">
-              <p class="text-3xl font-bold">{{ variant_stats.unique_fusions }}</p>
+            <div class="bg-blue-200 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
+              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.unique_fusions }}</span>`)">
+                {{ variant_stats.unique_fusions|shorten_number }}
+              </p>
               <p class="text-sm text-gray-700">Fusions</p>
             </div>
-            <div class="bg-gray-300 p-4 rounded-xl shadow-lg text-center">
-              <p class="text-3xl font-bold">{{ variant_stats.unique_blacklist_variants }}</p>
+            <div class="bg-orange-300 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
+              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.unique_blacklist_variants }}</span>`)">
+                {{ variant_stats.unique_blacklist_variants|shorten_number }}
+              </p>
               <p class="text-sm text-gray-700">Blacklisted</p>
             </div>
-            <div class="bg-gray-400 p-4 rounded-xl shadow-lg text-center">
-              <p class="text-3xl font-bold">{{ variant_stats.unique_fps }}</p>
+            <div class="bg-pink-300 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
+              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.unique_fps }}</span>`)">
+                {{ variant_stats.unique_fps|shorten_number }}
+              </p>
               <p class="text-sm text-gray-700">False Positives</p>
             </div>
           </div>
@@ -73,13 +91,13 @@
     
         {% if user_samples_stats %}
         <!-- User Specific Sample Stats -->
-        
+
         <div class="bg-blue-50 flex flex-col gap-4 w-full break-all p-4 my-4 mr-4 shadow-lg rounded-xl" >
           <h3 class="text-xl font-bold text-black mb-2">My Progress</h3>
           <div class="grid grid-cols-3 gap-5">
             {% for assay, stats in user_samples_stats.items() %}
               {% set percent = (stats.analysed / stats.total * 100) | round(1) if stats.total > 0 else 0 %}
-              <div class="bg-orange-50 shadow-lg rounded-lg p-4">
+              <div class="bg-yellow-100 shadow-lg rounded-lg p-4">
                 <div class="flex justify-between mb-1">
                   <h3 class="text-sm font-medium text-black pr-5">{{ assay }}</h3>
                   <span class="text-xs font-semibold text-black pl-5">{{ stats.analysed }} / {{ stats.total }}</span>
@@ -93,6 +111,69 @@
           </div>
         </div>
         {% endif %}
+      </div>
+    </section>
+
+    <!-- Third Row: Sample Stats: Profiles, omics Layer, paired, unpaired (basic) -->
+    <section class="bg-transparent relative">
+      <div class="grid grid-cols-4 gap-6">
+        <!-- profile Stats -->
+        <div class="bg-blue-50 flex flex-col gap-4 w-full break-all p-4 my-4 mr-4 shadow-lg rounded-xl">
+          <h3 class="text-xl font-bold text-black mb-2">Profiles</h3>
+          <div class="grid grid-cols-2 gap-5">
+            {% for profile, profile_count in sample_stats.profiles.items() %}
+              <div class="bg-orange-100 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
+                <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ profile_count }}</span>`)">
+                  {{ profile_count|shorten_number }}
+                </p>
+                <p class="text-sm text-gray-700 capitalize">{{ profile }}</p>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        <!-- Omics Layer Stats -->
+        <div class="bg-blue-50 flex flex-col gap-4 w-full break-all p-4 my-4 mr-4 shadow-lg rounded-xl">
+          <h3 class="text-xl font-bold text-black mb-2">Omics</h3>
+          <div class="grid grid-cols-2 gap-5">
+            {% for layer, layer_count in sample_stats.omics_layers.items() %}
+              <div class="bg-orange-200 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
+                <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ layer_count }}</span>`)">
+                  {{ layer_count|shorten_number }}
+                </p>
+                <p class="text-sm text-gray-700 capitalize">{{ layer }}</p>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        <!-- sequencing_scope Stats -->
+        <div class="bg-blue-50 flex flex-col gap-4 w-full break-all p-4 my-4 mr-4 shadow-lg rounded-xl">
+          <h3 class="text-xl font-bold text-black mb-2">Sequencing Scope</h3>
+          <div class="grid grid-cols-2 gap-5">
+            {% for scope, scope_count in sample_stats.sequencing_scopes.items() %}
+              <div class="bg-orange-200 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
+                <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ scope_count }}</span>`)">
+                  {{ scope_count|shorten_number }}
+                </p>
+                <p class="text-sm text-gray-700 capitalize">{{ scope }}</p>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Paired vs Unpaired Stats -->
+        <div class="bg-blue-50 flex flex-col gap-4 w-full break-all p-4 my-4 mr-4 shadow-lg rounded-xl">
+          <h3 class="text-xl font-bold text-black mb-2">Paired vs Unpaired</h3>
+          <div class="grid grid-cols-2 gap-5">  
+            {% for pair, pair_count in sample_stats.pair_count.items() %}
+              <div class="bg-orange-100 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
+                <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ pair_count }}</span>`)">
+                  {{ pair_count|shorten_number }}
+                </p>
+                <p class="text-sm text-gray-700">{{pair}}</p>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
       </div>
     </section>
 
