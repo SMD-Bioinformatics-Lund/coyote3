@@ -407,7 +407,7 @@ class SampleHandler(BaseHandler):
         result = list(self.get_collection().aggregate(pipeline))
         return {item["assay"]: item["count"] for item in result}
 
-    def get_assay_specific_sample_stats(self, assays: list = None) -> dict:
+    def get_assay_specific_sample_stats(self, assays: list = None, profile: str = "production") -> dict:
         """
         Retrieve assay-specific statistics.
 
@@ -425,7 +425,7 @@ class SampleHandler(BaseHandler):
         pipeline = []
 
         if assays:
-            pipeline.append({"$match": {"assay": {"$in": assays}}})
+            pipeline.append({"$match": {"assay": {"$in": assays}, "profile": profile}})
 
         pipeline.append(
             {
