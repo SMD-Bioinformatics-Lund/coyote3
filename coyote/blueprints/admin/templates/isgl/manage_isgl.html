@@ -31,6 +31,7 @@
                 <th class="p-2 font-normal">Name</th>
                 <th class="p-2 font-normal">Display Name</th>
                 <th class="p-2 font-normal">Type</th>
+                <th class="p-2 font-normal">Access</th>
                 <th class="p-2 font-normal">Groups</th>
                 <th class="p-2 font-normal">Assays</th>
                 <th class="p-2 font-normal">Diagnosis</th>
@@ -47,6 +48,16 @@
                   <td class="p-2 font-medium">{{ genelist.displayname }}</td>
                   <td class="p-2 font-medium">
                     <span class="bg-{{genelist.list_type}} text-{{genelist.list_type}} rounded-full px-2 py-1 text-xs">{{ genelist.list_type }}</span>
+                  </td>
+                  <td class="p-2 font-medium">
+                    {% if genelist.is_public %}
+                      <span class="bg-green-300 rounded-full px-2 py-1 text-xs">Public</span>
+                    {% else %}
+                      <span class="bg-red-200 rounded-full px-2 py-1 text-xs">Private</span>
+                    {% endif %}
+                    {% if genelist.temporary %}
+                      <span class="bg-yellow-300 rounded-full px-2 py-1 text-xs">Temp</span>
+                    {% endif %}
                   </td>
                   <td class="p-2 font-medium">
                     <div class="flex flex-wrap gap-1">
