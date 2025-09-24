@@ -60,9 +60,7 @@ class VariantsHandler(BaseHandler):
             dict: A dictionary where the keys are types (e.g., "type1", "type2")
                 and the values are the corresponding sample IDs.
         """
-        a_var = self.get_collection().find_one(
-            {"SAMPLE_ID": sample_id}, {"GT": 1}
-        )
+        a_var = self.get_collection().find_one({"SAMPLE_ID": sample_id}, {"GT": 1})
         ids = {}
         if a_var:
             for gt in a_var["GT"]:
@@ -154,17 +152,11 @@ class VariantsHandler(BaseHandler):
         results = []
         for v in variants:
             sid = v["SAMPLE_ID"]
-            info = sample_map.get(
-                sid, {"sample_name": "unknown", "assay": "unknown"}
-            )
+            info = sample_map.get(sid, {"sample_name": "unknown", "assay": "unknown"})
             info["GT"] = v.get("GT")
             info["fp"] = v.get("fp", False)  # Add fp status if available
-            info["interesting"] = v.get(
-                "interesting", False
-            )  # Add interesting status if available
-            info["irrelevant"] = v.get(
-                "irrelevant", False
-            )  # Add irrelevant status if available
+            info["interesting"] = v.get("interesting", False)  # Add interesting status if available
+            info["irrelevant"] = v.get("irrelevant", False)  # Add irrelevant status if available
             results.append(info)
 
         return results
@@ -200,9 +192,7 @@ class VariantsHandler(BaseHandler):
         """
         self.mark_false_positive(variant_id, fp)
 
-    def unmark_false_positive_var(
-        self, variant_id: str, fp: bool = False
-    ) -> Any:
+    def unmark_false_positive_var(self, variant_id: str, fp: bool = False) -> Any:
         """
         Unmark the false positive status of a variant.
 
@@ -218,9 +208,7 @@ class VariantsHandler(BaseHandler):
         """
         self.mark_false_positive(variant_id, fp)
 
-    def mark_false_positive_var_bulk(
-        self, variant_ids: list[str], fp: bool = True
-    ) -> Any:
+    def mark_false_positive_var_bulk(self, variant_ids: list[str], fp: bool = True) -> Any:
         """
         Mark multiple variants as false positive.
 
@@ -233,9 +221,7 @@ class VariantsHandler(BaseHandler):
         """
         return self.mark_false_positive_bulk(variant_ids, fp)
 
-    def unmark_false_positive_var_bulk(
-        self, variant_ids: list[str], fp: bool = False
-    ) -> Any:
+    def unmark_false_positive_var_bulk(self, variant_ids: list[str], fp: bool = False) -> Any:
         """
         Unmark multiple variants as false positive.
 
@@ -248,9 +234,7 @@ class VariantsHandler(BaseHandler):
         """
         return self.mark_false_positive_bulk(variant_ids, fp)
 
-    def mark_interesting_var(
-        self, variant_id: str, interesting: bool = True
-    ) -> Any:
+    def mark_interesting_var(self, variant_id: str, interesting: bool = True) -> Any:
         """
         Mark the variant as interesting.
 
@@ -266,9 +250,7 @@ class VariantsHandler(BaseHandler):
         """
         self.mark_interesting(variant_id, interesting)
 
-    def unmark_interesting_var(
-        self, variant_id: str, interesting: bool = False
-    ) -> Any:
+    def unmark_interesting_var(self, variant_id: str, interesting: bool = False) -> Any:
         """
         Unmark the variant as not interesting.
 
@@ -284,9 +266,7 @@ class VariantsHandler(BaseHandler):
         """
         self.mark_interesting(variant_id, interesting)
 
-    def mark_irrelevant_var(
-        self, variant_id: str, irrelevant: bool = True
-    ) -> Any:
+    def mark_irrelevant_var(self, variant_id: str, irrelevant: bool = True) -> Any:
         """
         Mark the variant as irrelevant.
 
@@ -302,9 +282,7 @@ class VariantsHandler(BaseHandler):
         """
         self.mark_irrelevant(variant_id, irrelevant)
 
-    def unmark_irrelevant_var(
-        self, variant_id: str, irrelevant: bool = False
-    ) -> Any:
+    def unmark_irrelevant_var(self, variant_id: str, irrelevant: bool = False) -> Any:
         """
         Unmark the variant as relevant.
 
@@ -320,9 +298,7 @@ class VariantsHandler(BaseHandler):
         """
         self.mark_irrelevant(variant_id, irrelevant)
 
-    def mark_irrelevant_var_bulk(
-        self, variant_ids: list[str], irrelevant: bool = True
-    ) -> Any:
+    def mark_irrelevant_var_bulk(self, variant_ids: list[str], irrelevant: bool = True) -> Any:
         """
         Mark multiple variants as irrelevant.
 
@@ -332,9 +308,7 @@ class VariantsHandler(BaseHandler):
         """
         return self.mark_irrelevant_bulk(variant_ids, irrelevant)
 
-    def unmark_irrelevant_var_bulk(
-        self, variant_ids: list[str], irrelevant: bool = False
-    ) -> Any:
+    def unmark_irrelevant_var_bulk(self, variant_ids: list[str], irrelevant: bool = False) -> Any:
         """
         Unmark multiple variants as irrelevant.
 
@@ -438,9 +412,7 @@ class VariantsHandler(BaseHandler):
         Returns:
             int: The number of unique SNP variants in the collection.
         """
-        snp_ids = self.get_collection().distinct(
-            "simple_id", {"variant_class": "SNV"}
-        )
+        snp_ids = self.get_collection().distinct("simple_id", {"variant_class": "SNV"})
         return len(snp_ids) or 0
 
     def get_unique_fp_count(self) -> int:
@@ -467,3 +439,65 @@ class VariantsHandler(BaseHandler):
             Any: The result of the delete operation, typically a DeleteResult object containing details about the operation.
         """
         return self.get_collection().delete_many({"SAMPLE_ID": sample_oid})
+
+    def get_variant_stats(self, sample_id: str, genes: list | None = None) -> dict:
+        """
+        Retrieve variant statistics for a specific sample.
+
+        This method aggregates various statistics about the variants associated
+        with a given sample, including total counts, counts of false positives,
+        interesting variants, irrelevant variants, and counts by variant class.
+
+        Args:
+            sample_id (str): The unique identifier of the sample to retrieve statistics for.
+            genes (list | None, optional): A list of gene names to filter the variants by.
+                If provided, only variants associated with these genes will be considered.
+                Defaults to None.
+        Returns:
+            dict: A dictionary containing various statistics about the variants for the specified sample.
+        """
+
+        query = {"SAMPLE_ID": sample_id}
+        if genes:
+            query["genes"] = {"$in": genes}
+
+        pipeline = [
+            {"$match": query},
+            {
+                "$group": {
+                    "_id": "$variant_class",
+                    "count": {"$sum": 1},
+                    "fp_count": {"$sum": {"$cond": [{"$eq": ["$fp", True]}, 1, 0]}},
+                    "interesting_count": {
+                        "$sum": {"$cond": [{"$eq": ["$interesting", True]}, 1, 0]}
+                    },
+                    "irrelevant_count": {"$sum": {"$cond": [{"$eq": ["$irrelevant", True]}, 1, 0]}},
+                }
+            },
+        ]
+
+        results = list(self.get_collection().aggregate(pipeline))
+
+        stats = {
+            "variants": 0,
+            "false_positives": 0,
+            "interesting": 0,
+            "irrelevant": 0,
+            "by_variant_class": {},
+        }
+
+        for result in results:
+            variant_class = result["_id"] or "Unknown"
+            count = result["count"]
+            fp_count = result["fp_count"]
+            interesting_count = result["interesting_count"]
+            irrelevant_count = result["irrelevant_count"]
+
+            stats["variants"] += count
+            stats["false_positives"] += fp_count
+            stats["interesting"] += interesting_count
+            stats["irrelevant"] += irrelevant_count
+
+            stats["by_variant_class"][variant_class] = count
+
+        return stats

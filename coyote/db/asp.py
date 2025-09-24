@@ -224,11 +224,7 @@ class ASPHandler(BaseHandler):
         if is_active is None:
             return self.get_collection().distinct("assay_name")
         else:
-            return (
-                self.get_collection()
-                .find({"is_active": is_active})
-                .distinct("assay_name")
-            )
+            return self.get_collection().find({"is_active": is_active}).distinct("assay_name")
 
     def get_asp_genes(self, asp_id: str) -> tuple:
         """

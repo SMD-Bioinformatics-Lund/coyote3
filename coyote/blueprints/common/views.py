@@ -53,9 +53,7 @@ def add_sample_comment(sample_id: str) -> Response:
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
 
 
-@common_bp.route(
-    "/sample/<string:sample_id>/hide_sample_comment", methods=["POST"]
-)
+@common_bp.route("/sample/<string:sample_id>/hide_sample_comment", methods=["POST"])
 @require_sample_access("sample_id")
 @require("hide_sample_comment", min_role="manager", min_level=99)
 def hide_sample_comment(sample_id: str) -> Response:
@@ -77,14 +75,14 @@ def hide_sample_comment(sample_id: str) -> Response:
     elif sample.get("omics_layer", "").lower() == "rna":
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
     else:
-        app.logger.info(f"Unrecognized omics type {sample["name"]}! Unable to redirect to the sample page")
+        app.logger.info(
+            f"Unrecognized omics type {sample["name"]}! Unable to redirect to the sample page"
+        )
         flash("Unrecognized omics type! Unable to redirect to the sample page", "red")
         return redirect(url_for("home_bp.samples_home"))
 
 
-@common_bp.route(
-    "/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"]
-)
+@common_bp.route("/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"])
 @require_sample_access("sample_id")
 @require("unhide_sample_comment", min_role="manager", min_level=99)
 def unhide_sample_comment(sample_id: str) -> Response:
@@ -105,14 +103,14 @@ def unhide_sample_comment(sample_id: str) -> Response:
     elif sample.get("omics_layer", "").lower() == "rna":
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
     else:
-        app.logger.info(f"Unrecognized omics type {sample["name"]}! Unable to redirect to the sample page")
+        app.logger.info(
+            f"Unrecognized omics type {sample["name"]}! Unable to redirect to the sample page"
+        )
         flash("Unrecognized omics type! Unable to redirect to the sample page", "red")
         return redirect(url_for("home_bp.samples_home"))
 
 
-@common_bp.route(
-    "/<string:sample_id>/<string:sample_assay>/genes", methods=["POST"]
-)
+@common_bp.route("/<string:sample_id>/<string:sample_assay>/genes", methods=["POST"])
 def get_sample_genelists(sample_id: str, sample_assay: str) -> str:
     """
     Retrieves and decrypts gene list and panel document data from the request form, then renders the 'sample_genes.html' template with the provided sample information.
@@ -137,9 +135,12 @@ def get_sample_genelists(sample_id: str, sample_assay: str) -> str:
     genelists = json.loads(fernet_obj.decrypt(enc_genelists.encode()))
     panel_doc = json.loads(fernet_obj.decrypt(enc_panel_doc.encode()))
 
-    sample_filters = json.loads(
-        fernet_obj.decrypt(enc_sample_filters.encode())
-    )
+    sample_filters = json.loads(fernet_obj.decrypt(enc_sample_filters.encode()))
+    adhoc_genes = sample_filters.pop("adhoc_genes")
+    if adhoc_genes:
+        filter_gl = sample_filters.get("genelists", [])
+        filter_gl.append(adhoc_genes.get("label", "Adhoc"))
+        sample_filters["genelists"] = filter_gl
 
     return render_template(
         "sample_genes.html",

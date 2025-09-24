@@ -99,7 +99,7 @@ def genepanel_matrix() -> str:
     Returns:
         str: Rendered HTML page showing the genelist-to-assay matrix.
     """
-    genelists = store.isgl_handler.get_all_isgl(is_active=True, is_public=True, temporary=False)
+    genelists = store.isgl_handler.get_all_isgl(is_active=True, is_public=True, adhoc=False)
     public_assay_map = app.config["PUBLIC_ASSAY_MAP"]
 
     return render_template(
@@ -142,9 +142,7 @@ def panel_gene_explorer() -> str:
 
     if selected_panel_name:
         assay_ids = public_assay_map.get(selected_panel_name, [])
-        subpanels = store.isgl_handler.get_subpanels_for_asp(
-            assay_ids, is_public=True, temporary=False
-        )
+        subpanels = store.isgl_handler.get_subpanels_for_asp(assay_ids, is_public=True, adhoc=False)
         # TODO: Currently only one assay is selected, In future we should support multiple
         gene_symbols, germline_gene_symbols = store.asp_handler.get_asp_genes(assay_ids[0])
 

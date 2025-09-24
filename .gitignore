@@ -158,6 +158,5 @@ redis_data
 .idea/
 
 # Docker compose
-docker-compose.dev.yml
 api
 coyote3-core

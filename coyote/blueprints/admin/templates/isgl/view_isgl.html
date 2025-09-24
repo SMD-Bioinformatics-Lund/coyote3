@@ -20,7 +20,7 @@
             <div><span class="font-semibold">Version:</span> {{ genelist.version }}</div>
             <div><span class="font-semibold">Is Active:</span> {% if genelist.is_active %}✅{% else %}❌{% endif %}</div>
             <div><span class="font-semibold">Is Public:</span> {% if genelist.is_public %}✅{% else %}❌{% endif %}</div>
-            <div><span class="font-semibold">Temporary:</span> {% if genelist.temporary %}✅{% else %}❌{% endif %}</div>
+            <div><span class="font-semibold">Ad-Hoc:</span> {% if genelist.adhoc %}✅{% else %}❌{% endif %}</div>
             <div><span class="font-semibold">Created By:</span> {{ genelist.created_by }}</div>
             <div><span class="font-semibold">Created On:</span> {{ genelist.created_on | human_date }}</div>
           </div>

@@ -13,7 +13,6 @@
 """
 Views for DNA variant, CNV, translocation, and biomarker management and reporting in the Coyote3 genomic analysis framework.
 """
-from importlib import reload
 
 from flask import current_app as app
 from flask import (
@@ -106,9 +105,12 @@ def list_variants(sample_id: str) -> Response | str:
         )
         assay_config["filters"]["genelists"].extend(assay_default_config_genelist_ids)
 
+    print(f"Filters Original: {sample.get("filters", {})}")
+
     # Get filter settings from the sample and merge with assay config if sample does not have values
     sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
     sample_filters = deepcopy(sample.get("filters", {}))
+    print(f"Filters Merged: {sample_filters}")
 
     # Update the sample filters with the default values from the assay config if the sample is new and does not have any filters set
     if not sample_has_filters:
@@ -132,6 +134,9 @@ def list_variants(sample_id: str) -> Response | str:
             store.sample_handler.reset_sample_settings(_id, assay_config.get("filters", {}))
         else:
             filters_from_form = util.common.format_filters_from_form(form, assay_config_schema)
+            # if there are any adhoc genes for the sample, add them to the form data before saving
+            if sample.get("filters", {}).get("adhoc_genes"):
+                filters_from_form["adhoc_genes"] = sample.get("filters", {}).get("adhoc_genes")
             store.sample_handler.update_sample_filters(_id, filters_from_form)
 
         ## get sample again to receive updated forms!
@@ -145,18 +150,15 @@ def list_variants(sample_id: str) -> Response | str:
 
     # sample filters, either set, or default
     cnv_effects = sample_filters.get("cnveffects", [])
-    checked_genelists = sample_filters.get("genelists", [])
 
-    # Get the genelists for the sample panel checked genelists from the filters
+    # Get the genes covered in the panel and effective filter set of genes
+    checked_genelists = sample_filters.get("genelists", [])
     checked_genelists_genes_dict: list[dict] = store.isgl_handler.get_isgl_by_ids(checked_genelists)
-    genes_covered_in_panel: list[dict] = util.common.get_genes_covered_in_panel(
-        checked_genelists_genes_dict, assay_panel_doc
+    genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
+        sample, assay_panel_doc, checked_genelists_genes_dict
     )
 
     filter_conseq = util.dna.get_filter_conseq_terms(sample_filters.get("vep_consequences", []))
-
-    # Create a unique list of genes from the selected genelists which are currently active in the panel
-    filter_genes = util.common.create_filter_genelist(genes_covered_in_panel)
     filter_cnveffects = util.dna.create_cnveffectlist(cnv_effects)
 
     # Add them to the form and update with the requested settings
@@ -1480,14 +1482,11 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     # Get the genelist filters from the sample settings
     checked_genelists = sample_filters.get("genelists", [])
     checked_genelists_genes_dict: list[dict] = store.isgl_handler.get_isgl_by_ids(checked_genelists)
-
-    genes_covered_in_panel: list[dict] = util.common.get_genes_covered_in_panel(
-        checked_genelists_genes_dict, assay_panel_doc
+    genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
+        sample, assay_panel_doc, checked_genelists_genes_dict
     )
 
     filter_conseq = util.dna.get_filter_conseq_terms(sample_filters.get("vep_consequences", []))
-    # Create a unique list of genes from the selected genelists which are currently active in the panel
-    filter_genes = util.common.create_filter_genelist(genes_covered_in_panel)
 
     disp_pos = []
     if assay_config.get("verification_samples"):
@@ -1628,9 +1627,8 @@ def save_dna_report(sample_id: str) -> Response:
 
     case_id = sample.get("case_id")
     control_id = sample.get("control_id")
-    clarity_case_id = sample.get('case', {}).get("clarity_id")
-    clarity_control_id = sample.get('control', {}).get("clarity_id")
-
+    clarity_case_id = sample.get("case", {}).get("clarity_id")
+    clarity_control_id = sample.get("control", {}).get("clarity_id")
 
     assay_group: str = assay_config.get("asp_group", "unknown")
     report_num: int = sample.get("report_num", 0) + 1
@@ -1640,7 +1638,9 @@ def save_dna_report(sample_id: str) -> Response:
     # Clarity ID is always unique
 
     if control_id:
-        report_id: str = f"{case_id}_{clarity_case_id}-{control_id}_{clarity_control_id}.{report_num}"
+        report_id: str = (
+            f"{case_id}_{clarity_case_id}-{control_id}_{clarity_control_id}.{report_num}"
+        )
     else:
         report_id: str = f"{case_id}_{clarity_case_id}.{report_num}"
 

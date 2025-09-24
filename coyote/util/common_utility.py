@@ -277,20 +277,16 @@ class CommonUtility:
             list: A list of assay names for database queries, possibly with "_restored" suffixes.
         """
         # Ignore _restored
-        assay_names = CommonUtility.assay_config(
-            assay_category_name.removesuffix("_restored")
-        ).get("include_assays")
+        assay_names = CommonUtility.assay_config(assay_category_name.removesuffix("_restored")).get(
+            "include_assays"
+        )
         if assay_category_name.endswith("_restored"):
-            assay_names = [
-                f"{assay_name}_restored" for assay_name in assay_names
-            ]
+            assay_names = [f"{assay_name}_restored" for assay_name in assay_names]
 
         return assay_names
 
     @staticmethod
-    def merge_sample_settings_with_assay_config(
-        sample_doc: dict, assay_config: dict
-    ) -> dict:
+    def merge_sample_settings_with_assay_config(sample_doc: dict, assay_config: dict) -> dict:
         """
         Merge assay_config FILTERS into sample_doc['filters'].
         Existing sample values take priority. Missing values are filled from the assay_config.
@@ -304,6 +300,7 @@ class CommonUtility:
         """
         filters_config = assay_config.get("filters", {})
         sample_filters = sample_doc.get("filters", {})
+        adhoc_genes = sample_filters.pop("adhoc_genes", {})
 
         # If sample filters are empty, then update the sample doc with the default filters
         if not sample_filters:
@@ -319,11 +316,12 @@ class CommonUtility:
                 else:
                     merged_filters[key] = value
 
+        if adhoc_genes:
+            merged_filters["adhoc_genes"] = adhoc_genes
+
         # Update the sample_doc with the merged filters
         sample_doc["filters"] = merged_filters
-        sample_doc.pop(
-            "use_diagnosis_genelist", None
-        )  # Remove this key if it exists
+        sample_doc.pop("use_diagnosis_genelist", None)  # Remove this key if it exists
         return sample_doc
 
     @staticmethod
@@ -343,14 +341,10 @@ class CommonUtility:
         """
         fusion_settings = {}
         fusion_settings["min_spanreads"] = int(
-            sample.get(
-                "filter_min_spanreads", settings.get("default_spanreads", 0)
-            )
+            sample.get("filter_min_spanreads", settings.get("default_spanreads", 0))
         )
         fusion_settings["min_spanpairs"] = int(
-            sample.get(
-                "filter_min_spanpairs", settings.get("default_spanpairs", 0)
-            )
+            sample.get("filter_min_spanpairs", settings.get("default_spanpairs", 0))
         )
         return fusion_settings
 
@@ -380,9 +374,7 @@ class CommonUtility:
         return list(set(filter_genes))
 
     @staticmethod
-    def get_genes_covered_in_panel(
-        genelists: dict, assay_panel_doc: dict
-    ) -> dict:
+    def get_genes_covered_in_panel(genelists: dict, assay_panel_doc: dict) -> dict:
         """
         Filters the input gene lists to include only genes covered by the specified assay panel.
 
@@ -406,12 +398,8 @@ class CommonUtility:
         for genelist_id, genelist_values in genelists.items():
             genelist_genes = set(genelist_values.get("genes", []))
             # Keep only genes present in the assay panel and move the rest to a separate list
-            genelist_values["covered"] = list(
-                genelist_genes.intersection(covered_genes_set)
-            )
-            genelist_values["uncovered"] = list(
-                genelist_genes.difference(covered_genes_set)
-            )
+            genelist_values["covered"] = list(genelist_genes.intersection(covered_genes_set))
+            genelist_values["uncovered"] = list(genelist_genes.difference(covered_genes_set))
             updated_genelists[genelist_id] = genelist_values
 
         return updated_genelists
@@ -500,9 +488,7 @@ class CommonUtility:
             tuple: A tuple containing the hg38 chromosome and position as strings.
         """
 
-        hg38 = subprocess.check_output(
-            [app.config["HG38_POS_SCRIPT"], chr, pos]
-        ).decode("utf-8")
+        hg38 = subprocess.check_output([app.config["HG38_POS_SCRIPT"], chr, pos]).decode("utf-8")
         hg38_chr, hg38_pos = hg38.split(":")
 
         return hg38_chr, hg38_pos
@@ -603,10 +589,7 @@ class CommonUtility:
         if isinstance(data, list):
             return [CommonUtility.convert_object_id(item) for item in data]
         elif isinstance(data, dict):
-            return {
-                key: CommonUtility.convert_object_id(value)
-                for key, value in data.items()
-            }
+            return {key: CommonUtility.convert_object_id(value) for key, value in data.items()}
         elif isinstance(data, ObjectId):
             return str(data)
         else:
@@ -624,13 +607,10 @@ class CommonUtility:
             list | dict | str | Any: The input data structure with all `ObjectId` and `datetime` instances converted to serializable strings.
         """
         if isinstance(data, list):
-            return [
-                CommonUtility.convert_to_serializable(item) for item in data
-            ]
+            return [CommonUtility.convert_to_serializable(item) for item in data]
         elif isinstance(data, dict):
             return {
-                key: CommonUtility.convert_to_serializable(value)
-                for key, value in data.items()
+                key: CommonUtility.convert_to_serializable(value) for key, value in data.items()
             }
         elif isinstance(data, ObjectId):
             return str(data)
@@ -669,9 +649,7 @@ class CommonUtility:
         return dict(t)
 
     @staticmethod
-    def get_genelist_dispnames(
-        genelists: dict, filter_list: None | list
-    ) -> str:
+    def get_genelist_dispnames(genelists: dict, filter_list: None | list) -> str:
         """
         Get display names of genelists.
 
@@ -686,9 +664,7 @@ class CommonUtility:
             list[str]: A list of display names of the gene lists.
         """
         if filter_list is None:
-            display_names = [
-                genelist.get("displayname") for genelist in genelists
-            ]
+            display_names = [genelist.get("displayname") for genelist in genelists]
         else:
             display_names = [
                 genelist.get("displayname")
@@ -742,9 +718,7 @@ class CommonUtility:
                 report_file.write(report_data)
             return True
         except Exception as exc:
-            app.logger.error(
-                f"Failed to write report to '{report_path}': {exc}"
-            )
+            app.logger.error(f"Failed to write report to '{report_path}': {exc}")
             return False
 
     @staticmethod
@@ -835,9 +809,7 @@ class CommonUtility:
             if isinstance(value, datetime):
                 # Truncate to just the date
                 kwargs[key] = value.date().isoformat()
-            elif not isinstance(
-                value, (str, int, float, bool, type(None), list, dict)
-            ):
+            elif not isinstance(value, (str, int, float, bool, type(None), list, dict)):
                 kwargs[key] = str(value)
 
         # Serialize to stable JSON
@@ -891,26 +863,20 @@ class CommonUtility:
             if key in config:
                 config_filters[key] = config.pop(key)
             else:
-                config_filters[key] = schema["sections"]["filters"][key].get(
-                    "default"
-                )
+                config_filters[key] = schema["sections"]["filters"][key].get("default")
 
         for key in report_keys:
             if key in config:
                 config_report[key] = config.pop(key)
             else:
-                config_report[key] = schema["sections"]["reporting"][key].get(
-                    "default"
-                )
+                config_report[key] = schema["sections"]["reporting"][key].get("default")
 
         config["filters"] = config_filters
         config["reporting"] = config_report
         return config
 
     @staticmethod
-    def format_filters_from_form(
-        form_data: Any, assay_config_schema: dict
-    ) -> dict:
+    def format_filters_from_form(form_data: Any, assay_config_schema: dict) -> dict:
         """
         Format filters from a WTForm (or dict) to match the schema.
 
@@ -930,7 +896,8 @@ class CommonUtility:
         if hasattr(form_data, "__iter__") and not isinstance(form_data, dict):
             form_data = {field.name: field.data for field in form_data}
 
-        print("form_data", form_data)
+        print(form_data)
+
         fields = assay_config_schema.get("sections", {}).get("filters", [])
 
         filters = {}
@@ -1124,3 +1091,45 @@ class CommonUtility:
                 class_num = value
 
         return class_num
+
+    @staticmethod
+    def get_sample_effective_genes(sample: dict, asp_doc: dict, checked_gl_dict: dict) -> tuple:
+        """
+        Return effective gene lists for a sample and its assay panel.
+
+        This function resolves the sample's selected genelists (from sample["filters"]["genelists"])
+        via store.isgl_handler.get_isgl_by_ids, appends any adhoc_genes defined in the sample filters,
+        and computes which genes are covered by the provided assay panel using
+        CommonUtility.get_genes_covered_in_panel. A deduplicated list of effective genes is produced
+        using CommonUtility.create_filter_genelist.
+
+        Args:
+            sample (dict): Sample document containing 'filters' with optional 'genelists' and 'adhoc_genes'.
+            asp_doc (dict): Assay panel document containing a 'covered_genes' list.
+
+        Returns:
+            tuple[list[dict], list[str]]: A tuple (covered_genelists, effective_filter_genes) where:
+                - covered_genelists: list of genelist dicts augmented with 'covered' and 'uncovered' keys.
+                - effective_filter_genes: deduplicated list of gene symbols to use for filtering.
+        """
+        sample_filters = sample.get("filters", {})
+
+        # Add AdHoc Genes which are a part of sample settings and not ASP or ASPC
+        adhoc_genes = sample_filters.get("adhoc_genes", {}).get("genes", {})
+        adhoc_key = sample_filters.get("adhoc_genes", {}).get("label", "AdHoc genes")
+        print(adhoc_genes)
+        if adhoc_genes:
+            checked_gl_dict[adhoc_key] = {
+                "displayname": adhoc_key,
+                "is_active": True,
+                "genes": adhoc_genes,
+                "adhoc": True,
+            }
+
+        genes_covered_in_panel: dict = CommonUtility.get_genes_covered_in_panel(
+            checked_gl_dict, asp_doc
+        )
+
+        effective_filter_genes = CommonUtility.create_filter_genelist(genes_covered_in_panel)
+
+        return genes_covered_in_panel, effective_filter_genes

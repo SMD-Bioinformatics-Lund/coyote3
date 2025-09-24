@@ -280,7 +280,7 @@ class DevelopmentConfig(DefaultConfig):
     BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
     _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections_beta2.toml"
 
-    CACHE_DEFAULT_TIMEOUT = 0  # 300 secs, 5 minutes
+    CACHE_DEFAULT_TIMEOUT = 1  # 300 secs, 5 minutes
 
     LOGS = "logs/dev"
     PRODUCTION = False

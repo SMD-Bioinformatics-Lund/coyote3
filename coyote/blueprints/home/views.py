@@ -16,25 +16,31 @@ It includes functionality for handling sample searches, filtering samples based 
 the appropriate templates for the user interface.
 """
 
+from copy import deepcopy
 from flask import (
     Response,
     redirect,
     render_template,
     request,
     url_for,
+    g,
     send_from_directory,
     flash,
+    jsonify,
 )
 from flask_login import current_user, login_required
 from flask import current_app as app
 from coyote.extensions import store
-from coyote.blueprints.home import home_bp
+from coyote.blueprints.home import home_bp, filters
 from coyote.blueprints.home.forms import SampleSearchForm
 from coyote.extensions import util
 from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
 from coyote.util.misc import get_sample_and_assay_config
+from coyote.services.audit_logs.decorators import log_action
 import os
+import re
+import json
 
 
 @home_bp.route("/", methods=["GET", "POST"])
@@ -114,9 +120,14 @@ def samples_home(
             use_cache=True,
             reload=reload,
         )
+        app.home_logger.info(
+            f"Searching samples with search string '{search_str}', status '{status}', "
+            f"from assays '{accessible_assays}', report '{True}', limit '{limit_done_samples}', "
+            f"using cache '{True}', reload is set to {reload}."
+        )
     # Fetch live samples if the status is 'live'
     elif status == "live":
-        time_limit = util.common.get_date_days_ago(days=1000)
+        time_limit = util.common.get_date_days_ago(days=90)
         done_samples = store.sample_handler.get_samples(
             user_assays=accessible_assays,
             status=status,
@@ -126,6 +137,11 @@ def samples_home(
             time_limit=time_limit,
             use_cache=True,
             reload=reload,
+        )
+        app.home_logger.info(
+            f"Searching samples with search string '{search_str}', status '{status}', "
+            f"from assays '{accessible_assays}', report '{True}', time limit '{time_limit}', "
+            f"using cache '{True}', reload is set to {reload}."
         )
     else:
         done_samples = []
@@ -140,6 +156,11 @@ def samples_home(
             report=False,
             use_cache=True,
             reload=reload,
+        )
+        app.home_logger.info(
+            f"Searching samples with search string '{search_str}', status '{status}', "
+            f"from assays '{accessible_assays}', report '{False}', using cache '{True}', "
+            f"reload is set to {reload}."
         )
     else:
         live_samples = []
@@ -165,9 +186,11 @@ def samples_home(
     )
 
 
-@home_bp.route("/<string:sample_id>/reports/<string:report_id>")
+@home_bp.route("/<string:sample_id>/reports/<string:report_id>", endpoint="view_report")
+@home_bp.get("/<string:sample_id>/reports/<string:report_id>/download", endpoint="download_report")
 @require("view_reports", min_role="admin")
 @require_sample_access("sample_id")
+@log_action(action_name="view_report", call_type="user")
 def view_report(sample_id: str, report_id: str) -> str | Response:
     """
     View a saved report or serve a report file for a given sample.
@@ -189,6 +212,7 @@ def view_report(sample_id: str, report_id: str) -> str | Response:
     filepath = report.get("filepath", None)
 
     if not filepath:
+        app.home_logger.info(f"No filepath found for report {report_id} of sample {sample_id}")
         result = get_sample_and_assay_config(sample_id)
         if isinstance(result, Response):
             return result
@@ -204,9 +228,292 @@ def view_report(sample_id: str, report_id: str) -> str | Response:
 
         # Check if the file exists and serve it
         if os.path.exists(filepath):
-            return send_from_directory(directory, filename)
+            if request.endpoint == "home_bp.view_report":
+                app.home_logger.info(
+                    f"User {current_user.id} is viewing report {report_id} for sample {sample_id}"
+                )
+                # log Action
+                g.audit_metadata = {
+                    "sample": sample_id,
+                    "report": report_id,
+                    "action": "view_report",
+                }
+                return send_from_directory(directory, filename)
+            elif request.endpoint == "home_bp.download_report":
+                app.home_logger.info(
+                    f"User {current_user.id} is downloading report {report_id} for sample {sample_id}"
+                )
+                # log Action
+                g.audit_metadata = {
+                    "sample": sample_id,
+                    "report": report_id,
+                    "action": "download_report",
+                }
+                return send_from_directory(directory, filename, as_attachment=True)
         else:
+            app.home_logger.warning(
+                f"Report file {filepath} for report {report_id} of sample {sample_id} does not exist"
+            )
+            # log Action
+            g.audit_metadata = {
+                "sample": sample_id,
+                "report": report_id,
+                "message": "No report file found",
+            }
             flash("Requested report file does not exist.", "red")
 
     # Redirect to the home screen if the file does not exist
     return redirect(url_for("dna_bp.home_screen"))
+
+
+@home_bp.route("/<string:sample_id>/edit", methods=["GET"])
+@require("edit_sample", min_role="user")
+@require_sample_access("sample_id")
+@log_action("sample_settings", call_type="user_call")
+def edit_sample(sample_id: str) -> str | Response:
+    """
+    Redirects to the sample edit page for the given sample ID.
+
+    Args:
+        sample_id (str): The unique identifier of the sample to edit.
+
+    Returns:
+        str | Response: Renders the `edit_sample.html` template with the sample data if found,
+                  otherwise redirects to the samples home page with an error message.
+    """
+
+    # Retrieve the sample and its associated assay configuration
+    result = get_sample_and_assay_config(sample_id)
+    if isinstance(result, Response):
+        return result
+    sample, assay_config, assay_config_schema = result
+
+    asp = store.asp_handler.get_asp(sample.get("assay"))
+
+    # If the sample has no filters set, initialize them with the assay's default filters
+    if sample.get("filters") is None:
+        # log Action
+        g.audit_metadata = {
+            "sample": sample_id,
+            "message": "sample filters reset to assay defaults",
+        }
+        store.sample_handler.reset_sample_settings(sample["_id"], assay_config.get("filters"))
+        app.home_logger.info(
+            f"Sample {sample_id} filters were None, resetting to assay default filters"
+        )
+
+    # Retrieve the sample details after potential update
+    sample = store.sample_handler.get_sample(sample_id)
+
+    genes_plus_asp_genes = get_effective_genes_all(sample_id=sample_id)
+    genes = genes_plus_asp_genes.get_json().get("items", [])
+    asp_covered_genes_count = genes_plus_asp_genes.get_json().get("asp_covered_genes_count", 0)
+
+    # Get variant stats for the sample without any gene filter
+    variant_stats_raw = store.variant_handler.get_variant_stats(str(sample.get("_id")))
+
+    # Get variant stats for the sample with the effective gene filter applied
+    if genes and variant_stats_raw and len(genes) < asp_covered_genes_count:
+        variant_stats_filtered = store.variant_handler.get_variant_stats(
+            str(sample.get("_id")), genes=genes
+        )
+    else:
+        variant_stats_filtered = deepcopy(variant_stats_raw)
+
+    if not sample:
+        # log Action
+        g.audit_metadata = {
+            "sample": sample_id,
+            "message": "No sample found",
+        }
+        flash("Sample not found.", "red")
+        app.home_logger.error(f"Sample {sample_id} not found, redirecting to home page")
+        return redirect(url_for("home_bp.samples_home"))
+    return render_template(
+        "edit_sample.html",
+        sample=sample,
+        variant_stats_raw=variant_stats_raw,
+        variant_stats_filtered=variant_stats_filtered,
+        asp=asp,
+    )
+
+
+@home_bp.get("/<string:sample_id>/adhoc_isgls")
+@require_sample_access("sample_id")
+def list_adhoc_isgls(sample_id: str) -> Response:
+    """
+    Return adhoc in-study gene lists for the sample's assay as JSON.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+
+    Returns:
+        Response: JSON response with key `items` containing a list of objects:
+            - `name` (str): gene list name
+            - `genes` (list[str]): gene symbols in the list
+    """
+    sample = store.sample_handler.get_sample(sample_id)
+    adhoc_genelists = store.isgl_handler.get_isgl_by_asp(
+        sample.get("assay"), adhoc=True, is_active=True
+    )
+
+    items = [
+        {
+            "_id": str(gl["_id"]),
+            "name": gl["displayname"],
+            "version": gl.get("version"),
+            "adhoc": gl.get("adhoc", False),
+            "gene_count": gl.get("gene_count", []),
+        }
+        for gl in adhoc_genelists
+    ]
+    return jsonify({"items": items})
+
+
+@home_bp.post("/<string:sample_id>/adhoc_genes/apply-isgl")
+@require("edit_sample", min_role="user")
+@require_sample_access("sample_id")
+@log_action(action_name="apply_isgl", call_type="user")
+def apply_isgl(sample_id: str) -> Response:
+    """
+    Apply adhoc in-study gene list to the sample's adhoc gene filter.
+
+    Expects JSON body with:
+        - `isgl_ids` (list[str]): IDs of the in-study gene lists to apply
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+
+    Returns:
+        Response: JSON response indicating success or failure.
+    """
+
+    payload = request.get_json(silent=True) or {}
+    sample = store.sample_handler.get_sample(sample_id)
+    filters = sample.get("filters", {})
+    genelists = set(filters.get("genelists", []))
+    isgl_ids = payload.get("isgl_ids", [])
+    if isinstance(isgl_ids, list):
+        genelists.update(isgl_ids)
+    filters["genelists"] = list(genelists)
+
+    if payload and isgl_ids:
+        # log Action
+        g.audit_metadata = {
+            "sample": sample_id,
+            "isgl_ids": isgl_ids,
+        }
+        store.sample_handler.update_sample_filters(sample.get("_id"), filters)
+        flash("AdHoc gene list(s) applied to sample.", "green")
+        app.home_logger.info(
+            f"Applied AdHoc gene list(s) {isgl_ids} to sample {sample_id} adhoc gene filter"
+        )
+
+    return jsonify({"ok": True})
+
+
+@home_bp.post("/<string:sample_id>/adhoc_genes")
+@require("edit_sample", min_role="user")
+@require_sample_access("sample_id")
+@log_action(action_name="save_adhoc_genes", call_type="user")
+def save_adhoc_genes(sample_id: str) -> Response:
+    """
+    Save adhoc genes to the sample's adhoc gene filter.
+    Expects JSON body with:
+        - `genes` (str): Comma, space, or newline-separated gene symbols
+        - `label` (str, optional): Label for the adhoc gene list
+    Args:
+        sample_id (str): The unique identifier of the sample.
+    Returns:
+        Response: JSON response indicating success.
+    """
+    data = request.get_json()
+    genes = [g.strip() for g in re.split(r"[ ,\n]+", data.get("genes", "")) if g.strip()]
+    genes.sort()
+    label = data.get("label") or "adhoc"
+
+    sample = store.sample_handler.get_sample(sample_id)
+    filters = sample.get("filters", {})
+    filters["adhoc_genes"] = {"label": label, "genes": genes}
+    store.sample_handler.update_sample_filters(sample.get("_id"), filters)
+    # log Action
+    g.audit_metadata = {
+        "sample": sample_id,
+        "label": label,
+        "gene_count": len(genes),
+    }
+    flash("AdHoc genes saved to sample.", "green")
+    app.home_logger.info(f"Saved {len(genes)} AdHoc genes to sample {sample_id} adhoc gene filter")
+
+    return jsonify({"ok": True})
+
+
+@home_bp.post("/<string:sample_id>/adhoc_genes/clear")
+@require("edit_sample", min_role="user")
+@require_sample_access("sample_id")
+@log_action(action_name="clear_adhoc_genes", call_type="user")
+def clear_adhoc_genes(sample_id: str) -> Response:
+    """
+    Clear adhoc genes from the sample's adhoc gene filter.
+    Args:
+        sample_id (str): The unique identifier of the sample.
+    Returns:
+        Response: JSON response indicating success.
+    """
+    sample = store.sample_handler.get_sample(sample_id)
+    filters = sample.get("filters", {})
+    filters.pop("adhoc_genes")
+    store.sample_handler.update_sample_filters(sample.get("_id"), filters)
+    # log Action
+    g.audit_metadata = {
+        "sample": sample_id,
+        "action": "clear_adhoc_genes",
+    }
+    flash("AdHoc genes cleared from sample.", "green")
+    app.home_logger.info(f"Cleared AdHoc genes from sample {sample_id} adhoc gene filter")
+    return jsonify({"ok": True})
+
+
+@home_bp.get("/<string:sample_id>/effective-genes/all")
+@require_sample_access("sample_id")
+def get_effective_genes_all(sample_id: str) -> Response:
+    """
+    Return all effective genes for the sample as JSON.
+
+    Args:
+        sample_id (str): The unique identifier of the sample.
+    Returns:
+        Response: JSON response with key `items` containing a list of gene symbols. Also includes
+                  `asp_covered_genes_count` indicating the total number of genes covered by the assay.
+                  If no genes are found, returns an empty list.
+    """
+    sample = store.sample_handler.get_sample(sample_id)
+    if not sample:
+        return jsonify({"items": []})
+
+    filters = sample.get("filters", {})
+    assay = sample.get("assay")
+    asp_covered_genes, asp_germline_genes = store.asp_handler.get_asp_genes(assay)
+    if not asp_covered_genes:
+        app.home_logger.warning(f"No covered genes found for assay {assay} of sample {sample_id}")
+        return jsonify({"items": []})
+
+    effective_genes = set(asp_covered_genes)
+
+    adhoc_genes = set(filters.get("adhoc_genes", {}).get("genes", []))
+    isgl_genes = set()
+
+    genelists = filters.get("genelists", [])
+    if genelists:
+        isgls = store.isgl_handler.get_isgl_by_ids(genelists)
+        for gl_key, gl_values in isgls.items():
+            isgl_genes.update(gl_values.get("genes", []))
+
+    # Combine adhoc_genes and isgl_genes if present
+    filter_genes = adhoc_genes.union(isgl_genes) if adhoc_genes or isgl_genes else set()
+
+    if filter_genes:
+        effective_genes = effective_genes.intersection(filter_genes)
+
+    items = sorted(effective_genes)
+    return jsonify({"items": items, "asp_covered_genes_count": len(asp_covered_genes)})
