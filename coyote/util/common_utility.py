@@ -532,12 +532,12 @@ class CommonUtility:
         for genelist_id, genelist_values in genelists.items():
             genelist_genes = set(genelist_values.get("genes", []))
             # Keep only genes present in the assay panel and move the rest to a separate list
-            genelist_values["covered"] = list(
+            genelist_values["covered"] = sorted(list(
                 genelist_genes.intersection(covered_genes_set)
-            )
-            genelist_values["uncovered"] = list(
+            ))
+            genelist_values["uncovered"] = sorted(list(
                 genelist_genes.difference(covered_genes_set)
-            )
+            ))
             updated_genelists[genelist_id] = genelist_values
 
         return updated_genelists

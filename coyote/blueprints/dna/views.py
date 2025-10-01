@@ -1578,6 +1578,8 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
 
     fernet = app.config["FERNET"]
 
+    print(genes_covered_in_panel)
+
     return render_template(
         "dna_report.html",
         assay_config=assay_config,
@@ -1628,9 +1630,8 @@ def save_dna_report(sample_id: str) -> Response:
 
     case_id = sample.get("case_id")
     control_id = sample.get("control_id")
-    clarity_case_id = sample.get('case', {}).get("clarity_id")
-    clarity_control_id = sample.get('control', {}).get("clarity_id")
-
+    clarity_case_id = sample.get("case", {}).get("clarity_id")
+    clarity_control_id = sample.get("control", {}).get("clarity_id")
 
     assay_group: str = assay_config.get("asp_group", "unknown")
     report_num: int = sample.get("report_num", 0) + 1
@@ -1640,7 +1641,9 @@ def save_dna_report(sample_id: str) -> Response:
     # Clarity ID is always unique
 
     if control_id:
-        report_id: str = f"{case_id}_{clarity_case_id}-{control_id}_{clarity_control_id}.{report_num}"
+        report_id: str = (
+            f"{case_id}_{clarity_case_id}-{control_id}_{clarity_control_id}.{report_num}"
+        )
     else:
         report_id: str = f"{case_id}_{clarity_case_id}.{report_num}"
 
