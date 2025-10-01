@@ -1,0 +1,101 @@
+catalog_version: 1
+
+tracks:
+  hematology:
+    display_name: Hematology
+    description: |
+      This track includes datasets related to hematology, focusing on blood-related studies and analyses.
+      In case of question hereditary myeloid neoplasia in patients previously analysed with parade myeloid gene panel,
+      data from the normal sample can be used for constitutional analysis of the following genes. Technically, the
+      sequencing is carried out on a so-called KAPA-Twist hybrid capture panel and the constitutional analysis mainly
+      include smaller sequence variants (SNV/indels) in coding regions while larger copy balance abnormalities are not
+      detected. In cases where the patient has not been analyzed with parade myeloid gene panel, the WGS list Hereditary
+      haematological malignancy is instead referred.
+    sequencing_methods:
+      DNA-Panels:
+        - hema_GMSv1
+        - myeloid_GMSv1
+        - lymphoid_GMSv3
+      WGS: 
+        - hema_GMSv1
+        - HematologyAddOns
+      WTS: []
+    TAT:
+      DNA-Panels: 10
+      WGS: 20
+      WTS: 20
+    sample_types:
+      - Blood
+    analysis_modes:
+      - Tumor-Normal
+      - Tumor-Only
+    analysis_types:
+      DNA:
+        - SNVs
+        - CNV
+      RNA:
+        - Fusion
+        - Expression
+      diagnoses:
+      - H-MGP
+      - H-LGP
+      - MPN
+      - Hem-Snabb
+      - KLL
+      - FL
+  solid:
+    display_name: Solid Tumors
+    description: |
+      This track encompasses datasets related to solid tumors, including various types of cancers affecting solid organs.
+      In case of question hereditary cancer syndrome in patients previously analysed with parade cancer gene panel,
+      data from the normal sample can be used for constitutional analysis of the following genes. Technically, the
+      sequencing is carried out on a so-called KAPA-Twist hybrid capture panel and the constitutional analysis mainly
+      include smaller sequence variants (SNV/indels) in coding regions while larger copy balance abnormalities are not
+      detected. In cases where the patient has not been analyzed with parade cancer gene panel, the WGS list Hereditary
+      cancer syndrome is instead referred.
+    sequencing_methods:
+      DNA-Panels:
+        - solid_GMSv3
+      RNA-Panels:
+        - solidRNA_GMSv5
+        - RNA-fusion
+      WGS:
+        - solid_GMSv3
+      WTS:
+        - fusion
+    TAT:
+      DNA-Panels: 10
+      RNA-Panels: 10
+      WGS: 20
+      WTS: 20
+    sample_types:
+      - FFPE
+      - Fresh-frozen
+      - Blood
+      - Bone marrow
+      - Other body fluids
+    analysis_modes:
+      - Tumor-Normal
+      - Tumor-Only
+    analysis_types:
+      DNA:
+        - SNV
+        - CNV
+        - SV
+        - HRD
+        - MSI
+        - PGX
+      RNA:
+        - Expression
+        - Fusion
+    diagnoses:
+      - breast
+      - lung
+      - melanoma
+      - ovarian
+      - pancreas
+      - prostata
+      - thyroid
+      - colon
+      - cns
+      - pgx

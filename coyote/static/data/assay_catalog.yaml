@@ -1,0 +1,230 @@
+catalog_version: 1
+
+assays:
+  hematology:
+    display_name: Hematology
+    description: >
+      This DNA/RNA assay family is used to investigate hematological malignancies
+      and blood-related clinical questions using NGS.
+    technology: Panels        # Panels | WGS | WTS (UI chip)
+    order: 10                 # optional UI sort
+
+    modalities:
+      dna:
+        asp_ids:              # ASPs that belong to Hematology under DNA
+          - hema_GMSv1
+        # Which diagnoses belong to this assay+modality (by key)
+        diagnoses:
+          - H-MGP
+          - H-LGP
+
+      rna:
+        asp_ids: []           # (none yet; add when available)
+        diagnoses: []         # add RNA diagnoses if/when you support them
+
+  solid_tumors:
+    display_name: Solid Tumors
+    description: >
+      This assay family covers solid tumors; see DNA and RNA tracks for details.
+    technology: Panels
+    order: 20
+
+    modalities:
+      dna:
+        asp_ids:
+          - solid_GMSv3
+        diagnoses:
+          - breast
+          - lung
+          - colon
+          - cns
+
+      rna:
+        asp_ids:
+          - solidRNA_GMSv5
+          - RNA-fusion
+        diagnoses:
+          - breast         # same dx key can appear under DNA and RNA
+          - lung
+          - colorectal
+
+  PGx:
+    display_name: Pharmacogenomics
+    description: >
+      This assay family covers pharmacogenomics (PGx) testing for drug metabolism and response.
+    technology: Panels
+    order: 40
+
+    modalities:
+      dna:
+        asp_ids:
+          - pgx_GMSv1
+        diagnoses: []        # PGx has no diagnoses
+
+      rna:
+        asp_ids: []
+        diagnoses: []
+
+  WGS:
+    display_name: Whole Genome Sequencing
+    description: >
+      This assay family covers whole genome sequencing (WGS) for various clinical applications.
+    technology: WGS
+    order: 30
+
+    modalities:
+      dna:
+        asp_ids:
+          - tumwgs-solid
+          - tumwgs-hema
+        diagnoses:
+          - solid
+          - hematology
+
+      rna:
+        asp_ids: []
+        diagnoses: []
+
+  WTS:
+    display_name: Whole Transcriptome Sequencing
+    description: >
+      This assay family covers whole transcriptome sequencing (WTS) for various clinical applications.
+    technology: WTS
+    order: 50
+
+    modalities:
+      dna:
+        asp_ids: []
+        diagnoses: []
+
+      rna:
+        asp_ids:
+          - fusion
+        diagnoses: []
+
+# Central diagnosis dictionary (single source of truth)
+diagnoses:
+  H-MGP:
+    display_name: Myeloid
+    description: Myeloid malignancies including AML, MDS, MPN, and related disorders.
+    order: 10
+    # Per-modality, declare (a) which assays this dx participates in and (b) which ASPs to bind to
+    by_modality:
+      dna:
+        in_assays:
+          - hematology
+        asp_bindings:
+          hematology:        # for assay "hematology", use these ASP ids to fetch genes
+            - hema_GMSv1
+        tat: 14 days
+        sample_types: [Blood, Bone marrow, "Other body fluids"]
+        sample_modes: [single]
+        methodology: NGS
+        analysis_includes: [SNV, Indel, SV]
+        biomarkers: []       # optional
+
+      rna:
+        in_assays: []
+        asp_bindings: {}     # not offered yet
+        # (all other fields optional)
+
+  H-LGP:
+    display_name: Lymphoid
+    description: Lymphoid malignancies including ALL, CLL, lymphoma, and related disorders.
+    order: 20
+    by_modality:
+      dna:
+        in_assays: [hematology]
+        asp_bindings:
+          hematology:
+            - hema_GMSv1
+        tat: 14 days
+        sample_types: [Blood, Bone marrow, "Lymph node", "Other body fluids"]
+        sample_modes: [single]
+        methodology: NGS
+        analysis_includes: [SNV, Indel, SV]
+        biomarkers: []
+
+  breast:
+    display_name: Breast Cancer
+    description: Breast cancer and related malignancies.
+    order: 10
+    by_modality:
+      dna:
+        in_assays: [solid_tumors]
+        asp_bindings:
+          solid_tumors:
+            - solid_GMSv3
+        tat: 14 days
+        sample_types: ["FFPE tissue", "Fresh frozen tissue"]
+        sample_modes: ["tumor-only", "tumor-normal"]
+        methodology: NGS
+        analysis_includes: [SNV, Indel, CNV, SV, Translocations, "Biomarkers (TMB, MSI, HRD)"]
+        biomarkers: [TMB, MSI, HRD]
+
+      rna:
+        in_assays: [solid_tumors]
+        asp_bindings:
+          solid_tumors:
+            - solidRNA_GMSv5
+            - RNA-fusion
+        tat: 7–14 days
+        sample_types: ["FFPE tissue", "Fresh frozen tissue"]
+        sample_modes: ["tumor-only", "tumor-normal"]
+        methodology: NGS
+        analysis_includes: [Fusions, "Splice events", Expression]
+        biomarkers: []
+
+  lung:
+    display_name: Lung Cancer
+    description: Lung cancer and related malignancies.
+    order: 20
+    by_modality:
+      dna:
+        in_assays: [solid_tumors]
+        asp_bindings:
+          solid_tumors: [solid_GMSv3]
+        tat: 14 days
+        sample_types: ["FFPE tissue", "Fresh frozen tissue", Cytology]
+        sample_modes: ["tumor-only", "tumor-normal"]
+        methodology: NGS
+        analysis_includes: [SNV, Indel, CNV, SV, Translocations, "Biomarkers (TMB, MSI, HRD)"]
+        biomarkers: [TMB, MSI, HRD]
+
+      rna:
+        in_assays: [solid_tumors]
+        asp_bindings:
+          solid_tumors: [solidRNA_GMSv5, RNA-fusion]
+        tat: 7–14 days
+        sample_types: ["FFPE tissue", "Fresh frozen tissue", Cytology]
+        sample_modes: ["tumor-only"]
+        methodology: NGS
+        analysis_includes: [Fusions, "Splice events", Expression]
+        biomarkers: []
+
+  colorectal:
+    display_name: Colorectal Cancer
+    description: Colorectal cancer and related malignancies.
+    order: 30
+    by_modality:
+      dna:
+        in_assays: [solid_tumors]
+        asp_bindings:
+          solid_tumors: [solid_GMSv3]
+        tat: 14 days
+        sample_types: ["FFPE tissue", "Fresh frozen tissue"]
+        sample_modes: ["tumor-only", "tumor-normal"]
+        methodology: NGS
+        analysis_includes: [SNV, Indel, CNV, SV, Translocations, "Biomarkers (TMB, MSI, HRD)"]
+        biomarkers: [TMB, MSI, HRD]
+
+      rna:
+        in_assays: [solid_tumors]
+        asp_bindings:
+          solid_tumors: [solidRNA_GMSv5, RNA-fusion]
+        tat: 7–14 days
+        sample_types: ["FFPE tissue", "Fresh frozen tissue"]
+        sample_modes: ["tumor-only", "tumor-normal"]
+        methodology: NGS
+        analysis_includes: [Fusions, "Splice events", Expression]
+        biomarkers: []

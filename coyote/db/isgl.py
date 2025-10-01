@@ -366,6 +366,30 @@ class ISGLHandler(BaseHandler):
         # Format the result as a dictionary with IDs as keys
         return {doc.pop("_id"): doc for doc in cursor}
 
+    def get_public_isgl_genes_by_diagnosis(
+        self, diagnosis: str, is_public: bool = True, is_active: bool = True
+    ) -> list:
+        """
+        Retrieve genes from a public gene list document by diagnosis.
+
+        This method queries the database collection for a document where the `diagnosis`
+        field matches the provided `isgl_id` and the document is marked as public and active.
+        It retrieves only the `genes` field and returns the list of gene symbols.
+
+        Args:
+            isgl_id (str): The diagnosis term to query.
+            is_public (bool): Filter by public visibility. Defaults to True.
+            is_active (bool): Filter by active status. Defaults to True.
+
+        Returns:
+            list: A list of gene symbols from the specified public gene list. If the
+            gene list is not found or is not public, returns an empty list.
+        """
+        doc = self.get_collection().find_one(
+            {"diagnosis": diagnosis, "is_public": is_public, "is_active": is_active}, {"genes": 1}
+        )
+        return doc.get("genes", []) if doc else []
+
     def is_isgl_adhoc(self, isgl_id: str) -> bool:
         """
         Check if a gene list is marked as adhoc.

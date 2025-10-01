@@ -31,7 +31,6 @@ from coyote.db.mongo import MongoAdapter
 from coyote.services.auth.ldap import LdapManager
 from coyote.util import Utility
 
-
 # -------------------------------------------------------------------------
 # Shared Variables and Objects
 # -------------------------------------------------------------------------

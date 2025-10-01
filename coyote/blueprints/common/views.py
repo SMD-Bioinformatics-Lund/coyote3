@@ -149,3 +149,23 @@ def get_sample_genelists(sample_id: str, sample_assay: str) -> str:
         asp_config=panel_doc,
         sample_filters=sample_filters,
     )
+
+
+@common_bp.get("/public/gene/<string:id>/info", endpoint="public_gene_info")
+@common_bp.get("/gene/<string:id>/info", endpoint="gene_info")
+def gene_info(id: str) -> str:
+    """
+    Fetches and displays detailed information about a gene based on its HGNC ID.
+
+    Args:
+        hgnc_id (str): The HGNC ID of the gene to retrieve information for.
+    Returns:
+        str: Rendered HTML content for the 'gene_info.html' template.
+    """
+
+    if id.isnumeric():
+        gene = store.hgnc_handler.get_metadata_by_hgnc_id(hgnc_id=id)
+    else:
+        gene = store.hgnc_handler.get_metadata_by_symbol(symbol=id)
+
+    return render_template("gene_info.html", gene=gene)

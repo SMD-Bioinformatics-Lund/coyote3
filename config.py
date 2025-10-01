@@ -54,6 +54,9 @@ class DefaultConfig:
     development, and testing.
     """
 
+    # Public ASSAY CATALOG
+    CATALOG_YAML_PATH = "coyote/static/data/assay_catalog.yaml"
+
     APP_VERSION = app_version
     LOGS = "logs"
     PRODUCTION = False
@@ -198,6 +201,19 @@ class DefaultConfig:
         "22": "NC_000022",
         "X": "NC_000023",
         "Y": "NC_000024",
+    }
+
+    CONTACT: dict[str, str] = {
+        "clinical_email": "ram.nanduri@skane.se",
+        "research_email": "ram.nanduri@skane.se",
+        "samples_email": "ram.nanduri@skane.se",
+        "phone_main": "+46 ",
+        "phone_urgent": "+46 ",
+        "address": "Section for Molecular Diagnostics, Region Skåne\nSölvegatan 23 B, Byggnad 71 Lund, Sweden",
+        "hours": ["Mon–Fri: 08:00–16:30", "Closed on public holidays"],
+        # "sample_form_url": "https://…",
+        # "guidelines_url": "https://…",
+        # "urgent_notes": "For critical cases within lab hours only.",
     }
 
     @property
