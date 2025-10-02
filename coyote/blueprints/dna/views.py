@@ -1533,7 +1533,8 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     variants = util.dna.filter_variants_for_report(variants, filter_genes, assay_group)
 
     # Sample dict for the variant summary table in the report
-    report_sections_data["snvs"] = util.dna.get_simple_variants_for_report(variants, assay_config)
+    variants = util.dna.get_simple_variants_for_report(variants, assay_config)
+    report_sections_data["snvs"] = util.dna.sort_by_class_and_af(variants)
 
     ## GET CNVs TRANSLOCS and OTHER BIOMARKERS ##
     if "CNV" in report_sections:
