@@ -16,10 +16,16 @@ It includes methods for variant classification, consequence selection, CNV handl
 """
 
 from collections import defaultdict
+from datetime import datetime
+from flask_login import current_user
+from bson.objectid import ObjectId
+from coyote.util.common_utility import CommonUtility
 from coyote.util.report.report_util import ReportUtility
 from flask import current_app as app
 from coyote.extensions import store
-
+from bisect import bisect_left
+import math
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 
 class DNAUtility:
@@ -44,10 +50,7 @@ class DNAUtility:
         genes = set()
         variants = []
         for var in var_iter:
-            if (
-                var["INFO"].get("selected_CSQ", {}).get("BIOTYPE")
-                == "protein_coding"
-            ):
+            if var["INFO"].get("selected_CSQ", {}).get("BIOTYPE") == "protein_coding":
                 genes.add(var["INFO"]["selected_CSQ"]["SYMBOL"])
             for csq in var["INFO"]["CSQ"]:
                 if csq["BIOTYPE"] == "protein_coding":
@@ -73,9 +76,7 @@ class DNAUtility:
             if hotspot_dict:
                 for hotspot_key, hotspot_elem in hotspot_dict.items():
                     if any("COS" in elem for elem in hotspot_elem):
-                        variant.setdefault("INFO", {}).setdefault(
-                            "HOTSPOT", []
-                        ).append(hotspot_key)
+                        variant.setdefault("INFO", {}).setdefault("HOTSPOT", []).append(hotspot_key)
             hotspots.append(variant)
         return hotspots
 
@@ -140,9 +141,7 @@ class DNAUtility:
         return pon
 
     @staticmethod
-    def add_global_annotations(
-        variants: list, assay: str, subpanel: str
-    ) -> tuple[list, list]:
+    def add_global_annotations(variants: list, assay: str, subpanel: str) -> tuple[list, list]:
         """
         Add global annotations to each variant in the provided list.
 
@@ -166,18 +165,14 @@ class DNAUtility:
                 variants[var_idx]["classification"],
                 variants[var_idx]["other_classification"],
                 variants[var_idx]["annotations_interesting"],
-            ) = store.annotation_handler.get_global_annotations(
-                var, assay, subpanel
-            )
+            ) = store.annotation_handler.get_global_annotations(var, assay, subpanel)
             classification = variants[var_idx]["classification"]
             if classification is not None:
                 class_value = classification.get("class")
                 if class_value is not None and class_value < 999:
                     selected_variants.append(variants[var_idx])
 
-            variants[var_idx] = DNAUtility.add_alt_class(
-                variants[var_idx], assay, subpanel
-            )
+            variants[var_idx] = DNAUtility.add_alt_class(variants[var_idx], assay, subpanel)
         return variants, selected_variants
 
     @staticmethod
@@ -193,30 +188,22 @@ class DNAUtility:
         Returns:
             dict: The variant dictionary with additional classifications added.
         """
-        additional_classifications = (
-            store.annotation_handler.get_additional_classifications(
-                variant, assay, subpanel
-            )
+        additional_classifications = store.annotation_handler.get_additional_classifications(
+            variant, assay, subpanel
         )
         if additional_classifications:
             additional_classifications[0].pop("_id", None)
             additional_classifications[0].pop("author", None)
             additional_classifications[0].pop("time_created", None)
-            additional_classifications[0]["class"] = int(
-                additional_classifications[0]["class"]
-            )
-            variant["additional_classification"] = additional_classifications[
-                0
-            ]
+            additional_classifications[0]["class"] = int(additional_classifications[0]["class"])
+            variant["additional_classification"] = additional_classifications[0]
         else:
             variant["additional_classification"] = None
 
         return variant
 
     @staticmethod
-    def filter_variants_for_report(
-        variants: list, filter_genes: list, assay: str
-    ) -> list:
+    def filter_variants_for_report(variants: list, filter_genes: list, assay: str) -> list:
         """
         Filters variants for inclusion in the report based on gene, blacklist status, classification, and assay-specific rules.
 
@@ -233,19 +220,14 @@ class DNAUtility:
                 var
                 for var in variants
                 if (
-                    var.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL")
-                    in filter_genes
+                    var.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL") in filter_genes
                     or len(filter_genes) == 0
                 )
                 and not var.get("blacklist")
                 and var.get("classification")
-                and var.get("classification", {}).get("class", 0)
-                not in [4, 999]
+                and var.get("classification", {}).get("class", 0) not in [4, 999]
                 and not (
-                    (
-                        assay == "gmsonco"
-                        and var.get("classification", {}).get("class", 0) == 3
-                    )
+                    (assay == "gmsonco" and var.get("classification", {}).get("class", 0) == 3)
                     if assay != "tumwgs"
                     else False
                 )
@@ -256,9 +238,24 @@ class DNAUtility:
         return filtered_sorted_variants
 
     @staticmethod
-    def get_simple_variants_for_report(
-        variants: list, assay_config: dict
-    ) -> list:
+    def sort_by_class_and_af(data: list[dict]) -> list[dict]:
+        """
+        Sort a list of variant-like dicts by classification and allele frequency.
+
+        Sort order:
+        - primary: 'class' ascending (lower class value first)
+        - secondary: 'af' descending (higher allele frequency first)
+
+        Args:
+            data (list[dict]): Each dict should contain at least the keys 'class' and 'af'.
+
+        Returns:
+            list[dict]: A new list sorted by the specified criteria.
+        """
+        return sorted(data, key=lambda d: (d["class"], -d["af"]))
+
+    @staticmethod
+    def get_simple_variants_for_report(variants: list, assay_config: dict) -> list:
         """
         Generate a simplified list of variant dictionaries for reporting.
 
@@ -306,9 +303,7 @@ class DNAUtility:
             if selected_CSQ.get("HGVSp", None):
                 if indel_size <= 20 or indel_size >= -20:
                     var_type = "snv"
-                    variant = standard_HGVS(
-                        one_letter_p(selected_CSQ.get("HGVSp"))
-                    )
+                    variant = standard_HGVS(one_letter_p(selected_CSQ.get("HGVSp")))
                     protein_changes = [
                         standard_HGVS(one_letter_p(selected_CSQ.get("HGVSp"))),
                         standard_HGVS(selected_CSQ.get("HGVSp")),
@@ -332,9 +327,9 @@ class DNAUtility:
                 variant_class_long = "-"
 
             # Classification/variant type
-            if var.get("INFO", {}).get(
-                "MYELOID_GERMLINE"
-            ) == 1 or "GERMLINE" in var.get("FILTER", []):
+            if var.get("INFO", {}).get("MYELOID_GERMLINE") == 1 or "GERMLINE" in var.get(
+                "FILTER", []
+            ):
                 class_type = "Konstitutionell"
             else:
                 class_type = "Somatisk"
@@ -358,16 +353,26 @@ class DNAUtility:
                         consequence = c
 
             # Allele Freq
-            if (
-                var.get("INFO", {}).get("SVTYPE")
-                and selected_CSQ.get("SYMBOL") == "FLT3"
-            ):
+            if var.get("INFO", {}).get("SVTYPE") and selected_CSQ.get("SYMBOL") == "FLT3":
                 AF = "N/A"
             else:
                 for gt in var.get("GT"):
                     if gt.get("type") == "case":
                         AF = gt.get("AF")
                         break
+
+            exon_raw = selected_CSQ.get("EXON") or ""
+            exons = [
+                e
+                for e in (exon_raw.split("/") if isinstance(exon_raw, str) else [])
+                if e and e.strip()
+            ]
+            intron_raw = selected_CSQ.get("INTRON") or ""
+            introns = [
+                i
+                for i in (intron_raw.split("/") if isinstance(intron_raw, str) else [])
+                if i and i.strip()
+            ]
 
             simple_variants.append(
                 {
@@ -378,8 +383,8 @@ class DNAUtility:
                     "variant": variant,
                     "af": AF,
                     "symbol": selected_CSQ.get("SYMBOL"),
-                    "exon": selected_CSQ.get("EXON").split("/") if selected_CSQ.get("EXON") else [],
-                    "intron": selected_CSQ.get("INTRON").split("/") if selected_CSQ.get("INTRON") else [],
+                    "exon": exons,
+                    "intron": introns,
                     "class": variant_class,
                     "class_short_desc": variant_class_short,
                     "class_long_desc": variant_class_long,
@@ -392,9 +397,7 @@ class DNAUtility:
                     "cdna": cdna,
                     "protein_changes": protein_changes,
                     "global_annotations": var.get("global_annotations", []),
-                    "annotations_interesting": var.get(
-                        "annotations_interesting", []
-                    ),
+                    "annotations_interesting": var.get("annotations_interesting", []),
                     "comments": var.get("comments", []),
                 }
             )

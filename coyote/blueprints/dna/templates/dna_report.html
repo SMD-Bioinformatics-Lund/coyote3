@@ -364,7 +364,7 @@
           <td class="var_report_val">{{ var.af|perc_no_dec }}</td>
         </tr>
 
-        {% if var.class != 999 %}   
+        {% if var.class != 999 %}
           <tr>
             <td class="report_key">Klassificering</td>
             <td class="report_annotation" colspan=5>
@@ -419,7 +419,7 @@
     <input type="hidden" name="enc_panel_doc" id="enc-panel-input">
     <input type="hidden" name="enc_sample_filters" id="enc-sample-filters-input">
   </form>
-  
+
   {% set ns = namespace(table_no=1) %}
   <div>
     {% for genelist_name, genelist_values in genes_covered_in_panel.items() %}
@@ -445,8 +445,8 @@
 
 
   <p>
-    For complete panel gene lists, and configurations, see 
-    <a href="#config" onclick="submitGenelistForm(event)" class="text-blue-600 hover:underline" target="_blank">here.</a> 
+    For complete panel gene lists, and configurations, see
+    <a href="#config" onclick="submitGenelistForm(event)" class="text-blue-600 hover:underline" target="_blank">here.</a>
     <br>Or, for ASP genelist, visit <a href="{{url_for("public_bp.asp_genes",asp_id=sample.assay, _external=True)}}"> {{url_for("public_bp.asp_genes",asp_id=sample.assay , _external=True)}} </a>
   </p>
 
@@ -494,18 +494,18 @@
   // Function to submit the form with encrypted genelists and panel doc
   function submitGenelistForm(e) {
     e.preventDefault();
-  
+
     const genelistsEnc = document.getElementById("encrypted-genelists").textContent.trim();
     const panelEnc = document.getElementById("encrypted-panel-doc").textContent.trim();
     const sampleFiltersEnc = document.getElementById("encrypted-sample-filters").textContent.trim();
-  
+
     document.getElementById("enc-genelists-input").value = genelistsEnc;
     document.getElementById("enc-panel-input").value = panelEnc;
     document.getElementById("enc-sample-filters-input").value = sampleFiltersEnc;
-  
+
     document.getElementById("genelist-form").submit();
   }
   </script>
-  
+
 
 {% endblock %}

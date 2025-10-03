@@ -398,8 +398,8 @@ class CommonUtility:
         for genelist_id, genelist_values in genelists.items():
             genelist_genes = set(genelist_values.get("genes", []))
             # Keep only genes present in the assay panel and move the rest to a separate list
-            genelist_values["covered"] = list(genelist_genes.intersection(covered_genes_set))
-            genelist_values["uncovered"] = list(genelist_genes.difference(covered_genes_set))
+            genelist_values["covered"] = sorted(list(genelist_genes.intersection(covered_genes_set)))
+            genelist_values["uncovered"] = sorted(list(genelist_genes.difference(covered_genes_set)))
             updated_genelists[genelist_id] = genelist_values
 
         return updated_genelists
@@ -589,7 +589,10 @@ class CommonUtility:
         if isinstance(data, list):
             return [CommonUtility.convert_object_id(item) for item in data]
         elif isinstance(data, dict):
-            return {key: CommonUtility.convert_object_id(value) for key, value in data.items()}
+            return {
+                key: CommonUtility.convert_object_id(value)
+                for key, value in data.items()
+            }
         elif isinstance(data, ObjectId):
             return str(data)
         else:
@@ -895,8 +898,6 @@ class CommonUtility:
         # If it's a WTForm, convert it to a dict of name: data
         if hasattr(form_data, "__iter__") and not isinstance(form_data, dict):
             form_data = {field.name: field.data for field in form_data}
-
-        print(form_data)
 
         fields = assay_config_schema.get("sections", {}).get("filters", [])
 

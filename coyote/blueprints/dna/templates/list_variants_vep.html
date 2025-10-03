@@ -8,25 +8,25 @@
     min-width: 48%;  /* Image takes at least 48% */
     max-width: 100%; /* Can expand fully if table is missing */
   }
-  
+
   /* CNV Table */
   .cnv-table {
     flex: 2;
     min-width: 40%;  /* Table takes at least 50% */
     max-width: 100%; /* Can expand fully if image is missing */
   }
-  
+
   /* If Only One Exists, It Takes Full Width */
   .cnv-container:has(.cnv-image) .cnv-table:only-child {
     flex: 0 0 100%;
     max-width: 100%;
   }
-  
+
   .cnv-container:has(.cnv-table) .cnv-image:only-child {
     flex: 0 0 100%;
     max-width: 100%;
   }
-  
+
   /* Move Table Below on Small Screens */
   @media (max-width: 1024px) {
     .cnv-image,
@@ -35,8 +35,8 @@
       max-width: 100%;
     }
   }
-  
-  
+
+
   /* Make Image Float While Table Scrolls */
 </style>
 {% endblock %}
@@ -78,7 +78,7 @@
       {% for dna_section in analysis_sections %}
         {% if dna_section != "BIOMARKER" %}
           <div class="flex border-l-8 border-yellow-400 mt-1">
-            <a href="#{{ dna_section }}" 
+            <a href="#{{ dna_section }}"
               class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
                 <span class="vertical-text">{{ dna_section }}</span>
             </a>
@@ -87,7 +87,7 @@
       {% endfor %}
 
       <div class="flex border-l-8 border-brown-200 mt-1">
-        <a href="#SUMMARY" 
+        <a href="#SUMMARY"
           class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
             <span class="vertical-text">SUMMARY</span>
         </a>
@@ -95,7 +95,7 @@
 
       {% if sample.cov %}
         <div class="flex border-l-8 border-orange-400 mt-1">
-          <a href="{{ url_for('cov_bp.get_cov', sample_id=sample.name) }}" 
+          <a href="{{ url_for('cov_bp.get_cov', sample_id=sample.name) }}"
             class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
               <span class="vertical-text">COVERAGE</span>
           </a>
@@ -104,7 +104,7 @@
 
       {% if has_access('preview_report', min_role='user', min_level=9) %}
         <div class="flex border-l-8 border-teal-400  mt-1">
-          <a href="{{ url_for('dna_bp.generate_dna_report', sample_id=sample.name) }}" 
+          <a href="{{ url_for('dna_bp.generate_dna_report', sample_id=sample.name) }}"
             class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
               <span class="vertical-text">Preview Report</span>
           </a>
@@ -141,7 +141,7 @@
           <div class="overflow-x-auto relative">
             <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">SNVs/Indels ({{ variants|length }})</h2>
           </div>
-          
+
           <div class="mx-auto py-2 " id="snvs-content">
             <div class="flex flex-wrap gap-4">
               <!-- SNVs/Indels Table -->
@@ -149,10 +149,10 @@
                 <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
                   <h2 class="text-sm font-semibold text-black">Variants Passing Filter Criteria</h2>
                   {% if has_access("download_snvs", min_role="user", min_level=9) %}
-                    <img 
-                      src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
-                      alt="Export to CSV - SNVs" 
-                      onclick="exportTableToCSV('{{ sample.name }}.filtered.snvs.csv', 'snvs-table')" 
+                    <img
+                      src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}"
+                      alt="Export to CSV - SNVs"
+                      onclick="exportHTMLTable({ tableId:'snvs-table', filename:'{{ sample.name }}.filtered.snvs.csv' })"
                       class="w-6 h-6 transition-transform transform hover:scale-110"
                     />
                   {% endif %}
@@ -221,11 +221,11 @@
                         <td id="snv-table-row-blacklisted" class="text-center align-middle">
                           <div class="flex items-center justify-center h-full">
                             {% if var.fp == True %}
-                              <span class="relative inline-block cursor-pointer" onmouseover="showTooltip(event, `<span class='text-red-400 '>Variant is false positive</span>`)">
+                              <span data-export-value="False positive" class="relative inline-block cursor-pointer" onmouseover="showTooltip(event, `<span class='text-red-400 '>Variant is false positive</span>`)">
                                 <img class="w-3 h-3" src="{{ url_for('static', filename='icons/heroicons_outline_24/x-circle.svg') }}">
                               </span>
                             {% elif var.blacklist and var.override_blacklist != true %}
-                              <span class="relative inline-block cursor-pointer "
+                              <span data-export-value="Blacklisted" class="relative inline-block cursor-pointer "
                                 onmouseover="showTooltip(event, `<span class='text-red-400'>Variant is blacklisted</span>`)">
                                 <img class="w-3 h-3" src="{{ url_for('static', filename='icons/heroicons_outline_24/no-symbol.svg') }}">
                               </span>
@@ -237,7 +237,7 @@
                         <td id="snv-table-row-comments" class="text-center align-middle">
                           <div class="flex items-center justify-center h-full">
                             {% if var.comments|length > 0 %}
-                              <span class="relative inline-block cursor-pointer"
+                              <span data-export-value="Has Comments" class="relative inline-block cursor-pointer"
                                 onmouseover="showTooltip(event, `<span class='text-orange-400'>Variant has comments</span>`)">
                                 <img class="w-3 h-3" src="{{ url_for('static', filename='icons/heroicons_outline_24/chat-bubble-left-ellipsis.svg') }}">
                               </span>
@@ -249,13 +249,13 @@
                         <td id="snv-table-row-interesting-irrelevant" class="text-center align-middle">
                           <div class="flex items-center justify-center h-full">
                             {% if var.interesting == True %}
-                              <span class="relative inline-block cursor-pointer"
+                              <span data-export-value="Interesting" class="relative inline-block cursor-pointer"
                                 onmouseover="showTooltip(event, `<span class='text-green-400'>Variant is interesting</span>`)">
                                 <img class="w-3 h-3" src="{{ url_for('static', filename='icons/heroicons_outline_24/exclamation-circle.svg') }}">
                             </span>
                             {% endif %}
                             {% if var.irrelevant == True %}
-                              <span class="relative inline-block cursor-pointer"
+                              <span data-export-value="Irrelevant" class="relative inline-block cursor-pointer"
                                 onmouseover="showTooltip(event, `<span class='text-yellow-400'>Variant is irrelevant</span>`)">
                                 <img class="w-3 h-3" src="{{ url_for('static', filename='icons/heroicons_outline_24/x-mark.svg') }}">
                               </span>
@@ -270,7 +270,7 @@
                           {% else %}
                             <span>{{ csq.SYMBOL }}</span>
                           {% endif %}
-                          
+
                           {{ var.INFO.PANEL | format_panel_flag_snv | safe }}
                         </td>
 
@@ -372,7 +372,7 @@
                             </div>
                           {% endfor %}
                         </td>
-                      
+
                         <!-- Population Frequency -->
                         <td class="font-semibold max-w-15c" id="snv-table-row-popFreq">
                           {% if "gnomad_frequency" in var and var.gnomad_frequency != "" %}
@@ -398,7 +398,7 @@
                                 {{ var.additional_classification.tier }}
                               </div>
                             {% endif %}
-                            
+
                           {% elif var.other_classification|length > 0 %}
                             <div class="inline-flex items-center px-3 py-1 font-semibold rounded-full bg-gray-400 text-white shadow-md">
                               ?
@@ -416,14 +416,14 @@
                         </td>
 
                         <!-- Hotspot (Only Display if Assay is 'solid' and Hotspot Exists) -->
-                        {% if assay_group == "solid" %} 
+                        {% if assay_group == "solid" %}
                           <td  id="snv-table-row-hotspot">
                             {% if var.INFO.HOTSPOT %}
                               <div class="inline-block px-1 py-1 font-semibold text-white rounded-full">
                                 {{ var.INFO.HOTSPOT|format_hotspot|safe }}
                               </div>
                             {% else %}
-                              
+
                             {% endif %}
                           </td>
                         {% endif %}
@@ -437,7 +437,7 @@
 
                         <!-- GT -->
                         {% for gt in var.GT|sort(attribute='type') %}
-                          <td id="snv-table-row-{% if gt.type == 'case' %}case{% else %}control{% endif %}" 
+                          <td id="snv-table-row-{% if gt.type == 'case' %}case{% else %}control{% endif %}"
                               sorttable_customkey="{{ gt.AF }}" class="px-1 ">
                             <span class="{% if gt.DP < sample.filters.error_cov %} text-red-600 {% elif gt.DP < sample.filters.warn_cov %} text-orange-600 {% else %} text-gray-900 {% endif %}">
                               {{ '%0.1f'| format(100 * gt.AF|float) }}% ({{ gt.VD|int }} / {{ gt.DP|int }})
@@ -446,12 +446,12 @@
 
                         <!-- View -->
                         <td>
-                          <a href="{{ url_for('dna_bp.show_variant', sample_id=sample.name, var_id=var._id) }}" 
+                          <a href="{{ url_for('dna_bp.show_variant', sample_id=sample.name, var_id=var._id) }}"
                               class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
                             View
                           </a>
                         </td>
-                        </tr> 
+                        </tr>
                       {% endfor %}
                     </tbody>
                   </table>
@@ -466,8 +466,8 @@
       {% endif %}
 
 
-      <!-- CNVs Container -->  
-      {% set has_cnv_image = sample.cnvprofile is not none %}   
+      <!-- CNVs Container -->
+      {% set has_cnv_image = sample.cnvprofile is not none %}
       {% if "CNV" in analysis_sections or has_cnv_image %}
         {% set cnvs = display_sections_data.get('cnvs', []) %}
         <section id="CNV" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative w-full">
@@ -477,15 +477,15 @@
               CNVs ({{ cnvs|length }})
             </h2>
           </div>
-      
+
           <!-- Full-width Wrapper -->
           <div class="w-full flex justify-center py-2" id="cnvs-content">
             <!-- Inner Flexible Container -->
             <div class="w-full px-1 bg-transparent">
-              
+
               <!-- Flex Container for CNV Image & Table -->
               <div class="flex flex-wrap gap-2 w-full bg-transparent cnv-container">
-      
+
                 <!-- CNV Image (Sticky Floating) -->
                 {% if has_cnv_image %}
                   <div class="cnv-image bg-transparent py-2 px-1">
@@ -497,26 +497,26 @@
                       <!-- Toggle Switch -->
                       <div class="flex items-center space-x-2">
                         <span class="text-sm text-gray-800">Rotate</span>
-                        
+
                         <!-- Toggle Switch -->
                         <label class="relative inline-flex items-center cursor-pointer">
                           <input type="checkbox" id="cnv-image-rotate-toggle" class="sr-only">
-                          
+
                           <!-- Toggle Background -->
                           <div id="cnv-image-toggle-bg" class="w-16 h-7 rounded-full flex items-center relative transition-all duration-300">
-                            
+
                             <!-- Sliding Knob -->
                             <div id="cnv-image-toggle-knob" class="absolute bg-white h-6 w-6 rounded-full shadow-md transition-transform duration-300"></div>
-                            
+
                             <!-- Labels -->
                             <div class="absolute inset-0 flex justify-between items-center px-2">
                               <span id="cnv-image-deg-0" class="text-white transition-colors mr-1">0°</span>
                               <span id="cnv-image-deg-90" class="text-black transition-colors ml-3">90°</span>
                             </div>
-                            
+
                           </div>
                         </label>
-                        
+
                       </div>
                     </div>
                     <div class="rounded-b-lg shadow-md pt-4 sticky top-0">
@@ -524,7 +524,7 @@
                       <!-- Image Container (Will be updated dynamically) -->
                       <div id="cnv-image-container" class="flex justify-center items-center">
                         <a id="cnv-image-link" href="{{ url_for('dna_bp.show_any_plot', sample_id=sample.name, fn=sample.cnvprofile|basename) }}" target="_blank">
-                          <img id="cnv-image-img" 
+                          <img id="cnv-image-img"
                             class="rounded-lg border border-gray-300 shadow-lg transition duration-300 ease-in-out transform "
                             src="{{ url_for('dna_bp.show_any_plot_rotated', sample_id=sample.name, fn=sample.cnvprofile|basename) }}"
                           >
@@ -540,7 +540,7 @@
                           </a><br>
                         {% endfor %}
                       </div>
-                    </div>    
+                    </div>
                   </div>
                 {% endif %}
 
@@ -551,10 +551,10 @@
                       <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg p-2 z-10">
                         <h2 class="text-sm font-semibold text-black">CNV Table</h2>
                         {% if has_access("download_cnvs", min_role="user", min_level=9) %}
-                          <img 
-                            src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
-                            alt="Export to CSV - CNVs" 
-                            onclick="exportTableToCSV('{{ sample.name }}.filtered.cnvs.csv', 'cnvs-table')" 
+                          <img
+                            src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}"
+                            alt="Export to CSV - CNVs"
+                            onclick="exportHTMLTable({ tableId:'cnvs-table', filename:'{{ sample.name }}.filtered.cnvs.csv' })"
                             class="w-6 h-6 transition-transform transform hover:scale-110"
                           />
                         {% endif %}
@@ -584,25 +584,31 @@
                             {% for cnv in cnvs %}
                               {% if cnv.interesting %}
                                 <tr class="bg-green-100 hover:bg-green-200 border-t border-gray-400 text-left" id="cnv-table-row-interesting">
-                              {% elif cnv.ratio > 3 and cnv.size > (sample.filters.max_cnv_size|int) %}
+                              {% elif cnv.ratio > 3 and cnv.size > (sample.filters.max_cnv_size|int) or cnv.fp %}
                                 <tr class="bg-red-100 border-t border-gray-400 text-left" id="cnv-table-row">
+                              {% elif cnv.noteworthy %}
+                                <tr class="bg-brown-100 hover:bg-brown-200 border-t border-gray-400 text-left" id="cnv-table-row-noteworthy">
                               {% else %}
                                 <tr class="border-t border-gray-400 text-left hover:bg-yellow-50" id="cnv-table-row">
                               {% endif %}
 
                                 <!-- Genes -->
-                                <td class="pl-2 py-2.5" id="cnv-table-row-genes">
-                                  {% set non_panel_genes = [0] %}
-                                  {% for gene in cnv.genes %}
-                                    {% if gene.class %}
-                                      {{ gene.gene }}<br>
-                                    {% else %}
-                                      {% if non_panel_genes.append(non_panel_genes.pop() + 1) %}
-                                      {% endif %}
-                                    {% endif %}
-                                  {% endfor %}
-                                  {% if non_panel_genes[0] > 0 %}
-                                    <font class='text-gray-400'>+ {{ non_panel_genes[0] }} other genes</font>
+                                {% set cnv_genes_export = namespace(names=[], others=0) %}
+                                {% for gene in cnv.genes %}
+                                  {% if gene.class %}
+                                    {% set _ = cnv_genes_export.names.append(gene.gene) %}
+                                  {% else %}
+                                    {% set cnv_genes_export.others = cnv_genes_export.others + 1 %}
+                                  {% endif %}
+                                {% endfor %}
+
+                                <td class="pl-2 py-2.5 break-all pr-2"
+                                    id="cnv-table-row-genes"
+                                    data-export-value="{{ cnv_genes_export.names|join(', ') }}{% if cnv_genes_export.others > 0 %} + {{ cnv_genes_export.others }} other genes{% endif %}">
+                                  {# render the existing view exactly as before #}
+                                  {{ cnv_genes_export.names|join(', ') }}
+                                  {% if cnv_genes_export.others > 0 %}
+                                    <span class="text-gray-400 text-xs"><br>+ {{ cnv_genes_export.others }} other genes</span>
                                   {% endif %}
                                 </td>
 
@@ -672,6 +678,10 @@
                                 <td class="w-4" id="cnv-table-row-status">
                                   {% if cnv.interesting %}
                                     report
+                                  {% elif cnv.fp %}
+                                    false positive
+                                  {% elif cnv.noteworthy %}
+                                    noteworthy
                                   {% endif %}
                                 </td>
                                 <td class="w-4" id="cnv-table-row-view">
@@ -685,7 +695,7 @@
                           <em class="block text-center text-gray-500 text-sm italic bg-gray-50 p-4 rounded-b-lg border border-gray-300 shadow-md">
                             No cnvs found with the current filter settings!
                             <br>
-                          </em> 
+                          </em>
                         {% endif %}
                       </div>
                     </div>
@@ -705,7 +715,7 @@
           <div class="overflow-x-auto relative">
             <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">Translocations ({{ transloc|length }})</h2>
           </div>
-          
+
           <div class="mx-auto py-2 " id="transloc-content">
             <div class="flex flex-wrap gap-4 ">
               <!-- Translocations Table -->
@@ -713,10 +723,10 @@
                 <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
                   <h2 class="text-sm font-semibold text-black">Gene fusions passing filter criteria</h2>
                   {% if has_access("download_translocs", min_role="user", min_level=9) %}
-                    <img 
-                      src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
-                      alt="Export to CSV - translocations" 
-                      onclick="exportTableToCSV('{{ sample.name }}.filtered.translocs.csv', 'transloc-table')" 
+                    <img
+                      src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}"
+                      alt="Export to CSV - translocations"
+                      onclick="exportHTMLTable({ tableId:'transloc-table', filename:'{{ sample.name }}.filtered.translocs.csv' })"
                       class="w-6 h-6 transition-transform transform hover:scale-110"
                     />
                   {% endif %}
@@ -741,7 +751,7 @@
                         {% set genes = ANN.Gene_Name.split('&') %}
                         {% if tl.interesting %}
                           <tr class="bg-green-100 hover:bg-green-200 border-t border-gray-400 text-left" id="transloc-table-row-interesting">
-                        {% else %}    
+                        {% else %}
                           <tr class="border-t border-gray-400 text-left hover:bg-yellow-50" id="transloc-table-row">
                         {% endif %}
 
@@ -781,7 +791,7 @@
                   {% if transloc|length == 0 %}
                     <em class="block text-center text-gray-800 text-sm italic bg-gray-100 p-4 rounded-b-lg border border-gray-300 shadow-md">
                       No translocations found with the current filter settings!
-                    </em> 
+                    </em>
                 {% endif %}
               </div>
             </div>
@@ -797,7 +807,7 @@
           <div class="overflow-x-auto relative">
             <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">DNA Fusions ({{ fusions|length }})</h2>
           </div>
-          
+
           <div class="mx-auto py-2 " id="fusions-content">
             <div class="flex flex-wrap gap-4 ">
               <!-- Fusions Table -->
@@ -805,10 +815,10 @@
                 <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-200 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
                   <h2 class="text-sm font-semibold text-black">DNA fusions passing filter criteria</h2>
                   {% if has_access("download_fusions", min_role="user", min_level=9) %}
-                    <img 
-                      src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
-                      alt="Export to CSV - fusions" 
-                      onclick="exportTableToCSV('{{ sample.name }}.filtered.fusions.csv', 'fusions-table')" 
+                    <img
+                      src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}"
+                      alt="Export to CSV - fusions"
+                      onclick="exportHTMLTable({ tableId:'fusions-table', filename:'{{ sample.name }}.filtered.fusions.csv' })"
                       class="w-6 h-6 transition-transform transform hover:scale-110"
                     />
                   {% endif %}
@@ -880,7 +890,7 @@
                 {% if fusions|length == 0 %}
                   <em class="block text-center text-gray-800 text-sm italic bg-gray-100 p-4 rounded-b-lg border border-gray-300 shadow-md">
                     No fusions found with the current filter settings!
-                  </em> 
+                  </em>
                 {% endif %}
               </div>
             </div>
@@ -974,13 +984,13 @@
                               name="sample_comment"
                               placeholder="Type to write a new summary for {{ sample.name }} sample..."
                               class="w-5/6 p-4 border border-gray-400 rounded mx-5 my-4 h-40"></textarea>
-              
+
                     <!-- Buttons Row -->
                     <div class="flex flex-wrap items-center gap-4 mx-5 mb-5">
                       <input type="submit"
                             value="Save"
                             class="p-2 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg cursor-pointer">
-              
+
                       <button type="button"
                               onclick="addAIText()"
                               class="p-2 text-black bg-gray-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-gray-500 hover:text-white hover:shadow-lg cursor-pointer">
@@ -995,7 +1005,7 @@
                       {% endif %}
                     </div>
                   </form>
-              
+
                   <!-- AI suggestion box -->
                   <div id="suggestion" class="hidden">
                     {{ ai_text }}
@@ -1022,7 +1032,7 @@
     function showCheckboxes(id, iconId) {
       let checkboxes = document.getElementById(id);
       let icon = document.getElementById(iconId);
-    
+
       if (checkboxes.classList.contains("hidden")) {
         checkboxes.classList.remove("hidden");
         if (icon) icon.classList.add("rotate-180"); // Rotates the dropdown arrow
@@ -1095,20 +1105,20 @@
         textarea.value = text;
       }
     }
-    
+
     window.onload = function () {
       document.querySelectorAll('[data-autoclick="true"]').forEach(element => element.click());
       document.querySelectorAll('[data-autoclick-once="true"]').forEach(element => element.click());
     };
-    
+
     var expanded = false;
     function toggleFilters() {
       var filterCard = document.getElementById("filter_card");
       filterCard.style.display = expanded ? "none" : "block";
       expanded = !expanded;
     }
-    
-    
+
+
     function show_germlinecnv(button) {
       var germlineDiv = document.getElementById("germline_div");
 
@@ -1123,9 +1133,9 @@
       }
     }
 
-    
 
-    
+
+
     function switchVisibility(class_name, button) {
       var elems = document.getElementsByClassName(class_name);
 
@@ -1146,13 +1156,13 @@
       }
     }
 
-    
+
 
     // JavaScript for Expand/Collapse functionality
     function toggleCard(cardId) {
       var card = document.getElementById(cardId);
       var arrowIcon = card.parentElement.querySelector('#arrow-icon');
-    
+
       if (card.classList.contains('hidden')) {
         card.classList.remove('hidden'); // Show the content
         arrowIcon.classList.remove('rotate-180'); // Rotate arrow downwards
@@ -1170,12 +1180,12 @@
         console.error(`Table with ID "${tableId}" not found.`);
         return;
       }
-    
+
       let csv = [];
-      
+
       // Get all rows from the table
       const rows = table.querySelectorAll('tr');
-    
+
       // Loop through each row
       rows.forEach((row) => {
         let rowData = [];
@@ -1187,10 +1197,10 @@
         });
         csv.push(rowData.join(',')); // Join cells with a comma
       });
-    
+
       // Convert the array to a CSV string
       const csvString = csv.join('\n');
-    
+
       // Create a Blob and download the CSV file
       const blob = new Blob([csvString], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
@@ -1201,10 +1211,218 @@
       a.click();
       document.body.removeChild(a);
     }
-    
-    
-    
-    
+
+
+    // UNIVERSAL: works for SNVs, CNVs, fusions, coverage, etc.
+    function exportHTMLTable({
+      tableId,
+      filename = "export.csv",
+      delimiter = ",",
+      includeHeaders = true,
+      includeHiddenRows = false,
+      onlySelected = false,
+      selectedRowsSelector = 'input.row-select:checked',
+      includeBOM = true,
+      } = {}) {
+      const table = document.getElementById(tableId);
+      if (!table) return console.error(`Table "${tableId}" not found`);
+
+      // ---------- helpers ----------
+      const q  = (sel, ctx=document) => ctx.querySelector(sel);
+      const qa = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
+      const isVisible = el => includeHiddenRows || !!(el.offsetParent !== null || el.getClientRects().length);
+      const S = (s) => (s ?? "").toString().replace(/\r?\n|\r/g, " ").replace(/\s+/g, " ").trim();
+
+      // CSV escaper (quote only when needed)
+      function csvEscape(val, delim = delimiter) {
+        const s = (val ?? "").toString();
+        const need = s.includes('"') || s.includes(delim) || /\r|\n/.test(s);
+        return need ? `"${s.replace(/"/g, '""')}"` : s;
+      }
+
+      // Guard against Excel auto-conversion WITHOUT formulas (use leading apostrophe)
+      function protectExcel(val) {
+        const s = (val ?? "").toString().trim();
+        if (!s) return s;
+        const month = "(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)";
+        const fraction      = /^\d+\s*\/\s*\d+$/i;              // 24/25
+        const date1         = /^\d{1,2}[-/]\d{1,2}([-/]\d{2,4})?$/; // 06-12, 6/12/24
+        const monthDashYear = new RegExp(`^${month}-\\d{1,4}$`, "i"); // Jun-15
+        const longDigits    = /^\d{15,}$/;                      // 15+ digits
+        const leadingZeros  = /^0\d+$/;                         // 00123
+        const timeLike      = /^\d+:\d+(:\d+)?$/;               // 12:34, 1:2:3
+        const sci           = /^\d+(\.\d+)?e[+-]?\d+$/i;        // 1e5, 1.2E+10
+
+        const risky = fraction.test(s) || date1.test(s) || monthDashYear.test(s) ||
+                      longDigits.test(s) || leadingZeros.test(s) || timeLike.test(s) || sci.test(s);
+
+        // Prefix apostrophe to keep it as text in Excel; no formula.
+        return risky ? `'${s}` : s;
+      }
+
+      // Strip UI toggles like "[+]"
+      const stripToggles = (s) => S((s ?? "").toString().replace(/\[\+\]/g, ""));
+
+      // Clean header text (remove arrows & mojibake)
+      function cleanHeaderText(th) {
+        if (th.hasAttribute("data-export-skip")) return "";
+        const clone = th.cloneNode(true);
+        clone.querySelectorAll(".sortarrow,.sorttable_sortfwdind,.sorttable_sortrevind,[aria-hidden='true']").forEach(n => n.remove());
+        let txt = S(clone.textContent);
+        txt = txt.replace(/[▲△▼▽▴▾▵▿↕⇅]/g, "");      // real arrows
+        txt = txt.replace(/â–¼|â–²|â–¾|â–½/g, "");     // mojibake arrows
+        return S(txt);
+      }
+
+      // Explicit export values
+      function explicitValues(root) {
+        const vals = [];
+        if (root.dataset?.exportValue) vals.push(root.dataset.exportValue);
+        qa("[data-export-value]", root).forEach(el => vals.push(el.dataset.exportValue));
+        return vals.map(S).filter(Boolean);
+      }
+
+      // Prefer hidden/full text blocks (works for HGVS-style cells)
+      function fullTexts(root) {
+        const vals = [];
+        qa('[data-full], .full, [hidden], .hidden, [id$="-full"]', root)
+          .forEach(el => vals.push(S(el.textContent)));
+        return vals.filter(Boolean);
+      }
+
+      // Collect chip/label tokens from LEAF nodes only (no containers)
+      function leafTokens(td) {
+        const leaves = qa("*", td).filter(el => el.children.length === 0);
+        const tokens = leaves.map(el => S(el.textContent)).filter(Boolean);
+        // Expand composites like LOSB -> LO | SB (2-char chunks), dedupe, remove empties
+        const expanded = [];
+        tokens.forEach(tok => {
+          if (/^[A-Z]{4,}$/.test(tok) && tok.length % 2 === 0) {
+            for (let i = 0; i < tok.length; i += 2) expanded.push(tok.slice(i, i + 2));
+          } else {
+            expanded.push(tok);
+          }
+        });
+        const out = [];
+        const seen = new Set();
+        expanded.forEach(t => {
+          const v = S(t);
+          if (v && !seen.has(v)) { seen.add(v); out.push(v); }
+        });
+        return out;
+      }
+
+      // Icons → get a label from alt/title/aria or known filenames
+      function iconLabel(td) {
+        const icon = td.querySelector("img,svg,[role='img']");
+        if (!icon) return "";
+        const aria = icon.getAttribute?.("aria-label");
+        const title = icon.getAttribute?.("title");
+        const alt = icon.getAttribute?.("alt");
+        const svgTitle = icon.tagName === "SVG" ? (icon.querySelector("title")?.textContent) : null;
+        const label = aria || title || alt || svgTitle;
+        if (label) return S(label);
+
+        // Fallback: map common filenames used in your UI
+        const src = icon.getAttribute?.("src") || "";
+        if (src.includes("x-circle")) return "False positive";
+        if (src.includes("no-symbol")) return "Blacklisted";
+        if (src.includes("exclamation-circle")) return "Interesting";
+        if (src.includes("x-mark")) return "Irrelevant";
+        return "";
+      }
+
+      // Extract a single cell's export value (generic)
+      function extractCellValue(td) {
+        if (td.hasAttribute("data-export-skip")) return "";
+
+        // 1) explicit
+        const explicit = explicitValues(td);
+        if (explicit.length) return explicit.join(" | ");
+
+        // 2) full/hidden texts
+        const full = fullTexts(td);
+        if (full.length) return full.join(" | ");
+
+        // 3) chips/labels from leaf nodes
+        const chips = leafTokens(td);
+        if (chips.length >= 2) return chips.join(" | ");
+        if (chips.length === 1) return chips[0];
+
+        // 4) link → visible text
+        const a = td.querySelector("a[href]");
+        if (a) return S(a.textContent);
+
+        // 5) icons
+        const iLabel = iconLabel(td);
+        if (iLabel) return iLabel;
+
+        // 6) fallback: plain text
+        return S(td.textContent);
+      }
+
+      // ---------- headers ----------
+      const ths = qa("thead tr th", table);
+      const headerTexts = ths.map(cleanHeaderText);
+      const skipColIdx = ths.findIndex(th => th.querySelector('input[type="checkbox"]'));
+
+      // ---------- rows ----------
+      let rows = qa("tbody tr", table).filter(isVisible);
+      if (onlySelected) {
+        const selected = new Set(qa(selectedRowsSelector, table).map(cb => cb.closest("tr")).filter(Boolean));
+        rows = rows.filter(tr => selected.has(tr));
+      }
+
+      const lines = [];
+
+      // header line
+      if (includeHeaders && ths.length) {
+        const headers = headerTexts
+          .map((h, i) => (i === skipColIdx || ths[i].hasAttribute("data-export-skip")) ? "" : h)
+          .filter((_, i) => i !== skipColIdx)
+          .map(stripToggles)
+          .map(protectExcel)           // very rare for headers, but safe
+          .map(v => csvEscape(v, delimiter));
+        lines.push(headers.join(delimiter));
+      }
+
+      // data lines
+      rows.forEach(tr => {
+        const cells = qa("td,th", tr);
+        const rowOut = [];
+        for (let i = 0; i < cells.length; i++) {
+          if (i === skipColIdx) continue;
+          const td = cells[i];
+          if (!td) { rowOut.push(""); continue; }
+
+          let v = extractCellValue(td);
+          v = stripToggles(v);     // remove [+] anywhere
+          v = v.replace(/\s*\|\s*\|\s*/g, " | ");  // collapse double pipes
+          v = v.replace(/\s*\|\s*$/g, "");         // trim trailing pipe
+          v = v.replace(/^\s*\|\s*/g, "");         // trim leading pipe
+
+          v = protectExcel(v);
+          rowOut.push(csvEscape(v, delimiter));
+        }
+        lines.push(rowOut.join(delimiter));
+      });
+
+      // download
+      const csv = lines.join("\n");
+      const blobParts = includeBOM ? [new Uint8Array([0xef, 0xbb, 0xbf]), csv] : [csv];
+      const blob = new Blob(blobParts, { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+
+
 
   </script>
 
