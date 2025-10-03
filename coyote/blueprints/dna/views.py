@@ -1579,8 +1579,6 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
 
     fernet = app.config["FERNET"]
 
-    print(genes_covered_in_panel)
-
     return render_template(
         "dna_report.html",
         assay_config=assay_config,
