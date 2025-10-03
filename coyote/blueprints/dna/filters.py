@@ -273,7 +273,7 @@ def format_filter(filters: list) -> str:
             continue  # Ignore unknown filters
 
         html += (
-            f"<div class='inline-block p-1 text-white {css_class} rounded-md text-xs leading-tight flex items-center' "
+            f"<div data-export-value='{text}' class='inline-block p-1 text-white {css_class} rounded-md text-xs leading-tight flex items-center' "
             f"onmouseover='showTooltip(event, \"{tooltip}\")'>"
             f"{text}</div>"
         )
@@ -402,33 +402,13 @@ def format_fusion_desc(st: str | None) -> str:
             v_str = v_str.replace("<", "&lt;")
             v_str = v_str.replace(">", "&gt;")
             if v in good_terms:
-                html = (
-                    html
-                    + "<span class='fusion fusion-good'>"
-                    + v_str
-                    + "</span>"
-                )
+                html = html + "<span class='fusion fusion-good'>" + v_str + "</span>"
             elif v in verybad_terms:
-                html = (
-                    html
-                    + "<span class='fusion fusion-verybad'>"
-                    + v_str
-                    + "</span>"
-                )
+                html = html + "<span class='fusion fusion-verybad'>" + v_str + "</span>"
             elif v in bad_terms:
-                html = (
-                    html
-                    + "<span class='fusion fusion-bad'>"
-                    + v_str
-                    + "</span>"
-                )
+                html = html + "<span class='fusion fusion-bad'>" + v_str + "</span>"
             else:
-                html = (
-                    html
-                    + "<span class='fusion fusion-neutral'>"
-                    + v_str
-                    + "</span>"
-                )
+                html = html + "<span class='fusion fusion-neutral'>" + v_str + "</span>"
 
     return html
 
@@ -464,9 +444,11 @@ def format_comment(st: str | None) -> str:
     st = st.replace("\n", "<br />")
     return st
 
-@app.template_filter('markdown')
+
+@app.template_filter("markdown")
 def markdown_filter(s):
     return markdown.markdown(s)
+
 
 @app.template_filter()
 def basename(path: str) -> str:
@@ -530,17 +512,17 @@ def format_hotspot(filters: list) -> str:
     html = ""
     for f in filters:
         if "mm" in f:
-            html += "<span title='Present in Melanoma hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-melanoma rounded-full'>MM</span>"
+            html += "<span data-export-value='mm' title='Present in Melanoma hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-melanoma rounded-full'>MM</span>"
         if "cns" in f:
-            html += "<span title='Present in CNS hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-cns rounded-full'>CNS</span>"
+            html += "<span data-export-value='cns' title='Present in CNS hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-cns rounded-full'>CNS</span>"
         if "lu" in f:
-            html += "<span title='Present in Lung hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-lung rounded-full'>LU</span>"
+            html += "<span data-export-value='lu' title='Present in Lung hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-lung rounded-full'>LU</span>"
         if "co" in f:
-            html += "<span title='Present in Colon hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-colon rounded-full'>CO</span>"
+            html += "<span data-export-value='co' title='Present in Colon hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-colon rounded-full'>CO</span>"
         if "gi" in f:
-            html += "<span title='Present in Gastro Intestinal hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-gi rounded-full'>GI</span>"
+            html += "<span data-export-value='gi' title='Present in Gastro Intestinal hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-gi rounded-full'>GI</span>"
         if "d" in f:
-            html += "<span title='Present in DNA-panel hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-dna rounded-full'>D</span>"
+            html += "<span data-export-value='d' title='Present in DNA-panel hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-dna rounded-full'>D</span>"
 
     return html
 
