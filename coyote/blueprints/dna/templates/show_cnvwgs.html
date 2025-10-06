@@ -56,7 +56,7 @@
 {% set cnv_actions_class = "opacity-70 select-none cursor-not-allowed pointer-events-none" if cnv_actions_disabled else "" %}
 {% set cnv_actions_attr = "disabled" if cnv_actions_disabled else "" %}
 
-<div class="flex w-full h-full overflow-hidden ">
+<div class="flex w-full h-full overflow-hidden bg-blue-50">
   <!-- CNV Wall left side bar -->
   <aside class="w-80 bg-transparent text-black flex flex-col overflow-y-auto shadow-lg rounded-lg mr-2 ml-1 left-0 h-full border-r-2 border-t-2 border-brown-400">
 
@@ -271,7 +271,7 @@
                         </div>
                       {% endif %}
                     {% endfor %}
-                  </td>                  
+                  </td>
                   <td class="p-2">
                     <div class="flex flex-wrap gap-1">
                       {% for gene in cnv.genes %}
@@ -282,7 +282,7 @@
                         {% endif %}
                       {% endfor %}
                     </div>
-                  </td>                  
+                  </td>
                 </tr>
               </tbody>
             </table>

@@ -71,7 +71,7 @@
 
 
 
-<div class="flex w-full h-full overflow-hidden ">
+<div class="flex w-full h-full overflow-hidden bg-blue-50">
 
   <!-- Variant Wall left side bar -->
   <aside class="w-80 bg-transparent text-black flex flex-col overflow-y-auto shadow-lg rounded-lg mr-2 ml-1 left-0 h-full border-r-2 border-t-2 border-brown-400">
@@ -191,11 +191,11 @@
                   <div id="genomic-change-short" class="truncate max-w-15c">
                     {{ igv_genomic_position|safe }}
                   </div>
-                
+
                   <div id="genomic-change-full" class="hidden break-all whitespace-normal">
                     {{ igv_genomic_position|safe }}
                   </div>
-                
+
                   <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
                           data-target="genomic-change"
                           onclick="toggleLongText(this)">
@@ -302,7 +302,7 @@
                 </a>
               {% else %}
                 -
-              {% endif %}  
+              {% endif %}
             </td>
           </tr>
           <tr class="hover:bg-brown-100 shadow-md rounded-lg">
@@ -323,7 +323,7 @@
                 {{design_bed_url|safe}}
               </td>
             </tr>
-          {% endif %}          
+          {% endif %}
         </tbody>
       </table>
     </div>
@@ -340,7 +340,7 @@
       <!-- Variant Info Left Section -->
       <div class="flex flex-col ml-2 mr-4">
         <h2 class="text-base font-bold">
-          {{ sel_csq.SYMBOL }} ({{ sel_csq.Feature }}): 
+          {{ sel_csq.SYMBOL }} ({{ sel_csq.Feature }}):
           {% if igv_url %}
             <a href="{{ igv_url }}" class="text-black underline"> {{ show_variant }} </a>
           {% else %}
@@ -400,7 +400,7 @@
           title="Tier II: Potential Clinical Significance"
           {{ dna_tier_disabled_attr }}
         />
-        
+
         <input
           class="m-1 text-black text-sm px-2 py-1 rounded-md shadow-lg whitespace-normal break-all
                   {% if latest_classification.class != 3 %}
@@ -416,7 +416,7 @@
           title="Tier III: Unknown Clinical Significance"
           {{ dna_tier_disabled_attr }}
         />
-        
+
         <input
           class="m-1 text-black text-sm px-2 py-1 rounded-md shadow-lg whitespace-normal break-all
                   {% if latest_classification.class != 4 %}
@@ -432,7 +432,7 @@
           title="Tier IV: Benign"
           {{ dna_tier_disabled_attr }}
         />
-        
+
           </form>
 
           <!-- Remove Tier Info -->
@@ -467,7 +467,7 @@
                 onclick="return confirm('This will remove all historic tiering without any assays assigned, proceed?')"
                 {{ remove_global_tier_attr }}
               >
-            {% endif %}            
+            {% endif %}
             </form>
           {% endif %}
         </div>
@@ -530,7 +530,7 @@
           {% endif %}
         </div>
       </div>
-    </section> 
+    </section>
 
     <!-- other information cards -->
     <section class="bg-transparent p-2 my-2 flex flex-wrap items-start relative gap-4" id="snv-information-cards">
@@ -544,7 +544,7 @@
               <form action="{{ url_for('dna_bp.add_variant_comment', var_id=variant._id, sample_id=sample.name) }}" method="post">
                 <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="h-40 w-full p-2 border border-gray-300 rounded-lg focus:bg-yellow-50 mb-4"></textarea><br>
                 {% if sel_csq.HGVSc is defined %}
-                  <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">      
+                  <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">
                   <input type="hidden" name="transcript" value="{{ sel_csq.Feature }}">
                   <input type="hidden" name="var_p" value="{{ sel_csq.HGVSp|unesc }}">
                   <input type="hidden" name="var_c" value="{{ sel_csq.HGVSc|unesc}}">
@@ -711,7 +711,7 @@
 
         <!-- Alternate Transcripts Information -->
         <div class="bg-gray-50 w-full max-w-xl shadow-md rounded-lg mb-1" id="alternate-transcripts-info">
-          <h2 class="text-sm font-semibold bg-gradient-to-b from-purple-400 to-purple-200 p-2 shadow-md rounded-t-lg break-all">Alternate Transcripts             
+          <h2 class="text-sm font-semibold bg-gradient-to-b from-purple-400 to-purple-200 p-2 shadow-md rounded-t-lg break-all">Alternate Transcripts
             {% if assay_group in ["swea", "gmsonco"] %}
               <a href="javascript:void(0)" onclick="switchVisibility_noncanonicaltranscripts('noncanonical_transcript')" class="text-blue-600 hover:underline">
                 Show/hide
@@ -1092,7 +1092,7 @@
                   </tr>
                 {% endif %}
 
-                
+
                 <!-- CIVIC Database -->
                 {% if civic_gene is defined and civic_gene is not none %}
                   {% set kb_false = False %}
@@ -1111,7 +1111,7 @@
                   </tr>
                 {% endif %}
 
-                
+
                 <!-- OnkoKB Gene Database -->
                 {% if oncokb_gene is defined and oncokb_gene is not none %}
                   {% set kb_false = False %}
@@ -1152,7 +1152,7 @@
                           <span class="font-semibold">{{ iarc_tp53.n_germline }}</span>
                         </div>
                       </div>
-                      
+
                       <div class="text-xs text-gray-800 mb-3">
                         <div>
                           <span class="text-gray-600">Structural motif</span>
@@ -1209,7 +1209,7 @@
                             </tbody>
                           </table>
                         </div>
-                      {% endif %}                      
+                      {% endif %}
                     </td>
                   <tr>
                 {% endif %}
@@ -1220,14 +1220,14 @@
             {% endif %}
           </div>
         </div>
-      
+
       </div>
 
     </section>
 
   </main>
 </div>
-  
+
 
 <script type="text/javascript">
     $("#test").select2();
@@ -1239,7 +1239,7 @@
 
     function switchVisibility_comments(class_name) {
       var elems = document.querySelectorAll('.' + class_name); // Use querySelectorAll to get a static NodeList
-  
+
       elems.forEach(elem => {
           if (window.getComputedStyle(elem).display === "none") {
               elem.style.display = "table-row";  // Ensure it is visible in table format
@@ -1264,7 +1264,7 @@
         elems[i].classList.add(hide_class);
       }
     }
-  }     
+  }
 
   function addText(event) {
     var targ = event.target || event.srcElement;

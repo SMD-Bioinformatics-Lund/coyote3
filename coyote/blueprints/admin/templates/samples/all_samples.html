@@ -3,7 +3,7 @@
 
 {% block body %}
 
-<div class="flex w-full h-full overflow-hidden">
+<div class="flex w-full h-full overflow-hidden bg-blue-50">
 
   <!-- Sidebar -->
   {% include "admin_sidebar.html" %}
@@ -13,16 +13,16 @@
 
     <section id="admin-sample-search" class="mt-2 pl-4">
       <form action="" method="POST" class="flex items-center space-x-4 relative max-w-lg w-full">
-    
+
         <div class="relative group flex-grow">
-          <input 
-            type="text" 
-            name="sample_search" 
-            id="search-input" 
-            value="{{ search_str or '' }}" 
-            class="border border-gray-500 rounded-full py-1 pl-10 pr-4 focus:outline-none focus:border-blue-500 w-full" 
+          <input
+            type="text"
+            name="sample_search"
+            id="search-input"
+            value="{{ search_str or '' }}"
+            class="border border-gray-500 rounded-full py-1 pl-10 pr-4 focus:outline-none focus:border-blue-500 w-full"
             placeholder="Search samples">
-          
+
           <!-- Search Icon -->
           <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="Sample Search Icon" class=" transition-transform duration-500 transform hover:scale-110 hover:rotate-6 absolute left-1 top-1 pb-1 h-7 w-9 text-gray-700 cursor-pointer hover:text-blue-500" onclick="document.getElementById('search-input').focus()">
         </div>

@@ -2,7 +2,7 @@
 
 {% block body %}
 
-<div class="flex w-full h-full overflow-hidden">
+<div class="flex w-full h-full overflow-hidden bg-gray-50">
   <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
     <section id="gene_variants" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
 
@@ -90,7 +90,7 @@
                           <a href="{{ url_for('dna_bp.list_variants', id=sample_names[id]) }}" class="text-blue-500 hover:underline">{{ sample_names[id] }}</a><br>
                       {% endfor %}
                     </td>
-                  </tr>  
+                  </tr>
                 {% endfor %}
                 {% if not ns.has_variants %}
                   <tr class="border-b border-gray-300">

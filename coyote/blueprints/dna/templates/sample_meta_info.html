@@ -12,10 +12,10 @@
 
   <!-- Sample Meta Information (Wraps Naturally) -->
   <div id="sample-meta-info" class="pr-2 flex flex-wrap text-xs text-gray-700 font-medium items-center space-x-1 ml-2 mr-2 break-all overflow-x-auto">
-      
+
     {% if "subpanel" in sample %}
       <div class="flex items-center">
-        <span class="font-semibold ">Type:</span> 
+        <span class="font-semibold ">Type:</span>
         <span class="ml-1 text-black">{{ sample.subpanel }}</span>
       </div>
     {% endif %}
@@ -24,7 +24,7 @@
     {% if "purity" in sample %}
       <span class="text-base font-light pb-1">|</span>
       <div class="flex items-center">
-        <span class="font-semibold ">Purity:</span> 
+        <span class="font-semibold ">Purity:</span>
         <span class="ml-1 text-black">{{ sample.purity * 100 }}%</span>
       </div>
     {% endif %}
