@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.0.6
+- SNV filter step size has been changed to 0.001, now user can go upto 0.1% at the lowest.
+
 ## v3.0.5
 - Download of csv file from Coyot3 #109
 - Sort Variants in Report Table by Tier and VAF #107
