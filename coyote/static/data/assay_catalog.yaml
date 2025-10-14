@@ -83,6 +83,14 @@ modalities:
             label: "H-MGP"
           - key: "hematology_lymphoid"
             label: "H-LGP"
+          - key: "mpn"
+            label: "MPN"
+          - key: "kll"
+            label: "KLL"
+          - key: "Follicular_Lymphoma"
+            label: "Follicular Lymphoma"
+          - key: "hemsnabb"
+            label: "Hem-Snabb"
 
       solid_tumors:
         catalog_id: "solid_GMSv3"
@@ -95,20 +103,8 @@ modalities:
         sample_modes: ["Germline", "Tumor-only", "Tumor-normal"]
         description: "Solid tumor panel for SNV, CNV, MSI."
         gene_lists:
-          - key: "colorectal"                      # ISGL _id
-            label: "Colorectal cancer"
-          - key: "endometrial"
+          - key: "endometrial"                  # (ISGL) Key must match ISGL _id
             label: "Endometrial cancer"
-          - key: "lung"
-            label: "Lung cancer"
-          - key: "melanoma"
-            label: "Melanoma"
-          - key: "ovarian"
-            label: "Ovarian cancer"
-          - key: "breast"
-            label: "Breast cancer"
-          - key: "gist"
-            label: "Gastrointestinal stromal tumor"
           - key: "colon"
             label: "Colon cancer"
 
