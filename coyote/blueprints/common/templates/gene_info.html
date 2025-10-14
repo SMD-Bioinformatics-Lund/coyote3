@@ -88,7 +88,7 @@
         {% if gene.omim_id and gene.omim_id|length %}
           {% for om in gene.omim_id[:3] %}
             <a class="inline-flex items-center gap-2 rounded-3xl bg-gray-100 px-3 py-2 text-sm font-medium text-black shadow-lg border-l-8 border-brown-400 hover:bg-brown-400 transition duration-300 hover:text-white"
-              href="https://www.omim.org/entry/{{ om }}" target="_blank" rel="noopener">OMIM {{ om }}</a>
+              href="https://www.omim.org/entry/{{ om }}" target="_blank" rel="noopener">OMIM</a>
           {% endfor %}
           {% if gene.omim_id|length > 3 %}<span>+{{ gene.omim_id|length - 3 }}</span>{% endif %}
         {% endif %}
@@ -102,6 +102,23 @@
           <a class="inline-flex items-center gap-2 rounded-3xl bg-gray-100 px-3 py-2 text-sm font-medium text-black shadow-lg border-l-8 border-gray-600 hover:bg-gray-600 transition duration-300 hover:text-white"
             href="https://genome.ucsc.edu/cgi-bin/hgTracks?db=hg38&position=chr{{ gene.chromosome }}%3A{{ gene.start }}-{{ gene.end }}"
             target="_blank" rel="noopener">UCSC hg38</a>
+        {% endif %}
+        {% if gene.hgnc_symbol %}
+          <a class="inline-flex items-center gap-2 rounded-3xl bg-gray-100 px-3 py-2 text-sm font-medium text-black shadow-lg border-l-8 border-green-400 hover:bg-green-400 transition duration-300 hover:text-white"
+            href="https://www.genecards.org/cgi-bin/carddisp.pl?gene={{ gene.hgnc_symbol }}"
+            target="_blank" rel="noopener">GeneCards</a>
+
+        {% endif %}
+        {% if gene.hgnc_symbol %}
+          <a class="inline-flex items-center gap-2 rounded-3xl bg-gray-100 px-3 py-2 text-sm font-medium text-black shadow-lg border-l-8 border-blue-400 hover:bg-blue-400 transition duration-300 hover:text-white"
+            href="https://www.oncokb.org/gene/{{ gene.hgnc_symbol }}"
+            target="_blank" rel="noopener">OncoKB</a>
+        {% endif %}
+        {% if gene.hgnc_symbol %}
+          {% set clinvar_somatic_q = '("' ~ gene.hgnc_symbol ~ '"[GENE] AND (("somatic_clinical_impact_classification"[PROP] OR "oncogenicity_classification"[PROP]) AND ("reviewed by expert panel"[Review status])))' %}
+          <a class="inline-flex items-center gap-2 rounded-3xl bg-gray-100 px-3 py-2 text-sm font-medium text-black shadow-lg border-l-8 border-red-600 hover:bg-red-600 transition duration-300 hover:text-white"
+              href="https://www.ncbi.nlm.nih.gov/clinvar?term={{ clinvar_somatic_q|urlencode }}"
+              target="_blank" rel="noopener">ClinVar</a>
         {% endif %}
       </div>
     </section>
