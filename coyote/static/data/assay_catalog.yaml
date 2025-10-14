@@ -1,230 +1,137 @@
-catalog_version: 1
+# assay_catalog.yaml
+version: 1.0
+last_updated: 2025-10-07
+maintainer: "CMD Bioinformatics Team"
 
-assays:
-  hematology:
-    display_name: Hematology
-    description: >
-      This DNA/RNA assay family is used to investigate hematological malignancies
-      and blood-related clinical questions using NGS.
-    technology: Panels        # Panels | WGS | WTS (UI chip)
-    order: 10                 # optional UI sort
+layout:
+  order: ["WGS", "WTS", "GenePanels"]
 
-    modalities:
-      dna:
-        asp_ids:              # ASPs that belong to Hematology under DNA
-          - hema_GMSv1
-        # Which diagnoses belong to this assay+modality (by key)
-        diagnoses:
-          - H-MGP
-          - H-LGP
-
-      rna:
-        asp_ids: []           # (none yet; add when available)
-        diagnoses: []         # add RNA diagnoses if/when you support them
-
-  solid_tumors:
-    display_name: Solid Tumors
-    description: >
-      This assay family covers solid tumors; see DNA and RNA tracks for details.
-    technology: Panels
-    order: 20
-
-    modalities:
-      dna:
-        asp_ids:
-          - solid_GMSv3
-        diagnoses:
-          - breast
-          - lung
-          - colon
-          - cns
-
-      rna:
-        asp_ids:
-          - solidRNA_GMSv5
-          - RNA-fusion
-        diagnoses:
-          - breast         # same dx key can appear under DNA and RNA
-          - lung
-          - colorectal
-
-  PGx:
-    display_name: Pharmacogenomics
-    description: >
-      This assay family covers pharmacogenomics (PGx) testing for drug metabolism and response.
-    technology: Panels
-    order: 40
-
-    modalities:
-      dna:
-        asp_ids:
-          - pgx_GMSv1
-        diagnoses: []        # PGx has no diagnoses
-
-      rna:
-        asp_ids: []
-        diagnoses: []
-
+modalities:
   WGS:
-    display_name: Whole Genome Sequencing
-    description: >
-      This assay family covers whole genome sequencing (WGS) for various clinical applications.
-    technology: WGS
-    order: 30
+    label: "Whole Genome Sequencing (WGS)"
+    description: "WGS analysis for hematology and solid tumors (SNV, CNV, SV, fusions)."
 
-    modalities:
-      dna:
-        asp_ids:
-          - tumwgs-solid
-          - tumwgs-hema
-        diagnoses:
-          - solid
-          - hematology
+    categories:
+      hematology:
+        catalog_id: "tumwgs-hema"
+        label: "Hematology"
+        # WGS heme is an assay *family*; leave ASP links empty or point to the family anchor if you have one.
+        asp_id: "tumwgs-hema"                 # (ASP) if a specific WGS-HEMA ASP exists, set it here.
+        aspc_ids:
+          production: "tumwgs-hema:production"                 # (ASPC) env->id (e.g., production: "...") if you operate configs for WGS.
+        input_material: ['Blood', 'Bone marrow']
+        tat: "4–6 weeks"
+        sample_modes: ["Germline", "Tumor-only", "Tumor-normal"]
+        description: "Open analysis; curated hematology genelists can be applied."
+        gene_lists:                  # (ISGL) fetch by _id
+          - key: "hematology_myeloid"   # ISGL _id
+            label: "GMS-HEM (myeloid)"
+          - key: "hematology_lymphoid"
+            label: "GMS-HEM (lymphoid)"
+          - key: "hematology_addons"
+            label: "Hematology Add-Ons"
 
-      rna:
-        asp_ids: []
-        diagnoses: []
+      solid_tumors:
+        catalog_id: "tumwgs-solid"
+        label: "Solid tumors"
+        asp_id: "tumwgs-solid"                 # (ASP) if a specific WGS-SOLID ASP exists, set it here.
+        aspc_ids:
+          production: "tumwgs-solid:production"                 # (ASPC) env->id (e.g., production: "...") if you operate configs for WGS.
+        input_material: ["FT", "FFPE"]
+        tat: "4–6 weeks"
+        sample_modes: ["Germline", "Tumor-only", "Tumor-normal"]
+        description: "Open analysis; curated solid tumor genelists can be applied."
+        gene_lists:
+          - key: "solid_GMSv3" # ISGL _id
+            label: "GMS-ST"
 
   WTS:
-    display_name: Whole Transcriptome Sequencing
-    description: >
-      This assay family covers whole transcriptome sequencing (WTS) for various clinical applications.
-    technology: WTS
-    order: 50
+    label: "Whole Transcriptome Sequencing (WTS)"
+    description: "Open transcriptome analysis; no fixed genelist applied yet."
 
-    modalities:
-      dna:
-        asp_ids: []
-        diagnoses: []
+    categories:
+      combined:
+        catalog_id: "wts-combined"
+        label: "Hematology & solid tumors"
+        asp_id: "fusion"
+        aspc_ids:
+          production: "fusion:production"
+        input_material: ["FT", "FFPE", "Blood"]
+        tat: "4–6 weeks"
+        sample_modes: ["Tumor-only", "Tumor-normal"]
+        description: "Open RNA-seq analysis; no fixed genelist applied yet."
+        gene_lists: []               # intentionally empty
 
-      rna:
-        asp_ids:
-          - fusion
-        diagnoses: []
+  GenePanels:
+    label: "Targeted Gene Panels"
+    description: "Curated NGS panels for specific tumor or disease types."
 
-# Central diagnosis dictionary (single source of truth)
-diagnoses:
-  H-MGP:
-    display_name: Myeloid
-    description: Myeloid malignancies including AML, MDS, MPN, and related disorders.
-    order: 10
-    # Per-modality, declare (a) which assays this dx participates in and (b) which ASPs to bind to
-    by_modality:
-      dna:
-        in_assays:
-          - hematology
-        asp_bindings:
-          hematology:        # for assay "hematology", use these ASP ids to fetch genes
-            - hema_GMSv1
-        tat: 14 days
-        sample_types: [Blood, Bone marrow, "Other body fluids"]
-        sample_modes: [single]
-        methodology: NGS
-        analysis_includes: [SNV, Indel, SV]
-        biomarkers: []       # optional
+    categories:
+      hematology:
+        catalog_id: "hema_GMSv1"
+        label: "GMS-HEM"
+        # Link to the real assay + configs you showed in ASP/ASPC examples:
+        asp_id: "hema_GMSv1"                   # (ASP)
+        aspc_ids:                                  # (ASPC) env → _id
+          production: "hema_GMSv1:production"
+        input_material: ["Blood", "Bone marrow"]
+        tat: "4–6 weeks"
+        sample_modes: ["Germline", "Tumor-only", "Tumor-normal"]
+        description: "Hematology panel for SNV, CNV."
+        gene_lists:
+          - key: "hematology_myeloid"             # (ISGL)
+            label: "H-MGP"
+          - key: "hematology_lymphoid"
+            label: "H-LGP"
 
-      rna:
-        in_assays: []
-        asp_bindings: {}     # not offered yet
-        # (all other fields optional)
+      solid_tumors:
+        catalog_id: "solid_GMSv3"
+        label: "GMS-ST"
+        asp_id: "solid_GMSv3"                      # (ASP) if this is your panel’s ASP _id
+        aspc_ids:
+          production: "solid_GMSv3:production"     # (ASPC)
+        input_material: ["FT", "FFPE"]
+        tat: "4–6 weeks"
+        sample_modes: ["Germline", "Tumor-only", "Tumor-normal"]
+        description: "Solid tumor panel for SNV, CNV, MSI."
+        gene_lists:
+          - key: "colorectal"                      # ISGL _id
+            label: "Colorectal cancer"
+          - key: "endometrial"
+            label: "Endometrial cancer"
+          - key: "lung"
+            label: "Lung cancer"
+          - key: "melanoma"
+            label: "Melanoma"
+          - key: "ovarian"
+            label: "Ovarian cancer"
+          - key: "breast"
+            label: "Breast cancer"
+          - key: "gist"
+            label: "Gastrointestinal stromal tumor"
+          - key: "colon"
+            label: "Colon cancer"
 
-  H-LGP:
-    display_name: Lymphoid
-    description: Lymphoid malignancies including ALL, CLL, lymphoma, and related disorders.
-    order: 20
-    by_modality:
-      dna:
-        in_assays: [hematology]
-        asp_bindings:
-          hematology:
-            - hema_GMSv1
-        tat: 14 days
-        sample_types: [Blood, Bone marrow, "Lymph node", "Other body fluids"]
-        sample_modes: [single]
-        methodology: NGS
-        analysis_includes: [SNV, Indel, SV]
-        biomarkers: []
+      solid_tumors_rna:
+        catalog_id: "solidRNA_GMSv5"
+        label: "GMS-ST RNA"
+        asp_id: "solidRNA_GMSv5"                   # (ASP) if you version RNA separately
+        aspc_ids:
+          production: "solidRNA_GMSv5:production"  # (ASPC)
+        input_material: ["FT", "FFPE"]
+        tat: "4–6 weeks"
+        sample_modes: ["Tumor-only", "Tumor-normal"]
+        notes: "Fusion-focused RNA panel."
+        gene_lists: []                              # leave empty unless you bind ISGLs
 
-  breast:
-    display_name: Breast Cancer
-    description: Breast cancer and related malignancies.
-    order: 10
-    by_modality:
-      dna:
-        in_assays: [solid_tumors]
-        asp_bindings:
-          solid_tumors:
-            - solid_GMSv3
-        tat: 14 days
-        sample_types: ["FFPE tissue", "Fresh frozen tissue"]
-        sample_modes: ["tumor-only", "tumor-normal"]
-        methodology: NGS
-        analysis_includes: [SNV, Indel, CNV, SV, Translocations, "Biomarkers (TMB, MSI, HRD)"]
-        biomarkers: [TMB, MSI, HRD]
-
-      rna:
-        in_assays: [solid_tumors]
-        asp_bindings:
-          solid_tumors:
-            - solidRNA_GMSv5
-            - RNA-fusion
-        tat: 7–14 days
-        sample_types: ["FFPE tissue", "Fresh frozen tissue"]
-        sample_modes: ["tumor-only", "tumor-normal"]
-        methodology: NGS
-        analysis_includes: [Fusions, "Splice events", Expression]
-        biomarkers: []
-
-  lung:
-    display_name: Lung Cancer
-    description: Lung cancer and related malignancies.
-    order: 20
-    by_modality:
-      dna:
-        in_assays: [solid_tumors]
-        asp_bindings:
-          solid_tumors: [solid_GMSv3]
-        tat: 14 days
-        sample_types: ["FFPE tissue", "Fresh frozen tissue", Cytology]
-        sample_modes: ["tumor-only", "tumor-normal"]
-        methodology: NGS
-        analysis_includes: [SNV, Indel, CNV, SV, Translocations, "Biomarkers (TMB, MSI, HRD)"]
-        biomarkers: [TMB, MSI, HRD]
-
-      rna:
-        in_assays: [solid_tumors]
-        asp_bindings:
-          solid_tumors: [solidRNA_GMSv5, RNA-fusion]
-        tat: 7–14 days
-        sample_types: ["FFPE tissue", "Fresh frozen tissue", Cytology]
-        sample_modes: ["tumor-only"]
-        methodology: NGS
-        analysis_includes: [Fusions, "Splice events", Expression]
-        biomarkers: []
-
-  colorectal:
-    display_name: Colorectal Cancer
-    description: Colorectal cancer and related malignancies.
-    order: 30
-    by_modality:
-      dna:
-        in_assays: [solid_tumors]
-        asp_bindings:
-          solid_tumors: [solid_GMSv3]
-        tat: 14 days
-        sample_types: ["FFPE tissue", "Fresh frozen tissue"]
-        sample_modes: ["tumor-only", "tumor-normal"]
-        methodology: NGS
-        analysis_includes: [SNV, Indel, CNV, SV, Translocations, "Biomarkers (TMB, MSI, HRD)"]
-        biomarkers: [TMB, MSI, HRD]
-
-      rna:
-        in_assays: [solid_tumors]
-        asp_bindings:
-          solid_tumors: [solidRNA_GMSv5, RNA-fusion]
-        tat: 7–14 days
-        sample_types: ["FFPE tissue", "Fresh frozen tissue"]
-        sample_modes: ["tumor-only", "tumor-normal"]
-        methodology: NGS
-        analysis_includes: [Fusions, "Splice events", Expression]
-        biomarkers: []
+      rna_fusion:
+        catalog_id: "rna-fusion"
+        label: "RNA Fusion Panel"
+        asp_id: "RNA-fusion"                       # (ASP) if you keep a generic fusion panel
+        aspc_ids:
+          production: "RNA-fusion:production"
+        input_material: ["FT", "FFPE", "Blood"]
+        tat: "4–6 weeks"
+        sample_modes: ["Tumor-only", "Tumor-normal"]
+        notes: "Generic RNA fusion assay family."
+        gene_lists: []

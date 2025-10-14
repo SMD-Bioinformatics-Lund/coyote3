@@ -1,57 +1,19 @@
 {% extends "layout.html" %}
-
-{% block title %}
-  {% if selected_assay and selected_dx %}{{ selected_dx|replace('_',' ') }} - {{ selected_assay|replace('_',' ')|title }} ({{ selected_dna_rna or '' }})
-  {% elif selected_assay %}{{ selected_assay|replace('_',' ')|title }} ({{ selected_dna_rna or '' }}) - Assays
-  {% elif selected_dna_rna %}{{ selected_dna_rna|replace('_',' ')|title }} Assays
-  {% else %}Assay Explorer{% endif %}
-{% endblock %}
-
-{% block meta %}
-  <meta name="description" content="Public explorer of DNA/RNA assays, diagnosis tracks, and covered genes.">
-{% endblock %}
-
 {% block body %}
-<div class="w-full h-full overflow-y-auto bg-gray-50">
-  <div>
-    <!-- Breadcrumbs -->
-    <nav aria-label="Breadcrumb" class="mx-auto w-full px-4 pt-6">
-      <ol class="flex items-center gap-2 text-sm ">
-        {% if selected_dna_rna or selected_assay or selected_dx %}
-          <li><a href="{{ url_for('public_bp.assay_catalog') }}" class="hover:underline">Assays</a></li>
-        {% endif %}
-        {% if selected_dna_rna %}
-          <li aria-hidden="true" class="text-slate-400">/</li>
-          <li><a href="{{ url_for('public_bp.assay_catalog', dna_rna=(selected_dna_rna|lower)) }}" class="hover:underline">{{ selected_dna_rna|upper }}</a></li>
-        {% endif %}
-        {% if selected_assay %}
-          <li aria-hidden="true" class="text-slate-400">/</li>
-          <li><a href="{{ url_for('public_bp.assay_catalog', dna_rna=(selected_dna_rna|lower), assay=selected_assay) }}" class="hover:underline">{{ selected_assay|replace('_',' ')|title }}</a></li>
-        {% endif %}
-        {% if selected_dx %}
-          <li aria-hidden="true" class="text-slate-400">/</li>
-          <li class="font-medium ">{{ selected_dx|replace('_',' ') }}</li>
-        {% endif %}
-      </ol>
-    </nav>
 
-    <!-- Header -->
-    <header class="mx-auto px-4 py-4">
+<div class="w-full h-full overflow-y-auto bg-purple-50">
+  <div class="mx-auto px-6 pb-10">
+    <!-- Minimal landing copy only -->
+    <header class="py-4">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 class="text-3xl font-semibold tracking-tight">
-            {% if selected_assay and selected_dx %}
-              {{ selected_dx|replace('_',' ')|upper }} - {{ selected_assay|replace('_',' ')|title }} ({{ selected_dna_rna|upper }})
-            {% elif selected_assay %}
-              {{ selected_assay|replace('_',' ')|title }} ({{ selected_dna_rna|upper if selected_dna_rna else 'DNA/RNA' }})
-            {% elif selected_dna_rna %}
-              {{ selected_dna_rna|upper }} Assays
-            {% else %}
-              Assay Catalog
-            {% endif %}
-          </h1>
-          {% if not selected_assay %}
-            <p class="my-2 max-w-5xl text-sm">Explore public DNA/RNA assays, see available diagnosis tracks, and inspect covered genes. Choose an assay from the left to get started.</p>
+          <h1 class="text-3xl font-semibold tracking-tight">Assay Catalog</h1>
+          {% if not selected_mod %}
+            <p class="my-2 max-w-5xl text-sm">
+              Explore CMD’s public catalog of NGS assays. Use the arrow to expand; click a name to load details and the live gene table.
+            </p>
+          {% elif meta.last_updated %}
+            <p class="text-xs text-gray-500 mt-1">Updated {{ meta.last_updated }}</p>
           {% endif %}
         </div>
         <div class="flex items-center gap-2">
@@ -60,153 +22,281 @@
       </div>
     </header>
 
-    <!-- Three columns -->
-    <div class="mx-auto px-4 pb-10">
-      <section class="grid grid-cols-12 gap-3 items-start">
-
-        <!-- Column 1: Assays (always) -->
-        <aside class="col-span-1 self-start rounded-2xl border border-orange-400 bg-orange-50 shadow-xl hover:shadow-lg flex flex-col">
-          <div class="p-3 border-b-2 border-orange-800 ">
-            <h2 class="text-sm font-semibold">Assays</h2>
-          </div>
-          <ul id="assay-list" class="flex-1 overflow-y-auto divide-y">
-            {% for a in (assay_list or []) %}
-              <li class="{{ 'bg-orange-200' if a.key==selected_assay else '' }}">
-                <a href="{{ url_for('public_bp.assay_catalog', dna_rna=(selected_dna_rna or 'dna')|lower, assay=a.key) }}"
-                    class="block px-3 py-3 hover:bg-orange-100 border-t border-orange-600">
-                  <span class="text-sm font-medium">{{ a.display_name }}</span>
-                </a>
-              </li>
-            {% endfor %}
-            <li class="mb-3"></li>
-          </ul>
-        </aside>
-
-        <!-- Column 2: Diagnosis (always) -->
-        <aside class="col-span-2 self-start rounded-2xl border border-yellow-400 bg-yellow-50 shadow-xl hover:shadow-lg flex flex-col">
-          <div class="p-3 border-b-2 border-yellow-800 ">
-            <div class="flex items-center justify-between">
-              <h2 class="text-sm font-semibold">Gene Panels</h2>
-              {% if selected_assay %}
-                <div class="inline-flex rounded-xl border bg-white p-0.5 shadow-sm">
-                  <a href="{{ url_for('public_bp.assay_catalog', dna_rna='dna', assay=selected_assay) }}" class="px-2.5 py-1 text-xs rounded-lg {{ 'bg-yellow-600 text-white' if (selected_dna_rna|lower) == 'dna' }}">DNA</a>
-                  <a href="{{ url_for('public_bp.assay_catalog', dna_rna='rna', assay=selected_assay) }}" class="px-2.5 py-1 text-xs rounded-lg {{ 'bg-yellow-600 text-white' if (selected_dna_rna|lower) == 'rna' }}">RNA</a>
-                </div>
-              {% endif %}
-            </div>
-            <div class="mt-2 relative">
-              <input id="dx-search" type="text" placeholder="Search gene panels…" class="w-full border rounded-lg py-2 pl-3 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" {% if not selected_assay %}disabled{% endif %}>
-              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="Search" class="h-5 w-5 text-slate-500 absolute right-3 top-1/4 -translate-y-1/2 pointer-events-none">
-            </div>
+    <section class="grid grid-cols-12 gap-3 items-start">
+      <!-- LEFT: Tree (arrow toggles; label navigates) -->
+      <aside class="col-span-3 rounded-2xl border border-indigo-800 bg-indigo-50 shadow-xl hover:shadow-lg flex flex-col">
+        <div class="rounded-2xl border shadow-sm">
+          <div class="px-4 py-3 rounded-t-xl bg-indigo-200 border-b-2 border-black">
+            <p class="text-md tracking-wider uppercase">Browse</p>
           </div>
 
-          {% if selected_assay %}
-            {% set cards = (diagnoses_dna if (selected_dna_rna|lower) == 'dna' else diagnoses_rna) %}
-            <ul id="dx-list" class="flex-1 overflow-y-auto divide-y">
-              {% for card in (cards or []) %}
-                <li>
-                  <a href="{{ url_for('public_bp.assay_catalog', dna_rna=(selected_dna_rna|lower), assay=selected_assay, dx=card.key) }}" class="group flex items-start gap-3 px-3 py-3 hover:bg-yellow-100 border-t border-yellow-600 {{ 'bg-yellow-200' if card.key==selected_dx else '' }}">
-                    <div class="flex-1 min-w-0">
-                      <div class="text-sm font-medium truncate">{{ card.label }} <span class="rounded-md bg-gray-200 px-2 py-0.5">{{ card.panel_provider or "Twist" }}</span></div>
+          <nav class="p-2">
+            <ul class="space-y-1">
+              {% for m in order %}
+                {% set mblock = modalities[m] %}
+                {% set mod_open = (m == selected_mod) %}
+
+                <li class="rounded-lg">
+                  <!-- Modality -->
+                  <details class="rounded-lg"
+                    {% if mod_open %}open{% endif %}
+                    ontoggle="(function(d){
+                      var btn=d.querySelector('.chev-btn');
+                      if(!btn) return;
+                      var down=btn.querySelector('.chev-down');
+                      var right=btn.querySelector('.chev-right');
+                      if(d.open){ if(down) down.style.display='block'; if(right) right.style.display='none'; }
+                      else { if(down) down.style.display='none'; if(right) right.style.display='block'; }
+                    })(this)">
+                    <summary class="flex items-center gap-2 cursor-pointer select-none px-3 py-2 rounded-lg hover:bg-indigo-100 {% if m==selected_mod and not selected_cat %}bg-indigo-100{% endif %}">
+                      <!-- Arrow toggles expand/collapse (no navigation) -->
+                      <button type="button" class="w-4 h-4 flex-none chev-btn"
+                              onclick="var d=this.closest('details'); d.open = !d.open; event.stopPropagation();">
+                        <!-- down when open -->
+                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}"
+                              class="w-4 h-4 chev-down"
+                              style="{% if mod_open %}display:block{% else %}display:none{% endif %}" alt="" />
+                        <!-- right when closed -->
+                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-right.svg') }}"
+                              class="w-4 h-4 chev-right"
+                              style="{% if mod_open %}display:none{% else %}display:block{% endif %}" alt="" />
+                      </button>
+
+                      <!-- Label navigates (updates right pane), but does NOT toggle -->
+                      <a href="{{ url_for('public_bp.assay_catalog', mod=m) }}"
+                          class="text-sm font-semibold tracking-tight{% if m==selected_mod and not selected_cat %}text-indigo-800{% else %}hover:underline{% endif %}"
+                          onclick="event.stopPropagation();">
+                        {{ (mblock.label or m) if mblock else m }}
+                      </a>
+                    </summary>
+
+                    <!-- Categories -->
+                    <div class="pl-6">
+                      {% set catmap = (mblock.categories or {}) %}
+                      {% if catmap|length > 0 %}
+                        <ul class="mt-1 space-y-1">
+                          {% for key, c in catmap.items() %}
+                            {% set cid = c.catalog_id or key %}
+                            {% set clabel = c.label or key %}
+                            {% set is_cat_selected = (m == selected_mod and cid == selected_cat) %}
+
+                            <li class="rounded-md">
+                              <!-- Category -->
+                              <details class="rounded-md"
+                                {% if is_cat_selected %}open{% endif %}
+                                ontoggle="(function(d){
+                                  var btn=d.querySelector('.chev-btn');
+                                  if(!btn) return;
+                                  var down=btn.querySelector('.chev-down');
+                                  var right=btn.querySelector('.chev-right');
+                                  if(d.open){ if(down) down.style.display='block'; if(right) right.style.display='none'; }
+                                  else { if(down) down.style.display='none'; if(right) right.style.display='block'; }
+                                })(this)">
+                                <summary class="flex items-center gap-2 cursor-pointer select-none px-3 py-1.5 rounded-md hover:bg-indigo-100 {% if is_cat_selected and not selected_isgl %}bg-indigo-100{% endif %}">
+                                  <!-- Arrow toggles expand/collapse (no navigation) -->
+                                  <button type="button" class="w-4 h-4 flex-none chev-btn"
+                                          onclick="var d=this.closest('details'); d.open = !d.open; event.stopPropagation();">
+                                    <!-- down when open -->
+                                    <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}"
+                                          class="w-4 h-4 chev-down"
+                                          style="{% if is_cat_selected %}display:block{% else %}display:none{% endif %}" alt="" />
+                                    <!-- right when closed -->
+                                    <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-right.svg') }}"
+                                          class="w-4 h-4 chev-right"
+                                          style="{% if is_cat_selected %}display:none{% else %}display:block{% endif %}" alt="" />
+                                  </button>
+
+                                  <!-- Label navigates (updates right pane), but does NOT toggle -->
+                                  <a href="{{ url_for('public_bp.assay_catalog', mod=m, cat=cid) }}"
+                                      class="text-sm {% if is_cat_selected and not selected_isgl %}text-indigo-800 font-semibold{% else %}hover:underline{% endif %}"
+                                      onclick="event.stopPropagation();">
+                                    {{ clabel }}
+                                  </a>
+                                </summary>
+
+                                <!-- Gene lists -->
+                                <div class="pl-6">
+                                  {% if (c.gene_lists or [])|length > 0 %}
+                                    <div class="my-1 pb-1 ml-5 text-xs uppercase underline tracking-wide text-gray-600">Gene lists</div>
+                                    <ul class="ml-2 mt-1 space-y-0.5">
+                                      {% for gl in c.gene_lists %}
+                                        {% set is_gl_selected = (is_cat_selected and selected_isgl and gl.key==selected_isgl) %}
+                                        <li>
+                                          <a href="{{ url_for('public_bp.assay_catalog', mod=m, cat=cid, isgl_key=gl.key) }}"
+                                            class="block rounded-md px-3 py-1 text-sm
+                                                    {% if is_gl_selected %} bg-indigo-100 text-indigo-800 font-semibold border border-indigo-300
+                                                    {% else %} text-gray-800 hover:bg-indigo-100 {% endif %}">
+                                            {{ gl.label }}
+                                          </a>
+                                        </li>
+                                      {% endfor %}
+                                    </ul>
+                                  {% endif %}
+                                </div>
+                              </details>
+                            </li>
+                          {% endfor %}
+                        </ul>
+                      {% endif %}
                     </div>
-                    <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-right.svg') }}" alt="Select" class="mt-1 h-5 w-5 hover:translate-x-1 transition-transform">
-                  </a>
+                  </details>
                 </li>
               {% endfor %}
-              <li class="mb-3"></li
             </ul>
-          {% else %}
-            <div class="flex-1 flex items-center justify-center p-6 text-sm">Select an assay to view diagnosis tracks.</div>
-          {% endif %}
-        </aside>
+          </nav>
+        </div>
+      </aside>
 
-        <!-- Column 3: Detail -->
-        <main class="col-span-9 space-y-4">
-          {% if not selected_assay %}
-            <!-- Landing -->
-            <section class="rounded-2xl border bg-indigo-50 border-indigo-400 shadow-sm p-6">
-              <h2 class="text-lg font-semibold">Welcome to the Assay Catalog</h2>
-              <p class="my-2 text-sm">This page presents public information about our DNA and RNA assay offerings, their diagnosis tracks, and the genes typically analyzed. Choose an assay from the left. Then use the DNA/RNA toggle to narrow diagnosis, and select a diagnosis to view full details and gene coverage.</p>
-              <div class="mt-4">
-                <a href="{{ url_for('public_bp.contact') }}" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow hover:bg-indigo-700">Contact our team</a>
-              </div>
-            </section>
+      <!-- RIGHT: Content -->
+      <main class="col-span-9 space-y-6">
 
-          {% elif selected_assay and not selected_dx %}
-            <!-- Assay overview -->
-            <section class="rounded-2xl border bg-indigo-50 border-indigo-400 shadow-sm p-6">
-              <div class="flex items-center justify-between gap-4 mb-4">
-                <h2 class="text-lg font-semibold">Overview — {{ selected_assay|replace('_',' ') }}</h2>
-                <a href="{{ url_for('public_bp.download_asp_genes_csv', modality=(selected_dna_rna or 'dna')|lower, assay=selected_assay) }}" class="inline-flex items-center gap-2 rounded-lg bg-orange-400 px-3 py-2 text-sm font-medium  shadow hover:bg-orange-500">
-                  <img src="{{ url_for('static', filename='icons/heroicons_outline_24/folder-arrow-down.svg') }}" alt="Download" class="h-5 w-5">
-                  Download Genes CSV
-                </a>
-              </div>
-              <p class="mt-2 text-sm leading-6">{{ (assay_overview.asp.description or '')|safe }}</p>
-              <dl class="mt-4 grid grid-cols-2 gap-4 text-sm">
-                <div><dt class="text-sm font-semibold">Technology</dt><dd class="font-medium">{{ assay_overview.asp.sequencing or '—' }}</dd></div>
-                <div><dt class="text-sm font-semibold">Turnaround time</dt><dd class="font-medium">{{ assay_overview.asp.tat or '—' }}</dd></div>
-                <div><dt class="text-sm font-semibold">Sample type</dt><dd class="font-medium">{{ assay_overview.asp.sample_type or '—' }}</dd></div>
-                <div><dt class="text-sm font-semibold">Technology</dt><dd class="font-medium">{{ assay_overview.asp.includes or '—' }}</dd></div>
-              </dl>
-            </section>
+        {% if not selected_mod %}
+          <!-- Base page: one clean card only -->
+          <section class="rounded-2xl border bg-gray-50 border-indigo-400 shadow-xl hover:shadow-lg p-6">
+            <h2 class="text-lg font-medium">Welcome</h2>
+            <p class="text-gray-600 text-sm mt-2">
+              his page presents public information about our DNA and RNA assay offerings, their diagnosis tracks, and the genes typically analyzed. Choose an assay from the left. Then use the DNA/RNA toggle to narrow diagnosis, and select a diagnosis to view full details and gene coverage. The gene lists can be exported as CSV anytime.
+            </p>
+          </section>
+        {% else %}
+          <!-- Summary card (only shows full details when a category is selected) -->
+          <section class="rounded-2xl border bg-gray-50 border-gray-400 shadow-xl hover:shadow-lg p-6">
+            <div class="p-2 border-b border-gray-300">
+              <h2 class="text-lg font-medium">
+                {% if selected_mod and not selected_cat %}
+                  {{ (modalities[selected_mod].label or selected_mod) if modalities[selected_mod] else selected_mod }}
+                {% else %}
+                  {{ right.title }}
+                {% endif %}
+              </h2>
+              <p class="text-sm mt-1">
+                {% if selected_mod and not selected_cat %}
+                  {{ (modalities[selected_mod].description or "") if modalities[selected_mod] else "" }}
+                {% else %}
+                  {{ right.description or "" }}
+                {% endif %}
+              </p>
+            </div>
 
-          {% else %}
-            <!-- Diagnosis overview -->
-            <section class="rounded-2xl border bg-indigo-50 border-indigo-400 shadow-sm p-6">
-              <div class="flex items-center justify-between gap-4 mb-4">
-                <h2 class="text-lg font-semibold">{{ selected_dx|replace('_',' ')|upper }} - Overview</h2>
-                <a href="{{ url_for('public_bp.download_asp_dx_genes_csv', modality=(selected_dna_rna or 'dna')|lower, assay=selected_assay, dx=selected_dx) }}" class="inline-flex items-center gap-2 rounded-lg bg-orange-400 px-3 py-2 text-sm font-medium  shadow hover:bg-orange-500">
-                  <img src="{{ url_for('static', filename='icons/heroicons_outline_24/folder-arrow-down.svg') }}" alt="Download" class="h-5 w-5">
-                  Download Genes CSV
-                </a>
-              </div>
-              <p class="mt-2 text-sm leading-6">{{ (assay_overview.dx.description or '')|safe }}</p>
-              <dl class="mt-4 grid grid-cols-2 gap-4 text-sm">
-                <div><dt class="text-sm font-semibold">Sequencing</dt><dd class="font-medium">{{ assay_overview.dx.sequencing or assay_overview.asp.sequencing or '—' }}</dd></div>
-                <div><dt class="text-sm font-semibold">Turnaround time</dt><dd class="font-medium">{{ assay_overview.dx.tat or assay_overview.asp.tat or '—' }}</dd></div>
-                <div><dt class="text-sm font-semibold">Sample type</dt><dd class="font-medium">{{ assay_overview.dx.sample_type or assay_overview.asp.sample_type or '—' }}</dd></div>
-                <div><dt class="text-sm font-semibold">Genes</dt><dd class="font-medium">{{ genes|length if genes else 0 }}</dd></div>
-                <div>
-                  <dt class="text-sm font-semibold">Sample modes</dt>
-                  <dd class="font-medium">
-                  {% set modes = assay_overview.dx.sample_modes or assay_overview.asp.sample_modes %}
-                  {% if modes %}
-                    <ul class="list-disc pl-5 space-y-1">
-                    {% for m in modes %}
-                      <li>{{ m|upper }}</li>
-                    {% endfor %}
-                    </ul>
-                  {% else %}
-                    —
-                  {% endif %}
-                  </dd>
+            {% if selected_cat %}
+              <div class="p-6">
+                <div class="grid grid-cols-3 gap-4 text-sm">
+                  <div class="col-span-2">
+                    <div class="text-gray-500 py-1">Input material</div>
+                    <div class="flex">{{ right.input_material|format_input_material|safe or "—" }}</div>
+                  </div>
+                  <div>
+                    <div class="text-gray-500 py-1">Turnaround</div>
+                    <div>{{ right.tat or "—" }}</div>
+                  </div>
+                  <div class="col-span-2">
+                    <div class="text-gray-500 py-1">Sample modes</div>
+                    <div class="flex">
+                      {% for mode in right.sample_modes %}
+                        <span class="inline-block bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded-full mr-2">{{ mode }}</span>
+                      {% else %}
+                        <span class="text-gray-500">Info. Not Available</span>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="text-gray-500">Platform</div>
+                    <div>{{ right.asp.platform if right.asp else "—" }}</div>
+                  </div>
+                  <div class="col-span-2">
+                    <div class="text-gray-500 py-1">Available analyses</div>
+                    <div class="flex">
+                      {% for a in right.analysis %}
+                        <span class="inline-block bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded-full mr-2">{{ a }}</span>
+                      {% else %}
+                        <span class="text-gray-500">Info. Not Available</span>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="text-gray-500">Read Length</div>
+                    <div>
+                      {% if right.asp %}
+                        {{ right.asp.read_length or "—" }} {{ right.asp.read_mode or "" }}
+                      {% else %}—{% endif %}
+                    </div>
+                  </div>
                 </div>
-                <div><dt class="text-sm font-semibold">Analysis includes</dt><dd class="font-medium">{{ assay_overview.dx.includes or assay_overview.asp.includes or '—' }}</dd></div>
-              </dl>
-            </section>
+                <hr class="my-4" />
+                <div class="grid grid-cols-3 gap-4 text-sm">
+                  <div class="mt-3 text-sm">
+                    <div class="text-gray-500">Covered genes (count)</div>
+                    <div>
+                      {% if selected_isgl %}
+                        {{ stats.isgl_total }}
+                      {% else %}
+                        {{ right.asp.covered_genes_count if right.asp else "Not Available" }}
+                      {% endif %}
+                      {% if selected_mod.lower() not in ["wgs", "wts"] %}
+                        <span class="text-gray-500"> (of {{ right.asp.covered_genes_count }} in ASP)</span>
+                      {% endif %}
+                    </div>
+                  </div>
+              </div>
+            {% endif %}
+          </section>
 
-            <!-- Genes table -->
-            <section class="rounded-2xl border bg-indigo-50 border-indigo-400 shadow-sm pb-5 px-2">
-              <div class="p-4 flex flex-wrap items-center gap-3">
-                <div class="font-medium text-lg">Genes for <b>{{ selected_dx|replace('_',' ')|upper }}</b> - {{ selected_assay|replace('_',' ')|title }} ({{ selected_dna_rna|upper }})</div>
-                <div class="relative w-50 ml-auto">
-                  <input id="search-genes" type="text" placeholder="Search genes, aliases, OMIM…" class="w-full border rounded-xl py-2 pl-4 pr-10 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+          {% if genes|length > 0 %}
+            <!-- Gene table -->
+            <section class="rounded-2xl border bg-gray-50 border-gray-400 shadow-xl hover:shadow-lg pb-5 px-2">
+              <div class="p-4 flex flex-wrap items-start gap-3">
+                <div class="flex-1">
+                  <h3 class="text-base font-medium">
+                    {% if selected_isgl %}
+                      {% set isgl_label = (right.gene_lists | selectattr('key', 'equalto', selected_isgl) | first).label if right.gene_lists | selectattr('key', 'equalto', selected_isgl) | first else '' %}
+                    {% endif %}
+                    {{ selected_mod }} | {{ right.title }} {% if isgl_label %}{{ isgl_label }}{% endif %}
+                    ({{ genes|length }})
+                  </h3>
+
+                  {# compute download href once #}
+                  {% if selected_mod and not selected_cat %}
+                    {% set dl_href = url_for('public_bp.assay_catalog_genes_csv', mod=selected_mod) %}
+                  {% elif selected_mod and selected_cat and not selected_isgl %}
+                    {% set dl_href = url_for('public_bp.assay_catalog_genes_csv', mod=selected_mod, cat=selected_cat) %}
+                  {% elif selected_mod and selected_cat and selected_isgl %}
+                    {% set dl_href = url_for('public_bp.assay_catalog_genes_csv', mod=selected_mod, cat=selected_cat, isgl_key=selected_isgl) %}
+                  {% else %}
+                    {% set dl_href = None %}
+                  {% endif %}
+
+                  {% if dl_href %}
+                    <div class="mt-2">
+                      <a href="{{ dl_href }}"
+                          class="inline-flex items-center gap-2 rounded-lg bg-blue-300 px-3 py-1 text-xs font-medium text-black shadow-sm hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2">
+                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/folder-arrow-down.svg') }}"
+                              alt="" class="h-5 w-5">
+                        <span>Download CSV</span>
+                      </a>
+                    </div>
+                  {% endif %}
+                </div>
+
+                <div class="relative w-full sm:w-auto sm:min-w-[260px] ml-auto">
+                  <input id="search-genes" type="text" placeholder="Search genes, aliases, OMIM…"
+                          class="w-full border rounded-xl py-2 pl-4 pr-10 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
                   <div class="absolute inset-y-0 right-0 flex items-center pr-3">
-                    <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="Search" class="h-5 w-5 text-slate-500 pointer-events-none">
+                    <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}"
+                          alt="Search" class="h-5 w-5 text-slate-500 pointer-events-none">
                   </div>
                 </div>
               </div>
-              <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" id="genes-div" data-rows-per-page="25" pagination-button-color="blue" pagination-button-text-color="black">
+
+
+              <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" id="genes-div" data-rows-per-page="50" pagination-button-color="gray" pagination-button-text-color="black">
                 <table id="genes-table" class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
                   <thead class="rounded-t-2xl overflow-hidden border-gray-800">
-                    <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
+                    <tr class="border-b text-left border-gray-800 bg-gray-300 uppercase tracking-wider shadow-xl rounded-t-2xl">
                       <th class="p-2 font-normal">HGNC ID</th>
                       <th class="p-2 font-normal">Gene Symbol</th>
                       <th class="p-2 font-normal">OMIM</th>
                       <th class="p-2 font-normal">Locus</th>
-                      <th class="p-2 font-normal">Alias Symbol</th>
-                      <th class="p-2 font-normal">Ensembl Cannonical</th>
+                      <th class="p-2 font-normal">Ensembl Canonical</th>
                       <th class="p-2 font-normal">Mane Select</th>
                       <th class="p-2 font-normal">Mane Select Plus Clinical</th>
                       <th class="p-2 font-normal">Description</th>
@@ -214,7 +304,7 @@
                   </thead>
                   <tbody id="genes-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
                     {% for gene in genes %}
-                      <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
+                      <tr class="border-t border-gray-400 hover:bg-gray-200 text-left last:rounded-b-2xl">
                         <td class="p-2 font-medium">
                           <a href="{{ url_for('common_bp.public_gene_info', id=gene.hgnc_id.replace('HGNC:', '')) }}" class="bg-indigo-200 text-black px-2 py-0.5 rounded-full hover:underline">{{ gene.hgnc_id.replace('HGNC:', '') }}</a>
                         </td>
@@ -236,15 +326,6 @@
                           </div>
                         </td>
                         <td class="p-2 font-medium">{{ gene.locus }}</td>
-                        <td class="p-2 font-medium">
-                          <div class="flex flex-wrap gap-1">
-                            {% for alias in gene.alias_symbol %}
-                            <span class="bg-brown-100 text-black px-2 py-0.5 rounded-full ml-2">{{ alias }}</span>
-                            {% else %}
-                            <span>-</span>
-                            {% endfor %}
-                          </div>
-                        </td>
                         <td class="p-2 font-medium text-center align-middle">
                           <div class="flex justify-center items-center">
                             {% if gene.ensembl_canonical %}
@@ -272,41 +353,10 @@
               </div>
             </section>
           {% endif %}
-        </main>
-      </section>
+        {% endif %}
+      </main>
     </div>
   </div>
 </div>
 
-<script>
-(function(){
-  // Diagnosis list search + simple paging
-  const dl = document.getElementById('dx-list');
-  const ds = document.getElementById('dx-search');
-  const dshown = document.getElementById('dx-shown');
-  const dprev = document.getElementById('dx-prev');
-  const dnext = document.getElementById('dx-next');
-  if(dl){
-    const items = Array.from(dl.children);
-    const PAGE=20; let page=1; let filtered=[...items];
-    function apply(){
-      const t=(ds?.value||'').toLowerCase().trim();
-      filtered = items.filter(li=> li.textContent.toLowerCase().includes(t));
-      page=1; render();
-    }
-    function render(){
-      items.forEach(li=>li.style.display='none');
-      const start=(page-1)*PAGE, end=start+PAGE; const total=filtered.length;
-      filtered.slice(start,end).forEach(li=>li.style.display='');
-      const max=Math.max(1, Math.ceil(total/PAGE));
-      if(dshown) dshown.textContent = `${Math.min(end,total)} of ${total}`;
-      if(dprev) dprev.disabled = page<=1; if(dnext) dnext.disabled = page>=max;
-    }
-    ds?.addEventListener('input', apply);
-    dprev?.addEventListener('click', ()=>{ if(page>1){ page--; render(); }});
-    dnext?.addEventListener('click', ()=>{ const max=Math.max(1, Math.ceil(filtered.length/PAGE)); if(page<max){ page++; render(); }});
-    apply();
-  }
-})();
-</script>
 {% endblock %}

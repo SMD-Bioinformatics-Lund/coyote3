@@ -56,7 +56,7 @@ def format_panel_flag_snv(panel_str: str) -> str:
 
     Args:
         panel_str (str): A string containing gene panel information, typically in the format
-                         'classification:variant_type' separated by commas for multiple entries.
+        'classification:variant_type' separated by commas for multiple entries.
 
     Returns:
         str: HTML string with formatted badges for each classification and variant type.
@@ -636,6 +636,8 @@ def format_gnomad(st: str | None) -> str:
     """
     if not st:
         return "-"
+    if isinstance(st, str):
+        st = st.strip()
     return str(round_to_3(float(st) * 100)) + "%"
 
 

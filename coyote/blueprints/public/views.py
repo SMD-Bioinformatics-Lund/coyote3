@@ -17,6 +17,7 @@ These routes provide access to public-facing genomic data views, including genel
 genepanel matrix visualization, and gene explorer asp for public assays.
 """
 
+from __future__ import annotations
 from flask import current_app as app
 from flask import (
     redirect,
@@ -27,14 +28,11 @@ from flask import (
     abort,
 )
 import io
-import zipfile
 import csv
 import datetime
-import re
-
 from werkzeug import Response
 from coyote.extensions import store, util
-from coyote.blueprints.public import public_bp
+from coyote.blueprints.public import public_bp, filters
 
 
 @public_bp.route("/genelists/<genelist_id>/view", methods=["GET"])
@@ -117,129 +115,150 @@ def genepanel_matrix() -> str:
 
 
 @public_bp.route("/assay-catalog")
-@public_bp.route("/assay-catalog/<dna_rna>")  # DNA or RNA
-@public_bp.route("/assay-catalog/<dna_rna>/<assay>")  # Assay family key (e.g., hematology)
-@public_bp.route("/assay-catalog/<dna_rna>/<assay>/<dx>")  # Diagnosis key
-def assay_catalog(dna_rna: str | None = None, assay: str | None = None, dx: str | None = None):
+@public_bp.route("/assay-catalog/<mod>")
+@public_bp.route("/assay-catalog/<mod>/<cat>")
+@public_bp.route("/assay-catalog/<mod>/<cat>/isgl/<isgl_key>")
+def assay_catalog(mod: str | None = None, cat: str | None = None, isgl_key: str | None = None):
     """
-    Public assays explorer (three-column layout)
-    Column 1: assays (always)
-    Column 2: diagnosis for selected assay with DNA/RNA toggle (always)
-    Column 3: detail (landing → assay overview → dx overview + genes)
+    Display the assay catalog with modalities, categories, and gene lists.
+
+    Args:
+        mod (str | None): The modality identifier from the URL, or None for the top-level view.
+        cat (str | None): The category identifier from the URL, or None for modality/top-level view.
+        isgl_key (str | None): The in-silico genelist key from the URL, or None for modality/category view.
+
+    Returns:
+        flask.Response: The rendered HTML page for the assay catalog, or a 404 error if not found.
     """
+    catalog = util.public.load_catalog()
+    order = util.public.modalities_order()
+    if not order:
+        abort(404)
 
-    modality = util.public._norm_modality(dna_rna)  # 'dna' | 'rna' | None
+    # level detection
+    selected_mod = util.public.normalize_mod(mod) if mod else None
+    selected_cat = cat if cat else None
+    selected_isgl = isgl_key if isgl_key else None
 
-    # Common: assays list for column 1 (always present)
-    # Keep it unfiltered so the left column is stable.
-    # assays_for_left = util.public._list_assays()
-    assays_for_left = util.public._list_assays()
-    # Landing page: /assays-explorer
-    if not modality and not assay and not dx:
-        return render_template(
-            "assay_catalog.html",
-            selected_dna_rna=None,
-            assay_list=assays_for_left,  # Left column
-            selected_assay=None,
-            # Middle column has placeholder (no dx lists when no assay)
-            diagnoses_dna=[],
-            diagnoses_rna=[],
-            # Right panel landing
-            selected_dx=None,
-            genes=[],
-            germline_gene_symbols=[],
-            assay_overview={"asp": {}, "dx": {}, "links": []},
-            stats={"total_genes": 0, "diagnosis_count": 0},
+    # left tree data
+    mods = catalog.get("modalities") or {}
+
+    # right pane data by level
+    if not selected_mod:
+        # top level: only modalities visible; right shows generic landing (from catalog meta)
+        right = {
+            "title": "Assay Catalog",
+            "description": "Select a modality to explore available assays.",
+            "input_material": None,
+            "tat": None,
+            "sample_modes": [],
+            "analysis": [],
+            "asp_id": None,
+            "asp": None,
+        }
+        gene_mode, genes, stats = (
+            "covered",
+            [],
+            {"total": 0, "covered_total": 0, "germline_total": 0},
         )
+    elif selected_mod and not selected_cat:
+        # modality level: show modality description; inherit missing fields from first category
+        right = util.public.hydrate_modality(selected_mod)
+        gene_mode, genes, stats = util.public.resolve_gene_table(right.get("asp_id"), None)
+        print(f"ASP_ID: {right.get('asp_id')}")
+    else:
+        # category / genelist level
+        hc = util.public.hydrate_category(selected_mod, selected_cat, env="production")
+        if not hc:
+            abort(404)
+        right = {
+            "title": hc.get("label"),
+            "description": hc.get("description"),
+            "input_material": hc.get("input_material"),
+            "tat": hc.get("tat"),
+            "sample_modes": hc.get("sample_modes") or [],
+            "analysis": hc.get("analysis") or [],
+            "asp_id": hc.get("asp_id"),
+            "asp": hc.get("asp"),
+            "gene_lists": hc.get("gene_lists") or [],
+        }
+        gene_mode, genes, stats = util.public.resolve_gene_table(hc.get("asp_id"), selected_isgl)
 
-    # Modality page: /assays-explorer/<dna|rna>
-    if modality and not assay and not dx:
-        # Left column still shows all assays; middle column will show placeholder
-        return render_template(
-            "assay_catalog.html",
-            selected_dna_rna=dna_rna.upper(),
-            assay_list=assays_for_left,  # Left column
-            selected_assay=None,
-            diagnoses_dna=[],
-            diagnoses_rna=[],
-            selected_dx=None,
-            genes=[],
-            germline_gene_symbols=[],
-            assay_overview={"asp": {}, "dx": {}, "links": []},
-            stats={"total_genes": 0, "diagnosis_count": 0},
+    # view model
+    vm = {
+        "meta": {
+            "version": catalog.get("version"),
+            "last_updated": catalog.get("last_updated"),
+            "maintainer": catalog.get("maintainer"),
+        },
+        "order": order,
+        "modalities": mods,
+        "selected_mod": selected_mod,
+        "categories": util.public.categories_for(selected_mod) if selected_mod else [],
+        "selected_cat": selected_cat,
+        "selected_isgl": selected_isgl,
+        "right": right,
+        "gene_mode": gene_mode,
+        "genes": genes,
+        "stats": stats,
+    }
+    return render_template("assay_catalog.html", **vm)
+
+
+# ---- CSV export for the visible table ----
+@public_bp.route("/assay-catalog/<mod>/genes.csv")
+@public_bp.route("/assay-catalog/<mod>/<cat>/genes.csv")
+@public_bp.route("/assay-catalog/<mod>/<cat>/isgl/<isgl_key>/genes.csv")
+def assay_catalog_genes_csv(mod: str, cat: str | None = None, isgl_key: str | None = None):
+    """
+    Export genes from the assay catalog as a CSV file.
+
+    Args:
+        mod (str): The modality identifier from the URL.
+        cat (str | None, optional): The category identifier from the URL. Defaults to None.
+        isgl_key (str | None, optional): The in-silico genelist key from the URL. Defaults to None.
+
+    Returns:
+        flask.Response: A CSV file containing gene data for the selected modality, category, and/or genelist.
+    """
+    selected_mod = util.public.normalize_mod(mod)
+    if not selected_mod:
+        abort(404)
+
+    # Resolve asp + table according to level
+    if not cat:
+        right = util.public.hydrate_modality(selected_mod, env="production")
+        asp_id = right.get("asp_id")
+    else:
+        hc = util.public.hydrate_category(selected_mod, cat, env="production")
+        if not hc:
+            abort(404)
+        asp_id = hc.get("asp_id")
+
+    mode, rows, _ = util.public.resolve_gene_table(asp_id, isgl_key)
+
+    sio = io.StringIO()
+    w = csv.writer(sio, lineterminator="\n")
+    w.writerow(["HGNC_ID", "Gene_Symbol", "Chromosome", "Start", "End", "Gene_Type"])
+    for g in rows:
+        w.writerow(
+            [
+                (g.get("hgnc_id") or "").replace("HGNC:", "HGNC:"),
+                g.get("hgnc_symbol") or g.get("symbol") or "",
+                g.get("chromosome") or "",
+                g.get("start") or "",
+                g.get("end") or "",
+                ",".join(g.get("gene_type") or []),
+            ]
         )
-
-    # Assay (family) page: /assays-explorer/<dna|rna>/<assay>
-    if modality and assay and not dx:
-        dna_cards = util.public._get_diagnosis_cards(assay, "dna")
-        rna_cards = util.public._get_diagnosis_cards(assay, "rna")
-
-        asp_ids = util.public._asp_ids_for_assay_modality(assay, modality)
-        asp_genes, germline = util.public._union_asp_genes(asp_ids)
-        gene_details = store.hgnc_handler.get_metadata_by_symbols(asp_genes)
-
-        assay_overview = util.public._compose_assay_overview(assay, modality, None)
-
-        return render_template(
-            "assay_catalog.html",
-            selected_dna_rna=dna_rna.upper(),
-            assay_list=assays_for_left,  # Left column always filled
-            selected_assay=assay,
-            diagnoses_dna=dna_cards,  # Middle column
-            diagnoses_rna=rna_cards,
-            selected_dx=None,
-            genes=gene_details,  # Right panel shows assay overview; gene table present or can be hidden
-            germline_gene_symbols=sorted(germline),
-            assay_overview=assay_overview,
-            stats={
-                "total_genes": len(asp_genes),
-                "diagnosis_count": len(dna_cards) + len(rna_cards),
-            },
-        )
-
-    # Diagnosis page: /assays-explorer/<dna|rna>/<assay>/<dx>
-    if modality and assay and dx:
-        bound_asp_ids = util.public._asp_ids_for_dx(assay, modality, dx)
-        asp_union_genes, germline = util.public._union_asp_genes(bound_asp_ids)
-
-        isgl_genes = store.isgl_handler.get_public_isgl_genes_by_diagnosis(dx)
-        subset = sorted(set(asp_union_genes) & set(isgl_genes))
-        gene_details = store.hgnc_handler.get_metadata_by_symbols(subset)
-
-        assay_overview = util.public._compose_assay_overview(assay, modality, dx)
-
-        # Middle column needs the full dx list for quick switching
-        dna_cards = util.public._get_diagnosis_cards(assay, "dna")
-        rna_cards = util.public._get_diagnosis_cards(assay, "rna")
-
-        return render_template(
-            "assay_catalog.html",
-            selected_dna_rna=dna_rna.upper(),
-            assay_list=assays_for_left,
-            selected_assay=assay,
-            diagnoses_dna=dna_cards,
-            diagnoses_rna=rna_cards,
-            selected_dx=dx,
-            genes=gene_details,
-            germline_gene_symbols=sorted(germline),
-            assay_overview=assay_overview,
-            stats={"total_genes": len(subset), "diagnosis_count": 1},
-        )
-
-    # Fallback → landing
-    return render_template(
-        "assay_catalog.html",
-        selected_dna_rna=None,
-        assay_list=assays_for_left,
-        selected_assay=None,
-        diagnoses_dna=[],
-        diagnoses_rna=[],
-        selected_dx=None,
-        genes=[],
-        germline_gene_symbols=[],
-        assay_overview={"asp": {}, "dx": {}, "links": []},
-        stats={"total_genes": 0, "diagnosis_count": 0},
-    )
+    buf = io.BytesIO(sio.getvalue().encode("utf-8"))
+    dt = datetime.date.today().isoformat()
+    if not cat:
+        label = f"{selected_mod}.{mode if not isgl_key else f'isgl-{isgl_key}'}"
+    else:
+        label = f"{selected_mod}.{cat}.{mode if not isgl_key else f'isgl-{isgl_key}'}"
+    fname = f"{label}.{dt}.genes.csv"
+    return send_file(buf, mimetype="text/csv", as_attachment=True, download_name=fname)
 
 
 @public_bp.route("/asp/genes/<asp_id>")
@@ -276,127 +295,3 @@ def contact() -> str:
     """
     contact = app.config.get("CONTACT") or {}
     return render_template("contact.html", contact=contact)
-
-
-@public_bp.route("/assays/<modality>/<assay>/genes.csv", endpoint="download_asp_genes_csv")
-@public_bp.route("/assays/<modality>/<assay>/<dx>/genes.csv", endpoint="download_asp_dx_genes_csv")
-def download_genes_csv(
-    modality: str | None = None, assay: str | None = None, dx: str | None = None
-):
-    """
-    Generate CSV files for each ASP panel and return them as a ZIP archive.
-
-    - If `dx` is not provided: includes all genes covered by each ASP panel for the selected modality.
-    - If `dx` is provided: includes only genes present in both the ASP panel and the ISGL curation for the specified diagnosis.
-    """
-    # ---- guard / inputs ----
-    mode = util.public._norm_modality(modality)  # 'dna' | 'rna' | None
-    if mode not in ("dna", "rna"):
-        abort(404)
-    if not assay:
-        flash("Assay family is required for gene list download.", "red")
-        return redirect(request.referrer or "/")
-
-    # Resolve ASP ids for (assay, modality)
-    asp_ids = util.public._asp_ids_for_assay_modality(assay, mode) or []
-    if not asp_ids:
-        flash("No assay-specific panels found for this selection.", "yellow")
-        return redirect(request.referrer or "/")
-
-    # If dx given, fetch curated ISGL once
-    isgl_genes = None
-    if dx:
-        isgl_genes = set(store.isgl_handler.get_public_isgl_genes_by_diagnosis(dx) or [])
-
-    # ---- build ZIP in-memory ----
-    today = datetime.date.today().isoformat()
-    zip_buf = io.BytesIO()
-    with zipfile.ZipFile(zip_buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-
-        for asp_id in asp_ids:
-            # Get ASP coverage (symbols) + germline (unused in csv, but fetched anyway)
-            asp_symbols, germline_symbols = store.asp_handler.get_asp_genes(asp_id)
-            asp_symbols = set(asp_symbols or [])
-
-            # TODO: We can also send asp and dx lists as a separate file if needed.
-            # For now, just one CSV per ASP.
-            # Filter by ISGL if dx given; sort for consistency
-            if dx:
-                symbols = sorted(asp_symbols & isgl_genes)
-                fname = f"{assay}-{asp_id}.{dx}.{mode}.{today}.genes.csv"
-            else:
-                symbols = sorted(asp_symbols)
-                fname = f"{assay}-{asp_id}.{mode}.{today}.genes.csv"
-
-            # Hydrate gene metadata
-            details = store.hgnc_handler.get_metadata_by_symbols(symbols) if symbols else []
-            details = sorted(details, key=lambda g: (g.get("hgnc_symbol") or "").upper())
-
-            # Write one CSV to a string buffer, then into the zip
-            csv_io = io.StringIO()
-            w = csv.writer(csv_io, lineterminator="\n")
-            # Columns: keep clean + CSV-friendly
-            w.writerow(
-                [
-                    "HGNC_ID",
-                    "Gene_Symbol",
-                    "Locus",
-                    "Chromosome",
-                    "Start",
-                    "End",
-                    "Aliases",
-                    "Previous_Symbols",
-                    "Gene_Type",
-                    "Ensembl_Canonical",
-                    "MANE_Select_RefSeq",
-                    "MANE_Select_Ensembl",
-                    "MANE_Plus_Clinical",
-                    "OMIM",
-                    "Description",
-                ]
-            )
-
-            for g in details:
-                aliases = "|".join((g.get("alias_symbol") or [])[:10])
-                prev = "|".join((g.get("prev_symbol") or [])[:10])
-                gtypes = ",".join(g.get("gene_type") or [])
-                plus = "|".join(g.get("refseq_mane_plus_clinical") or [])
-                # Handle either 'omim_id' (int list) or 'omim_ids' (string list)
-                omims = g.get("omim_id") or g.get("omim_ids") or []
-                omims = [str(x) for x in omims][:5]
-                desc = (g.get("gene_description") or "").replace("\n", " ")
-                w.writerow(
-                    [
-                        (g.get("hgnc_id") or "").replace("HGNC:", "HGNC:"),
-                        g.get("hgnc_symbol") or "",
-                        g.get("locus") or "",
-                        g.get("chromosome") or "",
-                        g.get("start") or "",
-                        g.get("end") or "",
-                        aliases,
-                        prev,
-                        gtypes,
-                        "Yes" if g.get("ensembl_canonical") else "No",
-                        g.get("refseq_mane_select") or "",
-                        g.get("ensembl_mane_select") or "",
-                        plus,
-                        ",".join(omims),
-                        desc,
-                    ]
-                )
-
-            zf.writestr(fname, csv_io.getvalue().encode("utf-8"))
-
-    zip_buf.seek(0)
-    zip_name = f"{assay}.{mode}.{today}.genes.zip"
-    if dx:
-        zip_name = f"{assay}.{dx}.{mode}.{today}.genes.zip"
-
-    return send_file(
-        zip_buf,
-        mimetype="application/zip",
-        as_attachment=True,
-        download_name=zip_name,
-        max_age=0,
-        etag=False,
-    )

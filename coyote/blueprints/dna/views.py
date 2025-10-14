@@ -105,12 +105,9 @@ def list_variants(sample_id: str) -> Response | str:
         )
         assay_config["filters"]["genelists"].extend(assay_default_config_genelist_ids)
 
-    print(f"Filters Original: {sample.get("filters", {})}")
-
     # Get filter settings from the sample and merge with assay config if sample does not have values
     sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
     sample_filters = deepcopy(sample.get("filters", {}))
-    print(f"Filters Merged: {sample_filters}")
 
     # Update the sample filters with the default values from the assay config if the sample is new and does not have any filters set
     if not sample_has_filters:

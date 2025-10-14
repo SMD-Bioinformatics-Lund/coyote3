@@ -55,7 +55,7 @@ class DefaultConfig:
     """
 
     # Public ASSAY CATALOG
-    CATALOG_YAML_PATH = "coyote/static/data/assay_catalog.yaml"
+    ASSAY_CATALOG_YAML = "coyote/static/data/assay_catalog.yaml"
 
     APP_VERSION = app_version
     LOGS = "logs"

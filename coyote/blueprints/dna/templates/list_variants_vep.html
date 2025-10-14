@@ -376,7 +376,7 @@
                         <!-- Population Frequency -->
                         <td class="font-semibold max-w-15c" id="snv-table-row-popFreq">
                           {% if "gnomad_frequency" in var and var.gnomad_frequency != "" %}
-                            {{ '%.3f' | format(100*var.gnomad_frequency)}}<br>
+                            {{ var.gnomad_frequency|three_dec}}<br>
                           {% else %}
                             -
                           {% endif %}

@@ -10,208 +10,396 @@
 #  the copyright holders.
 #
 
-
-from collections import defaultdict
+from __future__ import annotations
 from flask import current_app as app
 from coyote.extensions import store
-from typing import Optional, List, Dict, Any, Tuple, Set
+from typing import Optional, List, Dict, Any, Tuple
 import yaml
+from pathlib import Path
 
 
 class PublicUtility:
     """
-    PublicUtility provides static utility methods for processing data.
+    PublicUtility provides static utility methods for processing and presenting the Assay Catalog.
+
+    Key features:
+    - Loads and caches the assay catalog from YAML as-is.
+    - Supports hierarchical navigation: modalities → categories → gene lists.
+    - Provides normalized access to modalities (WGS, WTS, GenePanels) and their categories.
+    - Supplies data structures for UI rendering, with parent-field inheritance for missing values.
+    - Handles gene list resolution and overlap calculations for display and reporting.
     """
 
-    @staticmethod
-    def _catalog() -> Dict[str, Any]:
-        """
-        Load and cache the catalog YAML file.
-        """
-        if not hasattr(app, "_catalog_cache"):
-            path = app.config.get("CATALOG_YAML_PATH", "config/catalog.yaml")
-            with open(path, "r", encoding="utf-8") as f:
-                app._catalog_cache = yaml.safe_load(f) or {}
-        return app._catalog_cache or {}
+    DEFAULT_ENV = "production"
+
+    # ----------------- Catalog loading -----------------
 
     @staticmethod
-    def _norm_modality(dna_rna: Optional[str]) -> Optional[str]:
-        if not dna_rna:
+    def load_catalog() -> Dict[str, Any]:
+        """
+        Load and cache the assay catalog from the YAML file as-is.
+
+        Returns:
+            Dict[str, Any]: The loaded assay catalog as a dictionary. If the file is missing or empty, returns an empty dict.
+
+        Notes:
+            - The catalog is cached on the Flask app object to avoid repeated disk reads.
+            - The YAML file path is taken from the Flask config key 'ASSAY_CATALOG_YAML', defaulting to 'assay_catalog.yaml'.
+        """
+        if not hasattr(app, "_assay_catalog_cache"):
+            path = app.config.get("ASSAY_CATALOG_YAML", "assay_catalog.yaml")
+            with open(Path(path), "r", encoding="utf-8") as fh:
+                app._assay_catalog_cache = yaml.safe_load(fh) or {}
+        return app._assay_catalog_cache or {}
+
+    @staticmethod
+    def modalities_order() -> List[str]:
+        cat = PublicUtility.load_catalog()
+        order = (cat.get("layout") or {}).get("order") or []
+        return order or list((cat.get("modalities") or {}).keys())
+
+    @staticmethod
+    def normalize_mod(mod: Optional[str]) -> Optional[str]:
+        """
+        Accept friendly aliases; normalize to exact modality keys: 'WGS'|'WTS'|'GenePanels'
+        Args:
+            mod (Optional[str]): A modality name or alias (e.g., 'wgs', 'WTS', 'panels', etc.).
+
+        Returns:
+            Optional[str]: The normalized modality key ('WGS', 'WTS', or 'GenePanels'), or None if not recognized.
+        """
+        if not mod:
             return None
-        v = dna_rna.strip().lower()
-        if v in ("dna", "rna"):
-            return v
-        # Be forgiving: "DNA " / "rna" / "Dna"
-        return "dna" if v.startswith("dna") else ("rna" if v.startswith("rna") else None)
+        v = (mod or "").strip().lower()
+        if v == "wgs":
+            return "WGS"
+        if v == "wts":
+            return "WTS"
+        if v in ("panels", "panel", "genepanels", "gene-panels", "genepanel"):
+            return "GenePanels"
+        if mod in (PublicUtility.load_catalog().get("modalities") or {}):
+            return mod
+        return None
 
     @staticmethod
-    def _get_assay_def(assay_key: str) -> Dict[str, Any]:
-        cat = PublicUtility._catalog()
-        assays = cat.get("assays", {})
-        return assays.get(assay_key, {})
+    def modality_block(mod: str) -> Optional[Dict[str, Any]]:
+        """
+        Return the raw modality block for the given modality key.
+        Args:
+            mod (str): The modality key (e.g., 'WGS', 'WTS', 'GenePanels').
+        Returns:
+            Optional[Dict[str, Any]]: The modality definition dict if found, otherwise None.
+        """
+        return (PublicUtility.load_catalog().get("modalities") or {}).get(mod)
 
     @staticmethod
-    def _list_assays(modality: Optional[str] = None) -> List[Dict[str, Any]]:
+    def categories_for(mod: str) -> List[Dict[str, Any]]:
         """
-        Returns a list of assay cards: key, display_name, description, available modalities, counts.
-        If modality is provided ('dna'|'rna'), only includes assays that have that modality with at least one diagnosis.
+        Return categories for the given modality as a list of dicts.
+
+        Args:
+            mod (str): The modality key (e.g., 'WGS', 'WTS', 'GenePanels').
+
+        Returns:
+            List[Dict[str, Any]]: List of category dicts with keys 'catalog_id', 'label', and 'node' (the raw YAML fragment).
         """
-        cat = PublicUtility._catalog()
+        m = PublicUtility.modality_block(mod) or {}
+        cats = m.get("categories") or {}
         out: List[Dict[str, Any]] = []
-        for key, a in (cat.get("assays") or {}).items():
-            mods = a.get("modalities") or {}
-            dna = mods.get("dna") or {}
-            rna = mods.get("rna") or {}
-            dna_dx = list(dna.get("diagnoses") or [])
-            rna_dx = list(rna.get("diagnoses") or [])
-            if modality == "dna" and not dna_dx:
-                continue
-            if modality == "rna" and not rna_dx:
-                continue
+        for k, c in cats.items():
             out.append(
                 {
-                    "key": key,
-                    "display_name": a.get("display_name", key.replace("_", " ").title()),
-                    "description": a.get("description", ""),
-                    "technology": a.get("technology", "Panels"),
-                    "modalities": {
-                        "dna": {"has": bool(dna_dx), "dx_count": len(dna_dx)},
-                        "rna": {"has": bool(rna_dx), "dx_count": len(rna_dx)},
-                    },
-                    "order": a.get("order", 999),
+                    "catalog_id": c.get("catalog_id") or k,
+                    "label": c.get("label") or k,
+                    "node": c,
                 }
             )
-        return sorted(out, key=lambda x: x["order"])
+        return out
 
     @staticmethod
-    def _get_diagnosis_cards(assay_key: str, modality: str) -> List[Dict[str, Any]]:
+    def category_def(mod: str, cat_id: str) -> Optional[Dict[str, Any]]:
         """
-        Cards for the two columns (DNA / RNA) on the assay page.
-        Pulls per-dx structured bits from YAML and short description from dx root.
+        Return the raw category definition for the given modality and category ID.
+        Match by catalog_id or by key.
+        Args:
+            mod (str): The modality key (e.g., 'WGS', 'WTS', 'GenePanels').
+            cat_id (str): The category ID to look up (matches catalog_id or key).
+        Returns:
+            Optional[Dict[str, Any]]: The category definition dict if found, otherwise None.
+
         """
-        a = PublicUtility._get_assay_def(assay_key)
-        dx_keys = list(((a.get("modalities") or {}).get(modality) or {}).get("diagnoses") or [])
-        cat = PublicUtility._catalog()
-        dxdict = cat.get("diagnoses") or {}
-        cards: List[Dict[str, Any]] = []
-        for k in dx_keys:
-            dx = dxdict.get(k) or {}
-            bm = (dx.get("by_modality") or {}).get(modality) or {}
-            cards.append(
-                {
-                    "key": k,
-                    "label": dx.get("display_name", k.upper()),
-                    "description": dx.get("description", ""),
-                    "tat": bm.get("tat", ""),
-                    "analysis_includes": bm.get("analysis_includes", []),
-                    "sample_types": bm.get("sample_types", []),
-                    "sample_modes": bm.get("sample_modes", []),
-                    "methodology": bm.get("methodology", []),
-                }
-            )
-        order_map = {k: (dxdict.get(k) or {}).get("order", 999) for k in dx_keys}
-        return sorted(cards, key=lambda c: order_map.get(c["key"], 999))
+        m = PublicUtility.modality_block(mod) or {}
+        cats = m.get("categories") or {}
+        for k, c in cats.items():
+            if cat_id == (c.get("catalog_id") or k) or cat_id == k:
+                return c
+        return None
+
+    # ----------------- Hydration (right pane) -----------------
 
     @staticmethod
-    def _asp_ids_for_assay_modality(assay_key: str, modality: str) -> List[str]:
-        a = PublicUtility._get_assay_def(assay_key)
-        return list(((a.get("modalities") or {}).get(modality) or {}).get("asp_ids") or [])
-
-    @staticmethod
-    def _asp_ids_for_dx(assay_key: str, modality: str, dx_key: str) -> List[str]:
-        cat = PublicUtility._catalog()
-        dx = (cat.get("diagnoses") or {}).get(dx_key) or {}
-        bm = (dx.get("by_modality") or {}).get(modality) or {}
-        return list((bm.get("asp_bindings") or {}).get(assay_key) or [])
-
-    @staticmethod
-    def _union_asp_genes(asp_ids: List[str]) -> Tuple[List[str], Set[str]]:
-        u: Set[str] = set()
-        germ_u: Set[str] = set()
-        for aid in asp_ids:
-            g, germ = store.asp_handler.get_asp_genes(aid)
-            u.update(g)
-            germ_u.update(germ)
-        return sorted(u), germ_u
-
-    @staticmethod
-    def _get_public_overview_for_asp(asp_id: str) -> Dict[str, Any]:
-        try:
-            asp = store.asps.find_one({"assay_name": asp_id}, {"public_overview": 1}) or {}
-            return asp.get("public_overview") or {}
-        except Exception:
-            return {}
-
-    @staticmethod
-    def _get_public_overview_for_dx(dx_key: str) -> Dict[str, Any]:
-        try:
-            dx = store.isgl.find_one({"_id": dx_key}, {"public_overview": 1}) or {}
-            return dx.get("public_overview") or {}
-        except Exception:
-            return {}
-
-    @staticmethod
-    def _compose_assay_overview(
-        assay_key: Optional[str], modality: Optional[str], dx_key: Optional[str]
-    ) -> Dict[str, Any]:
+    def _fetch_aspc(aspc_ids: Optional[Dict[str, str]], env: str) -> Optional[Dict[str, Any]]:
         """
-        Build the assay_overview dict the template expects by blending:
-          - YAML long/short text (assay description; DX structured bits)
-          - DB 'public_overview' blocks from ASP (first ASP bound) and ISGL (if dx)
+        Fetch the ASPC (assay configuration) for the given environment from the aspc_ids mapping.
+        Args:
+            aspc_ids (Optional[Dict[str, str]]): Mapping of environment names to ASPC IDs.
+            env (str): The environment to use for ASPC lookup (e.g., "production", "development").
+        Returns:
+            Optional[Dict[str, Any]]: The ASPC document if found, otherwise None.
         """
-        cat = PublicUtility._catalog()
-        asp_block: Dict[str, Any] = {}
-        dx_block: Dict[str, Any] = {}
-        links: List[Tuple[str, str]] = []
+        if not aspc_ids:
+            return None
+        aspc_id = aspc_ids.get(env)
+        if not aspc_id:
+            return None
+        return store.aspc_handler.get_aspc_with_id(aspc_id)
 
-        # From YAML (assay family description on ASP level)
-        if assay_key:
-            a = (cat.get("assays") or {}).get(assay_key) or {}
-            # YAML gives generic family description
-            asp_block.setdefault("description", a.get("description", ""))
+    @staticmethod
+    def hydrate_category(mod: str, cat_id: str, env: str = DEFAULT_ENV) -> Optional[Dict[str, Any]]:
+        """
+        Build the data the right pane needs for a CATEGORY.
 
-        # Pull first bound ASP overview (if any)
-        if assay_key and modality:
-            asp_ids = PublicUtility._asp_ids_for_assay_modality(assay_key, modality)
-            if asp_ids:
-                pov = PublicUtility._get_public_overview_for_asp(asp_ids[0])
-                if pov:
-                    asp_block = {
-                        "description": pov.get("description", asp_block.get("description", "")),
-                        "sequencing": pov.get("sequencing", ""),
-                        "tat": pov.get("tat", ""),
-                        "sample_type": pov.get("sample_type", ""),
-                        "includes": pov.get("includes", ""),
-                    }
-                    links = pov.get("links", []) or []
+        Args:
+            mod (str): The modality key (e.g., 'WGS', 'WTS', 'GenePanels').
+            cat_id (str): The category ID within the modality.
+            env (str, optional): The environment to use for ASPC lookup (default: "production").
 
-        # DX specific (YAML by_modality + ISGL.public_overview)
-        if dx_key and modality:
-            dx_yaml = ((cat.get("diagnoses") or {}).get(dx_key) or {}).get("by_modality", {}).get(
-                modality, {}
-            ) or {}
-            dx_block = {
-                "description": cat.get("diagnoses", {}).get(dx_key, {}).get("description", {}),
-                "sequencing": dx_yaml.get("methodology", []),
-                "tat": dx_yaml.get("tat", ""),
-                "sample_type": ", ".join(dx_yaml.get("sample_types", [])),
-                "includes": ", ".join(dx_yaml.get("analysis_includes", [])),
-            }
+        Returns:
+            Optional[Dict[str, Any]]: Dictionary with category display fields (catalog_id, label, description, input_material, tat, sample_modes, analysis, asp_id, asp, gene_lists).
+            Returns None if the category is not found.
+
+        Notes:
+            - Covered genes are not included for weight; they are fetched lazily when drawing the table.
+            - Analysis is sourced ONLY from ASPC (report_sections preferred).
+        """
+        node = PublicUtility.category_def(mod, cat_id)
+        if not node:
+            return None
+
+        asp_id = node.get("asp_id")
+        aspc_ids = node.get("aspc_ids") or {}
+
+        asp = store.asp_handler.get_asp(asp_id) if asp_id else None
+        aspc = PublicUtility._fetch_aspc(aspc_ids, env) if aspc_ids else None
+
+        analysis = []
+        if aspc:
+            analysis = (aspc.get("report_sections") or []) or (aspc.get("analysis_types") or [])
 
         return {
-            "asp": {
-                "description": asp_block.get("description", ""),
-                "sequencing": asp_block.get("sequencing", ""),
-                "tat": asp_block.get("tat", ""),
-                "sample_type": asp_block.get("sample_type", ""),
-                "includes": asp_block.get("includes", ""),
-            },
-            "dx": {
-                "description": dx_block.get("description", ""),
-                "sequencing": dx_block.get("sequencing", ""),
-                "tat": dx_block.get("tat", ""),
-                "sample_type": dx_block.get("sample_type", ""),
-                "includes": dx_block.get("includes", ""),
-            },
-            "links": links,
+            "catalog_id": node.get("catalog_id") or cat_id,
+            "label": node.get("label") or cat_id,
+            "description": node.get("description", ""),
+            "input_material": node.get("input_material"),
+            "tat": node.get("tat"),
+            "sample_modes": node.get("sample_modes", []),
+            "analysis": analysis,  # ASPC only
+            "asp_id": asp_id,
+            "asp": (
+                None
+                if not asp
+                else {
+                    "platform": asp.get("platform"),
+                    "read_length": asp.get("read_length"),
+                    "read_mode": asp.get("read_mode"),
+                    "covered_genes_count": asp.get("covered_genes_count"),
+                    "germline_genes_count": asp.get("germline_genes_count"),
+                }
+            ),
+            "gene_lists": node.get("gene_lists", []) or [],  # [{key,label}...], AS-IS from YAML
         }
+
+    @staticmethod
+    def hydrate_modality(mod: str) -> Dict[str, Any]:
+        """
+        Prepare the data structure required for displaying a MODALITY (e.g., WGS, WTS, GenePanels) in the right pane.
+
+        Args:
+            mod (str): The modality key to display (e.g., 'WGS', 'WTS', 'GenePanels').
+
+        Returns:
+            Dict[str, Any]: Dictionary with modality display fields (label, description, input_material, tat, sample_modes, analysis, asp_id, asp).
+            If certain fields are missing at the modality level, inherit them from the first category within that modality.
+        """
+        mb = PublicUtility.modality_block(mod) or {}
+
+        return {
+            "label": mb.get("label", mod),
+            "description": mb.get("description", ""),
+            "input_material": mb.get("input_material"),
+            "tat": mb.get("tat"),
+            "sample_modes": mb.get("sample_modes", []),
+            "analysis": mb.get("analysis", []),
+            "asp_id": mb.get("asp_id"),
+            "asp": mb.get("asp"),
+        }
+
+    # ----------------- Genes & overlap -----------------
+
+    @staticmethod
+    def _covered_genes(asp_id: Optional[str]) -> Tuple[List[str], List[str]]:
+        """
+        Return a tuple of (`covered_genes`, `germline_genes`) symbols for the given ASP ID.
+
+        Args:
+            asp_id (Optional[str]): The ASP (assay) ID to fetch gene symbols for.
+
+        Returns:
+            Tuple[List[str], List[str]]:
+                - covered_genes: List of gene symbols covered by the ASP.
+                - germline_genes: List of germline gene symbols for the ASP.
+            If `asp_id` is None or not found, returns two empty lists.
+        """
+        if not asp_id:
+            return [], []
+        genes, germ = store.asp_handler.get_asp_genes(asp_id)  # (list, list)
+        return list(genes or []), list(germ or [])
+
+    @staticmethod
+    def resolve_gene_table(
+        asp_id: Optional[str], isgl_key: Optional[str]
+    ) -> Tuple[str, List[Dict[str, Any]], Dict[str, int]]:
+        """
+        Decide which gene table to show based on provided arguments.
+
+        Args:
+            asp_id (Optional[str]): The ASP (assay) ID to fetch covered genes from.
+            isgl_key (Optional[str]): The ISGL (gene list) key to determine overlap with ASP covered genes.
+
+        Returns:
+            Tuple[str, List[Dict[str, Any]], Dict[str, int]]:
+                - mode: One of 'covered', 'overlap', or 'genelist' indicating the table type.
+                - hgnc_rows: List of gene metadata dicts for display.
+                - stats: Dictionary with counts for total, covered, germline, and ISGL genes.
+        """
+        covered, germ = PublicUtility._covered_genes(asp_id)
+
+        if isgl_key:
+            isgl = store.isgl_handler.get_isgl(isgl_key) or {}
+            isgl_genes = list(isgl.get("genes", []) or [])
+            if covered:
+                show = sorted(set(isgl_genes).intersection(set(covered)))
+                mode = "overlap"
+            else:
+                show = sorted(set(isgl_genes))
+                mode = "genelist"
+            rows_raw = store.hgnc_handler.get_metadata_by_symbols(show) if show else []
+            rows = PublicUtility._merge_with_placeholders(show, rows_raw)
+
+            return (
+                mode,
+                rows,
+                {
+                    "total": len(show),
+                    "isgl_total": len(isgl_genes),
+                    "covered_total": len(covered),
+                    "germline_total": len(germ),
+                },
+            )
+
+        # default: covered genes
+        show = sorted(set(covered))
+        rows_raw = store.hgnc_handler.get_metadata_by_symbols(show) if show else []
+        rows = PublicUtility._merge_with_placeholders(show, rows_raw)
+
+        return (
+            "covered",
+            rows,
+            {
+                "total": len(show),
+                "covered_total": len(covered),
+                "germline_total": len(germ),
+            },
+        )
+
+    @staticmethod
+    def _hgnc_placeholder(symbol: str) -> Dict[str, Any]:
+        """
+        Return a dict shaped like an HGNC gene document, but empty/neutral,
+        for symbols we couldn't resolve.
+
+        Args:
+            symbol (str): The gene symbol to use for the placeholder.
+
+        Returns:
+            Dict[str, Any]: A dictionary matching the HGNC schema, filled with neutral values,
+            ensuring consistent columns for unmatched genes in the UI/CSV.
+        """
+        s = (symbol or "").strip()
+        # minimal neutral values, matching your sample schema
+        return {
+            "_id": "HGNC:",  # unknown HGNC doc id
+            "hgnc_id": "HGNC:",  # e.g., "HGNC:33164" if known
+            "hgnc_symbol": s,  # we still show the requested symbol
+            "gene_name": "",
+            "status": "Unresolved",
+            "locus": "",
+            "locus_sortable": "",
+            "alias_symbol": [],
+            "alias_name": [],
+            "prev_symbol": [],
+            "prev_name": [],
+            "date_approved_reserved": None,
+            "date_symbol_changed": None,
+            "date_name_changed": None,
+            "date_modified": None,
+            "entrez_id": None,
+            "ensembl_gene_id": None,
+            "refseq_accession": [],
+            "cosmic": [],
+            "omim_id": [],
+            "pseudogene_org": [],
+            "imgt": None,
+            "lncrnadb": None,
+            "lncipedia": None,
+            "ensembl_mane_select": "",
+            "refseq_mane_select": "",
+            "chromosome": "",
+            "other_chromosome": None,
+            "start": "",
+            "end": "",
+            "gene_gc_content": None,
+            "gene_description": "",
+            "ensembl_canonical": False,
+            "gene_type": [],
+            "refseq_mane_plus_clinical": [],
+            "addtional_transcript_info": {},
+            # keep compat aliases some codepaths use
+            "symbol": s,
+        }
+
+    @staticmethod
+    def _merge_with_placeholders(
+        symbols: List[str], rows: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """
+        Ensure that every symbol in the `symbols` list appears in the `rows` list.
+
+        Args:
+            symbols (List[str]): List of gene symbols to ensure are present in the output.
+            rows (List[Dict[str, Any]]): List of HGNC gene metadata dicts, possibly incomplete.
+
+        Returns:
+            List[Dict[str, Any]]: List of gene metadata dicts, including placeholders for missing symbols,
+            sorted alphabetically by display symbol.
+        """
+        # symbols we already have (case-insensitive)
+        have = set()
+        out_rows: List[Dict[str, Any]] = rows or []
+        for r in out_rows:
+            sym = (r.get("hgnc_symbol") or r.get("symbol") or "").strip()
+            if sym:
+                have.add(sym.upper())
+
+        # add placeholders for missing
+        for s in symbols or []:
+            if not s:
+                continue
+            if s.upper() not in have:
+                out_rows.append(PublicUtility._hgnc_placeholder(s))
+
+        # final sort by gene symbol
+        out_rows = sorted(
+            out_rows, key=lambda g: (g.get("hgnc_symbol") or g.get("symbol") or "").upper()
+        )
+        return out_rows

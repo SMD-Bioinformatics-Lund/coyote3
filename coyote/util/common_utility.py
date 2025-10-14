@@ -394,12 +394,22 @@ class CommonUtility:
         # Flatten all genes from the genelists into a set
         covered_genes_set = set(assay_panel_doc.get("covered_genes", []))
         updated_genelists = {}
+        asp_family = assay_panel_doc.get("asp_family", "").lower()
 
         for genelist_id, genelist_values in genelists.items():
             genelist_genes = set(genelist_values.get("genes", []))
-            # Keep only genes present in the assay panel and move the rest to a separate list
-            genelist_values["covered"] = sorted(list(genelist_genes.intersection(covered_genes_set)))
-            genelist_values["uncovered"] = sorted(list(genelist_genes.difference(covered_genes_set)))
+            # For WSG and WTS, keep all genes in the genelist, marking which are covered and which are not
+            if asp_family in ["wgs", "wts"]:
+                genelist_values["covered"] = sorted(genelist_genes)
+                genelist_values["uncovered"] = []
+            else:
+                # Keep only genes present in the assay panel and move the rest to a separate list
+                genelist_values["covered"] = sorted(
+                    list(genelist_genes.intersection(covered_genes_set))
+                )
+                genelist_values["uncovered"] = sorted(
+                    list(genelist_genes.difference(covered_genes_set))
+                )
             updated_genelists[genelist_id] = genelist_values
 
         return updated_genelists
@@ -589,10 +599,7 @@ class CommonUtility:
         if isinstance(data, list):
             return [CommonUtility.convert_object_id(item) for item in data]
         elif isinstance(data, dict):
-            return {
-                key: CommonUtility.convert_object_id(value)
-                for key, value in data.items()
-            }
+            return {key: CommonUtility.convert_object_id(value) for key, value in data.items()}
         elif isinstance(data, ObjectId):
             return str(data)
         else:
@@ -1118,7 +1125,6 @@ class CommonUtility:
         # Add AdHoc Genes which are a part of sample settings and not ASP or ASPC
         adhoc_genes = sample_filters.get("adhoc_genes", {}).get("genes", {})
         adhoc_key = sample_filters.get("adhoc_genes", {}).get("label", "AdHoc genes")
-        print(adhoc_genes)
         if adhoc_genes:
             checked_gl_dict[adhoc_key] = {
                 "displayname": adhoc_key,
