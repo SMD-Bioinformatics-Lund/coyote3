@@ -73,9 +73,7 @@ class BlacklistHandler(BaseHandler):
             {"assay": assay, "pos": {"$in": short_pos}},
             {"pos": 1, "in_normal_perc": 1, "_id": 0},
         )
-        blacklisted_dict = {
-            elem["pos"]: elem["in_normal_perc"] for elem in list(blacklisted)
-        }
+        blacklisted_dict = {elem["pos"]: elem["in_normal_perc"] for elem in list(blacklisted)}
 
         for var in variants:
             if var["simple_id"] in blacklisted_dict:
@@ -111,6 +109,16 @@ class BlacklistHandler(BaseHandler):
         else:
             flash(f"Failed to add variant {short_pos} to blacklist", "red")
             return False
+
+    def get_blacklisted_count(self) -> int:
+        """
+        Get the count of blacklisted entries.
+        This method retrieves all blacklist entries from the collection
+        and returns their count.
+        Returns:
+            int: The count of blacklisted entries. Returns 0 if no entries are found.
+        """
+        return self.get_collection().count_documents({}) or 0
 
     def get_unique_blacklist_count(self) -> int:
         """

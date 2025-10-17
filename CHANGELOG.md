@@ -7,6 +7,7 @@
 - Added support for AdHoc Gene lists
 - Added a key 'adhoc and is_public' to indicate if the gene list is adhoc and public in the isgl schema.
 - Added a public facing assay catalog page to view assay related meta data, genelists, configs, etc. This is controlled by assay_catalog.yaml file along with APC and ASPC.
+- Updated dashboard stats to have total counts of variants instead of unique counts to reduce the loding time.
 
 ## v3.0.6
 - SNV filter step size has been changed to 0.001, now user can go upto 0.1% at the lowest.

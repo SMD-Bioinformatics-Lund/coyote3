@@ -402,6 +402,30 @@ class VariantsHandler(BaseHandler):
         """
         return len(self.get_collection().distinct("simple_id")) or 0
 
+    def get_total_snp_counts(self) -> int:
+        """
+        Get the total count of SNP (Single Nucleotide Polymorphism) variants.
+
+        This method retrieves all variant documents where the `variant_class` is "SNV"
+        (Single Nucleotide Variant), which typically represents SNPs, and returns their count.
+
+        Returns:
+            int: The total number of SNP variants in the collection.
+        """
+        return self.get_collection().find({"variant_class": "SNV"}).count()
+
+    def get_fp_counts(self):
+        """
+        Get the total count of false positive variants.
+
+        This method retrieves all variant documents marked as false positive
+        in the collection and returns their count.
+
+        Returns:
+            int: The total number of false positive variants in the collection.
+        """
+        return self.get_collection().find({"fp": True}).count()
+
     def get_unique_snp_count(self) -> int:
         """
         Get the count of unique SNP (Single Nucleotide Polymorphism) variants.

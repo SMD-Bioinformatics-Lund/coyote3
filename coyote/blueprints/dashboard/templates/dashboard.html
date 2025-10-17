@@ -38,57 +38,52 @@
               </p>
               <p class="text-sm text-gray-700">Total Variants</p>
             </div>
-            <div class="bg-yellow-200 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.unique_variants }}</span>`)">
-                {{ variant_stats.unique_variants|shorten_number }}
-              </p>
-              <p class="text-sm text-gray-700">Unique Variants</p>
-            </div>
+
             <div class="bg-purple-200 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.unique_snps }}</span>`)">
-                {{ variant_stats.unique_snps|shorten_number }}
+              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.total_snps }}</span>`)">
+                {{ variant_stats.total_snps|shorten_number }}
               </p>
               <p class="text-sm text-gray-700">SNPs</p>
             </div>
             <div class="bg-purple-300 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.unique_variants - variant_stats.unique_snps }}</span>`)">
-                {{ (variant_stats.unique_variants - variant_stats.unique_snps)|shorten_number }}
+              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.total_variants - variant_stats.total_snps }}</span>`)">
+                {{ (variant_stats.total_variants - variant_stats.total_snps)|shorten_number }}
               </p>
               <p class="text-sm text-gray-700">Indels</p>
             </div>
             <div class="bg-red-200 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.unique_cnvs }}</span>`)">
-                {{ variant_stats.unique_cnvs|shorten_number }}
+              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.total_cnvs }}</span>`)">
+                {{ variant_stats.total_cnvs|shorten_number }}
               </p>
               <p class="text-sm text-gray-700">CNVs</p>
             </div>
             <div class="bg-pink-200 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.unique_translocs }}</span>`)">
-                {{ variant_stats.unique_translocs|shorten_number }}
+              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.total_translocs }}</span>`)">
+                {{ variant_stats.total_translocs|shorten_number }}
               </p>
               <p class="text-sm text-gray-700">Translocations</p>
             </div>
             <div class="bg-blue-200 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.unique_fusions }}</span>`)">
-                {{ variant_stats.unique_fusions|shorten_number }}
+              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.total_fusions }}</span>`)">
+                {{ variant_stats.total_fusions|shorten_number }}
               </p>
               <p class="text-sm text-gray-700">Fusions</p>
             </div>
             <div class="bg-orange-300 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.unique_blacklist_variants }}</span>`)">
-                {{ variant_stats.unique_blacklist_variants|shorten_number }}
+              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.blacklisted }}</span>`)">
+                {{ variant_stats.blacklisted|shorten_number }}
               </p>
               <p class="text-sm text-gray-700">Blacklisted</p>
             </div>
             <div class="bg-pink-300 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.unique_fps }}</span>`)">
-                {{ variant_stats.unique_fps|shorten_number }}
+              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.fps }}</span>`)">
+                {{ variant_stats.fps|shorten_number }}
               </p>
               <p class="text-sm text-gray-700">False Positives</p>
             </div>
           </div>
         </div>
-    
+
         {% if user_samples_stats %}
         <!-- User Specific Sample Stats -->
 
@@ -163,7 +158,7 @@
         <!-- Paired vs Unpaired Stats -->
         <div class="bg-blue-50 flex flex-col gap-4 w-full break-all p-4 my-4 mr-4 shadow-lg rounded-xl">
           <h3 class="text-xl font-bold text-black mb-2">Paired vs Unpaired</h3>
-          <div class="grid grid-cols-2 gap-5">  
+          <div class="grid grid-cols-2 gap-5">
             {% for pair, pair_count in sample_stats.pair_count.items() %}
               <div class="bg-orange-100 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
                 <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ pair_count }}</span>`)">
@@ -191,7 +186,7 @@
     const labels = [];
     const coveredGenes = [];
     const germlineGenes = [];
-  
+
     for (const group in groupedData) {
       for (const assay of groupedData[group]) {
         labels.push(assay.display_name || assay.assay_name);
@@ -199,7 +194,7 @@
         germlineGenes.push(assay.germline_genes_count || 0);
       }
     }
-  
+
     const options = {
       chart: {
         type: 'bar',
@@ -239,14 +234,14 @@
         row: { colors: ['#F9FAFB', 'transparent'], opacity: 0.5 }
       }
     };
-  
+
     const chart = new ApexCharts(document.querySelector(`#${containerId}`), options);
     chart.render();
   }
   const assayGeneStatsGrouped = {{ assay_gene_stats_grouped | tojson }};
   renderGroupedAssayGeneChart("geneChart", assayGeneStatsGrouped);
   </script>
-  
+
 
 
 

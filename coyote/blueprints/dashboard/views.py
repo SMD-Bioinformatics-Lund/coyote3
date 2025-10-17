@@ -47,7 +47,7 @@ def dashboard() -> str:
             variant_stats,
             unique_gene_count_all_panels,
             asp_gene_counts,
-            sample_stats
+            sample_stats,
         ) = app.cache.get(cache_key)
         app.logger.info(f"Dashboard cache hit for {cache_key}")
 
@@ -67,29 +67,25 @@ def dashboard() -> str:
         variant_stats["total_variants"] = store.variant_handler.get_total_variant_counts()
 
         # Get all unique variants
-        variant_stats["unique_variants"] = store.variant_handler.get_unique_total_variant_counts()
+        # variant_stats["unique_variants"] = store.variant_handler.get_unique_total_variant_counts()
 
-        # get unique variants Snps
-        variant_stats["unique_snps"] = store.variant_handler.get_unique_snp_count()
+        # get total variants Snps
+        variant_stats["total_snps"] = store.variant_handler.get_total_snp_counts()
 
-        # get unique CNVs
-        variant_stats["unique_cnvs"]: int = store.cnv_handler.get_unique_cnv_count()
+        # get total CNVs
+        variant_stats["total_cnvs"]: int = store.cnv_handler.get_total_cnv_count()
 
-        # get unique Translocations
-        variant_stats["unique_translocs"]: int = store.transloc_handler.get_unique_transloc_count()
+        # get total Translocations
+        variant_stats["total_translocs"]: int = store.transloc_handler.get_total_transloc_count()
 
-        # get unique RNA fusions
-        variant_stats["unique_fusions"]: int = store.fusion_handler.get_unique_fusion_count()
+        # get unitotal RNA fusions
+        variant_stats["total_fusions"]: int = store.fusion_handler.get_total_fusion_count()
 
         # Get total blacklisted variants
-        variant_stats[
-            "unique_blacklist_variants"
-        ]: int = store.blacklist_handler.get_unique_blacklist_count()
+        variant_stats["blacklisted"]: int = store.blacklist_handler.get_unique_blacklist_count()
 
         # Get total False positive variants
-        variant_stats[
-            "unique_fps"
-        ]: int = store.variant_handler.get_unique_fp_count()  # Change it back
+        variant_stats["fps"]: int = store.variant_handler.get_fp_counts()  # Change it back
 
         ### Generic Variant Stats End
 
@@ -119,7 +115,7 @@ def dashboard() -> str:
             variant_stats,
             unique_gene_count_all_panels,
             asp_gene_counts,
-            sample_stats
+            sample_stats,
         ),
         timeout=cache_timeout,
     )
@@ -148,5 +144,5 @@ def dashboard() -> str:
         unique_gene_count_all_panels=unique_gene_count_all_panels,
         assay_gene_stats_grouped=asp_gene_counts,
         user_samples_stats=user_samples_stats,
-        sample_stats=sample_stats
+        sample_stats=sample_stats,
     )
