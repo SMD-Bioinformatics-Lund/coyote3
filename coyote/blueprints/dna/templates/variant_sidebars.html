@@ -82,7 +82,7 @@
         <label class="text-gray-900">Min Freq.</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&ge;</span>
-          {{ form.min_freq(size=1, step="0.01", min=0, max=1, default=sample.filters.min_freq, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
+          {{ form.min_freq(size=1, step="0.001", min=0, max=1, default=sample.filters.min_freq, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
         </div>
       </div>
 
@@ -90,7 +90,7 @@
         <label class="text-gray-900">Max Freq.</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&le;</span>
-          {{ form.max_freq(size=1, step="0.01", min=0, max=1, default=sample.filters.max_freq, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
+          {{ form.max_freq(size=1, step="0.001", min=0, max=1, default=sample.filters.max_freq, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
         </div>
       </div>
 
@@ -98,7 +98,7 @@
         <label class="text-gray-900">Max Ctrl. Freq.</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&le;</span>
-          {{ form.max_control_freq(size=1, step="0.01", min=0, max=1, default=sample.filters.max_control_freq, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
+          {{ form.max_control_freq(size=1, step="0.001", min=0, max=1, default=sample.filters.max_control_freq, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
         </div>
       </div>
 
@@ -106,7 +106,7 @@
         <label class="text-gray-900">Max Pop. Freq.</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&le;</span>
-          {{ form.max_popfreq(size=1, step="0.01", min=0, max=1, default=sample.filters.max_popfreq, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
+          {{ form.max_popfreq(size=1, step="0.001", min=0, max=1, default=sample.filters.max_popfreq, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
         </div>
       </div>
 
@@ -186,7 +186,7 @@
         <label class="text-gray-900">Gain Ratio</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&ge;</span>
-          {{ form.cnv_gain_cutoff(size=3, step="0.01", default=sample.filters.cnv_gain_cutoff,class="border border-gray-300 rounded px-2 py-0.5 w-24") }}
+          {{ form.cnv_gain_cutoff(size=3, step="0.001", default=sample.filters.cnv_gain_cutoff,class="border border-gray-300 rounded px-2 py-0.5 w-24") }}
         </div>
       </div>
 
@@ -195,7 +195,7 @@
         <label class="text-gray-900">Loss Ratio</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&le;</span>
-          {{ form.cnv_loss_cutoff(size=3, step="0.01", default=sample.filters.cnv_loss_cutoff, class="border border-gray-300 rounded px-2 py-0.5 w-24") }}
+          {{ form.cnv_loss_cutoff(size=3, step="0.001", default=sample.filters.cnv_loss_cutoff, class="border border-gray-300 rounded px-2 py-0.5 w-24") }}
         </div>
       </div>
 

@@ -6,6 +6,10 @@
 - Sample landing (settings/edit) page will now show the list of files associated with the sample and if they exist on the drive.
 - Added support for AdHoc Gene lists
 - Added a key 'adhoc and is_public' to indicate if the gene list is adhoc and public in the isgl schema.
+- Added a public facing assay catalog page to view assay related meta data, genelists, configs, etc. This is controlled by assay_catalog.yaml file along with APC and ASPC.
+
+## v3.0.6
+- SNV filter step size has been changed to 0.001, now user can go upto 0.1% at the lowest.
 
 ## v3.0.5
 - Download of csv file from Coyot3 #109
