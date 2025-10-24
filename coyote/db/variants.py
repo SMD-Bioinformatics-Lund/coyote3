@@ -60,9 +60,7 @@ class VariantsHandler(BaseHandler):
             dict: A dictionary where the keys are types (e.g., "type1", "type2")
                 and the values are the corresponding sample IDs.
         """
-        a_var = self.get_collection().find_one(
-            {"SAMPLE_ID": sample_id}, {"GT": 1}
-        )
+        a_var = self.get_collection().find_one({"SAMPLE_ID": sample_id}, {"GT": 1})
         ids = {}
         if a_var:
             for gt in a_var["GT"]:
@@ -114,7 +112,7 @@ class VariantsHandler(BaseHandler):
         current_sample_id = variant["SAMPLE_ID"]
         simple_id = variant["simple_id"]
 
-        # Step 1: Fetch up to 20 variants with the same simple_id but from other samples
+        # Fetch up to 20 variants with the same simple_id but from other samples
         variants = list(
             self.get_collection()
             .find(
@@ -135,7 +133,7 @@ class VariantsHandler(BaseHandler):
             .limit(20)
         )
 
-        # Step 2: Collect only the sample ObjectIds we need
+        # Collect only the sample ObjectIds we need
         sample_ids = {ObjectId(v["SAMPLE_ID"]) for v in variants}
 
         # Step 3: Map sample_id -> {name, assay}
@@ -150,21 +148,15 @@ class VariantsHandler(BaseHandler):
             )
         }
 
-        # Step 4: Attach GT to each sample_info
+        # Attach GT to each sample_info
         results = []
         for v in variants:
             sid = v["SAMPLE_ID"]
-            info = sample_map.get(
-                sid, {"sample_name": "unknown", "assay": "unknown"}
-            )
+            info = sample_map.get(sid, {"sample_name": "unknown", "assay": "unknown"})
             info["GT"] = v.get("GT")
             info["fp"] = v.get("fp", False)  # Add fp status if available
-            info["interesting"] = v.get(
-                "interesting", False
-            )  # Add interesting status if available
-            info["irrelevant"] = v.get(
-                "irrelevant", False
-            )  # Add irrelevant status if available
+            info["interesting"] = v.get("interesting", False)  # Add interesting status if available
+            info["irrelevant"] = v.get("irrelevant", False)  # Add irrelevant status if available
             results.append(info)
 
         return results
@@ -184,6 +176,58 @@ class VariantsHandler(BaseHandler):
         """
         return self.get_collection().find({"genes": gene})
 
+    def get_variants_by_gene_plus_variant_list(self, gene: str, variant_list: list) -> Any:
+        """
+        Retrieve variants for a gene filtered by a list of variant identifiers.
+
+        Matches documents where `genes` contains `gene` and any of the values in
+        `variant_list` appear in `HGVSp`, `HGVSc`, or `simple_id`.
+
+        Args:
+            gene (str): Gene name to search.
+            variant_list (list[str]): List of variant identifiers (HGVSp, HGVSc or simple_id).
+
+        Returns:
+            pymongo.cursor.Cursor: Cursor over matching variant documents.
+        """
+        return self.get_collection().find(
+            {
+                "genes": gene,
+                "$or": [
+                    {"HGVSp": {"$in": variant_list}},
+                    {"HGVSc": {"$in": variant_list}},
+                    {"simple_id": {"$in": variant_list}},
+                ],
+            },
+            {
+                "_id": 1,
+                "CHROM": 1,
+                "POS": 1,
+                "REF": 1,
+                "ALT": 1,
+                "SAMPLE_ID": 1,
+                "simple_id": 1,
+                "HGVSp": 1,
+                "HGVSc": 1,
+                "genes": 1,
+                "fp": 1,
+                "interesting": 1,
+                "irrelevant": 1,
+                "selected_csq_feature": 1,
+                "variant_class": 1,
+                "gnomad_frequency": 1,
+                "gnomad_max": 1,
+                "exac_frequency": 1,
+                "thousandG_frequency": 1,
+                "QUAL": 1,
+                "FILTER": 1,
+                "GT": 1,
+                "INFO.variant_callers": 1,
+                "INFO.selected_CSQ": 1,
+                "INFO.selected_CSQ_criteria": 1,
+            },
+        )
+
     def mark_false_positive_var(self, variant_id: str, fp: bool = True) -> Any:
         """
         Mark the false positive status of a variant.
@@ -200,9 +244,7 @@ class VariantsHandler(BaseHandler):
         """
         self.mark_false_positive(variant_id, fp)
 
-    def unmark_false_positive_var(
-        self, variant_id: str, fp: bool = False
-    ) -> Any:
+    def unmark_false_positive_var(self, variant_id: str, fp: bool = False) -> Any:
         """
         Unmark the false positive status of a variant.
 
@@ -218,9 +260,7 @@ class VariantsHandler(BaseHandler):
         """
         self.mark_false_positive(variant_id, fp)
 
-    def mark_false_positive_var_bulk(
-        self, variant_ids: list[str], fp: bool = True
-    ) -> Any:
+    def mark_false_positive_var_bulk(self, variant_ids: list[str], fp: bool = True) -> Any:
         """
         Mark multiple variants as false positive.
 
@@ -233,9 +273,7 @@ class VariantsHandler(BaseHandler):
         """
         return self.mark_false_positive_bulk(variant_ids, fp)
 
-    def unmark_false_positive_var_bulk(
-        self, variant_ids: list[str], fp: bool = False
-    ) -> Any:
+    def unmark_false_positive_var_bulk(self, variant_ids: list[str], fp: bool = False) -> Any:
         """
         Unmark multiple variants as false positive.
 
@@ -248,9 +286,7 @@ class VariantsHandler(BaseHandler):
         """
         return self.mark_false_positive_bulk(variant_ids, fp)
 
-    def mark_interesting_var(
-        self, variant_id: str, interesting: bool = True
-    ) -> Any:
+    def mark_interesting_var(self, variant_id: str, interesting: bool = True) -> Any:
         """
         Mark the variant as interesting.
 
@@ -266,9 +302,7 @@ class VariantsHandler(BaseHandler):
         """
         self.mark_interesting(variant_id, interesting)
 
-    def unmark_interesting_var(
-        self, variant_id: str, interesting: bool = False
-    ) -> Any:
+    def unmark_interesting_var(self, variant_id: str, interesting: bool = False) -> Any:
         """
         Unmark the variant as not interesting.
 
@@ -284,9 +318,7 @@ class VariantsHandler(BaseHandler):
         """
         self.mark_interesting(variant_id, interesting)
 
-    def mark_irrelevant_var(
-        self, variant_id: str, irrelevant: bool = True
-    ) -> Any:
+    def mark_irrelevant_var(self, variant_id: str, irrelevant: bool = True) -> Any:
         """
         Mark the variant as irrelevant.
 
@@ -302,9 +334,7 @@ class VariantsHandler(BaseHandler):
         """
         self.mark_irrelevant(variant_id, irrelevant)
 
-    def unmark_irrelevant_var(
-        self, variant_id: str, irrelevant: bool = False
-    ) -> Any:
+    def unmark_irrelevant_var(self, variant_id: str, irrelevant: bool = False) -> Any:
         """
         Unmark the variant as relevant.
 
@@ -320,9 +350,7 @@ class VariantsHandler(BaseHandler):
         """
         self.mark_irrelevant(variant_id, irrelevant)
 
-    def mark_irrelevant_var_bulk(
-        self, variant_ids: list[str], irrelevant: bool = True
-    ) -> Any:
+    def mark_irrelevant_var_bulk(self, variant_ids: list[str], irrelevant: bool = True) -> Any:
         """
         Mark multiple variants as irrelevant.
 
@@ -332,9 +360,7 @@ class VariantsHandler(BaseHandler):
         """
         return self.mark_irrelevant_bulk(variant_ids, irrelevant)
 
-    def unmark_irrelevant_var_bulk(
-        self, variant_ids: list[str], irrelevant: bool = False
-    ) -> Any:
+    def unmark_irrelevant_var_bulk(self, variant_ids: list[str], irrelevant: bool = False) -> Any:
         """
         Unmark multiple variants as irrelevant.
 
@@ -438,9 +464,7 @@ class VariantsHandler(BaseHandler):
         Returns:
             int: The number of unique SNP variants in the collection.
         """
-        snp_ids = self.get_collection().distinct(
-            "simple_id", {"variant_class": "SNV"}
-        )
+        snp_ids = self.get_collection().distinct("simple_id", {"variant_class": "SNV"})
         return len(snp_ids) or 0
 
     def get_unique_fp_count(self) -> int:
