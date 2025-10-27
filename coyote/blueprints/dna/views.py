@@ -1619,6 +1619,7 @@ def save_dna_report(sample_id: str) -> Response:
         return result
     sample, assay_config, assay_config_schema = result
 
+    name = sample.get("name", "unknown_sample")
     case_id = sample.get("case_id")
     control_id = sample.get("control_id")
     clarity_case_id = sample.get("case", {}).get("clarity_id")
@@ -1632,11 +1633,9 @@ def save_dna_report(sample_id: str) -> Response:
     # Clarity ID is always unique
 
     if control_id:
-        report_id: str = (
-            f"{case_id}_{clarity_case_id}-{control_id}_{clarity_control_id}.{report_num}"
-        )
+        report_id: str = f"{name}_{clarity_case_id}-{control_id}_{clarity_control_id}.{report_num}"
     else:
-        report_id: str = f"{case_id}_{clarity_case_id}.{report_num}"
+        report_id: str = f"{name}_{clarity_case_id}.{report_num}"
 
     report_path: str = os.path.join(
         app.config.get("REPORTS_BASE_PATH", "reports"),

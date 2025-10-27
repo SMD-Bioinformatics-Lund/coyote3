@@ -86,7 +86,7 @@
       <td class="top_report_val">{{ current_user.fullname }}</td>
     </tr>
     <tr>
-      {% set report_name = sample.get("case_id", "NONE") + "_" + sample.get("case", {}).get("clarity_id", "NONE") %}
+      {% set report_name = sample.get("name", "NONE") + "_" + sample.get("case", {}).get("clarity_id", "NONE") %}
       {% if sample.control_id %}
         {% set report_name = report_name + "-" + sample.get("control_id", "NONE") + "_" + sample.get("control",{}).get("clarity_id", "NONE") %}
       {% endif %}

@@ -8,6 +8,7 @@
 - Added a key 'adhoc and is_public' to indicate if the gene list is adhoc and public in the isgl schema.
 - Added a public facing assay catalog page to view assay related meta data, genelists, configs, etc. This is controlled by assay_catalog.yaml file along with APC and ASPC.
 - Updated dashboard stats to have total counts of variants instead of unique counts to reduce the loading time.
+- Report name format uses `Sample.name` instead of `Sample.case_id`, causing reports to be created with the same `case_id` but different `sample.name`.
 
 ## v3.0.6
 - SNV filter step size has been changed to 0.001, now user can go upto 0.1% at the lowest.
