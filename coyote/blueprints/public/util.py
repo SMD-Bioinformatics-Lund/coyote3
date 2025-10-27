@@ -155,13 +155,16 @@ class PublicUtility:
         return store.aspc_handler.get_aspc_with_id(aspc_id)
 
     @staticmethod
-    def hydrate_category(mod: str, cat_id: str, env: str = DEFAULT_ENV) -> Optional[Dict[str, Any]]:
+    def hydrate_category(
+        mod: str, cat_id: str, gl_id: str = None, env: str = DEFAULT_ENV
+    ) -> Optional[Dict[str, Any]]:
         """
         Build the data the right pane needs for a CATEGORY.
 
         Args:
             mod (str): The modality key (e.g., 'WGS', 'WTS', 'GenePanels').
             cat_id (str): The category ID within the modality.
+            gl_id (str): The gene list ID within the category.
             env (str, optional): The environment to use for ASPC lookup (default: "production").
 
         Returns:
@@ -172,9 +175,20 @@ class PublicUtility:
             - Covered genes are not included for weight; they are fetched lazily when drawing the table.
             - Analysis is sourced ONLY from ASPC (report_sections preferred).
         """
-        node = PublicUtility.category_def(mod, cat_id)
+        node = PublicUtility.category_def(
+            mod,
+            cat_id,
+        )
         if not node:
             return None
+
+        gl_node = {}
+        gene_lists = node.get("gene_lists") or []
+        if gl_id:
+            for gl in gene_lists:
+                if gl_id == (gl.get("key") or gl.get("catalog_id")):
+                    gl_node = gl
+                    break
 
         asp_id = node.get("asp_id")
         aspc_ids = node.get("aspc_ids") or {}
@@ -184,15 +198,15 @@ class PublicUtility:
 
         analysis = []
         if aspc:
-            analysis = (aspc.get("report_sections") or []) or (aspc.get("analysis_types") or [])
+            analysis = aspc.get("report_sections") or []
 
         return {
             "catalog_id": node.get("catalog_id") or cat_id,
             "label": node.get("label") or cat_id,
             "description": node.get("description", ""),
-            "input_material": node.get("input_material"),
-            "tat": node.get("tat"),
-            "sample_modes": node.get("sample_modes", []),
+            "input_material": gl_node.get("input_material", node.get("input_material")),
+            "tat": gl_node.get("tat", node.get("tat")),
+            "sample_modes": gl_node.get("sample_modes", node.get("sample_modes", [])),
             "analysis": analysis,  # ASPC only
             "asp_id": asp_id,
             "asp": (

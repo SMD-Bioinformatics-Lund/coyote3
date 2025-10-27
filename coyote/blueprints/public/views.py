@@ -168,7 +168,12 @@ def assay_catalog(mod: str | None = None, cat: str | None = None, isgl_key: str 
         print(f"ASP_ID: {right.get('asp_id')}")
     else:
         # category / genelist level
-        hc = util.public.hydrate_category(selected_mod, selected_cat, env="production")
+        if selected_isgl:
+            hc = util.public.hydrate_category(
+                selected_mod, selected_cat, selected_isgl, env="production"
+            )
+        else:
+            hc = util.public.hydrate_category(selected_mod, selected_cat, env="production")
         if not hc:
             abort(404)
         right = {
@@ -190,6 +195,8 @@ def assay_catalog(mod: str | None = None, cat: str | None = None, isgl_key: str 
             "version": catalog.get("version"),
             "last_updated": catalog.get("last_updated"),
             "maintainer": catalog.get("maintainer"),
+            "header": catalog.get("header"),
+            "description": catalog.get("description"),
         },
         "order": order,
         "modalities": mods,

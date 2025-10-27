@@ -153,9 +153,9 @@
         {% if not selected_mod %}
           <!-- Base page: one clean card only -->
           <section class="rounded-2xl border bg-gray-50 border-indigo-400 shadow-xl hover:shadow-lg p-6">
-            <h2 class="text-lg font-medium">Welcome</h2>
+            <h2 class="text-lg font-medium">{{ meta.header }}</h2>
             <p class="text-gray-600 text-sm mt-2">
-              his page presents public information about our DNA and RNA assay offerings, their diagnosis tracks, and the genes typically analyzed. Choose an assay from the left. Then use the DNA/RNA toggle to narrow diagnosis, and select a diagnosis to view full details and gene coverage. The gene lists can be exported as CSV anytime.
+              {{ meta.description or "Explore CMD’s public catalog of NGS assays. Use the arrow to expand; click a name to load details and the live gene table." }}
             </p>
           </section>
         {% else %}
@@ -183,11 +183,11 @@
                 <div class="grid grid-cols-3 gap-4 text-sm">
                   <div class="col-span-2">
                     <div class="text-gray-500 py-1">Input material</div>
-                    <div class="flex">{{ right.input_material|format_input_material|safe or "—" }}</div>
+                    <div class="flex">{{ right.input_material|format_input_material|safe or "-" }}</div>
                   </div>
                   <div>
                     <div class="text-gray-500 py-1">Turnaround</div>
-                    <div>{{ right.tat or "—" }}</div>
+                    <div>{{ right.tat or "-" }}</div>
                   </div>
                   <div class="col-span-2">
                     <div class="text-gray-500 py-1">Sample modes</div>
@@ -201,7 +201,7 @@
                   </div>
                   <div>
                     <div class="text-gray-500">Platform</div>
-                    <div>{{ right.asp.platform if right.asp else "—" }}</div>
+                    <div>{{ right.asp.platform if right.asp else "-" }}</div>
                   </div>
                   <div class="col-span-2">
                     <div class="text-gray-500 py-1">Available analyses</div>
@@ -217,8 +217,8 @@
                     <div class="text-gray-500">Read Length</div>
                     <div>
                       {% if right.asp %}
-                        {{ right.asp.read_length or "—" }} {{ right.asp.read_mode or "" }}
-                      {% else %}—{% endif %}
+                        {{ right.asp.read_length or "-" }} {{ right.asp.read_mode or "-" }}
+                      {% else %}-{% endif %}
                     </div>
                   </div>
                 </div>
@@ -244,14 +244,18 @@
           {% if genes|length > 0 %}
             <!-- Gene table -->
             <section class="rounded-2xl border bg-gray-50 border-gray-400 shadow-xl hover:shadow-lg pb-5 px-2">
-              <div class="p-4 flex flex-wrap items-start gap-3">
+              <div class="px-4 pt-4 flex flex-wrap items-start gap-3">
                 <div class="flex-1">
                   <h3 class="text-base font-medium">
                     {% if selected_isgl %}
                       {% set isgl_label = (right.gene_lists | selectattr('key', 'equalto', selected_isgl) | first).label if right.gene_lists | selectattr('key', 'equalto', selected_isgl) | first else '' %}
+                      {% set isgl_desc = (right.gene_lists | selectattr('key', 'equalto', selected_isgl) | first).description if right.gene_lists | selectattr('key', 'equalto', selected_isgl) | first else '' %}
                     {% endif %}
                     {{ selected_mod }} | {{ right.title }} {% if isgl_label %}{{ isgl_label }}{% endif %}
                     ({{ genes|length }})
+                    {% if isgl_desc %}
+                      <p class="text-sm text-gray-600 mt-1">{{ isgl_desc }}</p>
+                    {% endif %}
                   </h3>
 
                   {# compute download href once #}
@@ -266,7 +270,7 @@
                   {% endif %}
 
                   {% if dl_href %}
-                    <div class="mt-2">
+                    <div class="mt-4">
                       <a href="{{ dl_href }}"
                           class="inline-flex items-center gap-2 rounded-lg bg-blue-300 px-3 py-1 text-xs font-medium text-black shadow-sm hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2">
                         <img src="{{ url_for('static', filename='icons/heroicons_outline_24/folder-arrow-down.svg') }}"
@@ -277,7 +281,7 @@
                   {% endif %}
                 </div>
 
-                <div class="relative w-full sm:w-auto sm:min-w-[260px] ml-auto">
+                <div class="relative ml-auto">
                   <input id="search-genes" type="text" placeholder="Search genes, aliases, OMIM…"
                           class="w-full border rounded-xl py-2 pl-4 pr-10 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
                   <div class="absolute inset-y-0 right-0 flex items-center pr-3">
