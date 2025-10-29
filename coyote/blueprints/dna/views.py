@@ -644,7 +644,6 @@ def gene_view_simple(gene_name: str) -> Response | str:
         form=form,
         checked_assays=checked_assays,
         gene=gene_name,
-        annotations=annotations,
         annodict=annotations_dict,
     )
 
@@ -655,39 +654,50 @@ def gene_view(gene_name: str) -> Response | str:
     """
     Display detailed gene-specific variant information.
 
-    This view retrieves and displays all variants associated with a given gene.
-    It fetches variants from the database, adds global annotations, and prepares
-    a summary for rendering in the gene-specific variant template.
+    This view retrieves all variants associated with a specific gene, enriches each
+    variant with global annotations and classification data, and prepares a summary
+    used to render the gene-specific variant template.
 
     Args:
-        gene_name (str): The name of the gene for which to display variant information.
+        gene_name (str): The gene symbol to lookup (case-sensitive).
 
     Returns:
-        flask.Response | str: Rendered HTML template showing gene-specific variants,
-        or a redirect/response if required data is missing.
+        flask.Response | str: Rendered template showing gene-specific variants, or a
+        redirect/Response if required data is missing.
 
-    Side Effects:
-        - Logs the number of gene-specific variants.
-        - May perform slow operations when adding global annotations.
+    Notes:
+        - Fetching and annotating variants may be slow for genes with many variants.
+        - Global annotations and classification lookups are performed per-variant.
     """
-    variants_iter = store.variant_handler.get_variants_by_gene(gene_name)
+
+    # Get all the annotations for the gene
+    annotations = list(store.annotation_handler.get_gene_annotations(gene_name))
+
+    unique_annotated = list(
+        set([ann["variant"] for ann in annotations if ann.get("variant") not in [None, "None", ""]])
+    )
+
+    variants_iter = store.variant_handler.get_variants_by_gene_plus_variant_list(
+        gene_name, unique_annotated
+    )
+
     variants = list(variants_iter)
-
-    app.logger.debug(f"gene specific variants: {len(variants)}")
-
-    # TODO:  How slow is this????
-    variants, tiered_variants = util.dna.add_global_annotations(variants, "assay", "subpanel")
-
-    variant_summary = defaultdict(dict)
     sample_oids = []
+    variant_summary = defaultdict(dict)
+
+    # Get global annotations for the variants - SLOW OPERATION
     for var in variants:
-        short_pos = var.get("simple_id", None)
+        annots, latest_classification, other_classifications, annotations_interesting = (
+            store.annotation_handler.get_global_annotations(var, "assay", "subpanel")
+        )
+        var["global_annotations"] = annots
+        var["latest_classification"] = latest_classification
+        var["other_classifications"] = other_classifications
+        var["annotations_interesting"] = annotations_interesting
 
-        if not var.get("classification"):
-            continue
+        short_pos = var.get("simple_id")
 
-        if var["classification"].get("class", 999) != 999:
-
+        if var["latest_classification"]["class"] != 999:
             sample_oids.append(ObjectId(var["SAMPLE_ID"]))
 
             if short_pos in variant_summary:
@@ -697,16 +707,17 @@ def gene_view(gene_name: str) -> Response | str:
                 variant_summary[short_pos]["count"] = 1
                 variant_summary[short_pos]["CSQ"] = var["INFO"]["selected_CSQ"]
                 variant_summary[short_pos]["anno"] = var["global_annotations"]
-                variant_summary[short_pos]["class"] = var["classification"]
+                variant_summary[short_pos]["class"] = var["latest_classification"]
                 variant_summary[short_pos]["samples"] = [var["SAMPLE_ID"]]
 
-    # Get display names for the samples, from db.
     samples = store.sample_handler.get_samples_by_oids(sample_oids)
 
     # Create hash for translation ID -> display name, from samples
     sample_names = {}
     for sample in samples:
         sample_names[str(sample["_id"])] = sample["name"]
+
+    print(sample_names)
 
     return render_template("gene_view.html", variants=variant_summary, sample_names=sample_names)
 

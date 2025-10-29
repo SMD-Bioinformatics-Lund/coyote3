@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.0.7
+### BugFix
+- Fixed full gene view to get all the tiered variants along with the samples. #115
+
 ## v3.0.6
 - SNV filter step size has been changed to 0.001, now user can go upto 0.1% at the lowest.
 

@@ -87,10 +87,10 @@
                     <td class="p-2 font-medium">
                       <!-- TODO: FIX THIS FOR RNA SAMPLES WHEN WE FIX THE LOGIC (Issue: #49)-->
                       {% for id in var.samples %}
-                          <a href="{{ url_for('dna_bp.list_variants', id=sample_names[id]) }}" class="text-blue-500 hover:underline">{{ sample_names[id] }}</a><br>
+                          <a href="{{ url_for('dna_bp.list_variants', sample_id=sample_names[id]) }}" class="text-blue-500 hover:underline">{{ sample_names[id] }}</a><br>
                       {% endfor %}
                     </td>
-                  </tr>  
+                  </tr>
                 {% endfor %}
                 {% if not ns.has_variants %}
                   <tr class="border-b border-gray-300">

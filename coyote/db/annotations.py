@@ -84,9 +84,7 @@ class AnnotationsHandler(BaseHandler):
             flash("Failed to insert annotations", "red")
             return False
 
-    def get_global_annotations(
-        self, variant: dict, assay_group: str, subpanel: str
-    ) -> tuple:
+    def get_global_annotations(self, variant: dict, assay_group: str, subpanel: str) -> tuple:
         """
         Retrieve global annotations for a given variant, assay, and subpanel.
 
@@ -113,29 +111,64 @@ class AnnotationsHandler(BaseHandler):
                 - annotations_interesting (dict): A dictionary of annotations
                   deemed interesting based on assay and subpanel.
         """
-        genomic_location = f"{str(variant['CHROM'])}:{str(variant['POS'])}:{variant['REF']}/{variant['ALT']}"
-        selected_CSQ = variant["INFO"]["selected_CSQ"]
-
-        annotations = (
-            self.get_collection()
-            .find(
-                {
-                    "gene": selected_CSQ["SYMBOL"],
-                    "$or": [
-                        {
-                            "nomenclature": "p",
-                            "variant": unquote(selected_CSQ.get("HGVSp")),
-                        },
-                        {
-                            "nomenclature": "c",
-                            "variant": unquote(selected_CSQ.get("HGVSc")),
-                        },
-                        {"nomenclature": "g", "variant": genomic_location},
-                    ],
-                }
-            )
-            .sort("time_created", 1)
+        genomic_location = (
+            f"{str(variant['CHROM'])}:{str(variant['POS'])}:{variant['REF']}/{variant['ALT']}"
         )
+        selected_CSQ = variant["INFO"]["selected_CSQ"]
+        hgvsp = unquote(selected_CSQ.get("HGVSp", ""))
+        hgvsc = unquote(selected_CSQ.get("HGVSc", ""))
+
+        if len(hgvsp) > 0:
+            annotations = (
+                self.get_collection()
+                .find(
+                    {
+                        "gene": selected_CSQ["SYMBOL"],
+                        "$or": [
+                            {
+                                "nomenclature": "p",
+                                "variant": hgvsp,
+                            },
+                            {
+                                "nomenclature": "c",
+                                "variant": hgvsc,
+                            },
+                            {"nomenclature": "g", "variant": genomic_location},
+                        ],
+                    }
+                )
+                .sort("time_created", 1)
+            )
+
+        elif len(hgvsc) > 0:
+            annotations = (
+                self.get_collection()
+                .find(
+                    {
+                        "gene": selected_CSQ["SYMBOL"],
+                        "$or": [
+                            {
+                                "nomenclature": "c",
+                                "variant": hgvsc,
+                            },
+                            {"nomenclature": "g", "variant": genomic_location},
+                        ],
+                    }
+                )
+                .sort("time_created", 1)
+            )
+        else:
+            annotations = (
+                self.get_collection()
+                .find(
+                    {
+                        "gene": selected_CSQ["SYMBOL"],
+                        "nomenclature": "g",
+                        "variant": genomic_location,
+                    }
+                )
+                .sort("time_created", 1)
+            )
 
         latest_classification = {"class": 999}
         latest_classification_other = {}
@@ -147,30 +180,37 @@ class AnnotationsHandler(BaseHandler):
             ## also collect latest anno for all other assigned assays (including non-assays)
             ## special rule for assays with subpanels, solid, tumwgs maybe lymph?
             if "class" in anno:
-                anno["class"] = int(anno["class"])
-                assay = anno.get("assay", "NA")
-                sub = anno.get("subpanel", "NA")
-                ass_sub = f"{assay}:{sub}"
-                if assay_group == "solid":
-                    if assay == assay_group and sub == subpanel:
-                        latest_classification = anno
+                try:
+                    anno["class"] = int(anno["class"])
+                    assay = anno["assay"]
+                    sub = anno["subpanel"]
+                    ass_sub = f"{assay}:{sub}"
+                    if assay_group == "solid":
+                        if assay == assay_group and sub == subpanel:
+                            latest_classification = anno
+                        else:
+                            latest_classification_other[ass_sub] = anno["class"]
                     else:
-                        latest_classification_other[ass_sub] = anno["class"]
-                else:
-                    if assay == assay_group:
-                        latest_classification = anno
-                    else:
-                        latest_classification_other[ass_sub] = anno["class"]
+                        if assay == assay_group:
+                            latest_classification = anno
+                        else:
+                            latest_classification_other[ass_sub] = anno["class"]
+                except KeyError:
+                    latest_classification = anno
+                    latest_classification_other["N/A"] = anno["class"]
             elif "text" in anno:
-                assay = anno.get("assay", "NA")
-                sub = anno.get("subpanel", "NA")
-                if assay_group == "solid":
-                    if assay == assay_group and sub == subpanel:
-                        ass_sub = f"{assay}:{sub}"
-                        annotations_interesting[ass_sub] = anno
-                elif assay == assay_group:
-                    annotations_interesting[assay] = anno
-                annotations_arr.append(anno)
+                try:
+                    assay = anno["assay"]
+                    sub = anno["subpanel"]
+                    ass_sub = f"{assay}:{sub}"
+                    if assay_group == "solid":
+                        if assay == assay_group and sub == subpanel:
+                            annotations_interesting[ass_sub] = anno
+                    elif assay == assay_group:
+                        annotations_interesting[assay] = anno
+                    annotations_arr.append(anno)
+                except KeyError:
+                    annotations_arr.append(anno)
 
         latest_other_arr = []
         for latest_assay in latest_classification_other:
@@ -179,7 +219,7 @@ class AnnotationsHandler(BaseHandler):
                 {
                     "assay": assay_sub[0],
                     "class": latest_classification_other[latest_assay],
-                    "subpanel": assay_sub[1],
+                    "subpanel": assay_sub[1] if len(assay_sub) > 1 else None,
                 }
             )
 
@@ -208,9 +248,7 @@ class AnnotationsHandler(BaseHandler):
 
         """
         transcripts = variant["transcripts"]
-        transcript_patterns = [
-            f"^{transcript}(\\..*)?$" for transcript in transcripts
-        ]
+        transcript_patterns = [f"^{transcript}(\\..*)?$" for transcript in transcripts]
         hgvsp = variant["HGVSp"]
         hgvsc = variant["HGVSc"]
         genes = variant["genes"]
@@ -228,9 +266,7 @@ class AnnotationsHandler(BaseHandler):
         if assay_group == "solid":
             query["subpanel"] = subpanel
 
-        return list(
-            self.get_collection().find(query).sort("time_created", -1).limit(1)
-        )
+        return list(self.get_collection().find(query).sort("time_created", -1).limit(1))
 
     def insert_classified_variant(
         self,
@@ -370,11 +406,7 @@ class AnnotationsHandler(BaseHandler):
             list: A list of annotations related to the specified gene,
                   sorted by creation time.
         """
-        return (
-            self.get_collection()
-            .find({"gene": gene_name})
-            .sort("time_created", 1)
-        )
+        return self.get_collection().find({"gene": gene_name}).sort("time_created", 1)
 
     def add_anno_comment(self, comment: dict) -> Any:
         """
@@ -435,9 +467,7 @@ class AnnotationsHandler(BaseHandler):
             # Sort the results by assay, nomenclature, and class for consistency
             {"$sort": {"_id.assay": 1, "_id.nomenclature": 1, "_id.class": 1}},
         ]
-        return tuple(
-            self.get_collection().aggregate(assay_class_stats_pipeline)
-        )
+        return tuple(self.get_collection().aggregate(assay_class_stats_pipeline))
 
     def get_classified_stats(self) -> tuple:
         """
