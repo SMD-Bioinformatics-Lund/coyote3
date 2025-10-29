@@ -202,12 +202,12 @@ class PublicUtility:
 
         return {
             "catalog_id": node.get("catalog_id") or cat_id,
-            "label": node.get("label") or cat_id,
-            "description": node.get("description", ""),
+            "label": gl_node.get("label", node.get("label", cat_id)),
+            "description": gl_node.get("description", node.get("description", "")),
             "input_material": gl_node.get("input_material", node.get("input_material")),
             "tat": gl_node.get("tat", node.get("tat")),
             "sample_modes": gl_node.get("sample_modes", node.get("sample_modes", [])),
-            "analysis": analysis,  # ASPC only
+            "analysis": gl_node.get("analysis", analysis),  # ASPC only
             "asp_id": asp_id,
             "asp": (
                 None

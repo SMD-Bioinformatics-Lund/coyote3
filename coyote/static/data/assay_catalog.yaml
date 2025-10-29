@@ -113,6 +113,9 @@ modalities:
         description: "Open analysis. Also, single gene analysis e.g. CXCR4, KIT, MYD88, KIT, UBA1 is available (select from GMS-HEM)"
         subheading: ""
         gene_lists:
+          - key: "hema_GMSv1"               # (ISGL) Key must match ISGL _id
+            label: "GMS-HEM"
+            description: "Gene list for hematologic malignancies"
           - key: "hematology_myeloid"             # (ISGL)
             label: "H-MGP"
             description: "Gene list for myeloid malignancies" # Text above the table
@@ -131,6 +134,7 @@ modalities:
             label: "Hem-Snabb"
             description: "Limited gene list for acute myeloid leukemia (AML)"
             tat: "7-10 days"
+            analysis: ["SNV", "Preliminary CNV"]  # Override analysis types if needed
           - key: "single_gene"
             label: "Single Gene"
             description: "Single gene analysis"
@@ -148,6 +152,9 @@ modalities:
         description: "Gene list for solid tumors including x drug targets according to https://www.oncokb.org/actionable-genes#sections=Tx"
         subheading: ""
         gene_lists:
+          - key: "solid_GMSv3"               # (ISGL) Key must match ISGL _id
+            label: "GMS-ST"
+            description: "Gene list for solid tumors"
           - key: "endometrial"                  # (ISGL) Key must match ISGL _id
             label: "Endometrial cancer"
             description: "Gene list for endometrial cancer"
