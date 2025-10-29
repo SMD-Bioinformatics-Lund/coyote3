@@ -242,7 +242,17 @@ class SampleHandler(BaseHandler):
         Returns:
           Any: A cursor to the list of sample documents containing only the `name` field.
         """
-        return self.get_collection().find({"_id": {"$in": sample_oids}}, {"name": 1})
+        return self.get_collection().find(
+            {"_id": {"$in": sample_oids}},
+            {
+                "name": 1,
+                "assay": 1,
+                "subpanel": 1,
+                "profile": 1,
+                "case_id": 1,
+                "control_id": 1,
+            },
+        )
 
     def reset_sample_settings(self, sample_id: str, default_filters: dict) -> Any:
         """

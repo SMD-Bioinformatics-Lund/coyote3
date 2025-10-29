@@ -112,7 +112,7 @@ class VariantsHandler(BaseHandler):
         current_sample_id = variant["SAMPLE_ID"]
         simple_id = variant["simple_id"]
 
-        # Step 1: Fetch up to 20 variants with the same simple_id but from other samples
+        # Fetch up to 20 variants with the same simple_id but from other samples
         variants = list(
             self.get_collection()
             .find(
@@ -133,7 +133,7 @@ class VariantsHandler(BaseHandler):
             .limit(20)
         )
 
-        # Step 2: Collect only the sample ObjectIds we need
+        # Collect only the sample ObjectIds we need
         sample_ids = {ObjectId(v["SAMPLE_ID"]) for v in variants}
 
         # Step 3: Map sample_id -> {name, assay}
@@ -148,7 +148,7 @@ class VariantsHandler(BaseHandler):
             )
         }
 
-        # Step 4: Attach GT to each sample_info
+        # Attach GT to each sample_info
         results = []
         for v in variants:
             sid = v["SAMPLE_ID"]
@@ -175,6 +175,58 @@ class VariantsHandler(BaseHandler):
             Any: A cursor to the documents that match the query or None if not found.
         """
         return self.get_collection().find({"genes": gene})
+
+    def get_variants_by_gene_plus_variant_list(self, gene: str, variant_list: list) -> Any:
+        """
+        Retrieve variants for a gene filtered by a list of variant identifiers.
+
+        Matches documents where `genes` contains `gene` and any of the values in
+        `variant_list` appear in `HGVSp`, `HGVSc`, or `simple_id`.
+
+        Args:
+            gene (str): Gene name to search.
+            variant_list (list[str]): List of variant identifiers (HGVSp, HGVSc or simple_id).
+
+        Returns:
+            pymongo.cursor.Cursor: Cursor over matching variant documents.
+        """
+        return self.get_collection().find(
+            {
+                "genes": gene,
+                "$or": [
+                    {"HGVSp": {"$in": variant_list}},
+                    {"HGVSc": {"$in": variant_list}},
+                    {"simple_id": {"$in": variant_list}},
+                ],
+            },
+            {
+                "_id": 1,
+                "CHROM": 1,
+                "POS": 1,
+                "REF": 1,
+                "ALT": 1,
+                "SAMPLE_ID": 1,
+                "simple_id": 1,
+                "HGVSp": 1,
+                "HGVSc": 1,
+                "genes": 1,
+                "fp": 1,
+                "interesting": 1,
+                "irrelevant": 1,
+                "selected_csq_feature": 1,
+                "variant_class": 1,
+                "gnomad_frequency": 1,
+                "gnomad_max": 1,
+                "exac_frequency": 1,
+                "thousandG_frequency": 1,
+                "QUAL": 1,
+                "FILTER": 1,
+                "GT": 1,
+                "INFO.variant_callers": 1,
+                "INFO.selected_CSQ": 1,
+                "INFO.selected_CSQ_criteria": 1,
+            },
+        )
 
     def mark_false_positive_var(self, variant_id: str, fp: bool = True) -> Any:
         """
