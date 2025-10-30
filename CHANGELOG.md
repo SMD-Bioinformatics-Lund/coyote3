@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.0.8
+### HotFix #117
+- Fixed handling of long indel in reports: indels longer than 20 characters are no longer truncated in the UI — table cells show the indel length (e.g., "45 bp") instead of a cut-off sequence. For very long indels (>30 characters) the column header is also updated to include the indel length to improve readability.
+
 ## v3.0.7
 ### BugFix
 - Fixed full gene view to get all the tiered variants along with the samples. #115
@@ -22,7 +26,6 @@
 - Report should follow a naming structure of <CASE_ID>_<CLARITY_CASE_ID>-<CONTROL_ID>_<CLARITY_CONTROL_ID>.<REPORT_NUM>.html for paired samples and <CASE_ID>_<CLARITY_CASE_ID>.<REPORT_NUM>.html for unpaired samples.
 - static files cleanup -> css, icons, images
 - replaced groups with assays where needed
--
 
 ## v3.0.2
 ### BugFix
