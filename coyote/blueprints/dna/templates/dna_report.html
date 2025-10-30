@@ -118,7 +118,13 @@
     {% for var in variants %}
         <tr>
           <td>{{ var.symbol }}</td>
-          <td>{{ var.variant|unesc }}</td>
+          <td>
+            {% if var.indel_size > 20 %}
+              {{ var.cdna }}
+            {% else %}
+              {{ var.variant|unesc }}
+            {% endif %}
+            </td>
           <td>
             {% if var.exon %}
               E: {{ var.exon[0] }} of {{ var.exon[1] }}
@@ -308,7 +314,12 @@
         <tr>
           <th class="report_variant_header" colspan=6>
             {% if var.variant %}
-              <span class="report_variant_header">{{ var.symbol }}: {{ var.variant|unesc }}</span><br>
+              <span class="report_variant_header">{{ var.symbol }}:
+                {% if var.variant|unesc|length < 30 %}
+                  {{ var.variant|unesc }}</span><br>
+                {% else %}
+                  {{ var.cdna }}
+                {% endif %}
             {% else %}
             {#{ var.INFO }#}
             {% endif %}
@@ -335,7 +346,7 @@
           <td class="report_key">Konsekvens</td>
           <td class="var_report_val">{{ var.consequence }}</td>
           <td class="report_key">cDNA-förändring</td>
-          {% if var_type == "snv" %}
+          {% if var.var_type == "snv" %}
             <td class="var_report_val">
               <div class="wrapping">{{ var.cdna|unesc }}</div>
             </td>
@@ -345,11 +356,15 @@
 
           <td class="report_key">Proteinförändring</td>
           <td class="var_report_val">
-            {% if var.protein_changes %}
-                {% for p_change in var.protein_changes %}
-                  {{ p_change|safe }}<br>
-                {% endfor %}
-              {% else %}
+            {% if var.indel_size < 20 %}
+              {% if var.protein_changes %}
+                  {% for p_change in var.protein_changes %}
+                    {{ p_change|safe }}<br>
+                  {% endfor %}
+                {% else %}
+              {% endif %}
+            {% else %}
+              {{ var.cdna }}
             {% endif %}
           </td>
         </tr>

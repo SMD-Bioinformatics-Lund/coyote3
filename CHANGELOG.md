@@ -10,6 +10,10 @@
 - Updated dashboard stats to have total counts of variants instead of unique counts to reduce the loading time.
 - Report name format uses `Sample.name` instead of `Sample.case_id`, causing reports to be created with the same `case_id` but different `sample.name`.
 
+## v3.0.8
+### HotFix #117
+- Fixed handling of long indel in reports: indels longer than 20 characters are no longer truncated in the UI — table cells show the indel length (e.g., "45 bp") instead of a cut-off sequence. For very long indels (>30 characters) the column header is also updated to include the indel length to improve readability.
+
 ## v3.0.7
 ### BugFix
 - Fixed full gene view to get all the tiered variants along with the samples. #115
@@ -32,6 +36,7 @@
 - Report should follow a naming structure of <CASE_ID>_<CLARITY_CASE_ID>-<CONTROL_ID>_<CLARITY_CONTROL_ID>.<REPORT_NUM>.html for paired samples and <CASE_ID>_<CLARITY_CASE_ID>.<REPORT_NUM>.html for unpaired samples.
 - static files cleanup -> css, icons, images
 - replaced groups with assays where needed
+-
 
 ## v3.0.2
 ### BugFix
