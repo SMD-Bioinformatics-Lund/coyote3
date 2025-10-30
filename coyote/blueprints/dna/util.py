@@ -381,6 +381,7 @@ class DNAUtility:
                     "ref": var.get("REF"),
                     "alt": var.get("ALT"),
                     "variant": variant,
+                    "indel_size": indel_size,
                     "af": AF,
                     "symbol": selected_CSQ.get("SYMBOL"),
                     "exon": exons,
