@@ -17,7 +17,7 @@ Version Information for Coyote3
 This file contains the version information for the Coyote3 application.
 """
 
-__version__ = "3.0.8"
+__version__ = "3.0.9"
 
 # For easier access by build-scripts:
 if __name__ == "__main__":

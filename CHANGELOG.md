@@ -1,5 +1,12 @@
 # Changelog
 
+# v3.0.9
+### BugFix #119
+- Fixed carry-over of protein changes between variants.
+  The protein_changes list is now reinitialized inside the variant processing loop, ensuring each variant has its own independent protein change data.
+  Previously, variants without explicit protein changes could inherit those from prior variants, causing incorrect annotations.
+- Added Config/coyote3_collections.toml file to repository for easier configuration management.
+
 ## v3.0.8
 ### HotFix #117
 - Fixed handling of long indel in reports: indels longer than 20 characters are no longer truncated in the UI — table cells show the indel length (e.g., "45 bp") instead of a cut-off sequence. For very long indels (>30 characters) the column header is also updated to include the indel length to improve readability.
