@@ -136,7 +136,7 @@ dmypy.json
 
 *.nfs*
 config.git.hash
-/config/
+/config/db_collections_beta2.toml
 .dir-locals.el
 run_dev.py
 *.backup*

@@ -274,10 +274,13 @@ class DNAUtility:
         class_long_desc_list = ReportUtility.TIER_DESC
         one_letter_p = app.jinja_env.filters["one_letter_p"]
         standard_HGVS = app.jinja_env.filters["standard_HGVS"]
-        cdna = ""
-        protein_changes = []
+
         simple_variants = []
+
         for var in variants:
+            cdna = ""
+            protein_changes = []
+
             indel_size = len(var.get("ALT")) - len(var.get("REF"))
             selected_CSQ = var.get("INFO", {}).get("selected_CSQ", {})
             var_type = "snv"
