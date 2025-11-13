@@ -120,14 +120,16 @@
                                     <ul class="ml-2 mt-1 space-y-0.5">
                                       {% set first_gl = c.gene_lists[0] %}
                                       {% set is_gl_selected = (is_cat_selected and selected_isgl and first_gl.key==selected_isgl) %}
-                                      <li>
-                                      <a href="{{ url_for('public_bp.assay_catalog', mod=m, cat=cid, isgl_key=first_gl.key) }}"
-                                        class="block rounded-md px-3 py-1 text-sm
-                                            {% if is_gl_selected %} bg-indigo-100 text-indigo-800 font-semibold border border-indigo-300
-                                            {% else %} text-gray-800 hover:bg-indigo-100 {% endif %}">
-                                        {{ first_gl.label }}
-                                      </a>
-                                      </li>
+                                      {% if first_gl.key != "" %}
+                                        <li>
+                                        <a href="{{ url_for('public_bp.assay_catalog', mod=m, cat=cid, isgl_key=first_gl.key) }}"
+                                          class="block rounded-md px-3 py-1 text-sm
+                                              {% if is_gl_selected %} bg-indigo-100 text-indigo-800 font-semibold border border-indigo-300
+                                              {% else %} text-gray-800 hover:bg-indigo-100 {% endif %}">
+                                          {{ first_gl.label }}
+                                        </a>
+                                        </li>
+                                      {% endif %}
                                     </ul>
                                   {% endif %}
                                   {% if (c.gene_lists or [])|length > 1 %}
@@ -239,17 +241,19 @@
                 <hr class="my-4" />
                 <div class="grid grid-cols-3 gap-4 text-sm">
                   <div class="mt-3 text-sm">
-                    <div class="text-gray-500">Covered genes (count)</div>
-                    <div>
-                      {% if selected_isgl %}
-                        {{ stats.isgl_total }}
-                      {% else %}
-                        {{ right.asp.covered_genes_count if right.asp else "Not Available" }}
-                      {% endif %}
-                      {% if selected_mod.lower() not in ["wgs", "wts"] %}
-                        <span class="text-gray-500"> (of {{ right.asp.covered_genes_count }} in ASP)</span>
-                      {% endif %}
-                    </div>
+                    {% if selected_isgl %}
+                      <div class="text-gray-500">Covered genes (count)</div>
+                      <div>
+                        {% if selected_isgl %}
+                          {{ stats.isgl_total }}
+                        {% else %}
+                          {{ right.asp.covered_genes_count if right.asp else "Not Available" }}
+                        {% endif %}
+                        {% if selected_mod.lower() not in ["wgs", "wts"] %}
+                          <span class="text-gray-500"> (of {{ right.asp.covered_genes_count }} in ASP)</span>
+                        {% endif %}
+                      </div>
+                    {% endif %}
                   </div>
               </div>
             {% endif %}

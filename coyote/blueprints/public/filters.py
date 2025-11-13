@@ -46,14 +46,19 @@ def format_input_material(input_material: list) -> str:
         str: Formatted input material string.
     """
     color_map = {
+        "dna": "bg-green-600",
+        "rna": "bg-red-400",
         "blood": "bg-orange-600",
         "bone marrow": "bg-yellow-600",
         "ffpe": "bg-purple-500",
-        "ft": "bg-blue-600",
+        "fresh": "bg-blue-600",
+        "fresh frozen": "bg-blue-400",
         "skin": "bg-pink-500",
         "csf": "bg-gray-600",
         "plasma": "bg-gray-800",
         "saliva": "bg-brown-300",
+        "other neoplastic tissue": "bg-brown-600",
+        "neoplastic tissue": "bg-brown-600",
     }
 
     formatted_items = []
