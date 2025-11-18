@@ -27,7 +27,7 @@ echo "Starting Coyote3 Deployment..."
 # Source the .env file if it exists
 if [[ -f ".coyote3_env" ]]; then
     echo ".coyote3_env file found. Loading environment variables..."
-    source .coyote3_dev_env
+    source .coyote3_env
 else
     echo "No .coyote3_env file found in project root."
     read -p "Enter the file path to load environment variables or type N/No to continue without: " env_path

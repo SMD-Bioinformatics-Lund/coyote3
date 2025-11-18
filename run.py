@@ -26,7 +26,7 @@ import logging.config
 from typing import Any
 from flask import Flask
 from coyote import init_app
-from logging.logging_setup import custom_logging, add_unique_handlers
+from logging_setup import custom_logging, add_unique_handlers
 import os
 
 
@@ -37,12 +37,8 @@ import os
 if __name__ != "__main__":
     print("Setting up Gunicorn logging.")
     app: Flask = init_app()
-    log_dir: str | Any = os.getenv(
-        "LOG_DIR", app.config.get("LOGS", "logs/prod")
-    )
-    custom_logging(
-        log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=True
-    )
+    log_dir: str | Any = os.getenv("LOG_DIR", app.config.get("LOGS", "logs/prod"))
+    custom_logging(log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=True)
     app.secret_key = "SomethingSecret"
 
     gunicorn_logger_error = logging.getLogger("gunicorn.error")
@@ -59,8 +55,6 @@ if __name__ != "__main__":
 if __name__ == "__main__":
     app = init_app(testing=False, debug=True)
     log_dir = os.getenv("LOG_DIR", app.config.get("LOGS", "logs/prod"))
-    custom_logging(
-        log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=False
-    )
+    custom_logging(log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=False)
     app.secret_key = "SomethingSecret"
     app.run(host="0.0.0.0")

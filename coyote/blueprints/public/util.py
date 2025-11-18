@@ -196,8 +196,8 @@ class PublicUtility:
         asp = store.asp_handler.get_asp(asp_id) if asp_id else None
         aspc = PublicUtility._fetch_aspc(aspc_ids, env) if aspc_ids else None
 
-        analysis = []
-        if aspc:
+        analysis = node.get("analysis", []) or []
+        if aspc and not analysis:
             analysis = aspc.get("report_sections") or []
 
         return {
@@ -288,6 +288,23 @@ class PublicUtility:
         """
 
         covered, germ = PublicUtility._covered_genes(asp_id)
+
+        if isgl_key == asp_id:
+            # special case: ISGL is the same as ASP; show covered genes
+            show = sorted(set(covered))
+            rows_raw = store.hgnc_handler.get_metadata_by_symbols(show) if show else []
+            rows = PublicUtility._merge_with_placeholders(show, rows_raw)
+
+            return (
+                "covered",
+                rows,
+                {
+                    "total": len(show),
+                    "isgl_total": len(show),
+                    "covered_total": len(covered),
+                    "germline_total": len(germ),
+                },
+            )
 
         if isgl_key:
             isgl = store.isgl_handler.get_isgl(isgl_key) or {}

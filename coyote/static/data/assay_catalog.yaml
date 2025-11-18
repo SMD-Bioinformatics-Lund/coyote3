@@ -208,7 +208,11 @@ modalities:
         sample_modes: ["Tumor-only"]
         description: "Targeted gene fusion panel analysis for solid tumors."
         subheading: ""
-        gene_lists: []                              # leave empty unless you bind ISGLs
+        gene_lists:
+          - key: "solidRNA_GMSv5"
+            label: "GMS-ST RNA"
+            description: "Gene fusion panel for solid tumors"
+
 
       rna_fusion:
         catalog_id: "rna-fusion"
@@ -221,4 +225,8 @@ modalities:
         sample_modes: ["Tumor-only"]
         description: "Targeted gene fusion panel analysis for solid tumors."
         subheading: ""
-        gene_lists: []
+        gene_lists:
+          - key: "RNA-fusion"               # (ISGL) Key must match ISGL _id
+            label: "RNA Fusion Panel"
+            description: "Gene fusion panel for solid tumors"
+

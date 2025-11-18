@@ -391,7 +391,8 @@ def format_fusion_desc(st: str | None) -> str:
         "long_repeats",
         "partial-matched-normal",
         "refseq_partially_overlapping",
-        "short_distance" "ucsc_partially_overlapping",
+        "short_distance",
+        "ucsc_partially_overlapping",
     ]
 
     if st:

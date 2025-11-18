@@ -273,7 +273,7 @@
                     {% if selected_isgl %}
                       {% set isgl_label = (right.gene_lists | selectattr('key', 'equalto', selected_isgl) | first).label if right.gene_lists | selectattr('key', 'equalto', selected_isgl) | first else '' %}
                     {% endif %}
-                    {{ selected_mod }} | {{ right.title }} {% if isgl_label %}{{ isgl_label }}{% endif %}
+                    {{ selected_mod }} | {{ right.title }}
                     ({{ genes|length }})
                     {% if isgl_desc %}
                       <p class="text-sm text-gray-600 mt-1">{{ isgl_desc }}</p>

@@ -16,15 +16,21 @@ Part of the Coyote3 genomic data analysis framework.
 """
 
 from flask import current_app as app
-from coyote.extensions import store, ldap_manager
+from coyote.extensions import ldap_manager
 from flask import flash
-
 
 
 class LoginUtility:
     """
-    DNAUtility provides static utility methods for processing, annotating, and reporting DNA variants.
-    It includes functions for variant classification, consequence selection, CNV handling, annotation text generation, and report preparation.
+    LoginUtility provides helper methods for user authentication and session management.
+
+    This class centralizes utilities used by the login blueprint, for example:
+    - LDAP authentication (ldap_authenticate)
+    - account lookup / provisioning hooks
+    - password, session, and token handling helpers
+    - integration with Flask flash messaging and application config
+
+    Methods are implemented as staticmethods so they can be used without instantiating the class.
     """
 
     @staticmethod
@@ -43,10 +49,10 @@ class LoginUtility:
 
         try:
             authorized = ldap_manager.authenticate(
-                    username=username,
-                    password=password,
-                    base_dn=app.config.get("LDAP_BASE_DN") or app.config.get("LDAP_BINDDN"),
-                    attribute=app.config.get("LDAP_USER_LOGIN_ATTR"),
+                username=username,
+                password=password,
+                base_dn=app.config.get("LDAP_BASE_DN") or app.config.get("LDAP_BINDDN"),
+                attribute=app.config.get("LDAP_USER_LOGIN_ATTR"),
             )
         except Exception as ex:
             flash(str(ex), "red")
