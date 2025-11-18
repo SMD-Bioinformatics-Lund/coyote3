@@ -2,11 +2,10 @@
 version: 1.0
 last_updated: 2025-10-07
 maintainer: "CMD Bioinformatics Team"
-header: "Assay catalog for precision sequencing-based analysis in cancer at SMD, Lund"
+header: "Assay catalog for precision sequencing-based analysis in cancer at the Section for Molecular Diagnostics, Lund"
 description: |
-  Section of Molecular Medicine (SMD) provides sequencing-based assays to all medical specialties at Region Skåne.
-  The purpose of this website it to give an overwide of the available next generation sequencing (NGS) assays for
-  somatic alterations in cancer that are provided at SMD
+  Welcome to the landing page for somatic sequencing-based assays offered by the Section for Molecular Diagnostics (SMD). For constitutional analysis, please visit https://genpaneler.genetiklund.se/. SMD provides sequencing-based assays to support all medical specialties within Region Skåne. For cancer diagnostics, our primary collaborators are the Clinical Genetics and Pathology sections at Region Skåne.<br>
+  The purpose of this website is to provide an overview of the sequencing assays available at SMD for the analysis of somatic alterations in cancer. The assays offered include whole genome sequencing, whole transcriptome sequencing, and a variety of targeted gene panels. By exploring the assay catalog, you will find detailed information on the available assays, associated gene lists (where applicable), and the genetic alterations and biomarkers covered by each assay
 
 layout:
   order: ["WGS", "WTS", "GenePanels"]
@@ -14,7 +13,7 @@ layout:
 modalities:
   WGS:
     label: "Whole Genome Sequencing (WGS)"
-    description: "WGS analysis for hematology and solid tumors (SNV, CNV, SV, fusions)."
+    description: "Whole Genome Sequencing (WGS) analysis for hematology and solid tumors. Please click the area of interest to view the available WGS-assays."
 
     categories:
       hematology:
@@ -29,22 +28,26 @@ modalities:
         sample_modes: ["Tumor-normal"]
         subheading: "Myeloid and lymphoid malignancies"
         description: |
-          A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM, GMS-HEM-myeloid, or GMS-HEM-lymphoid gene list for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the Mitelman database for fusion genes.
+          A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM, GMS-HEM-myeloid, or GMS-HEM-lymphoid gene list for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/Mitelman-Hem/view' target='blank' class='text-blue-800 hover:underline'>Mitelman-Hem</a> for fusion genes.
         gene_lists:
           - key: ""
             label: ""
           - key: "hema_GMSv1"    # ISGL _id # (ISGL) fetch by _id
             label: "GMS-HEM"
-            description: " A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the Mitelman database for fusion genes."
+            description:  |
+              A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/Mitelman-Hem/view' target='blank' class='text-blue-800 hover:underline'>Mitelman-Hem</a> for fusion genes.
           - key: "hematology_myeloid"   # ISGL _id
             label: "GMS-HEM (myeloid)"
-            description: " A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM-myeloid gene list for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the Mitelman database for fusion genes. "
+            description:  |
+              A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM-myeloid gene list for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/Mitelman-Hem/view' target='blank' class='text-blue-800 hover:underline'>Mitelman-Hem</a> for fusion genes.
           - key: "hematology_lymphoid"
             label: "GMS-HEM (lymphoid)"
-            description: "A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM-lymphoid gene list for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the Mitelman database for fusion genes. "
-          - key: "hematology_addons"
+            description:  |
+              A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM-lymphoid gene list for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/Mitelman-Hem/view' target='blank' class='text-blue-800 hover:underline'>Mitelman-Hem</a> for fusion genes.
+          - key: "HematologyAddOns"
             label: "Hematology Add-Ons"
-            description: "A complement gene list used for filtering CNV in WGS hematology analysis."
+            description:  |
+              A complement gene list used for filtering CNV in WGS hematology analysis.
 
       solid_tumors:
         catalog_id: "tumwgs-solid"
@@ -56,14 +59,13 @@ modalities:
         tat: "14-21 days"
         sample_modes: ["Tumor-normal"]
         description: |
-          A WGS analysis for solid tumors. The results are filtered against the GMS_BarnCancer_V1.0 gene list for SNV/INDEL and CNV, and the X for fusion genes.
+          A WGS analysis for solid tumors in pediatric cancer. The results are filtered against the GMS_BarnCancer_V1.0 gene list gene list for SNV/INDEL and CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/gms-barncancer-fusion/view' target='blank' class='text-blue-800 hover:underline'>GMS-BarnCancer-Fusion</a> for fusion genes.
         subheading: "Solid tumors in pediatric cancer"
         gene_lists:
           - key: "" # Empty intentionally
             label: ""
           - key: "GMS_BarnCancer_V1.0" # ISGL _id
             label: "GMS Barn Cancer"
-            description: "A WGS analysis for solid tumors in pediatric cancer. The results are filtered against the GMS Pediatric Cancer gene list for SNV/INDEL, the GMS Pediatric Cancer gene list for CNV, and the Mitelman database for fusion genes."
 
       drug_addon:
         catalog_id: "drug-addon"
@@ -85,7 +87,7 @@ modalities:
 
   WTS:
     label: "Whole Transcriptome Sequencing (WTS)"
-    description: "Open transcriptome analysis; no fixed genelist applied yet."
+    description: "Whole transcriptome (WTS/RNAseq) analysis for hematology and solid tumors. Please click the area of interest to view the available WTS-assays."
 
     categories:
       combined:
@@ -103,7 +105,7 @@ modalities:
 
   GenePanels:
     label: "Targeted Gene Panels"
-    description: "Targeted gene panel analysis for hematology and solid tumors."
+    description: "Targeted gene panel analysis for hematology and solid tumors. Please click the area of interest to view the available Gene Panels and (where applicable) Gene Panel-assays."
 
     categories:
       hematology:
@@ -140,7 +142,7 @@ modalities:
             tat: "7-10 days" # Will have priority over the general TAT if defined
             analysis: ["SNV"]
             sample_modes: ["Tumor-only"]
-          - key: "kll"
+          - key: "KLL"
             label: "KLL"
             description: "Gene list for chronic lymphocytic leukemia (CLL / KLL)"
             tat: "7-10 days"
@@ -170,12 +172,13 @@ modalities:
         sample_modes: ["Tumor-only", "Tumor-normal"]
         description: "Targeted gene panel analysis for solid tumors."
         subheading: ""
+        analysis: ["SNV"]  # Optional: list available analysis types for this assay
         gene_lists:
           - key: "solid_GMSv3"               # (ISGL) Key must match ISGL _id
             label: "GMS-ST"
             description: "Gene panel for solid tumors including potential actionable genes (please see https://www.oncokb.org/actionable-genes#sections=Tx for further information about actionable genes.)"
             sample_modes: ["Tumor-normal"]  # Optional: override sample modes if needed
-          - key: "endometrial"                  # (ISGL) Key must match ISGL _id
+          - key: "endometrie"                  # (ISGL) Key must match ISGL _id
             label: "Endometrial cancer"
             description: "Gene list for endometrial cancer"
             tat: "21 days"
@@ -187,7 +190,7 @@ modalities:
             tat: "14 days"
             input_material: ["DNA", "FFPE", "Neoplastic Tissue"]
             sample_modes: ["Tumor-only"]
-          - key: "Drug_Addon"
+          - key: "Drug_Addon_solid"
             label: "Drug Add-on (Limited)"
             description: "A limited gene list for potential actionable genes in solid cancer (please see https://www.oncokb.org/actionable-genes#sections=Tx for further information about actionable genes)"
             tat: "14 days"

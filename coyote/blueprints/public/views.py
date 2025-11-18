@@ -33,6 +33,7 @@ import datetime
 from werkzeug import Response
 from coyote.extensions import store, util
 from coyote.blueprints.public import public_bp, filters
+from copy import deepcopy
 
 
 @public_bp.route("/genelists/<genelist_id>/view", methods=["GET"])
@@ -189,6 +190,9 @@ def assay_catalog(mod: str | None = None, cat: str | None = None, isgl_key: str 
         }
         gene_mode, genes, stats = util.public.resolve_gene_table(hc.get("asp_id"), selected_isgl)
 
+    # Add Drug information
+    genes = util.public.apply_drug_info(genes=deepcopy(genes), druglist_name="Drug_Addon")
+
     # view model
     vm = {
         "meta": {
@@ -246,7 +250,7 @@ def assay_catalog_genes_csv(mod: str, cat: str | None = None, isgl_key: str | No
 
     sio = io.StringIO()
     w = csv.writer(sio, lineterminator="\n")
-    w.writerow(["HGNC_ID", "Gene_Symbol", "Chromosome", "Start", "End", "Gene_Type"])
+    w.writerow(["HGNC_ID", "Gene_Symbol", "Chromosome", "Start", "End", "Gene_Type", "Drug Target"])
     for g in rows:
         w.writerow(
             [
@@ -256,6 +260,7 @@ def assay_catalog_genes_csv(mod: str, cat: str | None = None, isgl_key: str | No
                 g.get("start") or "",
                 g.get("end") or "",
                 ",".join(g.get("gene_type") or []),
+                g.get("drug_target") or "",
             ]
         )
     buf = io.BytesIO(sio.getvalue().encode("utf-8"))
@@ -268,27 +273,15 @@ def assay_catalog_genes_csv(mod: str, cat: str | None = None, isgl_key: str | No
     return send_file(buf, mimetype="text/csv", as_attachment=True, download_name=fname)
 
 
-@public_bp.route("/asp/genes/<asp_id>")
-def asp_genes(asp_id: str) -> str:
-    """
-    Display genes for a specific public assay panel.
-
-    Retrieves the genes associated with the specified public assay panel ID and renders them in the 'asp_genes.html' template.
-
-    Args:
-        asp_id (str): The ID of the public assay panel.
-
-    Returns:
-        str: Rendered HTML page showing the genes for the specified public assay panel.
-    """
-    gene_symbols, germline_gene_symbols = store.asp_handler.get_asp_genes(asp_id)
-    gene_details = store.hgnc_handler.get_metadata_by_symbols(gene_symbols)
+@public_bp.route("/assay-catalog/genes/<isgl_key>/view")
+def assay_catalog_isgl_genes_view(isgl_key: str | None = None) -> str:
+    """ """
+    isgl = store.isgl_handler.get_isgl(isgl_key) or {}
+    gene_symbols = set(sorted(isgl.get("genes", []))) if isgl_key else set()
 
     return render_template(
-        "asp_genes.html",
-        asp_id=asp_id,
-        gene_details=gene_details,
-        germline_gene_symbols=germline_gene_symbols,
+        "genes.html",
+        gene_symbols=gene_symbols,
     )
 
 

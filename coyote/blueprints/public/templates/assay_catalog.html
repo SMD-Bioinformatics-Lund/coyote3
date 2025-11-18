@@ -7,7 +7,9 @@
     <header class="py-4">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 class="text-3xl font-semibold tracking-tight">Assay Catalog</h1>
+          <h1 class="text-3xl font-semibold tracking-tight">
+            <a href="{{ url_for('public_bp.assay_catalog') }}"> Assay Catalog</a>
+          </h1>
           {% if not selected_mod %}
             <p class="my-2 max-w-5xl text-sm">
               Explore CMD’s public catalog of NGS assays. Use the arrow to expand; click a name to load details and the live gene table.
@@ -107,11 +109,14 @@
                                   </button>
 
                                   <!-- Label navigates (updates right pane), but does NOT toggle -->
+                                  <!--
                                   <a href="{{ url_for('public_bp.assay_catalog', mod=m, cat=cid) }}"
-                                      class="text-sm {% if is_cat_selected and not selected_isgl %}text-indigo-800 font-semibold{% else %}hover:underline{% endif %}"
-                                      onclick="event.stopPropagation();">
+                                  class="text-sm {% if is_cat_selected and not selected_isgl %}text-indigo-800 font-semibold{% else %}hover:underline{% endif %}"
+                                  onclick="event.stopPropagation();">
                                     {{ clabel }}
                                   </a>
+                                  -->
+                                  {{ clabel }}
                                 </summary>
 
                                 <!-- Gene lists -->
@@ -171,7 +176,7 @@
           <section class="rounded-2xl border bg-gray-50 border-indigo-400 shadow-xl hover:shadow-lg p-6">
             <h2 class="text-lg font-medium">{{ meta.header }}</h2>
             <p class="text-gray-600 text-sm mt-2">
-              {{ meta.description or "Explore CMD’s public catalog of NGS assays. Use the arrow to expand; click a name to load details and the live gene table." }}
+              {{ meta.description|safe or "Explore CMD’s public catalog of NGS assays. Use the arrow to expand; click a name to load details and the live gene table." }}
             </p>
           </section>
         {% else %}
@@ -187,9 +192,9 @@
               </h2>
               <p class="text-sm mt-1">
                 {% if selected_mod and not selected_cat %}
-                  {{ (modalities[selected_mod].description or "") if modalities[selected_mod] else "" }}
+                  {{ (modalities[selected_mod].description|safe or "") if modalities[selected_mod] else "" }}
                 {% else %}
-                  {{ right.description or "" }}
+                  {{ right.description|safe or "" }}
                 {% endif %}
               </p>
             </div>
@@ -317,6 +322,7 @@
                       <th class="p-2 font-normal">Gene Symbol</th>
                       <th class="p-2 font-normal">OMIM</th>
                       <th class="p-2 font-normal">Locus</th>
+                      <th class="p-2 font-normal text-center">Drug Target</th>
                       <th class="p-2 font-normal">Ensembl Canonical</th>
                       <th class="p-2 font-normal">Mane Select</th>
                       <th class="p-2 font-normal">Mane Select Plus Clinical</th>
@@ -349,10 +355,19 @@
                         <td class="p-2 font-medium">{{ gene.locus }}</td>
                         <td class="p-2 font-medium text-center align-middle">
                           <div class="flex justify-center items-center">
+                            {% if gene.drug_target %}
+                              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/check-circle.svg') }}" alt="Drug Target" class="h-5 w-5 text-gray-500 cursor-pointer">
+                            {% else %}
+                              -
+                            {% endif %}
+                          </div>
+                        </td>
+                        <td class="p-2 font-medium text-center align-middle">
+                          <div class="flex justify-center items-center">
                             {% if gene.ensembl_canonical %}
                               <img src="{{ url_for('static', filename='icons/heroicons_outline_24/check-circle.svg') }}" alt="Ensembl Cannonical" class="h-5 w-5 text-gray-500 cursor-pointer">
                             {% else %}
-                              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/x-circle.svg') }}" alt="Not Ensembl Cannonical" class="h-5 w-5 text-gray-500 cursor-pointer">
+                              -
                             {% endif %}
                           </div>
                         </td>

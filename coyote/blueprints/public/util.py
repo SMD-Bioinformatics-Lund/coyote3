@@ -286,6 +286,7 @@ class PublicUtility:
                 - hgnc_rows: List of gene metadata dicts for display.
                 - stats: Dictionary with counts for total, covered, germline, and ISGL genes.
         """
+
         covered, germ = PublicUtility._covered_genes(asp_id)
 
         if isgl_key:
@@ -417,3 +418,14 @@ class PublicUtility:
             out_rows, key=lambda g: (g.get("hgnc_symbol") or g.get("symbol") or "").upper()
         )
         return out_rows
+
+    @staticmethod
+    def apply_drug_info(genes: dict[list], druglist_name: str = None) -> dict[list, Any]:
+
+        drug_genes = store.isgl_handler.get_isgl(druglist_name) or {}
+        drug_symbols = set(drug_genes.get("genes", [])) if drug_genes else set()
+        for gene in genes:
+            symbol = gene.get("hgnc_symbol") or gene.get("symbol") or ""
+            gene["drug_target"] = symbol in drug_symbols
+
+        return genes
