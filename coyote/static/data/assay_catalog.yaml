@@ -208,6 +208,7 @@ modalities:
         sample_modes: ["Tumor-only"]
         description: "Targeted gene fusion panel analysis for solid tumors."
         subheading: ""
+        analysis: ["Fusion Genes"]  # Optional: list available analysis types for this assay
         gene_lists:
           - key: "solidRNA_GMSv5"
             label: "GMS-ST RNA"
@@ -225,6 +226,7 @@ modalities:
         sample_modes: ["Tumor-only"]
         description: "Targeted gene fusion panel analysis for solid tumors."
         subheading: ""
+        analysis: ["Fusion Genes"]  # Optional: list available analysis types for this assay
         gene_lists:
           - key: "RNA-fusion"               # (ISGL) Key must match ISGL _id
             label: "RNA Fusion Panel"

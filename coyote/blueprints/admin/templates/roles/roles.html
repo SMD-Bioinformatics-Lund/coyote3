@@ -71,8 +71,8 @@
                 </td>
                 <td class="p-2 text-xs">{{ role.version or '-' }}</td>
                 <td class="p-2 font-medium flex gap-2 flex-wrap">
-                  <a href="{{ url_for('admin_bp.view_role', role_id=role._id) }}" 
-                    title="View" 
+                  <a href="{{ url_for('admin_bp.view_role', role_id=role._id) }}"
+                    title="View"
                     class="font-medium text-gray-700 hover:text-blue-600">
                     <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="View" class="w-5 cursor-pointer">
                   </a>
