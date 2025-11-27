@@ -606,7 +606,13 @@
                                     id="cnv-table-row-genes"
                                     data-export-value="{{ cnv_genes_export.names|join(', ') }}{% if cnv_genes_export.others > 0 %} + {{ cnv_genes_export.others }} other genes{% endif %}">
                                   {# render the existing view exactly as before #}
-                                  {{ cnv_genes_export.names|join(', ') }}
+                                  {% if "KMT2A" in cnv_genes_export.names or "KMT2D" in cnv_genes_export.names %}
+                                    <span class="bg-orange-500">
+                                      {{ cnv_genes_export.names|join(', ') }}
+                                    </span>
+                                  {% else %}
+                                    {{ cnv_genes_export.names|join(', ') }}
+                                  {% endif %}
                                   {% if cnv_genes_export.others > 0 %}
                                     <span class="text-gray-400 text-xs"><br>+ {{ cnv_genes_export.others }} other genes</span>
                                   {% endif %}
