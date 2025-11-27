@@ -47,7 +47,9 @@ class ISGLHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.insilico_genelist_collection)
 
-    def get_isgl(self, isgl_id: str, is_active: bool | None = None) -> dict | None:
+    def get_isgl(
+        self, isgl_id: str, is_active: bool | None = None, is_public: bool | None = None
+    ) -> dict | None:
         """
         Fetch a single gene list.
 
@@ -65,6 +67,8 @@ class ISGLHandler(BaseHandler):
         query = {"_id": isgl_id}
         if is_active is not None:
             query["is_active"] = is_active
+        if is_public is not None:
+            query["is_public"] = is_public
         return self.get_collection().find_one(query)
 
     def get_all_isgl(

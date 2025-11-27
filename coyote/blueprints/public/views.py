@@ -34,6 +34,7 @@ from werkzeug import Response
 from coyote.extensions import store, util
 from coyote.blueprints.public import public_bp, filters
 from copy import deepcopy
+from collections import defaultdict
 
 
 @public_bp.route("/genelists/<genelist_id>/view", methods=["GET"])
@@ -94,25 +95,163 @@ def view_genelist(genelist_id: str) -> Response | str:
     )
 
 
-@public_bp.route("/genepanel-matrix", methods=["GET"])
-def genepanel_matrix() -> str:
+@public_bp.route("/assay-catalog-matrix")
+def assay_catalog_matrix():
     """
-    Render a matrix view of all active in-silico genelists and their associated assays, grouped by public assay labels.
+    Gene × (modality → category → ISGL) matrix.
 
-    Fetches all active in-silico genelists from the data store and organizes their assays using the public assay mapping
-    from the application configuration. Passes this grouped data to the 'genepanel_matrix.html' template for display.
-
-    Returns:
-        str: Rendered HTML page showing the genelist-to-assay matrix.
+    - X-axis hierarchy: modality -> category -> genelist (ISGL)
+    - Y-axis: gene symbol (string)
+    - Cell: True/False (gene present in that ISGL/assay column)
+    - If asp_id exists and equals the genelist key: use assay covered genes instead of ISGL.
+    - Modalities/categories without gene lists still get a placeholder column so services are visible.
     """
-    genelists = store.isgl_handler.get_all_isgl(is_active=True, is_public=True, adhoc=False)
-    public_assay_map = app.config["PUBLIC_ASSAY_MAP"]
 
-    return render_template(
-        "genepanel_matrix.html",
-        genelists=genelists,
-        assay_grouped=public_assay_map,
-    )
+    catalog = util.public.load_catalog()
+    modalities = catalog.get("modalities") or {}
+    order = util.public.modalities_order() or list(modalities.keys())
+
+    # flat leaf columns
+    columns: list[dict] = []  # each: {mod, cat, isgl_key, isgl_label, placeholder: bool}
+
+    # colspans for headers
+    mod_spans: dict[str, int] = defaultdict(int)  # modality -> total leaf columns
+    cat_spans: dict[str, int] = {}  # f"{mod}::{cat}" -> leaf columns
+
+    # matrix data
+    all_genes: set[str] = set()  # all gene symbols
+    matrix: dict[str, dict] = {}  # gene -> mod -> cat -> isgl_key -> bool
+
+    # helper: get gene symbols from ASP via resolve_gene_table
+    def fetch_asp_genes(asp_id: str) -> set[str]:
+        """
+        Use util.public.resolve_gene_table to get the ASP's covered genes,
+        then extract gene symbols (hgnc_symbol).
+        """
+        try:
+            gene_mode, gene_objs, stats = util.public.resolve_gene_table(asp_id, None)
+        except Exception:
+            return set()
+
+        symbols: set[str] = set()
+        if not gene_objs:
+            return symbols
+
+        for g in gene_objs:
+            sym = None
+            if isinstance(g, dict):
+                sym = g.get("hgnc_symbol") or g.get("symbol") or g.get("gene_symbol")
+            else:
+                sym = getattr(g, "hgnc_symbol", None) or getattr(g, "symbol", None)
+            if sym:
+                symbols.add(sym)
+        return symbols
+
+    # main loop: build columns + spans + matrix
+    for mod_key in order:
+        mod_data = modalities.get(mod_key) or {}
+        categories = mod_data.get("categories") or {}
+
+        modality_total = 0  # leaf columns under this modality
+
+        for cat_key, cat_data in categories.items():
+            asp_id = cat_data.get("asp_id")  # may be None
+            gene_lists = cat_data.get("gene_lists") or []
+
+            # only count real genelists with non-empty key
+            real_lists = [gl for gl in gene_lists if gl.get("key")]
+
+            # CATEGORY WITH NO REAL GENE LISTS → placeholder column
+            if not real_lists:
+                cat_spans[f"{mod_key}::{cat_key}"] = 1
+                modality_total += 1
+
+                columns.append(
+                    {
+                        "mod": mod_key,
+                        "cat": cat_key,
+                        "isgl_key": f"__none__::{mod_key}::{cat_key}",
+                        "isgl_label": "—",
+                        "placeholder": True,
+                    }
+                )
+                continue
+
+            # CATEGORY WITH REAL GENE LISTS
+            cat_spans[f"{mod_key}::{cat_key}"] = len(real_lists)
+            modality_total += len(real_lists)
+
+            for gl in real_lists:
+                isgl_key = gl["key"]
+                isgl_label = gl.get("label") or isgl_key
+
+                # Decide which genes to use for this column
+                # 1) If asp_id exists and matches this genelist key → use ASP covered genes
+                # 2) Else → use ISGL genes from DB
+                if asp_id and asp_id == isgl_key or isgl_key == "single_gene":
+                    genes_here = fetch_asp_genes(asp_id)
+                else:
+                    isgl_doc = store.isgl_handler.get_isgl(isgl_key, is_active=True, is_public=True)
+                    genes_here = set(isgl_doc.get("genes") or []) if isgl_doc else set()
+
+                # Append leaf column
+                columns.append(
+                    {
+                        "mod": mod_key,
+                        "cat": cat_key,
+                        "isgl_key": isgl_key,
+                        "isgl_label": isgl_label,
+                        "placeholder": False,
+                    }
+                )
+
+                # Update global gene set + matrix
+                all_genes |= genes_here
+                for gene in genes_here:
+                    matrix.setdefault(gene, {}).setdefault(mod_key, {}).setdefault(cat_key, {})[
+                        isgl_key
+                    ] = True
+
+        # MODALITY WITH NO CATEGORIES OR NO GENE LISTS AT ALL → modality-level placeholder
+        if not categories and modality_total == 0:
+            placeholder_key = f"__none__::{mod_key}"
+            columns.append(
+                {
+                    "mod": mod_key,
+                    "cat": "__none__",
+                    "isgl_key": placeholder_key,
+                    "isgl_label": "—",
+                    "placeholder": True,
+                }
+            )
+            mod_spans[mod_key] = 1
+            cat_spans[f"{mod_key}::__none__"] = 1
+        else:
+            mod_spans[mod_key] = modality_total if modality_total > 0 else 1
+
+    # ensure all missing cells are False
+    for gene in all_genes:
+        for col in columns:
+            mod_key = col["mod"]
+            cat_key = col["cat"]
+            isgl_key = col["isgl_key"]
+
+            matrix.setdefault(gene, {}).setdefault(mod_key, {}).setdefault(cat_key, {}).setdefault(
+                isgl_key, False
+            )
+
+    genes_sorted = sorted(all_genes)
+
+    vm = {
+        "modalities": modalities,
+        "order": order,
+        "columns": columns,  # flat leaf columns in order
+        "mod_spans": mod_spans,
+        "cat_spans": cat_spans,
+        "genes": genes_sorted,
+        "matrix": matrix,
+    }
+    return render_template("assay_catalog_matrix.html", **vm)
 
 
 @public_bp.route("/assay-catalog")
@@ -166,7 +305,6 @@ def assay_catalog(mod: str | None = None, cat: str | None = None, isgl_key: str 
         # modality level: show modality description; inherit missing fields from first category
         right = util.public.hydrate_modality(selected_mod)
         gene_mode, genes, stats = util.public.resolve_gene_table(right.get("asp_id"), None)
-        print(f"ASP_ID: {right.get('asp_id')}")
     else:
         # category / genelist level
         if selected_isgl:
