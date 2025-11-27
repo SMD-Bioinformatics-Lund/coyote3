@@ -29,7 +29,7 @@
       </div>
     {% endif %}
 
-    {% if "BIOMARKER" in dna_sections %}
+    {% if "BIOMARKER" in analysis_sections %}
       {% set biomarker = display_sections_data.get("biomarkers", []) %}
       {% for bio in biomarker %}
         {% if "MSIS" in bio %}
