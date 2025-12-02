@@ -69,7 +69,7 @@ modalities:
 
       drug_addon:
         catalog_id: "drug-addon"
-        label: "Drug Add-on"
+        label: "Actionable Add-on"
         asp_id: "drug-addon"                 # (ASP) if a specific WGS-Drug-Add-on ASP exists, set it here.
         aspc_ids:
           production: "drug-addon:production"                 # (ASPC) env->id (e.g., production: "...") if you operate configs for WGS.
@@ -82,7 +82,7 @@ modalities:
           - key: "" # Empty intentionally
             label: ""
           - key: "Drug_Addon" # ISGL _id
-            label: "Drug Add-on"
+            label: "Actionable Add-ons"
             description: "A complement gene list for potential actionable genes. Please see https://www.oncokb.org/actionable-genes#sections=Tx for further information."
 
   WTS:
@@ -101,7 +101,10 @@ modalities:
         sample_modes: ["Tumor-only"]
         description: "Open RNA-seq analysis for gene fusion detection"
         subheading: "Hematology & solid tumors"
-        gene_lists: []               # intentionally empty
+        gene_lists:
+          - key: "fusion"               # (ISGL) Key must match ISGL _id
+            label: "Hematology & Solid Tumor Gene Fusion"
+            description: "Whole transcriptome (WTS/RNAseq) analysis for hematology and solid tumors."
 
   GenePanels:
     label: "Targeted Gene Panels"
@@ -168,7 +171,7 @@ modalities:
         aspc_ids:
           production: "solid_GMSv3:production"     # (ASPC)
         input_material: ["DNA", "FFPE", "Neoplastic Tissue"]
-        tat: "21 days"
+        tat: "14-21 days"
         sample_modes: ["Tumor-only", "Tumor-normal"]
         description: "Targeted gene panel analysis for solid tumors."
         subheading: ""
@@ -181,19 +184,21 @@ modalities:
           - key: "endometrie"                  # (ISGL) Key must match ISGL _id
             label: "Endometrial cancer"
             description: "Gene list for endometrial cancer"
-            tat: "21 days"
+            tat: "14-21 days"
             sample_modes: ["Tumor-only"]
             input_material: ["DNA", "FFPE", "Neoplastic Tissue"]
+            analysis: ["SNV", "MSI"]  # Override analysis types if needed
           - key: "colon"
             label: "CRC"
             description: "Gene list for colorectal cancer (CRC)"
-            tat: "14 days"
+            tat: "14-21 days"
             input_material: ["DNA", "FFPE", "Neoplastic Tissue"]
             sample_modes: ["Tumor-only"]
+            analysis: ["SNV", "MSI"]  # Override analysis types if needed
           - key: "Drug_Addon_solid"
-            label: "Drug Add-on (Limited)"
+            label: "Actionable Add-ons (Limited)"
             description: "A limited gene list for potential actionable genes in solid cancer (please see https://www.oncokb.org/actionable-genes#sections=Tx for further information about actionable genes)"
-            tat: "14 days"
+            tat: "14-21 days"
             input_material: ["DNA", "FFPE", "Neoplastic Tissue"]
             sample_modes: ["Tumor-only"]
 
@@ -204,7 +209,7 @@ modalities:
         aspc_ids:
           production: "solidRNA_GMSv5:production"  # (ASPC)
         input_material: ["RNA", "FFPE", "Neoplastic Tissue"]
-        tat: "21 days"
+        tat: "14-21 days"
         sample_modes: ["Tumor-only"]
         description: "Targeted gene fusion panel analysis for solid tumors."
         subheading: ""
@@ -222,7 +227,7 @@ modalities:
         aspc_ids:
           production: "RNA-fusion:production"
         input_material: ["RNA", "FFPE", "Neoplastic Tissue"]
-        tat: "14 days"
+        tat: "14-21 days"
         sample_modes: ["Tumor-only"]
         description: "Targeted gene fusion panel analysis for solid tumors."
         subheading: ""
