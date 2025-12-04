@@ -48,6 +48,7 @@ modalities:
             label: "Hematology Add-Ons"
             description:  |
               A complement gene list used for filtering CNV in WGS hematology analysis.
+            analysis: ""
 
       solid_tumors:
         catalog_id: "tumwgs-solid"
@@ -101,9 +102,10 @@ modalities:
         sample_modes: ["Tumor-only"]
         description: "Open RNA-seq analysis for gene fusion detection"
         subheading: "Hematology & solid tumors"
+        analysis: ["Fusion Genes"]
         gene_lists:
           - key: "fusion"               # (ISGL) Key must match ISGL _id
-            label: "Hematology & Solid Tumor Gene Fusion"
+            label: "Hematology & Solid Tumors"
             description: "Whole transcriptome (WTS/RNAseq) analysis for hematology and solid tumors."
 
   GenePanels:
