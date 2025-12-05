@@ -41,6 +41,7 @@ from coyote.services.audit_logs.decorators import log_action
 import os
 import re
 import json
+from typing import Any
 
 
 @home_bp.route("/", methods=["GET", "POST"])
@@ -338,7 +339,8 @@ def edit_sample(sample_id: str) -> str | Response:
     )
 
 
-@home_bp.get("/<string:sample_id>/adhoc_isgls")
+@home_bp.get("/<string:sample_id>/adhoc_isgls", endpoint="adhoc_isgls")
+@home_bp.get("/<string:sample_id>/isgls", endpoint="isgls")
 @require_sample_access("sample_id")
 def list_adhoc_isgls(sample_id: str) -> Response:
     """
@@ -353,11 +355,17 @@ def list_adhoc_isgls(sample_id: str) -> Response:
             - `genes` (list[str]): gene symbols in the list
     """
     sample = store.sample_handler.get_sample(sample_id)
-    adhoc_genelists = store.isgl_handler.get_isgl_by_asp(
-        sample.get("assay"), adhoc=True, is_active=True
-    )
 
-    items = [
+    query = {
+        "asp_name": sample.get("assay"),
+        "is_active": True,
+    }
+    if request.endpoint == "home_bp.adhoc_isgls":
+        query["adhoc"] = True
+
+    isgls = store.isgl_handler.get_isgl_by_asp(**query)
+
+    items: list[dict[str, Any]] = [
         {
             "_id": str(gl["_id"]),
             "name": gl["displayname"],
@@ -365,12 +373,13 @@ def list_adhoc_isgls(sample_id: str) -> Response:
             "adhoc": gl.get("adhoc", False),
             "gene_count": gl.get("gene_count", []),
         }
-        for gl in adhoc_genelists
+        for gl in isgls
     ]
     return jsonify({"items": items})
 
 
-@home_bp.post("/<string:sample_id>/adhoc_genes/apply-isgl")
+@home_bp.post("/<string:sample_id>/adhoc_genes/apply-isgl", endpoint="adhoc_isgl_genes")
+@home_bp.post("/<string:sample_id>/genes/apply-isgl", endpoint="isgl_genes")
 @require("edit_sample", min_role="user")
 @require_sample_access("sample_id")
 @log_action(action_name="apply_isgl", call_type="user")
@@ -404,7 +413,11 @@ def apply_isgl(sample_id: str) -> Response:
             "isgl_ids": isgl_ids,
         }
         store.sample_handler.update_sample_filters(sample.get("_id"), filters)
-        flash("AdHoc gene list(s) applied to sample.", "green")
+        if request.endpoint == "home_bp.adhoc_isgl_genes":
+            flash("AdHoc gene list(s) applied to sample.", "green")
+        else:
+            flash(f"Gene list(s) {isgl_ids} applied to sample.", "green")
+
         app.home_logger.info(
             f"Applied AdHoc gene list(s) {isgl_ids} to sample {sample_id} adhoc gene filter"
         )

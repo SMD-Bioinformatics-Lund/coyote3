@@ -62,7 +62,7 @@
         <div class="flex flex-row items-center justify-between gap-4">
           <div>
             <div class="text-xs uppercase tracking-wider text-gray-600">Sample</div>
-          
+
             <h1 class="text-2xl text-3xl font-semibold text-gray-900 flex items-center gap-3">
               {% if sample.get("omics_layer", "").lower() == "rna" %}
                 <a href="{{ url_for('rna_bp.list_fusions', id=sample.name) }}" class="hover:underline hover:text-blue-500">{{ sample.name }}</a>
@@ -108,6 +108,9 @@
 
           <!-- Quick Actions -->
           <div class="flex flex-wrap gap-2">
+            <button id="btnChooseISGL" class="px-3 py-2 rounded-xl bg-brown-200 hover:bg-brown-300 shadow">
+              Choose ISGL
+            </button>
             <button id="btnChooseAdHocISGL" class="px-3 py-2 rounded-xl bg-orange-200 hover:bg-orange-300 shadow">
               Choose Ad-Hoc ISGL
             </button>
@@ -233,7 +236,7 @@
       <!-- Files & QC -->
       <div class="col-span-2 rounded-3xl border border-gray-200 bg-gray-50 backdrop-blur shadow-xl p-6 border-t-4 border-orange-800 break-all hover:shadow-md transition">
         <h2 class="text-sm font-semibold text-gray-900 tracking-wide mb-4 uppercase">Files & QC ({{ sample.omics_layer }})</h2>
-      
+
         <ul class="divide-y divide-gray-100 text-sm space-y-3">
           <!-- FOR DNA SAMPLES -->
           {% if sample.omics_layer == 'DNA' %}
@@ -243,7 +246,7 @@
                                       ~ sample.data_counts.snvs ~ ' SNVs</span>')
                                       if sample.data_counts and sample.data_counts.snvs else None),
                         missing_msg="No VCF file available") }}
-        
+
             {{ file_row("CNV JSON", sample.cnv, sample.cnv | file_state,
                         icon="clipboard-document-list",
                         extra_badge=(('<span class="text-sm px-2 py-1 rounded-full border bg-gray-50 text-gray-900 border-gray-200">'
@@ -257,17 +260,17 @@
                                       ~ sample.data_counts.transloc ~ ' Translocs</span>')
                                       if sample.data_counts and sample.data_counts.transloc else None),
                         missing_msg="No Transloc VCF available") }}
-        
+
             {{ file_row("Coverage JSON", sample.cov, sample.cov | file_state,
                         icon="chart-bar",
                         extra_badge=(('<span class="text-sm px-2 py-1 rounded-full border bg-gray-50 text-gray-900 border-gray-200">Loaded</span>')if sample.data_counts and sample.data_counts.cov else None),
                         missing_msg="No coverage file available") }}
-            
+
             {{ file_row("Biomarkers JSON", sample.biomarkers, sample.biomarkers | file_state,
                         icon="finger-print",
                         extra_badge=(('<span class="text-sm px-2 py-1 rounded-full border bg-gray-50 text-gray-900 border-gray-200">Loaded</span>')if sample.data_counts and sample.data_counts.biomarkers else None),
                         missing_msg="No biomarkers file available") }}
-        
+
             {{ file_row("CNV Profile (image)", sample.cnvprofile, sample.cnvprofile | file_state,
                         icon="photo",
                         missing_msg="No CNV profile available") }}
@@ -374,7 +377,7 @@
             </div>
             <button id="btnShowEffective" class="inline-block px-2 py-1 rounded-lg bg-yellow-100 text-yellow-700 text-xs border border-yellow-200 hover:bg-yellow-200 hidden">View all</button>
           </div>
-        
+
           <ul id="effectiveList" class="mt-3 flex flex-wrap gap-1 text-xs"></ul>
         </div>
       </div>
@@ -608,7 +611,7 @@
       </div>
       <div class="mt-5 flex justify-end">
         <button class="px-3 py-2 rounded-xl border modal-close">Close</button>
-      </div>  
+      </div>
     </div>
   </div>
 
@@ -695,105 +698,141 @@
 
 
     // Choose ISGL
-    document.getElementById('btnChooseAdHocISGL')?.addEventListener('click', async () => {
-      openModal(modalChoose);
-      const body = document.getElementById('chooseBody');
-      body.innerHTML = '<div class="text-xs mx-2 text-gray-600">Loading…</div>';
-    
-      try {
-        const res = await fetch(`/samples/${sampleId}/adhoc_isgls`);
-        const data = await res.json();
-        const items = Array.isArray(data.items) ? data.items : [];
-    
-        if (!items.length) {
-          body.innerHTML = '<div class="text-sm text-gray-700">No adhoc ISGLs found for this assay.</div>';
-          return;
-        }
-    
-        body.innerHTML = `
-          <div class="rounded-2xl border overflow-y-auto overflow-x-hidden">
-            <div class="p-2 gap-2 flex items-center justify-between">
-              <div class="text-xs text-gray-600">${items.length} list(s)</div>
-              <button id="applySelected" class="px-3 py-1.5 text-xs rounded-xl bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50" disabled>
-                Apply selected
-              </button>
-            </div>
-            <table class="w-full text-sm">
-              <thead class="bg-gray-50 text-xs">
-                <tr>
-                  <th class="px-3 py-2 w-10"><input id="selAll" type="checkbox" aria-label="Select all"></th>
-                  <th class="text-left px-3 py-2">Name</th>
-                  <th class="text-left px-3 py-2">Version</th>
-                  <th class="text-left px-3 py-2">Genes</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${items.map(it => `
-                  <tr class="border-t" data-row="${it._id}">
-                    <td class="px-3 py-2">
-                      <input type="checkbox" class="selRow" value="${it._id}" aria-label="Select ${it.label || it.name || 'Ad Hoc'}">
-                    </td>
-                    <td class="px-3 py-2">${it.label || it.name || 'Ad Hoc'}</td>
-                    <td class="px-3 py-2">${it.version ?? '—'}</td>
-                    <td class="px-3 py-2">${it.gene_count ?? 0}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>`;
-    
-        // helpers
-        const selAll = body.querySelector('#selAll');
-        const applySelectedBtn = body.querySelector('#applySelected');
-        const selectedIds = () =>
-          Array.from(body.querySelectorAll('.selRow:checked')).map(cb => cb.value);
-    
-        const updateBulkState = () => {
-          applySelectedBtn.disabled = selectedIds().length === 0;
-        };
-    
-        // Select-all toggles all checkboxes
-        selAll?.addEventListener('change', e => {
-          body.querySelectorAll('.selRow').forEach(cb => { cb.checked = e.target.checked; });
-          updateBulkState();
-        });
-    
-        // Individual row select updates Apply button state
-        body.querySelectorAll('.selRow').forEach(cb => cb.addEventListener('change', updateBulkState));
-    
-        // Apply selected → POST { isgl_ids: [...] }
-        applySelectedBtn.addEventListener('click', async () => {
-          const ids = selectedIds();
-          if (!ids.length) return;
-    
-          applySelectedBtn.disabled = true;
-          applySelectedBtn.textContent = 'Applying…';
-          try {
-            const res2 = await fetch(`/samples/${sampleId}/adhoc_genes/apply-isgl`, {
-              method: 'POST',
-              headers: {'Content-Type':'application/json'},
-              body: JSON.stringify({ isgl_ids: ids })
-            });
-            const data2 = await res2.json();
-            if (data2.ok) {
-              window.location.reload();
-            } else {
-              applySelectedBtn.disabled = false;
-              applySelectedBtn.textContent = 'Apply selected';
-              alert(data2.error || 'Failed to apply selected');
-            }
-          } catch {
-            applySelectedBtn.disabled = false;
-            applySelectedBtn.textContent = 'Apply selected';
-            alert('Network error while applying selected');
+    function initISGLChooser({
+      buttonId,
+      fetchUrl,
+      applyUrl,
+      modalElement
+    }) {
+      const btn = document.getElementById(buttonId);
+      if (!btn) return;
+
+      btn.addEventListener('click', async () => {
+        openModal(modalElement);
+
+        const body = document.getElementById('chooseBody');
+        body.innerHTML = '<div class="text-xs mx-2 text-gray-600">Loading…</div>';
+
+        try {
+          const res = await fetch(fetchUrl);
+          const data = await res.json();
+          const items = Array.isArray(data.items) ? data.items : [];
+
+          if (!items.length) {
+            body.innerHTML = '<div class="text-sm text-gray-700">No ISGLs found for this assay.</div>';
+            return;
           }
-        });
-    
-      } catch (e) {
-        body.innerHTML = '<div class="text-sm text-red-700">Failed to load adhoc ISGLs.</div>';
-      }
+
+          // Render table
+          body.innerHTML = `
+            <div class="rounded-2xl border overflow-y-auto overflow-x-hidden">
+              <div class="p-2 gap-2 flex items-center justify-between">
+                <div class="text-xs text-gray-600">${items.length} list(s)</div>
+                <button id="applySelected" class="px-3 py-1.5 text-xs rounded-xl bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50" disabled>
+                  Apply selected
+                </button>
+              </div>
+              <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-xs">
+                  <tr>
+                    <th class="px-3 py-2 w-10"><input id="selAll" type="checkbox"></th>
+                    <th class="text-left px-3 py-2">Name</th>
+                    <th class="text-left px-3 py-2">Version</th>
+                    <th class="text-left px-3 py-2">Genes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${items.map(it => `
+                    <tr class="border-t" data-row="${it._id}">
+                      <td class="px-3 py-2">
+                        <input type="checkbox" class="selRow" value="${it._id}">
+                      </td>
+                      <td class="px-3 py-2">${it.label || it.name || 'Ad Hoc'}</td>
+                      <td class="px-3 py-2">${it.version ?? '—'}</td>
+                      <td class="px-3 py-2">${it.gene_count ?? 0}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+
+          const selAll = body.querySelector('#selAll');
+          const applyBtn = body.querySelector('#applySelected');
+          const selectedIds = () =>
+            Array.from(body.querySelectorAll('.selRow:checked')).map(cb => cb.value);
+
+          const updateApplyState = () => {
+            applyBtn.disabled = selectedIds().length === 0;
+          };
+
+          // Select all
+          selAll?.addEventListener('change', e => {
+            body.querySelectorAll('.selRow').forEach(cb => {
+              cb.checked = e.target.checked;
+            });
+            updateApplyState();
+          });
+
+          // Row selection
+          body.querySelectorAll('.selRow').forEach(cb =>
+            cb.addEventListener('change', updateApplyState)
+          );
+
+          // Apply selected
+          applyBtn.addEventListener('click', async () => {
+            const ids = selectedIds();
+            if (!ids.length) return;
+
+            applyBtn.disabled = true;
+            applyBtn.textContent = 'Applying…';
+
+            try {
+              const res2 = await fetch(applyUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isgl_ids: ids })
+              });
+
+              const data2 = await res2.json();
+              if (data2.ok) {
+                window.location.reload();
+              } else {
+                applyBtn.disabled = false;
+                applyBtn.textContent = 'Apply selected';
+                alert(data2.error || 'Failed to apply selected');
+              }
+            } catch {
+              applyBtn.disabled = false;
+              applyBtn.textContent = 'Apply selected';
+              alert('Network error while applying selected');
+            }
+          });
+
+        } catch (err) {
+          body.innerHTML = '<div class="text-sm text-red-700">Failed to load ISGL lists.</div>';
+        }
+      });
+    }
+
+    // Regular ISGL
+    initISGLChooser({
+      buttonId: "btnChooseISGL",
+      fetchUrl: `/samples/${sampleId}/isgls`,
+      applyUrl: `/samples/${sampleId}/genes/apply-isgl`,
+      modalElement: modalChoose
     });
-    // End of choose ISGL
+
+    // Ad-Hoc ISGL
+    initISGLChooser({
+      buttonId: "btnChooseAdHocISGL",
+      fetchUrl: `/samples/${sampleId}/adhoc_isgls`,
+      applyUrl: `/samples/${sampleId}/adhoc_genes/apply-isgl`,
+      modalElement: modalChoose
+    });
+
+
+    // End of choose Adhoc ISGL
 
 
     document.getElementById('btnShowAdHocGenes')?.addEventListener('click', () => openModal(modalAdHocView));
@@ -812,10 +851,10 @@
         body: JSON.stringify({ label, genes })
       });
       const data = await res.json();
-      if (data.ok) { 
-        window.location.reload(); 
-      } else { 
-        alert(data.error || 'Failed to save'); 
+      if (data.ok) {
+        window.location.reload();
+      } else {
+        alert(data.error || 'Failed to save');
       }
     });
 
@@ -824,10 +863,10 @@
       if (!confirm('Clear adhoc genes for this sample?')) return;
       const res = await fetch(`/samples/${sampleId}/adhoc_genes/clear`, { method: 'POST' });
       const data = await res.json();
-      if (data.ok) { 
-        window.location.reload(); 
-      } else { 
-        alert(data.error || 'Failed to clear'); 
+      if (data.ok) {
+        window.location.reload();
+      } else {
+        alert(data.error || 'Failed to clear');
       }
     });
 
@@ -836,28 +875,28 @@
       const summaryEl  = document.getElementById('effectiveSummary');
       const listEl     = document.getElementById('effectiveList');
       const btnViewAll = document.getElementById('btnShowEffective');
-    
+
       const modal      = document.getElementById('modalEffectiveView');
       const modalTitle = document.getElementById('effectiveModalTitle');
       const allEl      = document.getElementById('effectiveAll');
-    
+
       // modal helpers
       const openModal = () => { modal.classList.remove('hidden'); modal.classList.add('flex'); };
       const closeModal = () => { modal.classList.add('hidden'); modal.classList.remove('flex'); };
       modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
       modal.querySelectorAll('.modal-close').forEach(b => b.addEventListener('click', closeModal));
-    
+
       async function loadEffectiveGenesAll() {
         try {
           const res  = await fetch(`/samples/${sampleId}/effective-genes/all`);
           const data = await res.json();
           const genes = Array.isArray(data.items) ? data.items : [];
           const asp_covered_genes_count = data.asp_covered_genes_count || 0;
-    
+
           // summary
           const sel = genes.length;
           summaryEl.innerHTML = sel > 0 ? `<b>${sel}</b> genes selected of <b>${asp_covered_genes_count}</b> total ASP covered genes` : 'No effective genes';
-    
+
           // preview (≤ 100)
           const limit = 100;
           listEl.innerHTML = '';
@@ -867,7 +906,7 @@
             li.textContent = g;
             listEl.appendChild(li);
           });
-    
+
           if (sel > limit) {
             const viewMoreLi = document.createElement('li');
             viewMoreLi.innerHTML = `<span class="px-2 py-0.5 bg-blue-100 text-blue-800 border border-blue-200 rounded-full hover:shadow-md transition">
@@ -902,7 +941,7 @@
           btnViewAll.classList.add('hidden');
         }
       }
-    
+
       loadEffectiveGenesAll();
     });
 
@@ -910,18 +949,18 @@
     document.addEventListener('DOMContentLoaded', () => {
       const btn   = document.getElementById('btnViewAllComments');
       const modal = document.getElementById('modalAllComments');
-    
+
       if (!btn || !modal) return;
-    
+
       const open  = () => { modal.classList.remove('hidden'); modal.classList.add('flex'); };
       const close = () => { modal.classList.add('hidden');    modal.classList.remove('flex'); };
-    
+
       btn.addEventListener('click', (e) => { e.preventDefault(); open(); });
       modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
       modal.querySelectorAll('.modal-close').forEach(b => b.addEventListener('click', close));
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) close(); });
     });
-      
+
   </script>
 </div>
 {% endblock %}
