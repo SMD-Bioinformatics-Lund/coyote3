@@ -314,6 +314,12 @@ class SampleHandler(BaseHandler):
             {"$set": {"filters.temp_isgl": temp_isgl}},
         )
 
+    def update_sample(self, sample_id: ObjectId, sample_doc: dict) -> None:
+        """
+        Update sample document
+        """
+        return self.get_collection().replace_one({"_id": sample_id}, sample_doc)
+
     def add_sample_comment(self, sample_id: str, comment_doc: dict) -> None:
         """
         Add a comment to a sample.

@@ -1,0 +1,107 @@
+{% extends "layout.html" %}
+{% block javascript %}
+  <script src="{{ url_for('admin_bp.static', filename='js/codemirror.min.js') }}"></script>
+  <script src="{{ url_for('admin_bp.static', filename='js/javascript.min.js') }}"></script>
+  <script src="{{ url_for('admin_bp.static', filename='js/lint.min.js') }}"></script>
+  <script src="{{ url_for('admin_bp.static', filename='js/json-lint.min.js') }}"></script>
+  <script src="{{ url_for('admin_bp.static', filename='js/jsonlint.min.js') }}"></script>
+{% endblock %}
+
+
+{% block style %}
+  <link href="{{ url_for('admin_bp.static', filename='css/codemirror.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('admin_bp.static', filename='css/material.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('admin_bp.static', filename='css/lint.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block title %}Edit Sample{% endblock %}
+
+{% block body %}
+
+<style>
+  .CodeMirror {
+    height: auto !important;
+    min-height: 400px;
+  }
+
+  .CodeMirror-scroll {
+    overflow-y: hidden !important;
+    overflow-x: auto;
+  }
+</style>
+
+<div class="flex w-full h-full overflow-hidden">
+  {% include "admin_sidebar.html" %}
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+    <section class="p-2 ml-2 mt-2">
+      <div class="bg-blue-50 border border-gray-200 rounded-2xl shadow-xl p-6">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="text-xl font-bold text-blue-500 tracking-wide capitalize flex gap-2 align-middle"><img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="Sample Edit Icon" class="h-6 w-6"> Edit Sample - <i>{{sample_blob._id}}</i></h1>
+          <a href="{{ url_for('admin_bp.all_samples') }}" class="text-sm text-blue-500 hover:underline flex gap-2"><img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-uturn-left.svg') }}" alt="Go Back Icon" class="h-4 w-4"> Back to Samples</a>
+        </div>
+
+        <!-- JSON Editor Form -->
+        <form method="POST" onsubmit="return validateJSON()" class="space-y-4">
+          <div>
+            <label for="json_blob" class="block text-sm font-medium text-gray-700 mb-2">Sample JSON</label>
+            <textarea id="json_blob" name="json_blob" class="hidden">{{ sample_blob | prettyjson }} </textarea>
+            <div id="json_editor" class="border rounded-xl shadow-sm text-sm w-full"></div>
+            <p id="json_error" class="mt-2 text-red-500 text-sm hidden"></p>
+          </div>
+
+          <div class="text-right">
+            <button type="submit" class="bg-blue-300 hover:bg-blue-400 text-black font-semibold px-4 py-2 rounded-lg shadow-sm transition">
+              Save Sample
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+</div>
+
+
+<!-- CodeMirror Setup -->
+<script>
+  const editor = CodeMirror(document.getElementById("json_editor"), {
+    mode: { name: "application/json" },
+    theme: "material",
+    lineNumbers: true,
+    lineWrapping: true,
+    tabSize: 2,
+    indentUnit: 2,
+    indentWithTabs: false,
+    matchBrackets: true,
+    autoCloseBrackets: true,
+    viewportMargin: Infinity,
+    gutters: ["CodeMirror-lint-markers", "CodeMirror-foldgutter"],
+    foldGutter: true,
+    lint: true,
+    value: document.getElementById("json_blob").textContent.trim()
+  });
+
+
+  // ⏱ Ensure it resizes correctly
+  setTimeout(() => {
+    editor.refresh();
+  }, 100);
+
+  function validateJSON() {
+    const jsonError = document.getElementById("json_error");
+    try {
+      const value = editor.getValue();
+      JSON.parse(value);
+      document.getElementById("json_blob").value = value;
+      jsonError.classList.add("hidden");
+      return true;
+    } catch (e) {
+      jsonError.textContent = "⚠️ Invalid JSON: " + e.message;
+      jsonError.classList.remove("hidden");
+      return false;
+    }
+  }
+</script>
+
+{% endblock %}

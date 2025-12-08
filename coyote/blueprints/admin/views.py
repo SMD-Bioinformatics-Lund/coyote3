@@ -80,15 +80,57 @@ def all_samples() -> str | Response:
     if request.method == "POST" and form.validate_on_submit():
         search_str = form.sample_search.data
 
-    limit_samples = 50
+    limit_samples = None  # 300
     assays = current_user.assays
-    samples = list(
-        store.sample_handler.get_all_samples(assays, limit_samples, search_str)
-    )
+    samples = list(store.sample_handler.get_all_samples(assays, limit_samples, search_str))
 
-    return render_template(
-        "samples/all_samples.html", all_samples=samples, form=form
-    )
+    return render_template("samples/all_samples.html", all_samples=samples, form=form)
+
+
+@admin_bp.route("/samples/<sample_id>/edit", methods=["GET", "POST"])
+@require("edit_sample", min_role="developer", min_level=9999)
+@log_action(action_name="edit_sample", call_type="developer_call")
+def edit_sample(sample_id: str) -> str | Response:
+    """
+    Handle the editing of a sample by its ID.
+
+    Args:
+        sample_id (str): The unique identifier of the sample to edit.
+
+    Returns:
+        Response: Renders the sample edit page or redirects based on the operation outcome.
+    """
+
+    sample_doc = store.sample_handler.get_sample(sample_id)
+
+    sample_obj = sample_doc.pop("_id")
+
+    if request.method == "POST":
+        json_blob = request.form.get("json_blob", "")
+        try:
+            updated_sample = json.loads(json_blob)
+        except json.JSONDecodeError as e:
+            flash(f"Invalid JSON: {e}", "red")
+            return redirect(request.url)
+
+        # Optional: Add timestamp or updated_by tracking here
+        updated_sample["updated_on"] = datetime.now(timezone.utc)
+        updated_sample["updated_by"] = current_user.email
+
+        try:
+            # Ensure the schema _id remains intact
+            updated_sample["_id"] = sample_obj
+            store.sample_handler.update_sample(sample_obj, updated_sample)
+            flash("Sample updated successfully.", "green")
+            return redirect(url_for("admin_bp.all_samples"))
+        except Exception as e:
+            print(e)
+            flash(f"Error updating sample: {e}", "red")
+
+        # Log Action
+        g.audit_metadata = {"sample_id": str(sample_obj), "sample_name": sample_id}
+
+    return render_template("samples/sample_edit.html", sample_blob=sample_doc)
 
 
 @admin_bp.route("/manage-samples/<string:sample_id>/delete", methods=["GET"])
@@ -194,9 +236,7 @@ def create_user() -> Response | str:
         }
 
     # Inject permissions from permissions collections
-    permission_policies = store.permissions_handler.get_all_permissions(
-        is_active=True
-    )
+    permission_policies = store.permissions_handler.get_all_permissions(is_active=True)
     schema["fields"]["permissions"]["options"] = [
         {
             "value": p["_id"],
@@ -238,8 +278,7 @@ def create_user() -> Response | str:
         # This is to ensure that the user does not get duplicate permissions
         role_permissions = role_map.get(form_data["role"], {})
         form_data["permissions"] = list(
-            set(form_data.get("permissions", []))
-            - set(role_permissions.get("permissions", []))
+            set(form_data.get("permissions", [])) - set(role_permissions.get("permissions", []))
         )
         form_data["deny_permissions"] = list(
             set(form_data.get("deny_permissions", []))
@@ -255,9 +294,7 @@ def create_user() -> Response | str:
 
         # Hash the password
         if user_data["auth_type"] == "coyote3" and user_data["password"]:
-            user_data["password"] = util.profile.hash_password(
-                user_data["password"]
-            )
+            user_data["password"] = util.profile.hash_password(user_data["password"])
         else:
             user_data["password"] = None
 
@@ -307,9 +344,7 @@ def edit_user(user_id: str) -> Response | str:
     schema["fields"]["role"]["options"] = available_roles
 
     # Inject checkbox options directly into schema field definition
-    permission_policies = store.permissions_handler.get_all_permissions(
-        is_active=True
-    )
+    permission_policies = store.permissions_handler.get_all_permissions(is_active=True)
     schema["fields"]["permissions"]["options"] = [
         {
             "value": p["_id"],
@@ -338,16 +373,12 @@ def edit_user(user_id: str) -> Response | str:
         }
 
     schema["fields"]["permissions"]["default"] = user_doc.get("permissions")
-    schema["fields"]["deny_permissions"]["default"] = user_doc.get(
-        "deny_permissions"
-    )
+    schema["fields"]["deny_permissions"]["default"] = user_doc.get("deny_permissions")
 
     # Inject assay groups from the assay_panels collections
     assay_groups = store.asp_handler.get_all_asp_groups()
     schema["fields"]["assay_groups"]["options"] = assay_groups
-    schema["fields"]["assay_groups"]["default"] = user_doc.get(
-        "assay_groups", []
-    )
+    schema["fields"]["assay_groups"]["default"] = user_doc.get("assay_groups", [])
 
     # get all assays for each group in a dict
     assay_groups_panels = store.asp_handler.get_all_asps()
@@ -381,12 +412,8 @@ def edit_user(user_id: str) -> Response | str:
             None,
         )
         if version_index is not None:
-            delta_blob = user_doc["version_history"][version_index].get(
-                "delta", {}
-            )
-            user_doc = util.admin.apply_version_delta(
-                deepcopy(user_doc), delta_blob
-            )
+            delta_blob = user_doc["version_history"][version_index].get("delta", {})
+            user_doc = util.admin.apply_version_delta(deepcopy(user_doc), delta_blob)
             delta = delta_blob
             user_doc["_id"] = user_id
 
@@ -400,17 +427,11 @@ def edit_user(user_id: str) -> Response | str:
 
         updated_user["permissions"] = list(
             set(updated_user.get("permissions", []))
-            - set(
-                role_map.get(updated_user["role"], {}).get("permissions", [])
-            )
+            - set(role_map.get(updated_user["role"], {}).get("permissions", []))
         )
         updated_user["deny_permissions"] = list(
             set(updated_user.get("deny_permissions", []))
-            - set(
-                role_map.get(updated_user["role"], {}).get(
-                    "deny_permissions", []
-                )
-            )
+            - set(role_map.get(updated_user["role"], {}).get("deny_permissions", []))
         )
 
         # Proceed with update
@@ -419,9 +440,7 @@ def edit_user(user_id: str) -> Response | str:
 
         # Hash the password
         if updated_user["auth_type"] == "coyote3" and updated_user["password"]:
-            updated_user["password"] = util.profile.hash_password(
-                updated_user["password"]
-            )
+            updated_user["password"] = util.profile.hash_password(updated_user["password"])
         else:
             updated_user["password"] = user_doc.get("password")
 
@@ -491,13 +510,9 @@ def view_user(user_id: str) -> str | Response:
             None,
         )
         if version_index is not None:
-            delta_blob = user_doc["version_history"][version_index].get(
-                "delta", {}
-            )
+            delta_blob = user_doc["version_history"][version_index].get("delta", {})
             delta = delta_blob  # Used for UI highlighting
-            user_doc = util.admin.apply_version_delta(
-                deepcopy(user_doc), delta_blob
-            )
+            user_doc = util.admin.apply_version_delta(deepcopy(user_doc), delta_blob)
 
     return render_template(
         "users/user_view.html",
@@ -538,9 +553,7 @@ def validate_username() -> Response:
         Response: JSON response indicating whether the username exists.
     """
     username = request.json.get("username").lower()
-    return jsonify(
-        {"exists": store.user_handler.user_exists(user_id=username)}
-    )
+    return jsonify({"exists": store.user_handler.user_exists(user_id=username)})
 
 
 @admin_bp.route("/users/validate_email", methods=["POST"])
@@ -666,9 +679,7 @@ def edit_schema(schema_id: str) -> str | Response:
             if errors:
                 for err in errors:
                     flash(f"{err}", "red")
-                return render_template(
-                    "schemas/schema_edit.html", schema_blob=updated_schema
-                )
+                return render_template("schemas/schema_edit.html", schema_blob=updated_schema)
         except json.JSONDecodeError as e:
             flash(f"Invalid JSON: {e}", "red")
             return redirect(request.url)
@@ -709,17 +720,13 @@ def create_schema() -> str | Response:
     if request.method == "POST":
         json_blob = request.form.get("json_blob")
         try:
-            parsed_schema = json.loads(
-                json_blob
-            )  # Parse without comments, use json5 if needed
+            parsed_schema = json.loads(json_blob)  # Parse without comments, use json5 if needed
 
             errors = util.admin.validate_schema_structure(parsed_schema)
             if errors:
                 for err in errors:
                     flash(f"{err}", "red")
-                return render_template(
-                    "schemas/schema_create.html", initial_blob=parsed_schema
-                )
+                return render_template("schemas/schema_create.html", initial_blob=parsed_schema)
 
             # Metadata
             parsed_schema["_id"] = parsed_schema.get("schema_name")
@@ -741,9 +748,7 @@ def create_schema() -> str | Response:
     # Load the initial schema template
     initial_blob = util.admin.load_json5_template()
 
-    return render_template(
-        "schemas/schema_create.html", initial_blob=initial_blob
-    )
+    return render_template("schemas/schema_create.html", initial_blob=initial_blob)
 
 
 @admin_bp.route("/schemas/<schema_id>/delete", methods=["GET"])
@@ -786,15 +791,11 @@ def list_permissions() -> str:
     Returns:
         str: Rendered HTML template with grouped permissions.
     """
-    permission_policies = store.permissions_handler.get_all_permissions(
-        is_active=False
-    )
+    permission_policies = store.permissions_handler.get_all_permissions(is_active=False)
     grouped = {}
     for p in permission_policies:
         grouped.setdefault(p["category"], []).append(p)
-    return render_template(
-        "permissions/permissions.html", grouped_permissions=grouped
-    )
+    return render_template("permissions/permissions.html", grouped_permissions=grouped)
 
 
 @admin_bp.route("/permissions/new", methods=["GET", "POST"])
@@ -900,12 +901,8 @@ def edit_permission(perm_id: str) -> Response | str:
             None,
         )
         if version_index is not None:
-            delta_blob = permission["version_history"][version_index].get(
-                "delta", {}
-            )
-            permission = util.admin.apply_version_delta(
-                deepcopy(permission), delta_blob
-            )
+            delta_blob = permission["version_history"][version_index].get("delta", {})
+            permission = util.admin.apply_version_delta(deepcopy(permission), delta_blob)
             delta = delta_blob
             permission["_id"] = perm_id
 
@@ -915,9 +912,7 @@ def edit_permission(perm_id: str) -> Response | str:
             for key, vals in request.form.to_dict(flat=False).items()
         }
 
-        updated_permission = util.admin.process_form_to_config(
-            form_data, schema
-        )
+        updated_permission = util.admin.process_form_to_config(form_data, schema)
 
         # Proceed with update
         updated_permission["updated_on"] = datetime.now(timezone.utc)
@@ -986,13 +981,9 @@ def view_permission(perm_id: str) -> str | Response:
             None,
         )
         if version_index is not None:
-            delta_blob = permission["version_history"][version_index].get(
-                "delta", {}
-            )
+            delta_blob = permission["version_history"][version_index].get("delta", {})
             delta = delta_blob  # Used for UI highlighting
-            permission = util.admin.apply_version_delta(
-                deepcopy(permission), delta_blob
-            )
+            permission = util.admin.apply_version_delta(deepcopy(permission), delta_blob)
 
     return render_template(
         "permissions/view_permission.html",
@@ -1122,9 +1113,7 @@ def create_role() -> Response | str:
         return redirect(url_for("admin_bp.list_roles"))
 
     # Inject checkbox options directly into schema field definition
-    permission_policies = store.permissions_handler.get_all_permissions(
-        is_active=True
-    )
+    permission_policies = store.permissions_handler.get_all_permissions(is_active=True)
     schema["fields"]["permissions"]["options"] = [
         {
             "value": p["_id"],
@@ -1206,9 +1195,7 @@ def edit_role(role_id: str) -> Response | str:
     schema = store.schema_handler.get_schema(role.get("schema_name"))
 
     # Inject checkbox options directly into schema field definition
-    permission_policies = store.permissions_handler.get_all_permissions(
-        is_active=True
-    )
+    permission_policies = store.permissions_handler.get_all_permissions(is_active=True)
     schema["fields"]["permissions"]["options"] = [
         {
             "value": p["_id"],
@@ -1227,9 +1214,7 @@ def edit_role(role_id: str) -> Response | str:
     ]
 
     schema["fields"]["permissions"]["default"] = role.get("permissions")
-    schema["fields"]["deny_permissions"]["default"] = role.get(
-        "deny_permissions"
-    )
+    schema["fields"]["deny_permissions"]["default"] = role.get("deny_permissions")
 
     # --- Rewind logic ---
     selected_version = request.args.get("version", type=int)
@@ -1245,9 +1230,7 @@ def edit_role(role_id: str) -> Response | str:
             None,
         )
         if version_index is not None:
-            delta_blob = role["version_history"][version_index].get(
-                "delta", {}
-            )
+            delta_blob = role["version_history"][version_index].get("delta", {})
             role = util.admin.apply_version_delta(deepcopy(role), delta_blob)
             delta = delta_blob
             role["_id"] = role_id
@@ -1326,9 +1309,7 @@ def view_role(role_id: str) -> Response | str:
             None,
         )
         if version_index is not None:
-            delta_blob = role["version_history"][version_index].get(
-                "delta", {}
-            )
+            delta_blob = role["version_history"][version_index].get("delta", {})
             delta = delta_blob  # Used for UI highlighting
             role = util.admin.apply_version_delta(deepcopy(role), delta_blob)
 
@@ -1522,9 +1503,7 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
         str | Response: Renders the edit panel template or redirects after updating.
     """
     panel = store.asp_handler.get_asp(assay_panel_id)
-    schema = store.schema_handler.get_schema(
-        panel.get("schema_name", "ASP-Schema")
-    )
+    schema = store.schema_handler.get_schema(panel.get("schema_name", "ASP-Schema"))
 
     if not panel or not schema:
         flash("Panel or schema not found.", "red")
@@ -1544,9 +1523,7 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
             None,
         )
         if version_index is not None:
-            delta_blob = panel["version_history"][version_index].get(
-                "delta", {}
-            )
+            delta_blob = panel["version_history"][version_index].get("delta", {})
             panel = util.admin.apply_version_delta(panel, delta_blob)
             delta = delta_blob
             panel["_id"] = assay_panel_id
@@ -1566,10 +1543,7 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
             form_data.get("genes_paste", ""),
         )
 
-        if (
-            not "genes_file" in request.files
-            and not "genes_paste" in form_data
-        ):
+        if not "genes_file" in request.files and not "genes_paste" in form_data:
             covered_genes = panel.get("covered_genes", [])
 
         # Germline Genes
@@ -1577,10 +1551,7 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
             request.files.get("germline_genes_file"),
             form_data.get("germline_genes_paste", ""),
         )
-        if (
-            not "germline_genes_file" in request.files
-            and not "germline_genes_paste" in form_data
-        ):
+        if not "germline_genes_file" in request.files and not "germline_genes_paste" in form_data:
             germline_genes = panel.get("germline_genes", [])
 
         updated = util.admin.process_form_to_config(form_data, schema)
@@ -1634,9 +1605,7 @@ def view_assay_panel(assay_panel_id: str) -> Response | str:
         flash(f"Panel '{assay_panel_id}' not found!", "red")
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
-    schema = store.schema_handler.get_schema(
-        panel.get("schema_name", "ASP-Schema")
-    )
+    schema = store.schema_handler.get_schema(panel.get("schema_name", "ASP-Schema"))
     selected_version = request.args.get("version", type=int)
     delta = None
 
@@ -1651,9 +1620,7 @@ def view_assay_panel(assay_panel_id: str) -> Response | str:
             None,
         )
         if version_index is not None:
-            delta_blob = panel["version_history"][version_index].get(
-                "delta", {}
-            )
+            delta_blob = panel["version_history"][version_index].get("delta", {})
             panel = util.admin.apply_version_delta(panel, delta_blob)
             delta = delta_blob
             panel["_id"] = assay_panel_id
@@ -1702,9 +1669,7 @@ def print_assay_panel(panel_id: str) -> str | Response:
             None,
         )
         if version_index is not None:
-            delta_blob = panel["version_history"][version_index].get(
-                "delta", {}
-            )
+            delta_blob = panel["version_history"][version_index].get("delta", {})
             panel = util.admin.apply_version_delta(deepcopy(panel), delta_blob)
             panel["_id"] = panel_id
             panel["version"] = selected_version
@@ -1788,9 +1753,7 @@ def assay_configs() -> str:
         aspc (list): List of all assay configuration objects.
     """
     assay_configs = store.aspc_handler.get_all_aspc()
-    return render_template(
-        "aspc/manage_aspc.html", assay_configs=assay_configs
-    )
+    return render_template("aspc/manage_aspc.html", assay_configs=assay_configs)
 
 
 @admin_bp.route("/aspc/dna/new", methods=["GET", "POST"])
@@ -2086,12 +2049,8 @@ def edit_assay_config(assay_id: str) -> Response | str:
             None,
         )
         if version_index is not None:
-            delta_blob = assay_config["version_history"][version_index].get(
-                "delta", {}
-            )
-            assay_config = util.admin.apply_version_delta(
-                deepcopy(assay_config), delta_blob
-            )
+            delta_blob = assay_config["version_history"][version_index].get("delta", {})
+            assay_config = util.admin.apply_version_delta(deepcopy(assay_config), delta_blob)
             delta = delta_blob
             assay_config["_id"] = assay_id
 
@@ -2111,9 +2070,7 @@ def edit_assay_config(assay_id: str) -> Response | str:
             request.form.get("verification_samples", "{}")
         )
 
-        form_data["query"] = util.common.safe_json_load(
-            request.form.get("query", "{}")
-        )
+        form_data["query"] = util.common.safe_json_load(request.form.get("query", "{}"))
 
         updated_config = util.admin.process_form_to_config(form_data, schema)
 
@@ -2194,12 +2151,8 @@ def view_assay_config(assay_id: str) -> str | Response:
             None,
         )
         if version_index is not None:
-            delta_blob = assay_config["version_history"][version_index].get(
-                "delta", {}
-            )
-            assay_config = util.admin.apply_version_delta(
-                deepcopy(assay_config), delta_blob
-            )
+            delta_blob = assay_config["version_history"][version_index].get("delta", {})
+            assay_config = util.admin.apply_version_delta(deepcopy(assay_config), delta_blob)
             delta = delta_blob
 
     return render_template(
@@ -2246,12 +2199,8 @@ def print_assay_config(assay_id: str) -> str | Response:
             None,
         )
         if version_index is not None:
-            delta_blob = assay_config["version_history"][version_index].get(
-                "delta", {}
-            )
-            assay_config = util.admin.apply_version_delta(
-                deepcopy(assay_config), delta_blob
-            )
+            delta_blob = assay_config["version_history"][version_index].get("delta", {})
+            assay_config = util.admin.apply_version_delta(deepcopy(assay_config), delta_blob)
             assay_config["_id"] = assay_id
             assay_config["version"] = selected_version
 
@@ -2329,9 +2278,7 @@ def manage_genelists() -> str:
         Response: Rendered HTML page with all gene lists and is_public flag set to False.
     """
     genelists = store.isgl_handler.get_all_isgl()
-    return render_template(
-        "isgl/manage_isgl.html", genelists=genelists, is_public=False
-    )
+    return render_template("isgl/manage_isgl.html", genelists=genelists, is_public=False)
 
 
 # Create Genelist
@@ -2404,23 +2351,14 @@ def create_genelist() -> Response | str:
 
         # Handle genes
         genes = []
-        if (
-            "genes_file" in request.files
-            and request.files["genes_file"].filename
-        ):
+        if "genes_file" in request.files and request.files["genes_file"].filename:
             file = request.files["genes_file"]
             content = file.read().decode("utf-8")
-            genes = [
-                g.strip()
-                for g in content.replace(",", "\n").splitlines()
-                if g.strip()
-            ]
+            genes = [g.strip() for g in content.replace(",", "\n").splitlines() if g.strip()]
         elif "genes_paste" in form_data and form_data["genes_paste"].strip():
             genes = [
                 g.strip()
-                for g in form_data["genes_paste"]
-                .replace(",", "\n")
-                .splitlines()
+                for g in form_data["genes_paste"].replace(",", "\n").splitlines()
                 if g.strip()
             ]
 
@@ -2475,9 +2413,7 @@ def edit_genelist(genelist_id: str) -> Response | str:
     # Inject assay groups from the assay_panels collections
     assay_groups = store.asp_handler.get_all_asp_groups()
     schema["fields"]["assay_groups"]["options"] = assay_groups
-    schema["fields"]["assay_groups"]["default"] = genelist.get(
-        "assay_groups", []
-    )
+    schema["fields"]["assay_groups"]["default"] = genelist.get("assay_groups", [])
 
     # get all assays for each group in a dict
     assay_groups_panels = store.asp_handler.get_all_asps()
@@ -2511,12 +2447,8 @@ def edit_genelist(genelist_id: str) -> Response | str:
             None,
         )
         if version_index is not None:
-            delta_blob = genelist["version_history"][version_index].get(
-                "delta", {}
-            )
-            genelist = util.admin.apply_version_delta(
-                deepcopy(genelist), delta_blob
-            )
+            delta_blob = genelist["version_history"][version_index].get("delta", {})
+            genelist = util.admin.apply_version_delta(deepcopy(genelist), delta_blob)
             delta = delta_blob
             genelist["_id"] = genelist_id
 
@@ -2533,17 +2465,10 @@ def edit_genelist(genelist_id: str) -> Response | str:
         updated = util.admin.process_form_to_config(form_data, schema)
 
         genes = []
-        if (
-            "genes_file" in request.files
-            and request.files["genes_file"].filename
-        ):
+        if "genes_file" in request.files and request.files["genes_file"].filename:
             file = request.files["genes_file"]
             content = file.read().decode("utf-8")
-            genes = [
-                g.strip()
-                for g in content.replace(",", "\n").splitlines()
-                if g.strip()
-            ]
+            genes = [g.strip() for g in content.replace(",", "\n").splitlines() if g.strip()]
         elif "genes_paste" in form_data and form_data["genes_paste"].strip():
             pasted = form_data["genes_paste"].replace(",", "\n")
             genes = [g.strip() for g in pasted.splitlines() if g.strip()]
@@ -2666,13 +2591,9 @@ def view_genelist(genelist_id: str) -> Response | str:
             None,
         )
         if version_index is not None:
-            delta_blob = genelist["version_history"][version_index].get(
-                "delta", {}
-            )
+            delta_blob = genelist["version_history"][version_index].get("delta", {})
             delta = delta_blob  # Used for UI highlighting
-            genelist = util.admin.apply_version_delta(
-                deepcopy(genelist), delta_blob
-            )
+            genelist = util.admin.apply_version_delta(deepcopy(genelist), delta_blob)
 
     selected_assay = request.args.get("assay")
 
@@ -2717,16 +2638,10 @@ def audit():
     """
 
     logs_path = Path(app.config["LOGS"], "audit")
-    cutoff_ts = datetime.now(timezone.utc).timestamp() - (
-        30 * 24 * 60 * 60
-    )  # last 30 days
+    cutoff_ts = datetime.now(timezone.utc).timestamp() - (30 * 24 * 60 * 60)  # last 30 days
 
     log_files = sorted(
-        [
-            f
-            for f in logs_path.glob("*.log*")
-            if f.stat().st_mtime >= cutoff_ts
-        ],
+        [f for f in logs_path.glob("*.log*") if f.stat().st_mtime >= cutoff_ts],
         key=lambda f: f.stat().st_mtime,
         reverse=True,
     )

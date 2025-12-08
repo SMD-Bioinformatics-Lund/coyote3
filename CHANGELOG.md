@@ -11,7 +11,7 @@
 - Report name format uses `Sample.name` instead of `Sample.case_id`, causing reports to be created with the same `case_id` but different `sample.name`.
 - Public “Assay Coverage Matrix” page with full modality → category → genelist grouping, ASP-aware gene override, and placeholder column support for empty services.
 - Added highlight feature for KMT2A and KMT2D in the CNV  table (currently hardcoded).
--
+- Added a sample Edit page for admin views
 
 # v3.0.9
 ### BugFix #119
