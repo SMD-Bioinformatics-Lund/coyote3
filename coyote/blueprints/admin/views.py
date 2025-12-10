@@ -198,7 +198,7 @@ def create_user() -> Response | str:
         - `store.schema_handler.get_schemas_by_category_type`: Fetch schemas.
         - `store.roles_handler.get_all_role_names`: Get roles.
         - `util.admin.process_form_to_config`: Process form data.
-        - `util.profile.hash_password`: Hash password.
+        - `util.common.hash_password`: Hash password.
         - `store.user_handler.create_user`: Save user.
     """
 
@@ -294,7 +294,7 @@ def create_user() -> Response | str:
 
         # Hash the password
         if user_data["auth_type"] == "coyote3" and user_data["password"]:
-            user_data["password"] = util.profile.hash_password(user_data["password"])
+            user_data["password"] = util.common.hash_password(user_data["password"])
         else:
             user_data["password"] = None
 
@@ -440,7 +440,7 @@ def edit_user(user_id: str) -> Response | str:
 
         # Hash the password
         if updated_user["auth_type"] == "coyote3" and updated_user["password"]:
-            updated_user["password"] = util.profile.hash_password(updated_user["password"])
+            updated_user["password"] = util.common.hash_password(updated_user["password"])
         else:
             updated_user["password"] = user_doc.get("password")
 

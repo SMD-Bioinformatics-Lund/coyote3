@@ -32,6 +32,7 @@ from datetime import timedelta
 from hashlib import md5
 import base64, json
 from flask_login import current_user
+from werkzeug.security import generate_password_hash
 
 
 class CommonUtility:
@@ -41,6 +42,27 @@ class CommonUtility:
     handling, data formatting, serialization, reporting, and other shared logic
     across Coyote main, RNA, and other blueprints.
     """
+
+    @staticmethod
+    def hash_password(password: str) -> str:
+        """
+        Generate a secure password hash using PBKDF2-HMAC-SHA256.
+
+        Args:
+            password (str): The plaintext password to hash.
+
+        Returns:
+            str: A salted, iterated password hash string suitable for storing
+                 in the database. The generated format typically looks like:
+                 'pbkdf2:sha256:<iterations>$<salt>$<hash>'.
+
+        Notes:
+            - PBKDF2 with SHA-256 is a strong, industry-standard key derivation
+              function that helps protect stored passwords against brute-force attacks.
+            - `generate_password_hash` automatically generates a random salt and
+              encodes the parameters inside the final hash string.
+        """
+        return generate_password_hash(password, method="pbkdf2:sha256")
 
     @staticmethod
     def get_simple_id(variant: dict) -> str:

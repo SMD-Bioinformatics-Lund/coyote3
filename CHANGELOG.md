@@ -13,6 +13,7 @@
 - Added highlight feature for KMT2A and KMT2D in the CNV  table (currently hardcoded).
 - Added a sample Edit page for admin views
 - Fixed assay group toggle behavior in ISGL edit page, ensuring correct initial display and proper group–assay syncing.
+- Enhanced Create/Edit User pages with correct RBAC permission precedence, conflict detection, and a unified color-coded highlight system.
 
 
 # v3.0.9
