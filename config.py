@@ -54,6 +54,9 @@ class DefaultConfig:
     development, and testing.
     """
 
+    # GITHUB REPO
+    CODEBASE = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
+
     # Public ASSAY CATALOG
     ASSAY_CATALOG_YAML = "coyote/static/data/assay_catalog.yaml"
 

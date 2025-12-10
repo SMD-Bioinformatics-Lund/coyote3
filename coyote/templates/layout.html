@@ -75,6 +75,21 @@
               {% if has_access(min_role="manager", min_level=99) %}
                 <a href="{{ url_for('admin_bp.admin_home') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Admin DB</a>
               {% endif %}
+              <a href="{{ config.CODEBASE }}/issues/new?template=bug_report.md"
+                target="_blank"
+                class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">
+                Report a Bug
+              </a>
+              <a href="{{ config.CODEBASE }}/issues/new?template=feature_request.md"
+                target="_blank"
+                class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">
+                Request a Feature
+              </a>
+              <a href="{{ config.CODEBASE }}/issues/new?template=support_request.md"
+                target="_blank"
+                class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">
+                Support
+              </a>
               <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Logout</a>
             </div>
           </div>

@@ -14,6 +14,7 @@
 - Added a sample Edit page for admin views
 - Fixed assay group toggle behavior in ISGL edit page, ensuring correct initial display and proper group–assay syncing.
 - Enhanced Create/Edit User pages with correct RBAC permission precedence, conflict detection, and a unified color-coded highlight system.
+- Added new GitHub bug and support issue templates with auto-assignment to Project 22.
 
 
 # v3.0.9
