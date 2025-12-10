@@ -204,24 +204,6 @@ modalities:
             input_material: ["DNA", "FFPE", "Neoplastic Tissue"]
             sample_modes: ["Tumor-only"]
 
-      solid_tumors_rna:
-        catalog_id: "solidRNA_GMSv5"
-        label: "GMS-ST RNA"
-        asp_id: "solidRNA_GMSv5"                   # (ASP) if you version RNA separately
-        aspc_ids:
-          production: "solidRNA_GMSv5:production"  # (ASPC)
-        input_material: ["RNA", "FFPE", "Neoplastic Tissue"]
-        tat: "14-21 days"
-        sample_modes: ["Tumor-only"]
-        description: "Targeted gene fusion panel analysis for solid tumors."
-        subheading: ""
-        analysis: ["Fusion Genes"]  # Optional: list available analysis types for this assay
-        gene_lists:
-          - key: "solidRNA_GMSv5"
-            label: "GMS-ST RNA"
-            description: "Gene fusion panel for solid tumors"
-
-
       rna_fusion:
         catalog_id: "rna-fusion"
         label: "RNA Fusion Panel"
