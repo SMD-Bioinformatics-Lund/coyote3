@@ -136,7 +136,7 @@ def get_sample_genelists(sample_id: str, sample_assay: str) -> str:
     panel_doc = json.loads(fernet_obj.decrypt(enc_panel_doc.encode()))
 
     sample_filters = json.loads(fernet_obj.decrypt(enc_sample_filters.encode()))
-    adhoc_genes = sample_filters.pop("adhoc_genes")
+    adhoc_genes = sample_filters.pop("adhoc_genes", "")
     if adhoc_genes:
         filter_gl = sample_filters.get("genelists", [])
         filter_gl.append(adhoc_genes.get("label", "Adhoc"))

@@ -23,6 +23,7 @@ from urllib.parse import unquote
 from markupsafe import Markup, escape
 import arrow
 import dateutil
+import markdown
 
 
 @app.template_filter()
@@ -230,16 +231,12 @@ def format_fusion_desc(st: str) -> str:
         **{
             term: "bg-red-500 text-white" for term in verybad_terms
         },  # red background for very bad terms
-        **{
-            term: "bg-pink-500 text-white" for term in bad_terms
-        },  # blue background for bad terms
+        **{term: "bg-pink-500 text-white" for term in bad_terms},  # blue background for bad terms
     }
 
     # Truncate to first three words (for display purposes)
     terms = st.split(",")
-    truncated_terms = terms[
-        :100
-    ]  # considering max 9 terms (3 rows of 3 terms)
+    truncated_terms = terms[:100]  # considering max 9 terms (3 rows of 3 terms)
 
     html_parts = []
     for i, v in enumerate(truncated_terms):
@@ -276,23 +273,44 @@ def uniq_callers(calls: list) -> set:
 @app.template_filter()
 def human_date(value):
     time_zone = "CET"
-    return (
-        arrow.get(value)
-        .replace(tzinfo=dateutil.tz.gettz(time_zone))
-        .humanize()
+    return arrow.get(value).replace(tzinfo=dateutil.tz.gettz(time_zone)).humanize()
+
+
+# TODO: redundant, it is there in the DNA filters
+@app.template_filter()
+def format_comment(st: str | None) -> str:
+    """
+    Render full GitHub-style markdown safely:
+    - Supports headings (##)
+    - Lists
+    - Paragraphs
+    - Bold/italics
+    - Line breaks
+    - Code blocks
+    - Tables
+    - Links
+    - CRLF normalization
+    """
+    if not st:
+        return ""
+
+    # Normalize all newline types → "\n"
+    st = st.replace("\r\n", "\n").replace("\r", "\n")
+
+    # Escape unsafe HTML BEFORE markdown processing
+    st = escape(st)
+
+    # Render using GitHub-style markdown extensions
+    html = markdown.markdown(
+        st,
+        extensions=[
+            "extra",  # tables, code, lists, etc.
+            "sane_lists",
+            "nl2br",  # convert single newlines → <br>
+            "toc",  # heading anchors
+            "tables",  # GitHub table syntax
+            "fenced_code",  # ``` code blocks
+        ],
     )
 
-
-@app.template_filter()
-def format_comment(st: str) -> str:
-    """
-    Jinja2 filter to format comments by replacing newline characters with <br /> tags.
-
-    Args:
-        st (str): The comment string to format.
-
-    Returns:
-        str: The formatted comment string with newlines replaced by <br />.
-    """
-    st = st.replace("\n", "<br />")
-    return st
+    return Markup(html)

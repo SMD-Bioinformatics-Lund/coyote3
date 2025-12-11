@@ -95,6 +95,30 @@ def view_genelist(genelist_id: str) -> Response | str:
     )
 
 
+@public_bp.route("/asp/genes/<asp_id>")
+def asp_genes(asp_id: str) -> str:
+    """
+    Display genes for a specific public assay panel.
+
+    Retrieves the genes associated with the specified public assay panel ID and renders them in the 'asp_genes.html' template.
+
+    Args:
+        asp_id (str): The ID of the public assay panel.
+
+    Returns:
+        str: Rendered HTML page showing the genes for the specified public assay panel.
+    """
+    gene_symbols, germline_gene_symbols = store.asp_handler.get_asp_genes(asp_id)
+    gene_details = store.hgnc_handler.get_metadata_by_symbols(gene_symbols)
+
+    return render_template(
+        "asp_genes.html",
+        asp_id=asp_id,
+        gene_details=gene_details,
+        germline_gene_symbols=germline_gene_symbols,
+    )
+
+
 @public_bp.route("/assay-catalog-matrix")
 def assay_catalog_matrix():
     """

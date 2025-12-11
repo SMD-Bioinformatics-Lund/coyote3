@@ -28,7 +28,7 @@ import os
 import re
 from math import floor, log10
 import arrow
-from markupsafe import Markup
+from markupsafe import Markup, escape
 import markdown
 from datetime import datetime
 from dateutil import tz
@@ -434,16 +434,40 @@ def uniq_callers(calls: list) -> set:
 @app.template_filter()
 def format_comment(st: str | None) -> str:
     """
-    Formats a comment string for HTML display by replacing newlines with <br /> tags.
-
-    Args:
-        st (str | None): The comment string to format.
-
-    Returns:
-        str: The formatted comment string with newlines replaced by <br />.
+    Render full GitHub-style markdown safely:
+    - Supports headings (##)
+    - Lists
+    - Paragraphs
+    - Bold/italics
+    - Line breaks
+    - Code blocks
+    - Tables
+    - Links
+    - CRLF normalization
     """
-    st = st.replace("\n", "<br />")
-    return st
+    if not st:
+        return ""
+
+    # Normalize all newline types → "\n"
+    st = st.replace("\r\n", "\n").replace("\r", "\n")
+
+    # Escape unsafe HTML BEFORE markdown processing
+    st = escape(st)
+
+    # Render using GitHub-style markdown extensions
+    html = markdown.markdown(
+        st,
+        extensions=[
+            "extra",  # tables, code, lists, etc.
+            "sane_lists",
+            "nl2br",  # convert single newlines → <br>
+            "toc",  # heading anchors
+            "tables",  # GitHub table syntax
+            "fenced_code",  # ``` code blocks
+        ],
+    )
+
+    return Markup(html)
 
 
 @app.template_filter("markdown")

@@ -939,9 +939,13 @@
                           <td class="px-2 whitespace-nowrap align-top py-4" id="comments-table-header-who">
                             <b>{{ comment.author }}</b><br><small>{{ comment.time_created|human_date }}</small>
                           </td>
-                          <td class="p-2" id="comments-table-header-comment" onclick='addText(event)'>
+                          <td class="py-2 markdown-body" onclick="addText(event)">
+                            <script type="text/plain" class="raw-md">{{ comment.text }}</script>
                             {{ comment.text|format_comment|safe }}
                           </td>
+
+
+
                           <td class="px-2 align-top py-4" id="comments-table-header-view">
                             {% set hidden_exists = 0 %}
                             {% if comment.hidden != 1 %}
@@ -1092,25 +1096,39 @@
 
 
     function addAIText() {
-      var suggestion = document.getElementById("suggestion").innerHTML.trim();
-      document.getElementById("comment_textarea").value = suggestion;
-    }
+      const source = document.getElementById("suggestion");
+      const raw = source.textContent || "";
+
+      if (window.easyMDE) {
+          window.easyMDE.value(raw.trim());
+          window.easyMDE.codemirror.refresh();
+      } else {
+          document.getElementById("comment_textarea").value = raw.trim();
+      }
+  }
+
+
+
 
     function addText(event) {
-      var targ = event.target || event.srcElement;
-      if (!targ.closest('tr').classList.contains('hidden_comment')) {
-        document.getElementById("comment_textarea").value = targ.textContent || targ.innerText;
-      }
-    }
+      const td = event.target.closest("td");
+      if (!td) return;
 
-    function addText(event) {
-      var targ = event.target || event.srcElement;
-      if (!targ.closest('tr').classList.contains('hidden_comment')) {
-        const textarea = document.getElementById('comment_textarea');
-        const text = event.target.innerText.trim();
-        textarea.value = text;
+      const rawEl = td.querySelector(".raw-md");
+      if (!rawEl) return;
+
+      const raw = rawEl.textContent;
+
+      if (window.easyMDE) {
+          window.easyMDE.value(raw);
+          window.easyMDE.codemirror.refresh();
+      } else {
+          document.getElementById("comment_textarea").value = raw;
       }
-    }
+  }
+
+
+
 
     window.onload = function () {
       document.querySelectorAll('[data-autoclick="true"]').forEach(element => element.click());
@@ -1140,8 +1158,6 @@
     }
 
 
-
-
     function switchVisibility(class_name, button) {
       var elems = document.getElementsByClassName(class_name);
 
@@ -1161,8 +1177,6 @@
           button.classList.add("bg-gray-400", "hover:bg-gray-500");
       }
     }
-
-
 
     // JavaScript for Expand/Collapse functionality
     function toggleCard(cardId) {
@@ -1426,6 +1440,42 @@
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
+
+    // ---------------------------------------------
+    // Initialize Markdown Editor for comment textarea
+    // ---------------------------------------------
+    document.addEventListener("DOMContentLoaded", () => {
+      const textarea = document.getElementById("comment_textarea");
+      if (!textarea) {
+          console.warn("EasyMDE: textarea not found");
+          return;
+      }
+
+      window.easyMDE = new EasyMDE({
+          element: textarea,
+          spellChecker: false,
+          forceSync: true,
+          hideIcons: ["image", "fullscreen"],
+          status: false,
+          previewRender: function(plainText, preview) {
+              const md = window.markdownit({
+                  html: false,
+                  breaks: true,
+                  linkify: true,
+                  typographer: true
+              });
+
+              const html = md.render(plainText);
+
+              // GitHub Markdown Styling
+              preview.classList.add("markdown-body");
+              preview.innerHTML = html;
+              return html;
+          }
+      });
+
+      console.log("EasyMDE initialized:", window.easyMDE);
+  });
 
 
 
