@@ -15,6 +15,8 @@
 - Fixed assay group toggle behavior in ISGL edit page, ensuring correct initial display and proper group–assay syncing.
 - Enhanced Create/Edit User pages with correct RBAC permission precedence, conflict detection, and a unified color-coded highlight system.
 - Added new GitHub bug and support issue templates with auto-assignment to Project 22.
+- Improved markdown rendering for summary comments—headings, line breaks, and formatting now display correctly using the enhanced format_comment filter.
+- Updated report terminology: replaced “variant” with “mutation” in summary text, variant summary table, detailed table headers, and Tier 3 naming.
 
 
 # v3.0.9

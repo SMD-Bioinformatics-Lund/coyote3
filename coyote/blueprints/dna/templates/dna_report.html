@@ -110,7 +110,7 @@
   <table class="variant_table">
     <tr>
       <th>Gen</th>
-      <th>Variant</th>
+      <th>Mutation</th>
       <th>Exon/Intron</th>
       <th>Variantfrekvens</th>
       <th>Klassificering</th>
@@ -139,7 +139,7 @@
         </tr>
     {% else %}
         <tr>
-          <td>Inga detekterade varianter</td>
+          <td>Inga detekterade mutationer</td>
         </tr>
     {% endfor %}
   </table>
@@ -307,7 +307,7 @@
 
 <!-- Detailed list of each variants reported -->
 {% if variants %}
-  <span class="report_header">Detekterade varianter</span>
+  <span class="report_header">Detekterade mutationer</span>
   {% for var in variants %}
     <div class=report_div style="page-break-inside:avoid;">
       <table class='report_variant'>
@@ -473,16 +473,16 @@
     <table class="info">
       <tr>
         <td>Tier I</td>
-        <td>Variant av stark klinisk signifikans (genvarianter som är diagnostiska, behandlingsstyrande eller
+        <td>Variant av stark klinisk signifikans (genmutationer som är diagnostiska, behandlingsstyrande eller
           riskstratifierande enligt gällande riktlinjer)</td>
       </tr>
       <tr>
         <td>Tier II</td>
-        <td>Variant av potentiell klinisk signifikans (varianter i gener beskrivna i ett flertal publikationer)</td>
+        <td>Variant av potentiell klinisk signifikans (mutationer i gener beskrivna i ett flertal publikationer)</td>
       </tr>
       <tr>
         <td>Tier III</td>
-        <td>Variant av oklar klinisk signifikans (varianter i gener beskrivna i ett fåtal publikationer)</td>
+        <td>Variant av oklar klinisk signifikans (mutationer i gener beskrivna i ett fåtal publikationer)</td>
       </tr>
       <tr>
         <td>Tier IV</td>
