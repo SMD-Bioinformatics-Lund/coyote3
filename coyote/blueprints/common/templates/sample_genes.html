@@ -13,13 +13,13 @@
       {% if genelists %}
         {% for genelist_name, genelist_values in genelists.items() %}
           <div class="py-2 max-w-3xl align-left" id="genelist-{{genelist_name}}">
-            <h2 class="text-sm font-semibold text-black">Tabell {{ ns.table_no }}: Gener inkluderade i <b>{{ genelist_name }}</b> insilico-panel</h2>
+            <h2 class="text-sm font-semibold text-black">Tabell {{ ns.table_no }}: Gener inkluderade i <b>{{ genelist_name }} {% if genelist_values.adhoc %} (Ad-Hoc) {% endif %}</b> insilico-panel</h2>
             <div class="py-2 relative">
               <table class="border border-gray-300 w-full text-xs text-left text-gray-700" id="genelist-table">
                 <tbody>
-                  {% for i in range(0, genelist_values.covered | length, 15) %}
+                  {% for i in range(0, genelist_values.covered | length, 12) %}
                     <tr class="even:bg-gray-50">
-                      {% for gene in genelist_values.covered[i:i+15] %}
+                      {% for gene in genelist_values.covered[i:i+12] %}
                         <td class="border border-gray-300 p-1">{{ gene }}</td>
                       {% endfor %}
                     </tr>
@@ -37,9 +37,9 @@
           <div class="py-2 relative">
             <table class="border border-gray-300 w-full text-xs text-left text-gray-700" id="snvs-table">
               <tbody>
-                {% for i in range(0, asp_config.covered_genes | length, 15) %}
+                {% for i in range(0, asp_config.covered_genes | length, 12) %}
                   <tr class="even:bg-gray-50">
-                    {% for gene in asp_config.covered_genes[i:i+15] %}
+                    {% for gene in asp_config.covered_genes[i:i+12] %}
                       <td class="border border-gray-300 p-1">{{ gene }}</td>
                     {% endfor %}
                   </tr>
@@ -58,22 +58,26 @@
     <section id="filters" class="px-2 py-1 my-2 relative">
       <h2 class="text-sm font-semibold text-black">Sample Filters</h2>
       <div class="py-2 relative">
-        <table class="border border-gray-300 w-full max-w-md text-xs text-left text-gray-700" id="filters-table">
-          <tbody>
-            {% for key, value in sample_filters.items() %}
-              <tr class="even:bg-gray-50">
-                <td class="border border-gray-300 p-1">{{ key }}</td>
-                <td class="border border-gray-300 p-1 break-all">
-                  {% if value is iterable and not value is string %}
-                    {{ ', '.join(value) }}
-                  {% else %}
-                    {{ value }}
-                  {% endif %}
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        {% if not sample_filters %}
+          <p class="text-gray-600">Inga filter tillgängliga för detta prov.</p>
+        {% else %}
+          <table class="border border-gray-300 w-full max-w-md text-xs text-left text-gray-700" id="filters-table">
+            <tbody>
+              {% for key, value in sample_filters.items() %}
+                <tr class="even:bg-gray-50">
+                  <td class="border border-gray-300 p-1">{{ key }}</td>
+                  <td class="border border-gray-300 p-1 break-all">
+                    {% if value is iterable and not value is string %}
+                      {{ ', '.join(value) }}
+                    {% else %}
+                      {{ value }}
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
       </div>
     </section>
   </main>

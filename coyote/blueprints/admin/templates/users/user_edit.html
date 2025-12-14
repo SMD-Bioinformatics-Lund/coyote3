@@ -67,28 +67,49 @@
                 {% set fullspan = field.display_type in ['textarea', 'jsoneditor-or-upload'] or field.data_type in ['json', 'dict'] %}
 
                 {% if key in ["permissions", "deny_permissions"] %}
-                  <div class="{% if is_changed %}ring-2 ring-yellow-400 rounded-md p-1{% endif %} col-span-full">
-                    <h3 class="text-sm font-semibold text-gray-800 mb-1">{{ field.label }} <span class="text-xs font-normal italic text-gray-800 ">(Note: Highlights - Blue: from role only, Yellow: from role and user, Pink: conflict)</span></h3>
-                    <div class="flex gap-8 flex-wrap">
-                      {% set grouped = {} %}
-                      {% for opt in field.options %}
-                        {% set _ = grouped.setdefault(opt.category, []).append(opt) %}
-                      {% endfor %}
-                      {% for category, opts in grouped.items() %}
-                        <div>
-                          <h4 class="text-xs font-semibold text-blue-700 mb-1">{{ category }}</h4>
-                          <div class="flex flex-col flex-wrap gap-2">
-                            {% for opt in opts %}
-                              <label class="inline-flex items-center gap-2 text-xs">
-                                <input type="checkbox" name="{{ key }}" value="{{ opt.value }}" class="accent-blue-600" {% if value and opt.value in value %}checked{% endif %} {% if is_readonly %}disabled{% endif %}>
-                                {{ opt.label }}
-                              </label>
-                            {% endfor %}
-                          </div>
+                <div class="{% if is_changed %}ring-2 ring-yellow-400 rounded-md p-1{% endif %} col-span-full">
+                  <h3 class="text-sm font-semibold text-gray-800 mb-1 flex flex-col">
+                    {{ field.label }}
+                    <span class="text-xs font-normal italic text-gray-800 py-2">
+                      (Note: 🔵 Role-only, 🟡 User override, 🟢 Role+user agree, 🟠 User-only, 🔴 Conflict)
+                    </span>
+                  </h3>
+
+                  <div class="flex gap-8 flex-wrap">
+                    {% set grouped = {} %}
+                    {% for opt in field.options %}
+                      {% set _ = grouped.setdefault(opt.category, []).append(opt) %}
+                    {% endfor %}
+
+                    {% for category, opts in grouped.items() %}
+                      <div>
+                        <h4 class="text-xs font-semibold text-blue-700 mb-1">{{ category }}</h4>
+                        <div class="flex flex-col flex-wrap gap-2">
+                          {% for opt in opts %}
+
+                            {% set user_has = value and opt.value in value %}
+                            {% set role_has = opt.value in role_permissions %}
+                            {% set role_denied = opt.value in role_denied_permissions %}
+
+                            <label class="inline-flex items-center gap-2 text-xs">
+                              <input
+                                type="checkbox"
+                                name="{{ key }}"
+                                value="{{ opt.value }}"
+                                class="accent-blue-600"
+                                {% if user_has or role_has or role_denied %}checked{% endif %}
+                                {% if is_readonly %}disabled{% endif %}
+                              >
+                              {{ opt.label }}
+                            </label>
+
+                          {% endfor %}
                         </div>
-                      {% endfor %}
-                    </div>
+                      </div>
+                    {% endfor %}
                   </div>
+                </div>
+
 
                 {% elif key == "assays" %}
                   <div class="{% if is_changed %}ring-2 ring-yellow-400 rounded-md p-1{% endif %}{% if fullspan %} col-span-3{% endif %}">
@@ -115,11 +136,21 @@
                     <div class="flex flex-wrap gap-2 text-xs">
                       {% for opt in field.options %}
                         <label class="inline-flex items-center gap-2">
-                          <input type="checkbox" name="{{ key }}" value="{{ opt }}" class="accent-blue-600 group-toggle" {% if value and opt in value %}checked{% endif %} {% if is_readonly %}disabled{% endif %}> {{ opt }}
+                          <input
+                            type="checkbox"
+                            name="{{ key }}"
+                            value="{{ opt }}"
+                            class="accent-blue-600
+                                   {% if key == 'assay_groups' %} assay-group-toggle{% endif %}"
+                            {% if value and opt in value %}checked{% endif %}
+                            {% if is_readonly %}disabled{% endif %}
+                          >
+                          {{ opt }}
                         </label>
                       {% endfor %}
                     </div>
                   </div>
+
 
                 {% elif field.display_type == "select" %}
                   <div>
@@ -170,11 +201,18 @@
           </div>
           {% endfor %}
 
+          <div id="permission-conflict-warning"
+              class="hidden text-red-700 bg-red-100 border border-red-300 rounded p-2 text-xs mb-4">
+            ⚠️ Cannot save: A permission is both ALLOWED and DENIED.
+            Resolve the conflict before updating the user.
+          </div>
+
           <div class="text-right pt-4">
             <button type="submit" class="bg-blue-300 hover:bg-blue-400 text-black font-semibold px-6 py-2 rounded-lg shadow-lg transition">
               Update User
             </button>
           </div>
+
         </form>
 
       </div>
@@ -182,48 +220,84 @@
   </main>
 </div>
 
-<script>
+
+<script defer>
   document.addEventListener("DOMContentLoaded", () => {
+
+    /* ------------------------------------------------------------
+     * 0. DOM Elements
+     * ------------------------------------------------------------ */
     const fname = document.getElementById("firstname");
     const lname = document.getElementById("lastname");
     const fullname = document.getElementById("fullname");
     const username = document.getElementById("username");
     const email = document.getElementById("email");
+
     const passwordInput = document.getElementById("password");
     const confirmPasswordInput = document.getElementById("confirm_password");
     const passwordMsg = document.getElementById("password_match_msg");
     const authSource = document.querySelector('[name="auth_type"]');
     const passwordWrapper = document.getElementById("password-wrapper");
 
-    // Auto-fill fullname and username
+    const roleSelect = document.getElementById("role");
+    const permissionCheckboxes = document.querySelectorAll('input[name="permissions"]');
+    const denyPermissionCheckboxes = document.querySelectorAll('input[name="deny_permissions"]');
+
+    const conflictWarning = document.getElementById("permission-conflict-warning");
+    const submitBtn = document.querySelector("button[type='submit']");
+
+    const roleMap = {{ role_map | tojson | safe }};
+
+    const originalUsername = username ? username.value : "";
+    const originalFullname = fullname ? fullname.value : "";
+
+    /* ------------------------------------------------------------
+     * 1. AUTO-FILL FULLNAME & USERNAME
+     * ------------------------------------------------------------ */
+    let fullnameManuallyEdited = false;
+
+    fullname?.addEventListener("input", () => {
+      fullnameManuallyEdited = true;
+    });
+
     function updateFullAndUsername() {
       const f = fname?.value.trim() || "";
       const l = lname?.value.trim() || "";
       const full = `${f} ${l}`.trim();
       const user = `${f}.${l}`.toLowerCase();
-      if (fullname) fullname.value = full;
-      if (username) {
+
+      if (fullname && !fullnameManuallyEdited) {
+        fullname.value = full;
+      }
+
+      if (username && !originalUsername && !fullnameManuallyEdited) {
         username.value = user;
         checkUsername(user);
       }
     }
 
-    // Username exists check
     async function checkUsername(val = null) {
-      const value = val || username?.value.trim();
-      if (!value) return;
-      const res = await fetch("{{ url_for('admin_bp.validate_username') }}", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: value })
-      });
-      const data = await res.json();
+      if (!username) return;
+      const value = (val || username.value).trim();
       const msg = document.getElementById("username_check");
-      msg.textContent = data.exists ? "❌ Username already exists." : "✅ Username available.";
-      msg.className = data.exists ? "text-xs mt-1 text-red-500" : "text-xs mt-1 text-green-600";
+      if (!value || !msg) return;
+
+      try {
+        const res = await fetch("{{ url_for('admin_bp.validate_username') }}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: value })
+        });
+
+        const data = await res.json();
+        msg.textContent = data.exists ? "❌ Username already exists." : "✅ Username available.";
+        msg.className = data.exists ? "text-xs mt-1 text-red-500" : "text-xs mt-1 text-green-600";
+      } catch {
+        msg.textContent = "⚠️ Username check failed.";
+        msg.className = "text-xs mt-1 text-yellow-600";
+      }
     }
 
-    // Email exists check
     async function checkEmail() {
       const val = email?.value.trim();
       const msg = document.getElementById("email_check");
@@ -236,191 +310,309 @@
         return;
       }
 
-      const res = await fetch("{{ url_for('admin_bp.validate_email') }}", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: val })
-      });
-
-      const data = await res.json();
-      msg.textContent = data.exists ? "❌ Email already in use." : "✅ Email available.";
-      msg.className = data.exists ? "text-xs mt-1 text-red-500" : "text-xs mt-1 text-green-600";
-    }
-
-    // Password validation
-    function validatePassword() {
-      const pwd = passwordInput?.value.trim() || "";
-      const confirm = confirmPasswordInput?.value.trim() || "";
-      const minLen = parseInt(passwordInput?.dataset.minlength) || 10;
-      const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/;
-
-      if (!pwd) {
-        setPwdMsg("❌ Password cannot be empty.", "red");
-        return;
-      }
-      if (pwd.length < minLen) {
-        setPwdMsg(`❌ Password must be at least ${minLen} characters.`, "red");
-        return;
-      }
-      if (!regex.test(pwd)) {
-        setPwdMsg("❌ Must include uppercase, lowercase, number, and symbol.", "red");
-        return;
-      }
-      if (confirm && pwd !== confirm) {
-        setPwdMsg("❌ Passwords do not match.", "red");
-        return;
-      }
-      if (confirm && pwd === confirm) {
-        setPwdMsg("✅ Passwords match and are strong.", "green");
-      } else {
-        setPwdMsg("✅ Strong password.", "green");
+      try {
+        const res = await fetch("{{ url_for('admin_bp.validate_email') }}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: val })
+        });
+        const data = await res.json();
+        msg.textContent = data.exists ? "❌ Email already in use." : "✅ Email available.";
+        msg.className = data.exists ? "text-xs mt-1 text-red-500" : "text-xs mt-1 text-green-600";
+      } catch {
+        msg.textContent = "⚠️ Email check failed.";
+        msg.className = "text-xs mt-1 text-yellow-600";
       }
     }
 
+    /* ------------------------------------------------------------
+     * 2. PASSWORD VALIDATION
+     * ------------------------------------------------------------ */
     function setPwdMsg(text, color) {
       if (!passwordMsg) return;
       passwordMsg.textContent = text;
       passwordMsg.className = `text-xs mt-1 text-${color}-500`;
     }
 
-    // Password visibility based on auth
-    function updatePasswordVisibility() {
-      if (!authSource || !passwordWrapper) return;
-      const value = authSource.value?.trim().toLowerCase();
-      passwordWrapper.style.display = value === "coyote3" ? "flex" : "none";
+    function validatePassword() {
+      const pwd = passwordInput?.value.trim() || "";
+      const confirm = confirmPasswordInput?.value.trim() || "";
+      const minLen = parseInt(passwordInput?.dataset.minlength) || 10;
+
+      const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/;
+
+      if (!pwd && !confirm) {
+        setPwdMsg("", "gray");
+        return;
+      }
+      if (!pwd) return setPwdMsg("❌ Password cannot be empty.", "red");
+      if (pwd.length < minLen) return setPwdMsg(`❌ Must be at least ${minLen} characters.`, "red");
+      if (!regex.test(pwd)) return setPwdMsg("❌ Must include upper, lower, number, symbol.", "red");
+      if (confirm && pwd !== confirm) return setPwdMsg("❌ Passwords do not match.", "red");
+
+      if (confirm && pwd === confirm) setPwdMsg("✅ Passwords match and strong.", "green");
+      else setPwdMsg("✅ Strong password.", "green");
     }
 
-    // Assay group <-> assay checkbox sync
-    function setupAssayBehavior() {
-      const groupToggles = document.querySelectorAll('.group-toggle');
-      const assayBlocks = document.querySelectorAll('.assay-block');
-
-      function updateAssayVisibility() {
-        const selectedGroups = Array.from(groupToggles)
-          .filter(cb => cb.checked)
-          .map(cb => cb.value);
-
-        assayBlocks.forEach(block => {
-          const group = block.getAttribute("data-group");
-          const visible = selectedGroups.includes(group);
-          block.classList.toggle("hidden", !visible);
-          if (visible) {
-            block.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
-          } else {
-            block.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-          }
-        });
+    function updatePasswordVisibility() {
+      const val = authSource?.value.trim().toLowerCase() || "";
+      if (val === "coyote3") {
+        passwordWrapper.style.display = "flex";
+      } else {
+        passwordWrapper.style.display = "none";
+        if (passwordInput) passwordInput.value = "";
+        if (confirmPasswordInput) confirmPasswordInput.value = "";
+        setPwdMsg("", "gray");
       }
+    }
 
-      function syncGroupFromAssay() {
+    /* ------------------------------------------------------------
+     * 3. ASSAY GROUP ↔ ASSAY LOGIC (unchanged, working)
+     * ------------------------------------------------------------ */
+    function setupAssayBehavior() {
+      const groupToggles = document.querySelectorAll(".assay-group-toggle");
+      const assayBlocks = document.querySelectorAll(".assay-block");
+
+      const groupToAssays = {};
+      assayBlocks.forEach(block => {
+        const g = block.dataset.group;
+        groupToAssays[g] = block.querySelectorAll('input[type="checkbox"]');
+      });
+
+      function initialiseFromSaved() {
         assayBlocks.forEach(block => {
-          const group = block.getAttribute("data-group");
-          const relatedGroupToggle = document.querySelector(`.group-toggle[value="${group}"]`);
-          const checkboxes = block.querySelectorAll('input[type="checkbox"]');
-          if (checkboxes.length === 1 && !checkboxes[0].checked) {
-            relatedGroupToggle.checked = false;
+          const g = block.dataset.group;
+          const assays = groupToAssays[g];
+          const hasSaved = Array.from(assays).some(a => a.checked);
+          const toggle = document.querySelector(`.assay-group-toggle[value="${g}"]`);
+
+          if (hasSaved) {
+            block.classList.remove("hidden");
+            if (toggle) toggle.checked = true;
+          } else {
             block.classList.add("hidden");
           }
         });
       }
 
-      updateAssayVisibility();
+      function syncGroupFromAssays(g) {
+        const assays = groupToAssays[g];
+        const toggle = document.querySelector(`.assay-group-toggle[value="${g}"]`);
+        const checkedCount = Array.from(assays).filter(a => a.checked).length;
+        const block = document.querySelector(`.assay-block[data-group="${g}"]`);
 
-      groupToggles.forEach(cb => cb.addEventListener("change", updateAssayVisibility));
+        if (checkedCount === 0) {
+          toggle.checked = false;
+          block.classList.add("hidden");
+        } else {
+          toggle.checked = true;
+          block.classList.remove("hidden");
+        }
+      }
+
+      function onGroupToggle(g, checked) {
+        const assays = groupToAssays[g];
+        const block = document.querySelector(`.assay-block[data-group="${g}"]`);
+        if (checked) {
+          assays.forEach(a => a.checked = true);
+          block.classList.remove("hidden");
+        } else {
+          assays.forEach(a => a.checked = false);
+          block.classList.add("hidden");
+        }
+      }
+
+      groupToggles.forEach(cb => cb.addEventListener("change", () => onGroupToggle(cb.value, cb.checked)));
 
       assayBlocks.forEach(block => {
+        const g = block.dataset.group;
         block.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-          cb.addEventListener("change", syncGroupFromAssay);
+          cb.addEventListener("change", () => syncGroupFromAssays(g));
         });
       });
+
+      initialiseFromSaved();
     }
 
-    // Event bindings
+    /* ------------------------------------------------------------
+     * 4. RBAC PERMISSION ENGINE (user overrides role)
+     * ------------------------------------------------------------ */
+
+    // Capture original user-level permissions from DB (Jinja-checked)
+    const initialUserAllow = new Set();
+    permissionCheckboxes.forEach(cb => {
+      if (cb.checked) initialUserAllow.add(cb.value);
+    });
+    const initialUserDeny = new Set();
+    denyPermissionCheckboxes.forEach(cb => {
+      if (cb.checked) initialUserDeny.add(cb.value);
+    });
+
+    // Map value -> { allow, deny } for easy conflict detection
+    const permMap = {};
+    permissionCheckboxes.forEach(cb => {
+      permMap[cb.value] = permMap[cb.value] || {};
+      permMap[cb.value].allow = cb;
+    });
+    denyPermissionCheckboxes.forEach(cb => {
+      permMap[cb.value] = permMap[cb.value] || {};
+      permMap[cb.value].deny = cb;
+    });
+
+    function applyInitialRoleDefaults() {
+      const role = roleMap[roleSelect.value] || {};
+      const roleAllow = new Set(role.permissions || []);
+      const roleDeny = new Set(role.deny_permissions || []);
+
+      // Seed ALLOW: role allows → check, unless user originally denied it
+      permissionCheckboxes.forEach(cb => {
+        const val = cb.value;
+        if (!cb.checked && roleAllow.has(val) && !initialUserDeny.has(val)) {
+          cb.checked = true;
+        }
+      });
+
+      // Seed DENY: role denies → check, unless user originally allowed it
+      denyPermissionCheckboxes.forEach(cb => {
+        const val = cb.value;
+        if (!cb.checked && roleDeny.has(val) && !initialUserAllow.has(val)) {
+          cb.checked = true;
+        }
+      });
+
+      highlightPermissionStates();
+    }
+
+    function highlightPermissionStates() {
+      const role = roleMap[roleSelect.value] || {};
+      const roleAllow = new Set(role.permissions || []);
+      const roleDeny = new Set(role.deny_permissions || []);
+
+      // Clear all previous rings
+      document.querySelectorAll("label.inline-flex").forEach(label => {
+        label.classList.remove(
+          "ring",
+          "ring-yellow-400",
+          "ring-blue-300",
+          "ring-green-500",
+          "ring-red-600",
+          "ring-offset-1"
+        );
+      });
+
+      let conflict = false;
+
+      Object.keys(permMap).forEach(val => {
+        const pair = permMap[val];
+        const allowCb = pair.allow;
+        const denyCb = pair.deny;
+
+        const allowChecked = !!(allowCb && allowCb.checked);
+        const denyChecked = !!(denyCb && denyCb.checked);
+
+        const allowLabel = allowCb ? allowCb.closest("label.inline-flex") : null;
+        const denyLabel = denyCb ? denyCb.closest("label.inline-flex") : null;
+
+        const roleA = roleAllow.has(val);
+        const roleD = roleDeny.has(val);
+
+        function mark(label, color) {
+          if (!label) return;
+          label.classList.add("ring", color, "ring-offset-1");
+        }
+
+        // 🔴 Conflict: user checked both allow + deny in UI
+        if (allowChecked && denyChecked) {
+          mark(allowLabel, "ring-red-600");
+          mark(denyLabel, "ring-red-600");
+          conflict = true;
+          return;
+        }
+
+        // 🟡 User override against role
+        // role allows, user denies
+        if (roleA && denyChecked && !allowChecked) {
+          mark(denyLabel, "ring-yellow-400");
+          return;
+        }
+        // role denies, user allows
+        if (roleD && allowChecked && !denyChecked) {
+          mark(allowLabel, "ring-yellow-400");
+          return;
+        }
+
+        // 🟢 Role + user same direction (confirm)
+        if (roleA && allowChecked) {
+          mark(allowLabel, "ring-green-400");
+          return;
+        }
+        if (roleD && denyChecked) {
+          mark(denyLabel, "ring-green-400");
+          return;
+        }
+
+        // 🔵 Role-only effective (no user checkbox ticked)
+        if (roleA && !allowChecked && !denyChecked) {
+          mark(allowLabel, "ring-blue-300");
+          return;
+        }
+        if (roleD && !allowChecked && !denyChecked) {
+          mark(denyLabel, "ring-blue-300");
+          return;
+        }
+
+        // 🟢 Pure user-level permissions (no role definition)
+        if (allowChecked && !roleA && !roleD) {
+          mark(allowLabel, "ring-orange-500");
+          return;
+        }
+        if (denyChecked && !roleA && !roleD) {
+          mark(denyLabel, "ring-orange-500");
+          return;
+        }
+      });
+
+      if (conflict) {
+        conflictWarning.style.display = "block";
+        submitBtn.disabled = true;
+      } else {
+        conflictWarning.style.display = "none";
+        submitBtn.disabled = false;
+      }
+    }
+
+    /* ------------------------------------------------------------
+     * 5. EVENT BINDINGS + INIT
+     * ------------------------------------------------------------ */
+
     fname?.addEventListener("input", updateFullAndUsername);
     lname?.addEventListener("input", updateFullAndUsername);
     username?.addEventListener("input", () => checkUsername());
     email?.addEventListener("input", checkEmail);
+
     passwordInput?.addEventListener("input", validatePassword);
     confirmPasswordInput?.addEventListener("input", validatePassword);
     authSource?.addEventListener("change", updatePasswordVisibility);
 
-    // Initial setup
-    updateFullAndUsername();
+    permissionCheckboxes.forEach(cb =>
+      cb.addEventListener("change", highlightPermissionStates)
+    );
+    denyPermissionCheckboxes.forEach(cb =>
+      cb.addEventListener("change", highlightPermissionStates)
+    );
+    roleSelect?.addEventListener("change", () => {
+      applyInitialRoleDefaults();
+    });
+
     updatePasswordVisibility();
     setupAssayBehavior();
 
-    // permissions and deny permissions highlighting
-    const roleSelect = document.getElementById("role");
-    const permissionCheckboxes = document.querySelectorAll('input[name="permissions"]');
-    const denyPermissionCheckboxes = document.querySelectorAll('input[name="deny_permissions"]');
-
-    const roleMap = {{ role_map | tojson | safe }};
-
-    function updatePermissionsFromRole(roleId) {
-      if (!roleMap[roleId]) return;
-
-      const selectedPerms = new Set(roleMap[roleId].permissions || []);
-      const deniedPerms = new Set(roleMap[roleId].deny_permissions || []);
-
-      permissionCheckboxes.forEach(cb => {
-        cb.checked = selectedPerms.has(cb.value) || cb.checked;
-      });
-
-      denyPermissionCheckboxes.forEach(cb => {
-        cb.checked = deniedPerms.has(cb.value) || cb.checked;
-      });
-
-      highlightConflicts();
-    }
-
-    function highlightConflicts() {
-      const selectedPerms = new Set();
-      const deniedPerms = new Set();
-
-      permissionCheckboxes.forEach(cb => {
-        if (cb.checked) selectedPerms.add(cb.value);
-      });
-
-      denyPermissionCheckboxes.forEach(cb => {
-        if (cb.checked) deniedPerms.add(cb.value);
-      });
-
-      const allLabels = document.querySelectorAll('label.inline-flex');
-
-      allLabels.forEach(label => {
-        const input = label.querySelector('input');
-        if (!input) return;
-
-        const isPerm = input.name === "permissions";
-        const isDeny = input.name === "deny_permissions";
-
-        const isFromRole = roleMap[roleSelect.value]?.[input.name]?.includes(input.value);
-        const inBoth = selectedPerms.has(input.value) && deniedPerms.has(input.value);
-
-        label.classList.remove("ring", "ring-blue-300", "ring-yellow-400", "ring-pink-600", "ring-offset-1");
-
-        if (inBoth) {
-          label.classList.add("ring", "ring-pink-600", "ring-offset-1");
-        } else if (selectedPerms.has(input.value) && isFromRole) {
-          label.classList.add("ring", "ring-yellow-400", "ring-offset-1");
-        } else if (isFromRole) {
-          label.classList.add("ring", "ring-blue-300", "ring-offset-1");
-        }
-      });
-    }
-
-    permissionCheckboxes.forEach(cb => cb.addEventListener("change", highlightConflicts));
-    denyPermissionCheckboxes.forEach(cb => cb.addEventListener("change", highlightConflicts));
-
-    if (roleSelect) {
-      roleSelect.addEventListener("change", () => {
-        updatePermissionsFromRole(roleSelect.value);
-      });
-
-      // Apply immediately if value exists
-      if (roleSelect.value) updatePermissionsFromRole(roleSelect.value);
-    }
+    // Initial RBAC setup: apply role + user precedence, then highlight
+    applyInitialRoleDefaults();
   });
 </script>
+
+
+
 
 {% endblock %}

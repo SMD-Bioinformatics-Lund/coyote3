@@ -86,9 +86,9 @@
       <td class="top_report_val">{{ current_user.fullname }}</td>
     </tr>
     <tr>
-      {% set report_name = sample.get("case_id", "NA") + "_" + sample.get("case", {}).get("clarity_id", "NA") %}
-      {% if sample.get("control_id") %}
-        {% set report_name = report_name + "-" + sample.get("control_id", "NA") + "_" + sample.get("control", {}).get("clarity_id", "NA") %}
+      {% set report_name = sample.get("name", "NONE") + "_" + sample.get("case", {}).get("clarity_id", "NONE") %}
+      {% if sample.control_id %}
+        {% set report_name = report_name + "-" + sample.get("control_id", "NONE") + "_" + sample.get("control",{}).get("clarity_id", "NONE") %}
       {% endif %}
       <td class="top_report_key">Rapport-ID</td>
       <td class="top_report_val">
@@ -110,7 +110,7 @@
   <table class="variant_table">
     <tr>
       <th>Gen</th>
-      <th>Variant</th>
+      <th>Mutation</th>
       <th>Exon/Intron</th>
       <th>Variantfrekvens</th>
       <th>Klassificering</th>
@@ -127,9 +127,9 @@
             </td>
           <td>
             {% if var.exon %}
-              E{{ var.exon[0] }} of {{ var.exon[1] }}
+              E: {{ var.exon[0] }} of {{ var.exon[1] }}
             {% elif var.intron %}
-              I{{ var.intron[0] }} of {{ var.intron[1] }}
+              I: {{ var.intron[0] }} of {{ var.intron[1] }}
             {% else %}
               -
             {% endif %}
@@ -139,11 +139,13 @@
         </tr>
     {% else %}
         <tr>
-          <td>Inga detekterade varianter</td>
+          <td>Inga detekterade mutationer</td>
         </tr>
     {% endfor %}
   </table>
 {% endif %}
+
+<p>Note: p = protein, c = cDNA, g = genomic, E = Exon, I = Intron </p>
 
 <!-- CNV Summary -->
 {% if "CNV" in report_sections %}
@@ -281,7 +283,7 @@
     {% if sample.comments|length > 0 %}
       {% for comment in sample.comments if comment.hidden != 1 %}
         {% if loop.last %}
-          {{ comment.text|markdown|safe }}
+          {{ comment.text|format_comment|safe }}
         {% endif %}
       {% endfor %}
     {% else %}
@@ -305,7 +307,7 @@
 
 <!-- Detailed list of each variants reported -->
 {% if variants %}
-  <span class="report_header">Detekterade varianter</span>
+  <span class="report_header">Detekterade mutationer</span>
   {% for var in variants %}
     <div class=report_div style="page-break-inside:avoid;">
       <table class='report_variant'>
@@ -459,7 +461,7 @@
 
   <p>
     For complete panel gene lists, and configurations, see
-    <a href="#" onclick="submitGenelistForm(event)" class="text-blue-600 hover:underline" target="_blank">here.</a>
+    <a href="#config" onclick="submitGenelistForm(event)" class="text-blue-600 hover:underline" target="_blank">here.</a>
     <br>Or, for ASP genelist, visit <a href="{{url_for("public_bp.asp_genes",asp_id=sample.assay, _external=True)}}"> {{url_for("public_bp.asp_genes",asp_id=sample.assay , _external=True)}} </a>
   </p>
 
@@ -471,16 +473,16 @@
     <table class="info">
       <tr>
         <td>Tier I</td>
-        <td>Variant av stark klinisk signifikans (genvarianter som är diagnostiska, behandlingsstyrande eller
+        <td>Variant av stark klinisk signifikans (genmutationer som är diagnostiska, behandlingsstyrande eller
           riskstratifierande enligt gällande riktlinjer)</td>
       </tr>
       <tr>
         <td>Tier II</td>
-        <td>Variant av potentiell klinisk signifikans (varianter i gener beskrivna i ett flertal publikationer)</td>
+        <td>Variant av potentiell klinisk signifikans (mutationer i gener beskrivna i ett flertal publikationer)</td>
       </tr>
       <tr>
         <td>Tier III</td>
-        <td>Variant av oklar klinisk signifikans (varianter i gener beskrivna i ett fåtal publikationer)</td>
+        <td>Variant av oklar klinisk signifikans (mutationer i gener beskrivna i ett fåtal publikationer)</td>
       </tr>
       <tr>
         <td>Tier IV</td>

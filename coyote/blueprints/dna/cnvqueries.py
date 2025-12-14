@@ -35,7 +35,6 @@ def build_cnv_query(sample_id: str, filters: dict) -> dict:
     """
     query = {"SAMPLE_ID": sample_id}
 
-    # TODO CHECK WHAT IS NORMAL IN THE PREVIOUS COYOTE
     if filters:
         query = {
             "SAMPLE_ID": sample_id,

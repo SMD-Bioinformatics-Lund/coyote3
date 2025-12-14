@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Coyote3 Documentation
+    url: https://smd-bioinformatics-lund.github.io/coyote3/
+    about: Official guides and documentation.

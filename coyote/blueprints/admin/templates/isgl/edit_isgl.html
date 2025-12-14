@@ -117,52 +117,102 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", () => {
-    // Assay group <-> assay checkbox sync
-    function setupAssayBehavior() {
-      const groupToggles = document.querySelectorAll('.group-toggle');
-      const assayBlocks = document.querySelectorAll('.assay-block');
 
-      function updateAssayVisibility() {
-        const selectedGroups = Array.from(groupToggles)
-          .filter(cb => cb.checked)
-          .map(cb => cb.value);
+    // All group checkboxes (assay groups)
+    const groupToggles = document.querySelectorAll('input.group-toggle');
+    const assayBlocks = document.querySelectorAll('.assay-block');
 
-        assayBlocks.forEach(block => {
-          const group = block.getAttribute("data-group");
-          const visible = selectedGroups.includes(group);
-          block.classList.toggle("hidden", !visible);
-          if (visible) {
-            block.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
-          } else {
-            block.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-          }
-        });
-      }
+    // Create a map of group → assays inside it
+    const groupToAssays = {};
+    assayBlocks.forEach(block => {
+      const group = block.dataset.group;
+      groupToAssays[group] = block.querySelectorAll('input[type="checkbox"]');
+    });
 
-      function syncGroupFromAssay() {
-        assayBlocks.forEach(block => {
-          const group = block.getAttribute("data-group");
-          const relatedGroupToggle = document.querySelector(`.group-toggle[value="${group}"]`);
-          const checkboxes = block.querySelectorAll('input[type="checkbox"]');
-          if (checkboxes.length === 1 && !checkboxes[0].checked) {
-            relatedGroupToggle.checked = false;
-            block.classList.add("hidden");
-          }
-        });
-      }
-
-      updateAssayVisibility();
-
-      groupToggles.forEach(cb => cb.addEventListener("change", updateAssayVisibility));
-
+    // INITIALISE: show only groups containing saved assays
+    function initialiseFromSaved() {
       assayBlocks.forEach(block => {
-        block.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-          cb.addEventListener("change", syncGroupFromAssay);
-        });
+        const group = block.dataset.group;
+        const assays = groupToAssays[group];
+
+        // check if ANY saved assay (prechecked in HTML) is inside this block
+        const hasSaved = Array.from(assays).some(a => a.checked);
+
+        if (hasSaved) {
+          // show this group
+          block.classList.remove("hidden");
+
+          // ensure the corresponding group-toggle is checked
+          const gToggle = document.querySelector(`input.group-toggle[value="${group}"]`);
+          if (gToggle) gToggle.checked = true;
+        } else {
+          block.classList.add("hidden");
+        }
       });
     }
 
-    setupAssayBehavior();
+    // TOGGLE FROM GROUP → ASSAYS
+    function onGroupToggle(group, checked) {
+      const assays = groupToAssays[group];
+      const block = document.querySelector(`.assay-block[data-group="${group}"]`);
+
+      if (checked) {
+        block.classList.remove("hidden");
+        assays.forEach(a => a.checked = true);
+      } else {
+        assays.forEach(a => a.checked = false);
+        block.classList.add("hidden");
+      }
+    }
+
+    // SYNC FROM ASSAYS → GROUP
+    function syncGroupStateFromAssays(group) {
+      const assays = groupToAssays[group];
+      const groupToggle = document.querySelector(`input.group-toggle[value="${group}"]`);
+
+      const total = assays.length;
+      const checkedCount = Array.from(assays).filter(a => a.checked).length;
+
+      if (total === 1) {
+        // special rule: one-assay groups
+        if (checkedCount === 0) {
+          groupToggle.checked = false;
+          document.querySelector(`.assay-block[data-group="${group}"]`)
+            .classList.add("hidden");
+        }
+        return;
+      }
+
+      // multiple-assay groups
+      if (checkedCount === 0) {
+        groupToggle.checked = false;
+        document.querySelector(`.assay-block[data-group="${group}"]`)
+          .classList.add("hidden");
+      }
+    }
+
+    // EVENT LISTENERS
+
+    // 1. Group toggles
+    groupToggles.forEach(cb => {
+      cb.addEventListener("change", () => {
+        onGroupToggle(cb.value, cb.checked);
+      });
+    });
+
+    // 2. Assay toggles
+    assayBlocks.forEach(block => {
+      const group = block.dataset.group;
+      block.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener("change", () => {
+          syncGroupStateFromAssays(group);
+        });
+      });
+    });
+
+    // INITIALISE FROM SAVED SELECTION
+    initialiseFromSaved();
   });
-</script>
+  </script>
+
 {% endblock %}

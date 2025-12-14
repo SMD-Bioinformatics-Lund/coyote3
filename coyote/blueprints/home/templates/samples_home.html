@@ -23,8 +23,8 @@
       </a>
     </div>
   </aside>
-  
-  
+
+
   <!-- MAIN CONTENT (Scrollable & Auto-Resizing) -->
   <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
 
@@ -32,58 +32,58 @@
     <section id="sample-search" class="mt-2 flex">
       <form action="" method="POST" class="flex items-center space-x-4 relative max-w-lg w-full">
         {{ form.hidden_tag() }}
-    
+
         <div class="relative group flex-grow min-w-[250px]">
-          <input 
-            type="text" 
-            name="sample_search" 
-            id="search-input" 
-            value="{{ search_str or '' }}" 
-            class="border border-gray-500 rounded-full py-1 pl-10 pr-4 focus:outline-none focus:border-blue-500 w-full" 
+          <input
+            type="text"
+            name="sample_search"
+            id="search-input"
+            value="{{ search_str or '' }}"
+            class="border border-gray-500 rounded-full py-1 pl-10 pr-4 focus:outline-none focus:border-blue-500 w-full"
             placeholder="Search samples">
-          
+
           <!-- Search Icon -->
           <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="Search Icon" class=" transition-transform duration-500 transform hover:scale-110 hover:rotate-6 absolute left-1 top-1 pb-1 h-7 w-9 text-gray-700 cursor-pointer hover:text-blue-500" onclick="document.getElementById('search-input').focus()">
         </div>
-    
+
         <!-- Compact Three-Way Toggle -->
         <div class="relative w-32">
           <div class="relative flex bg-blue-50 rounded-full border border-gray-400 h-8 overflow-hidden">
             <!-- Slider -->
-            <div 
-              id="slider-thumb" 
+            <div
+              id="slider-thumb"
               class="absolute top-0 h-full w-1/3 bg-orange-300 transition-all duration-200 ease-in-out rounded-full"
               style="left: calc({% if search_mode == 'done' %}0%{% elif search_mode == 'both' %}33.33%{% else %}66.66%{% endif %});">
             </div>
-    
+
             <!-- Options -->
             <label class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm">
-              <input 
-                type="radio" 
-                name="search_mode_slider" 
-                value="1" 
-                class="absolute inset-0 opacity-0 cursor-pointer" 
-                onclick="moveSlider(0)" 
+              <input
+                type="radio"
+                name="search_mode_slider"
+                value="1"
+                class="absolute inset-0 opacity-0 cursor-pointer"
+                onclick="moveSlider(0)"
                 {% if search_mode == 'done' %}checked{% endif %}>
               <span class="text-xs font-bold text-gray-800">Done</span>
             </label>
             <label class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm">
-              <input 
-                type="radio" 
-                name="search_mode_slider" 
-                value="2" 
-                class="absolute inset-0 opacity-0 cursor-pointer" 
-                onclick="moveSlider(33.33)" 
+              <input
+                type="radio"
+                name="search_mode_slider"
+                value="2"
+                class="absolute inset-0 opacity-0 cursor-pointer"
+                onclick="moveSlider(33.33)"
                 {% if search_mode == 'both' %}checked{% endif %}>
               <span class="text-xs font-bold text-gray-800">All</span>
             </label>
             <label class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm">
-              <input 
-                type="radio" 
-                name="search_mode_slider" 
-                value="3" 
-                class="absolute inset-0 opacity-0 cursor-pointer" 
-                onclick="moveSlider(66.66)" 
+              <input
+                type="radio"
+                name="search_mode_slider"
+                value="3"
+                class="absolute inset-0 opacity-0 cursor-pointer"
+                onclick="moveSlider(66.66)"
                 {% if search_mode == 'live' %}checked{% endif %}>
               <span class="text-xs font-bold text-gray-800">Live</span>
             </label>
@@ -95,7 +95,7 @@
         class="inline-flex items-center px-4 py-1.5 mx-4 rounded-lg bg-gray-100 text-sm font-medium text-gray-700 hover:bg-blue-300 shadow-md transition duration-300">
         Only Prod. Samples
       </button>
-    
+
     </section>
 
     <!-- Sample Table -->
@@ -108,6 +108,7 @@
               <table class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
                 <thead class="rounded-t-2xl overflow-hidden border-gray-800">
                   <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
+                    <th class="p-2 font-normal"></th>
                     <th class="p-2 font-normal"></th>
                     <th class="p-2 font-normal">Sample ID</th>
                     <th class="p-2 font-normal">Case ID</th>
@@ -128,6 +129,19 @@
                     {% set sample_profile = sample.get('profile', '')[0]|upper or 'P' %}
                     <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile {% endif %}">
                       <td class="p-2 font-medium text-center">
+                        {% if has_access("edit_sample", min_role="admin", min_level=99999) %}
+                          <button onclick="showActionModal({
+                              url: '{{ url_for('home_bp.edit_sample', sample_id=sample.name) }}',
+                              title: 'Edit sample settings',
+                              message: 'Are you sure you want to edit <b>{{ sample.name }}</b> sample settings?',
+                              confirmText: 'Edit',
+                              confirmColor: 'yellow'
+                            })" title="Edit" class="text-yellow-500 hover:text-yellow-700 font-medium">
+                            <img src="{{ url_for('static', filename='icons/heroicons_outline_24/cog.svg') }}" alt="edit sample settings" class="w-5 cursor-pointer">
+                          </button>
+                        {% endif %}
+                      </td>
+                      <td class="p-2 font-medium text-center">
                         {% if "sample_no" in sample %}
                           {% for n in range(sample.sample_no) %}
                             &#9679;
@@ -135,10 +149,9 @@
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">
-                        {# TODO: Probable should have keys like, panel/analysis type to re direct #}
-                        {% if sample.assay in ['fusion', 'solidRNA_GMSv5']%}
+                        {% if sample.get("omics_layer", "").lower() == "rna" %}
                           <a href="{{ url_for('rna_bp.list_fusions', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
-                        {% else %}
+                        {% elif sample.get("omics_layer", "").lower() == "dna" %}
                           <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% endif %}
                         {% if sample.comments|selectattr('hidden', 'equalto', 0)|list|length > 0 %}
@@ -214,11 +227,12 @@
         {% if done_samples %}
           <div class="w-4/5 bg-blue-50 shadow-3xl rounded-2xl p-3 mt-10 relative">
             <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" data-rows-per-page="15" pagination-button-color="blue">
-              <span class="text-lg font-semibold">Reported samples 
+              <span class="text-lg font-semibold">Reported samples
               </span>
               <table class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
                 <thead class="rounded-t-2xl overflow-hidden border-gray-300">
                   <tr class="border-b text-left border-gray-600 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
+                    <th class="p-2 font-normal"></th>
                     <th class="p-2 font-normal"></th>
                     <th class="p-2 font-normal">Sample ID</th>
                     <th class="p-2 font-normal">Case ID</th>
@@ -240,6 +254,19 @@
                   {% for sample in done_samples|sort(attribute="last_report_time_created", reverse=True) %}
                     {% set sample_profile = sample.get('profile', '')[0]|upper or 'P' %}
                     <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile {% endif %}">
+                      <td class"p-2 font-medium text-center">
+                        {% if has_access("edit_sample", min_role="admin", min_level=99999) %}
+                          <button onclick="showActionModal({
+                              url: '{{ url_for('home_bp.edit_sample', sample_id=sample.name) }}',
+                              title: 'Edit sample settings',
+                              message: 'Are you sure you want to edit <b>{{ sample.name }}</b> sample settings?',
+                              confirmText: 'Edit',
+                              confirmColor: 'yellow'
+                            })" title="Edit" class="text-yellow-500 hover:text-yellow-700 font-medium">
+                            <img src="{{ url_for('static', filename='icons/heroicons_outline_24/cog.svg') }}" alt="edit sample settings" class="w-5 cursor-pointer">
+                          </button>
+                        {% endif %}
+                      </td>
                       <td class="p-2 font-medium text-center">
                         {% if "sample_no" in sample %}
                           {% for n in range(sample.sample_no) %}
@@ -276,12 +303,6 @@
                         </span>
                       </td>
                       <td class="p-2 font-medium">
-                        {{ sample.time_added|human_date }}
-                      </td>
-                      <td class="p-2 font-medium">
-                        {{ sample.last_report_time_created|human_date }}
-                      </td>
-                      <td class="p-2 font-medium">
                         {% if sample.sequencing_scope %}
                           <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-blue-500 text-center">
                             {{ sample.sequencing_scope }}
@@ -289,6 +310,12 @@
                         {% else %}
                           -
                         {% endif %}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {{ sample.time_added|human_date }}
+                      </td>
+                      <td class="p-2 font-medium">
+                        {{ sample.last_report_time_created|human_date }}
                       </td>
                       <td class="p-2 font-medium">
                         {% if sample.bam is defined %}
@@ -334,12 +361,12 @@
             </div>
           </div>
         {% endif %}
-    
+
         {% if not live_samples and not done_samples %}
           <div class="w-full min-h-full bg-yellow-50 border-l-4 border-yellow-400 shadow-md rounded-2xl p-6 relative overflow-hidden">
             <div class="flex flex-col items-center justify-center text-yellow-800 py-6 px-4">
-              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/exclamation-triangle.svg') }}" 
-                  alt="No Samples found" 
+              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/exclamation-triangle.svg') }}"
+                  alt="No Samples found"
                   class="h-12 w-12 text-yellow-500 mb-4">
               <p class="text-lg font-semibold">Uh-oh.. No samples found</p>
               <p class="text-sm text-yellow-700 mt-1">Try adjusting the filters or search to find your samples.</p>
@@ -362,8 +389,8 @@
     const rows = document.querySelectorAll("tr.other_profile");
     rows.forEach(row => row.classList.toggle("hidden"));
   });
-  
-  
+
+
 </script>
 
 

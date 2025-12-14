@@ -57,3 +57,20 @@ def pretty_json_filter(value: Any) -> Markup:
             value, indent=2, ensure_ascii=False, cls=EnhancedJSONEncoder
         )
     )
+
+
+@app.template_filter("safejson")
+def safe_json_filter(value: Any) -> Any:
+    """
+    Jinja2 filter that serializes a Python object to JSON, safe for HTML.
+
+    Args:
+        value (Any): The Python object to serialize.
+
+    Returns:
+        Any: The JSON representation of the object, or None if serialization fails.
+    """
+    try:
+        return json.loads(value)
+    except Exception:
+        return None

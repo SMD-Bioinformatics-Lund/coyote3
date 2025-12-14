@@ -454,6 +454,30 @@ class VariantsHandler(BaseHandler):
         """
         return len(self.get_collection().distinct("simple_id")) or 0
 
+    def get_total_snp_counts(self) -> int:
+        """
+        Get the total count of SNP (Single Nucleotide Polymorphism) variants.
+
+        This method retrieves all variant documents where the `variant_class` is "SNV"
+        (Single Nucleotide Variant), which typically represents SNPs, and returns their count.
+
+        Returns:
+            int: The total number of SNP variants in the collection.
+        """
+        return self.get_collection().find({"variant_class": "SNV"}).count()
+
+    def get_fp_counts(self):
+        """
+        Get the total count of false positive variants.
+
+        This method retrieves all variant documents marked as false positive
+        in the collection and returns their count.
+
+        Returns:
+            int: The total number of false positive variants in the collection.
+        """
+        return self.get_collection().find({"fp": True}).count()
+
     def get_unique_snp_count(self) -> int:
         """
         Get the count of unique SNP (Single Nucleotide Polymorphism) variants.
@@ -491,3 +515,65 @@ class VariantsHandler(BaseHandler):
             Any: The result of the delete operation, typically a DeleteResult object containing details about the operation.
         """
         return self.get_collection().delete_many({"SAMPLE_ID": sample_oid})
+
+    def get_variant_stats(self, sample_id: str, genes: list | None = None) -> dict:
+        """
+        Retrieve variant statistics for a specific sample.
+
+        This method aggregates various statistics about the variants associated
+        with a given sample, including total counts, counts of false positives,
+        interesting variants, irrelevant variants, and counts by variant class.
+
+        Args:
+            sample_id (str): The unique identifier of the sample to retrieve statistics for.
+            genes (list | None, optional): A list of gene names to filter the variants by.
+                If provided, only variants associated with these genes will be considered.
+                Defaults to None.
+        Returns:
+            dict: A dictionary containing various statistics about the variants for the specified sample.
+        """
+
+        query = {"SAMPLE_ID": sample_id}
+        if genes:
+            query["genes"] = {"$in": genes}
+
+        pipeline = [
+            {"$match": query},
+            {
+                "$group": {
+                    "_id": "$variant_class",
+                    "count": {"$sum": 1},
+                    "fp_count": {"$sum": {"$cond": [{"$eq": ["$fp", True]}, 1, 0]}},
+                    "interesting_count": {
+                        "$sum": {"$cond": [{"$eq": ["$interesting", True]}, 1, 0]}
+                    },
+                    "irrelevant_count": {"$sum": {"$cond": [{"$eq": ["$irrelevant", True]}, 1, 0]}},
+                }
+            },
+        ]
+
+        results = list(self.get_collection().aggregate(pipeline))
+
+        stats = {
+            "variants": 0,
+            "false_positives": 0,
+            "interesting": 0,
+            "irrelevant": 0,
+            "by_variant_class": {},
+        }
+
+        for result in results:
+            variant_class = result["_id"] or "Unknown"
+            count = result["count"]
+            fp_count = result["fp_count"]
+            interesting_count = result["interesting_count"]
+            irrelevant_count = result["irrelevant_count"]
+
+            stats["variants"] += count
+            stats["false_positives"] += fp_count
+            stats["interesting"] += interesting_count
+            stats["irrelevant"] += irrelevant_count
+
+            stats["by_variant_class"][variant_class] = count
+
+        return stats

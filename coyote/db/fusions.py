@@ -100,11 +100,7 @@ class FusionsHandler(BaseHandler):
                 - latest_classification (dict): The most recent classification document.
         """
         selected_call = self.get_selected_fusioncall(fusion)
-        if (
-            selected_call
-            and "breakpoint1" in selected_call
-            and "breakpoint2" in selected_call
-        ):
+        if selected_call and "breakpoint1" in selected_call and "breakpoint2" in selected_call:
             variant = f"{selected_call['breakpoint1']}^{selected_call['breakpoint2']}"
             annotations_cursor = self.adapter.annotations_collection.find(
                 {"variant": variant}
@@ -137,6 +133,18 @@ class FusionsHandler(BaseHandler):
         """
         return self.get_collection().find_one({"_id": ObjectId(id)})
 
+    def get_total_fusion_count(self) -> int:
+        """
+        Get the total count of fusion records.
+
+        This method counts the total number of documents in the `fusions` collection.
+
+        Returns:
+            int: The total count of fusion records in the collection.
+        """
+
+        return self.get_collection().count_documents({}) or 0
+
     def get_unique_fusion_count(self) -> int:
         """
         Get the count of unique fusions.
@@ -162,9 +170,7 @@ class FusionsHandler(BaseHandler):
             app.logger.error(f"An error occurred: {e}")
             return 0
 
-    def mark_false_positive_fusion(
-        self, fusion_id: str, fp: bool = True
-    ) -> None:
+    def mark_false_positive_fusion(self, fusion_id: str, fp: bool = True) -> None:
         """
         Mark the false positive status of a fusion variant.
 
@@ -180,9 +186,7 @@ class FusionsHandler(BaseHandler):
         """
         self.mark_false_positive(fusion_id, fp)
 
-    def unmark_false_positive_fusion(
-        self, fusion_id: str, fp: bool = False
-    ) -> None:
+    def unmark_false_positive_fusion(self, fusion_id: str, fp: bool = False) -> None:
         """
         Unmark the false positive status of a fusion variant.
 

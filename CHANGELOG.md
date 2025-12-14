@@ -1,5 +1,24 @@
 # Changelog
 
+## v3.1.0 (Ongoing)
+### Added
+- Sample landing page to view sample related meta data, case/control overview, files & QC, gene filters, variant filters, analysis data counts, reports, comments, etc.
+- Sample landing (settings/edit) page will now show the list of files associated with the sample and if they exist on the drive.
+- Added support for AdHoc Gene lists
+- Added a key 'adhoc and is_public' to indicate if the gene list is adhoc and public in the isgl schema.
+- Added a public facing assay catalog page to view assay related meta data, genelists, configs, etc. This is controlled by assay_catalog.yaml file along with APC and ASPC.
+- Updated dashboard stats to have total counts of variants instead of unique counts to reduce the loading time.
+- Report name format uses `Sample.name` instead of `Sample.case_id`, causing reports to be created with the same `case_id` but different `sample.name`.
+- Public “Assay Coverage Matrix” page with full modality → category → genelist grouping, ASP-aware gene override, and placeholder column support for empty services.
+- Added highlight feature for KMT2A and KMT2D in the CNV  table (currently hardcoded).
+- Added a sample Edit page for admin views
+- Fixed assay group toggle behavior in ISGL edit page, ensuring correct initial display and proper group–assay syncing.
+- Enhanced Create/Edit User pages with correct RBAC permission precedence, conflict detection, and a unified color-coded highlight system.
+- Added new GitHub bug and support issue templates with auto-assignment to Project 22.
+- Improved markdown rendering for summary comments—headings, line breaks, and formatting now display correctly using the enhanced format_comment filter.
+- Updated report terminology: replaced “variant” with “mutation” in summary text, variant summary table, detailed table headers, and Tier 3 naming.
+
+
 # v3.0.9
 ### BugFix #119
 - Fixed carry-over of protein changes between variants.

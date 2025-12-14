@@ -48,7 +48,7 @@ class ISGLHandler(BaseHandler):
         self.set_collection(self.adapter.insilico_genelist_collection)
 
     def get_isgl(
-        self, isgl_id: str, is_active: bool | None = None
+        self, isgl_id: str, is_active: bool | None = None, is_public: bool | None = None
     ) -> dict | None:
         """
         Fetch a single gene list.
@@ -67,27 +67,36 @@ class ISGLHandler(BaseHandler):
         query = {"_id": isgl_id}
         if is_active is not None:
             query["is_active"] = is_active
+        if is_public is not None:
+            query["is_public"] = is_public
         return self.get_collection().find_one(query)
 
-    def get_all_isgl(self, is_active: bool | None = None) -> list:
+    def get_all_isgl(
+        self,
+        is_active: bool | None = None,
+        is_public: bool | None = None,
+        adhoc: bool | None = None,
+    ) -> list:
         """
-        Fetch all gene lists.
+        Retrieve gene list documents matching optional filters.
 
-        This method retrieves all gene list documents from the database collection,
-        excluding the `genes` field. The results are sorted in descending order
-        based on the `created_on` field.
+        Args:
+            is_active (bool | None): Filter by active status when provided.
+            is_public (bool | None): Filter by public visibility when provided.
+            adhoc (bool | None): Filter by adhoc flag when provided.
 
         Returns:
-            list: A list of all gene list documents from the database.
+            list[dict]: Matching gene list documents with the `genes` field omitted,
+                        sorted by `created_on` in descending order.
         """
         query = {}
         if is_active is not None:
             query["is_active"] = is_active
-        return list(
-            self.get_collection()
-            .find(query, {"genes": 0})
-            .sort([("created_on", -1)])
-        )
+        if is_public is not None:
+            query["is_public"] = is_public
+        if adhoc is not None:
+            query["adhoc"] = adhoc
+        return list(self.get_collection().find(query, {"genes": 0}).sort([("created_on", -1)]))
 
     def create_isgl(self, data: dict) -> Any:
         """
@@ -119,9 +128,7 @@ class ISGLHandler(BaseHandler):
         Returns:
             Any: The result of the replace operation, typically a `pymongo.results.UpdateResult` object.
         """
-        return self.get_collection().replace_one(
-            {"_id": isgl_id}, updated_data
-        )
+        return self.get_collection().replace_one({"_id": isgl_id}, updated_data)
 
     def toggle_isgl_active(self, isgl_id: str, active_status: bool) -> bool:
         """
@@ -155,7 +162,9 @@ class ISGLHandler(BaseHandler):
         """
         return self.get_collection().delete_one({"_id": isgl_id})
 
-    def get_subpanels_for_asp(self, asp_names: list[str]) -> list[str]:
+    def get_subpanels_for_asp(
+        self, asp_names: list[str], is_public: bool | None = None, adhoc: bool | None = None
+    ) -> list[str]:
         """
         Retrieve unique diagnosis terms associated with a list of assay IDs.
 
@@ -164,20 +173,25 @@ class ISGLHandler(BaseHandler):
 
         Args:
             asp_names (list[str]): A list of assay IDs to filter gene lists by.
+            is_public (bool | None): Optional; if provided, filters gene lists by their public visibility.
+            adhoc (bool | None): Optional; if provided, filters gene lists by their adhoc status
 
         Returns:
             list[str]: A sorted list of unique diagnosis terms associated with the assay IDs.
         """
-        cursor = self.get_collection().find({"assays": {"$in": asp_names}})
+        query = {"assays": {"$in": asp_names}}
+        if is_public is not None:
+            query["is_public"] = is_public
+        if adhoc is not None:
+            query["adhoc"] = adhoc
+        cursor = self.get_collection().find(query)
         diagnoses = set()
         for doc in cursor:
             for diag in doc.get("diagnosis", []):
                 diagnoses.add(diag)
         return sorted(diagnoses)
 
-    def get_asp_subpanel_genes(
-        self, asp_name: str, subpanel: str
-    ) -> list[str]:
+    def get_asp_subpanel_genes(self, asp_name: str, subpanel: str) -> list[str]:
         """
         Retrieve gene symbols for a specific subpanel (diagnosis) within an assay.
 
@@ -192,9 +206,7 @@ class ISGLHandler(BaseHandler):
         Returns:
             list[str]: List of gene symbols for the specified subpanel, or an empty list if not found.
         """
-        doc = self.get_collection().find_one(
-            {"assays": asp_name, "diagnosis": subpanel}
-        )
+        doc = self.get_collection().find_one({"assays": asp_name, "diagnosis": subpanel})
         return doc.get("genes", []) if doc else []
 
     def get_all_subpanels(self) -> list[str]:
@@ -209,11 +221,7 @@ class ISGLHandler(BaseHandler):
             list[str]: A sorted list of all unique diagnosis terms (subpanels)
             found in the database.
         """
-        return sorted(
-            d
-            for doc in self.get_collection().find({})
-            for d in doc.get("diagnosis", [])
-        )
+        return sorted(d for doc in self.get_collection().find({}) for d in doc.get("diagnosis", []))
 
     def get_all_subpanel_genes(self, subpanels) -> list[str]:
         """
@@ -230,9 +238,7 @@ class ISGLHandler(BaseHandler):
             list[str]: A list of unique gene symbols associated with the provided subpanels.
         """
         genes = set()
-        docs = self.get_collection().find(
-            {"diagnosis": {"$in": subpanels}}, {"genes": 1}
-        )
+        docs = self.get_collection().find({"diagnosis": {"$in": subpanels}}, {"genes": 1})
         for doc in docs:
             genes.update(doc.get("genes", []))
         return list(genes)
@@ -263,7 +269,7 @@ class ISGLHandler(BaseHandler):
         return self.get_collection().count_documents(query) > 0
 
     def get_isgl_by_asp(
-        self, asp_name: str, is_active: bool | None = None
+        self, asp_name: str, is_active: bool | None = None, adhoc: bool | None = None
     ) -> list[dict]:
         """
         Retrieve all gene lists associated with a specific assay panel.
@@ -276,6 +282,8 @@ class ISGLHandler(BaseHandler):
             asp_name (str): The name of the assay specific panel to filter gene lists by.
             is_active (bool, optional): The active status of the gene lists to filter by.
                 Defaults to True.
+            adhoc (bool, optional): The adhoc status of the gene lists to filter by.
+                Defaults to None.
 
         Returns:
             list[dict]: A list of dictionaries representing the gene lists that match
@@ -284,11 +292,13 @@ class ISGLHandler(BaseHandler):
         query = {"assays": asp_name}
         if is_active is not None:
             query["is_active"]: is_active
+        if adhoc is not None:
+            query["adhoc"] = adhoc
         projection = {
             "genes": 0,
             "created_on": 0,
             "created_by": 0,
-            "changelog": 0,
+            "version_history": 0,
             "schema_version": 0,
             "schema_name": 0,
             "is_active": 0,
@@ -329,10 +339,7 @@ class ISGLHandler(BaseHandler):
         if is_active is not None:
             query["is_active"] = is_active
         projection = {"_id": 1}
-        return [
-            str(doc["_id"])
-            for doc in self.get_collection().find(query, projection)
-        ]
+        return [str(doc["_id"]) for doc in self.get_collection().find(query, projection)]
 
     def get_isgl_by_ids(self, isgl_ids: list) -> dict:
         """
@@ -355,12 +362,65 @@ class ISGLHandler(BaseHandler):
             return {}
 
         # Define the fields to include in the query result
-        projection = {"_id": 1, "is_active": 1, "displayname": 1, "genes": 1}
+        projection = {"_id": 1, "is_active": 1, "displayname": 1, "genes": 1, "adhoc": 1}
 
         # Query the database for documents with matching IDs
-        cursor = self.get_collection().find(
-            {"_id": {"$in": isgl_ids}}, projection
-        )
+        cursor = self.get_collection().find({"_id": {"$in": isgl_ids}}, projection)
 
         # Format the result as a dictionary with IDs as keys
         return {doc.pop("_id"): doc for doc in cursor}
+
+    def get_public_isgl_genes_by_diagnosis(
+        self, diagnosis: str, is_public: bool = True, is_active: bool = True
+    ) -> list:
+        """
+        Retrieve genes from a public gene list document by diagnosis.
+
+        This method queries the database collection for a document where the `diagnosis`
+        field matches the provided `isgl_id` and the document is marked as public and active.
+        It retrieves only the `genes` field and returns the list of gene symbols.
+
+        Args:
+            isgl_id (str): The diagnosis term to query.
+            is_public (bool): Filter by public visibility. Defaults to True.
+            is_active (bool): Filter by active status. Defaults to True.
+
+        Returns:
+            list: A list of gene symbols from the specified public gene list. If the
+            gene list is not found or is not public, returns an empty list.
+        """
+        doc = self.get_collection().find_one(
+            {"diagnosis": diagnosis, "is_public": is_public, "is_active": is_active}, {"genes": 1}
+        )
+        return doc.get("genes", []) if doc else []
+
+    def is_isgl_adhoc(self, isgl_id: str) -> bool:
+        """
+        Check if a gene list is marked as adhoc.
+
+        This method queries the database collection to determine if a gene list
+        document with the specified `isgl_id` is marked as adhoc.
+
+        Args:
+            isgl_id (str): The unique identifier of the gene list to check.
+        Returns:
+            bool: True if the gene list is marked as adhoc, otherwise False.
+        """
+        doc = self.get_collection().find_one({"_id": isgl_id}, {"adhoc": 1})
+        return doc.get("adhoc", False) if doc else False
+
+    def get_isgl_display_name(self, isgl_id: str) -> str | None:
+        """
+        Retrieve the display name of a gene list by its ID.
+
+        This method queries the database collection for a gene list document
+        with the specified `isgl_id` and retrieves its `displayname` field.
+
+        Args:
+            isgl_id (str): The unique identifier of the gene list.
+
+        Returns:
+            str | None: The display name of the gene list if found, otherwise None.
+        """
+        doc = self.get_collection().find_one({"_id": isgl_id}, {"displayname": 1})
+        return doc.get("displayname") if doc else None

@@ -136,50 +136,6 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
                 return get_dynamic_assay_nav()
             return {"dynamic_assay_nav": {}}
 
-        # TODO: revit this function and remove unused things
-        @app.context_processor
-        def inject_user_helpers() -> dict[str, Any]:
-            """
-            Injects user-related helper functions and flags into the Jinja2 template context.
-
-            This context processor makes common user access checks and formatting utilities
-            available globally to all templates. These helpers simplify conditional rendering
-            based on user permissions, roles, and group membership.
-
-            Returns:
-                dict[str, Any]: A dictionary containing helper lambdas and context flags.
-
-            Injected Helpers:
-                - `user_has(p: str) -> bool`:
-                    Returns True if the current user has the specified permission.
-                - `user_is(r: str) -> bool`:
-                    Returns True if the current user's role matches the given role.
-                - `user_in_group(g: str) -> bool`:
-                    Returns True if the user belongs to the given group.
-                - `pretty_role(r: Enum | str) -> str`:
-                    Converts a role name (e.g., 'group_manager') into a readable format (e.g., 'Group Manager').
-                - `password_change_enabled`:
-                    Boolean flag to control conditional rendering of password change UI.
-
-            Example (Jinja2 Template):
-                {% if user_has("samples:edit") %}
-                    <a href="/samples/edit">Edit Sample</a>
-                {% endif %}
-
-                {% if user_is("admin") %}
-                    <span class="badge">Administrator</span>
-                {% endif %}
-            """
-            return {
-                "user_has": lambda p: current_user.is_authenticated
-                and current_user.has_permission(p),
-                "user_is": lambda r: current_user.is_authenticated and current_user.role == r,
-                "user_in_group": lambda g: current_user.is_authenticated
-                and current_user.in_group(g),
-                "pretty_role": lambda r: r.value.replace("_", " ").title(),
-                "password_change_enabled": False,
-            }
-
     # Refresh user session with latest data from the database before each request.
     @app.before_request
     def refresh_user_session() -> None:

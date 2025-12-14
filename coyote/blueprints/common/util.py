@@ -92,7 +92,7 @@ class BPCommonUtility:
             tumor_type = ""
 
         ## Bit stinky to have in code, maybe in config for coyote3.0
-        text = f"Analysen påvisar en {consequence}. Varianten är klassad som Tier III då varianter i {gene} är sällsynta men förekommer i {tumor_type} maligniteter."
+        text = f"Analysen påvisar en {consequence}. Mutationen är klassad som Tier III då mutationer i {gene} är sällsynta men förekommer i {tumor_type} maligniteter."
         gene_oncokb = kwargs.get("gene_oncokb", None)
         if gene_oncokb:
             text += f" För ytterligare information om {gene} se https://www.oncokb.org/gene/{gene}."
@@ -208,7 +208,7 @@ class BPCommonUtility:
             if 1 in class_vars or 2 in class_vars or 3 in class_vars:
                 text += "\n\n"
             else:
-                text += "Vid analysen har inga somatiskt förvärvade varianter i undersökta gener påvisats.\n\n"
+                text += "Vid analysen har inga somatiskt förvärvade mutationer i undersökta gener påvisats.\n\n"
 
         if "cnvs" in summary_sections_data:
             if len(summary_sections_data["cnvs"]) > 0:
@@ -238,7 +238,7 @@ class BPCommonUtility:
             accredited = "Analysen omfattas inte av ackrediteringen."
         conclusion = (
             # for more information about the performed analysis and description of somatically gained variants, please see the attached report"
-            "För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade varianter, var god se bifogad rapport. "
+            "För ytterligare information om utförd analys och beskrivning av somatiskt förvärvade mutationer, var god se bifogad rapport. "
             + accredited
         )
         text += conclusion
@@ -278,7 +278,7 @@ class BPCommonUtility:
         # add text about control sample used
         controll_tissue = "hudbiopsi"  # this needs to be configurable
         # The analysis was done for somatic variants (tissue_type was used as controlmaterial)
-        paired_add = f"Analysen avser somatiska varianter ({controll_tissue} har använts som kontrollmaterial). "
+        paired_add = f"Analysen avser somatiska mutationer ({controll_tissue} har använts som kontrollmaterial). "
         if len(sample_ids) == 2:
             text += paired_add
 
@@ -318,7 +318,7 @@ class BPCommonUtility:
             )
             if len(sample_ids) == 2 and germline_intersection:
                 germ_spoken = str(CommonUtility.nl_join(germline_intersection, "samt"))
-                text += f"För {germ_spoken} undersöks även konstitutionella varianter."
+                text += f"För {germ_spoken} undersöks även konstitutionella mutationer."
 
         text += "\n\n"
         return text
@@ -658,7 +658,7 @@ class BPCommonUtility:
             num_vars = class_cnt[tier]
             num_genes = len(class_vars[tier])
             plural = "er" if num_vars > 1 else ""
-            text += CommonUtility.nl_num(num_vars, "n") + " variant" + plural + tiers_text[tier]
+            text += CommonUtility.nl_num(num_vars, "n") + " mutation" + plural + tiers_text[tier]
             if num_genes == 1:
                 first = 0
                 for gene, perc_arr in class_vars[tier].items():

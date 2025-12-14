@@ -45,12 +45,8 @@ def get_cov(sample_id):
 
     sample_assay = sample.get("assay", "unknown")
     sample_profile = sample.get("profile", "production")
-    assay_config = store.aspc_handler.get_aspc_no_meta(
-        sample_assay, sample_profile
-    )
-    assay_group: str = assay_config.get(
-        "assay_group", "unknown"
-    )  # myeloid, solid, lymphoid
+    assay_config = store.aspc_handler.get_aspc_no_meta(sample_assay, sample_profile)
+    assay_group: str = assay_config.get("assay_group", "unknown")  # myeloid, solid, lymphoid
     subpanel: str | None = sample.get("subpanel")  # breast, LP, lung, etc.
 
     # Get the entire genelist for the sample panel
@@ -64,18 +60,12 @@ def get_cov(sample_id):
 
     # Get the genelists for the sample panel checked genelists from the filters
     if checked_genelists:
-        checked_genelists_genes_dict: list[dict] = (
-            store.isgl_handler.get_isgl_by_ids(checked_genelists)
-        )
-        genes_covered_in_panel: list[dict] = (
-            util.common.get_genes_covered_in_panel(
-                checked_genelists_genes_dict, assay_panel_doc
-            )
+        checked_genelists_genes_dict: list[dict] = store.isgl_handler.get_isgl_by_ids(
+            checked_genelists
         )
 
-        # Create a unique list of genes from the selected genelists which are currently active in the panel
-        filter_genes = util.common.create_filter_genelist(
-            genes_covered_in_panel
+        genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
+            sample, assay_panel_doc, checked_genelists_genes_dict
         )
     else:
         checked_genelists = assay_panel_doc.get("_id")
@@ -84,12 +74,8 @@ def get_cov(sample_id):
     cov_dict = store.coverage2_handler.get_sample_coverage(str(sample["_id"]))
     del cov_dict["_id"]
     del sample["_id"]
-    filtered_dict = util.coverage.filter_genes_from_form(
-        cov_dict, filter_genes, assay_group
-    )
-    filtered_dict = util.coverage.find_low_covered_genes(
-        filtered_dict, cov_cutoff, assay_group
-    )
+    filtered_dict = util.coverage.filter_genes_from_form(cov_dict, filter_genes, assay_group)
+    filtered_dict = util.coverage.find_low_covered_genes(filtered_dict, cov_cutoff, assay_group)
     cov_table = util.coverage.coverage_table(filtered_dict, cov_cutoff)
 
     filtered_dict = util.coverage.organize_data_for_d3(filtered_dict)
@@ -150,14 +136,10 @@ def show_blacklisted_regions(group):
         elif entry["region"] == "probe":
             grouped_by_gene[entry["gene"]]["probe"] = entry
 
-    return render_template(
-        "show_blacklisted.html", blacklisted=grouped_by_gene, group=group
-    )
+    return render_template("show_blacklisted.html", blacklisted=grouped_by_gene, group=group)
 
 
-@cov_bp.route(
-    "/remove_blacklist/<string:obj_id>/<string:group>", methods=["GET"]
-)
+@cov_bp.route("/remove_blacklist/<string:obj_id>/<string:group>", methods=["GET"])
 @require_group_access("group")
 def remove_blacklist(obj_id, group):
     """

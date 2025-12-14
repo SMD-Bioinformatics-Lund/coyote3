@@ -74,9 +74,7 @@ class TranslocsHandler(BaseHandler):
             list: A list of translocations matching the sample ID and interesting flag.
         """
         return list(
-            self.get_collection().find(
-                {"SAMPLE_ID": sample_id, "interesting": interesting}
-            )
+            self.get_collection().find({"SAMPLE_ID": sample_id, "interesting": interesting})
         )
 
     def get_transloc(self, transloc_id: str) -> dict:
@@ -106,9 +104,9 @@ class TranslocsHandler(BaseHandler):
             classification or textual information.
         """
         var = f'{str(tl["CHROM"])}:{str(tl["POS"])}^{tl["ALT"]}'
-        annotations = self.adapter.annotations_collection.find(
-            {"variant": var}
-        ).sort("time_created", 1)
+        annotations = self.adapter.annotations_collection.find({"variant": var}).sort(
+            "time_created", 1
+        )
 
         latest_classification = {"class": 999}
         annotations_arr = []
@@ -120,9 +118,7 @@ class TranslocsHandler(BaseHandler):
 
         return annotations_arr  # , latest_classification
 
-    def mark_interesting_transloc(
-        self, transloc_id: str, interesting: bool = True
-    ) -> None:
+    def mark_interesting_transloc(self, transloc_id: str, interesting: bool = True) -> None:
         """
         Mark or unmark a translocation as interesting.
 
@@ -135,9 +131,7 @@ class TranslocsHandler(BaseHandler):
         """
         self.mark_interesting(transloc_id, interesting)
 
-    def unmark_interesting_transloc(
-        self, transloc_id: str, interesting: bool = False
-    ) -> None:
+    def unmark_interesting_transloc(self, transloc_id: str, interesting: bool = False) -> None:
         """
         Unmark a translocation as interesting.
 
@@ -152,9 +146,7 @@ class TranslocsHandler(BaseHandler):
         """
         self.mark_interesting(transloc_id, interesting)
 
-    def mark_false_positive_transloc(
-        self, transloc_id: str, fp: bool = True
-    ) -> None:
+    def mark_false_positive_transloc(self, transloc_id: str, fp: bool = True) -> None:
         """
         Mark translocations as false positives.
         This method updates the `fp` (false positive) flag for a translocation.
@@ -168,9 +160,7 @@ class TranslocsHandler(BaseHandler):
         """
         self.mark_false_positive(transloc_id, fp)
 
-    def unmark_false_positive_transloc(
-        self, transloc_id: str, fp: bool = False
-    ) -> None:
+    def unmark_false_positive_transloc(self, transloc_id: str, fp: bool = False) -> None:
         """
         Unmark translocations as false positives.
         This method updates the `fp` (false positive) flag for a translocation.
@@ -200,9 +190,7 @@ class TranslocsHandler(BaseHandler):
         """
         self.hide_comment(transloc_id, comment_id)
 
-    def unhide_transloc_comment(
-        self, transloc_id: str, comment_id: str
-    ) -> None:
+    def unhide_transloc_comment(self, transloc_id: str, comment_id: str) -> None:
         """
         Unhide a comment associated with a specific translocation.
 
@@ -248,6 +236,17 @@ class TranslocsHandler(BaseHandler):
             bool: Returns `True` if there are hidden comments, otherwise `False`.
         """
         return self.hidden_comments(id)
+
+    def get_total_transloc_count(self) -> int:
+        """
+        Get the total count of translocations.
+
+        This method counts all translocation documents in the collection.
+
+        Returns:
+            int: The total count of translocations.
+        """
+        return self.get_collection().count_documents({}) or 0
 
     def get_unique_transloc_count(self) -> list:
         """

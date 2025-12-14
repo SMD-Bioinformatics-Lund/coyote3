@@ -57,7 +57,7 @@ class HGNCHandler(BaseHandler):
         Returns:
             dict: The metadata dictionary for the specified gene.
         """
-        return self.get_collection().find({"_id": hgnc_id})
+        return self.get_collection().find_one({"_id": f"HGNC:{hgnc_id}"})
 
     def get_metadata_by_symbol(self, symbol: str) -> dict:
         """
@@ -69,7 +69,7 @@ class HGNCHandler(BaseHandler):
         Returns:
             dict: The metadata of the gene.
         """
-        return self.get_collection().find({"hgnc_symbol": symbol})
+        return self.get_collection().find_one({"hgnc_symbol": symbol})
 
     def get_metadata_by_symbols(self, symbols: list[str]) -> list[dict]:
         """
@@ -86,4 +86,4 @@ class HGNCHandler(BaseHandler):
         """
         if not symbols:
             return []
-        return self.get_collection().find({"hgnc_symbol": {"$in": symbols}})
+        return list(self.get_collection().find({"hgnc_symbol": {"$in": symbols}}) or [])

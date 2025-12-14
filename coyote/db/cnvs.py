@@ -86,9 +86,7 @@ class CNVsHandler(BaseHandler):
         Returns:
             list[dict | None]: A list of CNVs matching the sample ID and interesting status.
         """
-        return self.get_collection().find(
-            {"SAMPLE_ID": sample_id, "interesting": interesting}
-        )
+        return self.get_collection().find({"SAMPLE_ID": sample_id, "interesting": interesting})
 
     def get_cnv_annotations(self, cnv: str) -> list:
         """
@@ -106,9 +104,9 @@ class CNVsHandler(BaseHandler):
             list: A list of annotation documents associated with the CNV.
         """
         var = f'{str(cnv["chr"])}:{str(cnv["start"])}-{str(cnv["end"])}'
-        annotations = self.adapter.annotations_collection.find(
-            {"variant": var}
-        ).sort("time_created", 1)
+        annotations = self.adapter.annotations_collection.find({"variant": var}).sort(
+            "time_created", 1
+        )
 
         latest_classification = {"class": 999}
         annotations_arr = []
@@ -120,9 +118,7 @@ class CNVsHandler(BaseHandler):
 
         return annotations_arr
 
-    def mark_interesting_cnv(
-        self, cnv_id: str, interesting: bool = True
-    ) -> None:
+    def mark_interesting_cnv(self, cnv_id: str, interesting: bool = True) -> None:
         """
         Mark a CNV as interesting.
 
@@ -135,9 +131,7 @@ class CNVsHandler(BaseHandler):
         """
         self.mark_interesting(cnv_id, interesting)
 
-    def unmark_interesting_cnv(
-        self, cnv_id: str, interesting: bool = False
-    ) -> None:
+    def unmark_interesting_cnv(self, cnv_id: str, interesting: bool = False) -> None:
         """
         Unmark a CNV as interesting.
 
@@ -253,6 +247,15 @@ class CNVsHandler(BaseHandler):
         """
         return self.hidden_comments(id)
 
+    def get_total_cnv_count(self) -> int:
+        """
+        Get the total count of CNVs in the collection.
+
+        Returns:
+            int: The total number of CNVs in the collection.
+        """
+        return self.get_collection().count_documents({}) or 0
+
     def get_unique_cnv_count(self) -> int:
         """
         Get the count of unique CNVs.
@@ -265,11 +268,7 @@ class CNVsHandler(BaseHandler):
             are found or if an error occurs during the aggregation process.
         """
         query = [
-            {
-                "$group": {
-                    "_id": {"chr": "$chr", "start": "$start", "end": "$end"}
-                }
-            },
+            {"$group": {"_id": {"chr": "$chr", "start": "$start", "end": "$end"}}},
             {"$group": {"_id": None, "uniqueCnvCount": {"$sum": 1}}},
         ]
 

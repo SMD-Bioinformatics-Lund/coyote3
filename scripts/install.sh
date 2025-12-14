@@ -29,7 +29,17 @@ if [[ -f ".coyote3_env" ]]; then
     echo ".coyote3_env file found. Loading environment variables..."
     source .coyote3_env
 else
-    echo "No .coyote3_env file found in project root. Continuing without it."
+    echo "No .coyote3_env file found in project root."
+    read -p "Enter the file path to load environment variables or type N/No to continue without: " env_path
+    if [[ "$env_path" =~ ^([Nn]|[Nn][Oo])$ ]]; then
+        echo "Continuing without environment variables."
+    elif [[ -f "$env_path" ]]; then
+        echo "File found at $env_path. Loading environment variables..."
+        source "$env_path"
+    else
+        echo "File not found at $env_path. Exiting."
+        exit 1
+    fi
 fi
 
 # Set application context path (adjust if hosted under a different subpath)

@@ -24,7 +24,6 @@ for Gunicorn and standalone modes.
 # Imports
 # -------------------------------------------------------------------------
 import logging.config
-from pprint import pformat
 from typing import Any
 from coyote import init_app
 from logging_setup import custom_logging, add_unique_handlers
@@ -52,5 +51,6 @@ if __name__ != "__main__":
 if __name__ == "__main__":
     print("Running Coyote3 in standalone mode.")
     log_dir = os.getenv("LOG_DIR", app.config.get("LOGS", "logs/prod"))
-    custom_logging(log_dir, app.config.get("PRODUCTION", True), gunicorn_logging=False)
+    custom_logging(log_dir, app.config.get("PRODUCTION", True))
+
     app.run(host="0.0.0.0", port=8000, debug=bool(int(os.getenv("FLASK_DEBUG", 0))))

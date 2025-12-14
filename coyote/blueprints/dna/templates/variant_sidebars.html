@@ -146,7 +146,7 @@
             {% if panel.list_type == 'genelist' %}
               {% set show=False %}
               <label for="{{ panel.displayname }}" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">
-                {{ form['genelist_' ~ panel._id](checked=show) }} <span>{{ panel.displayname }}</span>
+                {{ form['genelist_' ~ panel._id](checked=show) }} <span class="{%if panel.adhoc %}text-pink-800{% endif %}">{{ panel.displayname }} {%if panel.adhoc %} <i>(Adhoc)</i>{% endif %}</span>
               </label>
             {% endif %}
           {% endfor %}

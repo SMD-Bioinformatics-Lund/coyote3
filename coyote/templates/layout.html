@@ -11,12 +11,20 @@
     <link href="{{ url_for('static', filename='css/custom.tailwind.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='icons/favicon.ico') }}" rel="shortcut icon">
 
+    <!-- CSS for markdown -->
+    <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
+
+
     <!-- JavaScript -->
     <script src="{{ url_for('static', filename='js/jquery-3.1.1.slim.min.js') }}"></script>
-    <script defer src="{{ url_for('static', filename='js/cdm.min.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/cdn.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/select2.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sortableTable.js') }}"></script>
     <script src="{{ url_for('static', filename='js/pagination.js') }}"></script>
+
+    <!-- JS for markdown editor -->
+    <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
 
 
     <style>
@@ -24,6 +32,55 @@
         writing-mode: vertical-lr; /* Rotates text while keeping button upright */
         text-orientation: mixed;
       }
+
+      /* EASYMDE PREVIEW MARKDOWN FIX — WITHOUT changing theme */
+      .editor-preview h1,
+      .editor-preview-side h1 {
+          font-size: 1.6rem;
+          font-weight: 700;
+          margin-top: 1.2rem;
+          margin-bottom: 0.5rem;
+      }
+
+      .editor-preview h2,
+      .editor-preview-side h2 {
+          font-size: 1.4rem;
+          font-weight: 600;
+          margin-top: 1rem;
+          margin-bottom: 0.5rem;
+      }
+
+      .editor-preview h3,
+      .editor-preview-side h3 {
+          font-size: 1.2rem;
+          font-weight: 600;
+          margin-top: 0.8rem;
+          margin-bottom: 0.4rem;
+      }
+
+      .editor-preview p,
+      .editor-preview-side p {
+          margin-bottom: 0.5rem;
+      }
+
+      .editor-preview ul,
+      .editor-preview-side ul {
+          list-style: disc;
+          margin-left: 1.5rem;
+      }
+
+      .editor-preview ol,
+      .editor-preview-side ol {
+          list-style: decimal;
+          margin-left: 1.5rem;
+      }
+
+      .editor-preview code,
+      .editor-preview-side code {
+          padding: 2px 4px;
+          border-radius: 4px;
+      }
+
     </style>
     {% block style %}{% endblock %}
     {% block javascript %}{% endblock %}
@@ -75,6 +132,21 @@
               {% if has_access(min_role="manager", min_level=99) %}
                 <a href="{{ url_for('admin_bp.admin_home') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Admin DB</a>
               {% endif %}
+              <a href="{{ config.CODEBASE }}/issues/new?template=bug_report.md"
+                target="_blank"
+                class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">
+                Report a Bug
+              </a>
+              <a href="{{ config.CODEBASE }}/issues/new?template=feature_request.md"
+                target="_blank"
+                class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">
+                Request a Feature
+              </a>
+              <a href="{{ config.CODEBASE }}/issues/new?template=support_request.md"
+                target="_blank"
+                class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">
+                Support
+              </a>
               <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Logout</a>
             </div>
           </div>
@@ -96,13 +168,13 @@
               class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path.split('/')[-1] == 'samples' or curr_path.split('/')[-2] == 'samples'  else 'hover:bg-indigo-200 font-semibold' }}">
               SAMPLES
             </a>
-            <a href="{{ url_for('public_bp.genepanel_matrix') }}"
-              class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if 'genepanel-matrix' in curr_path else 'hover:bg-indigo-200 font-semibold' }}">
+            <a href="{{ url_for('public_bp.assay_catalog_matrix') }}"
+              class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if 'assay_catalog_matrix' in curr_path else 'hover:bg-indigo-200 font-semibold' }}">
               MATRIX
             </a>
-            <a href="{{ url_for('public_bp.panel_gene_explorer') }}"
-              class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if 'panel-gene-explorer' in curr_path else 'hover:bg-indigo-200 font-semibold' }}">
-              ASSAYS
+            <a href="{{ url_for('public_bp.assay_catalog') }}"
+              class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if 'assay_catalog' in curr_path else 'hover:bg-indigo-200 font-semibold' }}">
+              CATALOG
             </a>
           </div>
 
@@ -201,11 +273,11 @@
       document.addEventListener('DOMContentLoaded', () => {
         const path = window.location.pathname.split('/').filter(Boolean);
         const [ , selectedType, selectedTech, selectedGroup ] = path;
-      
+
         const sections = document.querySelectorAll('.assay-group-section');
         const toggles = document.querySelectorAll('[id^="toggle-"]');
         const pills = document.querySelectorAll('#assay-pills a');
-      
+
         function showType(type) {
           sections.forEach(s => s.classList.toggle('hidden', s.dataset.type !== type));
           toggles.forEach(t => {
@@ -216,7 +288,7 @@
             t.classList.toggle('bg-indigo-200', !active);
           });
         }
-      
+
         function highlightPill() {
           pills.forEach(p => {
             const urlParts = new URL(p.href, window.location.origin).pathname.split('/').filter(Boolean);
@@ -230,13 +302,13 @@
             }
           });
         }
-      
+
         // Initial load: show and highlight
         if (selectedType) {
           showType(selectedType);
           highlightPill();
         }
-      
+
         // Toggle on click
         toggles.forEach(btn => {
           btn.addEventListener('click', e => {
@@ -245,7 +317,7 @@
             e.stopPropagation();
           });
         });
-      
+
         // Collapse only if URL doesn't match any pill
         document.addEventListener('click', e => {
           if (!e.target.closest('#assay-pills') && !e.target.closest('[id^="toggle-"]')) {
@@ -259,7 +331,7 @@
           }
         });
       });
-      
+
 
 
       // JavaScript for Action Modal
@@ -268,23 +340,23 @@
         const titleEl = document.getElementById('actionModalTitle');
         const messageEl = document.getElementById('actionModalMessage');
         const confirmBtn = document.getElementById('actionModalConfirm');
-    
+
         // Set modal content dynamically
         titleEl.textContent = title;
         messageEl.innerHTML = message;
         confirmBtn.textContent = confirmText;
         confirmBtn.setAttribute('href', url);
-    
+
         // Dynamic confirm button color
         confirmBtn.className = `bg-${confirmColor}-600 hover:bg-${confirmColor}-700 text-white font-medium py-2 px-4 rounded-lg shadow-lg transition`;
-    
+
         modal.classList.remove('hidden');
       }
-    
+
       document.getElementById('actionModalCancel').addEventListener('click', () => {
         document.getElementById('actionModal').classList.add('hidden');
       });
-      
+
 
       // JavaScript for User Dropdown Menu
       document.addEventListener('DOMContentLoaded', function() {
@@ -316,7 +388,7 @@
         const alerts = document.querySelectorAll(".flash-message");
         alerts.forEach((alert, index) => {
           let timeoutId;
-    
+
           function startTimeout() {
             timeoutId = setTimeout(() => {
               alert.classList.remove("translate-x-0", "opacity-100");
@@ -324,16 +396,16 @@
               setTimeout(() => alert.style.display = "none", 500);
             }, 7000 + index * 100); // currently set tot 7 sec
           }
-    
+
           setTimeout(() => {
             alert.classList.remove("translate-x-full", "opacity-0");
             alert.classList.add("translate-x-0", "opacity-100");
             startTimeout();
           }, 100 + index * 100);
-    
+
           alert.addEventListener("mouseenter", () => clearTimeout(timeoutId));
           alert.addEventListener("mouseleave", startTimeout);
-    
+
           alert.querySelector(".close-btn").addEventListener("click", function () {
             clearTimeout(timeoutId);
             alert.classList.remove("translate-x-0", "opacity-100");
@@ -342,7 +414,7 @@
           });
         });
       });
-      
+
 
       // JavaScript for Tooltip functionality
       function showTooltip(event, content) {
@@ -383,19 +455,19 @@
       }
 
 
-      // JavaScript for hiding and showing long text 
+      // JavaScript for hiding and showing long text
       function toggleLongText(button) {
         const target = button.dataset.target;
         const short = document.getElementById(`${target}-short`);
         const full = document.getElementById(`${target}-full`);
-      
+
         const isShortVisible = !short.classList.contains('hidden');
         short.classList.toggle('hidden', isShortVisible);
         full.classList.toggle('hidden', !isShortVisible);
-      
+
         button.innerText = isShortVisible ? '[−]' : '[+]';
       }
-      
+
       // Check overflow for all toggle targets
       window.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.text-toggle').forEach(button => {

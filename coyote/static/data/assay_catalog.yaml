@@ -1,0 +1,223 @@
+# assay_catalog.yaml
+version: 1.0
+last_updated: 2025-10-07
+maintainer: "CMD Bioinformatics Team"
+header: "Assay catalog for precision sequencing-based analysis in cancer at the Section for Molecular Diagnostics, Lund"
+description: |
+  Welcome to the landing page for somatic sequencing-based assays offered by the Section for Molecular Diagnostics (SMD). For constitutional analysis, please visit https://genpaneler.genetiklund.se/. SMD provides sequencing-based assays to support all medical specialties within Region Skåne. For cancer diagnostics, our primary collaborators are the Clinical Genetics and Pathology sections at Region Skåne.<br>
+  The purpose of this website is to provide an overview of the sequencing assays available at SMD for the analysis of somatic alterations in cancer. The assays offered include whole genome sequencing, whole transcriptome sequencing, and a variety of targeted gene panels. By exploring the assay catalog, you will find detailed information on the available assays, associated gene lists (where applicable), and the genetic alterations and biomarkers covered by each assay
+
+layout:
+  order: ["WGS", "WTS", "GenePanels"]
+
+modalities:
+  WGS:
+    label: "Whole Genome Sequencing (WGS)"
+    description: "Whole Genome Sequencing (WGS) analysis for hematology and solid tumors. Please click the area of interest to view the available WGS-assays."
+
+    categories:
+      hematology:
+        catalog_id: "tumwgs-hema"
+        label: "Hematology"
+        # WGS heme is an assay *family*; leave ASP links empty or point to the family anchor if you have one.
+        asp_id: "tumwgs-hema"                 # (ASP) if a specific WGS-HEMA ASP exists, set it here.
+        aspc_ids:
+          production: "tumwgs-hema:production"                 # (ASPC) env->id (e.g., production: "...") if you operate configs for WGS.
+        input_material: ["DNA", "Fresh", "Fresh Frozen", 'Blood', 'Bone marrow', "Other Neoplastic Tissue"]
+        tat: "21 days"
+        sample_modes: ["Tumor-normal"]
+        subheading: "Myeloid and lymphoid malignancies"
+        description: |
+          A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM, GMS-HEM-myeloid, or GMS-HEM-lymphoid gene list for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/Mitelman-Hem/view' target='blank' class='text-blue-800 hover:underline'>Mitelman-Hem</a> for fusion genes.
+        gene_lists:
+          - key: ""
+            label: ""
+          - key: "hema_GMSv1"    # ISGL _id # (ISGL) fetch by _id
+            label: "GMS-HEM"
+            description:  |
+              A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/Mitelman-Hem/view' target='blank' class='text-blue-800 hover:underline'>Mitelman-Hem</a> for fusion genes.
+          - key: "hematology_myeloid"   # ISGL _id
+            label: "GMS-HEM (myeloid)"
+            description:  |
+              A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM-myeloid gene list for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/Mitelman-Hem/view' target='blank' class='text-blue-800 hover:underline'>Mitelman-Hem</a> for fusion genes.
+          - key: "hematology_lymphoid"
+            label: "GMS-HEM (lymphoid)"
+            description:  |
+              A WGS analysis for hematological malignancies. The results are filtered against the GMS-HEM-lymphoid gene list for SNV/INDEL, the GMS-HEM gene list and the Hematology Add-on gene for CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/Mitelman-Hem/view' target='blank' class='text-blue-800 hover:underline'>Mitelman-Hem</a> for fusion genes.
+          - key: "HematologyAddOns"
+            label: "Hematology Add-Ons"
+            description:  |
+              A complement gene list used for filtering CNV in WGS hematology analysis.
+            analysis: ""
+
+      solid_tumors:
+        catalog_id: "tumwgs-solid"
+        label: "Solid tumors"
+        asp_id: "tumwgs-solid"                 # (ASP) if a specific WGS-SOLID ASP exists, set it here.
+        aspc_ids:
+          production: "tumwgs-solid:production"                 # (ASPC) env->id (e.g., production: "...") if you operate configs for WGS.
+        input_material: ["DNA", "Fresh", "Fresh Frozen", "Neoplastic Tissue"]
+        tat: "14-21 days"
+        sample_modes: ["Tumor-normal"]
+        description: |
+          A WGS analysis for solid tumors in pediatric cancer. The results are filtered against the GMS_BarnCancer_V1.0 gene list gene list for SNV/INDEL and CNV, and the <a href='http://mtlucmds1.lund.skane.se:6815/public/assay-catalog/genes/gms-barncancer-fusion/view' target='blank' class='text-blue-800 hover:underline'>GMS-BarnCancer-Fusion</a> for fusion genes.
+        subheading: "Solid tumors in pediatric cancer"
+        gene_lists:
+          - key: "" # Empty intentionally
+            label: ""
+          - key: "GMS_BarnCancer_V1.0" # ISGL _id
+            label: "GMS Barn Cancer"
+
+      drug_addon:
+        catalog_id: "drug-addon"
+        label: "Actionable Add-on"
+        asp_id: "drug-addon"                 # (ASP) if a specific WGS-Drug-Add-on ASP exists, set it here.
+        aspc_ids:
+          production: "drug-addon:production"                 # (ASPC) env->id (e.g., production: "...") if you operate configs for WGS.
+        input_material: ["NA"]
+        tat: "NA"
+        sample_modes: ["NA"]
+        description: A complement gene list for potential actionable genes. Please see https://www.oncokb.org/actionable-genes#sections=Tx for further information.
+        subheading: ""
+        gene_lists:
+          - key: "" # Empty intentionally
+            label: ""
+          - key: "Drug_Addon" # ISGL _id
+            label: "Actionable Add-ons"
+            description: "A complement gene list for potential actionable genes. Please see https://www.oncokb.org/actionable-genes#sections=Tx for further information."
+
+  WTS:
+    label: "Whole Transcriptome Sequencing (WTS)"
+    description: "Whole transcriptome (WTS/RNAseq) analysis for hematology and solid tumors. Please click the area of interest to view the available WTS-assays."
+
+    categories:
+      combined:
+        catalog_id: "wts-combined"
+        label: "Hematology & solid tumors"
+        asp_id: "fusion"
+        aspc_ids:
+          production: "fusion:production"
+        input_material: ["RNA", "Fresh", "Fresh Frozen", "Blood", "Bone marrow", "Other Neoplastic Tissue"]
+        tat: "7-14 days"
+        sample_modes: ["Tumor-only"]
+        description: "Open RNA-seq analysis for gene fusion detection"
+        subheading: "Hematology & solid tumors"
+        analysis: ["Fusion Genes"]
+        gene_lists:
+          - key: "fusion"               # (ISGL) Key must match ISGL _id
+            label: "Hematology & Solid Tumors"
+            description: "Whole transcriptome (WTS/RNAseq) analysis for hematology and solid tumors."
+
+  GenePanels:
+    label: "Targeted Gene Panels"
+    description: "Targeted gene panel analysis for hematology and solid tumors. Please click the area of interest to view the available Gene Panels and (where applicable) Gene Panel-assays."
+
+    categories:
+      hematology:
+        catalog_id: "hema_GMSv1"
+        label: "GMS-HEM"
+        # Link to the real assay + configs you showed in ASP/ASPC examples:
+        asp_id: "hema_GMSv1"                   # (ASP)
+        aspc_ids:                                  # (ASPC) env → _id
+          production: "hema_GMSv1:production"
+        input_material: ["DNA", "Fresh", "Fresh Frozen", "Blood", "Bone marrow", "Other Neoplastic Tissue"]
+        tat: "21 days"
+        sample_modes: ["Tumor-only", "Tumor-normal"]
+        description: "Targeted gene panel analysis for hematological malignancies."
+        subheading: ""
+        gene_lists:
+          - key: "hema_GMSv1"               # (ISGL) Key must match ISGL _id
+            label: "GMS-HEM"
+            description: "Gene panel for hematological malignancies"
+            analysis: ["SNV"]  # Optional: list available analysis types for this gene list
+            sample_modes: ["Tumor-normal"]  # Optional: override sample modes if needed
+          - key: "hematology_myeloid"             # (ISGL)
+            label: "GMS-HEM (myeloid)"
+            description: "Gene list for myeloid malignancies" # Text above the table
+            analysis: ["SNV"]
+            sample_modes: ["Tumor-normal"]  # Override sample modes if needed
+          - key: "hematology_lymphoid"
+            label: "GMS-HEM (lymphoid)"
+            description: "Gene list for lymphoid malignancies"
+            analysis: ["SNV"]
+            sample_modes: ["Tumor-normal"]
+          - key: "mpn"
+            label: "MPN"
+            description: "Gene list for myeloproliferative neoplasms (MPN)"
+            tat: "7-10 days" # Will have priority over the general TAT if defined
+            analysis: ["SNV"]
+            sample_modes: ["Tumor-only"]
+          - key: "KLL"
+            label: "KLL"
+            description: "Gene list for chronic lymphocytic leukemia (CLL / KLL)"
+            tat: "7-10 days"
+            analysis: ["SNV"]
+            sample_modes: ["Tumor-only"]
+          - key: "hemsnabb"
+            label: "Hem-Snabb"
+            description: "Limited gene list for acute myeloid leukemia (AML)"
+            tat: "7-10 days"
+            analysis: ["SNV", "Preliminary CNV"]  # Override analysis types if needed
+            sample_modes: ["Tumor-only"]
+          - key: "single_gene"
+            label: "Single Gene"
+            description: "Single gene analysis e.g. CXCR4, KIT, MYD88, UBA1"
+            tat: "7-10 days"
+            analysis: ["SNV"]
+            sample_modes: ["Tumor-only"]
+
+      solid_tumors:
+        catalog_id: "solid_GMSv3"
+        label: "GMS-ST"
+        asp_id: "solid_GMSv3"                      # (ASP) if this is your panel’s ASP _id
+        aspc_ids:
+          production: "solid_GMSv3:production"     # (ASPC)
+        input_material: ["DNA", "FFPE", "Neoplastic Tissue"]
+        tat: "14-21 days"
+        sample_modes: ["Tumor-only", "Tumor-normal"]
+        description: "Targeted gene panel analysis for solid tumors."
+        subheading: ""
+        analysis: ["SNV"]  # Optional: list available analysis types for this assay
+        gene_lists:
+          - key: "solid_GMSv3"               # (ISGL) Key must match ISGL _id
+            label: "GMS-ST"
+            description: "Gene panel for solid tumors including potential actionable genes (please see https://www.oncokb.org/actionable-genes#sections=Tx for further information about actionable genes.)"
+            sample_modes: ["Tumor-normal"]  # Optional: override sample modes if needed
+          - key: "endometrie"                  # (ISGL) Key must match ISGL _id
+            label: "Endometrial cancer"
+            description: "Gene list for endometrial cancer"
+            tat: "14-21 days"
+            sample_modes: ["Tumor-only"]
+            input_material: ["DNA", "FFPE", "Neoplastic Tissue"]
+            analysis: ["SNV", "MSI"]  # Override analysis types if needed
+          - key: "colon"
+            label: "CRC"
+            description: "Gene list for colorectal cancer (CRC)"
+            tat: "14-21 days"
+            input_material: ["DNA", "FFPE", "Neoplastic Tissue"]
+            sample_modes: ["Tumor-only"]
+            analysis: ["SNV", "MSI"]  # Override analysis types if needed
+          - key: "Drug_Addon_solid"
+            label: "Actionable Add-ons (Limited)"
+            description: "A limited gene list for potential actionable genes in solid cancer (please see https://www.oncokb.org/actionable-genes#sections=Tx for further information about actionable genes)"
+            tat: "14-21 days"
+            input_material: ["DNA", "FFPE", "Neoplastic Tissue"]
+            sample_modes: ["Tumor-only"]
+
+      rna_fusion:
+        catalog_id: "rna-fusion"
+        label: "RNA Fusion Panel"
+        asp_id: "RNA-fusion"                       # (ASP) if you keep a generic fusion panel
+        aspc_ids:
+          production: "RNA-fusion:production"
+        input_material: ["RNA", "FFPE", "Neoplastic Tissue"]
+        tat: "14-21 days"
+        sample_modes: ["Tumor-only"]
+        description: "Targeted gene fusion panel analysis for solid tumors."
+        subheading: ""
+        analysis: ["Fusion Genes"]  # Optional: list available analysis types for this assay
+        gene_lists:
+          - key: "RNA-fusion"               # (ISGL) Key must match ISGL _id
+            label: "RNA Fusion Panel"
+            description: "Gene fusion panel for solid tumors"
+

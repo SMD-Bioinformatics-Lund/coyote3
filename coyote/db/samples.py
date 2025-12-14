@@ -114,6 +114,7 @@ class SampleHandler(BaseHandler):
         time_limit=None,
         use_cache: bool = True,
         cache_timeout: int = 120,
+        reload: bool = False,
     ) -> Any | list:
         """
         Retrieve sample records for the specified user groups, optionally using caching for performance.
@@ -139,9 +140,13 @@ class SampleHandler(BaseHandler):
 
         if use_cache:
             samples = app.cache.get(cache_key)
-            if samples:
+            if samples and not reload:
                 app.logger.info(f"[SAMPLES CACHE HIT] {cache_key}")
                 return samples
+            elif samples and reload:
+                app.logger.info(
+                    f"[SAMPLES CACHE HIT] {cache_key} — but reloading from DB since reload is set to True."
+                )
             else:
                 app.logger.info(f"[SAMPLES CACHE MISS] {cache_key} — fetching from DB.")
 
@@ -205,7 +210,11 @@ class SampleHandler(BaseHandler):
         Returns:
             dict | None: The sample document if found, otherwise None.
         """
-        sample = self.get_collection().find_one({"_id": ObjectId(id)})
+        try:
+            sample = self.get_collection().find_one({"_id": ObjectId(id)})
+        except Exception as e:
+            app.logger.error(f"Error retrieving sample by id {id}: {e}")
+            sample = None
         return sample
 
     def get_sample_name(self, id: str) -> str | None:
@@ -285,6 +294,31 @@ class SampleHandler(BaseHandler):
             {"_id": ObjectId(sample_id)},
             {"$set": {"filters": filters}},
         )
+
+    # TODO: Remove
+    def update_temp_isgl(self, sample_id: str, temp_isgl: list) -> None:
+        """
+        Update the temporary isgl setting of a sample document in the database.
+
+        This method updates the `temp_isgl` field of a sample document with the provided boolean value.
+
+        Args:
+            sample_id (str): The unique identifier (ObjectId) of the sample to update.
+            temp_isgl (list): A list containing the new temporary isgl settings.
+
+        Returns:
+            None
+        """
+        self.get_collection().update_one(
+            {"_id": ObjectId(sample_id)},
+            {"$set": {"filters.temp_isgl": temp_isgl}},
+        )
+
+    def update_sample(self, sample_id: ObjectId, sample_doc: dict) -> None:
+        """
+        Update sample document
+        """
+        return self.get_collection().replace_one({"_id": sample_id}, sample_doc)
 
     def add_sample_comment(self, sample_id: str, comment_doc: dict) -> None:
         """
@@ -414,7 +448,9 @@ class SampleHandler(BaseHandler):
         result = list(self.get_collection().aggregate(pipeline))
         return {item["assay"]: item["count"] for item in result}
 
-    def get_assay_specific_sample_stats(self, assays: list = None) -> dict:
+    def get_assay_specific_sample_stats(
+        self, assays: list = None, profile: str = "production"
+    ) -> dict:
         """
         Retrieve assay-specific statistics.
 
@@ -432,7 +468,7 @@ class SampleHandler(BaseHandler):
         pipeline = []
 
         if assays:
-            pipeline.append({"$match": {"assay": {"$in": assays}}})
+            pipeline.append({"$match": {"assay": {"$in": assays}, "profile": profile}})
 
         pipeline.append(
             {
@@ -555,3 +591,79 @@ class SampleHandler(BaseHandler):
                 return report
 
         return None
+
+    def get_profile_counts(self) -> dict:
+        """
+        Retrieve the count of samples for each profile.
+
+        This method aggregates sample counts by profile groups, returning a dictionary
+        where each key is a profile and the value is the count of samples in that profile.
+
+        Returns:
+            dict: A dictionary where each key is a profile and the value is the count of samples in that profile.
+        """
+        pipeline = [
+            {"$group": {"_id": "$profile", "count": {"$sum": 1}}},
+            {"$project": {"_id": 0, "profile": "$_id", "count": 1}},
+        ]
+        result = list(self.get_collection().aggregate(pipeline))
+        return {item["profile"]: item["count"] for item in result}
+
+    def get_omics_counts(self) -> dict:
+        """
+        Retrieve the count of samples for each omics type.
+
+        This method aggregates sample counts by omics types, returning a dictionary
+        where each key is an omics type and the value is the count of samples in that omics type.
+
+        Returns:
+            dict: A dictionary where each key is an omics type and the value is the count of samples in that omics type.
+        """
+        pipeline = [
+            {"$group": {"_id": "$omics_layer", "count": {"$sum": 1}}},
+            {"$project": {"_id": 0, "omics_layer": "$_id", "count": 1}},
+        ]
+        result = list(self.get_collection().aggregate(pipeline))
+        return {item["omics_layer"]: item["count"] for item in result}
+
+    def get_sequencing_scope_counts(self) -> dict:
+        """
+        Retrieve the count of samples for each sequencing scope.
+
+        This method aggregates sample counts by sequencing scopes, returning a dictionary
+        where each key is a sequencing scope and the value is the count of samples in that scope.
+
+        Returns:
+            dict: A dictionary where each key is a sequencing scope and the value is the count of samples in that scope.
+        """
+        pipeline = [
+            {"$group": {"_id": "$sequencing_scope", "count": {"$sum": 1}}},
+            {"$project": {"_id": 0, "sequencing_scope": "$_id", "count": 1}},
+        ]
+        result = list(self.get_collection().aggregate(pipeline))
+        return {item["sequencing_scope"]: item["count"] for item in result}
+
+    def get_paired_sample_counts(self) -> dict:
+        """
+        Retrieve the count of paired, unpaired, and samples without a paired key.
+
+        This method aggregates sample counts based on the `paired` field, returning a dictionary
+        where each key is a boolean indicating whether the sample is paired (True) or unpaired (False),
+        and None for samples without a paired key.
+
+        Returns:
+            dict: A dictionary with keys True, False, and None representing paired, unpaired, and missing paired status.
+        """
+        pipeline = [{"$group": {"_id": "$paired", "count": {"$sum": 1}}}]
+        result = list(self.get_collection().aggregate(pipeline))
+        # Ensure all three keys (True, False, None) are present in the result
+        counts = {"paired": 0, "unpaired": 0, "unknown": 0}
+        for item in result:
+            if item["_id"] is True:
+                counts["paired"] = item["count"]
+            elif item["_id"] is False:
+                counts["unpaired"] = item["count"]
+            else:
+                counts["unknown"] = item["count"]
+
+        return counts

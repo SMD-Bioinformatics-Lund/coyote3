@@ -54,6 +54,12 @@ class DefaultConfig:
     development, and testing.
     """
 
+    # GITHUB REPO
+    CODEBASE = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
+
+    # Public ASSAY CATALOG
+    ASSAY_CATALOG_YAML = "coyote/static/data/assay_catalog.yaml"
+
     APP_VERSION = app_version
     LOGS = "logs"
     PRODUCTION = False
@@ -200,6 +206,19 @@ class DefaultConfig:
         "Y": "NC_000024",
     }
 
+    CONTACT: dict[str, str] = {
+        "clinical_email": "ram.nanduri@skane.se",
+        "research_email": "ram.nanduri@skane.se",
+        "samples_email": "ram.nanduri@skane.se",
+        "phone_main": "+46 ",
+        "phone_urgent": "+46 ",
+        "address": "Section for Molecular Diagnostics, Region Skåne\nSölvegatan 23 B, Byggnad 71 Lund, Sweden",
+        "hours": ["Mon–Fri: 08:00–16:30", "Closed on public holidays"],
+        # "sample_form_url": "https://…",
+        # "guidelines_url": "https://…",
+        # "urgent_notes": "For critical cases within lab hours only.",
+    }
+
     @property
     def MONGO_URI(self) -> str:
         """
@@ -279,6 +298,8 @@ class DevelopmentConfig(DefaultConfig):
     MONGO_DB_NAME = os.getenv("COYOTE3_DB_NAME", "coyote_dev_3")
     BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
     _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections_beta2.toml"
+
+    CACHE_DEFAULT_TIMEOUT = 1  # 300 secs, 5 minutes
 
     LOGS = "logs/dev"
     PRODUCTION = False

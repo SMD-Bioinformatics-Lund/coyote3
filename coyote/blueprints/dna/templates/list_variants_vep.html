@@ -324,7 +324,7 @@
                           {{ csq.EXON | default("-", true) | safe }}
                         </td>
 
-                        <!-- Exon -->
+                        <!-- Intron -->
                         <td id="snv-table-row-intron" class="px-1">
                           {{ csq.INTRON | default("-", true) | safe }}
                         </td>
@@ -376,7 +376,7 @@
                         <!-- Population Frequency -->
                         <td class="font-semibold max-w-15c" id="snv-table-row-popFreq">
                           {% if "gnomad_frequency" in var and var.gnomad_frequency != "" %}
-                            {{ '%.3f' | format(100*var.gnomad_frequency)}}<br>
+                            {{ var.gnomad_frequency|three_dec}}<br>
                           {% else %}
                             -
                           {% endif %}
@@ -530,7 +530,6 @@
                           >
                         </a>
                       </div>
-                      <!-- TODO: Correct the Gene link -->
 
                       <div class="text-center my-4 pb-2 flex flex-wrap gap-x-4 justify-center">
                         {% for type, sample_id in sample_ids.items() %}
@@ -607,7 +606,13 @@
                                     id="cnv-table-row-genes"
                                     data-export-value="{{ cnv_genes_export.names|join(', ') }}{% if cnv_genes_export.others > 0 %} + {{ cnv_genes_export.others }} other genes{% endif %}">
                                   {# render the existing view exactly as before #}
-                                  {{ cnv_genes_export.names|join(', ') }}
+                                  {% if "KMT2A" in cnv_genes_export.names or "KMT2D" in cnv_genes_export.names %}
+                                    <span class="bg-orange-500">
+                                      {{ cnv_genes_export.names|join(', ') }}
+                                    </span>
+                                  {% else %}
+                                    {{ cnv_genes_export.names|join(', ') }}
+                                  {% endif %}
                                   {% if cnv_genes_export.others > 0 %}
                                     <span class="text-gray-400 text-xs"><br>+ {{ cnv_genes_export.others }} other genes</span>
                                   {% endif %}
@@ -934,9 +939,13 @@
                           <td class="px-2 whitespace-nowrap align-top py-4" id="comments-table-header-who">
                             <b>{{ comment.author }}</b><br><small>{{ comment.time_created|human_date }}</small>
                           </td>
-                          <td class="p-2" id="comments-table-header-comment" onclick='addText(event)'>
+                          <td class="py-2 markdown-body" onclick="addText(event)">
+                            <script type="text/plain" class="raw-md">{{ comment.text }}</script>
                             {{ comment.text|format_comment|safe }}
                           </td>
+
+
+
                           <td class="px-2 align-top py-4" id="comments-table-header-view">
                             {% set hidden_exists = 0 %}
                             {% if comment.hidden != 1 %}
@@ -987,7 +996,7 @@
                               class="w-5/6 p-4 border border-gray-400 rounded mx-5 my-4 h-40"></textarea>
 
                     <!-- Buttons Row -->
-                    <div class="flex flex-wrap items-center gap-4 mx-5 mb-5">
+                    <div class="flex flex-wrap items-center gap-4 mx-5 my-5">
                       <input type="submit"
                             value="Save"
                             class="p-2 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg cursor-pointer">
@@ -1087,25 +1096,39 @@
 
 
     function addAIText() {
-      var suggestion = document.getElementById("suggestion").innerHTML.trim();
-      document.getElementById("comment_textarea").value = suggestion;
-    }
+      const source = document.getElementById("suggestion");
+      const raw = source.textContent || "";
+
+      if (window.easyMDE) {
+          window.easyMDE.value(raw.trim());
+          window.easyMDE.codemirror.refresh();
+      } else {
+          document.getElementById("comment_textarea").value = raw.trim();
+      }
+  }
+
+
+
 
     function addText(event) {
-      var targ = event.target || event.srcElement;
-      if (!targ.closest('tr').classList.contains('hidden_comment')) {
-        document.getElementById("comment_textarea").value = targ.textContent || targ.innerText;
-      }
-    }
+      const td = event.target.closest("td");
+      if (!td) return;
 
-    function addText(event) {
-      var targ = event.target || event.srcElement;
-      if (!targ.closest('tr').classList.contains('hidden_comment')) {
-        const textarea = document.getElementById('comment_textarea');
-        const text = event.target.innerText.trim();
-        textarea.value = text;
+      const rawEl = td.querySelector(".raw-md");
+      if (!rawEl) return;
+
+      const raw = rawEl.textContent;
+
+      if (window.easyMDE) {
+          window.easyMDE.value(raw);
+          window.easyMDE.codemirror.refresh();
+      } else {
+          document.getElementById("comment_textarea").value = raw;
       }
-    }
+  }
+
+
+
 
     window.onload = function () {
       document.querySelectorAll('[data-autoclick="true"]').forEach(element => element.click());
@@ -1135,8 +1158,6 @@
     }
 
 
-
-
     function switchVisibility(class_name, button) {
       var elems = document.getElementsByClassName(class_name);
 
@@ -1156,8 +1177,6 @@
           button.classList.add("bg-gray-400", "hover:bg-gray-500");
       }
     }
-
-
 
     // JavaScript for Expand/Collapse functionality
     function toggleCard(cardId) {
@@ -1421,6 +1440,42 @@
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
+
+    // ---------------------------------------------
+    // Initialize Markdown Editor for comment textarea
+    // ---------------------------------------------
+    document.addEventListener("DOMContentLoaded", () => {
+      const textarea = document.getElementById("comment_textarea");
+      if (!textarea) {
+          console.warn("EasyMDE: textarea not found");
+          return;
+      }
+
+      window.easyMDE = new EasyMDE({
+          element: textarea,
+          spellChecker: false,
+          forceSync: true,
+          hideIcons: ["image", "fullscreen"],
+          status: false,
+          previewRender: function(plainText, preview) {
+              const md = window.markdownit({
+                  html: false,
+                  breaks: true,
+                  linkify: true,
+                  typographer: true
+              });
+
+              const html = md.render(plainText);
+
+              // GitHub Markdown Styling
+              preview.classList.add("markdown-body");
+              preview.innerHTML = html;
+              return html;
+          }
+      });
+
+      console.log("EasyMDE initialized:", window.easyMDE);
+  });
 
 
 

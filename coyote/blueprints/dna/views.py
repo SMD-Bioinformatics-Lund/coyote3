@@ -73,17 +73,14 @@ def list_variants(sample_id: str) -> Response | str:
     sample_has_filters = sample.get("filters", None)
 
     # Get case and control samples
-    # TODO: Should be available in the sample doc instead of processing the sample again
     sample_ids = util.common.get_case_and_control_sample_ids(sample)
     if not sample_ids:
         sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
 
     ## get the assay from the sample, fallback to the first group if not set
-    # TODO: This should be set in the sample doc and get it by the assay key in the sample and not by the group
     sample_assay = sample.get("assay")
 
     # Get the profile from the sample, fallback to production if not set
-    # TODO: This should be set in the sample doc and get it by the profile key in the sample
     sample_profile = sample.get("profile", "production")
 
     # Get assay group and subpanel for the sample, sections to display
@@ -134,6 +131,9 @@ def list_variants(sample_id: str) -> Response | str:
             store.sample_handler.reset_sample_settings(_id, assay_config.get("filters", {}))
         else:
             filters_from_form = util.common.format_filters_from_form(form, assay_config_schema)
+            # if there are any adhoc genes for the sample, add them to the form data before saving
+            if sample.get("filters", {}).get("adhoc_genes"):
+                filters_from_form["adhoc_genes"] = sample.get("filters", {}).get("adhoc_genes")
             store.sample_handler.update_sample_filters(_id, filters_from_form)
 
         ## get sample again to receive updated forms!
@@ -147,20 +147,15 @@ def list_variants(sample_id: str) -> Response | str:
 
     # sample filters, either set, or default
     cnv_effects = sample_filters.get("cnveffects", [])
-    checked_genelists = sample_filters.get("genelists", [])
 
-    # Get the genelists for the sample panel checked genelists from the filters
+    # Get the genes covered in the panel and effective filter set of genes
+    checked_genelists = sample_filters.get("genelists", [])
     checked_genelists_genes_dict: list[dict] = store.isgl_handler.get_isgl_by_ids(checked_genelists)
-    genes_covered_in_panel: list[dict] = util.common.get_genes_covered_in_panel(
-        checked_genelists_genes_dict, assay_panel_doc
+    genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
+        sample, assay_panel_doc, checked_genelists_genes_dict
     )
 
-    # TODO: We can get the list of germline genes for the panel or selected genelists
-
     filter_conseq = util.dna.get_filter_conseq_terms(sample_filters.get("vep_consequences", []))
-
-    # Create a unique list of genes from the selected genelists which are currently active in the panel
-    filter_genes = util.common.create_filter_genelist(genes_covered_in_panel)
     filter_cnveffects = util.dna.create_cnveffectlist(cnv_effects)
 
     # Add them to the form and update with the requested settings
@@ -320,7 +315,6 @@ def list_variants(sample_id: str) -> Response | str:
     )
 
 
-# TODO
 @dna_bp.route("/<sample_id>/multi_class", methods=["POST"])
 @require_sample_access("sample_id")
 @require("manage_snvs", min_role="user", min_level=9)
@@ -845,9 +839,12 @@ def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
         flask.Response: Redirects to the variant detail view after blacklisting the variant.
     """
     var = store.variant_handler.get_variant(var_id)
-    sample = store.sample_handler.get_sample_by_id(var["SAMPLE_ID"])
-    assay = util.common.get_assay_from_sample(sample)
-    store.blacklist_handler.blacklist_variant(var, assay)
+    result = get_sample_and_assay_config(sample_id)
+    if isinstance(result, Response):
+        return result
+    sample, assay_config, assay_config_schema = result
+    assay_group: str = assay_config.get("asp_group", "unknown")  # myeloid, solid, lymphoid
+    store.blacklist_handler.blacklist_variant(var, assay_group)
     return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, id=id))
 
 
@@ -1042,7 +1039,6 @@ def show_cnv(sample_id: str, cnv_id: str) -> Response | str:
     # Get assay group and subpanel for the sample, sections to display
     assay_group: str = assay_config.get("asp_group", "unknown")  # myeloid, solid, lymphoid
 
-    # TODO: This should be set in the sample doc and get it by the sample ids in the sample
     sample_ids = util.common.get_case_and_control_sample_ids(sample)
     if not sample_ids:
         # If no case and control samples found, get sample ids from the variant
@@ -1241,7 +1237,6 @@ def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
     # Get assay group and subpanel for the sample, sections to display
     assay_group: str = assay_config.get("asp_group", "unknown")  # myeloid, solid, lymphoid
 
-    # TODO: This should be set in the sample doc and get it by the sample ids in the sample
     sample_ids = util.common.get_case_and_control_sample_ids(sample)
     if not sample_ids:
         # If no case and control samples found, get sample ids from the variant
@@ -1495,14 +1490,11 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     # Get the genelist filters from the sample settings
     checked_genelists = sample_filters.get("genelists", [])
     checked_genelists_genes_dict: list[dict] = store.isgl_handler.get_isgl_by_ids(checked_genelists)
-
-    genes_covered_in_panel: list[dict] = util.common.get_genes_covered_in_panel(
-        checked_genelists_genes_dict, assay_panel_doc
+    genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
+        sample, assay_panel_doc, checked_genelists_genes_dict
     )
 
     filter_conseq = util.dna.get_filter_conseq_terms(sample_filters.get("vep_consequences", []))
-    # Create a unique list of genes from the selected genelists which are currently active in the panel
-    filter_genes = util.common.create_filter_genelist(genes_covered_in_panel)
 
     disp_pos = []
     if assay_config.get("verification_samples"):
@@ -1638,6 +1630,7 @@ def save_dna_report(sample_id: str) -> Response:
         return result
     sample, assay_config, assay_config_schema = result
 
+    name = sample.get("name", "unknown_sample")
     case_id = sample.get("case_id")
     control_id = sample.get("control_id")
     clarity_case_id = sample.get("case", {}).get("clarity_id")
@@ -1651,11 +1644,9 @@ def save_dna_report(sample_id: str) -> Response:
     # Clarity ID is always unique
 
     if control_id:
-        report_id: str = (
-            f"{case_id}_{clarity_case_id}-{control_id}_{clarity_control_id}.{report_num}"
-        )
+        report_id: str = f"{name}_{clarity_case_id}-{control_id}_{clarity_control_id}.{report_num}"
     else:
-        report_id: str = f"{case_id}_{clarity_case_id}.{report_num}"
+        report_id: str = f"{name}_{clarity_case_id}.{report_num}"
 
     report_path: str = os.path.join(
         app.config.get("REPORTS_BASE_PATH", "reports"),
@@ -1696,4 +1687,4 @@ def save_dna_report(sample_id: str) -> Response:
         flash("An unexpected error occurred while saving the report.", "red")
         app.logger.exception(f"Unexpected error: {exc}")
 
-    return redirect(url_for("home_bp.samples_home"))
+    return redirect(url_for("home_bp.samples_home", reload=True))

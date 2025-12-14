@@ -28,7 +28,7 @@ import os
 import re
 from math import floor, log10
 import arrow
-from markupsafe import Markup
+from markupsafe import Markup, escape
 import markdown
 from datetime import datetime
 from dateutil import tz
@@ -56,7 +56,7 @@ def format_panel_flag_snv(panel_str: str) -> str:
 
     Args:
         panel_str (str): A string containing gene panel information, typically in the format
-                         'classification:variant_type' separated by commas for multiple entries.
+        'classification:variant_type' separated by commas for multiple entries.
 
     Returns:
         str: HTML string with formatted badges for each classification and variant type.
@@ -391,7 +391,8 @@ def format_fusion_desc(st: str | None) -> str:
         "long_repeats",
         "partial-matched-normal",
         "refseq_partially_overlapping",
-        "short_distance" "ucsc_partially_overlapping",
+        "short_distance",
+        "ucsc_partially_overlapping",
     ]
 
     if st:
@@ -433,16 +434,40 @@ def uniq_callers(calls: list) -> set:
 @app.template_filter()
 def format_comment(st: str | None) -> str:
     """
-    Formats a comment string for HTML display by replacing newlines with <br /> tags.
-
-    Args:
-        st (str | None): The comment string to format.
-
-    Returns:
-        str: The formatted comment string with newlines replaced by <br />.
+    Render full GitHub-style markdown safely:
+    - Supports headings (##)
+    - Lists
+    - Paragraphs
+    - Bold/italics
+    - Line breaks
+    - Code blocks
+    - Tables
+    - Links
+    - CRLF normalization
     """
-    st = st.replace("\n", "<br />")
-    return st
+    if not st:
+        return ""
+
+    # Normalize all newline types → "\n"
+    st = st.replace("\r\n", "\n").replace("\r", "\n")
+
+    # Escape unsafe HTML BEFORE markdown processing
+    st = escape(st)
+
+    # Render using GitHub-style markdown extensions
+    html = markdown.markdown(
+        st,
+        extensions=[
+            "extra",  # tables, code, lists, etc.
+            "sane_lists",
+            "nl2br",  # convert single newlines → <br>
+            "toc",  # heading anchors
+            "tables",  # GitHub table syntax
+            "fenced_code",  # ``` code blocks
+        ],
+    )
+
+    return Markup(html)
 
 
 @app.template_filter("markdown")
@@ -636,6 +661,8 @@ def format_gnomad(st: str | None) -> str:
     """
     if not st:
         return "-"
+    if isinstance(st, str):
+        st = st.strip()
     return str(round_to_3(float(st) * 100)) + "%"
 
 

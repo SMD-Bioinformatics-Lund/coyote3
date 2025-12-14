@@ -1,0 +1,432 @@
+{% extends "layout.html" %}
+{% block body %}
+
+<div class="w-full h-full overflow-y-auto bg-purple-50">
+  <div class="mx-auto px-6 pb-10">
+    <!-- Minimal landing copy only -->
+    <header class="py-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 class="text-3xl font-semibold tracking-tight">
+            <a href="{{ url_for('public_bp.assay_catalog') }}"> Assay Catalog</a>
+          </h1>
+          {% if not selected_mod %}
+            <p class="my-2 max-w-5xl text-sm">
+              Explore CMD’s public catalog of NGS assays. Use the arrow to expand; click a name to load details and the live gene table.
+            </p>
+          {% elif meta.last_updated %}
+            <p class="text-xs text-gray-500 mt-1">Updated {{ meta.last_updated }}</p>
+          {% endif %}
+        </div>
+        <div class="flex items-center gap-2">
+          {# <a href="{{ url_for('public_bp.contact') }}" class="inline-flex items-center gap-2 rounded-2xl border border-blue-500 bg-blue-300 px-4 py-2 text-sm font-medium shadow-lg hover:bg-blue-400 hover:shadow-2xl">Contact</a> #}
+        </div>
+      </div>
+    </header>
+
+    <section class="grid grid-cols-12 gap-3 items-start">
+      <!-- LEFT: Tree (arrow toggles; label navigates) -->
+      <aside class="col-span-3 rounded-2xl border border-indigo-800 bg-indigo-50 shadow-xl hover:shadow-lg flex flex-col">
+        <div class="rounded-2xl border shadow-sm">
+          <div class="px-4 py-3 rounded-t-xl bg-indigo-200 border-b-2 border-black">
+            <p class="text-md tracking-wider uppercase">Browse</p>
+          </div>
+
+          <nav class="p-2">
+            <ul class="space-y-1">
+              {% for m in order %}
+                {% set mblock = modalities[m] %}
+                {% set mod_open = (m == selected_mod) %}
+
+                <li class="rounded-lg">
+                  <!-- Modality -->
+                  <details class="rounded-lg"
+                    {% if mod_open %}open{% endif %}
+                    ontoggle="(function(d){
+                      var btn=d.querySelector('.chev-btn');
+                      if(!btn) return;
+                      var down=btn.querySelector('.chev-down');
+                      var right=btn.querySelector('.chev-right');
+                      if(d.open){ if(down) down.style.display='block'; if(right) right.style.display='none'; }
+                      else { if(down) down.style.display='none'; if(right) right.style.display='block'; }
+                    })(this)">
+                    <summary class="flex items-center gap-2 cursor-pointer select-none px-3 py-2 rounded-lg hover:bg-indigo-100 {% if m==selected_mod and not selected_cat %}bg-indigo-100{% endif %}">
+                      <!-- Arrow toggles expand/collapse (no navigation) -->
+                      <button type="button" class="w-4 h-4 flex-none chev-btn"
+                              onclick="var d=this.closest('details'); d.open = !d.open; event.stopPropagation();">
+                        <!-- down when open -->
+                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}"
+                              class="w-4 h-4 chev-down"
+                              style="{% if mod_open %}display:block{% else %}display:none{% endif %}" alt="" />
+                        <!-- right when closed -->
+                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-right.svg') }}"
+                              class="w-4 h-4 chev-right"
+                              style="{% if mod_open %}display:none{% else %}display:block{% endif %}" alt="" />
+                      </button>
+
+                      <!-- Label navigates (updates right pane), but does NOT toggle -->
+                      <a href="{{ url_for('public_bp.assay_catalog', mod=m) }}"
+                          class="text-sm font-semibold tracking-tight{% if m==selected_mod and not selected_cat %}text-indigo-800{% else %}hover:underline{% endif %}"
+                          onclick="event.stopPropagation();">
+                        {{ (mblock.label or m) if mblock else m }}
+                      </a>
+                    </summary>
+
+                    <!-- Categories -->
+                    <div class="pl-6">
+                      {% set catmap = (mblock.categories or {}) %}
+                      {% if catmap|length > 0 %}
+                        <ul class="mt-1 space-y-1">
+                          {% for key, c in catmap.items() %}
+                            {% set cid = c.catalog_id or key %}
+                            {% set clabel = c.label or key %}
+                            {% set is_cat_selected = (m == selected_mod and cid == selected_cat) %}
+
+                            <li class="rounded-md">
+                              <!-- Category -->
+                              <details class="rounded-md"
+                                {% if is_cat_selected %}open{% endif %}
+                                ontoggle="(function(d){
+                                  var btn=d.querySelector('.chev-btn');
+                                  if(!btn) return;
+                                  var down=btn.querySelector('.chev-down');
+                                  var right=btn.querySelector('.chev-right');
+                                  if(d.open){ if(down) down.style.display='block'; if(right) right.style.display='none'; }
+                                  else { if(down) down.style.display='none'; if(right) right.style.display='block'; }
+                                })(this)">
+                                <summary class="flex items-center gap-2 cursor-pointer select-none px-3 py-1.5 rounded-md hover:bg-indigo-100 {% if is_cat_selected and not selected_isgl %}bg-indigo-100{% endif %}">
+                                  <!-- Arrow toggles expand/collapse (no navigation) -->
+                                  <button type="button" class="w-4 h-4 flex-none chev-btn"
+                                          onclick="var d=this.closest('details'); d.open = !d.open; event.stopPropagation();">
+                                    <!-- down when open -->
+                                    <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}"
+                                          class="w-4 h-4 chev-down"
+                                          style="{% if is_cat_selected %}display:block{% else %}display:none{% endif %}" alt="" />
+                                    <!-- right when closed -->
+                                    <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-right.svg') }}"
+                                          class="w-4 h-4 chev-right"
+                                          style="{% if is_cat_selected %}display:none{% else %}display:block{% endif %}" alt="" />
+                                  </button>
+
+                                  <!-- Label navigates (updates right pane), but does NOT toggle -->
+                                  <!--
+                                  <a href="{{ url_for('public_bp.assay_catalog', mod=m, cat=cid) }}"
+                                  class="text-sm {% if is_cat_selected and not selected_isgl %}text-indigo-800 font-semibold{% else %}hover:underline{% endif %}"
+                                  onclick="event.stopPropagation();">
+                                    {{ clabel }}
+                                  </a>
+                                  -->
+                                  {{ clabel }}
+                                </summary>
+
+                                <!-- Gene lists -->
+                                <div class="pl-6">
+                                  {% if (c.gene_lists or [])|length > 0 %}
+                                    <ul class="ml-2 mt-1 space-y-0.5">
+                                      {% set first_gl = c.gene_lists[0] %}
+                                      {% set is_gl_selected = (is_cat_selected and selected_isgl and first_gl.key==selected_isgl) %}
+                                      {% if first_gl.key != "" %}
+                                        <li>
+                                        <a href="{{ url_for('public_bp.assay_catalog', mod=m, cat=cid, isgl_key=first_gl.key) }}"
+                                          class="block rounded-md px-3 py-1 text-sm
+                                              {% if is_gl_selected %} bg-indigo-100 text-indigo-800 font-semibold border border-indigo-300
+                                              {% else %} text-gray-800 hover:bg-indigo-100 {% endif %}">
+                                          {{ first_gl.label }}
+                                        </a>
+                                        </li>
+                                      {% endif %}
+                                    </ul>
+                                  {% endif %}
+                                  {% if (c.gene_lists or [])|length > 1 %}
+                                    <div class="my-1 pb-1 ml-5 text-xs uppercase underline tracking-wide text-gray-600">Gene lists</div>
+                                    <ul class="ml-2 mt-1 space-y-0.5">
+                                      {% for gl in c.gene_lists[1:] %}
+                                        {% set is_gl_selected = (is_cat_selected and selected_isgl and gl.key==selected_isgl) %}
+                                        <li class="ml-2">
+                                          <a href="{{ url_for('public_bp.assay_catalog', mod=m, cat=cid, isgl_key=gl.key) }}"
+                                            class="block rounded-md px-3 py-1 text-sm
+                                                    {% if is_gl_selected %} bg-indigo-100 text-indigo-800 font-semibold border border-indigo-300
+                                                    {% else %} text-gray-800 hover:bg-indigo-100 {% endif %}">
+                                            {{ gl.label }}
+                                          </a>
+                                        </li>
+                                      {% endfor %}
+                                    </ul>
+                                  {% endif %}
+                                </div>
+                              </details>
+                            </li>
+                          {% endfor %}
+                        </ul>
+                      {% endif %}
+                    </div>
+                  </details>
+                </li>
+              {% endfor %}
+            </ul>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- RIGHT: Content -->
+      <main class="col-span-9 space-y-6">
+
+        {% if not selected_mod %}
+          <!-- Base page: one clean card only -->
+          <section class="rounded-2xl border bg-gray-50 border-indigo-400 shadow-xl hover:shadow-lg p-6">
+            <h2 class="text-lg font-medium">{{ meta.header }}</h2>
+            <p class="text-gray-600 text-sm mt-2">
+              {{ meta.description|safe or "Explore CMD’s public catalog of NGS assays. Use the arrow to expand; click a name to load details and the live gene table." }}
+            </p>
+          </section>
+        {% else %}
+          <!-- Summary card (only shows full details when a category is selected) -->
+          <section class="rounded-2xl border bg-gray-50 border-gray-400 shadow-xl hover:shadow-lg p-6">
+            <div class="p-2 border-b border-gray-300">
+              <h2 class="text-lg font-medium">
+                {% if selected_mod and not selected_cat %}
+                  {{ (modalities[selected_mod].label or selected_mod) if modalities[selected_mod] else selected_mod }}
+                {% else %}
+                  {{ right.title }}
+                {% endif %}
+              </h2>
+              <p class="text-sm mt-1">
+                {% if selected_mod and not selected_cat %}
+                  {{ (modalities[selected_mod].description|safe or "") if modalities[selected_mod] else "" }}
+                {% else %}
+                  {{ right.description|safe or "" }}
+                {% endif %}
+              </p>
+            </div>
+
+            {% if selected_cat %}
+              <div class="p-6">
+                <div class="grid grid-cols-3 gap-4 text-sm">
+                  <div class="col-span-2">
+                    <div class="text-gray-500 py-1">Input material</div>
+                    <div class="flex">{{ right.input_material|format_input_material|safe or "-" }}</div>
+                  </div>
+                  <div>
+                    <div class="text-gray-500 py-1">Turnaround</div>
+                    <div>{{ right.tat or "-" }}</div>
+                  </div>
+                  <div class="col-span-2">
+                    <div class="text-gray-500 py-1">Sample modes</div>
+                    <div class="flex">
+                      {% for mode in right.sample_modes %}
+                        <span class="inline-block bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded-full mr-2">{{ mode }}</span>
+                      {% else %}
+                        <span class="text-gray-500">Info. Not Available</span>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="text-gray-500">Platform</div>
+                    <div>{{ right.asp.platform if right.asp else "-" }}</div>
+                  </div>
+                  <div class="col-span-2">
+                    <div class="text-gray-500 py-1">Available analyses</div>
+                    <div class="flex">
+                      {% for a in right.analysis %}
+                        <span class="inline-block bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded-full mr-2">{{ a }}</span>
+                      {% else %}
+                        <span class="text-gray-500">Info. Not Available</span>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="text-gray-500">Read Length</div>
+                    <div>
+                      {% if right.asp %}
+                        {{ right.asp.read_length or "-" }} {{ right.asp.read_mode or "-" }}
+                      {% else %}-{% endif %}
+                    </div>
+                  </div>
+                </div>
+                <hr class="my-4" />
+                <div class="grid grid-cols-3 gap-4 text-sm">
+                  <div class="mt-3 text-sm">
+                    {% if selected_isgl %}
+                      <div class="text-gray-500">Covered genes (count)</div>
+                      <div>
+                        {% if selected_isgl %}
+                          {{ stats.isgl_total }}
+                        {% else %}
+                          {{ right.asp.covered_genes_count if right.asp else "Not Available" }}
+                        {% endif %}
+                        {% if selected_mod.lower() not in ["wgs", "wts"] %}
+                          <span class="text-gray-500"> (of {{ right.asp.covered_genes_count }} in ASP)</span>
+                        {% endif %}
+                      </div>
+                    {% endif %}
+                  </div>
+              </div>
+            {% endif %}
+          </section>
+
+          {% if genes|length > 0 %}
+            <!-- Gene table -->
+            <section class="rounded-2xl border bg-gray-50 border-gray-400 shadow-xl hover:shadow-lg pb-5 px-2">
+              <div class="px-4 pt-4 flex flex-wrap items-start gap-3">
+                <div class="flex-1">
+                  <h3 class="text-base font-medium">
+                    {% if selected_isgl %}
+                      {% set isgl_label = (right.gene_lists | selectattr('key', 'equalto', selected_isgl) | first).label if right.gene_lists | selectattr('key', 'equalto', selected_isgl) | first else '' %}
+                    {% endif %}
+                    {{ selected_mod }} | {{ right.title }}
+                    ({{ genes|length }})
+                    {% if isgl_desc %}
+                      <p class="text-sm text-gray-600 mt-1">{{ isgl_desc }}</p>
+                    {% endif %}
+                  </h3>
+
+                  {# compute download href once #}
+                  {% if selected_mod and not selected_cat %}
+                    {% set dl_href = url_for('public_bp.assay_catalog_genes_csv', mod=selected_mod) %}
+                  {% elif selected_mod and selected_cat and not selected_isgl %}
+                    {% set dl_href = url_for('public_bp.assay_catalog_genes_csv', mod=selected_mod, cat=selected_cat) %}
+                  {% elif selected_mod and selected_cat and selected_isgl %}
+                    {% set dl_href = url_for('public_bp.assay_catalog_genes_csv', mod=selected_mod, cat=selected_cat, isgl_key=selected_isgl) %}
+                  {% else %}
+                    {% set dl_href = None %}
+                  {% endif %}
+
+                  {% if dl_href %}
+                    <div class="mt-4">
+                      <a href="{{ dl_href }}"
+                          class="inline-flex items-center gap-2 rounded-lg bg-blue-300 px-3 py-1 text-xs font-medium text-black shadow-sm hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2">
+                        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/folder-arrow-down.svg') }}"
+                              alt="" class="h-5 w-5">
+                        <span>Download CSV</span>
+                      </a>
+                    </div>
+                  {% endif %}
+                </div>
+
+                <div class="relative ml-auto">
+                  <input id="search-genes" name="genes_search" type="text" placeholder="Search genes, aliases, OMIM…"
+                    class="w-full border rounded-xl py-2 pl-4 pr-10 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}"
+                        alt="Search" class="h-5 w-5 text-slate-500 pointer-events-none" onclick="document.getElementById('search-genes').focus()">
+                  </div>
+                </div>
+              </div>
+
+
+              <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" id="genes-list" data-rows-per-page="50" pagination-button-color="gray" pagination-button-text-color="black">
+                <table id="genes-table" class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
+                  <thead class="rounded-t-2xl overflow-hidden border-gray-800">
+                    <tr class="border-b text-left border-gray-800 bg-gray-300 uppercase tracking-wider shadow-xl rounded-t-2xl">
+                      <th class="p-2 font-normal">HGNC ID</th>
+                      <th class="p-2 font-normal">Gene Symbol</th>
+                      <th class="p-2 font-normal">OMIM</th>
+                      <th class="p-2 font-normal">Locus</th>
+                      <th class="p-2 font-normal text-center">Actionable Target</th>
+                      <th class="p-2 font-normal">Ensembl Canonical</th>
+                      <th class="p-2 font-normal">Mane Select</th>
+                      <th class="p-2 font-normal">Mane Select Plus Clinical</th>
+                      <th class="p-2 font-normal">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody id="genes-list-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
+                    {% for gene in genes %}
+                      <tr class="border-t border-gray-400 hover:bg-gray-200 text-left last:rounded-b-2xl">
+                        <td class="p-2 font-medium">
+                          {{ gene.hgnc_id.replace('HGNC:', '') }}
+                        </td>
+                        <td class="p-2 font-medium">
+                          <div class="flex flex-wrap gap-1">
+                            <a href="{{ url_for('common_bp.public_gene_info', id=gene.hgnc_id.replace('HGNC:', '')) }}" class="bg-indigo-200 text-black px-2 py-0.5 rounded-full hover:underline">{{ gene.hgnc_symbol }}</a>
+                            {% if gene.hgnc_symbol in germline_gene_symbols %}
+                              <span class="bg-yellow-500 hover:bg-yellow-400 text-black px-2 py-0.5 rounded-full">G</span>
+                            {% endif %}
+                          </div>
+                        </td>
+                        <td class="p-2 font-medium">
+                          <div class="flex flex-wrap gap-1">
+                            {% for omim in gene.omim_id %}
+                              <a href="https://omim.org/entry/{{ omim }}" target="_blank" class="bg-purple-200 text-black px-2 py-0.5 rounded-full hover:underline">{{ omim }}</a>
+                            {% else %}
+                              <span>-</span>
+                            {% endfor %}
+                          </div>
+                        </td>
+                        <td class="p-2 font-medium">{{ gene.locus }}</td>
+                        <td class="p-2 font-medium text-center align-middle">
+                          <div class="flex justify-center items-center">
+                            {% if gene.drug_target %}
+                              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/check-circle.svg') }}" alt="Actionable Target" class="h-5 w-5 text-gray-500 cursor-pointer">
+                            {% else %}
+                              -
+                            {% endif %}
+                          </div>
+                        </td>
+                        <td class="p-2 font-medium text-center align-middle">
+                          <div class="flex justify-center items-center">
+                            {% if gene.ensembl_canonical %}
+                              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/check-circle.svg') }}" alt="Ensembl Cannonical" class="h-5 w-5 text-gray-500 cursor-pointer">
+                            {% else %}
+                              -
+                            {% endif %}
+                          </div>
+                        </td>
+                        <td class="p-2 font-medium">{{ gene.refseq_mane_select or '-' }}</td>
+                        <td class="p-2 font-medium">
+                          <div class="flex flex-wrap gap-1">
+                            {% for clincial_plus in gene.refseq_mane_plus_clinical %}
+                            <span class="bg-green-400 text-black px-2 py-0.5 rounded-full">{{ clincial_plus }}</span>
+                            {% else %}
+                            <span>-</span>
+                            {% endfor %}
+                          </div>
+                        </td>
+                        <td class="p-2 font-medium">{{ gene.gene_description|safe or '-' }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          {% endif %}
+        {% endif %}
+      </main>
+    </div>
+  </div>
+</div>
+
+<script>
+
+  const input = document.getElementById('search-genes');
+  const body = document.getElementById('genes-list-body');
+  const container = document.getElementById('genes-list');
+  const rowsPerPage = parseInt(container.dataset.rowsPerPage) || 15;
+  const originalRows = [...body.querySelectorAll('tr')].map(r => r.cloneNode(true));
+  const id = body.id;
+
+  input.addEventListener('input', () => {
+    const term = input.value.toLowerCase().trim();
+
+    // Remove any existing pagination controls
+    container.querySelectorAll('[data-prev], [data-next], [data-page-info]').forEach(el => el.parentElement?.remove());
+
+    // Filter rows or reset
+    const filtered = term
+      ? originalRows.filter(row =>
+          [...row.querySelectorAll('td')].slice(0, 4).some(td =>
+            td.textContent.toLowerCase().includes(term)
+          )
+        )
+      : originalRows;
+
+    // Replace table body with filtered or full rows
+    body.innerHTML = '';
+    filtered.forEach(row => body.appendChild(row));
+
+    // Trigger pagination if needed
+    filtered.length > rowsPerPage ? initializePagination() : displayPage(1, id, rowsPerPage);
+  });
+</script>
+
+
+{% endblock %}

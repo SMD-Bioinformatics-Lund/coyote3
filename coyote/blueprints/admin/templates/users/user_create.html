@@ -81,8 +81,13 @@
                     <div class="flex flex-wrap gap-2 text-xs">
                       {% for opt in field.options %}
                         <label class="inline-flex items-center gap-2">
-                          <input type="checkbox" name="{{ key }}" value="{{ opt }}" class="accent-blue-600 group-toggle"
-                            {% if field.default and opt in field.default %}checked{% endif %}>
+                          <input
+                            type="checkbox"
+                            name="{{ key }}"
+                            value="{{ opt }}"
+                            class="accent-blue-600 {% if key == 'assay_groups' %} assay-group-toggle{% endif %}"
+                            {% if field.default and opt in field.default %}checked{% endif %}
+                          />
                           {{ opt }}
                         </label>
                       {% endfor %}
@@ -132,6 +137,7 @@
             </div>
           </div>
           {% endfor %}
+
           <div class="text-right pt-4">
             <button type="submit" class="bg-blue-300 hover:bg-blue-400 text-black font-semibold px-6 py-2 rounded-lg shadow-lg transition">
               Save User
@@ -146,59 +152,64 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", () => {
+
+    /* --------------------------------------------------------------------
+     * 0. BASIC DOM ELEMENTS
+     * -------------------------------------------------------------------- */
     const fname = document.getElementById("firstname");
     const lname = document.getElementById("lastname");
     const fullname = document.getElementById("fullname");
     const username = document.getElementById("username");
     const email = document.getElementById("email");
+    const saveBtn = document.querySelector("button[type='submit']");
+
     const passwordInput = document.getElementById("password");
     const confirmPasswordInput = document.getElementById("confirm_password");
     const passwordMsg = document.getElementById("password_match_msg");
     const authSource = document.querySelector('[name="auth_type"]');
     const passwordWrapper = document.getElementById("password-wrapper");
 
-    const groupToggles = document.querySelectorAll('.group-toggle');
-    const assayBlocks = document.querySelectorAll('.assay-block');
-
-    // ========== Fullname and Username Handling ==========
+    /* --------------------------------------------------------------------
+     * 1. AUTO FULLNAME + USERNAME
+     * -------------------------------------------------------------------- */
     function updateFullAndUsername() {
       const f = fname?.value.trim() || "";
       const l = lname?.value.trim() || "";
       const full = `${f} ${l}`.trim();
+
       let user = "";
-    
-      if (f && l) {
-        user = `${f}.${l}`.toLowerCase();
-      } else if (f) {
-        user = f.toLowerCase();
-      } else if (l) {
-        user = l.toLowerCase();
-      }
-    
+      if (f && l) user = `${f}.${l}`.toLowerCase();
+      else if (f) user = f.toLowerCase();
+      else if (l) user = l.toLowerCase();
+
       if (fullname) fullname.value = full;
       if (username) {
         username.value = user;
         checkUsername(user);
       }
     }
-    
 
-    // ========== Username Existence Check ==========
+    /* --------------------------------------------------------------------
+     * 2. USERNAME + EMAIL VALIDATION
+     * -------------------------------------------------------------------- */
     async function checkUsername(val = null) {
       const value = val || username?.value.trim();
       if (!value) return;
+
+      const msg = document.getElementById("username_check");
+      if (!msg) return;
+
       const res = await fetch("{{ url_for('admin_bp.validate_username') }}", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: value })
       });
+
       const data = await res.json();
-      const msg = document.getElementById("username_check");
       msg.textContent = data.exists ? "❌ Username already exists." : "✅ Username available.";
       msg.className = data.exists ? "text-xs mt-1 text-red-500" : "text-xs mt-1 text-green-600";
     }
 
-    // ========== Email Format + Existence Check ==========
     async function checkEmail() {
       const val = email?.value.trim();
       const msg = document.getElementById("email_check");
@@ -222,150 +233,212 @@
       msg.className = data.exists ? "text-xs mt-1 text-red-500" : "text-xs mt-1 text-green-600";
     }
 
-    // ========== Assay Visibility Toggle Based on Groups ==========
-    function updateAssayVisibility() {
-      const selectedGroups = Array.from(groupToggles)
-        .filter(cb => cb.checked)
-        .map(cb => cb.value);
-
-      assayBlocks.forEach(block => {
-        const group = block.getAttribute("data-group");
-        const checkboxes = block.querySelectorAll('input[type="checkbox"]');
-        if (selectedGroups.includes(group)) {
-          block.classList.remove("hidden");
-          checkboxes.forEach(cb => cb.checked = true);
-        } else {
-          block.classList.add("hidden");
-          checkboxes.forEach(cb => cb.checked = false);
-        }
-      });
-    }
-
-    // ========== Password Strength & Match Validation ==========
-    function validatePassword() {
-      const pwd = passwordInput?.value.trim() || "";
-      const confirm = confirmPasswordInput?.value.trim() || "";
-      const minLen = parseInt(passwordInput?.dataset.minlength) || 10;
-      const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/;
-
-      if (!pwd) {
-        setPwdMsg("❌ Password cannot be empty.", "red");
-        return;
-      }
-      if (pwd.length < minLen) {
-        setPwdMsg(`❌ Password must be at least ${minLen} characters.`, "red");
-        return;
-      }
-      if (!regex.test(pwd)) {
-        setPwdMsg("❌ Must include uppercase, lowercase, number, and symbol.", "red");
-        return;
-      }
-      if (confirm && pwd !== confirm) {
-        setPwdMsg("❌ Passwords do not match.", "red");
-        return;
-      }
-      if (confirm && pwd === confirm) {
-        setPwdMsg("✅ Passwords match and are strong.", "green");
-      } else {
-        setPwdMsg("✅ Strong password.", "green");
-      }
-    }
-
+    /* --------------------------------------------------------------------
+     * 3. PASSWORD VALIDATION
+     * -------------------------------------------------------------------- */
     function setPwdMsg(text, color) {
-      if (!passwordMsg) return;
       passwordMsg.textContent = text;
       passwordMsg.className = `text-xs mt-1 text-${color}-500`;
     }
 
-    // ========== Show/Hide Password Block Based on Auth Source ==========
+    function validatePassword() {
+      const pwd = passwordInput?.value.trim() || "";
+      const confirm = confirmPasswordInput?.value.trim() || "";
+      const minLen = parseInt(passwordInput?.dataset.minlength) || 10;
+
+      const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/;
+
+      if (!pwd) return setPwdMsg("❌ Password cannot be empty.", "red");
+      if (pwd.length < minLen) return setPwdMsg(`❌ Must be at least ${minLen} characters.`, "red");
+      if (!regex.test(pwd)) return setPwdMsg("❌ Must include uppercase, lowercase, number, and symbol.", "red");
+      if (confirm && pwd !== confirm) return setPwdMsg("❌ Passwords do not match.", "red");
+
+      if (confirm && pwd === confirm) setPwdMsg("✅ Passwords match and strong.", "green");
+      else setPwdMsg("✅ Strong password.", "green");
+    }
+
     function updatePasswordVisibility() {
-      if (!authSource || !passwordWrapper) return;
-      const val = authSource.value?.trim().toLowerCase();
+      const val = authSource?.value.trim().toLowerCase() || "";
       passwordWrapper.style.display = (val === "coyote3") ? "flex" : "none";
     }
 
-    // ========== Event Bindings ==========
+    /* --------------------------------------------------------------------
+     * 4. ASSAY GROUP ↔ ASSAY CHILDREN (updated as requested)
+     * -------------------------------------------------------------------- */
+     function setupAssayBehavior() {
+      const groupToggles = document.querySelectorAll(".assay-group-toggle");
+      const assayBlocks = document.querySelectorAll(".assay-block");
+
+      const groupToAssays = {};
+      const groupDirty = {}; // track manual edits per group
+
+      // Build map
+      assayBlocks.forEach(block => {
+        const g = block.dataset.group;
+        groupToAssays[g] = Array.from(
+          block.querySelectorAll('input[type="checkbox"][name="assays"]')
+        );
+        groupDirty[g] = false;
+      });
+
+      // Initial: respect default-checked assay_groups, but don't show others
+      function init() {
+        assayBlocks.forEach(block => {
+          const g = block.dataset.group;
+          const toggle = document.querySelector(`.assay-group-toggle[value="${g}"]`);
+          const assays = groupToAssays[g];
+
+          if (toggle && toggle.checked) {
+            block.classList.remove("hidden");
+            if (!groupDirty[g]) {
+              // first time or reset: select all children
+              assays.forEach(a => (a.checked = true));
+            }
+          } else {
+            block.classList.add("hidden");
+            assays.forEach(a => (a.checked = false));
+          }
+        });
+      }
+
+      // Clicking the parent group checkbox
+      function onGroupToggle(g, checked) {
+        const block = document.querySelector(`.assay-block[data-group="${g}"]`);
+        const assays = groupToAssays[g];
+
+        if (checked) {
+          block.classList.remove("hidden");
+
+          // Auto-select all children if this group is not in a "partially edited" state
+          if (!groupDirty[g]) {
+            assays.forEach(a => (a.checked = true));
+          }
+        } else {
+          block.classList.add("hidden");
+          assays.forEach(a => (a.checked = false));
+          // When explicitly turned off, treat as reset
+          groupDirty[g] = false;
+        }
+      }
+
+      // Clicking any child assay
+      function onChildToggle(g) {
+        const toggle = document.querySelector(`.assay-group-toggle[value="${g}"]`);
+        const block = document.querySelector(`.assay-block[data-group="${g}"]`);
+        const assays = groupToAssays[g];
+
+        const anyChecked = assays.some(a => a.checked);
+
+        if (anyChecked) {
+          // Manual modification with at least one child selected → mark as dirty
+          groupDirty[g] = true;
+          toggle.checked = true;
+          block.classList.remove("hidden");
+        } else {
+          // All children unchecked:
+          // - uncheck the parent
+          // - hide the block
+          // - RESET dirty so the next parent-click behaves like first time (select all)
+          toggle.checked = false;
+          block.classList.add("hidden");
+          groupDirty[g] = false;
+        }
+      }
+
+      // Wire events
+      groupToggles.forEach(cb =>
+        cb.addEventListener("change", () => onGroupToggle(cb.value, cb.checked))
+      );
+
+      assayBlocks.forEach(block => {
+        const g = block.dataset.group;
+        groupToAssays[g].forEach(a =>
+          a.addEventListener("change", () => onChildToggle(g))
+        );
+      });
+
+      init();
+    }
+
+
+    /* --------------------------------------------------------------------
+     * 5. ROLE → PERMISSIONS + CONFLICT WARNINGS
+     * -------------------------------------------------------------------- */
+    const roleSelect = document.getElementById("role");
+    const permissionCheckboxes = document.querySelectorAll('input[name="permissions"]');
+    const denyPermissionCheckboxes = document.querySelectorAll('input[name="deny_permissions"]');
+
+    const roleMap = {{ role_map | tojson | safe }};
+
+    const conflictWarning = document.createElement("div");
+    conflictWarning.className = "hidden text-red-700 bg-red-100 border border-red-300 rounded p-2 text-xs mb-4";
+    conflictWarning.innerHTML = "⚠️ Cannot save: A permission is both ALLOWED and DENIED.";
+    document.getElementById("userForm").prepend(conflictWarning);
+
+    function updatePermissionsFromRole(rid) {
+      const role = roleMap[rid];
+      if (!role) return;
+
+      permissionCheckboxes.forEach(cb => cb.checked = role.permissions.includes(cb.value));
+      denyPermissionCheckboxes.forEach(cb => cb.checked = role.deny_permissions.includes(cb.value));
+
+      highlightConflicts();
+    }
+
+    function highlightConflicts() {
+      const allow = new Set();
+      const deny = new Set();
+
+      permissionCheckboxes.forEach(cb => cb.checked && allow.add(cb.value));
+      denyPermissionCheckboxes.forEach(cb => cb.checked && deny.add(cb.value));
+
+      let hasConflict = false;
+
+      document.querySelectorAll("label.inline-flex").forEach(label => {
+        const input = label.querySelector("input");
+        if (!input) return;
+
+        label.classList.remove("ring", "ring-red-500", "ring-offset-1");
+
+        if (allow.has(input.value) && deny.has(input.value)) {
+          label.classList.add("ring", "ring-red-500", "ring-offset-1");
+          hasConflict = true;
+        }
+      });
+
+      if (hasConflict) {
+        conflictWarning.classList.remove("hidden");
+        saveBtn.disabled = true;
+      } else {
+        conflictWarning.classList.add("hidden");
+        saveBtn.disabled = false;
+      }
+    }
+
+    permissionCheckboxes.forEach(cb => cb.addEventListener("change", highlightConflicts));
+    denyPermissionCheckboxes.forEach(cb => cb.addEventListener("change", highlightConflicts));
+    if (roleSelect) roleSelect.addEventListener("change", () => updatePermissionsFromRole(roleSelect.value));
+
+    if (roleSelect?.value) updatePermissionsFromRole(roleSelect.value);
+
+    /* --------------------------------------------------------------------
+     * 6. BIND EVENTS + INITIALIZE
+     * -------------------------------------------------------------------- */
     fname?.addEventListener("input", updateFullAndUsername);
     lname?.addEventListener("input", updateFullAndUsername);
     username?.addEventListener("input", () => checkUsername());
     email?.addEventListener("input", checkEmail);
+
     passwordInput?.addEventListener("input", validatePassword);
     confirmPasswordInput?.addEventListener("input", validatePassword);
     authSource?.addEventListener("change", updatePasswordVisibility);
-    groupToggles.forEach(cb => cb.addEventListener("change", updateAssayVisibility));
 
-    // ========== Initial Execution ==========
     updateFullAndUsername();
-    updateAssayVisibility();
     updatePasswordVisibility();
-
-    // ========== Role and Permission Handling ==========
-    const roleSelect = document.getElementById("role");
-    const permissionCheckboxes = document.querySelectorAll('input[name="permissions"]');
-    const denyPermissionCheckboxes = document.querySelectorAll('input[name="deny_permissions"]');
-  
-    const roleMap = {{ role_map | tojson | safe }};
-  
-    function updatePermissionsFromRole(roleId) {
-      if (!roleMap[roleId]) return;
-  
-      const selectedPerms = roleMap[roleId].permissions || [];
-      const deniedPerms = roleMap[roleId].deny_permissions || [];
-  
-      permissionCheckboxes.forEach(cb => {
-        cb.checked = selectedPerms.includes(cb.value);
-      });
-  
-      denyPermissionCheckboxes.forEach(cb => {
-        cb.checked = deniedPerms.includes(cb.value);
-      });
-  
-      highlightConflicts();
-    }
-  
-    function highlightConflicts() {
-      const selectedPerms = new Set();
-      const deniedPerms = new Set();
-  
-      permissionCheckboxes.forEach(cb => {
-        if (cb.checked) selectedPerms.add(cb.value);
-      });
-  
-      denyPermissionCheckboxes.forEach(cb => {
-        if (cb.checked) deniedPerms.add(cb.value);
-      });
-  
-      const allLabels = document.querySelectorAll('label.inline-flex');
-  
-      allLabels.forEach(label => {
-        const input = label.querySelector('input');
-        if (!input) return;
-  
-        const isConflict = selectedPerms.has(input.value) && deniedPerms.has(input.value);
-        if (isConflict) {
-          label.classList.add("ring", "ring-red-500", "ring-offset-1");
-        } else {
-          label.classList.remove("ring", "ring-red-500", "ring-offset-1");
-        }
-      });
-    }
-  
-    permissionCheckboxes.forEach(cb => cb.addEventListener("change", highlightConflicts));
-    denyPermissionCheckboxes.forEach(cb => cb.addEventListener("change", highlightConflicts));
-  
-    if (roleSelect) {
-      roleSelect.addEventListener("change", () => {
-        updatePermissionsFromRole(roleSelect.value);
-      });
-  
-      // Trigger on initial load
-      if (roleSelect.value) {
-        updatePermissionsFromRole(roleSelect.value);
-      }
-    }
+    setupAssayBehavior();
 
   });
-</script>
+  </script>
 
 
 {% endblock %}
