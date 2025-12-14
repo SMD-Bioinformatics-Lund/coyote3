@@ -111,9 +111,6 @@
             <button id="btnChooseISGL" class="px-3 py-2 rounded-xl bg-brown-200 hover:bg-brown-300 shadow">
               Choose ISGL
             </button>
-            <button id="btnChooseAdHocISGL" class="px-3 py-2 rounded-xl bg-orange-200 hover:bg-orange-300 shadow">
-              Choose Ad-Hoc ISGL
-            </button>
             <button id="btnPasteAdHoc" class="px-3 py-2 rounded-xl bg-blue-200 hover:bg-blue-300 shadow">
               Paste Ad-Hoc Genes
             </button>
@@ -577,13 +574,13 @@
     </div>
   </div>
 
-  <!-- Modal: Choose Ad Hoc ISGL -->
-  <div id="modalChoose" class="fixed inset-0 hidden items-center justify-center z-50">
+  <!-- Modal: Choose ISGL -->
+  <div id="modalChooseISGL" class="fixed inset-0 hidden items-center justify-center z-50">
     <div class="bg-white rounded-3xl shadow-2xl border border-2 border-black p-6 m-2">
       <div class="flex items-start justify-between mb-4">
-        <h3 class="text-lg font-semibold text-gray-900">Available Ad-Hoc ISGLs for ({{ sample.assay }})</h3>
+        <h3 class="text-lg font-semibold text-gray-900">Available ISGLs for ({{ sample.assay }})</h3>
       </div>
-      <div id="chooseBody" class="text-sm">
+      <div id="chooseBodyISGL" class="text-sm">
         <div class="text-xs text-gray-600">Loading…</div>
       </div>
       <div class="mt-5 flex justify-end">
@@ -674,19 +671,21 @@
     const currentTempGenes = {{ (sample.filters.adhoc_genes if sample.filters and sample.filters.adhoc_genes else []) | tojson }};
     const currentTempLabel = {{ (sample.filters.temp_label if sample.filters and sample.filters.temp_label else '') | tojson }};
     const currentTempMode  = {{ ((sample.filters.temp_mode if sample.filters and sample.filters.temp_mode else 'intersection')) | tojson }};
+    const appliedISGLs = {{ (sample.filters.genelists if sample.filters and sample.filters.genelists else []) | tojson }};
+    const aspGroup = {{ asp.asp_group | tojson }};
 
     // Modal helpers
     function openModal(el){ el.classList.remove('hidden'); el.classList.add('flex'); }
     function closeAllModals(){
       document.querySelectorAll('.modal-close').forEach(btn => {
-        btn.onclick = () => document.querySelectorAll('#modalPaste,#modalChoose,#modalAdHocView,#modalEffectiveView')
+        btn.onclick = () => document.querySelectorAll('#modalPaste,#modalChooseISGL,#modalAdHocView,#modalEffectiveView')
           .forEach(m => { m.classList.add('hidden'); m.classList.remove('flex'); });
       });
     }
     closeAllModals();
 
     const modalPaste = document.getElementById('modalPaste');
-    const modalChoose = document.getElementById('modalChoose');
+    const modalChooseISGL = document.getElementById('modalChooseISGL');
     const modalAdHocView = document.getElementById('modalAdHocView');
     const modalEffectiveView = document.getElementById('modalEffectiveView');
 
@@ -702,7 +701,8 @@
       buttonId,
       fetchUrl,
       applyUrl,
-      modalElement
+      modalElement,
+      bodyId
     }) {
       const btn = document.getElementById(buttonId);
       if (!btn) return;
@@ -710,7 +710,7 @@
       btn.addEventListener('click', async () => {
         openModal(modalElement);
 
-        const body = document.getElementById('chooseBody');
+        const body = document.getElementById(bodyId);
         body.innerHTML = '<div class="text-xs mx-2 text-gray-600">Loading…</div>';
 
         try {
@@ -745,9 +745,14 @@
                   ${items.map(it => `
                     <tr class="border-t" data-row="${it._id}">
                       <td class="px-3 py-2">
-                        <input type="checkbox" class="selRow" value="${it._id}">
+                        <input type="checkbox" class="selRow" value="${it._id}" ${appliedISGLs.includes(it._id) ? 'checked' : ''}>
                       </td>
-                      <td class="px-3 py-2">${it.label || it.name || 'Ad Hoc'}</td>
+                      <td class="px-3 py-2">
+                        ${it.label || it.name || 'Unnamed'}
+                        ${it.adhoc
+                          ? '<span class="ml-2 px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-800 text-xs border border-orange-200">AdHoc</span>'
+                          : ''}
+                      </td>
                       <td class="px-3 py-2">${it.version ?? '—'}</td>
                       <td class="px-3 py-2">${it.gene_count ?? 0}</td>
                     </tr>
@@ -762,9 +767,10 @@
           const selectedIds = () =>
             Array.from(body.querySelectorAll('.selRow:checked')).map(cb => cb.value);
 
-          const updateApplyState = () => {
-            applyBtn.disabled = selectedIds().length === 0;
-          };
+            const updateApplyState = () => {
+              applyBtn.disabled = false;
+            };
+
 
           // Select all
           selAll?.addEventListener('change', e => {
@@ -781,8 +787,16 @@
 
           // Apply selected
           applyBtn.addEventListener('click', async () => {
-            const ids = selectedIds();
-            if (!ids.length) return;
+            const ids = selectedIds();   // ← compute selection first (may be [])
+
+            // CONFIRM CLEAR-ALL
+            if (ids.length === 0 && appliedISGLs.length > 0) {
+              if (!confirm('Remove all applied gene lists from this sample?')) {
+                applyBtn.disabled = false;
+                applyBtn.textContent = 'Apply selected';
+                return;
+              }
+            }
 
             applyBtn.disabled = true;
             applyBtn.textContent = 'Applying…';
@@ -809,6 +823,7 @@
             }
           });
 
+
         } catch (err) {
           body.innerHTML = '<div class="text-sm text-red-700">Failed to load ISGL lists.</div>';
         }
@@ -820,15 +835,8 @@
       buttonId: "btnChooseISGL",
       fetchUrl: `/samples/${sampleId}/isgls`,
       applyUrl: `/samples/${sampleId}/genes/apply-isgl`,
-      modalElement: modalChoose
-    });
-
-    // Ad-Hoc ISGL
-    initISGLChooser({
-      buttonId: "btnChooseAdHocISGL",
-      fetchUrl: `/samples/${sampleId}/adhoc_isgls`,
-      applyUrl: `/samples/${sampleId}/adhoc_genes/apply-isgl`,
-      modalElement: modalChoose
+      modalElement: modalChooseISGL,
+      bodyId: "chooseBodyISGL"
     });
 
 
@@ -880,6 +888,7 @@
       const modalTitle = document.getElementById('effectiveModalTitle');
       const allEl      = document.getElementById('effectiveAll');
 
+
       // modal helpers
       const openModal = () => { modal.classList.remove('hidden'); modal.classList.add('flex'); };
       const closeModal = () => { modal.classList.add('hidden'); modal.classList.remove('flex'); };
@@ -892,10 +901,22 @@
           const data = await res.json();
           const genes = Array.isArray(data.items) ? data.items : [];
           const asp_covered_genes_count = data.asp_covered_genes_count || 0;
+          const asp_group  = aspGroup;
 
           // summary
           const sel = genes.length;
-          summaryEl.innerHTML = sel > 0 ? `<b>${sel}</b> genes selected of <b>${asp_covered_genes_count}</b> total ASP covered genes` : 'No effective genes';
+          if (!['tumwgs', 'wts'].includes(asp_group)) {
+            summaryEl.innerHTML =
+              sel > 0
+                ? `<b>${sel}</b> genes selected of <b>${asp_covered_genes_count}</b> total ASP covered genes`
+                : 'No effective genes';
+          } else {
+            summaryEl.innerHTML =
+              sel > 0
+                ? `<b>${sel}</b> genes shown`
+                : 'No genes shown';
+          }
+
 
           // preview (≤ 100)
           const limit = 100;

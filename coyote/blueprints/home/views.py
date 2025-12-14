@@ -290,6 +290,8 @@ def edit_sample(sample_id: str) -> str | Response:
     sample, assay_config, assay_config_schema = result
 
     asp = store.asp_handler.get_asp(sample.get("assay"))
+    asp_group = asp.get("asp_group")
+    print(asp_group)
 
     # If the sample has no filters set, initialize them with the assay's default filters
     if sample.get("filters") is None:
@@ -314,7 +316,11 @@ def edit_sample(sample_id: str) -> str | Response:
     variant_stats_raw = store.variant_handler.get_variant_stats(str(sample.get("_id")))
 
     # Get variant stats for the sample with the effective gene filter applied
-    if genes and variant_stats_raw and len(genes) < asp_covered_genes_count:
+    if (
+        genes
+        and variant_stats_raw
+        and (len(genes) < asp_covered_genes_count or asp_group in ["tumwgs", "wts"])
+    ):
         variant_stats_filtered = store.variant_handler.get_variant_stats(
             str(sample.get("_id")), genes=genes
         )
@@ -339,10 +345,9 @@ def edit_sample(sample_id: str) -> str | Response:
     )
 
 
-@home_bp.get("/<string:sample_id>/adhoc_isgls", endpoint="adhoc_isgls")
 @home_bp.get("/<string:sample_id>/isgls", endpoint="isgls")
 @require_sample_access("sample_id")
-def list_adhoc_isgls(sample_id: str) -> Response:
+def list_isgls(sample_id: str) -> Response:
     """
     Return adhoc in-study gene lists for the sample's assay as JSON.
 
@@ -356,12 +361,7 @@ def list_adhoc_isgls(sample_id: str) -> Response:
     """
     sample = store.sample_handler.get_sample(sample_id)
 
-    query = {
-        "asp_name": sample.get("assay"),
-        "is_active": True,
-    }
-    if request.endpoint == "home_bp.adhoc_isgls":
-        query["adhoc"] = True
+    query = {"asp_name": sample.get("assay"), "is_active": True}
 
     isgls = store.isgl_handler.get_isgl_by_asp(**query)
 
@@ -378,7 +378,6 @@ def list_adhoc_isgls(sample_id: str) -> Response:
     return jsonify({"items": items})
 
 
-@home_bp.post("/<string:sample_id>/adhoc_genes/apply-isgl", endpoint="adhoc_isgl_genes")
 @home_bp.post("/<string:sample_id>/genes/apply-isgl", endpoint="isgl_genes")
 @require("edit_sample", min_role="user")
 @require_sample_access("sample_id")
@@ -403,23 +402,19 @@ def apply_isgl(sample_id: str) -> Response:
     genelists = set(filters.get("genelists", []))
     isgl_ids = payload.get("isgl_ids", [])
     if isinstance(isgl_ids, list):
-        genelists.update(isgl_ids)
+        genelists = deepcopy(isgl_ids)
     filters["genelists"] = list(genelists)
 
-    if payload and isgl_ids:
+    if payload and (isgl_ids or isgl_ids == []):
         # log Action
         g.audit_metadata = {
             "sample": sample_id,
             "isgl_ids": isgl_ids,
         }
         store.sample_handler.update_sample_filters(sample.get("_id"), filters)
-        if request.endpoint == "home_bp.adhoc_isgl_genes":
-            flash("AdHoc gene list(s) applied to sample.", "green")
-        else:
-            flash(f"Gene list(s) {isgl_ids} applied to sample.", "green")
-
+        flash(f"Gene list(s) {isgl_ids} applied to sample.", "green")
         app.home_logger.info(
-            f"Applied AdHoc gene list(s) {isgl_ids} to sample {sample_id} adhoc gene filter"
+            f"Applied gene list(s) {isgl_ids} to sample {sample_id} adhoc gene filter"
         )
 
     return jsonify({"ok": True})
@@ -506,10 +501,9 @@ def get_effective_genes_all(sample_id: str) -> Response:
 
     filters = sample.get("filters", {})
     assay = sample.get("assay")
+    asp = store.asp_handler.get_asp(assay)
+    asp_group = asp.get("asp_group")
     asp_covered_genes, asp_germline_genes = store.asp_handler.get_asp_genes(assay)
-    if not asp_covered_genes:
-        app.home_logger.warning(f"No covered genes found for assay {assay} of sample {sample_id}")
-        return jsonify({"items": []})
 
     effective_genes = set(asp_covered_genes)
 
@@ -525,8 +519,10 @@ def get_effective_genes_all(sample_id: str) -> Response:
     # Combine adhoc_genes and isgl_genes if present
     filter_genes = adhoc_genes.union(isgl_genes) if adhoc_genes or isgl_genes else set()
 
-    if filter_genes:
+    if filter_genes and asp_group not in ["tumwgs", "wts"]:
         effective_genes = effective_genes.intersection(filter_genes)
+    elif filter_genes:
+        effective_genes = deepcopy(filter_genes)
 
     items = sorted(effective_genes)
     return jsonify({"items": items, "asp_covered_genes_count": len(asp_covered_genes)})
