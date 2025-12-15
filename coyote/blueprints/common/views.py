@@ -151,8 +151,8 @@ def get_sample_genelists(sample_id: str, sample_assay: str) -> str:
     )
 
 
-@common_bp.get("/public/gene/<string:id>/info", endpoint="public_gene_info")
-@common_bp.get("/gene/<string:id>/info", endpoint="gene_info")
+@common_bp.route("/public/gene/<string:id>/info", endpoint="public_gene_info", methods=["GET"])
+@common_bp.route("/gene/<string:id>/info", endpoint="gene_info", methods=["GET"])
 def gene_info(id: str) -> str:
     """
     Fetches and displays detailed information about a gene based on its HGNC ID.

@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.1.3
+- Fixed missing ISGL routes in production by standardizing Flask blueprint route definitions.
+
 ## v3.1.2
 - Admin: Fixed JSON sample editor to safely serialize and restore MongoDB ObjectIds during full document updates.
 
