@@ -119,6 +119,7 @@ def edit_sample(sample_id: str) -> str | Response:
 
         try:
             # Ensure the schema _id remains intact
+            updated_sample = util.admin.restore_objectids(deepcopy(updated_sample))
             updated_sample["_id"] = sample_obj
             store.sample_handler.update_sample(sample_obj, updated_sample)
             flash("Sample updated successfully.", "green")

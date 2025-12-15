@@ -52,11 +52,7 @@ def pretty_json_filter(value: Any) -> Markup:
     Returns:
         Markup: HTML-safe, pretty-printed JSON string.
     """
-    return Markup(
-        json.dumps(
-            value, indent=2, ensure_ascii=False, cls=EnhancedJSONEncoder
-        )
-    )
+    return Markup(json.dumps(value, indent=2, ensure_ascii=False, cls=EnhancedJSONEncoder))
 
 
 @app.template_filter("safejson")
