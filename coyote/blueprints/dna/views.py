@@ -34,7 +34,7 @@ from coyote.blueprints.dna.varqueries import build_query
 from coyote.blueprints.dna.cnvqueries import build_cnv_query
 from coyote.blueprints.dna.forms import DNAFilterForm, create_assay_group_form
 from coyote.errors.exceptions import AppError
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
 from collections import defaultdict
 from coyote.util.decorators.access import require_sample_access
@@ -1579,6 +1579,7 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
 
     save = kwargs.get("save", 0)
     report_date = datetime.now().date()
+    report_timestamp: str = util.dna.get_report_timestamp()
 
     fernet = app.config["FERNET"]
 
@@ -1593,6 +1594,7 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
         class_desc=util.report.TIER_DESC,
         class_desc_short=util.report.TIER_SHORT_DESC,
         report_date=report_date,
+        report_timestamp=report_timestamp,
         save=save,
         sample_assay=sample_assay,
         assay_group=assay_group,
@@ -1638,15 +1640,18 @@ def save_dna_report(sample_id: str) -> Response:
 
     assay_group: str = assay_config.get("asp_group", "unknown")
     report_num: int = sample.get("report_num", 0) + 1
+    report_timestamp: str = util.dna.get_report_timestamp()
 
     # Report Name format for paired samples: "{CASE_ID}_{CLARITY_CASE_ID}-{CONTROL_ID}_{CLARITY_CONTROL_ID}.{REPORT_NUM}.html
     # Report Name format for unpaired samples: "{CASE_ID}_{CLARITY_CASE_ID}.{REPORT_NUM}.html
     # Clarity ID is always unique
 
     if control_id:
-        report_id: str = f"{name}_{clarity_case_id}-{control_id}_{clarity_control_id}.{report_num}"
+        report_id: str = (
+            f"{case_id}_{clarity_case_id}-{control_id}_{clarity_control_id}.{report_timestamp}"
+        )
     else:
-        report_id: str = f"{name}_{clarity_case_id}.{report_num}"
+        report_id: str = f"{case_id}_{clarity_case_id}.{report_timestamp}"
 
     report_path: str = os.path.join(
         app.config.get("REPORTS_BASE_PATH", "reports"),
@@ -1675,6 +1680,7 @@ def save_dna_report(sample_id: str) -> Response:
             )
         store.sample_handler.save_report(
             sample_id=sample_id,
+            report_num=report_num,
             report_id=report_id,
             filepath=report_file,
         )

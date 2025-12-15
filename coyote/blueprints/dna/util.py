@@ -16,7 +16,7 @@ It includes methods for variant classification, consequence selection, CNV handl
 """
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from flask_login import current_user
 from bson.objectid import ObjectId
 from coyote.util.common_utility import CommonUtility
@@ -496,3 +496,13 @@ class DNAUtility:
                     var["other_genes"].append(gene["gene"])
             fixed_cnvs_genes.append(var)
         return fixed_cnvs_genes
+
+    @staticmethod
+    def get_report_timestamp() -> str:
+        """
+        This function returns the current timestamp, formatted as a string, which can be used to indicate when a report was generated. The timestamp includes the date and time down to the second.
+
+        Returns:
+            str: A string representing the current timestamp in the format 'YYYY-MM-DD HH:MM:SS'.
+        """
+        return datetime.now(timezone.utc).strftime("%y%m%d%H%M%S")
