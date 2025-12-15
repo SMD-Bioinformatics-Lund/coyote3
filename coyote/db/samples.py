@@ -536,19 +536,22 @@ class SampleHandler(BaseHandler):
         """
         return self.get_collection().delete_one({"_id": ObjectId(sample_oid)})
 
-    def save_report(self, sample_id: str, report_id: str, filepath: str) -> bool | None:
+    def save_report(
+        self, sample_id: str, report_num: int, report_id: str, filepath: str
+    ) -> bool | None:
         """
         Save a report to a sample document in the database.
 
         Args:
             sample_id (str): The unique identifier of the sample.
+            report_num (int): The current running report number.
             report_id (str): The unique identifier of the report to save.
             filepath (str): The file path where the report is stored.
 
         Returns:
             bool | None: Returns the result of the database update operation.
         """
-        report_num = int(report_id.split(".")[-1])
+        # report_num = int(report_id.split(".")[-1])
         return self.get_collection().update(
             {"name": sample_id},
             {

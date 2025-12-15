@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.1.1
+- Reports: HTML reports now use compact UTC timestamps in filenames to avoid collisions on re-runs.
+- New format <TUMOR_NAME>_<TUMOR_CLARITY_ID>-<NORMAL_NAME>_<NORMAL_CLARITY_ID>.<YYDDMMHHSS>.html for tumor-normal analysis.  <TUMOR_NAME>_<TUMOR_CLARITY_ID>.<YYDDMMHHSS>.html for tumor only analysis.
+
 ## v3.1.0 (Ongoing)
 ### Added
 - Sample landing page to view sample related meta data, case/control overview, files & QC, gene filters, variant filters, analysis data counts, reports, comments, etc.

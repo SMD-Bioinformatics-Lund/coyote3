@@ -86,17 +86,23 @@
       <td class="top_report_val">{{ current_user.fullname }}</td>
     </tr>
     <tr>
-      {% set report_name = sample.get("name", "NONE") + "_" + sample.get("case", {}).get("clarity_id", "NONE") %}
+      {% set report_name = sample.get("case_id", "NONE") + "_" + sample.get("case", {}).get("clarity_id", "NONE") %}
       {% if sample.control_id %}
         {% set report_name = report_name + "-" + sample.get("control_id", "NONE") + "_" + sample.get("control",{}).get("clarity_id", "NONE") %}
       {% endif %}
-      <td class="top_report_key">Rapport-ID</td>
+      <td class="top_report_key">Rapportnummer</td>
       <td class="top_report_val">
         {% if sample.report_num is defined %}
-          {{ report_name }}.{{ sample.report_num + 1 }}
+          {{ sample.report_num + 1 }}
         {% else %}
-          {{ report_name }}.1
+          1
         {% endif %}
+      </td>
+    </tr>
+    <tr>
+      <td class="top_report_key">Rapport-ID</td>
+      <td class="top_report_val">
+        {{ report_name }}.{{ report_timestamp }}
       </td>
     </tr>
   </table>
