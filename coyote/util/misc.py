@@ -35,6 +35,7 @@ from flask_login import current_user
 from flask import flash, redirect, url_for
 from flask import current_app as app
 from copy import deepcopy
+from bson import ObjectId
 
 
 # -------------------------------------------------------------------------
@@ -69,6 +70,10 @@ class EnhancedJSONEncoder(json.JSONEncoder):
         """
         if isinstance(obj, datetime):
             return obj.isoformat()  # or use obj.strftime(...) for a custom format
+
+        if isinstance(obj, ObjectId):
+            return str(obj)
+
         return super().default(obj)
 
 

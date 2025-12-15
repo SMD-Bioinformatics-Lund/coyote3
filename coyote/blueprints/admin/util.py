@@ -26,6 +26,7 @@ import json
 import os
 from typing import Any, Union
 import hashlib
+from bson import ObjectId
 
 
 class AdminUtility:
@@ -43,9 +44,7 @@ class AdminUtility:
     """
 
     @staticmethod
-    def cast_value(
-        value: Any, field_type: str
-    ) -> Union[str, int, float, bool, list, dict, None]:
+    def cast_value(value: Any, field_type: str) -> Union[str, int, float, bool, list, dict, None]:
         """
         Casts the input value to the specified field type.
 
@@ -145,13 +144,9 @@ class AdminUtility:
             elif field_type == "subschema" and "schema" in field:
                 subschema = schema.get("subschemas", {}).get(field["schema"])
                 if not subschema:
-                    config[key] = (
-                        [] if field.get("data_type") == "list" else {}
-                    )
+                    config[key] = [] if field.get("data_type") == "list" else {}
                 else:
-                    config[key] = (
-                        [] if field.get("data_type") == "list" else {}
-                    )
+                    config[key] = [] if field.get("data_type") == "list" else {}
             else:
                 if field_type in [
                     "list",
@@ -216,9 +211,7 @@ class AdminUtility:
         stable_dict = sanitize(sanitized)
 
         # Serialize deterministically
-        serialized = json.dumps(
-            stable_dict, sort_keys=True, separators=(",", ":")
-        )
+        serialized = json.dumps(stable_dict, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(serialized.encode()).hexdigest()
 
     @staticmethod
@@ -248,9 +241,7 @@ class AdminUtility:
             old_config = {}
         version = new_config.get("version", 1)
         version_history = old_config.pop("version_history", [])
-        raw_timestamp = new_config.get(
-            "created_on", datetime.now(timezone.utc)
-        )
+        raw_timestamp = new_config.get("created_on", datetime.now(timezone.utc))
 
         # Ensure it's a real datetime object
         if isinstance(raw_timestamp, str):
@@ -266,9 +257,7 @@ class AdminUtility:
         if is_new:
             delta = {"initial": True}
         else:
-            _, delta = AdminUtility.generate_version_delta(
-                old_config, new_config
-            )
+            _, delta = AdminUtility.generate_version_delta(old_config, new_config)
             delta = {k: v for k, v in delta.items() if v}
 
         version_entry = {
@@ -315,16 +304,8 @@ class AdminUtility:
         }
 
         delta = {
-            "only_in_old": {
-                k: old[k]
-                for k in old
-                if k not in new and k not in exclude_keys
-            },
-            "only_in_new": {
-                k: new[k]
-                for k in new
-                if k not in old and k not in exclude_keys
-            },
+            "only_in_old": {k: old[k] for k in old if k not in new and k not in exclude_keys},
+            "only_in_new": {k: new[k] for k in new if k not in old and k not in exclude_keys},
             "changed": diff,
         }
 
@@ -390,11 +371,7 @@ class AdminUtility:
         else:
             return []
 
-        gene_list = [
-            g.strip()
-            for g in genes.replace(",", "\n").splitlines()
-            if g.strip()
-        ]
+        gene_list = [g.strip() for g in genes.replace(",", "\n").splitlines() if g.strip()]
 
         return sorted(set(gene_list))
 
@@ -471,9 +448,7 @@ class AdminUtility:
         else:
             for section, keys in schema.get("sections", {}).items():
                 if not isinstance(keys, list):
-                    errors.append(
-                        f"Section '{section}' should contain a list of field keys"
-                    )
+                    errors.append(f"Section '{section}' should contain a list of field keys")
 
         # Ensure each field listed in sections is defined in fields or subschemas
         defined_fields = set(schema.get("fields", {}).keys())
@@ -488,9 +463,7 @@ class AdminUtility:
                 if "." in field:
                     parent, child = field.split(".", 1)
                     if parent in defined_subschemas:
-                        subschema_fields = defined_subschemas[parent].get(
-                            "fields", {}
-                        )
+                        subschema_fields = defined_subschemas[parent].get("fields", {})
                         if child in subschema_fields:
                             continue
 
@@ -535,9 +508,7 @@ class AdminUtility:
         for handler in actions:
             handler(sample_id)
             result = handler(sample_id)
-            collection_name = handler.__name__.replace(
-                "delete_sample_", ""
-            ).replace("_handler", "")
+            collection_name = handler.__name__.replace("delete_sample_", "").replace("_handler", "")
             if collection_name == "delete_sample":
                 collection_name = "sample"
             if result:
@@ -550,3 +521,20 @@ class AdminUtility:
                     f"Failed to delete {collection_name} for {sample_name.get('name')}",
                     "red",
                 )
+
+    @staticmethod
+    def restore_objectids(obj) -> dict | list | Any:
+        """
+        Recursively convert string '_id' fields back to bson.ObjectId.
+        """
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                if key == "_id" and isinstance(value, str):
+                    obj[key] = ObjectId(value)
+                else:
+                    AdminUtility.restore_objectids(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                AdminUtility.restore_objectids(item)
+
+        return obj
