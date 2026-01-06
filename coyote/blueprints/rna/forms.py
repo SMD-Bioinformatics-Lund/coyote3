@@ -35,21 +35,21 @@ class FusionFilter(FlaskForm):
     Used in the Coyote3 workflow to allow users to customize fusion event filtering criteria.
     """
 
-    fusionlist_FCknown = BooleanField(validators=[Optional()])
-    fusionlist_mitelman = BooleanField(validators=[Optional()])
+    fusionlist_FCknown = BooleanField("FC Known", validators=[Optional()])
+    fusionlist_mitelman = BooleanField("Mittleman", validators=[Optional()])
 
-    fusioncaller_arriba = BooleanField(validators=[Optional()])
-    fusioncaller_fusioncatcher = BooleanField(validators=[Optional()])
-    fusioncaller_starfusion = BooleanField(validators=[Optional()])
+    fusioncaller_arriba = BooleanField("Arriba", validators=[Optional()])
+    fusioncaller_fusioncatcher = BooleanField("Fusion Catcher", validators=[Optional()])
+    fusioncaller_starfusion = BooleanField("Star Fusion", validators=[Optional()])
 
-    min_spanpairs = IntegerField(
-        "Spanning pairs", validators=[InputRequired(), NumberRange(min=0)]
+    min_spanning_pairs = IntegerField(
+        "Min Spanning pairs", validators=[InputRequired(), NumberRange(min=0)]
     )
-    min_spanreads = IntegerField(
-        "Spanning reads", validators=[InputRequired(), NumberRange(min=0)]
+    min_spanning_reads = IntegerField(
+        "Min Spanning reads", validators=[InputRequired(), NumberRange(min=0)]
     )
 
-    fusioneffect_inframe = BooleanField(validators=[Optional()])
-    fusioneffect_outframe = BooleanField(validators=[Optional()])
+    fusioneffect_inframe = BooleanField("In-Frame", validators=[Optional()])
+    fusioneffect_outframe = BooleanField("Out-of-Frame", validators=[Optional()])
 
     reset = BooleanField("reset")

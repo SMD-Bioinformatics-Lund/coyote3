@@ -51,24 +51,25 @@ class RNAUtility:
     @staticmethod
     def create_fusioneffectlist(eff_names: list) -> list:
         """
-        Translates effect filter names from template format to annotated effect names.
+
+        Translates effect names from input list to standardized format.
 
         Args:
-            eff_names (list of str): List of effect filter names, each expected in the format 'prefix_effectname'.
+            eff_names (list of str): List of effect names, expected to include 'in-frame' and 'out-of-frame'.
 
         Returns:
-            list: List of translated effect names, e.g., 'in-frame', 'out-of-frame'.
+            list: Standardized list of effects, e.g., ['inframe', 'outframe'].
         """
         effects = []
-        for name in eff_names:
-            effect = name.split("_", 1)[1]
-            if effect == "inframe":
-                effects.append("in-frame")
-            if effect == "outframe":
-                effects.append("out-of-frame")
+        for effect in eff_names:
+            if effect == "in-frame":
+                effects.append("inframe")
+            elif effect == "out-of-frame":
+                effects.append("outframe")
 
         return effects
 
+    # TODO: Unnecessary redundancy, The terms are already standardized in the input. Can also be controlled via configs
     @staticmethod
     def create_fusioncallers(fuscallers: list) -> list:
         """

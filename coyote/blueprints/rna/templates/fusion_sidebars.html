@@ -6,7 +6,7 @@
       <h2 class="text-sm font-semibold">Control Panel</h2>
     </div>
     <div class="flex justify-between mt-2">
-      <button class="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-1 rounded text-xs mx-1" onclick="switchVisibility('fp', this);">Hide FPs</button> 
+      <button class="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-1 rounded text-xs mx-1" onclick="switchVisibility('fp', this);">Hide FPs</button>
     </div>
   </div>
 
@@ -47,14 +47,14 @@
       <div class="flex justify-between items-center mb-1">
         <h2 class="text-sm font-semibold">Fusions Filters</h2>
       </div>
-    
+
       {{ form.hidden_tag() }}
 
       <div class="flex justify-between items-center text-xs">
         <label class="text-gray-900">Spanning pairs</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&gt;</span>
-          {{ form.min_spanreads(size=2, default=sample.filter_min_spanreads, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
+          {{ form.min_spanning_reads(size=2, default=sample.filter_min_spanning_reads, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
         </div>
       </div>
 
@@ -62,7 +62,7 @@
         <label class="text-gray-900">Spanning reads</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&gt;</span>
-          {{ form.min_spanpairs(size=1, default=sample.filter_min_spanpairs, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
+          {{ form.min_spanning_pairs(size=1, default=sample.filter_min_spanning_pairs, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
         </div>
       </div>
 
@@ -70,13 +70,13 @@
       <!-- Multi-Select Dropdowns -->
       <div class="relative z-20">
         <label class="block text-gray-900 text-xs mb-1">Fusions annotation</label>
-        
+
         <!-- Annotation Trigger -->
         <div class="border border-gray-400 rounded bg-white cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('fusionlists_checkboxes', 'csq-dropdown-icon')">
           <span id="selected-option" class="text-xs text-gray-700">Select Fusion List</span>
           <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}" class="h-4 w-4 text-gray-900 transition-transform duration-200"  id="csq-dropdown-icon" alt="Consequence Dropdown Icon">
         </div>
-      
+
         <!-- Annitation list Options -->
         <div id="fusionlists_checkboxes" class="hidden border border-gray-400 mt-1 rounded shadow-md bg-gray-50 p-1 space-y-1">
           <label for="FCknown" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.fusionlist_FCknown(checked=False) }} <span>FusionCatcher 'Known'</span></label>
@@ -86,13 +86,13 @@
 
       <div class="relative z-20">
         <label class="block text-gray-900 text-xs mb-1">Fusion callers</label>
-        
+
         <!-- Fusion Caller Trigger -->
         <div class="border border-gray-400 rounded bg-white cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('fusioncallers_checkboxes', 'csq-dropdown-icon')">
           <span id="selected-option" class="text-xs text-gray-700">Select Fusion List</span>
           <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}" class="h-4 w-4 text-gray-900 transition-transform duration-200"  id="csq-dropdown-icon" alt="Consequence Dropdown Icon">
         </div>
-      
+
         <!-- Fusion caller Dropdown Options -->
         <div id="fusioncallers_checkboxes" class="hidden border border-gray-400 mt-1 rounded shadow-md bg-gray-50 p-1 space-y-1">
           <label for="arriba" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.fusioncaller_arriba(checked=False) }} <span>Arriba</span></label>
@@ -104,13 +104,13 @@
 
       <div class="relative z-20">
         <label class="block text-gray-900 text-xs mb-1">Fusion Effects</label>
-        
+
         <!-- Fusion effect Trigger -->
         <div class="border border-gray-400 rounded bg-white cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('fusioneffects_checkboxes', 'csq-dropdown-icon')">
           <span id="selected-option" class="text-xs text-gray-700">Select Fusion Effects</span>
           <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}" class="h-4 w-4 text-gray-900 transition-transform duration-200"  id="csq-dropdown-icon" alt="Consequence Dropdown Icon">
         </div>
-      
+
         <!-- Fusion caller Dropdown Options -->
         <div id="fusioneffects_checkboxes" class="hidden border border-gray-400 mt-1 rounded shadow-md bg-gray-50 p-1 space-y-1">
           <label for="inframe" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.fusioneffect_inframe(checked=False) }} <span>In-frame</span></label>
@@ -121,13 +121,13 @@
 
       <div class="relative z-10">
         <label class="block text-gray-900 text-xs mb-1">Gene Lists</label>
-        
+
         <!-- Genelist Dropdown Trigger -->
         <div class="border border-gray-400 rounded bg-white cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('genelists_checkboxes', 'genelist-dropdown-icon')">
           <span id="selected-genelist" class="text-xs text-gray-700">Select Gene Lists</span>
           <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}" class="h-4 w-4 text-gray-900 transition-transform duration-200" id="genelist-dropdown-icon" alt="genelist Dropdown Icon">
         </div>
-      
+
         <!-- Genelist Dropdown Options -->
         <div id="genelists_checkboxes" class="hidden border border-gray-400 mt-1 rounded shadow-md bg-gray-50 p-1 space-y-1">
           {% for panel in assay_panels %}
@@ -140,7 +140,7 @@
           {% endfor %}
         </div>
       </div>
-      
+
       <!-- SNV FILTER Buttons -->
       <div class="flex justify-between mt-2">
         <button class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-1 rounded text-xs mx-1" name="apply" value="apply" type="submit">Apply</button>
@@ -149,7 +149,7 @@
     </div>
 
     <hr class="broder border-gray-500 my-1">
-    
+
   </form>
 </aside>
 
@@ -169,16 +169,16 @@
     const sidebarForm = document.getElementById('snv-actions-form');
     const selectedVariants = document.querySelectorAll('.snv-checkbox:checked'); // Selected variants
     const sidebarOptions = document.querySelectorAll('.snv-actions-checkbox:checked'); // Selected sidebar checkboxes
-  
+
     // Remove existing hidden inputs for variants and action
     const existingVariantInputs = sidebarForm.querySelectorAll('input[name="selected_object_id"]');
     existingVariantInputs.forEach((input) => input.remove());
-  
+
     const existingActionInput = sidebarForm.querySelector('input[name="action"]');
     if (existingActionInput) {
       existingActionInput.remove();
     }
-  
+
     // Add selected variants as hidden inputs
     selectedVariants.forEach((variant) => {
       const hiddenInput = document.createElement('input');
@@ -187,18 +187,18 @@
       hiddenInput.value = variant.getAttribute('data-value');
       sidebarForm.appendChild(hiddenInput);
     });
-  
+
     // Add the action value as a hidden input
     const actionInput = document.createElement('input');
     actionInput.type = 'hidden';
     actionInput.name = 'action';
     actionInput.value = actionValue;
     sidebarForm.appendChild(actionInput);
-  
+
     // Check if both variants and sidebar options are selected
     const variantsSelected = selectedVariants.length > 0;
     const optionsSelected = sidebarOptions.length > 0;
-  
+
     // Validation: Stop submission if either is missing
     if (!variantsSelected || !optionsSelected) {
       if (!variantsSelected && !optionsSelected) {
@@ -210,7 +210,7 @@
       }
       return; // Stop form submission
     }
-  
+
     // If validation passes, submit the form
     sidebarForm.submit();
   }

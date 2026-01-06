@@ -1,7 +1,7 @@
-{% extends "layout.html" %} 
+{% extends "layout.html" %}
 
-{% block body %} 
-{% set translation=config["TRANS"] %} 
+{% block body %}
+{% set translation=config["TRANS"] %}
 
 <div class="flex w-full h-full overflow-hidden">
 
@@ -10,7 +10,7 @@
 
     {% if fusions %}
       <div class="flex border-l-8 border-yellow-400 ">
-        <a href="#fusions" 
+        <a href="#fusions"
           class="relative bg-gray-500 text-white text-xs text-center mt-1 py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
             <span class="vertical-text">Fusions</span>
         </a>
@@ -19,7 +19,7 @@
 
     {% if sample.classification %}
       <div class="flex border-l-8 border-blue-400">
-        <a href="#classification" 
+        <a href="#classification"
           class="relative bg-gray-500 text-white text-xs text-center mt-1 py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
             <span class="vertical-text">Class</span>
        </a>
@@ -28,15 +28,15 @@
 
     {% if sample.expr %}
       <div class="flex border-l-8 border-blue-400">
-        <a href="#expression" 
+        <a href="#expression"
           class="relative bg-gray-500 text-white text-xs text-center mt-1 py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
             <span class="vertical-text">expression</span>
         </a>
       </div>
     {% endif %}
-  
+
     <div class="flex border-l-8 border-teal-400 mt-1">
-      <a href="#summary" 
+      <a href="#summary"
         class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
           <span class="vertical-text">Summary</span>
       </a>
@@ -44,7 +44,7 @@
 
     {% if sample.cov %}
       <div class="flex border-l-8 border-orange-400 mt-1">
-        <a href="{{ url_for('cov_bp.get_cov', sample_id=sample.name) }}" 
+        <a href="{{ url_for('cov_bp.get_cov', sample_id=sample.name) }}"
           class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
             <span class="vertical-text">Coverage</span>
         </a>
@@ -52,7 +52,7 @@
     {% endif %}
 
     <div class="flex border-l-8 border-orange-400 ">
-      <a href="#lowcov" 
+      <a href="#lowcov"
         class="relative bg-gray-500 text-white text-xs text-center mt-1 py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
           <span class="vertical-text">Low Cov</span>
       </a>
@@ -64,7 +64,7 @@
 
     <!-- Sample Info Card (Auto-Wrapping, Full Flexbox) -->
     {% include "sample_meta_rna_info.html" %}
-    
+
     <!-- Selected Gene Panel Card -->
     {% include "selected_gene_panel_div.html" %}
 
@@ -85,10 +85,10 @@
             <!-- Sticky Header -->
             <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-yellow-100 to-orange-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
               <h2 class="text-sm font-semibold text-black">Fusions Passing Filter Criteria</h2>
-              <img 
-                src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}" 
-                alt="Export to CSV - Fusions" 
-                onclick="exportTableToCSV('{{ sample.name }}.fusions.csv', 'fusions-table')" 
+              <img
+                src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}"
+                alt="Export to CSV - Fusions"
+                onclick="exportTableToCSV('{{ sample.name }}.fusions.csv', 'fusions-table')"
                 class="w-6 h-6 transition-transform transform hover:scale-110 cursor-pointer"
               />
             </div>
@@ -127,20 +127,20 @@
                           </div>
                         {% endif %}
                       </td>
-                    
+
                       <td class="px-2 py-2 w-60 align-top">
                         {% if sel_fus.desc %}
                           <div x-data="{ expanded: false }" class="space-y-1">
                             <div x-show="!expanded" x-cloak>
                               {{ sel_fus.desc | format_fusion_desc_few(1) | safe }}
-                              <button 
+                              <button
                                 @click="expanded = true"
                                 class="text-blue-500 text-xs underline ml-1 focus:outline-none">Show more
                               </button>
                             </div>
                             <div x-show="expanded" x-cloak>
                               {{ sel_fus.desc | format_fusion_desc | safe }}
-                              <button 
+                              <button
                                 @click="expanded = false"
                                 class="text-blue-500 text-xs underline ml-1 focus:outline-none">Show less
                               </button>
@@ -174,24 +174,24 @@
     <!-- Expression Table -->
     {% if sample.expr %}
     <section id="expression" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 w-full md:w-1/2">
-      
+
       <!-- Expression Header -->
       <div class="overflow-x-auto relative">
         <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">
           Expression of Selected Genes
         </h2>
       </div>
-    
+
       <!-- Expression Table -->
       <div class="mx-auto py-2">
         <div class="flex flex-wrap gap-4">
           <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
-            
+
             <!-- Sticky Top Info -->
             <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-green-200 to-blue-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
               <h2 class="text-sm font-semibold text-black">Gene Expression Metrics</h2>
             </div>
-    
+
             <div class="overflow-auto relative">
               <table class="w-full table-fixed text-xs text-gray-800">
                 <thead class="capitalize tracking-wide bg-green-100">
@@ -227,7 +227,7 @@
                 </tbody>
               </table>
             </div>
-    
+
           </div>
         </div>
       </div>
@@ -237,24 +237,24 @@
     <!-- Classification Table -->
     {% if sample.classification %}
     <section id="classification" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 w-full md:w-1/2">
-      
+
       <!-- Classification Header -->
       <div class="overflow-x-auto relative">
         <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">
           Expression-Based Classification ({{ sample.classification.classifier_version }})
         </h2>
       </div>
-    
+
       <!-- Classification Table -->
       <div class="mx-auto py-2">
         <div class="flex flex-wrap gap-4">
           <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
-            
+
             <!-- Sticky Top Info -->
             <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-green-200 to-blue-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
               <h2 class="text-sm font-semibold text-black">Classifier Scores</h2>
             </div>
-    
+
             <div class="overflow-auto relative">
               <table class="w-full table-fixed text-xs text-gray-800">
                 <thead class="capitalize tracking-wide bg-green-100">
@@ -278,7 +278,7 @@
                 </tbody>
               </table>
             </div>
-    
+
           </div>
         </div>
       </div>
@@ -286,7 +286,7 @@
     {% endif %}
     </div>
 
-    
+
     <!-- Summary Comments Card -->
     <section id="summary" class="bg-blue-50 shadow-lg rounded-xl px-2 py-1 my-2 relative">
       <!-- Summary Header -->
@@ -366,24 +366,24 @@
               <h2 class="text-sm font-semibold text-black">Write New Summary</h2>
             </div>
             <div class="overflow-auto relative" id="comments-box-div">
-              <form action="{{ url_for('common_bp.add_sample_comment', id=sample._id) }}" method="post">
+              <form action="{{ url_for('common_bp.add_sample_comment', sample_id=sample._id) }}" method="post">
                 <textarea id="comment_textarea"
                           name="sample_comment"
                           placeholder="Type to write a new summary for {{ sample.name }} sample..."
                           class="w-5/6 p-4 border border-gray-400 rounded mx-5 my-4 h-40"></textarea>
-          
+
                 <!-- Buttons Row -->
                 <div class="flex flex-wrap items-center gap-4 mx-5 mb-5">
                   <input type="submit"
                         value="Save"
                         class="p-2 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg cursor-pointer">
-          
+
                   <button type="button"
                           onclick="addAIText()"
                           class="p-2 text-black bg-gray-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-gray-500 hover:text-white hover:shadow-lg cursor-pointer">
                     Suggest
                   </button>
-          
+
                   <button type="button"
                           onclick="window.location.href='preview_report/{{ sample.name }}'"
                           class="p-2 text-black bg-green-400 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-green-500 hover:text-white hover:shadow-lg cursor-pointer">
@@ -391,14 +391,14 @@
                   </button>
                 </div>
               </form>
-          
+
               <!-- AI suggestion box -->
               <div id="suggestion" class="hidden">
                 {{ ai_text }}
               </div>
             </div>
           </div>
-          
+
 
 
         </div>
@@ -433,50 +433,50 @@
       textarea.value = text;
     }
   }
-  
+
   window.onload = function () {
     document.querySelectorAll('[data-autoclick="true"]').forEach(element => element.click());
     document.querySelectorAll('[data-autoclick-once="true"]').forEach(element => element.click());
   };
-  
+
   var expanded = false;
   function toggleFilters() {
     var filterCard = document.getElementById("filter_card");
     filterCard.style.display = expanded ? "none" : "block";
     expanded = !expanded;
   }
-  
+
   function show_lowcov() {
     var lowcovDiv = document.getElementById("lowcovlist_div");
     lowcovDiv.style.display = lowcovDiv.style.display == "none" ? "block" : "none";
   }
-  
+
   function show_germlinecnv() {
     var germlineDiv = document.getElementById("germline_div");
     germlineDiv.style.display = germlineDiv.style.display == "none" ? "block" : "none";
   }
-  
+
   function switchVisibility(class_name) {
     var elems = document.getElementsByClassName(class_name);
     for (var i = 0; i < elems.length; i++) {
       elems[i].classList.toggle('hidden');
     }
   }
-  
+
   // Filter sidebar toggle
   document.getElementById('filter-toggle').addEventListener('click', function() {
     document.getElementById('filter-sidebar').classList.toggle('translate-x-full');
   });
-  
+
   document.getElementById('filter-close').addEventListener('click', function() {
     document.getElementById('filter-sidebar').classList.add('translate-x-full');
   });
-  
+
   function showCheckboxes(id) {
     var checkboxes = document.getElementById(id);
     checkboxes.style.display = checkboxes.style.display === 'block' ? 'none' : 'block';
   }
-  
+
 
 
   // Export csv function this is a basic function for ow, can be customized and improved later on
@@ -487,12 +487,12 @@
       console.error(`Table with ID "${tableId}" not found.`);
       return;
     }
-  
+
     let csv = [];
-    
+
     // Get all rows from the table
     const rows = table.querySelectorAll('tr');
-  
+
     // Loop through each row
     rows.forEach((row) => {
       let rowData = [];
@@ -504,10 +504,10 @@
       });
       csv.push(rowData.join(',')); // Join cells with a comma
     });
-  
+
     // Convert the array to a CSV string
     const csvString = csv.join('\n');
-  
+
     // Create a Blob and download the CSV file
     const blob = new Blob([csvString], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -520,7 +520,7 @@
   }
 
 
-  
+
 </script>
 
 <style>

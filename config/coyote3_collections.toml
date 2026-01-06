@@ -28,6 +28,9 @@
     coverage2_collection = "panel_cov"
     groupcov_collection = "group_coverage"
     expression_collection = "hpaexpr"
+    rna_expression_collection = "rna_expression"
+    rna_qc_collection = "rna_qc"
+    rna_classification_collection = "rna_classification"
 
 [coyote_dev_3]
     aspc_collection = "asp_configs"
@@ -61,6 +64,9 @@
     cosmic_collection = "cosmic"
     vep_metadata_collection = "vep_metadata"
     hgnc_collection = "hgnc_genes"
+    rna_expression_collection = "rna_expression"
+    rna_qc_collection = "rna_qc"
+    rna_classification_collection = "rna_classification"
 
 [BAM_Service]
     bam_samples = "samples"

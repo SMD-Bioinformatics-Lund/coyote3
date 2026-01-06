@@ -150,7 +150,7 @@
                       </td>
                       <td class="p-2 font-medium">
                         {% if sample.get("omics_layer", "").lower() == "rna" %}
-                          <a href="{{ url_for('rna_bp.list_fusions', id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                          <a href="{{ url_for('rna_bp.list_fusions', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% elif sample.get("omics_layer", "").lower() == "dna" %}
                           <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% endif %}

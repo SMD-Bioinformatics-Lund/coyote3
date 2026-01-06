@@ -36,7 +36,7 @@ def build_query(assay_group: str, settings: dict) -> dict:
 
     # Myeloid requires settings: min_freq, min_depth, min_alt_reads, max_control_freq, filter_conseq(list)
 
-    if assay_group in {"myeloid", "hematology", "fusion", "tumwgs", "unknown"}:
+    if assay_group in {"myeloid", "hematology", "tumwgs", "unknown"}:
         query = {
             "SAMPLE_ID": settings["id"],
             "$and": [
@@ -63,23 +63,11 @@ def build_query(assay_group: str, settings: dict) -> dict:
                                         "$elemMatch": {
                                             "type": "case",
                                             "AF": {
-                                                "$gte": float(
-                                                    settings["min_freq"]
-                                                ),
-                                                "$lte": float(
-                                                    settings["max_freq"]
-                                                ),
+                                                "$gte": float(settings["min_freq"]),
+                                                "$lte": float(settings["max_freq"]),
                                             },
-                                            "DP": {
-                                                "$gte": float(
-                                                    settings["min_depth"]
-                                                )
-                                            },
-                                            "VD": {
-                                                "$gte": float(
-                                                    settings["min_alt_reads"]
-                                                )
-                                            },
+                                            "DP": {"$gte": float(settings["min_depth"])},
+                                            "VD": {"$gte": float(settings["min_alt_reads"])},
                                         }
                                     }
                                 },
@@ -91,31 +79,13 @@ def build_query(assay_group: str, settings: dict) -> dict:
                                                 "$elemMatch": {
                                                     "type": "control",
                                                     "AF": {
-                                                        "$lte": float(
-                                                            settings[
-                                                                "max_control_freq"
-                                                            ]
-                                                        )
+                                                        "$lte": float(settings["max_control_freq"])
                                                     },
-                                                    "DP": {
-                                                        "$gte": float(
-                                                            settings[
-                                                                "min_depth"
-                                                            ]
-                                                        )
-                                                    },
+                                                    "DP": {"$gte": float(settings["min_depth"])},
                                                 }
                                             }
                                         },
-                                        {
-                                            "GT": {
-                                                "$not": {
-                                                    "$elemMatch": {
-                                                        "type": "control"
-                                                    }
-                                                }
-                                            }
-                                        },
+                                        {"GT": {"$not": {"$elemMatch": {"type": "control"}}}},
                                     ]
                                 },
                                 # Filters if gnomad population frequency are above the max_popfreq
@@ -125,22 +95,12 @@ def build_query(assay_group: str, settings: dict) -> dict:
                                             "gnomad_frequency": {
                                                 "$exists": True,
                                                 "$type": "number",
-                                                "$lte": float(
-                                                    settings["max_popfreq"]
-                                                ),
+                                                "$lte": float(settings["max_popfreq"]),
                                             }
                                         },
-                                        {
-                                            "gnomad_frequency": {
-                                                "$type": "string"
-                                            }
-                                        },
+                                        {"gnomad_frequency": {"$type": "string"}},
                                         {"gnomad_frequency": None},
-                                        {
-                                            "gnomad_frequency": {
-                                                "$exists": False
-                                            }
-                                        },
+                                        {"gnomad_frequency": {"$exists": False}},
                                     ]
                                 },
                                 # Either variant fullfills Consequence-filter or is a structural variant in FLT3.
@@ -148,18 +108,14 @@ def build_query(assay_group: str, settings: dict) -> dict:
                                     "$or": [
                                         {
                                             "INFO.selected_CSQ.Consequence": {
-                                                "$in": settings[
-                                                    "filter_conseq"
-                                                ]
+                                                "$in": settings["filter_conseq"]
                                             }
                                         },
                                         {
                                             "INFO.CSQ": {
                                                 "$elemMatch": {
                                                     "Consequence": {
-                                                        "$in": settings[
-                                                            "filter_conseq"
-                                                        ]
+                                                        "$in": settings["filter_conseq"]
                                                     }
                                                 }
                                             }
@@ -169,14 +125,8 @@ def build_query(assay_group: str, settings: dict) -> dict:
                                                 {"genes": {"$in": ["FLT3"]}},
                                                 {
                                                     "$or": [
-                                                        {
-                                                            "INFO.SVTYPE": {
-                                                                "$exists": "true"
-                                                            }
-                                                        },
-                                                        {
-                                                            "ALT": large_ins_regex
-                                                        },
+                                                        {"INFO.SVTYPE": {"$exists": "true"}},
+                                                        {"ALT": large_ins_regex},
                                                     ]
                                                 },
                                             ]
@@ -209,13 +159,7 @@ def build_query(assay_group: str, settings: dict) -> dict:
                     }
                 },
                 # Either variant fullfills Consequence-filter or is a structural variant in FLT3.
-                {
-                    "INFO.CSQ": {
-                        "$elemMatch": {
-                            "Consequence": {"$in": settings["filter_conseq"]}
-                        }
-                    }
-                },
+                {"INFO.CSQ": {"$elemMatch": {"Consequence": {"$in": settings["filter_conseq"]}}}},
             ],
         }
 
@@ -235,23 +179,11 @@ def build_query(assay_group: str, settings: dict) -> dict:
                                         "$elemMatch": {
                                             "type": "case",
                                             "AF": {
-                                                "$gte": float(
-                                                    settings["min_freq"]
-                                                ),
-                                                "$lte": float(
-                                                    settings["max_freq"]
-                                                ),
+                                                "$gte": float(settings["min_freq"]),
+                                                "$lte": float(settings["max_freq"]),
                                             },
-                                            "DP": {
-                                                "$gte": float(
-                                                    settings["min_depth"]
-                                                )
-                                            },
-                                            "VD": {
-                                                "$gte": float(
-                                                    settings["min_alt_reads"]
-                                                )
-                                            },
+                                            "DP": {"$gte": float(settings["min_depth"])},
+                                            "VD": {"$gte": float(settings["min_alt_reads"])},
                                         }
                                     }
                                 },
@@ -263,31 +195,13 @@ def build_query(assay_group: str, settings: dict) -> dict:
                                                 "$elemMatch": {
                                                     "type": "control",
                                                     "AF": {
-                                                        "$lte": float(
-                                                            settings[
-                                                                "max_control_freq"
-                                                            ]
-                                                        )
+                                                        "$lte": float(settings["max_control_freq"])
                                                     },
-                                                    "DP": {
-                                                        "$gte": float(
-                                                            settings[
-                                                                "min_depth"
-                                                            ]
-                                                        )
-                                                    },
+                                                    "DP": {"$gte": float(settings["min_depth"])},
                                                 }
                                             }
                                         },
-                                        {
-                                            "GT": {
-                                                "$not": {
-                                                    "$elemMatch": {
-                                                        "type": "control"
-                                                    }
-                                                }
-                                            }
-                                        },
+                                        {"GT": {"$not": {"$elemMatch": {"type": "control"}}}},
                                     ]
                                 },
                                 # Filters if gnomad population frequency are above the max_popfreq
@@ -297,22 +211,12 @@ def build_query(assay_group: str, settings: dict) -> dict:
                                             "gnomad_frequency": {
                                                 "$exists": True,
                                                 "$type": "number",
-                                                "$lte": float(
-                                                    settings["max_popfreq"]
-                                                ),
+                                                "$lte": float(settings["max_popfreq"]),
                                             }
                                         },
-                                        {
-                                            "gnomad_frequency": {
-                                                "$type": "string"
-                                            }
-                                        },
+                                        {"gnomad_frequency": {"$type": "string"}},
                                         {"gnomad_frequency": None},
-                                        {
-                                            "gnomad_frequency": {
-                                                "$exists": False
-                                            }
-                                        },
+                                        {"gnomad_frequency": {"$exists": False}},
                                     ]
                                 },
                                 # Either variant fullfills Consequence-filter or is a promoter variant in TERT.
@@ -320,18 +224,14 @@ def build_query(assay_group: str, settings: dict) -> dict:
                                     "$or": [
                                         {
                                             "INFO.selected_CSQ.Consequence": {
-                                                "$in": settings[
-                                                    "filter_conseq"
-                                                ]
+                                                "$in": settings["filter_conseq"]
                                             }
                                         },
                                         {
                                             "INFO.CSQ": {
                                                 "$elemMatch": {
                                                     "Consequence": {
-                                                        "$in": settings[
-                                                            "filter_conseq"
-                                                        ]
+                                                        "$in": settings["filter_conseq"]
                                                     }
                                                 }
                                             }

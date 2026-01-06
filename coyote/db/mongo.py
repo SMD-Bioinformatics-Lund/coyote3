@@ -51,6 +51,9 @@ from coyote.db.permissions import PermissionsHandler
 from coyote.db.vep_meta import VEPMetaHandler
 from coyote.db.isgl import ISGLHandler
 from coyote.db.hgnc import HGNCHandler
+from coyote.db.rna_expression import RNAExpressionHandler
+from coyote.db.rna_classification import RNAClassificationHandler
+from coyote.db.rna_qc import RNAQCHandler
 
 
 # -------------------------------------------------------------------------
@@ -144,9 +147,7 @@ class MongoAdapter:
             .get(self.app.config["BAM_SERVICE_DB_NAME"], {})
             .items()
         ):
-            setattr(
-                self, bam_collection_name, self.bam_db[bam_collection_value]
-            )
+            setattr(self, bam_collection_name, self.bam_db[bam_collection_value])
 
     def _setup_handlers(self):
         """
@@ -182,3 +183,6 @@ class MongoAdapter:
         self.vep_meta_handler = VEPMetaHandler(self)
         self.isgl_handler = ISGLHandler(self)
         self.hgnc_handler = HGNCHandler(self)
+        self.rna_expression_handler = RNAExpressionHandler(self)
+        self.rna_classification_handler = RNAClassificationHandler(self)
+        self.rna_qc_handler = RNAQCHandler(self)
