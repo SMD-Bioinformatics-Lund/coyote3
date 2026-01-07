@@ -865,14 +865,14 @@ def classify_variant(sample_id: str, var_id: str) -> Response:
     form_data = request.form.to_dict()
     class_num = util.common.get_tier_classification(form_data)
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
+    print(f"Classifying variant {variant} as class {class_num} ({nomenclature})")
     if class_num != 0:
         store.annotation_handler.insert_classified_variant(
             variant, nomenclature, class_num, form_data
         )
 
-    if class_num != 0:
-        if nomenclature == "f":
-            return redirect(url_for("rna_bp.show_fusion", id=var_id))
+    if nomenclature == "f":
+        return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=var_id))
 
     return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
@@ -893,12 +893,13 @@ def remove_classified_variant(sample_id: str, var_id: str) -> Response:
     """
     form_data = request.form.to_dict()
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
-    if nomenclature == "f":
-        return redirect(url_for("rna_bp.show_fusion", id=var_id))
+
     delete_result = store.annotation_handler.delete_classified_variant(
         variant, nomenclature, form_data
     )
     app.logger.debug(delete_result)
+    if nomenclature == "f":
+        return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=var_id))
     return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 

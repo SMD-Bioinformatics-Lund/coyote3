@@ -206,9 +206,9 @@ def list_fusions(sample_id: str) -> str | Response:
     )
 
 
-@rna_bp.route("/fusion/<string:id>")
-@login_required
-def show_fusion(id: str) -> Response:
+@rna_bp.route("/<string:sample_id>/fusion/<string:fusion_id>")
+@require_sample_access("sample_id")
+def show_fusion(sample_id: str, fusion_id: str) -> Response | str:
     """
     Display details for a specific RNA fusion event.
 
@@ -217,22 +217,44 @@ def show_fusion(id: str) -> Response:
     show_fusion.html template with this data.
 
     Args:
-        id (str): The unique identifier of the fusion event.
+        fusion_id (str): The unique identifier of the fusion event.
 
     Returns:
-        Response: Rendered HTML template with fusion, sample, annotations,
-        and classification data.
+        Response | str: Rendered HTML template for the fusion details page.
     """
-    fusion = store.fusion_handler.get_fusion(id)
-    sample = store.sample_handler.get_sample_by_id(fusion["SAMPLE_ID"])
+    fusion = store.fusion_handler.get_fusion(fusion_id)
 
-    annotations, classification = store.fusion_handler.get_fusion_annotations(fusion)
+    result = get_sample_and_assay_config(sample_id)
+    if isinstance(result, Response):
+        return result
+    sample, assay_config, assay_config_schema = result
+
+    # Get assay group and subpanel for the sample, sections to display
+    assay_group: str = assay_config.get("asp_group", "unknown")  # myeloid, solid, lymphoid
+    subpanel: str | None = sample.get("subpanel")  # breast, LP, lung, etc.
+
+    annotations, latest_classification = store.fusion_handler.get_fusion_annotations(fusion)
+    # Get global annotations for the fusion
+    # (
+    #     annotations,
+    #     latest_classification,
+    #     other_classifications,
+    #     annotations_interesting,
+    # ) = store.annotation_handler.get_global_annotations(fusion, assay_group, subpanel)
+    #
+    # if not latest_classification or latest_classification.get("class") == 999:
+    #     fusion = util.dna.add_alt_class(fusion, assay_group, subpanel)
+    # else:
+    #     fusion["additional_classifications"] = None
+
     return render_template(
         "show_fusion.html",
         fusion=fusion,
         sample=sample,
         annotations=annotations,
-        classification=classification,
+        latest_classification=latest_classification,
+        assay_group=assay_group,
+        subpanel=subpanel,
     )
 
 

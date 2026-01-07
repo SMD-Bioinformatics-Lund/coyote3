@@ -111,9 +111,12 @@ class AnnotationsHandler(BaseHandler):
                 - annotations_interesting (dict): A dictionary of annotations
                   deemed interesting based on assay and subpanel.
         """
-        genomic_location = (
-            f"{str(variant['CHROM'])}:{str(variant['POS'])}:{variant['REF']}/{variant['ALT']}"
-        )
+        try:
+            genomic_location = (
+                f"{str(variant['CHROM'])}:{str(variant['POS'])}:{variant['REF']}/{variant['ALT']}"
+            )
+        except KeyError:
+            genomic_location = ""
         selected_CSQ = variant["INFO"]["selected_CSQ"]
         hgvsp = unquote(selected_CSQ.get("HGVSp", ""))
         hgvsc = unquote(selected_CSQ.get("HGVSc", ""))
@@ -359,6 +362,8 @@ class AnnotationsHandler(BaseHandler):
                     "variant": variant,
                     "assay": variant_data.get("assay_group", None),
                     "gene": variant_data.get("gene", None),
+                    "gene1": variant_data.get("gene1", None),  # this is for fusion
+                    "gene2": variant_data.get("gene2", None),  # this is for fusion
                     "nomenclature": nomenclature,
                     "subpanel": variant_data.get("subpanel", None),
                 }
@@ -366,15 +371,15 @@ class AnnotationsHandler(BaseHandler):
         )
         ## If variant has no match to current assay, it has an historical variant, i.e. not assigned to an assay. THIS IS DANGEROUS, maybe limit to admin?
         if len(classified_docs) == 0 and current_user.is_admin:
-            delete_result = list(
-                self.get_collection().find(  # may be change it to delete later
-                    {
-                        "class": {"$exists": True},
-                        "variant": variant,
-                        "gene": variant_data.get("gene", None),
-                        "nomenclature": nomenclature,
-                    }
-                )
+            delete_result = self.get_collection().find(  # may be change it to delete later
+                {
+                    "class": {"$exists": True},
+                    "variant": variant,
+                    "gene": variant_data.get("gene", None),
+                    "gene1": variant_data.get("gene1", None),  # this is for fusion
+                    "gene2": variant_data.get("gene2", None),  # this is for fusion
+                    "nomenclature": nomenclature,
+                }
             )
         else:
             delete_result = self.get_collection().delete_many(
@@ -383,6 +388,8 @@ class AnnotationsHandler(BaseHandler):
                     "variant": variant,
                     "assay": variant_data.get("assay_group", None),
                     "gene": variant_data.get("gene", None),
+                    "gene1": variant_data.get("gene1", None),  # this is for fusion
+                    "gene2": variant_data.get("gene2", None),  # this is for fusion
                     "nomenclature": nomenclature,
                     "subpanel": variant_data.get("subpanel", None),
                 }
