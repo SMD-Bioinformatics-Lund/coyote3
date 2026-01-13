@@ -114,7 +114,7 @@ def edit_sample(sample_id: str) -> str | Response:
             return redirect(request.url)
 
         # Optional: Add timestamp or updated_by tracking here
-        updated_sample["updated_on"] = datetime.now(timezone.utc)
+        updated_sample["updated_on"] = util.common.utc_now()
         updated_sample["updated_by"] = current_user.email
 
         try:
@@ -265,9 +265,9 @@ def create_user() -> Response | str:
 
     # Inject meta audit fields
     schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = datetime.now(timezone.utc)
+    schema["fields"]["created_on"]["default"] = util.common.utc_now()
     schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = datetime.now(timezone.utc)
+    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
 
     if request.method == "POST":
         form_data: dict[str, str | list[str]] = {
@@ -436,7 +436,7 @@ def edit_user(user_id: str) -> Response | str:
         )
 
         # Proceed with update
-        updated_user["updated_on"] = datetime.now(timezone.utc)
+        updated_user["updated_on"] = util.common.utc_now()
         updated_user["updated_by"] = current_user.email
 
         # Hash the password
@@ -686,7 +686,7 @@ def edit_schema(schema_id: str) -> str | Response:
             return redirect(request.url)
 
         # Optional: Add timestamp or updated_by tracking here
-        updated_schema["updated_on"] = datetime.now(timezone.utc)
+        updated_schema["updated_on"] = util.common.utc_now()
         updated_schema["updated_by"] = current_user.email
         updated_schema["version"] = schema_doc.get("version", 1) + 1
 
@@ -731,9 +731,9 @@ def create_schema() -> str | Response:
 
             # Metadata
             parsed_schema["_id"] = parsed_schema.get("schema_name")
-            parsed_schema["created_on"] = datetime.now(timezone.utc)
+            parsed_schema["created_on"] = util.common.utc_now()
             parsed_schema["created_by"] = current_user.email
-            parsed_schema["updated_on"] = datetime.now(timezone.utc)
+            parsed_schema["updated_on"] = util.common.utc_now()
             parsed_schema["updated_by"] = current_user.email
 
             store.schema_handler.create_schema(parsed_schema)
@@ -831,9 +831,9 @@ def create_permission() -> Response | str:
 
     # Inject meta audit
     schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = datetime.now(timezone.utc)
+    schema["fields"]["created_on"]["default"] = util.common.utc_now()
     schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = datetime.now(timezone.utc)
+    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
 
     if request.method == "POST":
         form_data = {
@@ -916,7 +916,7 @@ def edit_permission(perm_id: str) -> Response | str:
         updated_permission = util.admin.process_form_to_config(form_data, schema)
 
         # Proceed with update
-        updated_permission["updated_on"] = datetime.now(timezone.utc)
+        updated_permission["updated_on"] = util.common.utc_now()
         updated_permission["updated_by"] = current_user.email
         updated_permission["version"] = permission.get("version", 1) + 1
         updated_permission["schema_name"] = schema["_id"]
@@ -1134,9 +1134,9 @@ def create_role() -> Response | str:
 
     # inject audit data into the schema
     schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = datetime.now(timezone.utc)
+    schema["fields"]["created_on"]["default"] = util.common.utc_now()
     schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = datetime.now(timezone.utc)
+    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
 
     if request.method == "POST":
         form_data: dict[str, str | list[str]] = {
@@ -1245,7 +1245,7 @@ def edit_role(role_id: str) -> Response | str:
         updated_role = util.admin.process_form_to_config(form_data, schema)
 
         updated_role["updated_by"] = current_user.email
-        updated_role["updated_on"] = datetime.now(timezone.utc)
+        updated_role["updated_on"] = util.common.utc_now()
         updated_role["schema_name"] = schema["_id"]
         updated_role["schema_version"] = schema["version"]
         updated_role["version"] = role.get("version", 1) + 1
@@ -1428,9 +1428,9 @@ def create_assay_panel():
 
     # inject audit data into the schema
     schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = datetime.now(timezone.utc)
+    schema["fields"]["created_on"]["default"] = util.common.utc_now()
     schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = datetime.now(timezone.utc)
+    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
 
     if request.method == "POST":
         form_data: dict[str, list[str] | str] = {
@@ -1562,7 +1562,7 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
         updated["germline_genes"] = germline_genes
         updated["germline_genes_count"] = len(germline_genes)
         updated["updated_by"] = current_user.email
-        updated["updated_on"] = datetime.now(timezone.utc)
+        updated["updated_on"] = util.common.utc_now()
         updated["schema_name"] = schema["_id"]
         updated["schema_version"] = schema["version"]
         updated["version"] = panel.get("version", 1) + 1
@@ -1679,7 +1679,7 @@ def print_assay_panel(panel_id: str) -> str | Response:
         "asp/print_asp.html",
         schema=schema,
         config=panel,
-        now=datetime.now(timezone.utc),
+        now=util.common.utc_now(),
         selected_version=selected_version,
     )
 
@@ -1820,9 +1820,9 @@ def create_dna_assay_config() -> Response | str:
     )
 
     schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = datetime.now(timezone.utc)
+    schema["fields"]["created_on"]["default"] = util.common.utc_now()
     schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = datetime.now(timezone.utc)
+    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
 
     if request.method == "POST":
         form_data = {
@@ -1943,9 +1943,9 @@ def create_rna_assay_config() -> Response | str:
     schema["fields"]["assay_name"]["options"] = valid_assay_ids
 
     schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = datetime.now(timezone.utc)
+    schema["fields"]["created_on"]["default"] = util.common.utc_now()
     schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = datetime.now(timezone.utc)
+    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
 
     if request.method == "POST":
         form_data = {
@@ -2077,7 +2077,7 @@ def edit_assay_config(assay_id: str) -> Response | str:
 
         # Enrich with metadata
         updated_config["_id"] = assay_config.get("_id")
-        updated_config["updated_on"] = datetime.now(timezone.utc)
+        updated_config["updated_on"] = util.common.utc_now()
         updated_config["updated_by"] = current_user.email
         updated_config["schema_name"] = schema["_id"]
         updated_config["schema_version"] = schema["version"]
@@ -2209,7 +2209,7 @@ def print_assay_config(assay_id: str) -> str | Response:
         "aspc/print_aspc.html",
         schema=schema,
         config=assay_config,
-        now=datetime.now(timezone.utc),
+        now=util.common.utc_now(),
         selected_version=selected_version,
     )
 
@@ -2336,9 +2336,9 @@ def create_genelist() -> Response | str:
 
     # Inject meta audit
     schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = datetime.now(timezone.utc)
+    schema["fields"]["created_on"]["default"] = util.common.utc_now()
     schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = datetime.now(timezone.utc)
+    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
 
     if request.method == "POST":
         form_data: dict[str, list[str] | str] = {
@@ -2481,7 +2481,7 @@ def edit_genelist(genelist_id: str) -> Response | str:
         updated["genes"] = genes
         updated["gene_count"] = len(genes)
         updated["updated_by"] = current_user.email
-        updated["updated_on"] = datetime.now(timezone.utc)
+        updated["updated_on"] = util.common.utc_now()
         updated["schema_name"] = schema["_id"]
         updated["schema_version"] = schema["version"]
         updated["version"] = genelist.get("version", 1) + 1
@@ -2639,7 +2639,7 @@ def audit():
     """
 
     logs_path = Path(app.config["LOGS"], "audit")
-    cutoff_ts = datetime.now(timezone.utc).timestamp() - (30 * 24 * 60 * 60)  # last 30 days
+    cutoff_ts = util.common.utc_now().timestamp() - (30 * 24 * 60 * 60)  # last 30 days
 
     log_files = sorted(
         [f for f in logs_path.glob("*.log*") if f.stat().st_mtime >= cutoff_ts],

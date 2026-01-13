@@ -505,4 +505,4 @@ class DNAUtility:
         Returns:
             str: A string representing the current timestamp in the format 'YYYY-MM-DD HH:MM:SS'.
         """
-        return datetime.now(timezone.utc).strftime("%y%m%d%H%M%S")
+        return CommonUtility.utc_now().strftime("%y%m%d%H%M%S")

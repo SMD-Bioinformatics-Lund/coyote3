@@ -564,7 +564,7 @@ class SampleHandler(BaseHandler):
                         "report_name": f"{report_id}.html",
                         "filepath": filepath,
                         "author": current_user.username,
-                        "time_created": datetime.now(),
+                        "time_created": CommonUtility.utc_now(),
                     }
                 },
                 "$set": {"report_num": report_num},

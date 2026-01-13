@@ -754,31 +754,6 @@ def three_dec(val: float | int) -> str:
 
 
 @app.template_filter()
-def human_date(value: datetime | str) -> str:
-    """
-    Converts a date or datetime value to a human-readable relative time string
-    (e.g., '3 days ago') in Central European Time (CET).
-
-    Args:
-        value (datetime | str): The input date or datetime string.
-
-    Returns:
-        str: A human-readable relative time string in CET timezone.
-    """
-    if not value:
-        return "N/A"
-
-    try:
-        # Parse string to datetime if needed
-        dt = arrow.get(value)
-    except (arrow.parser.ParserError, ValueError, TypeError):
-        return "Invalid date"
-
-    cet = tz.gettz("Europe/Stockholm")
-    return dt.to(cet).humanize()
-
-
-@app.template_filter()
 def array_uniq(arr: list) -> set:
     """
     Returns a set of unique elements from the input list.

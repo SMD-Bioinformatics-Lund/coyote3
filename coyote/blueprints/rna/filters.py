@@ -269,13 +269,6 @@ def uniq_callers(calls: list) -> set:
     return set(callers)
 
 
-# TODO: Redundant, consider removing
-@app.template_filter()
-def human_date(value):
-    time_zone = "CET"
-    return arrow.get(value).replace(tzinfo=dateutil.tz.gettz(time_zone)).humanize()
-
-
 # TODO: redundant, it is there in the DNA filters
 @app.template_filter()
 def format_comment(st: str | None) -> str:

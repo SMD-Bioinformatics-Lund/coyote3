@@ -127,7 +127,7 @@ class BPCommonUtility:
             doc = {
                 "text": data.get(key),  # common
                 "author": current_user.username,  # common
-                "time_created": datetime.now(),  # common
+                "time_created": CommonUtility.utc_now(),  # common
                 "variant": variant,  # common
                 "nomenclature": nomenclature,  # common
                 "assay": data.get("assay_group", None),  # common
@@ -152,7 +152,7 @@ class BPCommonUtility:
                         "hidden": 0,
                         "text": data.get(key),
                         "author": current_user.username,
-                        "time_created": datetime.now(),
+                        "time_created": CommonUtility.utc_now(),
                     }
                 }
             }
