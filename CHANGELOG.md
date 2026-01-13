@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.1.4
+- Adjusted sample search behavior to remove the time limit for user-initiated searches, while keeping a default 90-day time filter for reported samples.
+- Changed the sample profile filter to hide non-production samples by default, with a toggle to show all samples.
+
 ## v3.1.3
 - Fixed missing ISGL routes in production by standardizing Flask blueprint route definitions.
 
