@@ -28,6 +28,7 @@ from bson.objectid import ObjectId
 from coyote.db.base import BaseHandler
 from flask import current_app as app
 from typing import Any
+from typing import List, Dict, Any
 
 
 # -------------------------------------------------------------------------
@@ -86,6 +87,44 @@ class FusionsHandler(BaseHandler):
             if call.get("selected") == 1:
                 return call
         return None  # type: ignore
+
+    def find_fusions_with_matching_breakpoints(
+        self,
+        current_sample_id: str,
+        bp1: str,
+        bp2: str,
+        limit: int = 20,
+    ) -> List[Dict[str, Any]]:
+
+        base_projection = {
+            "_id": 1,
+            "SAMPLE_ID": 1,
+            "fp": 1,
+            "interesting": 1,
+            "irrelevant": 1,
+            "calls.$": 1,  # <-- only the matched call element (first match)
+            "gene1": 1,
+            "gene2": 1,
+            "genes": 1,
+        }
+
+        q1 = {
+            "SAMPLE_ID": {"$ne": current_sample_id},
+            "calls": {"$elemMatch": {"breakpoint1": bp1, "breakpoint2": bp2}},
+        }
+        q2 = {
+            "SAMPLE_ID": {"$ne": current_sample_id},
+            "calls": {"$elemMatch": {"breakpoint1": bp2, "breakpoint2": bp1}},
+        }
+
+        # Run both orientations and merge (dedupe by _id)
+        out: Dict[Any, Dict[str, Any]] = {}
+
+        for q in (q1, q2):
+            for doc in self.get_collection().find(q, base_projection).limit(limit):
+                out[doc["_id"]] = doc
+
+        return list(out.values())
 
     def get_fusion_annotations(self, fusion: list) -> tuple:
         """
@@ -290,3 +329,77 @@ class FusionsHandler(BaseHandler):
             None
         """
         return self.get_collection().delete_many({"sample": sample_oid})
+
+    def hidden_fusion_comments(self, fus_id: str) -> bool:
+        """
+        Check if there are hidden comments for a specific variant.
+
+        This method determines whether a variant has any hidden comments.
+
+        Args:
+            id (str): The unique identifier of the variant.
+
+        Returns:
+            bool: True if there are hidden comments, False otherwise.
+        """
+        return self.hidden_comments(fus_id)
+
+    def get_fusion_in_other_samples(self, fusion: dict) -> list:
+        """
+        Retrieve the same variant from other samples using a fast 2-query method.
+
+        This method identifies variants with the same `simple_id` but from different samples
+        and includes additional information such as `sample_name`, `groups`, and `GT`
+        (Genotype) for each variant.
+
+        Returns:
+            list: A list of dictionaries, each containing details about the variant
+                and its associated sample, including `sample_name`, `groups`, `GT`,
+                and flags like `fp`, `interesting`, and `irrelevant`.
+        """
+        current_sample_id = fusion["SAMPLE_ID"]
+        selected_fusion_call = self.get_selected_fusioncall(fusion)
+
+        if not selected_fusion_call:
+            return []
+
+        breakpoint1 = selected_fusion_call.get("breakpoint1", "")
+        breakpoint2 = selected_fusion_call.get("breakpoint2", "")
+
+        # Fetch up to 20 variants with the same simple_id but from other samples
+        fusions = self.find_fusions_with_matching_breakpoints(
+            current_sample_id=current_sample_id,
+            bp1=breakpoint1,
+            bp2=breakpoint2,
+            limit=20,
+        )
+
+        # Collect only the sample ObjectIds we need
+        sample_ids = {ObjectId(f["SAMPLE_ID"]) for f in fusions}
+
+        # Step 3: Map sample_id -> {name, assay}
+        sample_map = {
+            str(s["_id"]): {
+                "sample_name": s.get("name", "unknown"),
+                "assay": s.get("assay", "unknown"),
+            }
+            for s in self.adapter.samples_collection.find(
+                {"_id": {"$in": list(sample_ids)}},
+                {"_id": 1, "name": 1, "assay": 1},
+            )
+        }
+
+        # Attach GT to each sample_info
+        results = []
+        for f in fusions:
+            print(f"fusion in other samples: {f["calls"][0]}")
+            sid = f["SAMPLE_ID"]
+            info = sample_map.get(sid, {"sample_name": "unknown", "assay": "unknown"})
+            info["fp"] = f.get("fp", False)  # Add fp status if available
+            info["interesting"] = f.get("interesting", False)  # Add interesting status if available
+            info["irrelevant"] = f.get("irrelevant", False)  # Add irrelevant status if available
+            info["spanning_reads"] = f["calls"][0].get("spanreads")
+            info["spanning_pairs"] = f["calls"][0].get("spanpairs")
+            results.append(info)
+
+        return results

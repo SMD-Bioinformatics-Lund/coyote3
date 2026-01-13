@@ -92,3 +92,44 @@ class RNAUtility:
             if caller == "starfusion":
                 callers.append("starfusion")
         return callers
+
+    @staticmethod
+    def get_selected_fusioncall(fusion: list) -> dict:
+        """
+        Retrieve the selected fusion call from the fusion data.
+
+        This method iterates through the `calls` field of the fusion data to find
+        and return the call marked as selected. A call is considered selected if
+        its `selected` field is set to 1.
+
+        Args:
+            fusion (list): A list containing fusion call data.
+
+        Returns:
+            dict: The selected fusion call if found, otherwise None.
+        """
+        for call in fusion.get("calls", []):
+            if call.get("selected") == 1:
+                return call
+        return None  # type: ignore
+
+    @staticmethod
+    def get_fusion_callers(fusion: list) -> list:
+        """
+        Retrieve the list of fusion callers from the fusion data.
+
+        This method extracts the names of all fusion callers present in the `calls`
+        field of the fusion data.
+
+        Args:
+            fusion (list): A list containing fusion call data.
+
+        Returns:
+            list: A list of fusion caller names.
+        """
+        callers = []
+        for call in fusion.get("calls", []):
+            caller_name = call.get("caller")
+            if caller_name:
+                callers.append(caller_name)
+        return list(set(callers))

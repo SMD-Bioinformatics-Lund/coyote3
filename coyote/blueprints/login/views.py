@@ -68,6 +68,7 @@ def login() -> str | Response:
 
         # Authenticate
         use_internal = user_doc.get("auth_type") == "coyote3"
+
         valid = (
             UserModel.validate_login(user_doc["password"], password)
             if use_internal

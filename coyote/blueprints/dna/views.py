@@ -848,39 +848,57 @@ def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
     return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, id=id))
 
 
-@dna_bp.route("/<string:sample_id>/var/<string:var_id>/classify", methods=["POST"])
+# TODO: Move to common bp for re-use?
+@dna_bp.route(
+    "/<string:sample_id>/var/<string:var_id>/classify",
+    methods=["POST"],
+    endpoint="classify_variant",
+)
+@dna_bp.route(
+    "/<string:sample_id>/fus/<string:fus_id>/classify", methods=["POST"], endpoint="classify_fusion"
+)
 @require(permission="assign_tier", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
-def classify_variant(sample_id: str, var_id: str) -> Response:
+def classify_variant(sample_id: str, id: str = None) -> Response:
     """
     Classify a DNA variant based on the provided form data.
 
     Args:
         sample_id (str): The unique identifier of the sample.
-        var_id (str): The unique identifier of the variant.
+        id (str): The unique identifier of the variant.
 
     Returns:
         flask.Response: The response after classifying the variant.
     """
+    id = id or request.view_args.get("var_id") or request.view_args.get("fus_id")
     form_data = request.form.to_dict()
     class_num = util.common.get_tier_classification(form_data)
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
-    print(f"Classifying variant {variant} as class {class_num} ({nomenclature})")
     if class_num != 0:
         store.annotation_handler.insert_classified_variant(
             variant, nomenclature, class_num, form_data
         )
 
     if nomenclature == "f":
-        return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=var_id))
+        return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=id))
 
-    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=id))
 
 
-@dna_bp.route("/<string:sample_id>/var/<string:var_id>/rmclassify", methods=["POST"])
+# TODO: Move to common bp for re-use?
+@dna_bp.route(
+    "/<string:sample_id>/var/<string:var_id>/rmclassify",
+    methods=["POST"],
+    endpoint="remove_classified_variant",
+)
+@dna_bp.route(
+    "/<string:sample_id>/fus/<string:fus_id>/rmclassify",
+    methods=["POST"],
+    endpoint="remove_classified_fusion",
+)
 @require(permission="remove_tier", min_role="admin")
 @require_sample_access("sample_id")
-def remove_classified_variant(sample_id: str, var_id: str) -> Response:
+def remove_classified_variant(sample_id: str, id: str) -> Response:
     """
     Remove a classified variant from the database.
 
@@ -891,6 +909,7 @@ def remove_classified_variant(sample_id: str, var_id: str) -> Response:
     Returns:
         flask.Response: Redirects to the variant detail view after removing the classified variant.
     """
+    id = id or request.view_args.get("var_id") or request.view_args.get("fus_id")
     form_data = request.form.to_dict()
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
 
@@ -899,10 +918,11 @@ def remove_classified_variant(sample_id: str, var_id: str) -> Response:
     )
     app.logger.debug(delete_result)
     if nomenclature == "f":
-        return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=var_id))
-    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
+        return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=id))
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=id))
 
 
+# TODO: Can we move this to Common Bp for re-use since this is more a common route?
 @dna_bp.route(
     "/<string:sample_id>/var/<string:var_id>/add_variant_comment",
     methods=["POST"],
@@ -957,7 +977,7 @@ def add_var_comment(sample_id: str, id: str = None, **kwargs) -> Response | str:
     if nomenclature == "f":
         if _type != "global":
             store.fusion_handler.add_fusion_comment(id, doc)
-        return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, id=id))
+        return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=id))
     elif nomenclature == "t":
         if _type != "global":
             store.transloc_handler.add_transloc_comment(id, doc)

@@ -21,6 +21,7 @@ from flask_login import current_user
 from bson.objectid import ObjectId
 from coyote.util.common_utility import CommonUtility
 from coyote.util.report.report_util import ReportUtility
+from coyote.blueprints.rna.util import RNAUtility
 from flask import current_app as app
 from coyote.extensions import store
 from bisect import bisect_left
@@ -160,6 +161,11 @@ class DNAUtility:
         """
         selected_variants = []
         for var_idx, var in enumerate(variants):
+            try:
+                variant = RNAUtility.get_selected_fusioncall(var)
+            except Exception:
+                variant = var
+
             (
                 variants[var_idx]["global_annotations"],
                 variants[var_idx]["classification"],

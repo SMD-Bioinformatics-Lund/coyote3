@@ -50,7 +50,7 @@ def list_fusions(sample_id: str) -> str | Response:
     and prepares data for rendering the fusion list template.
 
     Parameters:
-        id (str): The sample identifier.
+        sample_id (str): The sample identifier.
 
     Returns:
         Response: Rendered HTML template for the fusion list page.
@@ -179,12 +179,14 @@ def list_fusions(sample_id: str) -> str | Response:
 
     fusions = list(store.fusion_handler.get_sample_fusions(query))
 
-    for fus_idx, fus in enumerate(fusions):
-        # app.logger.info(f"these are fus, {fus_idx} {fus}")
-        (
-            fusions[fus_idx]["global_annotations"],
-            fusions[fus_idx]["classification"],
-        ) = store.fusion_handler.get_fusion_annotations(fusions[fus_idx])
+    # for fus_idx, fus in enumerate(fusions):
+    #     # app.logger.info(f"these are fus, {fus_idx} {fus}")
+    #     (
+    #         fusions[fus_idx]["global_annotations"],
+    #         fusions[fus_idx]["classification"],
+    #     ) = store.fusion_handler.get_fusion_annotations(fusions[fus_idx])
+
+    fusions, tiered_fusions = util.dna.add_global_annotations(fusions, assay_group, subpanel)
 
     app.logger.info(f"this is the fusion and fusion query,{query}")
 
@@ -217,6 +219,7 @@ def show_fusion(sample_id: str, fusion_id: str) -> Response | str:
     show_fusion.html template with this data.
 
     Args:
+        sample_id (str): The unique identifier of the sample.
         fusion_id (str): The unique identifier of the fusion event.
 
     Returns:
@@ -233,75 +236,97 @@ def show_fusion(sample_id: str, fusion_id: str) -> Response | str:
     assay_group: str = assay_config.get("asp_group", "unknown")  # myeloid, solid, lymphoid
     subpanel: str | None = sample.get("subpanel")  # breast, LP, lung, etc.
 
-    annotations, latest_classification = store.fusion_handler.get_fusion_annotations(fusion)
+    # Get sample data if the fusion is present in other samples
+    in_other = store.fusion_handler.get_fusion_in_other_samples(fusion)
+
+    # annotations, latest_classification = store.fusion_handler.get_fusion_annotations(fusion)
     # Get global annotations for the fusion
-    # (
-    #     annotations,
-    #     latest_classification,
-    #     other_classifications,
-    #     annotations_interesting,
-    # ) = store.annotation_handler.get_global_annotations(fusion, assay_group, subpanel)
-    #
-    # if not latest_classification or latest_classification.get("class") == 999:
-    #     fusion = util.dna.add_alt_class(fusion, assay_group, subpanel)
-    # else:
-    #     fusion["additional_classifications"] = None
+
+    selected_fusion_call = util.rna.get_selected_fusioncall(fusion)
+    (
+        annotations,
+        latest_classification,
+        other_classifications,
+        annotations_interesting,
+    ) = store.annotation_handler.get_global_annotations(selected_fusion_call, assay_group, subpanel)
+
+    if not latest_classification or latest_classification.get("class") == 999:
+        fusion = util.dna.add_alt_class(fusion, assay_group, subpanel)
+    else:
+        fusion["additional_classifications"] = None
+
+    # Check if variant has hidden comments
+    has_hidden_comments = store.fusion_handler.hidden_fusion_comments(fusion_id)
+
+    # Get assay groups mappings with the sample assay
+    assay_group_mappings = store.asp_handler.get_asp_group_mappings()
+
+    # get all the fusion callsers to the top level in the fusion doc
+    fusion["fusion_callers"] = util.rna.get_fusion_callers(fusion)
 
     return render_template(
         "show_fusion.html",
         fusion=fusion,
+        in_other=in_other,
         sample=sample,
         annotations=annotations,
         latest_classification=latest_classification,
+        annotations_interesting=annotations_interesting,
+        other_classifications=other_classifications,
+        hidden_comments=has_hidden_comments,
         assay_group=assay_group,
         subpanel=subpanel,
+        assay_group_mappings=assay_group_mappings,
     )
 
 
-@rna_bp.route("/fusion/fp/<string:id>", methods=["POST"])
-@login_required
-def mark_false_fusion(id: str) -> Response:
+@rna_bp.route("/<string:sample_id>/fusion/fp/<string:fus_id>", methods=["POST"])
+@require_sample_access("sample_id")
+def mark_false_fusion(sample_id: str, fus_id: str) -> Response:
     """
     Mark the specified RNA fusion event as a false positive in the database.
 
     Args:
-        id (str): The unique identifier of the fusion event.
+        sample_id (str): The unique identifier of the sample.
+        fus_id (str): The unique identifier of the fusion event.
 
     Returns:
         Response: Redirects to the fusion details page after updating the status.
 
     """
-    store.fusion_handler.mark_false_positive_fusion(id)
-    return redirect(url_for("rna_bp.show_fusion", id=id))
+    store.fusion_handler.mark_false_positive_fusion(fus_id)
+    return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=fus_id))
 
 
-@rna_bp.route("/fusion/unfp/<string:id>", methods=["POST"])
-@login_required
-def unmark_false_fusion(id: str) -> Response:
+@rna_bp.route("/<string:sample_id>/fusion/unfp/<string:fus_id>", methods=["POST"])
+@require_sample_access("sample_id")
+def unmark_false_fusion(sample_id: str, fus_id: str) -> Response:
     """
     Unmark the False Positive status of a fusion event in the database.
 
     Args:
-        id (str): The unique identifier of the fusion event.
+        sample_id (str): The unique identifier of the sample.
+        fus_id (str): The unique identifier of the fusion event.
 
     Returns:
         Response: Redirects to the fusion details page after updating the status.
     """
-    store.fusion_handler.unmark_false_positive_fusion(id)
-    return redirect(url_for("rna_bp.show_fusion", id=id))
+    store.fusion_handler.unmark_false_positive_fusion(fus_id)
+    return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=fus_id))
 
 
 @rna_bp.route(
-    "/fusion/pickfusioncall/<string:id>/<string:callidx>/<string:num_calls>",
+    "/<string:sample_id>/fusion/pickfusioncall/<string:fus_id>/<string:callidx>/<string:num_calls>",
     methods=["GET", "POST"],
 )
-@login_required
-def pick_fusioncall(id: str, callidx: str, num_calls: str) -> Response:
+@require_sample_access("sample_id")
+def pick_fusioncall(sample_id: str, fus_id: str, callidx: str, num_calls: str) -> Response:
     """
     Pick a specific fusion call for a fusion event.
 
     Args:
-        id (str): The unique identifier of the fusion event.
+        sample_id (str): The unique identifier of the sample.
+        fus_id (str): The unique identifier of the fusion event.
         callidx (str): The index of the fusion call to pick.
         num_calls (str): The total number of fusion calls.
 
@@ -309,62 +334,64 @@ def pick_fusioncall(id: str, callidx: str, num_calls: str) -> Response:
         Response: Redirects to the fusion details page after updating the picked call.
     """
     store.fusion_handler.pick_fusion(id, callidx, num_calls)
-    return redirect(url_for("rna_bp.show_fusion", id=id))
+    return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=fus_id))
 
 
-@rna_bp.route("/fusion/hide_fusion_comment/<string:fus_id>", methods=["POST"])
-@login_required
-def hide_fusion_comment(fus_id: str) -> Response:
+@rna_bp.route("/<string:sample_id>/fusion/hide_fusion_comment/<string:fus_id>", methods=["POST"])
+@require_sample_access("sample_id")
+def hide_fusion_comment(sample_id: str, fus_id: str) -> Response:
     """
     Hide a comment associated with a fusion event.
 
     Args:
+        sample_id (str): The unique identifier of the sample.
         fus_id (str): The unique identifier of the fusion event.
 
     Returns:
         Response: Redirects to the variant details page after hiding the comment.
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.fusion_handler.hide_fus_comment(var_id, comment_id)
-    return redirect(url_for("rna_bp.show_variant", id=var_id))
+    store.fusion_handler.hide_fus_comment(fus_id, comment_id)
+    return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=fus_id))
 
 
-@rna_bp.route("/var/unhide_variant_comment/<string:var_id>", methods=["POST"])
-@login_required
-def unhide_fusion_comment(var_id: str) -> Response:
+@rna_bp.route("/<string:sample_id>/fusion/unhide_fusion_comment/<string:fus_id>", methods=["POST"])
+@require_sample_access("sample_id")
+def unhide_fusion_comment(sample_id: str, fus_id: str) -> Response:
     """
     Unhide a previously hidden comment associated with a fusion event.
 
     Args:
-        var_id (str): The unique identifier of the fusion event.
+        sample_id (str): The unique identifier of the sample.
+        fus_id (str): The unique identifier of the fusion event.
 
     Returns:
         Response: Redirects to the variant details page after unhiding the comment.
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.fusion_handler.unhide_fus_comment(var_id, comment_id)
-    return redirect(url_for("rna_bp.show_variant", id=var_id))
+    store.fusion_handler.unhide_fus_comment(fus_id, comment_id)
+    return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=fus_id))
 
 
 ##### PREVIEW REPORT ####
-@rna_bp.route("/sample/preview_report/<string:id>", methods=["GET", "POST"])
-@login_required
-def generate_rna_report(id, *args, **kwargs):
+@rna_bp.route("/sample/preview_report/<string:sample_id>", methods=["GET", "POST"])
+@require_sample_access("sample_id")
+def generate_rna_report(sample_id, *args, **kwargs):
     """
     Generate a preview report for RNA fusion events associated with a sample.
 
     Args:
-        id (str): The unique identifier of the sample.
+        sample_id (str): The unique identifier of the sample.
         *args: Additional positional arguments.
         **kwargs: Additional keyword arguments. If 'pdf' is set, indicates PDF generation.
 
     Returns:
         Response: Rendered HTML template for the RNA fusion report preview.
     """
-    sample = store.sample_handler.get_sample(id)
+    sample = store.sample_handler.get_sample(sample_id)
 
     if not sample:
-        sample = store.sample_handler.get_sample_with_id(id)  # id = id
+        sample = store.sample_handler.get_sample_with_id(sample_id)  # id = id
 
     # print (sample)
     assay = util.common.get_assay_from_sample(sample)
@@ -409,22 +436,22 @@ def generate_rna_report(id, *args, **kwargs):
     )
 
 
-@rna_bp.route("/sample/report/pdf/<string:id>")
-@login_required
-def generate_report_pdf(id):
+@rna_bp.route("/sample/report/pdf/<string:sample_id>")
+@require_sample_access("sample_id")
+def generate_report_pdf(sample_id):
     """
     Generate a PDF report for the specified RNA sample.
 
     Args:
-        id (str): The unique identifier of the RNA sample.
+        sample_id (str): The unique identifier of the RNA sample.
 
     Returns:
         Response: A PDF file generated from the RNA sample report.
     """
-    sample = store.sample_handler.get_sample(id)  # id = name
+    sample = store.sample_handler.get_sample(sample_id)  # id = name
 
     if not sample:
-        sample = store.sample_handler.get_sample_with_id(id)
+        sample = store.sample_handler.get_sample_with_id(sample_id)
 
     assay = util.common.get_assay_from_sample(sample)
 
@@ -462,9 +489,9 @@ def generate_report_pdf(id):
     return render_pdf(HTML(string=html))
 
 
-@rna_bp.route("/multi_class/<id>", methods=["POST"])
-@login_required
-def classify_multi_variant(id: str) -> Response:
+@rna_bp.route("/multi_class/<sample_id>", methods=["POST"])
+@require_sample_access("sample_id")
+def classify_multi_variant(sample_id: str) -> Response:
     """
     Classify multiple variants for a given sample.
 
@@ -473,7 +500,7 @@ def classify_multi_variant(id: str) -> Response:
     and updates the database accordingly.
 
     Args:
-        id (str): The unique identifier of the sample whose variants are being classified.
+        sample_id (str): The unique identifier of the sample whose variants are being classified.
 
     Returns:
         Response: Redirects to the fusion list page after processing the classification actions.
@@ -549,4 +576,4 @@ def classify_multi_variant(id: str) -> Response:
         elif action == "remove":
             for variant in variants_to_modify:
                 store.variant_handler.unmark_irrelevant_var(variant)
-    return redirect(url_for("rna_bp.list_fusions", id=id))
+    return redirect(url_for("rna_bp.list_fusions", sample_id=sample_id))
