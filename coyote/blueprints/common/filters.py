@@ -20,9 +20,11 @@ from flask import current_app as app
 import arrow
 from dateutil import tz
 from datetime import datetime, tzinfo
+from markupsafe import Markup, escape
+import markdown
 
 
-STOCKHOLM = tz.gettz("Europe/Stockholm")
+STOCKHOLM: tzinfo | None = tz.gettz("Europe/Stockholm")
 
 
 @app.template_filter(name="human_date")
@@ -53,3 +55,42 @@ def human_date(value: datetime | str) -> str:
         return dt.humanize(now)
     except Exception:
         return "Invalid date"
+
+
+@app.template_filter(name="format_comment")
+def format_comment(st: str | None) -> str:
+    """
+    Render full GitHub-style markdown safely:
+    - Supports headings (##)
+    - Lists
+    - Paragraphs
+    - Bold/italics
+    - Line breaks
+    - Code blocks
+    - Tables
+    - Links
+    - CRLF normalization
+    """
+    if not st:
+        return ""
+
+    # Normalize all newline types → "\n"
+    st = st.replace("\r\n", "\n").replace("\r", "\n")
+
+    # Escape unsafe HTML BEFORE markdown processing
+    st = escape(st)
+
+    # Render using GitHub-style markdown extensions
+    html = markdown.markdown(
+        st,
+        extensions=[
+            "extra",  # tables, code, lists, etc.
+            "sane_lists",
+            "nl2br",  # convert single newlines → <br>
+            "toc",  # heading anchors
+            "tables",  # GitHub table syntax
+            "fenced_code",  # ``` code blocks
+        ],
+    )
+
+    return Markup(html)
