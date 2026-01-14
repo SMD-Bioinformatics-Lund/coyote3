@@ -3,6 +3,7 @@
 ## v3.1.4
 - Adjusted sample search behavior to remove the time limit for user-initiated searches, while keeping a default 90-day time filter for reported samples.
 - Changed the sample profile filter to hide non-production samples by default, with a toggle to show all samples.
+- Removed Exon/Intron Info from the variant table in the report.
 - Fix: Replaced naive datetime usage with a centralized `utc_now()` helper to ensure all newly stored timestamps are timezone-aware and consistently recorded in UTC.
 - Fix: removed excess whitespace in DNA report variant comments caused by default paragraph margins in report tables.
 - Fix: prevent hidden genelist form fields from rendering as stray boxes in generated report PDFs.
