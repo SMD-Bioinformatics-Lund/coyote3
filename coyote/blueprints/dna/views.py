@@ -63,8 +63,6 @@ def list_variants(sample_id: str) -> Response | str:
         - Logs information about selected OncoKB genes.
     """
     # Find sample data by name
-    print(app.jinja_env.filters["human_date"])
-
     result = get_sample_and_assay_config(sample_id)
     if isinstance(result, Response):
         return result

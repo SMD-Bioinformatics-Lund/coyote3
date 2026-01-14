@@ -6,6 +6,7 @@
 - Replaced naive datetime usage with a centralized `utc_now()` helper to ensure all newly stored timestamps are timezone-aware and consistently recorded in UTC.
 - Fixed excess whitespace in DNA report variant comments caused by default paragraph margins in report tables.
 - Fix: prevent hidden genelist form fields from rendering as stray boxes in generated report PDFs.
+- Fix: Prevent previously tiered variants marked as false positives from appearing in the “Suggest” summary text (they were only removable by marking as irrelevant), while still keeping them out of the final summary table.
 
 ## v3.1.3
 - Fixed missing ISGL routes in production by standardizing Flask blueprint route definitions.
