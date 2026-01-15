@@ -169,7 +169,13 @@ class DNAUtility:
             classification = variants[var_idx]["classification"]
             if classification is not None:
                 class_value = classification.get("class")
-                if class_value is not None and class_value < 999:
+                if (
+                    class_value is not None
+                    and class_value < 999
+                    and not var.get("blacklist")
+                    and not var.get("fp")
+                    and not var.get("irrelevant")
+                ):
                     selected_variants.append(variants[var_idx])
 
             variants[var_idx] = DNAUtility.add_alt_class(variants[var_idx], assay, subpanel)
@@ -505,4 +511,4 @@ class DNAUtility:
         Returns:
             str: A string representing the current timestamp in the format 'YYYY-MM-DD HH:MM:SS'.
         """
-        return datetime.now(timezone.utc).strftime("%y%m%d%H%M%S")
+        return CommonUtility.utc_now().strftime("%y%m%d%H%M%S")

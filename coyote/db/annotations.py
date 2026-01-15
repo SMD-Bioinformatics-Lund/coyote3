@@ -33,6 +33,7 @@ from flask import flash
 from flask_login import current_user
 from typing import Any
 from urllib.parse import unquote
+from coyote.util.common_utility import CommonUtility
 
 
 # -------------------------------------------------------------------------
@@ -302,7 +303,7 @@ class AnnotationsHandler(BaseHandler):
         """
         document = {
             "author": self.current_user.username,
-            "time_created": datetime.now(),
+            "time_created": CommonUtility.utc_now(),
             "variant": variant,
             "nomenclature": nomenclature,
             "assay": variant_data.get("assay_group", None),

@@ -57,23 +57,18 @@ def list_fusions(id: str) -> str | Response:
     if sample is None:
         sample = store.sample_handler.get_sample_by_id(id)
 
-
     smp_grp = sample.get("assay", "unknown")
 
     group_params = util.common.get_group_parameters(smp_grp)
     settings = util.common.get_group_defaults(group_params)
     assay = util.common.get_assay_from_sample(sample)
 
-    app.logger.info(
-        app.config["GROUP_CONFIGS"]
-    )  # get group config from app config instead
+    app.logger.info(app.config["GROUP_CONFIGS"])  # get group config from app config instead
     app.logger.info(f"the sample has these groups {smp_grp}")
     app.logger.info(f"this is the group from collection {group_params}")
 
     gene_lists, genelists_assay = store.asp_handler.get_assay_panels(assay)
-    app.logger.info(
-        f"this is the gene_lists, genelists_assay {gene_lists},{genelists_assay}"
-    )
+    app.logger.info(f"this is the gene_lists, genelists_assay {gene_lists},{genelists_assay}")
 
     # Save new filter settings if submitteds
     # Inherit FilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
@@ -88,29 +83,19 @@ def list_fusions(id: str) -> str | Response:
         # Reset filters to defaults
         if form.reset.data == True:
             print("does it go throu this?")
-            store.sample_handler.reset_sample_settings(
-                _id, settings
-            )  ## this loop is not working
+            store.sample_handler.reset_sample_settings(_id, settings)  ## this loop is not working
         # Change filters
         else:
-            store.sample_handler.update_sample_filters(
-                _id, form, assay_config_schema
-            )
+            store.sample_handler.update_sample_filters(_id, form, assay_config_schema)
             ## get sample again to recieve updated forms!
             sample = store.sample_handler.get_sample_by_id(_id)
     ############################################################################
     # Check if sample has hidden comments
-    has_hidden_comments = (
-        1
-        if store.sample_handler.hidden_sample_comments(sample.get("_id"))
-        else 0
-    )
+    has_hidden_comments = 1 if store.sample_handler.hidden_sample_comments(sample.get("_id")) else 0
 
     sample_settings = util.common.get_fusions_settings(sample, settings)
 
-    fusionlist_filter = sample.get(
-        "checked_fusionlists", settings["default_checked_fusionlists"]
-    )
+    fusionlist_filter = sample.get("checked_fusionlists", settings["default_checked_fusionlists"])
     fusioneffect_filter = sample.get(
         "checked_fusioneffects", settings["default_checked_fusioneffects"]
     )
@@ -119,9 +104,7 @@ def list_fusions(id: str) -> str | Response:
     )
 
     # filter_fusionlist = util.fusion.create_fusiongenelist(fusionlist_filter)
-    filter_fusioneffects = util.rna.create_fusioneffectlist(
-        fusioneffect_filter
-    )
+    filter_fusioneffects = util.rna.create_fusioneffectlist(fusioneffect_filter)
     filter_fusioncaller = util.rna.create_fusioncallers(fusioncaller_filter)
 
     # app.logger.info(f"this is the sample {sample}")
@@ -159,9 +142,7 @@ def list_fusions(id: str) -> str | Response:
             fusions[fus_idx]["classification"],
         ) = store.fusion_handler.get_fusion_annotations(fusions[fus_idx])
 
-    app.logger.info(
-        f"this is the fusion and fusion query,{fusions},{fusion_query}"
-    )
+    app.logger.info(f"this is the fusion and fusion query,{fusions},{fusion_query}")
 
     # Your logic for handling RNA samples
     return render_template(
@@ -194,9 +175,7 @@ def show_fusion(id: str) -> Response:
     fusion = store.fusion_handler.get_fusion(id)
     sample = store.sample_handler.get_sample_by_id(fusion["SAMPLE_ID"])
 
-    annotations, classification = store.fusion_handler.get_fusion_annotations(
-        fusion
-    )
+    annotations, classification = store.fusion_handler.get_fusion_annotations(fusion)
     return render_template(
         "show_fusion.html",
         fusion=fusion,
@@ -331,23 +310,15 @@ def generate_rna_report(id, *args, **kwargs):
             fusions[fus_idx]["classification"],
         ) = store.fusion_handler.get_fusion_annotations(fusions[fus_idx])
 
-    class_desc = list(
-        app.config.get("REPORT_CONFIG").get("CLASS_DESC").values()
-    )
-    class_desc_short = list(
-        app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT").values()
-    )
-    analysis_desc = (
-        app.config.get("REPORT_CONFIG")
-        .get("ANALYSIS_DESCRIPTION", {})
-        .get(assay)
-    )
+    class_desc = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC").values())
+    class_desc_short = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT").values())
+    analysis_desc = app.config.get("REPORT_CONFIG").get("ANALYSIS_DESCRIPTION", {}).get(assay)
 
     # app.logger.info(f"analysis_desc,{analysis_desc}")
     # app.logger.info(f"fusions,{fusions}")
     analysis_method = util.common.get_analysis_method(assay)
     report_header = util.common.get_report_header(assay, sample)
-    report_date = datetime.now().date()
+    report_date = util.common.utc_now().date()
     pdf = kwargs.get("pdf", 0)
 
     return render_template(
@@ -407,7 +378,7 @@ def generate_report_pdf(id):
                     "report_num": report_num,
                     "filepath": pdf_file,
                     "author": current_user.get_id(),
-                    "time_created": datetime.now(),
+                    "time_created": util.common.utc_now(),
                 }
             },
             "$set": {"report_num": report_num},

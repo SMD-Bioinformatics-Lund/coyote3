@@ -35,9 +35,34 @@
       max-width: 100%;
     }
   }
-
-
   /* Make Image Float While Table Scrolls */
+
+  /* -------------------------------------------------
+   * EasyMDE editor (CodeMirror) heading sizes
+   * This affects what you see while typing (NOT preview)
+   * ------------------------------------------------- */
+
+  /* Generic header token */
+  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header {
+    font-weight: 700 !important;
+  }
+
+  /* Markdown headings in the editor */
+  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-1 { font-size: 2.00em !important; }
+  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-2 { font-size: 1.80em !important; }
+  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-3 { font-size: 1.60em !important; }
+  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-4 { font-size: 1.40em !important; }
+  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-5 { font-size: 1.20em !important; }
+  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-6 { font-size: 1.00em !important; }
+
+  /* Optional: also shrink the leading "##" a bit (it is part of header token too, but some themes separate it) */
+  #comments-box-div .EasyMDEContainer .CodeMirror .cm-formatting.cm-formatting-header {
+    font-size: 0.95em !important;
+    opacity: 0.85 !important;
+  }
+
+
+
 </style>
 {% endblock %}
 
@@ -1455,14 +1480,17 @@
           element: textarea,
           spellChecker: false,
           forceSync: true,
-          hideIcons: ["image", "fullscreen"],
+          hideIcons: ["image"],
           status: false,
+          tabSize: 2,
+          toolbar: ["bold", "italic", "strikethrough", "heading", "|", "code", "quote" , "unordered-list", "ordered-list", "|", "link", "table", "horizontal-rule", "|", "preview","undo", "redo",  "|",  "guide"],
           previewRender: function(plainText, preview) {
               const md = window.markdownit({
-                  html: false,
+                  html: true,
                   breaks: true,
                   linkify: true,
-                  typographer: true
+                  typographer: true,
+
               });
 
               const html = md.render(plainText);

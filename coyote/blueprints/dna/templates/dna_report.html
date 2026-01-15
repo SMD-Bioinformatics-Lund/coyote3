@@ -117,7 +117,7 @@
     <tr>
       <th>Gen</th>
       <th>Mutation</th>
-      <th>Exon/Intron</th>
+      <!-- <th>Exon/Intron</th>-->
       <th>Variantfrekvens</th>
       <th>Klassificering</th>
     </tr>
@@ -131,15 +131,17 @@
               {{ var.variant|unesc }}
             {% endif %}
             </td>
-          <td>
-            {% if var.exon %}
-              E: {{ var.exon[0] }} of {{ var.exon[1] }}
-            {% elif var.intron %}
-              I: {{ var.intron[0] }} of {{ var.intron[1] }}
-            {% else %}
-              -
-            {% endif %}
-          </td>
+          <!--
+            <td>
+              {% if var.exon %}
+                E: {{ var.exon[0] }} of {{ var.exon[1] }}
+              {% elif var.intron %}
+                I: {{ var.intron[0] }} of {{ var.intron[1] }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+          -->
           <td>{{ var.af|perc_no_dec }}</td>
           <td>{{ var.class_short_desc }}</td>
         </tr>
@@ -151,7 +153,8 @@
   </table>
 {% endif %}
 
-<p>Note: p = protein, c = cDNA, g = genomic, E = Exon, I = Intron </p>
+<!-- <p>Note: p = protein, c = cDNA, g = genomic, E = Exon, I = Intron </p> -->
+<p>Note: p = protein, c = cDNA, g = genomic</p>
 
 <!-- CNV Summary -->
 {% if "CNV" in report_sections %}

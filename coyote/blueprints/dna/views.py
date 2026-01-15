@@ -63,7 +63,6 @@ def list_variants(sample_id: str) -> Response | str:
         - Logs information about selected OncoKB genes.
     """
     # Find sample data by name
-
     result = get_sample_and_assay_config(sample_id)
     if isinstance(result, Response):
         return result
@@ -1578,7 +1577,7 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     )
 
     save = kwargs.get("save", 0)
-    report_date = datetime.now().date()
+    report_date = util.common.utc_now().date()
     report_timestamp: str = util.dna.get_report_timestamp()
 
     fernet = app.config["FERNET"]

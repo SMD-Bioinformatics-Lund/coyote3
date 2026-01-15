@@ -109,6 +109,8 @@ def samples_home(
     else:
         accessible_assays = user_assays
 
+    time_limit: None | str = None if search_str else util.common.get_date_days_ago(days=90)
+
     # Fetch completed samples if the status is 'done' or 'both'
     if status == "done" or search_mode in ["done", "both"]:
         done_samples = store.sample_handler.get_samples(
@@ -128,7 +130,6 @@ def samples_home(
         )
     # Fetch live samples if the status is 'live'
     elif status == "live":
-        time_limit = util.common.get_date_days_ago(days=90)
         done_samples = store.sample_handler.get_samples(
             user_assays=accessible_assays,
             status=status,
@@ -188,7 +189,11 @@ def samples_home(
 
 
 @home_bp.route("/<string:sample_id>/reports/<string:report_id>", endpoint="view_report")
-@home_bp.route("/<string:sample_id>/reports/<string:report_id>/download", endpoint="download_report", methods=["GET"])
+@home_bp.route(
+    "/<string:sample_id>/reports/<string:report_id>/download",
+    endpoint="download_report",
+    methods=["GET"],
+)
 @require("view_reports", min_role="admin")
 @require_sample_access("sample_id")
 @log_action(action_name="view_report", call_type="user")
