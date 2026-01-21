@@ -16,14 +16,13 @@ It includes methods for variant classification, consequence selection, CNV handl
 """
 from __future__ import annotations
 
-import pprint
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime
 from coyote.util.common_utility import CommonUtility
 from coyote.util.report.report_util import ReportUtility
 from flask import current_app as app
 from coyote.extensions import store
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 from flask import render_template
 from coyote.blueprints.dna.varqueries import build_query
 from copy import deepcopy
@@ -172,7 +171,13 @@ class DNAUtility:
             classification = variants[var_idx]["classification"]
             if classification is not None:
                 class_value = classification.get("class")
-                if class_value is not None and class_value < 999:
+                if (
+                    class_value is not None
+                    and class_value < 999
+                    and not var.get("blacklist")
+                    and not var.get("fp")
+                    and not var.get("irrelevant")
+                ):
                     selected_variants.append(variants[var_idx])
 
             variants[var_idx] = DNAUtility.add_alt_class(variants[var_idx], assay, subpanel)
@@ -507,7 +512,7 @@ class DNAUtility:
         Returns:
             str: A string representing the current timestamp in the format 'YYYY-MM-DD HH:MM:SS'.
         """
-        return datetime.now(timezone.utc).strftime("%y%m%d%H%M%S")
+        return CommonUtility.utc_now().strftime("%y%m%d%H%M%S")
 
     @staticmethod
     def build_dna_report_payload(

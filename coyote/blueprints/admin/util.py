@@ -27,6 +27,7 @@ import os
 from typing import Any, Union
 import hashlib
 from bson import ObjectId
+from coyote.util.common_utility import CommonUtility
 
 
 class AdminUtility:
@@ -241,14 +242,14 @@ class AdminUtility:
             old_config = {}
         version = new_config.get("version", 1)
         version_history = old_config.pop("version_history", [])
-        raw_timestamp = new_config.get("created_on", datetime.now(timezone.utc))
+        raw_timestamp = new_config.get("created_on", CommonUtility.utc_now())
 
         # Ensure it's a real datetime object
         if isinstance(raw_timestamp, str):
             try:
                 timestamp = parse_datetime(raw_timestamp)
             except (ValueError, TypeError):
-                timestamp = datetime.now(timezone.utc)
+                timestamp = CommonUtility.utc_now()
         else:
             timestamp = raw_timestamp
 

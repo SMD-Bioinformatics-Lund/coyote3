@@ -431,45 +431,6 @@ def uniq_callers(calls: list) -> set:
     return set(callers)
 
 
-@app.template_filter()
-def format_comment(st: str | None) -> str:
-    """
-    Render full GitHub-style markdown safely:
-    - Supports headings (##)
-    - Lists
-    - Paragraphs
-    - Bold/italics
-    - Line breaks
-    - Code blocks
-    - Tables
-    - Links
-    - CRLF normalization
-    """
-    if not st:
-        return ""
-
-    # Normalize all newline types → "\n"
-    st = st.replace("\r\n", "\n").replace("\r", "\n")
-
-    # Escape unsafe HTML BEFORE markdown processing
-    st = escape(st)
-
-    # Render using GitHub-style markdown extensions
-    html = markdown.markdown(
-        st,
-        extensions=[
-            "extra",  # tables, code, lists, etc.
-            "sane_lists",
-            "nl2br",  # convert single newlines → <br>
-            "toc",  # heading anchors
-            "tables",  # GitHub table syntax
-            "fenced_code",  # ``` code blocks
-        ],
-    )
-
-    return Markup(html)
-
-
 @app.template_filter("markdown")
 def markdown_filter(s):
     return markdown.markdown(s)
@@ -751,31 +712,6 @@ def three_dec(val: float | int) -> str:
         str: The value multiplied by 100, rounded to 3 significant digits, as a string.
     """
     return str(round_to_3(float(val) * 100))
-
-
-@app.template_filter()
-def human_date(value: datetime | str) -> str:
-    """
-    Converts a date or datetime value to a human-readable relative time string
-    (e.g., '3 days ago') in Central European Time (CET).
-
-    Args:
-        value (datetime | str): The input date or datetime string.
-
-    Returns:
-        str: A human-readable relative time string in CET timezone.
-    """
-    if not value:
-        return "N/A"
-
-    try:
-        # Parse string to datetime if needed
-        dt = arrow.get(value)
-    except (arrow.parser.ParserError, ValueError, TypeError):
-        return "Invalid date"
-
-    cet = tz.gettz("Europe/Stockholm")
-    return dt.to(cet).humanize()
 
 
 @app.template_filter()
