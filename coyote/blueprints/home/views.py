@@ -296,7 +296,6 @@ def edit_sample(sample_id: str) -> str | Response:
 
     asp = store.asp_handler.get_asp(sample.get("assay"))
     asp_group = asp.get("asp_group")
-    print(asp_group)
 
     # If the sample has no filters set, initialize them with the assay's default filters
     if sample.get("filters") is None:
@@ -350,7 +349,7 @@ def edit_sample(sample_id: str) -> str | Response:
     )
 
 
-@home_bp.route("/<string:sample_id>/isgls", endpoint="isgls", methods=["GET"])
+@home_bp.route("/<string:sample_id>/isgls", methods=["GET"])
 @require_sample_access("sample_id")
 def list_isgls(sample_id: str) -> Response:
     """
@@ -376,14 +375,14 @@ def list_isgls(sample_id: str) -> Response:
             "name": gl["displayname"],
             "version": gl.get("version"),
             "adhoc": gl.get("adhoc", False),
-            "gene_count": gl.get("gene_count", []),
+            "gene_count": int(gl.get("gene_count") or 0),
         }
         for gl in isgls
     ]
     return jsonify({"items": items})
 
 
-@home_bp.route("/<string:sample_id>/genes/apply-isgl", endpoint="isgl_genes", methods=["POST"])
+@home_bp.route("/<string:sample_id>/genes/apply-isgl", methods=["POST"])
 @require("edit_sample", min_role="user")
 @require_sample_access("sample_id")
 @log_action(action_name="apply_isgl", call_type="user")

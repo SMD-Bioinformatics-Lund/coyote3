@@ -51,7 +51,6 @@ from coyote.db.permissions import PermissionsHandler
 from coyote.db.vep_meta import VEPMetaHandler
 from coyote.db.isgl import ISGLHandler
 from coyote.db.hgnc import HGNCHandler
-from coyote.db.reported_variants import ReportedVariantsHandler
 
 
 # -------------------------------------------------------------------------
@@ -87,6 +86,15 @@ class MongoAdapter:
         self._setup_dbs(self.client)
         self.setup()
         self._setup_handlers()
+
+    def get_db_name(self) -> str:
+        """
+        Get the name of the primary database.
+
+        Returns:
+         str: The name of the primary database as specified in the application's configuration.
+        """
+        return self.app.config["MONGO_DB_NAME"]
 
     def _get_mongoclient(self, mongo_uri: str) -> pymongo.MongoClient:
         """
@@ -181,4 +189,3 @@ class MongoAdapter:
         self.vep_meta_handler = VEPMetaHandler(self)
         self.isgl_handler = ISGLHandler(self)
         self.hgnc_handler = HGNCHandler(self)
-        self.reported_variants_handler = ReportedVariantsHandler(self)
