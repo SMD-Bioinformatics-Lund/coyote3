@@ -51,6 +51,7 @@ from coyote.db.permissions import PermissionsHandler
 from coyote.db.vep_meta import VEPMetaHandler
 from coyote.db.isgl import ISGLHandler
 from coyote.db.hgnc import HGNCHandler
+from coyote.db.reported_variants import ReportedVariantsHandler
 
 
 # -------------------------------------------------------------------------
@@ -144,9 +145,7 @@ class MongoAdapter:
             .get(self.app.config["BAM_SERVICE_DB_NAME"], {})
             .items()
         ):
-            setattr(
-                self, bam_collection_name, self.bam_db[bam_collection_value]
-            )
+            setattr(self, bam_collection_name, self.bam_db[bam_collection_value])
 
     def _setup_handlers(self):
         """
@@ -182,3 +181,4 @@ class MongoAdapter:
         self.vep_meta_handler = VEPMetaHandler(self)
         self.isgl_handler = ISGLHandler(self)
         self.hgnc_handler = HGNCHandler(self)
+        self.reported_variants_handler = ReportedVariantsHandler(self)
