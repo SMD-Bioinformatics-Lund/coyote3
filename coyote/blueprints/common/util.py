@@ -26,6 +26,7 @@ from datetime import datetime
 from flask_login import current_user
 from bson.objectid import ObjectId
 from flask import current_app as app
+from coyote.extensions import store
 
 
 class BPCommonUtility:
@@ -705,3 +706,45 @@ class BPCommonUtility:
                 class_num = value
 
         return class_num
+
+    @staticmethod
+    def enrich_reported_variant_docs(tier_docs: list) -> list:
+        """
+        Enriches reported variant documents with additional metadata.
+
+        This function takes a list of variant documents and adds metadata such as the author,
+        creation time, and last updated time. It ensures that each document has consistent
+        metadata for tracking purposes.
+
+        Args:
+            tier_docs (list): List of variant documents to be enriched.
+
+        Returns:
+            list: The enriched list of variant documents with added metadata.
+        """
+        enriched_docs = []
+        for doc in tier_docs:
+            enriched_doc = doc.copy()
+
+            ## Adding sample details
+            sample = store.sample_handler.get_sample_by_oid(doc.get("sample_oid", None))
+            enriched_doc["sample"] = {}
+            enriched_doc["sample"]["sample_name"] = sample.get("name")
+            enriched_doc["sample"]["case_id"] = sample.get("case_id")
+            enriched_doc["sample"]["control_id"] = sample.get("control_id")
+            enriched_doc["sample"]["profile"] = sample.get("profile")
+            enriched_doc["sample"]["paired"] = sample.get("paired")
+            enriched_doc["sample"]["assay"] = sample.get("assay")
+            enriched_doc["sample"]["subpanel"] = sample.get("subpanel")
+
+            ## Adding Annotation details
+            annotation = store.annotation_handler.get_annotation_by_oid(
+                doc.get("annotation_oid", None)
+            )
+            enriched_doc["annotation"] = {**annotation}
+
+            ## Adding report details
+            # TODO
+
+            enriched_docs.append(enriched_doc)
+        return enriched_docs

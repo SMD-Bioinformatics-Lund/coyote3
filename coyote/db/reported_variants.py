@@ -140,6 +140,12 @@ class ReportedVariantsHandler(BaseHandler):
         res = self.get_collection().bulk_write(ops, ordered=False)
         return int(res.upserted_count or 0)
 
+    def list_reported_variants(self, query: dict) -> list:
+        """
+        List reported variant snapshot documents matching the given Mongo query.
+        """
+        return list(self.get_collection().find(query))
+
     def ensure_indexes(self) -> None:
         """
         Create required indexes for the reported_variants collection.

@@ -11,10 +11,13 @@
 #
 
 """
-This module defines Flask view functions for handling error screens and sample comment operations within the Coyote3 project. It includes routes for displaying errors, adding, hiding, and unhiding sample comments, and retrieving gene lists for samples. Access control and user authentication are enforced via decorators.
+This module defines Flask view functions for handling error screens and sample comment
+operations within the Coyote3 project. It includes routes for displaying errors, adding,
+hiding, and unhiding sample comments, and retrieving gene lists for samples. Access control
+and user authentication are enforced via decorators.
 """
 
-from flask import Response, redirect, request, url_for, flash
+from flask import Response, redirect, request, url_for, flash, abort
 from flask import current_app as app
 from coyote.blueprints.common import common_bp
 from coyote.extensions import store, util
@@ -24,6 +27,8 @@ import traceback
 from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
 import json
+from flask_login import login_required
+from copy import deepcopy
 
 
 @common_bp.route(
@@ -169,3 +174,65 @@ def gene_info(id: str) -> str:
         gene = store.hgnc_handler.get_metadata_by_symbol(symbol=id)
 
     return render_template("gene_info.html", gene=gene)
+
+
+@common_bp.route("/reported_variants/variant/<string:variant_id>/<int:tier>", methods=["GET"])
+@login_required
+def list_samples_with_tiered_variant(variant_id: str, tier: int):
+    """
+    Show reported variants across samples that match this variant identity and tier.
+    """
+    variant = store.variant_handler.get_variant(variant_id)
+    if not variant:
+        abort(404)
+
+    csq = variant.get("INFO", {}).get("selected_CSQ", {}) or {}
+
+    gene = csq.get("SYMBOL")
+    simple_id = variant.get("simple_id")
+    simple_id_hash = variant.get("simple_id_hash")
+    hgvsc = csq.get("HGVSc")
+    hgvsp = csq.get("HGVSp")
+
+    # ---- build OR conditions ----
+    or_conditions = []
+    if simple_id or simple_id_hash:
+        if simple_id_hash:
+            or_conditions.append({"simple_id_hash": simple_id_hash})
+        elif simple_id:
+            or_conditions.append({"simple_id": simple_id})
+    else:
+        if hgvsc:
+            or_conditions.append({"hgvsc": hgvsc})
+        elif hgvsp:
+            or_conditions.append({"hgvsp": hgvsp})
+
+    if not gene or not or_conditions:
+        return render_template(
+            "tiered_variant_info.html",
+            variant=variant,
+            docs=[],
+            error="Variant has insufficient identity fields",
+        )
+
+    # ---- ONE final query ----
+    query = {
+        "gene": gene,
+        "$or": or_conditions,
+    }
+
+    docs = store.reported_variants_handler.list_reported_variants(query)
+
+    # Enrich docs with sample details, variant details, report details
+    docs = util.bpcommon.enrich_reported_variant_docs(deepcopy(docs))
+
+    from pprint import pprint
+
+    pprint(docs)
+
+    return render_template(
+        "tiered_variant_info.html",
+        docs=docs,
+        variant=variant,
+        tier=tier,
+    )

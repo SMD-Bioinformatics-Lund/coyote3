@@ -219,8 +219,6 @@ class SampleHandler(BaseHandler):
 
     def get_sample_name(self, id: str) -> str | None:
         """
-        get_sample_name(id: str) -> str | None
-
         Retrieve the name of a sample by its unique identifier.
 
         Args:
@@ -231,6 +229,18 @@ class SampleHandler(BaseHandler):
         """
         sample = self.get_collection().find_one({"_id": ObjectId(id)})
         return sample.get("name") if sample else None
+
+    def get_sample_by_oid(self, id: str) -> str | None:
+        """
+        Retrieve the name of a sample by its unique identifier.
+
+        Args:
+            id (ObjectId): The unique identifier (ObjectId) of the sample.
+
+        Returns:
+            dict | None: The sample doc if found, otherwise None.
+        """
+        return self.get_collection().find_one({"_id": id})
 
     def get_samples_by_oids(self, sample_oids: list) -> Any:
         """

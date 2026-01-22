@@ -57,6 +57,20 @@ class AnnotationsHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.annotations_collection)
 
+    def get_annotation_by_oid(self, oid: str) -> dict | None:
+        """
+        Retrieve an annotation by its ObjectId.
+
+        This method fetches a single annotation document from the MongoDB
+        collection using the provided ObjectId.
+
+        Args:
+            oid (str): The ObjectId of the annotation to be retrieved.
+        Returns:
+            dict | None: The annotation document if found, otherwise None.
+        """
+        return self.get_collection().find_one({"_id": oid})
+
     def insert_annotation_bulk(self, annotations: list) -> Any:
         """
         Insert multiple annotations into the database in bulk.
