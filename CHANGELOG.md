@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.1.5
+- All the reported variants are added to a new collection to keep track of tiered variants per report per sample
+- Tier from the list variants page is linked to reports that the variant is reported
+
 ## v3.1.4
 - Adjusted sample search behavior to remove the time limit for user-initiated searches, while keeping a default 90-day time filter for reported samples.
 - Changed the sample profile filter to hide non-production samples by default, with a toggle to show all samples.
