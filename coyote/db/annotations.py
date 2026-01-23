@@ -525,3 +525,56 @@ class AnnotationsHandler(BaseHandler):
             {"$sort": {"_id.nomenclature": 1, "_id.class": 1}},
         ]
         return tuple(self.get_collection().aggregate(class_stats_pipeline))
+
+    def find_variants_by_search_string(
+        self,
+        search_str: str,
+        search_mode: str,
+        include_annotation_text: bool,
+        assays: list | None = None,
+        limit: int | None = None,
+    ) -> list:
+        """
+        Find variants matching the search string.
+
+        This method searches for variants in the database that match the provided
+        search string. It looks for matches in the 'variant', 'gene', and 'transcript'
+        fields using case-insensitive regular expressions.
+
+        Args:
+            search_str (str): The search string to match against variant fields.
+            limit (int | None): Optional limit on the number of results to return.
+            search_mode (str): The mode of search, can be 'gene', 'transcript', 'variant', 'author', or 'subpanel'.
+            include_annotation_text (bool): Whether to include annotations with text.
+            assays (list | None): Optional list of assays to filter the results.
+
+        Returns:
+            list: A list of variant documents that match the search criteria.
+        """
+        if not search_str or search_str == "":
+            return []
+
+        if search_mode == "gene":
+            query = {"gene": {"$regex": search_str, "$options": "i"}}
+        elif search_mode == "transcript":
+            query = {"transcript": {"$regex": search_str, "$options": "i"}}
+        elif search_mode == "variant":  # variant
+            query = {"variant": {"$regex": search_str, "$options": "i"}}
+        elif search_mode == "author":
+            query = {"author": {"$regex": search_str, "$options": "i"}}
+        elif search_mode == "subpanel":
+            query = {"subpanel": {"$regex": search_str, "$options": "i"}}
+        else:
+            return []
+
+        if not include_annotation_text:
+            query["text"] = {"$exists": False}
+
+        if assays is not None:
+            query["assay"] = {"$in": assays}
+
+        cursor = self.get_collection().find(query).sort("time_created", -1)
+
+        if limit is not None:
+            cursor = cursor.limit(limit)
+        return list(cursor)

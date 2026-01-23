@@ -88,7 +88,7 @@ def samples_home(
         search_str = form.sample_search.data
         search_mode = search_slider_values[int(form.search_mode_slider.data)]
 
-    limit_done_samples = 50
+    limit_done_samples = app.config.get("REPORTED_SAMPLES_SEARCH_LIMIT", 50)
 
     # Determine the search mode and status
     if not search_mode:

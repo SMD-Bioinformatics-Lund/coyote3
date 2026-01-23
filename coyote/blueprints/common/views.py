@@ -20,6 +20,7 @@ and user authentication are enforced via decorators.
 from flask import Response, redirect, request, url_for, flash, abort
 from flask import current_app as app
 from coyote.blueprints.common import common_bp
+from coyote.blueprints.common.forms import TieredVariantSearchForm
 from coyote.extensions import store, util
 from flask import render_template
 from flask_login import current_user
@@ -29,6 +30,7 @@ from coyote.services.auth.decorators import require
 import json
 from flask_login import login_required
 from copy import deepcopy
+from typing import Any
 
 
 @common_bp.route(
@@ -226,13 +228,98 @@ def list_samples_with_tiered_variant(variant_id: str, tier: int):
     # Enrich docs with sample details, variant details, report details
     docs = util.bpcommon.enrich_reported_variant_docs(deepcopy(docs))
 
-    from pprint import pprint
-
-    pprint(docs)
-
     return render_template(
         "tiered_variant_info.html",
         docs=docs,
         variant=variant,
         tier=tier,
+    )
+
+
+@common_bp.route("/search/tiered_variants", methods=["GET", "POST"])
+@require("view_tiered_variants", min_role="user", min_level=9)
+def search_tiered_variants():
+    """
+    Search reported variants across samples by gene name, variant id, HGVSc, or HGVSp.
+    """
+    form = TieredVariantSearchForm()
+    form.assay.choices = store.asp_handler.get_all_asp_groups()
+
+    limit_entries = app.config.get("TIERED_VARIANT_SEARCH_LIMIT", 1000)
+    search_str = None
+    search_mode = form.search_options.default
+    include_annotation_text = form.include_annotation_text.default
+    assays = form.assay.default
+
+    if request.method == "POST":
+        if form.validate_on_submit():
+            search_str = form.variant_search.data.strip()
+            search_mode = form.search_options.data
+            include_annotation_text: bool = form.include_annotation_text.data
+            assays: list[Any] | None = form.assay.data or None
+        else:
+            flash(form.variant_search.errors[0], "red")
+
+    docs_found = store.annotation_handler.find_variants_by_search_string(
+        search_str=search_str,
+        search_mode=search_mode,
+        include_annotation_text=include_annotation_text,
+        assays=assays,
+        limit=limit_entries,
+    )
+
+    # Search in reported docs
+    sample_tagged_docs = []
+
+    for doc in docs_found:
+        _doc = deepcopy(doc)
+        _sample_oids = {}
+        _reported_docs = []
+
+        query = {"annotation_oid": doc["_id"]}
+
+        _reported_docs = store.reported_variants_handler.list_reported_variants(query)
+
+        for _reported_doc in _reported_docs:
+            _sample_oid = _reported_doc.get("sample_oid")
+            _report_oid = _reported_doc.get("report_oid")
+            _report_id = _reported_doc.get("report_id")
+            _sample = store.sample_handler.get_sample_by_oid(_sample_oid)
+            _report_num = next(
+                (
+                    rpt.get("report_num")
+                    for rpt in (_sample.get("reports") or [])
+                    if rpt.get("_id") == _report_oid
+                ),
+                None,
+            )
+
+            if _sample_oid:
+                if _sample_oid not in _sample_oids:
+                    _sample_oids[_sample_oid] = {
+                        "sample_name": _sample.get("name") if _sample else "UNKNOWN_SAMPLE",
+                        "report_oids": {},
+                    }
+                if _report_oid and _report_id:
+                    if _report_oid not in _sample_oids.get(_sample_oid, {}).get("report_oids", {}):
+                        _sample_oids[_sample_oid]["report_oids"][_report_id] = _report_num
+
+        _doc["reported_docs"] = _reported_docs
+        _doc["samples"] = _sample_oids
+        sample_tagged_docs.append(_doc)
+
+    # Enrich docs with sample details, variant details, report details
+    # docs = util.bpcommon.enrich_reported_variant_docs(deepcopy(sample_tagged_docs))
+
+    from pprint import pprint
+
+    pprint(sample_tagged_docs)
+
+    return render_template(
+        "search_tiered_variants.html",
+        docs=sample_tagged_docs,
+        search_str=search_str,
+        search_mode=search_mode,
+        include_annotation_text=include_annotation_text,
+        form=form,
     )

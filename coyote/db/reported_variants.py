@@ -146,6 +146,30 @@ class ReportedVariantsHandler(BaseHandler):
         """
         return list(self.get_collection().find(query))
 
+    def get_reported_docs(self, query: dict, limit: int | None = None) -> list:
+        """
+        Retrieve reported variant documents based on the provided query.
+
+        Args:
+            query (dict): MongoDB query to filter reported variant documents.
+            limit (Optional[int]): Maximum number of documents to retrieve. If None, retrieves all matching documents.
+            include_annotation_text (bool): Whether to include documents with annotation text.
+
+        Returns:
+            list: List of reported variant documents matching the query.
+        """
+        if not query:
+            return []
+
+        cursor = (
+            self.get_collection().find(query, {"_id": 1, "sample_oid": 1}).sort("time_created", -1)
+        )
+
+        if limit is not None:
+            cursor = cursor.limit(limit)
+
+        return list(cursor)
+
     def ensure_indexes(self) -> None:
         """
         Create required indexes for the reported_variants collection.

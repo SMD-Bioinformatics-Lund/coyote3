@@ -1,0 +1,208 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<!-- FLEX CONTAINER -->
+<div class="flex w-full h-full overflow-hidden">
+  <!-- MAIN CONTENT (Scrollable & Auto-Resizing) -->
+  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+
+    <!-- Search Bar -->
+    <section id="tiered_variant-search" class="mt-2 flex flex-col">
+      <div class="flex ml-4">
+        <h2 class="text-xl font-semibold mb-2">Search Tiered Variants</h2>
+      </div>
+      <form action="" method="POST" class="flex flex-col gap-3 relative max-w-4xl w-full ml-4">
+        <div class="flex items-center gap-4 w-full">
+          {{ form.hidden_tag() }}
+
+          <div class="relative group flex-grow min-w-[250px]">
+            <input
+              type="text"
+              name="variant_search"
+              id="tiered-variant-search-input"
+              value="{{ search_str or '' }}"
+              class="border border-gray-500 rounded-full py-1 pl-10 pr-4 focus:outline-none focus:border-blue-500 w-full"
+              placeholder="Search Gene, Variant(HGVSp, HGVSc, Genomic), Transcript, Assay, Sub Panel">
+
+            <img
+              src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}"
+              alt="Search Icon"
+              class="absolute left-1 top-1 mb-2 pb-2 h-8 w-5 cursor-pointer"
+              onclick="document.getElementById('tiered-variant-search-input').focus()">
+          </div>
+
+          <details class="relative" id="tiered-mode-dd">
+            <summary class="list-none cursor-pointer border border-gray-500 rounded-full py-1 px-4 bg-white hover:bg-gray-50 text-sm flex items-center">
+              <span id="tiered-mode-label">
+                {{ dict(form.search_options.choices).get(form.search_options.data, "Search mode") }}
+              </span>
+              <span class="ml-1">▾</span>
+            </summary>
+
+            <div class="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg w-72 z-50">
+              {% for value, label in form.search_options.choices %}
+                <label class="px-3 py-2 hover:bg-gray-50 flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="{{ form.search_options.name }}"
+                    value="{{ value }}"
+                    class="h-4 w-4"
+                    {% if form.search_options.data == value %}checked{% endif %}>
+                  <span class="ml-2 text-sm">{{ label }}</span>
+                </label>
+              {% endfor %}
+            </div>
+          </details>
+
+          <div class="flex items-center px-3 py-1.5 border border-gray-300 rounded-3xl bg-gray-50">
+            {{ form.include_annotation_text(class="h-4 w-4 text-blue-600") }}
+            <label class="ml-2 text-sm cursor-pointer">
+              Include annotation text
+            </label>
+          </div>
+
+          <button type="submit"
+                  class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-4 rounded-full">
+            Search
+          </button>
+        </div>
+
+        <div class="pl-2 pt-1 border-t border-gray-200">
+          <div class="text-sm font-semibold text-gray-800 mb-2">
+            {{ form.assay.label }}
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            {% for subfield in form.assay %}
+              <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border bg-gray-50 hover:bg-gray-100 cursor-pointer">
+                {{ subfield }}
+                <span class="text-sm text-gray-800">{{ subfield.label.text }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+
+      </form>
+    </section>
+
+    <!-- Search Results -->
+    <section id="search-results" class="p-2 ml-2 mt-2">
+      <div class="justify-start">
+
+        <div class="bg-blue-50 shadow-3xl rounded-2xl p-4 relative overflow-hidden">
+          <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" data-rows-per-page="30" pagination-button-color="blue">
+            <span class="text-lg font-semibold">Search returned {{docs|length}} entries</span>
+            <table class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
+              <thead class="sortable rounded-t-2xl overflow-hidden border-gray-800">
+                <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
+                  <th class="p-2 font-normal">Variant</th>
+                  <th class="p-2 font-normal">Tier</th>
+                  <th class="p-2 font-normal">Gene</th>
+                  <th class="p-2 font-normal">Transcript</th>
+                  <th class="p-2 font-normal">Assay</th>
+                  <th class="p-2 font-normal">Sub Panel</th>
+                  <th class="p-2 font-normal">When</th>
+                  {% if include_annotation_text %}
+                    <th class="p-2 font-normal max-w-2xl">Comment</th>
+                  {% endif %}
+                  <th class="p-2 font-normal" data-nosort="true">Samples</th>
+                </tr>
+              </thead>
+              <tbody id="pagination-table-body-live" class="text-gray-800 rounded-b-2xl overflow-hidden">
+              {% if docs %}
+                {% for doc in docs %}
+                  <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
+                    <td class="p-2 font-medium">{{ doc.variant }}</td>
+                    <td class="p-2 font-medium">
+                      {% if doc.class %}
+                        <div class="inline-flex items-center px-3 py-1 font-semibold rounded-full bg-tier{{ doc.class }} text-white shadow-md">
+                          {{ doc.class }}
+                        </div>
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+                    <td class="p-2 font-medium">{{ doc.gene or '-'}}</td>
+                    <td class="p-2 font-medium">{{ doc.transcript or '-'}}</td>
+                    <td class="p-2 font-medium">{{ doc.assay or '-'}}</td>
+                    <td class="p-2 font-medium">{{ doc.subpanel or '-'}}</td>
+                    <td class="p-2 font-medium">{{ doc.author or 'unknown'}}<br><small>{{ doc.time_created|human_date or '-' }}</small></td>
+                    {% if include_annotation_text %}
+                      <td class="p-2 font-medium max-w-lg" data-nosort="true">{{ doc.text }}</td>
+                    {% endif %}
+                    <td class="p-2 font-medium" data-nosort="true">
+                      {% for sample_oid, sample_info in doc.samples.items() %}
+                        <div class="mb-2">
+                          <a href="{{ url_for('dna_bp.list_variants', sample_id=sample_info.sample_name) }}" class="text-blue-500 hover:underline">{{ sample_info.sample_name }}</a>
+                          <p class="inline-block text-lg mx-1">|</p>
+                          {% if has_access('view_reports', min_role='admin') %}
+                            {% for report_id, report_num in sample_info.report_oids.items() %}
+                              <a
+                                href="{{ url_for('home_bp.view_report', sample_id=sample_info.sample_name, report_id=report_id) }}"
+                                class="inline-block bg-blue-400 text-white my-1 px-2 py-0.5 rounded-lg text-xs font-bold mx-1 hover:bg-blue-500 transition"
+                              >
+                                {{ report_num }}
+                              </a>
+                            {% endfor %}
+                          {% else %}
+                            No Access
+                          {% endif %}
+                        </div>
+                      {% else %}
+                        -
+                      {% endfor %}
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="{% if include_annotation_text %} 9 {% else %} 8 {% endif %}" class="p-4 text-center text-sm text-gray-600">
+                    {% if search_str %}
+                      No tiered variants found for "<strong>{{ search_str }}</strong> in <strong> {{search_mode}}</strong>". Please try a different search term or change the <strong>mode</strong> of search.
+                    {% else %}
+                      Use the search bar above to find tiered variants.
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+</div>
+
+
+<script>
+  (function () {
+    const details = document.getElementById("tiered-mode-dd");
+    const labelSpan = document.getElementById("tiered-mode-label");
+    if (!details || !labelSpan) return;
+
+    // Close when clicking outside
+    document.addEventListener("click", (e) => {
+      if (details.open && !details.contains(e.target)) {
+        details.open = false;
+      }
+    });
+
+    // Close when selecting an option + update summary label
+    details.addEventListener("change", (e) => {
+      const input = e.target;
+      if (input && input.matches('input[type="radio"]')) {
+        const optionLabel = input.closest("label")?.querySelector("span")?.textContent?.trim();
+        if (optionLabel) labelSpan.textContent = optionLabel;
+        details.open = false;
+      }
+    });
+
+    // Optional: close on Escape
+    details.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") details.open = false;
+    });
+  })();
+  </script>
+
+
+
+{% endblock %}

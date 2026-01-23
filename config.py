@@ -219,6 +219,11 @@ class DefaultConfig:
         # "urgent_notes": "For critical cases within lab hours only.",
     }
 
+    # SEARCH LIMITS
+    TIERED_VARIANT_SEARCH_LIMIT = 1000
+    SAMPLE_SEARCH_LIMIT = 1000
+    REPORTED_SAMPLES_SEARCH_LIMIT = 50
+
     @property
     def MONGO_URI(self) -> str:
         """
