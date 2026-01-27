@@ -172,29 +172,81 @@
                       <td class="p-2 font-medium max-w-lg" data-nosort="true">{{ doc.text }}</td>
                     {% endif %}
 
-                    <td class="p-2 font-medium" data-nosort="true">
-                      {% for sample_oid, sample_info in doc.samples.items() %}
-                        <div class="mb-2">
-                          <a href="{{ url_for('dna_bp.list_variants', sample_id=sample_info.sample_name) }}"
-                              class="text-blue-500 hover:underline">
-                            {{ sample_info.sample_name }}
-                          </a>
-                          <p class="inline-block text-lg mx-1">|</p>
+                    <td class="px-2 py-1 font-medium" data-nosort="true">
+                      {% set samples_list = doc.samples.items() | list %}
+                      {% set total_samples = samples_list | length %}
+                      {% set row_uid = doc._id if doc._id is defined else loop.index0 %}
+                      {% set max_visible = 5 %}
 
-                          {% if has_access('view_reports', min_role='admin') %}
-                            {% for report_id, report_num in sample_info.report_oids.items() %}
-                              <a href="{{ url_for('home_bp.view_report', sample_id=sample_info.sample_name, report_id=report_id) }}"
-                                  class="inline-block bg-blue-400 text-white my-1 px-2 py-0.5 rounded-lg text-xs font-bold mx-1 hover:bg-blue-500 transition">
-                                {{ report_num }}
-                              </a>
+                      <div class="space-y-1" data-samples-widget>
+                        <!-- Visible (first 5) -->
+                        <div data-samples-visible>
+                          {% if total_samples > 0 %}
+                            {% for sample_oid, sample_info in samples_list[:max_visible] %}
+                              <div>
+                                <a href="{{ url_for('dna_bp.list_variants', sample_id=sample_info.sample_name) }}"
+                                   class="text-blue-500 hover:underline">
+                                  {{ sample_info.sample_name }}
+                                </a>
+
+                                {% if has_access('view_reports', min_role='admin') %}
+                                  <span class="inline-block text-lg mx-1">|</span>
+                                  {% for report_id, report_num in sample_info.report_oids.items() %}
+                                    <a href="{{ url_for('home_bp.view_report', sample_id=sample_info.sample_name, report_id=report_id) }}"
+                                       class="inline-block bg-blue-400 text-white px-2 py-0.5 rounded-lg text-xs font-bold hover:bg-blue-500 transition">
+                                      {{ report_num }}
+                                    </a>
+                                  {% endfor %}
+                                {% else %}
+                                  <span class="text-xs text-gray-600 ml-2">No Report Access</span>
+                                {% endif %}
+                              </div>
                             {% endfor %}
                           {% else %}
-                            No Access
+                            -
                           {% endif %}
                         </div>
-                      {% else %}
-                        -
-                      {% endfor %}
+
+                        {% if total_samples > max_visible %}
+                          <!-- Hidden (rest) -->
+                          <div data-samples-hidden class="hidden">
+                            {% for sample_oid, sample_info in samples_list[max_visible:] %}
+                              <div>
+                                <a href="{{ url_for('dna_bp.list_variants', sample_id=sample_info.sample_name) }}"
+                                   class="text-blue-500 hover:underline">
+                                  {{ sample_info.sample_name }}
+                                </a>
+
+                                {% if has_access('view_reports', min_role='admin') %}
+                                  <span class="inline-block text-lg mx-1">|</span>
+                                  {% for report_id, report_num in sample_info.report_oids.items() %}
+                                    <a href="{{ url_for('home_bp.view_report', sample_id=sample_info.sample_name, report_id=report_id) }}"
+                                       class="inline-block bg-blue-400 text-white px-2 py-0.5 rounded-lg text-xs font-bold hover:bg-blue-500 transition">
+                                      {{ report_num }}
+                                    </a>
+                                  {% endfor %}
+                                {% else %}
+                                  <span class="text-xs text-gray-600 ml-2">No Report Access</span>
+                                {% endif %}
+                              </div>
+                            {% endfor %}
+
+                            <!-- Show less (placed at end, inside expanded area) -->
+                            <button type="button"
+                                    class="mt-2 text-xs font-semibold text-blue-600 hover:underline"
+                                    data-samples-less>
+                              Show less
+                            </button>
+                          </div>
+
+                          <!-- Show more -->
+                          <button type="button"
+                                  class="text-xs font-semibold text-blue-600 hover:underline"
+                                  data-samples-more>
+                            Show more ({{ total_samples - max_visible }})
+                          </button>
+                        {% endif %}
+                      </div>
                     </td>
                   </tr>
                 {% endfor %}
@@ -324,6 +376,7 @@
     filtered.length > rowsPerPage ? initializePagination() : displayPage(1, id, rowsPerPage);
   });
 
+  // dropdown function for search mode
   (function () {
     const details = document.getElementById("tiered-mode-dd");
     const labelSpan = document.getElementById("tiered-mode-label");
@@ -349,6 +402,35 @@
     // Optional: close on Escape
     details.addEventListener("keydown", (e) => {
       if (e.key === "Escape") details.open = false;
+    });
+  })();
+
+
+  // show maximum of 5 samples for each row
+  (function () {
+    // Attach once per page
+    if (window.__tieredSamplesToggleInit) return;
+    window.__tieredSamplesToggleInit = true;
+
+    document.addEventListener('click', (e) => {
+      const moreBtn = e.target.closest('[data-samples-more]');
+      const lessBtn = e.target.closest('[data-samples-less]');
+      if (!moreBtn && !lessBtn) return;
+
+      const widget = (moreBtn || lessBtn).closest('[data-samples-widget]');
+      if (!widget) return;
+
+      const hidden = widget.querySelector('[data-samples-hidden]');
+      const more = widget.querySelector('[data-samples-more]');
+      if (!hidden || !more) return;
+
+      if (moreBtn) {
+        hidden.classList.remove('hidden');
+        more.classList.add('hidden');
+      } else {
+        hidden.classList.add('hidden');
+        more.classList.remove('hidden');
+      }
     });
   })();
 </script>
