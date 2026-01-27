@@ -7,6 +7,7 @@
 - This new form will now be linking the annotations fetched to the samples by referencing from the reported variants collections.
 - Beside each sample, the respective reports where this variant is reported is added.
 - Added new route `/search/tiered_variants` to access the new form.
+- Added a tier stats right sidebar on the `/search/tiered_variants` search page
 
 
 ## v3.1.4

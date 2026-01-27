@@ -18,6 +18,8 @@ used throughout the Coyote3 project, including configuration handling,
 data formatting, serialization, and reporting.
 """
 
+from __future__ import annotations
+
 import os
 from copy import deepcopy
 from pathlib import Path
@@ -25,7 +27,7 @@ import subprocess
 
 from cryptography.fernet import Fernet
 from flask import current_app as app
-from typing import Any, Literal, Dict, Tuple
+from typing import Any, Literal, Dict, Tuple, List, Optional
 from bson import ObjectId
 from datetime import datetime, timezone, timedelta
 from hashlib import md5

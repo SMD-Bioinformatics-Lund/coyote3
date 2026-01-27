@@ -268,6 +268,15 @@ def search_tiered_variants():
         limit=limit_entries,
     )
 
+    tier_stats = {"total": {}, "by_assay": {}}
+    if search_mode != "variant" and search_str:
+        tier_stats = store.annotation_handler.get_tier_stats_by_search(
+            search_str=search_str,
+            search_mode=search_mode,
+            include_annotation_text=include_annotation_text,
+            assays=assays,  # list or None
+        )
+
     # Search in reported docs
     sample_tagged_docs = []
 
@@ -323,14 +332,13 @@ def search_tiered_variants():
         if _doc.get("_id") not in _annotation_text_oids_associated_with_variants:
             sample_tagged_docs.append(_doc)
 
-    # Enrich docs with sample details, variant details, report details
-    # docs = util.bpcommon.enrich_reported_variant_docs(deepcopy(sample_tagged_docs))
-
     return render_template(
         "search_tiered_variants.html",
         docs=sample_tagged_docs,
         search_str=search_str,
         search_mode=search_mode,
         include_annotation_text=include_annotation_text,
+        tier_stats=tier_stats,
+        assays=assays,
         form=form,
     )
