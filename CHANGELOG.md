@@ -3,6 +3,11 @@
 ## v3.1.5
 - All the reported variants are added to a new collection to keep track of tiered variants per report per sample
 - Tier from the list variants page is linked to reports that the variant is reported
+- New form (TieredVariantSearchForm) to search variants from annotations collections by variant, gene, transcript, author, assay, subpanel
+- This new form will now be linking the annotations fetched to the samples by referencing from the reported variants collections.
+- Beside each sample, the respective reports where this variant is reported is added.
+- Added new route `/search/tiered_variants` to access the new form.
+
 
 ## v3.1.4
 - Adjusted sample search behavior to remove the time limit for user-initiated searches, while keeping a default 90-day time filter for reported samples.

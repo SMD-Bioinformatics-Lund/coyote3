@@ -71,6 +71,24 @@ class AnnotationsHandler(BaseHandler):
         """
         return self.get_collection().find_one({"_id": oid})
 
+    def get_annotation_text_by_oid(self, oid: str) -> str | None:
+        """
+        Retrieve the text of an annotation by its ObjectId.
+
+        This method fetches the 'text' field of a single annotation document
+        from the MongoDB collection using the provided ObjectId.
+
+        Args:
+            oid (str): The ObjectId of the annotation to be retrieved.
+
+        Returns:
+            str | None: The text of the annotation if found, otherwise None.
+        """
+        annotation = self.get_collection().find_one({"_id": oid}, {"text": 1})
+        if annotation:
+            return annotation.get("text", None)
+        return None
+
     def insert_annotation_bulk(self, annotations: list) -> Any:
         """
         Insert multiple annotations into the database in bulk.

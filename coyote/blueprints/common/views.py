@@ -271,6 +271,9 @@ def search_tiered_variants():
     # Search in reported docs
     sample_tagged_docs = []
 
+    # remove text only annotations that are already associated with variants
+    _annotation_text_oids_associated_with_variants: set[str] = set()
+
     for doc in docs_found:
         _doc = deepcopy(doc)
         _sample_oids = {}
@@ -283,8 +286,12 @@ def search_tiered_variants():
         for _reported_doc in _reported_docs:
             _sample_oid = _reported_doc.get("sample_oid")
             _report_oid = _reported_doc.get("report_oid")
+            _annotation_text_oid = _reported_doc.get("annotation_text_oid")
             _report_id = _reported_doc.get("report_id")
             _sample = store.sample_handler.get_sample_by_oid(_sample_oid)
+            _sample_name = (
+                _reported_doc.get("sample_name") or _sample.get("name") if _sample else None
+            )
             _report_num = next(
                 (
                     rpt.get("report_num")
@@ -297,23 +304,27 @@ def search_tiered_variants():
             if _sample_oid:
                 if _sample_oid not in _sample_oids:
                     _sample_oids[_sample_oid] = {
-                        "sample_name": _sample.get("name") if _sample else "UNKNOWN_SAMPLE",
+                        "sample_name": _sample_name if _sample_name else "UNKNOWN_SAMPLE",
                         "report_oids": {},
                     }
                 if _report_oid and _report_id:
                     if _report_oid not in _sample_oids.get(_sample_oid, {}).get("report_oids", {}):
                         _sample_oids[_sample_oid]["report_oids"][_report_id] = _report_num
 
+            if include_annotation_text and _annotation_text_oid:
+                _annotation_text_oids_associated_with_variants.add(_annotation_text_oid)
+                _doc["text"] = store.annotation_handler.get_annotation_text_by_oid(
+                    _annotation_text_oid
+                )
+
         _doc["reported_docs"] = _reported_docs
         _doc["samples"] = _sample_oids
-        sample_tagged_docs.append(_doc)
+
+        if _doc.get("_id") not in _annotation_text_oids_associated_with_variants:
+            sample_tagged_docs.append(_doc)
 
     # Enrich docs with sample details, variant details, report details
     # docs = util.bpcommon.enrich_reported_variant_docs(deepcopy(sample_tagged_docs))
-
-    from pprint import pprint
-
-    pprint(sample_tagged_docs)
 
     return render_template(
         "search_tiered_variants.html",

@@ -1611,6 +1611,7 @@ def save_dna_report(sample_id: str) -> Response:
         )
         # Only now persist reported variants snapshot
         store.reported_variants_handler.bulk_upsert_from_snapshot_rows(
+            sample_name=sample.get("name"),
             sample_oid=sample.get("_id"),
             report_oid=report_oid,
             report_id=report_id,

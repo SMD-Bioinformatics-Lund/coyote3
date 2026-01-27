@@ -384,6 +384,19 @@ class SampleHandler(BaseHandler):
         """
         return self.hidden_comments(id)
 
+    def get_latest_sample_comment(self, sample_id: str) -> dict | None:
+        """
+        Retrieve the latest comment for a specific sample.
+
+        This method fetches the most recent comment added to the specified sample.
+
+        Args:
+            sample_id (str): The unique identifier of the sample.
+        Returns:
+            dict | None: The latest comment document if found, otherwise None.
+        """
+        return self.get_latest_comment(sample_id)
+
     def get_all_sample_counts(self, report: bool | None = None) -> list:
         """
         Retrieve the total count of all samples in the database.

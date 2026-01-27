@@ -636,6 +636,11 @@ class DNAUtility:
         variants = DNAUtility.hotspot_variant(variants)
         variants = DNAUtility.filter_variants_for_report(variants, filter_genes, assay_group)
 
+        # latest sample comment
+        latest_sample_comment = store.sample_handler.get_latest_sample_comment(
+            sample_id=str(sample["_id"])
+        )
+
         # IMPORTANT: snapshot should be based on the SAME "reported variants set"
         # If your filter_variants_for_report is the final "reported set", snapshot these.
         snapshot_rows: Optional[List[Dict[str, Any]]] = None
@@ -646,11 +651,23 @@ class DNAUtility:
             now_utc = datetime.utcnow()
 
             for v in variants:
+                annotations_interesting = v.get("annotations_interesting", {})
+                annotations_interesting_assay_specific = (
+                    annotations_interesting.get(assay_group)
+                    or annotations_interesting.get(f"{assay_group}:{subpanel}")
+                    or {}
+                )
                 sel = (v.get("INFO", {}) or {}).get("selected_CSQ", {}) or {}
                 snapshot_rows.append(
                     {
                         "var_oid": v.get("_id"),
                         "annotation_oid": v.get("classification", {}).get("_id", None),
+                        "annotation_text_oid": annotations_interesting_assay_specific.get(
+                            "_id", None
+                        ),
+                        "sample_comment_oid": (
+                            latest_sample_comment.get("_id") if latest_sample_comment else None
+                        ),
                         "var_type": v.get("variant_class"),
                         "simple_id": v.get("simple_id"),
                         "simple_id_hash": v.get("simple_id_hash"),

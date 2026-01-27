@@ -77,6 +77,7 @@ class ReportedVariantsHandler(BaseHandler):
 
     def bulk_upsert_from_snapshot_rows(
         self,
+        sample_name,
         sample_oid,
         report_oid,
         report_id: str,
@@ -109,6 +110,7 @@ class ReportedVariantsHandler(BaseHandler):
 
             # Ensure core fields are always set (don’t rely on snapshot_rows to be perfect)
             doc = {
+                "sample_name": sample_name,
                 "sample_oid": sample_oid,
                 "report_oid": report_oid,
                 "report_id": report_id,
@@ -117,6 +119,7 @@ class ReportedVariantsHandler(BaseHandler):
             }
 
             # IMPORTANT: do NOT allow snapshot_rows to override report_oid/report_id/sample_oid
+            doc["sample_name"] = sample_name
             doc["sample_oid"] = sample_oid
             doc["report_oid"] = report_oid
             doc["report_id"] = report_id

@@ -90,9 +90,19 @@
       <div class="justify-start">
 
         <div class="bg-blue-50 shadow-3xl rounded-2xl p-4 relative overflow-hidden">
-          <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" data-rows-per-page="30" pagination-button-color="blue">
-            <span class="text-lg font-semibold">Search returned {{docs|length}} entries</span>
-            <table class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
+          <!-- Header -->
+          <div class="flex flex-row justify-between items-center gap-4 px-2 py-2">
+            <h2 class="text-base font-semibold text-black tracking-wide uppercase">Search returned {{docs|length}} entries</h2>
+            <div class="relative w-64">
+              <input type="text" id="search-input" class="w-full border border-gray-300 rounded-lg py-2 pl-4 pr-10 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="Search...">
+              <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="search results table" class="h-5 w-5 text-gray-500 cursor-pointer" onclick="document.getElementById('search-input').focus()">
+              </div>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination" id="tiered-variants-list" data-rows-per-page="30" pagination-button-color="blue" pagination-button-text-color="black">
+            <table id="tiered-variants-list-table" class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
               <thead class="sortable rounded-t-2xl overflow-hidden border-gray-800">
                 <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
                   <th class="p-2 font-normal">Variant</th>
@@ -101,14 +111,14 @@
                   <th class="p-2 font-normal">Transcript</th>
                   <th class="p-2 font-normal">Assay</th>
                   <th class="p-2 font-normal">Sub Panel</th>
-                  <th class="p-2 font-normal">When</th>
+                  <th class="p-2 font-normal">Author</th>
                   {% if include_annotation_text %}
                     <th class="p-2 font-normal max-w-2xl">Comment</th>
                   {% endif %}
                   <th class="p-2 font-normal" data-nosort="true">Samples</th>
                 </tr>
               </thead>
-              <tbody id="pagination-table-body-live" class="text-gray-800 rounded-b-2xl overflow-hidden">
+              <tbody id="tiered-variants-list-table-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
               {% if docs %}
                 {% for doc in docs %}
                   <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
@@ -124,11 +134,15 @@
                     </td>
                     <td class="p-2 font-medium">{{ doc.gene or '-'}}</td>
                     <td class="p-2 font-medium">{{ doc.transcript or '-'}}</td>
-                    <td class="p-2 font-medium">{{ doc.assay or '-'}}</td>
+                    {% if doc.assay %}
+                      <td class="p-2 font-medium">{{ doc.assay }}</td>
+                    {% else %}
+                      <td class="p-2 font-medium text-red-600">Historic</td>
+                    {% endif %}
                     <td class="p-2 font-medium">{{ doc.subpanel or '-'}}</td>
                     <td class="p-2 font-medium">{{ doc.author or 'unknown'}}<br><small>{{ doc.time_created|human_date or '-' }}</small></td>
                     {% if include_annotation_text %}
-                      <td class="p-2 font-medium max-w-lg" data-nosort="true">{{ doc.text }}</td>
+                      <td class="p-2 font-medium max-w-lg" data-nosort="true">{{ doc.text }} </td>
                     {% endif %}
                     <td class="p-2 font-medium" data-nosort="true">
                       {% for sample_oid, sample_info in doc.samples.items() %}
@@ -174,6 +188,33 @@
 
 
 <script>
+
+  const input = document.getElementById('search-input');
+  const body = document.getElementById('tiered-variants-list-table-body');
+  const container = document.getElementById('tiered-variants-list');
+  const rowsPerPage = parseInt(container.dataset.rowsPerPage) || 15;
+  const originalRows = [...body.querySelectorAll('tr')].map(r => r.cloneNode(true));
+  const id = body.id;
+
+  input.addEventListener('input', () => {
+    const term = input.value.toLowerCase().trim();
+
+    // Remove any existing pagination controls
+    container.querySelectorAll('[data-prev], [data-next], [data-page-info]').forEach(el => el.parentElement?.remove());
+
+    // Filter rows or reset
+    const filtered = term
+    ? originalRows.filter(row => row.textContent.toLowerCase().includes(term))
+    : originalRows;
+
+    // Replace table body with filtered or full rows
+    body.innerHTML = '';
+    filtered.forEach(row => body.appendChild(row));
+
+    // Trigger pagination if needed
+    filtered.length > rowsPerPage ? initializePagination() : displayPage(1, id, rowsPerPage);
+  });
+
   (function () {
     const details = document.getElementById("tiered-mode-dd");
     const labelSpan = document.getElementById("tiered-mode-label");
@@ -201,7 +242,7 @@
       if (e.key === "Escape") details.open = false;
     });
   })();
-  </script>
+</script>
 
 
 
