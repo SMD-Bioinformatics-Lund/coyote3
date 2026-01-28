@@ -85,7 +85,7 @@
 {# Append design BED file if available #}
 {# Creating design_bed_url as well #}
 {% if subfolder.dir != "None" and subfolder.dir != "tumwgs" %}
-  {% set design_bed = "http://localhost:60151/load?file=/R:" ~ subfolder.dir ~ "/BED/design.bed"  %}
+  {% set design_bed = "{{app.config.IGV_URI}}/load?file=/R:" ~ subfolder.dir ~ "/BED/design.bed"  %}
   {% set design_bed_url = '<a href="' ~ design_bed ~ '" class="text-blue-600 underline">' ~ "open" ~ '</a>'%}
   {% set _ = all_samples_bam_paths.append("/R:" ~ subfolder.dir ~ "/BED/design.bed") %}
 {% else %}
@@ -225,7 +225,7 @@
                         {% set indel_size = var.ALT|length - var.REF|length %}
                         {# Build the final IGV URL #}
                         {% if all_samples_bam_paths and has_access("view_igv", min_role="user", min_level=9) %}
-                          {% set igv_url = "http://localhost:60151/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ chr_pos %}
+                          {% set igv_url = "{{app.config.IGV_URI}}/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ chr_pos %}
                           {% set igv_chr_pos = '<a href="' ~ igv_url ~ '">' ~ chr_pos ~ '</a>' %}
                         {% else %}
                           {% set igv_chr_pos = chr_pos %}
@@ -412,7 +412,14 @@
                           {% if var.classification.class != 999 and var.classification.transcript == csq.Feature %}
                             <div class="inline-flex items-center px-3 py-1 font-semibold rounded-full bg-tier{{ var.classification.class }} text-white shadow-md">
                               {% if assay_group in ["myeloid", "tumwgs"] or "assay" in var.classification %}
+                                <a
+                                href="{{ url_for('common_bp.list_samples_with_tiered_variant',
+                                                variant_id=var._id|string,
+                                                tier=var.classification.class) }}"
+                                class="hover:underline"
+                              >
                                 {{ var.classification.class }}
+                              </a>
                               {% else %}
                                 *
                               {% endif %}
@@ -602,6 +609,7 @@
                                 <th class="px-1 py-3 font-semibold" id="cnv-table-header-sr">SR (ref/alt)</th>
                               {% endif %}
                               <th class="px-1 py-3 font-semibold w-4" id="cnv-table-header-status">Status</th>
+                              <th class="px-1 py-3 font-semibold w-4" id="cnv-table-header-status">Artefact</th>
                               <th class="px-1 py-3 font-semibold w-4" id="cnv-table-header-view">View</th>
                             </tr>
                           </thead>
@@ -714,6 +722,38 @@
                                   {% elif cnv.noteworthy %}
                                     noteworthy
                                   {% endif %}
+                                </td>
+                                <td class="w-4" id="cnv-table-row-artefact">
+                                  {% for key, value in cnv.items() %}
+                                    {% if key.startswith("AFRQ_") %}
+                                      {% set label = key.split("_", 1)[1] %}
+                                      {% set percent = (value * 100) | round(1) %}
+                                      {% set count_key = "ACOUNT_" ~ label %}
+                                      {% set count_value = cnv.get(count_key) %}
+
+                                      <span
+                                        class="
+                                          inline-block
+                                          px-1 py-0.5
+                                          m-1
+                                          text-xs font-semibold text-white
+                                          rounded-full
+                                          {% if percent >= 1 %}
+                                            bg-blue-500
+                                          {% elif percent >= 0.1 %}
+                                            bg-orange-300
+                                          {% else %}
+                                            bg-green-600
+                                          {% endif %}
+                                        "
+                                        onmouseover="
+                                        showTooltip(event, `<span class='text-orange-400'>{{ percent }}%
+                                          {% if count_value is not none %}({{ count_value }} cases)
+                                          {% endif %}</span>`)">
+                                        {{ label }}
+                                      </span>
+                                    {% endif %}
+                                  {% endfor %}
                                 </td>
                                 <td class="w-4" id="cnv-table-row-view">
                                   <a href="{{ url_for('dna_bp.show_cnv', sample_id=sample.name, cnv_id=cnv._id) }}" class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">view</a>
