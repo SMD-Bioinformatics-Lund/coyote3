@@ -1,17 +1,13 @@
 # Changelog
 
 ## v3.1.5
-- All the reported variants are added to a new collection to keep track of tiered variants per report per sample
-- Tier from the list variants page is linked to reports that the variant is reported
-- New form (TieredVariantSearchForm) to search variants from annotations collections by variant, gene, transcript, author, assay, subpanel
-- This new form will now be linking the annotations fetched to the samples by referencing from the reported variants collections.
-- Beside each sample, the respective reports where this variant is reported is added.
-- Added new route `/search/tiered_variants` to access the new form.
-- Added a tier stats right sidebar on the `/search/tiered_variants` search page
-- Enhanced HGVS protein normalization to support complex real-world clinical variants and improved reported_variants backfill reliability with JSONL-based dry-run and bulk insert support.
-- Corrected gene links to properly route into the tiered variant search view with matching query parameters (gene mode, assay filtering, and annotation text inclusion).
-
-
+- Introduced a dedicated `reported_variants` collection to track tiered variants per report and sample.
+- Linked variant tiers to the reports in which they are clinically reported.
+- Added `TieredVariantSearchForm` and new `/search/tiered_variants` view to search annotations by gene, variant, transcript, author, assay, and subpanel.
+- Connected annotation search results to samples and reports via the `reported_variants` collection, including per-sample report references.
+- Added tier statistics sidebar to the tiered variant search page.
+- Improved HGVS protein normalization to support complex clinical variants and enhanced backfill reliability using JSONL-based dry-run and bulk insert workflows.
+- Fixed gene links to correctly deep-link into tiered variant search with proper query parameters and assay filtering.
 
 ## v3.1.4
 - Adjusted sample search behavior to remove the time limit for user-initiated searches, while keeping a default 90-day time filter for reported samples.
