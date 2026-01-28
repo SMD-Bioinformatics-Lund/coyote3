@@ -237,7 +237,7 @@ def list_samples_with_tiered_variant(variant_id: str, tier: int):
 
 
 @common_bp.route("/search/tiered_variants", methods=["GET", "POST"])
-@require("view_tiered_variants", min_role="user", min_level=9)
+@require("view_gene_annotations", min_role="user", min_level=9)
 def search_tiered_variants():
     """
     Search reported variants across samples by gene name, variant id, HGVSc, or HGVSp.
@@ -259,6 +259,37 @@ def search_tiered_variants():
             assays: list[Any] | None = form.assay.data or None
         else:
             flash(form.variant_search.errors[0], "red")
+
+    # Allow GET deep-links (from variant pages etc.)
+    if request.method == "GET":
+        qs = request.args
+
+        # search string
+        if qs.get("search_str"):
+            search_str = qs.get("search_str", "").strip()
+            form.variant_search.data = search_str
+
+        # mode (gene / variant / transcript / etc)
+        if qs.get("search_mode"):
+            search_mode = qs.get("search_mode")
+            form.search_options.data = search_mode
+
+        # checkbox
+        if qs.get("include_annotation_text") is not None:
+            include_annotation_text = qs.get("include_annotation_text") in (
+                "1",
+                "true",
+                "True",
+                "yes",
+                "on",
+            )
+            form.include_annotation_text.data = include_annotation_text
+
+        # assays (multi)
+        assays_qs = qs.getlist("assay")
+        if assays_qs:
+            assays = assays_qs
+            form.assay.data = assays
 
     docs_found = store.annotation_handler.find_variants_by_search_string(
         search_str=search_str,

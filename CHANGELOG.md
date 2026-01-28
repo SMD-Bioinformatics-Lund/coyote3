@@ -9,6 +9,7 @@
 - Added new route `/search/tiered_variants` to access the new form.
 - Added a tier stats right sidebar on the `/search/tiered_variants` search page
 - Enhanced HGVS protein normalization to support complex real-world clinical variants and improved reported_variants backfill reliability with JSONL-based dry-run and bulk insert support.
+- Corrected gene links to properly route into the tiered variant search view with matching query parameters (gene mode, assay filtering, and annotation text inclusion).
 
 
 

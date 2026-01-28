@@ -606,6 +606,7 @@ def show_variant(sample_id: str, var_id: str) -> Response | str:
     )
 
 
+# TODO: Depricated
 @dna_bp.route("/gene_simple/<string:gene_name>", methods=["GET", "POST"])
 @require("view_gene_annotations", min_role="user", min_level=9)
 def gene_view_simple(gene_name: str) -> Response | str:
@@ -641,6 +642,7 @@ def gene_view_simple(gene_name: str) -> Response | str:
     )
 
 
+# TODO: Depricated
 @dna_bp.route("/gene/<string:gene_name>", methods=["GET", "POST"])
 @require("view_gene_annotations", min_role="user", min_level=9)
 def gene_view(gene_name: str) -> Response | str:
