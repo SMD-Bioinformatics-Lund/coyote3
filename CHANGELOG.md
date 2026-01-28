@@ -1,6 +1,6 @@
 # Changelog
 
-## v3.1.5
+# v3.1.6
 - Introduced a dedicated `reported_variants` collection to track tiered variants per report and sample.
 - Linked variant tiers to the reports in which they are clinically reported.
 - Added `TieredVariantSearchForm` and new `/search/tiered_variants` view to search annotations by gene, variant, transcript, author, assay, and subpanel.
@@ -8,6 +8,9 @@
 - Added tier statistics sidebar to the tiered variant search page.
 - Improved HGVS protein normalization to support complex clinical variants and enhanced backfill reliability using JSONL-based dry-run and bulk insert workflows.
 - Fixed gene links to correctly deep-link into tiered variant search with proper query parameters and assay filtering.
+
+## v3.1.5
+- Added CNV aftefct column from the legacy coyote
 
 ## v3.1.4
 - Adjusted sample search behavior to remove the time limit for user-initiated searches, while keeping a default 90-day time filter for reported samples.
