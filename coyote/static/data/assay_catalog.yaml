@@ -153,6 +153,18 @@ modalities:
             tat: "7-10 days"
             analysis: ["SNV"]
             sample_modes: ["Tumor-only"]
+          - key: "Follicular_Lymphoma"
+            label: "FL"
+            description: "Gene list for Folicular Lymphoma (FL)"
+            tat: "7-21 days"
+            analysis: ["SNV"]
+            sample_modes: ["Tumor-only", "Tumor-normal"]
+          - key: "DLBCL"
+            label: "DLBCL"
+            description: "Gene list for Diffuse Large B-Cell Lymphoma (DLBCL)"
+            tat: "7-21 days"
+            analysis: ["SNV"]
+            sample_modes: ["Tumor-only", "Tumor-normal"]
           - key: "hemsnabb"
             label: "Hem-Snabb"
             description: "Limited gene list for acute myeloid leukemia (AML)"
@@ -197,6 +209,13 @@ modalities:
             input_material: ["DNA", "FFPE", "Neoplastic Tissue"]
             sample_modes: ["Tumor-only"]
             analysis: ["SNV", "MSI"]  # Override analysis types if needed
+          - key: "breast"
+            label: "Breast cancer"
+            description: "Gene list for breast cancer"
+            tat: "14-21 days"
+            input_material: ["DNA", "FFPE", "Neoplastic Tissue"]
+            sample_modes: ["Tumor-only"]
+            analysis: ["SNV", "CNV"]  # Override analysis types if needed
           - key: "Drug_Addon_solid"
             label: "Actionable Add-ons (Limited)"
             description: "A limited gene list for potential actionable genes in solid cancer (please see https://www.oncokb.org/actionable-genes#sections=Tx for further information about actionable genes)"
