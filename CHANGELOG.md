@@ -1,5 +1,8 @@
 # Changelog
 
+##v3.1.7
+- Add New GENS Link
+
 ## v3.1.5
 - Added CNV aftefct column from the legacy coyote
 
