@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.1.8
+- Added FL, DLBCL and Breast Cancer analysis/Genelists in the assay catalog
+
 ## v3.1.7
 - Add New GENS Link
 
