@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.1.7
+- Add New GENS Link
+
 # v3.1.6
 - Introduced a dedicated `reported_variants` collection to track tiered variants per report and sample.
 - Linked variant tiers to the reports in which they are clinically reported.
