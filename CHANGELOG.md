@@ -1,5 +1,27 @@
 # Changelog
 
+# v3.1.6
+- Introduced a dedicated `reported_variants` collection to track tiered variants per report and sample.
+- Linked variant tiers to the reports in which they are clinically reported.
+- Added `TieredVariantSearchForm` and new `/search/tiered_variants` view to search annotations by gene, variant, transcript, author, assay, and subpanel.
+- Connected annotation search results to samples and reports via the `reported_variants` collection, including per-sample report references.
+- Added tier statistics sidebar to the tiered variant search page.
+- Improved HGVS protein normalization to support complex clinical variants and enhanced backfill reliability using JSONL-based dry-run and bulk insert workflows.
+- Fixed gene links to correctly deep-link into tiered variant search with proper query parameters and assay filtering.
+
+## v3.1.5
+- Added CNV aftefct column from the legacy coyote
+
+## v3.1.4
+- Adjusted sample search behavior to remove the time limit for user-initiated searches, while keeping a default 90-day time filter for reported samples.
+- Changed the sample profile filter to hide non-production samples by default, with a toggle to show all samples.
+- Removed Exon/Intron Info from the variant table in the report.
+- Fix: Replaced naive datetime usage with a centralized `utc_now()` helper to ensure all newly stored timestamps are timezone-aware and consistently recorded in UTC.
+- Fix: removed excess whitespace in DNA report variant comments caused by default paragraph margins in report tables.
+- Fix: prevent hidden genelist form fields from rendering as stray boxes in generated report PDFs.
+- Fix: Prevent previously tiered variants marked as false positives from appearing in the “Suggest” summary text (they were only removable by marking as irrelevant), while still keeping them out of the final summary table.
+- Fix: Reduced the default font size of markdown headings inside the summary editor (EasyMDE/CodeMirror) so section headers appear more compact while typing, matching the final report style.
+
 ## v3.1.3
 - Fixed missing ISGL routes in production by standardizing Flask blueprint route definitions.
 

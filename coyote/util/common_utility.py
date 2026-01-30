@@ -18,6 +18,8 @@ used throughout the Coyote3 project, including configuration handling,
 data formatting, serialization, and reporting.
 """
 
+from __future__ import annotations
+
 import os
 from copy import deepcopy
 from pathlib import Path
@@ -25,10 +27,9 @@ import subprocess
 
 from cryptography.fernet import Fernet
 from flask import current_app as app
-from typing import Any, Literal, Dict, Tuple
+from typing import Any, Literal, Dict, Tuple, List, Optional
 from bson import ObjectId
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timezone, timedelta
 from hashlib import md5
 import base64, json
 from flask_login import current_user
@@ -63,6 +64,13 @@ class CommonUtility:
               encodes the parameters inside the final hash string.
         """
         return generate_password_hash(password, method="pbkdf2:sha256")
+
+    @staticmethod
+    def utc_now():
+        """
+        Get the current UTC datetime.
+        """
+        return datetime.now(timezone.utc)
 
     @staticmethod
     def get_simple_id(variant: dict) -> str:
@@ -799,7 +807,7 @@ class CommonUtility:
         Returns:
             str: The current date in ISO format (YYYY-MM-DD).
         """
-        return datetime.now().strftime("%Y-%m-%d")
+        return CommonUtility.utc_now().strftime("%Y-%m-%d")
 
     @staticmethod
     def get_date_days_ago(days: int) -> str:
@@ -812,7 +820,7 @@ class CommonUtility:
         Returns:
             str: The date in ISO format (YYYY-MM-DD) for the specified days ago.
         """
-        return datetime.now() - timedelta(days=days)
+        return CommonUtility.utc_now() - timedelta(days=days)
 
     @staticmethod
     def generate_sample_cache_key(**kwargs) -> str:
@@ -1060,7 +1068,7 @@ class CommonUtility:
         """
         document = {
             "author": current_user.username,
-            "time_created": datetime.now(),
+            "time_created": CommonUtility.utc_now(),
             "variant": variant,
             "nomenclature": nomenclature,
             "assay": variant_data.get("assay_group", None),

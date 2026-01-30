@@ -667,12 +667,17 @@
 
 
   <script>
-    const sampleId = "{{ sample._id }}";
+    const sampleId = {{ sample._id|string | tojson }};
+
     const currentTempGenes = {{ (sample.filters.adhoc_genes if sample.filters and sample.filters.adhoc_genes else []) | tojson }};
     const currentTempLabel = {{ (sample.filters.temp_label if sample.filters and sample.filters.temp_label else '') | tojson }};
     const currentTempMode  = {{ ((sample.filters.temp_mode if sample.filters and sample.filters.temp_mode else 'intersection')) | tojson }};
     const appliedISGLs = {{ (sample.filters.genelists if sample.filters and sample.filters.genelists else []) | tojson }};
     const aspGroup = {{ asp.asp_group | tojson }};
+    const ISGLS_FETCH_URL = {{ url_for("home_bp.list_isgls", sample_id=sample._id|string) | tojson }};
+    const ISGLS_APPLY_URL = {{ url_for("home_bp.apply_isgl", sample_id=sample._id|string) | tojson }};
+
+
 
     // Modal helpers
     function openModal(el){ el.classList.remove('hidden'); el.classList.add('flex'); }
@@ -833,8 +838,10 @@
     // Regular ISGL
     initISGLChooser({
       buttonId: "btnChooseISGL",
-      fetchUrl: `/samples/${sampleId}/isgls`,
-      applyUrl: `/samples/${sampleId}/genes/apply-isgl`,
+      // fetchUrl: `/samples/${sampleId}/isgls`,
+      fetchUrl: ISGLS_FETCH_URL,
+      // applyUrl: `/samples/${sampleId}/genes/apply-isgl`,
+      applyUrl: ISGLS_APPLY_URL,
       modalElement: modalChooseISGL,
       bodyId: "chooseBodyISGL"
     });

@@ -31,6 +31,7 @@
     rna_expression_collection = "rna_expression"
     rna_qc_collection = "rna_qc"
     rna_classification_collection = "rna_classification"
+    reported_variants_collection = "reported_variants"
 
 [coyote_dev_3]
     aspc_collection = "asp_configs"
@@ -67,6 +68,7 @@
     rna_expression_collection = "rna_expression"
     rna_qc_collection = "rna_qc"
     rna_classification_collection = "rna_classification"
+    reported_variants_collection = "reported_variants"
 
 [BAM_Service]
     bam_samples = "samples"

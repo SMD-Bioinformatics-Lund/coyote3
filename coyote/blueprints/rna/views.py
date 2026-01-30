@@ -386,12 +386,15 @@ def generate_rna_report(id, *args, **kwargs):
     class_desc = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC").values())
     class_desc_short = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT").values())
     analysis_desc = app.config.get("REPORT_CONFIG").get("ANALYSIS_DESCRIPTION", {}).get(assay)
+    class_desc = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC").values())
+    class_desc_short = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT").values())
+    analysis_desc = app.config.get("REPORT_CONFIG").get("ANALYSIS_DESCRIPTION", {}).get(assay)
 
     # app.logger.info(f"analysis_desc,{analysis_desc}")
     # app.logger.info(f"fusions,{fusions}")
     analysis_method = util.common.get_analysis_method(assay)
     report_header = util.common.get_report_header(assay, sample)
-    report_date = datetime.now().date()
+    report_date = util.common.utc_now().date()
     pdf = kwargs.get("pdf", 0)
 
     return render_template(
@@ -451,7 +454,7 @@ def generate_report_pdf(id):
                     "report_num": report_num,
                     "filepath": pdf_file,
                     "author": current_user.get_id(),
-                    "time_created": datetime.now(),
+                    "time_created": util.common.utc_now(),
                 }
             },
             "$set": {"report_num": report_num},
