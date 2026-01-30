@@ -150,6 +150,15 @@
               <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Logout</a>
             </div>
           </div>
+        {% else %}
+          <div class+"relative">
+            <a href="{{ url_for('login_bp.login') }}">
+              <button id="userLoginButton" class="flex items-center space-x-2 focus:outline-none mx-8">
+                <img class="h-8 w-8 rounded-full transition-transform duration-300 transform hover:scale-110 hover:rotate-6 bg-transparent" src="{{ url_for('static', filename='icons/user-512.png') }}">
+                <span class="text-black font-bold">Login</span>
+              </button>
+            </a>
+          </div>
         {% endif %}
       </header>
 
@@ -160,22 +169,31 @@
           <div class="flex flex-wrap items-center gap-x-2 ml-5">
             {% set curr_path = request.path %}
 
-            <a href="{{ url_for('dashboard_bp.dashboard') }}"
-              class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path == url_for('dashboard_bp.dashboard') else 'hover:bg-indigo-200 font-semibold' }}">
-              HOME
-            </a>
-            <a href="{{ url_for('home_bp.samples_home') }}"
-              class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path.split('/')[-1] == 'samples' or curr_path.split('/')[-2] == 'samples'  else 'hover:bg-indigo-200 font-semibold' }}">
-              SAMPLES
-            </a>
+            {% if current_user.is_authenticated %}
+              <a href="{{ url_for('dashboard_bp.dashboard') }}"
+                class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path == url_for('dashboard_bp.dashboard') else 'hover:bg-indigo-200 font-semibold' }}">
+                HOME
+              </a>
+              <a href="{{ url_for('home_bp.samples_home') }}"
+                class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path.split('/')[-1] == 'samples' or curr_path.split('/')[-2] == 'samples'  else 'hover:bg-indigo-200 font-semibold' }}">
+                SAMPLES
+              </a>
+            {% endif %}
             <a href="{{ url_for('public_bp.assay_catalog_matrix') }}"
-              class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if 'assay_catalog_matrix' in curr_path else 'hover:bg-indigo-200 font-semibold' }}">
+              class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if 'assay-catalog-matrix' in curr_path else 'hover:bg-indigo-200 font-semibold' }}">
               MATRIX
             </a>
             <a href="{{ url_for('public_bp.assay_catalog') }}"
-              class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if 'assay_catalog' in curr_path else 'hover:bg-indigo-200 font-semibold' }}">
+              class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if 'assay-catalog' in curr_path and 'assay-catalog-matrix' not in curr_path else 'hover:bg-indigo-200 font-semibold' }}">
               CATALOG
             </a>
+            {% if current_user.is_authenticated %}
+              |
+              <a href="{{ url_for('common_bp.search_tiered_variants') }}"
+                class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path.split('/')[-1] == 'search' or curr_path.split('/')[-2] == 'search'  else 'hover:bg-indigo-200 font-semibold' }}">
+                VARIANT SEARCH
+              </a>
+            {% endif %}
           </div>
 
 
