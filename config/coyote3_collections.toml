@@ -28,6 +28,7 @@
     coverage2_collection = "panel_cov"
     groupcov_collection = "group_coverage"
     expression_collection = "hpaexpr"
+    reported_variants_collection = "reported_variants"
 
 [coyote_dev_3]
     aspc_collection = "asp_configs"
@@ -61,6 +62,7 @@
     cosmic_collection = "cosmic"
     vep_metadata_collection = "vep_metadata"
     hgnc_collection = "hgnc_genes"
+    reported_variants_collection = "reported_variants"
 
 [BAM_Service]
     bam_samples = "samples"
