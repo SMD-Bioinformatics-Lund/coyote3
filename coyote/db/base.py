@@ -390,3 +390,25 @@ class BaseHandler:
             Any: The result of the update operation.
         """
         return self.get_collection().update_one({"_id": doc_id}, {"$set": {"active": active}})
+
+    def get_latest_comment(self, doc_id: str) -> dict | None:
+        """
+        Retrieve the latest comment for a document.
+
+        This method fetches the most recent comment from the `comments` array
+        of a document in the collection based on the `time_created` field.
+
+        Args:
+            doc_id (str): The unique identifier of the document.
+
+        Returns:
+            dict | None: The latest comment document if found, otherwise None.
+        """
+        doc = self.get_collection().find_one({"_id": ObjectId(doc_id)}, {"comments": 1})
+        if doc and "comments" in doc:
+            comments = doc["comments"]
+            if comments:
+                # Sort comments by time_created in descending order and return the latest
+                latest_comment = max(comments, key=lambda x: x.get("time_created", datetime.min))
+                return latest_comment
+        return None
