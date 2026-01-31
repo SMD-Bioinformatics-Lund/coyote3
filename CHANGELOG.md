@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.1.9
+- Kept the old Gens URI until the complete migration.
+
 ## v3.1.8
 - Added FL, DLBCL and Breast Cancer analysis/Genelists in the assay catalog
 
