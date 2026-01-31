@@ -107,7 +107,8 @@ class DefaultConfig:
     }
 
     # Gens URI
-    GENS_URI = os.getenv("GENS_URI", "http://mtcmdpgm01.lund.skane.se/gens/")
+    GENS_URI_OLD = os.getenv("GENS_URI_OLD", "http://mtcmdpgm01.lund.skane.se/gens")
+    GENS_URI = os.getenv("GENS_URI", "http://mtcmdpgm01.lund.skane.se/gens_somatic/app/viewer")
 
     # Report Config
     REPORTS_BASE_PATH = os.getenv("REPORTS_BASE_PATH", "/data/coyote3/reports")

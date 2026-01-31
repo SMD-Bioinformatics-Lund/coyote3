@@ -564,7 +564,7 @@
                       </div>
 
                       <div class="text-center my-4 pb-2 flex flex-wrap gap-x-4 justify-center">
-                        <a href="{{app_config.GENS_URI}}/{{ sample.get('sample.name') }}?genome_build={{build}}"
+                        <a href="{{app_config.GENS_URI}}/{{ sample.get('name') }}?genome_build={{build}}"
                             target="_blank"
                             class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
                               Open in Gens (New)
@@ -573,14 +573,14 @@
 
                       <div class="text-center my-4 pb-2 flex flex-wrap gap-x-4 justify-center">
                         {% for type, sample_id in sample_ids.items() %}
-                          <a href="{{app_config.GENS_URI}}/{{ sample_id }}?individual_id={{sample_id}}&case_id={{ sample.name }}&genome_build={{build}}"
+                          <a href="{{app_config.GENS_URI_OLD}}/{{ sample_id }}?individual_id={{sample_id}}&case_id={{ sample.name }}&genome_build={{build}}"
                               target="_blank"
                               class="inline-block px-1 py-1 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
                             Open <b>{{ sample_id }}</b> ({{ type }}) in Gens (Old)
                           </a><br>
                         {% endfor %}
                       </div>
-                      <span class="text-red-500 font-bold text-sm">Note: Old Gens will be deprecated in the future!!</span>§
+                      <span class="text-red-500 font-bold text-sm">Note: Old Gens will be deprecated in the future!!</span>
                     </div>
                   </div>
                 {% endif %}
