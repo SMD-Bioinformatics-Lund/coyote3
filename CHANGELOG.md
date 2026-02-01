@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.1.10
+- Added documentation pages (About, Changelog, License) and exposed basic version and build information in the UI.
+
 ## v3.1.9
 - Kept the old Gens URI until the complete migration.
 

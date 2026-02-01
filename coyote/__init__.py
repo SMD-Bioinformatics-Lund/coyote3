@@ -136,6 +136,13 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
                 return get_dynamic_assay_nav()
             return {"dynamic_assay_nav": {}}
 
+        @app.context_processor
+        def inject_build_meta():
+            return {
+                "APP_VERSION": app.config.get("APP_VERSION"),
+                "ENV_NAME": app.config.get("ENV_NAME"),
+            }
+
     # Refresh user session with latest data from the database before each request.
     @app.before_request
     def refresh_user_session() -> None:
@@ -558,6 +565,12 @@ def register_blueprints(app) -> None:
     from coyote.blueprints.public import public_bp
 
     app.register_blueprint(public_bp, url_prefix="/public")
+
+    # register docs bp
+    bp_debug_msg("docs_bp")
+    from coyote.blueprints.docs import docs_bp
+
+    app.register_blueprint(docs_bp, url_prefix="/docs")
 
 
 def init_login_manager(app) -> None:

@@ -14,6 +14,10 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV FLASK_APP=wsgi.py
+ARG GIT_COMMIT="unknown"
+ARG BUILD_TIME="unknown"
+ENV GIT_COMMIT=${GIT_COMMIT}
+ENV BUILD_TIME=${BUILD_TIME}
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
