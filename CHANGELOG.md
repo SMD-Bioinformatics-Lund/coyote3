@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.1.11
+- removed a commented line from the report layout css (`#border:1px solid #aaa;`)
+
 ## v3.1.10
 - Added documentation pages (About, Changelog, License) and exposed basic version and build information in the UI.
 
