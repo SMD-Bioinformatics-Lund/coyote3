@@ -1,6 +1,10 @@
 {% extends "layout.html" %}
 
 {% block title %}Changelog{% endblock %}
+{% block style%}
+  <!-- Render markdown -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.1/github-markdown.min.css">
+{% endblock %}
 
 {% block meta %}
   <meta name="description" content="Coyote3 release notes and changelog.">

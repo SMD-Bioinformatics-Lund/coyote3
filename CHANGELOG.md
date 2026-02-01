@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.1.2
+- removed huge css files from the repo and fetched from the cdn instead
+
 ## v3.1.11
 - removed a commented line from the report layout css (`#border:1px solid #aaa;`)
 
