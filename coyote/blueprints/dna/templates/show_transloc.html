@@ -26,7 +26,7 @@
 
 {# Creating design_bed_url as well #}
 {% if subfolder.dir != "None" and subfolder.dir != "tumwgs" %}
-  {% set design_bed = "http://localhost:60151/load?file=/R:" ~ subfolder.dir ~ "/BED/design.bed"  %}
+  {% set design_bed = "app_config.IGV_URI ~ "/load?file=/R:" ~ subfolder.dir ~ "/BED/design.bed"  %}
   {% set design_bed_url = '<a href="' ~ design_bed ~ '" class="text-blue-600 underline">' ~ "open" ~ '</a>'%}
   {% set _ = all_samples_bam_paths.append("/R:" ~ subfolder.dir ~ "/BED/design.bed") %}
 {% else %}
@@ -35,8 +35,8 @@
 
 {# Build the final IGV URL #}
 {% if all_samples_bam_paths and has_access("view_igv", min_role="user", min_level=9) %}
-  {% set igv_url_gene1 = "http://localhost:60151/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ gene_1_locus %}
-  {% set igv_url_gene2 = "http://localhost:60151/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ gene_2_locus %}
+  {% set igv_url_gene1 = "app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ gene_1_locus %}
+  {% set igv_url_gene2 = "app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ gene_2_locus %}
   {% set igv_link_gene1 = '<a href="' ~ igv_url_gene1 ~ '" class="text-blue-600 underline">' ~ gene_1_locus ~ '</a>' %}
   {% set igv_link_gene2 = '<a href="' ~ igv_url_gene2 ~ '" class="text-blue-600 underline">' ~ gene_2_locus ~ '</a>' %}
 
