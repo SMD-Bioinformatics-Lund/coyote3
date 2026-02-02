@@ -180,6 +180,7 @@ def gene_info(id: str) -> str:
 
 @common_bp.route("/reported_variants/variant/<string:variant_id>/<int:tier>", methods=["GET"])
 @login_required
+@require("view_gene_annotations", min_role="user", min_level=9)
 def list_samples_with_tiered_variant(variant_id: str, tier: int):
     """
     Show reported variants across samples that match this variant identity and tier.
