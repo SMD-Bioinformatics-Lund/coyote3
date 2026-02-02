@@ -1,5 +1,8 @@
 # Changelog
 
+### v3.1.15
+- Removed unused block of code which is causing errors in the tiered variants search.
+
 ## v3.1.14
 - Fixed tiered variants tier color, and added action button
 
