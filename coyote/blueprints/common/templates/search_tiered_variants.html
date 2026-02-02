@@ -147,6 +147,14 @@
                       {% if doc.class %}
                         <div class="inline-flex items-center px-3 py-1 font-semibold rounded-full bg-tier{{ doc.class }} text-white shadow-md">
                           {{ doc.class }}
+                          <a
+                            href="{{ url_for('common_bp.list_samples_with_tiered_variant',
+                                            variant_id=var._id|string,
+                                            tier=var.classification.class) }}"
+                              class="hover:underline"
+                          >
+                            {{ var.classification.class }}
+                          </a>
                         </div>
                       {% else %}
                         -

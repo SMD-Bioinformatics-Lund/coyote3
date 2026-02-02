@@ -147,7 +147,7 @@ class ReportedVariantsHandler(BaseHandler):
         """
         List reported variant snapshot documents matching the given Mongo query.
         """
-        return list(self.get_collection().find(query))
+        return list(self.get_collection().find(query).sort("time_created", -1))
 
     def get_reported_docs(self, query: dict, limit: int | None = None) -> list:
         """

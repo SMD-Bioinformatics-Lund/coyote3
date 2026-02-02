@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.1.14
+- Fixed tiered variants tier color, and added action button
+
 ## v3.1.13
 - Fixed IGV links for snv and cnvs, now the IGV links are not hardcoded in the templates
 
