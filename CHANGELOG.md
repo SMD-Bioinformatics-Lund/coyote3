@@ -1,6 +1,9 @@
 # Changelog
 
-## v3.1.2
+## v3.1.13
+- Fixed IGV links for snv and cnvs, now the IGV links are not hardcoded in the templates
+
+## v3.1.12
 - removed huge css files from the repo and fetched from the cdn instead
 
 ## v3.1.11
@@ -18,7 +21,7 @@
 ## v3.1.7
 - Add New GENS Link
 
-# v3.1.6
+## v3.1.6
 - Introduced a dedicated `reported_variants` collection to track tiered variants per report and sample.
 - Linked variant tiers to the reports in which they are clinically reported.
 - Added `TieredVariantSearchForm` and new `/search/tiered_variants` view to search annotations by gene, variant, transcript, author, assay, and subpanel.
@@ -50,7 +53,7 @@
 - Reports: HTML reports now use compact UTC timestamps in filenames to avoid collisions on re-runs.
 - New format <TUMOR_NAME>_<TUMOR_CLARITY_ID>-<NORMAL_NAME>_<NORMAL_CLARITY_ID>.<YYDDMMHHSS>.html for tumor-normal analysis.  <TUMOR_NAME>_<TUMOR_CLARITY_ID>.<YYDDMMHHSS>.html for tumor only analysis.
 
-## v3.1.0 (Ongoing)
+## v3.1.0
 ### Added
 - Sample landing page to view sample related meta data, case/control overview, files & QC, gene filters, variant filters, analysis data counts, reports, comments, etc.
 - Sample landing (settings/edit) page will now show the list of files associated with the sample and if they exist on the drive.

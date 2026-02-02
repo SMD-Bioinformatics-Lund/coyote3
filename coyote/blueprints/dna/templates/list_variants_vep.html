@@ -85,7 +85,7 @@
 {# Append design BED file if available #}
 {# Creating design_bed_url as well #}
 {% if subfolder.dir != "None" and subfolder.dir != "tumwgs" %}
-  {% set design_bed = "{{app.config.IGV_URI}}/load?file=/R:" ~ subfolder.dir ~ "/BED/design.bed"  %}
+  {% set design_bed = app_config.IGV_URI ~ "/load?file=/R:" ~ subfolder.dir ~ "/BED/design.bed"  %}
   {% set design_bed_url = '<a href="' ~ design_bed ~ '" class="text-blue-600 underline">' ~ "open" ~ '</a>'%}
   {% set _ = all_samples_bam_paths.append("/R:" ~ subfolder.dir ~ "/BED/design.bed") %}
 {% else %}
@@ -225,7 +225,7 @@
                         {% set indel_size = var.ALT|length - var.REF|length %}
                         {# Build the final IGV URL #}
                         {% if all_samples_bam_paths and has_access("view_igv", min_role="user", min_level=9) %}
-                          {% set igv_url = "{{app.config.IGV_URI}}/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ chr_pos %}
+                          {% set igv_url = app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ chr_pos %}
                           {% set igv_chr_pos = '<a href="' ~ igv_url ~ '">' ~ chr_pos ~ '</a>' %}
                         {% else %}
                           {% set igv_chr_pos = chr_pos %}
@@ -624,6 +624,13 @@
                           </thead>
                           <tbody>
                             {% for cnv in cnvs %}
+                            {% if all_samples_bam_paths and has_access("view_igv", min_role="user", min_level=9) %}
+                              {% set igv_cnv_url = app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ cnv.chr ~ ":" ~ cnv.start ~ "-" ~ cnv.end  %}
+                              {% set igv_cnv_chr_pos = '<a href="' ~ igv_cnv_url ~ '">' ~ cnv.chr ~ ":" ~ cnv.start ~ "-" ~ cnv.end ~ '</a>' %}
+                            {% else %}
+                              {% set igv_cnv_chr_pos = cnv.chr ~ ":" ~ cnv.start ~ "-" ~ cnv.end %}
+                            {% endif %}
+
                               {% if cnv.interesting %}
                                 <tr class="bg-green-100 hover:bg-green-200 border-t border-gray-400 text-left" id="cnv-table-row-interesting">
                               {% elif cnv.ratio > 3 and cnv.size > (sample.filters.max_cnv_size|int) or cnv.fp %}
@@ -662,8 +669,8 @@
 
                                 <!-- Region -->
                                 <td id="cnv-table-row-region">
-                                  <div class="inline-block px-2 py-1 text-white rounded-full bg-gray-400">
-                                    {{ cnv.chr }}:{{ cnv.start }}-{{ cnv.end }}
+                                  <div class="inline-block px-2 py-1 font-semibold text-white rounded-full transition-all duration-200 ease-in-out hover:bg-blue-400 hover:text-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 bg-gray-400">
+                                    {{igv_cnv_chr_pos|safe}}
                                   </div>
                                 </td>
 
