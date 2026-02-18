@@ -10,18 +10,20 @@
 #  the copyright holders.
 #
 
-"""
-Version Information for Coyote3
-===============================
+from flask import Blueprint
+from flask import current_app as app
+import logging
 
-This file contains the version information for the Coyote3 application.
-"""
+# Blueprint configuration
+docs_bp = Blueprint(
+    "docs_bp",
+    __name__,
+    template_folder="templates",
+    static_folder="static",
+    static_url_path="docs/static",
+)
 
-__version__ = "3.1.15"
+from coyote.blueprints.docs import views  # noqa: F401, E402
 
-# For easier access by build-scripts:
-if __name__ == "__main__":
-    """
-    This block is executed when the script is run directly.
-    """
-    print(__version__)
+
+app.docs_logger = logging.getLogger("coyote.docs")

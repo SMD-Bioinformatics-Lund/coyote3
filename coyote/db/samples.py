@@ -219,8 +219,6 @@ class SampleHandler(BaseHandler):
 
     def get_sample_name(self, id: str) -> str | None:
         """
-        get_sample_name(id: str) -> str | None
-
         Retrieve the name of a sample by its unique identifier.
 
         Args:
@@ -231,6 +229,18 @@ class SampleHandler(BaseHandler):
         """
         sample = self.get_collection().find_one({"_id": ObjectId(id)})
         return sample.get("name") if sample else None
+
+    def get_sample_by_oid(self, id: str) -> str | None:
+        """
+        Retrieve the name of a sample by its unique identifier.
+
+        Args:
+            id (ObjectId): The unique identifier (ObjectId) of the sample.
+
+        Returns:
+            dict | None: The sample doc if found, otherwise None.
+        """
+        return self.get_collection().find_one({"_id": id})
 
     def get_samples_by_oids(self, sample_oids: list) -> Any:
         """
@@ -373,6 +383,19 @@ class SampleHandler(BaseHandler):
             bool: True if the sample has hidden comments, otherwise False.
         """
         return self.hidden_comments(id)
+
+    def get_latest_sample_comment(self, sample_id: str) -> dict | None:
+        """
+        Retrieve the latest comment for a specific sample.
+
+        This method fetches the most recent comment added to the specified sample.
+
+        Args:
+            sample_id (str): The unique identifier of the sample.
+        Returns:
+            dict | None: The latest comment document if found, otherwise None.
+        """
+        return self.get_latest_comment(sample_id)
 
     def get_all_sample_counts(self, report: bool | None = None) -> list:
         """
@@ -551,25 +574,28 @@ class SampleHandler(BaseHandler):
         Returns:
             bool | None: Returns the result of the database update operation.
         """
-        # report_num = int(report_id.split(".")[-1])
-        return self.get_collection().update(
+        report_oid = ObjectId()
+        result = self.get_collection().update(
             {"name": sample_id},
             {
                 "$push": {
                     "reports": {
-                        "_id": ObjectId(),
+                        "_id": report_oid,
                         "report_num": report_num,
                         "report_id": f"{report_id}",
                         "report_type": "html",
                         "report_name": f"{report_id}.html",
                         "filepath": filepath,
                         "author": current_user.username,
-                        "time_created": datetime.now(),
+                        "time_created": CommonUtility.utc_now(),
                     }
                 },
                 "$set": {"report_num": report_num},
             },
         )
+        if result.get("ok"):
+            return report_oid
+        return None
 
     def get_report(self, sample_id: str, report_id: str) -> dict | None:
         """

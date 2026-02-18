@@ -27,13 +27,14 @@ across different environments.
 # Imports
 # -------------------------------------------------------------------------
 import os
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 import toml
 from cryptography.fernet import Fernet
 from coyote.__version__ import __version__ as app_version
 from coyote.util.common_utility import CommonUtility
 from dotenv import load_dotenv
 from os import path
+import subprocess
 
 # Load environment variables from a .env file if present
 basedir = path.abspath(path.dirname(__file__))
@@ -56,6 +57,19 @@ class DefaultConfig:
 
     # GITHUB REPO
     CODEBASE = "https://github.com/SMD-Bioinformatics-Lund/coyote3"
+
+    # In-app changelog
+    CHANGELOG_FILE = "CHANGELOG.md"
+
+    # Optional link out to Git
+    CHANGELOG_URL = "https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/master/CHANGELOG.md"
+
+    # Readme
+    README_URL = "https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/master/README.md"
+
+    # LICENSE
+    LICENSE_FILE = "LICENSE.txt"
+    LICENSE_URL = "https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/master/LICENSE.txt"
 
     # Public ASSAY CATALOG
     ASSAY_CATALOG_YAML = "coyote/static/data/assay_catalog.yaml"
@@ -107,7 +121,11 @@ class DefaultConfig:
     }
 
     # Gens URI
-    GENS_URI = os.getenv("GENS_URI", "http://mtcmdpgm01.lund.skane.se/gens/")
+    GENS_URI_OLD = os.getenv("GENS_URI_OLD", "http://mtcmdpgm01.lund.skane.se/gens")
+    GENS_URI = os.getenv("GENS_URI", "http://mtcmdpgm01.lund.skane.se/gens_somatic/app/viewer")
+
+    # IGV URI
+    IGV_URI = os.getenv("IGV_URI", "http://localhost:60151")
 
     # Report Config
     REPORTS_BASE_PATH = os.getenv("REPORTS_BASE_PATH", "/data/coyote3/reports")
@@ -219,6 +237,11 @@ class DefaultConfig:
         # "urgent_notes": "For critical cases within lab hours only.",
     }
 
+    # SEARCH LIMITS
+    TIERED_VARIANT_SEARCH_LIMIT = 1000
+    SAMPLE_SEARCH_LIMIT = 1000
+    REPORTED_SAMPLES_SEARCH_LIMIT = 50
+
     @property
     def MONGO_URI(self) -> str:
         """
@@ -279,6 +302,7 @@ class ProductionConfig(DefaultConfig):
 
     LOGS = "logs/prod"
     PRODUCTION = True
+    ENV_NAME = "Production"
     APP_VERSION: str = f"{app_version}"
     SECRET_KEY: str | None = os.getenv("SECRET_KEY")
     SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_prod")
@@ -303,6 +327,7 @@ class DevelopmentConfig(DefaultConfig):
 
     LOGS = "logs/dev"
     PRODUCTION = False
+    ENV_NAME = "Development"
     SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_dev")
     SECRET_KEY = os.getenv("SECRET_KEY")
     APP_VERSION: str = f"{app_version}-DEV (git: {CommonUtility.get_active_branch_name()})"
@@ -324,6 +349,7 @@ class TestConfig(DefaultConfig):
 
     LOGS = "logs/test"
     PRODUCTION = False
+    ENV_NAME = "Testing"
     SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_test")
     SECRET_KEY = os.getenv("SECRET_KEY")
 

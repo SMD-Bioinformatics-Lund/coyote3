@@ -15,6 +15,7 @@ Views for DNA variant, CNV, translocation, and biomarker management and reportin
 """
 
 from flask import current_app as app
+from flask_login import current_user
 from flask import (
     redirect,
     render_template,
@@ -34,7 +35,6 @@ from coyote.blueprints.dna.varqueries import build_query
 from coyote.blueprints.dna.cnvqueries import build_cnv_query
 from coyote.blueprints.dna.forms import DNAFilterForm, create_assay_group_form
 from coyote.errors.exceptions import AppError
-from datetime import datetime, timezone
 from bson import ObjectId
 from collections import defaultdict
 from coyote.util.decorators.access import require_sample_access
@@ -63,7 +63,6 @@ def list_variants(sample_id: str) -> Response | str:
         - Logs information about selected OncoKB genes.
     """
     # Find sample data by name
-
     result = get_sample_and_assay_config(sample_id)
     if isinstance(result, Response):
         return result
@@ -607,6 +606,7 @@ def show_variant(sample_id: str, var_id: str) -> Response | str:
     )
 
 
+# TODO: Depricated
 @dna_bp.route("/gene_simple/<string:gene_name>", methods=["GET", "POST"])
 @require("view_gene_annotations", min_role="user", min_level=9)
 def gene_view_simple(gene_name: str) -> Response | str:
@@ -642,6 +642,7 @@ def gene_view_simple(gene_name: str) -> Response | str:
     )
 
 
+# TODO: Depricated
 @dna_bp.route("/gene/<string:gene_name>", methods=["GET", "POST"])
 @require("view_gene_annotations", min_role="user", min_level=9)
 def gene_view(gene_name: str) -> Response | str:
@@ -1452,27 +1453,46 @@ def unhide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
 @require("preview_report", min_role="user", min_level=9)
 def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     """
-    Generate and render a DNA report for a given sample.
+    Generate and render a preview of the DNA report for a given sample.
 
-    This function retrieves sample and assay configuration data, applies filters,
-    gathers variant and biomarker information, and prepares all necessary data
-    for rendering a comprehensive DNA report. The report includes SNVs, CNVs,
-    biomarkers, translocations, fusions, and low coverage regions, depending on
-    the assay configuration and available data.
+    This endpoint builds the complete DNA report content using the shared
+    report payload builder and returns the rendered HTML for preview purposes
+    only. No files are written to disk and no database state is modified.
+
+    The same underlying report-building logic is reused by the report save
+    endpoint, ensuring that the preview accurately reflects the final
+    persisted report.
 
     Args:
-        sample_id (str): The identifier (name or ID) of the sample to generate the report for.
-        **kwargs: Additional keyword arguments. Supported:
-            save (int, optional): If set, indicates the report should be saved.
+        sample_id (str):
+            Identifier (name or ObjectId) of the sample for which the report
+            preview should be generated.
+
+        **kwargs:
+            save (int, optional):
+                Flag passed through to the report renderer to control
+                template behavior (e.g. preview vs. save mode). This flag
+                does not trigger persistence when used in the preview route.
 
     Returns:
-        Response | str: Rendered HTML template for the DNA report, or a redirect
-        response if required data is missing.
+        Response | str:
+            Rendered HTML string for the DNA report preview, or a redirect
+            response if required sample or assay configuration data is missing
+            or an error occurs during report generation.
+
+    Notes:
+        - This route performs **no persistence**:
+          - No report files are written
+          - No report entries are created
+          - No reported variant snapshots are stored
+        - Variant filtering, tiering, and annotation logic is identical to the
+          report save workflow to ensure consistency.
+        - Snapshot data (reported variants) is intentionally discarded here.
 
     Side Effects:
-        - Flashes messages to the user if sample or assay configuration is missing.
-        - Redirects to the home screen if critical data is not found.
-        - Logs debug information about the assay group and configuration.
+        - Logs debug and error information related to report generation.
+        - Displays user-facing flash messages on failure.
+        - Redirects to the samples home page if the preview cannot be generated.
     """
 
     result = get_sample_and_assay_config(sample_id)
@@ -1487,143 +1507,16 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
         flash("No assay group found for sample", "red")
         return redirect(url_for("home_bp.samples_home"))
 
-    # Get assay group and subpanel for the sample, sections to display
-    assay_group: str = assay_config.get("asp_group", "unknown")
-    subpanel = sample.get("subpanel")
-    report_sections = assay_config.get("reporting", {}).get("report_sections", [])
-    report_sections_data = {}
-    app.logger.debug(f"Assay group: {assay_group} - DNA config: {pformat(report_sections)}")
-    app.logger.debug(f"Assay group: {assay_group} - Subpanel: {subpanel}")
-
-    # Get the entire genelist for the sample panel
-    assay_panel_doc = store.asp_handler.get_asp(asp_name=sample_assay)
-
-    # Get the genelists for the sample panel
-    insilico_panel_genelists = store.isgl_handler.get_isgl_by_asp(sample_assay, is_active=True)
-    all_panel_genelist_names = util.common.get_assay_genelist_names(insilico_panel_genelists)
-
-    # sample filters
-    if not sample.get("filters"):
-        sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
-
-    sample_filters = deepcopy(sample.get("filters", {}))
-
-    # Get the genelist filters from the sample settings
-    checked_genelists = sample_filters.get("genelists", [])
-    checked_genelists_genes_dict: list[dict] = store.isgl_handler.get_isgl_by_ids(checked_genelists)
-    genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
-        sample, assay_panel_doc, checked_genelists_genes_dict
-    )
-
-    filter_conseq = util.dna.get_filter_conseq_terms(sample_filters.get("vep_consequences", []))
-
-    disp_pos = []
-    if assay_config.get("verification_samples"):
-        if sample["name"] in assay_config["verification_samples"]:
-            disp_pos = assay_config["verification_samples"][sample["name"]]
-
-    # Get all the variants for the report
-    query = build_query(
-        assay_group,
-        {
-            "id": str(sample["_id"]),
-            "max_freq": sample_filters["max_freq"],
-            "min_freq": sample_filters["min_freq"],
-            "max_control_freq": sample_filters["max_control_freq"],
-            "min_depth": sample_filters["min_depth"],
-            "min_alt_reads": sample_filters["min_alt_reads"],
-            "max_popfreq": sample_filters["max_popfreq"],
-            "filter_conseq": filter_conseq,
-            "filter_genes": filter_genes,
-            "disp_pos": disp_pos,
-            "fp": {"$ne": True},
-            "irrelevant": {"$ne": True},
-        },
-    )
-
-    variants_iter = store.variant_handler.get_case_variants(query)
-    variants = list(variants_iter)
-
-    # Add blacklist data
-    variants = store.blacklist_handler.add_blacklist_data(variants, assay=assay_group)
-
-    # Add global annotations for the variants
-    variants, tiered_variants = util.dna.add_global_annotations(variants, assay_group, subpanel)
-
-    # Add hotspot data
-    variants = util.dna.hotspot_variant(variants)
-
-    # Filter variants for report
-    variants = util.dna.filter_variants_for_report(variants, filter_genes, assay_group)
-
-    # Sample dict for the variant summary table in the report
-    variants = util.dna.get_simple_variants_for_report(variants, assay_config)
-    report_sections_data["snvs"] = util.dna.sort_by_class_and_af(variants)
-
-    ## GET CNVs TRANSLOCS and OTHER BIOMARKERS ##
-    if "CNV" in report_sections:
-        report_sections_data["cnvs"] = list(
-            store.cnv_handler.get_interesting_sample_cnvs(sample_id=str(sample["_id"]))
-        )
-
-    if "CNV_PROFILE" in report_sections:
-        report_sections_data["cnv_profile_base64"] = util.common.get_plot(
-            os.path.basename(sample.get("cnvprofile", "")), assay_config
-        )
-
-    if "BIOMARKER" in report_sections:
-        report_sections_data["biomarkers"] = list(
-            store.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"]))
-        )
-
-    if "TRANSLOCATION" in report_sections:
-        report_sections_data["translocs"] = (
-            store.transloc_handler.get_interesting_sample_translocations(
-                sample_id=str(sample["_id"])
-            )
-        )
-
-    if "FUSION" in report_sections:
-        report_sections_data["fusions"] = []
-
-    # report header and date
-    assay_config["reporting"]["report_header"] = util.common.get_report_header(
-        assay_group,
-        sample,
-        assay_config["reporting"].get("report_header", "Unknown"),
-    )
-
-    # Get Vep Meta data
-    vep_variant_class_meta = store.vep_meta_handler.get_variant_class_translations(
-        sample.get("vep", 103)
-    )
-
     save = kwargs.get("save", 0)
-    report_date = datetime.now().date()
-    report_timestamp: str = util.dna.get_report_timestamp()
-
-    fernet = app.config["FERNET"]
-
-    return render_template(
-        "dna_report.html",
-        assay_config=assay_config,
-        report_sections=report_sections,
-        report_sections_data=report_sections_data,
-        sample=sample,
-        translation=util.report.VARIANT_CLASS_TRANSLATION,
-        vep_var_class_translations=vep_variant_class_meta,
-        class_desc=util.report.TIER_DESC,
-        class_desc_short=util.report.TIER_SHORT_DESC,
-        report_date=report_date,
-        report_timestamp=report_timestamp,
-        save=save,
-        sample_assay=sample_assay,
-        assay_group=assay_group,
-        genes_covered_in_panel=genes_covered_in_panel,
-        encrypted_panel_doc=util.common.encrypt_json(assay_panel_doc, fernet),
-        encrypted_genelists=util.common.encrypt_json(genes_covered_in_panel, fernet),
-        encrypted_sample_filters=util.common.encrypt_json(sample_filters, fernet),
-    )
+    try:
+        html, _ = util.dna.build_dna_report_payload(
+            sample, assay_config, save=save, include_snapshot=False
+        )
+        return html
+    except Exception as exc:
+        app.logger.exception(f"Failed to generate preview report: {exc}")
+        flash("Failed to generate report preview.", "red")
+        return redirect(url_for("home_bp.samples_home"))
 
 
 @dna_bp.route("/sample/<string:sample_id>/report/save")
@@ -1631,22 +1524,49 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
 @require("create_report", min_role="admin")
 def save_dna_report(sample_id: str) -> Response:
     """
-    Saves a DNA report for the specified sample.
+    Generate and persist a DNA report for the specified sample.
 
-    This function retrieves a sample by its ID, determines the appropriate assay group,
-    and generates a DNA report in HTML format. The report is saved to a file system path
-    based on the assay group and sample information. If a report with the same name already
-    exists, an error is raised. The function also updates the sample's report records and
-    provides user feedback via flash messages.
+    This endpoint builds the DNA report using the shared report payload builder,
+    writes the rendered HTML to disk, registers the report in the sample document,
+    and persists an immutable snapshot of the reported variants and their tiers.
+
+    Reported variant snapshots are stored **only after** the report file has been
+    successfully written and the report entry has been created in the sample
+    record, ensuring audit safety and historical correctness.
 
     Args:
-        sample_id (str): The unique identifier of the sample for which the DNA report is to be saved.
+        sample_id (str):
+            Identifier (name or ObjectId) of the sample for which the DNA report
+            should be generated and saved.
 
     Returns:
-        Response: A redirect response to the home screen.
+        Response:
+            A redirect response to the samples home screen with user-facing
+            success or error messages.
 
     Raises:
-        AppError: If a report with the same name already exists or if saving the report fails.
+        AppError:
+            - If a report with the same name already exists.
+            - If the report file cannot be written to disk.
+            - If saving the report metadata fails.
+
+    Notes:
+        - This endpoint performs persistence:
+          - Writes the report HTML file to disk.
+          - Appends a report entry to `samples.reports`.
+          - Persists reported variant tier snapshots to `reported_variants`.
+        - The same report-building logic is reused by the preview endpoint,
+          guaranteeing that the previewed report exactly matches the saved report.
+        - Reported variant snapshots are immutable and are not affected by
+          subsequent global re-tiering or annotation changes.
+        - Previewing a report does not create any persistent state.
+
+    Side Effects:
+        - Creates directories on disk if they do not already exist.
+        - Writes report files to the filesystem.
+        - Inserts documents into the `reported_variants` collection.
+        - Logs informational and error messages.
+        - Displays user-facing flash messages on success or failure.
     """
     result = get_sample_and_assay_config(sample_id)
     if isinstance(result, Response):
@@ -1691,20 +1611,37 @@ def save_dna_report(sample_id: str) -> Response:
         )
 
     try:
-        html = generate_dna_report(sample_id=sample_id, save=1)
+        html, snapshot_rows = util.dna.build_dna_report_payload(
+            sample,
+            assay_config,
+            save=1,
+            include_snapshot=True,
+        )
 
+        # Write file
         if not util.common.write_report(html, report_file):
             raise AppError(
                 status_code=500,
                 message=f"Failed to save report {report_id}.html",
                 details="Could not write the report to the file system.",
             )
-        store.sample_handler.save_report(
+        # Save report entry (must return report_oid)
+        report_oid = store.sample_handler.save_report(
             sample_id=sample_id,
             report_num=report_num,
             report_id=report_id,
             filepath=report_file,
         )
+        # Only now persist reported variants snapshot
+        store.reported_variants_handler.bulk_upsert_from_snapshot_rows(
+            sample_name=sample.get("name"),
+            sample_oid=sample.get("_id"),
+            report_oid=report_oid,
+            report_id=report_id,
+            snapshot_rows=snapshot_rows or [],
+            created_by=current_user.username,
+        )
+
         flash(f"Report {report_id}.html has been successfully saved.", "green")
         app.logger.info(f"Report saved: {report_file}")
     except AppError as app_err:

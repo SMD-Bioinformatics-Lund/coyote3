@@ -16,6 +16,8 @@ services:
       - FLASK_APP=wsgi.py
       - FLASK_DEBUG=1
       - TZ=Europe/Stockholm
+      - GIT_COMMIT=${GIT_COMMIT:-unknown}
+      - BUILD_TIME=${BUILD_TIME:-unknown}
     restart: always
     networks:
       - coyote3-dev-net

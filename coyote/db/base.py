@@ -30,6 +30,7 @@ from flask import current_app as app
 from flask import flash
 from datetime import datetime
 import pymongo
+from coyote.util.common_utility import CommonUtility
 
 
 # -------------------------------------------------------------------------
@@ -56,9 +57,7 @@ class BaseHandler:
         # default collection for a given handler, must be set from inside the handler class
         self.handler_collection = None
 
-    def set_collection(
-        self, collection: pymongo.collection.Collection
-    ) -> None:
+    def set_collection(self, collection: pymongo.collection.Collection) -> None:
         """
         Set the collection for the handler.
 
@@ -87,9 +86,7 @@ class BaseHandler:
         if self.handler_collection is not None:
             return self.handler_collection
         else:
-            raise NotImplementedError(
-                "get_collection or set_collection must be implemented"
-            )
+            raise NotImplementedError("get_collection or set_collection must be implemented")
 
     def hide_comment(self, var_id: str, comment_id: str) -> Any:
         """
@@ -112,7 +109,7 @@ class BaseHandler:
                 "$set": {
                     "comments.$.hidden": 1,
                     "comments.$.hidden_by": current_user.username,
-                    "comments.$.time_hidden": datetime.now(),
+                    "comments.$.time_hidden": CommonUtility.utc_now(),
                 }
             },
         ):
@@ -263,9 +260,7 @@ class BaseHandler:
                 "red",
             )
 
-    def mark_irrelevant_bulk(
-        self, var_ids: list[str], irrelevant: bool
-    ) -> Any:
+    def mark_irrelevant_bulk(self, var_ids: list[str], irrelevant: bool) -> Any:
         """
         Mark or unmark multiple variants as irrelevant in bulk.
 
@@ -283,9 +278,7 @@ class BaseHandler:
         bulk = self.get_collection().initialize_unordered_bulk_op()
 
         for vid in var_ids:
-            bulk.find({"_id": ObjectId(vid)}).update(
-                {"$set": {"irrelevant": irrelevant}}
-            )
+            bulk.find({"_id": ObjectId(vid)}).update({"$set": {"irrelevant": irrelevant}})
 
         try:
             result = bulk.execute()
@@ -377,11 +370,7 @@ class BaseHandler:
         Returns:
             bool: `True` if there are hidden comments, `False` otherwise.
         """
-        data = (
-            self.get_collection()
-            .find_one({"_id": ObjectId(id)})
-            .get("comments")
-        )
+        data = self.get_collection().find_one({"_id": ObjectId(id)}).get("comments")
         if data:
             return any(comment.get("hidden") for comment in data)
         return False
@@ -400,6 +389,26 @@ class BaseHandler:
         Returns:
             Any: The result of the update operation.
         """
-        return self.get_collection().update_one(
-            {"_id": doc_id}, {"$set": {"active": active}}
-        )
+        return self.get_collection().update_one({"_id": doc_id}, {"$set": {"active": active}})
+
+    def get_latest_comment(self, doc_id: str) -> dict | None:
+        """
+        Retrieve the latest comment for a document.
+
+        This method fetches the most recent comment from the `comments` array
+        of a document in the collection based on the `time_created` field.
+
+        Args:
+            doc_id (str): The unique identifier of the document.
+
+        Returns:
+            dict | None: The latest comment document if found, otherwise None.
+        """
+        doc = self.get_collection().find_one({"_id": ObjectId(doc_id)}, {"comments": 1})
+        if doc and "comments" in doc:
+            comments = doc["comments"]
+            if comments:
+                # Sort comments by time_created in descending order and return the latest
+                latest_comment = max(comments, key=lambda x: x.get("time_created", datetime.min))
+                return latest_comment
+        return None

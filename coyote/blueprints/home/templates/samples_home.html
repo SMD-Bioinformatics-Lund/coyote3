@@ -92,9 +92,15 @@
       </form>
 
       <button id="toggle-other-profile"
-        class="inline-flex items-center px-4 py-1.5 mx-4 rounded-lg bg-gray-100 text-sm font-medium text-gray-700 hover:bg-blue-300 shadow-md transition duration-300">
-        Only Prod. Samples
+        class="inline-flex items-center px-4 py-1.5 mx-4 rounded-lg
+              text-sm font-medium shadow-md transition duration-300">
+        Show All Samples
       </button>
+
+
+
+
+
 
     </section>
 
@@ -127,7 +133,7 @@
                 <tbody id="pagination-table-body-live" class="text-gray-800 rounded-b-2xl overflow-hidden">
                   {% for sample in live_samples %}
                     {% set sample_profile = sample.get('profile', '')[0]|upper or 'P' %}
-                    <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile {% endif %}">
+                    <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile hidden {% endif %}">
                       <td class="p-2 font-medium text-center">
                         {% if has_access("edit_sample", min_role="admin", min_level=99999) %}
                           <button onclick="showActionModal({
@@ -253,7 +259,7 @@
                 <tbody id="pagination-table-body-done"class="text-gray-700 rounded-b-2xl border-gray-300">
                   {% for sample in done_samples|sort(attribute="last_report_time_created", reverse=True) %}
                     {% set sample_profile = sample.get('profile', '')[0]|upper or 'P' %}
-                    <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile {% endif %}">
+                    <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl {% if sample_profile != 'P' %} other_profile hidden {% endif %}">
                       <td class"p-2 font-medium text-center">
                         {% if has_access("edit_sample", min_role="admin", min_level=99999) %}
                           <button onclick="showActionModal({
@@ -385,10 +391,52 @@
     sliderThumb.style.left = `${percentage}%`;
   }
 
-  document.getElementById("toggle-other-profile").addEventListener("click", function () {
+  // document.getElementById("toggle-other-profile").addEventListener("click", function () {
+  //  const rows = document.querySelectorAll("tr.other_profile");
+  //  rows.forEach(row => row.classList.toggle("hidden"));
+  // });
+
+  const btn = document.getElementById("toggle-other-profile");
+
+  const PROD_ONLY_CLASSES = [
+    "bg-orange-200", "text-orange-800", "hover:bg-orange-300"
+  ];
+
+  const ALL_CLASSES = [
+    "bg-orange-400", "text-orange-800", "hover:bg-orange-500"
+  ];
+
+  function setButtonState(isProdOnly) {
+    // Remove all color classes first
+    btn.classList.remove(...PROD_ONLY_CLASSES, ...ALL_CLASSES);
+
+    if (isProdOnly) {
+      btn.textContent = "Show All Samples";
+      btn.classList.add(...PROD_ONLY_CLASSES);
+    } else {
+      btn.textContent = "Show Prod Only";
+      btn.classList.add(...ALL_CLASSES);
+    }
+  }
+
+  // Initial state: prod-only (other profiles hidden)
+  setButtonState(true);
+
+  btn.addEventListener("click", function () {
     const rows = document.querySelectorAll("tr.other_profile");
+    if (!rows.length) return;
+
     rows.forEach(row => row.classList.toggle("hidden"));
+
+    const nowProdOnly = rows[0].classList.contains("hidden");
+    setButtonState(nowProdOnly);
+
+    btn.blur(); // ✅ removes persistent focus highlight (orange)
   });
+
+
+
+
 
 
 </script>

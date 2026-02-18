@@ -24,7 +24,7 @@
 {# Append design BED file if available #}
 {# Creating design_bed_url as well #}
 {% if subfolder.dir != "None" and subfolder.dir != "tumwgs" %}
-  {% set design_bed = "http://localhost:60151/load?file=/R:" ~ subfolder.dir ~ "/BED/design.bed"  %}
+  {% set design_bed = app_config.IGV_URI ~ "/load?file=/R:" ~ subfolder.dir ~ "/BED/design.bed"  %}
   {% set design_bed_url = '<a href="' ~ design_bed ~ '" class="text-blue-600 underline">' ~ "open" ~ '</a>'%}
   {% set _ = all_samples_bam_paths.append("/R:" ~ subfolder.dir ~ "/BED/design.bed") %}
 {% else %}
@@ -33,7 +33,7 @@
 
 {# Build the final IGV URL #}
 {% if all_samples_bam_paths and has_access("view_igv", min_role="user", min_level=9) %}
-  {% set igv_url = "http://localhost:60151/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ variant.CHROM ~ ":" ~ variant.POS %}
+  {% set igv_url = app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ variant.CHROM ~ ":" ~ variant.POS %}
   {% set igv_genomic_position = '<a href="' ~ igv_url ~ '" class="text-blue-600 underline">' ~ genomic_change ~ '</a>' %}
 {% else %}
   {% set igv_url = none %}
@@ -88,7 +88,9 @@
         <tbody class="break-all">
           <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">Gene</th>
-            <td class="p-1 text-right font-medium"><a href="{{ url_for('dna_bp.gene_view_simple', gene_name=sel_csq.SYMBOL) }}" class="text-blue-600 underline">{{ sel_csq.SYMBOL }}</a></td>
+            <td class="p-1 text-right font-medium">
+              <a href="{{ url_for('common_bp.search_tiered_variants', search_str=sel_csq.SYMBOL, search_mode='gene', include_annotation_text=true, assay=assay_group) }}" class="text-blue-600 underline">{{ sel_csq.SYMBOL }}</a>
+            </td>
           </tr>
           <tr class="hover:bg-brown-100 shadow-md rounded-lg">
             <th class="p-1 font-semibold text-left w-1/2">Variant Class</th>

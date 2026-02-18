@@ -54,6 +54,7 @@ from coyote.db.hgnc import HGNCHandler
 from coyote.db.rna_expression import RNAExpressionHandler
 from coyote.db.rna_classification import RNAClassificationHandler
 from coyote.db.rna_qc import RNAQCHandler
+from coyote.db.reported_variants import ReportedVariantsHandler
 
 
 # -------------------------------------------------------------------------
@@ -89,6 +90,15 @@ class MongoAdapter:
         self._setup_dbs(self.client)
         self.setup()
         self._setup_handlers()
+
+    def get_db_name(self) -> str:
+        """
+        Get the name of the primary database.
+
+        Returns:
+         str: The name of the primary database as specified in the application's configuration.
+        """
+        return self.app.config["MONGO_DB_NAME"]
 
     def _get_mongoclient(self, mongo_uri: str) -> pymongo.MongoClient:
         """
@@ -186,3 +196,4 @@ class MongoAdapter:
         self.rna_expression_handler = RNAExpressionHandler(self)
         self.rna_classification_handler = RNAClassificationHandler(self)
         self.rna_qc_handler = RNAQCHandler(self)
+        self.reported_variants_handler = ReportedVariantsHandler(self)

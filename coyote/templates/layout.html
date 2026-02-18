@@ -7,7 +7,7 @@
     <title>{% block title %}COYOT3{% endblock %}</title>
 
     <!-- Tailwind CSS -->
-    <link href="{{ url_for('static', filename='css/tailwind.2.2.19.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
     <link href="{{ url_for('static', filename='css/custom.tailwind.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='icons/favicon.ico') }}" rel="shortcut icon">
 
@@ -110,10 +110,23 @@
     <div class="flex flex-col h-screen w-full">
       <!-- HEADER (LOGO + USER INFO) -->
       <header class="text-black py-1 px-8 flex justify-between items-center w-full z-50">
-        <a href="{{ url_for('dashboard_bp.dashboard') }}" class="flex items-center space-x-2 tracking-wide text-3xl font-bold">
-          <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Coyote Logo" class="h-12 w-20 transition-transform duration-300 transform hover:scale-110 hover:rotate-12">
-          <span >COYOT3 <span class="px-1 pt-2 text-xs tracking-tight font-normal align-baseline">v{{config['APP_VERSION']}}</span></span>
-        </a>
+        <div class="flex items-center space-x-2 tracking-wide text-3xl font-bold">
+          <!-- Dashboard link -->
+          <a href="{{ url_for('dashboard_bp.dashboard') }}"
+             class="flex items-center space-x-2 hover:opacity-90">
+            <img src="{{ url_for('static', filename='images/logo.png') }}"
+                 alt="Coyote Logo"
+                 class="h-12 w-20 transition-transform duration-300 transform hover:scale-110 hover:rotate-12">
+            <span>COYOT3</span>
+          </a>
+
+          <!-- Version link -->
+          <a href="{{ url_for('docs_bp.about') }}"
+             title="View release notes"
+             class="text-xs font-normal tracking-tight pt-2 align-baseline hover:underline">
+            v{{ config['APP_VERSION'] }}
+          </a>
+        </div>
 
         {% if current_user.is_authenticated %}
           <div class="relative">
@@ -147,35 +160,57 @@
                 class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">
                 Support
               </a>
+              <a href="{{ url_for('docs_bp.about') }}"
+                class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">
+                About
+              </a>
               <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Logout</a>
             </div>
+          </div>
+        {% else %}
+          <div class+"relative">
+            <a href="{{ url_for('login_bp.login') }}">
+              <button id="userLoginButton" class="flex items-center space-x-2 focus:outline-none mx-8">
+                <img class="h-8 w-8 rounded-full transition-transform duration-300 transform hover:scale-110 hover:rotate-6 bg-transparent" src="{{ url_for('static', filename='icons/user-512.png') }}">
+                <span class="text-black font-bold">Login</span>
+              </button>
+            </a>
           </div>
         {% endif %}
       </header>
 
       <!-- Top navbar with contextual assay panel pills rendered after all types -->
       <nav class="bg-indigo-300 border-b-4 border-indigo-400 text-xs font-medium text-gray-800">
-        <div class="mx-auto px-4 py-1 flex flex-wrap items-center gap-x-4">
+        <div class="mx-auto px-4 py-1 flex flex-wrap items-center gap-x-4 w-full">
           <!-- Static links -->
           <div class="flex flex-wrap items-center gap-x-2 ml-5">
             {% set curr_path = request.path %}
 
-            <a href="{{ url_for('dashboard_bp.dashboard') }}"
-              class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path == url_for('dashboard_bp.dashboard') else 'hover:bg-indigo-200 font-semibold' }}">
-              HOME
-            </a>
-            <a href="{{ url_for('home_bp.samples_home') }}"
-              class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path.split('/')[-1] == 'samples' or curr_path.split('/')[-2] == 'samples'  else 'hover:bg-indigo-200 font-semibold' }}">
-              SAMPLES
-            </a>
+            {% if current_user.is_authenticated %}
+              <a href="{{ url_for('dashboard_bp.dashboard') }}"
+                class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path == url_for('dashboard_bp.dashboard') else 'hover:bg-indigo-200 font-semibold' }}">
+                HOME
+              </a>
+              <a href="{{ url_for('home_bp.samples_home') }}"
+                class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path.split('/')[-1] == 'samples' or curr_path.split('/')[-2] == 'samples'  else 'hover:bg-indigo-200 font-semibold' }}">
+                SAMPLES
+              </a>
+            {% endif %}
             <a href="{{ url_for('public_bp.assay_catalog_matrix') }}"
-              class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if 'assay_catalog_matrix' in curr_path else 'hover:bg-indigo-200 font-semibold' }}">
+              class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if 'assay-catalog-matrix' in curr_path else 'hover:bg-indigo-200 font-semibold' }}">
               MATRIX
             </a>
             <a href="{{ url_for('public_bp.assay_catalog') }}"
-              class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if 'assay_catalog' in curr_path else 'hover:bg-indigo-200 font-semibold' }}">
+              class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if 'assay-catalog' in curr_path and 'assay-catalog-matrix' not in curr_path else 'hover:bg-indigo-200 font-semibold' }}">
               CATALOG
             </a>
+            {% if current_user.is_authenticated %}
+              |
+              <a href="{{ url_for('common_bp.search_tiered_variants') }}"
+                class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path.split('/')[-1] == 'search' or curr_path.split('/')[-2] == 'search'  else 'hover:bg-indigo-200 font-semibold' }}">
+                VARIANT SEARCH
+              </a>
+            {% endif %}
           </div>
 
 
@@ -237,6 +272,33 @@
                 {% endfor %}
               </div>
             {% endfor %}
+          </div>
+
+          <!-- Right-aligned Help / Docs / License -->
+          <div class="ml-auto flex items-center gap-2">
+            <!-- HELP -->
+            <a href="{{ url_for('docs_bp.docs_index') }}"
+               class="px-3 py-0.5 rounded-xl text-xs font-semibold tracking-wide transition
+                      hover:bg-indigo-200
+                      {% if request.path.startswith('/docs') and not request.path.endswith('/license') %}
+                        bg-orange-300 text-black font-bold
+                      {% else %}
+                        text-gray-800
+                      {% endif %}">
+              HELP
+            </a>
+
+            <!-- LICENSE -->
+            <a href="{{ url_for('docs_bp.license') }}"
+               class="px-3 py-0.5 rounded-xl text-xs font-semibold tracking-wide transition
+                      hover:bg-indigo-200
+                      {% if request.path.endswith('/license') %}
+                        bg-orange-300 text-black font-bold
+                      {% else %}
+                        text-gray-800
+                      {% endif %}">
+              LICENSE
+            </a>
           </div>
         </div>
       </nav>

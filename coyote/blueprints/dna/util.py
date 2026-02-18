@@ -14,19 +14,21 @@
 This module provides utility functions and classes for processing, annotating, and reporting DNA variants.
 It includes methods for variant classification, consequence selection, CNV handling, annotation text generation, and report preparation.
 """
+from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timezone
-from flask_login import current_user
-from bson.objectid import ObjectId
+from datetime import datetime
 from coyote.util.common_utility import CommonUtility
 from coyote.util.report.report_util import ReportUtility
 from coyote.blueprints.rna.util import RNAUtility
 from flask import current_app as app
 from coyote.extensions import store
-from bisect import bisect_left
-import math
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
+from flask import render_template
+from coyote.blueprints.dna.varqueries import build_query
+from copy import deepcopy
+import os
+from pprint import pformat
 
 
 class DNAUtility:
@@ -175,7 +177,13 @@ class DNAUtility:
             classification = variants[var_idx]["classification"]
             if classification is not None:
                 class_value = classification.get("class")
-                if class_value is not None and class_value < 999:
+                if (
+                    class_value is not None
+                    and class_value < 999
+                    and not var.get("blacklist")
+                    and not var.get("fp")
+                    and not var.get("irrelevant")
+                ):
                     selected_variants.append(variants[var_idx])
 
             variants[var_idx] = DNAUtility.add_alt_class(variants[var_idx], assay, subpanel)
@@ -198,7 +206,6 @@ class DNAUtility:
             variant, assay, subpanel
         )
         if additional_classifications:
-            additional_classifications[0].pop("_id", None)
             additional_classifications[0].pop("author", None)
             additional_classifications[0].pop("time_created", None)
             additional_classifications[0]["class"] = int(additional_classifications[0]["class"])
@@ -511,4 +518,237 @@ class DNAUtility:
         Returns:
             str: A string representing the current timestamp in the format 'YYYY-MM-DD HH:MM:SS'.
         """
-        return datetime.now(timezone.utc).strftime("%y%m%d%H%M%S")
+        return CommonUtility.utc_now().strftime("%y%m%d%H%M%S")
+
+    @staticmethod
+    def build_dna_report_payload(
+        sample: dict,
+        assay_config: dict,
+        save: int = 0,
+        include_snapshot: bool = False,
+    ) -> Tuple[str, Optional[List[Dict[str, Any]]]]:
+        """
+        Build the DNA report payload for a sample.
+
+        This function performs the complete DNA report construction workflow:
+        variant retrieval, filtering, annotation, tiering, and transformation into
+        a renderable HTML report. Optionally, it also produces a lightweight,
+        immutable snapshot of the reported variants suitable for persistence.
+
+        The function is intentionally side-effect free and is reused by both the
+        report preview and report save endpoints to guarantee that previewed and
+        persisted reports are identical.
+
+        Parameters
+        ----------
+        sample : dict
+            Sample document as retrieved from the database.
+
+        assay_config : dict
+            Assay configuration defining filters, reporting sections, and display
+            behavior for the DNA report.
+
+        save : int, optional
+            Flag passed through to the report template to control rendering behavior
+            (e.g. preview vs. save mode). This flag does not trigger persistence.
+
+        include_snapshot : bool, optional
+            If True, return a list of reported-variant snapshot rows corresponding
+            exactly to the variants included in the report. If False, snapshot data
+            is not generated.
+
+        Returns
+        -------
+        html : str
+            Rendered HTML representation of the DNA report.
+
+        snapshot_rows : list[dict] | None
+            List of reported-variant snapshot rows, each representing a single
+            variant included in the report along with its tier at report time.
+            Returns None when `include_snapshot` is False.
+
+        Notes
+        -----
+        - This function executes the full report-building logic exactly once.
+        - Snapshot rows are derived from the final set of variants included in the
+          report, ensuring strict consistency between rendered content and persisted
+          snapshots.
+        - No database writes or filesystem operations are performed here.
+        - Persistence, error handling, and rollback logic are handled by the caller.
+        """
+
+        sample_assay = sample.get("assay")
+        assay_group: str = assay_config.get("asp_group", "unknown")
+        subpanel = sample.get("subpanel")
+        report_sections = assay_config.get("reporting", {}).get("report_sections", [])
+        report_sections_data: Dict[str, Any] = {}
+
+        app.logger.debug(f"Assay group: {assay_group} - DNA config: {pformat(report_sections)}")
+        app.logger.debug(f"Assay group: {assay_group} - Subpanel: {subpanel}")
+
+        assay_panel_doc = store.asp_handler.get_asp(asp_name=sample_assay)
+
+        insilico_panel_genelists = store.isgl_handler.get_isgl_by_asp(sample_assay, is_active=True)
+        all_panel_genelist_names = CommonUtility.get_assay_genelist_names(insilico_panel_genelists)
+
+        if not sample.get("filters"):
+            sample = CommonUtility.merge_sample_settings_with_assay_config(sample, assay_config)
+
+        sample_filters = deepcopy(sample.get("filters", {}))
+
+        checked_genelists = sample_filters.get("genelists", [])
+        checked_genelists_genes_dict: list[dict] = store.isgl_handler.get_isgl_by_ids(
+            checked_genelists
+        )
+        genes_covered_in_panel, filter_genes = CommonUtility.get_sample_effective_genes(
+            sample, assay_panel_doc, checked_genelists_genes_dict
+        )
+
+        filter_conseq = DNAUtility.get_filter_conseq_terms(
+            sample_filters.get("vep_consequences", [])
+        )
+
+        disp_pos = []
+        if assay_config.get("verification_samples"):
+            if sample["name"] in assay_config["verification_samples"]:
+                disp_pos = assay_config["verification_samples"][sample["name"]]
+
+        query = build_query(
+            assay_group,
+            {
+                "id": str(sample["_id"]),
+                "max_freq": sample_filters["max_freq"],
+                "min_freq": sample_filters["min_freq"],
+                "max_control_freq": sample_filters["max_control_freq"],
+                "min_depth": sample_filters["min_depth"],
+                "min_alt_reads": sample_filters["min_alt_reads"],
+                "max_popfreq": sample_filters["max_popfreq"],
+                "filter_conseq": filter_conseq,
+                "filter_genes": filter_genes,
+                "disp_pos": disp_pos,
+                "fp": {"$ne": True},
+                "irrelevant": {"$ne": True},
+            },
+        )
+
+        variants = list(store.variant_handler.get_case_variants(query))
+        variants = store.blacklist_handler.add_blacklist_data(variants, assay=assay_group)
+
+        # This returns tiered_variants already — that’s your snapshot gold
+        variants, tiered_variants = DNAUtility.add_global_annotations(
+            variants, assay_group, subpanel
+        )
+
+        variants = DNAUtility.hotspot_variant(variants)
+        variants = DNAUtility.filter_variants_for_report(variants, filter_genes, assay_group)
+
+        # latest sample comment
+        latest_sample_comment = store.sample_handler.get_latest_sample_comment(
+            sample_id=str(sample["_id"])
+        )
+
+        # IMPORTANT: snapshot should be based on the SAME "reported variants set"
+        # If your filter_variants_for_report is the final "reported set", snapshot these.
+        snapshot_rows: Optional[List[Dict[str, Any]]] = None
+        if include_snapshot:
+            # Build minimal snapshot rows needed for insertion later.
+            # Keep this lightweight; do NOT write to DB here.
+            snapshot_rows = []
+            now_utc = datetime.utcnow()
+
+            for v in variants:
+                annotations_interesting = v.get("annotations_interesting", {})
+                annotations_interesting_assay_specific = (
+                    annotations_interesting.get(assay_group)
+                    or annotations_interesting.get(f"{assay_group}:{subpanel}")
+                    or {}
+                )
+                sel = (v.get("INFO", {}) or {}).get("selected_CSQ", {}) or {}
+                snapshot_rows.append(
+                    {
+                        "var_oid": v.get("_id"),
+                        "annotation_oid": v.get("classification", {}).get("_id", None),
+                        "annotation_text_oid": annotations_interesting_assay_specific.get(
+                            "_id", None
+                        ),
+                        "sample_comment_oid": (
+                            latest_sample_comment.get("_id") if latest_sample_comment else None
+                        ),
+                        "var_type": v.get("variant_class"),
+                        "simple_id": v.get("simple_id"),
+                        "simple_id_hash": v.get("simple_id_hash"),
+                        "tier": v.get("classification", {}).get("class"),
+                        "gene": sel.get("SYMBOL") or (v.get("gene") or None),
+                        "transcript": sel.get("Feature") or v.get("selected_csq_feature"),
+                        "hgvsp": sel.get("HGVSp") or v.get("hgvsp"),
+                        "hgvsc": sel.get("HGVSc") or v.get("hgvsc"),
+                        "variant": v.get("classification", {}).get("variant"),
+                        "created_on": now_utc,
+                    }
+                )
+
+        # transform for report rendering (safe — snapshot already captured)
+        variants_simple = DNAUtility.get_simple_variants_for_report(variants, assay_config)
+        report_sections_data["snvs"] = DNAUtility.sort_by_class_and_af(variants_simple)
+
+        if "CNV" in report_sections:
+            report_sections_data["cnvs"] = list(
+                store.cnv_handler.get_interesting_sample_cnvs(sample_id=str(sample["_id"]))
+            )
+
+        if "CNV_PROFILE" in report_sections:
+            report_sections_data["cnv_profile_base64"] = CommonUtility.get_plot(
+                os.path.basename(sample.get("cnvprofile", "")), assay_config
+            )
+
+        if "BIOMARKER" in report_sections:
+            report_sections_data["biomarkers"] = list(
+                store.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"]))
+            )
+
+        if "TRANSLOCATION" in report_sections:
+            report_sections_data["translocs"] = (
+                store.transloc_handler.get_interesting_sample_translocations(
+                    sample_id=str(sample["_id"])
+                )
+            )
+
+        if "FUSION" in report_sections:
+            report_sections_data["fusions"] = []
+
+        assay_config["reporting"]["report_header"] = CommonUtility.get_report_header(
+            assay_group,
+            sample,
+            assay_config["reporting"].get("report_header", "Unknown"),
+        )
+
+        vep_variant_class_meta = store.vep_meta_handler.get_variant_class_translations(
+            sample.get("vep", 103)
+        )
+
+        report_date = datetime.now().date()
+        report_timestamp: str = DNAUtility.get_report_timestamp()
+        fernet = app.config["FERNET"]
+
+        html = render_template(
+            "dna_report.html",
+            assay_config=assay_config,
+            report_sections=report_sections,
+            report_sections_data=report_sections_data,
+            sample=sample,
+            translation=ReportUtility.VARIANT_CLASS_TRANSLATION,
+            vep_var_class_translations=vep_variant_class_meta,
+            class_desc=ReportUtility.TIER_DESC,
+            class_desc_short=ReportUtility.TIER_SHORT_DESC,
+            report_date=report_date,
+            report_timestamp=report_timestamp,
+            save=save,
+            sample_assay=sample_assay,
+            assay_group=assay_group,
+            genes_covered_in_panel=genes_covered_in_panel,
+            encrypted_panel_doc=CommonUtility.encrypt_json(assay_panel_doc, fernet),
+            encrypted_genelists=CommonUtility.encrypt_json(genes_covered_in_panel, fernet),
+            encrypted_sample_filters=CommonUtility.encrypt_json(sample_filters, fernet),
+        )
+
+        return html, snapshot_rows

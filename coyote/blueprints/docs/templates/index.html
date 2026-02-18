@@ -1,0 +1,91 @@
+{% extends "layout.html" %}
+
+{% block title %}Docs{% endblock %}
+
+{% block meta %}
+  <meta name="description" content="Internal documentation for Coyote3.">
+{% endblock %}
+
+{% block body %}
+<div class="w-full h-full overflow-y-auto bg-gray-50">
+
+  <!-- Header -->
+  <header class="mx-auto max-w-7xl px-4 pt-6">
+
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-semibold tracking-wide">Documentation</h1>
+        <p class="mt-2 max-w-3xl text-base">
+          Internal documentation for Coyote3 features, workflows, and system behavior.
+        </p>
+      </div>
+
+      <a href="{{ url_for('dashboard_bp.dashboard') }}"
+         class="inline-flex items-center gap-2 rounded-3xl border border-blue-300 bg-blue-200 px-3 py-2 text-sm font-medium shadow-xl hover:shadow-sm">
+        <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-uturn-left.svg') }}"
+             alt="Back" class="h-4 w-4">
+        Back to Dashboard
+      </a>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <main class="mx-auto max-w-7xl px-4 pb-16 mt-6 space-y-6">
+
+    <!-- Coming soon card -->
+    <section class="rounded-3xl border-t-4 border-gray-400 bg-white shadow-2xl p-6 hover:shadow-lg hover:bg-gray-50 transition duration-500">
+      <h2 class="text-sm font-semibold">Docs coming soon</h2>
+      <p class="mt-2 text-sm max-w-2xl">
+        This section will host internal documentation including:
+      </p>
+
+      <ul class="mt-3 list-disc pl-5 text-sm space-y-1">
+        <li>System architecture & design decisions</li>
+        <li>Assay and pipeline behavior</li>
+        <li>RBAC & permission model</li>
+        <li>Operational notes and troubleshooting</li>
+      </ul>
+
+      <p class="mt-4 text-xs text-gray-600">
+        For now, refer to the README and release notes for high-level information.
+      </p>
+
+      <div class="mt-4 flex flex-wrap gap-2">
+        <!-- About -->
+        <a href="{{ url_for('docs_bp.about') }}"
+           class="inline-flex items-center gap-2 rounded-3xl bg-gray-200 px-3 py-2 text-sm font-medium text-black shadow-lg border-l-8 border-blue-400 hover:bg-blue-400 transition duration-300 hover:text-white">
+          About
+        </a>
+
+        <!-- Changelog -->
+        <a href="{{ url_for('docs_bp.changelog') }}"
+           class="inline-flex items-center gap-2 rounded-3xl bg-gray-200 px-3 py-2 text-sm font-medium text-black shadow-lg border-l-8 border-indigo-400 hover:bg-indigo-400 transition duration-300 hover:text-white">
+          Changelog
+        </a>
+
+        <!-- License -->
+        <a href="{{ url_for('docs_bp.license') }}"
+           class="inline-flex items-center gap-2 rounded-3xl bg-gray-200 px-3 py-2 text-sm font-medium text-black shadow-lg border-l-8 border-green-400 hover:bg-green-400 transition duration-300 hover:text-white">
+          License
+        </a>
+
+        <!-- README (external) -->
+        {% if config.README_URL %}
+        <a href="{{ config.README_URL }}"
+           target="_blank" rel="noopener"
+           class="inline-flex items-center gap-2 rounded-3xl bg-gray-200 px-3 py-2 text-sm font-medium text-black shadow-lg border-l-8 border-purple-400 hover:bg-purple-400 transition duration-300 hover:text-white">
+          README
+        </a>
+        {% endif %}
+
+        <!-- Docs home (self) -->
+        <a href="{{ url_for('docs_bp.docs_index') }}"
+           class="inline-flex items-center gap-2 rounded-3xl bg-gray-200 px-3 py-2 text-sm font-medium text-black shadow-lg border-l-8 border-gray-400 hover:bg-gray-400 transition duration-300 hover:text-white">
+          Docs Home
+        </a>
+      </div>
+    </section>
+
+  </main>
+</div>
+{% endblock %}

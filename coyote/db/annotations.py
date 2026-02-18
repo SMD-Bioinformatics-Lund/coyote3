@@ -31,8 +31,10 @@ from datetime import datetime
 from pymongo.results import DeleteResult
 from flask import flash
 from flask_login import current_user
-from typing import Any
+from typing import Any, Dict, Tuple, List, Optional
 from urllib.parse import unquote
+from coyote.util.common_utility import CommonUtility
+from collections import defaultdict
 
 
 # -------------------------------------------------------------------------
@@ -55,6 +57,38 @@ class AnnotationsHandler(BaseHandler):
         """
         super().__init__(adapter)
         self.set_collection(self.adapter.annotations_collection)
+
+    def get_annotation_by_oid(self, oid: str) -> dict | None:
+        """
+        Retrieve an annotation by its ObjectId.
+
+        This method fetches a single annotation document from the MongoDB
+        collection using the provided ObjectId.
+
+        Args:
+            oid (str): The ObjectId of the annotation to be retrieved.
+        Returns:
+            dict | None: The annotation document if found, otherwise None.
+        """
+        return self.get_collection().find_one({"_id": oid})
+
+    def get_annotation_text_by_oid(self, oid: str) -> str | None:
+        """
+        Retrieve the text of an annotation by its ObjectId.
+
+        This method fetches the 'text' field of a single annotation document
+        from the MongoDB collection using the provided ObjectId.
+
+        Args:
+            oid (str): The ObjectId of the annotation to be retrieved.
+
+        Returns:
+            str | None: The text of the annotation if found, otherwise None.
+        """
+        annotation = self.get_collection().find_one({"_id": oid}, {"text": 1})
+        if annotation:
+            return annotation.get("text", None)
+        return None
 
     def insert_annotation_bulk(self, annotations: list) -> Any:
         """
@@ -330,7 +364,7 @@ class AnnotationsHandler(BaseHandler):
         """
         document = {
             "author": self.current_user.username,
-            "time_created": datetime.now(),
+            "time_created": CommonUtility.utc_now(),
             "variant": variant,
             "nomenclature": nomenclature,
             "assay": variant_data.get("assay_group", None),
@@ -542,3 +576,212 @@ class AnnotationsHandler(BaseHandler):
             {"$sort": {"_id.nomenclature": 1, "_id.class": 1}},
         ]
         return tuple(self.get_collection().aggregate(class_stats_pipeline))
+
+    def find_variants_by_search_string(
+        self,
+        search_str: str,
+        search_mode: str,
+        include_annotation_text: bool,
+        assays: list | None = None,
+        limit: int | None = None,
+    ) -> list:
+        """
+        Find variants matching the search string.
+
+        This method searches for variants in the database that match the provided
+        search string. It looks for matches in the 'variant', 'gene', and 'transcript'
+        fields using case-insensitive regular expressions.
+
+        Args:
+            search_str (str): The search string to match against variant fields.
+            limit (int | None): Optional limit on the number of results to return.
+            search_mode (str): The mode of search, can be 'gene', 'transcript', 'variant', 'author', or 'subpanel'.
+            include_annotation_text (bool): Whether to include annotations with text.
+            assays (list | None): Optional list of assays to filter the results.
+
+        Returns:
+            list: A list of variant documents that match the search criteria.
+        """
+        if not search_str or search_str == "":
+            return []
+
+        if search_mode == "gene":
+            query = {"gene": {"$regex": search_str, "$options": "i"}}
+        elif search_mode == "transcript":
+            query = {"transcript": {"$regex": search_str, "$options": "i"}}
+        elif search_mode == "variant":  # variant
+            query = {"variant": {"$regex": search_str, "$options": "i"}}
+        elif search_mode == "author":
+            query = {"author": {"$regex": search_str, "$options": "i"}}
+        elif search_mode == "subpanel":
+            query = {"subpanel": {"$regex": search_str, "$options": "i"}}
+        else:
+            return []
+
+        if not include_annotation_text:
+            query["text"] = {"$exists": False}
+
+        if assays is not None:
+            query["assay"] = {"$in": assays}
+
+        cursor = self.get_collection().find(query).sort("time_created", -1)
+
+        if limit is not None:
+            cursor = cursor.limit(limit)
+        return list(cursor)
+
+    def get_tier_stats_by_search(
+        self,
+        search_str: str,
+        search_mode: str,
+        include_annotation_text: bool,
+        assays: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Return tier stats for the given search filter.
+
+        Output shape:
+        {
+        "total":   {"tier1": int, "tier2": int, "tier3": int, "tier4": int},
+        "by_assay": {
+            "<assay>": {"tier1": int, "tier2": int, "tier3": int, "tier4": int},
+            ...
+        }
+        }
+
+        Rules:
+        - Only docs with `class` are counted.
+        - "Latest" is selected by `time_created` (descending).
+        - Assay stats: dedupe per (assay + variant_key).
+        - Total stats: dedupe per (variant_key) across assays (so no double counting).
+        """
+
+        if not search_str:
+            return {"total": {"tier1": 0, "tier2": 0, "tier3": 0, "tier4": 0}, "by_assay": {}}
+
+        # --- same query logic as find_variants_by_search_string ---
+        if search_mode == "gene":
+            query = {"gene": {"$regex": search_str, "$options": "i"}}
+        elif search_mode == "transcript":
+            query = {"transcript": {"$regex": search_str, "$options": "i"}}
+        elif search_mode == "variant":
+            query = {"variant": {"$regex": search_str, "$options": "i"}}
+        elif search_mode == "author":
+            query = {"author": {"$regex": search_str, "$options": "i"}}
+        elif search_mode == "subpanel":
+            query = {"subpanel": {"$regex": search_str, "$options": "i"}}
+        else:
+            return {"total": {"tier1": 0, "tier2": 0, "tier3": 0, "tier4": 0}, "by_assay": {}}
+
+        if not include_annotation_text:
+            query["text"] = {"$exists": False}
+
+        if assays is not None and len(assays) > 0:
+            query["assay"] = {"$in": assays}
+
+        query["class"] = {"$exists": True, "$ne": None}
+
+        # --- dedupe keys ---
+        # total: dedupe across assays (avoid counting same variant multiple times)
+        total_variant_key = {
+            "variant": "$variant",
+            "gene": "$gene",
+            "transcript": "$transcript",
+        }
+
+        # by_assay: dedupe within assay (same variant can be re-tiered in same assay)
+        per_assay_variant_key = {
+            "assay": "$assay",
+            "variant": "$variant",
+            "gene": "$gene",
+            "transcript": "$transcript",
+        }
+
+        def _tier_rollup_stage():
+            return [
+                {
+                    "$group": {
+                        "_id": None,
+                        "tier1": {"$sum": {"$cond": [{"$eq": ["$_id.class", 1]}, "$count", 0]}},
+                        "tier2": {"$sum": {"$cond": [{"$eq": ["$_id.class", 2]}, "$count", 0]}},
+                        "tier3": {"$sum": {"$cond": [{"$eq": ["$_id.class", 3]}, "$count", 0]}},
+                        "tier4": {"$sum": {"$cond": [{"$eq": ["$_id.class", 4]}, "$count", 0]}},
+                    }
+                },
+                {"$project": {"_id": 0, "tier1": 1, "tier2": 1, "tier3": 1, "tier4": 1}},
+            ]
+
+        col = self.get_collection()
+
+        # -------------------------
+        # (1) TOTAL stats (no double counting across assays)
+        # -------------------------
+        total_pipeline = [
+            {"$match": query},
+            {"$sort": {"variant": 1, "gene": 1, "time_created": -1}},
+            {"$group": {"_id": total_variant_key, "class": {"$first": "$class"}}},
+            {"$group": {"_id": {"class": "$class"}, "count": {"$sum": 1}}},
+            *_tier_rollup_stage(),
+        ]
+        total_res = list(col.aggregate(total_pipeline))
+        total_stats = (
+            total_res[0] if total_res else {"tier1": 0, "tier2": 0, "tier3": 0, "tier4": 0}
+        )
+
+        # -------------------------
+        # (2) ASSAY-specific stats
+        # -------------------------
+        by_assay_pipeline = [
+            {"$match": query},
+            {"$sort": {"assay": 1, "variant": 1, "gene": 1, "time_created": -1}},
+            {"$group": {"_id": per_assay_variant_key, "class": {"$first": "$class"}}},
+            {"$group": {"_id": {"assay": "$_id.assay", "class": "$class"}, "count": {"$sum": 1}}},
+            # fold per assay into a single doc per assay
+            {
+                "$group": {
+                    "_id": "$_id.assay",
+                    "tier1": {"$sum": {"$cond": [{"$eq": ["$_id.class", 1]}, "$count", 0]}},
+                    "tier2": {"$sum": {"$cond": [{"$eq": ["$_id.class", 2]}, "$count", 0]}},
+                    "tier3": {"$sum": {"$cond": [{"$eq": ["$_id.class", 3]}, "$count", 0]}},
+                    "tier4": {"$sum": {"$cond": [{"$eq": ["$_id.class", 4]}, "$count", 0]}},
+                }
+            },
+            {
+                "$project": {
+                    "_id": 0,
+                    "assay": "$_id",
+                    "tier1": 1,
+                    "tier2": 1,
+                    "tier3": 1,
+                    "tier4": 1,
+                }
+            },
+            {"$sort": {"assay": 1}},
+        ]
+        by_assay_docs = list(col.aggregate(by_assay_pipeline))
+        by_assay = defaultdict(
+            lambda: {
+                "tier1": 0,
+                "tier2": 0,
+                "tier3": 0,
+                "tier4": 0,
+            }
+        )
+
+        for d in by_assay_docs:
+            if not d:
+                assay = "Historic"
+                tiers = {}
+            else:
+                assay = d.get("assay") or "Historic"
+                tiers = d
+
+            by_assay[assay]["tier1"] += tiers.get("tier1", 0) or 0
+            by_assay[assay]["tier2"] += tiers.get("tier2", 0) or 0
+            by_assay[assay]["tier3"] += tiers.get("tier3", 0) or 0
+            by_assay[assay]["tier4"] += tiers.get("tier4", 0) or 0
+
+        # Optional: convert back to normal dict
+        by_assay = dict(by_assay)
+
+        return {"total": total_stats, "by_assay": by_assay}

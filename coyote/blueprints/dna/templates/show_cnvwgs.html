@@ -27,7 +27,7 @@
 
 {# Creating design_bed_url as well #}
 {% if subfolder.dir != "None" and subfolder.dir != "tumwgs" %}
-  {% set design_bed = "http://localhost:60151/load?file=/R:" ~ subfolder.dir ~ "/BED/design.bed"  %}
+  {% set design_bed = app_config.IGV_URI ~ "/load?file=/R:" ~ subfolder.dir ~ "/BED/design.bed"  %}
   {% set design_bed_url = '<a href="' ~ design_bed ~ '" class="text-blue-600 underline">' ~ "open" ~ '</a>'%}
   {% set _ = all_samples_bam_paths.append("/R:" ~ subfolder.dir ~ "/BED/design.bed") %}
 {% else %}
@@ -36,9 +36,9 @@
 
 {# Build the final IGV URL #}
 {% if all_samples_bam_paths and has_access("view_igv", min_role="user", min_level=9)  %}
-  {% set igv_url = "http://localhost:60151/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ cnv_region %}
-  {% set igv_url_left = "http://localhost:60151/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ cnv_region_left %}
-  {% set igv_url_right = "http://localhost:60151/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ cnv_region_right %}
+  {% set igv_url = app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ cnv_region %}
+  {% set igv_url_left = app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ cnv_region_left %}
+  {% set igv_url_right = app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ cnv_region_right %}
   {% set igv_link = '<a href="' ~ igv_url ~ '" class="text-blue-600 underline">' ~ cnv_region ~ '</a>' %}
   {% set igv_link_left = '<a href="' ~ igv_url_left ~ '" class="text-blue-600 underline">' ~ cnv_region_left ~ '</a>' %}
   {% set igv_link_right = '<a href="' ~ igv_url_right ~ '" class="text-blue-600 underline">' ~ cnv_region_right ~ '</a>' %}

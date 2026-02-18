@@ -23,8 +23,8 @@ from flask import current_app as app
 from coyote.util.misc import EnhancedJSONEncoder
 from markupsafe import Markup
 import json
-from datetime import datetime, timezone
 from typing import Any
+from coyote.util.common_utility import CommonUtility
 
 
 @app.template_filter("now")
@@ -38,7 +38,7 @@ def now_filter(date_format: str = "%Y-%m-%d %H:%M:%S") -> str:
     Returns:
         str: Current UTC datetime formatted as a string.
     """
-    return datetime.now(timezone.utc).strftime(date_format)
+    return CommonUtility.utc_now().strftime(date_format)
 
 
 @app.template_filter("prettyjson")

@@ -413,6 +413,9 @@ def generate_rna_report(sample_id, *args, **kwargs):
     class_desc = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC").values())
     class_desc_short = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT").values())
     analysis_desc = app.config.get("REPORT_CONFIG").get("ANALYSIS_DESCRIPTION", {}).get(assay)
+    class_desc = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC").values())
+    class_desc_short = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT").values())
+    analysis_desc = app.config.get("REPORT_CONFIG").get("ANALYSIS_DESCRIPTION", {}).get(assay)
 
     # app.logger.info(f"analysis_desc,{analysis_desc}")
     # app.logger.info(f"fusions,{fusions}")

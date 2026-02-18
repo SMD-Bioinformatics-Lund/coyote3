@@ -56,9 +56,15 @@ echo "Deploying Coyote3 version: $version"
 image_name="coyote3:$version"
 container_name="coyote3_dev_app"
 
+# GIT Commit and build time
+GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+echo "Git commit: $GIT_COMMIT"
+echo "Build time:  $BUILD_TIME"
+
 # Optional: Uncomment this to force rebuild without cache
 # echo "Building Docker image: $image_name"
-docker build --no-cache --network host --target $container_name -t "$image_name" -f ./Dockerfile.dev .
+docker build --no-cache --network host --build-arg GIT_COMMIT="$GIT_COMMIT" --build-arg BUILD_TIME="$BUILD_TIME" --target $container_name -t "$image_name" -f ./Dockerfile.dev .
 
 # Stop and remove any existing container with the same name
 echo "Stopping and removing existing container (if any)..."
@@ -80,6 +86,8 @@ docker run \
     -e SCRIPT_NAME="${SCRIPT_NAME}" \
     -e FLASK_SECRET_KEY="${SECRET_KEY}" \
     -e TZ='Europe/Stockholm' \
+    -e GIT_COMMIT="$GIT_COMMIT" \
+    -e BUILD_TIME="$BUILD_TIME" \
     --dns "${APP_DNS}" \
     -v /data/coyote3/logs:/app/logs \
     -v /access:/access \
