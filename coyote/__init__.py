@@ -570,7 +570,7 @@ def register_blueprints(app) -> None:
     bp_debug_msg("docs_bp")
     from coyote.blueprints.docs import docs_bp
 
-    app.register_blueprint(docs_bp, url_prefix="/docs")
+    app.register_blueprint(docs_bp, url_prefix="/handbook")
 
 
 def init_login_manager(app) -> None:
