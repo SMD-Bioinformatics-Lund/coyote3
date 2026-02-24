@@ -90,11 +90,11 @@
         <h2 class="text-sm font-semibold">Links</h2>
         <p class="mt-1 text-sm">Quick access</p>
         <div class="mt-3 space-y-2 text-sm">
-          <a href="{{ url_for('docs_bp.docs_index') }}"
+          <a href="{{ url_for('docs_bp.docs_page', doc_path='index.md') }}"
               class="flex items-center gap-2 text-indigo-700 hover:underline">
             <img src="{{ url_for('static', filename='icons/heroicons_outline_24/book-open.svg') }}"
                   alt="Docs" class="h-4 w-4">
-            Documentation
+            Handbook
           </a>
 
           {% if meta.changelog_in_app %}
