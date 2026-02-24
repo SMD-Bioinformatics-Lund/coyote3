@@ -17,7 +17,7 @@
     <div class="flex justify-between items-center mb-1">
       <h2 class="text-sm font-semibold">Modify Fusions</h2>
     </div>
-    <form id="snv-actions-form" action="{{ url_for('rna_bp.classify_multi_variant', id=sample.name) }}" method="POST">
+    <form id="snv-actions-form" action="{{ url_for('rna_bp.classify_multi_variant', sample_id=sample.name) }}" method="POST">
       <!-- Sidebar Checkboxes -->
       <div class="flex flex-col">
         <label class="flex items-center text-xs">
