@@ -309,7 +309,7 @@
     </div>
 
     <!-- Reusable Confirmation modal -->
-    <div id="actionModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 hidden">
+    <div id="actionModal" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50 hidden">
       <div class="bg-blue-50 rounded-xl shadow-xl p-6 w-full max-w-md border border-gray-200">
         <h2 id="actionModalTitle" class="text-xl font-semibold text-gray-800 mb-4">Confirm Action</h2>
         <p id="actionModalMessage" class="text-gray-600 mb-6">Are you sure you want to proceed?</p>
@@ -408,8 +408,17 @@
         confirmBtn.textContent = confirmText;
         confirmBtn.setAttribute('href', url);
 
-        // Dynamic confirm button color
-        confirmBtn.className = `bg-${confirmColor}-600 hover:bg-${confirmColor}-700 text-white font-medium py-2 px-4 rounded-lg shadow-lg transition`;
+        // Map to literal classes so Tailwind always emits the styles.
+        const confirmColorMap = {
+          blue: "bg-blue-600 hover:bg-blue-700",
+          red: "bg-red-600 hover:bg-red-700",
+          green: "bg-green-600 hover:bg-green-700",
+          yellow: "bg-yellow-600 hover:bg-yellow-700",
+          orange: "bg-orange-600 hover:bg-orange-700",
+          gray: "bg-gray-600 hover:bg-gray-700"
+        };
+        const confirmClasses = confirmColorMap[confirmColor] || confirmColorMap.blue;
+        confirmBtn.className = `${confirmClasses} text-white font-medium py-2 px-4 rounded-lg shadow-lg transition`;
 
         modal.classList.remove('hidden');
       }

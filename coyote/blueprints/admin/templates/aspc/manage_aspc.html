@@ -43,9 +43,17 @@
                 <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
                   <td class="p-2 font-medium">{{ assay.assay_name }}</td>
                   <td class="p-2 font-medium">{{ assay.display_name }}</td>
-                  <td class="p-2 font-medium">{{ assay.environment }}</td>
+                  <td class="p-2 font-medium">
+                    <span class="px-2 py-1 rounded-full text-xs font-semibold bg-{{assay.environment|lower}} text-white">
+                      {{ assay.environment }}
+                    </span>
+                  </td>
                   <td class="p-2 font-medium">{{ assay.asp_group }}</td>
-                  <td class="p-2 font-medium">{{ assay.asp_category }}</td>
+                  <td class="p-2 font-medium">
+                    <span class="px-2 py-1 rounded-full text-xs font-semibold bg-{{assay.asp_category|lower}} text-white">
+                      {{ assay.asp_category }}
+                    </span>
+                  </td>
                   <td class="p-2 font-medium">{{ assay.platform }}</td>
                   <td class="p-2 font-medium">{{ assay.schema_name }} - v{{ assay.schema_version|int }}</td>
                   <td class="p-2 font-medium">
@@ -65,8 +73,8 @@
                     {% endif %}
                   </td>
                   <td class="p-2 font-medium flex gap-2 flex-wrap">
-                    <a href="{{ url_for('admin_bp.view_assay_config', assay_id=assay._id) }}" 
-                      title="View" 
+                    <a href="{{ url_for('admin_bp.view_assay_config', assay_id=assay._id) }}"
+                      title="View"
                       class="font-medium text-gray-700 hover:text-blue-600">
                       <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="View" class="w-5 cursor-pointer">
                     </a>
@@ -92,7 +100,7 @@
                         title="{{ 'Deactivate' if assay.is_active else 'Activate' }}"
                         class="font-medium {% if assay.is_active %}text-yellow-600 hover:text-yellow-800{% else %}text-green-600 hover:text-green-800{% endif %}">
                         <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path-rounded-square.svg') }}" alt="toggle active" class="w-5 cursor-pointer">
-                      </button> 
+                      </button>
                     {% endif %}
                     {% if has_access("delete_assay_config", min_role="admin", min_level=99999) %}
                       <button onclick="showActionModal({

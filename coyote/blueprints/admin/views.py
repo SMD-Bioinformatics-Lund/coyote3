@@ -2632,7 +2632,7 @@ def audit():
     This function collects log files from the specified audit logs directory,
     filters them based on their modification time (only logs modified within
     the last 30 days are included), and reads their contents. The logs are
-    then reversed to ensure the newest entries appear first and rendered
+    then sorted by entry timestamp (descending) so the newest entries appear first and rendered
     in the "audit/audit.html" template.
     Returns:
         str: Rendered HTML template displaying the audit logs.
@@ -2653,8 +2653,37 @@ def audit():
         with file.open() as f:
             logs_data.extend([line.strip() for line in f])
 
-    # Reverse the logs so the newest ones appear first
-    logs_data = list(reversed(logs_data))
+    def _parse_log_timestamp(line: str) -> datetime:
+        """
+        Parse timestamp from log line prefix:
+        [YYYY-mm-dd HH:MM:SS,ms] ...
+        [YYYY-mm-ddTHH:MM:SS.ssssss+00:00] ...
+        Falls back to datetime.min when parsing fails.
+        """
+        try:
+            first_part = line.split(" - ", 1)[0].strip("[] ")
+            if not first_part:
+                return datetime.min
+
+            # Handle common logger format with comma milliseconds.
+            if "," in first_part and "T" not in first_part:
+                return datetime.strptime(first_part, "%Y-%m-%d %H:%M:%S,%f")
+
+            # Handle ISO-like timestamps.
+            ts = first_part.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(ts)
+            if dt.tzinfo is not None:
+                dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+            return dt
+        except Exception:
+            return datetime.min
+
+    # Sort by entry timestamp descending (latest first), independent of file order.
+    logs_data = sorted(
+        logs_data,
+        key=lambda line: _parse_log_timestamp(line),
+        reverse=True,
+    )
 
     return render_template(
         "audit/audit.html",

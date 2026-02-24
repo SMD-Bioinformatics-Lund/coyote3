@@ -5,6 +5,9 @@ module.exports = {
   content: [
     "./coyote/templates/**/*.html",
     "./coyote/blueprints/**/templates/**/*.html",
+    "./coyote/blueprints/**/templates/**/*.jinja",
+    "./coyote/blueprints/**/templates/partials/*.jinja",
+    "./coyote/blueprints/**/templates/**/*.jinja2",
     "./coyote/static/js/**/*.js",
     "./coyote/**/*.py",
   ],
@@ -65,6 +68,7 @@ module.exports = {
         colon: "#bbbbbb",
         gi: "#f8a488",
         dna: "#f5a25d",
+        rna: "#AB7DFF",
         genelist: "#d1d2fa",
         fusionlist: "#ccf9d8",
         cnvlist: "#ffe3c2",
@@ -91,7 +95,7 @@ module.exports = {
     // Dynamic semantic classes from Python/Jinja (tiers, profiles, QC/hotspot badges).
     {
       pattern:
-        /(bg|text|border|ring)-(production|validation|development|testing|pass|warn|fail|germline|germline-risk|tier1|tier2|tier3|tier4|tier999|tierother|tier-header1|tier-header2|tier-header3|tier-header4|tier-header999|melanoma|cns|lung|colon|gi|dna|genelist|fusionlist|cnvlist|panel|wts|wgs|unknown)/,
+        /(bg|text|border|ring)-(production|validation|development|testing|pass|warn|fail|germline|germline-risk|tier1|tier2|tier3|tier4|tier999|tierother|tier-header1|tier-header2|tier-header3|tier-header4|tier-header999|melanoma|cns|lung|colon|gi|dna|rna|genelist|fusionlist|cnvlist|panel|wts|wgs|unknown)/,
       variants: ["hover", "focus"],
     },
   ],

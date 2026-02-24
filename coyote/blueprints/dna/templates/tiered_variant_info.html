@@ -82,7 +82,7 @@
 
     {% if error %}
       <section class="p-2 ml-2 mt-2">
-        <div class="rounded-3xl border border-red-200 bg-red-50 text-red-900 shadow-xl p-4 border-t-4 border-red-600">
+        <div class="rounded-3xl border bg-red-50 text-red-900 shadow-xl p-4 border-t-4 border-red-600">
           <div class="text-sm font-semibold">Could not load reported variants</div>
           <div class="text-sm mt-1">{{ error }}</div>
         </div>
@@ -91,15 +91,15 @@
 
     <!-- Summary -->
     <section class="p-2 ml-2 mt-2 grid grid-cols-5 gap-6">
-      <div class="col-span-3 rounded-3xl border border-gray-200 bg-gray-50 backdrop-blur shadow-xl p-6 border-t-4 border-teal-700 hover:shadow-md transition">
+      <div class="col-span-3 rounded-3xl border bg-gray-50 backdrop-blur shadow-xl p-6 border-t-4 border-teal-700 hover:shadow-md transition">
         <h2 class="text-sm uppercase font-semibold tracking-wider text-gray-900 mb-4">Match Summary</h2>
 
         <div class="grid grid-cols-2 gap-3 text-sm">
-          <div class="rounded-2xl border bg-white p-4 hover:shadow-md transition">
+          <div class="rounded-2xl border border-gray-200 bg-white p-4 hover:shadow-md transition">
             <div class="text-xs text-gray-500">Matches</div>
             <div class="text-2xl font-semibold">{{ docs|length }}</div>
           </div>
-          <div class="rounded-2xl border bg-white p-4 hover:shadow-md transition">
+          <div class="rounded-2xl border border-gray-200 bg-white p-4 hover:shadow-md transition">
             <div class="text-xs text-gray-500">Gene</div>
             <div class="text-lg font-semibold">{{ variant.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL", "-") }}</div>
           </div>
@@ -110,7 +110,7 @@
         </div>
       </div>
 
-      <div class="col-span-2 rounded-3xl border border-gray-200 bg-gray-50 backdrop-blur shadow-xl p-6 border-t-4 border-purple-700 hover:shadow-md transition">
+      <div class="col-span-2 rounded-3xl border bg-gray-50 backdrop-blur shadow-xl p-6 border-t-4 border-purple-700 hover:shadow-md transition">
         <h2 class="text-sm uppercase font-semibold tracking-wider text-gray-900 mb-4">Variant Meta</h2>
 
         <dl class="grid grid-cols-1 gap-3 text-sm">
@@ -142,7 +142,7 @@
         </div>
 
         {% if docs and docs|length %}
-          <div class="rounded-2xl border bg-white overflow-hidden">
+          <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden">
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead class="sortable bg-gray-50 text-xs">
@@ -162,7 +162,7 @@
                 <tbody>
                   {% for d in docs %}
                     {% set sample_profile = d.get('sample', {}).get('profile', '')[0]|upper or 'P' %}
-                    <tr class="border-t hover:bg-gray-50">
+                    <tr class="border-t border-gray-200 hover:bg-gray-50">
                       <!-- sample -->
                       <td class="px-3 py-2">
                         <div class="font-semibold text-gray-900 flex items-center gap-2">
