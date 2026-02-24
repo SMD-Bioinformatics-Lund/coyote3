@@ -1,8 +1,22 @@
-![Python 3.12+](https://img.shields.io/badge/python-3.12+-orange.svg)
-![Flask](https://img.shields.io/badge/framework-Flask-indigo)
-![MongoDB](https://img.shields.io/badge/database-MongoDB-brightgreen)
-![Dockerized](https://img.shields.io/badge/docker-ready-blue)
-![License](https://img.shields.io/badge/license-Proprietary-red)
+### Core Stack
+![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-Framework-000000?logo=flask&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-Database-47A248?logo=mongodb&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4.1.12-38BDF8?logo=tailwindcss&logoColor=white)
+### Domain & Capabilities
+![Clinical Genomics](https://img.shields.io/badge/Domain-Clinical%20Genomics-6A5ACD)
+![DNA Support](https://img.shields.io/badge/DNA-Supported-1E90FF)
+![RNA Support](https://img.shields.io/badge/RNA-Supported-20B2AA)
+![Schema Driven](https://img.shields.io/badge/Architecture-Schema%20Driven-708090)
+### Security & Governance
+![RBAC Enabled](https://img.shields.io/badge/Security-RBAC%20Enabled-darkgreen)
+![Audit Logging](https://img.shields.io/badge/Audit-Logging%20Enabled-2E8B57)
+### Status & Release
+![Status](https://img.shields.io/badge/Status-Production%20%7C%20Active%20Development-blue)
+![Version](https://img.shields.io/github/v/release/SMD-Bioinformatics-Lund/coyote3?label=version&logo=github)
+![License: Proprietary](https://img.shields.io/badge/License-Proprietary-8B0000?style=flat&logo=shield&logoColor=white)
+
 # Coyote3 – Genomic Variant Interpretation & Reporting Platform
 
 **Coyote3** is a secure, scalable, and extensible web application designed as a one-stop solution for **genomic variant interpretation**, **data management**, and **clinical reporting**. Built by the **Section for Molecular Diagnostics (SMD), Lund**, Coyote3 streamlines complex diagnostics workflows into a unified interface for clinical geneticists, bioinformaticians, and laboratory personnel.
@@ -96,11 +110,111 @@ Each major functionality is organized into a Flask blueprint:
 
 ---
 
-## Configuration & Deployment
+## Installation and Deployment
 
-- Separate configuration profiles for **development**, **testing**, and **production**
-- Environment variables or `.env` for secrets and LDAP/MongoDB endpoints
-- Deployable via **Gunicorn**, **Docker**
+Production is the default and recommended path. Development options are listed after production.
+
+### 1. Prerequisites
+
+Install and verify:
+
+```bash
+git --version
+docker --version
+docker compose version
+python3 --version
+```
+
+### 2. Clone repository
+
+```bash
+git clone git@github.com:SMD-Bioinformatics-Lund/coyote3.git
+cd coyote3
+```
+
+### 3. Configure environment files
+
+Production env file:
+
+```bash
+cp example.env .coyote3_env
+```
+
+Development env file:
+
+```bash
+cp example.env .coyote3_dev_env
+```
+
+Update values in `.coyote3_env` / `.coyote3_dev_env` (at minimum):
+
+- `SECRET_KEY`
+- `COYOTE3_FERNET_KEY`
+- `FLASK_MONGO_HOST`
+- `FLASK_MONGO_PORT`
+- `COYOTE3_DB_NAME`
+- `CACHE_REDIS_URL`
+- `CACHE_REDIS_HOST`
+- `REPORTS_BASE_PATH`
+- `APP_DNS`
+- `PORT_NBR`
+- `GENS_URI`
+- `IGV_URI`
+
+### 4. Production install and deploy (recommended)
+
+Option A: compose wrapper (recommended)
+
+```bash
+./scripts/compose-with-version.sh up -d --build
+```
+
+Option B: scripted wrapper
+
+```bash
+./scripts/install.sh
+```
+
+### 5. Verify production deployment
+
+```bash
+./scripts/compose-with-version.sh ps
+./scripts/compose-with-version.sh logs --tail=100 coyote3_app
+```
+
+Open:
+
+- App: `/`
+- Handbook: `/handbook`
+
+### 6. Development deploy (secondary)
+
+Option A: compose wrapper
+
+```bash
+./scripts/compose-with-version.sh -f docker-compose.dev.yml up -d --build
+```
+
+Option B: scripted wrapper
+
+```bash
+./scripts/install.dev.sh
+```
+
+### 7. Direct compose (manual version export)
+
+```bash
+export COYOTE3_VERSION="$(python3 coyote/__version__.py)"
+docker compose up -d --build
+docker compose -f docker-compose.dev.yml up -d --build
+```
+
+### 8. Stop services
+
+```bash
+./scripts/compose-with-version.sh down
+./scripts/compose-with-version.sh -f docker-compose.dev.yml down
+```
 
 Documentation for setup, operations, user workflows, and developer internals is maintained in `docs/handbook/`.
 
@@ -133,6 +247,57 @@ mkdocs build
 
 ---
 
+## Frontend CSS build (Tailwind via npm)
+
+Tailwind is compiled locally from source instead of using a CDN stylesheet.
+
+Input source:
+
+- `coyote/static/css/tailwind.input.css`
+- `tailwind.config.js`
+
+Generated output used by templates:
+
+- `coyote/static/css/tailwind.css`
+
+Tailwind scans templates/source files and generates only the classes used by the application. Custom project color aliases (for example `brown` and `olive`) are defined once in `tailwind.config.js` and full shade scales are generated automatically.
+
+Install frontend build dependencies:
+
+```bash
+npm install
+```
+
+Build CSS once:
+
+```bash
+npm run build:css
+```
+
+Run continuous CSS build in development:
+
+```bash
+npm run dev:css
+```
+
+Keep `npm run dev:css` running while editing templates/styles so the generated CSS stays up to date.
+
+`package.json` version is auto-synced from `coyote/__version__.py` by:
+
+- `scripts/sync-package-version.js`
+- `npm install` (via `postinstall`)
+- `npm run build:css` / `npm run dev:css` (via pre-scripts)
+
+### Docker/Compose behavior
+
+- Production image build (`Dockerfile`) compiles Tailwind CSS during image build.
+- Development app image (`Dockerfile.dev`) does not compile Tailwind during build.
+- `docker-compose.dev.yml` includes a dedicated `coyote3_dev_tailwind` service that installs npm dependencies, builds CSS, and continuously rebuilds CSS (`npm run dev:css`) while developing.
+- Compose image tags use `COYOTE3_VERSION` instead of hardcoded values.
+- Use `./scripts/compose-with-version.sh up -d` to run compose with `COYOTE3_VERSION` exported from `coyote/__version__.py`.
+
+---
+
 ## Security & Compliance
 
 - Fine-grained permissions enforced by custom RBAC middleware
@@ -152,21 +317,6 @@ Coyote3 is architected to support lab-specific workflows and pipelines:
 - **Schema-aware editing of variant data and QC thresholds**
 
 ---
-
-## Installation
-To install Coyote3, follow these steps:
-1. Clone the repository:
-  ```bash
-    git clone git@github.com:SMD-Bioinformatics-Lund/coyote3.git
-    cd coyote3
-  ```
-2. Install and run (containerized):
-  ```bash
-    ./scripts/install.sh
-  ```
-3. Open the application and handbook:
-  - App: `/`
-  - Handbook: `/handbook`
 
 ## License
 

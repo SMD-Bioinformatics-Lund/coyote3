@@ -26,7 +26,7 @@
 
 {# Creating design_bed_url as well #}
 {% if subfolder.dir != "None" and subfolder.dir != "tumwgs" %}
-  {% set design_bed = "app_config.IGV_URI ~ "/load?file=/R:" ~ subfolder.dir ~ "/BED/design.bed"  %}
+  {% set design_bed = app_config.IGV_URI ~ "/load?file=/R:" ~ subfolder.dir ~ "/BED/design.bed"  %}
   {% set design_bed_url = '<a href="' ~ design_bed ~ '" class="text-blue-600 underline">' ~ "open" ~ '</a>'%}
   {% set _ = all_samples_bam_paths.append("/R:" ~ subfolder.dir ~ "/BED/design.bed") %}
 {% else %}
@@ -35,8 +35,8 @@
 
 {# Build the final IGV URL #}
 {% if all_samples_bam_paths and has_access("view_igv", min_role="user", min_level=9) %}
-  {% set igv_url_gene1 = "app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ gene_1_locus %}
-  {% set igv_url_gene2 = "app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ gene_2_locus %}
+  {% set igv_url_gene1 = app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ gene_1_locus %}
+  {% set igv_url_gene2 = app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ gene_2_locus %}
   {% set igv_link_gene1 = '<a href="' ~ igv_url_gene1 ~ '" class="text-blue-600 underline">' ~ gene_1_locus ~ '</a>' %}
   {% set igv_link_gene2 = '<a href="' ~ igv_url_gene2 ~ '" class="text-blue-600 underline">' ~ gene_2_locus ~ '</a>' %}
 
@@ -213,7 +213,7 @@
     <!-- other information cards -->
     <section class="bg-transparent p-2 my-2 flex flex-wrap items-start relative gap-4" id="transloc-information-cards">
       <!-- Comment box, other tiering and pon -->
-      <div class="flex flex-col gap-y-4 min-w-450 max-w-xl">
+      <div class="flex flex-col gap-y-4 min-w-[450px] max-w-xl">
         <!-- Comment box -->
         {% if has_access("add_variant_comment", min_role="user", min_level=9) %}
           <div class="bg-transparent w-full max-w-xl" id="commenting-box-card">
@@ -316,7 +316,7 @@
 
       </div>
 
-      <div class="flex flex-col gap-y-4 min-w-450 max-w-xl items-start">
+      <div class="flex flex-col gap-y-4 min-w-[450px] max-w-xl items-start">
         <!-- Tranlocations annotations -->
         {% if has_access(min_role='user', min_level=9) %}
           <div class="bg-gray-50 w-full max-w-xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="green" pagination-button-text-color="black" id="transloc-annotations-all">

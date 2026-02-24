@@ -62,14 +62,23 @@ class DefaultConfig:
     CHANGELOG_FILE = "CHANGELOG.md"
 
     # Optional link out to Git
-    CHANGELOG_URL = "https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/master/CHANGELOG.md"
+    CHANGELOG_URL = f"{CODEBASE}/blob/master/CHANGELOG.md"
 
     # Readme
-    README_URL = "https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/master/README.md"
+    README_URL = f"{CODEBASE}/blob/master/README.md"
 
     # LICENSE
     LICENSE_FILE = "LICENSE.txt"
-    LICENSE_URL = "https://github.com/SMD-Bioinformatics-Lund/coyote3/blob/master/LICENSE.txt"
+    LICENSE_URL = f"{CODEBASE}/blob/master/LICENSE.txt"
+
+    # CODE OF CONDUCT
+    CODE_OF_CONDUCT_URL = f"{CODEBASE}/blob/master/CODE_OF_CONDUCT.md"
+
+    # SECURITY
+    SECURITY_URL = f"{CODEBASE}/blob/master/SECURITY.md"
+
+    # CONTRIBUTING
+    CONTRIBUTING_URL = f"{CODEBASE}/blob/master/CONTRIBUTING.md"
 
     # Public ASSAY CATALOG
     ASSAY_CATALOG_YAML = "coyote/static/data/assay_catalog.yaml"

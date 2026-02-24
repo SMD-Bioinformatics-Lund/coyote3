@@ -6,8 +6,8 @@ This chapter is for operators, analysts, and technical users who need to run Coy
 
 Coyote3 is typically deployed in three modes:
 
-- Docker Compose production-like deployment.
-- Docker Compose development deployment.
+- Docker Compose production deployment (default).
+- Docker Compose development deployment (secondary).
 - Local Python run for debugging.
 
 ## Required services
@@ -55,37 +55,90 @@ FLASK_MONGO_HOST=172.17.0.1
 FLASK_MONGO_PORT=27017
 ```
 
-## Production-like install (Docker Compose)
+## Step-by-step installation and deployment
 
-From repo root:
-
-```bash
-docker-compose up -d
-```
-
-Then verify containers are healthy and logs are clean.
-
-## Development install (Docker Compose)
+### 1. Verify prerequisites
 
 ```bash
-docker-compose -f docker-compose.dev.yml up -d
+git --version
+docker --version
+docker compose version
+python3 --version
 ```
 
-Use this for iterative development and local debugging.
+### 2. Prepare env files
 
-## Scripted installation
+Use `example.env` as template:
+
+```bash
+cp example.env .coyote3_env
+cp example.env .coyote3_dev_env
+```
+
+Fill required keys in each file:
+
+- `SECRET_KEY`
+- `COYOTE3_FERNET_KEY`
+- `FLASK_MONGO_HOST`
+- `FLASK_MONGO_PORT`
+- `COYOTE3_DB_NAME`
+- `CACHE_REDIS_URL`
+- `CACHE_REDIS_HOST`
+- `REPORTS_BASE_PATH`
+- `APP_DNS`
+- `PORT_NBR`
+
+### 3. Deploy production (default)
+
+Recommended:
+
+```bash
+./scripts/compose-with-version.sh up -d --build
+```
+
+Alternative production wrapper:
 
 ```bash
 ./scripts/install.sh
+```
+
+### 4. Verify production
+
+```bash
+./scripts/compose-with-version.sh ps
+./scripts/compose-with-version.sh logs --tail=100 coyote3_app
+```
+
+### 5. Deploy development (secondary)
+
+Recommended:
+
+```bash
+./scripts/compose-with-version.sh -f docker-compose.dev.yml up -d --build
+```
+
+Alternative development wrapper:
+
+```bash
 ./scripts/install.dev.sh
 ```
 
-These scripts typically:
+### 6. Direct compose (manual version export)
 
-1. Load environment files.
-2. Build app image.
-3. Start/ensure Redis.
-4. Start Coyote3 container with configured mounts/network.
+If running raw compose, export `COYOTE3_VERSION` first:
+
+```bash
+export COYOTE3_VERSION="$(python3 coyote/__version__.py)"
+docker compose up -d --build
+docker compose -f docker-compose.dev.yml up -d --build
+```
+
+### 7. Stop services
+
+```bash
+./scripts/compose-with-version.sh down
+./scripts/compose-with-version.sh -f docker-compose.dev.yml down
+```
 
 ## Local Python setup
 

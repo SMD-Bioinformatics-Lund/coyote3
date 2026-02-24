@@ -92,15 +92,10 @@
       </form>
 
       <button id="toggle-other-profile"
-        class="inline-flex items-center px-4 py-1.5 mx-4 rounded-lg
+        class="inline-flex items-center px-4 py-1.5 mx-4 bg-orange-200 rounded-lg
               text-sm font-medium shadow-md transition duration-300">
         Show All Samples
       </button>
-
-
-
-
-
 
     </section>
 
@@ -191,7 +186,7 @@
                       </td>
                       <td class="p-2 font-medium">
                         {% if sample.sequencing_scope %}
-                          <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-blue-500 text-center">
+                          <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-{{ sample.sequencing_scope|lower }} text-center">
                             {{ sample.sequencing_scope }}
                           </span>
                         {% else %}
@@ -399,11 +394,11 @@
   const btn = document.getElementById("toggle-other-profile");
 
   const PROD_ONLY_CLASSES = [
-    "bg-orange-200", "text-orange-800", "hover:bg-orange-300"
+    "bg-orange-300", "text-black", "hover:bg-orange-400"
   ];
 
   const ALL_CLASSES = [
-    "bg-orange-400", "text-orange-800", "hover:bg-orange-500"
+    "bg-orange-300", "text-black", "hover:bg-orange-400"
   ];
 
   function setButtonState(isProdOnly) {
@@ -431,7 +426,7 @@
     const nowProdOnly = rows[0].classList.contains("hidden");
     setButtonState(nowProdOnly);
 
-    btn.blur(); // ✅ removes persistent focus highlight (orange)
+    // btn.blur(); // removes persistent focus highlight (orange)
   });
 
 

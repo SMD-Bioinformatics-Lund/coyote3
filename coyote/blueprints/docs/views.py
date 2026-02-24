@@ -120,6 +120,9 @@ def about():
         "changelog_in_app": bool(app.config.get("CHANGELOG_FILE")),
         "changelog_url": app.config.get("CHANGELOG_URL", None),
         "readme_url": app.config.get("README_URL"),
+        "code_of_conduct_url": app.config.get("CODE_OF_CONDUCT_URL"),
+        "security_url": app.config.get("SECURITY_URL"),
+        "contributing_url": app.config.get("CONTRIBUTING_URL"),
     }
     return render_template("about.html", meta=meta)
 

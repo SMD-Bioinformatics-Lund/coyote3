@@ -173,7 +173,7 @@
                           {% else %}
                             {{ d.sample_oid }}
                           {% endif %}
-                          <span class="inline-block px-1.5 py-0.5 rounded-2xl text-white text-xs font-semibold bg-{{ d.get('sample', {}).get('profile') or 'production' }} text-center">
+                          <span class="inline-block px-1.5 py-0.5 rounded-2xl text-white text-xs font-semibold bg-{{ (d.get('sample', {}).get('profile') or 'production')|lower }} text-center">
                             {{ sample_profile }}
                           </span>
                         </div>

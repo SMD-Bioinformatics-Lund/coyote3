@@ -71,11 +71,11 @@
 
         <!-- README (external) -->
         {% if config.README_URL %}
-        <a href="{{ config.README_URL }}"
-           target="_blank" rel="noopener"
-           class="inline-flex items-center gap-2 rounded-3xl bg-gray-200 px-3 py-2 text-sm font-medium text-black shadow-lg border-l-8 border-purple-400 hover:bg-purple-400 transition duration-300 hover:text-white">
-          README
-        </a>
+          <a href="{{ config.README_URL }}"
+            target="_blank" rel="noopener"
+            class="inline-flex items-center gap-2 rounded-3xl bg-gray-200 px-3 py-2 text-sm font-medium text-black shadow-lg border-l-8 border-purple-400 hover:bg-purple-400 transition duration-300 hover:text-white">
+            README
+          </a>
         {% endif %}
 
         <!-- Handbook -->
@@ -83,6 +83,33 @@
            class="inline-flex items-center gap-2 rounded-3xl bg-gray-200 px-3 py-2 text-sm font-medium text-black shadow-lg border-l-8 border-gray-400 hover:bg-gray-400 transition duration-300 hover:text-white">
            Handbook
         </a>
+
+        <!-- Code of Conduct -->
+        {% if config.CODE_OF_CONDUCT_URL %}
+          <a href="{{ config.CODE_OF_CONDUCT_URL }}"
+            target="_blank" rel="noopener"
+            class="inline-flex items-center gap-2 rounded-3xl bg-gray-200 px-3 py-2 text-sm font-medium text-black shadow-lg border-l-8 border-yellow-600 hover:bg-yellow-600 transition duration-300 hover:text-white">
+            Code of Conduct
+          </a>
+        {% endif %}
+
+        <!-- Security -->
+        {% if config.SECURITY_URL %}
+          <a href="{{ config.SECURITY_URL }}"
+            target="_blank" rel="noopener"
+            class="inline-flex items-center gap-2 rounded-3xl bg-gray-200 px-3 py-2 text-sm font-medium text-black shadow-lg border-l-8 border-red-400 hover:bg-red-400 transition duration-300 hover:text-white">
+            Security
+          </a>
+        {% endif %}
+
+        <!-- Contributing -->
+        {% if config.CONTRIBUTING_URL %}
+          <a href="{{ config.CONTRIBUTING_URL }}"
+            target="_blank" rel="noopener"
+            class="inline-flex items-center gap-2 rounded-3xl bg-gray-200 px-3 py-2 text-sm font-medium text-black shadow-lg border-l-8 border-pink-400 hover:bg-pink-400 transition duration-300 hover:text-white">
+            Contributing
+          </a>
+        {% endif %}
       </div>
     </section>
 
