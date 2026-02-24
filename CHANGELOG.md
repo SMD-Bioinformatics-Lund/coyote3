@@ -1,5 +1,10 @@
 # Changelog
 
+### v3.1.16
+- Reworked product documentation into a complete user/developer handbook under `docs/handbook`.
+- Updated in-app documentation routing so handbook content is served under `/handbook`, including markdown-rendered handbook pages.
+- Updated README documentation section with current handbook routes and MkDocs ReadTheDocs build instructions.
+
 ### v3.1.15
 - Removed unused block of code which is causing errors in the tiered variants search.
 

@@ -1,0 +1,42 @@
+site_name: Coyote3 Documentation
+site_description: Coyote3 user and developer handbook
+repo_name: Coyote3
+docs_dir: docs
+site_dir: site
+theme:
+  name: readthedocs
+markdown_extensions:
+  - toc:
+      permalink: true
+  - fenced_code
+  - tables
+  - sane_lists
+nav:
+  - Home: index.md
+  - Handbook:
+    - Overview: handbook/index.md
+    - User Handbook:
+      - Product Overview: handbook/user/01-product-overview.md
+      - Installation and Access: handbook/user/02-installation-and-access.md
+      - Navigation and Pages: handbook/user/03-navigation-and-pages.md
+      - DNA Workflow: handbook/user/04-dna-workflow.md
+      - RNA Workflow: handbook/user/05-rna-workflow.md
+      - Reporting and History: handbook/user/06-reporting-and-history.md
+      - Administration and Governance: handbook/user/07-admin-and-governance.md
+      - Best Practices: handbook/user/08-best-practices.md
+      - Troubleshooting: handbook/user/09-troubleshooting.md
+      - Behind the Scenes: handbook/user/10-behind-the-scenes.md
+      - Complete Click Paths: handbook/user/11-complete-click-paths.md
+    - Developer Handbook:
+      - Architecture: handbook/developer/01-architecture.md
+      - Runtime and Configuration: handbook/developer/02-runtime-and-configuration.md
+      - Data Model and Collections: handbook/developer/03-data-model-and-collections.md
+      - Auth and RBAC: handbook/developer/04-auth-rbac-and-request-lifecycle.md
+      - Blueprints, Routes, and UI: handbook/developer/05-blueprints-routes-and-ui.md
+      - How to Add Features: handbook/developer/06-how-to-add-features.md
+      - Debugging Playbook: handbook/developer/07-debugging-playbook.md
+      - Testing and Quality Gates: handbook/developer/08-testing-and-quality-gates.md
+      - Deployment and Operations: handbook/developer/09-deployment-and-operations.md
+      - Technical Debt and Roadmap: handbook/developer/10-technical-debt-and-roadmap.md
+      - End-to-End Process Flows: handbook/developer/11-end-to-end-process-flows.md
+      - Collection Reference and Schemas: handbook/developer/12-collection-reference-and-schemas.md

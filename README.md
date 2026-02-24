@@ -88,10 +88,11 @@ Each major functionality is organized into a Flask blueprint:
 - `coverage` – Depth metrics by panel/sample
 - `admin` – Users, roles, permissions
 - `dashboard` – Case review summaries
-- `profile` – User-specific data and logs
+- `profile` – User-specific profile and account operations
 - `login` – LDAP auth and session handling
 - `public` – Minimal open endpoints (optional)
-- `userprofile` – User-specific settings and preferences
+- `common` – Shared comments, search, and cross-workflow utilities
+- `docs` – In-app handbook and release information
 
 ---
 
@@ -101,7 +102,34 @@ Each major functionality is organized into a Flask blueprint:
 - Environment variables or `.env` for secrets and LDAP/MongoDB endpoints
 - Deployable via **Gunicorn**, **Docker**
 
-Documentation for environment setup, deployment, and schema initialization is available in the `docs/` directory. (under construction)
+Documentation for setup, operations, user workflows, and developer internals is maintained in `docs/handbook/`.
+
+### In-app handbook routes
+
+- Handbook home: `/handbook`
+- Handbook page renderer: `/handbook/<path-to-markdown>.md`
+- About page: `/handbook/about`
+- Changelog: `/handbook/changelog`
+- License: `/handbook/license`
+
+The in-app handbook renders markdown directly from `docs/handbook/`.
+
+### Static docs site (MkDocs, ReadTheDocs theme)
+
+MkDocs configuration lives in `mkdocs.yml`.
+
+Run locally:
+
+```bash
+pip install -r requirements-docs.txt
+mkdocs serve
+```
+
+Build static site:
+
+```bash
+mkdocs build
+```
 
 ---
 
@@ -132,14 +160,17 @@ To install Coyote3, follow these steps:
     git clone git@github.com:SMD-Bioinformatics-Lund/coyote3.git
     cd coyote3
   ```
-2. Run the setup script:
+2. Install and run (containerized):
   ```bash
     ./scripts/install.sh
   ```
+3. Open the application and handbook:
+  - App: `/`
+  - Handbook: `/handbook`
 
 ## License
 
-© 2025 Section for Molecular Diagnostics (SMD), Lund.  
+© 2026 Section for Molecular Diagnostics (SMD), Lund.
 All rights reserved. Internal use only.
 
 ---
@@ -149,4 +180,3 @@ All rights reserved. Internal use only.
 For inquiries, feedback, or deployment support, please contact the SMD development team at Lund.
 
 ---
-

@@ -1,0 +1,55 @@
+{% extends "layout.html" %}
+
+{% block title %}Handbook{% endblock %}
+{% block style%}
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.1/github-markdown.min.css">
+{% endblock %}
+
+{% block meta %}
+  <meta name="description" content="Coyote3 handbook documentation.">
+{% endblock %}
+
+{% block body %}
+<div class="w-full h-full overflow-y-auto bg-gray-50">
+  <header class="mx-auto max-w-7xl px-4 pt-6">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-semibold tracking-wide">Coyote3 Handbook</h1>
+        <p class="mt-2 max-w-3xl text-base">
+          Comprehensive user and developer documentation for Coyote3.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <a href="{{ url_for('docs_bp.docs_page', doc_path='index.md') }}"
+           class="inline-flex items-center gap-2 rounded-3xl border border-gray-300 bg-white px-3 py-2 text-sm font-medium shadow-xl hover:shadow-sm hover:bg-gray-50">
+          Handbook Index
+        </a>
+        <a href="{{ url_for('docs_bp.docs_index') }}"
+           class="inline-flex items-center gap-2 rounded-3xl border border-blue-300 bg-blue-200 px-3 py-2 text-sm font-medium shadow-xl hover:shadow-sm">
+          Docs Home
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 pb-16 mt-6 space-y-6">
+    <section class="rounded-3xl border-t-4 border-blue-400 bg-white shadow-2xl p-6">
+      <div class="text-sm text-gray-600">
+        Source: <span class="font-mono">docs/handbook/{{ handbook_doc }}</span>
+      </div>
+      <hr class="my-4">
+
+      <style>
+        .markdown-body ul { list-style: disc !important; padding-left: 1.25rem !important; }
+        .markdown-body ol { list-style: decimal !important; padding-left: 1.25rem !important; }
+        .markdown-body li { margin: 0.25rem 0; }
+      </style>
+
+      <article class="markdown-body" style="background:#ffffff; color:#24292f; color-scheme: light;">
+        {{ handbook_html | safe }}
+      </article>
+    </section>
+  </main>
+</div>
+{% endblock %}
