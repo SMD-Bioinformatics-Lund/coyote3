@@ -123,6 +123,41 @@ Global shared templates:
 
 Feature templates should remain under the owning blueprint. Cross-blueprint template dependencies should be minimized.
 
+## Tailwind CSS build and references
+
+Tailwind is built from project sources and emitted to a single generated stylesheet used by templates.
+
+Source and config:
+
+- `coyote/static/css/tailwind.input.css` (Tailwind entry file)
+- `tailwind.config.js` (theme, content scanning, safelist)
+
+Generated output:
+
+- `coyote/static/css/tailwind.css`
+
+Where templates load the generated CSS:
+
+- `coyote/templates/layout.html`:
+  `<link href="{{ url_for('static', filename='css/tailwind.css') }}" rel="stylesheet">`
+- `coyote/blueprints/common/templates/common_base.html`:
+  `<link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">`
+
+Build commands (run from repo root):
+
+```bash
+npm install
+npm run build:css
+```
+
+Development watch mode:
+
+```bash
+npm run dev:css
+```
+
+Keep `npm run dev:css` running while editing templates or Tailwind sources so `coyote/static/css/tailwind.css` stays current.
+
 ## Access enforcement contract
 
 Route handlers enforce access with decorators. Template-level hiding is not sufficient.

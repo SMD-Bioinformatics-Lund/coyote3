@@ -727,7 +727,7 @@ class BPCommonUtility:
             enriched_doc = doc.copy()
 
             ## Adding sample details
-            sample = store.sample_handler.get_sample_by_oid(doc.get("sample_oid", None))
+            sample = store.sample_handler.get_sample_by_oid(doc.get("sample_oid", None)) or {}
             enriched_doc["sample"] = {}
             enriched_doc["sample"]["sample_name"] = sample.get("name")
             enriched_doc["sample"]["case_id"] = sample.get("case_id")

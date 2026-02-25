@@ -63,7 +63,7 @@
                     <td class="p-2 font-medium">{{ sample.assay }}</td>
                     <td class="p-2 font-medium">{{ sample.subpanel }}</td>
                     <td class="p-2 font-medium">
-                      <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-{{ sample.profile or 'production' }} text-center">
+                      <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-{{ (sample.profile or 'production')|lower }} text-center">
                         {{ sample.get('profile', '')[0]|upper or 'P' }}
                       </span>
                     </td>

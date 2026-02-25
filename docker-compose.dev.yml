@@ -1,11 +1,20 @@
 version: "3.9"
 # usage:
+# COYOTE3_VERSION is read from coyote/__version__.py (example):
+#   export COYOTE3_VERSION="$(python3 coyote/__version__.py)"
 # docker-compose up -d
 # docker-compose down
 services:
   coyote3_dev_app:
     container_name: coyote3_dev_app
-    image: coyote3:3.1.10-dev # only this now
+    image: coyote3:${COYOTE3_VERSION:-local}-dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      network: host
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
     ports:
       - "6815:8000"
     env_file:
@@ -19,6 +28,9 @@ services:
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
     restart: always
+    dns:
+      - ${APP_DNS:-1.1.1.1}
+      - 8.8.8.8
     networks:
       - coyote3-dev-net
     volumes:
@@ -40,6 +52,22 @@ services:
       - "/fs1:/fs1"
     command: "python3 wsgi.py"
 
+  coyote3_dev_tailwind:
+    container_name: coyote3_dev_tailwind
+    image: node:20-alpine
+    working_dir: /app
+    command: >
+      sh -c "for i in 1 2 3 4 5; do npm install --no-audit --no-fund && break || sleep 5; done && npm run build:css && npm run dev:css"
+    dns:
+      - ${APP_DNS:-1.1.1.1}
+      - 8.8.8.8
+    volumes:
+      - ".:/app"
+      - "coyote3-node-modules:/app/node_modules"
+    networks:
+      - coyote3-dev-net
+    restart: unless-stopped
+
   redis_coyote3_dev:
     container_name: redis_coyote3_dev
     image: ramsainanduri/redis:7.4.3
@@ -47,6 +75,9 @@ services:
       - "5818:6379"
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
+    dns:
+      - ${APP_DNS:-1.1.1.1}
+      - 8.8.8.8
     networks:
       - coyote3-dev-net
     restart: unless-stopped
@@ -55,3 +86,6 @@ services:
 networks:
   coyote3-dev-net:
     external: true
+
+volumes:
+  coyote3-node-modules:

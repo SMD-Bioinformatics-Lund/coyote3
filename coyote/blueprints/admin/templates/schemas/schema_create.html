@@ -5,7 +5,6 @@
   <script src="{{ url_for('admin_bp.static', filename='js/lint.min.js') }}"></script>
   <script src="{{ url_for('admin_bp.static', filename='js/json-lint.min.js') }}"></script>
   <script src="{{ url_for('admin_bp.static', filename='js/jsonlint.min.js') }}"></script>
-  <script src="{{ url_for('admin_bp.static', filename='js/json5.js') }}"></script>
 {% endblock %}
 
 
@@ -22,6 +21,7 @@
 <style>
   .CodeMirror {
     height: auto !important;
+    min-height: 400px;
   }
 
   .CodeMirror-scroll {
@@ -78,22 +78,15 @@
     viewportMargin: Infinity,
     gutters: ["CodeMirror-lint-markers", "CodeMirror-foldgutter"],
     foldGutter: true,
-    lint: false, // Initially off
+    lint: true,
     value: document.getElementById("json_blob").textContent.trim()
   });
 
 
-  let lintEnabled = false;
-
-  editor.on("change", () => {
-    if (!lintEnabled) {
-      lintEnabled = true;
-
-      // Enable linting dynamically
-      editor.setOption("lint", true);
-      editor.setOption("gutters", ["CodeMirror-lint-markers"]);
-    }
-  });
+  // Ensure editor and lint markers render reliably after mount.
+  setTimeout(() => {
+    editor.refresh();
+  }, 100);
 
   function validateJSON() {
     const jsonError = document.getElementById("json_error");

@@ -2,7 +2,7 @@
 {% block title %}Manage Genelists{% endblock %}
 {% block body %}
 <div class="flex w-full h-full overflow-hidden">
-  
+
   {% if not is_public %}
     {% include "admin_sidebar.html" %}
   {% endif %}
@@ -47,7 +47,7 @@
                   <td class="p-2 font-medium">{{ genelist.name }}</td>
                   <td class="p-2 font-medium">{{ genelist.displayname }}</td>
                   <td class="p-2 font-medium">
-                    <span class="bg-{{genelist.list_type}} text-{{genelist.list_type}} rounded-full px-2 py-1 text-xs">{{ genelist.list_type }}</span>
+                    <span class="bg-{{genelist.list_type}} text-black rounded-full px-2 py-1 text-xs">{{ genelist.list_type }}</span>
                   </td>
                   <td class="p-2 font-medium">
                     {% if genelist.is_public %}
@@ -96,12 +96,12 @@
                     {% endif %}
                   </td>
                   <td class="p-2 font-medium flex gap-2 flex-wrap">
-                    <a href="{{ url_for('admin_bp.view_genelist', genelist_id=genelist._id) }}" 
-                      title="View" 
+                    <a href="{{ url_for('admin_bp.view_genelist', genelist_id=genelist._id) }}"
+                      title="View"
                       class="font-medium text-gray-700 hover:text-blue-600">
                       <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="View" class="w-5 cursor-pointer">
                     </a>
-                  
+
 
                     {% if has_access("edit_isgl", min_role="manager", min_level=99) and not is_public %}
                       <button onclick="showActionModal({
@@ -125,7 +125,7 @@
                         title="{{ 'Deactivate' if genelist.is_active else 'Activate' }}"
                         class="font-medium {% if genelist.is_active %}text-yellow-600 hover:text-yellow-800{% else %}text-green-600 hover:text-green-800{% endif %}">
                         <img src="{{ url_for('static', filename='icons/heroicons_outline_24/arrow-path-rounded-square.svg') }}" alt="toggle active" class="w-5 cursor-pointer">
-                      </button> 
+                      </button>
                     {% endif %}
                     {% if has_access("delete_isgl", min_role="admin", min_level=99999) and not is_public %}
                       <button onclick="showActionModal({
