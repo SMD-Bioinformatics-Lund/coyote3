@@ -68,3 +68,32 @@ This chapter gives concrete click-by-click operating paths.
 - Use `/search/tiered_variants` for cross-sample annotation discovery.
 - Use `/reported_variants/...` for report-time occurrence history.
 - Use `/admin/...` only for governance/configuration changes.
+
+## H. Use MATRIX for cross-panel gene discovery
+
+1. Open `/assay-catalog-matrix`.
+2. Search for target gene.
+3. Compare presence across modality/category/list columns.
+4. Note the relevant modality/category/list.
+5. Open `/assay-catalog` for detailed metadata and export.
+
+## I. Use CATALOG for drill-down and export
+
+1. Open `/assay-catalog`.
+2. Select modality in left tree.
+3. Select category (and list if needed).
+4. Use gene search box in right table.
+5. Export genes using CSV action for the current view.
+
+## J. Use VARIANT SEARCH for historical context
+
+1. Open `/search/tiered_variants`.
+2. Enter search string.
+3. Select search mode (variant/gene/transcript/subpanel/author).
+4. Optionally select assay groups.
+5. Enable annotation text when broader context is needed.
+6. Review linked samples and reports in results.
+
+Related guide:
+
+- [Navbar Tools: Matrix, Catalog, and Variant Search](./13-navbar-matrix-catalog-and-variant-search.md)

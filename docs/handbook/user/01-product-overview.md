@@ -33,10 +33,11 @@ It centralizes:
 
 - **Live sample**: case in active interpretation cycle
 - **Reported sample**: case with one or more saved reports
-- **ISGL**: curated in-silico gene lists associated with assay context
+- **ISGL (In Silico Gene List)**: curated gene lists associated with assay context
 - **Ad-hoc genes**: case-specific gene constraints stored in sample filters
 - **Effective genes**: final gene set applied during filtering and interpretation
-- **ASP / ASPC**: panel definitions (`assay_specific_panels`) and assay runtime/report configurations (`asp_configs`)
+- **ASP (Assay Specific Panel)**: panel definitions (`assay_specific_panels`)
+- **ASPC (Assay Specific Panel Config)**: assay runtime/report configurations (`asp_configs`)
 
 ## Security posture
 

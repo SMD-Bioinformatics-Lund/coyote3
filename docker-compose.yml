@@ -24,7 +24,6 @@ services:
       - PYTHONUNBUFFERED=1
       - FLASK_APP=wsgi.py
       - FLASK_DEBUG=0
-      - SCRIPT_NAME=/coyote3
       - TZ=Europe/Stockholm
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}

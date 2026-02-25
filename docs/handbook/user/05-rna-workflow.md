@@ -2,6 +2,10 @@
 
 This chapter documents the RNA fusion workflow end-to-end.
 
+Related diagrams:
+
+- [Flow Diagrams (DNA, RNA, Sample, Admin)](./15-flow-diagrams.md)
+
 ## Entry point
 
 - `/rna/sample/<sample_id>K=`

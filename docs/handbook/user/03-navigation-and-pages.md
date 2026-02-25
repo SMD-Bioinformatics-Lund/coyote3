@@ -20,6 +20,18 @@ Coyote3 is organized around a single operational spine:
 - Public information pages: `/public/...`
 - In-app handbook index: `/handbook/`
 
+Navbar discovery tools:
+
+- Matrix: `/assay-catalog-matrix`
+- Catalog: `/assay-catalog`
+- Variant Search: `/search/tiered_variants`
+
+Detailed tool guide:
+
+- [Navbar Tools: Matrix, Catalog, and Variant Search](./13-navbar-matrix-catalog-and-variant-search.md)
+- [Application Features Reference](./14-application-features-reference.md)
+- [Flow Diagrams (DNA, RNA, Sample, Admin)](./15-flow-diagrams.md)
+
 ## Samples worklist
 
 Supported routes:
@@ -67,7 +79,7 @@ Route:
 
 Purpose:
 
-- Manage ISGL selection for the case.
+- Manage ISGL (In Silico Gene List) selection for the case.
 - Manage ad-hoc case genes.
 - Verify effective genes.
 - Compare raw versus filtered variant statistics.
@@ -125,6 +137,10 @@ Interpretation history routes:
 
 These routes are designed for cross-sample context and report-time traceability.
 
+For complete usage patterns, see:
+
+- [Navbar Tools: Matrix, Catalog, and Variant Search](./13-navbar-matrix-catalog-and-variant-search.md)
+
 ## Administration navigation
 
 Administration root:
@@ -138,9 +154,9 @@ Managed domains:
 - roles
 - permissions
 - schemas
-- ASP (assay panel definitions)
-- ASPC (assay runtime/report configs)
-- ISGL (in-silico gene lists)
+- ASP (Assay Specific Panel)
+- ASPC (Assay Specific Panel Config)
+- ISGL (In Silico Gene List)
 - audit log views
 
 Administration pages govern system behavior; they are not part of day-to-day interpretation workflow.

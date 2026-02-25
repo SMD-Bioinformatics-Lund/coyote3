@@ -1,25 +1,45 @@
-# Coyote3 Complete Handbook
+# Coyote3 Handbook
 
-This is the complete, maintained, end-to-end documentation for Coyote3.
+This is the maintained documentation for Coyote3.
 
-It is split into two tracks:
+Use this index as the primary entry point. It is grouped by task so users can quickly find where to go.
 
-- **User Handbook**: operational usage and day-to-day workflows.
-- **Developer Handbook**: architecture, data model, process logic, debugging, and extension guidance.
+Track entry pages:
 
-## User Handbook
+1. [User Handbook Entry](./user/index.md)
+2. [Developer Handbook Entry](./developer/index.md)
+
+## User Handbook (Grouped by Task)
+
+### Start Here
 
 1. [Product Overview](./user/01-product-overview.md)
 2. [Installation and Access](./user/02-installation-and-access.md)
-3. [Navigation and Pages](./user/03-navigation-and-pages.md)
-4. [DNA Workflow](./user/04-dna-workflow.md)
-5. [RNA Workflow](./user/05-rna-workflow.md)
-6. [Reporting and History](./user/06-reporting-and-history.md)
-7. [Administration and Governance](./user/07-admin-and-governance.md)
-8. [Best Practices](./user/08-best-practices.md)
-9. [Troubleshooting](./user/09-troubleshooting.md)
-10. [Behind the Scenes for Users](./user/10-behind-the-scenes.md)
-11. [Complete Click Paths](./user/11-complete-click-paths.md)
+3. [Navigation and Page Map](./user/03-navigation-and-pages.md)
+
+### Case Workflows
+
+1. [DNA Workflow](./user/04-dna-workflow.md)
+2. [RNA Workflow](./user/05-rna-workflow.md)
+3. [Reporting and History](./user/06-reporting-and-history.md)
+4. [Complete Click Paths](./user/11-complete-click-paths.md)
+5. [Flow Diagrams](./user/15-flow-diagrams.md)
+
+### Discovery and Search Tools
+
+1. [Navbar Tools: Matrix, Catalog, and Variant Search](./user/13-navbar-matrix-catalog-and-variant-search.md)
+2. [Application Features Reference](./user/14-application-features-reference.md)
+
+### Administration
+
+1. [Administration and Governance](./user/07-admin-and-governance.md)
+2. [Admin Creation Playbooks](./user/12-admin-creation-playbooks.md)
+
+### Operations and Support
+
+1. [Best Practices](./user/08-best-practices.md)
+2. [Troubleshooting](./user/09-troubleshooting.md)
+3. [Behind the Scenes for Users](./user/10-behind-the-scenes.md)
 
 ## Developer Handbook
 
@@ -35,3 +55,4 @@ It is split into two tracks:
 10. [Technical Debt and Refactor Roadmap](./developer/10-technical-debt-and-roadmap.md)
 11. [End-to-End Process Flows](./developer/11-end-to-end-process-flows.md)
 12. [Collection Reference and Document Schemas](./developer/12-collection-reference-and-schemas.md)
+13. [Admin Config, Permissions, and Schema Playbooks](./developer/13-admin-config-permissions-and-schemas.md)
