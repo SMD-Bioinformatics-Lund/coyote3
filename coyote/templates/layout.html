@@ -141,7 +141,7 @@
               {% if password_changed_enabled %}
                 <a href="{{ url_for('profile_bp.change_password', username=current_user.username) }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100 ">Change Password</a>
               {% endif %}
-              {% if has_access(min_role="manager", min_level=99) %}
+              {% if has_access(min_role="user", min_level=9) %}
                 <a href="{{ url_for('admin_bp.admin_home') }}" class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">Admin DB</a>
               {% endif %}
               <a href="{{ config.CODEBASE }}/issues/new?template=bug_report.md"

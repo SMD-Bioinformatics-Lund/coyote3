@@ -92,7 +92,7 @@
     <section id="search-results" class="py-2 mt-2 ml-4">
       <div class="justify-start">
 
-        <div class="bg-blue-50 shadow-3xl rounded-2xl p-4 relative overflow-hidden">
+        <div class="bg-blue-50  rounded-2xl p-4 relative overflow-hidden">
           <!-- Header -->
           <div class="flex flex-row justify-between items-center gap-4 px-2 py-2">
             <h2 class="text-base font-semibold text-black tracking-wide uppercase">
@@ -112,7 +112,7 @@
             </div>
           </div>
 
-          <div class="overflow-x-auto rounded-2xl shadow-3xl relative pagination"
+          <div class="overflow-x-auto rounded-2xl  relative pagination"
                 id="tiered-variants-list"
                 data-rows-per-page="30"
                 pagination-button-color="blue"
@@ -140,8 +140,31 @@
                       class="text-gray-800 rounded-b-2xl overflow-hidden">
               {% if docs %}
                 {% for doc in docs %}
+                  {% set row_uid = loop.index0 %}
                   <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
-                    <td class="p-2 font-medium">{{ doc.variant }}</td>
+                    <td class="p-2 font-medium max-w-[25ch]">
+                      {% if doc.variant and doc.variant != "-" %}
+                        <div class="flex items-start">
+                          <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ doc.variant|unesc|safe }}</span>`)">
+                            <div class="relative flex">
+                              <div id="tiered-{{ row_uid }}-variant-short" class="truncate max-w-[15ch]">
+                                {{ doc.variant|unesc|safe }}
+                              </div>
+                              <div id="tiered-{{ row_uid }}-variant-full" class="hidden break-all whitespace-normal max-w-[25ch]">
+                                {{ doc.variant|unesc|safe }}
+                              </div>
+                            </div>
+                          </span>
+                          <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
+                                  data-target="tiered-{{ row_uid }}-variant"
+                                  onclick="toggleLongText(this)">
+                            [+]
+                          </button>
+                        </div>
+                      {% else %}
+                        <span>-</span>
+                      {% endif %}
+                    </td>
 
                     <td class="p-2 font-medium">
                       {% if doc.class %}
@@ -175,7 +198,6 @@
                     <td class="px-2 py-1 font-medium" data-nosort="true">
                       {% set samples_list = doc.samples.items() | list %}
                       {% set total_samples = samples_list | length %}
-                      {% set row_uid = doc._id if doc._id is defined else loop.index0 %}
                       {% set max_visible = 5 %}
 
                       <div class="space-y-1" data-samples-widget>
