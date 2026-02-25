@@ -15,8 +15,11 @@ Views for handling RNA fusion cases in the Coyote3 application.
 All routes require user authentication and appropriate sample access.
 """
 
+import os
+
 from flask import current_app as app
 from flask import (
+    flash,
     redirect,
     render_template,
     request,
@@ -30,11 +33,11 @@ from coyote.blueprints.rna.forms import FusionFilter
 from coyote.extensions import store, util
 from coyote.blueprints.rna import rna_bp, filters
 from datetime import datetime
-from flask_weasyprint import HTML, render_pdf
 from coyote.util.decorators.access import require_sample_access
 from coyote.util.misc import get_sample_and_assay_config
+from coyote.services.auth.decorators import require
+from coyote.util.common_utility import CommonUtility
 from copy import deepcopy
-from wtforms import BooleanField
 from coyote.blueprints.rna.fusion_queries import build_fusion_query
 
 
@@ -80,16 +83,18 @@ def list_fusions(sample_id: str) -> str | Response:
     # Get the entire genelist for the sample panel
     assay_panel_doc = store.asp_handler.get_asp(asp_name=sample_assay)
 
-    # Get the genelists for the sample panel
-    insilico_panel_genelists = store.isgl_handler.get_isgl_by_asp(sample_assay, is_active=True)
-    all_panel_genelist_names = util.common.get_assay_genelist_names(insilico_panel_genelists)
+    # Get fusion lists for the sample panel (RNA-specific; list_type="fusionlist")
+    fusionlist_options = store.isgl_handler.get_isgl_by_asp(
+        sample_assay, is_active=True, list_type="fusionlist"
+    )
 
-    # Adding the default gene lists to the assay_config, if the use_diagnosis_genelist is set to true
+    # Adding default fusion lists to RNA assay config if diagnosis-driven lists are enabled
     if assay_config.get("use_diagnosis_genelist", False) and subpanel:
-        assay_default_config_genelist_ids = store.isgl_handler.get_isgl_ids(
-            sample_assay, subpanel, "genelist", is_active=True
+        assay_default_config_fusionlist_ids = store.isgl_handler.get_isgl_ids(
+            sample_assay, subpanel, "fusionlist", is_active=True
         )
-        assay_config["filters"]["genelists"].extend(assay_default_config_genelist_ids)
+        assay_config["filters"].setdefault("fusionlists", [])
+        assay_config["filters"]["fusionlists"].extend(assay_default_config_fusionlist_ids)
 
     # Get filter settings from the sample and merge with assay config if sample does not have values
     sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
@@ -98,11 +103,6 @@ def list_fusions(sample_id: str) -> str | Response:
     # Update the sample filters with the default values from the assay config if the sample is new and does not have any filters set
     if not sample_has_filters:
         store.sample_handler.reset_sample_settings(sample["_id"], assay_config.get("filters"))
-
-    # Inherit RNAFilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
-    if all_panel_genelist_names:
-        for gene_list in all_panel_genelist_names:
-            setattr(FusionFilter, f"genelist_{gene_list}", BooleanField())
 
     # Create the form
     form = FusionFilter()
@@ -118,6 +118,9 @@ def list_fusions(sample_id: str) -> str | Response:
             store.sample_handler.reset_sample_settings(_id, assay_config.get("filters", {}))
         else:
             filters_from_form = util.common.format_filters_from_form(form, assay_config_schema)
+            # Dynamic RNA fusionlists are rendered as manual checkboxes in template.
+            # Persist selected list IDs explicitly.
+            filters_from_form["fusionlists"] = request.form.getlist("fusionlist_id")
             # if there are any adhoc genes for the sample, add them to the form data before saving
             if sample.get("filters", {}).get("adhoc_genes"):
                 filters_from_form["adhoc_genes"] = sample.get("filters", {}).get("adhoc_genes")
@@ -132,14 +135,17 @@ def list_fusions(sample_id: str) -> str | Response:
 
     fusion_effects = sample_filters.get("fusion_effects", [])
     fusion_callers = sample_filters.get("fusion_callers", [])
-
     checked_fusionlists = sample_filters.get("fusionlists", [])
 
     checked_fusionlists_genes_dict: list[dict] = store.isgl_handler.get_isgl_by_ids(
         checked_fusionlists
     )
+    # Reuse common effective-gene helper by mapping selected fusionlists as working genelists.
+    sample_for_gene_filter = deepcopy(sample)
+    sample_for_gene_filter.setdefault("filters", {})
+    sample_for_gene_filter["filters"]["genelists"] = checked_fusionlists
     genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
-        sample, assay_panel_doc, checked_fusionlists_genes_dict
+        sample_for_gene_filter, assay_panel_doc, checked_fusionlists_genes_dict
     )
 
     # filter_fusionlist = util.fusion.create_fusiongenelist(fusionlist_filter)
@@ -165,11 +171,12 @@ def list_fusions(sample_id: str) -> str | Response:
         assay_group,
         settings={
             "id": str(sample["_id"]),
-            "min_spanning_reads": sample_filters["min_spanning_reads"],
-            "min_spanning_pairs": sample_filters["min_spanning_pairs"],
+            "min_spanning_reads": sample_filters.get("min_spanning_reads", 0),
+            "min_spanning_pairs": sample_filters.get("min_spanning_pairs", 0),
             "fusion_effects": fusion_effects,
             "fusion_callers": fusion_callers,
             "checked_fusionlists": checked_fusionlists,
+            "filter_genes": filter_genes,
         },
     )
 
@@ -203,6 +210,8 @@ def list_fusions(sample_id: str) -> str | Response:
         sample=sample,
         form=form,
         fusions=fusions,
+        fusionlist_options=fusionlist_options,
+        checked_fusionlists=checked_fusionlists,
         hidden_comments=has_hidden_comments,
         sample_id=sample["_id"],
     )
@@ -333,7 +342,7 @@ def pick_fusioncall(sample_id: str, fus_id: str, callidx: str, num_calls: str) -
     Returns:
         Response: Redirects to the fusion details page after updating the picked call.
     """
-    store.fusion_handler.pick_fusion(id, callidx, num_calls)
+    store.fusion_handler.pick_fusion(fus_id, callidx, num_calls)
     return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=fus_id))
 
 
@@ -374,8 +383,93 @@ def unhide_fusion_comment(sample_id: str, fus_id: str) -> Response:
 
 
 ##### PREVIEW REPORT ####
+def _build_rna_snapshot_rows(fusions: list[dict]) -> list[dict]:
+    """Create reported_variants snapshot rows from RNA fusions included in the report."""
+    created_on = CommonUtility.utc_now()
+    rows = []
+
+    for fus in fusions:
+        cls = fus.get("classification") or {}
+        tier = cls.get("class", 999)
+        if fus.get("blacklist") or tier in (None, 999, 4):
+            continue
+
+        calls = fus.get("calls") or []
+        selected = next((c for c in calls if c.get("selected") == 1), calls[0] if calls else {})
+
+        gene1 = fus.get("gene1")
+        gene2 = fus.get("gene2")
+        if (
+            (not gene1 or not gene2)
+            and isinstance(fus.get("genes"), str)
+            and "^" in fus.get("genes")
+        ):
+            _g = fus.get("genes").split("^")
+            gene1 = gene1 or _g[0]
+            gene2 = gene2 or (_g[1] if len(_g) > 1 else None)
+
+        bp1 = selected.get("breakpoint1", "")
+        bp2 = selected.get("breakpoint2", "")
+
+        simple_id = f"{gene1 or 'NA'}::{gene2 or 'NA'}::{bp1}::{bp2}"
+        rows.append(
+            {
+                "var_oid": fus.get("_id"),
+                "simple_id": simple_id,
+                "tier": tier,
+                "gene": f"{gene1 or 'NA'}-{gene2 or 'NA'}",
+                "transcript": selected.get("transcript"),
+                "hgvsp": None,
+                "hgvsc": None,
+                "created_on": created_on,
+                "annotation_oid": cls.get("_id"),
+            }
+        )
+
+    return rows
+
+
+def _build_rna_report_payload(sample: dict, save: int = 0, include_snapshot: bool = False):
+    """Build RNA report HTML and optional reported-variant snapshot rows."""
+    assay = util.common.get_assay_from_sample(sample)
+    fusion_query = {"SAMPLE_ID": str(sample["_id"])}
+    fusions = list(store.fusion_handler.get_sample_fusions(fusion_query))
+
+    for fus_idx, fus in enumerate(fusions):
+        (
+            fusions[fus_idx]["global_annotations"],
+            fusions[fus_idx]["classification"],
+        ) = store.fusion_handler.get_fusion_annotations(fusions[fus_idx])
+
+    class_desc = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC").values())
+    class_desc_short = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT").values())
+    analysis_desc = app.config.get("REPORT_CONFIG").get("ANALYSIS_DESCRIPTION", {}).get(assay)
+    analysis_method = util.common.get_analysis_method(assay)
+    report_header = util.common.get_report_header(assay, sample)
+    report_date = datetime.now().date()
+
+    html = render_template(
+        "report_fusion.html",
+        assay=assay,
+        fusions=fusions,
+        report_header=report_header,
+        analysis_method=analysis_method,
+        analysis_desc=analysis_desc,
+        sample=sample,
+        class_desc=class_desc,
+        class_desc_short=class_desc_short,
+        report_date=report_date,
+        save=save,
+    )
+
+    if not include_snapshot:
+        return html, []
+    return html, _build_rna_snapshot_rows(fusions)
+
+
 @rna_bp.route("/sample/preview_report/<string:sample_id>", methods=["GET", "POST"])
 @require_sample_access("sample_id")
+@require("preview_report", min_role="user", min_level=9)
 def generate_rna_report(sample_id, *args, **kwargs):
     """
     Generate a preview report for RNA fusion events associated with a sample.
@@ -388,108 +482,102 @@ def generate_rna_report(sample_id, *args, **kwargs):
     Returns:
         Response: Rendered HTML template for the RNA fusion report preview.
     """
-    sample = store.sample_handler.get_sample(sample_id)
+    result = get_sample_and_assay_config(sample_id)
+    if isinstance(result, Response):
+        return result
+    sample, _, _ = result
 
-    if not sample:
-        sample = store.sample_handler.get_sample_with_id(sample_id)  # id = id
+    html, _ = _build_rna_report_payload(sample, save=kwargs.get("save", 0), include_snapshot=False)
+    return html
 
-    # print (sample)
-    assay = util.common.get_assay_from_sample(sample)
 
-    app.logger.info(f"sample : {sample}")
+@rna_bp.route("/sample/<string:sample_id>/report/save")
+@require_sample_access("sample_id")
+@require("create_report", min_role="admin")
+def save_rna_report(sample_id):
+    """
+    Generate and persist an RNA HTML report + reported_variant snapshots.
 
-    fusion_query = {"SAMPLE_ID": str(sample["_id"])}
-    # app.logger.info(f"fusion_query : {fusion_query}")
+    Args:
+        sample_id (str): The unique identifier of the sample.
 
-    fusions = list(store.fusion_handler.get_sample_fusions(fusion_query))
+    Returns:
+        Response: Redirect to samples home with success/error flash.
+    """
+    result = get_sample_and_assay_config(sample_id)
+    if isinstance(result, Response):
+        return result
+    sample, assay_config, _ = result
 
-    for fus_idx, fus in enumerate(fusions):
-        # app.logger.info(f"these are fus, {fus_idx} {fus}")
-        (
-            fusions[fus_idx]["global_annotations"],
-            fusions[fus_idx]["classification"],
-        ) = store.fusion_handler.get_fusion_annotations(fusions[fus_idx])
+    name = sample.get("name", "unknown_sample")
+    case_id = sample.get("case_id")
+    control_id = sample.get("control_id")
+    clarity_case_id = sample.get("case", {}).get("clarity_id")
+    clarity_control_id = sample.get("control", {}).get("clarity_id")
 
-    class_desc = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC").values())
-    class_desc_short = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT").values())
-    analysis_desc = app.config.get("REPORT_CONFIG").get("ANALYSIS_DESCRIPTION", {}).get(assay)
-    class_desc = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC").values())
-    class_desc_short = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT").values())
-    analysis_desc = app.config.get("REPORT_CONFIG").get("ANALYSIS_DESCRIPTION", {}).get(assay)
+    assay_group: str = assay_config.get("asp_group", "rna")
+    report_num = sample.get("report_num", 0) + 1
+    report_timestamp = util.dna.get_report_timestamp()
 
-    # app.logger.info(f"analysis_desc,{analysis_desc}")
-    # app.logger.info(f"fusions,{fusions}")
-    analysis_method = util.common.get_analysis_method(assay)
-    report_header = util.common.get_report_header(assay, sample)
-    report_date = datetime.now().date()
-    pdf = kwargs.get("pdf", 0)
+    if control_id:
+        report_id = (
+            f"{case_id}_{clarity_case_id}-{control_id}_{clarity_control_id}.{report_timestamp}"
+        )
+    else:
+        report_id = f"{case_id}_{clarity_case_id}.{report_timestamp}"
 
-    return render_template(
-        "report_fusion.html",
-        assay=assay,
-        fusions=fusions,
-        report_header=report_header,
-        analysis_method=analysis_method,
-        analysis_desc=analysis_desc,
-        sample=sample,
-        class_desc=class_desc,
-        class_desc_short=class_desc_short,
-        report_date=report_date,
-        pdf=pdf,
+    report_sub_dir = (
+        assay_config.get("reporting", {}).get("report_path")
+        or assay_config.get("reporting", {}).get("report_folder")
+        or assay_group
     )
+    report_path = os.path.join(app.config.get("REPORTS_BASE_PATH", "reports"), report_sub_dir)
+    os.makedirs(report_path, exist_ok=True)
+    report_file = os.path.join(report_path, f"{report_id}.html")
+
+    if os.path.exists(report_file):
+        flash("Report already exists.", "red")
+        return redirect(url_for("home_bp.samples_home", reload=True))
+
+    try:
+        html, snapshot_rows = _build_rna_report_payload(sample, save=1, include_snapshot=True)
+        if not util.common.write_report(html, report_file):
+            flash("Failed to save RNA report.", "red")
+            return redirect(url_for("home_bp.samples_home", reload=True))
+
+        report_oid = store.sample_handler.save_report(
+            sample_id=name,
+            report_num=report_num,
+            report_id=report_id,
+            filepath=report_file,
+        )
+
+        store.reported_variants_handler.bulk_upsert_from_snapshot_rows(
+            sample_name=name,
+            sample_oid=sample.get("_id"),
+            report_oid=report_oid,
+            report_id=report_id,
+            snapshot_rows=snapshot_rows or [],
+            created_by=current_user.username,
+        )
+        flash(f"Report {report_id}.html has been successfully saved.", "green")
+    except Exception as exc:
+        app.logger.exception(f"Failed to save RNA report: {exc}")
+        flash("An unexpected error occurred while saving RNA report.", "red")
+
+    return redirect(url_for("home_bp.samples_home", reload=True))
 
 
 @rna_bp.route("/sample/report/pdf/<string:sample_id>")
 @require_sample_access("sample_id")
+@require("create_report", min_role="admin")
 def generate_report_pdf(sample_id):
     """
-    Generate a PDF report for the specified RNA sample.
-
-    Args:
-        sample_id (str): The unique identifier of the RNA sample.
-
-    Returns:
-        Response: A PDF file generated from the RNA sample report.
+    Backward-compatible route kept for older links.
+    RNA reports are saved as HTML (same as DNA), not PDF.
     """
-    sample = store.sample_handler.get_sample(sample_id)  # id = name
-
-    if not sample:
-        sample = store.sample_handler.get_sample_with_id(sample_id)
-
-    assay = util.common.get_assay_from_sample(sample)
-
-    # Get report number
-    report_num = 1
-    if "report_num" in sample:
-        report_num = sample["report_num"] + 1
-
-    # PDF file name
-    pdf_file = "static/reports/" + id + "_" + str(report_num) + ".pdf"
-
-    # Generate PDF
-    html = ""
-    html = generate_rna_report(id, pdf=1)
-    HTML(string=html).write_pdf(pdf_file)
-
-    # Add to database
-    store.sample_handler.get_sample(id).update(
-        {"name": id},
-        {
-            "$push": {
-                "reports": {
-                    "_id": ObjectId(),
-                    "report_num": report_num,
-                    "filepath": pdf_file,
-                    "author": current_user.get_id(),
-                    "time_created": datetime.now(),
-                }
-            },
-            "$set": {"report_num": report_num},
-        },
-    )
-
-    # Render it!
-    return render_pdf(HTML(string=html))
+    flash("RNA report finalization now saves HTML reports.", "yellow")
+    return redirect(url_for("rna_bp.save_rna_report", sample_id=sample_id))
 
 
 @rna_bp.route("/multi_class/<sample_id>", methods=["POST"])
@@ -519,64 +607,18 @@ def classify_multi_variant(sample_id: str) -> Response:
     false_positive = request.form.get("false_positive", None)
 
     if tier and action == "apply":
-        variants_iter = []
-        for variant in variants_to_modify:
-            var_iter = store.variant_handler.get_variant(str(variant))
-            variants_iter.append(var_iter)
-
-        for var in variants_iter:
-            selectec_csq = var["INFO"]["selected_CSQ"]
-            transcript = selectec_csq.get("Feature", None)
-            gene = selectec_csq.get("SYMBOL", None)
-            hgvs_p = selectec_csq.get("HGVSp", None)
-            hgvs_c = selectec_csq.get("HGVSc", None)
-            hgvs_g = f"{var['CHROM']}:{var['POS']}:{var['REF']}/{var['ALT']}"
-            consequence = selectec_csq.get("Consequence", None)
-            gene_oncokb = store.oncokb_handler.get_oncokb_gene(gene)
-            text = util.bpcommon.create_annotation_text_from_gene(
-                gene, consequence, assay, gene_oncokb=gene_oncokb
-            )
-
-            nomenclature = "p"
-            if hgvs_p != "" and hgvs_p is not None:
-                variant = hgvs_p
-            elif hgvs_c != "" and hgvs_c is not None:
-                variant = hgvs_c
-                nomenclature = "c"
-            else:
-                variant = hgvs_g
-                nomenclature = "g"
-
-            variant_data = {
-                "gene": gene,
-                "assay": assay,
-                "subpanel": subpanel,
-                "transcript": transcript,
-            }
-
-            # Add the variant to the database with class
-            store.annotation_handler.insert_classified_variant(
-                variant, nomenclature, tier, variant_data
-            )
-
-            # Add the annotation text to the database
-            store.annotation_handler.insert_classified_variant(
-                variant, nomenclature, tier, variant_data, text=text
-            )
-            if irrelevant:
-                store.variant_handler.mark_irrelevant_var(var["_id"])
+        flash(
+            "Bulk tier assignment is not supported for RNA fusions. Use fusion detail page.",
+            "yellow",
+        )
     elif false_positive:
         if action == "apply":
-            for variant in variants_to_modify:
-                store.variant_handler.mark_false_positive_var(variant)
+            store.fusion_handler.mark_false_positive_bulk(variants_to_modify, True)
         elif action == "remove":
-            for variant in variants_to_modify:
-                store.variant_handler.unmark_false_positive_var(variant)
+            store.fusion_handler.mark_false_positive_bulk(variants_to_modify, False)
     elif irrelevant:
         if action == "apply":
-            for variant in variants_to_modify:
-                store.variant_handler.mark_irrelevant_var(variant)
+            store.fusion_handler.mark_irrelevant_bulk(variants_to_modify, True)
         elif action == "remove":
-            for variant in variants_to_modify:
-                store.variant_handler.unmark_irrelevant_var(variant)
+            store.fusion_handler.mark_irrelevant_bulk(variants_to_modify, False)
     return redirect(url_for("rna_bp.list_fusions", sample_id=sample_id))

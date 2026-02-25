@@ -54,7 +54,7 @@
         <label class="text-gray-900">Spanning pairs</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&gt;</span>
-          {{ form.min_spanning_reads(size=2, default=sample.filter_min_spanning_reads, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
+          {{ form.min_spanning_pairs(size=2, default=sample.filter_min_spanning_pairs, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
         </div>
       </div>
 
@@ -62,25 +62,36 @@
         <label class="text-gray-900">Spanning reads</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&gt;</span>
-          {{ form.min_spanning_pairs(size=1, default=sample.filter_min_spanning_pairs, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
+          {{ form.min_spanning_reads(size=1, default=sample.filter_min_spanning_reads, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
         </div>
       </div>
 
 
       <!-- Multi-Select Dropdowns -->
       <div class="relative z-20">
-        <label class="block text-gray-900 text-xs mb-1">Fusions annotation</label>
+        <label class="block text-gray-900 text-xs mb-1">Fusion Lists</label>
 
-        <!-- Annotation Trigger -->
-        <div class="border border-gray-400 rounded bg-white cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('fusionlists_checkboxes', 'csq-dropdown-icon')">
-          <span id="selected-option" class="text-xs text-gray-700">Select Fusion List</span>
-          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}" class="h-4 w-4 text-gray-900 transition-transform duration-200"  id="csq-dropdown-icon" alt="Consequence Dropdown Icon">
+        <div class="border border-gray-400 rounded bg-white cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('fusionlists_checkboxes', 'fusionlist-dropdown-icon')">
+          <span class="text-xs text-gray-700">Select Fusion Lists</span>
+          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}" class="h-4 w-4 text-gray-900 transition-transform duration-200" id="fusionlist-dropdown-icon" alt="Fusion List Dropdown Icon">
         </div>
 
-        <!-- Annitation list Options -->
-        <div id="fusionlists_checkboxes" class="hidden border border-gray-400 mt-1 rounded shadow-md bg-gray-50 p-1 space-y-1">
-          <label for="FCknown" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.fusionlist_FCknown(checked=False) }} <span>FusionCatcher 'Known'</span></label>
-          <label for="mitelman" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.fusionlist_mitelman(checked=False) }} <span>Mitelman</span></label>
+        <div id="fusionlists_checkboxes" class="hidden border border-gray-400 mt-1 rounded shadow-md bg-gray-50 p-1 space-y-1 max-h-52 overflow-y-auto">
+          {% if fusionlist_options %}
+            {% for fl in fusionlist_options %}
+              <label class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">
+                <input
+                  type="checkbox"
+                  name="fusionlist_id"
+                  value="{{ fl._id }}"
+                  {% if checked_fusionlists and fl._id in checked_fusionlists %}checked{% endif %}
+                >
+                <span>{{ fl.displayname if fl.displayname else fl._id }}</span>
+              </label>
+            {% endfor %}
+          {% else %}
+            <div class="text-xs text-gray-500 px-2 py-1">No fusion lists available for this assay.</div>
+          {% endif %}
         </div>
       </div>
 
@@ -115,29 +126,6 @@
         <div id="fusioneffects_checkboxes" class="hidden border border-gray-400 mt-1 rounded shadow-md bg-gray-50 p-1 space-y-1">
           <label for="inframe" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.fusioneffect_inframe(checked=False) }} <span>In-frame</span></label>
           <label for="outframe" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.fusioneffect_outframe(checked=False) }} <span>Out-of-frame</span></label>
-        </div>
-      </div>
-
-
-      <div class="relative z-10">
-        <label class="block text-gray-900 text-xs mb-1">Gene Lists</label>
-
-        <!-- Genelist Dropdown Trigger -->
-        <div class="border border-gray-400 rounded bg-white cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('genelists_checkboxes', 'genelist-dropdown-icon')">
-          <span id="selected-genelist" class="text-xs text-gray-700">Select Gene Lists</span>
-          <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}" class="h-4 w-4 text-gray-900 transition-transform duration-200" id="genelist-dropdown-icon" alt="genelist Dropdown Icon">
-        </div>
-
-        <!-- Genelist Dropdown Options -->
-        <div id="genelists_checkboxes" class="hidden border border-gray-400 mt-1 rounded shadow-md bg-gray-50 p-1 space-y-1">
-          {% for panel in assay_panels %}
-            {% if panel.type == 'genelist' %}
-              {% set show=False %}
-              <label for="{{ panel.name }}" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">
-                {{ form['genelist_' ~ panel.name](checked=show) }} <span>{{ panel.displayname }}</span>
-              </label>
-            {% endif %}
-          {% endfor %}
         </div>
       </div>
 

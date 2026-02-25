@@ -83,7 +83,7 @@
         <div class="flex flex-wrap gap-4">
           <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
             <!-- Sticky Header -->
-            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-yellow-100 to-orange-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
+            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
               <h2 class="text-sm font-semibold text-black">Fusions Passing Filter Criteria</h2>
               <img
                 src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}"
@@ -188,13 +188,13 @@
           <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
 
             <!-- Sticky Top Info -->
-            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-green-200 to-blue-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
+            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
               <h2 class="text-sm font-semibold text-black">Gene Expression Metrics</h2>
             </div>
 
             <div class="overflow-auto relative">
               <table class="w-full table-fixed text-xs text-gray-800">
-                <thead class="capitalize tracking-wide bg-green-100">
+                <thead class="capitalize tracking-wide bg-yellow-100">
                   <tr class="border-b text-left border-gray-800">
                     <th class="px-2 py-3 font-semibold w-1/4">Gene</th>
                     <th class="px-2 py-3 font-semibold w-1/4">TPM</th>
@@ -251,13 +251,13 @@
           <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
 
             <!-- Sticky Top Info -->
-            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-green-200 to-blue-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
+            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
               <h2 class="text-sm font-semibold text-black">Classifier Scores</h2>
             </div>
 
             <div class="overflow-auto relative">
               <table class="w-full table-fixed text-xs text-gray-800">
-                <thead class="capitalize tracking-wide bg-green-100">
+                <thead class="capitalize tracking-wide bg-yellow-100">
                   <tr class="border-b text-left border-gray-800">
                     <th class="px-2 py-3 font-semibold w-1/2">Class</th>
                     <th class="px-2 py-3 font-semibold w-1/2">Score</th>
@@ -298,12 +298,12 @@
         <div class="flex flex-wrap gap-4 ">
           <!-- Summary comments Table -->
           <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
-            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-blue-200 to-green-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
+            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
               <h2 class="text-sm font-semibold text-black">Summary Comments</h2>
             </div>
             <div class="overflow-auto relative">
               <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="summary-table">
-                <thead class="sortable capitalize tracking-wide rounded-t-lg bg-green-100">
+                <thead class="sortable capitalize tracking-wide rounded-t-lg bg-yellow-100">
                   <tr id="summary-table-header" class="border-b text-left border-gray-800">
                     <th class="px-2 py-3 font-semibold" id="comments-table-header-who">Who</th>
                     <th class="px-2 py-3 font-semibold" id="comments-table-header-comment">Comment</th>
@@ -362,7 +362,7 @@
 
           <!-- Add Comment Form -->
           <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
-            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-blue-200 to-green-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
+            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
               <h2 class="text-sm font-semibold text-black">Write New Summary</h2>
             </div>
             <div class="overflow-auto relative" id="comments-box-div">
@@ -384,11 +384,13 @@
                     Suggest
                   </button>
 
-                  <button type="button"
-                          onclick="window.location.href='preview_report/{{ sample.name }}'"
-                          class="p-2 text-black bg-green-400 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-green-500 hover:text-white hover:shadow-lg cursor-pointer">
-                    Preview Report
-                  </button>
+                  {% if has_access('preview_report', min_role='user', min_level=9) %}
+                    <button type="button"
+                            onclick="window.location.href='{{ url_for('rna_bp.generate_rna_report', sample_id=sample.name) }}'"
+                            class="p-2 text-black bg-green-400 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-green-500 hover:text-white hover:shadow-lg cursor-pointer">
+                      Preview Report
+                    </button>
+                  {% endif %}
                 </div>
               </form>
 
