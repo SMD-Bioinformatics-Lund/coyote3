@@ -2,6 +2,10 @@
 
 This chapter documents the full DNA analyst workflow, including what happens after each user action.
 
+Related diagrams:
+
+- [Flow Diagrams (DNA, RNA, Sample, Admin)](./15-flow-diagrams.md)
+
 ## Entry point
 
 - `/dna/sample/<sample_id>`
@@ -13,7 +17,7 @@ When you open a DNA sample, Coyote3:
 1. Loads sample, assay config, and schema.
 2. Resolves assay group and subpanel.
 3. Merges sample filters with assay defaults.
-4. Builds effective gene set from ASP genes + selected ISGL + ad-hoc genes.
+4. Builds effective gene set from ASP (Assay Specific Panel) genes + selected ISGL (In Silico Gene List) + ad-hoc genes.
 5. Builds SNV query and loads variants.
 6. Adds blacklist flags and global annotation/tier data.
 7. Loads other enabled sections from assay config:

@@ -86,6 +86,9 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
     app = Flask(__name__, instance_relative_config=True)
     script_name = os.getenv("SCRIPT_NAME", "").strip().strip('"').strip("'")
     if script_name and script_name != "/":
+        # Normalize env input like "coyote3_dev" -> "/coyote3_dev" so URL generation
+        # and prefix stripping behave consistently across direct and proxied runs.
+        script_name = f"/{script_name.lstrip('/')}".rstrip("/")
         app.config["APPLICATION_ROOT"] = script_name
         app.wsgi_app = PrefixMiddleware(app.wsgi_app, script_name)
 
