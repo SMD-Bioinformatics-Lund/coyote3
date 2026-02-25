@@ -66,7 +66,7 @@
         <label class="text-gray-900">Min Depth</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&ge;</span>
-          {{ form.min_depth(size=2, step="1", default=sample.filters.min_depth, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
+          {{ form.min_depth(size=2, step="1", default=sample.filters.min_depth, class="border border-gray-400 rounded px-1 py-0.5 w-16 bg-gray-50") }}
         </div>
       </div>
 
@@ -74,7 +74,7 @@
         <label class="text-gray-900">Min Alt Count</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&ge;</span>
-          {{ form.min_alt_reads(size=1, step="1", default=sample.filters.min_alt_reads, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
+          {{ form.min_alt_reads(size=1, step="1", default=sample.filters.min_alt_reads, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs bg-gray-50") }}
         </div>
       </div>
 
@@ -82,7 +82,7 @@
         <label class="text-gray-900">Min Freq.</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&ge;</span>
-          {{ form.min_freq(size=1, step="0.001", min=0, max=1, default=sample.filters.min_freq, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
+          {{ form.min_freq(size=1, step="0.001", min=0, max=1, default=sample.filters.min_freq, class="border border-gray-400 rounded px-1 py-0.5 w-16 bg-gray-50") }}
         </div>
       </div>
 
@@ -90,7 +90,7 @@
         <label class="text-gray-900">Max Freq.</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&le;</span>
-          {{ form.max_freq(size=1, step="0.001", min=0, max=1, default=sample.filters.max_freq, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
+          {{ form.max_freq(size=1, step="0.001", min=0, max=1, default=sample.filters.max_freq, class="border border-gray-400 rounded px-1 py-0.5 w-16 bg-gray-50") }}
         </div>
       </div>
 
@@ -98,7 +98,7 @@
         <label class="text-gray-900">Max Ctrl. Freq.</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&le;</span>
-          {{ form.max_control_freq(size=1, step="0.001", min=0, max=1, default=sample.filters.max_control_freq, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
+          {{ form.max_control_freq(size=1, step="0.001", min=0, max=1, default=sample.filters.max_control_freq, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs bg-gray-50") }}
         </div>
       </div>
 
@@ -106,7 +106,7 @@
         <label class="text-gray-900">Max Pop. Freq.</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&le;</span>
-          {{ form.max_popfreq(size=1, step="0.001", min=0, max=1, default=sample.filters.max_popfreq, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs") }}
+          {{ form.max_popfreq(size=1, step="0.001", min=0, max=1, default=sample.filters.max_popfreq, class="border border-gray-300 rounded px-1 py-0.5 w-16 text-xs bg-gray-50") }}
         </div>
       </div>
 
@@ -115,7 +115,7 @@
         <label class="block text-gray-900 text-xs mb-1">Consequence</label>
 
         <!-- Conseq Dropdown Trigger -->
-        <div class="border border-gray-400 rounded bg-white cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('csq_checkboxes', 'csq-dropdown-icon')">
+        <div class="border border-gray-400 rounded bg-gray-50 cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('csq_checkboxes', 'csq-dropdown-icon')">
           <span id="selected-option" class="text-xs text-gray-700">Select Consequence</span>
           <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}" class="h-4 w-4 text-gray-900 transition-transform duration-200"  id="csq-dropdown-icon" alt="Consequence Dropdown Icon">
         </div>
@@ -135,7 +135,7 @@
         <label class="block text-gray-900 text-xs mb-1">Gene Lists</label>
 
         <!-- Genelist Dropdown Trigger -->
-        <div class="border border-gray-400 rounded bg-white cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('genelists_checkboxes', 'genelist-dropdown-icon')">
+        <div class="border border-gray-400 rounded bg-gray-50 cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('genelists_checkboxes', 'genelist-dropdown-icon')">
           <span id="selected-genelist" class="text-xs text-gray-700">Select Gene Lists</span>
           <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}" class="h-4 w-4 text-gray-900 transition-transform duration-200" id="genelist-dropdown-icon" alt="genelist Dropdown Icon">
         </div>
@@ -168,7 +168,7 @@
         <label class="text-gray-900">Max size</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&le;</span>
-          {{ form.max_cnv_size(size=7, step="1", default=sample.filters.max_cnv_size,class="border border-gray-300 rounded px-2 py-0.5 w-24") }}
+          {{ form.max_cnv_size(size=7, step="1", default=sample.filters.max_cnv_size,class="border border-gray-300 rounded px-2 py-0.5 w-24 bg-gray-50") }}
         </div>
       </div>
 
@@ -177,7 +177,7 @@
         <label class="text-gray-900">Min size</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&ge;</span>
-          {{ form.min_cnv_size(size=7, step="1", default=sample.filters.min_cnv_size, class="border border-gray-300 rounded px-2 py-0.5 w-24") }}
+          {{ form.min_cnv_size(size=7, step="1", default=sample.filters.min_cnv_size, class="border border-gray-300 rounded px-2 py-0.5 w-24 bg-gray-50") }}
         </div>
       </div>
 
@@ -186,7 +186,7 @@
         <label class="text-gray-900">Gain Ratio</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&ge;</span>
-          {{ form.cnv_gain_cutoff(size=3, step="0.001", default=sample.filters.cnv_gain_cutoff,class="border border-gray-300 rounded px-2 py-0.5 w-24") }}
+          {{ form.cnv_gain_cutoff(size=3, step="0.001", default=sample.filters.cnv_gain_cutoff,class="border border-gray-300 rounded px-2 py-0.5 w-24 bg-gray-50") }}
         </div>
       </div>
 
@@ -195,7 +195,7 @@
         <label class="text-gray-900">Loss Ratio</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&le;</span>
-          {{ form.cnv_loss_cutoff(size=3, step="0.001", default=sample.filters.cnv_loss_cutoff, class="border border-gray-300 rounded px-2 py-0.5 w-24") }}
+          {{ form.cnv_loss_cutoff(size=3, step="0.001", default=sample.filters.cnv_loss_cutoff, class="border border-gray-300 rounded px-2 py-0.5 w-24 bg-gray-50") }}
         </div>
       </div>
 
@@ -204,7 +204,7 @@
         <label class="block text-gray-900 text-xs mb-1">CNV Effect</label>
 
         <!-- CNV Dropdown Trigger -->
-        <div class="border border-gray-400 rounded bg-white cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('cnveffect_checkboxes', 'cnveffect-dropdown-icon')">
+        <div class="border border-gray-400 rounded bg-gray-50 cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('cnveffect_checkboxes', 'cnveffect-dropdown-icon')">
           <span class="text-xs text-gray-700">Select CNV Effect</span>
           <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}" class="h-4 w-4 text-gray-500 transition-transform duration-200"  id="cnveffect-dropdown-icon" alt="CNV Effect Dropdown Icon">
         </div>

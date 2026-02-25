@@ -199,19 +199,19 @@
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-type">Type</th>
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-type">Indel Size</th>
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-conseq">Consequence</th>
-                        <th class="px-2 py-3 font-semibold max-w-15c" id="variant-table-header-popFreq">PopFreq %</th>
+                        <th class="px-2 py-3 font-semibold max-w-[15ch]" id="variant-table-header-popFreq">PopFreq %</th>
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-tier">Tier</th>
                         <th class="px-2 py-3 font-semibold" id="variant-table-header-chrPos">Chr:Pos</th>
                         {% if assay_group == "solid" %}
                           <th class="py-3 font-semibold" id="variant-table-header-hotspot">Hotspot</th>
                         {% endif %}
-                        <th class="px-2 py-3 font-semibold max-w-30c" id="variant-table-header-flags">Flags</th>
+                        <th class="px-2 py-3 font-semibold max-w-[30ch]" id="variant-table-header-flags">Flags</th>
                         {% if variants and variants[0].GT %}
                           {% for gt in variants[0].GT|sort(attribute='type') %}
                             {% if gt.type == "case" %}
-                              <th data-autoclick="true" class="px-1 py-3 font-semibold max-w-20c break-words whitespace-normal" id="variant-table-header-case">{{ gt.type }} ({{gt.sample}})</th>
+                              <th data-autoclick="true" class="px-1 py-3 font-semibold max-w-[20ch] break-words whitespace-normal" id="variant-table-header-case">{{ gt.type }} ({{gt.sample}})</th>
                             {% else %}
-                              <th class="px-2 py-3 font-semibold max-w-20c break-words whitespace-normal" id="variant-table-header-control">{{ gt.type }} ({{gt.sample}})</th>
+                              <th class="px-2 py-3 font-semibold max-w-[20ch] break-words whitespace-normal" id="variant-table-header-control">{{ gt.type }} ({{gt.sample}})</th>
                             {% endif %}
                           {% endfor %}
                         {% endif %}
@@ -300,48 +300,56 @@
                         </td>
 
                         <!-- HGVS -->
-                        <td id="snv-table-row-hgvs" class="max-w-25c">
+                        <td id="snv-table-row-hgvs" class="max-w-[25ch]">
 
-                          <!-- HGVSp Section -->
-                          {% if csq.HGVSp and csq.HGVSp != "-" %}
-                            <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ csq.HGVSp|unesc|safe }}</span>`)">
-                              <div class="relative flex inline-block">
-                                <div id="{{csq.Feature}}-hgvsp-short" class="truncate max-w-15c">
-                                  {{ csq.HGVSp|one_letter_p|unesc|safe }}
-                                </div>
-                                <div id="{{csq.Feature}}-hgvsp-full" class="hidden break-all whitespace-normal">
-                                  {{ csq.HGVSp|one_letter_p|unesc|safe }}
-                                </div>
+                          {% set hgvs_toggle_prefix = "snv-" ~ (var._id|string) %}
+                          <div class="flex flex-col gap-0.5">
+                            <!-- HGVSp Section -->
+                            {% if csq.HGVSp and csq.HGVSp != "-" %}
+                              <div class="flex items-start">
+                                <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ csq.HGVSp|unesc|safe }}</span>`)">
+                                  <div class="relative flex">
+                                    <div id="{{ hgvs_toggle_prefix }}-hgvsp-short" class="truncate max-w-[15ch]">
+                                      {{ csq.HGVSp|one_letter_p|unesc|safe }}
+                                    </div>
+                                    <div id="{{ hgvs_toggle_prefix }}-hgvsp-full" class="hidden break-all whitespace-normal max-w-[25ch]">
+                                      {{ csq.HGVSp|one_letter_p|unesc|safe }}
+                                    </div>
+                                  </div>
+                                </span>
                                 <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
-                                        data-target="{{csq.Feature}}-hgvsp"
+                                        data-target="{{ hgvs_toggle_prefix }}-hgvsp"
                                         onclick="toggleLongText(this)">
                                   [+]
                                 </button>
                               </div>
-                            </span>
-                          {% else %}
-                            -
-                          {% endif %}
-                          <!-- HGVSc Section -->
-                          {% if csq.HGVSc and csq.HGVSc != "-" %}
-                            <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ csq.HGVSc|unesc|safe }}</span>`)">
-                              <div class="relative flex inline-block">
-                                <div id="{{csq.Feature}}-hgvsc-short" class="truncate max-w-15c">
-                                  {{ csq.HGVSc|unesc|safe }}
-                                </div>
-                                <div id="{{csq.Feature}}-hgvsc-full" class="hidden break-all whitespace-normal">
-                                  {{ csq.HGVSc|unesc|safe }}
-                                </div>
+                            {% endif %}
+
+                            <!-- HGVSc Section -->
+                            {% if csq.HGVSc and csq.HGVSc != "-" %}
+                              <div class="flex items-start">
+                                <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ csq.HGVSc|unesc|safe }}</span>`)">
+                                  <div class="relative flex">
+                                    <div id="{{ hgvs_toggle_prefix }}-hgvsc-short" class="truncate max-w-[15ch]">
+                                      {{ csq.HGVSc|unesc|safe }}
+                                    </div>
+                                    <div id="{{ hgvs_toggle_prefix }}-hgvsc-full" class="hidden break-all whitespace-normal max-w-[25ch]">
+                                      {{ csq.HGVSc|unesc|safe }}
+                                    </div>
+                                  </div>
+                                </span>
                                 <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
-                                        data-target="{{csq.Feature}}-hgvsc"
+                                        data-target="{{ hgvs_toggle_prefix }}-hgvsc"
                                         onclick="toggleLongText(this)">
                                   [+]
                                 </button>
                               </div>
-                            </span>
-                          {% else %}
-                            -
-                          {% endif %}
+                            {% endif %}
+
+                            {% if not (csq.HGVSp and csq.HGVSp != "-") and not (csq.HGVSc and csq.HGVSc != "-") %}
+                              <span>-</span>
+                            {% endif %}
+                          </div>
                         </td>
 
                         <!-- Exon -->
@@ -399,7 +407,7 @@
                         </td>
 
                         <!-- Population Frequency -->
-                        <td class="font-semibold max-w-15c" id="snv-table-row-popFreq">
+                        <td class="font-semibold max-w-[15ch]" id="snv-table-row-popFreq">
                           {% if "gnomad_frequency" in var and var.gnomad_frequency != "" %}
                             {{ var.gnomad_frequency|three_dec}}<br>
                           {% else %}

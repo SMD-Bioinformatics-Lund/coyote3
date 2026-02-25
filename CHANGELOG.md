@@ -1,5 +1,10 @@
 # Changelog
 
+## v3.1.21
+- Fixed HGVS display/toggle behavior across DNA variant list, tiered search, and reported variants views (unique row IDs, stacked HGVS lines, and no blank indent when only one HGVS value exists).
+- Replaced legacy custom width utility usage (`max-w-15c` style) with Tailwind arbitrary values where used.
+- Removed deprecated DNA gene view routes/templates (`/gene_simple/<gene_name>`, `/gene/<gene_name>`).
+
 ## v3.1.20
 - Updated handbook structure and docs routing to use main/user/developer index pages, standardized ASP/ASPC/ISGL naming, and added DNA/RNA/Sample/Admin flow diagrams.
 
