@@ -111,7 +111,7 @@
             <td class="p-1 text-right font-medium ">
               <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ sel_csq.HGVSc|unesc|safe }}</span>`)">
                 <div class="relative flex flex-wrap justify-end inline-block pr-1">
-                  <div id="hgvsc-short" class="truncate max-w-15c">
+                  <div id="hgvsc-short" class="truncate max-w-[15ch]">
                     {{ sel_csq.HGVSc|unesc|safe }}
                   </div>
                   <div id="hgvsc-full" class="hidden break-all whitespace-normal">
@@ -131,7 +131,7 @@
             <td class="p-1 text-right font-medium">
               <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ sel_csq.HGVSp|unesc|safe }}</span>`)">
                 <div class="relative flex flex-wrap justify-end inline-block pr-1">
-                  <div id="hgvsp-short" class="truncate max-w-15c">
+                  <div id="hgvsp-short" class="truncate max-w-[15ch]">
                     {{ sel_csq.HGVSp|unesc|safe }}
                   </div>
                   <div id="hgvsp-full" class="hidden break-all whitespace-normal">
@@ -190,7 +190,7 @@
             <td class="p-1 text-right font-medium truncate" style="max-width: 15ch">
               <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ genomic_change }}</span>`)">
                 <div class="relative flex flex-wrap justify-end inline-block pr-1">
-                  <div id="genomic-change-short" class="truncate max-w-15c">
+                  <div id="genomic-change-short" class="truncate max-w-[15ch]">
                     {{ igv_genomic_position|safe }}
                   </div>
 
@@ -747,7 +747,7 @@
                     <td class="p-2 ">
                       <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ csq.HGVSp|unesc|safe }}</span>`)">
                         <div class="relative flex inline-block">
-                          <div id="{{csq.Feature}}-hgvsp-short" class="truncate max-w-15c">
+                          <div id="{{csq.Feature}}-hgvsp-short" class="truncate max-w-[15ch]">
                             {{ csq.HGVSp|unesc|safe }}
                           </div>
                           <div id="{{csq.Feature}}-hgvsp-full" class="hidden break-all whitespace-normal">
@@ -764,7 +764,7 @@
                     <td class="p-2">
                       <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ csq.HGVSc|unesc|safe }}</span>`)">
                         <div class="relative flex inline-block">
-                          <div id="{{csq.Feature}}-hgvsc-short" class="truncate max-w-15c">
+                          <div id="{{csq.Feature}}-hgvsc-short" class="truncate max-w-[15ch]">
                             {{ csq.HGVSc|unesc|safe }}
                           </div>
                           <div id="{{csq.Feature}}-hgvsc-full" class="hidden break-all whitespace-normal">

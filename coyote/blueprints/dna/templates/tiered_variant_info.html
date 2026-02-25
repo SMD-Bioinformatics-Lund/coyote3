@@ -153,14 +153,14 @@
                     <th class="text-left px-3 py-2">Reported On</th>
                     <th class="text-left px-3 py-2">Tier</th>
                     <th class="text-left px-3 py-2">Gene</th>
-                    <th class="text-left px-3 py-2">HGVSc</th>
-                    <th class="text-left px-3 py-2">HGVSp</th>
+                    <th class="text-left px-3 py-2">HGVS</th>
                     <th class="text-left px-3 py-2">Notes</th>
                     <th class="text-left px-3 py-2 w-20">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for d in docs %}
+                    {% set hgvs_toggle_prefix = "reported-" ~ (d.get('_id', loop.index0)|string) %}
                     {% set sample_profile = d.get('sample', {}).get('profile', '')[0]|upper or 'P' %}
                     <tr class="border-t border-gray-200 hover:bg-gray-50">
                       <!-- sample -->
@@ -221,8 +221,53 @@
                       </td>
 
                       <td class="px-3 py-2">{{ d.gene or '-' }}</td>
-                      <td class="px-3 py-2 break-all">{{ d.hgvsc or '-' }}</td>
-                      <td class="px-3 py-2 break-all">{{ d.hgvsp or '-' }}</td>
+                      <td class="px-3 py-2 max-w-[25ch]">
+                        <div class="flex flex-col gap-0.5">
+                          {% if d.hgvsp and d.hgvsp != "-" %}
+                            <div class="flex items-start">
+                              <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ d.hgvsp|unesc|safe }}</span>`)">
+                                <div class="relative flex">
+                                  <div id="{{ hgvs_toggle_prefix }}-hgvsp-short" class="truncate max-w-[15ch]">
+                                    {{ d.hgvsp|unesc|safe }}
+                                  </div>
+                                  <div id="{{ hgvs_toggle_prefix }}-hgvsp-full" class="hidden break-all whitespace-normal max-w-[25ch]">
+                                    {{ d.hgvsp|unesc|safe }}
+                                  </div>
+                                </div>
+                              </span>
+                              <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
+                                      data-target="{{ hgvs_toggle_prefix }}-hgvsp"
+                                      onclick="toggleLongText(this)">
+                                [+]
+                              </button>
+                            </div>
+                          {% endif %}
+
+                          {% if d.hgvsc and d.hgvsc != "-" %}
+                            <div class="flex items-start">
+                              <span class="relative cursor-pointer" onmouseover="showTooltip(event, `<span class='break-all inline-flex'>{{ d.hgvsc|unesc|safe }}</span>`)">
+                                <div class="relative flex">
+                                  <div id="{{ hgvs_toggle_prefix }}-hgvsc-short" class="truncate max-w-[15ch]">
+                                    {{ d.hgvsc|unesc|safe }}
+                                  </div>
+                                  <div id="{{ hgvs_toggle_prefix }}-hgvsc-full" class="hidden break-all whitespace-normal max-w-[25ch]">
+                                    {{ d.hgvsc|unesc|safe }}
+                                  </div>
+                                </div>
+                              </span>
+                              <button class="ml-1 text-toggle hidden hover:text-blue-500 font-bold transition-transform duration-100 transform hover:scale-105"
+                                      data-target="{{ hgvs_toggle_prefix }}-hgvsc"
+                                      onclick="toggleLongText(this)">
+                                [+]
+                              </button>
+                            </div>
+                          {% endif %}
+
+                          {% if not (d.hgvsp and d.hgvsp != "-") and not (d.hgvsc and d.hgvsc != "-") %}
+                            <span>-</span>
+                          {% endif %}
+                        </div>
+                      </td>
 
                       <td class="px-3 py-2">
                         <div class="text-xs text-gray-700 whitespace-pre-line">

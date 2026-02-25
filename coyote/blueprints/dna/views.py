@@ -33,10 +33,8 @@ from coyote.extensions import store, util
 from coyote.blueprints.dna import dna_bp, filters
 from coyote.blueprints.dna.varqueries import build_query
 from coyote.blueprints.dna.cnvqueries import build_cnv_query
-from coyote.blueprints.dna.forms import DNAFilterForm, create_assay_group_form
+from coyote.blueprints.dna.forms import DNAFilterForm
 from coyote.errors.exceptions import AppError
-from bson import ObjectId
-from collections import defaultdict
 from coyote.util.decorators.access import require_sample_access
 from coyote.util.misc import get_sample_and_assay_config
 from coyote.services.auth.decorators import require
@@ -604,117 +602,6 @@ def show_variant(sample_id: str, var_id: str) -> Response | str:
         vep_conseq_translations=vep_conseq_meta,
         assay_group_mappings=assay_group_mappings,
     )
-
-
-# TODO: Depricated
-@dna_bp.route("/gene_simple/<string:gene_name>", methods=["GET", "POST"])
-@require("view_gene_annotations", min_role="user", min_level=9)
-def gene_view_simple(gene_name: str) -> Response | str:
-    """
-    Display a simple gene annotation view.
-
-    This view renders a form for selecting assay groups and displays processed gene annotations
-    for the specified gene. If the form is submitted, it collects the checked assays.
-
-    Args:
-        gene_name (str): The name of the gene to display annotations for.
-
-    Returns:
-        flask.Response | str: Rendered HTML template for the gene view, or a redirect/response
-        if required data is missing.
-    """
-    AssayGroupForm = create_assay_group_form()
-    form = AssayGroupForm()
-
-    annotations = store.annotation_handler.get_gene_annotations(gene_name)
-    annotations_dict = util.bpcommon.process_gene_annotations(annotations)
-
-    checked_assays = []
-    if form.validate_on_submit():
-        checked_assays = [k for k, v in form.data.items() if v and k not in ["csrf_token"]]
-
-    return render_template(
-        "gene_view2.html",
-        form=form,
-        checked_assays=checked_assays,
-        gene=gene_name,
-        annodict=annotations_dict,
-    )
-
-
-# TODO: Depricated
-@dna_bp.route("/gene/<string:gene_name>", methods=["GET", "POST"])
-@require("view_gene_annotations", min_role="user", min_level=9)
-def gene_view(gene_name: str) -> Response | str:
-    """
-    Display detailed gene-specific variant information.
-
-    This view retrieves all variants associated with a specific gene, enriches each
-    variant with global annotations and classification data, and prepares a summary
-    used to render the gene-specific variant template.
-
-    Args:
-        gene_name (str): The gene symbol to lookup (case-sensitive).
-
-    Returns:
-        flask.Response | str: Rendered template showing gene-specific variants, or a
-        redirect/Response if required data is missing.
-
-    Notes:
-        - Fetching and annotating variants may be slow for genes with many variants.
-        - Global annotations and classification lookups are performed per-variant.
-    """
-
-    # Get all the annotations for the gene
-    annotations = list(store.annotation_handler.get_gene_annotations(gene_name))
-
-    unique_annotated = list(
-        set([ann["variant"] for ann in annotations if ann.get("variant") not in [None, "None", ""]])
-    )
-
-    variants_iter = store.variant_handler.get_variants_by_gene_plus_variant_list(
-        gene_name, unique_annotated
-    )
-
-    variants = list(variants_iter)
-    sample_oids = []
-    variant_summary = defaultdict(dict)
-
-    # Get global annotations for the variants - SLOW OPERATION
-    for var in variants:
-        annots, latest_classification, other_classifications, annotations_interesting = (
-            store.annotation_handler.get_global_annotations(var, "assay", "subpanel")
-        )
-        var["global_annotations"] = annots
-        var["latest_classification"] = latest_classification
-        var["other_classifications"] = other_classifications
-        var["annotations_interesting"] = annotations_interesting
-
-        short_pos = var.get("simple_id")
-
-        if var["latest_classification"]["class"] != 999:
-            sample_oids.append(ObjectId(var["SAMPLE_ID"]))
-
-            if short_pos in variant_summary:
-                variant_summary[short_pos]["count"] += 1
-                variant_summary[short_pos]["samples"].append(var["SAMPLE_ID"])
-            else:
-                variant_summary[short_pos]["count"] = 1
-                variant_summary[short_pos]["CSQ"] = var["INFO"]["selected_CSQ"]
-                variant_summary[short_pos]["anno"] = var["global_annotations"]
-                variant_summary[short_pos]["class"] = var["latest_classification"]
-                variant_summary[short_pos]["samples"] = [var["SAMPLE_ID"]]
-
-    samples = store.sample_handler.get_samples_by_oids(sample_oids)
-
-    # Create hash for translation ID -> display name, from samples
-    sample_names = {}
-    for sample in samples:
-        sample_names[str(sample["_id"])] = sample["name"]
-
-    print(sample_names)
-
-    return render_template("gene_view.html", variants=variant_summary, sample_names=sample_names)
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/unfp", methods=["POST"])
