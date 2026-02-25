@@ -66,7 +66,7 @@
     {% include "sample_meta_rna_info.html" %}
 
     <!-- Selected Gene Panel Card -->
-    {% include "selected_gene_panel_div.html" %}
+    {% include "selected_fusion_panel_div.html" %}
 
     <!-- Fusion Table -->
     {% if fusions|length %}
@@ -298,12 +298,12 @@
         <div class="flex flex-wrap gap-4 ">
           <!-- Summary comments Table -->
           <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
-            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
+            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-blue-200 to-green-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
               <h2 class="text-sm font-semibold text-black">Summary Comments</h2>
             </div>
             <div class="overflow-auto relative">
               <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="summary-table">
-                <thead class="sortable capitalize tracking-wide rounded-t-lg bg-yellow-100">
+                <thead class="sortable capitalize tracking-wide rounded-t-lg bg-green-100">
                   <tr id="summary-table-header" class="border-b text-left border-gray-800">
                     <th class="px-2 py-3 font-semibold" id="comments-table-header-who">Who</th>
                     <th class="px-2 py-3 font-semibold" id="comments-table-header-comment">Comment</th>
@@ -321,7 +321,8 @@
                         <td class="px-2 whitespace-nowrap align-top py-4" id="comments-table-header-who">
                           <b>{{ comment.author }}</b><br><small>{{ comment.time_created|human_date }}</small>
                         </td>
-                        <td class="p-2" id="comments-table-header-comment" onclick='addText(event)'>
+                        <td class="py-2 markdown-body" id="comments-table-header-comment" onclick="addText(event)">
+                          <script type="text/plain" class="raw-md">{{ comment.text }}</script>
                           {{ comment.text|format_comment|safe }}
                         </td>
                         <td class="px-2 align-top py-4" id="comments-table-header-view">
@@ -355,14 +356,14 @@
                       </td>
                     </tr>
                   {% endif %}
-                <tbody>
+                </tbody>
               </table>
             </div>
           </div>
 
           <!-- Add Comment Form -->
           <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
-            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-brown-200 to-yellow-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
+            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-blue-200 to-green-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
               <h2 class="text-sm font-semibold text-black">Write New Summary</h2>
             </div>
             <div class="overflow-auto relative" id="comments-box-div">
@@ -416,23 +417,30 @@
 
 <script>
   function addAIText() {
-    var suggestion = document.getElementById("suggestion").innerHTML.trim();
-    document.getElementById("comment_textarea").value = suggestion;
-  }
+    const source = document.getElementById("suggestion");
+    const raw = source.textContent || "";
 
-  function addText(event) {
-    var targ = event.target || event.srcElement;
-    if (!targ.closest('tr').classList.contains('hidden_comment')) {
-      document.getElementById("comment_textarea").value = targ.textContent || targ.innerText;
+    if (window.easyMDE) {
+      window.easyMDE.value(raw.trim());
+      window.easyMDE.codemirror.refresh();
+    } else {
+      document.getElementById("comment_textarea").value = raw.trim();
     }
   }
 
   function addText(event) {
-    var targ = event.target || event.srcElement;
-    if (!targ.closest('tr').classList.contains('hidden_comment')) {
-      const textarea = document.getElementById('comment_textarea');
-      const text = event.target.innerText.trim();
-      textarea.value = text;
+    const td = event.target.closest("td");
+    if (!td) return;
+
+    const rawEl = td.querySelector(".raw-md");
+    if (!rawEl) return;
+
+    const raw = rawEl.textContent;
+    if (window.easyMDE) {
+      window.easyMDE.value(raw);
+      window.easyMDE.codemirror.refresh();
+    } else {
+      document.getElementById("comment_textarea").value = raw;
     }
   }
 
@@ -465,14 +473,22 @@
     }
   }
 
-  // Filter sidebar toggle
-  document.getElementById('filter-toggle').addEventListener('click', function() {
-    document.getElementById('filter-sidebar').classList.toggle('translate-x-full');
-  });
+  // Filter sidebar toggle (guarded; elements may be absent on RNA page variants)
+  const filterToggle = document.getElementById('filter-toggle');
+  const filterClose = document.getElementById('filter-close');
+  const filterSidebar = document.getElementById('filter-sidebar');
 
-  document.getElementById('filter-close').addEventListener('click', function() {
-    document.getElementById('filter-sidebar').classList.add('translate-x-full');
-  });
+  if (filterToggle && filterSidebar) {
+    filterToggle.addEventListener('click', function() {
+      filterSidebar.classList.toggle('translate-x-full');
+    });
+  }
+
+  if (filterClose && filterSidebar) {
+    filterClose.addEventListener('click', function() {
+      filterSidebar.classList.add('translate-x-full');
+    });
+  }
 
   function showCheckboxes(id) {
     var checkboxes = document.getElementById(id);
@@ -521,6 +537,41 @@
     document.body.removeChild(a);
   }
 
+  // Initialize Markdown Editor for summary textarea (same behavior as DNA list page)
+  document.addEventListener("DOMContentLoaded", () => {
+    const textarea = document.getElementById("comment_textarea");
+    if (!textarea || typeof EasyMDE === "undefined" || typeof markdownit === "undefined") {
+      return;
+    }
+
+    window.easyMDE = new EasyMDE({
+      element: textarea,
+      spellChecker: false,
+      forceSync: true,
+      hideIcons: ["image"],
+      status: false,
+      tabSize: 2,
+      toolbar: [
+        "bold", "italic", "strikethrough", "heading", "|", "code", "quote",
+        "unordered-list", "ordered-list", "|", "link", "table", "horizontal-rule",
+        "|", "preview", "undo", "redo", "|", "guide"
+      ],
+      previewRender: function(plainText, preview) {
+        const md = window.markdownit({
+          html: true,
+          breaks: true,
+          linkify: true,
+          typographer: true,
+        });
+
+        const html = md.render(plainText);
+        preview.classList.add("markdown-body");
+        preview.innerHTML = html;
+        return html;
+      }
+    });
+  });
+
 
 
 </script>
@@ -561,6 +612,23 @@
 
   .checkboxes label:hover {
     background-color: #f7f7ff;
+  }
+
+  /* EasyMDE editor (CodeMirror) heading sizes */
+  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header {
+    font-weight: 700 !important;
+  }
+
+  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-1 { font-size: 2.00em !important; }
+  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-2 { font-size: 1.80em !important; }
+  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-3 { font-size: 1.60em !important; }
+  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-4 { font-size: 1.40em !important; }
+  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-5 { font-size: 1.20em !important; }
+  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-6 { font-size: 1.00em !important; }
+
+  #comments-box-div .EasyMDEContainer .CodeMirror .cm-formatting.cm-formatting-header {
+    font-size: 0.95em !important;
+    opacity: 0.85 !important;
   }
 </style>
 

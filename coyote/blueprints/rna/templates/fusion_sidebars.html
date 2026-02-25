@@ -54,7 +54,7 @@
         <label class="text-gray-900">Spanning pairs</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&gt;</span>
-          {{ form.min_spanning_pairs(size=2, default=sample.filter_min_spanning_pairs, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
+          {{ form.min_spanning_pairs(size=2, default=sample.filter_min_spanning_pairs, class="border border-gray-400 rounded px-1 py-0.5 w-16 bg-gray-50") }}
         </div>
       </div>
 
@@ -62,7 +62,7 @@
         <label class="text-gray-900">Spanning reads</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&gt;</span>
-          {{ form.min_spanning_reads(size=1, default=sample.filter_min_spanning_reads, class="border border-gray-400 rounded px-1 py-0.5 w-16") }}
+          {{ form.min_spanning_reads(size=1, default=sample.filter_min_spanning_reads, class="border border-gray-400 rounded px-1 py-0.5 w-16 bg-gray-50") }}
         </div>
       </div>
 
@@ -71,7 +71,7 @@
       <div class="relative z-20">
         <label class="block text-gray-900 text-xs mb-1">Fusion Lists</label>
 
-        <div class="border border-gray-400 rounded bg-white cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('fusionlists_checkboxes', 'fusionlist-dropdown-icon')">
+        <div class="border border-gray-400 rounded bg-gray-50 cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('fusionlists_checkboxes', 'fusionlist-dropdown-icon')">
           <span class="text-xs text-gray-700">Select Fusion Lists</span>
           <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}" class="h-4 w-4 text-gray-900 transition-transform duration-200" id="fusionlist-dropdown-icon" alt="Fusion List Dropdown Icon">
         </div>
@@ -99,16 +99,16 @@
         <label class="block text-gray-900 text-xs mb-1">Fusion callers</label>
 
         <!-- Fusion Caller Trigger -->
-        <div class="border border-gray-400 rounded bg-white cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('fusioncallers_checkboxes', 'csq-dropdown-icon')">
+        <div class="border border-gray-400 rounded bg-gray-50 cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('fusioncallers_checkboxes', 'csq-dropdown-icon')">
           <span id="selected-option" class="text-xs text-gray-700">Select Fusion List</span>
           <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}" class="h-4 w-4 text-gray-900 transition-transform duration-200"  id="csq-dropdown-icon" alt="Consequence Dropdown Icon">
         </div>
 
         <!-- Fusion caller Dropdown Options -->
         <div id="fusioncallers_checkboxes" class="hidden border border-gray-400 mt-1 rounded shadow-md bg-gray-50 p-1 space-y-1">
-          <label for="arriba" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.fusioncaller_arriba(checked=False) }} <span>Arriba</span></label>
-          <label for="fusioncatcher" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.fusioncaller_fusioncatcher(checked=False) }} <span>Fusioncatcher</span></label>
-          <label for="starfusion" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.fusioncaller_starfusion(checked=False) }} <span>Starfusion</span></label>
+          <label for="fusioncaller_arriba" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.fusioncaller_arriba() }} <span>Arriba</span></label>
+          <label for="fusioncaller_fusioncatcher" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.fusioncaller_fusioncatcher() }} <span>Fusioncatcher</span></label>
+          <label for="fusioncaller_starfusion" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.fusioncaller_starfusion() }} <span>Starfusion</span></label>
         </div>
       </div>
 
@@ -117,15 +117,15 @@
         <label class="block text-gray-900 text-xs mb-1">Fusion Effects</label>
 
         <!-- Fusion effect Trigger -->
-        <div class="border border-gray-400 rounded bg-white cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('fusioneffects_checkboxes', 'csq-dropdown-icon')">
+        <div class="border border-gray-400 rounded bg-gray-50 cursor-pointer text-xs hover:border-blue-400 transition px-3 py-1 flex justify-between items-center" onclick="showCheckboxes('fusioneffects_checkboxes', 'csq-dropdown-icon')">
           <span id="selected-option" class="text-xs text-gray-700">Select Fusion Effects</span>
           <img src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-down.svg') }}" class="h-4 w-4 text-gray-900 transition-transform duration-200"  id="csq-dropdown-icon" alt="Consequence Dropdown Icon">
         </div>
 
         <!-- Fusion caller Dropdown Options -->
         <div id="fusioneffects_checkboxes" class="hidden border border-gray-400 mt-1 rounded shadow-md bg-gray-50 p-1 space-y-1">
-          <label for="inframe" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.fusioneffect_inframe(checked=False) }} <span>In-frame</span></label>
-          <label for="outframe" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.fusioneffect_outframe(checked=False) }} <span>Out-of-frame</span></label>
+          <label for="fusioneffect_inframe" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.fusioneffect_inframe() }} <span>In-frame</span></label>
+          <label for="fusioneffect_outframe" class="flex items-center space-x-2 px-2 py-1 rounded hover:bg-blue-100 transition">{{ form.fusioneffect_outframe() }} <span>Out-of-frame</span></label>
         </div>
       </div>
 

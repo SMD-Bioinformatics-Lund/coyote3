@@ -51,47 +51,73 @@ class RNAUtility:
     @staticmethod
     def create_fusioneffectlist(eff_names: list) -> list:
         """
-
-        Translates effect names from input list to standardized format.
+        Normalize effect names to canonical DB values.
 
         Args:
-            eff_names (list of str): List of effect names, expected to include 'in-frame' and 'out-of-frame'.
+            eff_names (list of str): List of effect names from form/sample filters.
 
         Returns:
-            list: Standardized list of effects, e.g., ['inframe', 'outframe'].
+            list: Canonical effect values for querying docs, e.g.
+                ['in-frame', 'out-of-frame'].
         """
+        canonical_map = {
+            "inframe": "in-frame",
+            "in-frame": "in-frame",
+            "outframe": "out-of-frame",
+            "out-of-frame": "out-of-frame",
+        }
+
         effects = []
         for effect in eff_names:
-            if effect == "in-frame":
-                effects.append("inframe")
-            elif effect == "out-of-frame":
-                effects.append("outframe")
+            if effect is None:
+                continue
+            key = str(effect).strip().lower()
+            canonical = canonical_map.get(key)
+            if canonical:
+                effects.append(canonical)
 
-        return effects
+        # preserve order while removing duplicates
+        return list(dict.fromkeys(effects))
 
     # TODO: Unnecessary redundancy, The terms are already standardized in the input. Can also be controlled via configs
     @staticmethod
     def create_fusioncallers(fuscallers: list) -> list:
         """
-        Extracts and standardizes fusion caller names from a list of prefixed caller names.
+        Normalize caller names to canonical DB values.
 
         Args:
-            fuscallers (list of str): List of fusion caller names, each expected in the format 'prefix_callername'.
+            fuscallers (list of str): List of caller names from form/sample filters.
 
         Returns:
-            list: List of recognized fusion caller names, e.g., 'arriba', 'fusioncatcher', 'starfusion'.
+            list: Canonical caller values for querying docs, e.g.
+                ['arriba', 'fusioncatcher', 'starfusion'].
         """
-        callers = []
+        canonical_map = {
+            "arriba": "arriba",
+            "fusioncatcher": "fusioncatcher",
+            "fusion-catcher": "fusioncatcher",
+            "fusion_catcher": "fusioncatcher",
+            "starfusion": "starfusion",
+            "star-fusion": "starfusion",
+            "star_fusion": "starfusion",
+        }
 
-        for callername in fuscallers:
-            caller = callername.split("_", 1)[1]
-            if caller == "arriba":
-                callers.append("arriba")
-            if caller == "fusioncatcher":
-                callers.append("fusioncatcher")
-            if caller == "starfusion":
-                callers.append("starfusion")
-        return callers
+        callers = []
+        for caller_name in fuscallers or []:
+            if caller_name is None:
+                continue
+
+            caller = str(caller_name).strip()
+            if "_" in caller and caller.startswith("fusioncaller_"):
+                caller = caller.split("_", 1)[1]
+            key = caller.lower()
+
+            canonical = canonical_map.get(key)
+            if canonical:
+                callers.append(canonical)
+
+        # Preserve order while removing duplicates.
+        return list(dict.fromkeys(callers))
 
     @staticmethod
     def get_selected_fusioncall(fusion: list) -> dict:

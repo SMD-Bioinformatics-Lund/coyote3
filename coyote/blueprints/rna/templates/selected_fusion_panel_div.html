@@ -4,13 +4,13 @@
     <h2 class="text-base font-semibold tracking-wide uppercase">Fusion List(s)</h2>
     <!-- Toggle Icon -->
     <button class="focus:outline-none">
-      <img id="arrow-icon" src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-double-up.svg') }}" 
-            alt="Toggle Selected Genes Filters" 
+      <img id="arrow-icon" src="{{ url_for('static', filename='icons/heroicons_outline_24/chevron-double-up.svg') }}"
+            alt="Toggle Selected Genes Filters"
             class="w-6 h-6 transform transition-transform duration-300 filter rotate-180">
     </button>
   </div>
 
-  <!-- Gene Lists Summary (Closed View) -->
+  <!-- Fusion Lists Summary (Closed View) -->
   <div id="selected-genes-summary" class="text-sm font-medium rounded-2xl text-black mt-2 px-4 pb-2">
     {% if checked_fusionlists_dict %}
       <div class="flex flex-row gap-1">
