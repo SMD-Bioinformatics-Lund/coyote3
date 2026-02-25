@@ -5,6 +5,8 @@ WORKDIR /app
 
 COPY package.json ./
 COPY tailwind.config.js ./
+COPY scripts/sync-package-version.js ./scripts/sync-package-version.js
+COPY coyote/__version__.py ./coyote/__version__.py
 COPY coyote/static/css/tailwind.input.css ./coyote/static/css/tailwind.input.css
 COPY coyote/static/js ./coyote/static/js
 COPY coyote/templates ./coyote/templates
