@@ -1,7 +1,7 @@
 {
   "name": "coyote3",
   "private": true,
-  "version": "3.1.18",
+  "version": "3.1.19",
   "scripts": {
     "sync:version": "node ./scripts/sync-package-version.js",
     "postinstall": "npm run sync:version",
