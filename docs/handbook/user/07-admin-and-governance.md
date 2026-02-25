@@ -2,6 +2,14 @@
 
 This chapter explains what each admin area controls and how those settings affect daily users.
 
+For step-by-step creation procedures (ISGL, ad hoc case genes, users, roles, ASP, ASPC), use:
+
+- [Admin Creation Playbooks](./12-admin-creation-playbooks.md)
+
+For developer-sensitive schema and permission internals, use:
+
+- [Developer Playbooks: Admin Config, Permissions, and Schemas](../developer/13-admin-config-permissions-and-schemas.md)
+
 ## Admin entry point
 
 - `/admin/`
@@ -53,7 +61,7 @@ Impact on operations:
 
 - incorrect schema edits can break admin create/edit forms
 
-## ASP: assay specific panels (`/admin/asp/manage`)
+## ASP: Assay Specific Panel (`/admin/asp/manage`)
 
 Controls:
 
@@ -65,7 +73,7 @@ Impact on interpretation:
 
 - effective gene baseline for sample analysis
 
-## ASPC: assay specific configs (`/admin/aspc`)
+## ASPC: Assay Specific Panel Config (`/admin/aspc`)
 
 Controls:
 
@@ -79,7 +87,7 @@ Impact on interpretation:
 - what appears on DNA/RNA pages
 - report content and structure
 
-## ISGL: in-silico gene lists (`/admin/genelists`)
+## ISGL: In Silico Gene List (`/admin/genelists`)
 
 Controls:
 
@@ -112,3 +120,7 @@ Purpose:
 2. Validate with a smoke sample after every change.
 3. Prefer role-based permission design; keep per-user overrides minimal.
 4. Keep config history and rollback intent documented.
+
+## Related flow diagrams
+
+- [Flow Diagrams (DNA, RNA, Sample, Admin)](./15-flow-diagrams.md)

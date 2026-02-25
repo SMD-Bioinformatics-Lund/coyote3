@@ -11,13 +11,14 @@
 #
 from __future__ import annotations
 
-from flask import render_template, abort
-from flask_login import login_required
-from coyote.blueprints.docs import docs_bp
+from flask import render_template, abort, request, redirect, url_for
+from flask_login import login_required, current_user
 from flask import current_app as app
+from coyote.blueprints.docs import docs_bp
 from pathlib import Path
 from markdown import markdown
 import bleach
+from coyote.services.auth.decorators import require
 
 
 ALLOWED_TAGS = set(bleach.sanitizer.ALLOWED_TAGS).union(
@@ -73,10 +74,100 @@ def _render_markdown_file(md_path: Path) -> str:
     return bleach.linkify(safe_html)
 
 
+def _search_handbook_docs(query: str, limit: int = 40) -> list[dict]:
+    """
+    Search markdown files under docs/handbook and return ranked matches.
+    """
+    q = (query or "").strip().lower()
+    if not q:
+        return []
+
+    docs_root = Path(__file__).resolve().parents[3] / "docs" / "handbook"
+    terms = [t for t in q.split() if t]
+    if not terms:
+        return []
+
+    results: list[dict] = []
+    can_view_developer = _can_view_developer_docs()
+    for md_path in sorted(docs_root.rglob("*.md")):
+        rel = md_path.relative_to(docs_root).as_posix()
+        if rel.startswith("admin/"):
+            continue
+        if rel.startswith("developer/") and not can_view_developer:
+            continue
+        try:
+            raw = md_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+
+        raw_l = raw.lower()
+        hits = sum(1 for t in terms if t in raw_l)
+        if hits == 0:
+            continue
+
+        title = md_path.stem.replace("-", " ").replace("_", " ").title()
+        for line in raw.splitlines():
+            if line.startswith("# "):
+                title = line[2:].strip()
+                break
+
+        # Build a short snippet around the first hit term.
+        first_pos = min((raw_l.find(t) for t in terms if t in raw_l), default=0)
+        start = max(0, first_pos - 80)
+        end = min(len(raw), first_pos + 180)
+        snippet = " ".join(raw[start:end].split())
+
+        results.append(
+            {
+                "doc_path": rel,
+                "title": title,
+                "snippet": snippet,
+                "score": hits,
+            }
+        )
+
+    results.sort(key=lambda r: (-r["score"], r["doc_path"]))
+    return results[:limit]
+
+
+def _can_view_developer_docs() -> bool:
+    if not current_user.is_authenticated:
+        return False
+    return current_user.has_permission("delete_sample_global") or current_user.has_min_access_level(
+        9999
+    )
+
+
 @docs_bp.get("/")
 @login_required
 def docs_index():
-    return render_template("index.html")
+    q = request.args.get("q", "").strip()
+    search_results = _search_handbook_docs(q) if q else []
+    return render_template(
+        "index.html",
+        q=q,
+        search_results=search_results,
+        search_count=len(search_results),
+    )
+
+
+@docs_bp.get("/user")
+@login_required
+def docs_user_index():
+    return redirect(url_for("docs_bp.docs_page", doc_path="user/index.md"))
+
+
+@docs_bp.get("/admin")
+@login_required
+def docs_admin_index():
+    return redirect(url_for("docs_bp.docs_page", doc_path="index.md"))
+
+
+@docs_bp.get("/developer")
+@login_required
+@require("delete_sample_global", min_role="developer", min_level=9999)
+def docs_developer_index():
+    return redirect(url_for("docs_bp.docs_page", doc_path="developer/index.md"))
 
 
 @docs_bp.get("/<path:doc_path>")
@@ -86,12 +177,26 @@ def docs_page(doc_path: str):
     Render a handbook markdown page from docs/handbook using /handbook/<path>.md.
     """
     docs_root = Path(__file__).resolve().parents[3] / "docs" / "handbook"
+
     requested = (docs_root / doc_path).resolve()
+
+    # Backward-compatible user-doc links like /handbook/04-dna-workflow.md
+    # should resolve to /handbook/user/04-dna-workflow.md.
+    if not requested.exists() and "/" not in doc_path:
+        user_candidate = (docs_root / "user" / doc_path).resolve()
+        if str(user_candidate).startswith(str(docs_root.resolve())) and user_candidate.exists():
+            return redirect(url_for("docs_bp.docs_page", doc_path=f"user/{doc_path}"))
 
     if not str(requested).startswith(str(docs_root.resolve())):
         abort(404)
     if requested.suffix.lower() != ".md":
         abort(404)
+
+    rel = requested.relative_to(docs_root).as_posix()
+    if rel.startswith("admin/"):
+        abort(404)
+    if rel.startswith("developer/") and not _can_view_developer_docs():
+        abort(403)
 
     handbook_html = _render_markdown_file(requested)
     return render_template(
