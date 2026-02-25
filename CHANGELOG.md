@@ -1,5 +1,26 @@
 # Changelog
 
+## v3.1.19
+- Fixed Tailwind v4 dynamic class generation gaps by expanding template scan coverage (`.jinja/.jinja2`) and explicit inline source classes for semantic/admin color tokens.
+- Added Tailwind v4 border compatibility base layer and stabilized modal/button styling with Tailwind-safe static class mapping.
+- Restored same-line live validation feedback in schema creation editor (inline line highlight + inline error widget).
+- Updated admin audit logs view to sort entries by parsed log timestamp in descending order (latest first).
+- Fixed subpath static asset behavior for containerized deployment under `SCRIPT_NAME` (e.g., `/coyote3`) by adding prefix-aware WSGI middleware and normalizing compose env formatting.
+- Fixed Docker Tailwind build stage to include version-sync script inputs required during npm postinstall.
+
+## v3.1.18
+- Migrated Tailwind to npm-based single-file build flow using Tailwind v4 CLI.
+- Removed split `custom.tailwind.css` and switched to config-driven Tailwind generation (no manual per-shade utility definitions).
+- Updated Docker and Compose for CSS build during image build (prod/dev) and continuous CSS watch service in development.
+- Updated dev container flow to build/watch Tailwind only in the dedicated dev Tailwind service, avoiding npm install dependency during `coyote3_dev_app` image build.
+- Added version-aware compose workflow:
+  - `docker-compose*.yml` now use `COYOTE3_VERSION` image tags instead of hardcoded app versions.
+  - Added `scripts/compose-with-version.sh` to export version from `coyote/__version__.py` and run `docker compose`.
+- Added npm package version sync from Python version source:
+  - Added `scripts/sync-package-version.js`.
+  - Wired `postinstall`, `prebuild:css`, and `predev:css` to sync `package.json` version from `coyote/__version__.py`.
+- Reworked installation/deployment documentation to production-first, step-by-step runbooks in README and handbook.
+
 ## v3.1.17
 - Added `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` and `SECURITY.md`
 

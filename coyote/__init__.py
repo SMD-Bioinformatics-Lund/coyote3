@@ -43,10 +43,29 @@ from pymongo.errors import ConnectionFailure
 from flask_caching import Cache
 from typing import Any
 import json
+import os
 
 
 # Initialize Flask-Caching
 cache = Cache()
+
+
+class PrefixMiddleware:
+    """
+    Respect SCRIPT_NAME-style URL prefixes when the app is served behind a reverse proxy.
+    """
+
+    def __init__(self, app, prefix: str):
+        self.app = app
+        self.prefix = prefix.rstrip("/")
+
+    def __call__(self, environ, start_response):
+        if self.prefix:
+            path = environ.get("PATH_INFO", "")
+            environ["SCRIPT_NAME"] = self.prefix
+            if path.startswith(self.prefix):
+                environ["PATH_INFO"] = path[len(self.prefix) :] or "/"
+        return self.app(environ, start_response)
 
 
 def init_app(testing: bool = False, development: bool = False) -> Flask:
@@ -65,6 +84,11 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
         Flask: The configured Flask application instance.
     """
     app = Flask(__name__, instance_relative_config=True)
+    script_name = os.getenv("SCRIPT_NAME", "").strip().strip('"').strip("'")
+    if script_name and script_name != "/":
+        app.config["APPLICATION_ROOT"] = script_name
+        app.wsgi_app = PrefixMiddleware(app.wsgi_app, script_name)
+
     app.jinja_env.add_extension("jinja2.ext.do")
     app.jinja_env.filters["from_json"] = json.loads
 

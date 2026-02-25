@@ -2,10 +2,14 @@
 
 ## Deployment options
 
+- `scripts/compose-with-version.sh`
+- `scripts/install.sh` (production wrapper)
 - `docker-compose.yml`
+- `scripts/install.dev.sh` (development wrapper)
 - `docker-compose.dev.yml`
-- `scripts/install.sh`
-- `scripts/install.dev.sh`
+
+Use `scripts/compose-with-version.sh` as the default production compose entrypoint. It exports
+`COYOTE3_VERSION` from `coyote/__version__.py` before invoking `docker compose`.
 
 ## Operational sequence
 

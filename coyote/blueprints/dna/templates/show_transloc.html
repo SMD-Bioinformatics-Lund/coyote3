@@ -213,7 +213,7 @@
     <!-- other information cards -->
     <section class="bg-transparent p-2 my-2 flex flex-wrap items-start relative gap-4" id="transloc-information-cards">
       <!-- Comment box, other tiering and pon -->
-      <div class="flex flex-col gap-y-4 min-w-450 max-w-xl">
+      <div class="flex flex-col gap-y-4 min-w-[450px] max-w-xl">
         <!-- Comment box -->
         {% if has_access("add_variant_comment", min_role="user", min_level=9) %}
           <div class="bg-transparent w-full max-w-xl" id="commenting-box-card">
@@ -316,7 +316,7 @@
 
       </div>
 
-      <div class="flex flex-col gap-y-4 min-w-450 max-w-xl items-start">
+      <div class="flex flex-col gap-y-4 min-w-[450px] max-w-xl items-start">
         <!-- Tranlocations annotations -->
         {% if has_access(min_role='user', min_level=9) %}
           <div class="bg-gray-50 w-full max-w-xl pagination shadow-md rounded-lg mb-1" data-rows-per-page="2" pagination-button-color="green" pagination-button-text-color="black" id="transloc-annotations-all">

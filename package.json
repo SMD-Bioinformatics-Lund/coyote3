@@ -1,0 +1,17 @@
+{
+  "name": "coyote3",
+  "private": true,
+  "version": "3.1.19",
+  "scripts": {
+    "sync:version": "node ./scripts/sync-package-version.js",
+    "postinstall": "npm run sync:version",
+    "prebuild:css": "npm run sync:version",
+    "build:css": "tailwindcss -i ./coyote/static/css/tailwind.input.css -o ./coyote/static/css/tailwind.css --minify",
+    "predev:css": "npm run sync:version",
+    "dev:css": "tailwindcss -i ./coyote/static/css/tailwind.input.css -o ./coyote/static/css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.12",
+    "tailwindcss": "^4.1.12"
+  }
+}

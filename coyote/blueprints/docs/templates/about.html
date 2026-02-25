@@ -132,6 +132,36 @@
             </a>
           {% endif %}
 
+          {% if meta.code_of_conduct_url %}
+            <a href="{{ meta.code_of_conduct_url }}"
+              target="_blank" rel="noopener"
+              class="flex items-center gap-2 text-indigo-700 hover:underline">
+              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/hand-thumb-up.svg') }}"
+                  alt="Code of Conduct" class="h-4 w-4">
+              Code of Conduct
+            </a>
+          {% endif %}
+
+          {% if meta.security_url %}
+            <a href="{{ meta.security_url }}"
+              target="_blank" rel="noopener"
+              class="flex items-center gap-2 text-indigo-700 hover:underline">
+              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/shield-check.svg') }}"
+                  alt="Security" class="h-4 w-4">
+              Security
+            </a>
+          {% endif %}
+
+          {% if meta.contributing_url %}
+            <a href="{{ meta.contributing_url }}"
+              target="_blank" rel="noopener"
+              class="flex items-center gap-2 text-indigo-700 hover:underline">
+              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/code-bracket-square.svg') }}"
+                  alt="Contributing" class="h-4 w-4">
+              Contributing
+            </a>
+          {% endif %}
+
         </div>
       </div>
     </section>
