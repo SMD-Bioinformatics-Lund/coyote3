@@ -24,10 +24,9 @@ from flask import (
 
 from coyote.blueprints.rna.forms import FusionFilter
 
-from coyote.extensions import store, util
+from coyote.extensions import util
 from coyote.blueprints.rna import rna_bp
 from coyote.util.decorators.access import require_sample_access
-from coyote.util.misc import get_sample_and_assay_config
 from coyote.services.interpretation.report_summary import generate_summary_text
 from coyote.services.rna.helpers import create_fusioncallers, create_fusioneffectlist
 from coyote.services.workflow.rna_workflow import RNAWorkflowService
@@ -52,59 +51,31 @@ def list_fusions(sample_id: str) -> str | Response:
     Returns:
         Response: Rendered HTML template for the fusion list page.
     """
+    headers = build_forward_headers(request.headers)
+    api_client = get_web_api_client()
 
-    result = get_sample_and_assay_config(sample_id)
-    if isinstance(result, Response):
-        return result
-    sample, assay_config, assay_config_schema = result
+    def _load_api_context():
+        payload = api_client.get_rna_fusions(sample_id=sample_id, headers=headers)
+        return payload
 
+    try:
+        fusions_payload = _load_api_context()
+    except ApiRequestError as exc:
+        app.logger.error("RNA fusion API fetch failed for sample %s: %s", sample_id, exc)
+        return Response(str(exc), status=exc.status_code or 502)
+
+    sample = fusions_payload.sample
+    assay_config = fusions_payload.assay_config
+    assay_config_schema = fusions_payload.assay_config_schema
     sample_has_filters = sample.get("filters", None)
-
-    ## get the assay from the sample, fallback to the first group if not set
-    sample_assay = sample.get("assay")
-
-    # Get the profile from the sample, fallback to production if not set
-    sample_profile = sample.get("profile", "production")
-
-    # Get assay group and subpanel for the sample, sections to display
-    assay_group: str = assay_config.get("asp_group", "unknown")  # myeloid, solid, lymphoid
-    subpanel: str | None = sample.get("subpanel")  # breast, LP, lung, etc.
-    analysis_sections = assay_config.get("analysis_types", [])
-    display_sections_data = {}
-    summary_sections_data = {}
-    sample_ids = util.common.get_case_and_control_sample_ids(sample)
+    assay_group = fusions_payload.assay_group or assay_config.get("asp_group", "unknown")
+    subpanel = fusions_payload.subpanel
+    sample_ids = fusions_payload.sample_ids
+    assay_panel_doc = fusions_payload.assay_panel_doc
+    fusionlist_options = fusions_payload.fusionlist_options
+    sample_filters = deepcopy(fusions_payload.filters)
+    filter_context = deepcopy(fusions_payload.filter_context)
     app.logger.debug(f"Assay group: {assay_group} - Subpanel: {subpanel}")
-
-    # Get the entire genelist for the sample panel
-    assay_panel_doc = store.asp_handler.get_asp(asp_name=sample_assay)
-
-    # Get fusion lists for the sample panel (RNA-specific; list_type="fusionlist")
-    fusionlist_options = store.isgl_handler.get_isgl_by_asp(
-        sample_assay, is_active=True, list_type="fusionlist"
-    )
-
-    # Adding default fusion lists to RNA assay config if diagnosis-driven lists are enabled
-    if assay_config.get("use_diagnosis_genelist", False) and subpanel:
-        assay_default_config_fusionlist_ids = store.isgl_handler.get_isgl_ids(
-            sample_assay, subpanel, "fusionlist", is_active=True
-        )
-        assay_config["filters"].setdefault("fusionlists", [])
-        assay_config["filters"]["fusionlists"].extend(assay_default_config_fusionlist_ids)
-
-    # Get filter settings from the sample and merge with assay config if sample does not have values
-    sample, sample_filters = RNAWorkflowService.merge_and_normalize_sample_filters(
-        sample, assay_config, sample_id, app.logger
-    )
-
-    # Update the sample filters with the default values from the assay config if the sample is new and does not have any filters set
-    if not sample_has_filters:
-        try:
-            get_web_api_client().reset_sample_filters(
-                sample_id=sample_id,
-                headers=build_forward_headers(request.headers),
-            )
-        except ApiRequestError as exc:
-            app.logger.error("Failed to reset RNA filters via API for sample %s: %s", sample_id, exc)
 
     # Create the form
     form = FusionFilter()
@@ -113,14 +84,13 @@ def list_fusions(sample_id: str) -> str | Response:
     ## FORM FILTERS ##
     # Either reset sample to default filters or add the new filters from form.
     if request.method == "POST" and form.validate_on_submit():
-        _id = str(sample.get("_id"))
         # Reset filters to defaults
         if form.reset.data:
             app.logger.info(f"Resetting filters to default settings for the sample {sample_id}")
             try:
-                get_web_api_client().reset_sample_filters(
+                api_client.reset_sample_filters(
                     sample_id=sample_id,
-                    headers=build_forward_headers(request.headers),
+                    headers=headers,
                 )
             except ApiRequestError as exc:
                 app.logger.error("Failed to reset RNA filters via API for sample %s: %s", sample_id, exc)
@@ -136,28 +106,44 @@ def list_fusions(sample_id: str) -> str | Response:
             if sample.get("filters", {}).get("adhoc_genes"):
                 filters_from_form["adhoc_genes"] = sample.get("filters", {}).get("adhoc_genes")
             try:
-                get_web_api_client().update_sample_filters(
+                api_client.update_sample_filters(
                     sample_id=sample_id,
                     filters=filters_from_form,
-                    headers=build_forward_headers(request.headers),
+                    headers=headers,
                 )
             except ApiRequestError as exc:
                 app.logger.error("Failed to update RNA filters via API for sample %s: %s", sample_id, exc)
 
-        ## get sample again to receive updated forms!
-        sample = store.sample_handler.get_sample_by_id(_id)
-        sample, sample_filters = RNAWorkflowService.merge_and_normalize_sample_filters(
-            sample, assay_config, sample_id, app.logger
-        )
-    ############################################################################
-    # Check if sample has hidden comments
-    has_hidden_comments = store.sample_handler.hidden_sample_comments(sample.get("_id"))
+        try:
+            fusions_payload = _load_api_context()
+            sample = fusions_payload.sample
+            assay_config = fusions_payload.assay_config
+            assay_config_schema = fusions_payload.assay_config_schema
+            sample_filters = deepcopy(fusions_payload.filters)
+            filter_context = deepcopy(fusions_payload.filter_context)
+            sample_ids = fusions_payload.sample_ids
+            assay_panel_doc = fusions_payload.assay_panel_doc
+            fusionlist_options = fusions_payload.fusionlist_options
+        except ApiRequestError as exc:
+            app.logger.error("RNA fusion API refresh failed for sample %s: %s", sample_id, exc)
+            return Response(str(exc), status=exc.status_code or 502)
 
-    filter_context = RNAWorkflowService.compute_filter_context(
-        sample=sample,
-        sample_filters=sample_filters,
-        assay_panel_doc=assay_panel_doc,
-    )
+    if not sample_has_filters:
+        try:
+            api_client.reset_sample_filters(sample_id=sample_id, headers=headers)
+            fusions_payload = _load_api_context()
+            sample = fusions_payload.sample
+            assay_config = fusions_payload.assay_config
+            assay_config_schema = fusions_payload.assay_config_schema
+            sample_filters = deepcopy(fusions_payload.filters)
+            filter_context = deepcopy(fusions_payload.filter_context)
+            sample_ids = fusions_payload.sample_ids
+            assay_panel_doc = fusions_payload.assay_panel_doc
+            fusionlist_options = fusions_payload.fusionlist_options
+        except ApiRequestError as exc:
+            app.logger.error("Failed to reset RNA filters via API for sample %s: %s", sample_id, exc)
+    ############################################################################
+    has_hidden_comments = fusions_payload.hidden_comments
 
     # Add them to the form and update with the requested settings
     form_data = deepcopy(sample_filters)
@@ -171,17 +157,9 @@ def list_fusions(sample_id: str) -> str | Response:
     )
     form.process(data=form_data)
 
-    try:
-        api_payload = get_web_api_client().get_rna_fusions(
-            sample_id=sample_id,
-            headers=build_forward_headers(request.headers),
-        )
-        fusions = api_payload.fusions
-        summary_sections_data["fusions"] = api_payload.meta.get("tiered", [])
-        app.logger.info("Loaded RNA fusion list from API service for sample %s", sample_id)
-    except ApiRequestError as exc:
-        app.logger.error("RNA fusion API fetch failed for sample %s: %s", sample_id, exc)
-        return Response(str(exc), status=exc.status_code or 502)
+    fusions = fusions_payload.fusions
+    summary_sections_data = {"fusions": fusions_payload.meta.get("tiered", [])}
+    app.logger.info("Loaded RNA fusion list from API service for sample %s", sample_id)
 
     # TODO: load them as a display_sections_data instead of attaching to sample
     sample = RNAWorkflowService.attach_rna_analysis_sections(sample)
@@ -203,8 +181,8 @@ def list_fusions(sample_id: str) -> str | Response:
         form=form,
         fusions=fusions,
         fusionlist_options=fusionlist_options,
-        checked_fusionlists=filter_context["checked_fusionlists"],
-        checked_fusionlists_dict=filter_context["genes_covered_in_panel"],
+        checked_fusionlists=fusions_payload.checked_fusionlists,
+        checked_fusionlists_dict=fusions_payload.checked_fusionlists_dict,
         hidden_comments=has_hidden_comments,
         ai_text=ai_text,
         sample_id=sample["_id"],

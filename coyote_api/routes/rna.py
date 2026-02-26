@@ -39,7 +39,13 @@ def list_rna_fusions(request: Request, sample_id: str, user: ApiUser = Depends(r
     )
     assay_group = assay_config.get("asp_group", "unknown")
     subpanel = sample.get("subpanel")
+    assay_config_schema = store.schema_handler.get_schema(assay_config.get("schema_name"))
     assay_panel_doc = store.asp_handler.get_asp(asp_name=sample.get("assay"))
+    fusionlist_options = store.isgl_handler.get_isgl_by_asp(
+        sample.get("assay"), is_active=True, list_type="fusionlist"
+    )
+    sample_ids = util.common.get_case_and_control_sample_ids(sample)
+    has_hidden_comments = store.sample_handler.hidden_sample_comments(sample.get("_id"))
     filter_context = RNAWorkflowService.compute_filter_context(
         sample=sample, sample_filters=sample_filters, assay_panel_doc=assay_panel_doc
     )
@@ -53,15 +59,19 @@ def list_rna_fusions(request: Request, sample_id: str, user: ApiUser = Depends(r
     fusions, tiered_fusions = add_global_annotations(fusions, assay_group, subpanel)
 
     payload = {
-        "sample": {
-            "id": str(sample.get("_id")),
-            "name": sample.get("name"),
-            "assay": sample.get("assay"),
-            "profile": sample.get("profile"),
-            "assay_group": assay_group,
-            "subpanel": subpanel,
-        },
+        "sample": sample,
         "meta": {"request_path": request.url.path, "count": len(fusions), "tiered": tiered_fusions},
+        "assay_group": assay_group,
+        "subpanel": subpanel,
+        "analysis_sections": assay_config.get("analysis_types", []),
+        "assay_config": assay_config,
+        "assay_config_schema": assay_config_schema,
+        "assay_panel_doc": assay_panel_doc,
+        "sample_ids": sample_ids,
+        "hidden_comments": has_hidden_comments,
+        "fusionlist_options": fusionlist_options,
+        "checked_fusionlists": filter_context.get("checked_fusionlists", []),
+        "checked_fusionlists_dict": filter_context.get("genes_covered_in_panel", {}),
         "filters": sample_filters,
         "filter_context": filter_context,
         "fusions": fusions,
