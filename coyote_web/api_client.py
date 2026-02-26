@@ -9,7 +9,9 @@ import httpx
 from flask import current_app
 
 from coyote_web.api_models import (
+    ApiDnaCnvsPayload,
     ApiDnaCnvDetailPayload,
+    ApiDnaTranslocationsPayload,
     ApiDnaVariantDetailPayload,
     ApiDnaVariantsPayload,
     ApiDnaTranslocationDetailPayload,
@@ -105,6 +107,24 @@ class CoyoteApiClient:
             headers=headers,
         )
         return ApiDnaTranslocationDetailPayload.model_validate(payload)
+
+    def get_dna_cnvs(
+        self, sample_id: str, headers: dict[str, str] | None = None
+    ) -> ApiDnaCnvsPayload:
+        payload = self._get(
+            f"/api/v1/dna/samples/{sample_id}/cnvs",
+            headers=headers,
+        )
+        return ApiDnaCnvsPayload.model_validate(payload)
+
+    def get_dna_translocations(
+        self, sample_id: str, headers: dict[str, str] | None = None
+    ) -> ApiDnaTranslocationsPayload:
+        payload = self._get(
+            f"/api/v1/dna/samples/{sample_id}/translocations",
+            headers=headers,
+        )
+        return ApiDnaTranslocationsPayload.model_validate(payload)
 
 
 def get_web_api_client() -> CoyoteApiClient:

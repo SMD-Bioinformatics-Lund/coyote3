@@ -93,3 +93,20 @@ class ApiDnaTranslocationDetailPayload(BaseModel):
     bam_id: dict[str, Any] = Field(default_factory=dict)
     vep_conseq_translations: dict[str, Any] = Field(default_factory=dict)
     hidden_comments: bool = False
+
+
+class ApiDnaCnvsPayload(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    sample: dict[str, Any]
+    meta: dict[str, Any] = Field(default_factory=dict)
+    filters: dict[str, Any] = Field(default_factory=dict)
+    cnvs: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class ApiDnaTranslocationsPayload(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    sample: dict[str, Any]
+    meta: dict[str, Any] = Field(default_factory=dict)
+    translocations: list[dict[str, Any]] = Field(default_factory=list)

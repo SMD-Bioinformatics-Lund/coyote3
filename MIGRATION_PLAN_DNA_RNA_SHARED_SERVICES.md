@@ -1678,6 +1678,28 @@ Copy for each task:
 - Follow-up actions:
   - Migrate list pages for CNV/translocations and remaining read-only admin pages.
 
+### Task P12-2/P12-3 (List Cutover Phase 2) - API-First CNV/Translocation Sections in DNA List Page
+
+- Date: 2026-02-26
+- Owner: Codex
+- Scope:
+  - Replace DNA list page CNV/translocation section reads with server-side API calls (when API read flag is enabled).
+  - Add typed models/client methods for CNV/translocation list API payloads.
+- Files changed:
+  - `coyote_web/api_models.py` (added CNV/translocation list payload models)
+  - `coyote_web/api_client.py` (added list fetch methods for CNVs/translocations)
+  - `coyote/blueprints/dna/views_variants.py` (API-first CNV/translocation section loading with strict/fallback behavior)
+  - `MIGRATION_PLAN_DNA_RNA_SHARED_SERVICES.md`
+- Validation executed:
+  - `python -m py_compile coyote_web/api_models.py coyote_web/api_client.py coyote/blueprints/dna/views_variants.py`
+  - FastAPI TestClient auth-gate smoke checks for `/api/v1/dna/samples/{sample_id}/cnvs` and `/api/v1/dna/samples/{sample_id}/translocations` (`401` unauthenticated).
+- Result:
+  - DNA list page now routes more read-path surface through API under existing migration flags.
+  - Remaining Mongo reads are reduced further on the primary DNA page.
+- Rollback needed: no
+- Follow-up actions:
+  - Convert remaining list/detail read paths in admin/common blueprints and then enable dev strict mode for full route-level enforcement.
+
 ---
 
 ## 10) Session Rule

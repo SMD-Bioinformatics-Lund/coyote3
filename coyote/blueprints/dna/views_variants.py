@@ -251,19 +251,32 @@ def list_variants(sample_id: str) -> Response | str:
 
     ## GET Other sections CNVs TRANSLOCS and OTHER BIOMARKERS ##
     if "CNV" in analysis_sections:
-        cnv_query = build_cnv_query(
-            str(sample["_id"]),
-            filters={**sample_filters, "filter_genes": filter_genes},
-        )
-        cnvs = store.cnv_handler.get_sample_cnvs(cnv_query)
-        if filter_cnveffects:
-            cnvs = cnvtype_variant(cnvs, filter_cnveffects)
-        cnvs = cnv_organizegenes(cnvs)
+        cnvs = []
+        if use_api_variants:
+            try:
+                cnv_payload = get_web_api_client().get_dna_cnvs(
+                    sample_id=sample_id,
+                    headers=build_forward_headers(request.headers),
+                )
+                cnvs = cnv_payload.cnvs
+                app.logger.info("Loaded DNA CNV list from API service for sample %s", sample_id)
+            except ApiRequestError as exc:
+                app.logger.warning("DNA CNV API fetch failed for sample %s: %s", sample_id, exc)
+                if app.config.get("WEB_API_STRICT_MODE", False):
+                    return Response(str(exc), status=exc.status_code or 502)
+        if not cnvs:
+            cnv_query = build_cnv_query(
+                str(sample["_id"]),
+                filters={**sample_filters, "filter_genes": filter_genes},
+            )
+            cnvs = store.cnv_handler.get_sample_cnvs(cnv_query)
+            if filter_cnveffects:
+                cnvs = cnvtype_variant(cnvs, filter_cnveffects)
+            cnvs = cnv_organizegenes(cnvs)
+            app.logger.info("Loaded DNA CNV list from Mongo for sample %s", sample_id)
 
         display_sections_data["cnvs"] = deepcopy(cnvs)
-        summary_sections_data["cnvs"] = list(
-            store.cnv_handler.get_interesting_sample_cnvs(sample_id=str(sample["_id"]))
-        )
+        summary_sections_data["cnvs"] = [cnv for cnv in cnvs if cnv.get("interesting")]
 
     if "BIOMARKER" in analysis_sections:
         display_sections_data["biomarkers"] = list(
@@ -272,17 +285,30 @@ def list_variants(sample_id: str) -> Response | str:
         summary_sections_data["biomarkers"] = display_sections_data["biomarkers"]
 
     if "TRANSLOCATION" in analysis_sections:
-        display_sections_data["translocs"] = store.transloc_handler.get_sample_translocations(
-            sample_id=str(sample["_id"])
-        )
+        translocs = []
+        if use_api_variants:
+            try:
+                transloc_payload = get_web_api_client().get_dna_translocations(
+                    sample_id=sample_id,
+                    headers=build_forward_headers(request.headers),
+                )
+                translocs = transloc_payload.translocations
+                app.logger.info("Loaded DNA translocation list from API service for sample %s", sample_id)
+            except ApiRequestError as exc:
+                app.logger.warning("DNA translocation API fetch failed for sample %s: %s", sample_id, exc)
+                if app.config.get("WEB_API_STRICT_MODE", False):
+                    return Response(str(exc), status=exc.status_code or 502)
+        if not translocs:
+            translocs = store.transloc_handler.get_sample_translocations(sample_id=str(sample["_id"]))
+            app.logger.info("Loaded DNA translocation list from Mongo for sample %s", sample_id)
+
+        display_sections_data["translocs"] = translocs
 
     if "FUSION" in analysis_sections:
         display_sections_data["fusions"] = []
-        summary_sections_data["translocs"] = (
-            store.transloc_handler.get_interesting_sample_translocations(
-                sample_id=str(sample["_id"])
-            )
-        )
+        summary_sections_data["translocs"] = [
+            transloc for transloc in display_sections_data.get("translocs", []) if transloc.get("interesting")
+        ]
 
     #################################################
 
