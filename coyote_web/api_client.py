@@ -46,6 +46,7 @@ class CoyoteApiClient:
         path: str,
         headers: dict[str, str] | None = None,
         params: dict[str, Any] | None = None,
+        json_body: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         url = f"{self._base_url}{path}"
         try:
@@ -55,6 +56,7 @@ class CoyoteApiClient:
                     url=url,
                     headers=headers or {},
                     params=params or None,
+                    json=json_body,
                 )
         except httpx.RequestError as exc:
             raise ApiRequestError(message=f"API request failed: {exc}") from exc
@@ -89,8 +91,9 @@ class CoyoteApiClient:
         path: str,
         headers: dict[str, str] | None = None,
         params: dict[str, Any] | None = None,
+        json_body: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        return self._request("POST", path, headers=headers, params=params)
+        return self._request("POST", path, headers=headers, params=params, json_body=json_body)
 
     def get_rna_fusions(
         self, sample_id: str, headers: dict[str, str] | None = None
@@ -405,6 +408,48 @@ class CoyoteApiClient:
             f"/api/v1/dna/samples/{sample_id}/variants/bulk/irrelevant",
             headers=headers,
             params={"apply": str(bool(apply)).lower(), "variant_ids": variant_ids},
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def classify_dna_variant(
+        self,
+        sample_id: str,
+        target_id: str,
+        form_data: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/variants/classify",
+            headers=headers,
+            json_body={"id": target_id, "form_data": form_data},
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def remove_dna_variant_classification(
+        self,
+        sample_id: str,
+        target_id: str,
+        form_data: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/variants/rmclassify",
+            headers=headers,
+            json_body={"id": target_id, "form_data": form_data},
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def add_dna_variant_comment(
+        self,
+        sample_id: str,
+        target_id: str,
+        form_data: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/comments/add",
+            headers=headers,
+            json_body={"id": target_id, "form_data": form_data},
         )
         return ApiMutationResultPayload.model_validate(payload)
 

@@ -112,7 +112,7 @@ Status values: `todo`, `in_progress`, `done`, `blocked`
 | P11-4 | API Readiness | Migrate API runtime from Flask blueprint routing to FastAPI while reusing current services and RBAC semantics | done | Native FastAPI app (`asgi.py`) now serves `/api/v1/*`; Flask API blueprint is disabled by default and kept behind compatibility toggle |
 | P11-5 | API Readiness | Add API-aware auth/permission error mode (JSON for API, redirects for web) in centralized enforcement path | done | Central `before_request` RBAC gate now returns JSON `401/403` for `/api/*` while keeping web redirects |
 | P12-1 | Frontend/API Strategy | Define target architecture: server-rendered web remains primary while API grows in parallel (no big-bang replacement) | done | Strategy adopted: phased migration with web-first continuity and feature-level cutover |
-| P12-2 | Frontend/API Strategy | Add parity endpoints for current high-traffic list/detail screens (DNA list/detail, RNA list/detail) using existing service layer | in_progress | DNA variant/CNV/translocation + RNA fusion list/detail, report preview/save, and DNA/RNA action mutation endpoints (including SNV mark/unmark/blacklist/comment-hide + bulk fp/irrelevant) are available under `/api/v1/{dna,rna}/samples/...` |
+| P12-2 | Frontend/API Strategy | Add parity endpoints for current high-traffic list/detail screens (DNA list/detail, RNA list/detail) using existing service layer | in_progress | DNA variant/CNV/translocation + RNA fusion list/detail, report preview/save, and DNA/RNA action mutation endpoints (including SNV classify/remove-classify/add-comment + mark/unmark/blacklist/comment-hide + bulk fp/irrelevant) are available under `/api/v1/{dna,rna}/samples/...` |
 | P12-3 | Frontend/API Strategy | Introduce web-side API client layer for progressive enhancement (read-only first, then write flows) | in_progress | Added server-side Python API client with typed domain models (`coyote_web/api_client.py`, `coyote_web/api_models/*`) for read/write blueprint flows; browser-side hydration helper removed |
 | P12-4 | Frontend/API Strategy | Ensure RBAC parity and consistent error payloads across web/API (401/403/404/AppError mapping) | in_progress | API-aware JSON error handling added in global error handlers; web templates preserved |
 | P12-5 | Frontend/API Strategy | Add migration toggles per feature page to switch between server-rendered data and API-backed data paths | done | Completed initial cutover, then removed page toggles; migrated pages now use API-only fail-fast reads (no fallback) |
@@ -1839,7 +1839,30 @@ Copy for each task:
   - SNV mark/unmark/blacklist/comment-hide and bulk fp/irrelevant paths now flow through API-only mutations from the web blueprint.
 - Rollback needed: no
 - Follow-up actions:
-  - Migrate remaining SNV routes that still perform direct store writes (`classify`, `rmclassify`, and add-comment authoring flows), then continue admin/common write-path cutover.
+  - Migrate remaining SNV routes that still perform direct store writes (bulk tier-assignment branch in `multi_class`), then continue admin/common write-path cutover.
+
+### Task P12-2/P12-3 (DNA Variant Authoring Cutover) - API-Only Classify/Comment Routes
+
+- Date: 2026-02-26
+- Owner: Codex
+- Scope:
+  - Add FastAPI mutation endpoints for SNV/Fusion classify/remove-classify and comment-authoring flows currently handled in `views_variant_actions.py`.
+  - Route these web handlers through JSON API client calls (no direct store writes in those route handlers).
+- Files changed:
+  - `coyote/fastapi_api/app.py` (added endpoints: `/api/v1/dna/samples/{sample_id}/variants/classify`, `/rmclassify`, `/comments/add`)
+  - `coyote_web/api_client.py` (added JSON-body request support and typed client methods for classify/remove/add-comment)
+  - `coyote/blueprints/dna/views_variant_actions.py` (rewired classify/remove/add-comment handlers to API client)
+  - `MIGRATION_PLAN_DNA_RNA_SHARED_SERVICES.md`
+- Validation executed:
+  - `PYTHONPATH=. .venv/bin/python -m py_compile coyote/fastapi_api/app.py coyote_web/api_client.py coyote/blueprints/dna/views_variant_actions.py`
+  - FastAPI TestClient auth-gate smoke checks:
+    - `POST /api/v1/dna/samples/{sample_id}/variants/classify` (`401` unauthenticated)
+    - `POST /api/v1/dna/samples/{sample_id}/comments/add` (`401` unauthenticated)
+- Result:
+  - Classify/remove-classify and add-comment authoring routes in DNA variant action module now execute through API-only boundaries.
+- Rollback needed: no
+- Follow-up actions:
+  - Migrate bulk tier-assignment execution path in `multi_class`, then move to admin/common write-route cutover.
 
 ---
 

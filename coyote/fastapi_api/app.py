@@ -6,7 +6,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 import os
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import Body, Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from flask.sessions import SecureCookieSessionInterface
 from itsdangerous import BadSignature
@@ -22,10 +22,11 @@ from coyote.services.dna.dna_filters import (
 )
 from coyote.services.dna.query_builders import build_cnv_query, build_query
 from coyote.services.dna.dna_reporting import hotspot_variant
-from coyote.services.dna.dna_variants import format_pon
+from coyote.services.dna.dna_variants import format_pon, get_variant_nomenclature
 from coyote.services.interpretation.annotation_enrichment import add_alt_class, add_global_annotations
 from coyote.services.workflow.dna_workflow import DNAWorkflowService
 from coyote.services.workflow.rna_workflow import RNAWorkflowService
+from coyote.services.interpretation.report_summary import create_comment_doc
 
 
 os.environ.setdefault("REQUIRE_EXTERNAL_API", "0")
@@ -559,6 +560,75 @@ def set_variant_irrelevant_bulk(
             store.variant_handler.unmark_irrelevant_var_bulk(variant_ids)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="variant_bulk", resource_id="bulk", action="set_irrelevant_bulk")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/variants/classify")
+def classify_variant_mutation(
+    sample_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="assign_tier", min_role="manager", min_level=99)),
+):
+    _get_sample_for_api(sample_id, user)
+    form_data = payload.get("form_data", {})
+    target_id = str(payload.get("id", "unknown"))
+    class_num = util.common.get_tier_classification(form_data)
+    nomenclature, variant = get_variant_nomenclature(form_data)
+    if class_num != 0:
+        store.annotation_handler.insert_classified_variant(variant, nomenclature, class_num, form_data)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="classification", resource_id=target_id, action="classify")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/variants/rmclassify")
+def remove_classified_variant_mutation(
+    sample_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="remove_tier", min_role="admin")),
+):
+    _get_sample_for_api(sample_id, user)
+    form_data = payload.get("form_data", {})
+    target_id = str(payload.get("id", "unknown"))
+    nomenclature, variant = get_variant_nomenclature(form_data)
+    store.annotation_handler.delete_classified_variant(variant, nomenclature, form_data)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="classification", resource_id=target_id, action="remove_classified")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/comments/add")
+def add_variant_comment_mutation(
+    sample_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="add_variant_comment", min_role="user", min_level=9)),
+):
+    _get_sample_for_api(sample_id, user)
+    form_data = payload.get("form_data", {})
+    target_id = str(payload.get("id", "unknown"))
+    nomenclature, variant = get_variant_nomenclature(form_data)
+    doc = create_comment_doc(form_data, nomenclature=nomenclature, variant=variant)
+    comment_scope = form_data.get("global")
+    if comment_scope == "global":
+        store.annotation_handler.add_anno_comment(doc)
+    if nomenclature == "f":
+        if comment_scope != "global":
+            store.fusion_handler.add_fusion_comment(target_id, doc)
+        resource = "fusion_comment"
+    elif nomenclature == "t":
+        if comment_scope != "global":
+            store.transloc_handler.add_transloc_comment(target_id, doc)
+        resource = "translocation_comment"
+    elif nomenclature == "cn":
+        if comment_scope != "global":
+            store.cnv_handler.add_cnv_comment(target_id, doc)
+        resource = "cnv_comment"
+    else:
+        if comment_scope != "global":
+            store.variant_handler.add_var_comment(target_id, doc)
+        resource = "variant_comment"
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource=resource, resource_id=target_id, action="add_comment")
     )
 
 

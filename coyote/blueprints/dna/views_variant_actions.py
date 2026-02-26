@@ -21,7 +21,6 @@ from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
 from coyote.services.interpretation.report_summary import (
     create_annotation_text_from_gene,
-    create_comment_doc,
 )
 from coyote.services.dna.dna_variants import get_variant_nomenclature
 from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
@@ -139,10 +138,16 @@ def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
 def classify_variant(sample_id: str, id: str = None) -> Response:
     id = id or request.view_args.get("var_id") or request.view_args.get("fus_id")
     form_data = request.form.to_dict()
-    class_num = util.common.get_tier_classification(form_data)
-    nomenclature, variant = get_variant_nomenclature(form_data)
-    if class_num != 0:
-        store.annotation_handler.insert_classified_variant(variant, nomenclature, class_num, form_data)
+    nomenclature, _variant = get_variant_nomenclature(form_data)
+    try:
+        get_web_api_client().classify_dna_variant(
+            sample_id=sample_id,
+            target_id=id,
+            form_data=form_data,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("Failed to classify variant via API for sample %s: %s", sample_id, exc)
 
     if nomenclature == "f":
         return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=id))
@@ -164,10 +169,17 @@ def classify_variant(sample_id: str, id: str = None) -> Response:
 def remove_classified_variant(sample_id: str, id: str | None = None) -> Response:
     id = id or request.view_args.get("var_id") or request.view_args.get("fus_id")
     form_data = request.form.to_dict()
-    nomenclature, variant = get_variant_nomenclature(form_data)
+    nomenclature, _variant = get_variant_nomenclature(form_data)
 
-    delete_result = store.annotation_handler.delete_classified_variant(variant, nomenclature, form_data)
-    app.logger.debug(delete_result)
+    try:
+        get_web_api_client().remove_dna_variant_classification(
+            sample_id=sample_id,
+            target_id=id,
+            form_data=form_data,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("Failed to remove classification via API for sample %s: %s", sample_id, exc)
     if nomenclature == "f":
         return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=id))
     return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=id))
@@ -205,28 +217,26 @@ def add_var_comment(sample_id: str, id: str = None, **kwargs) -> Response | str:
     )
 
     form_data = request.form.to_dict()
-    nomenclature, variant = get_variant_nomenclature(form_data)
-    doc = create_comment_doc(form_data, nomenclature=nomenclature, variant=variant)
+    nomenclature, _variant = get_variant_nomenclature(form_data)
     _type = form_data.get("global", None)
-    if _type == "global":
-        store.annotation_handler.add_anno_comment(doc)
-        flash("Global comment added", "green")
+    try:
+        get_web_api_client().add_dna_variant_comment(
+            sample_id=sample_id,
+            target_id=id,
+            form_data=form_data,
+            headers=build_forward_headers(request.headers),
+        )
+        if _type == "global":
+            flash("Global comment added", "green")
+    except ApiRequestError as exc:
+        app.logger.error("Failed to add comment via API for sample %s: %s", sample_id, exc)
 
     if nomenclature == "f":
-        if _type != "global":
-            store.fusion_handler.add_fusion_comment(id, doc)
         return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=id))
     if nomenclature == "t":
-        if _type != "global":
-            store.transloc_handler.add_transloc_comment(id, doc)
         return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=id))
     if nomenclature == "cn":
-        if _type != "global":
-            store.cnv_handler.add_cnv_comment(id, doc)
         return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=id))
-
-    if _type != "global":
-        store.variant_handler.add_var_comment(id, doc)
 
     return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=id))
 
