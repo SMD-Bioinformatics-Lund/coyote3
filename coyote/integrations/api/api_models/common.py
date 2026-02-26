@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import Field
 
-from coyote.web_api.api_models.base import ApiModel, JsonDict
+from coyote.integrations.api.api_models.base import ApiModel, JsonDict
 
 
 class ApiCommonGeneInfoPayload(ApiModel):

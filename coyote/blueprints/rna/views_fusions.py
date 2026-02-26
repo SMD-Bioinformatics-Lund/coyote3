@@ -30,7 +30,7 @@ from coyote.util.decorators.access import require_sample_access
 from coyote.services.interpretation.report_summary import generate_summary_text
 from coyote.services.rna.helpers import create_fusioncallers, create_fusioneffectlist
 from coyote.services.workflow.rna_workflow import RNAWorkflowService
-from coyote.web_api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 from copy import deepcopy
 
 

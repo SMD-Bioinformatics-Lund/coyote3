@@ -19,7 +19,7 @@ from coyote.extensions import store
 from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
 from coyote.services.dna.dna_variants import get_variant_nomenclature
-from coyote.web_api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/unfp", methods=["POST"])

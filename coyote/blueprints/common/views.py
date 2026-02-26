@@ -24,7 +24,7 @@ from coyote.blueprints.common.forms import TieredVariantSearchForm
 from flask import render_template
 from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
-from coyote.web_api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 import json
 from flask_login import login_required
 from typing import Any

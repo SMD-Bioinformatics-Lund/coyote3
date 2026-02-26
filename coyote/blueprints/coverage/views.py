@@ -29,7 +29,7 @@ from coyote.util.decorators.access import (
     require_group_access,
     require_sample_access,
 )
-from coyote.web_api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
 @cov_bp.route("/<string:sample_id>", methods=["GET", "POST"])

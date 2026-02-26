@@ -1,18 +1,18 @@
 """Domain-organized typed models for web API payloads."""
 
-from coyote.web_api.api_models.base import ApiMutationResultPayload
-from coyote.web_api.api_models.auth import ApiAuthLoginPayload, ApiAuthSessionUserPayload
-from coyote.web_api.api_models.dashboard import ApiDashboardSummaryPayload
-from coyote.web_api.api_models.common import (
+from coyote.integrations.api.api_models.base import ApiMutationResultPayload
+from coyote.integrations.api.api_models.auth import ApiAuthLoginPayload, ApiAuthSessionUserPayload
+from coyote.integrations.api.api_models.dashboard import ApiDashboardSummaryPayload
+from coyote.integrations.api.api_models.common import (
     ApiCommonGeneInfoPayload,
     ApiCommonTieredVariantPayload,
     ApiCommonTieredVariantSearchPayload,
 )
-from coyote.web_api.api_models.coverage import (
+from coyote.integrations.api.api_models.coverage import (
     ApiCoverageBlacklistedPayload,
     ApiCoverageSamplePayload,
 )
-from coyote.web_api.api_models.admin import (
+from coyote.integrations.api.api_models.admin import (
     ApiAdminPermissionContextPayload,
     ApiAdminPermissionCreateContextPayload,
     ApiAdminPermissionsPayload,
@@ -37,7 +37,7 @@ from coyote.web_api.api_models.admin import (
     ApiAdminUserCreateContextPayload,
     ApiAdminUsersPayload,
 )
-from coyote.web_api.api_models.dna import (
+from coyote.integrations.api.api_models.dna import (
     ApiDnaBiomarkersPayload,
     ApiDnaCnvsPayload,
     ApiDnaCnvDetailPayload,
@@ -48,7 +48,7 @@ from coyote.web_api.api_models.dna import (
     ApiDnaVariantDetailPayload,
     ApiDnaVariantsPayload,
 )
-from coyote.web_api.api_models.rna import (
+from coyote.integrations.api.api_models.rna import (
     ApiRnaFusionDetailPayload,
     ApiRnaFusionsPayload,
     ApiRnaReportPreviewPayload,

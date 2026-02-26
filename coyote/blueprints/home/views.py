@@ -38,7 +38,7 @@ from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
 from coyote.util.misc import get_sample_and_assay_config
 from coyote.services.audit_logs.decorators import log_action
-from coyote.web_api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 import os
 import re
 import json

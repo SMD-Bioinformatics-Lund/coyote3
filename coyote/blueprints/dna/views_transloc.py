@@ -16,7 +16,7 @@ from flask import Response, current_app as app, redirect, render_template, reque
 from coyote.blueprints.dna import dna_bp
 from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
-from coyote.web_api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
 @dna_bp.route("/<string:sample_id>/transloc/<string:transloc_id>")
