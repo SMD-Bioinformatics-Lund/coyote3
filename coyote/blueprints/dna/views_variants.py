@@ -31,10 +31,6 @@ from coyote.extensions import util
 from coyote.blueprints.dna import dna_bp
 from coyote.blueprints.dna.forms import DNAFilterForm
 from coyote.util.decorators.access import require_sample_access
-from coyote.services.interpretation.report_summary import (
-    generate_summary_text,
-)
-from coyote.services.workflow.dna_workflow import DNAWorkflowService
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 from coyote.errors.exceptions import AppError
 from PIL import Image
@@ -71,9 +67,7 @@ def list_variants(sample_id: str) -> Response | str:
     api_client = get_web_api_client()
 
     def _load_api_context():
-        payload = api_client.get_dna_variants(sample_id=sample_id, headers=headers)
-        DNAWorkflowService.validate_report_inputs(app.logger, payload.sample, payload.assay_config)
-        return payload
+        return api_client.get_dna_variants(sample_id=sample_id, headers=headers)
 
     try:
         variants_payload = _load_api_context()
@@ -85,22 +79,20 @@ def list_variants(sample_id: str) -> Response | str:
     sample = variants_payload.sample
     assay_config = variants_payload.assay_config
     assay_config_schema = variants_payload.assay_config_schema
-    assay_panel_doc = variants_payload.assay_panel_doc
     sample_has_filters = sample.get("filters", None)
     sample_filters = deepcopy(variants_payload.filters)
     sample_ids = variants_payload.sample_ids
     assay_group = variants_payload.assay_group or assay_config.get("asp_group", "unknown")
     subpanel = variants_payload.subpanel
     analysis_sections = variants_payload.analysis_sections
-    display_sections_data = {}
-    summary_sections_data = {}
+    display_sections_data = deepcopy(variants_payload.display_sections_data)
+    ai_text = variants_payload.ai_text
     app.logger.debug(f"Assay group: {assay_group} - Subpanel: {subpanel}")
 
     insilico_panel_genelists = variants_payload.assay_panels
     all_panel_genelist_names = variants_payload.all_panel_genelist_names
     checked_genelists = variants_payload.checked_genelists
     genes_covered_in_panel = variants_payload.checked_genelists_dict
-    filter_genes = variants_payload.filter_genes
     verification_sample_used = variants_payload.verification_sample_used
 
     if not sample_has_filters:
@@ -109,9 +101,10 @@ def list_variants(sample_id: str) -> Response | str:
             variants_payload = _load_api_context()
             sample = variants_payload.sample
             sample_filters = deepcopy(variants_payload.filters)
+            display_sections_data = deepcopy(variants_payload.display_sections_data)
+            ai_text = variants_payload.ai_text
             checked_genelists = variants_payload.checked_genelists
             genes_covered_in_panel = variants_payload.checked_genelists_dict
-            filter_genes = variants_payload.filter_genes
             verification_sample_used = variants_payload.verification_sample_used
         except ApiRequestError as exc:
             app.logger.error("Failed to reset DNA filters via API for sample %s: %s", sample_id, exc)
@@ -156,16 +149,16 @@ def list_variants(sample_id: str) -> Response | str:
             sample = variants_payload.sample
             assay_config = variants_payload.assay_config
             assay_config_schema = variants_payload.assay_config_schema
-            assay_panel_doc = variants_payload.assay_panel_doc
             sample_filters = deepcopy(variants_payload.filters)
             sample_ids = variants_payload.sample_ids
             assay_group = variants_payload.assay_group or assay_config.get("asp_group", "unknown")
             subpanel = variants_payload.subpanel
             analysis_sections = variants_payload.analysis_sections
+            display_sections_data = deepcopy(variants_payload.display_sections_data)
+            ai_text = variants_payload.ai_text
             insilico_panel_genelists = variants_payload.assay_panels
             checked_genelists = variants_payload.checked_genelists
             genes_covered_in_panel = variants_payload.checked_genelists_dict
-            filter_genes = variants_payload.filter_genes
             verification_sample_used = variants_payload.verification_sample_used
         except ApiRequestError as exc:
             app.logger.error("DNA variant API refresh failed for sample %s: %s", sample_id, exc)
@@ -187,78 +180,12 @@ def list_variants(sample_id: str) -> Response | str:
     )
     form.process(data=form_data)
 
-    variants = variants_payload.variants
-    tiered_variants = variants_payload.meta.get("tiered", [])
-
-    summary_sections_data["snvs"] = tiered_variants
-
-    display_sections_data["snvs"] = deepcopy(variants)
-
-    if "CNV" in analysis_sections:
-        try:
-            cnv_payload = api_client.get_dna_cnvs(
-                sample_id=sample_id,
-                headers=headers,
-            )
-            cnvs = cnv_payload.cnvs
-            app.logger.info("Loaded DNA CNV list from API service for sample %s", sample_id)
-        except ApiRequestError as exc:
-            app.logger.error("DNA CNV API fetch failed for sample %s: %s", sample_id, exc)
-            _raise_api_page_error(sample_id, "DNA CNVs", exc)
-
-        display_sections_data["cnvs"] = deepcopy(cnvs)
-        summary_sections_data["cnvs"] = [cnv for cnv in cnvs if cnv.get("interesting")]
-
-    if "BIOMARKER" in analysis_sections:
-        try:
-            biomarker_payload = api_client.get_dna_biomarkers(sample_id=sample_id, headers=headers)
-            display_sections_data["biomarkers"] = biomarker_payload.biomarkers
-            app.logger.info("Loaded DNA biomarker list from API service for sample %s", sample_id)
-        except ApiRequestError as exc:
-            app.logger.error("DNA biomarker API fetch failed for sample %s: %s", sample_id, exc)
-            _raise_api_page_error(sample_id, "DNA biomarkers", exc)
-        summary_sections_data["biomarkers"] = display_sections_data["biomarkers"]
-
-    if "TRANSLOCATION" in analysis_sections:
-        try:
-            transloc_payload = api_client.get_dna_translocations(
-                sample_id=sample_id,
-                headers=headers,
-            )
-            translocs = transloc_payload.translocations
-            app.logger.info("Loaded DNA translocation list from API service for sample %s", sample_id)
-        except ApiRequestError as exc:
-            app.logger.error("DNA translocation API fetch failed for sample %s: %s", sample_id, exc)
-            _raise_api_page_error(sample_id, "DNA translocations", exc)
-
-        display_sections_data["translocs"] = translocs
-
-    if "FUSION" in analysis_sections:
-        display_sections_data["fusions"] = []
-        summary_sections_data["translocs"] = [
-            transloc for transloc in display_sections_data.get("translocs", []) if transloc.get("interesting")
-        ]
-
-    # this is to allow old samples to view plots, cnv + cnvprofile clash. Old assays used cnv as the entry for the plot, newer assays use cnv for path to cnv-file that was loaded.
-    if "cnv" in sample:
-        if sample["cnv"].lower().endswith((".png", ".jpg", ".jpeg")):
-            sample["cnvprofile"] = sample["cnv"]
-
     bam_id = variants_payload.bam_id
     vep_variant_class_meta = variants_payload.vep_var_class_translations
     vep_conseq_meta = variants_payload.vep_conseq_translations
     oncokb_genes = variants_payload.oncokb_genes
 
     app.logger.info(f"oncokb_selected_genes : {oncokb_genes} ")
-
-    ai_text = generate_summary_text(
-        sample_ids,
-        assay_config,
-        assay_panel_doc,
-        summary_sections_data,
-        filter_genes,
-        checked_genelists,
-    )
 
     return render_template(
         "list_variants_vep.html",
@@ -305,10 +232,8 @@ def show_any_plot(sample_id: str, fn: str, angle: int = 90) -> Response | str:
         flash("Failed to load sample context for plot", "red")
         return redirect(url_for("home_bp.samples_home"))
 
-    sample = payload.sample
     assay_config = payload.assay_config
-    DNAWorkflowService.validate_report_inputs(app.logger, sample, assay_config)
-    base_dir = assay_config.get("reporting", {}).get("plots_path", None)
+    base_dir = payload.plots_base_dir or assay_config.get("reporting", {}).get("plots_path", None)
 
     if base_dir:
         file_path = os.path.join(base_dir, fn)

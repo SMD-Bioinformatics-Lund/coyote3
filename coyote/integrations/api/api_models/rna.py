@@ -24,6 +24,7 @@ class ApiRnaFusionsPayload(ApiModel):
     filters: JsonDict = Field(default_factory=dict)
     filter_context: JsonDict = Field(default_factory=dict)
     fusions: list[JsonDict] = Field(default_factory=list)
+    ai_text: str = ""
 
 
 class ApiRnaFusionDetailPayload(ApiModel):

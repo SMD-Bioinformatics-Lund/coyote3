@@ -4,6 +4,7 @@ from fastapi import Depends, Query, Request
 
 from coyote.extensions import store, util
 from coyote.services.interpretation.annotation_enrichment import add_global_annotations
+from coyote.services.interpretation.report_summary import generate_summary_text
 from coyote.services.workflow.rna_workflow import RNAWorkflowService
 from api.app import (
     ApiUser,
@@ -57,6 +58,16 @@ def list_rna_fusions(request: Request, sample_id: str, user: ApiUser = Depends(r
     )
     fusions = list(store.fusion_handler.get_sample_fusions(query))
     fusions, tiered_fusions = add_global_annotations(fusions, assay_group, subpanel)
+    sample = RNAWorkflowService.attach_rna_analysis_sections(sample)
+    summary_sections_data = {"fusions": tiered_fusions}
+    ai_text = generate_summary_text(
+        sample_ids,
+        assay_config,
+        assay_panel_doc,
+        summary_sections_data,
+        filter_context["filter_genes"],
+        filter_context["checked_fusionlists"],
+    )
 
     payload = {
         "sample": sample,
@@ -75,6 +86,7 @@ def list_rna_fusions(request: Request, sample_id: str, user: ApiUser = Depends(r
         "filters": sample_filters,
         "filter_context": filter_context,
         "fusions": fusions,
+        "ai_text": ai_text,
     }
     return util.common.convert_to_serializable(payload)
 

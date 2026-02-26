@@ -27,9 +27,6 @@ from coyote.blueprints.rna.forms import FusionFilter
 from coyote.extensions import util
 from coyote.blueprints.rna import rna_bp
 from coyote.util.decorators.access import require_sample_access
-from coyote.services.interpretation.report_summary import generate_summary_text
-from coyote.services.rna.helpers import create_fusioncallers, create_fusioneffectlist
-from coyote.services.workflow.rna_workflow import RNAWorkflowService
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 from copy import deepcopy
 
@@ -70,8 +67,6 @@ def list_fusions(sample_id: str) -> str | Response:
     sample_has_filters = sample.get("filters", None)
     assay_group = fusions_payload.assay_group or assay_config.get("asp_group", "unknown")
     subpanel = fusions_payload.subpanel
-    sample_ids = fusions_payload.sample_ids
-    assay_panel_doc = fusions_payload.assay_panel_doc
     fusionlist_options = fusions_payload.fusionlist_options
     sample_filters = deepcopy(fusions_payload.filters)
     filter_context = deepcopy(fusions_payload.filter_context)
@@ -97,12 +92,6 @@ def list_fusions(sample_id: str) -> str | Response:
         else:
             filters_from_form = util.common.format_filters_from_form(form, assay_config_schema)
             filters_from_form["fusionlists"] = request.form.getlist("fusionlist_id")
-            filters_from_form["fusion_callers"] = create_fusioncallers(
-                filters_from_form.get("fusion_callers", [])
-            )
-            filters_from_form["fusion_effects"] = create_fusioneffectlist(
-                filters_from_form.get("fusion_effects", [])
-            )
             if sample.get("filters", {}).get("adhoc_genes"):
                 filters_from_form["adhoc_genes"] = sample.get("filters", {}).get("adhoc_genes")
             try:
@@ -121,8 +110,6 @@ def list_fusions(sample_id: str) -> str | Response:
             assay_config_schema = fusions_payload.assay_config_schema
             sample_filters = deepcopy(fusions_payload.filters)
             filter_context = deepcopy(fusions_payload.filter_context)
-            sample_ids = fusions_payload.sample_ids
-            assay_panel_doc = fusions_payload.assay_panel_doc
             fusionlist_options = fusions_payload.fusionlist_options
         except ApiRequestError as exc:
             app.logger.error("RNA fusion API refresh failed for sample %s: %s", sample_id, exc)
@@ -137,8 +124,6 @@ def list_fusions(sample_id: str) -> str | Response:
             assay_config_schema = fusions_payload.assay_config_schema
             sample_filters = deepcopy(fusions_payload.filters)
             filter_context = deepcopy(fusions_payload.filter_context)
-            sample_ids = fusions_payload.sample_ids
-            assay_panel_doc = fusions_payload.assay_panel_doc
             fusionlist_options = fusions_payload.fusionlist_options
         except ApiRequestError as exc:
             app.logger.error("Failed to reset RNA filters via API for sample %s: %s", sample_id, exc)
@@ -158,21 +143,8 @@ def list_fusions(sample_id: str) -> str | Response:
     form.process(data=form_data)
 
     fusions = fusions_payload.fusions
-    summary_sections_data = {"fusions": fusions_payload.meta.get("tiered", [])}
+    ai_text = fusions_payload.ai_text
     app.logger.info("Loaded RNA fusion list from API service for sample %s", sample_id)
-
-    # TODO: load them as a display_sections_data instead of attaching to sample
-    sample = RNAWorkflowService.attach_rna_analysis_sections(sample)
-
-    # AI summary suggestion text for "Suggest" button, aligned with DNA flow.
-    ai_text = generate_summary_text(
-        sample_ids,
-        assay_config,
-        assay_panel_doc,
-        summary_sections_data,
-        filter_context["filter_genes"],
-        filter_context["checked_fusionlists"],
-    )
 
     # Your logic for handling RNA samples
     return render_template(

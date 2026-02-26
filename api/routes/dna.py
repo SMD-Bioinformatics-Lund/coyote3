@@ -15,7 +15,12 @@ from coyote.services.dna.dna_reporting import hotspot_variant
 from coyote.services.dna.dna_variants import format_pon, get_variant_nomenclature
 from coyote.services.dna.query_builders import build_cnv_query, build_query
 from coyote.services.interpretation.annotation_enrichment import add_alt_class, add_global_annotations
-from coyote.services.interpretation.report_summary import create_annotation_text_from_gene, create_comment_doc
+from coyote.services.interpretation.report_summary import (
+    create_annotation_text_from_gene,
+    create_comment_doc,
+    generate_summary_text,
+)
+from coyote.services.workflow.dna_workflow import DNAWorkflowService
 from api.app import (
     ApiUser,
     _api_error,
@@ -38,6 +43,15 @@ def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: s
     }
 
 
+def _load_cnvs_for_sample(sample: dict, sample_filters: dict, filter_genes: list[str]) -> list[dict]:
+    cnv_query = build_cnv_query(str(sample["_id"]), filters={**sample_filters, "filter_genes": filter_genes})
+    cnvs = list(store.cnv_handler.get_sample_cnvs(cnv_query))
+    filter_cnveffects = create_cnveffectlist(sample_filters.get("cnveffects", []))
+    if filter_cnveffects:
+        cnvs = cnvtype_variant(cnvs, filter_cnveffects)
+    return cnv_organizegenes(cnvs)
+
+
 @app.get("/api/v1/dna/samples/{sample_id}/variants")
 def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
@@ -46,9 +60,11 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
         raise _api_error(404, "Assay config not found for sample")
 
     sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
+    DNAWorkflowService.validate_report_inputs(flask_app.logger, sample, assay_config)
     sample_filters = deepcopy(sample.get("filters", {}))
     assay_group = assay_config.get("asp_group", "unknown")
     subpanel = sample.get("subpanel")
+    analysis_sections = assay_config.get("analysis_types", [])
 
     assay_panel_doc = store.asp_handler.get_asp(asp_name=sample.get("assay"))
     checked_genelists = sample_filters.get("genelists", [])
@@ -111,13 +127,48 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
             if hugo_symbol not in oncokb_genes:
                 oncokb_genes.append(hugo_symbol)
 
+    display_sections_data = {"snvs": deepcopy(variants)}
+    summary_sections_data = {"snvs": tiered_variants}
+
+    if "CNV" in analysis_sections:
+        cnvs = _load_cnvs_for_sample(sample, sample_filters, filter_genes)
+        display_sections_data["cnvs"] = deepcopy(cnvs)
+        summary_sections_data["cnvs"] = [cnv for cnv in cnvs if cnv.get("interesting")]
+
+    if "BIOMARKER" in analysis_sections:
+        biomarkers = list(store.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"])))
+        display_sections_data["biomarkers"] = biomarkers
+        summary_sections_data["biomarkers"] = biomarkers
+
+    if "TRANSLOCATION" in analysis_sections:
+        translocs = list(store.transloc_handler.get_sample_translocations(sample_id=str(sample["_id"])))
+        display_sections_data["translocs"] = translocs
+
+    if "FUSION" in analysis_sections:
+        display_sections_data["fusions"] = []
+        summary_sections_data["translocs"] = [
+            transloc for transloc in display_sections_data.get("translocs", []) if transloc.get("interesting")
+        ]
+
+    if "cnv" in sample and str(sample["cnv"]).lower().endswith((".png", ".jpg", ".jpeg")):
+        sample["cnvprofile"] = sample["cnv"]
+
+    ai_text = generate_summary_text(
+        sample_ids,
+        assay_config,
+        assay_panel_doc,
+        summary_sections_data,
+        filter_genes,
+        checked_genelists,
+    )
+
     payload = {
         "sample": sample,
         "meta": {"request_path": request.url.path, "count": len(variants), "tiered": tiered_variants},
         "filters": sample_filters,
         "assay_group": assay_group,
         "subpanel": subpanel,
-        "analysis_sections": assay_config.get("analysis_types", []),
+        "analysis_sections": analysis_sections,
         "assay_config": assay_config,
         "assay_config_schema": assay_config_schema,
         "assay_panel_doc": assay_panel_doc,
@@ -134,6 +185,8 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
         "oncokb_genes": oncokb_genes,
         "verification_sample_used": verification_sample_used,
         "variants": variants,
+        "display_sections_data": display_sections_data,
+        "ai_text": ai_text,
     }
     return util.common.convert_to_serializable(payload)
 
@@ -144,12 +197,14 @@ def dna_plot_context(sample_id: str, user: ApiUser = Depends(require_access(min_
     assay_config = _get_formatted_assay_config(sample)
     if not assay_config:
         raise _api_error(404, "Assay config not found for sample")
+    DNAWorkflowService.validate_report_inputs(flask_app.logger, sample, assay_config)
     assay_config_schema = store.schema_handler.get_schema(assay_config.get("schema_name"))
     return util.common.convert_to_serializable(
         {
             "sample": sample,
             "assay_config": assay_config,
             "assay_config_schema": assay_config_schema,
+            "plots_base_dir": assay_config.get("reporting", {}).get("plots_path", None),
         }
     )
 
@@ -638,12 +693,7 @@ def list_dna_cnvs(request: Request, sample_id: str, user: ApiUser = Depends(requ
     _genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
         sample, assay_panel_doc, checked_genelists_genes_dict
     )
-    cnv_query = build_cnv_query(str(sample["_id"]), filters={**sample_filters, "filter_genes": filter_genes})
-    cnvs = list(store.cnv_handler.get_sample_cnvs(cnv_query))
-    filter_cnveffects = create_cnveffectlist(sample_filters.get("cnveffects", []))
-    if filter_cnveffects:
-        cnvs = cnvtype_variant(cnvs, filter_cnveffects)
-    cnvs = cnv_organizegenes(cnvs)
+    cnvs = _load_cnvs_for_sample(sample, sample_filters, filter_genes)
 
     payload = {
         "sample": {

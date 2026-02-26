@@ -4,6 +4,8 @@ from fastapi import Body, Depends
 
 from coyote.extensions import store, util
 from coyote.services.interpretation.report_summary import create_comment_doc
+from coyote.services.rna.helpers import create_fusioncallers, create_fusioneffectlist
+from coyote.services.workflow.filter_normalization import normalize_rna_filter_keys
 from api.app import ApiUser, _api_error, _get_formatted_assay_config, _get_sample_for_api, app, require_access
 
 
@@ -69,7 +71,28 @@ def update_sample_filters_mutation(
     filters = payload.get("filters", {})
     if not isinstance(filters, dict):
         raise _api_error(400, "Invalid filters payload")
-    store.sample_handler.update_sample_filters(sample.get("_id"), filters)
+    normalized_filters = dict(filters)
+
+    if str(sample.get("omics_layer", "")).lower() == "rna":
+        normalized_filters = normalize_rna_filter_keys(normalized_filters)
+        normalized_filters["fusion_callers"] = create_fusioncallers(
+            normalized_filters.get("fusion_callers", [])
+        )
+        normalized_filters["fusion_effects"] = create_fusioneffectlist(
+            normalized_filters.get("fusion_effects", [])
+        )
+
+        fusionlists = normalized_filters.get("fusionlists")
+        if fusionlists is None:
+            normalized_filters["fusionlists"] = []
+        elif isinstance(fusionlists, str):
+            normalized_filters["fusionlists"] = [fusionlists] if fusionlists else []
+        elif isinstance(fusionlists, tuple):
+            normalized_filters["fusionlists"] = list(fusionlists)
+
+        normalized_filters["fusionlists"] = list(dict.fromkeys(normalized_filters.get("fusionlists", [])))
+
+    store.sample_handler.update_sample_filters(sample.get("_id"), normalized_filters)
     result = _mutation_payload(sample_id, resource="sample_filters", resource_id=str(sample.get("_id")), action="update")
     return util.common.convert_to_serializable(result)
 

@@ -32,12 +32,15 @@ class ApiDnaVariantsPayload(ApiModel):
     oncokb_genes: list[str] = Field(default_factory=list)
     verification_sample_used: str | None = None
     variants: list[JsonDict] = Field(default_factory=list)
+    display_sections_data: JsonDict = Field(default_factory=dict)
+    ai_text: str = ""
 
 
 class ApiDnaPlotContextPayload(ApiModel):
     sample: JsonDict = Field(default_factory=dict)
     assay_config: JsonDict = Field(default_factory=dict)
     assay_config_schema: JsonDict = Field(default_factory=dict)
+    plots_base_dir: str | None = None
 
 
 class ApiDnaBiomarkersPayload(ApiModel):
