@@ -372,6 +372,196 @@ def show_dna_variant(sample_id: str, var_id: str, user: ApiUser = Depends(requir
     return util.common.convert_to_serializable(payload)
 
 
+@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/unfp")
+def unmark_false_variant(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    variant = store.variant_handler.get_variant(var_id)
+    if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
+        raise _api_error(404, "Variant not found for sample")
+    store.variant_handler.unmark_false_positive_var(var_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="variant", resource_id=var_id, action="unmark_false_positive")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/fp")
+def mark_false_variant(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    variant = store.variant_handler.get_variant(var_id)
+    if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
+        raise _api_error(404, "Variant not found for sample")
+    store.variant_handler.mark_false_positive_var(var_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="variant", resource_id=var_id, action="mark_false_positive")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/uninterest")
+def unmark_interesting_variant(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    variant = store.variant_handler.get_variant(var_id)
+    if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
+        raise _api_error(404, "Variant not found for sample")
+    store.variant_handler.unmark_interesting_var(var_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="variant", resource_id=var_id, action="unmark_interesting")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/interest")
+def mark_interesting_variant(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    variant = store.variant_handler.get_variant(var_id)
+    if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
+        raise _api_error(404, "Variant not found for sample")
+    store.variant_handler.mark_interesting_var(var_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="variant", resource_id=var_id, action="mark_interesting")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/relevant")
+def unmark_irrelevant_variant(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    variant = store.variant_handler.get_variant(var_id)
+    if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
+        raise _api_error(404, "Variant not found for sample")
+    store.variant_handler.unmark_irrelevant_var(var_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="variant", resource_id=var_id, action="unmark_irrelevant")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/irrelevant")
+def mark_irrelevant_variant(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    variant = store.variant_handler.get_variant(var_id)
+    if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
+        raise _api_error(404, "Variant not found for sample")
+    store.variant_handler.mark_irrelevant_var(var_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="variant", resource_id=var_id, action="mark_irrelevant")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/blacklist")
+def add_variant_to_blacklist(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    variant = store.variant_handler.get_variant(var_id)
+    if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
+        raise _api_error(404, "Variant not found for sample")
+    assay_config = _get_formatted_assay_config(sample)
+    if not assay_config:
+        raise _api_error(404, "Assay config not found for sample")
+    assay_group = assay_config.get("asp_group", "unknown")
+    store.blacklist_handler.blacklist_variant(variant, assay_group)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="variant", resource_id=var_id, action="blacklist")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/comments/{comment_id}/hide")
+def hide_variant_comment(
+    sample_id: str,
+    var_id: str,
+    comment_id: str,
+    user: ApiUser = Depends(
+        require_access(permission="hide_variant_comment", min_role="manager", min_level=99)
+    ),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    variant = store.variant_handler.get_variant(var_id)
+    if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
+        raise _api_error(404, "Variant not found for sample")
+    store.variant_handler.hide_var_comment(var_id, comment_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="variant_comment", resource_id=comment_id, action="hide")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/comments/{comment_id}/unhide")
+def unhide_variant_comment(
+    sample_id: str,
+    var_id: str,
+    comment_id: str,
+    user: ApiUser = Depends(
+        require_access(permission="unhide_variant_comment", min_role="manager", min_level=99)
+    ),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    variant = store.variant_handler.get_variant(var_id)
+    if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
+        raise _api_error(404, "Variant not found for sample")
+    store.variant_handler.unhide_variant_comment(var_id, comment_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="variant_comment", resource_id=comment_id, action="unhide")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/variants/bulk/fp")
+def set_variant_false_positive_bulk(
+    sample_id: str,
+    apply: bool = Query(default=True),
+    variant_ids: list[str] = Query(default_factory=list),
+    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="user", min_level=9)),
+):
+    _get_sample_for_api(sample_id, user)
+    if variant_ids:
+        if apply:
+            store.variant_handler.mark_false_positive_var_bulk(variant_ids)
+        else:
+            store.variant_handler.unmark_false_positive_var_bulk(variant_ids)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="variant_bulk", resource_id="bulk", action="set_false_positive_bulk")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/variants/bulk/irrelevant")
+def set_variant_irrelevant_bulk(
+    sample_id: str,
+    apply: bool = Query(default=True),
+    variant_ids: list[str] = Query(default_factory=list),
+    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="user", min_level=9)),
+):
+    _get_sample_for_api(sample_id, user)
+    if variant_ids:
+        if apply:
+            store.variant_handler.mark_irrelevant_var_bulk(variant_ids)
+        else:
+            store.variant_handler.unmark_irrelevant_var_bulk(variant_ids)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="variant_bulk", resource_id="bulk", action="set_irrelevant_bulk")
+    )
+
+
 @app.get("/api/v1/rna/samples/{sample_id}/fusions")
 def list_rna_fusions(request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)

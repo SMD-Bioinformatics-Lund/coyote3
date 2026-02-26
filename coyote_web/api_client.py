@@ -311,6 +311,103 @@ class CoyoteApiClient:
         )
         return ApiMutationResultPayload.model_validate(payload)
 
+    def mark_dna_variant_false_positive(
+        self, sample_id: str, var_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(f"/api/v1/dna/samples/{sample_id}/variants/{var_id}/fp", headers=headers)
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def unmark_dna_variant_false_positive(
+        self, sample_id: str, var_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(f"/api/v1/dna/samples/{sample_id}/variants/{var_id}/unfp", headers=headers)
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def mark_dna_variant_interesting(
+        self, sample_id: str, var_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(f"/api/v1/dna/samples/{sample_id}/variants/{var_id}/interest", headers=headers)
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def unmark_dna_variant_interesting(
+        self, sample_id: str, var_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/variants/{var_id}/uninterest",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def mark_dna_variant_irrelevant(
+        self, sample_id: str, var_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/variants/{var_id}/irrelevant",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def unmark_dna_variant_irrelevant(
+        self, sample_id: str, var_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/variants/{var_id}/relevant",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def blacklist_dna_variant(
+        self, sample_id: str, var_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(f"/api/v1/dna/samples/{sample_id}/variants/{var_id}/blacklist", headers=headers)
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def hide_dna_variant_comment(
+        self, sample_id: str, var_id: str, comment_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/variants/{var_id}/comments/{comment_id}/hide",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def unhide_dna_variant_comment(
+        self, sample_id: str, var_id: str, comment_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/variants/{var_id}/comments/{comment_id}/unhide",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def set_dna_variants_false_positive_bulk(
+        self,
+        sample_id: str,
+        variant_ids: list[str],
+        apply: bool,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/variants/bulk/fp",
+            headers=headers,
+            params={"apply": str(bool(apply)).lower(), "variant_ids": variant_ids},
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def set_dna_variants_irrelevant_bulk(
+        self,
+        sample_id: str,
+        variant_ids: list[str],
+        apply: bool,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/variants/bulk/irrelevant",
+            headers=headers,
+            params={"apply": str(bool(apply)).lower(), "variant_ids": variant_ids},
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
     def mark_rna_fusion_false_positive(
         self, sample_id: str, fusion_id: str, headers: dict[str, str] | None = None
     ) -> ApiMutationResultPayload:
