@@ -8,6 +8,10 @@ from coyote.web_api.api_models.common import (
     ApiCommonTieredVariantPayload,
     ApiCommonTieredVariantSearchPayload,
 )
+from coyote.web_api.api_models.coverage import (
+    ApiCoverageBlacklistedPayload,
+    ApiCoverageSamplePayload,
+)
 from coyote.web_api.api_models.admin import (
     ApiAdminPermissionContextPayload,
     ApiAdminPermissionCreateContextPayload,
@@ -59,6 +63,8 @@ __all__ = [
     "ApiCommonGeneInfoPayload",
     "ApiCommonTieredVariantPayload",
     "ApiCommonTieredVariantSearchPayload",
+    "ApiCoverageSamplePayload",
+    "ApiCoverageBlacklistedPayload",
     "ApiAdminRolesPayload",
     "ApiAdminRoleCreateContextPayload",
     "ApiAdminRoleContextPayload",

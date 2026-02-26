@@ -52,6 +52,8 @@ from coyote.web_api.api_models import (
     ApiCommonGeneInfoPayload,
     ApiCommonTieredVariantPayload,
     ApiCommonTieredVariantSearchPayload,
+    ApiCoverageSamplePayload,
+    ApiCoverageBlacklistedPayload,
 )
 
 
@@ -170,6 +172,27 @@ class CoyoteApiClient:
             params["assays"] = assays
         payload = self._get("/api/v1/common/search/tiered_variants", headers=headers, params=params)
         return ApiCommonTieredVariantSearchPayload.model_validate(payload)
+
+    def get_coverage_sample(
+        self,
+        sample_id: str,
+        cov_cutoff: int = 500,
+        headers: dict[str, str] | None = None,
+    ) -> ApiCoverageSamplePayload:
+        payload = self._get(
+            f"/api/v1/coverage/samples/{sample_id}",
+            headers=headers,
+            params={"cov_cutoff": cov_cutoff},
+        )
+        return ApiCoverageSamplePayload.model_validate(payload)
+
+    def get_coverage_blacklisted(
+        self,
+        group: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiCoverageBlacklistedPayload:
+        payload = self._get(f"/api/v1/coverage/blacklisted/{group}", headers=headers)
+        return ApiCoverageBlacklistedPayload.model_validate(payload)
 
     def get_dna_variants(
         self, sample_id: str, headers: dict[str, str] | None = None

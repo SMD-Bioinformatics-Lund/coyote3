@@ -45,6 +45,7 @@ class ApiUser:
     permissions: list[str]
     denied_permissions: list[str]
     assays: list[str]
+    assay_groups: list[str]
 
 
 def _api_error(status_code: int, message: str) -> HTTPException:
@@ -109,6 +110,7 @@ def _decode_session_user(request: Request) -> ApiUser:
         permissions=list(user_model.permissions),
         denied_permissions=list(user_model.denied_permissions),
         assays=list(user_model.assays),
+        assay_groups=list(user_model.assay_groups),
     )
 
 
@@ -173,3 +175,4 @@ from api.routes import rna as _rna_routes  # noqa: F401
 from api.routes import reports as _report_routes  # noqa: F401
 from api.routes import dashboard as _dashboard_routes  # noqa: F401
 from api.routes import common as _common_routes  # noqa: F401
+from api.routes import coverage as _coverage_routes  # noqa: F401
