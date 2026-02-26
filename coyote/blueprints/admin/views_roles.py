@@ -15,10 +15,9 @@
 from copy import deepcopy
 
 from flask import Response, abort, flash, g, redirect, render_template, request, url_for
-from flask_login import current_user
 
 from coyote.blueprints.admin import admin_bp
-from coyote.extensions import store, util
+from coyote.extensions import util
 from coyote.services.audit_logs.decorators import log_action
 from coyote.services.auth.decorators import require
 from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
@@ -27,7 +26,12 @@ from coyote_web.api_client import ApiRequestError, build_forward_headers, get_we
 @admin_bp.route("/roles")
 @require("view_role", min_role="admin", min_level=99999)
 def list_roles() -> str:
-    roles = store.roles_handler.get_all_roles()
+    try:
+        payload = get_web_api_client().get_admin_roles(headers=build_forward_headers(request.headers))
+        roles = payload.roles
+    except ApiRequestError as exc:
+        flash(f"Failed to fetch roles: {exc}", "red")
+        roles = []
     return render_template("roles/roles.html", roles=roles)
 
 
@@ -35,44 +39,17 @@ def list_roles() -> str:
 @require("create_role", min_role="admin", min_level=99999)
 @log_action(action_name="create_role", call_type="admin_call")
 def create_role() -> Response | str:
-    active_schemas = store.schema_handler.get_schemas_by_category_type(
-        schema_type="rbac_role",
-        schema_category="RBAC_role",
-        is_active=True,
-    )
-
-    if not active_schemas:
-        flash("No active role schemas found!", "red")
+    try:
+        context = get_web_api_client().get_admin_role_create_context(
+            schema_id=request.args.get("schema_id"),
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        flash(f"Failed to load role schema context: {exc}", "red")
         return redirect(url_for("admin_bp.list_roles"))
 
-    selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
-    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
-    if not schema:
-        flash("Selected schema not found!", "red")
-        return redirect(url_for("admin_bp.list_roles"))
-
-    permission_policies = store.permissions_handler.get_all_permissions(is_active=True)
-    schema["fields"]["permissions"]["options"] = [
-        {
-            "value": p["_id"],
-            "label": p.get("label", p["_id"]),
-            "category": p.get("category", "Uncategorized"),
-        }
-        for p in permission_policies
-    ]
-    schema["fields"]["deny_permissions"]["options"] = [
-        {
-            "value": p["_id"],
-            "label": p.get("label", p["_id"]),
-            "category": p.get("category", "Uncategorized"),
-        }
-        for p in permission_policies
-    ]
-
-    schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = util.common.utc_now()
-    schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
+    schema = context.schema
+    active_schemas = context.schemas
 
     if request.method == "POST":
         form_data: dict[str, str | list[str]] = {
@@ -81,7 +58,7 @@ def create_role() -> Response | str:
         }
         try:
             payload = get_web_api_client().create_admin_role(
-                schema_id=schema["_id"],
+                schema_id=context.selected_schema.get("_id"),
                 form_data=form_data,
                 headers=build_forward_headers(request.headers),
             )
@@ -103,32 +80,19 @@ def create_role() -> Response | str:
 @require("edit_role", min_role="admin", min_level=99999)
 @log_action(action_name="edit_role", call_type="admin_call")
 def edit_role(role_id: str) -> Response | str:
-    role = store.roles_handler.get_role(role_id)
-    if not role:
-        return abort(404)
+    try:
+        context = get_web_api_client().get_admin_role_context(
+            role_id=role_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        if exc.status_code == 404:
+            return abort(404)
+        flash(f"Failed to load role context: {exc}", "red")
+        return redirect(url_for("admin_bp.list_roles"))
 
-    schema = store.schema_handler.get_schema(role.get("schema_name"))
-
-    permission_policies = store.permissions_handler.get_all_permissions(is_active=True)
-    schema["fields"]["permissions"]["options"] = [
-        {
-            "value": p["_id"],
-            "label": p.get("label", p["_id"]),
-            "category": p.get("category", "Uncategorized"),
-        }
-        for p in permission_policies
-    ]
-    schema["fields"]["deny_permissions"]["options"] = [
-        {
-            "value": p["_id"],
-            "label": p.get("label", p["_id"]),
-            "category": p.get("category", "Uncategorized"),
-        }
-        for p in permission_policies
-    ]
-
-    schema["fields"]["permissions"]["default"] = role.get("permissions")
-    schema["fields"]["deny_permissions"]["default"] = role.get("deny_permissions")
+    role = context.role
+    schema = context.schema
 
     selected_version = request.args.get("version", type=int)
     delta = None
@@ -178,14 +142,19 @@ def edit_role(role_id: str) -> Response | str:
 @require("view_role", min_role="admin", min_level=99999)
 @log_action(action_name="view_role", call_type="admin_call")
 def view_role(role_id: str) -> Response | str:
-    role = store.roles_handler.get_role(role_id)
-    if not role:
-        return abort(404)
-
-    schema = store.schema_handler.get_schema(role.get("schema_name"))
-    if not schema:
-        flash("Schema for this role is missing.", "red")
+    try:
+        context = get_web_api_client().get_admin_role_context(
+            role_id=role_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        if exc.status_code == 404:
+            return abort(404)
+        flash(f"Failed to load role context: {exc}", "red")
         return redirect(url_for("admin_bp.list_roles"))
+
+    role = context.role
+    schema = context.schema
 
     selected_version = request.args.get("version", type=int)
     delta = None
@@ -216,10 +185,6 @@ def view_role(role_id: str) -> Response | str:
 @require("edit_role", min_role="admin", min_level=99999)
 @log_action(action_name="edit_role", call_type="admin_call")
 def toggle_role_active(role_id: str) -> Response:
-    role = store.roles_handler.get(role_id)
-    if not role:
-        return abort(404)
-
     try:
         payload = get_web_api_client().toggle_admin_role(
             role_id=role_id,
@@ -235,6 +200,8 @@ def toggle_role_active(role_id: str) -> Response:
             "green",
         )
     except ApiRequestError as exc:
+        if exc.status_code == 404:
+            return abort(404)
         flash(f"Failed to toggle role: {exc}", "red")
     return redirect(url_for("admin_bp.list_roles"))
 
@@ -243,10 +210,6 @@ def toggle_role_active(role_id: str) -> Response:
 @require("delete_role", min_role="admin", min_level=99999)
 @log_action(action_name="delete_role", call_type="admin_call")
 def delete_role(role_id: str) -> Response:
-    role = store.roles_handler.get_role(role_id)
-    if not role:
-        return abort(404)
-
     try:
         get_web_api_client().delete_admin_role(
             role_id=role_id,
@@ -255,5 +218,7 @@ def delete_role(role_id: str) -> Response:
         g.audit_metadata = {"role": role_id}
         flash(f"Role '{role_id}' deleted successfully.", "green")
     except ApiRequestError as exc:
+        if exc.status_code == 404:
+            return abort(404)
         flash(f"Failed to delete role: {exc}", "red")
     return redirect(url_for("admin_bp.list_roles"))

@@ -9,6 +9,9 @@ import httpx
 from flask import current_app
 
 from coyote_web.api_models import (
+    ApiAdminRoleContextPayload,
+    ApiAdminRoleCreateContextPayload,
+    ApiAdminRolesPayload,
     ApiMutationResultPayload,
     ApiDnaBiomarkersPayload,
     ApiDnaCnvsPayload,
@@ -638,6 +641,30 @@ class CoyoteApiClient:
             json_body={"schema_id": schema_id, "form_data": form_data},
         )
         return ApiMutationResultPayload.model_validate(payload)
+
+    def get_admin_roles(
+        self,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminRolesPayload:
+        payload = self._get("/api/v1/admin/roles", headers=headers)
+        return ApiAdminRolesPayload.model_validate(payload)
+
+    def get_admin_role_create_context(
+        self,
+        schema_id: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminRoleCreateContextPayload:
+        params = {"schema_id": schema_id} if schema_id else None
+        payload = self._get("/api/v1/admin/roles/create_context", headers=headers, params=params)
+        return ApiAdminRoleCreateContextPayload.model_validate(payload)
+
+    def get_admin_role_context(
+        self,
+        role_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminRoleContextPayload:
+        payload = self._get(f"/api/v1/admin/roles/{role_id}/context", headers=headers)
+        return ApiAdminRoleContextPayload.model_validate(payload)
 
     def update_admin_role(
         self,

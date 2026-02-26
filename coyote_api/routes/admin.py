@@ -2,7 +2,7 @@
 
 from copy import deepcopy
 
-from fastapi import Body, Depends
+from fastapi import Body, Depends, Query
 
 from coyote.extensions import store, util
 from coyote_api.app import ApiUser, _api_error, _get_sample_for_api, app, require_access
@@ -17,6 +17,89 @@ def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: s
         "action": action,
         "meta": {"status": "updated"},
     }
+
+
+def _permission_policy_options() -> list[dict]:
+    permission_policies = store.permissions_handler.get_all_permissions(is_active=True)
+    return [
+        {
+            "value": p["_id"],
+            "label": p.get("label", p["_id"]),
+            "category": p.get("category", "Uncategorized"),
+        }
+        for p in permission_policies
+    ]
+
+
+@app.get("/api/v1/admin/roles")
+def list_roles_read(
+    user: ApiUser = Depends(require_access(permission="view_role", min_role="admin", min_level=99999)),
+):
+    roles = store.roles_handler.get_all_roles()
+    return util.common.convert_to_serializable({"roles": roles})
+
+
+@app.get("/api/v1/admin/roles/create_context")
+def create_role_context_read(
+    schema_id: str | None = Query(default=None),
+    user: ApiUser = Depends(require_access(permission="create_role", min_role="admin", min_level=99999)),
+):
+    active_schemas = store.schema_handler.get_schemas_by_category_type(
+        schema_type="rbac_role",
+        schema_category="RBAC_role",
+        is_active=True,
+    )
+    if not active_schemas:
+        raise _api_error(400, "No active role schemas found")
+
+    selected_id = schema_id or active_schemas[0]["_id"]
+    selected_schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+    if not selected_schema:
+        raise _api_error(404, "Selected schema not found")
+
+    schema = deepcopy(selected_schema)
+    options = _permission_policy_options()
+    schema["fields"]["permissions"]["options"] = options
+    schema["fields"]["deny_permissions"]["options"] = options
+    schema["fields"]["created_by"]["default"] = user.username
+    schema["fields"]["created_on"]["default"] = util.common.utc_now()
+    schema["fields"]["updated_by"]["default"] = user.username
+    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
+
+    return util.common.convert_to_serializable(
+        {
+            "schemas": active_schemas,
+            "selected_schema": selected_schema,
+            "schema": schema,
+        }
+    )
+
+
+@app.get("/api/v1/admin/roles/{role_id}/context")
+def role_context_read(
+    role_id: str,
+    user: ApiUser = Depends(require_access(permission="view_role", min_role="admin", min_level=99999)),
+):
+    role = store.roles_handler.get_role(role_id)
+    if not role:
+        raise _api_error(404, "Role not found")
+    schema = store.schema_handler.get_schema(role.get("schema_name"))
+    if not schema:
+        raise _api_error(404, "Schema not found for role")
+
+    schema = deepcopy(schema)
+    options = _permission_policy_options()
+    schema["fields"]["permissions"]["options"] = options
+    schema["fields"]["deny_permissions"]["options"] = options
+    schema["fields"]["permissions"]["default"] = role.get("permissions")
+    schema["fields"]["deny_permissions"]["default"] = role.get("deny_permissions")
+
+    return util.common.convert_to_serializable(
+        {
+            "role": role,
+            "schema": schema,
+        }
+    )
 
 
 @app.post("/api/v1/admin/permissions/create")
