@@ -14,14 +14,10 @@
 
 from flask import current_app as app
 from flask import Response, flash, redirect, request, url_for
-from copy import deepcopy
 from coyote.blueprints.dna import dna_bp
-from coyote.extensions import store, util
+from coyote.extensions import store
 from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
-from coyote.services.interpretation.report_summary import (
-    create_annotation_text_from_gene,
-)
 from coyote.services.dna.dna_variants import get_variant_nomenclature
 from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
@@ -288,61 +284,20 @@ def classify_multi_variant(sample_id: str) -> Response:
     false_positive = request.form.get("false_positive")
 
     if tier and action == "apply":
-        bulk_docs = []
-        for variant_id in variants_to_modify:
-            var = store.variant_handler.get_variant(str(variant_id))
-            if not var:
-                continue
-
-            selected_csq = var.get("INFO", {}).get("selected_CSQ", {})
-            transcript = selected_csq.get("Feature")
-            gene = selected_csq.get("SYMBOL")
-            hgvs_p = selected_csq.get("HGVSp")
-            hgvs_c = selected_csq.get("HGVSc")
-            hgvs_g = f"{var['CHROM']}:{var['POS']}:{var['REF']}/{var['ALT']}"
-            consequence = selected_csq.get("Consequence")
-            gene_oncokb = store.oncokb_handler.get_oncokb_gene(gene)
-
-            text = create_annotation_text_from_gene(
-                gene, consequence, assay_group, gene_oncokb=gene_oncokb
+        try:
+            get_web_api_client().set_dna_variants_tier_bulk(
+                sample_id=sample_id,
+                variant_ids=variants_to_modify,
+                assay_group=assay_group,
+                subpanel=subpanel,
+                headers=build_forward_headers(request.headers),
             )
-
-            nomenclature = "p"
-            if hgvs_p != "" and hgvs_p is not None:
-                variant = hgvs_p
-            elif hgvs_c != "" and hgvs_c is not None:
-                variant = hgvs_c
-                nomenclature = "c"
-            else:
-                variant = hgvs_g
-                nomenclature = "g"
-
-            variant_data = {
-                "gene": gene,
-                "assay_group": assay_group,
-                "subpanel": subpanel,
-                "transcript": transcript,
-            }
-
-            class_doc = util.common.create_classified_variant_doc(
-                variant=variant,
-                nomenclature=nomenclature,
-                class_num=3,
-                variant_data=variant_data,
+        except ApiRequestError as exc:
+            app.logger.error(
+                "Failed to bulk assign variant tier via API for sample %s: %s",
+                sample_id,
+                exc,
             )
-            bulk_docs.append(deepcopy(class_doc))
-
-            text_doc = util.common.create_classified_variant_doc(
-                variant=variant,
-                nomenclature=nomenclature,
-                class_num=3,
-                variant_data=variant_data,
-                text=text,
-            )
-            bulk_docs.append(deepcopy(text_doc))
-
-        if bulk_docs:
-            store.annotation_handler.insert_annotation_bulk(bulk_docs)
 
     if false_positive:
         if action == "apply":

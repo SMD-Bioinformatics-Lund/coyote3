@@ -411,6 +411,25 @@ class CoyoteApiClient:
         )
         return ApiMutationResultPayload.model_validate(payload)
 
+    def set_dna_variants_tier_bulk(
+        self,
+        sample_id: str,
+        variant_ids: list[str],
+        assay_group: str | None,
+        subpanel: str | None,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/variants/bulk/tier",
+            headers=headers,
+            json_body={
+                "variant_ids": variant_ids,
+                "assay_group": assay_group,
+                "subpanel": subpanel,
+            },
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
     def classify_dna_variant(
         self,
         sample_id: str,

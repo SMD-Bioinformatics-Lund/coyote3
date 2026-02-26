@@ -26,7 +26,7 @@ from coyote.services.dna.dna_variants import format_pon, get_variant_nomenclatur
 from coyote.services.interpretation.annotation_enrichment import add_alt_class, add_global_annotations
 from coyote.services.workflow.dna_workflow import DNAWorkflowService
 from coyote.services.workflow.rna_workflow import RNAWorkflowService
-from coyote.services.interpretation.report_summary import create_comment_doc
+from coyote.services.interpretation.report_summary import create_annotation_text_from_gene, create_comment_doc
 
 
 os.environ.setdefault("REQUIRE_EXTERNAL_API", "0")
@@ -601,6 +601,82 @@ def set_variant_irrelevant_bulk(
             store.variant_handler.unmark_irrelevant_var_bulk(variant_ids)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="variant_bulk", resource_id="bulk", action="set_irrelevant_bulk")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/variants/bulk/tier")
+def set_variant_tier_bulk(
+    sample_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="user", min_level=9)),
+):
+    _get_sample_for_api(sample_id, user)
+    variant_ids = payload.get("variant_ids", []) or []
+    assay_group = payload.get("assay_group")
+    subpanel = payload.get("subpanel")
+    if not variant_ids:
+        return util.common.convert_to_serializable(
+            _mutation_payload(sample_id, resource="variant_bulk", resource_id="bulk", action="set_tier_bulk")
+        )
+
+    bulk_docs = []
+    for variant_id in variant_ids:
+        var = store.variant_handler.get_variant(str(variant_id))
+        if not var:
+            continue
+
+        selected_csq = var.get("INFO", {}).get("selected_CSQ", {})
+        transcript = selected_csq.get("Feature")
+        gene = selected_csq.get("SYMBOL")
+        hgvs_p = selected_csq.get("HGVSp")
+        hgvs_c = selected_csq.get("HGVSc")
+        hgvs_g = f"{var['CHROM']}:{var['POS']}:{var['REF']}/{var['ALT']}"
+        consequence = selected_csq.get("Consequence")
+        gene_oncokb = store.oncokb_handler.get_oncokb_gene(gene)
+
+        text = create_annotation_text_from_gene(
+            gene, consequence, assay_group, gene_oncokb=gene_oncokb
+        )
+
+        nomenclature = "p"
+        if hgvs_p != "" and hgvs_p is not None:
+            variant = hgvs_p
+        elif hgvs_c != "" and hgvs_c is not None:
+            variant = hgvs_c
+            nomenclature = "c"
+        else:
+            variant = hgvs_g
+            nomenclature = "g"
+
+        variant_data = {
+            "gene": gene,
+            "assay_group": assay_group,
+            "subpanel": subpanel,
+            "transcript": transcript,
+        }
+
+        class_doc = util.common.create_classified_variant_doc(
+            variant=variant,
+            nomenclature=nomenclature,
+            class_num=3,
+            variant_data=variant_data,
+        )
+        bulk_docs.append(deepcopy(class_doc))
+
+        text_doc = util.common.create_classified_variant_doc(
+            variant=variant,
+            nomenclature=nomenclature,
+            class_num=3,
+            variant_data=variant_data,
+            text=text,
+        )
+        bulk_docs.append(deepcopy(text_doc))
+
+    if bulk_docs:
+        store.annotation_handler.insert_annotation_bulk(bulk_docs)
+
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="variant_bulk", resource_id="bulk", action="set_tier_bulk")
     )
 
 
