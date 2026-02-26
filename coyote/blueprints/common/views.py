@@ -21,19 +21,12 @@ from flask import Response, redirect, request, url_for, flash, abort
 from flask import current_app as app
 from coyote.blueprints.common import common_bp
 from coyote.blueprints.common.forms import TieredVariantSearchForm
-from coyote.extensions import store, util
 from flask import render_template
-from flask_login import current_user
-import traceback
 from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
-from coyote.services.interpretation.report_summary import (
-    enrich_reported_variant_docs,
-)
 from coyote.web_api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 import json
 from flask_login import login_required
-from copy import deepcopy
 from typing import Any
 
 
@@ -195,12 +188,16 @@ def gene_info(id: str) -> str:
     Returns:
         str: Rendered HTML content for the 'gene_info.html' template.
     """
-
-    if id.isnumeric():
-        gene = store.hgnc_handler.get_metadata_by_hgnc_id(hgnc_id=id)
-    else:
-        gene = store.hgnc_handler.get_metadata_by_symbol(symbol=id)
-
+    gene: dict[str, Any] = {}
+    try:
+        payload = get_web_api_client().get_common_gene_info(
+            gene_id=id,
+            headers=build_forward_headers(request.headers),
+        )
+        gene = payload.gene or {}
+    except ApiRequestError as exc:
+        app.logger.error("Failed to fetch gene info via API for %s: %s", id, exc)
+        flash("Failed to load gene info", "red")
     return render_template("gene_info.html", gene=gene)
 
 
@@ -211,55 +208,24 @@ def list_samples_with_tiered_variant(variant_id: str, tier: int):
     """
     Show reported variants across samples that match this variant identity and tier.
     """
-    variant = store.variant_handler.get_variant(variant_id)
-    if not variant:
-        abort(404)
-
-    csq = variant.get("INFO", {}).get("selected_CSQ", {}) or {}
-
-    gene = csq.get("SYMBOL")
-    simple_id = variant.get("simple_id")
-    simple_id_hash = variant.get("simple_id_hash")
-    hgvsc = csq.get("HGVSc")
-    hgvsp = csq.get("HGVSp")
-
-    # ---- build OR conditions ----
-    or_conditions = []
-    if simple_id or simple_id_hash:
-        if simple_id_hash:
-            or_conditions.append({"simple_id_hash": simple_id_hash})
-        elif simple_id:
-            or_conditions.append({"simple_id": simple_id})
-    else:
-        if hgvsc:
-            or_conditions.append({"hgvsc": hgvsc})
-        elif hgvsp:
-            or_conditions.append({"hgvsp": hgvsp})
-
-    if not gene or not or_conditions:
-        return render_template(
-            "tiered_variant_info.html",
-            variant=variant,
-            docs=[],
-            error="Variant has insufficient identity fields",
+    try:
+        payload = get_web_api_client().get_common_tiered_variant_context(
+            variant_id=variant_id,
+            tier=tier,
+            headers=build_forward_headers(request.headers),
         )
-
-    # ---- ONE final query ----
-    query = {
-        "gene": gene,
-        "$or": or_conditions,
-    }
-
-    docs = store.reported_variants_handler.list_reported_variants(query)
-
-    # Enrich docs with sample details, variant details, report details
-    docs = enrich_reported_variant_docs(deepcopy(docs))
-
+    except ApiRequestError as exc:
+        if exc.status_code == 404:
+            abort(404)
+        app.logger.error("Failed to fetch tiered variant context via API for %s: %s", variant_id, exc)
+        flash("Failed to load tiered variant context", "red")
+        return render_template("tiered_variant_info.html", docs=[], variant={}, tier=tier)
     return render_template(
         "tiered_variant_info.html",
-        docs=docs,
-        variant=variant,
-        tier=tier,
+        docs=payload.docs,
+        variant=payload.variant,
+        tier=payload.tier or tier,
+        error=payload.error,
     )
 
 
@@ -270,13 +236,21 @@ def search_tiered_variants():
     Search reported variants across samples by gene name, variant id, HGVSc, or HGVSp.
     """
     form = TieredVariantSearchForm()
-    form.assay.choices = store.asp_handler.get_all_asp_groups()
-
-    limit_entries = app.config.get("TIERED_VARIANT_SEARCH_LIMIT", 1000)
-    search_str = None
     search_mode = form.search_options.default
     include_annotation_text = form.include_annotation_text.default
     assays = form.assay.default
+
+    search_str = None
+    try:
+        bootstrap_payload = get_web_api_client().search_common_tiered_variants(
+            search_mode=search_mode,
+            include_annotation_text=bool(include_annotation_text),
+            assays=assays,
+            headers=build_forward_headers(request.headers),
+        )
+        form.assay.choices = bootstrap_payload.assay_choices
+    except ApiRequestError:
+        form.assay.choices = []
 
     if request.method == "POST":
         if form.validate_on_submit():
@@ -318,85 +292,30 @@ def search_tiered_variants():
             assays = assays_qs
             form.assay.data = assays
 
-    docs_found = store.annotation_handler.find_variants_by_search_string(
-        search_str=search_str,
-        search_mode=search_mode,
-        include_annotation_text=include_annotation_text,
-        assays=assays,
-        limit=limit_entries,
-    )
-
-    tier_stats = {"total": {}, "by_assay": {}}
-    if search_mode != "variant" and search_str:
-        tier_stats = store.annotation_handler.get_tier_stats_by_search(
+    try:
+        payload = get_web_api_client().search_common_tiered_variants(
             search_str=search_str,
             search_mode=search_mode,
             include_annotation_text=include_annotation_text,
-            assays=assays,  # list or None
+            assays=assays,
+            headers=build_forward_headers(request.headers),
         )
-
-    # Search in reported docs
-    sample_tagged_docs = []
-
-    # remove text only annotations that are already associated with variants
-    _annotation_text_oids_associated_with_variants: set[str] = set()
-
-    for doc in docs_found:
-        _doc = deepcopy(doc)
-        _sample_oids = {}
-        _reported_docs = []
-
-        query = {"annotation_oid": doc["_id"]}
-
-        _reported_docs = store.reported_variants_handler.list_reported_variants(query)
-
-        for _reported_doc in _reported_docs:
-            _sample_oid = _reported_doc.get("sample_oid")
-            _report_oid = _reported_doc.get("report_oid")
-            _annotation_text_oid = _reported_doc.get("annotation_text_oid")
-            _report_id = _reported_doc.get("report_id")
-            _sample = store.sample_handler.get_sample_by_oid(_sample_oid)
-            _sample_name = (
-                _reported_doc.get("sample_name") or _sample.get("name") if _sample else None
-            )
-            _report_num = next(
-                (
-                    rpt.get("report_num")
-                    for rpt in (_sample.get("reports") or [])
-                    if rpt.get("_id") == _report_oid
-                ),
-                None,
-            )
-
-            if _sample_oid:
-                if _sample_oid not in _sample_oids:
-                    _sample_oids[_sample_oid] = {
-                        "sample_name": _sample_name if _sample_name else "UNKNOWN_SAMPLE",
-                        "report_oids": {},
-                    }
-                if _report_oid and _report_id:
-                    if _report_oid not in _sample_oids.get(_sample_oid, {}).get("report_oids", {}):
-                        _sample_oids[_sample_oid]["report_oids"][_report_id] = _report_num
-
-            if include_annotation_text and _annotation_text_oid:
-                _annotation_text_oids_associated_with_variants.add(_annotation_text_oid)
-                _doc["text"] = store.annotation_handler.get_annotation_text_by_oid(
-                    _annotation_text_oid
-                )
-
-        _doc["reported_docs"] = _reported_docs
-        _doc["samples"] = _sample_oids
-
-        if _doc.get("_id") not in _annotation_text_oids_associated_with_variants:
-            sample_tagged_docs.append(_doc)
+        form.assay.choices = payload.assay_choices
+    except ApiRequestError as exc:
+        app.logger.error("Failed to search tiered variants via API: %s", exc)
+        flash("Failed to search tiered variants", "red")
+        form.assay.choices = []
+        payload = None
 
     return render_template(
         "search_tiered_variants.html",
-        docs=sample_tagged_docs,
-        search_str=search_str,
-        search_mode=search_mode,
-        include_annotation_text=include_annotation_text,
-        tier_stats=tier_stats,
-        assays=assays,
+        docs=(payload.docs if payload else []),
+        search_str=(payload.search_str if payload else search_str),
+        search_mode=(payload.search_mode if payload else search_mode),
+        include_annotation_text=(
+            payload.include_annotation_text if payload else include_annotation_text
+        ),
+        tier_stats=(payload.tier_stats if payload else {"total": {}, "by_assay": {}}),
+        assays=(payload.assays if payload else assays),
         form=form,
     )

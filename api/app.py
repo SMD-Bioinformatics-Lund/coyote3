@@ -172,3 +172,4 @@ from api.routes import dna as _dna_routes  # noqa: F401
 from api.routes import rna as _rna_routes  # noqa: F401
 from api.routes import reports as _report_routes  # noqa: F401
 from api.routes import dashboard as _dashboard_routes  # noqa: F401
+from api.routes import common as _common_routes  # noqa: F401

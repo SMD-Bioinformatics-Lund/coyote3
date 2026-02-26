@@ -49,6 +49,9 @@ from coyote.web_api.api_models import (
     ApiRnaFusionsPayload,
     ApiRnaReportPreviewPayload,
     ApiRnaReportSavePayload,
+    ApiCommonGeneInfoPayload,
+    ApiCommonTieredVariantPayload,
+    ApiCommonTieredVariantSearchPayload,
 )
 
 
@@ -133,6 +136,40 @@ class CoyoteApiClient:
     ) -> ApiDashboardSummaryPayload:
         payload = self._get("/api/v1/dashboard/summary", headers=headers)
         return ApiDashboardSummaryPayload.model_validate(payload)
+
+    def get_common_gene_info(
+        self, gene_id: str, headers: dict[str, str] | None = None
+    ) -> ApiCommonGeneInfoPayload:
+        payload = self._get(f"/api/v1/common/gene/{gene_id}/info", headers=headers)
+        return ApiCommonGeneInfoPayload.model_validate(payload)
+
+    def get_common_tiered_variant_context(
+        self, variant_id: str, tier: int, headers: dict[str, str] | None = None
+    ) -> ApiCommonTieredVariantPayload:
+        payload = self._get(
+            f"/api/v1/common/reported_variants/variant/{variant_id}/{tier}",
+            headers=headers,
+        )
+        return ApiCommonTieredVariantPayload.model_validate(payload)
+
+    def search_common_tiered_variants(
+        self,
+        search_str: str | None = None,
+        search_mode: str | None = None,
+        include_annotation_text: bool = False,
+        assays: list[str] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> ApiCommonTieredVariantSearchPayload:
+        params: dict[str, Any] = {}
+        if search_str:
+            params["search_str"] = search_str
+        if search_mode:
+            params["search_mode"] = search_mode
+        params["include_annotation_text"] = str(bool(include_annotation_text)).lower()
+        if assays:
+            params["assays"] = assays
+        payload = self._get("/api/v1/common/search/tiered_variants", headers=headers, params=params)
+        return ApiCommonTieredVariantSearchPayload.model_validate(payload)
 
     def get_dna_variants(
         self, sample_id: str, headers: dict[str, str] | None = None
