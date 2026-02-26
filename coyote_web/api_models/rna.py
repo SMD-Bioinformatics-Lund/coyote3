@@ -27,3 +27,9 @@ class ApiRnaFusionDetailPayload(ApiModel):
     assay_group: str = ""
     subpanel: str | None = None
     assay_group_mappings: JsonDict = Field(default_factory=dict)
+
+
+class ApiRnaReportPreviewPayload(ApiModel):
+    sample: JsonDict
+    meta: JsonDict = Field(default_factory=dict)
+    report: JsonDict = Field(default_factory=dict)

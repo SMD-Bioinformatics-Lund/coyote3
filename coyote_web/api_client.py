@@ -11,12 +11,14 @@ from flask import current_app
 from coyote_web.api_models import (
     ApiDnaCnvsPayload,
     ApiDnaCnvDetailPayload,
+    ApiDnaReportPreviewPayload,
     ApiDnaTranslocationsPayload,
     ApiDnaVariantDetailPayload,
     ApiDnaVariantsPayload,
     ApiDnaTranslocationDetailPayload,
     ApiRnaFusionDetailPayload,
     ApiRnaFusionsPayload,
+    ApiRnaReportPreviewPayload,
 )
 
 
@@ -125,6 +127,24 @@ class CoyoteApiClient:
             headers=headers,
         )
         return ApiDnaTranslocationsPayload.model_validate(payload)
+
+    def get_dna_report_preview(
+        self, sample_id: str, headers: dict[str, str] | None = None
+    ) -> ApiDnaReportPreviewPayload:
+        payload = self._get(
+            f"/api/v1/dna/samples/{sample_id}/report/preview",
+            headers=headers,
+        )
+        return ApiDnaReportPreviewPayload.model_validate(payload)
+
+    def get_rna_report_preview(
+        self, sample_id: str, headers: dict[str, str] | None = None
+    ) -> ApiRnaReportPreviewPayload:
+        payload = self._get(
+            f"/api/v1/rna/samples/{sample_id}/report/preview",
+            headers=headers,
+        )
+        return ApiRnaReportPreviewPayload.model_validate(payload)
 
 
 def get_web_api_client() -> CoyoteApiClient:

@@ -1724,6 +1724,30 @@ Copy for each task:
 - Follow-up actions:
   - Continue converting remaining blueprints to API-only reads/writes, then remove direct `store.*` usage from web modules.
 
+### Task P12-2/P12-3 (Report Preview Cutover) - API-Only DNA/RNA Preview Routes
+
+- Date: 2026-02-26
+- Owner: Codex
+- Scope:
+  - Route DNA/RNA report preview web endpoints through FastAPI preview endpoints (`/api/v1/*/report/preview`) only.
+  - Add typed report-preview payload models in respective domain model files.
+- Files changed:
+  - `coyote_web/api_models/dna.py` (added `ApiDnaReportPreviewPayload`)
+  - `coyote_web/api_models/rna.py` (added `ApiRnaReportPreviewPayload`)
+  - `coyote_web/api_models/__init__.py` (exports for new report models)
+  - `coyote_web/api_client.py` (added `get_dna_report_preview`, `get_rna_report_preview`)
+  - `coyote/blueprints/dna/views_reports.py` (API-only preview route path)
+  - `coyote/blueprints/rna/views_reports.py` (API-only preview route path)
+  - `MIGRATION_PLAN_DNA_RNA_SHARED_SERVICES.md`
+- Validation executed:
+  - `python -m py_compile coyote_web/api_models/base.py coyote_web/api_models/dna.py coyote_web/api_models/rna.py coyote_web/api_models/__init__.py coyote_web/api_client.py coyote/blueprints/dna/views_reports.py coyote/blueprints/rna/views_reports.py`
+  - FastAPI TestClient auth-gate smoke checks for DNA/RNA preview endpoints (`401` unauthenticated).
+- Result:
+  - Report preview rendering now follows API-only read boundary for both DNA and RNA routes.
+- Rollback needed: no
+- Follow-up actions:
+  - Add API write endpoints for report save paths to remove remaining web direct store/report persistence calls.
+
 ---
 
 ## 10) Session Rule

@@ -74,3 +74,9 @@ class ApiDnaTranslocationsPayload(ApiModel):
     sample: JsonDict
     meta: JsonDict = Field(default_factory=dict)
     translocations: list[JsonDict] = Field(default_factory=list)
+
+
+class ApiDnaReportPreviewPayload(ApiModel):
+    sample: JsonDict
+    meta: JsonDict = Field(default_factory=dict)
+    report: JsonDict = Field(default_factory=dict)
