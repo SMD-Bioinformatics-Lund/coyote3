@@ -160,7 +160,7 @@ def view_report(sample_id: str, report_id: str) -> str | Response:
             exc,
         )
         flash("Failed to load report details.", "red")
-        return redirect(url_for("dna_bp.home_screen"))
+        return redirect(url_for("home_bp.samples_home"))
 
     filepath = payload.filepath
 
@@ -205,7 +205,7 @@ def view_report(sample_id: str, report_id: str) -> str | Response:
             flash("Requested report file does not exist.", "red")
 
     # Redirect to the home screen if the file does not exist
-    return redirect(url_for("dna_bp.home_screen"))
+    return redirect(url_for("home_bp.samples_home"))
 
 
 @home_bp.route("/<string:sample_id>/edit", methods=["GET"])

@@ -61,7 +61,7 @@ def add_sample_comment(sample_id: str) -> Response:
     if request.endpoint == "common_bp.add_dna_sample_comment":
         return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
     else:
-        return redirect(url_for("rna_bp.list_fusions", id=sample_id))
+        return redirect(url_for("rna_bp.list_fusions", sample_id=sample_id))
 
 
 @common_bp.route("/sample/<string:sample_id>/hide_sample_comment", methods=["POST"])
@@ -93,7 +93,7 @@ def hide_sample_comment(sample_id: str) -> Response:
     if omics_layer == "dna":
         return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
     elif omics_layer == "rna":
-        return redirect(url_for("rna_bp.list_fusions", id=sample_id))
+        return redirect(url_for("rna_bp.list_fusions", sample_id=sample_id))
     else:
         app.logger.info("Unrecognized omics type for sample %s! Unable to redirect to sample page", sample_id)
         flash("Unrecognized omics type! Unable to redirect to the sample page", "red")
@@ -129,7 +129,7 @@ def unhide_sample_comment(sample_id: str) -> Response:
     if omics_layer == "dna":
         return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
     elif omics_layer == "rna":
-        return redirect(url_for("rna_bp.list_fusions", id=sample_id))
+        return redirect(url_for("rna_bp.list_fusions", sample_id=sample_id))
     else:
         app.logger.info("Unrecognized omics type for sample %s! Unable to redirect to sample page", sample_id)
         flash("Unrecognized omics type! Unable to redirect to the sample page", "red")
