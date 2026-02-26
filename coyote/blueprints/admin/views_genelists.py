@@ -18,7 +18,7 @@ from flask import Response, abort, flash, g, redirect, render_template, request,
 from flask_login import current_user
 
 from coyote.blueprints.admin import admin_bp
-from coyote.extensions import store, util
+from coyote.extensions import util
 from coyote.services.audit_logs.decorators import log_action
 from coyote.services.auth.decorators import require
 from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
@@ -27,7 +27,12 @@ from coyote_web.api_client import ApiRequestError, build_forward_headers, get_we
 @admin_bp.route("/genelists", methods=["GET"])
 @require("view_isgl", min_role="user", min_level=9)
 def manage_genelists() -> str:
-    genelists = store.isgl_handler.get_all_isgl()
+    try:
+        payload = get_web_api_client().get_admin_genelists(headers=build_forward_headers(request.headers))
+        genelists = payload.genelists
+    except ApiRequestError as exc:
+        flash(f"Failed to fetch genelists: {exc}", "red")
+        genelists = []
     return render_template("isgl/manage_isgl.html", genelists=genelists, is_public=False)
 
 
@@ -35,44 +40,18 @@ def manage_genelists() -> str:
 @require("create_isgl", min_role="manager", min_level=99)
 @log_action(action_name="create_genelist", call_type="manager_call")
 def create_genelist() -> Response | str:
-    active_schemas = store.schema_handler.get_schemas_by_category_type(
-        schema_type="isgl_config",
-        schema_category="ISGL",
-        is_active=True,
-    )
-
-    if not active_schemas:
-        flash("No active genelist schemas found!", "red")
+    try:
+        context = get_web_api_client().get_admin_genelist_create_context(
+            schema_id=request.args.get("schema_id"),
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        flash(f"Failed to load genelist create context: {exc}", "red")
         return redirect(url_for("admin_bp.manage_genelists"))
 
-    selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
-    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
-
-    if not schema:
-        flash("Genelist schema not found!", "red")
-        return redirect(url_for("admin_bp.manage_genelists"))
-
-    assay_groups: list = store.asp_handler.get_all_asp_groups()
-    schema["fields"]["assay_groups"]["options"] = assay_groups
-
-    assay_groups_panels = store.asp_handler.get_all_asps()
-    assay_group_map = {}
-    for _assay in assay_groups_panels:
-        group = _assay.get("asp_group")
-        if group not in assay_group_map:
-            assay_group_map[group] = []
-
-        group_map = {
-            "assay_name": _assay.get("assay_name"),
-            "display_name": _assay.get("display_name"),
-            "asp_category": _assay.get("asp_category"),
-        }
-        assay_group_map[group].append(group_map)
-
-    schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = util.common.utc_now()
-    schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
+    active_schemas = context.schemas
+    schema = context.schema
+    assay_group_map = context.assay_group_map
 
     if request.method == "POST":
         form_data: dict[str, list[str] | str] = {
@@ -124,7 +103,7 @@ def create_genelist() -> Response | str:
         "isgl/create_isgl.html",
         schema=schema,
         schemas=active_schemas,
-        selected_schema=schema,
+        selected_schema=context.selected_schema,
         assay_group_map=assay_group_map,
     )
 
@@ -133,32 +112,21 @@ def create_genelist() -> Response | str:
 @require("edit_isgl", min_role="manager", min_level=99)
 @log_action(action_name="edit_genelist", call_type="manager_call")
 def edit_genelist(genelist_id: str) -> Response | str:
-    genelist = store.isgl_handler.get_isgl(genelist_id)
-    if not genelist:
-        flash("Genelist not found!", "red")
+    try:
+        context = get_web_api_client().get_admin_genelist_context(
+            genelist_id=genelist_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        if exc.status_code == 404:
+            flash("Genelist not found!", "red")
+            return redirect(url_for("admin_bp.manage_genelists"))
+        flash(f"Failed to load genelist context: {exc}", "red")
         return redirect(url_for("admin_bp.manage_genelists"))
 
-    schema = store.schema_handler.get_schema(genelist.get("schema_name"))
-
-    assay_groups = store.asp_handler.get_all_asp_groups()
-    schema["fields"]["assay_groups"]["options"] = assay_groups
-    schema["fields"]["assay_groups"]["default"] = genelist.get("assay_groups", [])
-
-    assay_groups_panels = store.asp_handler.get_all_asps()
-    assay_group_map = {}
-    for _assay in assay_groups_panels:
-        group = _assay.get("asp_group")
-        if group not in assay_group_map:
-            assay_group_map[group] = []
-
-        group_map = {
-            "assay_name": _assay.get("assay_name"),
-            "display_name": _assay.get("display_name"),
-            "asp_category": _assay.get("asp_category"),
-        }
-        assay_group_map[group].append(group_map)
-
-    schema["fields"]["assays"]["default"] = genelist.get("assays", [])
+    genelist = context.genelist
+    schema = context.schema
+    assay_group_map = context.assay_group_map
 
     selected_version = request.args.get("version", type=int)
     delta = None
@@ -242,10 +210,6 @@ def edit_genelist(genelist_id: str) -> Response | str:
 @require("edit_isgl", min_role="manager", min_level=99)
 @log_action(action_name="toggle_genelist", call_type="manager_call")
 def toggle_genelist(genelist_id: str) -> Response:
-    genelist = store.isgl_handler.get_isgl(genelist_id)
-    if not genelist:
-        return abort(404)
-
     try:
         payload = get_web_api_client().toggle_admin_genelist(
             genelist_id=genelist_id,
@@ -261,6 +225,8 @@ def toggle_genelist(genelist_id: str) -> Response:
             "green",
         )
     except ApiRequestError as exc:
+        if exc.status_code == 404:
+            return abort(404)
         flash(f"Failed to toggle genelist: {exc}", "red")
     return redirect(url_for("admin_bp.manage_genelists"))
 
@@ -284,10 +250,21 @@ def delete_genelist(genelist_id: str) -> Response:
 @admin_bp.route("/genelists/<genelist_id>/view", methods=["GET"])
 @require("view_isgl", min_role="user", min_level=9)
 def view_genelist(genelist_id: str) -> Response | str:
-    genelist = store.isgl_handler.get_isgl(genelist_id)
-    if not genelist:
-        flash(f"Genelist '{genelist_id}' not found!", "red")
+    selected_assay = request.args.get("assay")
+    try:
+        view_context = get_web_api_client().get_admin_genelist_view_context(
+            genelist_id=genelist_id,
+            selected_assay=selected_assay,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        if exc.status_code == 404:
+            flash(f"Genelist '{genelist_id}' not found!", "red")
+            return redirect(url_for("admin_bp.manage_genelists"))
+        flash(f"Failed to load genelist view context: {exc}", "red")
         return redirect(url_for("admin_bp.manage_genelists"))
+
+    genelist = view_context.genelist
 
     selected_version = request.args.get("version", type=int)
     delta = None
@@ -305,17 +282,8 @@ def view_genelist(genelist_id: str) -> Response | str:
             delta = delta_blob
             genelist = util.admin.apply_version_delta(deepcopy(genelist), delta_blob)
 
-    selected_assay = request.args.get("assay")
-    all_genes = genelist.get("genes", [])
-    assays = genelist.get("assays", [])
-
-    filtered_genes = all_genes
-    panel_germline_genes = []
-    if selected_assay and selected_assay in assays:
-        panel = store.asp_handler.get_asp(selected_assay)
-        panel_genes = panel.get("covered_genes", []) if panel else []
-        panel_germline_genes = panel.get("germline_genes", []) if panel else []
-        filtered_genes = sorted(set(all_genes).intersection(panel_genes))
+    filtered_genes = view_context.filtered_genes
+    panel_germline_genes = view_context.panel_germline_genes
 
     return render_template(
         "isgl/view_isgl.html",

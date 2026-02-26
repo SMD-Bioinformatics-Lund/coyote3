@@ -719,6 +719,107 @@ def create_genelist_mutation(
     )
 
 
+@app.get("/api/v1/admin/genelists")
+def list_genelists_read(
+    user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
+):
+    genelists = store.isgl_handler.get_all_isgl()
+    return util.common.convert_to_serializable({"genelists": genelists})
+
+
+@app.get("/api/v1/admin/genelists/create_context")
+def create_genelist_context_read(
+    schema_id: str | None = Query(default=None),
+    user: ApiUser = Depends(require_access(permission="create_isgl", min_role="manager", min_level=99)),
+):
+    active_schemas = store.schema_handler.get_schemas_by_category_type(
+        schema_type="isgl_config",
+        schema_category="ISGL",
+        is_active=True,
+    )
+    if not active_schemas:
+        raise _api_error(400, "No active genelist schemas found")
+
+    selected_id = schema_id or active_schemas[0]["_id"]
+    selected_schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+    if not selected_schema:
+        raise _api_error(404, "Genelist schema not found")
+
+    schema = deepcopy(selected_schema)
+    schema["fields"]["assay_groups"]["options"] = store.asp_handler.get_all_asp_groups()
+    schema["fields"]["created_by"]["default"] = user.username
+    schema["fields"]["created_on"]["default"] = util.common.utc_now()
+    schema["fields"]["updated_by"]["default"] = user.username
+    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
+
+    return util.common.convert_to_serializable(
+        {
+            "schemas": active_schemas,
+            "selected_schema": selected_schema,
+            "schema": schema,
+            "assay_group_map": _assay_group_map(),
+        }
+    )
+
+
+@app.get("/api/v1/admin/genelists/{genelist_id}/context")
+def genelist_context_read(
+    genelist_id: str,
+    user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
+):
+    genelist = store.isgl_handler.get_isgl(genelist_id)
+    if not genelist:
+        raise _api_error(404, "Genelist not found")
+
+    schema = store.schema_handler.get_schema(genelist.get("schema_name"))
+    if not schema:
+        raise _api_error(404, "Schema not found for genelist")
+
+    schema = deepcopy(schema)
+    schema["fields"]["assay_groups"]["options"] = store.asp_handler.get_all_asp_groups()
+    schema["fields"]["assay_groups"]["default"] = genelist.get("assay_groups", [])
+    schema["fields"]["assays"]["default"] = genelist.get("assays", [])
+
+    return util.common.convert_to_serializable(
+        {
+            "genelist": genelist,
+            "schema": schema,
+            "assay_group_map": _assay_group_map(),
+        }
+    )
+
+
+@app.get("/api/v1/admin/genelists/{genelist_id}/view_context")
+def genelist_view_context_read(
+    genelist_id: str,
+    assay: str | None = Query(default=None),
+    user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
+):
+    genelist = store.isgl_handler.get_isgl(genelist_id)
+    if not genelist:
+        raise _api_error(404, "Genelist not found")
+
+    all_genes = genelist.get("genes", [])
+    assays = genelist.get("assays", [])
+    filtered_genes = all_genes
+    panel_germline_genes: list[str] = []
+
+    if assay and assay in assays:
+        panel = store.asp_handler.get_asp(assay)
+        panel_genes = panel.get("covered_genes", []) if panel else []
+        panel_germline_genes = panel.get("germline_genes", []) if panel else []
+        filtered_genes = sorted(set(all_genes).intersection(panel_genes))
+
+    return util.common.convert_to_serializable(
+        {
+            "genelist": genelist,
+            "selected_assay": assay,
+            "filtered_genes": filtered_genes,
+            "panel_germline_genes": panel_germline_genes,
+        }
+    )
+
+
 @app.post("/api/v1/admin/genelists/{genelist_id}/update")
 def update_genelist_mutation(
     genelist_id: str,

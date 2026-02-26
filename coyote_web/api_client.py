@@ -12,6 +12,10 @@ from coyote_web.api_models import (
     ApiAdminPermissionContextPayload,
     ApiAdminPermissionCreateContextPayload,
     ApiAdminPermissionsPayload,
+    ApiAdminGenelistContextPayload,
+    ApiAdminGenelistCreateContextPayload,
+    ApiAdminGenelistViewContextPayload,
+    ApiAdminGenelistsPayload,
     ApiAdminRoleContextPayload,
     ApiAdminRoleCreateContextPayload,
     ApiAdminRolesPayload,
@@ -895,6 +899,44 @@ class CoyoteApiClient:
             json_body={"config": config},
         )
         return ApiMutationResultPayload.model_validate(payload)
+
+    def get_admin_genelists(
+        self,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminGenelistsPayload:
+        payload = self._get("/api/v1/admin/genelists", headers=headers)
+        return ApiAdminGenelistsPayload.model_validate(payload)
+
+    def get_admin_genelist_create_context(
+        self,
+        schema_id: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminGenelistCreateContextPayload:
+        params = {"schema_id": schema_id} if schema_id else None
+        payload = self._get("/api/v1/admin/genelists/create_context", headers=headers, params=params)
+        return ApiAdminGenelistCreateContextPayload.model_validate(payload)
+
+    def get_admin_genelist_context(
+        self,
+        genelist_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminGenelistContextPayload:
+        payload = self._get(f"/api/v1/admin/genelists/{genelist_id}/context", headers=headers)
+        return ApiAdminGenelistContextPayload.model_validate(payload)
+
+    def get_admin_genelist_view_context(
+        self,
+        genelist_id: str,
+        selected_assay: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminGenelistViewContextPayload:
+        params = {"assay": selected_assay} if selected_assay else None
+        payload = self._get(
+            f"/api/v1/admin/genelists/{genelist_id}/view_context",
+            headers=headers,
+            params=params,
+        )
+        return ApiAdminGenelistViewContextPayload.model_validate(payload)
 
     def update_admin_genelist(
         self,

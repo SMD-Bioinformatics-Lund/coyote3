@@ -64,3 +64,27 @@ class ApiAdminSchemasPayload(ApiModel):
 
 class ApiAdminSchemaContextPayload(ApiModel):
     schema: JsonDict = Field(default_factory=dict)
+
+
+class ApiAdminGenelistsPayload(ApiModel):
+    genelists: list[JsonDict] = Field(default_factory=list)
+
+
+class ApiAdminGenelistCreateContextPayload(ApiModel):
+    schemas: list[JsonDict] = Field(default_factory=list)
+    selected_schema: JsonDict = Field(default_factory=dict)
+    schema: JsonDict = Field(default_factory=dict)
+    assay_group_map: JsonDict = Field(default_factory=dict)
+
+
+class ApiAdminGenelistContextPayload(ApiModel):
+    genelist: JsonDict = Field(default_factory=dict)
+    schema: JsonDict = Field(default_factory=dict)
+    assay_group_map: JsonDict = Field(default_factory=dict)
+
+
+class ApiAdminGenelistViewContextPayload(ApiModel):
+    genelist: JsonDict = Field(default_factory=dict)
+    selected_assay: str | None = None
+    filtered_genes: list[str] = Field(default_factory=list)
+    panel_germline_genes: list[str] = Field(default_factory=list)
