@@ -868,6 +868,25 @@ class CoyoteApiClient:
         payload = self._post(f"/api/v1/admin/aspc/{assay_id}/delete", headers=headers)
         return ApiMutationResultPayload.model_validate(payload)
 
+    def update_coverage_blacklist(
+        self,
+        payload: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        return self._post(
+            "/api/v1/coverage/blacklist/update",
+            headers=headers,
+            json_body=payload,
+        )
+
+    def remove_coverage_blacklist(
+        self,
+        obj_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(f"/api/v1/coverage/blacklist/{obj_id}/remove", headers=headers)
+        return ApiMutationResultPayload.model_validate(payload)
+
     def mark_rna_fusion_false_positive(
         self, sample_id: str, fusion_id: str, headers: dict[str, str] | None = None
     ) -> ApiMutationResultPayload:

@@ -269,6 +269,50 @@ def reset_sample_filters_mutation(
     return util.common.convert_to_serializable(result)
 
 
+@app.post("/api/v1/coverage/blacklist/update")
+def update_coverage_blacklist_mutation(
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(min_level=1)),
+):
+    gene = payload.get("gene")
+    coord = payload.get("coord", "")
+    smp_grp = payload.get("smp_grp")
+    region = payload.get("region")
+    if coord:
+        coord = str(coord).replace(":", "_").replace("-", "_")
+        store.groupcov_handler.blacklist_coord(gene, coord, region, smp_grp)
+        return util.common.convert_to_serializable(
+            {
+                "status": "ok",
+                "message": (
+                    f" Status for {gene}:{region}:{coord} was set as {payload.get('status')} for group: {smp_grp}. "
+                    "Page needs to be reload to take effect"
+                ),
+            }
+        )
+    store.groupcov_handler.blacklist_gene(gene, smp_grp)
+    return util.common.convert_to_serializable(
+        {
+            "status": "ok",
+            "message": (
+                f" Status for full gene: {gene} was set as {payload.get('status')} for group: {smp_grp}. "
+                "Page needs to be reload to take effect"
+            ),
+        }
+    )
+
+
+@app.post("/api/v1/coverage/blacklist/{obj_id}/remove")
+def remove_coverage_blacklist_mutation(
+    obj_id: str,
+    user: ApiUser = Depends(require_access(min_level=1)),
+):
+    store.groupcov_handler.remove_blacklist(obj_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload("coverage", resource="blacklist", resource_id=obj_id, action="remove")
+    )
+
+
 @app.post("/api/v1/admin/permissions/create")
 def create_permission_mutation(
     payload: dict = Body(default_factory=dict),

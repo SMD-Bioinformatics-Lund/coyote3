@@ -31,6 +31,7 @@ from coyote.util.decorators.access import (
     require_group_access,
     require_sample_access,
 )
+from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
 @cov_bp.route("/<string:sample_id>", methods=["GET", "POST"])
@@ -95,28 +96,14 @@ def get_cov(sample_id):
 @login_required
 def update_gene_status():
     data = request.get_json()
-    gene = data.get("gene")
-    status = data.get("status")
-    coord = data.get("coord")
-    smp_grp = data.get("smp_grp")
-    region = data.get("region")
-    if coord != "":
-        coord = coord.replace(":", "_")
-        coord = coord.replace("-", "_")
-        store.groupcov_handler.blacklist_coord(gene, coord, region, smp_grp)
-        # Return a response
-        return jsonify(
-            {
-                "message": f" Status for {gene}:{region}:{coord} was set as {status} for group: {smp_grp}. Page needs to be reload to take effect"
-            }
+    try:
+        payload = get_web_api_client().update_coverage_blacklist(
+            payload=data,
+            headers=build_forward_headers(request.headers),
         )
-    else:
-        store.groupcov_handler.blacklist_gene(gene, smp_grp)
-        return jsonify(
-            {
-                "message": f" Status for full gene: {gene} was set as {status} for group: {smp_grp}. Page needs to be reload to take effect"
-            }
-        )
+        return jsonify(payload)
+    except ApiRequestError as exc:
+        return jsonify({"message": str(exc)}), exc.status_code or 502
 
 
 @cov_bp.route("/blacklisted/<string:group>", methods=["GET", "POST"])
@@ -145,5 +132,11 @@ def remove_blacklist(obj_id, group):
     """
     removes blacklisted region/gene
     """
-    response = store.groupcov_handler.remove_blacklist(obj_id)
+    try:
+        get_web_api_client().remove_coverage_blacklist(
+            obj_id=obj_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError:
+        pass
     return redirect(url_for("cov_bp.show_blacklisted_regions", group=group))
