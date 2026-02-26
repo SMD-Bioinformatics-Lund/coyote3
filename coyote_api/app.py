@@ -598,6 +598,67 @@ def validate_email_mutation(
     return util.common.convert_to_serializable({"exists": store.user_handler.user_exists(email=email)})
 
 
+@app.post("/api/v1/admin/asp/create")
+def create_asp_mutation(
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="create_asp", min_role="manager", min_level=99)),
+):
+    config = payload.get("config", {})
+    if not config:
+        raise _api_error(400, "Missing panel config payload")
+    store.asp_handler.create_asp(config)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="asp", resource_id=str(config.get("_id", "unknown")), action="create")
+    )
+
+
+@app.post("/api/v1/admin/asp/{assay_panel_id}/update")
+def update_asp_mutation(
+    assay_panel_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="edit_asp", min_role="manager", min_level=99)),
+):
+    panel = store.asp_handler.get_asp(assay_panel_id)
+    if not panel:
+        raise _api_error(404, "Panel not found")
+    updated = payload.get("config", {})
+    if not updated:
+        raise _api_error(400, "Missing panel config payload")
+    store.asp_handler.update_asp(assay_panel_id, updated)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="asp", resource_id=assay_panel_id, action="update")
+    )
+
+
+@app.post("/api/v1/admin/asp/{assay_panel_id}/toggle")
+def toggle_asp_mutation(
+    assay_panel_id: str,
+    user: ApiUser = Depends(require_access(permission="edit_asp", min_role="manager", min_level=99)),
+):
+    panel = store.asp_handler.get_asp(assay_panel_id)
+    if not panel:
+        raise _api_error(404, "Panel not found")
+    new_status = not panel.get("is_active", False)
+    store.asp_handler.toggle_asp_active(assay_panel_id, new_status)
+    result = _mutation_payload("admin", resource="asp", resource_id=assay_panel_id, action="toggle")
+    result["meta"]["is_active"] = new_status
+    return util.common.convert_to_serializable(result)
+
+
+@app.post("/api/v1/admin/asp/{assay_panel_id}/delete")
+def delete_asp_mutation(
+    assay_panel_id: str,
+    user: ApiUser = Depends(require_access(permission="delete_asp", min_role="admin", min_level=99999)),
+):
+    panel = store.asp_handler.get_asp(assay_panel_id)
+    if not panel:
+        raise _api_error(404, "Panel not found")
+    store.asp_handler.delete_asp(assay_panel_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="asp", resource_id=assay_panel_id, action="delete")
+    )
+
+
 @app.post("/api/v1/admin/schemas/create")
 def create_schema_mutation(
     payload: dict = Body(default_factory=dict),
