@@ -66,6 +66,7 @@ from coyote.integrations.api.api_models import (
     ApiPublicAssayCatalogContextPayload,
     ApiPublicAssayCatalogCsvContextPayload,
     ApiInternalIsglMetaPayload,
+    ApiInternalSampleAccessPayload,
 )
 
 
@@ -1141,6 +1142,19 @@ class CoyoteApiClient:
             headers=headers,
         )
         return ApiInternalIsglMetaPayload.model_validate(payload)
+
+    def get_sample_access_internal(
+        self,
+        sample_ref: str,
+        user_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiInternalSampleAccessPayload:
+        payload = self._get(
+            f"/api/v1/internal/samples/{sample_ref}/access",
+            headers=headers,
+            params={"user_id": user_id},
+        )
+        return ApiInternalSampleAccessPayload.model_validate(payload)
 
     def create_admin_asp(
         self,

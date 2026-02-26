@@ -20,7 +20,7 @@ Decorators:
 from functools import wraps
 from flask import abort, g, flash
 from flask_login import current_user
-from coyote import store
+from coyote.integrations.api.api_client import ApiRequestError, build_internal_headers, get_web_api_client
 
 
 def require_sample_access(sample_arg="sample_name") -> callable:
@@ -71,25 +71,27 @@ def require_sample_access(sample_arg="sample_name") -> callable:
                     description=f"Missing `{sample_arg}` in route parameters",
                 )
 
-            sample = store.sample_handler.get_sample(sample_name)
-            if not sample:
-                sample = store.sample_handler.get_sample_by_id(sample_name)
+            try:
+                payload = get_web_api_client().get_sample_access_internal(
+                    sample_ref=str(sample_name),
+                    user_id=str(current_user.id),
+                    headers=build_internal_headers(),
+                )
+            except ApiRequestError as exc:
+                if exc.status_code == 404:
+                    flash("Sample not found", "red")
+                    abort(404, description="Sample not found")
+                flash("Unable to validate sample access", "red")
+                abort(502, description="Unable to validate sample access")
 
-            if not sample:
-                flash("Sample not found", "red")
-                abort(404, description="Sample not found")
-
-            user_assays = set(current_user.assays or [])
-            sample_assay = sample.get("assay", "")
-
-            if sample_assay not in user_assays:
+            if not payload.allowed:
                 flash(
                     "Access denied: you do not belong to any of the sample's groups",
                     "red",
                 )
                 abort(403, description="Access denied: sample assay mismatch")
 
-            g.sample = sample
+            g.sample = payload.sample
             return view_func(*args, **kwargs)
 
         return wrapper
