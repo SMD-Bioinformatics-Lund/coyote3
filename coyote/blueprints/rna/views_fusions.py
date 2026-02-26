@@ -29,6 +29,7 @@ from coyote.blueprints.rna import rna_bp
 from coyote.util.decorators.access import require_sample_access
 from coyote.util.misc import get_sample_and_assay_config
 from coyote.services.interpretation.report_summary import generate_summary_text
+from coyote.services.rna.helpers import create_fusioncallers, create_fusioneffectlist
 from coyote.services.workflow.rna_workflow import RNAWorkflowService
 from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 from copy import deepcopy
@@ -97,7 +98,13 @@ def list_fusions(sample_id: str) -> str | Response:
 
     # Update the sample filters with the default values from the assay config if the sample is new and does not have any filters set
     if not sample_has_filters:
-        store.sample_handler.reset_sample_settings(sample["_id"], assay_config.get("filters"))
+        try:
+            get_web_api_client().reset_sample_filters(
+                sample_id=sample_id,
+                headers=build_forward_headers(request.headers),
+            )
+        except ApiRequestError as exc:
+            app.logger.error("Failed to reset RNA filters via API for sample %s: %s", sample_id, exc)
 
     # Create the form
     form = FusionFilter()
@@ -110,14 +117,32 @@ def list_fusions(sample_id: str) -> str | Response:
         # Reset filters to defaults
         if form.reset.data:
             app.logger.info(f"Resetting filters to default settings for the sample {sample_id}")
-            store.sample_handler.reset_sample_settings(_id, assay_config.get("filters", {}))
+            try:
+                get_web_api_client().reset_sample_filters(
+                    sample_id=sample_id,
+                    headers=build_forward_headers(request.headers),
+                )
+            except ApiRequestError as exc:
+                app.logger.error("Failed to reset RNA filters via API for sample %s: %s", sample_id, exc)
         else:
-            sample, sample_filters = RNAWorkflowService.persist_form_filters(
-                sample=sample,
-                form=form,
-                assay_config_schema=assay_config_schema,
-                request_form=request.form,
+            filters_from_form = util.common.format_filters_from_form(form, assay_config_schema)
+            filters_from_form["fusionlists"] = request.form.getlist("fusionlist_id")
+            filters_from_form["fusion_callers"] = create_fusioncallers(
+                filters_from_form.get("fusion_callers", [])
             )
+            filters_from_form["fusion_effects"] = create_fusioneffectlist(
+                filters_from_form.get("fusion_effects", [])
+            )
+            if sample.get("filters", {}).get("adhoc_genes"):
+                filters_from_form["adhoc_genes"] = sample.get("filters", {}).get("adhoc_genes")
+            try:
+                get_web_api_client().update_sample_filters(
+                    sample_id=sample_id,
+                    filters=filters_from_form,
+                    headers=build_forward_headers(request.headers),
+                )
+            except ApiRequestError as exc:
+                app.logger.error("Failed to update RNA filters via API for sample %s: %s", sample_id, exc)
 
         ## get sample again to receive updated forms!
         sample = store.sample_handler.get_sample_by_id(_id)

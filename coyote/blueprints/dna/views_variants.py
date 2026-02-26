@@ -113,7 +113,13 @@ def list_variants(sample_id: str) -> Response | str:
 
     # Update the sample filters with the default values from the assay config if the sample is new and does not have any filters set
     if not sample_has_filters:
-        store.sample_handler.reset_sample_settings(sample["_id"], assay_config.get("filters"))
+        try:
+            get_web_api_client().reset_sample_filters(
+                sample_id=sample_id,
+                headers=build_forward_headers(request.headers),
+            )
+        except ApiRequestError as exc:
+            app.logger.error("Failed to reset DNA filters via API for sample %s: %s", sample_id, exc)
 
     # Inherit DNAFilterForm, pass all genepanels from mongodb, set as boolean, NOW IT IS DYNAMIC!
     if all_panel_genelist_names:
@@ -130,13 +136,26 @@ def list_variants(sample_id: str) -> Response | str:
         # Reset filters to defaults
         if form.reset.data:
             app.logger.info(f"Resetting filters to default settings for the sample {sample_id}")
-            store.sample_handler.reset_sample_settings(_id, assay_config.get("filters", {}))
+            try:
+                get_web_api_client().reset_sample_filters(
+                    sample_id=sample_id,
+                    headers=build_forward_headers(request.headers),
+                )
+            except ApiRequestError as exc:
+                app.logger.error("Failed to reset DNA filters via API for sample %s: %s", sample_id, exc)
         else:
             filters_from_form = util.common.format_filters_from_form(form, assay_config_schema)
             # if there are any adhoc genes for the sample, add them to the form data before saving
             if sample.get("filters", {}).get("adhoc_genes"):
                 filters_from_form["adhoc_genes"] = sample.get("filters", {}).get("adhoc_genes")
-            store.sample_handler.update_sample_filters(_id, filters_from_form)
+            try:
+                get_web_api_client().update_sample_filters(
+                    sample_id=sample_id,
+                    filters=filters_from_form,
+                    headers=build_forward_headers(request.headers),
+                )
+            except ApiRequestError as exc:
+                app.logger.error("Failed to update DNA filters via API for sample %s: %s", sample_id, exc)
 
         ## get sample again to receive updated forms!
         sample = store.sample_handler.get_sample_by_id(_id)
