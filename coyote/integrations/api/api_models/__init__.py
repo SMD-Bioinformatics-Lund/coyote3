@@ -23,6 +23,9 @@ from coyote.integrations.api.api_models.public import (
     ApiPublicGenelistViewContextPayload,
     ApiPublicAspGenesPayload,
     ApiPublicAssayCatalogGenesViewPayload,
+    ApiPublicAssayCatalogMatrixContextPayload,
+    ApiPublicAssayCatalogContextPayload,
+    ApiPublicAssayCatalogCsvContextPayload,
 )
 from coyote.integrations.api.api_models.admin import (
     ApiAdminPermissionContextPayload,
@@ -85,6 +88,9 @@ __all__ = [
     "ApiPublicGenelistViewContextPayload",
     "ApiPublicAspGenesPayload",
     "ApiPublicAssayCatalogGenesViewPayload",
+    "ApiPublicAssayCatalogMatrixContextPayload",
+    "ApiPublicAssayCatalogContextPayload",
+    "ApiPublicAssayCatalogCsvContextPayload",
     "ApiAdminRolesPayload",
     "ApiAdminRoleCreateContextPayload",
     "ApiAdminRoleContextPayload",

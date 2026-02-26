@@ -22,3 +22,31 @@ class ApiPublicAspGenesPayload(ApiModel):
 class ApiPublicAssayCatalogGenesViewPayload(ApiModel):
     gene_symbols: list[str] = Field(default_factory=list)
 
+
+class ApiPublicAssayCatalogMatrixContextPayload(ApiModel):
+    modalities: JsonDict = Field(default_factory=dict)
+    order: list[str] = Field(default_factory=list)
+    columns: list[JsonDict] = Field(default_factory=list)
+    mod_spans: JsonDict = Field(default_factory=dict)
+    cat_spans: JsonDict = Field(default_factory=dict)
+    genes: list[str] = Field(default_factory=list)
+    matrix: JsonDict = Field(default_factory=dict)
+
+
+class ApiPublicAssayCatalogContextPayload(ApiModel):
+    meta: JsonDict = Field(default_factory=dict)
+    order: list[str] = Field(default_factory=list)
+    modalities: JsonDict = Field(default_factory=dict)
+    selected_mod: str | None = None
+    categories: list[JsonDict] = Field(default_factory=list)
+    selected_cat: str | None = None
+    selected_isgl: str | None = None
+    right: JsonDict = Field(default_factory=dict)
+    gene_mode: str | None = None
+    genes: list[JsonDict] = Field(default_factory=list)
+    stats: JsonDict = Field(default_factory=dict)
+
+
+class ApiPublicAssayCatalogCsvContextPayload(ApiModel):
+    filename: str
+    content: str

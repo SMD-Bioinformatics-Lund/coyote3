@@ -62,6 +62,9 @@ from coyote.integrations.api.api_models import (
     ApiPublicGenelistViewContextPayload,
     ApiPublicAspGenesPayload,
     ApiPublicAssayCatalogGenesViewPayload,
+    ApiPublicAssayCatalogMatrixContextPayload,
+    ApiPublicAssayCatalogContextPayload,
+    ApiPublicAssayCatalogCsvContextPayload,
 )
 
 
@@ -333,6 +336,45 @@ class CoyoteApiClient:
             headers=headers,
         )
         return ApiPublicAssayCatalogGenesViewPayload.model_validate(payload)
+
+    def get_public_assay_catalog_matrix_context(
+        self,
+        headers: dict[str, str] | None = None,
+    ) -> ApiPublicAssayCatalogMatrixContextPayload:
+        payload = self._get("/api/v1/public/assay-catalog-matrix/context", headers=headers)
+        return ApiPublicAssayCatalogMatrixContextPayload.model_validate(payload)
+
+    def get_public_assay_catalog_context(
+        self,
+        mod: str | None = None,
+        cat: str | None = None,
+        isgl_key: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> ApiPublicAssayCatalogContextPayload:
+        params: dict[str, Any] = {}
+        if mod is not None:
+            params["mod"] = mod
+        if cat is not None:
+            params["cat"] = cat
+        if isgl_key is not None:
+            params["isgl_key"] = isgl_key
+        payload = self._get("/api/v1/public/assay-catalog/context", headers=headers, params=params)
+        return ApiPublicAssayCatalogContextPayload.model_validate(payload)
+
+    def get_public_assay_catalog_genes_csv_context(
+        self,
+        mod: str,
+        cat: str | None = None,
+        isgl_key: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> ApiPublicAssayCatalogCsvContextPayload:
+        params: dict[str, Any] = {"mod": mod}
+        if cat is not None:
+            params["cat"] = cat
+        if isgl_key is not None:
+            params["isgl_key"] = isgl_key
+        payload = self._get("/api/v1/public/assay-catalog/genes.csv/context", headers=headers, params=params)
+        return ApiPublicAssayCatalogCsvContextPayload.model_validate(payload)
 
     def get_dna_variants(
         self, sample_id: str, headers: dict[str, str] | None = None
