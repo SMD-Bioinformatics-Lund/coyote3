@@ -181,3 +181,4 @@ from api.routes import dashboard as _dashboard_routes  # noqa: F401
 from api.routes import common as _common_routes  # noqa: F401
 from api.routes import coverage as _coverage_routes  # noqa: F401
 from api.routes import home as _home_routes  # noqa: F401
+from api.routes import public as _public_routes  # noqa: F401

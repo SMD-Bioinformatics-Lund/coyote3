@@ -58,6 +58,9 @@ from coyote.integrations.api.api_models import (
     ApiHomeIsglsPayload,
     ApiHomeEffectiveGenesPayload,
     ApiHomeEditContextPayload,
+    ApiPublicGenelistViewContextPayload,
+    ApiPublicAspGenesPayload,
+    ApiPublicAssayCatalogGenesViewPayload,
 )
 
 
@@ -246,6 +249,39 @@ class CoyoteApiClient:
     ) -> ApiHomeEditContextPayload:
         payload = self._get(f"/api/v1/home/samples/{sample_id}/edit_context", headers=headers)
         return ApiHomeEditContextPayload.model_validate(payload)
+
+    def get_public_genelist_view_context(
+        self,
+        genelist_id: str,
+        selected_assay: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> ApiPublicGenelistViewContextPayload:
+        params = {"assay": selected_assay} if selected_assay else None
+        payload = self._get(
+            f"/api/v1/public/genelists/{genelist_id}/view_context",
+            headers=headers,
+            params=params,
+        )
+        return ApiPublicGenelistViewContextPayload.model_validate(payload)
+
+    def get_public_asp_genes(
+        self,
+        asp_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiPublicAspGenesPayload:
+        payload = self._get(f"/api/v1/public/asp/{asp_id}/genes", headers=headers)
+        return ApiPublicAspGenesPayload.model_validate(payload)
+
+    def get_public_assay_catalog_genes_view(
+        self,
+        isgl_key: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiPublicAssayCatalogGenesViewPayload:
+        payload = self._get(
+            f"/api/v1/public/assay-catalog/genes/{isgl_key}/view_context",
+            headers=headers,
+        )
+        return ApiPublicAssayCatalogGenesViewPayload.model_validate(payload)
 
     def get_dna_variants(
         self, sample_id: str, headers: dict[str, str] | None = None

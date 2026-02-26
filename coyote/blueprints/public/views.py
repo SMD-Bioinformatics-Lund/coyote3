@@ -32,9 +32,10 @@ import csv
 import datetime
 from werkzeug import Response
 from coyote.extensions import store, util
-from coyote.blueprints.public import public_bp, filters
+from coyote.blueprints.public import public_bp
 from copy import deepcopy
 from collections import defaultdict
+from coyote.integrations.api.api_client import ApiRequestError, get_web_api_client
 
 
 @public_bp.route("/genelists/<genelist_id>/view", methods=["GET"])
@@ -58,40 +59,28 @@ def view_genelist(genelist_id: str) -> Response | str:
     Returns:
         flask.Response | str: The rendered template or a redirect response if the genelist is not found.
     """
-    genelist = store.isgl_handler.get_isgl(genelist_id, is_active=True)
-
-    if not genelist:
+    selected_assay = request.args.get("assay")
+    try:
+        payload = get_web_api_client().get_public_genelist_view_context(
+            genelist_id=genelist_id,
+            selected_assay=selected_assay,
+        )
+    except ApiRequestError:
         app.public_logger.info(
-            f"Genelist '{genelist_id}' not found!",
+            "Genelist '%s' not found via API",
+            genelist_id,
             extra={"genelist_id": genelist_id},
         )
         flash(f"Genelist '{genelist_id}' not found!", "red")
         return redirect(request.url)
 
-    selected_assay = request.args.get("assay")
-
-    all_genes = genelist.get("genes", [])
-    assays = genelist.get("assays", [])
-
-    filtered_genes = all_genes
-    germline_genes = []
-    if selected_assay and selected_assay in assays:
-        panel = store.asp_handler.get_asp(selected_assay)
-        panel_genes = panel.get("covered_genes", []) if panel else []
-        germline_genes = panel.get("germline_genes", []) if panel else []
-        filtered_genes = (
-            sorted(set(all_genes).intersection(panel_genes))
-            if panel.get("asp_family") not in ["WGS", "WTS"]
-            else all_genes
-        )
-
     return render_template(
         "isgl/view_isgl.html",
-        genelist=genelist,
-        selected_assay=selected_assay,
-        filtered_genes=filtered_genes,
-        germline_genes=germline_genes,
-        is_public=True,
+        genelist=payload.genelist,
+        selected_assay=payload.selected_assay,
+        filtered_genes=payload.filtered_genes,
+        germline_genes=payload.germline_genes,
+        is_public=payload.is_public,
     )
 
 
@@ -108,14 +97,13 @@ def asp_genes(asp_id: str) -> str:
     Returns:
         str: Rendered HTML page showing the genes for the specified public assay panel.
     """
-    gene_symbols, germline_gene_symbols = store.asp_handler.get_asp_genes(asp_id)
-    gene_details = store.hgnc_handler.get_metadata_by_symbols(gene_symbols)
+    payload = get_web_api_client().get_public_asp_genes(asp_id=asp_id)
 
     return render_template(
         "asp_genes.html",
-        asp_id=asp_id,
-        gene_details=gene_details,
-        germline_gene_symbols=germline_gene_symbols,
+        asp_id=payload.asp_id,
+        gene_details=payload.gene_details,
+        germline_gene_symbols=payload.germline_gene_symbols,
     )
 
 
@@ -438,12 +426,13 @@ def assay_catalog_genes_csv(mod: str, cat: str | None = None, isgl_key: str | No
 @public_bp.route("/assay-catalog/genes/<isgl_key>/view")
 def assay_catalog_isgl_genes_view(isgl_key: str | None = None) -> str:
     """ """
-    isgl = store.isgl_handler.get_isgl(isgl_key) or {}
-    gene_symbols = set(sorted(isgl.get("genes", []))) if isgl_key else set()
+    if not isgl_key:
+        return render_template("genes.html", gene_symbols=[])
+    payload = get_web_api_client().get_public_assay_catalog_genes_view(isgl_key=isgl_key)
 
     return render_template(
         "genes.html",
-        gene_symbols=gene_symbols,
+        gene_symbols=payload.gene_symbols,
     )
 
 

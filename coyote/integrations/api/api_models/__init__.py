@@ -18,6 +18,11 @@ from coyote.integrations.api.api_models.home import (
     ApiHomeEffectiveGenesPayload,
     ApiHomeEditContextPayload,
 )
+from coyote.integrations.api.api_models.public import (
+    ApiPublicGenelistViewContextPayload,
+    ApiPublicAspGenesPayload,
+    ApiPublicAssayCatalogGenesViewPayload,
+)
 from coyote.integrations.api.api_models.admin import (
     ApiAdminPermissionContextPayload,
     ApiAdminPermissionCreateContextPayload,
@@ -75,6 +80,9 @@ __all__ = [
     "ApiHomeIsglsPayload",
     "ApiHomeEffectiveGenesPayload",
     "ApiHomeEditContextPayload",
+    "ApiPublicGenelistViewContextPayload",
+    "ApiPublicAspGenesPayload",
+    "ApiPublicAssayCatalogGenesViewPayload",
     "ApiAdminRolesPayload",
     "ApiAdminRoleCreateContextPayload",
     "ApiAdminRoleContextPayload",
