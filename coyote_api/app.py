@@ -240,6 +240,35 @@ def unhide_sample_comment_mutation(
     return util.common.convert_to_serializable(result)
 
 
+@app.post("/api/v1/samples/{sample_id}/filters/update")
+def update_sample_filters_mutation(
+    sample_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    filters = payload.get("filters", {})
+    if not isinstance(filters, dict):
+        raise _api_error(400, "Invalid filters payload")
+    store.sample_handler.update_sample_filters(sample.get("_id"), filters)
+    result = _mutation_payload(sample_id, resource="sample_filters", resource_id=str(sample.get("_id")), action="update")
+    return util.common.convert_to_serializable(result)
+
+
+@app.post("/api/v1/samples/{sample_id}/filters/reset")
+def reset_sample_filters_mutation(
+    sample_id: str,
+    user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    assay_config = _get_formatted_assay_config(sample)
+    if not assay_config:
+        raise _api_error(404, "Assay config not found for sample")
+    store.sample_handler.reset_sample_settings(sample.get("_id"), assay_config.get("filters"))
+    result = _mutation_payload(sample_id, resource="sample_filters", resource_id=str(sample.get("_id")), action="reset")
+    return util.common.convert_to_serializable(result)
+
+
 @app.post("/api/v1/admin/permissions/create")
 def create_permission_mutation(
     payload: dict = Body(default_factory=dict),

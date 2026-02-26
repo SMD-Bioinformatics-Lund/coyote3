@@ -31,13 +31,14 @@ from flask import (
 from flask_login import current_user, login_required
 from flask import current_app as app
 from coyote.extensions import store
-from coyote.blueprints.home import home_bp, filters
+from coyote.blueprints.home import home_bp
 from coyote.blueprints.home.forms import SampleSearchForm
 from coyote.extensions import util
 from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
 from coyote.util.misc import get_sample_and_assay_config
 from coyote.services.audit_logs.decorators import log_action
+from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 import os
 import re
 import json
@@ -304,10 +305,16 @@ def edit_sample(sample_id: str) -> str | Response:
             "sample": sample_id,
             "message": "sample filters reset to assay defaults",
         }
-        store.sample_handler.reset_sample_settings(sample["_id"], assay_config.get("filters"))
-        app.home_logger.info(
-            f"Sample {sample_id} filters were None, resetting to assay default filters"
-        )
+        try:
+            get_web_api_client().reset_sample_filters(
+                sample_id=sample_id,
+                headers=build_forward_headers(request.headers),
+            )
+            app.home_logger.info(
+                f"Sample {sample_id} filters were None, resetting to assay default filters"
+            )
+        except ApiRequestError as exc:
+            app.home_logger.error("Failed to reset filters via API for sample %s: %s", sample_id, exc)
 
     # Retrieve the sample details after potential update
     sample = store.sample_handler.get_sample(sample_id)
@@ -415,11 +422,18 @@ def apply_isgl(sample_id: str) -> Response:
             "sample": sample_id,
             "isgl_ids": isgl_ids,
         }
-        store.sample_handler.update_sample_filters(sample.get("_id"), filters)
-        flash(f"Gene list(s) {isgl_ids} applied to sample.", "green")
-        app.home_logger.info(
-            f"Applied gene list(s) {isgl_ids} to sample {sample_id} adhoc gene filter"
-        )
+        try:
+            get_web_api_client().update_sample_filters(
+                sample_id=sample_id,
+                filters=filters,
+                headers=build_forward_headers(request.headers),
+            )
+            flash(f"Gene list(s) {isgl_ids} applied to sample.", "green")
+            app.home_logger.info(
+                f"Applied gene list(s) {isgl_ids} to sample {sample_id} adhoc gene filter"
+            )
+        except ApiRequestError as exc:
+            flash(f"Failed to apply gene list(s): {exc}", "red")
 
     return jsonify({"ok": True})
 
@@ -447,7 +461,15 @@ def save_adhoc_genes(sample_id: str) -> Response:
     sample = store.sample_handler.get_sample(sample_id)
     filters = sample.get("filters", {})
     filters["adhoc_genes"] = {"label": label, "genes": genes}
-    store.sample_handler.update_sample_filters(sample.get("_id"), filters)
+    try:
+        get_web_api_client().update_sample_filters(
+            sample_id=sample_id,
+            filters=filters,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        flash(f"Failed to save AdHoc genes: {exc}", "red")
+        return jsonify({"ok": False}), 502
     # log Action
     g.audit_metadata = {
         "sample": sample_id,
@@ -475,7 +497,15 @@ def clear_adhoc_genes(sample_id: str) -> Response:
     sample = store.sample_handler.get_sample(sample_id)
     filters = sample.get("filters", {})
     filters.pop("adhoc_genes")
-    store.sample_handler.update_sample_filters(sample.get("_id"), filters)
+    try:
+        get_web_api_client().update_sample_filters(
+            sample_id=sample_id,
+            filters=filters,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        flash(f"Failed to clear AdHoc genes: {exc}", "red")
+        return jsonify({"ok": False}), 502
     # log Action
     g.audit_metadata = {
         "sample": sample_id,

@@ -509,6 +509,30 @@ class CoyoteApiClient:
         )
         return ApiMutationResultPayload.model_validate(payload)
 
+    def update_sample_filters(
+        self,
+        sample_id: str,
+        filters: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/samples/{sample_id}/filters/update",
+            headers=headers,
+            json_body={"filters": filters},
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def reset_sample_filters(
+        self,
+        sample_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/samples/{sample_id}/filters/reset",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
     def create_admin_permission(
         self,
         schema_id: str | None,
