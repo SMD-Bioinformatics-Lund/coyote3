@@ -741,6 +741,47 @@ class CoyoteApiClient:
         payload = self._post(f"/api/v1/admin/asp/{assay_panel_id}/delete", headers=headers)
         return ApiMutationResultPayload.model_validate(payload)
 
+    def create_admin_genelist(
+        self,
+        config: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            "/api/v1/admin/genelists/create",
+            headers=headers,
+            json_body={"config": config},
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def update_admin_genelist(
+        self,
+        genelist_id: str,
+        config: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/admin/genelists/{genelist_id}/update",
+            headers=headers,
+            json_body={"config": config},
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def toggle_admin_genelist(
+        self,
+        genelist_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(f"/api/v1/admin/genelists/{genelist_id}/toggle", headers=headers)
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def delete_admin_genelist(
+        self,
+        genelist_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(f"/api/v1/admin/genelists/{genelist_id}/delete", headers=headers)
+        return ApiMutationResultPayload.model_validate(payload)
+
     def mark_rna_fusion_false_positive(
         self, sample_id: str, fusion_id: str, headers: dict[str, str] | None = None
     ) -> ApiMutationResultPayload:

@@ -659,6 +659,72 @@ def delete_asp_mutation(
     )
 
 
+@app.post("/api/v1/admin/genelists/create")
+def create_genelist_mutation(
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="create_isgl", min_role="manager", min_level=99)),
+):
+    config = payload.get("config", {})
+    if not config:
+        raise _api_error(400, "Missing genelist config payload")
+    store.isgl_handler.create_isgl(config)
+    return util.common.convert_to_serializable(
+        _mutation_payload(
+            "admin",
+            resource="genelist",
+            resource_id=str(config.get("_id", "unknown")),
+            action="create",
+        )
+    )
+
+
+@app.post("/api/v1/admin/genelists/{genelist_id}/update")
+def update_genelist_mutation(
+    genelist_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="edit_isgl", min_role="manager", min_level=99)),
+):
+    genelist = store.isgl_handler.get_isgl(genelist_id)
+    if not genelist:
+        raise _api_error(404, "Genelist not found")
+    updated = payload.get("config", {})
+    if not updated:
+        raise _api_error(400, "Missing genelist config payload")
+    store.isgl_handler.update_isgl(genelist_id, updated)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="genelist", resource_id=genelist_id, action="update")
+    )
+
+
+@app.post("/api/v1/admin/genelists/{genelist_id}/toggle")
+def toggle_genelist_mutation(
+    genelist_id: str,
+    user: ApiUser = Depends(require_access(permission="edit_isgl", min_role="manager", min_level=99)),
+):
+    genelist = store.isgl_handler.get_isgl(genelist_id)
+    if not genelist:
+        raise _api_error(404, "Genelist not found")
+    new_status = not genelist.get("is_active", True)
+    store.isgl_handler.toggle_isgl_active(genelist_id, new_status)
+    result = _mutation_payload("admin", resource="genelist", resource_id=genelist_id, action="toggle")
+    result["meta"]["is_active"] = new_status
+    return util.common.convert_to_serializable(result)
+
+
+@app.post("/api/v1/admin/genelists/{genelist_id}/delete")
+def delete_genelist_mutation(
+    genelist_id: str,
+    user: ApiUser = Depends(require_access(permission="delete_isgl", min_role="admin", min_level=99999)),
+):
+    genelist = store.isgl_handler.get_isgl(genelist_id)
+    if not genelist:
+        raise _api_error(404, "Genelist not found")
+    store.isgl_handler.delete_isgl(genelist_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="genelist", resource_id=genelist_id, action="delete")
+    )
+
+
 @app.post("/api/v1/admin/schemas/create")
 def create_schema_mutation(
     payload: dict = Body(default_factory=dict),
