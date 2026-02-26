@@ -18,11 +18,15 @@ data in web templates.
 """
 
 from flask import current_app as app
-from coyote.extensions import store
+from flask import g
 import os
 import math
-import markdown as md
-from markupsafe import Markup
+from coyote.filters.shared import render_markdown_rich as shared_render_markdown_rich
+from coyote.integrations.api.api_client import (
+    ApiRequestError,
+    build_internal_headers,
+    get_web_api_client,
+)
 
 
 @app.template_filter()
@@ -54,7 +58,21 @@ def isgl_adhoc_status(isgl_id: str) -> str:
     Returns:
         bool: True if the ISGL is temporary, False otherwise.
     """
-    return store.isgl_handler.is_isgl_adhoc(isgl_id)
+    if not isgl_id:
+        return False
+    cache = getattr(g, "_isgl_meta_cache", None)
+    if cache is None:
+        cache = {}
+        g._isgl_meta_cache = cache
+    if isgl_id not in cache:
+        try:
+            cache[isgl_id] = get_web_api_client().get_isgl_meta_internal(
+                isgl_id=isgl_id,
+                headers=build_internal_headers(),
+            )
+        except ApiRequestError:
+            return False
+    return bool(cache[isgl_id].is_adhoc)
 
 
 @app.template_filter()
@@ -67,7 +85,21 @@ def isgl_display_name(isgl_id: str) -> str:
     Returns:
         str: The display name of the ISGL.
     """
-    return store.isgl_handler.get_isgl_display_name(isgl_id)
+    if not isgl_id:
+        return ""
+    cache = getattr(g, "_isgl_meta_cache", None)
+    if cache is None:
+        cache = {}
+        g._isgl_meta_cache = cache
+    if isgl_id not in cache:
+        try:
+            cache[isgl_id] = get_web_api_client().get_isgl_meta_internal(
+                isgl_id=isgl_id,
+                headers=build_internal_headers(),
+            )
+        except ApiRequestError:
+            return str(isgl_id)
+    return str(cache[isgl_id].display_name or isgl_id)
 
 
 @app.template_filter()
@@ -104,7 +136,4 @@ def render_markdown(text: str) -> str:
         markupsafe.Markup: HTML-safe output produced with the 'extra', 'tables',
         and 'sane_lists' extensions enabled.
     """
-    if not text:
-        return ""
-    html = md.markdown(text, extensions=["extra", "tables", "sane_lists"])
-    return Markup(html)
+    return shared_render_markdown_rich(text)

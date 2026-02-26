@@ -27,6 +27,7 @@ from coyote.integrations.api.api_models.public import (
     ApiPublicAssayCatalogContextPayload,
     ApiPublicAssayCatalogCsvContextPayload,
 )
+from coyote.integrations.api.api_models.internal import ApiInternalIsglMetaPayload
 from coyote.integrations.api.api_models.admin import (
     ApiAdminPermissionContextPayload,
     ApiAdminPermissionCreateContextPayload,
@@ -91,6 +92,7 @@ __all__ = [
     "ApiPublicAssayCatalogMatrixContextPayload",
     "ApiPublicAssayCatalogContextPayload",
     "ApiPublicAssayCatalogCsvContextPayload",
+    "ApiInternalIsglMetaPayload",
     "ApiAdminRolesPayload",
     "ApiAdminRoleCreateContextPayload",
     "ApiAdminRoleContextPayload",

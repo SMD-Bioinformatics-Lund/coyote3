@@ -67,3 +67,16 @@ def update_user_last_login_internal(user_id: str, request: Request):
     return util.common.convert_to_serializable(
         _mutation_payload("internal", resource="user", resource_id=user_id, action="update_last_login")
     )
+
+
+@app.get("/api/v1/internal/isgl/{isgl_id}/meta")
+def get_isgl_meta_internal(isgl_id: str, request: Request):
+    _require_internal_token(request)
+    return util.common.convert_to_serializable(
+        {
+            "status": "ok",
+            "isgl_id": isgl_id,
+            "is_adhoc": bool(store.isgl_handler.is_isgl_adhoc(isgl_id)),
+            "display_name": store.isgl_handler.get_isgl_display_name(isgl_id),
+        }
+    )

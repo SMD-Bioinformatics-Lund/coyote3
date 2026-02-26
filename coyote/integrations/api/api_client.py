@@ -65,6 +65,7 @@ from coyote.integrations.api.api_models import (
     ApiPublicAssayCatalogMatrixContextPayload,
     ApiPublicAssayCatalogContextPayload,
     ApiPublicAssayCatalogCsvContextPayload,
+    ApiInternalIsglMetaPayload,
 )
 
 
@@ -1129,6 +1130,17 @@ class CoyoteApiClient:
             headers=headers,
         )
         return ApiMutationResultPayload.model_validate(payload)
+
+    def get_isgl_meta_internal(
+        self,
+        isgl_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiInternalIsglMetaPayload:
+        payload = self._get(
+            f"/api/v1/internal/isgl/{isgl_id}/meta",
+            headers=headers,
+        )
+        return ApiInternalIsglMetaPayload.model_validate(payload)
 
     def create_admin_asp(
         self,
