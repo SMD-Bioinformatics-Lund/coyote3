@@ -803,6 +803,47 @@ class CoyoteApiClient:
         payload = self._post(f"/api/v1/admin/samples/{sample_id}/delete", headers=headers)
         return ApiMutationResultPayload.model_validate(payload)
 
+    def create_admin_aspc(
+        self,
+        config: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            "/api/v1/admin/aspc/create",
+            headers=headers,
+            json_body={"config": config},
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def update_admin_aspc(
+        self,
+        assay_id: str,
+        config: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/admin/aspc/{assay_id}/update",
+            headers=headers,
+            json_body={"config": config},
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def toggle_admin_aspc(
+        self,
+        assay_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(f"/api/v1/admin/aspc/{assay_id}/toggle", headers=headers)
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def delete_admin_aspc(
+        self,
+        assay_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(f"/api/v1/admin/aspc/{assay_id}/delete", headers=headers)
+        return ApiMutationResultPayload.model_validate(payload)
+
     def mark_rna_fusion_false_positive(
         self, sample_id: str, fusion_id: str, headers: dict[str, str] | None = None
     ) -> ApiMutationResultPayload:

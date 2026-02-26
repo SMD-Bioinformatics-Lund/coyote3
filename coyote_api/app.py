@@ -725,6 +725,70 @@ def delete_genelist_mutation(
     )
 
 
+@app.post("/api/v1/admin/aspc/create")
+def create_aspc_mutation(
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="create_aspc", min_role="manager", min_level=99)),
+):
+    config = payload.get("config", {})
+    if not config:
+        raise _api_error(400, "Missing assay config payload")
+    existing_config = store.aspc_handler.get_aspc_with_id(config.get("_id"))
+    if existing_config:
+        raise _api_error(409, "Assay config already exists")
+    store.aspc_handler.create_aspc(config)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="aspc", resource_id=str(config.get("_id", "unknown")), action="create")
+    )
+
+
+@app.post("/api/v1/admin/aspc/{assay_id}/update")
+def update_aspc_mutation(
+    assay_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="edit_aspc", min_role="manager", min_level=99)),
+):
+    assay_config = store.aspc_handler.get_aspc_with_id(assay_id)
+    if not assay_config:
+        raise _api_error(404, "Assay config not found")
+    updated_config = payload.get("config", {})
+    if not updated_config:
+        raise _api_error(400, "Missing assay config payload")
+    store.aspc_handler.update_aspc(assay_id, updated_config)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="aspc", resource_id=assay_id, action="update")
+    )
+
+
+@app.post("/api/v1/admin/aspc/{assay_id}/toggle")
+def toggle_aspc_mutation(
+    assay_id: str,
+    user: ApiUser = Depends(require_access(permission="edit_aspc", min_role="manager", min_level=99)),
+):
+    assay_config = store.aspc_handler.get_aspc_with_id(assay_id)
+    if not assay_config:
+        raise _api_error(404, "Assay config not found")
+    new_status = not assay_config.get("is_active", False)
+    store.aspc_handler.toggle_aspc_active(assay_id, new_status)
+    result = _mutation_payload("admin", resource="aspc", resource_id=assay_id, action="toggle")
+    result["meta"]["is_active"] = new_status
+    return util.common.convert_to_serializable(result)
+
+
+@app.post("/api/v1/admin/aspc/{assay_id}/delete")
+def delete_aspc_mutation(
+    assay_id: str,
+    user: ApiUser = Depends(require_access(permission="delete_aspc", min_role="admin", min_level=99999)),
+):
+    assay_config = store.aspc_handler.get_aspc_with_id(assay_id)
+    if not assay_config:
+        raise _api_error(404, "Assay config not found")
+    store.aspc_handler.delete_aspc(assay_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="aspc", resource_id=assay_id, action="delete")
+    )
+
+
 @app.post("/api/v1/admin/samples/{sample_id}/update")
 def update_sample_mutation(
     sample_id: str,
