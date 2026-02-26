@@ -28,8 +28,7 @@ from flask_login import login_required, login_user, logout_user
 
 from coyote.blueprints.login import login_bp
 from coyote.blueprints.login.forms import LoginForm
-from coyote.extensions import ldap_manager, login_manager, store, util
-from coyote.models.user import UserModel
+from coyote.extensions import login_manager
 from coyote.services.auth.user_session import User
 from coyote_web.api_client import ApiRequestError, build_internal_headers, get_web_api_client
 from flask_login import current_user
@@ -60,41 +59,20 @@ def login() -> str | Response:
         email = form.username.data.strip()
         password = form.password.data.strip()
 
-        # Fetch user
-        user_doc = store.user_handler.user(email)
-        if not user_doc or not user_doc.get("is_active", True):
-            flash("User not found or inactive.", "red")
-            app.logger.warning(f"Login failed: user not found or inactive ({email})")
-            return render_template("login.html", form=form)
-
-        # Authenticate
-        use_internal = user_doc.get("auth_type") == "coyote3"
-
-        valid = (
-            UserModel.validate_login(user_doc["password"], password)
-            if use_internal
-            else util.login.ldap_authenticate(email, password)
-        )
-
-        if not valid:
+        try:
+            auth_payload = get_web_api_client().authenticate_web_login_internal(
+                username=email,
+                password=password,
+                headers=build_internal_headers(),
+            )
+        except ApiRequestError:
             flash("Invalid credentials", "red")
             app.logger.warning(f"Login failed: invalid credentials ({email})")
             return render_template("login.html", form=form)
 
-        # Merge role + build user model
-        role_doc = store.roles_handler.get_role(user_doc.get("role")) or {}
-        user_model = UserModel.from_mongo(user_doc, role_doc)
-        user = User(user_model)
+        user = User(auth_payload.user)
 
-        # Login and update last login timestamp
         login_user(user)
-        try:
-            get_web_api_client().update_user_last_login_internal(
-                user_id=str(user_doc["_id"]),
-                headers=build_internal_headers(),
-            )
-        except ApiRequestError as exc:
-            app.logger.warning("Failed to update last login via API for user %s: %s", email, exc)
         app.logger.info(f"User logged in: {email} (access_level: {user.access_level})")
 
         return redirect(url_for("dashboard_bp.dashboard"))
@@ -129,10 +107,11 @@ def load_user(user_id: str) -> User | None:
     Returns:
         User | None: The authenticated User object if found, otherwise None.
     """
-    user_doc = store.user_handler.user_with_id(user_id)
-    if not user_doc:
+    try:
+        payload = get_web_api_client().get_user_session_internal(
+            user_id=user_id,
+            headers=build_internal_headers(),
+        )
+    except ApiRequestError:
         return None
-
-    role_doc = store.roles_handler.get_role(user_doc.get("role")) or {}
-    user_model = UserModel.from_mongo(user_doc, role_doc)
-    return User(user_model)
+    return User(payload.user)

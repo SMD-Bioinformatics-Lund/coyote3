@@ -36,14 +36,17 @@ class User(UserMixin):
         user_model (UserModel): The underlying user model instance.
     """
 
-    def __init__(self, user_model: UserModel):
+    def __init__(self, user_model: UserModel | dict):
         """
         Initialize the User session with a UserModel instance.
 
         Args:
             user_model (UserModel): The user model instance to wrap.
         """
-        self.user_model = user_model
+        if isinstance(user_model, UserModel):
+            self.user_model = user_model
+        else:
+            self.user_model = UserModel.model_validate(user_model)
 
     def get_id(self) -> str:
         """

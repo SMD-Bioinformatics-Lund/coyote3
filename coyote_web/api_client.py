@@ -9,6 +9,8 @@ import httpx
 from flask import current_app
 
 from coyote_web.api_models import (
+    ApiAuthLoginPayload,
+    ApiAuthSessionUserPayload,
     ApiDashboardSummaryPayload,
     ApiAdminPermissionContextPayload,
     ApiAdminPermissionCreateContextPayload,
@@ -850,6 +852,30 @@ class CoyoteApiClient:
             json_body={"email": email},
         )
         return bool(payload.get("exists", False))
+
+    def authenticate_web_login_internal(
+        self,
+        username: str,
+        password: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAuthLoginPayload:
+        payload = self._post(
+            "/api/v1/internal/auth/login",
+            headers=headers,
+            json_body={"username": username, "password": password},
+        )
+        return ApiAuthLoginPayload.model_validate(payload)
+
+    def get_user_session_internal(
+        self,
+        user_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAuthSessionUserPayload:
+        payload = self._get(
+            f"/api/v1/internal/users/{user_id}/session",
+            headers=headers,
+        )
+        return ApiAuthSessionUserPayload.model_validate(payload)
 
     def update_user_last_login_internal(
         self,
