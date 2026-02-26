@@ -120,3 +120,11 @@ class ApiAdminAspcCreateContextPayload(ApiModel):
 class ApiAdminAspcContextPayload(ApiModel):
     assay_config: JsonDict = Field(default_factory=dict)
     schema: JsonDict = Field(default_factory=dict)
+
+
+class ApiAdminSamplesPayload(ApiModel):
+    samples: list[JsonDict] = Field(default_factory=list)
+
+
+class ApiAdminSampleContextPayload(ApiModel):
+    sample: JsonDict = Field(default_factory=dict)

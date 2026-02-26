@@ -1078,6 +1078,30 @@ def delete_aspc_mutation(
     )
 
 
+@app.get("/api/v1/admin/samples")
+def list_admin_samples_read(
+    search: str = Query(default=""),
+    user: ApiUser = Depends(
+        require_access(permission="view_sample_global", min_role="developer", min_level=9999)
+    ),
+):
+    samples = list(store.sample_handler.get_all_samples(user.assays, None, search))
+    return util.common.convert_to_serializable({"samples": samples})
+
+
+@app.get("/api/v1/admin/samples/{sample_id}/context")
+def admin_sample_context_read(
+    sample_id: str,
+    user: ApiUser = Depends(
+        require_access(permission="edit_sample", min_role="developer", min_level=9999)
+    ),
+):
+    sample_doc = store.sample_handler.get_sample(sample_id)
+    if not sample_doc:
+        raise _api_error(404, "Sample not found")
+    return util.common.convert_to_serializable({"sample": sample_doc})
+
+
 @app.post("/api/v1/admin/samples/{sample_id}/update")
 def update_sample_mutation(
     sample_id: str,

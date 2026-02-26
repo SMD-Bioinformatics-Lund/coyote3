@@ -15,11 +15,9 @@
 import json
 
 from flask import Response, flash, g, redirect, render_template, request, url_for
-from flask_login import current_user
 
 from coyote.blueprints.admin import admin_bp
 from coyote.blueprints.home.forms import SampleSearchForm
-from coyote.extensions import store
 from coyote.services.audit_logs.decorators import log_action
 from coyote.services.auth.decorators import require
 from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
@@ -34,9 +32,15 @@ def all_samples() -> str | Response:
     if request.method == "POST" and form.validate_on_submit():
         search_str = form.sample_search.data
 
-    limit_samples = None
-    assays = current_user.assays
-    samples = list(store.sample_handler.get_all_samples(assays, limit_samples, search_str))
+    try:
+        payload = get_web_api_client().get_admin_samples(
+            search=search_str,
+            headers=build_forward_headers(request.headers),
+        )
+        samples = payload.samples
+    except ApiRequestError as exc:
+        flash(f"Failed to fetch samples: {exc}", "red")
+        samples = []
     return render_template("samples/all_samples.html", all_samples=samples, form=form)
 
 
@@ -44,8 +48,19 @@ def all_samples() -> str | Response:
 @require("edit_sample", min_role="developer", min_level=9999)
 @log_action(action_name="edit_sample", call_type="developer_call")
 def edit_sample(sample_id: str) -> str | Response:
-    sample_doc = store.sample_handler.get_sample(sample_id)
-    sample_obj = sample_doc.pop("_id")
+    try:
+        payload = get_web_api_client().get_admin_sample_context(
+            sample_id=sample_id,
+            headers=build_forward_headers(request.headers),
+        )
+        sample_doc = payload.sample
+    except ApiRequestError as exc:
+        if exc.status_code == 404:
+            flash("Sample not found.", "red")
+        else:
+            flash(f"Failed to load sample context: {exc}", "red")
+        return redirect(url_for("admin_bp.all_samples"))
+    sample_obj = sample_doc.pop("_id", sample_id)
 
     if request.method == "POST":
         json_blob = request.form.get("json_blob", "")
@@ -75,8 +90,7 @@ def edit_sample(sample_id: str) -> str | Response:
 @require("delete_sample_global", min_role="developer", min_level=9999)
 @log_action("delete_sample", call_type="admin_call")
 def delete_sample(sample_id: str) -> Response:
-    sample_name = store.sample_handler.get_sample_name(sample_id)
-    g.audit_metadata = {"sample": sample_name}
+    g.audit_metadata = {"sample": sample_id}
     try:
         get_web_api_client().delete_admin_sample(
             sample_id=sample_id,

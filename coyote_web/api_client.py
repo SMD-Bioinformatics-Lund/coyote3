@@ -22,6 +22,8 @@ from coyote_web.api_models import (
     ApiAdminAspcContextPayload,
     ApiAdminAspcCreateContextPayload,
     ApiAdminAspcPayload,
+    ApiAdminSampleContextPayload,
+    ApiAdminSamplesPayload,
     ApiAdminRoleContextPayload,
     ApiAdminRoleCreateContextPayload,
     ApiAdminRolesPayload,
@@ -1009,6 +1011,26 @@ class CoyoteApiClient:
             json_body={"sample": sample},
         )
         return ApiMutationResultPayload.model_validate(payload)
+
+    def get_admin_samples(
+        self,
+        search: str = "",
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminSamplesPayload:
+        payload = self._get(
+            "/api/v1/admin/samples",
+            headers=headers,
+            params={"search": search} if search else None,
+        )
+        return ApiAdminSamplesPayload.model_validate(payload)
+
+    def get_admin_sample_context(
+        self,
+        sample_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminSampleContextPayload:
+        payload = self._get(f"/api/v1/admin/samples/{sample_id}/context", headers=headers)
+        return ApiAdminSampleContextPayload.model_validate(payload)
 
     def delete_admin_sample(
         self,
