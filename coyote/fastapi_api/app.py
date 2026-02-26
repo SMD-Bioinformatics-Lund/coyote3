@@ -512,7 +512,8 @@ def show_dna_cnv(sample_id: str, cnv_id: str, user: ApiUser = Depends(require_ac
         sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
 
     payload = {
-        "sample": {
+        "sample": sample,
+        "sample_summary": {
             "id": str(sample.get("_id")),
             "name": sample.get("name"),
             "assay": sample.get("assay"),
@@ -523,6 +524,8 @@ def show_dna_cnv(sample_id: str, cnv_id: str, user: ApiUser = Depends(require_ac
         "sample_ids": sample_ids,
         "bam_id": store.bam_service_handler.get_bams(sample_ids),
         "has_hidden_comments": store.cnv_handler.hidden_cnv_comments(cnv_id),
+        "hidden_comments": store.cnv_handler.hidden_cnv_comments(cnv_id),
+        "assay_group": assay_group,
     }
     return util.common.convert_to_serializable(payload)
 
@@ -572,7 +575,8 @@ def show_dna_translocation(
         sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
 
     payload = {
-        "sample": {
+        "sample": sample,
+        "sample_summary": {
             "id": str(sample.get("_id")),
             "name": sample.get("name"),
             "assay": sample.get("assay"),
@@ -584,6 +588,8 @@ def show_dna_translocation(
         "bam_id": store.bam_service_handler.get_bams(sample_ids),
         "vep_conseq_translations": store.vep_meta_handler.get_conseq_translations(sample.get("vep", 103)),
         "has_hidden_comments": store.transloc_handler.hidden_transloc_comments(transloc_id),
+        "hidden_comments": store.transloc_handler.hidden_transloc_comments(transloc_id),
+        "assay_group": assay_group,
     }
     return util.common.convert_to_serializable(payload)
 

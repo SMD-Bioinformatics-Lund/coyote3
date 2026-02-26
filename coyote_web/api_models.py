@@ -69,3 +69,27 @@ class ApiDnaVariantDetailPayload(BaseModel):
     vep_var_class_translations: dict[str, Any] = Field(default_factory=dict)
     vep_conseq_translations: dict[str, Any] = Field(default_factory=dict)
     assay_group_mappings: dict[str, Any] = Field(default_factory=dict)
+
+
+class ApiDnaCnvDetailPayload(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    sample: dict[str, Any]
+    cnv: dict[str, Any]
+    assay_group: str = ""
+    annotations: dict[str, Any] = Field(default_factory=dict)
+    sample_ids: list[str] = Field(default_factory=list)
+    bam_id: dict[str, Any] = Field(default_factory=dict)
+    hidden_comments: bool = False
+
+
+class ApiDnaTranslocationDetailPayload(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    sample: dict[str, Any]
+    translocation: dict[str, Any]
+    assay_group: str = ""
+    annotations: dict[str, Any] = Field(default_factory=dict)
+    bam_id: dict[str, Any] = Field(default_factory=dict)
+    vep_conseq_translations: dict[str, Any] = Field(default_factory=dict)
+    hidden_comments: bool = False

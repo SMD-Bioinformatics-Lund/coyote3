@@ -1654,6 +1654,30 @@ Copy for each task:
   - Convert CNV/translocation detail/list routes similarly.
   - Extend API payload contracts for admin/read-only blueprint pages and begin removing web-side fallback paths in dev strict mode.
 
+### Task P12-2/P12-3 (Detail Cutover Phase 2) - API-First CNV/Translocation Detail Views
+
+- Date: 2026-02-26
+- Owner: Codex
+- Scope:
+  - Switch DNA CNV detail and DNA translocation detail web routes to API-first reads (GET path).
+  - Extend FastAPI CNV/translocation detail payloads to include template-compatible sample/detail aliases.
+- Files changed:
+  - `coyote/fastapi_api/app.py` (expanded CNV/translocation detail payload fields)
+  - `coyote_web/api_models.py` (added CNV/translocation detail models)
+  - `coyote_web/api_client.py` (added CNV/translocation detail fetch methods)
+  - `coyote/blueprints/dna/views_cnv.py` (API-first `show_cnv`)
+  - `coyote/blueprints/dna/views_transloc.py` (API-first `show_transloc`)
+  - `MIGRATION_PLAN_DNA_RNA_SHARED_SERVICES.md`
+- Validation executed:
+  - `python -m py_compile coyote/fastapi_api/app.py coyote_web/api_models.py coyote_web/api_client.py coyote/blueprints/dna/views_cnv.py coyote/blueprints/dna/views_transloc.py`
+  - FastAPI TestClient auth-gate smoke checks for CNV/translocation detail endpoints (`401` unauthenticated).
+- Result:
+  - CNV/translocation detail pages now support server-side API reads with strict-mode/fallback control.
+  - API payloads provide fields needed to keep current templates stable during cutover.
+- Rollback needed: no
+- Follow-up actions:
+  - Migrate list pages for CNV/translocations and remaining read-only admin pages.
+
 ---
 
 ## 10) Session Rule
