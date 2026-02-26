@@ -102,6 +102,10 @@ class DefaultConfig:
     API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8001")
     API_BROWSER_BASE = os.getenv("API_BROWSER_BASE", "/api")
     API_HEALTH_PATH = os.getenv("API_HEALTH_PATH", "/api/v1/health")
+    API_HEALTH_RETRIES = int(os.getenv("API_HEALTH_RETRIES", "15"))
+    API_HEALTH_RETRY_INTERVAL_SECONDS = float(
+        os.getenv("API_HEALTH_RETRY_INTERVAL_SECONDS", "1.0")
+    )
 
     MONGO_HOST: str = os.getenv("FLASK_MONGO_HOST") or "localhost"
     MONGO_PORT: str | Literal[27017] = os.getenv("FLASK_MONGO_PORT") or 27017

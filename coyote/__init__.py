@@ -45,6 +45,7 @@ from typing import Any
 import json
 import os
 import httpx
+import time
 
 
 # Initialize Flask-Caching
@@ -466,17 +467,40 @@ def verify_external_api_dependency(app: Flask) -> None:
     api_health_path = app.config.get("API_HEALTH_PATH", "/api/v1/health")
     health_url = f"{api_base}{api_health_path}"
     timeout = httpx.Timeout(3.0, connect=2.0)
-    try:
-        with httpx.Client(timeout=timeout) as client:
-            response = client.get(health_url)
-            response.raise_for_status()
-            payload = response.json() if "application/json" in response.headers.get("content-type", "") else {}
-            if isinstance(payload, dict) and payload.get("status") not in ("ok", None):
-                raise RuntimeError(f"Unexpected API health payload: {payload}")
-        app.logger.info("External API dependency check passed: %s", health_url)
-    except Exception as exc:
-        app.logger.error("External API dependency check failed: %s (%s)", health_url, exc)
-        raise RuntimeError(f"External API is required but unavailable: {health_url}") from exc
+    retries = max(1, int(app.config.get("API_HEALTH_RETRIES", 15)))
+    retry_interval = float(app.config.get("API_HEALTH_RETRY_INTERVAL_SECONDS", 1.0))
+    last_error = None
+
+    for attempt in range(1, retries + 1):
+        try:
+            with httpx.Client(timeout=timeout) as client:
+                response = client.get(health_url)
+                response.raise_for_status()
+                payload = (
+                    response.json()
+                    if "application/json" in response.headers.get("content-type", "")
+                    else {}
+                )
+                if isinstance(payload, dict) and payload.get("status") not in ("ok", None):
+                    raise RuntimeError(f"Unexpected API health payload: {payload}")
+            app.logger.info("External API dependency check passed: %s", health_url)
+            return
+        except Exception as exc:
+            last_error = exc
+            if attempt < retries:
+                app.logger.warning(
+                    "External API dependency check failed (attempt %s/%s): %s (%s). Retrying in %.1fs",
+                    attempt,
+                    retries,
+                    health_url,
+                    exc,
+                    retry_interval,
+                )
+                time.sleep(retry_interval)
+            else:
+                app.logger.error("External API dependency check failed: %s (%s)", health_url, exc)
+
+    raise RuntimeError(f"External API is required but unavailable: {health_url}") from last_error
 
 
 def init_db(app) -> None:
