@@ -143,6 +143,80 @@ def create_permission_mutation(
     )
 
 
+@app.get("/api/v1/admin/permissions")
+def list_permissions_read(
+    user: ApiUser = Depends(
+        require_access(permission="view_permission_policy", min_role="admin", min_level=99999)
+    ),
+):
+    permission_policies = store.permissions_handler.get_all_permissions(is_active=False)
+    grouped_permissions: dict[str, list[dict]] = {}
+    for policy in permission_policies:
+        grouped_permissions.setdefault(policy.get("category", "Uncategorized"), []).append(policy)
+    return util.common.convert_to_serializable(
+        {
+            "permission_policies": permission_policies,
+            "grouped_permissions": grouped_permissions,
+        }
+    )
+
+
+@app.get("/api/v1/admin/permissions/create_context")
+def create_permission_context_read(
+    schema_id: str | None = Query(default=None),
+    user: ApiUser = Depends(
+        require_access(permission="create_permission_policy", min_role="admin", min_level=99999)
+    ),
+):
+    active_schemas = store.schema_handler.get_schemas_by_category_type(
+        schema_type="acl_config",
+        schema_category="RBAC",
+        is_active=True,
+    )
+    if not active_schemas:
+        raise _api_error(400, "No active permission schemas found")
+
+    selected_id = schema_id or active_schemas[0]["_id"]
+    selected_schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+    if not selected_schema:
+        raise _api_error(404, "Selected schema not found")
+
+    schema = deepcopy(selected_schema)
+    schema["fields"]["created_by"]["default"] = user.username
+    schema["fields"]["created_on"]["default"] = util.common.utc_now()
+    schema["fields"]["updated_by"]["default"] = user.username
+    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
+
+    return util.common.convert_to_serializable(
+        {
+            "schemas": active_schemas,
+            "selected_schema": selected_schema,
+            "schema": schema,
+        }
+    )
+
+
+@app.get("/api/v1/admin/permissions/{perm_id}/context")
+def permission_context_read(
+    perm_id: str,
+    user: ApiUser = Depends(
+        require_access(permission="view_permission_policy", min_role="admin", min_level=99999)
+    ),
+):
+    permission = store.permissions_handler.get(perm_id)
+    if not permission:
+        raise _api_error(404, "Permission policy not found")
+    schema = store.schema_handler.get_schema(permission.get("schema_name"))
+    if not schema:
+        raise _api_error(404, "Schema not found for permission policy")
+    return util.common.convert_to_serializable(
+        {
+            "permission": permission,
+            "schema": schema,
+        }
+    )
+
+
 @app.post("/api/v1/admin/permissions/{perm_id}/update")
 def update_permission_mutation(
     perm_id: str,

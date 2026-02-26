@@ -9,6 +9,9 @@ import httpx
 from flask import current_app
 
 from coyote_web.api_models import (
+    ApiAdminPermissionContextPayload,
+    ApiAdminPermissionCreateContextPayload,
+    ApiAdminPermissionsPayload,
     ApiAdminRoleContextPayload,
     ApiAdminRoleCreateContextPayload,
     ApiAdminRolesPayload,
@@ -558,6 +561,30 @@ class CoyoteApiClient:
             json_body={"schema_id": schema_id, "form_data": form_data},
         )
         return ApiMutationResultPayload.model_validate(payload)
+
+    def get_admin_permissions(
+        self,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminPermissionsPayload:
+        payload = self._get("/api/v1/admin/permissions", headers=headers)
+        return ApiAdminPermissionsPayload.model_validate(payload)
+
+    def get_admin_permission_create_context(
+        self,
+        schema_id: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminPermissionCreateContextPayload:
+        params = {"schema_id": schema_id} if schema_id else None
+        payload = self._get("/api/v1/admin/permissions/create_context", headers=headers, params=params)
+        return ApiAdminPermissionCreateContextPayload.model_validate(payload)
+
+    def get_admin_permission_context(
+        self,
+        perm_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminPermissionContextPayload:
+        payload = self._get(f"/api/v1/admin/permissions/{perm_id}/context", headers=headers)
+        return ApiAdminPermissionContextPayload.model_validate(payload)
 
     def update_admin_permission(
         self,

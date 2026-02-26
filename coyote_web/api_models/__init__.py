@@ -2,6 +2,9 @@
 
 from coyote_web.api_models.base import ApiMutationResultPayload
 from coyote_web.api_models.admin import (
+    ApiAdminPermissionContextPayload,
+    ApiAdminPermissionCreateContextPayload,
+    ApiAdminPermissionsPayload,
     ApiAdminRoleContextPayload,
     ApiAdminRoleCreateContextPayload,
     ApiAdminRolesPayload,
@@ -29,6 +32,9 @@ __all__ = [
     "ApiAdminRolesPayload",
     "ApiAdminRoleCreateContextPayload",
     "ApiAdminRoleContextPayload",
+    "ApiAdminPermissionsPayload",
+    "ApiAdminPermissionCreateContextPayload",
+    "ApiAdminPermissionContextPayload",
     "ApiDnaBiomarkersPayload",
     "ApiDnaCnvsPayload",
     "ApiDnaCnvDetailPayload",

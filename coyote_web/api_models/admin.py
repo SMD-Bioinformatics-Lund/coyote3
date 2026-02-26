@@ -21,3 +21,18 @@ class ApiAdminRoleContextPayload(ApiModel):
     role: JsonDict = Field(default_factory=dict)
     schema: JsonDict = Field(default_factory=dict)
 
+
+class ApiAdminPermissionsPayload(ApiModel):
+    permission_policies: list[JsonDict] = Field(default_factory=list)
+    grouped_permissions: JsonDict = Field(default_factory=dict)
+
+
+class ApiAdminPermissionCreateContextPayload(ApiModel):
+    schemas: list[JsonDict] = Field(default_factory=list)
+    selected_schema: JsonDict = Field(default_factory=dict)
+    schema: JsonDict = Field(default_factory=dict)
+
+
+class ApiAdminPermissionContextPayload(ApiModel):
+    permission: JsonDict = Field(default_factory=dict)
+    schema: JsonDict = Field(default_factory=dict)

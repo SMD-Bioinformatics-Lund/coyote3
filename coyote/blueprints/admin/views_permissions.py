@@ -15,10 +15,9 @@
 from copy import deepcopy
 
 from flask import Response, abort, flash, g, redirect, render_template, request, url_for
-from flask_login import current_user
 
 from coyote.blueprints.admin import admin_bp
-from coyote.extensions import store, util
+from coyote.extensions import util
 from coyote.services.audit_logs.decorators import log_action
 from coyote.services.auth.decorators import require
 from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
@@ -27,36 +26,30 @@ from coyote_web.api_client import ApiRequestError, build_forward_headers, get_we
 @admin_bp.route("/permissions")
 @require("view_permission_policy", min_role="admin", min_level=99999)
 def list_permissions() -> str:
-    permission_policies = store.permissions_handler.get_all_permissions(is_active=False)
-    grouped = {}
-    for p in permission_policies:
-        grouped.setdefault(p["category"], []).append(p)
-    return render_template("permissions/permissions.html", grouped_permissions=grouped)
+    try:
+        payload = get_web_api_client().get_admin_permissions(headers=build_forward_headers(request.headers))
+        grouped_permissions = payload.grouped_permissions
+    except ApiRequestError as exc:
+        flash(f"Failed to fetch permissions: {exc}", "red")
+        grouped_permissions = {}
+    return render_template("permissions/permissions.html", grouped_permissions=grouped_permissions)
 
 
 @admin_bp.route("/permissions/new", methods=["GET", "POST"])
 @require("create_permission_policy", min_role="admin", min_level=99999)
 @log_action(action_name="create_permission", call_type="admin_call")
 def create_permission() -> Response | str:
-    active_schemas = store.schema_handler.get_schemas_by_category_type(
-        schema_type="acl_config",
-        schema_category="RBAC",
-        is_active=True,
-    )
-    if not active_schemas:
-        flash("No active permission schemas found!", "red")
+    try:
+        context = get_web_api_client().get_admin_permission_create_context(
+            schema_id=request.args.get("schema_id"),
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        flash(f"Failed to load permission schema context: {exc}", "red")
         return redirect(url_for("admin_bp.list_permissions"))
 
-    selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
-    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
-    if not schema:
-        flash("Selected schema not found!", "red")
-        return redirect(url_for("admin_bp.list_permissions"))
-
-    schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = util.common.utc_now()
-    schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
+    active_schemas = context.schemas
+    schema = context.schema
 
     if request.method == "POST":
         form_data = {
@@ -65,7 +58,7 @@ def create_permission() -> Response | str:
         }
         try:
             payload = get_web_api_client().create_admin_permission(
-                schema_id=schema["_id"],
+                schema_id=context.selected_schema.get("_id"),
                 form_data=form_data,
                 headers=build_forward_headers(request.headers),
             )
@@ -79,7 +72,7 @@ def create_permission() -> Response | str:
         "permissions/create_permission.html",
         schema=schema,
         schemas=active_schemas,
-        selected_schema=schema,
+        selected_schema=context.selected_schema,
     )
 
 
@@ -87,11 +80,19 @@ def create_permission() -> Response | str:
 @require("edit_permission_policy", min_role="admin", min_level=99999)
 @log_action(action_name="edit_permission", call_type="admin_call")
 def edit_permission(perm_id: str) -> Response | str:
-    permission = store.permissions_handler.get(perm_id)
-    if not permission:
-        return abort(404)
+    try:
+        context = get_web_api_client().get_admin_permission_context(
+            perm_id=perm_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        if exc.status_code == 404:
+            return abort(404)
+        flash(f"Failed to load permission context: {exc}", "red")
+        return redirect(url_for("admin_bp.list_permissions"))
 
-    schema = store.schema_handler.get_schema(permission.get("schema_name"))
+    permission = context.permission
+    schema = context.schema
 
     selected_version = request.args.get("version", type=int)
     delta = None
@@ -141,15 +142,19 @@ def edit_permission(perm_id: str) -> Response | str:
 @require("view_permission_policy", min_role="admin", min_level=99999)
 @log_action(action_name="view_permission", call_type="admin_call")
 def view_permission(perm_id: str) -> str | Response:
-    permission = store.permissions_handler.get(perm_id)
-    if not permission:
-        return abort(404)
-
-    schema = store.schema_handler.get_schema(permission.get("schema_name"))
-
-    if not schema:
-        flash("Schema for this permission is missing.", "red")
+    try:
+        context = get_web_api_client().get_admin_permission_context(
+            perm_id=perm_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        if exc.status_code == 404:
+            return abort(404)
+        flash(f"Failed to load permission context: {exc}", "red")
         return redirect(url_for("admin_bp.list_permissions"))
+
+    permission = context.permission
+    schema = context.schema
 
     selected_version = request.args.get("version", type=int)
     delta = None
@@ -180,10 +185,6 @@ def view_permission(perm_id: str) -> str | Response:
 @require("edit_permission_policy", min_role="admin", min_level=99999)
 @log_action(action_name="edit_permission", call_type="admin_call")
 def toggle_permission_active(perm_id: str) -> Response:
-    perm = store.permissions_handler.get(perm_id)
-    if not perm:
-        return abort(404)
-
     try:
         payload = get_web_api_client().toggle_admin_permission(
             perm_id=perm_id,
@@ -199,6 +200,8 @@ def toggle_permission_active(perm_id: str) -> Response:
             "green",
         )
     except ApiRequestError as exc:
+        if exc.status_code == 404:
+            return abort(404)
         flash(f"Failed to toggle permission policy: {exc}", "red")
     return redirect(url_for("admin_bp.list_permissions"))
 
@@ -207,10 +210,6 @@ def toggle_permission_active(perm_id: str) -> Response:
 @require("delete_permission_policy", min_role="admin", min_level=99999)
 @log_action(action_name="delete_permission", call_type="admin_call")
 def delete_permission(perm_id: str) -> Response:
-    perm = store.permissions_handler.get(perm_id)
-    if not perm:
-        return abort(404)
-
     try:
         get_web_api_client().delete_admin_permission(
             perm_id=perm_id,
@@ -219,5 +218,7 @@ def delete_permission(perm_id: str) -> Response:
         g.audit_metadata = {"permission": perm_id}
         flash(f"Permission policy '{perm_id}' deleted successfully.", "green")
     except ApiRequestError as exc:
+        if exc.status_code == 404:
+            return abort(404)
         flash(f"Failed to delete permission policy: {exc}", "red")
     return redirect(url_for("admin_bp.list_permissions"))
