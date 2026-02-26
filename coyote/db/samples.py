@@ -139,7 +139,16 @@ class SampleHandler(BaseHandler):
         cache_key = CommonUtility.generate_sample_cache_key(**locals())
 
         if use_cache:
-            samples = app.cache.get(cache_key)
+            try:
+                samples = app.cache.get(cache_key)
+            except Exception as exc:
+                app.logger.warning(
+                    "[SAMPLES CACHE ERROR] failed to read cache key %s: %s. Falling back to DB.",
+                    cache_key,
+                    exc,
+                )
+                samples = None
+
             if samples and not reload:
                 app.logger.info(f"[SAMPLES CACHE HIT] {cache_key}")
                 return samples
@@ -161,8 +170,15 @@ class SampleHandler(BaseHandler):
         )
 
         if use_cache:
-            app.cache.set(cache_key, samples, timeout=cache_timeout)
-            app.logger.debug(f"[SAMPLES CACHE SET] {cache_key} (timeout={cache_timeout}s)")
+            try:
+                app.cache.set(cache_key, samples, timeout=cache_timeout)
+                app.logger.debug(f"[SAMPLES CACHE SET] {cache_key} (timeout={cache_timeout}s)")
+            except Exception as exc:
+                app.logger.warning(
+                    "[SAMPLES CACHE ERROR] failed to set cache key %s: %s. Continuing without cache.",
+                    cache_key,
+                    exc,
+                )
 
         return samples
 

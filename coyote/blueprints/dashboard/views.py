@@ -37,7 +37,13 @@ def dashboard() -> str:
     cache_timeout = app.config.get("CACHE_DEFAULT_TIMEOUT", 0)
     cache_key = util.dashboard.generate_dashboard_chache_key(current_user.username)
 
-    if app.cache.get(cache_key):
+    cache_payload = None
+    try:
+        cache_payload = app.cache.get(cache_key)
+    except Exception as exc:
+        app.logger.warning("Dashboard cache read failed for %s: %s", cache_key, exc)
+
+    if cache_payload:
         (
             total_samples_count,
             analysed_samples_count,
@@ -47,7 +53,7 @@ def dashboard() -> str:
             unique_gene_count_all_panels,
             asp_gene_counts,
             sample_stats,
-        ) = app.cache.get(cache_key)
+        ) = cache_payload
         app.logger.info(f"Dashboard cache hit for {cache_key}")
 
     else:
@@ -76,20 +82,23 @@ def dashboard() -> str:
             sample_stats = {}
 
     # Check if the cache exists and is still valid
-    app.cache.set(
-        cache_key,
-        (
-            total_samples_count,
-            analysed_samples_count,
-            pending_samples_count,
-            user_samples_stats,
-            variant_stats,
-            unique_gene_count_all_panels,
-            asp_gene_counts,
-            sample_stats,
-        ),
-        timeout=cache_timeout,
-    )
+    try:
+        app.cache.set(
+            cache_key,
+            (
+                total_samples_count,
+                analysed_samples_count,
+                pending_samples_count,
+                user_samples_stats,
+                variant_stats,
+                unique_gene_count_all_panels,
+                asp_gene_counts,
+                sample_stats,
+            ),
+            timeout=cache_timeout,
+        )
+    except Exception as exc:
+        app.logger.warning("Dashboard cache write failed for %s: %s", cache_key, exc)
 
     # TODO: Add more stats here
     # Total Assays analysed
