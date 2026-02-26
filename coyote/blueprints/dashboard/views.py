@@ -55,6 +55,12 @@ def dashboard() -> str:
             sample_stats,
         ) = cache_payload
         app.logger.info(f"Dashboard cache hit for {cache_key}")
+        if not isinstance(user_samples_stats, dict):
+            app.logger.warning(
+                "Dashboard cache payload has invalid user_samples_stats type (%s); resetting.",
+                type(user_samples_stats).__name__,
+            )
+            user_samples_stats = {}
 
     else:
         app.logger.info(f"Dashboard cache miss for {cache_key}")
