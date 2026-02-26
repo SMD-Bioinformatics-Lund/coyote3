@@ -57,6 +57,7 @@ from coyote.integrations.api.api_models.admin import (
     ApiAdminUsersPayload,
 )
 from coyote.integrations.api.api_models.dna import (
+    ApiDnaPlotContextPayload,
     ApiDnaBiomarkersPayload,
     ApiDnaCnvsPayload,
     ApiDnaCnvDetailPayload,
@@ -120,6 +121,7 @@ __all__ = [
     "ApiAdminAspcContextPayload",
     "ApiAdminSamplesPayload",
     "ApiAdminSampleContextPayload",
+    "ApiDnaPlotContextPayload",
     "ApiDnaBiomarkersPayload",
     "ApiDnaCnvsPayload",
     "ApiDnaCnvDetailPayload",

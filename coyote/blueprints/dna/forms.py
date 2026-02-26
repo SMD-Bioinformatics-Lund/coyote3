@@ -16,8 +16,7 @@ This module defines Flask-WTF form classes for genomic data analysis and reporti
 
 from flask_wtf import FlaskForm
 from wtforms import BooleanField, IntegerField, FloatField
-from wtforms.validators import InputRequired, NumberRange, Optional
-from coyote.extensions import store
+from wtforms.validators import InputRequired, NumberRange
 
 
 class DNAFilterForm(FlaskForm):
@@ -96,26 +95,3 @@ class DNAFilterForm(FlaskForm):
     # Reset button
     reset = BooleanField("reset")
 
-
-def create_assay_group_form():
-    """
-    Create a dynamic Flask-WTF form class with BooleanField checkboxes for each assay group.
-
-    This function queries all available assay groups from the ASP handler and generates a form
-    class with a BooleanField for each group, allowing users to select one or more groups.
-    An additional 'historic' checkbox is always included.
-
-    Returns:
-        type: A dynamically created subclass of FlaskForm with BooleanFields for each assay group.
-    """
-    assay_groups = store.asp_handler.get_all_asp_groups()
-
-    fields = {
-        group: BooleanField(group.replace("_", " ").capitalize(), validators=[Optional()])
-        for group in assay_groups
-    }
-
-    fields["historic"] = BooleanField("Historic", validators=[Optional()])
-
-    # Dynamically create a FlaskForm class
-    return type("DynamicAssayGroupForm", (FlaskForm,), fields)

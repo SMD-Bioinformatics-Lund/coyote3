@@ -31,7 +31,6 @@ from coyote.extensions import util
 from coyote.blueprints.dna import dna_bp
 from coyote.blueprints.dna.forms import DNAFilterForm
 from coyote.util.decorators.access import require_sample_access
-from coyote.util.misc import get_sample_and_assay_config
 from coyote.services.interpretation.report_summary import (
     generate_summary_text,
 )
@@ -287,10 +286,18 @@ def show_any_plot(sample_id: str, fn: str, angle: int = 90) -> Response | str:
     Returns:
         flask.Response | str: The image file as a response, or an error message.
     """
-    result = get_sample_and_assay_config(sample_id)
-    if isinstance(result, Response):
-        return result
-    sample, assay_config, assay_config_schema = result
+    try:
+        payload = get_web_api_client().get_dna_plot_context(
+            sample_id=sample_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("DNA plot context API fetch failed for sample %s: %s", sample_id, exc)
+        flash("Failed to load sample context for plot", "red")
+        return redirect(url_for("home_bp.samples_home"))
+
+    sample = payload.sample
+    assay_config = payload.assay_config
     DNAWorkflowService.validate_report_inputs(app.logger, sample, assay_config)
     base_dir = assay_config.get("reporting", {}).get("plots_path", None)
 

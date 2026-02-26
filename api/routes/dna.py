@@ -1,5 +1,7 @@
 """DNA API routes."""
 
+from copy import deepcopy
+
 from fastapi import Body, Depends, Query, Request
 
 from coyote.extensions import store, util
@@ -134,6 +136,22 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
         "variants": variants,
     }
     return util.common.convert_to_serializable(payload)
+
+
+@app.get("/api/v1/dna/samples/{sample_id}/plot_context")
+def dna_plot_context(sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
+    sample = _get_sample_for_api(sample_id, user)
+    assay_config = _get_formatted_assay_config(sample)
+    if not assay_config:
+        raise _api_error(404, "Assay config not found for sample")
+    assay_config_schema = store.schema_handler.get_schema(assay_config.get("schema_name"))
+    return util.common.convert_to_serializable(
+        {
+            "sample": sample,
+            "assay_config": assay_config,
+            "assay_config_schema": assay_config_schema,
+        }
+    )
 
 
 @app.get("/api/v1/dna/samples/{sample_id}/biomarkers")

@@ -34,6 +34,12 @@ class ApiDnaVariantsPayload(ApiModel):
     variants: list[JsonDict] = Field(default_factory=list)
 
 
+class ApiDnaPlotContextPayload(ApiModel):
+    sample: JsonDict = Field(default_factory=dict)
+    assay_config: JsonDict = Field(default_factory=dict)
+    assay_config_schema: JsonDict = Field(default_factory=dict)
+
+
 class ApiDnaBiomarkersPayload(ApiModel):
     sample: JsonDict
     meta: JsonDict = Field(default_factory=dict)

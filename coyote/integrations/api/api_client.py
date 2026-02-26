@@ -36,6 +36,7 @@ from coyote.integrations.api.api_models import (
     ApiAdminUserCreateContextPayload,
     ApiAdminUsersPayload,
     ApiMutationResultPayload,
+    ApiDnaPlotContextPayload,
     ApiDnaBiomarkersPayload,
     ApiDnaCnvsPayload,
     ApiDnaCnvDetailPayload,
@@ -383,6 +384,12 @@ class CoyoteApiClient:
     ) -> ApiDnaVariantsPayload:
         payload = self._get(f"/api/v1/dna/samples/{sample_id}/variants", headers=headers)
         return ApiDnaVariantsPayload.model_validate(payload)
+
+    def get_dna_plot_context(
+        self, sample_id: str, headers: dict[str, str] | None = None
+    ) -> ApiDnaPlotContextPayload:
+        payload = self._get(f"/api/v1/dna/samples/{sample_id}/plot_context", headers=headers)
+        return ApiDnaPlotContextPayload.model_validate(payload)
 
     def get_rna_fusion(
         self, sample_id: str, fusion_id: str, headers: dict[str, str] | None = None
