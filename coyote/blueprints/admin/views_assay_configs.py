@@ -52,7 +52,7 @@ def create_dna_assay_config() -> Response | str:
         return redirect(url_for("admin_bp.assay_configs"))
 
     active_schemas = context.schemas
-    schema = context.schema
+    schema = context.schema_payload
     prefill_map = context.prefill_map
 
     if request.method == "POST":
@@ -122,7 +122,7 @@ def create_rna_assay_config() -> Response | str:
         return redirect(url_for("admin_bp.assay_configs"))
 
     active_schemas = context.schemas
-    schema = context.schema
+    schema = context.schema_payload
     prefill_map = context.prefill_map
 
     if request.method == "POST":
@@ -192,7 +192,7 @@ def edit_assay_config(assay_id: str) -> Response | str:
         return redirect(url_for("admin_bp.assay_configs"))
 
     assay_config = context.assay_config
-    schema = context.schema
+    schema = context.schema_payload
 
     selected_version = request.args.get("version", type=int)
     delta = None
@@ -282,7 +282,7 @@ def view_assay_config(assay_id: str) -> str | Response:
         return redirect(url_for("admin_bp.assay_configs"))
 
     assay_config = context.assay_config
-    schema = context.schema
+    schema = context.schema_payload
 
     selected_version = request.args.get("version", type=int)
     delta = None
@@ -327,7 +327,7 @@ def print_assay_config(assay_id: str) -> str | Response:
         return redirect(url_for("admin_bp.assay_configs"))
 
     assay_config = context.assay_config
-    schema = context.schema
+    schema = context.schema_payload
 
     selected_version = request.args.get("version", type=int)
     if selected_version and selected_version != assay_config.get("version"):

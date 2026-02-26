@@ -49,7 +49,7 @@ def create_permission() -> Response | str:
         return redirect(url_for("admin_bp.list_permissions"))
 
     active_schemas = context.schemas
-    schema = context.schema
+    schema = context.schema_payload
 
     if request.method == "POST":
         form_data = {
@@ -92,7 +92,7 @@ def edit_permission(perm_id: str) -> Response | str:
         return redirect(url_for("admin_bp.list_permissions"))
 
     permission = context.permission
-    schema = context.schema
+    schema = context.schema_payload
 
     selected_version = request.args.get("version", type=int)
     delta = None
@@ -154,7 +154,7 @@ def view_permission(perm_id: str) -> str | Response:
         return redirect(url_for("admin_bp.list_permissions"))
 
     permission = context.permission
-    schema = context.schema
+    schema = context.schema_payload
 
     selected_version = request.args.get("version", type=int)
     delta = None

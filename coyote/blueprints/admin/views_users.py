@@ -51,7 +51,7 @@ def create_user() -> Response | str:
         return redirect(url_for("admin_bp.manage_users"))
 
     active_schemas = context.schemas
-    schema = context.schema
+    schema = context.schema_payload
     role_map = context.role_map
     assay_group_map = context.assay_group_map
 
@@ -98,7 +98,7 @@ def edit_user(user_id: str) -> Response | str:
         return redirect(url_for("admin_bp.manage_users"))
 
     user_doc = context.user_doc
-    schema = context.schema
+    schema = context.schema_payload
     role_map = context.role_map
     assay_group_map = context.assay_group_map
 
@@ -165,7 +165,7 @@ def view_user(user_id: str) -> str | Response:
         return redirect(url_for("admin_bp.manage_users"))
 
     user_doc = context.user_doc
-    schema = context.schema
+    schema = context.schema_payload
 
     selected_version = request.args.get("version", type=int)
     delta = None

@@ -14,12 +14,12 @@ class ApiAdminRolesPayload(ApiModel):
 class ApiAdminRoleCreateContextPayload(ApiModel):
     schemas: list[JsonDict] = Field(default_factory=list)
     selected_schema: JsonDict = Field(default_factory=dict)
-    schema: JsonDict = Field(default_factory=dict)
+    schema_payload: JsonDict = Field(default_factory=dict, alias="schema")
 
 
 class ApiAdminRoleContextPayload(ApiModel):
     role: JsonDict = Field(default_factory=dict)
-    schema: JsonDict = Field(default_factory=dict)
+    schema_payload: JsonDict = Field(default_factory=dict, alias="schema")
 
 
 class ApiAdminPermissionsPayload(ApiModel):
@@ -30,12 +30,12 @@ class ApiAdminPermissionsPayload(ApiModel):
 class ApiAdminPermissionCreateContextPayload(ApiModel):
     schemas: list[JsonDict] = Field(default_factory=list)
     selected_schema: JsonDict = Field(default_factory=dict)
-    schema: JsonDict = Field(default_factory=dict)
+    schema_payload: JsonDict = Field(default_factory=dict, alias="schema")
 
 
 class ApiAdminPermissionContextPayload(ApiModel):
     permission: JsonDict = Field(default_factory=dict)
-    schema: JsonDict = Field(default_factory=dict)
+    schema_payload: JsonDict = Field(default_factory=dict, alias="schema")
 
 
 class ApiAdminUsersPayload(ApiModel):
@@ -46,14 +46,14 @@ class ApiAdminUsersPayload(ApiModel):
 class ApiAdminUserCreateContextPayload(ApiModel):
     schemas: list[JsonDict] = Field(default_factory=list)
     selected_schema: JsonDict = Field(default_factory=dict)
-    schema: JsonDict = Field(default_factory=dict)
+    schema_payload: JsonDict = Field(default_factory=dict, alias="schema")
     role_map: JsonDict = Field(default_factory=dict)
     assay_group_map: JsonDict = Field(default_factory=dict)
 
 
 class ApiAdminUserContextPayload(ApiModel):
     user_doc: JsonDict = Field(default_factory=dict)
-    schema: JsonDict = Field(default_factory=dict)
+    schema_payload: JsonDict = Field(default_factory=dict, alias="schema")
     role_map: JsonDict = Field(default_factory=dict)
     assay_group_map: JsonDict = Field(default_factory=dict)
 
@@ -63,7 +63,7 @@ class ApiAdminSchemasPayload(ApiModel):
 
 
 class ApiAdminSchemaContextPayload(ApiModel):
-    schema: JsonDict = Field(default_factory=dict)
+    schema_payload: JsonDict = Field(default_factory=dict, alias="schema")
 
 
 class ApiAdminGenelistsPayload(ApiModel):
@@ -73,13 +73,13 @@ class ApiAdminGenelistsPayload(ApiModel):
 class ApiAdminGenelistCreateContextPayload(ApiModel):
     schemas: list[JsonDict] = Field(default_factory=list)
     selected_schema: JsonDict = Field(default_factory=dict)
-    schema: JsonDict = Field(default_factory=dict)
+    schema_payload: JsonDict = Field(default_factory=dict, alias="schema")
     assay_group_map: JsonDict = Field(default_factory=dict)
 
 
 class ApiAdminGenelistContextPayload(ApiModel):
     genelist: JsonDict = Field(default_factory=dict)
-    schema: JsonDict = Field(default_factory=dict)
+    schema_payload: JsonDict = Field(default_factory=dict, alias="schema")
     assay_group_map: JsonDict = Field(default_factory=dict)
 
 
@@ -97,12 +97,12 @@ class ApiAdminAspPayload(ApiModel):
 class ApiAdminAspCreateContextPayload(ApiModel):
     schemas: list[JsonDict] = Field(default_factory=list)
     selected_schema: JsonDict = Field(default_factory=dict)
-    schema: JsonDict = Field(default_factory=dict)
+    schema_payload: JsonDict = Field(default_factory=dict, alias="schema")
 
 
 class ApiAdminAspContextPayload(ApiModel):
     panel: JsonDict = Field(default_factory=dict)
-    schema: JsonDict = Field(default_factory=dict)
+    schema_payload: JsonDict = Field(default_factory=dict, alias="schema")
 
 
 class ApiAdminAspcPayload(ApiModel):
@@ -113,13 +113,13 @@ class ApiAdminAspcCreateContextPayload(ApiModel):
     category: str = "DNA"
     schemas: list[JsonDict] = Field(default_factory=list)
     selected_schema: JsonDict = Field(default_factory=dict)
-    schema: JsonDict = Field(default_factory=dict)
+    schema_payload: JsonDict = Field(default_factory=dict, alias="schema")
     prefill_map: JsonDict = Field(default_factory=dict)
 
 
 class ApiAdminAspcContextPayload(ApiModel):
     assay_config: JsonDict = Field(default_factory=dict)
-    schema: JsonDict = Field(default_factory=dict)
+    schema_payload: JsonDict = Field(default_factory=dict, alias="schema")
 
 
 class ApiAdminSamplesPayload(ApiModel):

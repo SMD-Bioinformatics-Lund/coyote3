@@ -50,7 +50,7 @@ def create_assay_panel():
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
     active_schemas = context.schemas
-    schema = context.schema
+    schema = context.schema_payload
 
     if request.method == "POST":
         form_data: dict[str, list[str] | str] = {
@@ -126,7 +126,7 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
     panel = context.panel
-    schema = context.schema
+    schema = context.schema_payload
 
     selected_version = request.args.get("version", type=int)
     delta = None
@@ -227,7 +227,7 @@ def view_assay_panel(assay_panel_id: str) -> Response | str:
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
     panel = context.panel
-    schema = context.schema
+    schema = context.schema_payload
     selected_version = request.args.get("version", type=int)
     delta = None
 
@@ -272,7 +272,7 @@ def print_assay_panel(panel_id: str) -> str | Response:
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
     panel = context.panel
-    schema = context.schema
+    schema = context.schema_payload
 
     selected_version = request.args.get("version", type=int)
     if selected_version and selected_version != panel.get("version"):

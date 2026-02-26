@@ -48,7 +48,7 @@ def create_role() -> Response | str:
         flash(f"Failed to load role schema context: {exc}", "red")
         return redirect(url_for("admin_bp.list_roles"))
 
-    schema = context.schema
+    schema = context.schema_payload
     active_schemas = context.schemas
 
     if request.method == "POST":
@@ -92,7 +92,7 @@ def edit_role(role_id: str) -> Response | str:
         return redirect(url_for("admin_bp.list_roles"))
 
     role = context.role
-    schema = context.schema
+    schema = context.schema_payload
 
     selected_version = request.args.get("version", type=int)
     delta = None
@@ -154,7 +154,7 @@ def view_role(role_id: str) -> Response | str:
         return redirect(url_for("admin_bp.list_roles"))
 
     role = context.role
-    schema = context.schema
+    schema = context.schema_payload
 
     selected_version = request.args.get("version", type=int)
     delta = None

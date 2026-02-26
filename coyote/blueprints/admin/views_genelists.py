@@ -50,7 +50,7 @@ def create_genelist() -> Response | str:
         return redirect(url_for("admin_bp.manage_genelists"))
 
     active_schemas = context.schemas
-    schema = context.schema
+    schema = context.schema_payload
     assay_group_map = context.assay_group_map
 
     if request.method == "POST":
@@ -125,7 +125,7 @@ def edit_genelist(genelist_id: str) -> Response | str:
         return redirect(url_for("admin_bp.manage_genelists"))
 
     genelist = context.genelist
-    schema = context.schema
+    schema = context.schema_payload
     assay_group_map = context.assay_group_map
 
     selected_version = request.args.get("version", type=int)
