@@ -5,6 +5,7 @@ from copy import deepcopy
 from fastapi import Body, Depends, Query
 
 from coyote.extensions import store, util
+from coyote.services.admin.sample_deletion import delete_all_sample_traces
 from api.app import ApiUser, _api_error, _get_sample_for_api, app, require_access
 
 
@@ -1135,10 +1136,11 @@ def delete_sample_mutation(
     sample_name = store.sample_handler.get_sample_name(sample_id)
     if not sample_name:
         raise _api_error(404, "Sample not found")
-    util.admin.delete_all_sample_traces(sample_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload("admin", resource="sample", resource_id=sample_id, action="delete")
-    )
+    deletion_summary = delete_all_sample_traces(sample_id)
+    result = _mutation_payload("admin", resource="sample", resource_id=sample_id, action="delete")
+    result["meta"]["sample_name"] = deletion_summary.get("sample_name") or sample_name
+    result["meta"]["results"] = deletion_summary.get("results", [])
+    return util.common.convert_to_serializable(result)
 
 
 @app.post("/api/v1/admin/schemas/create")

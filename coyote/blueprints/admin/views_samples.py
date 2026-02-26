@@ -92,10 +92,17 @@ def edit_sample(sample_id: str) -> str | Response:
 def delete_sample(sample_id: str) -> Response:
     g.audit_metadata = {"sample": sample_id}
     try:
-        get_web_api_client().delete_admin_sample(
+        payload = get_web_api_client().delete_admin_sample(
             sample_id=sample_id,
             headers=build_forward_headers(request.headers),
         )
+        sample_name = payload.meta.get("sample_name", sample_id)
+        for item in payload.meta.get("results", []):
+            collection = item.get("collection", "unknown")
+            if item.get("ok"):
+                flash(f"Deleted {collection} for {sample_name}", "green")
+            else:
+                flash(f"Failed to delete {collection} for {sample_name}", "red")
     except ApiRequestError as exc:
         flash(f"Error deleting sample: {exc}", "red")
     return redirect(url_for("admin_bp.all_samples"))

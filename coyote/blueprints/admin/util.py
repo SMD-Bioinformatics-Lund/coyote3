@@ -13,21 +13,19 @@
 """
 Utility functions and classes for administrative operations in the Coyote3 framework.
 
-This module provides static methods for configuration management, form processing, versioning, gene list extraction, schema validation, and sample trace deletion. All methods are documented with their purpose, arguments, return values, and exceptions, following Python documentation best practices.
+This module provides static methods for configuration management, form processing, versioning, gene list extraction, and schema validation. All methods are documented with their purpose, arguments, return values, and exceptions, following Python documentation best practices.
 """
 
 from datetime import datetime, timezone
 from dateutil.parser import parse as parse_datetime
 from coyote.blueprints.admin import validators
 from flask import current_app as app
-from flask import flash
 import json
 import os
 from typing import Any, Union
 import hashlib
 from bson import ObjectId
 from coyote.util.common_utility import CommonUtility
-from coyote.services.admin.sample_deletion import delete_all_sample_traces as delete_all_sample_traces_service
 
 
 class AdminUtility:
@@ -39,7 +37,7 @@ class AdminUtility:
     - Managing version history and computing configuration deltas
     - Extracting and restructuring gene lists and assay configurations
     - Cleaning and flattening configuration data for comparison or form rendering
-    - Loading schema templates and deleting sample traces from the database
+    - Loading schema templates
 
     All methods are stateless and designed for use in admin-related workflows.
     """
@@ -473,39 +471,6 @@ class AdminUtility:
                 )
 
         return errors
-
-    @staticmethod
-    def delete_all_sample_traces(sample_id: str):
-        """
-        Deletes all traces of a sample from the database.
-
-        This method removes all associated records for the given sample, including:
-        - Variants
-        - CNVs (Copy Number Variations)
-        - Coverage data
-        - Trans-locations
-        - Fusions
-        - Biomarkers
-        - The sample record itself
-        - RNA Expressions
-        - RNA QC
-        - RNA Classifications
-
-        Args:
-            sample_id (str): The unique identifier of the sample to delete.
-
-        Side Effects:
-            - Calls deletion handlers for each data type.
-            - Displays a flash message for each deletion result.
-        """
-        deletion_summary = delete_all_sample_traces_service(sample_id)
-        sample_name = deletion_summary.get("sample_name", sample_id)
-        for result in deletion_summary.get("results", []):
-            collection_name = result.get("collection", "unknown")
-            if result.get("ok"):
-                flash(f"Deleted {collection_name} for {sample_name}", "green")
-            else:
-                flash(f"Failed to delete {collection_name} for {sample_name}", "red")
 
     @staticmethod
     def restore_objectids(obj) -> dict | list | Any:

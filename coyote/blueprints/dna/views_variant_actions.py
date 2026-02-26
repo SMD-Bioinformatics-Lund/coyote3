@@ -22,7 +22,6 @@ from flask import Response, current_app as app, flash, redirect, request, url_fo
 from coyote.blueprints.dna import dna_bp
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 from coyote.services.auth.decorators import require
-from coyote.services.dna.dna_variants import get_variant_nomenclature
 from coyote.util.decorators.access import require_sample_access
 
 
@@ -45,6 +44,16 @@ def _resolve_target_id(*keys: str) -> str:
         if value:
             return value
     return ""
+
+
+def _derive_nomenclature(form_data: dict[str, Any]) -> str:
+    if form_data.get("fusionpoints"):
+        return "f"
+    if form_data.get("translocpoints"):
+        return "t"
+    if form_data.get("cnvvar"):
+        return "cn"
+    return "p"
 
 
 def _redirect_target(sample_id: str, target_id: str, nomenclature: str) -> Response:
@@ -177,7 +186,7 @@ def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
 def classify_variant(sample_id: str, id: str | None = None) -> Response:
     target_id = id or _resolve_target_id("var_id", "fus_id")
     form_data = request.form.to_dict()
-    nomenclature, _variant = get_variant_nomenclature(form_data)
+    nomenclature = _derive_nomenclature(form_data)
     _call_api(
         sample_id,
         "Failed to classify variant via API",
@@ -203,7 +212,7 @@ def classify_variant(sample_id: str, id: str | None = None) -> Response:
 def remove_classified_variant(sample_id: str, id: str | None = None) -> Response:
     target_id = id or _resolve_target_id("var_id", "fus_id")
     form_data = request.form.to_dict()
-    nomenclature, _variant = get_variant_nomenclature(form_data)
+    nomenclature = _derive_nomenclature(form_data)
 
     _call_api(
         sample_id,
@@ -242,7 +251,7 @@ def add_var_comment(sample_id: str, id: str | None = None, **kwargs: Any) -> Res
     target_id = id or _resolve_target_id("var_id", "cnv_id", "fus_id", "transloc_id")
 
     form_data = request.form.to_dict()
-    nomenclature, _variant = get_variant_nomenclature(form_data)
+    nomenclature = _derive_nomenclature(form_data)
     comment_scope = form_data.get("global")
 
     call_ok = _call_api(
