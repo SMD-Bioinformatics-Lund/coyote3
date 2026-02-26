@@ -38,20 +38,18 @@ class Utility:
 
         After calling this method, each utility instance is accessible as an attribute:
             self.common, self.report, self.main,
-            self.dashboard, self.admin, self.coverage, self.login
+            self.dashboard, self.admin, self.login
         """
         from coyote.util.common_utility import CommonUtility
         from coyote.util.report.report_util import ReportUtility
         from coyote.blueprints.home.util import HomeUtility
         from coyote.blueprints.dashboard.util import DashBoardUtility
         from coyote.blueprints.admin.util import AdminUtility
-        from coyote.blueprints.coverage.util import CoverageUtility
         from coyote.util.auth_utility import AuthUtility
 
         self.common = CommonUtility()
         self.main = HomeUtility()
         self.dashboard = DashBoardUtility()
         self.admin = AdminUtility()
-        self.coverage = CoverageUtility()
         self.report = ReportUtility()
         self.login = AuthUtility()

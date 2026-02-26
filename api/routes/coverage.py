@@ -8,6 +8,7 @@ from copy import deepcopy
 from fastapi import Depends, Query
 
 from api.app import ApiUser, _api_error, _get_sample_for_api, app, require_access
+from api.services.coverage_processing import CoverageProcessingService
 from coyote.extensions import store, util
 
 
@@ -46,10 +47,10 @@ def coverage_sample_read(
     sample_payload = deepcopy(sample)
     sample_payload.pop("_id", None)
 
-    filtered_dict = util.coverage.filter_genes_from_form(cov_dict, filter_genes, assay_group)
-    filtered_dict = util.coverage.find_low_covered_genes(filtered_dict, cov_cutoff, assay_group)
-    cov_table = util.coverage.coverage_table(filtered_dict, cov_cutoff)
-    filtered_dict = util.coverage.organize_data_for_d3(filtered_dict)
+    filtered_dict = CoverageProcessingService.filter_genes_from_form(cov_dict, filter_genes, assay_group)
+    filtered_dict = CoverageProcessingService.find_low_covered_genes(filtered_dict, cov_cutoff, assay_group)
+    cov_table = CoverageProcessingService.coverage_table(filtered_dict, cov_cutoff)
+    filtered_dict = CoverageProcessingService.organize_data_for_d3(filtered_dict)
 
     return util.common.convert_to_serializable(
         {
@@ -82,4 +83,3 @@ def coverage_blacklisted_read(
             grouped_by_gene[entry["gene"]]["probe"] = entry
 
     return util.common.convert_to_serializable({"blacklisted": grouped_by_gene, "group": group})
-
