@@ -115,7 +115,7 @@ Status values: `todo`, `in_progress`, `done`, `blocked`
 | P12-2 | Frontend/API Strategy | Add parity endpoints for current high-traffic list/detail screens (DNA list/detail, RNA list/detail) using existing service layer | in_progress | DNA variant/CNV/translocation + RNA fusion list/detail and DNA/RNA report-preview endpoints added under `/api/v1/{dna,rna}/samples/...` |
 | P12-3 | Frontend/API Strategy | Introduce web-side API client layer for progressive enhancement (read-only first, then write flows) | in_progress | Added server-side Python API client with typed models (`coyote_web/api_client.py`, `api_models.py`) for blueprint reads; browser-side hydration helper removed |
 | P12-4 | Frontend/API Strategy | Ensure RBAC parity and consistent error payloads across web/API (401/403/404/AppError mapping) | in_progress | API-aware JSON error handling added in global error handlers; web templates preserved |
-| P12-5 | Frontend/API Strategy | Add migration toggles per feature page to switch between server-rendered data and API-backed data paths | in_progress | Config flags added (`WEB_API_READ_*` + `WEB_API_STRICT_MODE`); RNA and DNA list reads now support server-side API path with Mongo fallback |
+| P12-5 | Frontend/API Strategy | Add migration toggles per feature page to switch between server-rendered data and API-backed data paths | done | Completed initial cutover, then removed page toggles; migrated pages now use API-only fail-fast reads (no fallback) |
 | P12-6 | Frontend/API Strategy | Define completion criteria and decommission plan for legacy data-loading paths after stable parity | todo | Legacy route logic removed only after verified parity and soak period |
 | P13-1 | App Boundary Split | Introduce top-level `coyote_web` and `coyote_api` packages as canonical runtime entrypoints | done | Added explicit app packages; compose/runtime now starts web from `coyote_web` and API from `coyote_api` |
 | P13-2 | App Boundary Split | Rewire compose/dev reload to track both app packages and avoid stale API container code | done | Dev compose now mounts `coyote_api` + `coyote_web` and uvicorn reload watches both |
@@ -1699,6 +1699,30 @@ Copy for each task:
 - Rollback needed: no
 - Follow-up actions:
   - Convert remaining list/detail read paths in admin/common blueprints and then enable dev strict mode for full route-level enforcement.
+
+### Task P12-5 (Hard Cutover) - Remove Fallback/Toggles for Migrated Pages
+
+- Date: 2026-02-26
+- Owner: Codex
+- Scope:
+  - Remove `WEB_API_READ_*` and `WEB_API_STRICT_MODE` toggles from config/compose.
+  - Enforce API-only reads (no Mongo fallback) for already migrated RNA/DNA/CNV/translocation list/detail pages.
+- Files changed:
+  - `config.py` (removed web API rollout flags)
+  - `docker-compose.dev.yml` / `docker-compose.yml` (removed web API rollout env vars)
+  - `coyote/blueprints/rna/views_fusions.py` (removed fallback branches)
+  - `coyote/blueprints/dna/views_variants.py` (removed fallback branches)
+  - `coyote/blueprints/dna/views_cnv.py` (removed fallback branches)
+  - `coyote/blueprints/dna/views_transloc.py` (removed fallback branches)
+  - `MIGRATION_PLAN_DNA_RNA_SHARED_SERVICES.md`
+- Validation executed:
+  - `python -m py_compile config.py coyote/blueprints/rna/views_fusions.py coyote/blueprints/dna/views_variants.py coyote/blueprints/dna/views_cnv.py coyote/blueprints/dna/views_transloc.py coyote_web/api_client.py coyote_web/api_models.py`
+  - `create_web_app(development=True)` app-init sanity check.
+- Result:
+  - Migrated routes now fail fast when API is unavailable; no fallback execution path remains.
+- Rollback needed: no
+- Follow-up actions:
+  - Continue converting remaining blueprints to API-only reads/writes, then remove direct `store.*` usage from web modules.
 
 ---
 

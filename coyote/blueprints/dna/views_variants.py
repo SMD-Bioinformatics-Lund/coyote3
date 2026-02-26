@@ -30,27 +30,16 @@ from copy import deepcopy
 from wtforms import BooleanField
 from coyote.extensions import store, util
 from coyote.blueprints.dna import dna_bp
-from coyote.blueprints.dna import filters as dna_template_filters
-from coyote.blueprints.dna.varqueries import build_query
-from coyote.blueprints.dna.cnvqueries import build_cnv_query
 from coyote.blueprints.dna.forms import DNAFilterForm
 from coyote.util.decorators.access import require_sample_access
 from coyote.util.misc import get_sample_and_assay_config
-from coyote.services.interpretation.annotation_enrichment import (
-    add_alt_class,
-    add_global_annotations,
-)
 from coyote.services.interpretation.report_summary import (
     generate_summary_text,
 )
 from coyote.services.dna.dna_filters import (
-    cnv_organizegenes,
-    cnvtype_variant,
     create_cnveffectlist,
     get_filter_conseq_terms,
 )
-from coyote.services.dna.dna_reporting import hotspot_variant
-from coyote.services.dna.dna_variants import format_pon
 from coyote.services.workflow.dna_workflow import DNAWorkflowService
 from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 from PIL import Image
@@ -196,52 +185,17 @@ def list_variants(sample_id: str) -> Response | str:
     ## SNV FILTRATION STARTS HERE ! ##
     ##################################
     ## The query should really be constructed according to some configured rules for a specific assay
-    use_api_variants = bool(app.config.get("WEB_API_READ_DNA_VARIANTS", False)) and request.method == "GET"
-    variants = []
-    tiered_variants = []
-    if use_api_variants:
-        try:
-            api_payload = get_web_api_client().get_dna_variants(
-                sample_id=sample_id,
-                headers=build_forward_headers(request.headers),
-            )
-            variants = api_payload.variants
-            tiered_variants = api_payload.meta.get("tiered", [])
-            app.logger.info("Loaded DNA variant list from API service for sample %s", sample_id)
-        except ApiRequestError as exc:
-            app.logger.warning("DNA variant API fetch failed for sample %s: %s", sample_id, exc)
-            if app.config.get("WEB_API_STRICT_MODE", False):
-                return Response(str(exc), status=exc.status_code or 502)
-
-    if not variants:
-        query = build_query(
-            assay_group,
-            {
-                "id": str(sample["_id"]),
-                "max_freq": sample_filters["max_freq"],
-                "min_freq": sample_filters["min_freq"],
-                "max_control_freq": sample_filters["max_control_freq"],
-                "min_depth": sample_filters["min_depth"],
-                "min_alt_reads": sample_filters["min_alt_reads"],
-                "max_popfreq": sample_filters["max_popfreq"],
-                "filter_conseq": filter_conseq,
-                "filter_genes": filter_genes,
-                "disp_pos": disp_pos,
-            },
+    try:
+        api_payload = get_web_api_client().get_dna_variants(
+            sample_id=sample_id,
+            headers=build_forward_headers(request.headers),
         )
-
-        variants_iter = store.variant_handler.get_case_variants(query)
-        variants = list(variants_iter)
-
-        # Add blacklist data
-        variants = store.blacklist_handler.add_blacklist_data(variants, assay_group)
-
-        # Add global annotations for the variants
-        variants, tiered_variants = add_global_annotations(variants, assay_group, subpanel)
-
-        # Add hotspot data
-        variants = hotspot_variant(variants)
-        app.logger.info("Loaded DNA variant list from Mongo for sample %s", sample_id)
+        variants = api_payload.variants
+        tiered_variants = api_payload.meta.get("tiered", [])
+        app.logger.info("Loaded DNA variant list from API service for sample %s", sample_id)
+    except ApiRequestError as exc:
+        app.logger.error("DNA variant API fetch failed for sample %s: %s", sample_id, exc)
+        return Response(str(exc), status=exc.status_code or 502)
 
     summary_sections_data["snvs"] = tiered_variants
 
@@ -251,29 +205,16 @@ def list_variants(sample_id: str) -> Response | str:
 
     ## GET Other sections CNVs TRANSLOCS and OTHER BIOMARKERS ##
     if "CNV" in analysis_sections:
-        cnvs = []
-        if use_api_variants:
-            try:
-                cnv_payload = get_web_api_client().get_dna_cnvs(
-                    sample_id=sample_id,
-                    headers=build_forward_headers(request.headers),
-                )
-                cnvs = cnv_payload.cnvs
-                app.logger.info("Loaded DNA CNV list from API service for sample %s", sample_id)
-            except ApiRequestError as exc:
-                app.logger.warning("DNA CNV API fetch failed for sample %s: %s", sample_id, exc)
-                if app.config.get("WEB_API_STRICT_MODE", False):
-                    return Response(str(exc), status=exc.status_code or 502)
-        if not cnvs:
-            cnv_query = build_cnv_query(
-                str(sample["_id"]),
-                filters={**sample_filters, "filter_genes": filter_genes},
+        try:
+            cnv_payload = get_web_api_client().get_dna_cnvs(
+                sample_id=sample_id,
+                headers=build_forward_headers(request.headers),
             )
-            cnvs = store.cnv_handler.get_sample_cnvs(cnv_query)
-            if filter_cnveffects:
-                cnvs = cnvtype_variant(cnvs, filter_cnveffects)
-            cnvs = cnv_organizegenes(cnvs)
-            app.logger.info("Loaded DNA CNV list from Mongo for sample %s", sample_id)
+            cnvs = cnv_payload.cnvs
+            app.logger.info("Loaded DNA CNV list from API service for sample %s", sample_id)
+        except ApiRequestError as exc:
+            app.logger.error("DNA CNV API fetch failed for sample %s: %s", sample_id, exc)
+            return Response(str(exc), status=exc.status_code or 502)
 
         display_sections_data["cnvs"] = deepcopy(cnvs)
         summary_sections_data["cnvs"] = [cnv for cnv in cnvs if cnv.get("interesting")]
@@ -285,22 +226,16 @@ def list_variants(sample_id: str) -> Response | str:
         summary_sections_data["biomarkers"] = display_sections_data["biomarkers"]
 
     if "TRANSLOCATION" in analysis_sections:
-        translocs = []
-        if use_api_variants:
-            try:
-                transloc_payload = get_web_api_client().get_dna_translocations(
-                    sample_id=sample_id,
-                    headers=build_forward_headers(request.headers),
-                )
-                translocs = transloc_payload.translocations
-                app.logger.info("Loaded DNA translocation list from API service for sample %s", sample_id)
-            except ApiRequestError as exc:
-                app.logger.warning("DNA translocation API fetch failed for sample %s: %s", sample_id, exc)
-                if app.config.get("WEB_API_STRICT_MODE", False):
-                    return Response(str(exc), status=exc.status_code or 502)
-        if not translocs:
-            translocs = store.transloc_handler.get_sample_translocations(sample_id=str(sample["_id"]))
-            app.logger.info("Loaded DNA translocation list from Mongo for sample %s", sample_id)
+        try:
+            transloc_payload = get_web_api_client().get_dna_translocations(
+                sample_id=sample_id,
+                headers=build_forward_headers(request.headers),
+            )
+            translocs = transloc_payload.translocations
+            app.logger.info("Loaded DNA translocation list from API service for sample %s", sample_id)
+        except ApiRequestError as exc:
+            app.logger.error("DNA translocation API fetch failed for sample %s: %s", sample_id, exc)
+            return Response(str(exc), status=exc.status_code or 502)
 
         display_sections_data["translocs"] = translocs
 
@@ -441,133 +376,40 @@ def show_variant(sample_id: str, var_id: str) -> Response | str:
         - May flash messages to the user if sample or configuration is missing.
         - May log information about the variant or related data.
     """
-    use_api_variants = bool(app.config.get("WEB_API_READ_DNA_VARIANTS", False)) and request.method == "GET"
-    if use_api_variants:
-        try:
-            payload = get_web_api_client().get_dna_variant(
-                sample_id=sample_id,
-                var_id=var_id,
-                headers=build_forward_headers(request.headers),
-            )
-            app.logger.info("Loaded DNA variant detail from API service for sample %s", sample_id)
-            return render_template(
-                "show_variant_vep.html",
-                variant=payload.variant,
-                in_other=payload.in_other,
-                annotations=payload.annotations,
-                hidden_comments=payload.hidden_comments,
-                latest_classification=payload.latest_classification,
-                expression=payload.expression,
-                civic=payload.civic,
-                civic_gene=payload.civic_gene,
-                oncokb=payload.oncokb,
-                oncokb_action=payload.oncokb_action,
-                oncokb_gene=payload.oncokb_gene,
-                sample=payload.sample,
-                brca_exchange=payload.brca_exchange,
-                iarc_tp53=payload.iarc_tp53,
-                assay_group=payload.assay_group,
-                pon=payload.pon,
-                other_classifications=payload.other_classifications,
-                subpanel=payload.subpanel,
-                sample_ids=payload.sample_ids,
-                bam_id=payload.bam_id,
-                annotations_interesting=payload.annotations_interesting,
-                vep_var_class_translations=payload.vep_var_class_translations,
-                vep_conseq_translations=payload.vep_conseq_translations,
-                assay_group_mappings=payload.assay_group_mappings,
-            )
-        except ApiRequestError as exc:
-            app.logger.warning("DNA variant detail API fetch failed for sample %s: %s", sample_id, exc)
-            if app.config.get("WEB_API_STRICT_MODE", False):
-                return Response(str(exc), status=exc.status_code or 502)
-
-    variant = store.variant_handler.get_variant(var_id)
-    result = get_sample_and_assay_config(sample_id)
-    if isinstance(result, Response):
-        return result
-    sample, assay_config, assay_config_schema = result
-    assay_group: str = assay_config.get("asp_group", "unknown")
-    subpanel: str | None = sample.get("subpanel")
-    assay_group_mappings = store.asp_handler.get_asp_group_mappings()
-    in_other = store.variant_handler.get_variant_in_other_samples(variant)
-    has_hidden_comments = store.variant_handler.hidden_var_comments(var_id)
-    expression = store.expression_handler.get_expression_data(list(variant.get("transcripts")))
-    variant = store.blacklist_handler.add_blacklist_data([variant], assay_group)[0]
-    variant_desc = "NOTHING_IN_HERE"
-    if (
-        variant["INFO"]["selected_CSQ"]["SYMBOL"] == "CALR"
-        and variant["INFO"]["selected_CSQ"]["EXON"] == "9/9"
-        and "frameshift_variant" in variant["INFO"]["selected_CSQ"]["Consequence"]
-    ):
-        variant_desc = "EXON 9 FRAMESHIFT"
-    if (
-        variant["INFO"]["selected_CSQ"]["SYMBOL"] == "FLT3"
-        and "SVLEN" in variant["INFO"]
-        and variant["INFO"]["SVLEN"] > 10
-    ):
-        variant_desc = "ITD"
-    civic = store.civic_handler.get_civic_data(variant, variant_desc)
-    civic_gene = store.civic_handler.get_civic_gene_info(variant["INFO"]["selected_CSQ"]["SYMBOL"])
-    oncokb_hgvsp = []
-    if len(variant["INFO"]["selected_CSQ"]["HGVSp"]) > 0:
-        hgvsp = dna_template_filters.one_letter_p(variant["INFO"]["selected_CSQ"]["HGVSp"])
-        hgvsp = hgvsp.replace("p.", "")
-        oncokb_hgvsp.append(hgvsp)
-    if variant["INFO"]["selected_CSQ"]["Consequence"] in [
-        "frameshift_variant",
-        "stop_gained",
-        "frameshift_deletion",
-        "frameshift_insertion",
-    ]:
-        oncokb_hgvsp.append("Truncating Mutations")
-    oncokb = store.oncokb_handler.get_oncokb_anno(variant, oncokb_hgvsp)
-    oncokb_action = store.oncokb_handler.get_oncokb_action(variant, oncokb_hgvsp)
-    oncokb_gene = store.oncokb_handler.get_oncokb_gene(variant["INFO"]["selected_CSQ"]["SYMBOL"])
-    brca_exchange = store.brca_handler.get_brca_data(variant, assay_group)
-    iarc_tp53 = store.iarc_tp53_handler.find_iarc_tp53(variant)
-    sample_ids = util.common.get_case_and_control_sample_ids(sample)
-    if not sample_ids:
-        sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
-    bam_id = store.bam_service_handler.get_bams(sample_ids)
-    pon = format_pon(variant)
-    (
-        annotations,
-        latest_classification,
-        other_classifications,
-        annotations_interesting,
-    ) = store.annotation_handler.get_global_annotations(variant, assay_group, subpanel)
-    if not latest_classification or latest_classification.get("class") == 999:
-        variant = add_alt_class(variant, assay_group, subpanel)
-    else:
-        variant["additional_classifications"] = None
-    vep_variant_class_meta = store.vep_meta_handler.get_variant_class_translations(sample.get("vep", 103))
-    vep_conseq_meta = store.vep_meta_handler.get_conseq_translations(sample.get("vep", 103))
-    app.logger.info("Loaded DNA variant detail from Mongo for sample %s", sample_id)
-    return render_template(
-        "show_variant_vep.html",
-        variant=variant,
-        in_other=in_other,
-        annotations=annotations,
-        hidden_comments=has_hidden_comments,
-        latest_classification=latest_classification,
-        expression=expression,
-        civic=civic,
-        civic_gene=civic_gene,
-        oncokb=oncokb,
-        oncokb_action=oncokb_action,
-        oncokb_gene=oncokb_gene,
-        sample=sample,
-        brca_exchange=brca_exchange,
-        iarc_tp53=iarc_tp53,
-        assay_group=assay_group,
-        pon=pon,
-        other_classifications=other_classifications,
-        subpanel=subpanel,
-        sample_ids=sample_ids,
-        bam_id=bam_id,
-        annotations_interesting=annotations_interesting,
-        vep_var_class_translations=vep_variant_class_meta,
-        vep_conseq_translations=vep_conseq_meta,
-        assay_group_mappings=assay_group_mappings,
-    )
+    try:
+        payload = get_web_api_client().get_dna_variant(
+            sample_id=sample_id,
+            var_id=var_id,
+            headers=build_forward_headers(request.headers),
+        )
+        app.logger.info("Loaded DNA variant detail from API service for sample %s", sample_id)
+        return render_template(
+            "show_variant_vep.html",
+            variant=payload.variant,
+            in_other=payload.in_other,
+            annotations=payload.annotations,
+            hidden_comments=payload.hidden_comments,
+            latest_classification=payload.latest_classification,
+            expression=payload.expression,
+            civic=payload.civic,
+            civic_gene=payload.civic_gene,
+            oncokb=payload.oncokb,
+            oncokb_action=payload.oncokb_action,
+            oncokb_gene=payload.oncokb_gene,
+            sample=payload.sample,
+            brca_exchange=payload.brca_exchange,
+            iarc_tp53=payload.iarc_tp53,
+            assay_group=payload.assay_group,
+            pon=payload.pon,
+            other_classifications=payload.other_classifications,
+            subpanel=payload.subpanel,
+            sample_ids=payload.sample_ids,
+            bam_id=payload.bam_id,
+            annotations_interesting=payload.annotations_interesting,
+            vep_var_class_translations=payload.vep_var_class_translations,
+            vep_conseq_translations=payload.vep_conseq_translations,
+            assay_group_mappings=payload.assay_group_mappings,
+        )
+    except ApiRequestError as exc:
+        app.logger.error("DNA variant detail API fetch failed for sample %s: %s", sample_id, exc)
+        return Response(str(exc), status=exc.status_code or 502)

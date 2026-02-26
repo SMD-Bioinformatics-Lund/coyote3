@@ -21,7 +21,6 @@ from flask import (
     request,
     Response,
 )
-from flask_login import login_required
 
 from coyote.blueprints.rna.forms import FusionFilter
 
@@ -29,7 +28,6 @@ from coyote.extensions import store, util
 from coyote.blueprints.rna import rna_bp
 from coyote.util.decorators.access import require_sample_access
 from coyote.util.misc import get_sample_and_assay_config
-from coyote.services.interpretation.annotation_enrichment import add_global_annotations
 from coyote.services.interpretation.report_summary import generate_summary_text
 from coyote.services.workflow.rna_workflow import RNAWorkflowService
 from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
@@ -148,33 +146,17 @@ def list_fusions(sample_id: str) -> str | Response:
     )
     form.process(data=form_data)
 
-    use_api_fusions = bool(app.config.get("WEB_API_READ_RNA_FUSIONS", False)) and request.method == "GET"
-    fusions = []
-    if use_api_fusions:
-        try:
-            api_payload = get_web_api_client().get_rna_fusions(
-                sample_id=sample_id,
-                headers=build_forward_headers(request.headers),
-            )
-            fusions = api_payload.fusions
-            summary_sections_data["fusions"] = api_payload.meta.get("tiered", [])
-            app.logger.info("Loaded RNA fusion list from API service for sample %s", sample_id)
-        except ApiRequestError as exc:
-            app.logger.warning("RNA fusion API fetch failed for sample %s: %s", sample_id, exc)
-            if app.config.get("WEB_API_STRICT_MODE", False):
-                return Response(str(exc), status=exc.status_code or 502)
-    if not fusions:
-        query = RNAWorkflowService.build_fusion_list_query(
-            assay_group=assay_group,
-            sample_id=str(sample["_id"]),
-            sample_filters=sample_filters,
-            filter_context=filter_context,
+    try:
+        api_payload = get_web_api_client().get_rna_fusions(
+            sample_id=sample_id,
+            headers=build_forward_headers(request.headers),
         )
-
-        fusions = list(store.fusion_handler.get_sample_fusions(query))
-        fusions, tiered_fusions = add_global_annotations(fusions, assay_group, subpanel)
-        summary_sections_data["fusions"] = tiered_fusions
-        app.logger.info("Loaded RNA fusion list from Mongo for sample %s", sample_id)
+        fusions = api_payload.fusions
+        summary_sections_data["fusions"] = api_payload.meta.get("tiered", [])
+        app.logger.info("Loaded RNA fusion list from API service for sample %s", sample_id)
+    except ApiRequestError as exc:
+        app.logger.error("RNA fusion API fetch failed for sample %s: %s", sample_id, exc)
+        return Response(str(exc), status=exc.status_code or 502)
 
     # TODO: load them as a display_sections_data instead of attaching to sample
     sample = RNAWorkflowService.attach_rna_analysis_sections(sample)
@@ -221,54 +203,27 @@ def show_fusion(sample_id: str, fusion_id: str) -> Response | str:
     Returns:
         Response | str: Rendered HTML template for the fusion details page.
     """
-    use_api_fusions = bool(app.config.get("WEB_API_READ_RNA_FUSIONS", False)) and request.method == "GET"
-    if use_api_fusions:
-        try:
-            payload = get_web_api_client().get_rna_fusion(
-                sample_id=sample_id,
-                fusion_id=fusion_id,
-                headers=build_forward_headers(request.headers),
-            )
-            app.logger.info("Loaded RNA fusion detail from API service for sample %s", sample_id)
-            return render_template(
-                "show_fusion.html",
-                fusion=payload.fusion,
-                in_other=payload.in_other,
-                sample=payload.sample,
-                annotations=payload.annotations,
-                latest_classification=payload.latest_classification,
-                annotations_interesting=payload.annotations_interesting,
-                other_classifications=payload.other_classifications,
-                hidden_comments=payload.hidden_comments,
-                assay_group=payload.assay_group,
-                subpanel=payload.subpanel,
-                assay_group_mappings=payload.assay_group_mappings,
-            )
-        except ApiRequestError as exc:
-            app.logger.warning("RNA fusion detail API fetch failed for sample %s: %s", sample_id, exc)
-            if app.config.get("WEB_API_STRICT_MODE", False):
-                return Response(str(exc), status=exc.status_code or 502)
-
-    fusion = store.fusion_handler.get_fusion(fusion_id)
-    result = get_sample_and_assay_config(sample_id)
-    if isinstance(result, Response):
-        return result
-    sample, assay_config, assay_config_schema = result
-    assay_group: str = assay_config.get("asp_group", "unknown")
-    subpanel: str | None = sample.get("subpanel")
-    show_context = RNAWorkflowService.build_show_fusion_context(fusion, assay_group, subpanel)
-    app.logger.info("Loaded RNA fusion detail from Mongo for sample %s", sample_id)
-    return render_template(
-        "show_fusion.html",
-        fusion=show_context["fusion"],
-        in_other=show_context["in_other"],
-        sample=sample,
-        annotations=show_context["annotations"],
-        latest_classification=show_context["latest_classification"],
-        annotations_interesting=show_context["annotations_interesting"],
-        other_classifications=show_context["other_classifications"],
-        hidden_comments=show_context["hidden_comments"],
-        assay_group=assay_group,
-        subpanel=subpanel,
-        assay_group_mappings=show_context["assay_group_mappings"],
-    )
+    try:
+        payload = get_web_api_client().get_rna_fusion(
+            sample_id=sample_id,
+            fusion_id=fusion_id,
+            headers=build_forward_headers(request.headers),
+        )
+        app.logger.info("Loaded RNA fusion detail from API service for sample %s", sample_id)
+        return render_template(
+            "show_fusion.html",
+            fusion=payload.fusion,
+            in_other=payload.in_other,
+            sample=payload.sample,
+            annotations=payload.annotations,
+            latest_classification=payload.latest_classification,
+            annotations_interesting=payload.annotations_interesting,
+            other_classifications=payload.other_classifications,
+            hidden_comments=payload.hidden_comments,
+            assay_group=payload.assay_group,
+            subpanel=payload.subpanel,
+            assay_group_mappings=payload.assay_group_mappings,
+        )
+    except ApiRequestError as exc:
+        app.logger.error("RNA fusion detail API fetch failed for sample %s: %s", sample_id, exc)
+        return Response(str(exc), status=exc.status_code or 502)
