@@ -46,6 +46,8 @@ class ApiUser:
     denied_permissions: list[str]
     assays: list[str]
     assay_groups: list[str]
+    envs: list[str]
+    asp_map: dict
 
 
 def _api_error(status_code: int, message: str) -> HTTPException:
@@ -111,6 +113,8 @@ def _decode_session_user(request: Request) -> ApiUser:
         denied_permissions=list(user_model.denied_permissions),
         assays=list(user_model.assays),
         assay_groups=list(user_model.assay_groups),
+        envs=list(user_model.envs),
+        asp_map=dict(user_model.asp_map),
     )
 
 
@@ -176,3 +180,4 @@ from api.routes import reports as _report_routes  # noqa: F401
 from api.routes import dashboard as _dashboard_routes  # noqa: F401
 from api.routes import common as _common_routes  # noqa: F401
 from api.routes import coverage as _coverage_routes  # noqa: F401
+from api.routes import home as _home_routes  # noqa: F401

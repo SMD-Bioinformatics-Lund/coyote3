@@ -54,6 +54,10 @@ from coyote.integrations.api.api_models import (
     ApiCommonTieredVariantSearchPayload,
     ApiCoverageSamplePayload,
     ApiCoverageBlacklistedPayload,
+    ApiHomeSamplesPayload,
+    ApiHomeIsglsPayload,
+    ApiHomeEffectiveGenesPayload,
+    ApiHomeEditContextPayload,
 )
 
 
@@ -193,6 +197,55 @@ class CoyoteApiClient:
     ) -> ApiCoverageBlacklistedPayload:
         payload = self._get(f"/api/v1/coverage/blacklisted/{group}", headers=headers)
         return ApiCoverageBlacklistedPayload.model_validate(payload)
+
+    def get_home_samples(
+        self,
+        *,
+        status: str,
+        search_str: str,
+        search_mode: str,
+        panel_type: str | None = None,
+        panel_tech: str | None = None,
+        assay_group: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> ApiHomeSamplesPayload:
+        params: dict[str, Any] = {
+            "status": status,
+            "search_str": search_str,
+            "search_mode": search_mode,
+        }
+        if panel_type:
+            params["panel_type"] = panel_type
+        if panel_tech:
+            params["panel_tech"] = panel_tech
+        if assay_group:
+            params["assay_group"] = assay_group
+        payload = self._get("/api/v1/home/samples", headers=headers, params=params)
+        return ApiHomeSamplesPayload.model_validate(payload)
+
+    def get_home_isgls(
+        self,
+        sample_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiHomeIsglsPayload:
+        payload = self._get(f"/api/v1/home/samples/{sample_id}/isgls", headers=headers)
+        return ApiHomeIsglsPayload.model_validate(payload)
+
+    def get_home_effective_genes_all(
+        self,
+        sample_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiHomeEffectiveGenesPayload:
+        payload = self._get(f"/api/v1/home/samples/{sample_id}/effective_genes/all", headers=headers)
+        return ApiHomeEffectiveGenesPayload.model_validate(payload)
+
+    def get_home_edit_context(
+        self,
+        sample_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiHomeEditContextPayload:
+        payload = self._get(f"/api/v1/home/samples/{sample_id}/edit_context", headers=headers)
+        return ApiHomeEditContextPayload.model_validate(payload)
 
     def get_dna_variants(
         self, sample_id: str, headers: dict[str, str] | None = None

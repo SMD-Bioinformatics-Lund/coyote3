@@ -33,7 +33,6 @@ from flask import current_app as app
 from coyote.extensions import store
 from coyote.blueprints.home import home_bp
 from coyote.blueprints.home.forms import SampleSearchForm
-from coyote.extensions import util
 from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
 from coyote.util.misc import get_sample_and_assay_config
@@ -42,7 +41,6 @@ from coyote.integrations.api.api_client import ApiRequestError, build_forward_he
 import os
 import re
 import json
-from typing import Any
 
 
 @home_bp.route("/", methods=["GET", "POST"])
@@ -89,91 +87,29 @@ def samples_home(
         search_str = form.sample_search.data
         search_mode = search_slider_values[int(form.search_mode_slider.data)]
 
-    limit_done_samples = app.config.get("REPORTED_SAMPLES_SEARCH_LIMIT", 50)
-
     # Determine the search mode and status
     if not search_mode:
         search_mode = status
     else:
         status = search_mode
 
-    # Get user-specific environments and assays
-    user_envs = current_user.envs
-    user_assays = current_user.assays
-
-    # Filter accessible assays based on the provided panel type, technology, and assay group
-    if panel_type and panel_tech and assay_group:
-        assay_list = (
-            current_user.asp_map.get(panel_type, {}).get(panel_tech, {}).get(assay_group, [])
-        )
-        accessible_assays = [a for a in assay_list if a in user_assays]
-    else:
-        accessible_assays = user_assays
-
-    time_limit: None | str = None if search_str else util.common.get_date_days_ago(days=90)
-
-    # Fetch completed samples if the status is 'done' or 'both'
-    if status == "done" or search_mode in ["done", "both"]:
-        done_samples = store.sample_handler.get_samples(
-            user_assays=accessible_assays,
-            user_envs=user_envs,
+    try:
+        payload = get_web_api_client().get_home_samples(
             status=status,
             search_str=search_str,
-            report=True,
-            limit=limit_done_samples,
-            use_cache=True,
-            reload=reload,
+            search_mode=search_mode,
+            panel_type=panel_type,
+            panel_tech=panel_tech,
+            assay_group=assay_group,
+            headers=build_forward_headers(request.headers),
         )
-        app.home_logger.info(
-            f"Searching samples with search string '{search_str}', status '{status}', "
-            f"from assays '{accessible_assays}', report '{True}', limit '{limit_done_samples}', "
-            f"using cache '{True}', reload is set to {reload}."
-        )
-    # Fetch live samples if the status is 'live'
-    elif status == "live":
-        done_samples = store.sample_handler.get_samples(
-            user_assays=accessible_assays,
-            status=status,
-            user_envs=user_envs,
-            search_str=search_str,
-            report=True,
-            time_limit=time_limit,
-            use_cache=True,
-            reload=reload,
-        )
-        app.home_logger.info(
-            f"Searching samples with search string '{search_str}', status '{status}', "
-            f"from assays '{accessible_assays}', report '{True}', time limit '{time_limit}', "
-            f"using cache '{True}', reload is set to {reload}."
-        )
-    else:
-        done_samples = []
-
-    # Fetch live samples if the status is 'live' or 'both'
-    if status == "live" or search_mode in ["live", "both"]:
-        live_samples = store.sample_handler.get_samples(
-            user_assays=accessible_assays,
-            status=status,
-            user_envs=user_envs,
-            search_str=search_str,
-            report=False,
-            use_cache=True,
-            reload=reload,
-        )
-        app.home_logger.info(
-            f"Searching samples with search string '{search_str}', status '{status}', "
-            f"from assays '{accessible_assays}', report '{False}', using cache '{True}', "
-            f"reload is set to {reload}."
-        )
-    else:
+        live_samples = payload.live_samples
+        done_samples = payload.done_samples
+    except ApiRequestError as exc:
+        app.home_logger.error("Failed to fetch home samples via API: %s", exc)
+        flash("Failed to load samples.", "red")
         live_samples = []
-
-    for samp in done_samples:
-        samp["last_report_time_created"] = (
-            samp["reports"][-1]["time_created"]
-            if samp.get("reports") and samp["reports"][-1].get("time_created")
-            else 0
-        )
+        done_samples = []
 
     # Render the samples home page with the filtered samples and form data
     return render_template(
@@ -289,63 +225,31 @@ def edit_sample(sample_id: str) -> str | Response:
                   otherwise redirects to the samples home page with an error message.
     """
 
-    # Retrieve the sample and its associated assay configuration
-    result = get_sample_and_assay_config(sample_id)
-    if isinstance(result, Response):
-        return result
-    sample, assay_config, assay_config_schema = result
-
-    asp = store.asp_handler.get_asp(sample.get("assay"))
-    asp_group = asp.get("asp_group")
-
-    # If the sample has no filters set, initialize them with the assay's default filters
-    if sample.get("filters") is None:
-        # log Action
-        g.audit_metadata = {
-            "sample": sample_id,
-            "message": "sample filters reset to assay defaults",
-        }
-        try:
-            get_web_api_client().reset_sample_filters(
-                sample_id=sample_id,
-                headers=build_forward_headers(request.headers),
-            )
-            app.home_logger.info(
-                f"Sample {sample_id} filters were None, resetting to assay default filters"
-            )
-        except ApiRequestError as exc:
-            app.home_logger.error("Failed to reset filters via API for sample %s: %s", sample_id, exc)
-
-    # Retrieve the sample details after potential update
-    sample = store.sample_handler.get_sample(sample_id)
-
-    genes_plus_asp_genes = get_effective_genes_all(sample_id=sample_id)
-    genes = genes_plus_asp_genes.get_json().get("items", [])
-    asp_covered_genes_count = genes_plus_asp_genes.get_json().get("asp_covered_genes_count", 0)
-
-    # Get variant stats for the sample without any gene filter
-    variant_stats_raw = store.variant_handler.get_variant_stats(str(sample.get("_id")))
-
-    # Get variant stats for the sample with the effective gene filter applied
-    if (
-        genes
-        and variant_stats_raw
-        and (len(genes) < asp_covered_genes_count or asp_group in ["tumwgs", "wts"])
-    ):
-        variant_stats_filtered = store.variant_handler.get_variant_stats(
-            str(sample.get("_id")), genes=genes
+    try:
+        payload = get_web_api_client().get_home_edit_context(
+            sample_id=sample_id,
+            headers=build_forward_headers(request.headers),
         )
-    else:
-        variant_stats_filtered = deepcopy(variant_stats_raw)
-
-    if not sample:
-        # log Action
+    except ApiRequestError as exc:
         g.audit_metadata = {
             "sample": sample_id,
             "message": "No sample found",
         }
         flash("Sample not found.", "red")
-        app.home_logger.error(f"Sample {sample_id} not found, redirecting to home page")
+        app.home_logger.error(
+            "Failed to fetch edit context via API for sample %s: %s", sample_id, exc
+        )
+        return redirect(url_for("home_bp.samples_home"))
+
+    sample = payload.sample
+    asp = payload.asp
+    variant_stats_raw = payload.variant_stats_raw
+    variant_stats_filtered = payload.variant_stats_filtered
+
+    if not sample:
+        g.audit_metadata = {"sample": sample_id, "message": "No sample found"}
+        flash("Sample not found.", "red")
+        app.home_logger.error("Sample %s not found, redirecting to home page", sample_id)
         return redirect(url_for("home_bp.samples_home"))
     return render_template(
         "edit_sample.html",
@@ -370,23 +274,15 @@ def list_isgls(sample_id: str) -> Response:
             - `name` (str): gene list name
             - `genes` (list[str]): gene symbols in the list
     """
-    sample = store.sample_handler.get_sample(sample_id)
-
-    query = {"asp_name": sample.get("assay"), "is_active": True}
-
-    isgls = store.isgl_handler.get_isgl_by_asp(**query)
-
-    items: list[dict[str, Any]] = [
-        {
-            "_id": str(gl["_id"]),
-            "name": gl["displayname"],
-            "version": gl.get("version"),
-            "adhoc": gl.get("adhoc", False),
-            "gene_count": int(gl.get("gene_count") or 0),
-        }
-        for gl in isgls
-    ]
-    return jsonify({"items": items})
+    try:
+        payload = get_web_api_client().get_home_isgls(
+            sample_id=sample_id,
+            headers=build_forward_headers(request.headers),
+        )
+        return jsonify({"items": payload.items})
+    except ApiRequestError as exc:
+        app.home_logger.error("Failed to fetch ISGLs via API for sample %s: %s", sample_id, exc)
+        return jsonify({"items": []})
 
 
 @home_bp.route("/<string:sample_id>/genes/apply-isgl", methods=["POST"])
@@ -529,34 +425,19 @@ def get_effective_genes_all(sample_id: str) -> Response:
                   `asp_covered_genes_count` indicating the total number of genes covered by the assay.
                   If no genes are found, returns an empty list.
     """
-    sample = store.sample_handler.get_sample(sample_id)
-    if not sample:
-        return jsonify({"items": []})
-
-    filters = sample.get("filters", {})
-    assay = sample.get("assay")
-    asp = store.asp_handler.get_asp(assay)
-    asp_group = asp.get("asp_group")
-    asp_covered_genes, asp_germline_genes = store.asp_handler.get_asp_genes(assay)
-
-    effective_genes = set(asp_covered_genes)
-
-    adhoc_genes = set(filters.get("adhoc_genes", {}).get("genes", []))
-    isgl_genes = set()
-
-    genelists = filters.get("genelists", [])
-    if genelists:
-        isgls = store.isgl_handler.get_isgl_by_ids(genelists)
-        for gl_key, gl_values in isgls.items():
-            isgl_genes.update(gl_values.get("genes", []))
-
-    # Combine adhoc_genes and isgl_genes if present
-    filter_genes = adhoc_genes.union(isgl_genes) if adhoc_genes or isgl_genes else set()
-
-    if filter_genes and asp_group not in ["tumwgs", "wts"]:
-        effective_genes = effective_genes.intersection(filter_genes)
-    elif filter_genes:
-        effective_genes = deepcopy(filter_genes)
-
-    items = sorted(effective_genes)
-    return jsonify({"items": items, "asp_covered_genes_count": len(asp_covered_genes)})
+    try:
+        payload = get_web_api_client().get_home_effective_genes_all(
+            sample_id=sample_id,
+            headers=build_forward_headers(request.headers),
+        )
+        return jsonify(
+            {
+                "items": payload.items,
+                "asp_covered_genes_count": payload.asp_covered_genes_count,
+            }
+        )
+    except ApiRequestError as exc:
+        app.home_logger.error(
+            "Failed to fetch effective genes via API for sample %s: %s", sample_id, exc
+        )
+        return jsonify({"items": [], "asp_covered_genes_count": 0})
