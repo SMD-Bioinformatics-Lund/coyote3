@@ -443,6 +443,161 @@ def delete_role_mutation(
     )
 
 
+@app.post("/api/v1/admin/users/create")
+def create_user_mutation(
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="create_user", min_role="admin", min_level=99999)),
+):
+    active_schemas = store.schema_handler.get_schemas_by_category_type(
+        schema_type="rbac_user",
+        schema_category="RBAC_user",
+        is_active=True,
+    )
+    if not active_schemas:
+        raise _api_error(400, "No active user schemas found")
+    selected_id = payload.get("schema_id") or active_schemas[0]["_id"]
+    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+    if not schema:
+        raise _api_error(404, "User schema not found")
+
+    all_roles = store.roles_handler.get_all_roles()
+    role_map = {
+        role["_id"]: {
+            "permissions": role.get("permissions", []),
+            "deny_permissions": role.get("deny_permissions", []),
+        }
+        for role in all_roles
+    }
+
+    form_data = payload.get("form_data", {})
+    role_permissions = role_map.get(form_data.get("role"), {})
+    form_data["permissions"] = list(
+        set(form_data.get("permissions", [])) - set(role_permissions.get("permissions", []))
+    )
+    form_data["deny_permissions"] = list(
+        set(form_data.get("deny_permissions", [])) - set(role_permissions.get("deny_permissions", []))
+    )
+    user_data = util.admin.process_form_to_config(form_data, schema)
+    user_data["_id"] = user_data["username"]
+    user_data["schema_name"] = schema["_id"]
+    user_data["schema_version"] = schema["version"]
+    user_data["email"] = user_data["email"].lower()
+    user_data["username"] = user_data["username"].lower()
+    if user_data["auth_type"] == "coyote3" and user_data["password"]:
+        user_data["password"] = util.common.hash_password(user_data["password"])
+    else:
+        user_data["password"] = None
+    user_data = util.admin.inject_version_history(
+        user_email=user.username,
+        new_config=deepcopy(user_data),
+        is_new=True,
+    )
+    store.user_handler.create_user(user_data)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="user", resource_id=user_data["username"], action="create")
+    )
+
+
+@app.post("/api/v1/admin/users/{user_id}/update")
+def update_user_mutation(
+    user_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="edit_user", min_role="admin", min_level=99999)),
+):
+    user_doc = store.user_handler.user_with_id(user_id)
+    if not user_doc:
+        raise _api_error(404, "User not found")
+    schema = store.schema_handler.get_schema(user_doc.get("schema_name"))
+    if not schema:
+        raise _api_error(404, "Schema not found for user")
+
+    all_roles = store.roles_handler.get_all_roles()
+    role_map = {
+        role["_id"]: {
+            "permissions": role.get("permissions", []),
+            "deny_permissions": role.get("deny_permissions", []),
+        }
+        for role in all_roles
+    }
+
+    form_data = payload.get("form_data", {})
+    updated_user = util.admin.process_form_to_config(form_data, schema)
+    updated_user["permissions"] = list(
+        set(updated_user.get("permissions", []))
+        - set(role_map.get(updated_user["role"], {}).get("permissions", []))
+    )
+    updated_user["deny_permissions"] = list(
+        set(updated_user.get("deny_permissions", []))
+        - set(role_map.get(updated_user["role"], {}).get("deny_permissions", []))
+    )
+    updated_user["updated_on"] = util.common.utc_now()
+    updated_user["updated_by"] = user.username
+    if updated_user["auth_type"] == "coyote3" and updated_user["password"]:
+        updated_user["password"] = util.common.hash_password(updated_user["password"])
+    else:
+        updated_user["password"] = user_doc.get("password")
+    updated_user["schema_name"] = schema["_id"]
+    updated_user["schema_version"] = schema["version"]
+    updated_user["version"] = user_doc.get("version", 1) + 1
+    updated_user = util.admin.inject_version_history(
+        user_email=user.username,
+        new_config=updated_user,
+        old_config=user_doc,
+        is_new=False,
+    )
+    store.user_handler.update_user(user_id, updated_user)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="user", resource_id=user_id, action="update")
+    )
+
+
+@app.post("/api/v1/admin/users/{user_id}/delete")
+def delete_user_mutation(
+    user_id: str,
+    user: ApiUser = Depends(require_access(permission="delete_user", min_role="admin", min_level=99999)),
+):
+    user_doc = store.user_handler.user_with_id(user_id)
+    if not user_doc:
+        raise _api_error(404, "User not found")
+    store.user_handler.delete_user(user_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="user", resource_id=user_id, action="delete")
+    )
+
+
+@app.post("/api/v1/admin/users/{user_id}/toggle")
+def toggle_user_mutation(
+    user_id: str,
+    user: ApiUser = Depends(require_access(permission="edit_user", min_role="admin", min_level=99999)),
+):
+    user_doc = store.user_handler.user_with_id(user_id)
+    if not user_doc:
+        raise _api_error(404, "User not found")
+    new_status = not user_doc.get("is_active", False)
+    store.user_handler.toggle_user_active(user_id, new_status)
+    result = _mutation_payload("admin", resource="user", resource_id=user_id, action="toggle")
+    result["meta"]["is_active"] = new_status
+    return util.common.convert_to_serializable(result)
+
+
+@app.post("/api/v1/admin/users/validate_username")
+def validate_username_mutation(
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="create_user", min_role="admin", min_level=99999)),
+):
+    username = str(payload.get("username", "")).lower()
+    return util.common.convert_to_serializable({"exists": store.user_handler.user_exists(user_id=username)})
+
+
+@app.post("/api/v1/admin/users/validate_email")
+def validate_email_mutation(
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="create_user", min_role="admin", min_level=99999)),
+):
+    email = str(payload.get("email", "")).lower()
+    return util.common.convert_to_serializable({"exists": store.user_handler.user_exists(email=email)})
+
+
 @app.post("/api/v1/admin/schemas/create")
 def create_schema_mutation(
     payload: dict = Body(default_factory=dict),

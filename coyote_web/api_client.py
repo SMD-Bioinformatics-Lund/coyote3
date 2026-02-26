@@ -634,6 +634,72 @@ class CoyoteApiClient:
         payload = self._post(f"/api/v1/admin/roles/{role_id}/delete", headers=headers)
         return ApiMutationResultPayload.model_validate(payload)
 
+    def create_admin_user(
+        self,
+        schema_id: str | None,
+        form_data: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            "/api/v1/admin/users/create",
+            headers=headers,
+            json_body={"schema_id": schema_id, "form_data": form_data},
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def update_admin_user(
+        self,
+        user_id: str,
+        form_data: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/admin/users/{user_id}/update",
+            headers=headers,
+            json_body={"form_data": form_data},
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def delete_admin_user(
+        self,
+        user_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(f"/api/v1/admin/users/{user_id}/delete", headers=headers)
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def toggle_admin_user(
+        self,
+        user_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(f"/api/v1/admin/users/{user_id}/toggle", headers=headers)
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def validate_admin_username(
+        self,
+        username: str,
+        headers: dict[str, str] | None = None,
+    ) -> bool:
+        payload = self._post(
+            "/api/v1/admin/users/validate_username",
+            headers=headers,
+            json_body={"username": username},
+        )
+        return bool(payload.get("exists", False))
+
+    def validate_admin_email(
+        self,
+        email: str,
+        headers: dict[str, str] | None = None,
+    ) -> bool:
+        payload = self._post(
+            "/api/v1/admin/users/validate_email",
+            headers=headers,
+            json_body={"email": email},
+        )
+        return bool(payload.get("exists", False))
+
     def mark_rna_fusion_false_positive(
         self, sample_id: str, fusion_id: str, headers: dict[str, str] | None = None
     ) -> ApiMutationResultPayload:
