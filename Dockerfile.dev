@@ -12,7 +12,7 @@ WORKDIR /app
 # System environment variables (hardcoded, do not change often)
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV FLASK_APP=wsgi.py
+ENV FLASK_APP=wsgi
 ARG GIT_COMMIT="unknown"
 ARG BUILD_TIME="unknown"
 ENV GIT_COMMIT=${GIT_COMMIT}
@@ -37,9 +37,11 @@ RUN mkdir ./redis_data
 
 # Copy source code
 COPY config/ ./config/
-COPY config.py wsgi.py gunicorn.conf.py logging_setup.py ./
+COPY config.py wsgi.py asgi.py run_api.py gunicorn.conf.py logging_setup.py ./
 COPY .coyote3_dev_env ./.env
 COPY coyote/ ./coyote/
+COPY coyote_api/ ./coyote_api/
+COPY coyote_web/ ./coyote_web/
 COPY docs/ ./docs/
 COPY CHANGELOG.md README.md LICENSE.txt ./
 
