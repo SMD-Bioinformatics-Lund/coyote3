@@ -38,7 +38,7 @@ def view_genelist(genelist_id: str) -> Response | str:
     """
     Display a specific genelist and optionally filter its genes by a selected assay.
 
-    Retrieves the genelist identified by `genelist_id` from the data store. If the genelist does not exist,
+    Retrieves the genelist identified by `genelist_id` through the API layer. If the genelist does not exist,
     logs an info message, flashes an error, and redirects to the current page.
 
     If an assay is selected via the "assay" query parameter, and it exists in the genelist's assays,

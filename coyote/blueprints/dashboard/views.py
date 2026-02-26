@@ -95,22 +95,11 @@ def dashboard() -> str:
     # Total Assays analysed
     # total_assay_count = 0
 
-    # Variant Caller specific stats
-    # class_stats = util.dashboard.format_classified_stats(
-    #    store.annotation_handler.get_classified_stats()
-    # )
-
-    # assay_class_stats = util.dashboard.format_assay_classified_stats(
-    #    store.annotation_handler.get_assay_classified_stats()
-    # )
-
     return render_template(
         "dashboard.html",
         total_samples=total_samples_count,
         analysed_samples=analysed_samples_count,
         pending_samples=pending_samples_count,
-        # class_stats_data=json.dumps(class_stats),
-        # assay_class_stats_data=json.dumps(assay_class_stats),
         variant_stats=variant_stats,
         unique_gene_count_all_panels=unique_gene_count_all_panels,
         assay_gene_stats_grouped=asp_gene_counts,
