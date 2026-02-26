@@ -42,6 +42,7 @@ def home_samples_read(
     time_limit = None if search_str else util.common.get_date_days_ago(days=90)
 
     done_samples: list[dict] = []
+    live_samples: list[dict] = []
     if status == "done" or search_mode in ["done", "both"]:
         done_samples = store.sample_handler.get_samples(
             user_assays=accessible_assays,
@@ -54,7 +55,6 @@ def home_samples_read(
             reload=False,
         )
 
-    live_samples: list[dict] = []
     if status == "live" or search_mode in ["live", "both"]:
         live_samples = store.sample_handler.get_samples(
             user_assays=accessible_assays,

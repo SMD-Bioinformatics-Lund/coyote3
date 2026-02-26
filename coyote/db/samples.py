@@ -29,7 +29,6 @@ from coyote.db.base import BaseHandler
 from datetime import datetime
 from flask_login import current_user
 from coyote.util.common_utility import CommonUtility
-from flask import current_app as app
 from typing import Any
 
 
@@ -94,7 +93,8 @@ class SampleHandler(BaseHandler):
         if search_str:
             query["name"] = {"$regex": search_str}
 
-        app.home_logger.debug(f"Sample query: {query}")
+        app_obj = self.adapter.app
+        getattr(app_obj, "home_logger", app_obj.logger).debug(f"Sample query: {query}")
 
         samples = list(self.get_collection().find(query).sort("time_added", -1))
 
@@ -134,15 +134,27 @@ class SampleHandler(BaseHandler):
             - If caching is enabled and a cache hit occurs, returns cached samples.
             - On cache miss or if caching is disabled, queries the database and updates the cache.
         """
-        cache_timeout = app.config.get("CACHE_DEFAULT_TIMEOUT", 0)
+        app_obj = self.adapter.app
+        cache_timeout = app_obj.config.get("CACHE_DEFAULT_TIMEOUT", 0)
+        cache = getattr(app_obj, "cache", None)
 
-        cache_key = CommonUtility.generate_sample_cache_key(**locals())
+        cache_key = CommonUtility.generate_sample_cache_key(
+            user_assays=user_assays,
+            user_envs=user_envs,
+            status=status,
+            report=report,
+            search_str=search_str,
+            limit=limit,
+            time_limit=time_limit,
+            cache_timeout=cache_timeout,
+            reload=reload,
+        )
 
-        if use_cache:
+        if use_cache and cache is not None:
             try:
-                samples = app.cache.get(cache_key)
+                samples = cache.get(cache_key)
             except Exception as exc:
-                app.logger.warning(
+                app_obj.logger.warning(
                     "[SAMPLES CACHE ERROR] failed to read cache key %s: %s. Falling back to DB.",
                     cache_key,
                     exc,
@@ -150,14 +162,14 @@ class SampleHandler(BaseHandler):
                 samples = None
 
             if samples and not reload:
-                app.logger.info(f"[SAMPLES CACHE HIT] {cache_key}")
+                app_obj.logger.info(f"[SAMPLES CACHE HIT] {cache_key}")
                 return samples
             elif samples and reload:
-                app.logger.info(
+                app_obj.logger.info(
                     f"[SAMPLES CACHE HIT] {cache_key} — but reloading from DB since reload is set to True."
                 )
             else:
-                app.logger.info(f"[SAMPLES CACHE MISS] {cache_key} — fetching from DB.")
+                app_obj.logger.info(f"[SAMPLES CACHE MISS] {cache_key} — fetching from DB.")
 
         # If no cache or use_cache=False, or cache miss
         samples = self._query_samples(
@@ -169,12 +181,12 @@ class SampleHandler(BaseHandler):
             time_limit=time_limit,
         )
 
-        if use_cache:
+        if use_cache and cache is not None:
             try:
-                app.cache.set(cache_key, samples, timeout=cache_timeout)
-                app.logger.debug(f"[SAMPLES CACHE SET] {cache_key} (timeout={cache_timeout}s)")
+                cache.set(cache_key, samples, timeout=cache_timeout)
+                app_obj.logger.debug(f"[SAMPLES CACHE SET] {cache_key} (timeout={cache_timeout}s)")
             except Exception as exc:
-                app.logger.warning(
+                app_obj.logger.warning(
                     "[SAMPLES CACHE ERROR] failed to set cache key %s: %s. Continuing without cache.",
                     cache_key,
                     exc,
@@ -229,7 +241,7 @@ class SampleHandler(BaseHandler):
         try:
             sample = self.get_collection().find_one({"_id": ObjectId(id)})
         except Exception as e:
-            app.logger.error(f"Error retrieving sample by id {id}: {e}")
+            self.adapter.app.logger.error(f"Error retrieving sample by id {id}: {e}")
             sample = None
         return sample
 

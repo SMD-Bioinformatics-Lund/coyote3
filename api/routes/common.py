@@ -116,7 +116,7 @@ def common_tiered_variant_search_read(
             report_num = next(
                 (
                     rpt.get("report_num")
-                    for rpt in (sample_doc.get("reports") or [])
+                    for rpt in ((sample_doc.get("reports") if sample_doc else None) or [])
                     if rpt.get("_id") == report_oid
                 ),
                 None,
