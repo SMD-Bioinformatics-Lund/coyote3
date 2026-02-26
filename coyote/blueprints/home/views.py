@@ -29,12 +29,10 @@ from flask import (
 )
 from flask_login import current_user, login_required
 from flask import current_app as app
-from coyote.extensions import store
 from coyote.blueprints.home import home_bp
 from coyote.blueprints.home.forms import SampleSearchForm
 from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
-from coyote.util.misc import get_sample_and_assay_config
 from coyote.services.audit_logs.decorators import log_action
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 import os
@@ -148,21 +146,23 @@ def view_report(sample_id: str, report_id: str) -> str | Response:
     Returns:
         Response: The report file if it exists, otherwise a redirect response to the home screen.
     """
-    # Retrieve the report details using the sample and report IDs
-    report = store.sample_handler.get_report(sample_id, report_id)
-    report_name = report.get("report_name", None)
-    filepath = report.get("filepath", None)
+    try:
+        payload = get_web_api_client().get_home_report_context(
+            sample_id=sample_id,
+            report_id=report_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        app.home_logger.error(
+            "Failed to fetch report context via API for sample %s report %s: %s",
+            sample_id,
+            report_id,
+            exc,
+        )
+        flash("Failed to load report details.", "red")
+        return redirect(url_for("dna_bp.home_screen"))
 
-    if not filepath:
-        app.home_logger.info(f"No filepath found for report {report_id} of sample {sample_id}")
-        result = get_sample_and_assay_config(sample_id)
-        if isinstance(result, Response):
-            return result
-        sample, assay_config, assay_config_schema = result
-
-        report_sub_dir = assay_config.get("reporting", {}).get("report_folder", "")
-
-        filepath = f"{app.config.get('REPORTS_BASE_PATH', '')}/{report_sub_dir}/{report_name}"
+    filepath = payload.filepath
 
     if filepath:
         # Extract the directory and filename from the file path

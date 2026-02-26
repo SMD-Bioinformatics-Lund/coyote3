@@ -17,6 +17,7 @@ from coyote.integrations.api.api_models.home import (
     ApiHomeIsglsPayload,
     ApiHomeEffectiveGenesPayload,
     ApiHomeEditContextPayload,
+    ApiHomeReportContextPayload,
 )
 from coyote.integrations.api.api_models.public import (
     ApiPublicGenelistViewContextPayload,
@@ -80,6 +81,7 @@ __all__ = [
     "ApiHomeIsglsPayload",
     "ApiHomeEffectiveGenesPayload",
     "ApiHomeEditContextPayload",
+    "ApiHomeReportContextPayload",
     "ApiPublicGenelistViewContextPayload",
     "ApiPublicAspGenesPayload",
     "ApiPublicAssayCatalogGenesViewPayload",

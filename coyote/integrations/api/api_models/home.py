@@ -30,3 +30,9 @@ class ApiHomeEditContextPayload(ApiModel):
     variant_stats_raw: JsonDict = Field(default_factory=dict)
     variant_stats_filtered: JsonDict = Field(default_factory=dict)
 
+
+class ApiHomeReportContextPayload(ApiModel):
+    sample_id: str
+    report_id: str
+    report_name: str | None = None
+    filepath: str | None = None

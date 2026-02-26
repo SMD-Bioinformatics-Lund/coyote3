@@ -58,6 +58,7 @@ from coyote.integrations.api.api_models import (
     ApiHomeIsglsPayload,
     ApiHomeEffectiveGenesPayload,
     ApiHomeEditContextPayload,
+    ApiHomeReportContextPayload,
     ApiPublicGenelistViewContextPayload,
     ApiPublicAspGenesPayload,
     ApiPublicAssayCatalogGenesViewPayload,
@@ -249,6 +250,18 @@ class CoyoteApiClient:
     ) -> ApiHomeEditContextPayload:
         payload = self._get(f"/api/v1/home/samples/{sample_id}/edit_context", headers=headers)
         return ApiHomeEditContextPayload.model_validate(payload)
+
+    def get_home_report_context(
+        self,
+        sample_id: str,
+        report_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiHomeReportContextPayload:
+        payload = self._get(
+            f"/api/v1/home/samples/{sample_id}/reports/{report_id}/context",
+            headers=headers,
+        )
+        return ApiHomeReportContextPayload.model_validate(payload)
 
     def apply_home_isgl(
         self,

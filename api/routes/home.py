@@ -253,3 +253,29 @@ def home_clear_adhoc_genes_mutation(
     return util.common.convert_to_serializable(
         {"status": "ok", "sample_id": sample_id, "action": "clear_adhoc_genes"}
     )
+
+
+@app.get("/api/v1/home/samples/{sample_id}/reports/{report_id}/context")
+def home_report_context_read(
+    sample_id: str,
+    report_id: str,
+    user: ApiUser = Depends(require_access(permission="view_reports", min_role="admin")),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    report = store.sample_handler.get_report(sample_id, report_id)
+    report_name = report.get("report_name")
+    filepath = report.get("filepath")
+
+    if not filepath and report_name:
+        assay_config = _get_formatted_assay_config(sample)
+        report_sub_dir = assay_config.get("reporting", {}).get("report_folder", "")
+        filepath = f"{flask_app.config.get('REPORTS_BASE_PATH', '')}/{report_sub_dir}/{report_name}"
+
+    return util.common.convert_to_serializable(
+        {
+            "sample_id": sample_id,
+            "report_id": report_id,
+            "report_name": report_name,
+            "filepath": filepath,
+        }
+    )
