@@ -235,6 +235,114 @@ def unhide_sample_comment_mutation(
     return util.common.convert_to_serializable(result)
 
 
+@app.post("/api/v1/admin/permissions/create")
+def create_permission_mutation(
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(
+        require_access(permission="create_permission_policy", min_role="admin", min_level=99999)
+    ),
+):
+    active_schemas = store.schema_handler.get_schemas_by_category_type(
+        schema_type="acl_config",
+        schema_category="RBAC",
+        is_active=True,
+    )
+    if not active_schemas:
+        raise _api_error(400, "No active permission schemas found")
+
+    selected_id = payload.get("schema_id") or active_schemas[0]["_id"]
+    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+    if not schema:
+        raise _api_error(404, "Selected schema not found")
+
+    schema["fields"]["created_by"]["default"] = user.username
+    schema["fields"]["created_on"]["default"] = util.common.utc_now()
+    schema["fields"]["updated_by"]["default"] = user.username
+    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
+
+    form_data = payload.get("form_data", {})
+    policy = util.admin.process_form_to_config(form_data, schema)
+    policy["_id"] = policy["permission_name"]
+    policy["schema_name"] = schema["_id"]
+    policy["schema_version"] = schema["version"]
+    policy = util.admin.inject_version_history(
+        user_email=user.username,
+        new_config=deepcopy(policy),
+        is_new=True,
+    )
+    store.permissions_handler.create_new_policy(policy)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="permission", resource_id=policy["_id"], action="create")
+    )
+
+
+@app.post("/api/v1/admin/permissions/{perm_id}/update")
+def update_permission_mutation(
+    perm_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(
+        require_access(permission="edit_permission_policy", min_role="admin", min_level=99999)
+    ),
+):
+    permission = store.permissions_handler.get(perm_id)
+    if not permission:
+        raise _api_error(404, "Permission policy not found")
+    schema = store.schema_handler.get_schema(permission.get("schema_name"))
+    if not schema:
+        raise _api_error(404, "Schema not found for permission policy")
+
+    form_data = payload.get("form_data", {})
+    updated_permission = util.admin.process_form_to_config(form_data, schema)
+    updated_permission["updated_on"] = util.common.utc_now()
+    updated_permission["updated_by"] = user.username
+    updated_permission["version"] = permission.get("version", 1) + 1
+    updated_permission["schema_name"] = schema["_id"]
+    updated_permission["schema_version"] = schema["version"]
+    updated_permission = util.admin.inject_version_history(
+        user_email=user.username,
+        new_config=updated_permission,
+        old_config=permission,
+        is_new=False,
+    )
+    store.permissions_handler.update_policy(perm_id, updated_permission)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="permission", resource_id=perm_id, action="update")
+    )
+
+
+@app.post("/api/v1/admin/permissions/{perm_id}/toggle")
+def toggle_permission_mutation(
+    perm_id: str,
+    user: ApiUser = Depends(
+        require_access(permission="edit_permission_policy", min_role="admin", min_level=99999)
+    ),
+):
+    perm = store.permissions_handler.get(perm_id)
+    if not perm:
+        raise _api_error(404, "Permission policy not found")
+    new_status = not perm.get("is_active", False)
+    store.permissions_handler.toggle_policy_active(perm_id, new_status)
+    result = _mutation_payload("admin", resource="permission", resource_id=perm_id, action="toggle")
+    result["meta"]["is_active"] = new_status
+    return util.common.convert_to_serializable(result)
+
+
+@app.post("/api/v1/admin/permissions/{perm_id}/delete")
+def delete_permission_mutation(
+    perm_id: str,
+    user: ApiUser = Depends(
+        require_access(permission="delete_permission_policy", min_role="admin", min_level=99999)
+    ),
+):
+    perm = store.permissions_handler.get(perm_id)
+    if not perm:
+        raise _api_error(404, "Permission policy not found")
+    store.permissions_handler.delete_policy(perm_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="permission", resource_id=perm_id, action="delete")
+    )
+
+
 @app.get("/api/v1/dna/samples/{sample_id}/variants")
 def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)

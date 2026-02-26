@@ -509,6 +509,48 @@ class CoyoteApiClient:
         )
         return ApiMutationResultPayload.model_validate(payload)
 
+    def create_admin_permission(
+        self,
+        schema_id: str | None,
+        form_data: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            "/api/v1/admin/permissions/create",
+            headers=headers,
+            json_body={"schema_id": schema_id, "form_data": form_data},
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def update_admin_permission(
+        self,
+        perm_id: str,
+        form_data: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/admin/permissions/{perm_id}/update",
+            headers=headers,
+            json_body={"form_data": form_data},
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def toggle_admin_permission(
+        self,
+        perm_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(f"/api/v1/admin/permissions/{perm_id}/toggle", headers=headers)
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def delete_admin_permission(
+        self,
+        perm_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(f"/api/v1/admin/permissions/{perm_id}/delete", headers=headers)
+        return ApiMutationResultPayload.model_validate(payload)
+
     def mark_rna_fusion_false_positive(
         self, sample_id: str, fusion_id: str, headers: dict[str, str] | None = None
     ) -> ApiMutationResultPayload:
