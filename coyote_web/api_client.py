@@ -724,6 +724,17 @@ class CoyoteApiClient:
         )
         return bool(payload.get("exists", False))
 
+    def update_user_last_login_internal(
+        self,
+        user_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/internal/users/{user_id}/last_login",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
     def create_admin_asp(
         self,
         config: dict[str, Any],
@@ -972,4 +983,12 @@ def build_forward_headers(request_headers: Any) -> dict[str, str]:
     headers = {"X-Requested-With": "XMLHttpRequest"}
     if cookie_header:
         headers["Cookie"] = cookie_header
+    return headers
+
+
+def build_internal_headers() -> dict[str, str]:
+    token = current_app.config.get("INTERNAL_API_TOKEN") or current_app.config.get("SECRET_KEY")
+    headers = {"X-Requested-With": "XMLHttpRequest"}
+    if token:
+        headers["X-Coyote-Internal-Token"] = str(token)
     return headers

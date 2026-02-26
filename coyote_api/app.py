@@ -65,6 +65,13 @@ def _api_error(status_code: int, message: str) -> HTTPException:
     return HTTPException(status_code=status_code, detail={"status": status_code, "error": message})
 
 
+def _require_internal_token(request: Request) -> None:
+    expected = flask_app.config.get("INTERNAL_API_TOKEN") or flask_app.config.get("SECRET_KEY")
+    provided = request.headers.get("X-Coyote-Internal-Token")
+    if not expected or not provided or provided != expected:
+        raise _api_error(403, "Forbidden")
+
+
 def _to_bool(value, default: bool = False) -> bool:
     if value is None:
         return default
@@ -310,6 +317,18 @@ def remove_coverage_blacklist_mutation(
     store.groupcov_handler.remove_blacklist(obj_id)
     return util.common.convert_to_serializable(
         _mutation_payload("coverage", resource="blacklist", resource_id=obj_id, action="remove")
+    )
+
+
+@app.post("/api/v1/internal/users/{user_id}/last_login")
+def update_user_last_login_internal(user_id: str, request: Request):
+    _require_internal_token(request)
+    user_doc = store.user_handler.user_with_id(user_id)
+    if not user_doc:
+        raise _api_error(404, "User not found")
+    store.user_handler.update_user_last_login(user_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload("internal", resource="user", resource_id=user_id, action="update_last_login")
     )
 
 

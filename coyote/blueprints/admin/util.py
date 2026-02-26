@@ -28,6 +28,7 @@ from typing import Any, Union
 import hashlib
 from bson import ObjectId
 from coyote.util.common_utility import CommonUtility
+from coyote.services.admin.sample_deletion import delete_all_sample_traces as delete_all_sample_traces_service
 
 
 class AdminUtility:
@@ -498,33 +499,14 @@ class AdminUtility:
             - Calls deletion handlers for each data type.
             - Displays a flash message for each deletion result.
         """
-        sample_name = store.sample_handler.get_sample_by_id(sample_id)
-        actions = [
-            store.variant_handler.delete_sample_variants,
-            store.cnv_handler.delete_sample_cnvs,
-            store.coverage_handler.delete_sample_coverage,
-            store.coverage2_handler.delete_sample_coverage,
-            store.transloc_handler.delete_sample_translocs,
-            store.fusion_handler.delete_sample_fusions,
-            store.biomarker_handler.delete_sample_biomarkers,
-            store.sample_handler.delete_sample,
-        ]
-        for handler in actions:
-            handler(sample_id)
-            result = handler(sample_id)
-            collection_name = handler.__name__.replace("delete_sample_", "").replace("_handler", "")
-            if collection_name == "delete_sample":
-                collection_name = "sample"
-            if result:
-                flash(
-                    f"Deleted {collection_name} for {sample_name.get('name')}",
-                    "green",
-                )
+        deletion_summary = delete_all_sample_traces_service(sample_id)
+        sample_name = deletion_summary.get("sample_name", sample_id)
+        for result in deletion_summary.get("results", []):
+            collection_name = result.get("collection", "unknown")
+            if result.get("ok"):
+                flash(f"Deleted {collection_name} for {sample_name}", "green")
             else:
-                flash(
-                    f"Failed to delete {collection_name} for {sample_name.get('name')}",
-                    "red",
-                )
+                flash(f"Failed to delete {collection_name} for {sample_name}", "red")
 
     @staticmethod
     def restore_objectids(obj) -> dict | list | Any:

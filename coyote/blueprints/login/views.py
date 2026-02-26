@@ -31,6 +31,7 @@ from coyote.blueprints.login.forms import LoginForm
 from coyote.extensions import ldap_manager, login_manager, store, util
 from coyote.models.user import UserModel
 from coyote.services.auth.user_session import User
+from coyote_web.api_client import ApiRequestError, build_internal_headers, get_web_api_client
 from flask_login import current_user
 
 
@@ -87,7 +88,13 @@ def login() -> str | Response:
 
         # Login and update last login timestamp
         login_user(user)
-        store.user_handler.update_user_last_login(user_doc["_id"])
+        try:
+            get_web_api_client().update_user_last_login_internal(
+                user_id=str(user_doc["_id"]),
+                headers=build_internal_headers(),
+            )
+        except ApiRequestError as exc:
+            app.logger.warning("Failed to update last login via API for user %s: %s", email, exc)
         app.logger.info(f"User logged in: {email} (access_level: {user.access_level})")
 
         return redirect(url_for("dashboard_bp.dashboard"))
