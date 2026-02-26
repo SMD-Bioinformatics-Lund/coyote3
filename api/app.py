@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import os
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from flask.sessions import SecureCookieSessionInterface
 from itsdangerous import BadSignature
 
@@ -31,6 +32,32 @@ app = FastAPI(
     redoc_url="/api/v1/redoc",
     openapi_url="/api/v1/openapi.json",
 )
+
+
+@app.middleware("http")
+async def flask_app_context_middleware(request: Request, call_next):
+    """
+    Provide a Flask app context for each API request.
+
+    This keeps legacy/shared helpers that still rely on Flask `current_app`
+    compatible while routes are served through FastAPI.
+    """
+    with flask_app.app_context():
+        return await call_next(request)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Return a consistent JSON payload for unexpected API failures."""
+    flask_app.logger.exception("Unhandled API exception on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "status": 500,
+            "error": "Internal server error",
+            "details": "Unexpected API failure",
+        },
+    )
 
 
 def create_api_app():

@@ -16,6 +16,7 @@ from .exceptions import AppError
 
 def register_error_handlers(app):
     """Register error handlers for the application."""
+    from coyote.integrations.api.api_client import ApiRequestError
 
     def is_api_request() -> bool:
         path = request.path or ""
@@ -40,6 +41,12 @@ def register_error_handlers(app):
     def handle_app_error(error):
         """Handles custom application errors."""
         return error_response(error.status_code, error.message, error.details)
+
+    @app.errorhandler(ApiRequestError)
+    def handle_api_request_error(error):
+        """Handles upstream API client failures from web routes."""
+        status_code = error.status_code or 502
+        return error_response(status_code, "API request failed.", str(error))
 
     @app.errorhandler(400)
     def handle_400_error(error):

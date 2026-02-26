@@ -12,20 +12,46 @@
 
 """Shared DNA filter helpers used by workflow/view layers."""
 
+from typing import Any
+
 from flask import current_app as app
 
 
-def get_filter_conseq_terms(checked: list) -> list:
+def _resolve_conseq_terms_mapper(conseq_terms_mapper: dict[str, Any] | None = None) -> dict[str, Any]:
+    if conseq_terms_mapper is not None:
+        return conseq_terms_mapper
+
+    try:
+        conf = app.config.get("CONSEQ_TERMS_MAPPER")
+        if isinstance(conf, dict):
+            return conf
+    except RuntimeError:
+        pass
+
+    try:
+        from coyote.extensions import store
+
+        app_obj = getattr(getattr(store, "adapter", None), "app", None)
+        if app_obj:
+            conf = app_obj.config.get("CONSEQ_TERMS_MAPPER")
+            if isinstance(conf, dict):
+                return conf
+    except Exception:
+        pass
+    return {}
+
+
+def get_filter_conseq_terms(checked: list, conseq_terms_mapper: dict[str, Any] | None = None) -> list:
     """
     Return mapped consequence terms from checked form fields.
     """
     filter_conseq = []
-    conf = app.config.get("CONSEQ_TERMS_MAPPER")
+    conf = _resolve_conseq_terms_mapper(conseq_terms_mapper)
     try:
         for fieldname in checked:
             if fieldname in conf:
                 filter_conseq.extend(conf.get(fieldname))
-    except KeyError or TypeError:
+    except (KeyError, TypeError):
         pass
     return filter_conseq
 
@@ -49,11 +75,12 @@ def cnvtype_variant(cnvs: list, checked_effects: list) -> list:
     """
     filtered_cnvs = []
     for var in cnvs:
+        effect = None
         if var["ratio"] > 0:
             effect = "AMP"
         elif var["ratio"] < 0:
             effect = "DEL"
-        if effect in checked_effects:
+        if effect and effect in checked_effects:
             filtered_cnvs.append(var)
     return filtered_cnvs
 

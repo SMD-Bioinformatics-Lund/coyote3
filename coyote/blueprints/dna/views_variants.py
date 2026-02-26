@@ -36,9 +36,18 @@ from coyote.services.interpretation.report_summary import (
 )
 from coyote.services.workflow.dna_workflow import DNAWorkflowService
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.errors.exceptions import AppError
 from PIL import Image
 import os
 import io
+
+
+def _raise_api_page_error(sample_id: str, page: str, exc: ApiRequestError) -> None:
+    raise AppError(
+        status_code=exc.status_code or 502,
+        message=f"Failed to load {page}.",
+        details=f"Sample {sample_id}: {exc}",
+    )
 
 
 @dna_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])
@@ -71,7 +80,7 @@ def list_variants(sample_id: str) -> Response | str:
         app.logger.info("Loaded DNA variant list from API service for sample %s", sample_id)
     except ApiRequestError as exc:
         app.logger.error("DNA variant API fetch failed for sample %s: %s", sample_id, exc)
-        return Response(str(exc), status=exc.status_code or 502)
+        _raise_api_page_error(sample_id, "DNA variants", exc)
 
     sample = variants_payload.sample
     assay_config = variants_payload.assay_config
@@ -160,7 +169,7 @@ def list_variants(sample_id: str) -> Response | str:
             verification_sample_used = variants_payload.verification_sample_used
         except ApiRequestError as exc:
             app.logger.error("DNA variant API refresh failed for sample %s: %s", sample_id, exc)
-            return Response(str(exc), status=exc.status_code or 502)
+            _raise_api_page_error(sample_id, "DNA variants", exc)
 
     ############################################################################
 
@@ -195,7 +204,7 @@ def list_variants(sample_id: str) -> Response | str:
             app.logger.info("Loaded DNA CNV list from API service for sample %s", sample_id)
         except ApiRequestError as exc:
             app.logger.error("DNA CNV API fetch failed for sample %s: %s", sample_id, exc)
-            return Response(str(exc), status=exc.status_code or 502)
+            _raise_api_page_error(sample_id, "DNA CNVs", exc)
 
         display_sections_data["cnvs"] = deepcopy(cnvs)
         summary_sections_data["cnvs"] = [cnv for cnv in cnvs if cnv.get("interesting")]
@@ -207,7 +216,7 @@ def list_variants(sample_id: str) -> Response | str:
             app.logger.info("Loaded DNA biomarker list from API service for sample %s", sample_id)
         except ApiRequestError as exc:
             app.logger.error("DNA biomarker API fetch failed for sample %s: %s", sample_id, exc)
-            return Response(str(exc), status=exc.status_code or 502)
+            _raise_api_page_error(sample_id, "DNA biomarkers", exc)
         summary_sections_data["biomarkers"] = display_sections_data["biomarkers"]
 
     if "TRANSLOCATION" in analysis_sections:
@@ -220,7 +229,7 @@ def list_variants(sample_id: str) -> Response | str:
             app.logger.info("Loaded DNA translocation list from API service for sample %s", sample_id)
         except ApiRequestError as exc:
             app.logger.error("DNA translocation API fetch failed for sample %s: %s", sample_id, exc)
-            return Response(str(exc), status=exc.status_code or 502)
+            _raise_api_page_error(sample_id, "DNA translocations", exc)
 
         display_sections_data["translocs"] = translocs
 
@@ -383,4 +392,4 @@ def show_variant(sample_id: str, var_id: str) -> Response | str:
         )
     except ApiRequestError as exc:
         app.logger.error("DNA variant detail API fetch failed for sample %s: %s", sample_id, exc)
-        return Response(str(exc), status=exc.status_code or 502)
+        _raise_api_page_error(sample_id, "DNA variant detail", exc)
