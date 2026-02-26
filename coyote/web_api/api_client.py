@@ -8,7 +8,7 @@ from typing import Any
 import httpx
 from flask import current_app
 
-from coyote_web.api_models import (
+from coyote.web_api.api_models import (
     ApiAuthLoginPayload,
     ApiAuthSessionUserPayload,
     ApiDashboardSummaryPayload,

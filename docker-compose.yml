@@ -79,7 +79,7 @@ services:
       - "/media:/media"
       - "/data:/data"
       - "/fs1:/fs1"
-    command: "python3 -m uvicorn coyote_api.app:app --host 0.0.0.0 --port 8001"
+    command: "python3 -m uvicorn api.app:app --host 0.0.0.0 --port 8001"
 
   redis_coyote3:
     container_name: redis_coyote3

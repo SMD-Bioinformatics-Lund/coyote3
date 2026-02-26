@@ -1,9 +1,9 @@
 """Domain-organized typed models for web API payloads."""
 
-from coyote_web.api_models.base import ApiMutationResultPayload
-from coyote_web.api_models.auth import ApiAuthLoginPayload, ApiAuthSessionUserPayload
-from coyote_web.api_models.dashboard import ApiDashboardSummaryPayload
-from coyote_web.api_models.admin import (
+from coyote.web_api.api_models.base import ApiMutationResultPayload
+from coyote.web_api.api_models.auth import ApiAuthLoginPayload, ApiAuthSessionUserPayload
+from coyote.web_api.api_models.dashboard import ApiDashboardSummaryPayload
+from coyote.web_api.api_models.admin import (
     ApiAdminPermissionContextPayload,
     ApiAdminPermissionCreateContextPayload,
     ApiAdminPermissionsPayload,
@@ -28,7 +28,7 @@ from coyote_web.api_models.admin import (
     ApiAdminUserCreateContextPayload,
     ApiAdminUsersPayload,
 )
-from coyote_web.api_models.dna import (
+from coyote.web_api.api_models.dna import (
     ApiDnaBiomarkersPayload,
     ApiDnaCnvsPayload,
     ApiDnaCnvDetailPayload,
@@ -39,7 +39,7 @@ from coyote_web.api_models.dna import (
     ApiDnaVariantDetailPayload,
     ApiDnaVariantsPayload,
 )
-from coyote_web.api_models.rna import (
+from coyote.web_api.api_models.rna import (
     ApiRnaFusionDetailPayload,
     ApiRnaFusionsPayload,
     ApiRnaReportPreviewPayload,

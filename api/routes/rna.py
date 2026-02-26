@@ -5,7 +5,7 @@ from fastapi import Depends, Query, Request
 from coyote.extensions import store, util
 from coyote.services.interpretation.annotation_enrichment import add_global_annotations
 from coyote.services.workflow.rna_workflow import RNAWorkflowService
-from coyote_api.app import (
+from api.app import (
     ApiUser,
     _api_error,
     _get_formatted_assay_config,

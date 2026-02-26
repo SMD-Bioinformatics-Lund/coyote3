@@ -14,7 +14,7 @@ from coyote.services.dna.dna_variants import format_pon, get_variant_nomenclatur
 from coyote.services.dna.query_builders import build_cnv_query, build_query
 from coyote.services.interpretation.annotation_enrichment import add_alt_class, add_global_annotations
 from coyote.services.interpretation.report_summary import create_annotation_text_from_gene, create_comment_doc
-from coyote_api.app import (
+from api.app import (
     ApiUser,
     _api_error,
     _get_formatted_assay_config,

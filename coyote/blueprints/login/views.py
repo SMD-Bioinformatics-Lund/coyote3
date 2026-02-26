@@ -30,7 +30,7 @@ from coyote.blueprints.login import login_bp
 from coyote.blueprints.login.forms import LoginForm
 from coyote.extensions import login_manager
 from coyote.services.auth.user_session import User
-from coyote_web.api_client import ApiRequestError, build_internal_headers, get_web_api_client
+from coyote.web_api.api_client import ApiRequestError, build_internal_headers, get_web_api_client
 from flask_login import current_user
 
 

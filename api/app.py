@@ -161,14 +161,14 @@ def _get_sample_for_api(sample_id: str, user: ApiUser):
     return sample
 
 
-from coyote_api.routes import system as _system_routes  # noqa: F401
+from api.routes import system as _system_routes  # noqa: F401
 
 
-from coyote_api.routes import samples as _sample_routes  # noqa: F401
-from coyote_api.routes import internal as _internal_routes  # noqa: F401
-from coyote_api.routes import admin as _admin_routes  # noqa: F401
+from api.routes import samples as _sample_routes  # noqa: F401
+from api.routes import internal as _internal_routes  # noqa: F401
+from api.routes import admin as _admin_routes  # noqa: F401
 
-from coyote_api.routes import dna as _dna_routes  # noqa: F401
-from coyote_api.routes import rna as _rna_routes  # noqa: F401
-from coyote_api.routes import reports as _report_routes  # noqa: F401
-from coyote_api.routes import dashboard as _dashboard_routes  # noqa: F401
+from api.routes import dna as _dna_routes  # noqa: F401
+from api.routes import rna as _rna_routes  # noqa: F401
+from api.routes import reports as _report_routes  # noqa: F401
+from api.routes import dashboard as _dashboard_routes  # noqa: F401

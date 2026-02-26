@@ -4,8 +4,8 @@ from fastapi import Request
 from pydantic import BaseModel
 
 from coyote.extensions import store, util
-from coyote_api.app import _api_error, _require_internal_token, app
-from coyote_api.services.auth import authenticate_credentials, build_user_session_payload
+from api.app import _api_error, _require_internal_token, app
+from api.services.auth import authenticate_credentials, build_user_session_payload
 
 
 def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict:

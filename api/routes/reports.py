@@ -5,7 +5,7 @@ from fastapi import Depends, Query
 from coyote.extensions import util
 from coyote.services.workflow.dna_workflow import DNAWorkflowService
 from coyote.services.workflow.rna_workflow import RNAWorkflowService
-from coyote_api.app import (
+from api.app import (
     ApiUser,
     _api_error,
     _get_formatted_assay_config,

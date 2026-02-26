@@ -2,7 +2,7 @@
 
 from pydantic import Field
 
-from coyote_web.api_models.base import ApiModel, JsonDict
+from coyote.web_api.api_models.base import ApiModel, JsonDict
 
 
 class ApiAuthLoginPayload(ApiModel):

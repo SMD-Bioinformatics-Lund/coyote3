@@ -20,7 +20,7 @@ from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
 from coyote.services.audit_logs.decorators import log_action
 from coyote.services.auth.decorators import require
-from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.web_api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
 @admin_bp.route("/users", methods=["GET"])

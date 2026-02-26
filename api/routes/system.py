@@ -3,7 +3,7 @@
 from fastapi import Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
-from coyote_api.app import ApiUser, app, require_access
+from api.app import ApiUser, app, require_access
 
 
 @app.exception_handler(HTTPException)

@@ -40,8 +40,7 @@ services:
     volumes:
       - ".git:/app/.git"
       - "./coyote:/app/coyote"
-      - "./coyote_web:/app/coyote_web"
-      - "./coyote_api:/app/coyote_api"
+      - "./api:/app/api"
       - "./config:/app/config"
       - "/data/coyote3/logs:/app/logs"
       - "./docs:/app/docs"
@@ -91,8 +90,7 @@ services:
     volumes:
       - ".git:/app/.git"
       - "./coyote:/app/coyote"
-      - "./coyote_web:/app/coyote_web"
-      - "./coyote_api:/app/coyote_api"
+      - "./api:/app/api"
       - "./config:/app/config"
       - "/data/coyote3/logs:/app/logs"
       - "./docs:/app/docs"
@@ -108,7 +106,7 @@ services:
       - "/media:/media"
       - "/data:/data"
       - "/fs1:/fs1"
-    command: "python3 -m uvicorn coyote_api.app:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/coyote --reload-dir /app/coyote_api --reload-dir /app/coyote_web --reload-dir /app"
+    command: "python3 -m uvicorn api.app:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/coyote --reload-dir /app/api --reload-dir /app"
 
   coyote3_dev_tailwind:
     container_name: coyote3_dev_tailwind

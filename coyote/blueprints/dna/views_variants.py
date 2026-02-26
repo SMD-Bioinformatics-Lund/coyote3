@@ -36,7 +36,7 @@ from coyote.services.interpretation.report_summary import (
     generate_summary_text,
 )
 from coyote.services.workflow.dna_workflow import DNAWorkflowService
-from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.web_api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 from PIL import Image
 import os
 import io

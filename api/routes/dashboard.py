@@ -5,7 +5,7 @@ from copy import deepcopy
 from fastapi import Depends
 
 from coyote.extensions import store, util
-from coyote_api.app import ApiUser, app, require_access
+from api.app import ApiUser, app, require_access
 
 
 @app.get("/api/v1/dashboard/summary")

@@ -57,8 +57,7 @@ COPY config/ ./config/
 COPY config.py wsgi.py asgi.py run_api.py gunicorn.conf.py logging_setup.py .coyote3_env ./
 COPY .coyote3_env ./.env
 COPY coyote/ ./coyote/
-COPY coyote_api/ ./coyote_api/
-COPY coyote_web/ ./coyote_web/
+COPY api/ ./api/
 COPY docs/ ./docs/
 COPY CHANGELOG.md README.md LICENSE.txt ./
 

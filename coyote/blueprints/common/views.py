@@ -30,7 +30,7 @@ from coyote.services.auth.decorators import require
 from coyote.services.interpretation.report_summary import (
     enrich_reported_variant_docs,
 )
-from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.web_api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 import json
 from flask_login import login_required
 from copy import deepcopy

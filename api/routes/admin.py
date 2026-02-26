@@ -5,7 +5,7 @@ from copy import deepcopy
 from fastapi import Body, Depends, Query
 
 from coyote.extensions import store, util
-from coyote_api.app import ApiUser, _api_error, _get_sample_for_api, app, require_access
+from api.app import ApiUser, _api_error, _get_sample_for_api, app, require_access
 
 
 def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict:

@@ -18,7 +18,7 @@ from flask import Response, flash, redirect, request, url_for
 from coyote.blueprints.rna import rna_bp
 from coyote.services.auth.decorators import require
 from coyote.util.decorators.access import require_sample_access
-from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.web_api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
 @rna_bp.route("/sample/<string:sample_id>/preview_report", methods=["GET", "POST"])
