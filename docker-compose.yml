@@ -24,7 +24,6 @@ services:
       - PYTHONUNBUFFERED=1
       - FLASK_APP=wsgi
       - FLASK_DEBUG=0
-      - ENABLE_FLASK_API_BLUEPRINT=0
       - REQUIRE_EXTERNAL_API=1
       - API_BASE_URL=http://coyote3_api:8001
       - API_BROWSER_BASE=/api
@@ -63,7 +62,6 @@ services:
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
-      - ENABLE_FLASK_API_BLUEPRINT=0
       - REQUIRE_EXTERNAL_API=0
       - TZ=Europe/Stockholm
       - GIT_COMMIT=${GIT_COMMIT:-unknown}

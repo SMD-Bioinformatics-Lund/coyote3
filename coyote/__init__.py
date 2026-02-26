@@ -29,7 +29,7 @@ Key Responsibilities:
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from flask import Flask, request, redirect, url_for, flash
+from flask import Flask, request, redirect, url_for, flash, jsonify
 from flask_cors import CORS
 import config
 from coyote import extensions
@@ -44,6 +44,7 @@ from flask_caching import Cache
 from typing import Any
 import json
 import os
+import httpx
 
 
 # Initialize Flask-Caching
@@ -123,6 +124,7 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
         init_login_manager(app)
         init_db(app)
         init_store(app)
+        init_template_filters(app)
         register_blueprints(app)
         init_ldap(app)
         init_utility(app)
@@ -241,6 +243,21 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
         if not view:
             return None
 
+        def is_api_request() -> bool:
+            path = request.path or ""
+            app_root = app.config.get("APPLICATION_ROOT", "")
+            if app_root and path.startswith(app_root):
+                path = path[len(app_root) :] or "/"
+            return path == "/api" or path.startswith("/api/")
+
+        def auth_failure_response(status_code: int, message: str):
+            if is_api_request():
+                return jsonify({"status": status_code, "error": message}), status_code
+            flash(message, "yellow" if status_code == 401 else "red")
+            if status_code == 401:
+                return redirect(url_for("login_bp.login"))
+            return redirect(url_for("home_bp.samples_home"))
+
         # Fetch required metadata
         required_permission = getattr(view, "required_permission", None)
         required_level = getattr(view, "required_access_level", None)
@@ -249,8 +266,7 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
         # If any access control is defined, require authentication
         if required_permission or required_level is not None or required_role:
             if not current_user.is_authenticated:
-                flash("Login required", "yellow")
-                return redirect(url_for("login_bp.login"))
+                return auth_failure_response(401, "Login required")
 
             # Resolve role level from cached access levels
             resolved_role_level = 0
@@ -272,8 +288,7 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
             role_ok = required_role is not None and current_user.access_level >= resolved_role_level
 
             if not (permission_ok or level_ok or role_ok):
-                flash("You do not have access to this page.", "red")
-                return redirect(url_for("home_bp.samples_home"))
+                return auth_failure_response(403, "You do not have access to this page.")
         return None
 
     @app.context_processor
@@ -431,11 +446,37 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
             "has_access": has_access,
         }
 
+    verify_external_api_dependency(app)
+
     # Register the cache with the app
     cache.init_app(app)
     app.cache = cache
     app.logger.info("Flask app initialized successfully.")
     return app
+
+
+def verify_external_api_dependency(app: Flask) -> None:
+    """
+    Optionally require an external API runtime before serving web traffic.
+    """
+    if not app.config.get("REQUIRE_EXTERNAL_API", False):
+        return
+
+    api_base = str(app.config.get("API_BASE_URL", "")).rstrip("/")
+    api_health_path = app.config.get("API_HEALTH_PATH", "/api/v1/health")
+    health_url = f"{api_base}{api_health_path}"
+    timeout = httpx.Timeout(3.0, connect=2.0)
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            response = client.get(health_url)
+            response.raise_for_status()
+            payload = response.json() if "application/json" in response.headers.get("content-type", "") else {}
+            if isinstance(payload, dict) and payload.get("status") not in ("ok", None):
+                raise RuntimeError(f"Unexpected API health payload: {payload}")
+        app.logger.info("External API dependency check passed: %s", health_url)
+    except Exception as exc:
+        app.logger.error("External API dependency check failed: %s (%s)", health_url, exc)
+        raise RuntimeError(f"External API is required but unavailable: {health_url}") from exc
 
 
 def init_db(app) -> None:
@@ -598,6 +639,18 @@ def register_blueprints(app) -> None:
     from coyote.blueprints.docs import docs_bp
 
     app.register_blueprint(docs_bp, url_prefix="/handbook")
+
+    app.logger.info("Flask API blueprint removed; using FastAPI service for API routes.")
+
+
+def init_template_filters(app) -> None:
+    """
+    Registers all Jinja template filters from a centralized registry.
+    """
+    app.logger.debug("Initializing template filters")
+    from coyote.filters.registry import register_filters
+
+    register_filters(app)
 
 
 def init_login_manager(app) -> None:

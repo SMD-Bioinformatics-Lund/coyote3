@@ -98,7 +98,6 @@ class DefaultConfig:
     FERNET = Fernet(os.getenv("COYOTE3_FERNET_KEY"))
 
     WTF_CSRF_ENABLED = True
-    ENABLE_FLASK_API_BLUEPRINT = os.getenv("ENABLE_FLASK_API_BLUEPRINT", "0") == "1"
     REQUIRE_EXTERNAL_API = os.getenv("REQUIRE_EXTERNAL_API", "0") == "1"
     API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8001")
     API_BROWSER_BASE = os.getenv("API_BROWSER_BASE", "/api")
