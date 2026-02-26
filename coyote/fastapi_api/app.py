@@ -194,6 +194,47 @@ def whoami(user: ApiUser = Depends(require_access(min_level=1))):
     }
 
 
+@app.post("/api/v1/samples/{sample_id}/sample_comments/add")
+def add_sample_comment_mutation(
+    sample_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="add_sample_comment", min_role="user", min_level=9)),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    form_data = payload.get("form_data", {})
+    doc = create_comment_doc(form_data, key="sample_comment")
+    store.sample_handler.add_sample_comment(sample_id, doc)
+    result = _mutation_payload(sample_id, resource="sample_comment", resource_id="new", action="add")
+    result["meta"]["omics_layer"] = sample.get("omics_layer")
+    return util.common.convert_to_serializable(result)
+
+
+@app.post("/api/v1/samples/{sample_id}/sample_comments/{comment_id}/hide")
+def hide_sample_comment_mutation(
+    sample_id: str,
+    comment_id: str,
+    user: ApiUser = Depends(require_access(permission="hide_sample_comment", min_role="manager", min_level=99)),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    store.sample_handler.hide_sample_comment(sample_id, comment_id)
+    result = _mutation_payload(sample_id, resource="sample_comment", resource_id=comment_id, action="hide")
+    result["meta"]["omics_layer"] = sample.get("omics_layer")
+    return util.common.convert_to_serializable(result)
+
+
+@app.post("/api/v1/samples/{sample_id}/sample_comments/{comment_id}/unhide")
+def unhide_sample_comment_mutation(
+    sample_id: str,
+    comment_id: str,
+    user: ApiUser = Depends(require_access(permission="unhide_sample_comment", min_role="manager", min_level=99)),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    store.sample_handler.unhide_sample_comment(sample_id, comment_id)
+    result = _mutation_payload(sample_id, resource="sample_comment", resource_id=comment_id, action="unhide")
+    result["meta"]["omics_layer"] = sample.get("omics_layer")
+    return util.common.convert_to_serializable(result)
+
+
 @app.get("/api/v1/dna/samples/{sample_id}/variants")
 def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)

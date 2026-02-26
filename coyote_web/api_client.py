@@ -453,6 +453,43 @@ class CoyoteApiClient:
         )
         return ApiMutationResultPayload.model_validate(payload)
 
+    def add_sample_comment(
+        self,
+        sample_id: str,
+        form_data: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/samples/{sample_id}/sample_comments/add",
+            headers=headers,
+            json_body={"form_data": form_data},
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def hide_sample_comment(
+        self,
+        sample_id: str,
+        comment_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/samples/{sample_id}/sample_comments/{comment_id}/hide",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def unhide_sample_comment(
+        self,
+        sample_id: str,
+        comment_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/samples/{sample_id}/sample_comments/{comment_id}/unhide",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
     def mark_rna_fusion_false_positive(
         self, sample_id: str, fusion_id: str, headers: dict[str, str] | None = None
     ) -> ApiMutationResultPayload:

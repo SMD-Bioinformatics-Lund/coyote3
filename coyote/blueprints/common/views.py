@@ -27,6 +27,10 @@ from flask_login import current_user
 import traceback
 from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
+from coyote.services.interpretation.report_summary import (
+    enrich_reported_variant_docs,
+)
+from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 import json
 from flask_login import login_required
 from copy import deepcopy
@@ -51,9 +55,16 @@ def add_sample_comment(sample_id: str) -> Response:
     Add Sample comment
     """
     data = request.form.to_dict()
-    doc = util.bpcommon.create_comment_doc(data, key="sample_comment")
-    store.sample_handler.add_sample_comment(sample_id, doc)
-    flash("Sample comment added", "green")
+    try:
+        get_web_api_client().add_sample_comment(
+            sample_id=sample_id,
+            form_data=data,
+            headers=build_forward_headers(request.headers),
+        )
+        flash("Sample comment added", "green")
+    except ApiRequestError as exc:
+        app.logger.error("Failed to add sample comment via API for sample %s: %s", sample_id, exc)
+        flash("Failed to add sample comment", "red")
     if request.endpoint == "common_bp.add_dna_sample_comment":
         return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
     else:
@@ -74,17 +85,24 @@ def hide_sample_comment(sample_id: str) -> Response:
         Response: Redirects to the appropriate variant or fusion list page based on sample type.
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.sample_handler.hide_sample_comment(sample_id, comment_id)
-    sample = store.sample_handler.get_sample_by_id(sample_id)
+    try:
+        payload = get_web_api_client().hide_sample_comment(
+            sample_id=sample_id,
+            comment_id=comment_id,
+            headers=build_forward_headers(request.headers),
+        )
+        omics_layer = str(payload.meta.get("omics_layer", "")).lower()
+    except ApiRequestError as exc:
+        app.logger.error("Failed to hide sample comment via API for sample %s: %s", sample_id, exc)
+        flash("Failed to hide sample comment", "red")
+        return redirect(url_for("home_bp.samples_home"))
 
-    if sample.get("omics_layer", "").lower() == "dna":
+    if omics_layer == "dna":
         return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
-    elif sample.get("omics_layer", "").lower() == "rna":
+    elif omics_layer == "rna":
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
     else:
-        app.logger.info(
-            f"Unrecognized omics type {sample["name"]}! Unable to redirect to the sample page"
-        )
+        app.logger.info("Unrecognized omics type for sample %s! Unable to redirect to sample page", sample_id)
         flash("Unrecognized omics type! Unable to redirect to the sample page", "red")
         return redirect(url_for("home_bp.samples_home"))
 
@@ -103,16 +121,24 @@ def unhide_sample_comment(sample_id: str) -> Response:
         Response: Redirects to the appropriate variant or fusion list page based on sample type.
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.sample_handler.unhide_sample_comment(sample_id, comment_id)
-    sample = store.sample_handler.get_sample_by_id(sample_id)
-    if sample.get("omics_layer", "").lower() == "dna":
+    try:
+        payload = get_web_api_client().unhide_sample_comment(
+            sample_id=sample_id,
+            comment_id=comment_id,
+            headers=build_forward_headers(request.headers),
+        )
+        omics_layer = str(payload.meta.get("omics_layer", "")).lower()
+    except ApiRequestError as exc:
+        app.logger.error("Failed to unhide sample comment via API for sample %s: %s", sample_id, exc)
+        flash("Failed to unhide sample comment", "red")
+        return redirect(url_for("home_bp.samples_home"))
+
+    if omics_layer == "dna":
         return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
-    elif sample.get("omics_layer", "").lower() == "rna":
+    elif omics_layer == "rna":
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
     else:
-        app.logger.info(
-            f"Unrecognized omics type {sample["name"]}! Unable to redirect to the sample page"
-        )
+        app.logger.info("Unrecognized omics type for sample %s! Unable to redirect to sample page", sample_id)
         flash("Unrecognized omics type! Unable to redirect to the sample page", "red")
         return redirect(url_for("home_bp.samples_home"))
 
@@ -227,7 +253,7 @@ def list_samples_with_tiered_variant(variant_id: str, tier: int):
     docs = store.reported_variants_handler.list_reported_variants(query)
 
     # Enrich docs with sample details, variant details, report details
-    docs = util.bpcommon.enrich_reported_variant_docs(deepcopy(docs))
+    docs = enrich_reported_variant_docs(deepcopy(docs))
 
     return render_template(
         "tiered_variant_info.html",
