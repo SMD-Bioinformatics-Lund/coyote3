@@ -69,7 +69,7 @@ def dashboard() -> str:
             total_samples_count = 0
             analysed_samples_count = 0
             pending_samples_count = 0
-            user_samples_stats = []
+            user_samples_stats = {}
             variant_stats = {}
             unique_gene_count_all_panels = 0
             asp_gene_counts = {}

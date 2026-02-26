@@ -11,9 +11,8 @@ class ApiDashboardSummaryPayload(ApiModel):
     total_samples: int = 0
     analysed_samples: int = 0
     pending_samples: int = 0
-    user_samples_stats: list[JsonDict] = Field(default_factory=list)
+    user_samples_stats: JsonDict = Field(default_factory=dict)
     variant_stats: JsonDict = Field(default_factory=dict)
     unique_gene_count_all_panels: int = 0
     assay_gene_stats_grouped: JsonDict = Field(default_factory=dict)
     sample_stats: JsonDict = Field(default_factory=dict)
-
