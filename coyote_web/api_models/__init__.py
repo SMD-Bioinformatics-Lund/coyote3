@@ -1,5 +1,6 @@
 """Domain-organized typed models for web API payloads."""
 
+from coyote_web.api_models.base import ApiMutationResultPayload
 from coyote_web.api_models.dna import (
     ApiDnaCnvsPayload,
     ApiDnaCnvDetailPayload,
@@ -18,6 +19,7 @@ from coyote_web.api_models.rna import (
 )
 
 __all__ = [
+    "ApiMutationResultPayload",
     "ApiDnaCnvsPayload",
     "ApiDnaCnvDetailPayload",
     "ApiDnaReportPreviewPayload",

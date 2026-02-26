@@ -112,7 +112,7 @@ Status values: `todo`, `in_progress`, `done`, `blocked`
 | P11-4 | API Readiness | Migrate API runtime from Flask blueprint routing to FastAPI while reusing current services and RBAC semantics | done | Native FastAPI app (`asgi.py`) now serves `/api/v1/*`; Flask API blueprint is disabled by default and kept behind compatibility toggle |
 | P11-5 | API Readiness | Add API-aware auth/permission error mode (JSON for API, redirects for web) in centralized enforcement path | done | Central `before_request` RBAC gate now returns JSON `401/403` for `/api/*` while keeping web redirects |
 | P12-1 | Frontend/API Strategy | Define target architecture: server-rendered web remains primary while API grows in parallel (no big-bang replacement) | done | Strategy adopted: phased migration with web-first continuity and feature-level cutover |
-| P12-2 | Frontend/API Strategy | Add parity endpoints for current high-traffic list/detail screens (DNA list/detail, RNA list/detail) using existing service layer | in_progress | DNA variant/CNV/translocation + RNA fusion list/detail and DNA/RNA report preview/save endpoints added under `/api/v1/{dna,rna}/samples/...` |
+| P12-2 | Frontend/API Strategy | Add parity endpoints for current high-traffic list/detail screens (DNA list/detail, RNA list/detail) using existing service layer | in_progress | DNA variant/CNV/translocation list/detail plus report preview/save and CNV/translocation action endpoints are available under `/api/v1/{dna,rna}/samples/...` |
 | P12-3 | Frontend/API Strategy | Introduce web-side API client layer for progressive enhancement (read-only first, then write flows) | in_progress | Added server-side Python API client with typed domain models (`coyote_web/api_client.py`, `coyote_web/api_models/*`) for read/write blueprint flows; browser-side hydration helper removed |
 | P12-4 | Frontend/API Strategy | Ensure RBAC parity and consistent error payloads across web/API (401/403/404/AppError mapping) | in_progress | API-aware JSON error handling added in global error handlers; web templates preserved |
 | P12-5 | Frontend/API Strategy | Add migration toggles per feature page to switch between server-rendered data and API-backed data paths | done | Completed initial cutover, then removed page toggles; migrated pages now use API-only fail-fast reads (no fallback) |
@@ -1772,6 +1772,31 @@ Copy for each task:
 - Rollback needed: no
 - Follow-up actions:
   - Continue P12 migration for remaining web write paths in admin/common blueprints until all web `store.*` write usage is removed.
+
+### Task P12-2/P12-3 (DNA Action Writes Cutover) - API-Only CNV/Translocation Mutations
+
+- Date: 2026-02-26
+- Owner: Codex
+- Scope:
+  - Add FastAPI mutation endpoints for DNA CNV/translocation action routes currently triggered by web forms.
+  - Route web CNV/translocation action handlers through API client only (remove direct `store` writes from those route modules).
+  - Add a shared typed mutation payload model for action responses.
+- Files changed:
+  - `coyote/fastapi_api/app.py` (added CNV/translocation action mutation endpoints under `/api/v1/dna/samples/{sample_id}/...`)
+  - `coyote_web/api_models/base.py` (added `ApiMutationResultPayload`)
+  - `coyote_web/api_models/__init__.py` (exported mutation payload model)
+  - `coyote_web/api_client.py` (added typed CNV/translocation mutation client methods)
+  - `coyote/blueprints/dna/views_cnv.py` (API-only action route calls; removed direct store writes)
+  - `coyote/blueprints/dna/views_transloc.py` (API-only action route calls; removed direct store writes)
+  - `MIGRATION_PLAN_DNA_RNA_SHARED_SERVICES.md`
+- Validation executed:
+  - `PYTHONPATH=. .venv/bin/python -m py_compile coyote/fastapi_api/app.py coyote_web/api_models/base.py coyote_web/api_models/__init__.py coyote_web/api_client.py coyote/blueprints/dna/views_cnv.py coyote/blueprints/dna/views_transloc.py`
+  - FastAPI TestClient auth-gate smoke check for `POST /api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/interesting` (`401` unauthenticated).
+- Result:
+  - CNV/translocation action writes now execute via API boundary for migrated DNA action routes.
+- Rollback needed: no
+- Follow-up actions:
+  - Continue with remaining DNA/RNA/admin/common write-path cutovers (variant/fusion/sample/admin mutations).
 
 ---
 

@@ -14,7 +14,6 @@
 
 from flask import Response, current_app as app, redirect, render_template, request, url_for
 from coyote.blueprints.dna import dna_bp
-from coyote.extensions import store
 from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
 from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
@@ -53,7 +52,14 @@ def show_cnv(sample_id: str, cnv_id: str) -> Response | str:
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
-    store.cnv_handler.unmark_interesting_cnv(cnv_id)
+    try:
+        get_web_api_client().unmark_dna_cnv_interesting(
+            sample_id=sample_id,
+            cnv_id=cnv_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("Failed to unmark CNV interesting via API for sample %s: %s", sample_id, exc)
     return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
@@ -61,7 +67,14 @@ def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
-    store.cnv_handler.mark_interesting_cnv(cnv_id)
+    try:
+        get_web_api_client().mark_dna_cnv_interesting(
+            sample_id=sample_id,
+            cnv_id=cnv_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("Failed to mark CNV interesting via API for sample %s: %s", sample_id, exc)
     return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
@@ -69,7 +82,14 @@ def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
-    store.cnv_handler.mark_false_positive_cnv(cnv_id)
+    try:
+        get_web_api_client().mark_dna_cnv_false_positive(
+            sample_id=sample_id,
+            cnv_id=cnv_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("Failed to mark CNV false-positive via API for sample %s: %s", sample_id, exc)
     return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
@@ -77,7 +97,14 @@ def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
-    store.cnv_handler.unmark_false_positive_cnv(cnv_id)
+    try:
+        get_web_api_client().unmark_dna_cnv_false_positive(
+            sample_id=sample_id,
+            cnv_id=cnv_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("Failed to unmark CNV false-positive via API for sample %s: %s", sample_id, exc)
     return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
@@ -85,7 +112,14 @@ def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
-    store.cnv_handler.noteworthy_cnv(cnv_id)
+    try:
+        get_web_api_client().mark_dna_cnv_noteworthy(
+            sample_id=sample_id,
+            cnv_id=cnv_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("Failed to mark CNV noteworthy via API for sample %s: %s", sample_id, exc)
     return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
@@ -93,7 +127,14 @@ def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
 @require_sample_access("sample_id")
 @require("manage_cnvs", min_role="user", min_level=9)
 def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
-    store.cnv_handler.unnoteworthy_cnv(cnv_id)
+    try:
+        get_web_api_client().unmark_dna_cnv_noteworthy(
+            sample_id=sample_id,
+            cnv_id=cnv_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("Failed to unmark CNV noteworthy via API for sample %s: %s", sample_id, exc)
     return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
@@ -102,7 +143,15 @@ def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
 @require_sample_access("sample_id")
 def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.cnv_handler.hide_cnvs_comment(cnv_id, comment_id)
+    try:
+        get_web_api_client().hide_dna_cnv_comment(
+            sample_id=sample_id,
+            cnv_id=cnv_id,
+            comment_id=comment_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("Failed to hide CNV comment via API for sample %s: %s", sample_id, exc)
     return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
@@ -111,5 +160,13 @@ def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
 @require_sample_access("sample_id")
 def unhide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.cnv_handler.unhide_cnvs_comment(cnv_id, comment_id)
+    try:
+        get_web_api_client().unhide_dna_cnv_comment(
+            sample_id=sample_id,
+            cnv_id=cnv_id,
+            comment_id=comment_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("Failed to unhide CNV comment via API for sample %s: %s", sample_id, exc)
     return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))

@@ -594,6 +594,231 @@ def show_dna_translocation(
     return util.common.convert_to_serializable(payload)
 
 
+def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict:
+    return {
+        "status": "ok",
+        "sample_id": str(sample_id),
+        "resource": resource,
+        "resource_id": str(resource_id),
+        "action": action,
+        "meta": {"status": "updated"},
+    }
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/unmarkinteresting")
+def unmark_interesting_cnv(
+    sample_id: str,
+    cnv_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
+):
+    _get_sample_for_api(sample_id, user)
+    store.cnv_handler.unmark_interesting_cnv(cnv_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="unmark_interesting")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/interesting")
+def mark_interesting_cnv(
+    sample_id: str,
+    cnv_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
+):
+    _get_sample_for_api(sample_id, user)
+    store.cnv_handler.mark_interesting_cnv(cnv_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="mark_interesting")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/fpcnv")
+def mark_false_positive_cnv(
+    sample_id: str,
+    cnv_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
+):
+    _get_sample_for_api(sample_id, user)
+    store.cnv_handler.mark_false_positive_cnv(cnv_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="mark_false_positive")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/unfpcnv")
+def unmark_false_positive_cnv(
+    sample_id: str,
+    cnv_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
+):
+    _get_sample_for_api(sample_id, user)
+    store.cnv_handler.unmark_false_positive_cnv(cnv_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="unmark_false_positive")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/noteworthycnv")
+def mark_noteworthy_cnv(
+    sample_id: str,
+    cnv_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
+):
+    _get_sample_for_api(sample_id, user)
+    store.cnv_handler.noteworthy_cnv(cnv_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="mark_noteworthy")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/notnoteworthycnv")
+def unmark_noteworthy_cnv(
+    sample_id: str,
+    cnv_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
+):
+    _get_sample_for_api(sample_id, user)
+    store.cnv_handler.unnoteworthy_cnv(cnv_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="unmark_noteworthy")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/hide")
+def hide_cnv_comment(
+    sample_id: str,
+    cnv_id: str,
+    comment_id: str,
+    user: ApiUser = Depends(
+        require_access(permission="hide_variant_comment", min_role="manager", min_level=99)
+    ),
+):
+    _get_sample_for_api(sample_id, user)
+    store.cnv_handler.hide_cnvs_comment(cnv_id, comment_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="cnv_comment", resource_id=comment_id, action="hide")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/unhide")
+def unhide_cnv_comment(
+    sample_id: str,
+    cnv_id: str,
+    comment_id: str,
+    user: ApiUser = Depends(
+        require_access(permission="unhide_variant_comment", min_role="manager", min_level=99)
+    ),
+):
+    _get_sample_for_api(sample_id, user)
+    store.cnv_handler.unhide_cnvs_comment(cnv_id, comment_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="cnv_comment", resource_id=comment_id, action="unhide")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/interestingtransloc")
+def mark_interesting_translocation(
+    sample_id: str,
+    transloc_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_translocs", min_role="user", min_level=9)),
+):
+    _get_sample_for_api(sample_id, user)
+    store.transloc_handler.mark_interesting_transloc(transloc_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(
+            sample_id,
+            resource="translocation",
+            resource_id=transloc_id,
+            action="mark_interesting",
+        )
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/uninterestingtransloc")
+def unmark_interesting_translocation(
+    sample_id: str,
+    transloc_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_translocs", min_role="user", min_level=9)),
+):
+    _get_sample_for_api(sample_id, user)
+    store.transloc_handler.unmark_interesting_transloc(transloc_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(
+            sample_id,
+            resource="translocation",
+            resource_id=transloc_id,
+            action="unmark_interesting",
+        )
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/fptransloc")
+def mark_false_positive_translocation(
+    sample_id: str,
+    transloc_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_translocs", min_role="user", min_level=9)),
+):
+    _get_sample_for_api(sample_id, user)
+    store.transloc_handler.mark_false_positive_transloc(transloc_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(
+            sample_id,
+            resource="translocation",
+            resource_id=transloc_id,
+            action="mark_false_positive",
+        )
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/ptransloc")
+def unmark_false_positive_translocation(
+    sample_id: str,
+    transloc_id: str,
+    user: ApiUser = Depends(require_access(permission="manage_translocs", min_role="user", min_level=9)),
+):
+    _get_sample_for_api(sample_id, user)
+    store.transloc_handler.unmark_false_positive_transloc(transloc_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(
+            sample_id,
+            resource="translocation",
+            resource_id=transloc_id,
+            action="unmark_false_positive",
+        )
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/comments/{comment_id}/hide")
+def hide_translocation_comment(
+    sample_id: str,
+    transloc_id: str,
+    comment_id: str,
+    user: ApiUser = Depends(
+        require_access(permission="hide_variant_comment", min_role="manager", min_level=99)
+    ),
+):
+    _get_sample_for_api(sample_id, user)
+    store.transloc_handler.hide_transloc_comment(transloc_id, comment_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="translocation_comment", resource_id=comment_id, action="hide")
+    )
+
+
+@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/comments/{comment_id}/unhide")
+def unhide_translocation_comment(
+    sample_id: str,
+    transloc_id: str,
+    comment_id: str,
+    user: ApiUser = Depends(
+        require_access(permission="unhide_variant_comment", min_role="manager", min_level=99)
+    ),
+):
+    _get_sample_for_api(sample_id, user)
+    store.transloc_handler.unhide_transloc_comment(transloc_id, comment_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="translocation_comment", resource_id=comment_id, action="unhide")
+    )
+
+
 @app.get("/api/v1/dna/samples/{sample_id}/report/preview")
 def preview_dna_report(
     sample_id: str,

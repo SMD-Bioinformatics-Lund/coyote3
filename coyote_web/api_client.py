@@ -9,6 +9,7 @@ import httpx
 from flask import current_app
 
 from coyote_web.api_models import (
+    ApiMutationResultPayload,
     ApiDnaCnvsPayload,
     ApiDnaCnvDetailPayload,
     ApiDnaReportPreviewPayload,
@@ -40,12 +41,21 @@ class CoyoteApiClient:
         self._timeout_seconds = timeout_seconds
 
     def _request(
-        self, method: str, path: str, headers: dict[str, str] | None = None
+        self,
+        method: str,
+        path: str,
+        headers: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         url = f"{self._base_url}{path}"
         try:
             with httpx.Client(timeout=self._timeout_seconds) as client:
-                response = client.request(method=method, url=url, headers=headers or {})
+                response = client.request(
+                    method=method,
+                    url=url,
+                    headers=headers or {},
+                    params=params or None,
+                )
         except httpx.RequestError as exc:
             raise ApiRequestError(message=f"API request failed: {exc}") from exc
 
@@ -66,11 +76,21 @@ class CoyoteApiClient:
             )
         return payload
 
-    def _get(self, path: str, headers: dict[str, str] | None = None) -> dict[str, Any]:
-        return self._request("GET", path, headers=headers)
+    def _get(
+        self,
+        path: str,
+        headers: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self._request("GET", path, headers=headers, params=params)
 
-    def _post(self, path: str, headers: dict[str, str] | None = None) -> dict[str, Any]:
-        return self._request("POST", path, headers=headers)
+    def _post(
+        self,
+        path: str,
+        headers: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self._request("POST", path, headers=headers, params=params)
 
     def get_rna_fusions(
         self, sample_id: str, headers: dict[str, str] | None = None
@@ -173,6 +193,123 @@ class CoyoteApiClient:
             headers=headers,
         )
         return ApiRnaReportSavePayload.model_validate(payload)
+
+    def mark_dna_cnv_interesting(
+        self, sample_id: str, cnv_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/interesting", headers=headers)
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def unmark_dna_cnv_interesting(
+        self, sample_id: str, cnv_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/unmarkinteresting",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def mark_dna_cnv_false_positive(
+        self, sample_id: str, cnv_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/fpcnv", headers=headers)
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def unmark_dna_cnv_false_positive(
+        self, sample_id: str, cnv_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/unfpcnv", headers=headers)
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def mark_dna_cnv_noteworthy(
+        self, sample_id: str, cnv_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/noteworthycnv",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def unmark_dna_cnv_noteworthy(
+        self, sample_id: str, cnv_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/notnoteworthycnv",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def hide_dna_cnv_comment(
+        self, sample_id: str, cnv_id: str, comment_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/hide",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def unhide_dna_cnv_comment(
+        self, sample_id: str, cnv_id: str, comment_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/unhide",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def mark_dna_translocation_interesting(
+        self, sample_id: str, transloc_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/interestingtransloc",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def unmark_dna_translocation_interesting(
+        self, sample_id: str, transloc_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/uninterestingtransloc",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def mark_dna_translocation_false_positive(
+        self, sample_id: str, transloc_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/fptransloc",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def unmark_dna_translocation_false_positive(
+        self, sample_id: str, transloc_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/ptransloc",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def hide_dna_translocation_comment(
+        self, sample_id: str, transloc_id: str, comment_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/comments/{comment_id}/hide",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def unhide_dna_translocation_comment(
+        self, sample_id: str, transloc_id: str, comment_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/comments/{comment_id}/unhide",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
 
 
 def get_web_api_client() -> CoyoteApiClient:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ApiModel(BaseModel):
@@ -12,3 +12,12 @@ class ApiModel(BaseModel):
 
 
 JsonDict = dict[str, Any]
+
+
+class ApiMutationResultPayload(ApiModel):
+    status: str = "ok"
+    action: str
+    resource: str
+    resource_id: str
+    sample_id: str
+    meta: JsonDict = Field(default_factory=dict)

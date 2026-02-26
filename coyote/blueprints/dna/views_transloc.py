@@ -14,7 +14,6 @@
 
 from flask import Response, current_app as app, redirect, render_template, request, url_for
 from coyote.blueprints.dna import dna_bp
-from coyote.extensions import store
 from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
 from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
@@ -51,7 +50,14 @@ def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
 @require_sample_access("sample_id")
 @require("manage_translocs", min_role="user", min_level=9)
 def mark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
-    store.transloc_handler.mark_interesting_transloc(transloc_id)
+    try:
+        get_web_api_client().mark_dna_translocation_interesting(
+            sample_id=sample_id,
+            transloc_id=transloc_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("Failed to mark translocation interesting via API for sample %s: %s", sample_id, exc)
     return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=transloc_id))
 
 
@@ -59,7 +65,16 @@ def mark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
 @require_sample_access("sample_id")
 @require("manage_translocs", min_role="user", min_level=9)
 def unmark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
-    store.transloc_handler.unmark_interesting_transloc(transloc_id)
+    try:
+        get_web_api_client().unmark_dna_translocation_interesting(
+            sample_id=sample_id,
+            transloc_id=transloc_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        app.logger.error(
+            "Failed to unmark translocation interesting via API for sample %s: %s", sample_id, exc
+        )
     return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=transloc_id))
 
 
@@ -67,7 +82,16 @@ def unmark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
 @require_sample_access("sample_id")
 @require("manage_translocs", min_role="user", min_level=9)
 def mark_false_transloc(sample_id: str, transloc_id: str) -> Response:
-    store.transloc_handler.mark_false_positive_transloc(transloc_id)
+    try:
+        get_web_api_client().mark_dna_translocation_false_positive(
+            sample_id=sample_id,
+            transloc_id=transloc_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        app.logger.error(
+            "Failed to mark translocation false-positive via API for sample %s: %s", sample_id, exc
+        )
     return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=transloc_id))
 
 
@@ -75,7 +99,16 @@ def mark_false_transloc(sample_id: str, transloc_id: str) -> Response:
 @require_sample_access("sample_id")
 @require("manage_translocs", min_role="user", min_level=9)
 def unmark_false_transloc(sample_id: str, transloc_id: str) -> Response:
-    store.transloc_handler.unmark_false_positive_transloc(transloc_id)
+    try:
+        get_web_api_client().unmark_dna_translocation_false_positive(
+            sample_id=sample_id,
+            transloc_id=transloc_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        app.logger.error(
+            "Failed to unmark translocation false-positive via API for sample %s: %s", sample_id, exc
+        )
     return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=transloc_id))
 
 
@@ -84,7 +117,15 @@ def unmark_false_transloc(sample_id: str, transloc_id: str) -> Response:
 @require_sample_access("sample_id")
 def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.transloc_handler.hide_transloc_comment(transloc_id, comment_id)
+    try:
+        get_web_api_client().hide_dna_translocation_comment(
+            sample_id=sample_id,
+            transloc_id=transloc_id,
+            comment_id=comment_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("Failed to hide translocation comment via API for sample %s: %s", sample_id, exc)
     return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=transloc_id))
 
 
@@ -93,5 +134,13 @@ def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
 @require_sample_access("sample_id")
 def unhide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    store.transloc_handler.unhide_transloc_comment(transloc_id, comment_id)
+    try:
+        get_web_api_client().unhide_dna_translocation_comment(
+            sample_id=sample_id,
+            transloc_id=transloc_id,
+            comment_id=comment_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("Failed to unhide translocation comment via API for sample %s: %s", sample_id, exc)
     return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=transloc_id))
