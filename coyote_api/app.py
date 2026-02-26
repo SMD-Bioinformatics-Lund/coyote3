@@ -725,6 +725,45 @@ def delete_genelist_mutation(
     )
 
 
+@app.post("/api/v1/admin/samples/{sample_id}/update")
+def update_sample_mutation(
+    sample_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="edit_sample", min_role="developer", min_level=9999)),
+):
+    sample_doc = store.sample_handler.get_sample(sample_id)
+    if not sample_doc:
+        raise _api_error(404, "Sample not found")
+    sample_obj = sample_doc.get("_id")
+    updated_sample = payload.get("sample", {})
+    if not updated_sample:
+        raise _api_error(400, "Missing sample payload")
+    updated_sample["updated_on"] = util.common.utc_now()
+    updated_sample["updated_by"] = user.username
+    updated_sample = util.admin.restore_objectids(deepcopy(updated_sample))
+    updated_sample["_id"] = sample_obj
+    store.sample_handler.update_sample(sample_obj, updated_sample)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="sample", resource_id=str(sample_obj), action="update")
+    )
+
+
+@app.post("/api/v1/admin/samples/{sample_id}/delete")
+def delete_sample_mutation(
+    sample_id: str,
+    user: ApiUser = Depends(
+        require_access(permission="delete_sample_global", min_role="developer", min_level=9999)
+    ),
+):
+    sample_name = store.sample_handler.get_sample_name(sample_id)
+    if not sample_name:
+        raise _api_error(404, "Sample not found")
+    util.admin.delete_all_sample_traces(sample_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="sample", resource_id=sample_id, action="delete")
+    )
+
+
 @app.post("/api/v1/admin/schemas/create")
 def create_schema_mutation(
     payload: dict = Body(default_factory=dict),

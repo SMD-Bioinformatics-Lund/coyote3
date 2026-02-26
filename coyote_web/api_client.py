@@ -782,6 +782,27 @@ class CoyoteApiClient:
         payload = self._post(f"/api/v1/admin/genelists/{genelist_id}/delete", headers=headers)
         return ApiMutationResultPayload.model_validate(payload)
 
+    def update_admin_sample(
+        self,
+        sample_id: str,
+        sample: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/admin/samples/{sample_id}/update",
+            headers=headers,
+            json_body={"sample": sample},
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def delete_admin_sample(
+        self,
+        sample_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(f"/api/v1/admin/samples/{sample_id}/delete", headers=headers)
+        return ApiMutationResultPayload.model_validate(payload)
+
     def mark_rna_fusion_false_positive(
         self, sample_id: str, fusion_id: str, headers: dict[str, str] | None = None
     ) -> ApiMutationResultPayload:
