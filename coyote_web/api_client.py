@@ -12,6 +12,7 @@ from coyote_web.api_models import (
     ApiDnaCnvsPayload,
     ApiDnaCnvDetailPayload,
     ApiDnaReportPreviewPayload,
+    ApiDnaReportSavePayload,
     ApiDnaTranslocationsPayload,
     ApiDnaVariantDetailPayload,
     ApiDnaVariantsPayload,
@@ -19,6 +20,7 @@ from coyote_web.api_models import (
     ApiRnaFusionDetailPayload,
     ApiRnaFusionsPayload,
     ApiRnaReportPreviewPayload,
+    ApiRnaReportSavePayload,
 )
 
 
@@ -37,11 +39,13 @@ class CoyoteApiClient:
         self._base_url = str(base_url).rstrip("/")
         self._timeout_seconds = timeout_seconds
 
-    def _get(self, path: str, headers: dict[str, str] | None = None) -> dict[str, Any]:
+    def _request(
+        self, method: str, path: str, headers: dict[str, str] | None = None
+    ) -> dict[str, Any]:
         url = f"{self._base_url}{path}"
         try:
             with httpx.Client(timeout=self._timeout_seconds) as client:
-                response = client.get(url, headers=headers or {})
+                response = client.request(method=method, url=url, headers=headers or {})
         except httpx.RequestError as exc:
             raise ApiRequestError(message=f"API request failed: {exc}") from exc
 
@@ -61,6 +65,12 @@ class CoyoteApiClient:
                 payload=payload,
             )
         return payload
+
+    def _get(self, path: str, headers: dict[str, str] | None = None) -> dict[str, Any]:
+        return self._request("GET", path, headers=headers)
+
+    def _post(self, path: str, headers: dict[str, str] | None = None) -> dict[str, Any]:
+        return self._request("POST", path, headers=headers)
 
     def get_rna_fusions(
         self, sample_id: str, headers: dict[str, str] | None = None
@@ -145,6 +155,24 @@ class CoyoteApiClient:
             headers=headers,
         )
         return ApiRnaReportPreviewPayload.model_validate(payload)
+
+    def save_dna_report(
+        self, sample_id: str, headers: dict[str, str] | None = None
+    ) -> ApiDnaReportSavePayload:
+        payload = self._post(
+            f"/api/v1/dna/samples/{sample_id}/report/save",
+            headers=headers,
+        )
+        return ApiDnaReportSavePayload.model_validate(payload)
+
+    def save_rna_report(
+        self, sample_id: str, headers: dict[str, str] | None = None
+    ) -> ApiRnaReportSavePayload:
+        payload = self._post(
+            f"/api/v1/rna/samples/{sample_id}/report/save",
+            headers=headers,
+        )
+        return ApiRnaReportSavePayload.model_validate(payload)
 
 
 def get_web_api_client() -> CoyoteApiClient:

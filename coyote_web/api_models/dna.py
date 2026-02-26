@@ -80,3 +80,9 @@ class ApiDnaReportPreviewPayload(ApiModel):
     sample: JsonDict
     meta: JsonDict = Field(default_factory=dict)
     report: JsonDict = Field(default_factory=dict)
+
+
+class ApiDnaReportSavePayload(ApiModel):
+    sample: JsonDict
+    report: JsonDict = Field(default_factory=dict)
+    meta: JsonDict = Field(default_factory=dict)

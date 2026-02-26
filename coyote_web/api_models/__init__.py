@@ -4,6 +4,7 @@ from coyote_web.api_models.dna import (
     ApiDnaCnvsPayload,
     ApiDnaCnvDetailPayload,
     ApiDnaReportPreviewPayload,
+    ApiDnaReportSavePayload,
     ApiDnaTranslocationsPayload,
     ApiDnaTranslocationDetailPayload,
     ApiDnaVariantDetailPayload,
@@ -13,12 +14,14 @@ from coyote_web.api_models.rna import (
     ApiRnaFusionDetailPayload,
     ApiRnaFusionsPayload,
     ApiRnaReportPreviewPayload,
+    ApiRnaReportSavePayload,
 )
 
 __all__ = [
     "ApiDnaCnvsPayload",
     "ApiDnaCnvDetailPayload",
     "ApiDnaReportPreviewPayload",
+    "ApiDnaReportSavePayload",
     "ApiDnaTranslocationsPayload",
     "ApiDnaTranslocationDetailPayload",
     "ApiDnaVariantDetailPayload",
@@ -26,4 +29,5 @@ __all__ = [
     "ApiRnaFusionDetailPayload",
     "ApiRnaFusionsPayload",
     "ApiRnaReportPreviewPayload",
+    "ApiRnaReportSavePayload",
 ]

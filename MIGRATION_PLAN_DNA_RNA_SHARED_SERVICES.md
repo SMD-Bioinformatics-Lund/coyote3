@@ -112,8 +112,8 @@ Status values: `todo`, `in_progress`, `done`, `blocked`
 | P11-4 | API Readiness | Migrate API runtime from Flask blueprint routing to FastAPI while reusing current services and RBAC semantics | done | Native FastAPI app (`asgi.py`) now serves `/api/v1/*`; Flask API blueprint is disabled by default and kept behind compatibility toggle |
 | P11-5 | API Readiness | Add API-aware auth/permission error mode (JSON for API, redirects for web) in centralized enforcement path | done | Central `before_request` RBAC gate now returns JSON `401/403` for `/api/*` while keeping web redirects |
 | P12-1 | Frontend/API Strategy | Define target architecture: server-rendered web remains primary while API grows in parallel (no big-bang replacement) | done | Strategy adopted: phased migration with web-first continuity and feature-level cutover |
-| P12-2 | Frontend/API Strategy | Add parity endpoints for current high-traffic list/detail screens (DNA list/detail, RNA list/detail) using existing service layer | in_progress | DNA variant/CNV/translocation + RNA fusion list/detail and DNA/RNA report-preview endpoints added under `/api/v1/{dna,rna}/samples/...` |
-| P12-3 | Frontend/API Strategy | Introduce web-side API client layer for progressive enhancement (read-only first, then write flows) | in_progress | Added server-side Python API client with typed models (`coyote_web/api_client.py`, `api_models.py`) for blueprint reads; browser-side hydration helper removed |
+| P12-2 | Frontend/API Strategy | Add parity endpoints for current high-traffic list/detail screens (DNA list/detail, RNA list/detail) using existing service layer | in_progress | DNA variant/CNV/translocation + RNA fusion list/detail and DNA/RNA report preview/save endpoints added under `/api/v1/{dna,rna}/samples/...` |
+| P12-3 | Frontend/API Strategy | Introduce web-side API client layer for progressive enhancement (read-only first, then write flows) | in_progress | Added server-side Python API client with typed domain models (`coyote_web/api_client.py`, `coyote_web/api_models/*`) for read/write blueprint flows; browser-side hydration helper removed |
 | P12-4 | Frontend/API Strategy | Ensure RBAC parity and consistent error payloads across web/API (401/403/404/AppError mapping) | in_progress | API-aware JSON error handling added in global error handlers; web templates preserved |
 | P12-5 | Frontend/API Strategy | Add migration toggles per feature page to switch between server-rendered data and API-backed data paths | done | Completed initial cutover, then removed page toggles; migrated pages now use API-only fail-fast reads (no fallback) |
 | P12-6 | Frontend/API Strategy | Define completion criteria and decommission plan for legacy data-loading paths after stable parity | todo | Legacy route logic removed only after verified parity and soak period |
@@ -1747,6 +1747,31 @@ Copy for each task:
 - Rollback needed: no
 - Follow-up actions:
   - Add API write endpoints for report save paths to remove remaining web direct store/report persistence calls.
+
+### Task P12-2/P12-3 (Report Save Cutover) - API-Only DNA/RNA Save Routes
+
+- Date: 2026-02-26
+- Owner: Codex
+- Scope:
+  - Add FastAPI write endpoints for DNA/RNA report save operations.
+  - Route web save handlers to API client only (no direct web-side Mongo/report persistence path).
+  - Add typed save payload models in `coyote_web/api_models` and client methods in `coyote_web/api_client.py`.
+- Files changed:
+  - `coyote/fastapi_api/app.py` (added `/api/v1/dna/samples/{sample_id}/report/save` and `/api/v1/rna/samples/{sample_id}/report/save`)
+  - `coyote_web/api_models/dna.py` (added `ApiDnaReportSavePayload`)
+  - `coyote_web/api_models/rna.py` (added `ApiRnaReportSavePayload`)
+  - `coyote_web/api_models/__init__.py` (exports for save payload models)
+  - `coyote_web/api_client.py` (added `_request`, `_post`, `save_dna_report`, `save_rna_report`)
+  - `coyote/blueprints/dna/views_reports.py` (API-only save route path; removed legacy direct workflow/store imports)
+  - `coyote/blueprints/rna/views_reports.py` (API-only save route path; removed legacy direct workflow/store imports)
+  - `MIGRATION_PLAN_DNA_RNA_SHARED_SERVICES.md`
+- Validation executed:
+  - `PYTHONPATH=. .venv/bin/python -m py_compile coyote/fastapi_api/app.py coyote_web/api_models/dna.py coyote_web/api_models/rna.py coyote_web/api_models/__init__.py coyote_web/api_client.py coyote/blueprints/dna/views_reports.py coyote/blueprints/rna/views_reports.py`
+- Result:
+  - DNA/RNA report save web routes now execute through API-only write boundaries with shared RBAC semantics.
+- Rollback needed: no
+- Follow-up actions:
+  - Continue P12 migration for remaining web write paths in admin/common blueprints until all web `store.*` write usage is removed.
 
 ---
 
