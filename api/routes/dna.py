@@ -476,10 +476,17 @@ def set_variant_tier_bulk(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="user", min_level=9)),
 ):
-    _get_sample_for_api(sample_id, user)
+    sample = _get_sample_for_api(sample_id, user)
     variant_ids = payload.get("variant_ids", []) or []
     assay_group = payload.get("assay_group")
     subpanel = payload.get("subpanel")
+    tier_raw = payload.get("tier", 3)
+    try:
+        class_num = int(tier_raw)
+    except (TypeError, ValueError):
+        class_num = 3
+    if class_num not in {1, 2, 3, 4}:
+        class_num = 3
     if not variant_ids:
         return util.common.convert_to_serializable(
             _mutation_payload(sample_id, resource="variant_bulk", resource_id="bulk", action="set_tier_bulk")
@@ -489,6 +496,8 @@ def set_variant_tier_bulk(
     for variant_id in variant_ids:
         var = store.variant_handler.get_variant(str(variant_id))
         if not var:
+            continue
+        if str(var.get("SAMPLE_ID")) != str(sample.get("_id")):
             continue
 
         selected_csq = var.get("INFO", {}).get("selected_CSQ", {})
@@ -524,7 +533,7 @@ def set_variant_tier_bulk(
         class_doc = util.common.create_classified_variant_doc(
             variant=variant,
             nomenclature=nomenclature,
-            class_num=3,
+            class_num=class_num,
             variant_data=variant_data,
         )
         bulk_docs.append(deepcopy(class_doc))
@@ -532,7 +541,7 @@ def set_variant_tier_bulk(
         text_doc = util.common.create_classified_variant_doc(
             variant=variant,
             nomenclature=nomenclature,
-            class_num=3,
+            class_num=class_num,
             variant_data=variant_data,
             text=text,
         )

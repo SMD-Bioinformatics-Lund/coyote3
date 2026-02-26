@@ -710,6 +710,7 @@ class CoyoteApiClient:
         variant_ids: list[str],
         assay_group: str | None,
         subpanel: str | None,
+        tier: str | int | None,
         headers: dict[str, str] | None = None,
     ) -> ApiMutationResultPayload:
         payload = self._post(
@@ -719,6 +720,7 @@ class CoyoteApiClient:
                 "variant_ids": variant_ids,
                 "assay_group": assay_group,
                 "subpanel": subpanel,
+                "tier": tier,
             },
         )
         return ApiMutationResultPayload.model_validate(payload)

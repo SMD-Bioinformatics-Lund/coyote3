@@ -12,28 +12,83 @@
 
 """DNA variant action/comment route handlers."""
 
-from flask import current_app as app
-from flask import Response, flash, redirect, request, url_for
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any
+
+from flask import Response, current_app as app, flash, redirect, request, url_for
+
 from coyote.blueprints.dna import dna_bp
-from coyote.extensions import store
-from coyote.util.decorators.access import require_sample_access
+from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 from coyote.services.auth.decorators import require
 from coyote.services.dna.dna_variants import get_variant_nomenclature
-from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.util.decorators.access import require_sample_access
+
+
+def _headers() -> dict[str, str]:
+    return build_forward_headers(request.headers)
+
+
+def _call_api(sample_id: str, log_message: str, api_call: Callable[..., Any], **kwargs: Any) -> bool:
+    try:
+        api_call(sample_id=sample_id, headers=_headers(), **kwargs)
+        return True
+    except ApiRequestError as exc:
+        app.logger.error("%s for sample %s: %s", log_message, sample_id, exc)
+        return False
+
+
+def _resolve_target_id(*keys: str) -> str:
+    for key in keys:
+        value = request.view_args.get(key)
+        if value:
+            return value
+    return ""
+
+
+def _redirect_target(sample_id: str, target_id: str, nomenclature: str) -> Response:
+    if nomenclature == "f":
+        return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=target_id))
+    if nomenclature == "t":
+        return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=target_id))
+    if nomenclature == "cn":
+        return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=target_id))
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=target_id))
+
+
+def _bulk_toggle(
+    sample_id: str,
+    enabled: str | None,
+    action: str | None,
+    variant_ids: list[str],
+    operation_label: str,
+    api_method: Callable[..., Any],
+) -> None:
+    if not enabled or action not in {"apply", "remove"}:
+        return
+
+    apply = action == "apply"
+    verb = "mark" if apply else "unmark"
+    _call_api(
+        sample_id,
+        f"Failed to bulk {verb} variants {operation_label} via API",
+        api_method,
+        variant_ids=variant_ids,
+        apply=apply,
+    )
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/unfp", methods=["POST"])
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def unmark_false_variant(sample_id: str, var_id: str) -> Response:
-    try:
-        get_web_api_client().unmark_dna_variant_false_positive(
-            sample_id=sample_id,
-            var_id=var_id,
-            headers=build_forward_headers(request.headers),
-        )
-    except ApiRequestError as exc:
-        app.logger.error("Failed to unmark variant false-positive via API for sample %s: %s", sample_id, exc)
+    _call_api(
+        sample_id,
+        "Failed to unmark variant false-positive via API",
+        get_web_api_client().unmark_dna_variant_false_positive,
+        var_id=var_id,
+    )
     return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
@@ -41,14 +96,12 @@ def unmark_false_variant(sample_id: str, var_id: str) -> Response:
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def mark_false_variant(sample_id: str, var_id: str) -> Response:
-    try:
-        get_web_api_client().mark_dna_variant_false_positive(
-            sample_id=sample_id,
-            var_id=var_id,
-            headers=build_forward_headers(request.headers),
-        )
-    except ApiRequestError as exc:
-        app.logger.error("Failed to mark variant false-positive via API for sample %s: %s", sample_id, exc)
+    _call_api(
+        sample_id,
+        "Failed to mark variant false-positive via API",
+        get_web_api_client().mark_dna_variant_false_positive,
+        var_id=var_id,
+    )
     return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
@@ -56,14 +109,12 @@ def mark_false_variant(sample_id: str, var_id: str) -> Response:
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def unmark_interesting_variant(sample_id: str, var_id: str) -> Response:
-    try:
-        get_web_api_client().unmark_dna_variant_interesting(
-            sample_id=sample_id,
-            var_id=var_id,
-            headers=build_forward_headers(request.headers),
-        )
-    except ApiRequestError as exc:
-        app.logger.error("Failed to unmark variant interesting via API for sample %s: %s", sample_id, exc)
+    _call_api(
+        sample_id,
+        "Failed to unmark variant interesting via API",
+        get_web_api_client().unmark_dna_variant_interesting,
+        var_id=var_id,
+    )
     return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
@@ -71,14 +122,12 @@ def unmark_interesting_variant(sample_id: str, var_id: str) -> Response:
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def mark_interesting_variant(sample_id: str, var_id: str) -> Response:
-    try:
-        get_web_api_client().mark_dna_variant_interesting(
-            sample_id=sample_id,
-            var_id=var_id,
-            headers=build_forward_headers(request.headers),
-        )
-    except ApiRequestError as exc:
-        app.logger.error("Failed to mark variant interesting via API for sample %s: %s", sample_id, exc)
+    _call_api(
+        sample_id,
+        "Failed to mark variant interesting via API",
+        get_web_api_client().mark_dna_variant_interesting,
+        var_id=var_id,
+    )
     return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
@@ -86,14 +135,12 @@ def mark_interesting_variant(sample_id: str, var_id: str) -> Response:
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def unmark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
-    try:
-        get_web_api_client().unmark_dna_variant_irrelevant(
-            sample_id=sample_id,
-            var_id=var_id,
-            headers=build_forward_headers(request.headers),
-        )
-    except ApiRequestError as exc:
-        app.logger.error("Failed to unmark variant irrelevant via API for sample %s: %s", sample_id, exc)
+    _call_api(
+        sample_id,
+        "Failed to unmark variant irrelevant via API",
+        get_web_api_client().unmark_dna_variant_irrelevant,
+        var_id=var_id,
+    )
     return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
@@ -101,14 +148,12 @@ def unmark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
-    try:
-        get_web_api_client().mark_dna_variant_irrelevant(
-            sample_id=sample_id,
-            var_id=var_id,
-            headers=build_forward_headers(request.headers),
-        )
-    except ApiRequestError as exc:
-        app.logger.error("Failed to mark variant irrelevant via API for sample %s: %s", sample_id, exc)
+    _call_api(
+        sample_id,
+        "Failed to mark variant irrelevant via API",
+        get_web_api_client().mark_dna_variant_irrelevant,
+        var_id=var_id,
+    )
     return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
@@ -116,14 +161,12 @@ def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
 @require("manage_snvs", min_role="admin")
 @require_sample_access("sample_id")
 def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
-    try:
-        get_web_api_client().blacklist_dna_variant(
-            sample_id=sample_id,
-            var_id=var_id,
-            headers=build_forward_headers(request.headers),
-        )
-    except ApiRequestError as exc:
-        app.logger.error("Failed to blacklist variant via API for sample %s: %s", sample_id, exc)
+    _call_api(
+        sample_id,
+        "Failed to blacklist variant via API",
+        get_web_api_client().blacklist_dna_variant,
+        var_id=var_id,
+    )
     return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
@@ -131,23 +174,18 @@ def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/fus/<string:fus_id>/classify", methods=["POST"], endpoint="classify_fusion")
 @require(permission="assign_tier", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
-def classify_variant(sample_id: str, id: str = None) -> Response:
-    id = id or request.view_args.get("var_id") or request.view_args.get("fus_id")
+def classify_variant(sample_id: str, id: str | None = None) -> Response:
+    target_id = id or _resolve_target_id("var_id", "fus_id")
     form_data = request.form.to_dict()
     nomenclature, _variant = get_variant_nomenclature(form_data)
-    try:
-        get_web_api_client().classify_dna_variant(
-            sample_id=sample_id,
-            target_id=id,
-            form_data=form_data,
-            headers=build_forward_headers(request.headers),
-        )
-    except ApiRequestError as exc:
-        app.logger.error("Failed to classify variant via API for sample %s: %s", sample_id, exc)
-
-    if nomenclature == "f":
-        return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=id))
-    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=id))
+    _call_api(
+        sample_id,
+        "Failed to classify variant via API",
+        get_web_api_client().classify_dna_variant,
+        target_id=target_id,
+        form_data=form_data,
+    )
+    return _redirect_target(sample_id, target_id, nomenclature)
 
 
 @dna_bp.route(
@@ -163,22 +201,18 @@ def classify_variant(sample_id: str, id: str = None) -> Response:
 @require(permission="remove_tier", min_role="admin")
 @require_sample_access("sample_id")
 def remove_classified_variant(sample_id: str, id: str | None = None) -> Response:
-    id = id or request.view_args.get("var_id") or request.view_args.get("fus_id")
+    target_id = id or _resolve_target_id("var_id", "fus_id")
     form_data = request.form.to_dict()
     nomenclature, _variant = get_variant_nomenclature(form_data)
 
-    try:
-        get_web_api_client().remove_dna_variant_classification(
-            sample_id=sample_id,
-            target_id=id,
-            form_data=form_data,
-            headers=build_forward_headers(request.headers),
-        )
-    except ApiRequestError as exc:
-        app.logger.error("Failed to remove classification via API for sample %s: %s", sample_id, exc)
-    if nomenclature == "f":
-        return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=id))
-    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=id))
+    _call_api(
+        sample_id,
+        "Failed to remove classification via API",
+        get_web_api_client().remove_dna_variant_classification,
+        target_id=target_id,
+        form_data=form_data,
+    )
+    return _redirect_target(sample_id, target_id, nomenclature)
 
 
 @dna_bp.route(
@@ -203,38 +237,25 @@ def remove_classified_variant(sample_id: str, id: str | None = None) -> Response
 )
 @require("add_variant_comment", min_role="user", min_level=9)
 @require_sample_access("sample_id")
-def add_var_comment(sample_id: str, id: str = None, **kwargs) -> Response | str:
-    id = (
-        id
-        or request.view_args.get("var_id")
-        or request.view_args.get("cnv_id")
-        or request.view_args.get("fus_id")
-        or request.view_args.get("transloc_id")
-    )
+def add_var_comment(sample_id: str, id: str | None = None, **kwargs: Any) -> Response:
+    _ = kwargs
+    target_id = id or _resolve_target_id("var_id", "cnv_id", "fus_id", "transloc_id")
 
     form_data = request.form.to_dict()
     nomenclature, _variant = get_variant_nomenclature(form_data)
-    _type = form_data.get("global", None)
-    try:
-        get_web_api_client().add_dna_variant_comment(
-            sample_id=sample_id,
-            target_id=id,
-            form_data=form_data,
-            headers=build_forward_headers(request.headers),
-        )
-        if _type == "global":
-            flash("Global comment added", "green")
-    except ApiRequestError as exc:
-        app.logger.error("Failed to add comment via API for sample %s: %s", sample_id, exc)
+    comment_scope = form_data.get("global")
 
-    if nomenclature == "f":
-        return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=id))
-    if nomenclature == "t":
-        return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=id))
-    if nomenclature == "cn":
-        return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=id))
+    call_ok = _call_api(
+        sample_id,
+        "Failed to add comment via API",
+        get_web_api_client().add_dna_variant_comment,
+        target_id=target_id,
+        form_data=form_data,
+    )
+    if call_ok and comment_scope == "global":
+        flash("Global comment added", "green")
 
-    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=id))
+    return _redirect_target(sample_id, target_id, nomenclature)
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/hide_variant_comment", methods=["POST"])
@@ -242,32 +263,28 @@ def add_var_comment(sample_id: str, id: str = None, **kwargs) -> Response | str:
 @require_sample_access("sample_id")
 def hide_variant_comment(sample_id: str, var_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    try:
-        get_web_api_client().hide_dna_variant_comment(
-            sample_id=sample_id,
-            var_id=var_id,
-            comment_id=comment_id,
-            headers=build_forward_headers(request.headers),
-        )
-    except ApiRequestError as exc:
-        app.logger.error("Failed to hide variant comment via API for sample %s: %s", sample_id, exc)
+    _call_api(
+        sample_id,
+        "Failed to hide variant comment via API",
+        get_web_api_client().hide_dna_variant_comment,
+        var_id=var_id,
+        comment_id=comment_id,
+    )
     return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/unhide_variant_comment", methods=["POST"])
 @require("unhide_variant_comment", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
-def unhide_variant_comment(sample_id, var_id):
+def unhide_variant_comment(sample_id: str, var_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
-    try:
-        get_web_api_client().unhide_dna_variant_comment(
-            sample_id=sample_id,
-            var_id=var_id,
-            comment_id=comment_id,
-            headers=build_forward_headers(request.headers),
-        )
-    except ApiRequestError as exc:
-        app.logger.error("Failed to unhide variant comment via API for sample %s: %s", sample_id, exc)
+    _call_api(
+        sample_id,
+        "Failed to unhide variant comment via API",
+        get_web_api_client().unhide_dna_variant_comment,
+        var_id=var_id,
+        comment_id=comment_id,
+    )
     return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=var_id))
 
 
@@ -284,77 +301,31 @@ def classify_multi_variant(sample_id: str) -> Response:
     false_positive = request.form.get("false_positive")
 
     if tier and action == "apply":
-        try:
-            get_web_api_client().set_dna_variants_tier_bulk(
-                sample_id=sample_id,
-                variant_ids=variants_to_modify,
-                assay_group=assay_group,
-                subpanel=subpanel,
-                headers=build_forward_headers(request.headers),
-            )
-        except ApiRequestError as exc:
-            app.logger.error(
-                "Failed to bulk assign variant tier via API for sample %s: %s",
-                sample_id,
-                exc,
-            )
+        _call_api(
+            sample_id,
+            "Failed to bulk assign variant tier via API",
+            get_web_api_client().set_dna_variants_tier_bulk,
+            variant_ids=variants_to_modify,
+            assay_group=assay_group,
+            subpanel=subpanel,
+            tier=3,
+        )
 
-    if false_positive:
-        if action == "apply":
-            try:
-                get_web_api_client().set_dna_variants_false_positive_bulk(
-                    sample_id=sample_id,
-                    variant_ids=variants_to_modify,
-                    apply=True,
-                    headers=build_forward_headers(request.headers),
-                )
-            except ApiRequestError as exc:
-                app.logger.error(
-                    "Failed to bulk mark variants false-positive via API for sample %s: %s",
-                    sample_id,
-                    exc,
-                )
-        elif action == "remove":
-            try:
-                get_web_api_client().set_dna_variants_false_positive_bulk(
-                    sample_id=sample_id,
-                    variant_ids=variants_to_modify,
-                    apply=False,
-                    headers=build_forward_headers(request.headers),
-                )
-            except ApiRequestError as exc:
-                app.logger.error(
-                    "Failed to bulk unmark variants false-positive via API for sample %s: %s",
-                    sample_id,
-                    exc,
-                )
-    if irrelevant:
-        if action == "apply":
-            try:
-                get_web_api_client().set_dna_variants_irrelevant_bulk(
-                    sample_id=sample_id,
-                    variant_ids=variants_to_modify,
-                    apply=True,
-                    headers=build_forward_headers(request.headers),
-                )
-            except ApiRequestError as exc:
-                app.logger.error(
-                    "Failed to bulk mark variants irrelevant via API for sample %s: %s",
-                    sample_id,
-                    exc,
-                )
-        elif action == "remove":
-            try:
-                get_web_api_client().set_dna_variants_irrelevant_bulk(
-                    sample_id=sample_id,
-                    variant_ids=variants_to_modify,
-                    apply=False,
-                    headers=build_forward_headers(request.headers),
-                )
-            except ApiRequestError as exc:
-                app.logger.error(
-                    "Failed to bulk unmark variants irrelevant via API for sample %s: %s",
-                    sample_id,
-                    exc,
-                )
+    _bulk_toggle(
+        sample_id=sample_id,
+        enabled=false_positive,
+        action=action,
+        variant_ids=variants_to_modify,
+        operation_label="false-positive",
+        api_method=get_web_api_client().set_dna_variants_false_positive_bulk,
+    )
+    _bulk_toggle(
+        sample_id=sample_id,
+        enabled=irrelevant,
+        action=action,
+        variant_ids=variants_to_modify,
+        operation_label="irrelevant",
+        api_method=get_web_api_client().set_dna_variants_irrelevant_bulk,
+    )
+
     return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))

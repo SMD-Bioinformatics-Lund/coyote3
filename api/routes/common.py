@@ -130,7 +130,7 @@ def common_tiered_variant_search_read(
                     }
                 if report_oid and report_id:
                     report_oids = sample_oids.get(sample_oid, {}).get("report_oids", {})
-                    if report_oid not in report_oids:
+                    if report_id not in report_oids:
                         sample_oids[sample_oid]["report_oids"][report_id] = report_num
 
             if include_annotation_text and annotation_text_oid:
