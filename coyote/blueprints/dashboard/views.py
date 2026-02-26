@@ -9,14 +9,13 @@
 #  components is strictly prohibited without prior written permission from
 #  the copyright holders.
 #
-from copy import deepcopy
-
-from flask import render_template
+from flask import render_template, request
 from flask_login import login_required
-from coyote.extensions import store, util
-from coyote.blueprints.dashboard import dashboard_bp, filters
+from coyote.extensions import util
+from coyote.blueprints.dashboard import dashboard_bp
 from flask_login import current_user
 from flask import current_app as app
+from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
 @dashboard_bp.route("/", methods=["GET", "POST"])
@@ -53,56 +52,28 @@ def dashboard() -> str:
 
     else:
         app.logger.info(f"Dashboard cache miss for {cache_key}")
-        total_samples_count = store.sample_handler.get_all_sample_counts()
-        analysed_samples_count = store.sample_handler.get_all_sample_counts(report=True)
-        pending_samples_count = total_samples_count - analysed_samples_count
-
-        # User specific samples stats, assay and group wise
-        user_samples_stats = store.sample_handler.get_assay_specific_sample_stats(
-            assays=current_user.assays
-        )
-
-        ##### Generic Variant Stats
-        variant_stats = {}
-        variant_stats["total_variants"] = store.variant_handler.get_total_variant_counts()
-
-        # Get all unique variants
-        # variant_stats["unique_variants"] = store.variant_handler.get_unique_total_variant_counts()
-
-        # get total variants Snps
-        variant_stats["total_snps"] = store.variant_handler.get_total_snp_counts()
-
-        # get total CNVs
-        variant_stats["total_cnvs"]: int = store.cnv_handler.get_total_cnv_count()
-
-        # get total Translocations
-        variant_stats["total_translocs"]: int = store.transloc_handler.get_total_transloc_count()
-
-        # get unitotal RNA fusions
-        variant_stats["total_fusions"]: int = store.fusion_handler.get_total_fusion_count()
-
-        # Get total blacklisted variants
-        variant_stats["blacklisted"]: int = store.blacklist_handler.get_unique_blacklist_count()
-
-        # Get total False positive variants
-        variant_stats["fps"]: int = store.variant_handler.get_fp_counts()  # Change it back
-
-        ### Generic Variant Stats End
-
-        # Get total genes analysed from all the asp
-        unique_gene_count_all_panels = store.asp_handler.get_all_asps_unique_gene_count()
-
-        # Get gene counts in each panel
-        asp_gene_counts = store.asp_handler.get_all_asp_gene_counts()
-        asp_gene_counts = util.dashboard.format_asp_gene_stats(deepcopy(asp_gene_counts))
-
-        # Sample env stats
-        sample_stats = {}
-
-        sample_stats["profiles"] = store.sample_handler.get_profile_counts()
-        sample_stats["omics_layers"] = store.sample_handler.get_omics_counts()
-        sample_stats["sequencing_scopes"] = store.sample_handler.get_sequencing_scope_counts()
-        sample_stats["pair_count"] = store.sample_handler.get_paired_sample_counts()
+        try:
+            payload = get_web_api_client().get_dashboard_summary(
+                headers=build_forward_headers(request.headers),
+            )
+            total_samples_count = payload.total_samples
+            analysed_samples_count = payload.analysed_samples
+            pending_samples_count = payload.pending_samples
+            user_samples_stats = payload.user_samples_stats
+            variant_stats = payload.variant_stats
+            unique_gene_count_all_panels = payload.unique_gene_count_all_panels
+            asp_gene_counts = payload.assay_gene_stats_grouped
+            sample_stats = payload.sample_stats
+        except ApiRequestError as exc:
+            app.logger.error("Dashboard API fetch failed for user %s: %s", current_user.username, exc)
+            total_samples_count = 0
+            analysed_samples_count = 0
+            pending_samples_count = 0
+            user_samples_stats = []
+            variant_stats = {}
+            unique_gene_count_all_panels = 0
+            asp_gene_counts = {}
+            sample_stats = {}
 
     # Check if the cache exists and is still valid
     app.cache.set(

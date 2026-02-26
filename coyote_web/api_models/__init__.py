@@ -1,6 +1,7 @@
 """Domain-organized typed models for web API payloads."""
 
 from coyote_web.api_models.base import ApiMutationResultPayload
+from coyote_web.api_models.dashboard import ApiDashboardSummaryPayload
 from coyote_web.api_models.admin import (
     ApiAdminPermissionContextPayload,
     ApiAdminPermissionCreateContextPayload,
@@ -46,6 +47,7 @@ from coyote_web.api_models.rna import (
 
 __all__ = [
     "ApiMutationResultPayload",
+    "ApiDashboardSummaryPayload",
     "ApiAdminRolesPayload",
     "ApiAdminRoleCreateContextPayload",
     "ApiAdminRoleContextPayload",

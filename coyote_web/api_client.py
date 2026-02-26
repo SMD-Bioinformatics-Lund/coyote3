@@ -9,6 +9,7 @@ import httpx
 from flask import current_app
 
 from coyote_web.api_models import (
+    ApiDashboardSummaryPayload,
     ApiAdminPermissionContextPayload,
     ApiAdminPermissionCreateContextPayload,
     ApiAdminPermissionsPayload,
@@ -124,6 +125,12 @@ class CoyoteApiClient:
     ) -> ApiRnaFusionsPayload:
         payload = self._get(f"/api/v1/rna/samples/{sample_id}/fusions", headers=headers)
         return ApiRnaFusionsPayload.model_validate(payload)
+
+    def get_dashboard_summary(
+        self, headers: dict[str, str] | None = None
+    ) -> ApiDashboardSummaryPayload:
+        payload = self._get("/api/v1/dashboard/summary", headers=headers)
+        return ApiDashboardSummaryPayload.model_validate(payload)
 
     def get_dna_variants(
         self, sample_id: str, headers: dict[str, str] | None = None

@@ -171,3 +171,4 @@ from coyote_api.routes import admin as _admin_routes  # noqa: F401
 from coyote_api.routes import dna as _dna_routes  # noqa: F401
 from coyote_api.routes import rna as _rna_routes  # noqa: F401
 from coyote_api.routes import reports as _report_routes  # noqa: F401
+from coyote_api.routes import dashboard as _dashboard_routes  # noqa: F401
