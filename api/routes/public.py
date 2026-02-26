@@ -10,6 +10,7 @@ from copy import deepcopy
 
 from coyote.extensions import store, util
 from api.app import _api_error, app, flask_app
+from api.services.public_catalog import PublicCatalogService
 
 
 @app.get("/api/v1/public/genelists/{genelist_id}/view_context")
@@ -68,9 +69,9 @@ def public_assay_catalog_isgl_genes_view_read(isgl_key: str):
 @app.get("/api/v1/public/assay-catalog-matrix/context")
 def public_assay_catalog_matrix_context_read():
     with flask_app.app_context():
-        catalog = util.public.load_catalog()
+        catalog = PublicCatalogService.load_catalog()
         modalities = catalog.get("modalities") or {}
-        order = util.public.modalities_order() or list(modalities.keys())
+        order = PublicCatalogService.modalities_order() or list(modalities.keys())
 
         columns: list[dict] = []
         mod_spans: dict[str, int] = defaultdict(int)
@@ -80,7 +81,7 @@ def public_assay_catalog_matrix_context_read():
 
         def fetch_asp_genes(asp_id: str) -> set[str]:
             try:
-                _gene_mode, gene_objs, _stats = util.public.resolve_gene_table(asp_id, None)
+                _gene_mode, gene_objs, _stats = PublicCatalogService.resolve_gene_table(asp_id, None)
             except Exception:
                 return set()
             symbols: set[str] = set()
@@ -192,12 +193,12 @@ def public_assay_catalog_context_read(
     isgl_key: str | None = None,
 ):
     with flask_app.app_context():
-        catalog = util.public.load_catalog()
-        order = util.public.modalities_order()
+        catalog = PublicCatalogService.load_catalog()
+        order = PublicCatalogService.modalities_order()
         if not order:
             raise _api_error(404, "Catalog not found")
 
-        selected_mod = util.public.normalize_mod(mod) if mod else None
+        selected_mod = PublicCatalogService.normalize_mod(mod) if mod else None
         selected_cat = cat if cat else None
         selected_isgl = isgl_key if isgl_key else None
         mods = catalog.get("modalities") or {}
@@ -219,15 +220,17 @@ def public_assay_catalog_context_read(
                 {"total": 0, "covered_total": 0, "germline_total": 0},
             )
         elif selected_mod and not selected_cat:
-            right = util.public.hydrate_modality(selected_mod)
-            gene_mode, genes, stats = util.public.resolve_gene_table(right.get("asp_id"), None)
+            right = PublicCatalogService.hydrate_modality(selected_mod)
+            gene_mode, genes, stats = PublicCatalogService.resolve_gene_table(right.get("asp_id"), None)
         else:
             if selected_isgl:
-                hydrated_cat = util.public.hydrate_category(
+                hydrated_cat = PublicCatalogService.hydrate_category(
                     selected_mod, selected_cat, selected_isgl, env="production"
                 )
             else:
-                hydrated_cat = util.public.hydrate_category(selected_mod, selected_cat, env="production")
+                hydrated_cat = PublicCatalogService.hydrate_category(
+                    selected_mod, selected_cat, env="production"
+                )
             if not hydrated_cat:
                 raise _api_error(404, "Category not found")
             right = {
@@ -241,11 +244,11 @@ def public_assay_catalog_context_read(
                 "asp": hydrated_cat.get("asp"),
                 "gene_lists": hydrated_cat.get("gene_lists") or [],
             }
-            gene_mode, genes, stats = util.public.resolve_gene_table(
+            gene_mode, genes, stats = PublicCatalogService.resolve_gene_table(
                 hydrated_cat.get("asp_id"), selected_isgl
             )
 
-        genes = util.public.apply_drug_info(genes=deepcopy(genes), druglist_name="Drug_Addon")
+        genes = PublicCatalogService.apply_drug_info(genes=deepcopy(genes), druglist_name="Drug_Addon")
         vm = {
             "meta": {
                 "version": catalog.get("version"),
@@ -257,7 +260,7 @@ def public_assay_catalog_context_read(
             "order": order,
             "modalities": mods,
             "selected_mod": selected_mod,
-            "categories": util.public.categories_for(selected_mod) if selected_mod else [],
+            "categories": PublicCatalogService.categories_for(selected_mod) if selected_mod else [],
             "selected_cat": selected_cat,
             "selected_isgl": selected_isgl,
             "right": right,
@@ -275,20 +278,20 @@ def public_assay_catalog_genes_csv_context_read(
     isgl_key: str | None = None,
 ):
     with flask_app.app_context():
-        selected_mod = util.public.normalize_mod(mod)
+        selected_mod = PublicCatalogService.normalize_mod(mod)
         if not selected_mod:
             raise _api_error(404, "Modality not found")
 
         if not cat:
-            right = util.public.hydrate_modality(selected_mod)
+            right = PublicCatalogService.hydrate_modality(selected_mod)
             asp_id = right.get("asp_id")
         else:
-            hydrated_cat = util.public.hydrate_category(selected_mod, cat, env="production")
+            hydrated_cat = PublicCatalogService.hydrate_category(selected_mod, cat, env="production")
             if not hydrated_cat:
                 raise _api_error(404, "Category not found")
             asp_id = hydrated_cat.get("asp_id")
 
-        mode, rows, _stats = util.public.resolve_gene_table(asp_id, isgl_key)
+        mode, rows, _stats = PublicCatalogService.resolve_gene_table(asp_id, isgl_key)
 
         sio = io.StringIO()
         writer = csv.writer(sio, lineterminator="\n")
