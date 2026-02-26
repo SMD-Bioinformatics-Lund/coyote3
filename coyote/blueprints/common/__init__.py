@@ -33,6 +33,5 @@ common_bp = Blueprint(
 )
 
 from coyote.blueprints.common import views  # noqa: F401, E402
-from coyote.blueprints.common import filters  # noqa: F401, E402
 
 app.common_logger = logging.getLogger("coyote.common")

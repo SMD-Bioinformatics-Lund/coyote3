@@ -17,14 +17,11 @@ filters, modifiers to display data in web templates.
 """
 
 from flask import current_app as app
-import arrow
-from dateutil import tz
-from datetime import datetime, tzinfo
-from markupsafe import Markup, escape
-import markdown
-
-
-STOCKHOLM: tzinfo | None = tz.gettz("Europe/Stockholm")
+from datetime import datetime
+from coyote.filters.shared import (
+    format_comment_markdown as shared_format_comment_markdown,
+    human_date as shared_human_date,
+)
 
 
 @app.template_filter(name="human_date")
@@ -39,22 +36,7 @@ def human_date(value: datetime | str) -> str:
     Returns:
         str: A human-readable relative time string in CET timezone.
     """
-    if not value:
-        return "N/A"
-
-    try:
-        dt = arrow.get(value)
-
-        # If it's naive, assume it is already Stockholm local time
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=STOCKHOLM)
-
-        dt = dt.to(STOCKHOLM)
-        now = arrow.now(STOCKHOLM)
-
-        return dt.humanize(now)
-    except Exception:
-        return "Invalid date"
+    return shared_human_date(value)
 
 
 @app.template_filter(name="format_comment")
@@ -71,26 +53,4 @@ def format_comment(st: str | None) -> str:
     - Links
     - CRLF normalization
     """
-    if not st:
-        return ""
-
-    # Normalize all newline types → "\n"
-    st = st.replace("\r\n", "\n").replace("\r", "\n")
-
-    # Escape unsafe HTML BEFORE markdown processing
-    st = escape(st)
-
-    # Render using GitHub-style markdown extensions
-    html = markdown.markdown(
-        st,
-        extensions=[
-            "extra",  # tables, code, lists, etc.
-            "sane_lists",
-            "nl2br",  # convert single newlines → <br>
-            "toc",  # heading anchors
-            "tables",  # GitHub table syntax
-            "fenced_code",  # ``` code blocks
-        ],
-    )
-
-    return Markup(html)
+    return shared_format_comment_markdown(st)

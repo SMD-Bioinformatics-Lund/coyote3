@@ -19,7 +19,7 @@ from flask import (
     abort,
 )
 from flask_login import current_user, login_required
-from coyote.blueprints.admin.views import view_user
+from coyote.blueprints.admin.views_users import view_user
 from coyote.blueprints.userprofile import profile_bp
 
 

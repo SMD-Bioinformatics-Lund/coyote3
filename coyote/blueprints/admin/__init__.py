@@ -24,6 +24,14 @@ admin_bp = Blueprint(
 )
 
 from coyote.blueprints.admin import views  # noqa: F401, E402
-from coyote.blueprints.admin import filters  # noqa: F401, E402
+from coyote.blueprints.admin import views_samples  # noqa: F401, E402
+from coyote.blueprints.admin import views_users  # noqa: F401, E402
+from coyote.blueprints.admin import views_schemas  # noqa: F401, E402
+from coyote.blueprints.admin import views_permissions  # noqa: F401, E402
+from coyote.blueprints.admin import views_roles  # noqa: F401, E402
+from coyote.blueprints.admin import views_audit  # noqa: F401, E402
+from coyote.blueprints.admin import views_genelists  # noqa: F401, E402
+from coyote.blueprints.admin import views_assay_panels  # noqa: F401, E402
+from coyote.blueprints.admin import views_assay_configs  # noqa: F401, E402
 
 app.admin_logger = logging.getLogger("coyote.admin")

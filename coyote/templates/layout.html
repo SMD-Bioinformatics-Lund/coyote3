@@ -11,7 +11,7 @@
     <link href="{{ url_for('static', filename='icons/favicon.ico') }}" rel="shortcut icon">
 
     <!-- CSS for markdown -->
-    <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/easymde/easymde.min.css') }}">
 
 
     <!-- JavaScript -->
@@ -20,10 +20,14 @@
     <script src="{{ url_for('static', filename='js/select2.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sortableTable.js') }}"></script>
     <script src="{{ url_for('static', filename='js/pagination.js') }}"></script>
+    <script>
+      window.COYOTE_API_BASE = "{{ app_config.get('API_BROWSER_BASE', '/api')|replace('\"', '\\\"') }}";
+    </script>
+    <script src="{{ url_for('static', filename='js/api_client.js') }}"></script>
 
     <!-- JS for markdown editor -->
-    <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
+    <script src="{{ url_for('static', filename='vendor/easymde/easymde.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/markdown-it/markdown-it.min.js') }}"></script>
 
 
     <style>

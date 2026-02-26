@@ -74,7 +74,7 @@
       <!-- Fusions Header -->
       <div class="overflow-x-auto relative">
         <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">
-          Fusions ({{ fusions|length }})
+          <span id="fusions-count-label">Fusions ({{ fusions|length }})</span>
         </h2>
       </div>
 
@@ -293,119 +293,13 @@
       <div class="overflow-x-auto relative">
         <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">Summary</h2>
       </div>
-
-      <div class="mx-auto py-2 " id="summary-content">
-        <div class="flex flex-wrap gap-4 ">
-          <!-- Summary comments Table -->
-          <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
-            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-blue-200 to-green-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
-              <h2 class="text-sm font-semibold text-black">Summary Comments</h2>
-            </div>
-            <div class="overflow-auto relative">
-              <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="summary-table">
-                <thead class="sortable capitalize tracking-wide rounded-t-lg bg-green-100">
-                  <tr id="summary-table-header" class="border-b text-left border-gray-800">
-                    <th class="px-2 py-3 font-semibold" id="comments-table-header-who">Who</th>
-                    <th class="px-2 py-3 font-semibold" id="comments-table-header-comment">Comment</th>
-                    <th class="px-2 py-3 font-semibold" id="comments-table-header-view">Hide/Unhide</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% if sample.comments|length > 0 %}
-                    {% for comment in sample.comments|sort(attribute='time_created', reverse=True) %}
-                      {% if comment.hidden != 1 %}
-                        <tr class="hover:bg-green-50 border-t border-gray-400 text-left" id="comment-table-row">
-                      {% else %}
-                        <tr class="bg-red-200 opacity-60 hover:bg-red-300 border-t border-gray-400 text-left hidden hidden_comment" id="comment-table-row-hidden">
-                      {% endif %}
-                        <td class="px-2 whitespace-nowrap align-top py-4" id="comments-table-header-who">
-                          <b>{{ comment.author }}</b><br><small>{{ comment.time_created|human_date }}</small>
-                        </td>
-                        <td class="py-2 markdown-body" id="comments-table-header-comment" onclick="addText(event)">
-                          <script type="text/plain" class="raw-md">{{ comment.text }}</script>
-                          {{ comment.text|format_comment|safe }}
-                        </td>
-                        <td class="px-2 align-top py-4" id="comments-table-header-view">
-                          {% set hidden_exists = 0 %}
-                          {% if comment.hidden != 1 %}
-                            <form action="{{ url_for('common_bp.hide_sample_comment', sample_id=sample._id) }}#summary" method="post">
-                              <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                              <input id="hide_comment" type="image" class="w-5 hover:scale-105" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
-                            </form>
-                          {% else %}
-                            {% set hidden_exists = 1 %}
-                            <form action="{{ url_for('common_bp.unhide_sample_comment', sample_id=sample._id) }}#summary" method="post">
-                              <input type="hidden" name="comment_id" value="{{ comment._id }}">
-                              <input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
-                            </form>
-                          {% endif %}
-                        </td>
-                      </tr>
-                    {% endfor %}
-                    {% if hidden_comments %}
-                      <tr>
-                        <td colspan=4 class="py-2 px-4 border-t border-gray-300 text-center text-sm text-gray-800">
-                          <a href="javascript:void(0)" onclick="switchVisibility('hidden_comment')"><b>Show/hide deleted comments</b></a>
-                        </td>
-                      </tr>
-                    {% endif %}
-                  {% else %}
-                    <tr>
-                      <td colspan=4 class="py-2 px-4 border-t border-gray-300 text-center text-sm text-gray-800">
-                        No comments available.
-                      </td>
-                    </tr>
-                  {% endif %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Add Comment Form -->
-          <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
-            <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-blue-200 to-green-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
-              <h2 class="text-sm font-semibold text-black">Write New Summary</h2>
-            </div>
-            <div class="overflow-auto relative" id="comments-box-div">
-              <form action="{{ url_for('common_bp.add_sample_comment', sample_id=sample._id) }}" method="post">
-                <textarea id="comment_textarea"
-                          name="sample_comment"
-                          placeholder="Type to write a new summary for {{ sample.name }} sample..."
-                          class="w-5/6 p-4 border border-gray-400 rounded mx-5 my-4 h-40"></textarea>
-
-                <!-- Buttons Row -->
-                <div class="flex flex-wrap items-center gap-4 mx-5 mb-5">
-                  <input type="submit"
-                        value="Save"
-                        class="p-2 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg cursor-pointer">
-
-                  <button type="button"
-                          onclick="addAIText()"
-                          class="p-2 text-black bg-gray-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-gray-500 hover:text-white hover:shadow-lg cursor-pointer">
-                    Suggest
-                  </button>
-
-                  {% if has_access('preview_report', min_role='user', min_level=9) %}
-                    <button type="button"
-                            onclick="window.location.href='{{ url_for('rna_bp.generate_rna_report', sample_id=sample.name) }}'"
-                            class="p-2 text-black bg-green-400 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-green-500 hover:text-white hover:shadow-lg cursor-pointer">
-                      Preview Report
-                    </button>
-                  {% endif %}
-                </div>
-              </form>
-
-              <!-- AI suggestion box -->
-              <div id="suggestion" class="hidden">
-                {{ ai_text }}
-              </div>
-            </div>
-          </div>
-
-
-
-        </div>
-      </div>
+      {% set summary_add_comment_action = url_for('common_bp.add_sample_comment', sample_id=sample._id) %}
+      {% set summary_preview_url = url_for('rna_bp.generate_rna_report', sample_id=sample.name) %}
+      {% set summary_show_add_form = true %}
+      {% set summary_enforce_acl = false %}
+      {% set summary_comment_cell_has_id = true %}
+      {% set summary_button_row_margin = 'mb' %}
+      {% include "components/summary_comments_card.html" %}
     </section>
 
   </main>
@@ -416,45 +310,8 @@
 
 
 <script>
-  function addAIText() {
-    const source = document.getElementById("suggestion");
-    const raw = source.textContent || "";
-
-    if (window.easyMDE) {
-      window.easyMDE.value(raw.trim());
-      window.easyMDE.codemirror.refresh();
-    } else {
-      document.getElementById("comment_textarea").value = raw.trim();
-    }
-  }
-
-  function addText(event) {
-    const td = event.target.closest("td");
-    if (!td) return;
-
-    const rawEl = td.querySelector(".raw-md");
-    if (!rawEl) return;
-
-    const raw = rawEl.textContent;
-    if (window.easyMDE) {
-      window.easyMDE.value(raw);
-      window.easyMDE.codemirror.refresh();
-    } else {
-      document.getElementById("comment_textarea").value = raw;
-    }
-  }
-
-  window.onload = function () {
-    document.querySelectorAll('[data-autoclick="true"]').forEach(element => element.click());
-    document.querySelectorAll('[data-autoclick-once="true"]').forEach(element => element.click());
-  };
-
-  var expanded = false;
-  function toggleFilters() {
-    var filterCard = document.getElementById("filter_card");
-    filterCard.style.display = expanded ? "none" : "block";
-    expanded = !expanded;
-  }
+  {% include "components/list_page_common_js.html" %}
+  {% include "components/summary_markdown_editor_js.html" %}
 
   function show_lowcov() {
     var lowcovDiv = document.getElementById("lowcovlist_div");
@@ -489,90 +346,6 @@
       filterSidebar.classList.add('translate-x-full');
     });
   }
-
-  function showCheckboxes(id) {
-    var checkboxes = document.getElementById(id);
-    checkboxes.style.display = checkboxes.style.display === 'block' ? 'none' : 'block';
-  }
-
-
-
-  // Export csv function this is a basic function for ow, can be customized and improved later on
-  function exportTableToCSV(filename, tableId) {
-    // Get the table element by its ID
-    const table = document.getElementById(tableId);
-    if (!table) {
-      console.error(`Table with ID "${tableId}" not found.`);
-      return;
-    }
-
-    let csv = [];
-
-    // Get all rows from the table
-    const rows = table.querySelectorAll('tr');
-
-    // Loop through each row
-    rows.forEach((row) => {
-      let rowData = [];
-      const cells = row.querySelectorAll('th, td'); // Get header and data cells
-      cells.forEach((cell) => {
-        // Extract text content and replace line breaks with ";"
-        let cellContent = cell.innerText.replace(/\n/g, ';').trim();
-        rowData.push(cellContent);
-      });
-      csv.push(rowData.join(',')); // Join cells with a comma
-    });
-
-    // Convert the array to a CSV string
-    const csvString = csv.join('\n');
-
-    // Create a Blob and download the CSV file
-    const blob = new Blob([csvString], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
-
-  // Initialize Markdown Editor for summary textarea (same behavior as DNA list page)
-  document.addEventListener("DOMContentLoaded", () => {
-    const textarea = document.getElementById("comment_textarea");
-    if (!textarea || typeof EasyMDE === "undefined" || typeof markdownit === "undefined") {
-      return;
-    }
-
-    window.easyMDE = new EasyMDE({
-      element: textarea,
-      spellChecker: false,
-      forceSync: true,
-      hideIcons: ["image"],
-      status: false,
-      tabSize: 2,
-      toolbar: [
-        "bold", "italic", "strikethrough", "heading", "|", "code", "quote",
-        "unordered-list", "ordered-list", "|", "link", "table", "horizontal-rule",
-        "|", "preview", "undo", "redo", "|", "guide"
-      ],
-      previewRender: function(plainText, preview) {
-        const md = window.markdownit({
-          html: true,
-          breaks: true,
-          linkify: true,
-          typographer: true,
-        });
-
-        const html = md.render(plainText);
-        preview.classList.add("markdown-body");
-        preview.innerHTML = html;
-        return html;
-      }
-    });
-  });
-
-
 
 </script>
 
@@ -614,22 +387,7 @@
     background-color: #f7f7ff;
   }
 
-  /* EasyMDE editor (CodeMirror) heading sizes */
-  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header {
-    font-weight: 700 !important;
-  }
-
-  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-1 { font-size: 2.00em !important; }
-  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-2 { font-size: 1.80em !important; }
-  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-3 { font-size: 1.60em !important; }
-  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-4 { font-size: 1.40em !important; }
-  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-5 { font-size: 1.20em !important; }
-  #comments-box-div .EasyMDEContainer .CodeMirror .cm-header-6 { font-size: 1.00em !important; }
-
-  #comments-box-div .EasyMDEContainer .CodeMirror .cm-formatting.cm-formatting-header {
-    font-size: 0.95em !important;
-    opacity: 0.85 !important;
-  }
+  {% include "components/summary_markdown_editor_styles.html" %}
 </style>
 
 

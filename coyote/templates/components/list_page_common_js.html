@@ -1,0 +1,57 @@
+// Shared list-page helpers used by DNA and RNA list templates.
+function showCheckboxes(id, iconId) {
+  const checkboxes = document.getElementById(id);
+  const icon = iconId ? document.getElementById(iconId) : null;
+  if (!checkboxes) return;
+
+  if (checkboxes.classList.contains("hidden")) {
+    checkboxes.classList.remove("hidden");
+    if (icon) icon.classList.add("rotate-180");
+  } else {
+    checkboxes.classList.add("hidden");
+    if (icon) icon.classList.remove("rotate-180");
+  }
+}
+
+window.addEventListener("load", function () {
+  document.querySelectorAll('[data-autoclick="true"]').forEach((element) => element.click());
+  document.querySelectorAll('[data-autoclick-once="true"]').forEach((element) => element.click());
+});
+
+var expanded = false;
+function toggleFilters() {
+  var filterCard = document.getElementById("filter_card");
+  if (!filterCard) return;
+  filterCard.style.display = expanded ? "none" : "block";
+  expanded = !expanded;
+}
+
+function exportTableToCSV(filename, tableId) {
+  const table = document.getElementById(tableId);
+  if (!table) {
+    console.error(`Table with ID "${tableId}" not found.`);
+    return;
+  }
+
+  const csv = [];
+  const rows = table.querySelectorAll("tr");
+  rows.forEach((row) => {
+    const rowData = [];
+    const cells = row.querySelectorAll("th, td");
+    cells.forEach((cell) => {
+      const cellContent = cell.innerText.replace(/\n/g, ";").trim();
+      rowData.push(cellContent);
+    });
+    csv.push(rowData.join(","));
+  });
+
+  const csvString = csv.join("\n");
+  const blob = new Blob([csvString], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}

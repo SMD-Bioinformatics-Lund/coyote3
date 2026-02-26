@@ -29,10 +29,14 @@ import re
 from math import floor, log10
 import arrow
 from markupsafe import Markup, escape
-import markdown
 from datetime import datetime
 from dateutil import tz
 from urllib.parse import unquote
+from coyote.filters.shared import (
+    format_fusion_desc_legacy as shared_format_fusion_desc_legacy,
+    uniq_callers as shared_uniq_callers,
+    render_markdown_basic as shared_render_markdown_basic,
+)
 
 
 @app.template_filter("has_hotspot")
@@ -68,9 +72,11 @@ def format_panel_flag_snv(panel_str: str) -> str:
     classification = set()
     variant_type = set()
     for gene in genes:
-        parts = panel_str.split(":")
-        classification.add(parts[0])
-        variant_type.add(parts[1])
+        parts = gene.strip().split(":", 1)
+        if len(parts) != 2:
+            continue
+        classification.add(parts[0].strip())
+        variant_type.add(parts[1].strip())
 
     html = ""
     if "somatic" in classification:
@@ -328,90 +334,7 @@ def format_fusion_desc(st: str | None) -> str:
     Returns:
         str: HTML string with each term wrapped in a span with a class indicating its category.
     """
-    html = ""
-
-    good_terms = [
-        "mitelman",
-        "18cancers",
-        "known",
-        "oncogene",
-        "cgp",
-        "cancer",
-        "cosmic",
-        "gliomas",
-        "oesophagus",
-        "tumor",
-        "pancreases",
-        "prostates",
-        "tcga",
-        "ticdb",
-    ]
-
-    verybad_terms = [
-        "1000genomes",
-        "banned",
-        "bodymap2",
-        "cacg",
-        "conjoing",
-        "cortex",
-        "cta",
-        "ctb",
-        "ctc",
-        "ctd",
-        "distance1000bp",
-        "ensembl_fully_overlapping",
-        "ensembl_same_strand_overlapping",
-        "gtex",
-        "hpa",
-        "matched-normal",
-        "mt",
-        "non_cancer_tissues",
-        "non_tumor_cells",
-        "pair_pseudo_genes",
-        "paralogs",
-        "readthrough",
-        "refseq_fully_overlapping",
-        "rp11",
-        "rp",
-        "rrna",
-        "similar_reads",
-        "similar_symbols",
-        "ucsc_fully_overlapping",
-        "ucsc_same_strand_overlapping",
-    ]
-
-    bad_terms = [
-        "distance100kbp",
-        "distance10kbp",
-        "duplicates",
-        "ensembl_partially_overlapping",
-        "fragments",
-        "healthy",
-        "short_repeats",
-        "long_repeats",
-        "partial-matched-normal",
-        "refseq_partially_overlapping",
-        "short_distance",
-        "ucsc_partially_overlapping",
-    ]
-
-    if st:
-        vals = st.split(",")
-
-        for v in vals:
-            v_str = v
-            v_str = v_str.replace("<", "&lt;")
-            v_str = v_str.replace(">", "&gt;")
-            if v in good_terms:
-                html = html + "<span class='fusion fusion-good'>" + v_str + "</span>"
-            elif v in verybad_terms:
-                html = html + "<span class='fusion fusion-verybad'>" + v_str + "</span>"
-            elif v in bad_terms:
-                html = html + "<span class='fusion fusion-bad'>" + v_str + "</span>"
-            else:
-                html = html + "<span class='fusion fusion-neutral'>" + v_str + "</span>"
-
-    return html
+    return shared_format_fusion_desc_legacy(st)
 
 
 @app.template_filter()
@@ -425,15 +348,12 @@ def uniq_callers(calls: list) -> set:
     Returns:
         set: Set of unique caller names.
     """
-    callers = []
-    for c in calls:
-        callers.append(c["caller"])
-    return set(callers)
+    return shared_uniq_callers(calls)
 
 
 @app.template_filter("markdown")
 def markdown_filter(s):
-    return markdown.markdown(s)
+    return shared_render_markdown_basic(s)
 
 
 @app.template_filter()

@@ -1,0 +1,63 @@
+function addAIText() {
+  const source = document.getElementById("suggestion");
+  const raw = source ? (source.textContent || "") : "";
+
+  if (window.easyMDE) {
+    window.easyMDE.value(raw.trim());
+    window.easyMDE.codemirror.refresh();
+  } else {
+    const textarea = document.getElementById("comment_textarea");
+    if (textarea) textarea.value = raw.trim();
+  }
+}
+
+function addText(event) {
+  const td = event.target.closest("td");
+  if (!td) return;
+
+  const rawEl = td.querySelector(".raw-md");
+  if (!rawEl) return;
+
+  const raw = rawEl.textContent;
+  if (window.easyMDE) {
+    window.easyMDE.value(raw);
+    window.easyMDE.codemirror.refresh();
+  } else {
+    const textarea = document.getElementById("comment_textarea");
+    if (textarea) textarea.value = raw;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const textarea = document.getElementById("comment_textarea");
+  if (!textarea || typeof EasyMDE === "undefined" || typeof markdownit === "undefined") {
+    return;
+  }
+
+  window.easyMDE = new EasyMDE({
+    element: textarea,
+    spellChecker: false,
+    forceSync: true,
+    hideIcons: ["image"],
+    status: false,
+    tabSize: 2,
+    toolbar: [
+      "bold", "italic", "strikethrough", "heading", "|", "code", "quote",
+      "unordered-list", "ordered-list", "|", "link", "table", "horizontal-rule",
+      "|", "preview", "undo", "redo", "|", "guide"
+    ],
+    previewRender: function(plainText, preview) {
+      const md = window.markdownit({
+        html: true,
+        breaks: true,
+        linkify: true,
+        typographer: true,
+      });
+
+      const html = md.render(plainText);
+      preview.classList.add("markdown-body");
+      preview.innerHTML = html;
+      return html;
+    }
+  });
+});

@@ -83,7 +83,8 @@ Coyote3 is built using Python’s **Flask** web framework and structured with a 
 
 | Layer            | Technology / Pattern                            |
 |------------------|--------------------------------------------------|
-| Web Framework     | Flask (Blueprint modules for each feature)      |
+| Web Runtime       | Flask + Jinja (`coyote3_web`)                   |
+| API Runtime       | FastAPI ASGI (`coyote3_api`)                    |
 | Backend Database  | MongoDB (via PyMongo)                           |
 | Authentication    | LDAP (via Flask-LDAP3-Login or custom binding)  |
 | Frontend          | Jinja2 templates + Tailwind CSS                 |
@@ -179,7 +180,8 @@ Option B: scripted wrapper
 
 ```bash
 ./scripts/compose-with-version.sh ps
-./scripts/compose-with-version.sh logs --tail=100 coyote3_app
+./scripts/compose-with-version.sh logs --tail=100 coyote3_web
+./scripts/compose-with-version.sh logs --tail=100 coyote3_api
 ```
 
 Open:

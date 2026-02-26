@@ -160,8 +160,8 @@ redis_data
 # Docker compose
 docker-compose.dev.yml
 
-api
 coyote3-core
 
 # CSS
 coyote/static/css/tailwind.css
+tests_internal

@@ -1,0 +1,116 @@
+<div class="mx-auto py-2 " id="summary-content">
+  <div class="flex flex-wrap gap-4 ">
+    <!-- Summary comments Table -->
+    <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
+      <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-blue-200 to-green-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
+        <h2 class="text-sm font-semibold text-black">Summary Comments</h2>
+      </div>
+      <div class="overflow-auto relative">
+        <table class="w-full shadow-md rounded-b-lg text-xs text-gray-800" id="summary-table">
+          <thead class="sortable capitalize tracking-wide rounded-t-lg bg-green-100">
+            <tr id="summary-table-header" class="border-b text-left border-gray-800">
+              <th class="px-2 py-3 font-semibold" id="comments-table-header-who">Who</th>
+              <th class="px-2 py-3 font-semibold" id="comments-table-header-comment">Comment</th>
+              <th class="px-2 py-3 font-semibold" id="comments-table-header-view">Hide/Unhide</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if sample.comments|length > 0 %}
+              {% for comment in sample.comments|sort(attribute='time_created', reverse=True) %}
+                {% if comment.hidden != 1 %}
+                  <tr class="hover:bg-green-50 border-t border-gray-400 text-left" id="comment-table-row">
+                {% else %}
+                  <tr class="bg-red-200 opacity-60 hover:bg-red-300 border-t border-gray-400 text-left hidden hidden_comment" id="comment-table-row-hidden">
+                {% endif %}
+                  <td class="px-2 whitespace-nowrap align-top py-4" id="comments-table-header-who">
+                    <b>{{ comment.author }}</b><br><small>{{ comment.time_created|human_date }}</small>
+                  </td>
+                  <td class="py-2 markdown-body" {% if summary_comment_cell_has_id|default(false) %}id="comments-table-header-comment"{% endif %} onclick="addText(event)">
+                    <script type="text/plain" class="raw-md">{{ comment.text }}</script>
+                    {{ comment.text|format_comment|safe }}
+                  </td>
+                  <td class="px-2 align-top py-4" id="comments-table-header-view">
+                    {% if comment.hidden != 1 %}
+                      <form action="{{ url_for('common_bp.hide_sample_comment', sample_id=sample._id) }}#summary" method="post">
+                        <input type="hidden" name="comment_id" value="{{ comment._id }}">
+                        {% if summary_enforce_acl|default(false) %}
+                          <input id="hide_comment" type="image" class="w-5 {% if not has_access('hide_sample_comment', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
+                        {% else %}
+                          <input id="hide_comment" type="image" class="w-5 hover:scale-105" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
+                        {% endif %}
+                      </form>
+                    {% else %}
+                      <form action="{{ url_for('common_bp.unhide_sample_comment', sample_id=sample._id) }}#summary" method="post">
+                        <input type="hidden" name="comment_id" value="{{ comment._id }}">
+                        {% if summary_enforce_acl|default(false) %}
+                          <input id="unhide_comment" type="image" class="w-5 {% if not has_access('unhide_sample_comment', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
+                        {% else %}
+                          <input id="unhide_comment" type="image" class="w-5" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
+                        {% endif %}
+                      </form>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+              {% if hidden_comments %}
+                <tr>
+                  <td colspan=4 class="py-2 px-4 border-t border-gray-300 text-center text-sm text-gray-800">
+                    <a href="javascript:void(0)" onclick="switchVisibility('hidden_comment')"><b>Show/hide deleted comments</b></a>
+                  </td>
+                </tr>
+              {% endif %}
+            {% else %}
+              <tr>
+                <td colspan=4 class="py-2 px-4 border-t border-gray-300 text-center text-sm text-gray-800">
+                  No comments available.
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Add Comment Form -->
+    {% if summary_show_add_form|default(true) %}
+      <div class="w-full bg-transparent shadow-md rounded-lg overflow-hidden">
+        <div class="sticky top-0 flex items-center justify-between bg-gradient-to-b from-blue-200 to-green-100 shadow-lg rounded-t-lg border-b border-gray-400 p-2 z-10">
+          <h2 class="text-sm font-semibold text-black">Write New Summary</h2>
+        </div>
+        <div class="overflow-auto relative" id="comments-box-div">
+          <form action="{{ summary_add_comment_action }}" method="post">
+            <textarea id="comment_textarea"
+                      name="sample_comment"
+                      placeholder="Type to write a new summary for {{ sample.name }} sample..."
+                      class="w-5/6 p-4 border border-gray-400 rounded mx-5 my-4 h-40"></textarea>
+
+            <!-- Buttons Row -->
+            <div class="flex flex-wrap items-center gap-4 mx-5 {% if summary_button_row_margin == 'mb' %}mb-5{% else %}my-5{% endif %}">
+              <input type="submit"
+                    value="Save"
+                    class="p-2 text-black bg-blue-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-blue-500 hover:text-white hover:shadow-lg cursor-pointer">
+
+              <button type="button"
+                      onclick="addAIText()"
+                      class="p-2 text-black bg-gray-300 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-gray-500 hover:text-white hover:shadow-lg cursor-pointer">
+                Suggest
+              </button>
+              {% if has_access('preview_report', min_role='user', min_level=9) %}
+                <button type="button"
+                        onclick="window.location.href='{{ summary_preview_url }}'"
+                        class="p-2 text-black bg-green-400 rounded-md shadow-md transition-all duration-200 ease-in-out hover:bg-green-500 hover:text-white hover:shadow-lg cursor-pointer">
+                  Preview Report
+                </button>
+              {% endif %}
+            </div>
+          </form>
+
+          <div id="suggestion" class="hidden">
+            {{ ai_text }}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+</div>

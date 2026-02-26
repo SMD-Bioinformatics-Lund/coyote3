@@ -34,7 +34,9 @@ rna_bp = Blueprint(
     "rna_bp", __name__, template_folder="templates", static_folder="static"
 )
 
-from coyote.blueprints.rna import views  # noqa: F401, E402
+from coyote.blueprints.rna import views_fusions  # noqa: F401, E402
+from coyote.blueprints.rna import views_actions  # noqa: F401, E402
+from coyote.blueprints.rna import views_reports  # noqa: F401, E402
 
 
 app.rna_logger = logging.getLogger("coyote.rna")

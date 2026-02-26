@@ -31,8 +31,11 @@ import logging
 # Blueprint configuration
 dna_bp = Blueprint("dna_bp", __name__, template_folder="templates", static_folder="static")
 
-from coyote.blueprints.dna import views  # noqa: F401, E402
-from coyote.blueprints.dna import filters  # noqa: F401, E402
+from coyote.blueprints.dna import views_variants  # noqa: F401, E402
+from coyote.blueprints.dna import views_variant_actions  # noqa: F401, E402
+from coyote.blueprints.dna import views_cnv  # noqa: F401, E402
+from coyote.blueprints.dna import views_transloc  # noqa: F401, E402
+from coyote.blueprints.dna import views_reports  # noqa: F401, E402
 
 
 app.dna_logger = logging.getLogger("coyote.dna")
