@@ -3,10 +3,19 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import re
 
-from fastapi import Depends, Query
+from fastapi import Body, Depends, Query
 
-from api.app import ApiUser, _get_formatted_assay_config, _get_sample_for_api, flask_app, app, require_access
+from api.app import (
+    ApiUser,
+    _api_error,
+    _get_formatted_assay_config,
+    _get_sample_for_api,
+    flask_app,
+    app,
+    require_access,
+)
 from coyote.extensions import store, util
 
 
@@ -185,4 +194,62 @@ def home_edit_context_read(
             "variant_stats_raw": variant_stats_raw,
             "variant_stats_filtered": variant_stats_filtered,
         }
+    )
+
+
+@app.post("/api/v1/home/samples/{sample_id}/genes/apply-isgl")
+def home_apply_isgl_mutation(
+    sample_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    filters = sample.get("filters", {})
+    isgl_ids = payload.get("isgl_ids", [])
+    if not isinstance(isgl_ids, list):
+        raise _api_error(400, "Invalid isgl_ids payload")
+    filters["genelists"] = list(deepcopy(isgl_ids))
+    store.sample_handler.update_sample_filters(sample.get("_id"), filters)
+    return util.common.convert_to_serializable(
+        {"status": "ok", "sample_id": sample_id, "action": "apply_isgl", "isgl_ids": isgl_ids}
+    )
+
+
+@app.post("/api/v1/home/samples/{sample_id}/adhoc_genes/save")
+def home_save_adhoc_genes_mutation(
+    sample_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    genes_raw = payload.get("genes", "")
+    genes = [g.strip() for g in re.split(r"[ ,\n]+", genes_raw) if g.strip()]
+    genes.sort()
+    label = payload.get("label") or "adhoc"
+
+    filters = sample.get("filters", {})
+    filters["adhoc_genes"] = {"label": label, "genes": genes}
+    store.sample_handler.update_sample_filters(sample.get("_id"), filters)
+    return util.common.convert_to_serializable(
+        {
+            "status": "ok",
+            "sample_id": sample_id,
+            "action": "save_adhoc_genes",
+            "label": label,
+            "gene_count": len(genes),
+        }
+    )
+
+
+@app.post("/api/v1/home/samples/{sample_id}/adhoc_genes/clear")
+def home_clear_adhoc_genes_mutation(
+    sample_id: str,
+    user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    filters = sample.get("filters", {})
+    filters.pop("adhoc_genes", None)
+    store.sample_handler.update_sample_filters(sample.get("_id"), filters)
+    return util.common.convert_to_serializable(
+        {"status": "ok", "sample_id": sample_id, "action": "clear_adhoc_genes"}
     )

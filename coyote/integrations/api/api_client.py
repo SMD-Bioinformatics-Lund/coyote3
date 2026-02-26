@@ -250,6 +250,44 @@ class CoyoteApiClient:
         payload = self._get(f"/api/v1/home/samples/{sample_id}/edit_context", headers=headers)
         return ApiHomeEditContextPayload.model_validate(payload)
 
+    def apply_home_isgl(
+        self,
+        sample_id: str,
+        isgl_ids: list[str],
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        return self._post(
+            f"/api/v1/home/samples/{sample_id}/genes/apply-isgl",
+            headers=headers,
+            json_body={"isgl_ids": isgl_ids},
+        )
+
+    def save_home_adhoc_genes(
+        self,
+        sample_id: str,
+        genes: str,
+        label: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        payload = {"genes": genes}
+        if label:
+            payload["label"] = label
+        return self._post(
+            f"/api/v1/home/samples/{sample_id}/adhoc_genes/save",
+            headers=headers,
+            json_body=payload,
+        )
+
+    def clear_home_adhoc_genes(
+        self,
+        sample_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        return self._post(
+            f"/api/v1/home/samples/{sample_id}/adhoc_genes/clear",
+            headers=headers,
+        )
+
     def get_public_genelist_view_context(
         self,
         genelist_id: str,

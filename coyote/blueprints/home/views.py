@@ -16,7 +16,6 @@ It includes functionality for handling sample searches, filtering samples based 
 the appropriate templates for the user interface.
 """
 
-from copy import deepcopy
 from flask import (
     Response,
     redirect,
@@ -304,13 +303,7 @@ def apply_isgl(sample_id: str) -> Response:
     """
 
     payload = request.get_json(silent=True) or {}
-    sample = store.sample_handler.get_sample(sample_id)
-    filters = sample.get("filters", {})
-    genelists = set(filters.get("genelists", []))
     isgl_ids = payload.get("isgl_ids", [])
-    if isinstance(isgl_ids, list):
-        genelists = deepcopy(isgl_ids)
-    filters["genelists"] = list(genelists)
 
     if payload and (isgl_ids or isgl_ids == []):
         # log Action
@@ -319,9 +312,9 @@ def apply_isgl(sample_id: str) -> Response:
             "isgl_ids": isgl_ids,
         }
         try:
-            get_web_api_client().update_sample_filters(
+            get_web_api_client().apply_home_isgl(
                 sample_id=sample_id,
-                filters=filters,
+                isgl_ids=(isgl_ids if isinstance(isgl_ids, list) else []),
                 headers=build_forward_headers(request.headers),
             )
             flash(f"Gene list(s) {isgl_ids} applied to sample.", "green")
@@ -353,14 +346,11 @@ def save_adhoc_genes(sample_id: str) -> Response:
     genes = [g.strip() for g in re.split(r"[ ,\n]+", data.get("genes", "")) if g.strip()]
     genes.sort()
     label = data.get("label") or "adhoc"
-
-    sample = store.sample_handler.get_sample(sample_id)
-    filters = sample.get("filters", {})
-    filters["adhoc_genes"] = {"label": label, "genes": genes}
     try:
-        get_web_api_client().update_sample_filters(
+        get_web_api_client().save_home_adhoc_genes(
             sample_id=sample_id,
-            filters=filters,
+            genes=data.get("genes", ""),
+            label=label,
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -390,13 +380,9 @@ def clear_adhoc_genes(sample_id: str) -> Response:
     Returns:
         Response: JSON response indicating success.
     """
-    sample = store.sample_handler.get_sample(sample_id)
-    filters = sample.get("filters", {})
-    filters.pop("adhoc_genes")
     try:
-        get_web_api_client().update_sample_filters(
+        get_web_api_client().clear_home_adhoc_genes(
             sample_id=sample_id,
-            filters=filters,
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
