@@ -88,3 +88,18 @@ class ApiAdminGenelistViewContextPayload(ApiModel):
     selected_assay: str | None = None
     filtered_genes: list[str] = Field(default_factory=list)
     panel_germline_genes: list[str] = Field(default_factory=list)
+
+
+class ApiAdminAspPayload(ApiModel):
+    panels: list[JsonDict] = Field(default_factory=list)
+
+
+class ApiAdminAspCreateContextPayload(ApiModel):
+    schemas: list[JsonDict] = Field(default_factory=list)
+    selected_schema: JsonDict = Field(default_factory=dict)
+    schema: JsonDict = Field(default_factory=dict)
+
+
+class ApiAdminAspContextPayload(ApiModel):
+    panel: JsonDict = Field(default_factory=dict)
+    schema: JsonDict = Field(default_factory=dict)

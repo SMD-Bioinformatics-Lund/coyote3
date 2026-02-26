@@ -18,7 +18,7 @@ from flask import Response, abort, flash, g, redirect, render_template, request,
 from flask_login import current_user
 
 from coyote.blueprints.admin import admin_bp
-from coyote.extensions import store, util
+from coyote.extensions import util
 from coyote.services.audit_logs.decorators import log_action
 from coyote.services.auth.decorators import require
 from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
@@ -27,7 +27,12 @@ from coyote_web.api_client import ApiRequestError, build_forward_headers, get_we
 @admin_bp.route("/asp/manage", methods=["GET"])
 @require("view_asp", min_role="user", min_level=9)
 def manage_assay_panels():
-    panels = store.asp_handler.get_all_asps()
+    try:
+        payload = get_web_api_client().get_admin_asp(headers=build_forward_headers(request.headers))
+        panels = payload.panels
+    except ApiRequestError as exc:
+        flash(f"Failed to fetch panels: {exc}", "red")
+        panels = []
     return render_template("asp/manage_asp.html", panels=panels)
 
 
@@ -35,27 +40,17 @@ def manage_assay_panels():
 @require("create_asp", min_role="manager", min_level=99)
 @log_action(action_name="create_asp", call_type="manager_call")
 def create_assay_panel():
-    active_schemas = store.schema_handler.get_schemas_by_category_type(
-        schema_type="asp_schema",
-        schema_category="ASP",
-        is_active=True,
-    )
-
-    if not active_schemas:
-        flash("No active panel schemas found!", "red")
+    try:
+        context = get_web_api_client().get_admin_asp_create_context(
+            schema_id=request.args.get("schema_id"),
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        flash(f"Failed to load panel create context: {exc}", "red")
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
-    selected_id = request.args.get("schema_id") or active_schemas[0]["_id"]
-    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
-
-    if not schema:
-        flash("Selected schema not found!", "red")
-        return redirect(url_for("admin_bp.manage_assay_panels"))
-
-    schema["fields"]["created_by"]["default"] = current_user.email
-    schema["fields"]["created_on"]["default"] = util.common.utc_now()
-    schema["fields"]["updated_by"]["default"] = current_user.email
-    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
+    active_schemas = context.schemas
+    schema = context.schema
 
     if request.method == "POST":
         form_data: dict[str, list[str] | str] = {
@@ -110,7 +105,7 @@ def create_assay_panel():
         "asp/create_asp.html",
         schema=schema,
         schemas=active_schemas,
-        selected_schema=schema,
+        selected_schema=context.selected_schema,
     )
 
 
@@ -118,12 +113,20 @@ def create_assay_panel():
 @require("edit_asp", min_role="manager", min_level=99)
 @log_action(action_name="edit_asp", call_type="manager_call")
 def edit_assay_panel(assay_panel_id: str) -> str | Response:
-    panel = store.asp_handler.get_asp(assay_panel_id)
-    schema = store.schema_handler.get_schema(panel.get("schema_name", "ASP-Schema"))
-
-    if not panel or not schema:
-        flash("Panel or schema not found.", "red")
+    try:
+        context = get_web_api_client().get_admin_asp_context(
+            assay_panel_id=assay_panel_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        if exc.status_code == 404:
+            flash("Panel or schema not found.", "red")
+        else:
+            flash(f"Failed to load panel context: {exc}", "red")
         return redirect(url_for("admin_bp.manage_assay_panels"))
+
+    panel = context.panel
+    schema = context.schema
 
     selected_version = request.args.get("version", type=int)
     delta = None
@@ -211,12 +214,20 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
 @admin_bp.route("/asp/<assay_panel_id>/view", methods=["GET"])
 @require("view_asp", min_role="user", min_level=9)
 def view_assay_panel(assay_panel_id: str) -> Response | str:
-    panel = store.asp_handler.get_asp(assay_panel_id)
-    if not panel:
-        flash(f"Panel '{assay_panel_id}' not found!", "red")
+    try:
+        context = get_web_api_client().get_admin_asp_context(
+            assay_panel_id=assay_panel_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        if exc.status_code == 404:
+            flash(f"Panel '{assay_panel_id}' not found!", "red")
+        else:
+            flash(f"Failed to load panel context: {exc}", "red")
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
-    schema = store.schema_handler.get_schema(panel.get("schema_name", "ASP-Schema"))
+    panel = context.panel
+    schema = context.schema
     selected_version = request.args.get("version", type=int)
     delta = None
 
@@ -248,15 +259,20 @@ def view_assay_panel(assay_panel_id: str) -> Response | str:
 @require("view_asp", min_role="user", min_level=9)
 @log_action(action_name="print_asp", call_type="viewer_call")
 def print_assay_panel(panel_id: str) -> str | Response:
-    panel = store.asp_handler.get_asp(panel_id)
-    if not panel:
-        flash("Panel not found.", "red")
+    try:
+        context = get_web_api_client().get_admin_asp_context(
+            assay_panel_id=panel_id,
+            headers=build_forward_headers(request.headers),
+        )
+    except ApiRequestError as exc:
+        if exc.status_code == 404:
+            flash("Panel not found.", "red")
+        else:
+            flash(f"Failed to load panel context: {exc}", "red")
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
-    schema = store.schema_handler.get_schema(panel.get("schema_name"))
-    if not schema:
-        flash("Schema not found for panel.", "red")
-        return redirect(url_for("admin_bp.manage_assay_panels"))
+    panel = context.panel
+    schema = context.schema
 
     selected_version = request.args.get("version", type=int)
     if selected_version and selected_version != panel.get("version"):
@@ -287,9 +303,6 @@ def print_assay_panel(panel_id: str) -> str | Response:
 @require("edit_asp", min_role="manager", min_level=99)
 @log_action(action_name="toggle_asp", call_type="manager_call")
 def toggle_assay_panel_active(assay_panel_id: str) -> Response:
-    panel = store.asp_handler.get_asp(assay_panel_id)
-    if not panel:
-        return abort(404)
     try:
         payload = get_web_api_client().toggle_admin_asp(
             assay_panel_id=assay_panel_id,
@@ -302,6 +315,8 @@ def toggle_assay_panel_active(assay_panel_id: str) -> Response:
         }
         flash(f"Panel '{assay_panel_id}' status toggled!", "green")
     except ApiRequestError as exc:
+        if exc.status_code == 404:
+            return abort(404)
         flash(f"Failed to toggle panel: {exc}", "red")
     return redirect(url_for("admin_bp.manage_assay_panels"))
 

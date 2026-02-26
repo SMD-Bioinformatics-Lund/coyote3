@@ -16,6 +16,9 @@ from coyote_web.api_models import (
     ApiAdminGenelistCreateContextPayload,
     ApiAdminGenelistViewContextPayload,
     ApiAdminGenelistsPayload,
+    ApiAdminAspContextPayload,
+    ApiAdminAspCreateContextPayload,
+    ApiAdminAspPayload,
     ApiAdminRoleContextPayload,
     ApiAdminRoleCreateContextPayload,
     ApiAdminRolesPayload,
@@ -858,6 +861,30 @@ class CoyoteApiClient:
             json_body={"config": config},
         )
         return ApiMutationResultPayload.model_validate(payload)
+
+    def get_admin_asp(
+        self,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminAspPayload:
+        payload = self._get("/api/v1/admin/asp", headers=headers)
+        return ApiAdminAspPayload.model_validate(payload)
+
+    def get_admin_asp_create_context(
+        self,
+        schema_id: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminAspCreateContextPayload:
+        params = {"schema_id": schema_id} if schema_id else None
+        payload = self._get("/api/v1/admin/asp/create_context", headers=headers, params=params)
+        return ApiAdminAspCreateContextPayload.model_validate(payload)
+
+    def get_admin_asp_context(
+        self,
+        assay_panel_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminAspContextPayload:
+        payload = self._get(f"/api/v1/admin/asp/{assay_panel_id}/context", headers=headers)
+        return ApiAdminAspContextPayload.model_validate(payload)
 
     def update_admin_asp(
         self,

@@ -653,6 +653,63 @@ def create_asp_mutation(
     )
 
 
+@app.get("/api/v1/admin/asp")
+def list_asp_read(
+    user: ApiUser = Depends(require_access(permission="view_asp", min_role="user", min_level=9)),
+):
+    panels = store.asp_handler.get_all_asps()
+    return util.common.convert_to_serializable({"panels": panels})
+
+
+@app.get("/api/v1/admin/asp/create_context")
+def create_asp_context_read(
+    schema_id: str | None = Query(default=None),
+    user: ApiUser = Depends(require_access(permission="create_asp", min_role="manager", min_level=99)),
+):
+    active_schemas = store.schema_handler.get_schemas_by_category_type(
+        schema_type="asp_schema",
+        schema_category="ASP",
+        is_active=True,
+    )
+    if not active_schemas:
+        raise _api_error(400, "No active panel schemas found")
+
+    selected_id = schema_id or active_schemas[0]["_id"]
+    selected_schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+    if not selected_schema:
+        raise _api_error(404, "Selected schema not found")
+
+    schema = deepcopy(selected_schema)
+    schema["fields"]["created_by"]["default"] = user.username
+    schema["fields"]["created_on"]["default"] = util.common.utc_now()
+    schema["fields"]["updated_by"]["default"] = user.username
+    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
+
+    return util.common.convert_to_serializable(
+        {
+            "schemas": active_schemas,
+            "selected_schema": selected_schema,
+            "schema": schema,
+        }
+    )
+
+
+@app.get("/api/v1/admin/asp/{assay_panel_id}/context")
+def asp_context_read(
+    assay_panel_id: str,
+    user: ApiUser = Depends(require_access(permission="view_asp", min_role="user", min_level=9)),
+):
+    panel = store.asp_handler.get_asp(assay_panel_id)
+    if not panel:
+        raise _api_error(404, "Panel not found")
+
+    schema = store.schema_handler.get_schema(panel.get("schema_name", "ASP-Schema"))
+    if not schema:
+        raise _api_error(404, "Schema not found for panel")
+
+    return util.common.convert_to_serializable({"panel": panel, "schema": schema})
+
+
 @app.post("/api/v1/admin/asp/{assay_panel_id}/update")
 def update_asp_mutation(
     assay_panel_id: str,
