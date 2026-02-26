@@ -13,7 +13,31 @@ class ApiDnaVariantsPayload(ApiModel):
     sample: JsonDict
     meta: JsonDict = Field(default_factory=dict)
     filters: JsonDict = Field(default_factory=dict)
+    assay_group: str = ""
+    subpanel: str | None = None
+    analysis_sections: list[str] = Field(default_factory=list)
+    assay_config: JsonDict = Field(default_factory=dict)
+    assay_config_schema: JsonDict = Field(default_factory=dict)
+    assay_panel_doc: JsonDict = Field(default_factory=dict)
+    assay_panels: list[JsonDict] = Field(default_factory=list)
+    all_panel_genelist_names: list[str] = Field(default_factory=list)
+    checked_genelists: list[str] = Field(default_factory=list)
+    checked_genelists_dict: JsonDict = Field(default_factory=dict)
+    filter_genes: list[str] = Field(default_factory=list)
+    sample_ids: JsonDict = Field(default_factory=dict)
+    bam_id: JsonDict = Field(default_factory=dict)
+    hidden_comments: bool = False
+    vep_var_class_translations: JsonDict = Field(default_factory=dict)
+    vep_conseq_translations: JsonDict = Field(default_factory=dict)
+    oncokb_genes: list[str] = Field(default_factory=list)
+    verification_sample_used: str | None = None
     variants: list[JsonDict] = Field(default_factory=list)
+
+
+class ApiDnaBiomarkersPayload(ApiModel):
+    sample: JsonDict
+    meta: JsonDict = Field(default_factory=dict)
+    biomarkers: list[JsonDict] = Field(default_factory=list)
 
 
 class ApiDnaVariantDetailPayload(ApiModel):

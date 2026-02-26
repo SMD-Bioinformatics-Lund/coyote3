@@ -51,17 +51,19 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
     assay_panel_doc = store.asp_handler.get_asp(asp_name=sample.get("assay"))
     checked_genelists = sample_filters.get("genelists", [])
     checked_genelists_genes_dict = store.isgl_handler.get_isgl_by_ids(checked_genelists)
-    _genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
+    genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
         sample, assay_panel_doc, checked_genelists_genes_dict
     )
     filter_conseq = get_filter_conseq_terms(sample_filters.get("vep_consequences", []))
 
     disp_pos = []
+    verification_sample_used = None
     if assay_config.get("verification_samples"):
         verification_samples = assay_config.get("verification_samples")
         for veri_key, verification_pos in verification_samples.items():
             if veri_key in sample.get("name", ""):
                 disp_pos = verification_pos
+                verification_sample_used = veri_key
                 break
 
     query = build_query(
@@ -85,18 +87,63 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
     variants, tiered_variants = add_global_annotations(variants, assay_group, subpanel)
     variants = hotspot_variant(variants)
 
+    sample_ids = util.common.get_case_and_control_sample_ids(sample)
+    if not sample_ids:
+        sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
+    bam_id = store.bam_service_handler.get_bams(sample_ids)
+    vep_variant_class_meta = store.vep_meta_handler.get_variant_class_translations(sample.get("vep", 103))
+    vep_conseq_meta = store.vep_meta_handler.get_conseq_translations(sample.get("vep", 103))
+    has_hidden_comments = store.sample_handler.hidden_sample_comments(sample.get("_id"))
+    insilico_panel_genelists = store.isgl_handler.get_isgl_by_asp(sample.get("assay"), is_active=True)
+    all_panel_genelist_names = util.common.get_assay_genelist_names(insilico_panel_genelists)
+    assay_config_schema = store.schema_handler.get_schema(assay_config.get("schema_name"))
+
+    oncokb_genes = []
+    for variant in variants:
+        symbol = variant.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL")
+        if not symbol:
+            continue
+        oncokb_gene = store.oncokb_handler.get_oncokb_action_gene(symbol)
+        if oncokb_gene and "Hugo Symbol" in oncokb_gene:
+            hugo_symbol = oncokb_gene["Hugo Symbol"]
+            if hugo_symbol not in oncokb_genes:
+                oncokb_genes.append(hugo_symbol)
+
     payload = {
-        "sample": {
-            "id": str(sample.get("_id")),
-            "name": sample.get("name"),
-            "assay": sample.get("assay"),
-            "profile": sample.get("profile"),
-            "assay_group": assay_group,
-            "subpanel": subpanel,
-        },
+        "sample": sample,
         "meta": {"request_path": request.url.path, "count": len(variants), "tiered": tiered_variants},
         "filters": sample_filters,
+        "assay_group": assay_group,
+        "subpanel": subpanel,
+        "analysis_sections": assay_config.get("analysis_types", []),
+        "assay_config": assay_config,
+        "assay_config_schema": assay_config_schema,
+        "assay_panel_doc": assay_panel_doc,
+        "assay_panels": insilico_panel_genelists,
+        "all_panel_genelist_names": all_panel_genelist_names,
+        "checked_genelists": checked_genelists,
+        "checked_genelists_dict": genes_covered_in_panel,
+        "filter_genes": filter_genes,
+        "sample_ids": sample_ids,
+        "bam_id": bam_id,
+        "hidden_comments": has_hidden_comments,
+        "vep_var_class_translations": vep_variant_class_meta,
+        "vep_conseq_translations": vep_conseq_meta,
+        "oncokb_genes": oncokb_genes,
+        "verification_sample_used": verification_sample_used,
         "variants": variants,
+    }
+    return util.common.convert_to_serializable(payload)
+
+
+@app.get("/api/v1/dna/samples/{sample_id}/biomarkers")
+def list_dna_biomarkers(sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
+    sample = _get_sample_for_api(sample_id, user)
+    biomarkers = list(store.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"])))
+    payload = {
+        "sample": sample,
+        "meta": {"count": len(biomarkers)},
+        "biomarkers": biomarkers,
     }
     return util.common.convert_to_serializable(payload)
 

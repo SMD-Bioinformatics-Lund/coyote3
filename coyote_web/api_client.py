@@ -10,6 +10,7 @@ from flask import current_app
 
 from coyote_web.api_models import (
     ApiMutationResultPayload,
+    ApiDnaBiomarkersPayload,
     ApiDnaCnvsPayload,
     ApiDnaCnvDetailPayload,
     ApiDnaReportPreviewPayload,
@@ -160,6 +161,15 @@ class CoyoteApiClient:
             headers=headers,
         )
         return ApiDnaTranslocationsPayload.model_validate(payload)
+
+    def get_dna_biomarkers(
+        self, sample_id: str, headers: dict[str, str] | None = None
+    ) -> ApiDnaBiomarkersPayload:
+        payload = self._get(
+            f"/api/v1/dna/samples/{sample_id}/biomarkers",
+            headers=headers,
+        )
+        return ApiDnaBiomarkersPayload.model_validate(payload)
 
     def get_dna_report_preview(
         self, sample_id: str, headers: dict[str, str] | None = None

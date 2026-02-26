@@ -25,20 +25,15 @@ from flask import (
     send_file,
     Response,
 )
-from pprint import pformat
 from copy import deepcopy
 from wtforms import BooleanField
-from coyote.extensions import store, util
+from coyote.extensions import util
 from coyote.blueprints.dna import dna_bp
 from coyote.blueprints.dna.forms import DNAFilterForm
 from coyote.util.decorators.access import require_sample_access
 from coyote.util.misc import get_sample_and_assay_config
 from coyote.services.interpretation.report_summary import (
     generate_summary_text,
-)
-from coyote.services.dna.dna_filters import (
-    create_cnveffectlist,
-    get_filter_conseq_terms,
 )
 from coyote.services.workflow.dna_workflow import DNAWorkflowService
 from coyote_web.api_client import ApiRequestError, build_forward_headers, get_web_api_client
@@ -64,60 +59,52 @@ def list_variants(sample_id: str) -> Response | str:
         - Flashes messages to the user if sample or assay configuration is missing.
         - Logs information about selected OncoKB genes.
     """
-    # Find sample data by name
-    result = get_sample_and_assay_config(sample_id)
-    if isinstance(result, Response):
-        return result
-    sample, assay_config, assay_config_schema = result
-    DNAWorkflowService.validate_report_inputs(app.logger, sample, assay_config)
+    headers = build_forward_headers(request.headers)
+    api_client = get_web_api_client()
 
-    # sample = store.sample_handler.get_sample(sample_id)  # sample_id = name/id
+    def _load_api_context():
+        payload = api_client.get_dna_variants(sample_id=sample_id, headers=headers)
+        DNAWorkflowService.validate_report_inputs(app.logger, payload.sample, payload.assay_config)
+        return payload
+
+    try:
+        variants_payload = _load_api_context()
+        app.logger.info("Loaded DNA variant list from API service for sample %s", sample_id)
+    except ApiRequestError as exc:
+        app.logger.error("DNA variant API fetch failed for sample %s: %s", sample_id, exc)
+        return Response(str(exc), status=exc.status_code or 502)
+
+    sample = variants_payload.sample
+    assay_config = variants_payload.assay_config
+    assay_config_schema = variants_payload.assay_config_schema
+    assay_panel_doc = variants_payload.assay_panel_doc
     sample_has_filters = sample.get("filters", None)
-
-    # Get case and control samples
-    sample_ids = util.common.get_case_and_control_sample_ids(sample)
-    if not sample_ids:
-        sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
-
-    ## get the assay from the sample, fallback to the first group if not set
-    sample_assay = sample.get("assay")
-
-    # Get the profile from the sample, fallback to production if not set
-    sample_profile = sample.get("profile", "production")
-
-    # Get assay group and subpanel for the sample, sections to display
-    assay_group: str = assay_config.get("asp_group", "unknown")  # myeloid, solid, lymphoid
-    subpanel: str | None = sample.get("subpanel")  # breast, LP, lung, etc.
-    analysis_sections = assay_config.get("analysis_types", [])
+    sample_filters = deepcopy(variants_payload.filters)
+    sample_ids = variants_payload.sample_ids
+    assay_group = variants_payload.assay_group or assay_config.get("asp_group", "unknown")
+    subpanel = variants_payload.subpanel
+    analysis_sections = variants_payload.analysis_sections
     display_sections_data = {}
     summary_sections_data = {}
     app.logger.debug(f"Assay group: {assay_group} - Subpanel: {subpanel}")
 
-    # Get the entire genelist for the sample panel
-    assay_panel_doc = store.asp_handler.get_asp(asp_name=sample_assay)
+    insilico_panel_genelists = variants_payload.assay_panels
+    all_panel_genelist_names = variants_payload.all_panel_genelist_names
+    checked_genelists = variants_payload.checked_genelists
+    genes_covered_in_panel = variants_payload.checked_genelists_dict
+    filter_genes = variants_payload.filter_genes
+    verification_sample_used = variants_payload.verification_sample_used
 
-    # Get the genelists for the sample panel
-    insilico_panel_genelists = store.isgl_handler.get_isgl_by_asp(sample_assay, is_active=True)
-    all_panel_genelist_names = util.common.get_assay_genelist_names(insilico_panel_genelists)
-
-    # Adding the default gene lists to the assay_config, if the use_diagnosis_genelist is set to true
-    if assay_config.get("use_diagnosis_genelist", False) and subpanel:
-        assay_default_config_genelist_ids = store.isgl_handler.get_isgl_ids(
-            sample_assay, subpanel, "genelist", is_active=True
-        )
-        assay_config["filters"]["genelists"].extend(assay_default_config_genelist_ids)
-
-    # Get filter settings from the sample and merge with assay config if sample does not have values
-    sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
-    sample_filters = deepcopy(sample.get("filters", {}))
-
-    # Update the sample filters with the default values from the assay config if the sample is new and does not have any filters set
     if not sample_has_filters:
         try:
-            get_web_api_client().reset_sample_filters(
-                sample_id=sample_id,
-                headers=build_forward_headers(request.headers),
-            )
+            api_client.reset_sample_filters(sample_id=sample_id, headers=headers)
+            variants_payload = _load_api_context()
+            sample = variants_payload.sample
+            sample_filters = deepcopy(variants_payload.filters)
+            checked_genelists = variants_payload.checked_genelists
+            genes_covered_in_panel = variants_payload.checked_genelists_dict
+            filter_genes = variants_payload.filter_genes
+            verification_sample_used = variants_payload.verification_sample_used
         except ApiRequestError as exc:
             app.logger.error("Failed to reset DNA filters via API for sample %s: %s", sample_id, exc)
 
@@ -132,14 +119,13 @@ def list_variants(sample_id: str) -> Response | str:
     ###########################################################################
     # Either reset sample to default filters or add the new filters from form.
     if request.method == "POST" and form.validate_on_submit():
-        _id = str(sample.get("_id"))
         # Reset filters to defaults
         if form.reset.data:
             app.logger.info(f"Resetting filters to default settings for the sample {sample_id}")
             try:
-                get_web_api_client().reset_sample_filters(
+                api_client.reset_sample_filters(
                     sample_id=sample_id,
-                    headers=build_forward_headers(request.headers),
+                    headers=headers,
                 )
             except ApiRequestError as exc:
                 app.logger.error("Failed to reset DNA filters via API for sample %s: %s", sample_id, exc)
@@ -149,35 +135,37 @@ def list_variants(sample_id: str) -> Response | str:
             if sample.get("filters", {}).get("adhoc_genes"):
                 filters_from_form["adhoc_genes"] = sample.get("filters", {}).get("adhoc_genes")
             try:
-                get_web_api_client().update_sample_filters(
+                api_client.update_sample_filters(
                     sample_id=sample_id,
                     filters=filters_from_form,
-                    headers=build_forward_headers(request.headers),
+                    headers=headers,
                 )
             except ApiRequestError as exc:
                 app.logger.error("Failed to update DNA filters via API for sample %s: %s", sample_id, exc)
 
-        ## get sample again to receive updated forms!
-        sample = store.sample_handler.get_sample_by_id(_id)
-        sample_filters = deepcopy(sample.get("filters"))
+        try:
+            variants_payload = _load_api_context()
+            sample = variants_payload.sample
+            assay_config = variants_payload.assay_config
+            assay_config_schema = variants_payload.assay_config_schema
+            assay_panel_doc = variants_payload.assay_panel_doc
+            sample_filters = deepcopy(variants_payload.filters)
+            sample_ids = variants_payload.sample_ids
+            assay_group = variants_payload.assay_group or assay_config.get("asp_group", "unknown")
+            subpanel = variants_payload.subpanel
+            analysis_sections = variants_payload.analysis_sections
+            insilico_panel_genelists = variants_payload.assay_panels
+            checked_genelists = variants_payload.checked_genelists
+            genes_covered_in_panel = variants_payload.checked_genelists_dict
+            filter_genes = variants_payload.filter_genes
+            verification_sample_used = variants_payload.verification_sample_used
+        except ApiRequestError as exc:
+            app.logger.error("DNA variant API refresh failed for sample %s: %s", sample_id, exc)
+            return Response(str(exc), status=exc.status_code or 502)
 
     ############################################################################
 
-    # Check if the sample has hidden comments
-    has_hidden_comments = store.sample_handler.hidden_sample_comments(sample.get("_id"))
-
-    # sample filters, either set, or default
-    cnv_effects = sample_filters.get("cnveffects", [])
-
-    # Get the genes covered in the panel and effective filter set of genes
-    checked_genelists = sample_filters.get("genelists", [])
-    checked_genelists_genes_dict: list[dict] = store.isgl_handler.get_isgl_by_ids(checked_genelists)
-    genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
-        sample, assay_panel_doc, checked_genelists_genes_dict
-    )
-
-    filter_conseq = get_filter_conseq_terms(sample_filters.get("vep_consequences", []))
-    filter_cnveffects = create_cnveffectlist(cnv_effects)
+    has_hidden_comments = variants_payload.hidden_comments
 
     # Add them to the form and update with the requested settings
     form_data = deepcopy(sample_filters)
@@ -191,43 +179,18 @@ def list_variants(sample_id: str) -> Response | str:
     )
     form.process(data=form_data)
 
-    # this is in config, but needs to be tested (2024-05-14) with a HD-sample of relevant name
-    disp_pos = []
-    verification_sample_used = None
-    if assay_config.get("verification_samples"):
-        verification_samples = assay_config.get("verification_samples")
-        for veri_key, veri_value in verification_samples.items():
-            if veri_key in sample["name"]:
-                disp_pos = verification_samples[veri_key]
-                verification_sample_used = veri_key
-
-    ## SNV FILTRATION STARTS HERE ! ##
-    ##################################
-    ## The query should really be constructed according to some configured rules for a specific assay
-    try:
-        api_payload = get_web_api_client().get_dna_variants(
-            sample_id=sample_id,
-            headers=build_forward_headers(request.headers),
-        )
-        variants = api_payload.variants
-        tiered_variants = api_payload.meta.get("tiered", [])
-        app.logger.info("Loaded DNA variant list from API service for sample %s", sample_id)
-    except ApiRequestError as exc:
-        app.logger.error("DNA variant API fetch failed for sample %s: %s", sample_id, exc)
-        return Response(str(exc), status=exc.status_code or 502)
+    variants = variants_payload.variants
+    tiered_variants = variants_payload.meta.get("tiered", [])
 
     summary_sections_data["snvs"] = tiered_variants
 
     display_sections_data["snvs"] = deepcopy(variants)
 
-    ### SNV FILTRATION ENDS HERE ###
-
-    ## GET Other sections CNVs TRANSLOCS and OTHER BIOMARKERS ##
     if "CNV" in analysis_sections:
         try:
-            cnv_payload = get_web_api_client().get_dna_cnvs(
+            cnv_payload = api_client.get_dna_cnvs(
                 sample_id=sample_id,
-                headers=build_forward_headers(request.headers),
+                headers=headers,
             )
             cnvs = cnv_payload.cnvs
             app.logger.info("Loaded DNA CNV list from API service for sample %s", sample_id)
@@ -239,16 +202,20 @@ def list_variants(sample_id: str) -> Response | str:
         summary_sections_data["cnvs"] = [cnv for cnv in cnvs if cnv.get("interesting")]
 
     if "BIOMARKER" in analysis_sections:
-        display_sections_data["biomarkers"] = list(
-            store.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"]))
-        )
+        try:
+            biomarker_payload = api_client.get_dna_biomarkers(sample_id=sample_id, headers=headers)
+            display_sections_data["biomarkers"] = biomarker_payload.biomarkers
+            app.logger.info("Loaded DNA biomarker list from API service for sample %s", sample_id)
+        except ApiRequestError as exc:
+            app.logger.error("DNA biomarker API fetch failed for sample %s: %s", sample_id, exc)
+            return Response(str(exc), status=exc.status_code or 502)
         summary_sections_data["biomarkers"] = display_sections_data["biomarkers"]
 
     if "TRANSLOCATION" in analysis_sections:
         try:
-            transloc_payload = get_web_api_client().get_dna_translocations(
+            transloc_payload = api_client.get_dna_translocations(
                 sample_id=sample_id,
-                headers=build_forward_headers(request.headers),
+                headers=headers,
             )
             translocs = transloc_payload.translocations
             app.logger.info("Loaded DNA translocation list from API service for sample %s", sample_id)
@@ -264,40 +231,18 @@ def list_variants(sample_id: str) -> Response | str:
             transloc for transloc in display_sections_data.get("translocs", []) if transloc.get("interesting")
         ]
 
-    #################################################
-
     # this is to allow old samples to view plots, cnv + cnvprofile clash. Old assays used cnv as the entry for the plot, newer assays use cnv for path to cnv-file that was loaded.
     if "cnv" in sample:
         if sample["cnv"].lower().endswith((".png", ".jpg", ".jpeg")):
             sample["cnvprofile"] = sample["cnv"]
 
-    # Get bams
-    bam_id = store.bam_service_handler.get_bams(sample_ids)
-
-    # Get Vep Meta data
-    vep_variant_class_meta = store.vep_meta_handler.get_variant_class_translations(
-        sample.get("vep", 103)
-    )
-    vep_conseq_meta = store.vep_meta_handler.get_conseq_translations(sample.get("vep", 103))
-
-    # Oncokb information
-    oncokb_genes = []
-    for variant in variants:
-        oncokb_gene = store.oncokb_handler.get_oncokb_action_gene(
-            variant["INFO"]["selected_CSQ"]["SYMBOL"]
-        )
-        if oncokb_gene and "Hugo Symbol" in oncokb_gene:
-            name = oncokb_gene["Hugo Symbol"]
-            if name not in oncokb_genes:
-                oncokb_genes.append(name)
+    bam_id = variants_payload.bam_id
+    vep_variant_class_meta = variants_payload.vep_var_class_translations
+    vep_conseq_meta = variants_payload.vep_conseq_translations
+    oncokb_genes = variants_payload.oncokb_genes
 
     app.logger.info(f"oncokb_selected_genes : {oncokb_genes} ")
 
-    ######## TODO: AI TEXT ##############
-    ## "AI"-text depending on what analysis has been done. Add translocs and cnvs if marked as interesting (HRD and MSI?)
-    ## SNVs, non-optional. Though only has rules for PARP + myeloid and solid
-    ai_text = ""
-    conclusion = ""
     ai_text = generate_summary_text(
         sample_ids,
         assay_config,

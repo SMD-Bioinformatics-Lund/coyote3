@@ -2,6 +2,7 @@
 
 from coyote_web.api_models.base import ApiMutationResultPayload
 from coyote_web.api_models.dna import (
+    ApiDnaBiomarkersPayload,
     ApiDnaCnvsPayload,
     ApiDnaCnvDetailPayload,
     ApiDnaReportPreviewPayload,
@@ -20,6 +21,7 @@ from coyote_web.api_models.rna import (
 
 __all__ = [
     "ApiMutationResultPayload",
+    "ApiDnaBiomarkersPayload",
     "ApiDnaCnvsPayload",
     "ApiDnaCnvDetailPayload",
     "ApiDnaReportPreviewPayload",
