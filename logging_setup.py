@@ -8,8 +8,7 @@ import logging.config
 from logging.handlers import TimedRotatingFileHandler, QueueHandler, QueueListener
 from datetime import datetime, timedelta
 from typing import Any, Dict, Literal
-from flask import request, has_request_context
-from flask_login import current_user
+from flask import request, has_request_context, session
 from pathlib import Path
 from gunicorn import glogging
 import queue
@@ -40,7 +39,9 @@ class RequestFilter(logging.Filter):
         if has_request_context():
             record.remote_addr = request.remote_addr or "N/A"
             record.host = request.host or "N/A"
-            record.user = current_user.username if current_user.is_authenticated else "-"
+            # Avoid touching flask-login's lazy `current_user` here: it can trigger
+            # user loading and nested API calls while logging transport internals.
+            record.user = str(session.get("_user_id") or "-")
         else:
             record.remote_addr = "N/A"
             record.host = "N/A"
