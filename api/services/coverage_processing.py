@@ -9,60 +9,70 @@ from coyote.extensions import store
 
 class CoverageProcessingService:
     @staticmethod
+    def _genes_map(cov: dict | None) -> dict:
+        if not isinstance(cov, dict):
+            return {}
+        genes = cov.get("genes")
+        return genes if isinstance(genes, dict) else {}
+
+    @staticmethod
     def find_low_covered_genes(cov: dict, cutoff: float, smp_grp: str) -> dict:
         keep = defaultdict(dict)
-        for gene in cov["genes"]:
+        genes = CoverageProcessingService._genes_map(cov)
+        for gene, gene_cov in genes.items():
             has_low = False
-            if "CDS" in cov["genes"][gene]:
+            if "CDS" in gene_cov:
                 has_low = CoverageProcessingService.reg_low(
-                    cov["genes"][gene]["CDS"], "CDS", cutoff, gene, smp_grp
+                    gene_cov["CDS"], "CDS", cutoff, gene, smp_grp
                 )
-            if "probes" in cov["genes"][gene]:
+            if "probes" in gene_cov:
                 has_low = CoverageProcessingService.reg_low(
-                    cov["genes"][gene]["probes"],
+                    gene_cov["probes"],
                     "probe",
                     cutoff,
                     gene,
                     smp_grp,
                 )
             if has_low:
-                keep["genes"][gene] = cov["genes"][gene]
+                keep["genes"][gene] = gene_cov
         return keep
 
     @staticmethod
     def organize_data_for_d3(filtered_dict: dict) -> dict:
-        for gene in filtered_dict["genes"]:
-            if "exons" in filtered_dict["genes"][gene]:
+        genes = CoverageProcessingService._genes_map(filtered_dict)
+        for gene, gene_cov in genes.items():
+            if "exons" in gene_cov:
                 exons = []
-                for exon in filtered_dict["genes"][gene]["exons"]:
-                    exons.append(filtered_dict["genes"][gene]["exons"][exon])
-                filtered_dict["genes"][gene]["exons"] = exons
+                for exon in gene_cov["exons"]:
+                    exons.append(gene_cov["exons"][exon])
+                gene_cov["exons"] = exons
             else:
-                filtered_dict["genes"][gene]["exons"] = []
-            if "CDS" in filtered_dict["genes"][gene]:
+                gene_cov["exons"] = []
+            if "CDS" in gene_cov:
                 cds = []
-                for exon in filtered_dict["genes"][gene]["CDS"]:
-                    cds.append(filtered_dict["genes"][gene]["CDS"][exon])
-                filtered_dict["genes"][gene]["CDS"] = cds
+                for exon in gene_cov["CDS"]:
+                    cds.append(gene_cov["CDS"][exon])
+                gene_cov["CDS"] = cds
             else:
-                filtered_dict["genes"][gene]["CDS"] = []
-            if "probes" in filtered_dict["genes"][gene]:
+                gene_cov["CDS"] = []
+            if "probes" in gene_cov:
                 probes = []
-                for probe in filtered_dict["genes"][gene]["probes"]:
-                    probes.append(filtered_dict["genes"][gene]["probes"][probe])
-                filtered_dict["genes"][gene]["probes"] = probes
+                for probe in gene_cov["probes"]:
+                    probes.append(gene_cov["probes"][probe])
+                gene_cov["probes"] = probes
             else:
-                filtered_dict["genes"][gene]["probes"] = []
+                gene_cov["probes"] = []
 
         return filtered_dict
 
     @staticmethod
     def filter_genes_from_form(cov_dict: dict, filter_genes: list, smp_grp: str) -> dict:
         filtered_dict = defaultdict(dict)
-        for gene in cov_dict["genes"]:
+        genes = CoverageProcessingService._genes_map(cov_dict)
+        for gene, gene_cov in genes.items():
             blacklisted = store.groupcov_handler.is_gene_blacklisted(gene, smp_grp)
             if gene in filter_genes and not blacklisted:
-                filtered_dict["genes"][gene] = cov_dict["genes"][gene]
+                filtered_dict["genes"][gene] = gene_cov
         return filtered_dict
 
     @staticmethod
@@ -78,12 +88,12 @@ class CoverageProcessingService:
     @staticmethod
     def coverage_table(cov_dict: dict, cov_cutoff: float) -> defaultdict:
         cov_table = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
-        for gene in cov_dict["genes"]:
-            gene_cov = cov_dict["genes"][gene]
+        genes = CoverageProcessingService._genes_map(cov_dict)
+        for gene, gene_cov in genes.items():
             if "probes" in gene_cov:
                 for probe in gene_cov["probes"]:
                     exons = CoverageProcessingService.assign_to_exon(probe, gene_cov)
-                    cov_dict["genes"][gene]["probes"][probe]["exon_nr"] = exons
+                    gene_cov["probes"][probe]["exon_nr"] = exons
                     if len(exons) > 0:
                         for exon in exons:
                             if float(exon["cov"]) < cov_cutoff or float(gene_cov["probes"][probe]["cov"]) < cov_cutoff:
@@ -100,6 +110,8 @@ class CoverageProcessingService:
     @staticmethod
     def assign_to_exon(probe: str, gene_cov: dict) -> list:
         exons = []
+        if "CDS" not in gene_cov or "probes" not in gene_cov or probe not in gene_cov["probes"]:
+            return exons
         for exon in gene_cov["CDS"]:
             p_start = int(gene_cov["probes"][probe]["start"])
             p_end = int(gene_cov["probes"][probe]["end"])

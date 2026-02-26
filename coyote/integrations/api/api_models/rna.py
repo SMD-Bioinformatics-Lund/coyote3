@@ -29,11 +29,11 @@ class ApiRnaFusionsPayload(ApiModel):
 class ApiRnaFusionDetailPayload(ApiModel):
     sample: JsonDict
     fusion: JsonDict
-    annotations: JsonDict = Field(default_factory=dict)
+    annotations: list[JsonDict] | JsonDict = Field(default_factory=list)
     latest_classification: JsonDict = Field(default_factory=dict)
     other_classifications: list[JsonDict] = Field(default_factory=list)
-    annotations_interesting: JsonDict = Field(default_factory=dict)
-    in_other: JsonDict = Field(default_factory=dict)
+    annotations_interesting: list[JsonDict] | JsonDict = Field(default_factory=list)
+    in_other: list[JsonDict] | JsonDict = Field(default_factory=list)
     hidden_comments: bool = False
     assay_group: str = ""
     subpanel: str | None = None

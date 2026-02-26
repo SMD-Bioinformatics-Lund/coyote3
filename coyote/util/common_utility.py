@@ -896,22 +896,70 @@ class CommonUtility:
             config = {}
         if schema is None:
             schema = {}
-        filter_keys = schema.get("sections", {}).get("filters", [])
-        report_keys = schema.get("sections", {}).get("reporting", [])
+        sections = schema.get("sections", {})
+        filter_section = sections.get("filters", {})
+        report_section = sections.get("reporting", {})
+
+        def section_keys_and_defaults(section_obj):
+            keys = []
+            defaults = {}
+            if isinstance(section_obj, dict):
+                keys = list(section_obj.keys())
+                for key, value in section_obj.items():
+                    defaults[key] = value.get("default") if isinstance(value, dict) else None
+            elif isinstance(section_obj, list):
+                for item in section_obj:
+                    if isinstance(item, str):
+                        keys.append(item)
+                        defaults[item] = None
+                        continue
+                    if isinstance(item, dict):
+                        key = (
+                            item.get("key")
+                            or item.get("id")
+                            or item.get("_id")
+                            or item.get("name")
+                            or item.get("field")
+                        )
+                        if not key:
+                            continue
+                        key = str(key)
+                        keys.append(key)
+                        defaults[key] = item.get("default")
+            return keys, defaults
+
+        filter_keys, filter_defaults = section_keys_and_defaults(filter_section)
+        report_keys, report_defaults = section_keys_and_defaults(report_section)
+
+        existing_filters = config.pop("filters", {})
+        existing_report = config.pop("reporting", {})
+        if not isinstance(existing_filters, dict):
+            existing_filters = {}
+        if not isinstance(existing_report, dict):
+            existing_report = {}
 
         config_filters = {}
         config_report = {}
         for key in filter_keys:
             if key in config:
                 config_filters[key] = config.pop(key)
+            elif key in existing_filters:
+                config_filters[key] = existing_filters.get(key)
             else:
-                config_filters[key] = schema["sections"]["filters"][key].get("default")
+                config_filters[key] = filter_defaults.get(key)
 
         for key in report_keys:
             if key in config:
                 config_report[key] = config.pop(key)
+            elif key in existing_report:
+                config_report[key] = existing_report.get(key)
             else:
-                config_report[key] = schema["sections"]["reporting"][key].get("default")
+                config_report[key] = report_defaults.get(key)
+
+        for key, value in existing_filters.items():
+            config_filters.setdefault(key, value)
+        for key, value in existing_report.items():
+            config_report.setdefault(key, value)
 
         config["filters"] = config_filters
         config["reporting"] = config_report
@@ -938,7 +986,24 @@ class CommonUtility:
         if hasattr(form_data, "__iter__") and not isinstance(form_data, dict):
             form_data = {field.name: field.data for field in form_data}
 
-        fields = assay_config_schema.get("sections", {}).get("filters", [])
+        fields_raw = assay_config_schema.get("sections", {}).get("filters", [])
+        fields = []
+        if isinstance(fields_raw, dict):
+            fields = list(fields_raw.keys())
+        elif isinstance(fields_raw, list):
+            for item in fields_raw:
+                if isinstance(item, str):
+                    fields.append(item)
+                elif isinstance(item, dict):
+                    key = (
+                        item.get("key")
+                        or item.get("id")
+                        or item.get("_id")
+                        or item.get("name")
+                        or item.get("field")
+                    )
+                    if key:
+                        fields.append(str(key))
 
         filters = {}
         (
