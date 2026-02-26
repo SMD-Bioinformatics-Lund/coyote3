@@ -15,6 +15,9 @@ from coyote_web.api_models import (
     ApiAdminRoleContextPayload,
     ApiAdminRoleCreateContextPayload,
     ApiAdminRolesPayload,
+    ApiAdminUserContextPayload,
+    ApiAdminUserCreateContextPayload,
+    ApiAdminUsersPayload,
     ApiMutationResultPayload,
     ApiDnaBiomarkersPayload,
     ApiDnaCnvsPayload,
@@ -734,6 +737,30 @@ class CoyoteApiClient:
             json_body={"schema_id": schema_id, "form_data": form_data},
         )
         return ApiMutationResultPayload.model_validate(payload)
+
+    def get_admin_users(
+        self,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminUsersPayload:
+        payload = self._get("/api/v1/admin/users", headers=headers)
+        return ApiAdminUsersPayload.model_validate(payload)
+
+    def get_admin_user_create_context(
+        self,
+        schema_id: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminUserCreateContextPayload:
+        params = {"schema_id": schema_id} if schema_id else None
+        payload = self._get("/api/v1/admin/users/create_context", headers=headers, params=params)
+        return ApiAdminUserCreateContextPayload.model_validate(payload)
+
+    def get_admin_user_context(
+        self,
+        user_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminUserContextPayload:
+        payload = self._get(f"/api/v1/admin/users/{user_id}/context", headers=headers)
+        return ApiAdminUserContextPayload.model_validate(payload)
 
     def update_admin_user(
         self,

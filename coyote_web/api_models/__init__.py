@@ -8,6 +8,9 @@ from coyote_web.api_models.admin import (
     ApiAdminRoleContextPayload,
     ApiAdminRoleCreateContextPayload,
     ApiAdminRolesPayload,
+    ApiAdminUserContextPayload,
+    ApiAdminUserCreateContextPayload,
+    ApiAdminUsersPayload,
 )
 from coyote_web.api_models.dna import (
     ApiDnaBiomarkersPayload,
@@ -35,6 +38,9 @@ __all__ = [
     "ApiAdminPermissionsPayload",
     "ApiAdminPermissionCreateContextPayload",
     "ApiAdminPermissionContextPayload",
+    "ApiAdminUsersPayload",
+    "ApiAdminUserCreateContextPayload",
+    "ApiAdminUserContextPayload",
     "ApiDnaBiomarkersPayload",
     "ApiDnaCnvsPayload",
     "ApiDnaCnvDetailPayload",

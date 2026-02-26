@@ -31,6 +31,23 @@ def _permission_policy_options() -> list[dict]:
     ]
 
 
+def _role_map() -> dict[str, dict]:
+    all_roles = store.roles_handler.get_all_roles()
+    return {
+        role["_id"]: {
+            "permissions": role.get("permissions", []),
+            "deny_permissions": role.get("deny_permissions", []),
+            "level": role.get("level", 0),
+        }
+        for role in all_roles
+    }
+
+
+def _assay_group_map() -> dict[str, list[dict]]:
+    assay_groups_panels = store.asp_handler.get_all_asps()
+    return util.common.create_assay_group_map(assay_groups_panels)
+
+
 @app.get("/api/v1/admin/roles")
 def list_roles_read(
     user: ApiUser = Depends(require_access(permission="view_role", min_role="admin", min_level=99999)),
@@ -376,6 +393,94 @@ def delete_role_mutation(
     store.roles_handler.delete_role(role_id)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="role", resource_id=role_id, action="delete")
+    )
+
+
+@app.get("/api/v1/admin/users")
+def list_users_read(
+    user: ApiUser = Depends(require_access(permission="view_user", min_role="admin", min_level=99999)),
+):
+    users = store.user_handler.get_all_users()
+    roles = store.roles_handler.get_role_colors()
+    return util.common.convert_to_serializable(
+        {
+            "users": users,
+            "roles": roles,
+        }
+    )
+
+
+@app.get("/api/v1/admin/users/create_context")
+def create_user_context_read(
+    schema_id: str | None = Query(default=None),
+    user: ApiUser = Depends(require_access(permission="create_user", min_role="admin", min_level=99999)),
+):
+    active_schemas = store.schema_handler.get_schemas_by_category_type(
+        schema_type="rbac_user",
+        schema_category="RBAC_user",
+        is_active=True,
+    )
+    if not active_schemas:
+        raise _api_error(400, "No active user schemas found")
+
+    selected_id = schema_id or active_schemas[0]["_id"]
+    selected_schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+    if not selected_schema:
+        raise _api_error(404, "User schema not found")
+
+    schema = deepcopy(selected_schema)
+    schema["fields"]["role"]["options"] = store.roles_handler.get_all_role_names()
+    options = _permission_policy_options()
+    schema["fields"]["permissions"]["options"] = options
+    schema["fields"]["deny_permissions"]["options"] = options
+    schema["fields"]["assay_groups"]["options"] = store.asp_handler.get_all_asp_groups()
+    schema["fields"]["created_by"]["default"] = user.username
+    schema["fields"]["created_on"]["default"] = util.common.utc_now()
+    schema["fields"]["updated_by"]["default"] = user.username
+    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
+
+    return util.common.convert_to_serializable(
+        {
+            "schemas": active_schemas,
+            "selected_schema": selected_schema,
+            "schema": schema,
+            "role_map": _role_map(),
+            "assay_group_map": _assay_group_map(),
+        }
+    )
+
+
+@app.get("/api/v1/admin/users/{user_id}/context")
+def user_context_read(
+    user_id: str,
+    user: ApiUser = Depends(require_access(permission="view_user", min_role="admin", min_level=99999)),
+):
+    user_doc = store.user_handler.user_with_id(user_id)
+    if not user_doc:
+        raise _api_error(404, "User not found")
+
+    schema = store.schema_handler.get_schema(user_doc.get("schema_name"))
+    if not schema:
+        raise _api_error(404, "Schema not found for user")
+
+    schema = deepcopy(schema)
+    schema["fields"]["role"]["options"] = store.roles_handler.get_all_role_names()
+    options = _permission_policy_options()
+    schema["fields"]["permissions"]["options"] = options
+    schema["fields"]["deny_permissions"]["options"] = options
+    schema["fields"]["permissions"]["default"] = user_doc.get("permissions")
+    schema["fields"]["deny_permissions"]["default"] = user_doc.get("deny_permissions")
+    schema["fields"]["assay_groups"]["options"] = store.asp_handler.get_all_asp_groups()
+    schema["fields"]["assay_groups"]["default"] = user_doc.get("assay_groups", [])
+    schema["fields"]["assays"]["default"] = user_doc.get("assays", [])
+
+    return util.common.convert_to_serializable(
+        {
+            "user_doc": user_doc,
+            "schema": schema,
+            "role_map": _role_map(),
+            "assay_group_map": _assay_group_map(),
+        }
     )
 
 
