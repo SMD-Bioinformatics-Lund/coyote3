@@ -348,6 +348,101 @@ def delete_permission_mutation(
     )
 
 
+@app.post("/api/v1/admin/roles/create")
+def create_role_mutation(
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="create_role", min_role="admin", min_level=99999)),
+):
+    active_schemas = store.schema_handler.get_schemas_by_category_type(
+        schema_type="rbac_role",
+        schema_category="RBAC_role",
+        is_active=True,
+    )
+    if not active_schemas:
+        raise _api_error(400, "No active role schemas found")
+    selected_id = payload.get("schema_id") or active_schemas[0]["_id"]
+    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+    if not schema:
+        raise _api_error(404, "Selected schema not found")
+
+    form_data = payload.get("form_data", {})
+    role = util.admin.process_form_to_config(form_data, schema)
+    role["_id"] = role.get("name")
+    role["schema_name"] = schema["_id"]
+    role["schema_version"] = schema["version"]
+    role = util.admin.inject_version_history(
+        user_email=user.username,
+        new_config=deepcopy(role),
+        is_new=True,
+    )
+    store.roles_handler.create_role(role)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="role", resource_id=role["_id"], action="create")
+    )
+
+
+@app.post("/api/v1/admin/roles/{role_id}/update")
+def update_role_mutation(
+    role_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="edit_role", min_role="admin", min_level=99999)),
+):
+    role = store.roles_handler.get_role(role_id)
+    if not role:
+        raise _api_error(404, "Role not found")
+    schema = store.schema_handler.get_schema(role.get("schema_name"))
+    if not schema:
+        raise _api_error(404, "Schema not found for role")
+
+    form_data = payload.get("form_data", {})
+    updated_role = util.admin.process_form_to_config(form_data, schema)
+    updated_role["updated_by"] = user.username
+    updated_role["updated_on"] = util.common.utc_now()
+    updated_role["schema_name"] = schema["_id"]
+    updated_role["schema_version"] = schema["version"]
+    updated_role["version"] = role.get("version", 1) + 1
+    updated_role["_id"] = role.get("_id")
+    updated_role = util.admin.inject_version_history(
+        user_email=user.username,
+        new_config=updated_role,
+        old_config=role,
+        is_new=False,
+    )
+    store.roles_handler.update_role(role_id, updated_role)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="role", resource_id=role_id, action="update")
+    )
+
+
+@app.post("/api/v1/admin/roles/{role_id}/toggle")
+def toggle_role_mutation(
+    role_id: str,
+    user: ApiUser = Depends(require_access(permission="edit_role", min_role="admin", min_level=99999)),
+):
+    role = store.roles_handler.get(role_id)
+    if not role:
+        raise _api_error(404, "Role not found")
+    new_status = not role.get("is_active", False)
+    store.roles_handler.toggle_role_active(role_id, new_status)
+    result = _mutation_payload("admin", resource="role", resource_id=role_id, action="toggle")
+    result["meta"]["is_active"] = new_status
+    return util.common.convert_to_serializable(result)
+
+
+@app.post("/api/v1/admin/roles/{role_id}/delete")
+def delete_role_mutation(
+    role_id: str,
+    user: ApiUser = Depends(require_access(permission="delete_role", min_role="admin", min_level=99999)),
+):
+    role = store.roles_handler.get_role(role_id)
+    if not role:
+        raise _api_error(404, "Role not found")
+    store.roles_handler.delete_role(role_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="role", resource_id=role_id, action="delete")
+    )
+
+
 @app.post("/api/v1/admin/schemas/create")
 def create_schema_mutation(
     payload: dict = Body(default_factory=dict),
