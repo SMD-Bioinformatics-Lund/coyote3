@@ -49,25 +49,25 @@ class ApiDnaBiomarkersPayload(ApiModel):
 class ApiDnaVariantDetailPayload(ApiModel):
     sample: JsonDict
     variant: JsonDict
-    in_other: JsonDict = Field(default_factory=dict)
-    annotations: JsonDict = Field(default_factory=dict)
+    in_other: list[JsonDict] = Field(default_factory=list)
+    annotations: list[JsonDict] | JsonDict = Field(default_factory=list)
     hidden_comments: bool = False
     latest_classification: JsonDict = Field(default_factory=dict)
-    expression: list[JsonDict] = Field(default_factory=list)
-    civic: JsonDict | None = None
-    civic_gene: JsonDict | None = None
-    oncokb: JsonDict | None = None
+    expression: JsonDict | list[JsonDict] = Field(default_factory=dict)
+    civic: Any | None = None
+    civic_gene: Any | None = None
+    oncokb: Any | None = None
     oncokb_action: Any | None = None
-    oncokb_gene: JsonDict | None = None
-    brca_exchange: JsonDict | None = None
-    iarc_tp53: JsonDict | None = None
+    oncokb_gene: Any | None = None
+    brca_exchange: Any | None = None
+    iarc_tp53: Any | None = None
     assay_group: str = ""
     pon: JsonDict | None = None
     other_classifications: list[JsonDict] = Field(default_factory=list)
     subpanel: str | None = None
-    sample_ids: list[str] = Field(default_factory=list)
+    sample_ids: JsonDict | list[str] = Field(default_factory=dict)
     bam_id: JsonDict = Field(default_factory=dict)
-    annotations_interesting: JsonDict = Field(default_factory=dict)
+    annotations_interesting: list[JsonDict] | JsonDict = Field(default_factory=list)
     vep_var_class_translations: JsonDict = Field(default_factory=dict)
     vep_conseq_translations: JsonDict = Field(default_factory=dict)
     assay_group_mappings: JsonDict = Field(default_factory=dict)
@@ -77,8 +77,8 @@ class ApiDnaCnvDetailPayload(ApiModel):
     sample: JsonDict
     cnv: JsonDict
     assay_group: str = ""
-    annotations: JsonDict = Field(default_factory=dict)
-    sample_ids: list[str] = Field(default_factory=list)
+    annotations: list[JsonDict] | JsonDict = Field(default_factory=list)
+    sample_ids: JsonDict | list[str] = Field(default_factory=dict)
     bam_id: JsonDict = Field(default_factory=dict)
     hidden_comments: bool = False
 
@@ -87,7 +87,8 @@ class ApiDnaTranslocationDetailPayload(ApiModel):
     sample: JsonDict
     translocation: JsonDict
     assay_group: str = ""
-    annotations: JsonDict = Field(default_factory=dict)
+    annotations: list[JsonDict] | JsonDict = Field(default_factory=list)
+    sample_ids: JsonDict | list[str] = Field(default_factory=dict)
     bam_id: JsonDict = Field(default_factory=dict)
     vep_conseq_translations: JsonDict = Field(default_factory=dict)
     hidden_comments: bool = False
