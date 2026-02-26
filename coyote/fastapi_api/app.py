@@ -454,6 +454,105 @@ def show_rna_fusion(sample_id: str, fusion_id: str, user: ApiUser = Depends(requ
     return util.common.convert_to_serializable(payload)
 
 
+@app.post("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/fp")
+def mark_false_positive_fusion(
+    sample_id: str,
+    fusion_id: str,
+    user: ApiUser = Depends(require_access(min_level=1)),
+):
+    _get_sample_for_api(sample_id, user)
+    store.fusion_handler.mark_false_positive_fusion(fusion_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="fusion", resource_id=fusion_id, action="mark_false_positive")
+    )
+
+
+@app.post("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/unfp")
+def unmark_false_positive_fusion(
+    sample_id: str,
+    fusion_id: str,
+    user: ApiUser = Depends(require_access(min_level=1)),
+):
+    _get_sample_for_api(sample_id, user)
+    store.fusion_handler.unmark_false_positive_fusion(fusion_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="fusion", resource_id=fusion_id, action="unmark_false_positive")
+    )
+
+
+@app.post("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/pick/{callidx}/{num_calls}")
+def pick_fusion_call(
+    sample_id: str,
+    fusion_id: str,
+    callidx: str,
+    num_calls: str,
+    user: ApiUser = Depends(require_access(min_level=1)),
+):
+    _get_sample_for_api(sample_id, user)
+    store.fusion_handler.pick_fusion(fusion_id, callidx, num_calls)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="fusion", resource_id=fusion_id, action="pick_fusion_call")
+    )
+
+
+@app.post("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/comments/{comment_id}/hide")
+def hide_fusion_comment(
+    sample_id: str,
+    fusion_id: str,
+    comment_id: str,
+    user: ApiUser = Depends(require_access(min_level=1)),
+):
+    _get_sample_for_api(sample_id, user)
+    store.fusion_handler.hide_fus_comment(fusion_id, comment_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="fusion_comment", resource_id=comment_id, action="hide")
+    )
+
+
+@app.post("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/comments/{comment_id}/unhide")
+def unhide_fusion_comment(
+    sample_id: str,
+    fusion_id: str,
+    comment_id: str,
+    user: ApiUser = Depends(require_access(min_level=1)),
+):
+    _get_sample_for_api(sample_id, user)
+    store.fusion_handler.unhide_fus_comment(fusion_id, comment_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="fusion_comment", resource_id=comment_id, action="unhide")
+    )
+
+
+@app.post("/api/v1/rna/samples/{sample_id}/fusions/bulk/fp")
+def set_fusion_false_positive_bulk(
+    sample_id: str,
+    apply: bool = Query(default=True),
+    fusion_ids: list[str] = Query(default_factory=list),
+    user: ApiUser = Depends(require_access(min_level=1)),
+):
+    _get_sample_for_api(sample_id, user)
+    if fusion_ids:
+        store.fusion_handler.mark_false_positive_bulk(fusion_ids, apply)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="fusion_bulk", resource_id="bulk", action="set_false_positive_bulk")
+    )
+
+
+@app.post("/api/v1/rna/samples/{sample_id}/fusions/bulk/irrelevant")
+def set_fusion_irrelevant_bulk(
+    sample_id: str,
+    apply: bool = Query(default=True),
+    fusion_ids: list[str] = Query(default_factory=list),
+    user: ApiUser = Depends(require_access(min_level=1)),
+):
+    _get_sample_for_api(sample_id, user)
+    if fusion_ids:
+        store.fusion_handler.mark_irrelevant_bulk(fusion_ids, apply)
+    return util.common.convert_to_serializable(
+        _mutation_payload(sample_id, resource="fusion_bulk", resource_id="bulk", action="set_irrelevant_bulk")
+    )
+
+
 @app.get("/api/v1/dna/samples/{sample_id}/cnvs")
 def list_dna_cnvs(request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)

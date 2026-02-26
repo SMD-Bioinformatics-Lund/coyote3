@@ -311,6 +311,81 @@ class CoyoteApiClient:
         )
         return ApiMutationResultPayload.model_validate(payload)
 
+    def mark_rna_fusion_false_positive(
+        self, sample_id: str, fusion_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(f"/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/fp", headers=headers)
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def unmark_rna_fusion_false_positive(
+        self, sample_id: str, fusion_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/unfp",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def pick_rna_fusion_call(
+        self,
+        sample_id: str,
+        fusion_id: str,
+        callidx: str,
+        num_calls: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/pick/{callidx}/{num_calls}",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def hide_rna_fusion_comment(
+        self, sample_id: str, fusion_id: str, comment_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/comments/{comment_id}/hide",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def unhide_rna_fusion_comment(
+        self, sample_id: str, fusion_id: str, comment_id: str, headers: dict[str, str] | None = None
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/comments/{comment_id}/unhide",
+            headers=headers,
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def set_rna_fusions_false_positive_bulk(
+        self,
+        sample_id: str,
+        fusion_ids: list[str],
+        apply: bool,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/rna/samples/{sample_id}/fusions/bulk/fp",
+            headers=headers,
+            params={"apply": str(bool(apply)).lower(), "fusion_ids": fusion_ids},
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
+    def set_rna_fusions_irrelevant_bulk(
+        self,
+        sample_id: str,
+        fusion_ids: list[str],
+        apply: bool,
+        headers: dict[str, str] | None = None,
+    ) -> ApiMutationResultPayload:
+        payload = self._post(
+            f"/api/v1/rna/samples/{sample_id}/fusions/bulk/irrelevant",
+            headers=headers,
+            params={"apply": str(bool(apply)).lower(), "fusion_ids": fusion_ids},
+        )
+        return ApiMutationResultPayload.model_validate(payload)
+
 
 def get_web_api_client() -> CoyoteApiClient:
     return CoyoteApiClient(base_url=current_app.config.get("API_BASE_URL", "http://127.0.0.1:8001"))
