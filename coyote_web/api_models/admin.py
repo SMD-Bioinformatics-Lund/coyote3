@@ -103,3 +103,20 @@ class ApiAdminAspCreateContextPayload(ApiModel):
 class ApiAdminAspContextPayload(ApiModel):
     panel: JsonDict = Field(default_factory=dict)
     schema: JsonDict = Field(default_factory=dict)
+
+
+class ApiAdminAspcPayload(ApiModel):
+    assay_configs: list[JsonDict] = Field(default_factory=list)
+
+
+class ApiAdminAspcCreateContextPayload(ApiModel):
+    category: str = "DNA"
+    schemas: list[JsonDict] = Field(default_factory=list)
+    selected_schema: JsonDict = Field(default_factory=dict)
+    schema: JsonDict = Field(default_factory=dict)
+    prefill_map: JsonDict = Field(default_factory=dict)
+
+
+class ApiAdminAspcContextPayload(ApiModel):
+    assay_config: JsonDict = Field(default_factory=dict)
+    schema: JsonDict = Field(default_factory=dict)

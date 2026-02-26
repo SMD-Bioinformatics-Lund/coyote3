@@ -924,6 +924,96 @@ def delete_genelist_mutation(
     )
 
 
+@app.get("/api/v1/admin/aspc")
+def list_aspc_read(
+    user: ApiUser = Depends(require_access(permission="view_aspc", min_role="user", min_level=9)),
+):
+    assay_configs = store.aspc_handler.get_all_aspc()
+    return util.common.convert_to_serializable({"assay_configs": assay_configs})
+
+
+@app.get("/api/v1/admin/aspc/create_context")
+def create_aspc_context_read(
+    category: str = Query(default="DNA"),
+    schema_id: str | None = Query(default=None),
+    user: ApiUser = Depends(require_access(permission="create_aspc", min_role="manager", min_level=99)),
+):
+    schema_category = str(category or "DNA").upper()
+    active_schemas = store.schema_handler.get_schemas_by_category_type(
+        schema_type="asp_config",
+        schema_category=schema_category,
+        is_active=True,
+    )
+    if not active_schemas:
+        raise _api_error(400, f"No active {schema_category} schemas found")
+
+    selected_id = schema_id or active_schemas[0]["_id"]
+    selected_schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+    if not selected_schema:
+        raise _api_error(404, "Selected schema not found")
+
+    schema = deepcopy(selected_schema)
+    assay_panels = store.asp_handler.get_all_asps(is_active=True)
+    prefill_map: dict[str, dict] = {}
+    valid_assay_ids: list[str] = []
+
+    for panel in assay_panels:
+        if panel.get("asp_category") == schema_category:
+            envs = store.aspc_handler.get_available_assay_envs(
+                panel["_id"], schema["fields"]["environment"]["options"]
+            )
+            if envs:
+                valid_assay_ids.append(panel["_id"])
+                prefill_map[panel["_id"]] = {
+                    "display_name": panel.get("display_name"),
+                    "asp_group": panel.get("asp_group"),
+                    "asp_category": panel.get("asp_category"),
+                    "platform": panel.get("platform"),
+                    "environment": envs,
+                }
+
+    schema["fields"]["assay_name"]["options"] = valid_assay_ids
+    if schema_category == "DNA" and "vep_consequences" in schema.get("fields", {}):
+        schema["fields"]["vep_consequences"]["options"] = list(
+            flask_app.config.get("CONSEQ_TERMS_MAPPER", {}).keys()
+        )
+    schema["fields"]["created_by"]["default"] = user.username
+    schema["fields"]["created_on"]["default"] = util.common.utc_now()
+    schema["fields"]["updated_by"]["default"] = user.username
+    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
+
+    return util.common.convert_to_serializable(
+        {
+            "category": schema_category,
+            "schemas": active_schemas,
+            "selected_schema": selected_schema,
+            "schema": schema,
+            "prefill_map": prefill_map,
+        }
+    )
+
+
+@app.get("/api/v1/admin/aspc/{assay_id}/context")
+def aspc_context_read(
+    assay_id: str,
+    user: ApiUser = Depends(require_access(permission="view_aspc", min_role="user", min_level=9)),
+):
+    assay_config = store.aspc_handler.get_aspc_with_id(assay_id)
+    if not assay_config:
+        raise _api_error(404, "Assay config not found")
+
+    schema = store.schema_handler.get_schema(assay_config.get("schema_name"))
+    if not schema:
+        raise _api_error(404, "Schema for this assay config is missing")
+    schema = deepcopy(schema)
+    if "vep_consequences" in schema.get("fields", {}):
+        schema["fields"]["vep_consequences"]["options"] = list(
+            flask_app.config.get("CONSEQ_TERMS_MAPPER", {}).keys()
+        )
+
+    return util.common.convert_to_serializable({"assay_config": assay_config, "schema": schema})
+
+
 @app.post("/api/v1/admin/aspc/create")
 def create_aspc_mutation(
     payload: dict = Body(default_factory=dict),

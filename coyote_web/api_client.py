@@ -19,6 +19,9 @@ from coyote_web.api_models import (
     ApiAdminAspContextPayload,
     ApiAdminAspCreateContextPayload,
     ApiAdminAspPayload,
+    ApiAdminAspcContextPayload,
+    ApiAdminAspcCreateContextPayload,
+    ApiAdminAspcPayload,
     ApiAdminRoleContextPayload,
     ApiAdminRoleCreateContextPayload,
     ApiAdminRolesPayload,
@@ -1026,6 +1029,33 @@ class CoyoteApiClient:
             json_body={"config": config},
         )
         return ApiMutationResultPayload.model_validate(payload)
+
+    def get_admin_aspc(
+        self,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminAspcPayload:
+        payload = self._get("/api/v1/admin/aspc", headers=headers)
+        return ApiAdminAspcPayload.model_validate(payload)
+
+    def get_admin_aspc_create_context(
+        self,
+        category: str,
+        schema_id: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminAspcCreateContextPayload:
+        params: dict[str, Any] = {"category": category}
+        if schema_id:
+            params["schema_id"] = schema_id
+        payload = self._get("/api/v1/admin/aspc/create_context", headers=headers, params=params)
+        return ApiAdminAspcCreateContextPayload.model_validate(payload)
+
+    def get_admin_aspc_context(
+        self,
+        assay_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminAspcContextPayload:
+        payload = self._get(f"/api/v1/admin/aspc/{assay_id}/context", headers=headers)
+        return ApiAdminAspcContextPayload.model_validate(payload)
 
     def update_admin_aspc(
         self,
