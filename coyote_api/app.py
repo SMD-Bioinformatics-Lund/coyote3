@@ -348,6 +348,72 @@ def delete_permission_mutation(
     )
 
 
+@app.post("/api/v1/admin/schemas/create")
+def create_schema_mutation(
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="create_schema", min_role="developer", min_level=9999)),
+):
+    schema_doc = payload.get("schema", {})
+    schema_doc["_id"] = schema_doc.get("schema_name")
+    schema_doc["created_on"] = util.common.utc_now()
+    schema_doc["created_by"] = user.username
+    schema_doc["updated_on"] = util.common.utc_now()
+    schema_doc["updated_by"] = user.username
+    store.schema_handler.create_schema(schema_doc)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="schema", resource_id=schema_doc["_id"], action="create")
+    )
+
+
+@app.post("/api/v1/admin/schemas/{schema_id}/update")
+def update_schema_mutation(
+    schema_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="edit_schema", min_role="developer", min_level=9999)),
+):
+    schema_doc = store.schema_handler.get_schema(schema_id)
+    if not schema_doc:
+        raise _api_error(404, "Schema not found")
+    updated_schema = payload.get("schema", {})
+    updated_schema["_id"] = schema_doc["_id"]
+    updated_schema["updated_on"] = util.common.utc_now()
+    updated_schema["updated_by"] = user.username
+    updated_schema["version"] = schema_doc.get("version", 1) + 1
+    store.schema_handler.update_schema(schema_id, updated_schema)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="schema", resource_id=schema_id, action="update")
+    )
+
+
+@app.post("/api/v1/admin/schemas/{schema_id}/toggle")
+def toggle_schema_mutation(
+    schema_id: str,
+    user: ApiUser = Depends(require_access(permission="edit_schema", min_role="developer", min_level=9999)),
+):
+    schema_doc = store.schema_handler.get_schema(schema_id)
+    if not schema_doc:
+        raise _api_error(404, "Schema not found")
+    new_status = not schema_doc.get("is_active", False)
+    store.schema_handler.toggle_schema_active(schema_id, new_status)
+    result = _mutation_payload("admin", resource="schema", resource_id=schema_id, action="toggle")
+    result["meta"]["is_active"] = new_status
+    return util.common.convert_to_serializable(result)
+
+
+@app.post("/api/v1/admin/schemas/{schema_id}/delete")
+def delete_schema_mutation(
+    schema_id: str,
+    user: ApiUser = Depends(require_access(permission="delete_schema", min_role="admin", min_level=99999)),
+):
+    schema_doc = store.schema_handler.get_schema(schema_id)
+    if not schema_doc:
+        raise _api_error(404, "Schema not found")
+    store.schema_handler.delete_schema(schema_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="schema", resource_id=schema_id, action="delete")
+    )
+
+
 @app.get("/api/v1/dna/samples/{sample_id}/variants")
 def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
