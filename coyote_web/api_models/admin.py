@@ -56,3 +56,11 @@ class ApiAdminUserContextPayload(ApiModel):
     schema: JsonDict = Field(default_factory=dict)
     role_map: JsonDict = Field(default_factory=dict)
     assay_group_map: JsonDict = Field(default_factory=dict)
+
+
+class ApiAdminSchemasPayload(ApiModel):
+    schemas: list[JsonDict] = Field(default_factory=list)
+
+
+class ApiAdminSchemaContextPayload(ApiModel):
+    schema: JsonDict = Field(default_factory=dict)

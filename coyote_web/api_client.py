@@ -15,6 +15,8 @@ from coyote_web.api_models import (
     ApiAdminRoleContextPayload,
     ApiAdminRoleCreateContextPayload,
     ApiAdminRolesPayload,
+    ApiAdminSchemaContextPayload,
+    ApiAdminSchemasPayload,
     ApiAdminUserContextPayload,
     ApiAdminUserCreateContextPayload,
     ApiAdminUsersPayload,
@@ -629,6 +631,21 @@ class CoyoteApiClient:
             json_body={"schema": schema_doc},
         )
         return ApiMutationResultPayload.model_validate(payload)
+
+    def get_admin_schemas(
+        self,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminSchemasPayload:
+        payload = self._get("/api/v1/admin/schemas", headers=headers)
+        return ApiAdminSchemasPayload.model_validate(payload)
+
+    def get_admin_schema_context(
+        self,
+        schema_id: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAdminSchemaContextPayload:
+        payload = self._get(f"/api/v1/admin/schemas/{schema_id}/context", headers=headers)
+        return ApiAdminSchemaContextPayload.model_validate(payload)
 
     def update_admin_schema(
         self,

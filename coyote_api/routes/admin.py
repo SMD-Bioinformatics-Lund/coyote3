@@ -886,6 +886,25 @@ def create_schema_mutation(
     )
 
 
+@app.get("/api/v1/admin/schemas")
+def list_schemas_read(
+    user: ApiUser = Depends(require_access(permission="view_schema", min_role="developer", min_level=9999)),
+):
+    schemas = store.schema_handler.get_all_schemas()
+    return util.common.convert_to_serializable({"schemas": schemas})
+
+
+@app.get("/api/v1/admin/schemas/{schema_id}/context")
+def schema_context_read(
+    schema_id: str,
+    user: ApiUser = Depends(require_access(permission="view_schema", min_role="developer", min_level=9999)),
+):
+    schema_doc = store.schema_handler.get_schema(schema_id)
+    if not schema_doc:
+        raise _api_error(404, "Schema not found")
+    return util.common.convert_to_serializable({"schema": schema_doc})
+
+
 @app.post("/api/v1/admin/schemas/{schema_id}/update")
 def update_schema_mutation(
     schema_id: str,
