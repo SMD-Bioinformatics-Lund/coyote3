@@ -1,9 +1,416 @@
-"""Compatibility shim for legacy imports.
+"""FastAPI application for Coyote3 API v1."""
 
-Canonical FastAPI implementation lives in `coyote_api.app`.
-"""
+from __future__ import annotations
 
-from coyote_api.app import *  # noqa: F401,F403
+from copy import deepcopy
+from dataclasses import dataclass
+import os
+
+from fastapi import Body, Depends, FastAPI, HTTPException, Query, Request
+from fastapi.responses import JSONResponse, RedirectResponse
+from flask.sessions import SecureCookieSessionInterface
+from itsdangerous import BadSignature
+
+from coyote import init_app
+from coyote.extensions import store, util
+from coyote.models.user import UserModel
+from coyote.services.dna.dna_filters import (
+    cnv_organizegenes,
+    cnvtype_variant,
+    create_cnveffectlist,
+    get_filter_conseq_terms,
+)
+from coyote.services.dna.query_builders import build_cnv_query, build_query
+from coyote.services.dna.dna_reporting import hotspot_variant
+from coyote.services.dna.dna_variants import format_pon, get_variant_nomenclature
+from coyote.services.interpretation.annotation_enrichment import add_alt_class, add_global_annotations
+from coyote.services.workflow.dna_workflow import DNAWorkflowService
+from coyote.services.workflow.rna_workflow import RNAWorkflowService
+from coyote.services.interpretation.report_summary import create_annotation_text_from_gene, create_comment_doc
+
+
+os.environ.setdefault("REQUIRE_EXTERNAL_API", "0")
+flask_app = init_app(
+    testing=bool(int(os.getenv("TESTING", "0"))),
+    development=bool(int(os.getenv("DEVELOPMENT", "0"))),
+)
+_session_interface = SecureCookieSessionInterface()
+_session_serializer = _session_interface.get_signing_serializer(flask_app)
+
+app = FastAPI(
+    title="Coyote3 API",
+    version="1.0.0",
+    docs_url="/api/v1/docs",
+    redoc_url="/api/v1/redoc",
+    openapi_url="/api/v1/openapi.json",
+)
+
+
+def create_api_app():
+    """Return the canonical FastAPI application instance."""
+    return app
+
+
+@dataclass
+class ApiUser:
+    username: str
+    role: str
+    access_level: int
+    permissions: list[str]
+    denied_permissions: list[str]
+    assays: list[str]
+
+
+def _api_error(status_code: int, message: str) -> HTTPException:
+    return HTTPException(status_code=status_code, detail={"status": status_code, "error": message})
+
+
+def _to_bool(value, default: bool = False) -> bool:
+    if value is None:
+        return default
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _role_levels() -> dict[str, int]:
+    return {role["_id"]: role.get("level", 0) for role in store.roles_handler.get_all_roles()}
+
+
+def _get_formatted_assay_config(sample: dict):
+    assay_config = store.aspc_handler.get_aspc_no_meta(
+        sample.get("assay"), sample.get("profile", "production")
+    )
+    if not assay_config:
+        return None
+    schema_name = assay_config.get("schema_name")
+    assay_config_schema = store.schema_handler.get_schema(schema_name)
+    return util.common.format_assay_config(deepcopy(assay_config), assay_config_schema)
+
+
+def _decode_session_user(request: Request) -> ApiUser:
+    cookie_name = flask_app.config.get("SESSION_COOKIE_NAME", "session")
+    cookie_val = request.cookies.get(cookie_name)
+    if not cookie_val or _session_serializer is None:
+        raise _api_error(401, "Login required")
+
+    try:
+        session_data = _session_serializer.loads(cookie_val)
+    except BadSignature:
+        raise _api_error(401, "Login required")
+
+    user_id = session_data.get("_user_id")
+    if not user_id:
+        raise _api_error(401, "Login required")
+
+    user_doc = store.user_handler.user_with_id(user_id)
+    if not user_doc:
+        raise _api_error(401, "Login required")
+
+    role_doc = store.roles_handler.get_role(user_doc.get("role")) or {}
+    asp_docs = store.asp_handler.get_all_asps(is_active=True)
+    user_model = UserModel.from_mongo(user_doc, role_doc, asp_docs)
+
+    return ApiUser(
+        username=user_model.username,
+        role=user_model.role,
+        access_level=user_model.access_level,
+        permissions=list(user_model.permissions),
+        denied_permissions=list(user_model.denied_permissions),
+        assays=list(user_model.assays),
+    )
+
+
+def _enforce_access(
+    user: ApiUser,
+    permission: str | None = None,
+    min_level: int | None = None,
+    min_role: str | None = None,
+) -> None:
+    resolved_role_level = 0
+    if min_role:
+        resolved_role_level = _role_levels().get(min_role, 0)
+
+    permission_ok = (
+        permission is not None
+        and permission in user.permissions
+        and permission not in user.denied_permissions
+    )
+    level_ok = min_level is not None and user.access_level >= min_level
+    role_ok = min_role is not None and user.access_level >= resolved_role_level
+
+    if permission or min_level is not None or min_role:
+        if not (permission_ok or level_ok or role_ok):
+            raise _api_error(403, "You do not have access to this page.")
+
+
+def require_access(
+    permission: str | None = None,
+    min_level: int | None = None,
+    min_role: str | None = None,
+):
+    def dep(request: Request) -> ApiUser:
+        user = _decode_session_user(request)
+        _enforce_access(user, permission=permission, min_level=min_level, min_role=min_role)
+        return user
+
+    return dep
+
+
+def _get_sample_for_api(sample_id: str, user: ApiUser):
+    sample = store.sample_handler.get_sample(sample_id)
+    if not sample:
+        sample = store.sample_handler.get_sample_by_id(sample_id)
+    if not sample:
+        raise _api_error(404, "Sample not found")
+
+    sample_assay = sample.get("assay", "")
+    if sample_assay not in set(user.assays or []):
+        raise _api_error(403, "Access denied: sample assay mismatch")
+    return sample
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(_request: Request, exc: HTTPException):
+    if isinstance(exc.detail, dict):
+        return JSONResponse(status_code=exc.status_code, content=exc.detail)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"status": exc.status_code, "error": str(exc.detail)},
+    )
+
+
+@app.get("/api/v1/health")
+def health():
+    return {"status": "ok"}
+
+
+@app.get("/api/vi/docs", include_in_schema=False)
+def docs_alias_vi():
+    return RedirectResponse(url="/api/v1/docs", status_code=307)
+
+
+@app.get("/api/v1/auth/whoami")
+def whoami(user: ApiUser = Depends(require_access(min_level=1))):
+    return {
+        "username": user.username,
+        "role": user.role,
+        "access_level": user.access_level,
+        "permissions": sorted(user.permissions),
+        "denied_permissions": sorted(user.denied_permissions),
+    }
+
+
+@app.post("/api/v1/samples/{sample_id}/sample_comments/add")
+def add_sample_comment_mutation(
+    sample_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(require_access(permission="add_sample_comment", min_role="user", min_level=9)),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    form_data = payload.get("form_data", {})
+    doc = create_comment_doc(form_data, key="sample_comment")
+    store.sample_handler.add_sample_comment(sample_id, doc)
+    result = _mutation_payload(sample_id, resource="sample_comment", resource_id="new", action="add")
+    result["meta"]["omics_layer"] = sample.get("omics_layer")
+    return util.common.convert_to_serializable(result)
+
+
+@app.post("/api/v1/samples/{sample_id}/sample_comments/{comment_id}/hide")
+def hide_sample_comment_mutation(
+    sample_id: str,
+    comment_id: str,
+    user: ApiUser = Depends(require_access(permission="hide_sample_comment", min_role="manager", min_level=99)),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    store.sample_handler.hide_sample_comment(sample_id, comment_id)
+    result = _mutation_payload(sample_id, resource="sample_comment", resource_id=comment_id, action="hide")
+    result["meta"]["omics_layer"] = sample.get("omics_layer")
+    return util.common.convert_to_serializable(result)
+
+
+@app.post("/api/v1/samples/{sample_id}/sample_comments/{comment_id}/unhide")
+def unhide_sample_comment_mutation(
+    sample_id: str,
+    comment_id: str,
+    user: ApiUser = Depends(require_access(permission="unhide_sample_comment", min_role="manager", min_level=99)),
+):
+    sample = _get_sample_for_api(sample_id, user)
+    store.sample_handler.unhide_sample_comment(sample_id, comment_id)
+    result = _mutation_payload(sample_id, resource="sample_comment", resource_id=comment_id, action="unhide")
+    result["meta"]["omics_layer"] = sample.get("omics_layer")
+    return util.common.convert_to_serializable(result)
+
+
+@app.post("/api/v1/admin/permissions/create")
+def create_permission_mutation(
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(
+        require_access(permission="create_permission_policy", min_role="admin", min_level=99999)
+    ),
+):
+    active_schemas = store.schema_handler.get_schemas_by_category_type(
+        schema_type="acl_config",
+        schema_category="RBAC",
+        is_active=True,
+    )
+    if not active_schemas:
+        raise _api_error(400, "No active permission schemas found")
+
+    selected_id = payload.get("schema_id") or active_schemas[0]["_id"]
+    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
+    if not schema:
+        raise _api_error(404, "Selected schema not found")
+
+    schema["fields"]["created_by"]["default"] = user.username
+    schema["fields"]["created_on"]["default"] = util.common.utc_now()
+    schema["fields"]["updated_by"]["default"] = user.username
+    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
+
+    form_data = payload.get("form_data", {})
+    policy = util.admin.process_form_to_config(form_data, schema)
+    policy["_id"] = policy["permission_name"]
+    policy["schema_name"] = schema["_id"]
+    policy["schema_version"] = schema["version"]
+    policy = util.admin.inject_version_history(
+        user_email=user.username,
+        new_config=deepcopy(policy),
+        is_new=True,
+    )
+    store.permissions_handler.create_new_policy(policy)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="permission", resource_id=policy["_id"], action="create")
+    )
+
+
+@app.post("/api/v1/admin/permissions/{perm_id}/update")
+def update_permission_mutation(
+    perm_id: str,
+    payload: dict = Body(default_factory=dict),
+    user: ApiUser = Depends(
+        require_access(permission="edit_permission_policy", min_role="admin", min_level=99999)
+    ),
+):
+    permission = store.permissions_handler.get(perm_id)
+    if not permission:
+        raise _api_error(404, "Permission policy not found")
+    schema = store.schema_handler.get_schema(permission.get("schema_name"))
+    if not schema:
+        raise _api_error(404, "Schema not found for permission policy")
+
+    form_data = payload.get("form_data", {})
+    updated_permission = util.admin.process_form_to_config(form_data, schema)
+    updated_permission["updated_on"] = util.common.utc_now()
+    updated_permission["updated_by"] = user.username
+    updated_permission["version"] = permission.get("version", 1) + 1
+    updated_permission["schema_name"] = schema["_id"]
+    updated_permission["schema_version"] = schema["version"]
+    updated_permission = util.admin.inject_version_history(
+        user_email=user.username,
+        new_config=updated_permission,
+        old_config=permission,
+        is_new=False,
+    )
+    store.permissions_handler.update_policy(perm_id, updated_permission)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="permission", resource_id=perm_id, action="update")
+    )
+
+
+@app.post("/api/v1/admin/permissions/{perm_id}/toggle")
+def toggle_permission_mutation(
+    perm_id: str,
+    user: ApiUser = Depends(
+        require_access(permission="edit_permission_policy", min_role="admin", min_level=99999)
+    ),
+):
+    perm = store.permissions_handler.get(perm_id)
+    if not perm:
+        raise _api_error(404, "Permission policy not found")
+    new_status = not perm.get("is_active", False)
+    store.permissions_handler.toggle_policy_active(perm_id, new_status)
+    result = _mutation_payload("admin", resource="permission", resource_id=perm_id, action="toggle")
+    result["meta"]["is_active"] = new_status
+    return util.common.convert_to_serializable(result)
+
+
+@app.post("/api/v1/admin/permissions/{perm_id}/delete")
+def delete_permission_mutation(
+    perm_id: str,
+    user: ApiUser = Depends(
+        require_access(permission="delete_permission_policy", min_role="admin", min_level=99999)
+    ),
+):
+    perm = store.permissions_handler.get(perm_id)
+    if not perm:
+        raise _api_error(404, "Permission policy not found")
+    store.permissions_handler.delete_policy(perm_id)
+    return util.common.convert_to_serializable(
+        _mutation_payload("admin", resource="permission", resource_id=perm_id, action="delete")
+    )
+
+
+@app.get("/api/v1/dna/samples/{sample_id}/variants")
+def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
+    sample = _get_sample_for_api(sample_id, user)
+    assay_config = _get_formatted_assay_config(sample)
+    if not assay_config:
+        raise _api_error(404, "Assay config not found for sample")
+
+    sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
+    sample_filters = deepcopy(sample.get("filters", {}))
+    assay_group = assay_config.get("asp_group", "unknown")
+    subpanel = sample.get("subpanel")
+
+    assay_panel_doc = store.asp_handler.get_asp(asp_name=sample.get("assay"))
+    checked_genelists = sample_filters.get("genelists", [])
+    checked_genelists_genes_dict = store.isgl_handler.get_isgl_by_ids(checked_genelists)
+    _genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
+        sample, assay_panel_doc, checked_genelists_genes_dict
+    )
+    filter_conseq = get_filter_conseq_terms(sample_filters.get("vep_consequences", []))
+
+    disp_pos = []
+    if assay_config.get("verification_samples"):
+        verification_samples = assay_config.get("verification_samples")
+        for veri_key, verification_pos in verification_samples.items():
+            if veri_key in sample.get("name", ""):
+                disp_pos = verification_pos
+                break
+
+    query = build_query(
+        assay_group,
+        {
+            "id": str(sample["_id"]),
+            "max_freq": sample_filters["max_freq"],
+            "min_freq": sample_filters["min_freq"],
+            "max_control_freq": sample_filters["max_control_freq"],
+            "min_depth": sample_filters["min_depth"],
+            "min_alt_reads": sample_filters["min_alt_reads"],
+            "max_popfreq": sample_filters["max_popfreq"],
+            "filter_conseq": filter_conseq,
+            "filter_genes": filter_genes,
+            "disp_pos": disp_pos,
+        },
+    )
+
+    variants = list(store.variant_handler.get_case_variants(query))
+    variants = store.blacklist_handler.add_blacklist_data(variants, assay_group)
+    variants, tiered_variants = add_global_annotations(variants, assay_group, subpanel)
+    variants = hotspot_variant(variants)
+
+    payload = {
+        "sample": {
+            "id": str(sample.get("_id")),
+            "name": sample.get("name"),
+            "assay": sample.get("assay"),
+            "profile": sample.get("profile"),
+            "assay_group": assay_group,
+            "subpanel": subpanel,
+        },
+        "meta": {"request_path": request.url.path, "count": len(variants), "tiered": tiered_variants},
+        "filters": sample_filters,
+        "variants": variants,
+    }
+    return util.common.convert_to_serializable(payload)
 
 
 @app.get("/api/v1/dna/samples/{sample_id}/variants/{var_id}")
