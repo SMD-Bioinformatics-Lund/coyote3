@@ -25,21 +25,21 @@ from flask import current_app as app
 from flask import render_template
 
 from coyote.extensions import store, util
-from coyote.services.reporting.report_paths import build_report_file_location
-from coyote.services.reporting.pipeline import (
+from api.services.reporting.report_paths import build_report_file_location
+from api.services.reporting.pipeline import (
     prepare_report_output as prepare_shared_report_output,
     persist_report_and_snapshot as persist_shared_report_and_snapshot,
 )
-from coyote.services.interpretation.annotation_enrichment import add_alt_class
-from coyote.services.rna.fusion_query_builder import build_fusion_query
-from coyote.services.rna.helpers import (
+from api.services.interpretation.annotation_enrichment import add_alt_class
+from api.services.rna.fusion_query_builder import build_fusion_query
+from api.services.rna.helpers import (
     create_fusioncallers,
     create_fusioneffectlist,
     get_fusion_callers,
     get_selected_fusioncall,
 )
-from coyote.services.workflow.filter_normalization import normalize_rna_filter_keys
-from coyote.services.workflow.contracts import (
+from api.services.workflow.filter_normalization import normalize_rna_filter_keys
+from api.services.workflow.contracts import (
     validate_report_inputs_warn_only,
     validate_rna_filter_inputs_warn_only,
 )

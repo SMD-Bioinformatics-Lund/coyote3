@@ -3,9 +3,9 @@
 from fastapi import Depends, Query, Request
 
 from coyote.extensions import store, util
-from coyote.services.interpretation.annotation_enrichment import add_global_annotations
-from coyote.services.interpretation.report_summary import generate_summary_text
-from coyote.services.workflow.rna_workflow import RNAWorkflowService
+from api.services.interpretation.annotation_enrichment import add_global_annotations
+from api.services.interpretation.report_summary import generate_summary_text
+from api.services.workflow.rna_workflow import RNAWorkflowService
 from api.app import (
     ApiUser,
     _api_error,

@@ -5,22 +5,22 @@ from copy import deepcopy
 from fastapi import Body, Depends, Query, Request
 
 from coyote.extensions import store, util
-from coyote.services.dna.dna_filters import (
+from api.services.dna.dna_filters import (
     cnv_organizegenes,
     cnvtype_variant,
     create_cnveffectlist,
     get_filter_conseq_terms,
 )
-from coyote.services.dna.dna_reporting import hotspot_variant
-from coyote.services.dna.dna_variants import format_pon, get_variant_nomenclature
-from coyote.services.dna.query_builders import build_cnv_query, build_query
-from coyote.services.interpretation.annotation_enrichment import add_alt_class, add_global_annotations
-from coyote.services.interpretation.report_summary import (
+from api.services.dna.dna_reporting import hotspot_variant
+from api.services.dna.dna_variants import format_pon, get_variant_nomenclature
+from api.services.dna.query_builders import build_cnv_query, build_query
+from api.services.interpretation.annotation_enrichment import add_alt_class, add_global_annotations
+from api.services.interpretation.report_summary import (
     create_annotation_text_from_gene,
     create_comment_doc,
     generate_summary_text,
 )
-from coyote.services.workflow.dna_workflow import DNAWorkflowService
+from api.services.workflow.dna_workflow import DNAWorkflowService
 from api.app import (
     ApiUser,
     _api_error,

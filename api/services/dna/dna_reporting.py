@@ -22,12 +22,12 @@ from flask import render_template
 from coyote.extensions import store
 from coyote.util.common_utility import CommonUtility
 from coyote.util.report.report_util import ReportUtility
-from coyote.services.reporting.report_paths import get_report_timestamp as shared_get_report_timestamp
-from coyote.services.dna.query_builders import build_query
-from coyote.services.interpretation.annotation_enrichment import (
+from api.services.reporting.report_paths import get_report_timestamp as shared_get_report_timestamp
+from api.services.dna.query_builders import build_query
+from api.services.interpretation.annotation_enrichment import (
     add_global_annotations as shared_add_global_annotations,
 )
-from coyote.services.dna.dna_filters import (
+from api.services.dna.dna_filters import (
     get_filter_conseq_terms as shared_get_filter_conseq_terms,
 )
 

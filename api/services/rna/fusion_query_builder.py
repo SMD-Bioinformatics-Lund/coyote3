@@ -12,7 +12,7 @@
 
 from typing import Any, Dict
 
-from coyote.services.workflow.filter_normalization import coerce_nonnegative_int
+from api.services.workflow.filter_normalization import coerce_nonnegative_int
 
 
 def build_fusion_query(assay_group: str, settings: Dict[str, Any]) -> Dict[str, Any]:

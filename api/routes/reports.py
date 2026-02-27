@@ -3,8 +3,8 @@
 from fastapi import Depends, Query
 
 from coyote.extensions import util
-from coyote.services.workflow.dna_workflow import DNAWorkflowService
-from coyote.services.workflow.rna_workflow import RNAWorkflowService
+from api.services.workflow.dna_workflow import DNAWorkflowService
+from api.services.workflow.rna_workflow import RNAWorkflowService
 from api.app import (
     ApiUser,
     _api_error,

@@ -3,9 +3,9 @@
 from fastapi import Body, Depends
 
 from coyote.extensions import store, util
-from coyote.services.interpretation.report_summary import create_comment_doc
-from coyote.services.rna.helpers import create_fusioncallers, create_fusioneffectlist
-from coyote.services.workflow.filter_normalization import normalize_rna_filter_keys
+from api.services.interpretation.report_summary import create_comment_doc
+from api.services.rna.helpers import create_fusioncallers, create_fusioneffectlist
+from api.services.workflow.filter_normalization import normalize_rna_filter_keys
 from api.app import ApiUser, _api_error, _get_formatted_assay_config, _get_sample_for_api, app, require_access
 
 
