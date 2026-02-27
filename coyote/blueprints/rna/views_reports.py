@@ -17,7 +17,7 @@ from flask_login import login_required
 from flask import Response, flash, redirect, request, url_for
 
 from coyote.blueprints.rna import rna_bp
-from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
 
 @rna_bp.route("/sample/<string:sample_id>/preview_report", methods=["GET", "POST"])
@@ -27,7 +27,7 @@ def generate_rna_report(sample_id: str, **kwargs) -> Response | str:
     try:
         payload = get_web_api_client().get_json(
             f"/api/v1/rna/samples/{sample_id}/report/preview",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         app.logger.info("Loaded RNA preview report from API service for sample %s", sample_id)
         return payload.report.get("html", "")
@@ -43,7 +43,7 @@ def save_rna_report(sample_id: str) -> Response:
     try:
         payload = get_web_api_client().post_json(
             f"/api/v1/rna/samples/{sample_id}/report/save",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         report_id = payload.report.get("id", "unknown")
         report_file = payload.report.get("file", "unknown")

@@ -20,7 +20,7 @@ from flask_login import current_user, login_required
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
 from coyote.services.audit_logs.decorators import log_action
-from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
 
 @admin_bp.route("/genelists", methods=["GET"])
@@ -29,7 +29,7 @@ def manage_genelists() -> str:
     try:
         payload = get_web_api_client().get_json(
             "/api/v1/admin/genelists",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         genelists = payload.genelists
     except ApiRequestError as exc:
@@ -46,7 +46,7 @@ def create_genelist() -> Response | str:
         selected_schema_id = request.args.get("schema_id")
         context = get_web_api_client().get_json(
             "/api/v1/admin/genelists/create_context",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
             params={"schema_id": selected_schema_id} if selected_schema_id else None,
         )
     except ApiRequestError as exc:
@@ -96,7 +96,7 @@ def create_genelist() -> Response | str:
         try:
             get_web_api_client().post_json(
                 "/api/v1/admin/genelists/create",
-                headers=build_forward_headers(request.headers),
+                headers=forward_headers(),
                 json_body={"config": config},
             )
             flash(f"Genelist {config['name']} created successfully!", "green")
@@ -120,7 +120,7 @@ def edit_genelist(genelist_id: str) -> Response | str:
     try:
         context = get_web_api_client().get_json(
             f"/api/v1/admin/genelists/{genelist_id}/context",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         if exc.status_code == 404:
@@ -192,7 +192,7 @@ def edit_genelist(genelist_id: str) -> Response | str:
         try:
             get_web_api_client().post_json(
                 f"/api/v1/admin/genelists/{genelist_id}/update",
-                headers=build_forward_headers(request.headers),
+                headers=forward_headers(),
                 json_body={"config": updated},
             )
             g.audit_metadata = {"genelist": genelist_id}
@@ -218,7 +218,7 @@ def toggle_genelist(genelist_id: str) -> Response:
     try:
         payload = get_web_api_client().post_json(
             f"/api/v1/admin/genelists/{genelist_id}/toggle",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         new_status = bool(payload.meta.get("is_active", True))
         g.audit_metadata = {
@@ -243,7 +243,7 @@ def delete_genelist(genelist_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/admin/genelists/{genelist_id}/delete",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         g.audit_metadata = {"genelist": genelist_id}
         flash(f"Genelist '{genelist_id}' deleted successfully!", "green")
@@ -259,7 +259,7 @@ def view_genelist(genelist_id: str) -> Response | str:
     try:
         view_context = get_web_api_client().get_json(
             f"/api/v1/admin/genelists/{genelist_id}/view_context",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
             params={"assay": selected_assay} if selected_assay else None,
         )
     except ApiRequestError as exc:

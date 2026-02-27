@@ -1,4 +1,4 @@
-"""Tests for the split Flask -> API integration client architecture."""
+"""Tests for Flask -> API transport primitives."""
 
 from __future__ import annotations
 

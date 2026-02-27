@@ -25,7 +25,7 @@ from flask import (
 )
 from flask_login import login_required
 from coyote.blueprints.coverage import cov_bp
-from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
 
 @cov_bp.route("/<string:sample_id>", methods=["GET", "POST"])
@@ -37,7 +37,7 @@ def get_cov(sample_id):
     try:
         payload = get_web_api_client().get_json(
             f"/api/v1/coverage/samples/{sample_id}",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
             params={"cov_cutoff": cov_cutoff},
         )
     except ApiRequestError as exc:
@@ -62,7 +62,7 @@ def update_gene_status():
     try:
         payload = get_web_api_client().post_json(
             "/api/v1/coverage/blacklist/update",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
             json_body=data,
         )
         return jsonify(payload)
@@ -79,7 +79,7 @@ def show_blacklisted_regions(group):
     try:
         payload = get_web_api_client().get_json(
             f"/api/v1/coverage/blacklisted/{group}",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error("Failed to load blacklisted regions via API for group %s: %s", group, exc)
@@ -96,7 +96,7 @@ def remove_blacklist(obj_id, group):
     try:
         get_web_api_client().post_json(
             f"/api/v1/coverage/blacklist/{obj_id}/remove",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError:
         pass

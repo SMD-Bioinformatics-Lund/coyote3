@@ -15,7 +15,7 @@
 from flask import Response, current_app as app, redirect, render_template, request, url_for
 from flask_login import login_required
 from coyote.blueprints.dna import dna_bp
-from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
 
 @dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>")
@@ -26,7 +26,7 @@ def show_cnv(sample_id: str, cnv_id: str) -> Response | str:
     try:
         payload = get_web_api_client().get_json(
             f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         app.logger.info("Loaded DNA CNV detail from API service for sample %s", sample_id)
         return render_template(
@@ -51,7 +51,7 @@ def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/unmarkinteresting",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error("Failed to unmark CNV interesting via API for sample %s: %s", sample_id, exc)
@@ -64,7 +64,7 @@ def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/interesting",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error("Failed to mark CNV interesting via API for sample %s: %s", sample_id, exc)
@@ -77,7 +77,7 @@ def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/fpcnv",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error("Failed to mark CNV false-positive via API for sample %s: %s", sample_id, exc)
@@ -90,7 +90,7 @@ def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/unfpcnv",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error("Failed to unmark CNV false-positive via API for sample %s: %s", sample_id, exc)
@@ -103,7 +103,7 @@ def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/noteworthycnv",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error("Failed to mark CNV noteworthy via API for sample %s: %s", sample_id, exc)
@@ -116,7 +116,7 @@ def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/notnoteworthycnv",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error("Failed to unmark CNV noteworthy via API for sample %s: %s", sample_id, exc)
@@ -130,7 +130,7 @@ def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/hide",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error("Failed to hide CNV comment via API for sample %s: %s", sample_id, exc)
@@ -144,7 +144,7 @@ def unhide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/unhide",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error("Failed to unhide CNV comment via API for sample %s: %s", sample_id, exc)

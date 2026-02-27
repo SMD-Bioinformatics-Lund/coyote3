@@ -20,7 +20,7 @@ from flask_login import login_required
 from coyote.blueprints.admin import admin_bp
 from coyote.blueprints.home.forms import SampleSearchForm
 from coyote.services.audit_logs.decorators import log_action
-from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
 
 @admin_bp.route("/manage-samples", methods=["GET", "POST"])
@@ -35,7 +35,7 @@ def all_samples() -> str | Response:
     try:
         payload = get_web_api_client().get_json(
             "/api/v1/admin/samples",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
             params={"search": search_str} if search_str else None,
         )
         samples = payload.samples
@@ -52,7 +52,7 @@ def edit_sample(sample_id: str) -> str | Response:
     try:
         payload = get_web_api_client().get_json(
             f"/api/v1/admin/samples/{sample_id}/context",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         sample_doc = payload.sample
     except ApiRequestError as exc:
@@ -74,7 +74,7 @@ def edit_sample(sample_id: str) -> str | Response:
         try:
             get_web_api_client().post_json(
                 f"/api/v1/admin/samples/{sample_id}/update",
-                headers=build_forward_headers(request.headers),
+                headers=forward_headers(),
                 json_body={"sample": updated_sample},
             )
             flash("Sample updated successfully.", "green")
@@ -95,7 +95,7 @@ def delete_sample(sample_id: str) -> Response:
     try:
         payload = get_web_api_client().post_json(
             f"/api/v1/admin/samples/{sample_id}/delete",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         sample_name = payload.meta.get("sample_name", sample_id)
         for item in payload.meta.get("results", []):

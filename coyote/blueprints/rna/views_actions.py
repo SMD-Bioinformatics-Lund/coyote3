@@ -15,7 +15,7 @@
 from flask import Response, current_app as app, flash, redirect, request, url_for
 
 from coyote.blueprints.rna import rna_bp
-from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
 
 @rna_bp.route("/<string:sample_id>/fusion/fp/<string:fus_id>", methods=["POST"])
@@ -23,7 +23,7 @@ def mark_false_fusion(sample_id: str, fus_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/rna/samples/{sample_id}/fusions/{fus_id}/fp",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error("Failed to mark RNA fusion false-positive via API for sample %s: %s", sample_id, exc)
@@ -35,7 +35,7 @@ def unmark_false_fusion(sample_id: str, fus_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/rna/samples/{sample_id}/fusions/{fus_id}/unfp",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error(
@@ -52,7 +52,7 @@ def pick_fusioncall(sample_id: str, fus_id: str, callidx: str, num_calls: str) -
     try:
         get_web_api_client().post_json(
             f"/api/v1/rna/samples/{sample_id}/fusions/{fus_id}/pick/{callidx}/{num_calls}",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error("Failed to pick RNA fusion call via API for sample %s: %s", sample_id, exc)
@@ -65,7 +65,7 @@ def hide_fusion_comment(sample_id: str, fus_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/rna/samples/{sample_id}/fusions/{fus_id}/comments/{comment_id}/hide",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error("Failed to hide RNA fusion comment via API for sample %s: %s", sample_id, exc)
@@ -78,7 +78,7 @@ def unhide_fusion_comment(sample_id: str, fus_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/rna/samples/{sample_id}/fusions/{fus_id}/comments/{comment_id}/unhide",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error("Failed to unhide RNA fusion comment via API for sample %s: %s", sample_id, exc)
@@ -104,7 +104,7 @@ def classify_multi_variant(sample_id: str) -> Response:
             try:
                 get_web_api_client().post_json(
                     f"/api/v1/rna/samples/{sample_id}/fusions/bulk/fp",
-                    headers=build_forward_headers(request.headers),
+                    headers=forward_headers(),
                     params={"apply": "true", "fusion_ids": variants_to_modify},
                 )
             except ApiRequestError as exc:
@@ -117,7 +117,7 @@ def classify_multi_variant(sample_id: str) -> Response:
             try:
                 get_web_api_client().post_json(
                     f"/api/v1/rna/samples/{sample_id}/fusions/bulk/fp",
-                    headers=build_forward_headers(request.headers),
+                    headers=forward_headers(),
                     params={"apply": "false", "fusion_ids": variants_to_modify},
                 )
             except ApiRequestError as exc:
@@ -131,7 +131,7 @@ def classify_multi_variant(sample_id: str) -> Response:
             try:
                 get_web_api_client().post_json(
                     f"/api/v1/rna/samples/{sample_id}/fusions/bulk/irrelevant",
-                    headers=build_forward_headers(request.headers),
+                    headers=forward_headers(),
                     params={"apply": "true", "fusion_ids": variants_to_modify},
                 )
             except ApiRequestError as exc:
@@ -144,7 +144,7 @@ def classify_multi_variant(sample_id: str) -> Response:
             try:
                 get_web_api_client().post_json(
                     f"/api/v1/rna/samples/{sample_id}/fusions/bulk/irrelevant",
-                    headers=build_forward_headers(request.headers),
+                    headers=forward_headers(),
                     params={"apply": "false", "fusion_ids": variants_to_modify},
                 )
             except ApiRequestError as exc:

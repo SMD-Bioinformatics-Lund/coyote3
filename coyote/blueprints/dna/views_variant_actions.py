@@ -21,11 +21,11 @@ from flask import Response, current_app as app, flash, redirect, request, url_fo
 from flask_login import login_required
 
 from coyote.blueprints.dna import dna_bp
-from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
 
 def _headers() -> dict[str, str]:
-    return build_forward_headers(request.headers)
+    return forward_headers()
 
 
 def _call_api(sample_id: str, log_message: str, api_call: Callable[[], Any]) -> bool:

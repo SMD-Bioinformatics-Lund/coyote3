@@ -114,9 +114,7 @@ class DefaultConfig:
     API_BROWSER_BASE = os.getenv("API_BROWSER_BASE", "/api")
     API_HEALTH_PATH = os.getenv("API_HEALTH_PATH", "/api/v1/health")
     API_HEALTH_RETRIES = int(os.getenv("API_HEALTH_RETRIES", "15"))
-    API_HEALTH_RETRY_INTERVAL_SECONDS = float(
-        os.getenv("API_HEALTH_RETRY_INTERVAL_SECONDS", "1.0")
-    )
+    API_HEALTH_RETRY_INTERVAL_SECONDS = float(os.getenv("API_HEALTH_RETRY_INTERVAL_SECONDS", "1.0"))
     API_SESSION_COOKIE_NAME = os.getenv("API_SESSION_COOKIE_NAME", "coyote3_api_session")
     API_SESSION_TTL_SECONDS = int(os.getenv("API_SESSION_TTL_SECONDS", str(12 * 60 * 60)))
     API_SESSION_SALT = os.getenv("API_SESSION_SALT", "coyote3-api-session-v1")
@@ -352,7 +350,7 @@ class DevelopmentConfig(DefaultConfig):
 
     MONGO_DB_NAME = os.getenv("COYOTE3_DB_NAME", "coyote_dev_3")
     BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
-    _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections_beta2.toml"
+    _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
 
     CACHE_DEFAULT_TIMEOUT = 1  # 300 secs, 5 minutes
 
@@ -376,7 +374,7 @@ class TestConfig(DefaultConfig):
 
     MONGO_DB_NAME = os.getenv("COYOTE3_DB_NAME", "coyote3_test")
     BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
-    _PATH_DB_COLLECTIONS_CONFIG = "config/db_collections_beta2.toml"
+    _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
 
     LOGS = "logs/test"
     PRODUCTION = False

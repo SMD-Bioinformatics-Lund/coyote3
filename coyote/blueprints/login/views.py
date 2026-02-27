@@ -31,7 +31,7 @@ from coyote.blueprints.login.forms import LoginForm
 from coyote.extensions import login_manager
 from coyote.integrations.api.api_client import (
     ApiRequestError,
-    build_forward_headers,
+    forward_headers,
     get_web_api_client,
 )
 from coyote.services.auth.user_session import User
@@ -79,7 +79,7 @@ def login() -> str | Response:
         try:
             auth_payload = get_web_api_client().post_json(
                 "/api/v1/auth/login",
-                headers=build_forward_headers(request.headers),
+                headers=forward_headers(),
                 json_body={"username": email, "password": password},
             )
         except ApiRequestError as exc:
@@ -109,7 +109,7 @@ def logout() -> Response:
     try:
         get_web_api_client().post_json(
             "/api/v1/auth/logout",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.warning("API logout request failed: %s", exc)
@@ -129,7 +129,7 @@ def load_user(user_id: str) -> User | None:
 
         payload = get_web_api_client().get_json(
             "/api/v1/auth/me",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         user_payload = payload.user or {}
         api_user_id = str(user_payload.get("_id") or user_payload.get("id") or "")

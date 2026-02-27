@@ -15,7 +15,7 @@
 from flask import Response, current_app as app, redirect, render_template, request, url_for
 from flask_login import login_required
 from coyote.blueprints.dna import dna_bp
-from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
 
 @dna_bp.route("/<string:sample_id>/transloc/<string:transloc_id>")
@@ -24,7 +24,7 @@ def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
     try:
         payload = get_web_api_client().get_json(
             f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         app.logger.info("Loaded DNA translocation detail from API service for sample %s", sample_id)
         return render_template(
@@ -49,7 +49,7 @@ def mark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/interestingtransloc",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error("Failed to mark translocation interesting via API for sample %s: %s", sample_id, exc)
@@ -62,7 +62,7 @@ def unmark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/uninterestingtransloc",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error(
@@ -77,7 +77,7 @@ def mark_false_transloc(sample_id: str, transloc_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/fptransloc",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error(
@@ -92,7 +92,7 @@ def unmark_false_transloc(sample_id: str, transloc_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/ptransloc",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error(
@@ -108,7 +108,7 @@ def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/comments/{comment_id}/hide",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error("Failed to hide translocation comment via API for sample %s: %s", sample_id, exc)
@@ -122,7 +122,7 @@ def unhide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/comments/{comment_id}/unhide",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error("Failed to unhide translocation comment via API for sample %s: %s", sample_id, exc)

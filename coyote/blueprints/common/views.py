@@ -22,7 +22,7 @@ from flask import current_app as app
 from coyote.blueprints.common import common_bp
 from coyote.blueprints.common.forms import TieredVariantSearchForm
 from flask import render_template
-from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 import json
 from flask_login import login_required
 from typing import Any
@@ -48,7 +48,7 @@ def add_sample_comment(sample_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/samples/{sample_id}/sample_comments/add",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
             json_body={"form_data": data},
         )
         flash("Sample comment added", "green")
@@ -77,7 +77,7 @@ def hide_sample_comment(sample_id: str) -> Response:
     try:
         payload = get_web_api_client().post_json(
             f"/api/v1/samples/{sample_id}/sample_comments/{comment_id}/hide",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         omics_layer = str(payload.meta.get("omics_layer", "")).lower()
     except ApiRequestError as exc:
@@ -111,7 +111,7 @@ def unhide_sample_comment(sample_id: str) -> Response:
     try:
         payload = get_web_api_client().post_json(
             f"/api/v1/samples/{sample_id}/sample_comments/{comment_id}/unhide",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         omics_layer = str(payload.meta.get("omics_layer", "")).lower()
     except ApiRequestError as exc:
@@ -185,7 +185,7 @@ def gene_info(id: str) -> str:
     try:
         payload = get_web_api_client().get_json(
             f"/api/v1/common/gene/{id}/info",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         gene = payload.gene or {}
     except ApiRequestError as exc:
@@ -203,7 +203,7 @@ def list_samples_with_tiered_variant(variant_id: str, tier: int):
     try:
         payload = get_web_api_client().get_json(
             f"/api/v1/common/reported_variants/variant/{variant_id}/{tier}",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         if exc.status_code == 404:
@@ -241,7 +241,7 @@ def search_tiered_variants():
             bootstrap_params["assays"] = assays
         bootstrap_payload = get_web_api_client().get_json(
             "/api/v1/common/search/tiered_variants",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
             params=bootstrap_params,
         )
         form.assay.choices = bootstrap_payload.assay_choices
@@ -300,7 +300,7 @@ def search_tiered_variants():
             params["assays"] = assays
         payload = get_web_api_client().get_json(
             "/api/v1/common/search/tiered_variants",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
             params=params,
         )
         form.assay.choices = payload.assay_choices

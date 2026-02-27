@@ -20,7 +20,7 @@ from flask_login import login_required
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
 from coyote.services.audit_logs.decorators import log_action
-from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
 
 @admin_bp.route("/users", methods=["GET"])
@@ -29,7 +29,7 @@ def manage_users() -> str | Response:
     try:
         payload = get_web_api_client().get_json(
             "/api/v1/admin/users",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         users = payload.users
         roles = payload.roles
@@ -48,7 +48,7 @@ def create_user() -> Response | str:
         selected_schema_id = request.args.get("schema_id")
         context = get_web_api_client().get_json(
             "/api/v1/admin/users/create_context",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
             params={"schema_id": selected_schema_id} if selected_schema_id else None,
         )
     except ApiRequestError as exc:
@@ -68,7 +68,7 @@ def create_user() -> Response | str:
         try:
             payload = get_web_api_client().post_json(
                 "/api/v1/admin/users/create",
-                headers=build_forward_headers(request.headers),
+                headers=forward_headers(),
                 json_body={
                     "schema_id": context.selected_schema.get("_id"),
                     "form_data": form_data,
@@ -97,7 +97,7 @@ def edit_user(user_id: str) -> Response | str:
     try:
         context = get_web_api_client().get_json(
             f"/api/v1/admin/users/{user_id}/context",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         if exc.status_code == 404:
@@ -136,7 +136,7 @@ def edit_user(user_id: str) -> Response | str:
         try:
             get_web_api_client().post_json(
                 f"/api/v1/admin/users/{user_id}/update",
-                headers=build_forward_headers(request.headers),
+                headers=forward_headers(),
                 json_body={"form_data": form_data},
             )
             g.audit_metadata = {"user": user_id}
@@ -163,7 +163,7 @@ def view_user(user_id: str) -> str | Response:
     try:
         context = get_web_api_client().get_json(
             f"/api/v1/admin/users/{user_id}/context",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         if exc.status_code == 404:
@@ -207,7 +207,7 @@ def delete_user(user_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/admin/users/{user_id}/delete",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         g.audit_metadata = {"user": user_id}
         flash(f"User '{user_id}' deleted successfully.", "green")
@@ -223,7 +223,7 @@ def validate_username() -> Response:
     try:
         payload = get_web_api_client().post_json(
             "/api/v1/admin/users/validate_username",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
             json_body={"username": username},
         )
         exists = bool(payload.get("exists", False))
@@ -239,7 +239,7 @@ def validate_email():
     try:
         payload = get_web_api_client().post_json(
             "/api/v1/admin/users/validate_email",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
             json_body={"email": email},
         )
         exists = bool(payload.get("exists", False))
@@ -255,7 +255,7 @@ def toggle_user_active(user_id: str):
     try:
         payload = get_web_api_client().post_json(
             f"/api/v1/admin/users/{user_id}/toggle",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         new_status = bool(payload.meta.get("is_active", False))
         g.audit_metadata = {

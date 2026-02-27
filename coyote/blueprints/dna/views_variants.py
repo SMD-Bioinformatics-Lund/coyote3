@@ -30,7 +30,7 @@ from wtforms import BooleanField
 from coyote.extensions import util
 from coyote.blueprints.dna import dna_bp
 from coyote.blueprints.dna.forms import DNAFilterForm
-from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 from coyote.errors.exceptions import AppError
 from PIL import Image
 import os
@@ -61,7 +61,7 @@ def list_variants(sample_id: str) -> Response | str:
         - Flashes messages to the user if sample or assay configuration is missing.
         - Logs information about selected OncoKB genes.
     """
-    headers = build_forward_headers(request.headers)
+    headers = forward_headers()
     api_client = get_web_api_client()
 
     def _load_api_context():
@@ -228,7 +228,7 @@ def show_any_plot(sample_id: str, fn: str, angle: int = 90) -> Response | str:
     try:
         payload = get_web_api_client().get_json(
             f"/api/v1/dna/samples/{sample_id}/plot_context",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.logger.error("DNA plot context API fetch failed for sample %s: %s", sample_id, exc)
@@ -286,7 +286,7 @@ def show_variant(sample_id: str, var_id: str) -> Response | str:
     try:
         payload = get_web_api_client().get_json(
             f"/api/v1/dna/samples/{sample_id}/variants/{var_id}",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         app.logger.info("Loaded DNA variant detail from API service for sample %s", sample_id)
         return render_template(

@@ -26,7 +26,7 @@ from coyote.blueprints.rna.forms import FusionFilter
 
 from coyote.extensions import util
 from coyote.blueprints.rna import rna_bp
-from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 from copy import deepcopy
 
 
@@ -46,7 +46,7 @@ def list_fusions(sample_id: str) -> str | Response:
     Returns:
         Response: Rendered HTML template for the fusion list page.
     """
-    headers = build_forward_headers(request.headers)
+    headers = forward_headers()
     api_client = get_web_api_client()
 
     def _load_api_context():
@@ -184,7 +184,7 @@ def show_fusion(sample_id: str, fusion_id: str) -> Response | str:
     try:
         payload = get_web_api_client().get_json(
             f"/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         app.logger.info("Loaded RNA fusion detail from API service for sample %s", sample_id)
         return render_template(

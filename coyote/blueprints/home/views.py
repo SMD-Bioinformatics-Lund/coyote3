@@ -32,7 +32,7 @@ from flask import current_app as app
 from coyote.blueprints.home import home_bp
 from coyote.blueprints.home.forms import SampleSearchForm
 from coyote.services.audit_logs.decorators import log_action
-from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 import os
 import re
 import json
@@ -102,7 +102,7 @@ def samples_home(
             params["assay_group"] = assay_group
         payload = get_web_api_client().get_json(
             "/api/v1/home/samples",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
             params=params,
         )
         live_samples = payload.live_samples
@@ -153,7 +153,7 @@ def view_report(sample_id: str, report_id: str) -> str | Response:
     try:
         payload = get_web_api_client().get_json(
             f"/api/v1/home/samples/{sample_id}/reports/{report_id}/context",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         app.home_logger.error(
@@ -229,7 +229,7 @@ def edit_sample(sample_id: str) -> str | Response:
     try:
         payload = get_web_api_client().get_json(
             f"/api/v1/home/samples/{sample_id}/edit_context",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         g.audit_metadata = {
@@ -277,7 +277,7 @@ def list_isgls(sample_id: str) -> Response:
     try:
         payload = get_web_api_client().get_json(
             f"/api/v1/home/samples/{sample_id}/isgls",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         return jsonify({"items": payload.items})
     except ApiRequestError as exc:
@@ -314,7 +314,7 @@ def apply_isgl(sample_id: str) -> Response:
         try:
             get_web_api_client().post_json(
                 f"/api/v1/home/samples/{sample_id}/genes/apply-isgl",
-                headers=build_forward_headers(request.headers),
+                headers=forward_headers(),
                 json_body={"isgl_ids": (isgl_ids if isinstance(isgl_ids, list) else [])},
             )
             flash(f"Gene list(s) {isgl_ids} applied to sample.", "green")
@@ -351,7 +351,7 @@ def save_adhoc_genes(sample_id: str) -> Response:
             payload["label"] = label
         get_web_api_client().post_json(
             f"/api/v1/home/samples/{sample_id}/adhoc_genes/save",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
             json_body=payload,
         )
     except ApiRequestError as exc:
@@ -383,7 +383,7 @@ def clear_adhoc_genes(sample_id: str) -> Response:
     try:
         get_web_api_client().post_json(
             f"/api/v1/home/samples/{sample_id}/adhoc_genes/clear",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
     except ApiRequestError as exc:
         flash(f"Failed to clear AdHoc genes: {exc}", "red")
@@ -413,7 +413,7 @@ def get_effective_genes_all(sample_id: str) -> Response:
     try:
         payload = get_web_api_client().get_json(
             f"/api/v1/home/samples/{sample_id}/effective_genes/all",
-            headers=build_forward_headers(request.headers),
+            headers=forward_headers(),
         )
         return jsonify(
             {

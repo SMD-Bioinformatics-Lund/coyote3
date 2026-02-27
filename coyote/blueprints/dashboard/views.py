@@ -15,7 +15,7 @@ from coyote.extensions import util
 from coyote.blueprints.dashboard import dashboard_bp
 from flask_login import current_user
 from flask import current_app as app
-from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
 
 _DEFAULT_VARIANT_STATS = {
@@ -114,7 +114,7 @@ def dashboard() -> str:
         try:
             payload = get_web_api_client().get_json(
                 "/api/v1/dashboard/summary",
-                headers=build_forward_headers(request.headers),
+                headers=forward_headers(),
             )
             total_samples_count = payload.total_samples
             analysed_samples_count = payload.analysed_samples
