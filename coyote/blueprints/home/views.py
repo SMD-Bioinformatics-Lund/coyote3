@@ -34,6 +34,7 @@ from coyote.blueprints.home.forms import SampleSearchForm
 from coyote.services.audit_logs.decorators import log_action
 from coyote.integrations.api import endpoints as api_endpoints
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.integrations.api.web import log_api_error
 import os
 import re
 import json
@@ -109,8 +110,12 @@ def samples_home(
         live_samples = payload.live_samples
         done_samples = payload.done_samples
     except ApiRequestError as exc:
-        app.home_logger.error("Failed to fetch home samples via API: %s", exc)
-        flash("Failed to load samples.", "red")
+        log_api_error(
+            exc,
+            logger=app.home_logger,
+            log_message="Failed to fetch home samples via API",
+            flash_message="Failed to load samples.",
+        )
         live_samples = []
         done_samples = []
 
@@ -157,13 +162,12 @@ def view_report(sample_id: str, report_id: str) -> str | Response:
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
-        app.home_logger.error(
-            "Failed to fetch report context via API for sample %s report %s: %s",
-            sample_id,
-            report_id,
+        log_api_error(
             exc,
+            logger=app.home_logger,
+            log_message=f"Failed to fetch report context via API for sample {sample_id} report {report_id}",
+            flash_message="Failed to load report details.",
         )
-        flash("Failed to load report details.", "red")
         return redirect(url_for("home_bp.samples_home"))
 
     filepath = payload.filepath
@@ -237,9 +241,11 @@ def edit_sample(sample_id: str) -> str | Response:
             "sample": sample_id,
             "message": "No sample found",
         }
-        flash("Sample not found.", "red")
-        app.home_logger.error(
-            "Failed to fetch edit context via API for sample %s: %s", sample_id, exc
+        log_api_error(
+            exc,
+            logger=app.home_logger,
+            log_message=f"Failed to fetch edit context via API for sample {sample_id}",
+            flash_message="Sample not found.",
         )
         return redirect(url_for("home_bp.samples_home"))
 
@@ -282,7 +288,11 @@ def list_isgls(sample_id: str) -> Response:
         )
         return jsonify({"items": payload.items})
     except ApiRequestError as exc:
-        app.home_logger.error("Failed to fetch ISGLs via API for sample %s: %s", sample_id, exc)
+        log_api_error(
+            exc,
+            logger=app.home_logger,
+            log_message=f"Failed to fetch ISGLs via API for sample {sample_id}",
+        )
         return jsonify({"items": []})
 
 
@@ -323,7 +333,12 @@ def apply_isgl(sample_id: str) -> Response:
                 f"Applied gene list(s) {isgl_ids} to sample {sample_id} adhoc gene filter"
             )
         except ApiRequestError as exc:
-            flash(f"Failed to apply gene list(s): {exc}", "red")
+            log_api_error(
+                exc,
+                logger=app.home_logger,
+                log_message=f"Failed to apply gene list(s) via API for sample {sample_id}",
+                flash_message=f"Failed to apply gene list(s): {exc}",
+            )
 
     return jsonify({"ok": True})
 
@@ -356,7 +371,12 @@ def save_adhoc_genes(sample_id: str) -> Response:
             json_body=payload,
         )
     except ApiRequestError as exc:
-        flash(f"Failed to save AdHoc genes: {exc}", "red")
+        log_api_error(
+            exc,
+            logger=app.home_logger,
+            log_message=f"Failed to save AdHoc genes via API for sample {sample_id}",
+            flash_message=f"Failed to save AdHoc genes: {exc}",
+        )
         return jsonify({"ok": False}), 502
     # log Action
     g.audit_metadata = {
@@ -387,7 +407,12 @@ def clear_adhoc_genes(sample_id: str) -> Response:
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
-        flash(f"Failed to clear AdHoc genes: {exc}", "red")
+        log_api_error(
+            exc,
+            logger=app.home_logger,
+            log_message=f"Failed to clear AdHoc genes via API for sample {sample_id}",
+            flash_message=f"Failed to clear AdHoc genes: {exc}",
+        )
         return jsonify({"ok": False}), 502
     # log Action
     g.audit_metadata = {
@@ -423,7 +448,9 @@ def get_effective_genes_all(sample_id: str) -> Response:
             }
         )
     except ApiRequestError as exc:
-        app.home_logger.error(
-            "Failed to fetch effective genes via API for sample %s: %s", sample_id, exc
+        log_api_error(
+            exc,
+            logger=app.home_logger,
+            log_message=f"Failed to fetch effective genes via API for sample {sample_id}",
         )
         return jsonify({"items": [], "asp_covered_genes_count": 0})

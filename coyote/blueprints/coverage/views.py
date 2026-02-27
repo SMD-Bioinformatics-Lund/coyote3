@@ -27,6 +27,7 @@ from flask_login import login_required
 from coyote.blueprints.coverage import cov_bp
 from coyote.integrations.api import endpoints as api_endpoints
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.integrations.api.web import log_api_error
 
 
 @cov_bp.route("/<string:sample_id>", methods=["GET", "POST"])
@@ -42,7 +43,11 @@ def get_cov(sample_id):
             params={"cov_cutoff": cov_cutoff},
         )
     except ApiRequestError as exc:
-        app.logger.error("Failed to load coverage via API for sample %s: %s", sample_id, exc)
+        log_api_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to load coverage via API for sample {sample_id}",
+        )
         return redirect(url_for("home_bp.samples_home"))
 
     return render_template(
@@ -83,7 +88,11 @@ def show_blacklisted_regions(group):
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
-        app.logger.error("Failed to load blacklisted regions via API for group %s: %s", group, exc)
+        log_api_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to load blacklisted regions via API for group {group}",
+        )
         return redirect(url_for("home_bp.samples_home"))
 
     return render_template("show_blacklisted.html", blacklisted=payload.blacklisted, group=payload.group)

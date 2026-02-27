@@ -9,6 +9,7 @@ from coyote.integrations.api.api_client import (
     get_web_api_client,
 )
 from coyote.integrations.api.base import ApiPayload
+from coyote.integrations.api.web import log_api_error
 from . import endpoints
 
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "endpoints",
     "forward_headers",
     "get_web_api_client",
+    "log_api_error",
 ]

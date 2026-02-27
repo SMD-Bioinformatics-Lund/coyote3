@@ -24,6 +24,7 @@ from coyote.blueprints.common.forms import TieredVariantSearchForm
 from flask import render_template
 from coyote.integrations.api import endpoints as api_endpoints
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.integrations.api.web import log_api_error
 import json
 from flask_login import login_required
 from typing import Any
@@ -54,8 +55,12 @@ def add_sample_comment(sample_id: str) -> Response:
         )
         flash("Sample comment added", "green")
     except ApiRequestError as exc:
-        app.logger.error("Failed to add sample comment via API for sample %s: %s", sample_id, exc)
-        flash("Failed to add sample comment", "red")
+        log_api_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to add sample comment via API for sample {sample_id}",
+            flash_message="Failed to add sample comment",
+        )
     if request.endpoint == "common_bp.add_dna_sample_comment":
         return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
     else:
@@ -82,8 +87,12 @@ def hide_sample_comment(sample_id: str) -> Response:
         )
         omics_layer = str(payload.meta.get("omics_layer", "")).lower()
     except ApiRequestError as exc:
-        app.logger.error("Failed to hide sample comment via API for sample %s: %s", sample_id, exc)
-        flash("Failed to hide sample comment", "red")
+        log_api_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to hide sample comment via API for sample {sample_id}",
+            flash_message="Failed to hide sample comment",
+        )
         return redirect(url_for("home_bp.samples_home"))
 
     if omics_layer == "dna":
@@ -116,8 +125,12 @@ def unhide_sample_comment(sample_id: str) -> Response:
         )
         omics_layer = str(payload.meta.get("omics_layer", "")).lower()
     except ApiRequestError as exc:
-        app.logger.error("Failed to unhide sample comment via API for sample %s: %s", sample_id, exc)
-        flash("Failed to unhide sample comment", "red")
+        log_api_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to unhide sample comment via API for sample {sample_id}",
+            flash_message="Failed to unhide sample comment",
+        )
         return redirect(url_for("home_bp.samples_home"))
 
     if omics_layer == "dna":
@@ -190,8 +203,12 @@ def gene_info(id: str) -> str:
         )
         gene = payload.gene or {}
     except ApiRequestError as exc:
-        app.logger.error("Failed to fetch gene info via API for %s: %s", id, exc)
-        flash("Failed to load gene info", "red")
+        log_api_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to fetch gene info via API for {id}",
+            flash_message="Failed to load gene info",
+        )
     return render_template("gene_info.html", gene=gene)
 
 
@@ -209,8 +226,12 @@ def list_samples_with_tiered_variant(variant_id: str, tier: int):
     except ApiRequestError as exc:
         if exc.status_code == 404:
             abort(404)
-        app.logger.error("Failed to fetch tiered variant context via API for %s: %s", variant_id, exc)
-        flash("Failed to load tiered variant context", "red")
+        log_api_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to fetch tiered variant context via API for {variant_id}",
+            flash_message="Failed to load tiered variant context",
+        )
         return render_template("tiered_variant_info.html", docs=[], variant={}, tier=tier)
     return render_template(
         "tiered_variant_info.html",
@@ -306,8 +327,12 @@ def search_tiered_variants():
         )
         form.assay.choices = payload.assay_choices
     except ApiRequestError as exc:
-        app.logger.error("Failed to search tiered variants via API: %s", exc)
-        flash("Failed to search tiered variants", "red")
+        log_api_error(
+            exc,
+            logger=app.logger,
+            log_message="Failed to search tiered variants via API",
+            flash_message="Failed to search tiered variants",
+        )
         form.assay.choices = []
         payload = None
 

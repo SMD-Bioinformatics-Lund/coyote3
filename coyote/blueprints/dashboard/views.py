@@ -17,6 +17,7 @@ from flask_login import current_user
 from flask import current_app as app
 from coyote.integrations.api import endpoints as api_endpoints
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.integrations.api.web import log_api_error
 
 
 _DEFAULT_VARIANT_STATS = {
@@ -126,7 +127,11 @@ def dashboard() -> str:
             asp_gene_counts = payload.assay_gene_stats_grouped
             sample_stats = payload.sample_stats
         except ApiRequestError as exc:
-            app.logger.error("Dashboard API fetch failed for user %s: %s", current_user.username, exc)
+            log_api_error(
+                exc,
+                logger=app.logger,
+                log_message=f"Dashboard API fetch failed for user {current_user.username}",
+            )
             total_samples_count = 0
             analysed_samples_count = 0
             pending_samples_count = 0

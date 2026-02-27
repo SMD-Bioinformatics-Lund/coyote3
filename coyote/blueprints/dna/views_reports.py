@@ -18,6 +18,7 @@ from flask import Response, flash, redirect, request, url_for
 from coyote.blueprints.dna import dna_bp
 from coyote.integrations.api import endpoints as api_endpoints
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.integrations.api.web import log_api_error
 
 
 @dna_bp.route("/sample/<string:sample_id>/preview_report", methods=["GET", "POST"])
@@ -34,8 +35,12 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
         app.logger.info("Loaded DNA preview report from API service for sample %s", sample_id)
         return payload.report.get("html", "")
     except ApiRequestError as exc:
-        app.logger.error("Failed to generate DNA preview report via API for sample %s: %s", sample_id, exc)
-        flash("Failed to generate report preview.", "red")
+        log_api_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to generate DNA preview report via API for sample {sample_id}",
+            flash_message="Failed to generate report preview.",
+        )
         return redirect(url_for("home_bp.samples_home"))
 
 
@@ -55,7 +60,11 @@ def save_dna_report(sample_id: str) -> Response:
         flash(f"Report {report_id}.html has been successfully saved.", "green")
         app.logger.info("Report saved via API: %s", report_file)
     except ApiRequestError as exc:
-        flash("Failed to save report.", "red")
-        app.logger.error("Failed to save DNA report via API for sample %s: %s", sample_id, exc)
+        log_api_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to save DNA report via API for sample {sample_id}",
+            flash_message="Failed to save report.",
+        )
 
     return redirect(url_for("home_bp.samples_home", reload=True))
