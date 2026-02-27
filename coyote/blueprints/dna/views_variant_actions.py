@@ -21,6 +21,7 @@ from flask import Response, current_app as app, flash, redirect, request, url_fo
 from flask_login import login_required
 
 from coyote.blueprints.dna import dna_bp
+from coyote.integrations.api import endpoints as api_endpoints
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
 
@@ -96,7 +97,7 @@ def unmark_false_variant(sample_id: str, var_id: str) -> Response:
         sample_id,
         "Failed to unmark variant false-positive via API",
         lambda: get_web_api_client().post_json(
-            f"/api/v1/dna/samples/{sample_id}/variants/{var_id}/unfp",
+            api_endpoints.dna_sample(sample_id, "variants", var_id, "unfp"),
             headers=_headers(),
         ),
     )
@@ -110,7 +111,7 @@ def mark_false_variant(sample_id: str, var_id: str) -> Response:
         sample_id,
         "Failed to mark variant false-positive via API",
         lambda: get_web_api_client().post_json(
-            f"/api/v1/dna/samples/{sample_id}/variants/{var_id}/fp",
+            api_endpoints.dna_sample(sample_id, "variants", var_id, "fp"),
             headers=_headers(),
         ),
     )
@@ -124,7 +125,7 @@ def unmark_interesting_variant(sample_id: str, var_id: str) -> Response:
         sample_id,
         "Failed to unmark variant interesting via API",
         lambda: get_web_api_client().post_json(
-            f"/api/v1/dna/samples/{sample_id}/variants/{var_id}/uninterest",
+            api_endpoints.dna_sample(sample_id, "variants", var_id, "uninterest"),
             headers=_headers(),
         ),
     )
@@ -138,7 +139,7 @@ def mark_interesting_variant(sample_id: str, var_id: str) -> Response:
         sample_id,
         "Failed to mark variant interesting via API",
         lambda: get_web_api_client().post_json(
-            f"/api/v1/dna/samples/{sample_id}/variants/{var_id}/interest",
+            api_endpoints.dna_sample(sample_id, "variants", var_id, "interest"),
             headers=_headers(),
         ),
     )
@@ -152,7 +153,7 @@ def unmark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
         sample_id,
         "Failed to unmark variant irrelevant via API",
         lambda: get_web_api_client().post_json(
-            f"/api/v1/dna/samples/{sample_id}/variants/{var_id}/relevant",
+            api_endpoints.dna_sample(sample_id, "variants", var_id, "relevant"),
             headers=_headers(),
         ),
     )
@@ -166,7 +167,7 @@ def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
         sample_id,
         "Failed to mark variant irrelevant via API",
         lambda: get_web_api_client().post_json(
-            f"/api/v1/dna/samples/{sample_id}/variants/{var_id}/irrelevant",
+            api_endpoints.dna_sample(sample_id, "variants", var_id, "irrelevant"),
             headers=_headers(),
         ),
     )
@@ -180,7 +181,7 @@ def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
         sample_id,
         "Failed to blacklist variant via API",
         lambda: get_web_api_client().post_json(
-            f"/api/v1/dna/samples/{sample_id}/variants/{var_id}/blacklist",
+            api_endpoints.dna_sample(sample_id, "variants", var_id, "blacklist"),
             headers=_headers(),
         ),
     )
@@ -198,7 +199,7 @@ def classify_variant(sample_id: str, id: str | None = None) -> Response:
         sample_id,
         "Failed to classify variant via API",
         lambda: get_web_api_client().post_json(
-            f"/api/v1/dna/samples/{sample_id}/variants/classify",
+            api_endpoints.dna_sample(sample_id, "variants", "classify"),
             headers=_headers(),
             json_body={"id": target_id, "form_data": form_data},
         ),
@@ -226,7 +227,7 @@ def remove_classified_variant(sample_id: str, id: str | None = None) -> Response
         sample_id,
         "Failed to remove classification via API",
         lambda: get_web_api_client().post_json(
-            f"/api/v1/dna/samples/{sample_id}/variants/rmclassify",
+            api_endpoints.dna_sample(sample_id, "variants", "rmclassify"),
             headers=_headers(),
             json_body={"id": target_id, "form_data": form_data},
         ),
@@ -267,7 +268,7 @@ def add_var_comment(sample_id: str, id: str | None = None, **kwargs: Any) -> Res
         sample_id,
         "Failed to add comment via API",
         lambda: get_web_api_client().post_json(
-            f"/api/v1/dna/samples/{sample_id}/comments/add",
+            api_endpoints.dna_sample(sample_id, "comments", "add"),
             headers=_headers(),
             json_body={"id": target_id, "form_data": form_data},
         ),
@@ -286,7 +287,7 @@ def hide_variant_comment(sample_id: str, var_id: str) -> Response:
         sample_id,
         "Failed to hide variant comment via API",
         lambda: get_web_api_client().post_json(
-            f"/api/v1/dna/samples/{sample_id}/variants/{var_id}/comments/{comment_id}/hide",
+            api_endpoints.dna_sample(sample_id, "variants", var_id, "comments", comment_id, "hide"),
             headers=_headers(),
         ),
     )
@@ -301,7 +302,9 @@ def unhide_variant_comment(sample_id: str, var_id: str) -> Response:
         sample_id,
         "Failed to unhide variant comment via API",
         lambda: get_web_api_client().post_json(
-            f"/api/v1/dna/samples/{sample_id}/variants/{var_id}/comments/{comment_id}/unhide",
+            api_endpoints.dna_sample(
+                sample_id, "variants", var_id, "comments", comment_id, "unhide"
+            ),
             headers=_headers(),
         ),
     )
@@ -324,7 +327,7 @@ def classify_multi_variant(sample_id: str) -> Response:
             sample_id,
             "Failed to bulk assign variant tier via API",
             lambda: get_web_api_client().post_json(
-                f"/api/v1/dna/samples/{sample_id}/variants/bulk/tier",
+                api_endpoints.dna_sample(sample_id, "variants", "bulk", "tier"),
                 headers=_headers(),
                 json_body={
                     "variant_ids": variants_to_modify,
@@ -341,7 +344,7 @@ def classify_multi_variant(sample_id: str) -> Response:
         action=action,
         variant_ids=variants_to_modify,
         operation_label="false-positive",
-        endpoint=f"/api/v1/dna/samples/{sample_id}/variants/bulk/fp",
+        endpoint=api_endpoints.dna_sample(sample_id, "variants", "bulk", "fp"),
     )
     _bulk_toggle(
         sample_id=sample_id,
@@ -349,7 +352,7 @@ def classify_multi_variant(sample_id: str) -> Response:
         action=action,
         variant_ids=variants_to_modify,
         operation_label="irrelevant",
-        endpoint=f"/api/v1/dna/samples/{sample_id}/variants/bulk/irrelevant",
+        endpoint=api_endpoints.dna_sample(sample_id, "variants", "bulk", "irrelevant"),
     )
 
     return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))

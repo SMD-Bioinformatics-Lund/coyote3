@@ -16,6 +16,7 @@ from flask import current_app as app
 from flask_login import login_required
 from flask import Response, flash, redirect, request, url_for
 from coyote.blueprints.dna import dna_bp
+from coyote.integrations.api import endpoints as api_endpoints
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
 
@@ -27,7 +28,7 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     """
     try:
         payload = get_web_api_client().get_json(
-            f"/api/v1/dna/samples/{sample_id}/report/preview",
+            api_endpoints.dna_sample(sample_id, "report", "preview"),
             headers=forward_headers(),
         )
         app.logger.info("Loaded DNA preview report from API service for sample %s", sample_id)
@@ -46,7 +47,7 @@ def save_dna_report(sample_id: str) -> Response:
     """
     try:
         payload = get_web_api_client().post_json(
-            f"/api/v1/dna/samples/{sample_id}/report/save",
+            api_endpoints.dna_sample(sample_id, "report", "save"),
             headers=forward_headers(),
         )
         report_id = payload.report.get("id", "unknown")

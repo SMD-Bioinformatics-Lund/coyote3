@@ -19,6 +19,7 @@ from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
+from coyote.integrations.api import endpoints as api_endpoints
 from coyote.services.audit_logs.decorators import log_action
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
@@ -28,7 +29,7 @@ from coyote.integrations.api.api_client import ApiRequestError, forward_headers,
 def list_roles() -> str:
     try:
         payload = get_web_api_client().get_json(
-            "/api/v1/admin/roles",
+            api_endpoints.admin("roles"),
             headers=forward_headers(),
         )
         roles = payload.roles
@@ -45,7 +46,7 @@ def create_role() -> Response | str:
     try:
         selected_schema_id = request.args.get("schema_id")
         context = get_web_api_client().get_json(
-            "/api/v1/admin/roles/create_context",
+            api_endpoints.admin("roles", "create_context"),
             headers=forward_headers(),
             params={"schema_id": selected_schema_id} if selected_schema_id else None,
         )
@@ -63,7 +64,7 @@ def create_role() -> Response | str:
         }
         try:
             payload = get_web_api_client().post_json(
-                "/api/v1/admin/roles/create",
+                api_endpoints.admin("roles", "create"),
                 headers=forward_headers(),
                 json_body={
                     "schema_id": context.selected_schema.get("_id"),
@@ -90,7 +91,7 @@ def create_role() -> Response | str:
 def edit_role(role_id: str) -> Response | str:
     try:
         context = get_web_api_client().get_json(
-            f"/api/v1/admin/roles/{role_id}/context",
+            api_endpoints.admin("roles", role_id, "context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -127,7 +128,7 @@ def edit_role(role_id: str) -> Response | str:
         }
         try:
             get_web_api_client().post_json(
-                f"/api/v1/admin/roles/{role_id}/update",
+                api_endpoints.admin("roles", role_id, "update"),
                 headers=forward_headers(),
                 json_body={"form_data": form_data},
             )
@@ -152,7 +153,7 @@ def edit_role(role_id: str) -> Response | str:
 def view_role(role_id: str) -> Response | str:
     try:
         context = get_web_api_client().get_json(
-            f"/api/v1/admin/roles/{role_id}/context",
+            api_endpoints.admin("roles", role_id, "context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -195,7 +196,7 @@ def view_role(role_id: str) -> Response | str:
 def toggle_role_active(role_id: str) -> Response:
     try:
         payload = get_web_api_client().post_json(
-            f"/api/v1/admin/roles/{role_id}/toggle",
+            api_endpoints.admin("roles", role_id, "toggle"),
             headers=forward_headers(),
         )
         new_status = bool(payload.meta.get("is_active", False))
@@ -220,7 +221,7 @@ def toggle_role_active(role_id: str) -> Response:
 def delete_role(role_id: str) -> Response:
     try:
         get_web_api_client().post_json(
-            f"/api/v1/admin/roles/{role_id}/delete",
+            api_endpoints.admin("roles", role_id, "delete"),
             headers=forward_headers(),
         )
         g.audit_metadata = {"role": role_id}

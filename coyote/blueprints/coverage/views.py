@@ -25,6 +25,7 @@ from flask import (
 )
 from flask_login import login_required
 from coyote.blueprints.coverage import cov_bp
+from coyote.integrations.api import endpoints as api_endpoints
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
 
@@ -36,7 +37,7 @@ def get_cov(sample_id):
         cov_cutoff = int(cov_cutoff_form)
     try:
         payload = get_web_api_client().get_json(
-            f"/api/v1/coverage/samples/{sample_id}",
+            api_endpoints.coverage("samples", sample_id),
             headers=forward_headers(),
             params={"cov_cutoff": cov_cutoff},
         )
@@ -61,7 +62,7 @@ def update_gene_status():
     data = request.get_json()
     try:
         payload = get_web_api_client().post_json(
-            "/api/v1/coverage/blacklist/update",
+            api_endpoints.coverage("blacklist", "update"),
             headers=forward_headers(),
             json_body=data,
         )
@@ -78,7 +79,7 @@ def show_blacklisted_regions(group):
     """
     try:
         payload = get_web_api_client().get_json(
-            f"/api/v1/coverage/blacklisted/{group}",
+            api_endpoints.coverage("blacklisted", group),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -95,7 +96,7 @@ def remove_blacklist(obj_id, group):
     """
     try:
         get_web_api_client().post_json(
-            f"/api/v1/coverage/blacklist/{obj_id}/remove",
+            api_endpoints.coverage("blacklist", obj_id, "remove"),
             headers=forward_headers(),
         )
     except ApiRequestError:

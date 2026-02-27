@@ -19,6 +19,7 @@ from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.blueprints.home.forms import SampleSearchForm
+from coyote.integrations.api import endpoints as api_endpoints
 from coyote.services.audit_logs.decorators import log_action
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
@@ -34,7 +35,7 @@ def all_samples() -> str | Response:
 
     try:
         payload = get_web_api_client().get_json(
-            "/api/v1/admin/samples",
+            api_endpoints.admin("samples"),
             headers=forward_headers(),
             params={"search": search_str} if search_str else None,
         )
@@ -51,7 +52,7 @@ def all_samples() -> str | Response:
 def edit_sample(sample_id: str) -> str | Response:
     try:
         payload = get_web_api_client().get_json(
-            f"/api/v1/admin/samples/{sample_id}/context",
+            api_endpoints.admin("samples", sample_id, "context"),
             headers=forward_headers(),
         )
         sample_doc = payload.sample
@@ -73,7 +74,7 @@ def edit_sample(sample_id: str) -> str | Response:
 
         try:
             get_web_api_client().post_json(
-                f"/api/v1/admin/samples/{sample_id}/update",
+                api_endpoints.admin("samples", sample_id, "update"),
                 headers=forward_headers(),
                 json_body={"sample": updated_sample},
             )
@@ -94,7 +95,7 @@ def delete_sample(sample_id: str) -> Response:
     g.audit_metadata = {"sample": sample_id}
     try:
         payload = get_web_api_client().post_json(
-            f"/api/v1/admin/samples/{sample_id}/delete",
+            api_endpoints.admin("samples", sample_id, "delete"),
             headers=forward_headers(),
         )
         sample_name = payload.meta.get("sample_name", sample_id)

@@ -19,6 +19,7 @@ from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
+from coyote.integrations.api import endpoints as api_endpoints
 from coyote.services.audit_logs.decorators import log_action
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
@@ -28,7 +29,7 @@ from coyote.integrations.api.api_client import ApiRequestError, forward_headers,
 def manage_users() -> str | Response:
     try:
         payload = get_web_api_client().get_json(
-            "/api/v1/admin/users",
+            api_endpoints.admin("users"),
             headers=forward_headers(),
         )
         users = payload.users
@@ -47,7 +48,7 @@ def create_user() -> Response | str:
     try:
         selected_schema_id = request.args.get("schema_id")
         context = get_web_api_client().get_json(
-            "/api/v1/admin/users/create_context",
+            api_endpoints.admin("users", "create_context"),
             headers=forward_headers(),
             params={"schema_id": selected_schema_id} if selected_schema_id else None,
         )
@@ -67,7 +68,7 @@ def create_user() -> Response | str:
         }
         try:
             payload = get_web_api_client().post_json(
-                "/api/v1/admin/users/create",
+                api_endpoints.admin("users", "create"),
                 headers=forward_headers(),
                 json_body={
                     "schema_id": context.selected_schema.get("_id"),
@@ -96,7 +97,7 @@ def create_user() -> Response | str:
 def edit_user(user_id: str) -> Response | str:
     try:
         context = get_web_api_client().get_json(
-            f"/api/v1/admin/users/{user_id}/context",
+            api_endpoints.admin("users", user_id, "context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -135,7 +136,7 @@ def edit_user(user_id: str) -> Response | str:
         }
         try:
             get_web_api_client().post_json(
-                f"/api/v1/admin/users/{user_id}/update",
+                api_endpoints.admin("users", user_id, "update"),
                 headers=forward_headers(),
                 json_body={"form_data": form_data},
             )
@@ -162,7 +163,7 @@ def edit_user(user_id: str) -> Response | str:
 def view_user(user_id: str) -> str | Response:
     try:
         context = get_web_api_client().get_json(
-            f"/api/v1/admin/users/{user_id}/context",
+            api_endpoints.admin("users", user_id, "context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -206,7 +207,7 @@ def view_user(user_id: str) -> str | Response:
 def delete_user(user_id: str) -> Response:
     try:
         get_web_api_client().post_json(
-            f"/api/v1/admin/users/{user_id}/delete",
+            api_endpoints.admin("users", user_id, "delete"),
             headers=forward_headers(),
         )
         g.audit_metadata = {"user": user_id}
@@ -222,7 +223,7 @@ def validate_username() -> Response:
     username = request.json.get("username").lower()
     try:
         payload = get_web_api_client().post_json(
-            "/api/v1/admin/users/validate_username",
+            api_endpoints.admin("users", "validate_username"),
             headers=forward_headers(),
             json_body={"username": username},
         )
@@ -238,7 +239,7 @@ def validate_email():
     email = request.json.get("email").lower()
     try:
         payload = get_web_api_client().post_json(
-            "/api/v1/admin/users/validate_email",
+            api_endpoints.admin("users", "validate_email"),
             headers=forward_headers(),
             json_body={"email": email},
         )
@@ -254,7 +255,7 @@ def validate_email():
 def toggle_user_active(user_id: str):
     try:
         payload = get_web_api_client().post_json(
-            f"/api/v1/admin/users/{user_id}/toggle",
+            api_endpoints.admin("users", user_id, "toggle"),
             headers=forward_headers(),
         )
         new_status = bool(payload.meta.get("is_active", False))

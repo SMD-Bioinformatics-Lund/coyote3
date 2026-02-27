@@ -15,6 +15,7 @@ from coyote.extensions import util
 from coyote.blueprints.dashboard import dashboard_bp
 from flask_login import current_user
 from flask import current_app as app
+from coyote.integrations.api import endpoints as api_endpoints
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
 
@@ -113,7 +114,7 @@ def dashboard() -> str:
         app.logger.info(f"Dashboard cache miss for {cache_key}")
         try:
             payload = get_web_api_client().get_json(
-                "/api/v1/dashboard/summary",
+                api_endpoints.dashboard("summary"),
                 headers=forward_headers(),
             )
             total_samples_count = payload.total_samples

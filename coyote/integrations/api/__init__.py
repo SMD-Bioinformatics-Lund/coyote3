@@ -9,6 +9,7 @@ from coyote.integrations.api.api_client import (
     get_web_api_client,
 )
 from coyote.integrations.api.base import ApiPayload
+from . import endpoints
 
 __all__ = [
     "ApiPayload",
@@ -16,6 +17,7 @@ __all__ = [
     "CoyoteApiClient",
     "build_forward_headers",
     "build_internal_headers",
+    "endpoints",
     "forward_headers",
     "get_web_api_client",
 ]

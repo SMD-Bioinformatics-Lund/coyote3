@@ -22,6 +22,7 @@ from flask import g
 import os
 import math
 from coyote.filters.shared import render_markdown_rich as shared_render_markdown_rich
+from coyote.integrations.api import endpoints as api_endpoints
 from coyote.integrations.api.api_client import (
     ApiRequestError,
     build_internal_headers,
@@ -67,7 +68,7 @@ def isgl_adhoc_status(isgl_id: str) -> str:
     if isgl_id not in cache:
         try:
             cache[isgl_id] = get_web_api_client().get_json(
-                f"/api/v1/internal/isgl/{isgl_id}/meta",
+                api_endpoints.internal("isgl", isgl_id, "meta"),
                 headers=build_internal_headers(),
             )
         except ApiRequestError:
@@ -94,7 +95,7 @@ def isgl_display_name(isgl_id: str) -> str:
     if isgl_id not in cache:
         try:
             cache[isgl_id] = get_web_api_client().get_json(
-                f"/api/v1/internal/isgl/{isgl_id}/meta",
+                api_endpoints.internal("isgl", isgl_id, "meta"),
                 headers=build_internal_headers(),
             )
         except ApiRequestError:

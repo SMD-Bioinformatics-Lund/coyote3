@@ -32,6 +32,7 @@ from flask import current_app as app
 from coyote.blueprints.home import home_bp
 from coyote.blueprints.home.forms import SampleSearchForm
 from coyote.services.audit_logs.decorators import log_action
+from coyote.integrations.api import endpoints as api_endpoints
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 import os
 import re
@@ -101,7 +102,7 @@ def samples_home(
         if assay_group:
             params["assay_group"] = assay_group
         payload = get_web_api_client().get_json(
-            "/api/v1/home/samples",
+            api_endpoints.home("samples"),
             headers=forward_headers(),
             params=params,
         )
@@ -152,7 +153,7 @@ def view_report(sample_id: str, report_id: str) -> str | Response:
     """
     try:
         payload = get_web_api_client().get_json(
-            f"/api/v1/home/samples/{sample_id}/reports/{report_id}/context",
+            api_endpoints.home_sample(sample_id, "reports", report_id, "context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -228,7 +229,7 @@ def edit_sample(sample_id: str) -> str | Response:
 
     try:
         payload = get_web_api_client().get_json(
-            f"/api/v1/home/samples/{sample_id}/edit_context",
+            api_endpoints.home_sample(sample_id, "edit_context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -276,7 +277,7 @@ def list_isgls(sample_id: str) -> Response:
     """
     try:
         payload = get_web_api_client().get_json(
-            f"/api/v1/home/samples/{sample_id}/isgls",
+            api_endpoints.home_sample(sample_id, "isgls"),
             headers=forward_headers(),
         )
         return jsonify({"items": payload.items})
@@ -313,7 +314,7 @@ def apply_isgl(sample_id: str) -> Response:
         }
         try:
             get_web_api_client().post_json(
-                f"/api/v1/home/samples/{sample_id}/genes/apply-isgl",
+                api_endpoints.home_sample(sample_id, "genes", "apply-isgl"),
                 headers=forward_headers(),
                 json_body={"isgl_ids": (isgl_ids if isinstance(isgl_ids, list) else [])},
             )
@@ -350,7 +351,7 @@ def save_adhoc_genes(sample_id: str) -> Response:
         if label:
             payload["label"] = label
         get_web_api_client().post_json(
-            f"/api/v1/home/samples/{sample_id}/adhoc_genes/save",
+            api_endpoints.home_sample(sample_id, "adhoc_genes", "save"),
             headers=forward_headers(),
             json_body=payload,
         )
@@ -382,7 +383,7 @@ def clear_adhoc_genes(sample_id: str) -> Response:
     """
     try:
         get_web_api_client().post_json(
-            f"/api/v1/home/samples/{sample_id}/adhoc_genes/clear",
+            api_endpoints.home_sample(sample_id, "adhoc_genes", "clear"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -412,7 +413,7 @@ def get_effective_genes_all(sample_id: str) -> Response:
     """
     try:
         payload = get_web_api_client().get_json(
-            f"/api/v1/home/samples/{sample_id}/effective_genes/all",
+            api_endpoints.home_sample(sample_id, "effective_genes", "all"),
             headers=forward_headers(),
         )
         return jsonify(

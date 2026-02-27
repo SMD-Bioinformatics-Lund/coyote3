@@ -36,6 +36,7 @@ from coyote import extensions
 from .errors import register_error_handlers
 from flask_login import current_user
 from coyote.util.misc import get_dynamic_assay_nav
+from coyote.integrations.api import endpoints as api_endpoints
 from coyote.integrations.api.api_client import (
     ApiRequestError,
     build_internal_headers,
@@ -135,7 +136,7 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
         app.role_access_levels = {}
         try:
             role_levels_payload = get_web_api_client().get_json(
-                "/api/v1/internal/roles/levels",
+                api_endpoints.internal("roles", "levels"),
                 headers=build_internal_headers(),
             )
             app.role_access_levels = dict(role_levels_payload.role_levels)

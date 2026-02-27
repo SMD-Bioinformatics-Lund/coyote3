@@ -19,6 +19,7 @@ from flask_login import current_user, login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
+from coyote.integrations.api import endpoints as api_endpoints
 from coyote.services.audit_logs.decorators import log_action
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
@@ -28,7 +29,7 @@ from coyote.integrations.api.api_client import ApiRequestError, forward_headers,
 def manage_genelists() -> str:
     try:
         payload = get_web_api_client().get_json(
-            "/api/v1/admin/genelists",
+            api_endpoints.admin("genelists"),
             headers=forward_headers(),
         )
         genelists = payload.genelists
@@ -45,7 +46,7 @@ def create_genelist() -> Response | str:
     try:
         selected_schema_id = request.args.get("schema_id")
         context = get_web_api_client().get_json(
-            "/api/v1/admin/genelists/create_context",
+            api_endpoints.admin("genelists", "create_context"),
             headers=forward_headers(),
             params={"schema_id": selected_schema_id} if selected_schema_id else None,
         )
@@ -95,7 +96,7 @@ def create_genelist() -> Response | str:
 
         try:
             get_web_api_client().post_json(
-                "/api/v1/admin/genelists/create",
+                api_endpoints.admin("genelists", "create"),
                 headers=forward_headers(),
                 json_body={"config": config},
             )
@@ -119,7 +120,7 @@ def create_genelist() -> Response | str:
 def edit_genelist(genelist_id: str) -> Response | str:
     try:
         context = get_web_api_client().get_json(
-            f"/api/v1/admin/genelists/{genelist_id}/context",
+            api_endpoints.admin("genelists", genelist_id, "context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -191,7 +192,7 @@ def edit_genelist(genelist_id: str) -> Response | str:
         )
         try:
             get_web_api_client().post_json(
-                f"/api/v1/admin/genelists/{genelist_id}/update",
+                api_endpoints.admin("genelists", genelist_id, "update"),
                 headers=forward_headers(),
                 json_body={"config": updated},
             )
@@ -217,7 +218,7 @@ def edit_genelist(genelist_id: str) -> Response | str:
 def toggle_genelist(genelist_id: str) -> Response:
     try:
         payload = get_web_api_client().post_json(
-            f"/api/v1/admin/genelists/{genelist_id}/toggle",
+            api_endpoints.admin("genelists", genelist_id, "toggle"),
             headers=forward_headers(),
         )
         new_status = bool(payload.meta.get("is_active", True))
@@ -242,7 +243,7 @@ def toggle_genelist(genelist_id: str) -> Response:
 def delete_genelist(genelist_id: str) -> Response:
     try:
         get_web_api_client().post_json(
-            f"/api/v1/admin/genelists/{genelist_id}/delete",
+            api_endpoints.admin("genelists", genelist_id, "delete"),
             headers=forward_headers(),
         )
         g.audit_metadata = {"genelist": genelist_id}
@@ -258,7 +259,7 @@ def view_genelist(genelist_id: str) -> Response | str:
     selected_assay = request.args.get("assay")
     try:
         view_context = get_web_api_client().get_json(
-            f"/api/v1/admin/genelists/{genelist_id}/view_context",
+            api_endpoints.admin("genelists", genelist_id, "view_context"),
             headers=forward_headers(),
             params={"assay": selected_assay} if selected_assay else None,
         )

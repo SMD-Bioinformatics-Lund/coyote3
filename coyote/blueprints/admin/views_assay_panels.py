@@ -19,6 +19,7 @@ from flask_login import current_user, login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
+from coyote.integrations.api import endpoints as api_endpoints
 from coyote.services.audit_logs.decorators import log_action
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
@@ -28,7 +29,7 @@ from coyote.integrations.api.api_client import ApiRequestError, forward_headers,
 def manage_assay_panels():
     try:
         payload = get_web_api_client().get_json(
-            "/api/v1/admin/asp",
+            api_endpoints.admin("asp"),
             headers=forward_headers(),
         )
         panels = payload.panels
@@ -45,7 +46,7 @@ def create_assay_panel():
     try:
         selected_schema_id = request.args.get("schema_id")
         context = get_web_api_client().get_json(
-            "/api/v1/admin/asp/create_context",
+            api_endpoints.admin("asp", "create_context"),
             headers=forward_headers(),
             params={"schema_id": selected_schema_id} if selected_schema_id else None,
         )
@@ -96,7 +97,7 @@ def create_assay_panel():
 
         try:
             get_web_api_client().post_json(
-                "/api/v1/admin/asp/create",
+                api_endpoints.admin("asp", "create"),
                 headers=forward_headers(),
                 json_body={"config": config},
             )
@@ -120,7 +121,7 @@ def create_assay_panel():
 def edit_assay_panel(assay_panel_id: str) -> str | Response:
     try:
         context = get_web_api_client().get_json(
-            f"/api/v1/admin/asp/{assay_panel_id}/context",
+            api_endpoints.admin("asp", assay_panel_id, "context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -197,7 +198,7 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
 
         try:
             get_web_api_client().post_json(
-                f"/api/v1/admin/asp/{assay_panel_id}/update",
+                api_endpoints.admin("asp", assay_panel_id, "update"),
                 headers=forward_headers(),
                 json_body={"config": updated},
             )
@@ -221,7 +222,7 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
 def view_assay_panel(assay_panel_id: str) -> Response | str:
     try:
         context = get_web_api_client().get_json(
-            f"/api/v1/admin/asp/{assay_panel_id}/context",
+            api_endpoints.admin("asp", assay_panel_id, "context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -266,7 +267,7 @@ def view_assay_panel(assay_panel_id: str) -> Response | str:
 def print_assay_panel(panel_id: str) -> str | Response:
     try:
         context = get_web_api_client().get_json(
-            f"/api/v1/admin/asp/{panel_id}/context",
+            api_endpoints.admin("asp", panel_id, "context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -310,7 +311,7 @@ def print_assay_panel(panel_id: str) -> str | Response:
 def toggle_assay_panel_active(assay_panel_id: str) -> Response:
     try:
         payload = get_web_api_client().post_json(
-            f"/api/v1/admin/asp/{assay_panel_id}/toggle",
+            api_endpoints.admin("asp", assay_panel_id, "toggle"),
             headers=forward_headers(),
         )
         new_status = bool(payload.meta.get("is_active", False))
@@ -332,7 +333,7 @@ def toggle_assay_panel_active(assay_panel_id: str) -> Response:
 def delete_assay_panel(assay_panel_id: str) -> Response:
     try:
         get_web_api_client().post_json(
-            f"/api/v1/admin/asp/{assay_panel_id}/delete",
+            api_endpoints.admin("asp", assay_panel_id, "delete"),
             headers=forward_headers(),
         )
         g.audit_metadata = {"panel": assay_panel_id}

@@ -26,6 +26,7 @@ from coyote.blueprints.rna.forms import FusionFilter
 
 from coyote.extensions import util
 from coyote.blueprints.rna import rna_bp
+from coyote.integrations.api import endpoints as api_endpoints
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 from copy import deepcopy
 
@@ -51,7 +52,7 @@ def list_fusions(sample_id: str) -> str | Response:
 
     def _load_api_context():
         payload = api_client.get_json(
-            f"/api/v1/rna/samples/{sample_id}/fusions",
+            api_endpoints.rna_sample(sample_id, "fusions"),
             headers=headers,
         )
         return payload
@@ -85,7 +86,7 @@ def list_fusions(sample_id: str) -> str | Response:
             app.logger.info(f"Resetting filters to default settings for the sample {sample_id}")
             try:
                 api_client.post_json(
-                    f"/api/v1/samples/{sample_id}/filters/reset",
+                    api_endpoints.sample(sample_id, "filters", "reset"),
                     headers=headers,
                 )
             except ApiRequestError as exc:
@@ -97,7 +98,7 @@ def list_fusions(sample_id: str) -> str | Response:
                 filters_from_form["adhoc_genes"] = sample.get("filters", {}).get("adhoc_genes")
             try:
                 api_client.post_json(
-                    f"/api/v1/samples/{sample_id}/filters/update",
+                    api_endpoints.sample(sample_id, "filters", "update"),
                     headers=headers,
                     json_body={"filters": filters_from_form},
                 )
@@ -119,7 +120,7 @@ def list_fusions(sample_id: str) -> str | Response:
     if not sample_has_filters:
         try:
             api_client.post_json(
-                f"/api/v1/samples/{sample_id}/filters/reset",
+                api_endpoints.sample(sample_id, "filters", "reset"),
                 headers=headers,
             )
             fusions_payload = _load_api_context()
@@ -183,7 +184,7 @@ def show_fusion(sample_id: str, fusion_id: str) -> Response | str:
     """
     try:
         payload = get_web_api_client().get_json(
-            f"/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}",
+            api_endpoints.rna_sample(sample_id, "fusions", fusion_id),
             headers=forward_headers(),
         )
         app.logger.info("Loaded RNA fusion detail from API service for sample %s", sample_id)

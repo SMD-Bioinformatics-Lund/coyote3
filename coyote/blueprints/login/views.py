@@ -29,6 +29,7 @@ from flask_login import current_user, login_required, login_user, logout_user
 from coyote.blueprints.login import login_bp
 from coyote.blueprints.login.forms import LoginForm
 from coyote.extensions import login_manager
+from coyote.integrations.api import endpoints as api_endpoints
 from coyote.integrations.api.api_client import (
     ApiRequestError,
     forward_headers,
@@ -78,7 +79,7 @@ def login() -> str | Response:
 
         try:
             auth_payload = get_web_api_client().post_json(
-                "/api/v1/auth/login",
+                api_endpoints.auth("login"),
                 headers=forward_headers(),
                 json_body={"username": email, "password": password},
             )
@@ -108,7 +109,7 @@ def logout() -> Response:
     """Log out the current user and clear API + Flask sessions."""
     try:
         get_web_api_client().post_json(
-            "/api/v1/auth/logout",
+            api_endpoints.auth("logout"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -128,7 +129,7 @@ def load_user(user_id: str) -> User | None:
             return None
 
         payload = get_web_api_client().get_json(
-            "/api/v1/auth/me",
+            api_endpoints.auth("me"),
             headers=forward_headers(),
         )
         user_payload = payload.user or {}

@@ -19,6 +19,7 @@ from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
+from coyote.integrations.api import endpoints as api_endpoints
 from coyote.services.audit_logs.decorators import log_action
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
@@ -28,7 +29,7 @@ from coyote.integrations.api.api_client import ApiRequestError, forward_headers,
 def schemas() -> str:
     try:
         payload = get_web_api_client().get_json(
-            "/api/v1/admin/schemas",
+            api_endpoints.admin("schemas"),
             headers=forward_headers(),
         )
         schemas = payload.schemas
@@ -44,7 +45,7 @@ def schemas() -> str:
 def toggle_schema_active(schema_id: str) -> Response:
     try:
         payload = get_web_api_client().post_json(
-            f"/api/v1/admin/schemas/{schema_id}/toggle",
+            api_endpoints.admin("schemas", schema_id, "toggle"),
             headers=forward_headers(),
         )
         new_status = bool(payload.meta.get("is_active", False))
@@ -69,7 +70,7 @@ def toggle_schema_active(schema_id: str) -> Response:
 def edit_schema(schema_id: str) -> str | Response:
     try:
         context = get_web_api_client().get_json(
-            f"/api/v1/admin/schemas/{schema_id}/context",
+            api_endpoints.admin("schemas", schema_id, "context"),
             headers=forward_headers(),
         )
         schema_doc = context.schema_payload
@@ -94,7 +95,7 @@ def edit_schema(schema_id: str) -> str | Response:
 
         try:
             get_web_api_client().post_json(
-                f"/api/v1/admin/schemas/{schema_id}/update",
+                api_endpoints.admin("schemas", schema_id, "update"),
                 headers=forward_headers(),
                 json_body={"schema": updated_schema},
             )
@@ -124,7 +125,7 @@ def create_schema() -> str | Response:
                 return render_template("schemas/schema_create.html", initial_blob=parsed_schema)
 
             get_web_api_client().post_json(
-                "/api/v1/admin/schemas/create",
+                api_endpoints.admin("schemas", "create"),
                 headers=forward_headers(),
                 json_body={"schema": parsed_schema},
             )
@@ -146,7 +147,7 @@ def create_schema() -> str | Response:
 def delete_schema(schema_id: str) -> Response:
     try:
         get_web_api_client().post_json(
-            f"/api/v1/admin/schemas/{schema_id}/delete",
+            api_endpoints.admin("schemas", schema_id, "delete"),
             headers=forward_headers(),
         )
         g.audit_metadata = {"schema": schema_id}

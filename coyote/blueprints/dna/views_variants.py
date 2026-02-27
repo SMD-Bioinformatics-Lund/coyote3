@@ -30,6 +30,7 @@ from wtforms import BooleanField
 from coyote.extensions import util
 from coyote.blueprints.dna import dna_bp
 from coyote.blueprints.dna.forms import DNAFilterForm
+from coyote.integrations.api import endpoints as api_endpoints
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 from coyote.errors.exceptions import AppError
 from PIL import Image
@@ -66,7 +67,7 @@ def list_variants(sample_id: str) -> Response | str:
 
     def _load_api_context():
         return api_client.get_json(
-            f"/api/v1/dna/samples/{sample_id}/variants",
+            api_endpoints.dna_sample(sample_id, "variants"),
             headers=headers,
         )
 
@@ -99,7 +100,7 @@ def list_variants(sample_id: str) -> Response | str:
     if not sample_has_filters:
         try:
             api_client.post_json(
-                f"/api/v1/samples/{sample_id}/filters/reset",
+                api_endpoints.sample(sample_id, "filters", "reset"),
                 headers=headers,
             )
             variants_payload = _load_api_context()
@@ -129,7 +130,7 @@ def list_variants(sample_id: str) -> Response | str:
             app.logger.info(f"Resetting filters to default settings for the sample {sample_id}")
             try:
                 api_client.post_json(
-                    f"/api/v1/samples/{sample_id}/filters/reset",
+                    api_endpoints.sample(sample_id, "filters", "reset"),
                     headers=headers,
                 )
             except ApiRequestError as exc:
@@ -141,7 +142,7 @@ def list_variants(sample_id: str) -> Response | str:
                 filters_from_form["adhoc_genes"] = sample.get("filters", {}).get("adhoc_genes")
             try:
                 api_client.post_json(
-                    f"/api/v1/samples/{sample_id}/filters/update",
+                    api_endpoints.sample(sample_id, "filters", "update"),
                     headers=headers,
                     json_body={"filters": filters_from_form},
                 )
@@ -227,7 +228,7 @@ def show_any_plot(sample_id: str, fn: str, angle: int = 90) -> Response | str:
     """
     try:
         payload = get_web_api_client().get_json(
-            f"/api/v1/dna/samples/{sample_id}/plot_context",
+            api_endpoints.dna_sample(sample_id, "plot_context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -285,7 +286,7 @@ def show_variant(sample_id: str, var_id: str) -> Response | str:
     """
     try:
         payload = get_web_api_client().get_json(
-            f"/api/v1/dna/samples/{sample_id}/variants/{var_id}",
+            api_endpoints.dna_sample(sample_id, "variants", var_id),
             headers=forward_headers(),
         )
         app.logger.info("Loaded DNA variant detail from API service for sample %s", sample_id)

@@ -20,6 +20,7 @@ from flask_login import current_user, login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
+from coyote.integrations.api import endpoints as api_endpoints
 from coyote.services.audit_logs.decorators import log_action
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 
@@ -29,7 +30,7 @@ from coyote.integrations.api.api_client import ApiRequestError, forward_headers,
 def assay_configs() -> str:
     try:
         payload = get_web_api_client().get_json(
-            "/api/v1/admin/aspc",
+            api_endpoints.admin("aspc"),
             headers=forward_headers(),
         )
         assay_configs = payload.assay_configs
@@ -49,7 +50,7 @@ def create_dna_assay_config() -> Response | str:
         if selected_schema_id:
             params["schema_id"] = selected_schema_id
         context = get_web_api_client().get_json(
-            "/api/v1/admin/aspc/create_context",
+            api_endpoints.admin("aspc", "create_context"),
             headers=forward_headers(),
             params=params,
         )
@@ -87,7 +88,7 @@ def create_dna_assay_config() -> Response | str:
 
         try:
             get_web_api_client().post_json(
-                "/api/v1/admin/aspc/create",
+                api_endpoints.admin("aspc", "create"),
                 headers=forward_headers(),
                 json_body={"config": config},
             )
@@ -124,7 +125,7 @@ def create_rna_assay_config() -> Response | str:
         if selected_schema_id:
             params["schema_id"] = selected_schema_id
         context = get_web_api_client().get_json(
-            "/api/v1/admin/aspc/create_context",
+            api_endpoints.admin("aspc", "create_context"),
             headers=forward_headers(),
             params=params,
         )
@@ -160,7 +161,7 @@ def create_rna_assay_config() -> Response | str:
 
         try:
             get_web_api_client().post_json(
-                "/api/v1/admin/aspc/create",
+                api_endpoints.admin("aspc", "create"),
                 headers=forward_headers(),
                 json_body={"config": config},
             )
@@ -193,7 +194,7 @@ def create_rna_assay_config() -> Response | str:
 def edit_assay_config(assay_id: str) -> Response | str:
     try:
         context = get_web_api_client().get_json(
-            f"/api/v1/admin/aspc/{assay_id}/context",
+            api_endpoints.admin("aspc", assay_id, "context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -255,7 +256,7 @@ def edit_assay_config(assay_id: str) -> Response | str:
 
         try:
             get_web_api_client().post_json(
-                f"/api/v1/admin/aspc/{assay_id}/update",
+                api_endpoints.admin("aspc", assay_id, "update"),
                 headers=forward_headers(),
                 json_body={"config": updated_config},
             )
@@ -283,7 +284,7 @@ def edit_assay_config(assay_id: str) -> Response | str:
 def view_assay_config(assay_id: str) -> str | Response:
     try:
         context = get_web_api_client().get_json(
-            f"/api/v1/admin/aspc/{assay_id}/context",
+            api_endpoints.admin("aspc", assay_id, "context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -328,7 +329,7 @@ def view_assay_config(assay_id: str) -> str | Response:
 def print_assay_config(assay_id: str) -> str | Response:
     try:
         context = get_web_api_client().get_json(
-            f"/api/v1/admin/aspc/{assay_id}/context",
+            api_endpoints.admin("aspc", assay_id, "context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -372,7 +373,7 @@ def print_assay_config(assay_id: str) -> str | Response:
 def toggle_assay_config_active(assay_id: str) -> Response:
     try:
         payload = get_web_api_client().post_json(
-            f"/api/v1/admin/aspc/{assay_id}/toggle",
+            api_endpoints.admin("aspc", assay_id, "toggle"),
             headers=forward_headers(),
         )
         new_status = bool(payload.meta.get("is_active", False))
@@ -397,7 +398,7 @@ def toggle_assay_config_active(assay_id: str) -> Response:
 def delete_assay_config(assay_id: str) -> Response:
     try:
         get_web_api_client().post_json(
-            f"/api/v1/admin/aspc/{assay_id}/delete",
+            api_endpoints.admin("aspc", assay_id, "delete"),
             headers=forward_headers(),
         )
         g.audit_metadata = {"assay": assay_id}
