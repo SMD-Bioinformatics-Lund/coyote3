@@ -18,6 +18,51 @@ from flask import current_app as app
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
+_DEFAULT_VARIANT_STATS = {
+    "total_variants": 0,
+    "total_snps": 0,
+    "total_cnvs": 0,
+    "total_translocs": 0,
+    "total_fusions": 0,
+    "blacklisted": 0,
+    "fps": 0,
+}
+
+_DEFAULT_SAMPLE_STATS = {
+    "profiles": {},
+    "omics_layers": {},
+    "sequencing_scopes": {},
+    "pair_count": {},
+}
+
+
+def _as_int(value: object, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _normalize_variant_stats(stats: object) -> dict[str, int]:
+    if not isinstance(stats, dict):
+        return dict(_DEFAULT_VARIANT_STATS)
+    normalized = dict(_DEFAULT_VARIANT_STATS)
+    for key in normalized:
+        normalized[key] = _as_int(stats.get(key), default=0)
+    return normalized
+
+
+def _normalize_sample_stats(stats: object) -> dict[str, dict]:
+    if not isinstance(stats, dict):
+        return dict(_DEFAULT_SAMPLE_STATS)
+
+    normalized = {}
+    for key, default in _DEFAULT_SAMPLE_STATS.items():
+        value = stats.get(key, default)
+        normalized[key] = value if isinstance(value, dict) else default
+    return normalized
+
+
 @dashboard_bp.route("/", methods=["GET", "POST"])
 @login_required
 def dashboard() -> str:
@@ -61,6 +106,8 @@ def dashboard() -> str:
                 type(user_samples_stats).__name__,
             )
             user_samples_stats = {}
+        variant_stats = _normalize_variant_stats(variant_stats)
+        sample_stats = _normalize_sample_stats(sample_stats)
 
     else:
         app.logger.info(f"Dashboard cache miss for {cache_key}")
@@ -82,10 +129,13 @@ def dashboard() -> str:
             analysed_samples_count = 0
             pending_samples_count = 0
             user_samples_stats = {}
-            variant_stats = {}
+            variant_stats = dict(_DEFAULT_VARIANT_STATS)
             unique_gene_count_all_panels = 0
             asp_gene_counts = {}
-            sample_stats = {}
+            sample_stats = dict(_DEFAULT_SAMPLE_STATS)
+
+    variant_stats = _normalize_variant_stats(variant_stats)
+    sample_stats = _normalize_sample_stats(sample_stats)
 
     # Check if the cache exists and is still valid
     try:

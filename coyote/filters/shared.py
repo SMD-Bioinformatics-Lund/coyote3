@@ -244,17 +244,22 @@ def uniq_callers(calls: list) -> set:
     return {c.get("caller") for c in calls if isinstance(c, dict) and c.get("caller")}
 
 
-def shorten_number(n: int | float) -> str:
+def shorten_number(n: object) -> str:
     """Format large numbers using metric suffixes."""
+    try:
+        value = float(n)
+    except (TypeError, ValueError):
+        return "0"
+
     for unit in ["", "K", "M", "B", "T"]:
-        if abs(n) < 1000:
-            if float(n).is_integer():
-                return f"{int(n)}{unit}"
-            return f"{n:.1f}{unit}".rstrip("0").rstrip(".")
-        n /= 1000
-    if float(n).is_integer():
-        return f"{int(n)}P"
-    return f"{n:.1f}P".rstrip("0").rstrip(".")
+        if abs(value) < 1000:
+            if value.is_integer():
+                return f"{int(value)}{unit}"
+            return f"{value:.1f}{unit}".rstrip("0").rstrip(".")
+        value /= 1000
+    if value.is_integer():
+        return f"{int(value)}P"
+    return f"{value:.1f}P".rstrip("0").rstrip(".")
 
 
 def render_markdown_basic(text: str | None) -> str:

@@ -62,7 +62,11 @@ def set_current_user(user: Any) -> Token:
 
 def reset_current_user(token: Token) -> None:
     """Reset request-local API user context."""
-    _runtime_user.reset(token)
+    try:
+        _runtime_user.reset(token)
+    except ValueError:
+        # FastAPI may finalize sync-generator dependencies in a different context.
+        _runtime_user.set(None)
 
 
 def current_user() -> Any | None:
