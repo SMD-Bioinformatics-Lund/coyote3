@@ -19,7 +19,7 @@ from flask import (
     abort,
 )
 from flask_login import current_user, login_required
-from coyote.blueprints.admin.views_users import view_user
+from coyote.blueprints.admin import admin_bp
 from coyote.blueprints.userprofile import profile_bp
 
 
@@ -41,4 +41,4 @@ def user_profile(user_id: str) -> str | Response:
     """
     if user_id != current_user.username:
         abort(403)
-    return view_user(user_id)
+    return admin_bp.view_user(user_id)
