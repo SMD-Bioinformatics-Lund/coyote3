@@ -106,10 +106,6 @@ def dashboard() -> str:
     except Exception as exc:
         app.logger.warning("Dashboard cache write failed for %s: %s", cache_key, exc)
 
-    # TODO: Add more stats here
-    # Total Assays analysed
-    # total_assay_count = 0
-
     return render_template(
         "dashboard.html",
         total_samples=total_samples_count,

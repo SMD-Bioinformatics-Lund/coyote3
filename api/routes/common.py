@@ -7,8 +7,9 @@ from typing import Any
 
 from fastapi import Depends, Query
 
-from api.app import ApiUser, _api_error, app, flask_app, require_access
+from api.app import ApiUser, _api_error, app, require_access
 from api.extensions import store, util
+from api.runtime import app as runtime_app
 from api.services.interpretation.report_summary import enrich_reported_variant_docs
 
 
@@ -78,7 +79,7 @@ def common_tiered_variant_search_read(
 ):
     _ = user
     if limit_entries is None:
-        limit_entries = flask_app.config.get("TIERED_VARIANT_SEARCH_LIMIT", 1000)
+        limit_entries = runtime_app.config.get("TIERED_VARIANT_SEARCH_LIMIT", 1000)
 
     assay_choices = store.asp_handler.get_all_asp_groups()
     docs_found = store.annotation_handler.find_variants_by_search_string(

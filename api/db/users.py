@@ -25,7 +25,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 from api.db.base import BaseHandler
 from datetime import datetime
-from flask import flash
+from api.runtime import flash
 
 
 # -------------------------------------------------------------------------

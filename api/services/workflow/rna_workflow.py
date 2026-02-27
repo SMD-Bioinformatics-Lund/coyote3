@@ -21,8 +21,8 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any
 
-from flask import current_app as app
-from flask import render_template
+from api.runtime import app
+from api.runtime import render_template
 
 from api.extensions import store, util
 from api.services.reporting.report_paths import build_report_file_location

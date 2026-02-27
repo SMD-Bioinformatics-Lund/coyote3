@@ -24,7 +24,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # Imports
 # -------------------------------------------------------------------------
 from api.db.base import BaseHandler
-from flask import current_app as app
+from api.runtime import app
 
 
 # -------------------------------------------------------------------------

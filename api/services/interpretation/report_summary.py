@@ -15,8 +15,8 @@
 from collections import defaultdict
 
 from bson.objectid import ObjectId
-from flask import current_app as app
-from flask_login import current_user
+from api.runtime import app
+from api.runtime import current_username
 
 from api.extensions import store
 from api.utils.common_utility import CommonUtility
@@ -60,10 +60,11 @@ def create_annotation_text_from_gene(gene: str, csq: list, assay_group: str, **k
 
 
 def create_comment_doc(data: dict, nomenclature: str = "", variant: str = "", key: str = "text") -> dict:
+    author = current_username()
     if data.get("global", None) == "global":
         doc = {
             "text": data.get(key),
-            "author": current_user.username,
+            "author": author,
             "time_created": CommonUtility.utc_now(),
             "variant": variant,
             "nomenclature": nomenclature,
@@ -83,7 +84,7 @@ def create_comment_doc(data: dict, nomenclature: str = "", variant: str = "", ke
                     "_id": ObjectId(),
                     "hidden": 0,
                     "text": data.get(key),
-                    "author": current_user.username,
+                    "author": author,
                     "time_created": CommonUtility.utc_now(),
                 }
             }

@@ -24,7 +24,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 from bson.objectid import ObjectId
 from api.db.base import BaseHandler
-from flask import current_app as app
+from api.runtime import app
 from typing import Any
 
 
@@ -47,25 +47,6 @@ class VariantsHandler(BaseHandler):
         """
         super().__init__(adapter)
         self.set_collection(self.adapter.variants_collection)
-
-    # TODO: This will be removed once the sample ids are set in the sample doc
-    def get_sample_ids(self, sample_id: str) -> dict:
-        """
-        Retrieve sample IDs and their associated types for a given sample ID.
-
-        Args:
-            sample_id (str): The ID of the sample to retrieve.
-
-        Returns:
-            dict: A dictionary where the keys are types (e.g., "type1", "type2")
-                and the values are the corresponding sample IDs.
-        """
-        a_var = self.get_collection().find_one({"SAMPLE_ID": sample_id}, {"GT": 1})
-        ids = {}
-        if a_var:
-            for gt in a_var["GT"]:
-                ids[gt.get("type")] = gt.get("sample")
-        return ids
 
     def get_case_variants(self, query: dict):
         """

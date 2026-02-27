@@ -6,13 +6,13 @@ from api.extensions import store, util
 from api.services.interpretation.annotation_enrichment import add_global_annotations
 from api.services.interpretation.report_summary import generate_summary_text
 from api.services.workflow.rna_workflow import RNAWorkflowService
+from api.runtime import app as runtime_app
 from api.app import (
     ApiUser,
     _api_error,
     _get_formatted_assay_config,
     _get_sample_for_api,
     app,
-    flask_app,
     require_access,
 )
 
@@ -36,7 +36,7 @@ def list_rna_fusions(request: Request, sample_id: str, user: ApiUser = Depends(r
         raise _api_error(404, "Assay config not found for sample")
 
     sample, sample_filters = RNAWorkflowService.merge_and_normalize_sample_filters(
-        sample, assay_config, sample_id, flask_app.logger
+        sample, assay_config, sample_id, runtime_app.logger
     )
     assay_group = assay_config.get("asp_group", "unknown")
     subpanel = sample.get("subpanel")

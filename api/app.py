@@ -5,6 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass
 import os
+from collections.abc import Generator
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -17,11 +18,14 @@ os.environ["REQUIRE_EXTERNAL_API"] = "0"
 from api.extensions import store, util
 from api.flask_app import create_flask_context_app
 from api.models.user import UserModel
+from api.runtime import app as runtime_app
+from api.runtime import bind_flask_app, reset_current_user, set_current_user
 
 flask_app = create_flask_context_app(
     testing=bool(int(os.getenv("TESTING", "0"))),
     development=bool(int(os.getenv("DEVELOPMENT", "0"))),
 )
+bind_flask_app(flask_app)
 _session_interface = SecureCookieSessionInterface()
 _session_serializer = _session_interface.get_signing_serializer(flask_app)
 
@@ -34,22 +38,10 @@ app = FastAPI(
 )
 
 
-@app.middleware("http")
-async def flask_app_context_middleware(request: Request, call_next):
-    """
-    Provide a Flask app context for each API request.
-
-    This keeps legacy/shared helpers that still rely on Flask `current_app`
-    compatible while routes are served through FastAPI.
-    """
-    with flask_app.app_context():
-        return await call_next(request)
-
-
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
     """Return a consistent JSON payload for unexpected API failures."""
-    flask_app.logger.exception("Unhandled API exception on %s %s", request.method, request.url.path)
+    runtime_app.logger.exception("Unhandled API exception on %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=500,
         content={
@@ -83,7 +75,7 @@ def _api_error(status_code: int, message: str) -> HTTPException:
 
 
 def _require_internal_token(request: Request) -> None:
-    expected = flask_app.config.get("INTERNAL_API_TOKEN") or flask_app.config.get("SECRET_KEY")
+    expected = runtime_app.config.get("INTERNAL_API_TOKEN") or runtime_app.config.get("SECRET_KEY")
     provided = request.headers.get("X-Coyote-Internal-Token")
     if not expected or not provided or provided != expected:
         raise _api_error(403, "Forbidden")
@@ -111,7 +103,7 @@ def _get_formatted_assay_config(sample: dict):
 
 
 def _decode_session_user(request: Request) -> ApiUser:
-    cookie_name = flask_app.config.get("SESSION_COOKIE_NAME", "session")
+    cookie_name = runtime_app.config.get("SESSION_COOKIE_NAME", "session")
     cookie_val = request.cookies.get(cookie_name)
     if not cookie_val or _session_serializer is None:
         raise _api_error(401, "Login required")
@@ -174,10 +166,14 @@ def require_access(
     min_level: int | None = None,
     min_role: str | None = None,
 ):
-    def dep(request: Request) -> ApiUser:
+    def dep(request: Request) -> Generator[ApiUser, None, None]:
         user = _decode_session_user(request)
         _enforce_access(user, permission=permission, min_level=min_level, min_role=min_role)
-        return user
+        token = set_current_user(user)
+        try:
+            yield user
+        finally:
+            reset_current_user(token)
 
     return dep
 

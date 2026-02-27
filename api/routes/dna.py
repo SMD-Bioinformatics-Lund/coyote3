@@ -11,6 +11,7 @@ from api.services.dna.dna_filters import (
     create_cnveffectlist,
     get_filter_conseq_terms,
 )
+from api.services.dna.notation import one_letter_p
 from api.services.dna.dna_reporting import hotspot_variant
 from api.services.dna.dna_variants import format_pon, get_variant_nomenclature
 from api.services.dna.query_builders import build_cnv_query, build_query
@@ -21,13 +22,13 @@ from api.services.interpretation.report_summary import (
     generate_summary_text,
 )
 from api.services.workflow.dna_workflow import DNAWorkflowService
+from api.runtime import app as runtime_app
 from api.app import (
     ApiUser,
     _api_error,
     _get_formatted_assay_config,
     _get_sample_for_api,
     app,
-    flask_app,
     require_access,
 )
 
@@ -60,7 +61,7 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
         raise _api_error(404, "Assay config not found for sample")
 
     sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
-    DNAWorkflowService.validate_report_inputs(flask_app.logger, sample, assay_config)
+    DNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
     sample_filters = deepcopy(sample.get("filters", {}))
     assay_group = assay_config.get("asp_group", "unknown")
     subpanel = sample.get("subpanel")
@@ -106,8 +107,6 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
     variants = hotspot_variant(variants)
 
     sample_ids = util.common.get_case_and_control_sample_ids(sample)
-    if not sample_ids:
-        sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
     bam_id = store.bam_service_handler.get_bams(sample_ids)
     vep_variant_class_meta = store.vep_meta_handler.get_variant_class_translations(sample.get("vep", 103))
     vep_conseq_meta = store.vep_meta_handler.get_conseq_translations(sample.get("vep", 103))
@@ -197,7 +196,7 @@ def dna_plot_context(sample_id: str, user: ApiUser = Depends(require_access(min_
     assay_config = _get_formatted_assay_config(sample)
     if not assay_config:
         raise _api_error(404, "Assay config not found for sample")
-    DNAWorkflowService.validate_report_inputs(flask_app.logger, sample, assay_config)
+    DNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
     assay_config_schema = store.schema_handler.get_schema(assay_config.get("schema_name"))
     return util.common.convert_to_serializable(
         {
@@ -267,7 +266,6 @@ def show_dna_variant(sample_id: str, var_id: str, user: ApiUser = Depends(requir
     civic = store.civic_handler.get_civic_data(variant, variant_desc)
     civic_gene = store.civic_handler.get_civic_gene_info(selected_csq.get("SYMBOL"))
 
-    one_letter_p = flask_app.jinja_env.filters.get("one_letter_p", lambda x: x)
     oncokb_hgvsp = []
     if selected_csq.get("HGVSp"):
         hgvsp = one_letter_p(selected_csq.get("HGVSp"))
@@ -288,8 +286,6 @@ def show_dna_variant(sample_id: str, var_id: str, user: ApiUser = Depends(requir
     iarc_tp53 = store.iarc_tp53_handler.find_iarc_tp53(variant)
 
     sample_ids = util.common.get_case_and_control_sample_ids(sample)
-    if not sample_ids:
-        sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
     bam_id = store.bam_service_handler.get_bams(sample_ids)
 
     pon = format_pon(variant)
@@ -727,8 +723,6 @@ def show_dna_cnv(sample_id: str, cnv_id: str, user: ApiUser = Depends(require_ac
     assay_config = _get_formatted_assay_config(sample)
     assay_group = assay_config.get("asp_group", "unknown") if assay_config else "unknown"
     sample_ids = util.common.get_case_and_control_sample_ids(sample)
-    if not sample_ids:
-        sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
 
     payload = {
         "sample": sample,
@@ -790,8 +784,6 @@ def show_dna_translocation(
     assay_config = _get_formatted_assay_config(sample)
     assay_group = assay_config.get("asp_group", "unknown") if assay_config else "unknown"
     sample_ids = util.common.get_case_and_control_sample_ids(sample)
-    if not sample_ids:
-        sample_ids = store.variant_handler.get_sample_ids(str(sample["_id"]))
 
     payload = {
         "sample": sample,

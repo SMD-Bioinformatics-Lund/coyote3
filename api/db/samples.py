@@ -27,21 +27,9 @@ It is part of the `coyote.db` package and extends the base handler functionality
 from bson.objectid import ObjectId
 from api.db.base import BaseHandler
 from datetime import datetime
-from flask import has_request_context
-from flask_login import current_user
+from api.runtime import current_username
 from api.utils.common_utility import CommonUtility
 from typing import Any
-
-
-def _safe_current_username(default: str = "api") -> str:
-    if not has_request_context():
-        return default
-    try:
-        if current_user.is_authenticated and getattr(current_user, "username", None):
-            return str(current_user.username)
-    except Exception:
-        return default
-    return default
 
 
 # -------------------------------------------------------------------------
@@ -345,25 +333,6 @@ class SampleHandler(BaseHandler):
             {"$set": {"filters": filters}},
         )
 
-    # TODO: Remove
-    def update_temp_isgl(self, sample_id: str, temp_isgl: list) -> None:
-        """
-        Update the temporary isgl setting of a sample document in the database.
-
-        This method updates the `temp_isgl` field of a sample document with the provided boolean value.
-
-        Args:
-            sample_id (str): The unique identifier (ObjectId) of the sample to update.
-            temp_isgl (list): A list containing the new temporary isgl settings.
-
-        Returns:
-            None
-        """
-        self.get_collection().update_one(
-            {"_id": ObjectId(sample_id)},
-            {"$set": {"filters.temp_isgl": temp_isgl}},
-        )
-
     def update_sample(self, sample_id: ObjectId, sample_doc: dict) -> None:
         """
         Update sample document
@@ -626,7 +595,7 @@ class SampleHandler(BaseHandler):
                         "report_type": "html",
                         "report_name": f"{report_id}.html",
                         "filepath": filepath,
-                        "author": _safe_current_username(),
+                        "author": current_username(),
                         "time_created": CommonUtility.utc_now(),
                     }
                 },

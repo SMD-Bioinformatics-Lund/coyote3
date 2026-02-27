@@ -5,6 +5,7 @@ from copy import deepcopy
 from fastapi import Body, Depends, Query
 
 from api.extensions import store, util
+from api.runtime import app as runtime_app
 from api.services.admin.sample_deletion import delete_all_sample_traces
 from api.app import ApiUser, _api_error, _get_sample_for_api, app, require_access
 
@@ -976,7 +977,7 @@ def create_aspc_context_read(
     schema["fields"]["assay_name"]["options"] = valid_assay_ids
     if schema_category == "DNA" and "vep_consequences" in schema.get("fields", {}):
         schema["fields"]["vep_consequences"]["options"] = list(
-            flask_app.config.get("CONSEQ_TERMS_MAPPER", {}).keys()
+            runtime_app.config.get("CONSEQ_TERMS_MAPPER", {}).keys()
         )
     schema["fields"]["created_by"]["default"] = user.username
     schema["fields"]["created_on"]["default"] = util.common.utc_now()
@@ -1009,7 +1010,7 @@ def aspc_context_read(
     schema = deepcopy(schema)
     if "vep_consequences" in schema.get("fields", {}):
         schema["fields"]["vep_consequences"]["options"] = list(
-            flask_app.config.get("CONSEQ_TERMS_MAPPER", {}).keys()
+            runtime_app.config.get("CONSEQ_TERMS_MAPPER", {}).keys()
         )
 
     return util.common.convert_to_serializable({"assay_config": assay_config, "schema": schema})

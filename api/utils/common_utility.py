@@ -26,13 +26,13 @@ from pathlib import Path
 import subprocess
 
 from cryptography.fernet import Fernet
-from flask import current_app as app
+from api.runtime import app
+from api.runtime import current_username
 from typing import Any, Literal, Dict, Tuple, List, Optional
 from bson import ObjectId
 from datetime import datetime, timezone, timedelta
 from hashlib import md5
 import base64, json
-from flask_login import current_user
 from werkzeug.security import generate_password_hash
 
 
@@ -1134,7 +1134,7 @@ class CommonUtility:
             Any: The result of the insert operation, which may include the inserted document ID or other relevant information.
         """
         document = {
-            "author": current_user.username,
+            "author": current_username(),
             "time_created": CommonUtility.utc_now(),
             "variant": variant,
             "nomenclature": nomenclature,

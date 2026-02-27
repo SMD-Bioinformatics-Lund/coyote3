@@ -17,12 +17,13 @@ from copy import deepcopy
 import os
 from pprint import pformat
 from typing import Any, Dict, List, Optional, Tuple
-from flask import current_app as app
-from flask import render_template
+from api.runtime import app
+from api.runtime import render_template
 from api.extensions import store
 from api.utils.common_utility import CommonUtility
 from api.utils.report.report_util import ReportUtility
 from api.services.reporting.report_paths import get_report_timestamp as shared_get_report_timestamp
+from api.services.dna.notation import one_letter_p, standard_hgvs
 from api.services.dna.query_builders import build_query
 from api.services.interpretation.annotation_enrichment import (
     add_global_annotations as shared_add_global_annotations,
@@ -86,8 +87,6 @@ def get_simple_variants_for_report(variants: list, assay_config: dict) -> list:
     translation = ReportUtility.VARIANT_CLASS_TRANSLATION
     class_short_desc_list = ReportUtility.TIER_SHORT_DESC
     class_long_desc_list = ReportUtility.TIER_DESC
-    one_letter_p = app.jinja_env.filters["one_letter_p"]
-    standard_HGVS = app.jinja_env.filters["standard_HGVS"]
 
     simple_variants = []
 
@@ -119,10 +118,10 @@ def get_simple_variants_for_report(variants: list, assay_config: dict) -> list:
         if selected_csq.get("HGVSp", None):
             if -20 <= indel_size <= 20:
                 var_type = "snv"
-                variant = standard_HGVS(one_letter_p(selected_csq.get("HGVSp")))
+                variant = standard_hgvs(one_letter_p(selected_csq.get("HGVSp")))
                 protein_changes = [
-                    standard_HGVS(one_letter_p(selected_csq.get("HGVSp"))),
-                    standard_HGVS(selected_csq.get("HGVSp")),
+                    standard_hgvs(one_letter_p(selected_csq.get("HGVSp"))),
+                    standard_hgvs(selected_csq.get("HGVSp")),
                 ]
             else:
                 protein_changes = [

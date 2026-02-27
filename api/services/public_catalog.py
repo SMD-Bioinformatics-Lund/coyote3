@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
-from flask import current_app as app
+from api.runtime import app
 
 from api.extensions import store
 

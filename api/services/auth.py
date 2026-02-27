@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from flask import current_app
+from api.runtime import app
 
 from api.extensions import ldap_manager, store
 from api.models.user import UserModel
@@ -13,8 +13,8 @@ def _ldap_authenticate(username: str, password: str) -> bool:
         ldap_manager.authenticate(
             username=username,
             password=password,
-            base_dn=current_app.config.get("LDAP_BASE_DN") or current_app.config.get("LDAP_BINDDN"),
-            attribute=current_app.config.get("LDAP_USER_LOGIN_ATTR"),
+            base_dn=app.config.get("LDAP_BASE_DN") or app.config.get("LDAP_BINDDN"),
+            attribute=app.config.get("LDAP_USER_LOGIN_ATTR"),
         )
     )
 
@@ -40,4 +40,3 @@ def authenticate_credentials(username: str, password: str) -> dict | None:
     if not valid:
         return None
     return user_doc
-

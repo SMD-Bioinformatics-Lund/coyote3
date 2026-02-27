@@ -19,7 +19,7 @@ This module provides static methods for configuration management, form processin
 from datetime import datetime, timezone
 from dateutil.parser import parse as parse_datetime
 from api.utils import admin_validators as validators
-from flask import current_app as app
+from api.runtime import app
 import json
 import os
 from typing import Any, Union

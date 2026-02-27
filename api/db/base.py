@@ -24,25 +24,12 @@ It is part of the `coyote.db` package and will be used as a base class for the r
 # Imports
 # -------------------------------------------------------------------------
 from bson.objectid import ObjectId
-from flask_login import current_user
 from typing import Any
-from flask import current_app as app
-from flask import flash, has_request_context
+from api.runtime import app
+from api.runtime import current_username, flash
 from datetime import datetime
 import pymongo
 from api.utils.common_utility import CommonUtility
-
-
-def _safe_current_username(default: str = "api") -> str:
-    """Return current username when a Flask request user is available."""
-    if not has_request_context():
-        return default
-    try:
-        if current_user.is_authenticated and getattr(current_user, "username", None):
-            return str(current_user.username)
-    except Exception:
-        return default
-    return default
 
 
 # -------------------------------------------------------------------------
@@ -63,7 +50,6 @@ class BaseHandler:
         Initialize the handler with a given adapter and bind the collection.
         """
         self.adapter = adapter
-        self.current_user = current_user
         self.app = app
 
         # default collection for a given handler, must be set from inside the handler class
@@ -120,7 +106,7 @@ class BaseHandler:
             {
                 "$set": {
                     "comments.$.hidden": 1,
-                    "comments.$.hidden_by": _safe_current_username(),
+                    "comments.$.hidden_by": current_username(),
                     "comments.$.time_hidden": CommonUtility.utc_now(),
                 }
             },

@@ -29,32 +29,11 @@ from copy import deepcopy
 from api.db.base import BaseHandler
 from datetime import datetime
 from pymongo.results import DeleteResult
-from flask import flash, has_request_context
-from flask_login import current_user
+from api.runtime import current_user_is_admin, current_username, flash
 from typing import Any, Dict, Tuple, List, Optional
 from urllib.parse import unquote
 from api.utils.common_utility import CommonUtility
 from collections import defaultdict
-
-
-def _safe_current_username(default: str = "api") -> str:
-    if not has_request_context():
-        return default
-    try:
-        if current_user.is_authenticated and getattr(current_user, "username", None):
-            return str(current_user.username)
-    except Exception:
-        return default
-    return default
-
-
-def _safe_is_admin() -> bool:
-    if not has_request_context():
-        return False
-    try:
-        return bool(current_user.is_authenticated and getattr(current_user, "is_admin", False))
-    except Exception:
-        return False
 
 
 # -------------------------------------------------------------------------
@@ -383,7 +362,7 @@ class AnnotationsHandler(BaseHandler):
             Any: The result of the insert operation, which may include the inserted document ID or other relevant information.
         """
         document = {
-            "author": _safe_current_username(),
+            "author": current_username(),
             "time_created": CommonUtility.utc_now(),
             "variant": variant,
             "nomenclature": nomenclature,
@@ -449,7 +428,7 @@ class AnnotationsHandler(BaseHandler):
             )
         )
         ## If variant has no match to current assay, it has an historical variant, i.e. not assigned to an assay. THIS IS DANGEROUS, maybe limit to admin?
-        if len(classified_docs) == 0 and _safe_is_admin():
+        if len(classified_docs) == 0 and current_user_is_admin():
             delete_result = self.get_collection().find(  # may be change it to delete later
                 {
                     "class": {"$exists": True},

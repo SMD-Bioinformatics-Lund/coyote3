@@ -1,47 +1,76 @@
-"""Minimal Flask context bootstrap for API runtime dependencies."""
+"""Framework-neutral bootstrap context for API runtime dependencies."""
 
 from __future__ import annotations
 
-from flask import Flask
+from dataclasses import dataclass
+import logging
+from typing import Any
+
 from pymongo.errors import ConnectionFailure
 
 import config
 from api.extensions import ldap_manager, store, util
 
 
-def create_flask_context_app(testing: bool = False, development: bool = False) -> Flask:
-    """
-    Create a minimal Flask app used only for API runtime context.
+@dataclass
+class ApiRuntimeContext:
+    """Lightweight app-like object for configuration and logging."""
 
-    The API still reuses a few Flask-context dependent helpers. This app intentionally
-    avoids registering web blueprints or web-only middleware.
-    """
-    app = Flask(__name__, instance_relative_config=True)
+    config: dict[str, Any]
+    logger: logging.Logger
 
+    @property
+    def secret_key(self) -> str | None:
+        return self.config.get("SECRET_KEY")
+
+
+def create_flask_context_app(testing: bool = False, development: bool = False) -> ApiRuntimeContext:
+    """
+    Build runtime configuration and initialize API dependencies.
+
+    Kept as a compatibility entrypoint while removing Flask app context
+    coupling from API service execution.
+    """
+    config_obj = _select_config(testing=testing, development=development)
+    conf = _config_dict(config_obj)
+    logger = logging.getLogger("coyote.api")
+    runtime = ApiRuntimeContext(config=conf, logger=logger)
+
+    _init_store(runtime)
+    ldap_manager.init_from_config(runtime.config)
+    util.init_util()
+
+    return runtime
+
+
+def _select_config(testing: bool, development: bool):
     if testing:
-        app.config.from_object(config.TestConfig())
-        app.debug = True
-    elif development:
-        app.config.from_object(config.DevelopmentConfig())
-        app.debug = True
-    else:
-        app.config.from_object(config.ProductionConfig())
-
-    with app.app_context():
-        _init_store(app)
-        ldap_manager.init_app(app)
-        util.init_util()
-
-    return app
+        return config.TestConfig()
+    if development:
+        return config.DevelopmentConfig()
+    return config.ProductionConfig()
 
 
-def _init_store(app: Flask) -> None:
+def _config_dict(config_obj) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for name in dir(config_obj):
+        if not name.isupper():
+            continue
+        try:
+            out[name] = getattr(config_obj, name)
+        except Exception:
+            continue
+    out.setdefault("SECRET_KEY_FALLBACKS", [])
+    return out
+
+
+def _init_store(runtime: ApiRuntimeContext) -> None:
     """Initialize API Mongo adapter and verify connectivity."""
-    app.logger.info("Initializing API MongoAdapter at: %s", app.config.get("MONGO_URI"))
-    store.init_from_app(app)
+    runtime.logger.info("Initializing API MongoAdapter at: %s", runtime.config.get("MONGO_URI"))
+    store.init_from_app(runtime)
     try:
         store.client.admin.command("ping")
     except ConnectionFailure as exc:
-        app.logger.error("API MongoDB connection failed: %s", exc)
+        runtime.logger.error("API MongoDB connection failed: %s", exc)
         raise RuntimeError("Could not connect to MongoDB for API runtime.") from exc
 

@@ -12,9 +12,9 @@ from api.app import (
     _get_sample_for_api,
     _to_bool,
     app,
-    flask_app,
     require_access,
 )
+from api.runtime import app as runtime_app
 
 
 @app.get("/api/v1/dna/samples/{sample_id}/report/preview")
@@ -27,7 +27,7 @@ def preview_dna_report(
     assay_config = _get_formatted_assay_config(sample)
     if not assay_config:
         raise _api_error(404, "Assay config not found for sample")
-    DNAWorkflowService.validate_report_inputs(flask_app.logger, sample, assay_config)
+    DNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
 
     html, snapshot_rows = DNAWorkflowService.build_report_payload(
         sample=sample,
@@ -62,7 +62,7 @@ def preview_rna_report(
     assay_config = _get_formatted_assay_config(sample)
     if not assay_config:
         raise _api_error(404, "Assay config not found for sample")
-    RNAWorkflowService.validate_report_inputs(flask_app.logger, sample, assay_config)
+    RNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
 
     html, snapshot_rows = RNAWorkflowService.build_report_payload(
         sample=sample,
@@ -95,15 +95,15 @@ def save_dna_report(
     assay_config = _get_formatted_assay_config(sample)
     if not assay_config:
         raise _api_error(404, "Assay config not found for sample")
-    DNAWorkflowService.validate_report_inputs(flask_app.logger, sample, assay_config)
+    DNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
 
     report_num = sample.get("report_num", 0) + 1
     report_id, report_path, report_file = DNAWorkflowService.build_report_location(
         sample=sample,
         assay_config=assay_config,
-        reports_base_path=flask_app.config.get("REPORTS_BASE_PATH", "reports"),
+        reports_base_path=runtime_app.config.get("REPORTS_BASE_PATH", "reports"),
     )
-    DNAWorkflowService.prepare_report_output(report_path, report_file, logger=flask_app.logger)
+    DNAWorkflowService.prepare_report_output(report_path, report_file, logger=runtime_app.logger)
 
     html, snapshot_rows = DNAWorkflowService.build_report_payload(
         sample=sample,
@@ -149,15 +149,15 @@ def save_rna_report(
     assay_config = _get_formatted_assay_config(sample)
     if not assay_config:
         raise _api_error(404, "Assay config not found for sample")
-    RNAWorkflowService.validate_report_inputs(flask_app.logger, sample, assay_config)
+    RNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
 
     report_num = sample.get("report_num", 0) + 1
     report_id, report_path, report_file = RNAWorkflowService.build_report_location(
         sample=sample,
         assay_config=assay_config,
-        reports_base_path=flask_app.config.get("REPORTS_BASE_PATH", "reports"),
+        reports_base_path=runtime_app.config.get("REPORTS_BASE_PATH", "reports"),
     )
-    RNAWorkflowService.prepare_report_output(report_path, report_file, logger=flask_app.logger)
+    RNAWorkflowService.prepare_report_output(report_path, report_file, logger=runtime_app.logger)
 
     html, snapshot_rows = RNAWorkflowService.build_report_payload(
         sample=sample,

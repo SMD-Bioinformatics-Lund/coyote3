@@ -12,11 +12,11 @@ from api.app import (
     _api_error,
     _get_formatted_assay_config,
     _get_sample_for_api,
-    flask_app,
     app,
     require_access,
 )
 from api.extensions import store, util
+from api.runtime import app as runtime_app
 
 
 @app.get("/api/v1/home/samples")
@@ -31,7 +31,7 @@ def home_samples_read(
     user: ApiUser = Depends(require_access(min_level=1)),
 ):
     if limit_done_samples is None:
-        limit_done_samples = flask_app.config.get("REPORTED_SAMPLES_SEARCH_LIMIT", 50)
+        limit_done_samples = runtime_app.config.get("REPORTED_SAMPLES_SEARCH_LIMIT", 50)
 
     if panel_type and panel_tech and assay_group:
         assay_list = user.asp_map.get(panel_type, {}).get(panel_tech, {}).get(assay_group, [])
@@ -269,7 +269,7 @@ def home_report_context_read(
     if not filepath and report_name:
         assay_config = _get_formatted_assay_config(sample)
         report_sub_dir = assay_config.get("reporting", {}).get("report_folder", "")
-        filepath = f"{flask_app.config.get('REPORTS_BASE_PATH', '')}/{report_sub_dir}/{report_name}"
+        filepath = f"{runtime_app.config.get('REPORTS_BASE_PATH', '')}/{report_sub_dir}/{report_name}"
 
     return util.common.convert_to_serializable(
         {
