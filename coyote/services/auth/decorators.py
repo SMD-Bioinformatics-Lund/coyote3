@@ -377,18 +377,3 @@ def require(permission=None, min_role=None, min_level=None) -> callable:
         return f
 
     return decorator
-
-
-def min_role_required(min_role: str) -> callable:
-    """Backward-compatible alias for role-based route requirements."""
-    return require(min_role=min_role)
-
-
-def permission_required(permission: str) -> callable:
-    """Backward-compatible alias for permission-based route requirements."""
-    return require(permission=permission)
-
-
-def access_required(permission=None, min_role=None, min_level=None) -> callable:
-    """Backward-compatible alias for composite route requirements."""
-    return require(permission=permission, min_role=min_role, min_level=min_level)
