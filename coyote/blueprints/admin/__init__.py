@@ -25,7 +25,10 @@ admin_bp = Blueprint(
 
 from coyote.blueprints.admin import views  # noqa: F401, E402
 from coyote.blueprints.admin import views_samples  # noqa: F401, E402
-from coyote.blueprints.admin import views_users  # noqa: F401, E402
+from coyote.blueprints.admin import views_users_actions  # noqa: F401, E402
+from coyote.blueprints.admin import views_users_create  # noqa: F401, E402
+from coyote.blueprints.admin import views_users_detail  # noqa: F401, E402
+from coyote.blueprints.admin import views_users_list  # noqa: F401, E402
 from coyote.blueprints.admin import views_schemas  # noqa: F401, E402
 from coyote.blueprints.admin import views_permissions  # noqa: F401, E402
 from coyote.blueprints.admin import views_roles  # noqa: F401, E402
