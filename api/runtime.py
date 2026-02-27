@@ -22,10 +22,10 @@ _runtime_user: ContextVar[Any | None] = ContextVar("api_runtime_user", default=N
 _jinja_env: Environment | None = None
 
 
-def bind_flask_app(flask_app) -> None:
-    """Bind runtime config/logger from the API bootstrap Flask app."""
-    app.config = dict(flask_app.config)
-    app.logger = flask_app.logger
+def bind_runtime_context(runtime_context) -> None:
+    """Bind runtime config/logger from API bootstrap context."""
+    app.config = dict(runtime_context.config)
+    app.logger = runtime_context.logger
 
 
 def _template_dirs() -> list[str]:
@@ -85,4 +85,3 @@ def current_user_is_admin() -> bool:
         return str(role) == "admin"
     is_admin = getattr(user, "is_admin", None) if user is not None else None
     return bool(is_admin)
-

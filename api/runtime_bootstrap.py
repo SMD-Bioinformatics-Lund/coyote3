@@ -24,12 +24,9 @@ class ApiRuntimeContext:
         return self.config.get("SECRET_KEY")
 
 
-def create_flask_context_app(testing: bool = False, development: bool = False) -> ApiRuntimeContext:
+def create_runtime_context(testing: bool = False, development: bool = False) -> ApiRuntimeContext:
     """
     Build runtime configuration and initialize API dependencies.
-
-    Kept as a compatibility entrypoint while removing Flask app context
-    coupling from API service execution.
     """
     config_obj = _select_config(testing=testing, development=development)
     conf = _config_dict(config_obj)
@@ -73,4 +70,3 @@ def _init_store(runtime: ApiRuntimeContext) -> None:
     except ConnectionFailure as exc:
         runtime.logger.error("API MongoDB connection failed: %s", exc)
         raise RuntimeError("Could not connect to MongoDB for API runtime.") from exc
-

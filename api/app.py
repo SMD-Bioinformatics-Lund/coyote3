@@ -16,18 +16,18 @@ from itsdangerous import BadSignature
 os.environ["REQUIRE_EXTERNAL_API"] = "0"
 
 from api.extensions import store, util
-from api.flask_app import create_flask_context_app
+from api.runtime_bootstrap import create_runtime_context
 from api.models.user import UserModel
 from api.runtime import app as runtime_app
-from api.runtime import bind_flask_app, reset_current_user, set_current_user
+from api.runtime import bind_runtime_context, reset_current_user, set_current_user
 
-flask_app = create_flask_context_app(
+runtime_context = create_runtime_context(
     testing=bool(int(os.getenv("TESTING", "0"))),
     development=bool(int(os.getenv("DEVELOPMENT", "0"))),
 )
-bind_flask_app(flask_app)
+bind_runtime_context(runtime_context)
 _session_interface = SecureCookieSessionInterface()
-_session_serializer = _session_interface.get_signing_serializer(flask_app)
+_session_serializer = _session_interface.get_signing_serializer(runtime_context)
 
 app = FastAPI(
     title="Coyote3 API",
