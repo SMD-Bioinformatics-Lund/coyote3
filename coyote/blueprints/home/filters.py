@@ -66,8 +66,8 @@ def isgl_adhoc_status(isgl_id: str) -> str:
         g._isgl_meta_cache = cache
     if isgl_id not in cache:
         try:
-            cache[isgl_id] = get_web_api_client().get_isgl_meta_internal(
-                isgl_id=isgl_id,
+            cache[isgl_id] = get_web_api_client().get_json(
+                f"/api/v1/internal/isgl/{isgl_id}/meta",
                 headers=build_internal_headers(),
             )
         except ApiRequestError:
@@ -93,8 +93,8 @@ def isgl_display_name(isgl_id: str) -> str:
         g._isgl_meta_cache = cache
     if isgl_id not in cache:
         try:
-            cache[isgl_id] = get_web_api_client().get_isgl_meta_internal(
-                isgl_id=isgl_id,
+            cache[isgl_id] = get_web_api_client().get_json(
+                f"/api/v1/internal/isgl/{isgl_id}/meta",
                 headers=build_internal_headers(),
             )
         except ApiRequestError:

@@ -27,7 +27,10 @@ from coyote.integrations.api.api_client import ApiRequestError, build_forward_he
 @login_required
 def schemas() -> str:
     try:
-        payload = get_web_api_client().get_admin_schemas(headers=build_forward_headers(request.headers))
+        payload = get_web_api_client().get_json(
+            "/api/v1/admin/schemas",
+            headers=build_forward_headers(request.headers),
+        )
         schemas = payload.schemas
     except ApiRequestError as exc:
         flash(f"Failed to fetch schemas: {exc}", "red")
@@ -40,8 +43,8 @@ def schemas() -> str:
 @login_required
 def toggle_schema_active(schema_id: str) -> Response:
     try:
-        payload = get_web_api_client().toggle_admin_schema(
-            schema_id=schema_id,
+        payload = get_web_api_client().post_json(
+            f"/api/v1/admin/schemas/{schema_id}/toggle",
             headers=build_forward_headers(request.headers),
         )
         new_status = bool(payload.meta.get("is_active", False))
@@ -65,8 +68,8 @@ def toggle_schema_active(schema_id: str) -> Response:
 @login_required
 def edit_schema(schema_id: str) -> str | Response:
     try:
-        context = get_web_api_client().get_admin_schema_context(
-            schema_id=schema_id,
+        context = get_web_api_client().get_json(
+            f"/api/v1/admin/schemas/{schema_id}/context",
             headers=build_forward_headers(request.headers),
         )
         schema_doc = context.schema_payload
@@ -90,10 +93,10 @@ def edit_schema(schema_id: str) -> str | Response:
             return redirect(request.url)
 
         try:
-            get_web_api_client().update_admin_schema(
-                schema_id=schema_id,
-                schema_doc=updated_schema,
+            get_web_api_client().post_json(
+                f"/api/v1/admin/schemas/{schema_id}/update",
                 headers=build_forward_headers(request.headers),
+                json_body={"schema": updated_schema},
             )
             flash("Schema updated successfully.", "green")
             return redirect(url_for("admin_bp.schemas"))
@@ -120,9 +123,10 @@ def create_schema() -> str | Response:
                     flash(f"{err}", "red")
                 return render_template("schemas/schema_create.html", initial_blob=parsed_schema)
 
-            get_web_api_client().create_admin_schema(
-                schema_doc=parsed_schema,
+            get_web_api_client().post_json(
+                "/api/v1/admin/schemas/create",
                 headers=build_forward_headers(request.headers),
+                json_body={"schema": parsed_schema},
             )
             flash("Schema created successfully!", "green")
             return redirect(url_for("admin_bp.schemas"))
@@ -141,8 +145,8 @@ def create_schema() -> str | Response:
 @login_required
 def delete_schema(schema_id: str) -> Response:
     try:
-        get_web_api_client().delete_admin_schema(
-            schema_id=schema_id,
+        get_web_api_client().post_json(
+            f"/api/v1/admin/schemas/{schema_id}/delete",
             headers=build_forward_headers(request.headers),
         )
         g.audit_metadata = {"schema": schema_id}

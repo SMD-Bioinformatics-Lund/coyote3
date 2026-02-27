@@ -22,9 +22,8 @@ from coyote.integrations.api.api_client import ApiRequestError, build_forward_he
 def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
     """Show Translocation view page."""
     try:
-        payload = get_web_api_client().get_dna_translocation(
-            sample_id=sample_id,
-            transloc_id=transloc_id,
+        payload = get_web_api_client().get_json(
+            f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}",
             headers=build_forward_headers(request.headers),
         )
         app.logger.info("Loaded DNA translocation detail from API service for sample %s", sample_id)
@@ -48,9 +47,8 @@ def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
 @login_required
 def mark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
     try:
-        get_web_api_client().mark_dna_translocation_interesting(
-            sample_id=sample_id,
-            transloc_id=transloc_id,
+        get_web_api_client().post_json(
+            f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/interestingtransloc",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -62,9 +60,8 @@ def mark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
 @login_required
 def unmark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
     try:
-        get_web_api_client().unmark_dna_translocation_interesting(
-            sample_id=sample_id,
-            transloc_id=transloc_id,
+        get_web_api_client().post_json(
+            f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/uninterestingtransloc",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -78,9 +75,8 @@ def unmark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
 @login_required
 def mark_false_transloc(sample_id: str, transloc_id: str) -> Response:
     try:
-        get_web_api_client().mark_dna_translocation_false_positive(
-            sample_id=sample_id,
-            transloc_id=transloc_id,
+        get_web_api_client().post_json(
+            f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/fptransloc",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -94,9 +90,8 @@ def mark_false_transloc(sample_id: str, transloc_id: str) -> Response:
 @login_required
 def unmark_false_transloc(sample_id: str, transloc_id: str) -> Response:
     try:
-        get_web_api_client().unmark_dna_translocation_false_positive(
-            sample_id=sample_id,
-            transloc_id=transloc_id,
+        get_web_api_client().post_json(
+            f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/ptransloc",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -111,10 +106,8 @@ def unmark_false_transloc(sample_id: str, transloc_id: str) -> Response:
 def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
-        get_web_api_client().hide_dna_translocation_comment(
-            sample_id=sample_id,
-            transloc_id=transloc_id,
-            comment_id=comment_id,
+        get_web_api_client().post_json(
+            f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/comments/{comment_id}/hide",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -127,10 +120,8 @@ def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
 def unhide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
-        get_web_api_client().unhide_dna_translocation_comment(
-            sample_id=sample_id,
-            transloc_id=transloc_id,
-            comment_id=comment_id,
+        get_web_api_client().post_json(
+            f"/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/comments/{comment_id}/unhide",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:

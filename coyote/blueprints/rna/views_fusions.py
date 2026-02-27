@@ -50,7 +50,10 @@ def list_fusions(sample_id: str) -> str | Response:
     api_client = get_web_api_client()
 
     def _load_api_context():
-        payload = api_client.get_rna_fusions(sample_id=sample_id, headers=headers)
+        payload = api_client.get_json(
+            f"/api/v1/rna/samples/{sample_id}/fusions",
+            headers=headers,
+        )
         return payload
 
     try:
@@ -81,8 +84,8 @@ def list_fusions(sample_id: str) -> str | Response:
         if form.reset.data:
             app.logger.info(f"Resetting filters to default settings for the sample {sample_id}")
             try:
-                api_client.reset_sample_filters(
-                    sample_id=sample_id,
+                api_client.post_json(
+                    f"/api/v1/samples/{sample_id}/filters/reset",
                     headers=headers,
                 )
             except ApiRequestError as exc:
@@ -93,10 +96,10 @@ def list_fusions(sample_id: str) -> str | Response:
             if sample.get("filters", {}).get("adhoc_genes"):
                 filters_from_form["adhoc_genes"] = sample.get("filters", {}).get("adhoc_genes")
             try:
-                api_client.update_sample_filters(
-                    sample_id=sample_id,
-                    filters=filters_from_form,
+                api_client.post_json(
+                    f"/api/v1/samples/{sample_id}/filters/update",
                     headers=headers,
+                    json_body={"filters": filters_from_form},
                 )
             except ApiRequestError as exc:
                 app.logger.error("Failed to update RNA filters via API for sample %s: %s", sample_id, exc)
@@ -115,7 +118,10 @@ def list_fusions(sample_id: str) -> str | Response:
 
     if not sample_has_filters:
         try:
-            api_client.reset_sample_filters(sample_id=sample_id, headers=headers)
+            api_client.post_json(
+                f"/api/v1/samples/{sample_id}/filters/reset",
+                headers=headers,
+            )
             fusions_payload = _load_api_context()
             sample = fusions_payload.sample
             assay_config = fusions_payload.assay_config
@@ -176,9 +182,8 @@ def show_fusion(sample_id: str, fusion_id: str) -> Response | str:
         Response | str: Rendered HTML template for the fusion details page.
     """
     try:
-        payload = get_web_api_client().get_rna_fusion(
-            sample_id=sample_id,
-            fusion_id=fusion_id,
+        payload = get_web_api_client().get_json(
+            f"/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}",
             headers=build_forward_headers(request.headers),
         )
         app.logger.info("Loaded RNA fusion detail from API service for sample %s", sample_id)

@@ -27,7 +27,10 @@ from coyote.integrations.api.api_client import ApiRequestError, build_forward_he
 @login_required
 def manage_users() -> str | Response:
     try:
-        payload = get_web_api_client().get_admin_users(headers=build_forward_headers(request.headers))
+        payload = get_web_api_client().get_json(
+            "/api/v1/admin/users",
+            headers=build_forward_headers(request.headers),
+        )
         users = payload.users
         roles = payload.roles
     except ApiRequestError as exc:
@@ -42,9 +45,11 @@ def manage_users() -> str | Response:
 @login_required
 def create_user() -> Response | str:
     try:
-        context = get_web_api_client().get_admin_user_create_context(
-            schema_id=request.args.get("schema_id"),
+        selected_schema_id = request.args.get("schema_id")
+        context = get_web_api_client().get_json(
+            "/api/v1/admin/users/create_context",
             headers=build_forward_headers(request.headers),
+            params={"schema_id": selected_schema_id} if selected_schema_id else None,
         )
     except ApiRequestError as exc:
         flash(f"Failed to load user schema context: {exc}", "red")
@@ -61,10 +66,13 @@ def create_user() -> Response | str:
             for key, vals in request.form.to_dict(flat=False).items()
         }
         try:
-            payload = get_web_api_client().create_admin_user(
-                schema_id=context.selected_schema.get("_id"),
-                form_data=form_data,
+            payload = get_web_api_client().post_json(
+                "/api/v1/admin/users/create",
                 headers=build_forward_headers(request.headers),
+                json_body={
+                    "schema_id": context.selected_schema.get("_id"),
+                    "form_data": form_data,
+                },
             )
             g.audit_metadata = {"user": payload.resource_id}
             flash("User created successfully!", "green")
@@ -87,8 +95,8 @@ def create_user() -> Response | str:
 @login_required
 def edit_user(user_id: str) -> Response | str:
     try:
-        context = get_web_api_client().get_admin_user_context(
-            user_id=user_id,
+        context = get_web_api_client().get_json(
+            f"/api/v1/admin/users/{user_id}/context",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -126,10 +134,10 @@ def edit_user(user_id: str) -> Response | str:
             for key, vals in request.form.to_dict(flat=False).items()
         }
         try:
-            get_web_api_client().update_admin_user(
-                user_id=user_id,
-                form_data=form_data,
+            get_web_api_client().post_json(
+                f"/api/v1/admin/users/{user_id}/update",
                 headers=build_forward_headers(request.headers),
+                json_body={"form_data": form_data},
             )
             g.audit_metadata = {"user": user_id}
             flash("User updated successfully.", "green")
@@ -153,8 +161,8 @@ def edit_user(user_id: str) -> Response | str:
 @login_required
 def view_user(user_id: str) -> str | Response:
     try:
-        context = get_web_api_client().get_admin_user_context(
-            user_id=user_id,
+        context = get_web_api_client().get_json(
+            f"/api/v1/admin/users/{user_id}/context",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -197,8 +205,8 @@ def view_user(user_id: str) -> str | Response:
 @login_required
 def delete_user(user_id: str) -> Response:
     try:
-        get_web_api_client().delete_admin_user(
-            user_id=user_id,
+        get_web_api_client().post_json(
+            f"/api/v1/admin/users/{user_id}/delete",
             headers=build_forward_headers(request.headers),
         )
         g.audit_metadata = {"user": user_id}
@@ -213,10 +221,12 @@ def delete_user(user_id: str) -> Response:
 def validate_username() -> Response:
     username = request.json.get("username").lower()
     try:
-        exists = get_web_api_client().validate_admin_username(
-            username=username,
+        payload = get_web_api_client().post_json(
+            "/api/v1/admin/users/validate_username",
             headers=build_forward_headers(request.headers),
+            json_body={"username": username},
         )
+        exists = bool(payload.get("exists", False))
         return jsonify({"exists": exists})
     except ApiRequestError as exc:
         return jsonify({"exists": False, "error": str(exc)}), 502
@@ -227,10 +237,12 @@ def validate_username() -> Response:
 def validate_email():
     email = request.json.get("email").lower()
     try:
-        exists = get_web_api_client().validate_admin_email(
-            email=email,
+        payload = get_web_api_client().post_json(
+            "/api/v1/admin/users/validate_email",
             headers=build_forward_headers(request.headers),
+            json_body={"email": email},
         )
+        exists = bool(payload.get("exists", False))
         return jsonify({"exists": exists})
     except ApiRequestError as exc:
         return jsonify({"exists": False, "error": str(exc)}), 502
@@ -241,8 +253,8 @@ def validate_email():
 @login_required
 def toggle_user_active(user_id: str):
     try:
-        payload = get_web_api_client().toggle_admin_user(
-            user_id=user_id,
+        payload = get_web_api_client().post_json(
+            f"/api/v1/admin/users/{user_id}/toggle",
             headers=build_forward_headers(request.headers),
         )
         new_status = bool(payload.meta.get("is_active", False))

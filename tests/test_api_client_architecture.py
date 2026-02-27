@@ -108,15 +108,8 @@ def test_non_dict_payload_rejected(monkeypatch):
     assert "invalid payload format" in exc.value.message.lower()
 
 
-def test_facade_exposes_domain_methods():
+def test_facade_exposes_transport_methods():
     required = [
-        "login_auth",
-        "get_common_gene_info",
-        "get_coverage_sample",
-        "get_home_samples",
-        "get_dna_cnv",
-        "get_rna_fusions",
-        "get_admin_users",
         "get_json",
         "post_json",
     ]

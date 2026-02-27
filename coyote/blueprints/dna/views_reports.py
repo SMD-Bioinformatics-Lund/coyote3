@@ -26,8 +26,8 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     Generate and render a preview of the DNA report for a given sample.
     """
     try:
-        payload = get_web_api_client().get_dna_report_preview(
-            sample_id=sample_id,
+        payload = get_web_api_client().get_json(
+            f"/api/v1/dna/samples/{sample_id}/report/preview",
             headers=build_forward_headers(request.headers),
         )
         app.logger.info("Loaded DNA preview report from API service for sample %s", sample_id)
@@ -45,8 +45,8 @@ def save_dna_report(sample_id: str) -> Response:
     Generate and persist a DNA report for the specified sample.
     """
     try:
-        payload = get_web_api_client().save_dna_report(
-            sample_id=sample_id,
+        payload = get_web_api_client().post_json(
+            f"/api/v1/dna/samples/{sample_id}/report/save",
             headers=build_forward_headers(request.headers),
         )
         report_id = payload.report.get("id", "unknown")

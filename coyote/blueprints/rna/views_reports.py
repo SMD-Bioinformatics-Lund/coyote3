@@ -25,8 +25,8 @@ from coyote.integrations.api.api_client import ApiRequestError, build_forward_he
 @login_required
 def generate_rna_report(sample_id: str, **kwargs) -> Response | str:
     try:
-        payload = get_web_api_client().get_rna_report_preview(
-            sample_id=sample_id,
+        payload = get_web_api_client().get_json(
+            f"/api/v1/rna/samples/{sample_id}/report/preview",
             headers=build_forward_headers(request.headers),
         )
         app.logger.info("Loaded RNA preview report from API service for sample %s", sample_id)
@@ -41,8 +41,8 @@ def generate_rna_report(sample_id: str, **kwargs) -> Response | str:
 @login_required
 def save_rna_report(sample_id: str) -> Response:
     try:
-        payload = get_web_api_client().save_rna_report(
-            sample_id=sample_id,
+        payload = get_web_api_client().post_json(
+            f"/api/v1/rna/samples/{sample_id}/report/save",
             headers=build_forward_headers(request.headers),
         )
         report_id = payload.report.get("id", "unknown")

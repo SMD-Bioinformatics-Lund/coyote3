@@ -27,7 +27,10 @@ from coyote.integrations.api.api_client import ApiRequestError, build_forward_he
 @login_required
 def manage_assay_panels():
     try:
-        payload = get_web_api_client().get_admin_asp(headers=build_forward_headers(request.headers))
+        payload = get_web_api_client().get_json(
+            "/api/v1/admin/asp",
+            headers=build_forward_headers(request.headers),
+        )
         panels = payload.panels
     except ApiRequestError as exc:
         flash(f"Failed to fetch panels: {exc}", "red")
@@ -40,9 +43,11 @@ def manage_assay_panels():
 @login_required
 def create_assay_panel():
     try:
-        context = get_web_api_client().get_admin_asp_create_context(
-            schema_id=request.args.get("schema_id"),
+        selected_schema_id = request.args.get("schema_id")
+        context = get_web_api_client().get_json(
+            "/api/v1/admin/asp/create_context",
             headers=build_forward_headers(request.headers),
+            params={"schema_id": selected_schema_id} if selected_schema_id else None,
         )
     except ApiRequestError as exc:
         flash(f"Failed to load panel create context: {exc}", "red")
@@ -90,9 +95,10 @@ def create_assay_panel():
         )
 
         try:
-            get_web_api_client().create_admin_asp(
-                config=config,
+            get_web_api_client().post_json(
+                "/api/v1/admin/asp/create",
                 headers=build_forward_headers(request.headers),
+                json_body={"config": config},
             )
             g.audit_metadata = {"panel": config["_id"]}
             flash(f"Panel {config['assay_name']} created successfully!", "green")
@@ -113,8 +119,8 @@ def create_assay_panel():
 @login_required
 def edit_assay_panel(assay_panel_id: str) -> str | Response:
     try:
-        context = get_web_api_client().get_admin_asp_context(
-            assay_panel_id=assay_panel_id,
+        context = get_web_api_client().get_json(
+            f"/api/v1/admin/asp/{assay_panel_id}/context",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -190,10 +196,10 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
         )
 
         try:
-            get_web_api_client().update_admin_asp(
-                assay_panel_id=assay_panel_id,
-                config=updated,
+            get_web_api_client().post_json(
+                f"/api/v1/admin/asp/{assay_panel_id}/update",
                 headers=build_forward_headers(request.headers),
+                json_body={"config": updated},
             )
             g.audit_metadata = {"panel": assay_panel_id}
             flash(f"Panel '{panel['assay_name']}' updated successfully!", "green")
@@ -214,8 +220,8 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
 @login_required
 def view_assay_panel(assay_panel_id: str) -> Response | str:
     try:
-        context = get_web_api_client().get_admin_asp_context(
-            assay_panel_id=assay_panel_id,
+        context = get_web_api_client().get_json(
+            f"/api/v1/admin/asp/{assay_panel_id}/context",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -259,8 +265,8 @@ def view_assay_panel(assay_panel_id: str) -> Response | str:
 @login_required
 def print_assay_panel(panel_id: str) -> str | Response:
     try:
-        context = get_web_api_client().get_admin_asp_context(
-            assay_panel_id=panel_id,
+        context = get_web_api_client().get_json(
+            f"/api/v1/admin/asp/{panel_id}/context",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -303,8 +309,8 @@ def print_assay_panel(panel_id: str) -> str | Response:
 @login_required
 def toggle_assay_panel_active(assay_panel_id: str) -> Response:
     try:
-        payload = get_web_api_client().toggle_admin_asp(
-            assay_panel_id=assay_panel_id,
+        payload = get_web_api_client().post_json(
+            f"/api/v1/admin/asp/{assay_panel_id}/toggle",
             headers=build_forward_headers(request.headers),
         )
         new_status = bool(payload.meta.get("is_active", False))
@@ -325,8 +331,8 @@ def toggle_assay_panel_active(assay_panel_id: str) -> Response:
 @login_required
 def delete_assay_panel(assay_panel_id: str) -> Response:
     try:
-        get_web_api_client().delete_admin_asp(
-            assay_panel_id=assay_panel_id,
+        get_web_api_client().post_json(
+            f"/api/v1/admin/asp/{assay_panel_id}/delete",
             headers=build_forward_headers(request.headers),
         )
         g.audit_metadata = {"panel": assay_panel_id}

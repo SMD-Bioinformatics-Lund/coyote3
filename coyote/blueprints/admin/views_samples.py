@@ -33,9 +33,10 @@ def all_samples() -> str | Response:
         search_str = form.sample_search.data
 
     try:
-        payload = get_web_api_client().get_admin_samples(
-            search=search_str,
+        payload = get_web_api_client().get_json(
+            "/api/v1/admin/samples",
             headers=build_forward_headers(request.headers),
+            params={"search": search_str} if search_str else None,
         )
         samples = payload.samples
     except ApiRequestError as exc:
@@ -49,8 +50,8 @@ def all_samples() -> str | Response:
 @login_required
 def edit_sample(sample_id: str) -> str | Response:
     try:
-        payload = get_web_api_client().get_admin_sample_context(
-            sample_id=sample_id,
+        payload = get_web_api_client().get_json(
+            f"/api/v1/admin/samples/{sample_id}/context",
             headers=build_forward_headers(request.headers),
         )
         sample_doc = payload.sample
@@ -71,10 +72,10 @@ def edit_sample(sample_id: str) -> str | Response:
             return redirect(request.url)
 
         try:
-            get_web_api_client().update_admin_sample(
-                sample_id=sample_id,
-                sample=updated_sample,
+            get_web_api_client().post_json(
+                f"/api/v1/admin/samples/{sample_id}/update",
                 headers=build_forward_headers(request.headers),
+                json_body={"sample": updated_sample},
             )
             flash("Sample updated successfully.", "green")
             return redirect(url_for("admin_bp.all_samples"))
@@ -92,8 +93,8 @@ def edit_sample(sample_id: str) -> str | Response:
 def delete_sample(sample_id: str) -> Response:
     g.audit_metadata = {"sample": sample_id}
     try:
-        payload = get_web_api_client().delete_admin_sample(
-            sample_id=sample_id,
+        payload = get_web_api_client().post_json(
+            f"/api/v1/admin/samples/{sample_id}/delete",
             headers=build_forward_headers(request.headers),
         )
         sample_name = payload.meta.get("sample_name", sample_id)

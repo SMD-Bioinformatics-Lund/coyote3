@@ -24,9 +24,8 @@ def show_cnv(sample_id: str, cnv_id: str) -> Response | str:
     Show CNVs view page.
     """
     try:
-        payload = get_web_api_client().get_dna_cnv(
-            sample_id=sample_id,
-            cnv_id=cnv_id,
+        payload = get_web_api_client().get_json(
+            f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}",
             headers=build_forward_headers(request.headers),
         )
         app.logger.info("Loaded DNA CNV detail from API service for sample %s", sample_id)
@@ -50,9 +49,8 @@ def show_cnv(sample_id: str, cnv_id: str) -> Response | str:
 @login_required
 def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
-        get_web_api_client().unmark_dna_cnv_interesting(
-            sample_id=sample_id,
-            cnv_id=cnv_id,
+        get_web_api_client().post_json(
+            f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/unmarkinteresting",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -64,9 +62,8 @@ def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
 @login_required
 def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
-        get_web_api_client().mark_dna_cnv_interesting(
-            sample_id=sample_id,
-            cnv_id=cnv_id,
+        get_web_api_client().post_json(
+            f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/interesting",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -78,9 +75,8 @@ def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
 @login_required
 def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
-        get_web_api_client().mark_dna_cnv_false_positive(
-            sample_id=sample_id,
-            cnv_id=cnv_id,
+        get_web_api_client().post_json(
+            f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/fpcnv",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -92,9 +88,8 @@ def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
 @login_required
 def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
-        get_web_api_client().unmark_dna_cnv_false_positive(
-            sample_id=sample_id,
-            cnv_id=cnv_id,
+        get_web_api_client().post_json(
+            f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/unfpcnv",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -106,9 +101,8 @@ def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
 @login_required
 def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
-        get_web_api_client().mark_dna_cnv_noteworthy(
-            sample_id=sample_id,
-            cnv_id=cnv_id,
+        get_web_api_client().post_json(
+            f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/noteworthycnv",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -120,9 +114,8 @@ def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
 @login_required
 def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
-        get_web_api_client().unmark_dna_cnv_noteworthy(
-            sample_id=sample_id,
-            cnv_id=cnv_id,
+        get_web_api_client().post_json(
+            f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/notnoteworthycnv",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -135,10 +128,8 @@ def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
 def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
-        get_web_api_client().hide_dna_cnv_comment(
-            sample_id=sample_id,
-            cnv_id=cnv_id,
-            comment_id=comment_id,
+        get_web_api_client().post_json(
+            f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/hide",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -151,10 +142,8 @@ def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
 def unhide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
-        get_web_api_client().unhide_dna_cnv_comment(
-            sample_id=sample_id,
-            cnv_id=cnv_id,
-            comment_id=comment_id,
+        get_web_api_client().post_json(
+            f"/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/unhide",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:

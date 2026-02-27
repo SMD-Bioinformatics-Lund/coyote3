@@ -65,7 +65,10 @@ def list_variants(sample_id: str) -> Response | str:
     api_client = get_web_api_client()
 
     def _load_api_context():
-        return api_client.get_dna_variants(sample_id=sample_id, headers=headers)
+        return api_client.get_json(
+            f"/api/v1/dna/samples/{sample_id}/variants",
+            headers=headers,
+        )
 
     try:
         variants_payload = _load_api_context()
@@ -95,7 +98,10 @@ def list_variants(sample_id: str) -> Response | str:
 
     if not sample_has_filters:
         try:
-            api_client.reset_sample_filters(sample_id=sample_id, headers=headers)
+            api_client.post_json(
+                f"/api/v1/samples/{sample_id}/filters/reset",
+                headers=headers,
+            )
             variants_payload = _load_api_context()
             sample = variants_payload.sample
             sample_filters = deepcopy(variants_payload.filters)
@@ -122,8 +128,8 @@ def list_variants(sample_id: str) -> Response | str:
         if form.reset.data:
             app.logger.info(f"Resetting filters to default settings for the sample {sample_id}")
             try:
-                api_client.reset_sample_filters(
-                    sample_id=sample_id,
+                api_client.post_json(
+                    f"/api/v1/samples/{sample_id}/filters/reset",
                     headers=headers,
                 )
             except ApiRequestError as exc:
@@ -134,10 +140,10 @@ def list_variants(sample_id: str) -> Response | str:
             if sample.get("filters", {}).get("adhoc_genes"):
                 filters_from_form["adhoc_genes"] = sample.get("filters", {}).get("adhoc_genes")
             try:
-                api_client.update_sample_filters(
-                    sample_id=sample_id,
-                    filters=filters_from_form,
+                api_client.post_json(
+                    f"/api/v1/samples/{sample_id}/filters/update",
                     headers=headers,
+                    json_body={"filters": filters_from_form},
                 )
             except ApiRequestError as exc:
                 app.logger.error("Failed to update DNA filters via API for sample %s: %s", sample_id, exc)
@@ -220,8 +226,8 @@ def show_any_plot(sample_id: str, fn: str, angle: int = 90) -> Response | str:
         flask.Response | str: The image file as a response, or an error message.
     """
     try:
-        payload = get_web_api_client().get_dna_plot_context(
-            sample_id=sample_id,
+        payload = get_web_api_client().get_json(
+            f"/api/v1/dna/samples/{sample_id}/plot_context",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -278,9 +284,8 @@ def show_variant(sample_id: str, var_id: str) -> Response | str:
         - May log information about the variant or related data.
     """
     try:
-        payload = get_web_api_client().get_dna_variant(
-            sample_id=sample_id,
-            var_id=var_id,
+        payload = get_web_api_client().get_json(
+            f"/api/v1/dna/samples/{sample_id}/variants/{var_id}",
             headers=build_forward_headers(request.headers),
         )
         app.logger.info("Loaded DNA variant detail from API service for sample %s", sample_id)

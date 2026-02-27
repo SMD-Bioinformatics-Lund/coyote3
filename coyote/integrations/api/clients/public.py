@@ -6,5 +6,6 @@ blueprints, so this mixin is intentionally empty.
 
 from __future__ import annotations
 
+
 class PublicApiClientMixin:
     pass

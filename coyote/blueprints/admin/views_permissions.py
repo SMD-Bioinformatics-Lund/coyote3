@@ -27,7 +27,10 @@ from coyote.integrations.api.api_client import ApiRequestError, build_forward_he
 @login_required
 def list_permissions() -> str:
     try:
-        payload = get_web_api_client().get_admin_permissions(headers=build_forward_headers(request.headers))
+        payload = get_web_api_client().get_json(
+            "/api/v1/admin/permissions",
+            headers=build_forward_headers(request.headers),
+        )
         grouped_permissions = payload.grouped_permissions
     except ApiRequestError as exc:
         flash(f"Failed to fetch permissions: {exc}", "red")
@@ -40,9 +43,11 @@ def list_permissions() -> str:
 @login_required
 def create_permission() -> Response | str:
     try:
-        context = get_web_api_client().get_admin_permission_create_context(
-            schema_id=request.args.get("schema_id"),
+        selected_schema_id = request.args.get("schema_id")
+        context = get_web_api_client().get_json(
+            "/api/v1/admin/permissions/create_context",
             headers=build_forward_headers(request.headers),
+            params={"schema_id": selected_schema_id} if selected_schema_id else None,
         )
     except ApiRequestError as exc:
         flash(f"Failed to load permission schema context: {exc}", "red")
@@ -57,10 +62,13 @@ def create_permission() -> Response | str:
             for key, vals in request.form.to_dict(flat=False).items()
         }
         try:
-            payload = get_web_api_client().create_admin_permission(
-                schema_id=context.selected_schema.get("_id"),
-                form_data=form_data,
+            payload = get_web_api_client().post_json(
+                "/api/v1/admin/permissions/create",
                 headers=build_forward_headers(request.headers),
+                json_body={
+                    "schema_id": context.selected_schema.get("_id"),
+                    "form_data": form_data,
+                },
             )
             g.audit_metadata = {"permission": payload.resource_id}
             flash(f"Permission policy '{payload.resource_id}' created.", "green")
@@ -81,8 +89,8 @@ def create_permission() -> Response | str:
 @login_required
 def edit_permission(perm_id: str) -> Response | str:
     try:
-        context = get_web_api_client().get_admin_permission_context(
-            perm_id=perm_id,
+        context = get_web_api_client().get_json(
+            f"/api/v1/admin/permissions/{perm_id}/context",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -118,10 +126,10 @@ def edit_permission(perm_id: str) -> Response | str:
             for key, vals in request.form.to_dict(flat=False).items()
         }
         try:
-            get_web_api_client().update_admin_permission(
-                perm_id=perm_id,
-                form_data=form_data,
+            get_web_api_client().post_json(
+                f"/api/v1/admin/permissions/{perm_id}/update",
                 headers=build_forward_headers(request.headers),
+                json_body={"form_data": form_data},
             )
             g.audit_metadata = {"permission": perm_id}
             flash(f"Permission policy '{perm_id}' updated.", "green")
@@ -143,8 +151,8 @@ def edit_permission(perm_id: str) -> Response | str:
 @login_required
 def view_permission(perm_id: str) -> str | Response:
     try:
-        context = get_web_api_client().get_admin_permission_context(
-            perm_id=perm_id,
+        context = get_web_api_client().get_json(
+            f"/api/v1/admin/permissions/{perm_id}/context",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -186,8 +194,8 @@ def view_permission(perm_id: str) -> str | Response:
 @login_required
 def toggle_permission_active(perm_id: str) -> Response:
     try:
-        payload = get_web_api_client().toggle_admin_permission(
-            perm_id=perm_id,
+        payload = get_web_api_client().post_json(
+            f"/api/v1/admin/permissions/{perm_id}/toggle",
             headers=build_forward_headers(request.headers),
         )
         new_status = bool(payload.meta.get("is_active", False))
@@ -211,8 +219,8 @@ def toggle_permission_active(perm_id: str) -> Response:
 @login_required
 def delete_permission(perm_id: str) -> Response:
     try:
-        get_web_api_client().delete_admin_permission(
-            perm_id=perm_id,
+        get_web_api_client().post_json(
+            f"/api/v1/admin/permissions/{perm_id}/delete",
             headers=build_forward_headers(request.headers),
         )
         g.audit_metadata = {"permission": perm_id}

@@ -89,14 +89,21 @@ def samples_home(
         status = search_mode
 
     try:
-        payload = get_web_api_client().get_home_samples(
-            status=status,
-            search_str=search_str,
-            search_mode=search_mode,
-            panel_type=panel_type,
-            panel_tech=panel_tech,
-            assay_group=assay_group,
+        params = {
+            "status": status,
+            "search_str": search_str,
+            "search_mode": search_mode,
+        }
+        if panel_type:
+            params["panel_type"] = panel_type
+        if panel_tech:
+            params["panel_tech"] = panel_tech
+        if assay_group:
+            params["assay_group"] = assay_group
+        payload = get_web_api_client().get_json(
+            "/api/v1/home/samples",
             headers=build_forward_headers(request.headers),
+            params=params,
         )
         live_samples = payload.live_samples
         done_samples = payload.done_samples
@@ -144,9 +151,8 @@ def view_report(sample_id: str, report_id: str) -> str | Response:
         Response: The report file if it exists, otherwise a redirect response to the home screen.
     """
     try:
-        payload = get_web_api_client().get_home_report_context(
-            sample_id=sample_id,
-            report_id=report_id,
+        payload = get_web_api_client().get_json(
+            f"/api/v1/home/samples/{sample_id}/reports/{report_id}/context",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -221,8 +227,8 @@ def edit_sample(sample_id: str) -> str | Response:
     """
 
     try:
-        payload = get_web_api_client().get_home_edit_context(
-            sample_id=sample_id,
+        payload = get_web_api_client().get_json(
+            f"/api/v1/home/samples/{sample_id}/edit_context",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -269,8 +275,8 @@ def list_isgls(sample_id: str) -> Response:
             - `genes` (list[str]): gene symbols in the list
     """
     try:
-        payload = get_web_api_client().get_home_isgls(
-            sample_id=sample_id,
+        payload = get_web_api_client().get_json(
+            f"/api/v1/home/samples/{sample_id}/isgls",
             headers=build_forward_headers(request.headers),
         )
         return jsonify({"items": payload.items})
@@ -306,10 +312,10 @@ def apply_isgl(sample_id: str) -> Response:
             "isgl_ids": isgl_ids,
         }
         try:
-            get_web_api_client().apply_home_isgl(
-                sample_id=sample_id,
-                isgl_ids=(isgl_ids if isinstance(isgl_ids, list) else []),
+            get_web_api_client().post_json(
+                f"/api/v1/home/samples/{sample_id}/genes/apply-isgl",
                 headers=build_forward_headers(request.headers),
+                json_body={"isgl_ids": (isgl_ids if isinstance(isgl_ids, list) else [])},
             )
             flash(f"Gene list(s) {isgl_ids} applied to sample.", "green")
             app.home_logger.info(
@@ -340,11 +346,13 @@ def save_adhoc_genes(sample_id: str) -> Response:
     genes.sort()
     label = data.get("label") or "adhoc"
     try:
-        get_web_api_client().save_home_adhoc_genes(
-            sample_id=sample_id,
-            genes=data.get("genes", ""),
-            label=label,
+        payload = {"genes": data.get("genes", "")}
+        if label:
+            payload["label"] = label
+        get_web_api_client().post_json(
+            f"/api/v1/home/samples/{sample_id}/adhoc_genes/save",
             headers=build_forward_headers(request.headers),
+            json_body=payload,
         )
     except ApiRequestError as exc:
         flash(f"Failed to save AdHoc genes: {exc}", "red")
@@ -373,8 +381,8 @@ def clear_adhoc_genes(sample_id: str) -> Response:
         Response: JSON response indicating success.
     """
     try:
-        get_web_api_client().clear_home_adhoc_genes(
-            sample_id=sample_id,
+        get_web_api_client().post_json(
+            f"/api/v1/home/samples/{sample_id}/adhoc_genes/clear",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -403,8 +411,8 @@ def get_effective_genes_all(sample_id: str) -> Response:
                   If no genes are found, returns an empty list.
     """
     try:
-        payload = get_web_api_client().get_home_effective_genes_all(
-            sample_id=sample_id,
+        payload = get_web_api_client().get_json(
+            f"/api/v1/home/samples/{sample_id}/effective_genes/all",
             headers=build_forward_headers(request.headers),
         )
         return jsonify(

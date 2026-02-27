@@ -134,7 +134,8 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
         # Cache roles access levels in app context
         app.role_access_levels = {}
         try:
-            role_levels_payload = get_web_api_client().get_role_levels_internal(
+            role_levels_payload = get_web_api_client().get_json(
+                "/api/v1/internal/roles/levels",
                 headers=build_internal_headers(),
             )
             app.role_access_levels = dict(role_levels_payload.role_levels)

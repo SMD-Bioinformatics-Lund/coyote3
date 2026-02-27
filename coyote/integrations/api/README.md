@@ -6,15 +6,14 @@ This package is the web-layer adapter for calling FastAPI endpoints from Flask b
 
 - `api_client.py`: public facade (`CoyoteApiClient`) + stable helpers (`get_web_api_client`, header builders)
 - `base.py`: shared HTTP transport and payload primitives (`BaseApiClient`, `ApiPayload`, `ApiRequestError`)
-- `clients/`: domain mixins (`admin`, `dna`, `rna`, `home`, `public`, etc.)
+- `clients/`: legacy placeholders kept for backward compatibility during migration.
 
 ## Adding a new API endpoint
 
-1. Pick the correct domain mixin in `clients/`.
-2. Add a thin method that calls `_get` or `_post`.
-3. Keep response handling lightweight; methods return `ApiPayload`.
-4. Use `get_json` / `post_json` from the facade for one-off calls if a dedicated method is not needed yet.
-5. Prefer generic calls first for low-use or public endpoints; promote to mixin method only when reuse appears.
+1. Call API endpoints directly from blueprints using `get_json` / `post_json`.
+2. Keep endpoint paths explicit at call sites for easier traceability.
+3. Keep response handling lightweight; transport returns `ApiPayload`.
+4. Add endpoint-specific helpers only if reuse is high and maintenance burden decreases.
 
 ## Design rules
 

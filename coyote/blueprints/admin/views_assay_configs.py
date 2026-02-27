@@ -28,7 +28,10 @@ from coyote.integrations.api.api_client import ApiRequestError, build_forward_he
 @login_required
 def assay_configs() -> str:
     try:
-        payload = get_web_api_client().get_admin_aspc(headers=build_forward_headers(request.headers))
+        payload = get_web_api_client().get_json(
+            "/api/v1/admin/aspc",
+            headers=build_forward_headers(request.headers),
+        )
         assay_configs = payload.assay_configs
     except ApiRequestError as exc:
         flash(f"Failed to fetch assay configs: {exc}", "red")
@@ -41,10 +44,14 @@ def assay_configs() -> str:
 @login_required
 def create_dna_assay_config() -> Response | str:
     try:
-        context = get_web_api_client().get_admin_aspc_create_context(
-            category="DNA",
-            schema_id=request.args.get("schema_id"),
+        selected_schema_id = request.args.get("schema_id")
+        params = {"category": "DNA"}
+        if selected_schema_id:
+            params["schema_id"] = selected_schema_id
+        context = get_web_api_client().get_json(
+            "/api/v1/admin/aspc/create_context",
             headers=build_forward_headers(request.headers),
+            params=params,
         )
     except ApiRequestError as exc:
         flash(f"Failed to load DNA assay config context: {exc}", "red")
@@ -79,9 +86,10 @@ def create_dna_assay_config() -> Response | str:
         )
 
         try:
-            get_web_api_client().create_admin_aspc(
-                config=config,
+            get_web_api_client().post_json(
+                "/api/v1/admin/aspc/create",
                 headers=build_forward_headers(request.headers),
+                json_body={"config": config},
             )
             flash(
                 f"{config['assay_name']} : {config['environment']} assay config created!",
@@ -111,10 +119,14 @@ def create_dna_assay_config() -> Response | str:
 @login_required
 def create_rna_assay_config() -> Response | str:
     try:
-        context = get_web_api_client().get_admin_aspc_create_context(
-            category="RNA",
-            schema_id=request.args.get("schema_id"),
+        selected_schema_id = request.args.get("schema_id")
+        params = {"category": "RNA"}
+        if selected_schema_id:
+            params["schema_id"] = selected_schema_id
+        context = get_web_api_client().get_json(
+            "/api/v1/admin/aspc/create_context",
             headers=build_forward_headers(request.headers),
+            params=params,
         )
     except ApiRequestError as exc:
         flash(f"Failed to load RNA assay config context: {exc}", "red")
@@ -147,9 +159,10 @@ def create_rna_assay_config() -> Response | str:
         )
 
         try:
-            get_web_api_client().create_admin_aspc(
-                config=config,
+            get_web_api_client().post_json(
+                "/api/v1/admin/aspc/create",
                 headers=build_forward_headers(request.headers),
+                json_body={"config": config},
             )
             flash(
                 f"{config['assay_name']} : {config['environment']} assay config created!",
@@ -179,8 +192,8 @@ def create_rna_assay_config() -> Response | str:
 @login_required
 def edit_assay_config(assay_id: str) -> Response | str:
     try:
-        context = get_web_api_client().get_admin_aspc_context(
-            assay_id=assay_id,
+        context = get_web_api_client().get_json(
+            f"/api/v1/admin/aspc/{assay_id}/context",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -241,10 +254,10 @@ def edit_assay_config(assay_id: str) -> Response | str:
         )
 
         try:
-            get_web_api_client().update_admin_aspc(
-                assay_id=assay_id,
-                config=updated_config,
+            get_web_api_client().post_json(
+                f"/api/v1/admin/aspc/{assay_id}/update",
                 headers=build_forward_headers(request.headers),
+                json_body={"config": updated_config},
             )
             g.audit_metadata = {
                 "assay": updated_config.get("assay_name"),
@@ -269,8 +282,8 @@ def edit_assay_config(assay_id: str) -> Response | str:
 @login_required
 def view_assay_config(assay_id: str) -> str | Response:
     try:
-        context = get_web_api_client().get_admin_aspc_context(
-            assay_id=assay_id,
+        context = get_web_api_client().get_json(
+            f"/api/v1/admin/aspc/{assay_id}/context",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -314,8 +327,8 @@ def view_assay_config(assay_id: str) -> str | Response:
 @login_required
 def print_assay_config(assay_id: str) -> str | Response:
     try:
-        context = get_web_api_client().get_admin_aspc_context(
-            assay_id=assay_id,
+        context = get_web_api_client().get_json(
+            f"/api/v1/admin/aspc/{assay_id}/context",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -358,8 +371,8 @@ def print_assay_config(assay_id: str) -> str | Response:
 @login_required
 def toggle_assay_config_active(assay_id: str) -> Response:
     try:
-        payload = get_web_api_client().toggle_admin_aspc(
-            assay_id=assay_id,
+        payload = get_web_api_client().post_json(
+            f"/api/v1/admin/aspc/{assay_id}/toggle",
             headers=build_forward_headers(request.headers),
         )
         new_status = bool(payload.meta.get("is_active", False))
@@ -383,8 +396,8 @@ def toggle_assay_config_active(assay_id: str) -> Response:
 @login_required
 def delete_assay_config(assay_id: str) -> Response:
     try:
-        get_web_api_client().delete_admin_aspc(
-            assay_id=assay_id,
+        get_web_api_client().post_json(
+            f"/api/v1/admin/aspc/{assay_id}/delete",
             headers=build_forward_headers(request.headers),
         )
         g.audit_metadata = {"assay": assay_id}

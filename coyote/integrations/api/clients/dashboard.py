@@ -6,5 +6,6 @@ blueprint layer, so this mixin is intentionally empty.
 
 from __future__ import annotations
 
+
 class DashboardApiClientMixin:
     pass

@@ -77,10 +77,10 @@ def login() -> str | Response:
         password = form.password.data.strip()
 
         try:
-            auth_payload = get_web_api_client().login_auth(
-                username=email,
-                password=password,
+            auth_payload = get_web_api_client().post_json(
+                "/api/v1/auth/login",
                 headers=build_forward_headers(request.headers),
+                json_body={"username": email, "password": password},
             )
         except ApiRequestError as exc:
             if exc.status_code == 401:
@@ -107,7 +107,10 @@ def login() -> str | Response:
 def logout() -> Response:
     """Log out the current user and clear API + Flask sessions."""
     try:
-        get_web_api_client().logout_auth(headers=build_forward_headers(request.headers))
+        get_web_api_client().post_json(
+            "/api/v1/auth/logout",
+            headers=build_forward_headers(request.headers),
+        )
     except ApiRequestError as exc:
         app.logger.warning("API logout request failed: %s", exc)
 
@@ -124,7 +127,8 @@ def load_user(user_id: str) -> User | None:
         if not has_request_context():
             return None
 
-        payload = get_web_api_client().get_auth_me(
+        payload = get_web_api_client().get_json(
+            "/api/v1/auth/me",
             headers=build_forward_headers(request.headers),
         )
         user_payload = payload.user or {}

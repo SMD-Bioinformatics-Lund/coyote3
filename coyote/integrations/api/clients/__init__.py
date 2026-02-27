@@ -1,4 +1,4 @@
-"""Domain mixins for Coyote API client facade."""
+"""Legacy API client mixin placeholders."""
 
 from coyote.integrations.api.clients.admin import AdminApiClientMixin
 from coyote.integrations.api.clients.auth import AuthApiClientMixin

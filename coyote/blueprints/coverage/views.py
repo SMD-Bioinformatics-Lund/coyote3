@@ -35,10 +35,10 @@ def get_cov(sample_id):
         cov_cutoff_form = request.form.get("depth_cutoff")
         cov_cutoff = int(cov_cutoff_form)
     try:
-        payload = get_web_api_client().get_coverage_sample(
-            sample_id=sample_id,
-            cov_cutoff=cov_cutoff,
+        payload = get_web_api_client().get_json(
+            f"/api/v1/coverage/samples/{sample_id}",
             headers=build_forward_headers(request.headers),
+            params={"cov_cutoff": cov_cutoff},
         )
     except ApiRequestError as exc:
         app.logger.error("Failed to load coverage via API for sample %s: %s", sample_id, exc)
@@ -60,9 +60,10 @@ def get_cov(sample_id):
 def update_gene_status():
     data = request.get_json()
     try:
-        payload = get_web_api_client().update_coverage_blacklist(
-            payload=data,
+        payload = get_web_api_client().post_json(
+            "/api/v1/coverage/blacklist/update",
             headers=build_forward_headers(request.headers),
+            json_body=data,
         )
         return jsonify(payload)
     except ApiRequestError as exc:
@@ -76,8 +77,8 @@ def show_blacklisted_regions(group):
     function to remove blacklisted status
     """
     try:
-        payload = get_web_api_client().get_coverage_blacklisted(
-            group=group,
+        payload = get_web_api_client().get_json(
+            f"/api/v1/coverage/blacklisted/{group}",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -93,8 +94,8 @@ def remove_blacklist(obj_id, group):
     removes blacklisted region/gene
     """
     try:
-        get_web_api_client().remove_coverage_blacklist(
-            obj_id=obj_id,
+        get_web_api_client().post_json(
+            f"/api/v1/coverage/blacklist/{obj_id}/remove",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError:

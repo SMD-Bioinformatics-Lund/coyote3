@@ -6,45 +6,17 @@ from typing import Any
 
 from flask import current_app
 
-from coyote.integrations.api.base import BaseApiClient
-from coyote.integrations.api.clients import (
-    AdminApiClientMixin,
-    AuthApiClientMixin,
-    CommonApiClientMixin,
-    CoverageApiClientMixin,
-    DashboardApiClientMixin,
-    DnaApiClientMixin,
-    HomeApiClientMixin,
-    InternalApiClientMixin,
-    PublicApiClientMixin,
-    RnaApiClientMixin,
-)
-
-from coyote.integrations.api.base import ApiPayload, ApiRequestError
+from coyote.integrations.api.base import ApiRequestError, BaseApiClient
 
 
-class CoyoteApiClient(
-    AdminApiClientMixin,
-    AuthApiClientMixin,
-    CommonApiClientMixin,
-    CoverageApiClientMixin,
-    DashboardApiClientMixin,
-    DnaApiClientMixin,
-    HomeApiClientMixin,
-    InternalApiClientMixin,
-    PublicApiClientMixin,
-    RnaApiClientMixin,
-    BaseApiClient,
-):
-    """Facade that composes domain mixins over a shared HTTP transport."""
+class CoyoteApiClient(BaseApiClient):
+    """Thin Flask facade over the shared HTTP transport."""
 
     pass
 
 
 def get_web_api_client() -> CoyoteApiClient:
     return CoyoteApiClient(base_url=current_app.config.get("API_BASE_URL", "http://127.0.0.1:8001"))
-
-
 
 def build_forward_headers(request_headers: Any) -> dict[str, str]:
     cookie_header = request_headers.get("Cookie")
@@ -53,12 +25,9 @@ def build_forward_headers(request_headers: Any) -> dict[str, str]:
         headers["Cookie"] = cookie_header
     return headers
 
-
-
 def build_internal_headers() -> dict[str, str]:
     token = current_app.config.get("INTERNAL_API_TOKEN") or current_app.config.get("SECRET_KEY")
     headers = {"X-Requested-With": "XMLHttpRequest"}
     if token:
         headers["X-Coyote-Internal-Token"] = str(token)
     return headers
-

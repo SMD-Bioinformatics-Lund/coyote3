@@ -46,10 +46,10 @@ def add_sample_comment(sample_id: str) -> Response:
     """
     data = request.form.to_dict()
     try:
-        get_web_api_client().add_sample_comment(
-            sample_id=sample_id,
-            form_data=data,
+        get_web_api_client().post_json(
+            f"/api/v1/samples/{sample_id}/sample_comments/add",
             headers=build_forward_headers(request.headers),
+            json_body={"form_data": data},
         )
         flash("Sample comment added", "green")
     except ApiRequestError as exc:
@@ -75,9 +75,8 @@ def hide_sample_comment(sample_id: str) -> Response:
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
-        payload = get_web_api_client().hide_sample_comment(
-            sample_id=sample_id,
-            comment_id=comment_id,
+        payload = get_web_api_client().post_json(
+            f"/api/v1/samples/{sample_id}/sample_comments/{comment_id}/hide",
             headers=build_forward_headers(request.headers),
         )
         omics_layer = str(payload.meta.get("omics_layer", "")).lower()
@@ -110,9 +109,8 @@ def unhide_sample_comment(sample_id: str) -> Response:
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
-        payload = get_web_api_client().unhide_sample_comment(
-            sample_id=sample_id,
-            comment_id=comment_id,
+        payload = get_web_api_client().post_json(
+            f"/api/v1/samples/{sample_id}/sample_comments/{comment_id}/unhide",
             headers=build_forward_headers(request.headers),
         )
         omics_layer = str(payload.meta.get("omics_layer", "")).lower()
@@ -185,8 +183,8 @@ def gene_info(id: str) -> str:
     """
     gene: dict[str, Any] = {}
     try:
-        payload = get_web_api_client().get_common_gene_info(
-            gene_id=id,
+        payload = get_web_api_client().get_json(
+            f"/api/v1/common/gene/{id}/info",
             headers=build_forward_headers(request.headers),
         )
         gene = payload.gene or {}
@@ -203,9 +201,8 @@ def list_samples_with_tiered_variant(variant_id: str, tier: int):
     Show reported variants across samples that match this variant identity and tier.
     """
     try:
-        payload = get_web_api_client().get_common_tiered_variant_context(
-            variant_id=variant_id,
-            tier=tier,
+        payload = get_web_api_client().get_json(
+            f"/api/v1/common/reported_variants/variant/{variant_id}/{tier}",
             headers=build_forward_headers(request.headers),
         )
     except ApiRequestError as exc:
@@ -236,11 +233,16 @@ def search_tiered_variants():
 
     search_str = None
     try:
-        bootstrap_payload = get_web_api_client().search_common_tiered_variants(
-            search_mode=search_mode,
-            include_annotation_text=bool(include_annotation_text),
-            assays=assays,
+        bootstrap_params = {
+            "search_mode": search_mode,
+            "include_annotation_text": str(bool(include_annotation_text)).lower(),
+        }
+        if assays:
+            bootstrap_params["assays"] = assays
+        bootstrap_payload = get_web_api_client().get_json(
+            "/api/v1/common/search/tiered_variants",
             headers=build_forward_headers(request.headers),
+            params=bootstrap_params,
         )
         form.assay.choices = bootstrap_payload.assay_choices
     except ApiRequestError:
@@ -287,12 +289,19 @@ def search_tiered_variants():
             form.assay.data = assays
 
     try:
-        payload = get_web_api_client().search_common_tiered_variants(
-            search_str=search_str,
-            search_mode=search_mode,
-            include_annotation_text=include_annotation_text,
-            assays=assays,
+        params = {
+            "include_annotation_text": str(bool(include_annotation_text)).lower(),
+        }
+        if search_str:
+            params["search_str"] = search_str
+        if search_mode:
+            params["search_mode"] = search_mode
+        if assays:
+            params["assays"] = assays
+        payload = get_web_api_client().get_json(
+            "/api/v1/common/search/tiered_variants",
             headers=build_forward_headers(request.headers),
+            params=params,
         )
         form.assay.choices = payload.assay_choices
     except ApiRequestError as exc:
