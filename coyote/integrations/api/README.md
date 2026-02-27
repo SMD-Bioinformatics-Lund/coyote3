@@ -14,6 +14,7 @@ This package is the web-layer adapter for calling FastAPI endpoints from Flask b
 2. Add a thin method that calls `_get` or `_post`.
 3. Keep response handling lightweight; methods return `ApiPayload`.
 4. Use `get_json` / `post_json` from the facade for one-off calls if a dedicated method is not needed yet.
+5. Prefer generic calls first for low-use or public endpoints; promote to mixin method only when reuse appears.
 
 ## Design rules
 

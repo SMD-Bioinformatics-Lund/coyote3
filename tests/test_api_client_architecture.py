@@ -110,12 +110,10 @@ def test_non_dict_payload_rejected(monkeypatch):
 
 def test_facade_exposes_domain_methods():
     required = [
-        "get_dashboard_summary",
         "login_auth",
         "get_common_gene_info",
         "get_coverage_sample",
         "get_home_samples",
-        "get_public_assay_catalog_context",
         "get_dna_cnv",
         "get_rna_fusions",
         "get_admin_users",

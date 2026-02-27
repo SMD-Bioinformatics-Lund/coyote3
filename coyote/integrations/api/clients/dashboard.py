@@ -1,16 +1,10 @@
-"""Dashboard API client mixin methods."""
+"""Dashboard API client mixin methods.
+
+Dashboard calls are routed through generic ``get_json`` helpers in the
+blueprint layer, so this mixin is intentionally empty.
+"""
 
 from __future__ import annotations
 
-from typing import Any
-
-from coyote.integrations.api.base import ApiPayload
-
-
 class DashboardApiClientMixin:
-    def get_dashboard_summary(
-        self, headers: dict[str, str] | None = None
-    ) -> ApiPayload:
-        payload = self._get("/api/v1/dashboard/summary", headers=headers)
-        return payload
-
+    pass

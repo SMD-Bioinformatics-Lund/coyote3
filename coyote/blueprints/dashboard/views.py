@@ -112,7 +112,8 @@ def dashboard() -> str:
     else:
         app.logger.info(f"Dashboard cache miss for {cache_key}")
         try:
-            payload = get_web_api_client().get_dashboard_summary(
+            payload = get_web_api_client().get_json(
+                "/api/v1/dashboard/summary",
                 headers=build_forward_headers(request.headers),
             )
             total_samples_count = payload.total_samples

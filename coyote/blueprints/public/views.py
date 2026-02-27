@@ -56,9 +56,10 @@ def view_genelist(genelist_id: str) -> Response | str:
     """
     selected_assay = request.args.get("assay")
     try:
-        payload = get_web_api_client().get_public_genelist_view_context(
-            genelist_id=genelist_id,
-            selected_assay=selected_assay,
+        params = {"assay": selected_assay} if selected_assay else None
+        payload = get_web_api_client().get_json(
+            f"/api/v1/public/genelists/{genelist_id}/view_context",
+            params=params,
         )
     except ApiRequestError:
         app.public_logger.info(
@@ -92,7 +93,7 @@ def asp_genes(asp_id: str) -> str:
     Returns:
         str: Rendered HTML page showing the genes for the specified public assay panel.
     """
-    payload = get_web_api_client().get_public_asp_genes(asp_id=asp_id)
+    payload = get_web_api_client().get_json(f"/api/v1/public/asp/{asp_id}/genes")
 
     return render_template(
         "asp_genes.html",
@@ -114,7 +115,7 @@ def assay_catalog_matrix():
     - Modalities/categories without gene lists still get a placeholder column so services are visible.
     """
 
-    payload = get_web_api_client().get_public_assay_catalog_matrix_context()
+    payload = get_web_api_client().get_json("/api/v1/public/assay-catalog-matrix/context")
     return render_template("assay_catalog_matrix.html", **payload.model_dump())
 
 
@@ -135,11 +136,14 @@ def assay_catalog(mod: str | None = None, cat: str | None = None, isgl_key: str 
         flask.Response: The rendered HTML page for the assay catalog, or a 404 error if not found.
     """
     try:
-        payload = get_web_api_client().get_public_assay_catalog_context(
-            mod=mod,
-            cat=cat,
-            isgl_key=isgl_key,
-        )
+        params = {}
+        if mod is not None:
+            params["mod"] = mod
+        if cat is not None:
+            params["cat"] = cat
+        if isgl_key is not None:
+            params["isgl_key"] = isgl_key
+        payload = get_web_api_client().get_json("/api/v1/public/assay-catalog/context", params=params or None)
     except ApiRequestError as exc:
         if exc.status_code == 404:
             abort(404)
@@ -163,11 +167,12 @@ def assay_catalog_genes_csv(mod: str, cat: str | None = None, isgl_key: str | No
     Returns:
         flask.Response: A CSV file containing gene data for the selected modality, category, and/or genelist.
     """
-    payload = get_web_api_client().get_public_assay_catalog_genes_csv_context(
-        mod=mod,
-        cat=cat,
-        isgl_key=isgl_key,
-    )
+    params = {"mod": mod}
+    if cat is not None:
+        params["cat"] = cat
+    if isgl_key is not None:
+        params["isgl_key"] = isgl_key
+    payload = get_web_api_client().get_json("/api/v1/public/assay-catalog/genes.csv/context", params=params)
     buf = io.BytesIO(payload.content.encode("utf-8"))
     return send_file(buf, mimetype="text/csv", as_attachment=True, download_name=payload.filename)
 
@@ -177,7 +182,7 @@ def assay_catalog_isgl_genes_view(isgl_key: str | None = None) -> str:
     """ """
     if not isgl_key:
         return render_template("genes.html", gene_symbols=[])
-    payload = get_web_api_client().get_public_assay_catalog_genes_view(isgl_key=isgl_key)
+    payload = get_web_api_client().get_json(f"/api/v1/public/assay-catalog/genes/{isgl_key}/view_context")
 
     return render_template(
         "genes.html",
