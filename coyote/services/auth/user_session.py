@@ -14,12 +14,12 @@
 This module defines the User session class for Flask-Login integration.
 
 Classes:
-    User: Wraps a UserModel instance to provide user session management
-          and access control for the Coyote3 framework.
+    User: Wraps an API user model instance to provide user session
+          management and access control for the web app.
 """
 
 from flask_login import UserMixin
-from coyote.models.user import UserModel
+from api.models.user import UserModel
 
 
 class User(UserMixin):

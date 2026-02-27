@@ -41,7 +41,6 @@ class Utility:
             self.dashboard, self.admin, self.login
         """
         from coyote.util.common_utility import CommonUtility
-        from coyote.util.report.report_util import ReportUtility
         from coyote.blueprints.home.util import HomeUtility
         from coyote.blueprints.dashboard.util import DashBoardUtility
         from coyote.util.admin_utility import AdminUtility
@@ -50,4 +49,3 @@ class Utility:
         self.main = HomeUtility()
         self.dashboard = DashBoardUtility()
         self.admin = AdminUtility()
-        self.report = ReportUtility()
