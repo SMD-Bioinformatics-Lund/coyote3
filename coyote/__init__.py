@@ -229,37 +229,11 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
         required_level = getattr(view, "required_access_level", None)
         required_role = getattr(view, "required_role_name", None)
 
-        # If any access control is defined, require authentication
+        # UI routes keep authentication gating only.
+        # API endpoints are the security authority for RBAC and data access.
         if required_permission or required_level is not None or required_role:
             if not current_user.is_authenticated:
                 return auth_failure_response(401, "Login required")
-
-            # Resolve role level from cached access levels
-            resolved_role_level = None
-            if required_role:
-                role_levels = app.role_access_levels
-                resolved_role_level = role_levels.get(required_role)
-
-            # --------------------------
-            # Evaluate all three checks:
-            # --------------------------
-            permission_ok = (
-                required_permission
-                and required_permission in current_user.permissions
-                and required_permission not in current_user.denied_permissions
-            )
-
-            level_ok = required_level is not None and current_user.access_level >= required_level
-
-            role_ok = False
-            if required_role is not None:
-                if resolved_role_level is None:
-                    role_ok = current_user.role == required_role
-                else:
-                    role_ok = current_user.access_level >= resolved_role_level
-
-            if not (permission_ok or level_ok or role_ok):
-                return auth_failure_response(403, "You do not have access to this page.")
         return None
 
     @app.context_processor
