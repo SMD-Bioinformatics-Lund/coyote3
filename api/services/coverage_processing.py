@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from coyote.extensions import store
+from api.extensions import store
 
 
 class CoverageProcessingService:

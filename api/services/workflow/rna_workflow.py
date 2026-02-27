@@ -24,7 +24,7 @@ from typing import Any
 from flask import current_app as app
 from flask import render_template
 
-from coyote.extensions import store, util
+from api.extensions import store, util
 from api.services.reporting.report_paths import build_report_file_location
 from api.services.reporting.pipeline import (
     prepare_report_output as prepare_shared_report_output,
@@ -43,7 +43,7 @@ from api.services.workflow.contracts import (
     validate_report_inputs_warn_only,
     validate_rna_filter_inputs_warn_only,
 )
-from coyote.util.common_utility import CommonUtility
+from api.utils.common_utility import CommonUtility
 
 
 class RNAWorkflowService:

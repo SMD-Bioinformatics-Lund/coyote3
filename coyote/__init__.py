@@ -34,12 +34,13 @@ from flask_cors import CORS
 import config
 from coyote import extensions
 from .errors import register_error_handlers
-from flask_login import current_user, login_user
-from coyote.services.auth.user_session import User
-from coyote.models.user import UserModel
-from coyote.extensions import store
+from flask_login import current_user
 from coyote.util.misc import get_dynamic_assay_nav
-from pymongo.errors import ConnectionFailure
+from coyote.integrations.api.api_client import (
+    ApiRequestError,
+    build_internal_headers,
+    get_web_api_client,
+)
 from flask_caching import Cache
 from typing import Any
 import json
@@ -123,20 +124,22 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
     app.logger.info("Initializing app extensions + blueprints:")
     with app.app_context():
         init_login_manager(app)
-        init_db(app)
-        init_store(app)
         init_template_filters(app)
         register_blueprints(app)
-        init_ldap(app)
         init_utility(app)
-        app.logger.debug("init_db() completed")
+        app.logger.debug("Web UI extensions initialized")
         # Register error handlers
         register_error_handlers(app)
 
         # Cache roles access levels in app context
-        app.role_access_levels = {
-            role["_id"]: role.get("level", 0) for role in store.roles_handler.get_all_roles()
-        }
+        app.role_access_levels = {}
+        try:
+            role_levels_payload = get_web_api_client().get_role_levels_internal(
+                headers=build_internal_headers(),
+            )
+            app.role_access_levels = dict(role_levels_payload.role_levels)
+        except ApiRequestError as exc:
+            app.logger.warning("Unable to preload role access levels from API: %s", exc)
 
         @app.context_processor
         def inject_config():
@@ -172,45 +175,6 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
                 "APP_VERSION": app.config.get("APP_VERSION"),
                 "ENV_NAME": app.config.get("ENV_NAME"),
             }
-
-    # Refresh user session with latest data from the database before each request.
-    @app.before_request
-    def refresh_user_session() -> None:
-        """
-        Refreshes the current user's session data before each request.
-
-        This `before_request` hook ensures that any updates to the user's profile, role,
-        permissions, or assay access are reflected immediately in the session without requiring logout.
-
-        Behavior:
-            - If the user is authenticated:
-                - Fetches the latest user document from the database.
-                - Rebuilds the `UserModel` with updated role and assay configuration.
-                - Compares the current session user data to the freshly loaded data.
-                - If changes are detected (e.g., permission updates, role changes):
-                    - Re-authenticates the user to update the session state.
-
-        This is useful in environments where user data can change dynamically during a session,
-        such as through an admin panel or external provisioning system.
-
-        Returns:
-            None
-        """
-        if current_user.is_authenticated:
-            fresh_user_data = store.user_handler.user_with_id(current_user.username)
-            if fresh_user_data:
-                role_doc = store.roles_handler.get_role(fresh_user_data.get("role")) or {}
-                asp_docs = store.asp_handler.get_all_asps(is_active=True)
-                user_model = UserModel.from_mongo(fresh_user_data, role_doc, asp_docs)
-                updated_user = User(user_model)
-
-                # Re-login only if things have changed
-                current = current_user.to_dict()
-                updated = updated_user.to_dict()
-
-                if current != updated:
-                    login_user(updated_user)
-                    app.logger.debug(f"Session refreshed: {updated_user.username}")
 
     @app.before_request
     def enforce_permissions() -> None:
@@ -270,10 +234,10 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
                 return auth_failure_response(401, "Login required")
 
             # Resolve role level from cached access levels
-            resolved_role_level = 0
+            resolved_role_level = None
             if required_role:
                 role_levels = app.role_access_levels
-                resolved_role_level = role_levels.get(required_role, 0)
+                resolved_role_level = role_levels.get(required_role)
 
             # --------------------------
             # Evaluate all three checks:
@@ -286,7 +250,12 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
 
             level_ok = required_level is not None and current_user.access_level >= required_level
 
-            role_ok = required_role is not None and current_user.access_level >= resolved_role_level
+            role_ok = False
+            if required_role is not None:
+                if resolved_role_level is None:
+                    role_ok = current_user.role == required_role
+                else:
+                    role_ok = current_user.access_level >= resolved_role_level
 
             if not (permission_ok or level_ok or role_ok):
                 return auth_failure_response(403, "You do not have access to this page.")
@@ -392,7 +361,9 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
             if not current_user.is_authenticated:
                 return False
 
-            required_level = app.role_access_levels.get(role_name, 0)
+            required_level = app.role_access_levels.get(role_name)
+            if required_level is None:
+                return current_user.role == role_name
             return current_user.access_level >= required_level
 
         # Store reference to avoid shadowing
@@ -501,58 +472,6 @@ def verify_external_api_dependency(app: Flask) -> None:
                 app.logger.error("External API dependency check failed: %s (%s)", health_url, exc)
 
     raise RuntimeError(f"External API is required but unavailable: {health_url}") from last_error
-
-
-def init_db(app) -> None:
-    """
-    Initializes the MongoDB database connection for the Flask application.
-
-    This function sets up the application's connection to MongoDB using
-    parameters defined in the Flask config (e.g., `MONGO_URI`, `DB_NAME`).
-    It also performs a health check via a `ping` command to ensure the
-    database is reachable.
-
-    This function should be called during application startup to ensure
-    database availability and to register the connection for later use.
-
-    Args:
-        app (Flask): The Flask application instance containing configuration settings.
-
-    Raises:
-        RuntimeError: If the database connection or health check (ping) fails.
-    """
-
-    app.logger.info("Initializing MongoDB...")
-
-    mongo_uri = app.config.get("MONGO_URI")
-    app.logger.info(f"Connecting to MongoDB at: {mongo_uri}")
-
-    # Initialize the PyMongo extension
-    extensions.mongo.init_app(app)
-
-    # Check the connection
-    try:
-        client = extensions.mongo.cx  # Get PyMongo client
-        client.admin.command("ping")  # Basic ping to confirm connection
-        app.logger.info("MongoDB connection established successfully.")
-    except ConnectionFailure as e:
-        app.logger.error(f"MongoDB connection failed: {e}")
-        raise RuntimeError("Could not connect to MongoDB. Aborting.") from e
-
-
-def init_store(app) -> None:
-    """
-    Initializes the data store for the application.
-
-    This function sets up the data store connection using the configuration
-    provided in the Flask application instance. It ensures that the store
-    is properly initialized and ready for use.
-
-    Args:
-        app (Flask): The Flask application instance.
-    """
-    app.logger.info(f"Initializing MongoAdapter at: {app.config['MONGO_URI']}")
-    extensions.store.init_from_app(app)
 
 
 def init_utility(app) -> None:
@@ -691,16 +610,3 @@ def init_login_manager(app) -> None:
     extensions.login_manager.init_app(app)
     extensions.login_manager.login_view = "login_bp.login"
 
-
-def init_ldap(app):
-    """
-    Initializes the LDAP manager for the Flask application.
-
-    This function sets up the LDAP manager extension for the Flask app,
-    enabling integration with an LDAP server for authentication and user management.
-
-    Args:
-        app (Flask): The Flask application instance.
-    """
-    app.logger.debug("Initializing ldap login_manager")
-    extensions.ldap_manager.init_app(app)

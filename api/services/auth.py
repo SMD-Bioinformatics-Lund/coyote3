@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from flask import current_app
 
-from coyote.extensions import ldap_manager, store
-from coyote.models.user import UserModel
+from api.extensions import ldap_manager, store
+from api.models.user import UserModel
 
 
 def _ldap_authenticate(username: str, password: str) -> bool:

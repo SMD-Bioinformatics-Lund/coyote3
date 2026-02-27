@@ -31,7 +31,6 @@ from typing import Any, Literal, Optional
 import toml
 from cryptography.fernet import Fernet
 from coyote.__version__ import __version__ as app_version
-from coyote.util.common_utility import CommonUtility
 from dotenv import load_dotenv
 from os import path
 import subprocess
@@ -39,6 +38,18 @@ import subprocess
 # Load environment variables from a .env file if present
 basedir = path.abspath(path.dirname(__file__))
 load_dotenv(path.join(basedir, ".env"))
+
+
+def _active_git_branch_name() -> str:
+    """Return current git branch name for debug/test version labels."""
+    head_file = path.join(basedir, ".git", "HEAD")
+    if not path.exists(head_file):
+        return "unknown branch"
+    with open(head_file, "r", encoding="utf-8") as f:
+        for line in f.read().splitlines():
+            if line.startswith("ref:"):
+                return line.partition("refs/heads/")[2] or "unknown branch"
+    return "unknown branch"
 
 
 # -------------------------------------------------------------------------
@@ -347,7 +358,7 @@ class DevelopmentConfig(DefaultConfig):
     ENV_NAME = "Development"
     SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_dev")
     SECRET_KEY = os.getenv("SECRET_KEY")
-    APP_VERSION: str = f"{app_version}-DEV (git: {CommonUtility.get_active_branch_name()})"
+    APP_VERSION: str = f"{app_version}-DEV (git: {_active_git_branch_name()})"
     DEBUG: bool = True
 
 
@@ -370,7 +381,7 @@ class TestConfig(DefaultConfig):
     SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_test")
     SECRET_KEY = os.getenv("SECRET_KEY")
 
-    APP_VERSION: str = f"{app_version}-Test (git: {CommonUtility.get_active_branch_name()})"
+    APP_VERSION: str = f"{app_version}-Test (git: {_active_git_branch_name()})"
 
     TESTING = True
     LOGIN_DISABLED = True

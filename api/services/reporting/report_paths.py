@@ -16,7 +16,7 @@
 import os
 from typing import Tuple
 
-from coyote.util.common_utility import CommonUtility
+from api.utils.common_utility import CommonUtility
 
 
 def get_report_timestamp() -> str:

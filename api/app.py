@@ -14,11 +14,11 @@ from itsdangerous import BadSignature
 # API runtime must never depend on an external API health check.
 os.environ["REQUIRE_EXTERNAL_API"] = "0"
 
-from coyote import init_app
-from coyote.extensions import store, util
-from coyote.models.user import UserModel
+from api.extensions import store, util
+from api.flask_app import create_flask_context_app
+from api.models.user import UserModel
 
-flask_app = init_app(
+flask_app = create_flask_context_app(
     testing=bool(int(os.getenv("TESTING", "0"))),
     development=bool(int(os.getenv("DEVELOPMENT", "0"))),
 )

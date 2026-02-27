@@ -9,7 +9,7 @@ from fastapi import Depends, Query
 
 from api.app import ApiUser, _api_error, _get_sample_for_api, app, require_access
 from api.services.coverage_processing import CoverageProcessingService
-from coyote.extensions import store, util
+from api.extensions import store, util
 
 
 @app.get("/api/v1/coverage/samples/{sample_id}")

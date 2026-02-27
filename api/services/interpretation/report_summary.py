@@ -18,8 +18,8 @@ from bson.objectid import ObjectId
 from flask import current_app as app
 from flask_login import current_user
 
-from coyote.extensions import store
-from coyote.util.common_utility import CommonUtility
+from api.extensions import store
+from api.utils.common_utility import CommonUtility
 
 
 def process_gene_annotations(annotations: dict) -> dict:

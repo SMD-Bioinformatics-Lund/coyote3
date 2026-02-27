@@ -45,11 +45,9 @@ class Utility:
         from coyote.blueprints.home.util import HomeUtility
         from coyote.blueprints.dashboard.util import DashBoardUtility
         from coyote.util.admin_utility import AdminUtility
-        from coyote.util.auth_utility import AuthUtility
 
         self.common = CommonUtility()
         self.main = HomeUtility()
         self.dashboard = DashBoardUtility()
         self.admin = AdminUtility()
         self.report = ReportUtility()
-        self.login = AuthUtility()

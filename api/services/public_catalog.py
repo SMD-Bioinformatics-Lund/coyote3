@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import yaml
 from flask import current_app as app
 
-from coyote.extensions import store
+from api.extensions import store
 
 
 class PublicCatalogService:

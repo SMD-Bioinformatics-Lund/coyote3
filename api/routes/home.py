@@ -16,7 +16,7 @@ from api.app import (
     app,
     require_access,
 )
-from coyote.extensions import store, util
+from api.extensions import store, util
 
 
 @app.get("/api/v1/home/samples")

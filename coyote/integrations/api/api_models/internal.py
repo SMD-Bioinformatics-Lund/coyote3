@@ -18,3 +18,8 @@ class ApiInternalSampleAccessPayload(ApiModel):
     sample_assay: str = ""
     allowed: bool = False
     sample: dict = Field(default_factory=dict)
+
+
+class ApiInternalRoleLevelsPayload(ApiModel):
+    status: str = "ok"
+    role_levels: dict[str, int] = Field(default_factory=dict)

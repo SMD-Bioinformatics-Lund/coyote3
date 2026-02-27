@@ -8,7 +8,7 @@ import io
 from collections import defaultdict
 from copy import deepcopy
 
-from coyote.extensions import store, util
+from api.extensions import store, util
 from api.app import _api_error, app, flask_app
 from api.services.public_catalog import PublicCatalogService
 

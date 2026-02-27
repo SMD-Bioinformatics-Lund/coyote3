@@ -4,7 +4,7 @@ from copy import deepcopy
 
 from fastapi import Body, Depends, Query, Request
 
-from coyote.extensions import store, util
+from api.extensions import store, util
 from api.services.dna.dna_filters import (
     cnv_organizegenes,
     cnvtype_variant,

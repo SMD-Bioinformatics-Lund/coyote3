@@ -67,6 +67,7 @@ from coyote.integrations.api.api_models import (
     ApiPublicAssayCatalogContextPayload,
     ApiPublicAssayCatalogCsvContextPayload,
     ApiInternalIsglMetaPayload,
+    ApiInternalRoleLevelsPayload,
     ApiInternalSampleAccessPayload,
 )
 
@@ -1164,6 +1165,16 @@ class CoyoteApiClient:
             params={"user_id": user_id},
         )
         return ApiInternalSampleAccessPayload.model_validate(payload)
+
+    def get_role_levels_internal(
+        self,
+        headers: dict[str, str] | None = None,
+    ) -> ApiInternalRoleLevelsPayload:
+        payload = self._get(
+            "/api/v1/internal/roles/levels",
+            headers=headers,
+        )
+        return ApiInternalRoleLevelsPayload.model_validate(payload)
 
     def create_admin_asp(
         self,

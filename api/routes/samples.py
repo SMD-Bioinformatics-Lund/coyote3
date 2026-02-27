@@ -2,7 +2,7 @@
 
 from fastapi import Body, Depends
 
-from coyote.extensions import store, util
+from api.extensions import store, util
 from api.services.interpretation.report_summary import create_comment_doc
 from api.services.rna.helpers import create_fusioncallers, create_fusioneffectlist
 from api.services.workflow.filter_normalization import normalize_rna_filter_keys

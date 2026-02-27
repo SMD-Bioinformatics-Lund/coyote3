@@ -14,7 +14,7 @@
 Shared annotation enrichment helpers for DNA/RNA analyte flows.
 """
 
-from coyote.extensions import store
+from api.extensions import store
 
 
 def add_alt_class(variant: dict, assay: str, subpanel: str) -> dict:

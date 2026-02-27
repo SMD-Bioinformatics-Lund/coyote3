@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import Depends, Query
 
 from api.app import ApiUser, _api_error, app, flask_app, require_access
-from coyote.extensions import store, util
+from api.extensions import store, util
 from api.services.interpretation.report_summary import enrich_reported_variant_docs
 
 

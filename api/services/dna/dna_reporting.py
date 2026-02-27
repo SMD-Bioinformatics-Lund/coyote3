@@ -19,9 +19,9 @@ from pprint import pformat
 from typing import Any, Dict, List, Optional, Tuple
 from flask import current_app as app
 from flask import render_template
-from coyote.extensions import store
-from coyote.util.common_utility import CommonUtility
-from coyote.util.report.report_util import ReportUtility
+from api.extensions import store
+from api.utils.common_utility import CommonUtility
+from api.utils.report.report_util import ReportUtility
 from api.services.reporting.report_paths import get_report_timestamp as shared_get_report_timestamp
 from api.services.dna.query_builders import build_query
 from api.services.interpretation.annotation_enrichment import (

@@ -4,7 +4,7 @@ from copy import deepcopy
 
 from fastapi import Body, Depends, Query
 
-from coyote.extensions import store, util
+from api.extensions import store, util
 from api.services.admin.sample_deletion import delete_all_sample_traces
 from api.app import ApiUser, _api_error, _get_sample_for_api, app, require_access
 

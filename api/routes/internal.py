@@ -3,8 +3,8 @@
 from fastapi import Request
 from pydantic import BaseModel
 
-from coyote.extensions import store, util
-from coyote.models.user import UserModel
+from api.extensions import store, util
+from api.models.user import UserModel
 from api.app import _api_error, _require_internal_token, app
 from api.services.auth import authenticate_credentials, build_user_session_payload
 
@@ -54,6 +54,21 @@ def get_user_session_internal(user_id: str, request: Request):
         {
             "status": "ok",
             "user": build_user_session_payload(user_doc),
+        }
+    )
+
+
+@app.get("/api/v1/internal/roles/levels")
+def get_role_levels_internal(request: Request):
+    _require_internal_token(request)
+    role_levels = {
+        role["_id"]: role.get("level", 0)
+        for role in store.roles_handler.get_all_roles()
+    }
+    return util.common.convert_to_serializable(
+        {
+            "status": "ok",
+            "role_levels": role_levels,
         }
     )
 

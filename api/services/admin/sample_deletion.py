@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from coyote.extensions import store
+from api.extensions import store
 
 
 def delete_all_sample_traces(sample_id: str) -> dict[str, object]:

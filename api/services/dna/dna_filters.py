@@ -29,7 +29,7 @@ def _resolve_conseq_terms_mapper(conseq_terms_mapper: dict[str, Any] | None = No
         pass
 
     try:
-        from coyote.extensions import store
+        from api.extensions import store
 
         app_obj = getattr(getattr(store, "adapter", None), "app", None)
         if app_obj:

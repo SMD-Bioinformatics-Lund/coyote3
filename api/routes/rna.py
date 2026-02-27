@@ -2,7 +2,7 @@
 
 from fastapi import Depends, Query, Request
 
-from coyote.extensions import store, util
+from api.extensions import store, util
 from api.services.interpretation.annotation_enrichment import add_global_annotations
 from api.services.interpretation.report_summary import generate_summary_text
 from api.services.workflow.rna_workflow import RNAWorkflowService

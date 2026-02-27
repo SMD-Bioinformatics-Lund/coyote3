@@ -16,8 +16,8 @@ Shared reporting persistence pipeline for DNA/RNA save flows.
 
 import os
 
-from coyote.errors.exceptions import AppError
-from coyote.extensions import store, util
+from api.errors.exceptions import AppError
+from api.extensions import store, util
 
 
 def prepare_report_output(report_path: str, report_file: str, logger=None) -> None:

@@ -4,7 +4,7 @@ from copy import deepcopy
 
 from fastapi import Depends
 
-from coyote.extensions import store, util
+from api.extensions import store, util
 from api.app import ApiUser, app, require_access
 
 
