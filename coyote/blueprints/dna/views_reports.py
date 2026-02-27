@@ -15,13 +15,11 @@
 from flask import current_app as app
 from flask import Response, flash, redirect, request, url_for
 from coyote.blueprints.dna import dna_bp
-from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
 @dna_bp.route("/sample/<string:sample_id>/preview_report", methods=["GET", "POST"])
-@require_sample_access("sample_id")
 @require("preview_report", min_role="user", min_level=9)
 def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     """
@@ -41,7 +39,6 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
 
 
 @dna_bp.route("/sample/<string:sample_id>/report/save")
-@require_sample_access("sample_id")
 @require("create_report", min_role="admin")
 def save_dna_report(sample_id: str) -> Response:
     """

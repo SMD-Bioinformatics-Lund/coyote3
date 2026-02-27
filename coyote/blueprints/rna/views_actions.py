@@ -15,12 +15,10 @@
 from flask import Response, current_app as app, flash, redirect, request, url_for
 
 from coyote.blueprints.rna import rna_bp
-from coyote.util.decorators.access import require_sample_access
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
 @rna_bp.route("/<string:sample_id>/fusion/fp/<string:fus_id>", methods=["POST"])
-@require_sample_access("sample_id")
 def mark_false_fusion(sample_id: str, fus_id: str) -> Response:
     try:
         get_web_api_client().mark_rna_fusion_false_positive(
@@ -34,7 +32,6 @@ def mark_false_fusion(sample_id: str, fus_id: str) -> Response:
 
 
 @rna_bp.route("/<string:sample_id>/fusion/unfp/<string:fus_id>", methods=["POST"])
-@require_sample_access("sample_id")
 def unmark_false_fusion(sample_id: str, fus_id: str) -> Response:
     try:
         get_web_api_client().unmark_rna_fusion_false_positive(
@@ -53,7 +50,6 @@ def unmark_false_fusion(sample_id: str, fus_id: str) -> Response:
     "/<string:sample_id>/fusion/pickfusioncall/<string:fus_id>/<string:callidx>/<string:num_calls>",
     methods=["GET", "POST"],
 )
-@require_sample_access("sample_id")
 def pick_fusioncall(sample_id: str, fus_id: str, callidx: str, num_calls: str) -> Response:
     try:
         get_web_api_client().pick_rna_fusion_call(
@@ -69,7 +65,6 @@ def pick_fusioncall(sample_id: str, fus_id: str, callidx: str, num_calls: str) -
 
 
 @rna_bp.route("/<string:sample_id>/fusion/hide_fusion_comment/<string:fus_id>", methods=["POST"])
-@require_sample_access("sample_id")
 def hide_fusion_comment(sample_id: str, fus_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
@@ -85,7 +80,6 @@ def hide_fusion_comment(sample_id: str, fus_id: str) -> Response:
 
 
 @rna_bp.route("/<string:sample_id>/fusion/unhide_fusion_comment/<string:fus_id>", methods=["POST"])
-@require_sample_access("sample_id")
 def unhide_fusion_comment(sample_id: str, fus_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
@@ -101,7 +95,6 @@ def unhide_fusion_comment(sample_id: str, fus_id: str) -> Response:
 
 
 @rna_bp.route("/multi_class/<sample_id>", methods=["POST"])
-@require_sample_access("sample_id")
 def classify_multi_variant(sample_id: str) -> Response:
     action = request.form.get("action")
 

@@ -30,7 +30,6 @@ from wtforms import BooleanField
 from coyote.extensions import util
 from coyote.blueprints.dna import dna_bp
 from coyote.blueprints.dna.forms import DNAFilterForm
-from coyote.util.decorators.access import require_sample_access
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 from coyote.errors.exceptions import AppError
 from PIL import Image
@@ -47,7 +46,6 @@ def _raise_api_page_error(sample_id: str, page: str, exc: ApiRequestError) -> No
 
 
 @dna_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])
-@require_sample_access("sample_id")
 def list_variants(sample_id: str) -> Response | str:
     """
     Displays a list of DNA variants for a given sample.
@@ -209,7 +207,6 @@ def list_variants(sample_id: str) -> Response | str:
 
 @dna_bp.route("/<string:sample_id>/plot/<string:fn>", endpoint="show_any_plot")  # type: ignore
 @dna_bp.route("/<string:sample_id>/plot/rotated/<string:fn>", endpoint="show_any_plot_rotated")  # type: ignore
-@require_sample_access("sample_id")
 def show_any_plot(sample_id: str, fn: str, angle: int = 90) -> Response | str:
     """
     Displays a plot image for a given sample.
@@ -260,7 +257,6 @@ def show_any_plot(sample_id: str, fn: str, angle: int = 90) -> Response | str:
 
 ## Individual variant view ##
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>")
-@require_sample_access("sample_id")
 def show_variant(sample_id: str, var_id: str) -> Response | str:
     """
     Display detailed information for a specific DNA variant in a given sample.

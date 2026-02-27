@@ -31,7 +31,6 @@ from flask_login import current_user, login_required
 from flask import current_app as app
 from coyote.blueprints.home import home_bp
 from coyote.blueprints.home.forms import SampleSearchForm
-from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
 from coyote.services.audit_logs.decorators import log_action
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
@@ -129,7 +128,6 @@ def samples_home(
     methods=["GET"],
 )
 @require("view_reports", min_role="admin")
-@require_sample_access("sample_id")
 @log_action(action_name="view_report", call_type="user")
 def view_report(sample_id: str, report_id: str) -> str | Response:
     """
@@ -210,7 +208,6 @@ def view_report(sample_id: str, report_id: str) -> str | Response:
 
 @home_bp.route("/<string:sample_id>/edit", methods=["GET"])
 @require("edit_sample", min_role="user")
-@require_sample_access("sample_id")
 @log_action("sample_settings", call_type="user_call")
 def edit_sample(sample_id: str) -> str | Response:
     """
@@ -260,7 +257,6 @@ def edit_sample(sample_id: str) -> str | Response:
 
 
 @home_bp.route("/<string:sample_id>/isgls", methods=["GET"])
-@require_sample_access("sample_id")
 def list_isgls(sample_id: str) -> Response:
     """
     Return adhoc in-study gene lists for the sample's assay as JSON.
@@ -286,7 +282,6 @@ def list_isgls(sample_id: str) -> Response:
 
 @home_bp.route("/<string:sample_id>/genes/apply-isgl", methods=["POST"])
 @require("edit_sample", min_role="user")
-@require_sample_access("sample_id")
 @log_action(action_name="apply_isgl", call_type="user")
 def apply_isgl(sample_id: str) -> Response:
     """
@@ -329,7 +324,6 @@ def apply_isgl(sample_id: str) -> Response:
 
 @home_bp.route("/<string:sample_id>/adhoc_genes", methods=["POST"])
 @require("edit_sample", min_role="user")
-@require_sample_access("sample_id")
 @log_action(action_name="save_adhoc_genes", call_type="user")
 def save_adhoc_genes(sample_id: str) -> Response:
     """
@@ -370,7 +364,6 @@ def save_adhoc_genes(sample_id: str) -> Response:
 
 @home_bp.route("/<string:sample_id>/adhoc_genes/clear", methods=["POST"])
 @require("edit_sample", min_role="user")
-@require_sample_access("sample_id")
 @log_action(action_name="clear_adhoc_genes", call_type="user")
 def clear_adhoc_genes(sample_id: str) -> Response:
     """
@@ -399,7 +392,6 @@ def clear_adhoc_genes(sample_id: str) -> Response:
 
 
 @home_bp.route("/<string:sample_id>/effective-genes/all", methods=["GET"])
-@require_sample_access("sample_id")
 def get_effective_genes_all(sample_id: str) -> Response:
     """
     Return all effective genes for the sample as JSON.

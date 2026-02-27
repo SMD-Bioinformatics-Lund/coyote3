@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
+from datetime import datetime, timezone
+import json
+import logging
 import os
 from collections.abc import Generator
 
@@ -40,6 +43,7 @@ app = FastAPI(
     redoc_url="/api/v1/redoc",
     openapi_url="/api/v1/openapi.json",
 )
+_audit_logger = logging.getLogger("audit")
 
 
 @app.exception_handler(Exception)
@@ -79,6 +83,63 @@ class ApiUser:
 
 def _api_error(status_code: int, message: str) -> HTTPException:
     return HTTPException(status_code=status_code, detail={"status": status_code, "error": message})
+
+
+def _http_exception_message(exc: HTTPException) -> str:
+    detail = exc.detail
+    if isinstance(detail, dict):
+        return str(detail.get("error") or detail.get("details") or detail)
+    return str(detail)
+
+
+def _request_ip(request: Request | None) -> str:
+    if request is None:
+        return "N/A"
+    forwarded_for = (request.headers.get("X-Forwarded-For") or "").strip()
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip() or "N/A"
+    if request.client and request.client.host:
+        return str(request.client.host)
+    return "N/A"
+
+
+def _audit_access_event(
+    *,
+    status: str,
+    reason: str,
+    request: Request | None = None,
+    user: ApiUser | None = None,
+    permission: str | None = None,
+    min_level: int | None = None,
+    min_role: str | None = None,
+    sample_id: str | None = None,
+    extra: dict | None = None,
+) -> None:
+    event = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "source": "api",
+        "action": "access_check",
+        "status": status,
+        "reason": reason,
+        "method": request.method if request else None,
+        "path": str(request.url.path) if request else None,
+        "ip": _request_ip(request),
+        "user_id": user.id if user else None,
+        "username": user.username if user else None,
+        "role": user.role if user else None,
+        "sample_id": str(sample_id) if sample_id is not None else None,
+        "required": {
+            "permission": permission,
+            "min_level": min_level,
+            "min_role": min_role,
+        },
+        "extra": extra or {},
+    }
+    payload = json.dumps(event, default=str)
+    if status == "denied":
+        _audit_logger.warning(payload)
+    else:
+        _audit_logger.info(payload)
 
 
 def _require_internal_token(request: Request) -> None:
@@ -251,8 +312,30 @@ def require_access(
     min_role: str | None = None,
 ):
     def dep(request: Request) -> Generator[ApiUser, None, None]:
-        user = _decode_session_user(request)
-        _enforce_access(user, permission=permission, min_level=min_level, min_role=min_role)
+        user: ApiUser | None = None
+        try:
+            user = _decode_session_user(request)
+            _enforce_access(user, permission=permission, min_level=min_level, min_role=min_role)
+        except HTTPException as exc:
+            _audit_access_event(
+                status="denied",
+                reason=_http_exception_message(exc),
+                request=request,
+                user=user,
+                permission=permission,
+                min_level=min_level,
+                min_role=min_role,
+            )
+            raise
+        _audit_access_event(
+            status="authorized",
+            reason="Access granted",
+            request=request,
+            user=user,
+            permission=permission,
+            min_level=min_level,
+            min_role=min_role,
+        )
         token = set_current_user(user)
         try:
             yield user
@@ -262,15 +345,31 @@ def require_access(
     return dep
 
 
-def _get_sample_for_api(sample_id: str, user: ApiUser):
+def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None = None):
     sample = store.sample_handler.get_sample(sample_id)
     if not sample:
         sample = store.sample_handler.get_sample_by_id(sample_id)
     if not sample:
+        _audit_access_event(
+            status="denied",
+            reason="Sample not found",
+            request=request,
+            user=user,
+            sample_id=sample_id,
+            extra={"check": "sample_lookup"},
+        )
         raise _api_error(404, "Sample not found")
 
     sample_assay = sample.get("assay", "")
     if sample_assay not in set(user.assays or []):
+        _audit_access_event(
+            status="denied",
+            reason="Access denied: sample assay mismatch",
+            request=request,
+            user=user,
+            sample_id=sample_id,
+            extra={"sample_assay": sample_assay},
+        )
         raise _api_error(403, "Access denied: sample assay mismatch")
     return sample
 

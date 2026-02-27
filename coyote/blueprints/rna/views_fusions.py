@@ -26,13 +26,11 @@ from coyote.blueprints.rna.forms import FusionFilter
 
 from coyote.extensions import util
 from coyote.blueprints.rna import rna_bp
-from coyote.util.decorators.access import require_sample_access
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 from copy import deepcopy
 
 
 @rna_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])
-@require_sample_access("sample_id")
 def list_fusions(sample_id: str) -> str | Response:
     """
     Display and filter RNA fusion events for a given sample.
@@ -162,7 +160,6 @@ def list_fusions(sample_id: str) -> str | Response:
 
 
 @rna_bp.route("/<string:sample_id>/fusion/<string:fusion_id>")
-@require_sample_access("sample_id")
 def show_fusion(sample_id: str, fusion_id: str) -> Response | str:
     """
     Display details for a specific RNA fusion event.

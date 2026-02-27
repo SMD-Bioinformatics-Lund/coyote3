@@ -22,7 +22,6 @@ from flask import current_app as app
 from coyote.blueprints.common import common_bp
 from coyote.blueprints.common.forms import TieredVariantSearchForm
 from flask import render_template
-from coyote.util.decorators.access import require_sample_access
 from coyote.services.auth.decorators import require
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 import json
@@ -41,7 +40,6 @@ from typing import Any
     endpoint="add_rna_sample_comment",
 )
 @common_bp.route("/sample/<string:sample_id>/sample_comment", methods=["POST"])
-@require_sample_access("sample_id")
 @require("add_sample_comment", min_role="user", min_level=9)
 def add_sample_comment(sample_id: str) -> Response:
     """
@@ -65,7 +63,6 @@ def add_sample_comment(sample_id: str) -> Response:
 
 
 @common_bp.route("/sample/<string:sample_id>/hide_sample_comment", methods=["POST"])
-@require_sample_access("sample_id")
 @require("hide_sample_comment", min_role="manager", min_level=99)
 def hide_sample_comment(sample_id: str) -> Response:
     """
@@ -101,7 +98,6 @@ def hide_sample_comment(sample_id: str) -> Response:
 
 
 @common_bp.route("/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"])
-@require_sample_access("sample_id")
 @require("unhide_sample_comment", min_role="manager", min_level=99)
 def unhide_sample_comment(sample_id: str) -> Response:
     """
