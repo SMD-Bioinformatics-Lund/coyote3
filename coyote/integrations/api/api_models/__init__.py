@@ -1,7 +1,11 @@
 """Domain-organized typed models for web API payloads."""
 
 from coyote.integrations.api.api_models.base import ApiMutationResultPayload
-from coyote.integrations.api.api_models.auth import ApiAuthLoginPayload, ApiAuthSessionUserPayload
+from coyote.integrations.api.api_models.auth import (
+    ApiAuthLoginPayload,
+    ApiAuthMePayload,
+    ApiAuthSessionUserPayload,
+)
 from coyote.integrations.api.api_models.dashboard import ApiDashboardSummaryPayload
 from coyote.integrations.api.api_models.common import (
     ApiCommonGeneInfoPayload,
@@ -79,6 +83,7 @@ from coyote.integrations.api.api_models.rna import (
 __all__ = [
     "ApiMutationResultPayload",
     "ApiAuthLoginPayload",
+    "ApiAuthMePayload",
     "ApiAuthSessionUserPayload",
     "ApiDashboardSummaryPayload",
     "ApiCommonGeneInfoPayload",

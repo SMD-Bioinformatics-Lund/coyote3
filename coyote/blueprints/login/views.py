@@ -14,131 +14,90 @@
 This module defines authentication views for the Coyote3 application.
 """
 
-import os
-
-from bson import ObjectId
-from bson.errors import InvalidId
 from flask import (
     Response,
     current_app as app,
     flash,
+    has_request_context,
     redirect,
     render_template,
     request,
     url_for,
 )
-from flask_login import login_required, login_user, logout_user
+from flask_login import current_user, login_required, login_user, logout_user
 
 from coyote.blueprints.login import login_bp
 from coyote.blueprints.login.forms import LoginForm
-from coyote.extensions import ldap_manager, login_manager
+from coyote.extensions import login_manager
+from coyote.integrations.api.api_client import (
+    ApiRequestError,
+    build_forward_headers,
+    get_web_api_client,
+)
 from coyote.services.auth.user_session import User
-from flask_login import current_user
-from api.extensions import store
-from api.models.user import UserModel
-from api.runtime import bind_runtime_context
-from api.runtime_bootstrap import create_runtime_context
 
 
-def _ensure_local_auth_backend() -> None:
-    if getattr(app, "_local_auth_backend_ready", False):
-        return
-    runtime_context = create_runtime_context(
-        testing=bool(int(os.getenv("TESTING", "0"))),
-        development=bool(int(os.getenv("DEVELOPMENT", "0"))),
-    )
-    bind_runtime_context(runtime_context)
-    app._local_auth_backend_ready = True
+def _api_cookie_name() -> str:
+    return str(app.config.get("API_SESSION_COOKIE_NAME", "coyote3_api_session"))
 
 
-def _ldap_authenticate(username: str, password: str) -> bool:
-    return bool(
-        ldap_manager.authenticate(
-            username=username,
-            password=password,
-            base_dn=app.config.get("LDAP_BASE_DN") or app.config.get("LDAP_BINDDN"),
-            attribute=app.config.get("LDAP_USER_LOGIN_ATTR"),
-        )
-    )
-
-
-def _build_user_session(user_doc: dict) -> User:
-    role_doc = store.roles_handler.get_role(user_doc.get("role")) or {}
-    asp_docs = store.asp_handler.get_all_asps(is_active=True)
-    user_model = UserModel.from_mongo(user_doc, role_doc, asp_docs)
-    return User(user_model)
-
-
-def _load_user_doc_by_id(user_id: str) -> dict | None:
-    coll = store.user_handler.get_collection()
-    user_doc = coll.find_one({"_id": user_id})
-    if user_doc:
-        return user_doc
-
+def _api_cookie_max_age() -> int:
     try:
-        oid = ObjectId(user_id)
-    except (InvalidId, TypeError):
-        return None
-    return coll.find_one({"_id": oid})
+        return int(app.config.get("API_SESSION_TTL_SECONDS", 12 * 60 * 60))
+    except (TypeError, ValueError):
+        return 12 * 60 * 60
 
 
-# Login route
+def _set_api_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        key=_api_cookie_name(),
+        value=str(token),
+        httponly=True,
+        secure=bool(app.config.get("SESSION_COOKIE_SECURE", False)),
+        samesite="Lax",
+        max_age=_api_cookie_max_age(),
+        path="/",
+    )
+
+
+def _clear_api_cookie(response: Response) -> None:
+    response.delete_cookie(key=_api_cookie_name(), path="/")
+
+
 @login_bp.route("/login", methods=["GET", "POST"])
 @login_bp.route("/", methods=["GET", "POST"])
 def login() -> str | Response:
-    """
-    Handle user login for the Coyote3 application.
-
-    Renders the login form on GET requests. On POST, validates the form,
-    authenticates the user using either internal (Coyote3) or LDAP authentication
-    based on the user's configured auth type, and logs the user in if credentials
-    are valid. Redirects to the home page on success, or re-renders the login form
-    with error messages on failure.
-
-    Returns:
-        Response: Rendered login template or redirect to home page.
-    """
+    """Handle user login via API-owned authentication."""
     if current_user.is_authenticated:
-        # If user is already authenticated, redirect to the dashboard
         return redirect(url_for("dashboard_bp.dashboard"))
-    form = LoginForm()
 
+    form = LoginForm()
     if request.method == "POST" and form.validate_on_submit():
         email = form.username.data.strip()
         password = form.password.data.strip()
 
         try:
-            _ensure_local_auth_backend()
-        except Exception as exc:
-            app.logger.error("Login backend initialization failed: %s", exc)
-            flash("Authentication backend unavailable.", "red")
+            auth_payload = get_web_api_client().login_auth(
+                username=email,
+                password=password,
+                headers=build_forward_headers(request.headers),
+            )
+        except ApiRequestError as exc:
+            if exc.status_code == 401:
+                flash("Invalid credentials", "red")
+                app.logger.warning("Login failed: invalid credentials (%s)", email)
+            else:
+                flash("Authentication backend unavailable.", "red")
+                app.logger.error("Login API request failed for %s: %s", email, exc)
             return render_template("login.html", form=form)
 
-        user_doc = store.user_handler.user(email)
-        if not user_doc or not user_doc.get("is_active", True):
-            flash("User not found or inactive.", "red")
-            app.logger.warning(f"Login failed: user not found or inactive ({email})")
-            return render_template("login.html", form=form)
-
-        use_internal = user_doc.get("auth_type") == "coyote3"
-        valid = (
-            UserModel.validate_login(user_doc.get("password", ""), password)
-            if use_internal
-            else _ldap_authenticate(email, password)
-        )
-
-        if not valid:
-            flash("Invalid credentials", "red")
-            app.logger.warning(f"Login failed: invalid credentials ({email})")
-            return render_template("login.html", form=form)
-
-        user = _build_user_session(user_doc)
-
+        user = User(auth_payload.user)
         login_user(user)
-        store.user_handler.update_user_last_login(str(user_doc.get("_id")))
-        app.logger.info(f"User logged in: {email} (access_level: {user.access_level})")
 
-        return redirect(url_for("dashboard_bp.dashboard"))
+        response = redirect(url_for("dashboard_bp.dashboard"))
+        _set_api_cookie(response, auth_payload.session_token)
+        app.logger.info("User logged in via API: %s (access_level: %s)", email, user.access_level)
+        return response
 
     return render_template("login.html", title="Login", form=form)
 
@@ -146,35 +105,34 @@ def login() -> str | Response:
 @login_bp.route("/logout")
 @login_required
 def logout() -> Response:
-    """
-    Log out the current user and redirect to the login page.
+    """Log out the current user and clear API + Flask sessions."""
+    try:
+        get_web_api_client().logout_auth(headers=build_forward_headers(request.headers))
+    except ApiRequestError as exc:
+        app.logger.warning("API logout request failed: %s", exc)
 
-    This view logs out the user using Flask-Login's `logout_user` function,
-    then redirects to the login page.
-
-    Returns:
-        Response: Redirect to the login page.
-    """
     logout_user()
-    return redirect(url_for("login_bp.login"))
+    response = redirect(url_for("login_bp.login"))
+    _clear_api_cookie(response)
+    return response
 
 
 @login_manager.user_loader
 def load_user(user_id: str) -> User | None:
-    """
-    Load a user for Flask-Login session management.
-
-    Args:
-        user_id (str): The unique identifier of the user.
-
-    Returns:
-        User | None: The authenticated User object if found, otherwise None.
-    """
+    """Load user session context from API `/auth/me` only."""
     try:
-        _ensure_local_auth_backend()
-        user_doc = _load_user_doc_by_id(user_id)
-        if not user_doc or not user_doc.get("is_active", True):
+        if not has_request_context():
             return None
-        return _build_user_session(user_doc)
+
+        payload = get_web_api_client().get_auth_me(
+            headers=build_forward_headers(request.headers),
+        )
+        user_payload = payload.user or {}
+        api_user_id = str(user_payload.get("_id") or user_payload.get("id") or "")
+        if not api_user_id or api_user_id != str(user_id):
+            return None
+        return User(user_payload)
+    except ApiRequestError:
+        return None
     except Exception:
         return None

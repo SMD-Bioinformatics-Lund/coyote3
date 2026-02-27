@@ -10,6 +10,7 @@ from flask import current_app
 
 from coyote.integrations.api.api_models import (
     ApiAuthLoginPayload,
+    ApiAuthMePayload,
     ApiAuthSessionUserPayload,
     ApiDashboardSummaryPayload,
     ApiAdminPermissionContextPayload,
@@ -1107,28 +1108,46 @@ class CoyoteApiClient:
         )
         return bool(payload.get("exists", False))
 
-    def authenticate_web_login_internal(
+    def login_auth(
         self,
         username: str,
         password: str,
         headers: dict[str, str] | None = None,
     ) -> ApiAuthLoginPayload:
         payload = self._post(
-            "/api/v1/internal/auth/login",
+            "/api/v1/auth/login",
             headers=headers,
             json_body={"username": username, "password": password},
         )
         return ApiAuthLoginPayload.model_validate(payload)
+
+    def logout_auth(
+        self,
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        return self._post("/api/v1/auth/logout", headers=headers)
+
+    def get_auth_me(
+        self,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAuthMePayload:
+        payload = self._get("/api/v1/auth/me", headers=headers)
+        return ApiAuthMePayload.model_validate(payload)
+
+    def authenticate_web_login_internal(
+        self,
+        username: str,
+        password: str,
+        headers: dict[str, str] | None = None,
+    ) -> ApiAuthLoginPayload:
+        return self.login_auth(username=username, password=password, headers=headers)
 
     def get_user_session_internal(
         self,
         user_id: str,
         headers: dict[str, str] | None = None,
     ) -> ApiAuthSessionUserPayload:
-        payload = self._get(
-            f"/api/v1/internal/users/{user_id}/session",
-            headers=headers,
-        )
+        payload = self.get_auth_me(headers=headers).model_dump()
         return ApiAuthSessionUserPayload.model_validate(payload)
 
     def update_user_last_login_internal(
