@@ -179,27 +179,11 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
     @app.before_request
     def enforce_permissions() -> None:
         """
-        Enforces role- or permission-based access control before processing each request.
+        Require authentication for UI routes annotated with `@require(...)`.
 
-        This `before_request` hook checks if the target view function has access control metadata
-        defined using the `@require(...)` decorator. It then validates whether the current user
-        satisfies at least one of the following:
-
-            - Has the required permission (`required_permission`)
-            - Meets the required access level (`required_access_level`)
-            - Has a role equal to or above the required role (`required_role_name`)
-
-        If the route defines any of these requirements and the user is not authenticated,
-        the user is redirected to the login page.
-
-        If the user is authenticated but fails to meet **all** of the defined criteria,
-        a flash message is shown and the user is redirected to the default home page.
-
-        Requirements are expected to be attached to view functions via the `@require(...)`
-        decorator which sets the following attributes:
-            - `required_permission`
-            - `required_access_level`
-            - `required_role_name`
+        RBAC/data authorization is enforced by API endpoints. The Flask UI only
+        checks whether a user is logged in before rendering route handlers that
+        carry access metadata.
 
         Returns:
             None: Either continues processing the request or redirects the user on failure.
