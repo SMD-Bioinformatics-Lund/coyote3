@@ -32,6 +32,8 @@ common_bp = Blueprint(
     static_folder="static",
 )
 
-from coyote.blueprints.common import views  # noqa: F401, E402
+from coyote.blueprints.common import views_genes  # noqa: F401, E402
+from coyote.blueprints.common import views_sample_comments  # noqa: F401, E402
+from coyote.blueprints.common import views_tiered_variants  # noqa: F401, E402
 
 app.common_logger = logging.getLogger("coyote.common")
