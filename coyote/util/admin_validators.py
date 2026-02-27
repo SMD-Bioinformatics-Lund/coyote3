@@ -10,8 +10,19 @@
 #  the copyright holders.
 #
 
-"""Backward-compatible admin validator import path."""
+"""
+Schema validation for the Coyote application
+This module contains functions to validate the schema of the Coyote application.
+"""
 
-from coyote.util.admin_validators import REQUIRED_SCHEMA_KEYS
-
-__all__ = ["REQUIRED_SCHEMA_KEYS"]
+REQUIRED_SCHEMA_KEYS = [
+    "_id",
+    "schema_name",
+    "schema_type",
+    "description",
+    "is_active",
+    "version",
+    "sections",
+    "fields",
+    "subschemas",
+]
