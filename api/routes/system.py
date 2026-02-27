@@ -2,8 +2,20 @@
 
 from fastapi import Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
+from pydantic import BaseModel
 
-from api.app import ApiUser, app, require_access
+from api.app import (
+    ApiUser,
+    app,
+    create_api_session_token,
+    get_api_session_cookie_name,
+    get_api_session_cookie_secure,
+    get_api_session_ttl_seconds,
+    require_access,
+    serialize_api_user,
+)
+from api.extensions import store, util
+from api.services.auth import authenticate_credentials, build_user_session_payload
 
 
 @app.exception_handler(HTTPException)
@@ -36,3 +48,52 @@ def whoami(user: ApiUser = Depends(require_access(min_level=1))):
         "denied_permissions": sorted(user.denied_permissions),
     }
 
+
+class ApiAuthLoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+@app.post("/api/v1/auth/login")
+def auth_login(payload: ApiAuthLoginRequest):
+    username = payload.username.strip()
+    password = payload.password
+    user_doc = authenticate_credentials(username, password)
+    if not user_doc:
+        raise HTTPException(status_code=401, detail={"status": 401, "error": "Invalid credentials"})
+
+    user_id = str(user_doc.get("_id"))
+    store.user_handler.update_user_last_login(user_id)
+    session_token = create_api_session_token(user_id)
+    response = JSONResponse(
+        status_code=200,
+        content=util.common.convert_to_serializable(
+            {
+                "status": "ok",
+                "user": build_user_session_payload(user_doc),
+                "session_token": session_token,
+            }
+        ),
+    )
+    response.set_cookie(
+        key=get_api_session_cookie_name(),
+        value=session_token,
+        httponly=True,
+        secure=get_api_session_cookie_secure(),
+        samesite="lax",
+        max_age=get_api_session_ttl_seconds(),
+        path="/",
+    )
+    return response
+
+
+@app.post("/api/v1/auth/logout")
+def auth_logout():
+    response = JSONResponse(status_code=200, content={"status": "ok"})
+    response.delete_cookie(key=get_api_session_cookie_name(), path="/")
+    return response
+
+
+@app.get("/api/v1/auth/me")
+def auth_me(user: ApiUser = Depends(require_access(min_level=1))):
+    return util.common.convert_to_serializable({"status": "ok", "user": serialize_api_user(user)})

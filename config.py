@@ -117,6 +117,9 @@ class DefaultConfig:
     API_HEALTH_RETRY_INTERVAL_SECONDS = float(
         os.getenv("API_HEALTH_RETRY_INTERVAL_SECONDS", "1.0")
     )
+    API_SESSION_COOKIE_NAME = os.getenv("API_SESSION_COOKIE_NAME", "coyote3_api_session")
+    API_SESSION_TTL_SECONDS = int(os.getenv("API_SESSION_TTL_SECONDS", str(12 * 60 * 60)))
+    API_SESSION_SALT = os.getenv("API_SESSION_SALT", "coyote3-api-session-v1")
 
     MONGO_HOST: str = os.getenv("FLASK_MONGO_HOST") or "localhost"
     MONGO_PORT: str | Literal[27017] = os.getenv("FLASK_MONGO_PORT") or 27017

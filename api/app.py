@@ -10,7 +10,7 @@ from collections.abc import Generator
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from flask.sessions import SecureCookieSessionInterface
-from itsdangerous import BadSignature
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 # API runtime must never depend on an external API health check.
 os.environ["REQUIRE_EXTERNAL_API"] = "0"
@@ -28,6 +28,10 @@ runtime_context = create_runtime_context(
 bind_runtime_context(runtime_context)
 _session_interface = SecureCookieSessionInterface()
 _session_serializer = _session_interface.get_signing_serializer(runtime_context)
+_api_session_serializer = URLSafeTimedSerializer(
+    secret_key=str(runtime_context.secret_key or runtime_app.config.get("SECRET_KEY") or "coyote3-api"),
+    salt=str(runtime_app.config.get("API_SESSION_SALT", "coyote3-api-session-v1")),
+)
 
 app = FastAPI(
     title="Coyote3 API",
@@ -59,6 +63,9 @@ def create_api_app():
 
 @dataclass
 class ApiUser:
+    id: str
+    email: str
+    fullname: str
     username: str
     role: str
     access_level: int
@@ -87,6 +94,26 @@ def _to_bool(value, default: bool = False) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
+def get_api_session_cookie_name() -> str:
+    return str(runtime_app.config.get("API_SESSION_COOKIE_NAME") or "coyote3_api_session")
+
+
+def get_api_session_ttl_seconds() -> int:
+    value = runtime_app.config.get("API_SESSION_TTL_SECONDS", 12 * 60 * 60)
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 12 * 60 * 60
+
+
+def get_api_session_cookie_secure() -> bool:
+    return _to_bool(runtime_app.config.get("SESSION_COOKIE_SECURE"), default=False)
+
+
+def create_api_session_token(user_id: str) -> str:
+    return str(_api_session_serializer.dumps({"uid": str(user_id)}))
+
+
 def _role_levels() -> dict[str, int]:
     return {role["_id"]: role.get("level", 0) for role in store.roles_handler.get_all_roles()}
 
@@ -102,7 +129,44 @@ def _get_formatted_assay_config(sample: dict):
     return util.common.format_assay_config(deepcopy(assay_config), assay_config_schema)
 
 
-def _decode_session_user(request: Request) -> ApiUser:
+def _api_user_from_doc(user_doc: dict) -> ApiUser:
+    role_doc = store.roles_handler.get_role(user_doc.get("role")) or {}
+    asp_docs = store.asp_handler.get_all_asps(is_active=True)
+    user_model = UserModel.from_mongo(user_doc, role_doc, asp_docs)
+    return ApiUser(
+        id=str(user_model.id),
+        email=user_model.email,
+        fullname=user_model.fullname,
+        username=user_model.username,
+        role=user_model.role,
+        access_level=user_model.access_level,
+        permissions=list(user_model.permissions),
+        denied_permissions=list(user_model.denied_permissions),
+        assays=list(user_model.assays),
+        assay_groups=list(user_model.assay_groups),
+        envs=list(user_model.envs),
+        asp_map=dict(user_model.asp_map),
+    )
+
+
+def serialize_api_user(user: ApiUser) -> dict:
+    return {
+        "_id": user.id,
+        "email": user.email,
+        "fullname": user.fullname,
+        "username": user.username,
+        "role": user.role,
+        "access_level": user.access_level,
+        "permissions": sorted(user.permissions),
+        "denied_permissions": sorted(user.denied_permissions),
+        "assays": sorted(user.assays),
+        "assay_groups": sorted(user.assay_groups),
+        "envs": sorted(user.envs),
+        "asp_map": user.asp_map,
+    }
+
+
+def _decode_legacy_flask_session_user(request: Request) -> ApiUser:
     cookie_name = runtime_app.config.get("SESSION_COOKIE_NAME", "session")
     cookie_val = request.cookies.get(cookie_name)
     if not cookie_val or _session_serializer is None:
@@ -120,22 +184,42 @@ def _decode_session_user(request: Request) -> ApiUser:
     user_doc = store.user_handler.user_with_id(user_id)
     if not user_doc:
         raise _api_error(401, "Login required")
+    return _api_user_from_doc(user_doc)
 
-    role_doc = store.roles_handler.get_role(user_doc.get("role")) or {}
-    asp_docs = store.asp_handler.get_all_asps(is_active=True)
-    user_model = UserModel.from_mongo(user_doc, role_doc, asp_docs)
 
-    return ApiUser(
-        username=user_model.username,
-        role=user_model.role,
-        access_level=user_model.access_level,
-        permissions=list(user_model.permissions),
-        denied_permissions=list(user_model.denied_permissions),
-        assays=list(user_model.assays),
-        assay_groups=list(user_model.assay_groups),
-        envs=list(user_model.envs),
-        asp_map=dict(user_model.asp_map),
-    )
+def _extract_api_session_token(request: Request) -> str | None:
+    auth_header = (request.headers.get("Authorization") or "").strip()
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header.split(" ", 1)[1].strip()
+        if token:
+            return token
+    return request.cookies.get(get_api_session_cookie_name())
+
+
+def _decode_session_user(request: Request) -> ApiUser:
+    api_token = _extract_api_session_token(request)
+    if api_token:
+        try:
+            token_data = _api_session_serializer.loads(
+                api_token,
+                max_age=get_api_session_ttl_seconds(),
+            )
+        except SignatureExpired:
+            raise _api_error(401, "Session expired")
+        except BadSignature:
+            raise _api_error(401, "Login required")
+
+        user_id = token_data.get("uid")
+        if not user_id:
+            raise _api_error(401, "Login required")
+
+        user_doc = store.user_handler.user_with_id(str(user_id))
+        if not user_doc or not user_doc.get("is_active", True):
+            raise _api_error(401, "Login required")
+        return _api_user_from_doc(user_doc)
+
+    # Backward-compatible fallback while Flask session migration completes.
+    return _decode_legacy_flask_session_user(request)
 
 
 def _enforce_access(
