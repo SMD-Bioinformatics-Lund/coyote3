@@ -8,6 +8,7 @@ from typing import Any
 import httpx
 
 
+@dataclass
 class ApiRequestError(Exception):
     message: str
     status_code: int | None = None
@@ -129,4 +130,3 @@ class BaseApiClient:
         json_body: dict[str, Any] | None = None,
     ) -> ApiPayload:
         return self._post(path, headers=headers, params=params, json_body=json_body)
-
