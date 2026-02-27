@@ -30,7 +30,9 @@ from coyote.blueprints.admin import views_schemas  # noqa: F401, E402
 from coyote.blueprints.admin import views_permissions  # noqa: F401, E402
 from coyote.blueprints.admin import views_roles  # noqa: F401, E402
 from coyote.blueprints.admin import views_audit  # noqa: F401, E402
-from coyote.blueprints.admin import views_genelists  # noqa: F401, E402
+from coyote.blueprints.admin import views_genelists_create  # noqa: F401, E402
+from coyote.blueprints.admin import views_genelists_detail  # noqa: F401, E402
+from coyote.blueprints.admin import views_genelists_list  # noqa: F401, E402
 from coyote.blueprints.admin import views_assay_panels_create  # noqa: F401, E402
 from coyote.blueprints.admin import views_assay_panels_detail  # noqa: F401, E402
 from coyote.blueprints.admin import views_assay_panels_list  # noqa: F401, E402
