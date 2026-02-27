@@ -16,17 +16,16 @@ from copy import deepcopy
 import json
 
 from flask import Response, abort, flash, g, redirect, render_template, request, url_for
-from flask_login import current_user
+from flask_login import current_user, login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
 from coyote.services.audit_logs.decorators import log_action
-from coyote.services.auth.decorators import require
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
 @admin_bp.route("/aspc")
-@require("view_aspc", min_role="user", min_level=9)
+@login_required
 def assay_configs() -> str:
     try:
         payload = get_web_api_client().get_admin_aspc(headers=build_forward_headers(request.headers))
@@ -38,8 +37,8 @@ def assay_configs() -> str:
 
 
 @admin_bp.route("/aspc/dna/new", methods=["GET", "POST"])
-@require("create_aspc", min_role="manager", min_level=99)
 @log_action(action_name="create_assay_config", call_type="manager_call")
+@login_required
 def create_dna_assay_config() -> Response | str:
     try:
         context = get_web_api_client().get_admin_aspc_create_context(
@@ -108,8 +107,8 @@ def create_dna_assay_config() -> Response | str:
 
 
 @admin_bp.route("/aspc/rna/new", methods=["GET", "POST"])
-@require("create_aspc", min_role="manager", min_level=99)
 @log_action(action_name="create_assay_config", call_type="manager_call")
+@login_required
 def create_rna_assay_config() -> Response | str:
     try:
         context = get_web_api_client().get_admin_aspc_create_context(
@@ -176,8 +175,8 @@ def create_rna_assay_config() -> Response | str:
 
 
 @admin_bp.route("/aspc/<assay_id>/edit", methods=["GET", "POST"])
-@require("edit_aspc", min_role="manager", min_level=99)
 @log_action(action_name="edit_assay_config", call_type="developer_call")
+@login_required
 def edit_assay_config(assay_id: str) -> Response | str:
     try:
         context = get_web_api_client().get_admin_aspc_context(
@@ -266,8 +265,8 @@ def edit_assay_config(assay_id: str) -> Response | str:
 
 
 @admin_bp.route("/aspc/<assay_id>/view", methods=["GET"])
-@require("view_aspc", min_role="user", min_level=9)
 @log_action(action_name="view_assay_config", call_type="viewer_call")
+@login_required
 def view_assay_config(assay_id: str) -> str | Response:
     try:
         context = get_web_api_client().get_admin_aspc_context(
@@ -311,8 +310,8 @@ def view_assay_config(assay_id: str) -> str | Response:
 
 
 @admin_bp.route("/aspc/<assay_id>/print", methods=["GET"])
-@require("view_aspc", min_role="user", min_level=9)
 @log_action(action_name="print_assay_config", call_type="viewer_call")
+@login_required
 def print_assay_config(assay_id: str) -> str | Response:
     try:
         context = get_web_api_client().get_admin_aspc_context(
@@ -355,8 +354,8 @@ def print_assay_config(assay_id: str) -> str | Response:
 
 
 @admin_bp.route("/aspc/<assay_id>/toggle", methods=["POST", "GET"])
-@require("edit_aspc", min_role="manager", min_level=99)
 @log_action(action_name="edit_assay_config", call_type="developer_call")
+@login_required
 def toggle_assay_config_active(assay_id: str) -> Response:
     try:
         payload = get_web_api_client().toggle_admin_aspc(
@@ -380,8 +379,8 @@ def toggle_assay_config_active(assay_id: str) -> Response:
 
 
 @admin_bp.route("/aspc/<assay_id>/delete", methods=["GET"])
-@require("delete_aspc", min_role="admin", min_level=99999)
 @log_action(action_name="delete_assay_config", call_type="admin_call")
+@login_required
 def delete_assay_config(assay_id: str) -> Response:
     try:
         get_web_api_client().delete_admin_aspc(

@@ -31,7 +31,6 @@ from flask_login import current_user, login_required
 from flask import current_app as app
 from coyote.blueprints.home import home_bp
 from coyote.blueprints.home.forms import SampleSearchForm
-from coyote.services.auth.decorators import require
 from coyote.services.audit_logs.decorators import log_action
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 import os
@@ -127,8 +126,8 @@ def samples_home(
     endpoint="download_report",
     methods=["GET"],
 )
-@require("view_reports", min_role="admin")
 @log_action(action_name="view_report", call_type="user")
+@login_required
 def view_report(sample_id: str, report_id: str) -> str | Response:
     """
     View a saved report or serve a report file for a given sample.
@@ -207,8 +206,8 @@ def view_report(sample_id: str, report_id: str) -> str | Response:
 
 
 @home_bp.route("/<string:sample_id>/edit", methods=["GET"])
-@require("edit_sample", min_role="user")
 @log_action("sample_settings", call_type="user_call")
+@login_required
 def edit_sample(sample_id: str) -> str | Response:
     """
     Redirects to the sample edit page for the given sample ID.
@@ -281,8 +280,8 @@ def list_isgls(sample_id: str) -> Response:
 
 
 @home_bp.route("/<string:sample_id>/genes/apply-isgl", methods=["POST"])
-@require("edit_sample", min_role="user")
 @log_action(action_name="apply_isgl", call_type="user")
+@login_required
 def apply_isgl(sample_id: str) -> Response:
     """
     Apply adhoc in-study gene list to the sample's adhoc gene filter.
@@ -323,8 +322,8 @@ def apply_isgl(sample_id: str) -> Response:
 
 
 @home_bp.route("/<string:sample_id>/adhoc_genes", methods=["POST"])
-@require("edit_sample", min_role="user")
 @log_action(action_name="save_adhoc_genes", call_type="user")
+@login_required
 def save_adhoc_genes(sample_id: str) -> Response:
     """
     Save adhoc genes to the sample's adhoc gene filter.
@@ -363,8 +362,8 @@ def save_adhoc_genes(sample_id: str) -> Response:
 
 
 @home_bp.route("/<string:sample_id>/adhoc_genes/clear", methods=["POST"])
-@require("edit_sample", min_role="user")
 @log_action(action_name="clear_adhoc_genes", call_type="user")
+@login_required
 def clear_adhoc_genes(sample_id: str) -> Response:
     """
     Clear adhoc genes from the sample's adhoc gene filter.

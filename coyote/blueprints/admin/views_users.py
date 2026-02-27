@@ -15,16 +15,16 @@
 from copy import deepcopy
 
 from flask import Response, abort, flash, g, jsonify, redirect, render_template, request, url_for
+from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
 from coyote.services.audit_logs.decorators import log_action
-from coyote.services.auth.decorators import require
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
 @admin_bp.route("/users", methods=["GET"])
-@require("view_user", min_role="admin", min_level=99999)
+@login_required
 def manage_users() -> str | Response:
     try:
         payload = get_web_api_client().get_admin_users(headers=build_forward_headers(request.headers))
@@ -38,8 +38,8 @@ def manage_users() -> str | Response:
 
 
 @admin_bp.route("/users/new", methods=["GET", "POST"])
-@require("create_user", min_role="admin", min_level=99999)
 @log_action(action_name="create_user", call_type="admin_call")
+@login_required
 def create_user() -> Response | str:
     try:
         context = get_web_api_client().get_admin_user_create_context(
@@ -83,8 +83,8 @@ def create_user() -> Response | str:
 
 
 @admin_bp.route("/users/<user_id>/edit", methods=["GET", "POST"])
-@require("edit_user", min_role="admin", min_level=99999)
 @log_action("edit_user", call_type="admin_call")
+@login_required
 def edit_user(user_id: str) -> Response | str:
     try:
         context = get_web_api_client().get_admin_user_context(
@@ -149,8 +149,8 @@ def edit_user(user_id: str) -> Response | str:
 
 
 @admin_bp.route("/users/<user_id>/view", methods=["GET"])
-@require("view_user", min_role="admin", min_level=99999)
 @log_action("view_user", call_type="admin_call or user_call")
+@login_required
 def view_user(user_id: str) -> str | Response:
     try:
         context = get_web_api_client().get_admin_user_context(
@@ -193,8 +193,8 @@ def view_user(user_id: str) -> str | Response:
 
 
 @admin_bp.route("/users/<user_id>/delete", methods=["GET"])
-@require("delete_user", min_role="admin", min_level=99999)
 @log_action(action_name="delete_user", call_type="admin_call")
+@login_required
 def delete_user(user_id: str) -> Response:
     try:
         get_web_api_client().delete_admin_user(
@@ -209,7 +209,7 @@ def delete_user(user_id: str) -> Response:
 
 
 @admin_bp.route("/users/validate_username", methods=["POST"])
-@require("create_user", min_role="admin", min_level=99999)
+@login_required
 def validate_username() -> Response:
     username = request.json.get("username").lower()
     try:
@@ -223,7 +223,7 @@ def validate_username() -> Response:
 
 
 @admin_bp.route("/users/validate_email", methods=["POST"])
-@require("create_user", min_role="admin", min_level=99999)
+@login_required
 def validate_email():
     email = request.json.get("email").lower()
     try:
@@ -237,8 +237,8 @@ def validate_email():
 
 
 @admin_bp.route("/users/<user_id>/toggle", methods=["POST", "GET"])
-@require("edit_user", min_role="admin", min_level=99999)
 @log_action(action_name="edit_user", call_type="admin_call")
+@login_required
 def toggle_user_active(user_id: str):
     try:
         payload = get_web_api_client().toggle_admin_user(

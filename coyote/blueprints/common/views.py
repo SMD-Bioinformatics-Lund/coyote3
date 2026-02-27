@@ -22,7 +22,6 @@ from flask import current_app as app
 from coyote.blueprints.common import common_bp
 from coyote.blueprints.common.forms import TieredVariantSearchForm
 from flask import render_template
-from coyote.services.auth.decorators import require
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 import json
 from flask_login import login_required
@@ -40,7 +39,7 @@ from typing import Any
     endpoint="add_rna_sample_comment",
 )
 @common_bp.route("/sample/<string:sample_id>/sample_comment", methods=["POST"])
-@require("add_sample_comment", min_role="user", min_level=9)
+@login_required
 def add_sample_comment(sample_id: str) -> Response:
     """
     Add Sample comment
@@ -63,7 +62,7 @@ def add_sample_comment(sample_id: str) -> Response:
 
 
 @common_bp.route("/sample/<string:sample_id>/hide_sample_comment", methods=["POST"])
-@require("hide_sample_comment", min_role="manager", min_level=99)
+@login_required
 def hide_sample_comment(sample_id: str) -> Response:
     """
     Hides a sample comment for the given sample.
@@ -98,7 +97,7 @@ def hide_sample_comment(sample_id: str) -> Response:
 
 
 @common_bp.route("/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"])
-@require("unhide_sample_comment", min_role="manager", min_level=99)
+@login_required
 def unhide_sample_comment(sample_id: str) -> Response:
     """
     Unhides a previously hidden sample comment for the given sample.
@@ -199,7 +198,6 @@ def gene_info(id: str) -> str:
 
 @common_bp.route("/reported_variants/variant/<string:variant_id>/<int:tier>", methods=["GET"])
 @login_required
-@require("view_gene_annotations", min_role="user", min_level=9)
 def list_samples_with_tiered_variant(variant_id: str, tier: int):
     """
     Show reported variants across samples that match this variant identity and tier.
@@ -226,7 +224,7 @@ def list_samples_with_tiered_variant(variant_id: str, tier: int):
 
 
 @common_bp.route("/search/tiered_variants", methods=["GET", "POST"])
-@require("view_gene_annotations", min_role="user", min_level=9)
+@login_required
 def search_tiered_variants():
     """
     Search reported variants across samples by gene name, variant id, HGVSc, or HGVSp.

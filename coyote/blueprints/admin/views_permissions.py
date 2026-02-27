@@ -15,16 +15,16 @@
 from copy import deepcopy
 
 from flask import Response, abort, flash, g, redirect, render_template, request, url_for
+from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
 from coyote.services.audit_logs.decorators import log_action
-from coyote.services.auth.decorators import require
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
 @admin_bp.route("/permissions")
-@require("view_permission_policy", min_role="admin", min_level=99999)
+@login_required
 def list_permissions() -> str:
     try:
         payload = get_web_api_client().get_admin_permissions(headers=build_forward_headers(request.headers))
@@ -36,8 +36,8 @@ def list_permissions() -> str:
 
 
 @admin_bp.route("/permissions/new", methods=["GET", "POST"])
-@require("create_permission_policy", min_role="admin", min_level=99999)
 @log_action(action_name="create_permission", call_type="admin_call")
+@login_required
 def create_permission() -> Response | str:
     try:
         context = get_web_api_client().get_admin_permission_create_context(
@@ -77,8 +77,8 @@ def create_permission() -> Response | str:
 
 
 @admin_bp.route("/permissions/<perm_id>/edit", methods=["GET", "POST"])
-@require("edit_permission_policy", min_role="admin", min_level=99999)
 @log_action(action_name="edit_permission", call_type="admin_call")
+@login_required
 def edit_permission(perm_id: str) -> Response | str:
     try:
         context = get_web_api_client().get_admin_permission_context(
@@ -139,8 +139,8 @@ def edit_permission(perm_id: str) -> Response | str:
 
 
 @admin_bp.route("/permissions/<perm_id>/view", methods=["GET"])
-@require("view_permission_policy", min_role="admin", min_level=99999)
 @log_action(action_name="view_permission", call_type="admin_call")
+@login_required
 def view_permission(perm_id: str) -> str | Response:
     try:
         context = get_web_api_client().get_admin_permission_context(
@@ -182,8 +182,8 @@ def view_permission(perm_id: str) -> str | Response:
 
 
 @admin_bp.route("/permissions/<perm_id>/toggle", methods=["POST", "GET"])
-@require("edit_permission_policy", min_role="admin", min_level=99999)
 @log_action(action_name="edit_permission", call_type="admin_call")
+@login_required
 def toggle_permission_active(perm_id: str) -> Response:
     try:
         payload = get_web_api_client().toggle_admin_permission(
@@ -207,8 +207,8 @@ def toggle_permission_active(perm_id: str) -> Response:
 
 
 @admin_bp.route("/permissions/<perm_id>/delete", methods=["GET"])
-@require("delete_permission_policy", min_role="admin", min_level=99999)
 @log_action(action_name="delete_permission", call_type="admin_call")
+@login_required
 def delete_permission(perm_id: str) -> Response:
     try:
         get_web_api_client().delete_admin_permission(

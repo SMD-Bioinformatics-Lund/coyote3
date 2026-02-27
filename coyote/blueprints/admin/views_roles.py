@@ -15,16 +15,16 @@
 from copy import deepcopy
 
 from flask import Response, abort, flash, g, redirect, render_template, request, url_for
+from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
 from coyote.services.audit_logs.decorators import log_action
-from coyote.services.auth.decorators import require
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
 @admin_bp.route("/roles")
-@require("view_role", min_role="admin", min_level=99999)
+@login_required
 def list_roles() -> str:
     try:
         payload = get_web_api_client().get_admin_roles(headers=build_forward_headers(request.headers))
@@ -36,8 +36,8 @@ def list_roles() -> str:
 
 
 @admin_bp.route("/roles/new", methods=["GET", "POST"])
-@require("create_role", min_role="admin", min_level=99999)
 @log_action(action_name="create_role", call_type="admin_call")
+@login_required
 def create_role() -> Response | str:
     try:
         context = get_web_api_client().get_admin_role_create_context(
@@ -77,8 +77,8 @@ def create_role() -> Response | str:
 
 
 @admin_bp.route("/roles/<role_id>/edit", methods=["GET", "POST"])
-@require("edit_role", min_role="admin", min_level=99999)
 @log_action(action_name="edit_role", call_type="admin_call")
+@login_required
 def edit_role(role_id: str) -> Response | str:
     try:
         context = get_web_api_client().get_admin_role_context(
@@ -139,8 +139,8 @@ def edit_role(role_id: str) -> Response | str:
 
 
 @admin_bp.route("/roles/<role_id>/view", methods=["GET"])
-@require("view_role", min_role="admin", min_level=99999)
 @log_action(action_name="view_role", call_type="admin_call")
+@login_required
 def view_role(role_id: str) -> Response | str:
     try:
         context = get_web_api_client().get_admin_role_context(
@@ -182,8 +182,8 @@ def view_role(role_id: str) -> Response | str:
 
 
 @admin_bp.route("/roles/<role_id>/toggle", methods=["POST", "GET"])
-@require("edit_role", min_role="admin", min_level=99999)
 @log_action(action_name="edit_role", call_type="admin_call")
+@login_required
 def toggle_role_active(role_id: str) -> Response:
     try:
         payload = get_web_api_client().toggle_admin_role(
@@ -207,8 +207,8 @@ def toggle_role_active(role_id: str) -> Response:
 
 
 @admin_bp.route("/roles/<role_id>/delete", methods=["GET"])
-@require("delete_role", min_role="admin", min_level=99999)
 @log_action(action_name="delete_role", call_type="admin_call")
+@login_required
 def delete_role(role_id: str) -> Response:
     try:
         get_web_api_client().delete_admin_role(

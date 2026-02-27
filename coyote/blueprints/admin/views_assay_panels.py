@@ -15,17 +15,16 @@
 from copy import deepcopy
 
 from flask import Response, abort, flash, g, redirect, render_template, request, url_for
-from flask_login import current_user
+from flask_login import current_user, login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
 from coyote.services.audit_logs.decorators import log_action
-from coyote.services.auth.decorators import require
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
 @admin_bp.route("/asp/manage", methods=["GET"])
-@require("view_asp", min_role="user", min_level=9)
+@login_required
 def manage_assay_panels():
     try:
         payload = get_web_api_client().get_admin_asp(headers=build_forward_headers(request.headers))
@@ -37,8 +36,8 @@ def manage_assay_panels():
 
 
 @admin_bp.route("/asp/new", methods=["GET", "POST"])
-@require("create_asp", min_role="manager", min_level=99)
 @log_action(action_name="create_asp", call_type="manager_call")
+@login_required
 def create_assay_panel():
     try:
         context = get_web_api_client().get_admin_asp_create_context(
@@ -110,8 +109,8 @@ def create_assay_panel():
 
 
 @admin_bp.route("/asp/<assay_panel_id>/edit", methods=["GET", "POST"])
-@require("edit_asp", min_role="manager", min_level=99)
 @log_action(action_name="edit_asp", call_type="manager_call")
+@login_required
 def edit_assay_panel(assay_panel_id: str) -> str | Response:
     try:
         context = get_web_api_client().get_admin_asp_context(
@@ -212,7 +211,7 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
 
 
 @admin_bp.route("/asp/<assay_panel_id>/view", methods=["GET"])
-@require("view_asp", min_role="user", min_level=9)
+@login_required
 def view_assay_panel(assay_panel_id: str) -> Response | str:
     try:
         context = get_web_api_client().get_admin_asp_context(
@@ -256,8 +255,8 @@ def view_assay_panel(assay_panel_id: str) -> Response | str:
 
 
 @admin_bp.route("/asp/<panel_id>/print", methods=["GET"])
-@require("view_asp", min_role="user", min_level=9)
 @log_action(action_name="print_asp", call_type="viewer_call")
+@login_required
 def print_assay_panel(panel_id: str) -> str | Response:
     try:
         context = get_web_api_client().get_admin_asp_context(
@@ -300,8 +299,8 @@ def print_assay_panel(panel_id: str) -> str | Response:
 
 
 @admin_bp.route("/asp/<assay_panel_id>/toggle", methods=["POST", "GET"])
-@require("edit_asp", min_role="manager", min_level=99)
 @log_action(action_name="toggle_asp", call_type="manager_call")
+@login_required
 def toggle_assay_panel_active(assay_panel_id: str) -> Response:
     try:
         payload = get_web_api_client().toggle_admin_asp(
@@ -322,8 +321,8 @@ def toggle_assay_panel_active(assay_panel_id: str) -> Response:
 
 
 @admin_bp.route("/asp/<assay_panel_id>/delete", methods=["GET"])
-@require("delete_asp", min_role="admin", min_level=99999)
 @log_action(action_name="delete_asp", call_type="admin_call")
+@login_required
 def delete_assay_panel(assay_panel_id: str) -> Response:
     try:
         get_web_api_client().delete_admin_asp(

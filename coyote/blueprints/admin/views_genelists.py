@@ -15,17 +15,16 @@
 from copy import deepcopy
 
 from flask import Response, abort, flash, g, redirect, render_template, request, url_for
-from flask_login import current_user
+from flask_login import current_user, login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
 from coyote.services.audit_logs.decorators import log_action
-from coyote.services.auth.decorators import require
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
 @admin_bp.route("/genelists", methods=["GET"])
-@require("view_isgl", min_role="user", min_level=9)
+@login_required
 def manage_genelists() -> str:
     try:
         payload = get_web_api_client().get_admin_genelists(headers=build_forward_headers(request.headers))
@@ -37,8 +36,8 @@ def manage_genelists() -> str:
 
 
 @admin_bp.route("/genelists/new", methods=["GET", "POST"])
-@require("create_isgl", min_role="manager", min_level=99)
 @log_action(action_name="create_genelist", call_type="manager_call")
+@login_required
 def create_genelist() -> Response | str:
     try:
         context = get_web_api_client().get_admin_genelist_create_context(
@@ -109,8 +108,8 @@ def create_genelist() -> Response | str:
 
 
 @admin_bp.route("/genelists/<genelist_id>/edit", methods=["GET", "POST"])
-@require("edit_isgl", min_role="manager", min_level=99)
 @log_action(action_name="edit_genelist", call_type="manager_call")
+@login_required
 def edit_genelist(genelist_id: str) -> Response | str:
     try:
         context = get_web_api_client().get_admin_genelist_context(
@@ -207,8 +206,8 @@ def edit_genelist(genelist_id: str) -> Response | str:
 
 
 @admin_bp.route("/genelists/<genelist_id>/toggle", methods=["GET"])
-@require("edit_isgl", min_role="manager", min_level=99)
 @log_action(action_name="toggle_genelist", call_type="manager_call")
+@login_required
 def toggle_genelist(genelist_id: str) -> Response:
     try:
         payload = get_web_api_client().toggle_admin_genelist(
@@ -232,8 +231,8 @@ def toggle_genelist(genelist_id: str) -> Response:
 
 
 @admin_bp.route("/genelists/<genelist_id>/delete", methods=["GET"])
-@require("delete_isgl", min_role="admin", min_level=99999)
 @log_action(action_name="delete_genelist", call_type="admin_call")
+@login_required
 def delete_genelist(genelist_id: str) -> Response:
     try:
         get_web_api_client().delete_admin_genelist(
@@ -248,7 +247,7 @@ def delete_genelist(genelist_id: str) -> Response:
 
 
 @admin_bp.route("/genelists/<genelist_id>/view", methods=["GET"])
-@require("view_isgl", min_role="user", min_level=9)
+@login_required
 def view_genelist(genelist_id: str) -> Response | str:
     selected_assay = request.args.get("assay")
     try:

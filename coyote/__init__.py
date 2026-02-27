@@ -22,14 +22,14 @@ Key Responsibilities:
 - Initialize and configure the Flask application.
 - Set up caching, database, and authentication mechanisms.
 - Register blueprints for modular application structure.
-- Enforce permissions and access control.
+- Register request/response lifecycle hooks and helpers.
 - Provide centralized logging configuration.
 """
 
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from flask import Flask, request, redirect, url_for, flash, jsonify
+from flask import Flask
 from flask_cors import CORS
 import config
 from coyote import extensions
@@ -175,49 +175,6 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
                 "APP_VERSION": app.config.get("APP_VERSION"),
                 "ENV_NAME": app.config.get("ENV_NAME"),
             }
-
-    @app.before_request
-    def enforce_permissions() -> None:
-        """
-        Require authentication for UI routes annotated with `@require(...)`.
-
-        RBAC/data authorization is enforced by API endpoints. The Flask UI only
-        checks whether a user is logged in before rendering route handlers that
-        carry access metadata.
-
-        Returns:
-            None: Either continues processing the request or redirects the user on failure.
-        """
-        view = app.view_functions.get(request.endpoint)
-        if not view:
-            return None
-
-        def is_api_request() -> bool:
-            path = request.path or ""
-            app_root = app.config.get("APPLICATION_ROOT", "")
-            if app_root and path.startswith(app_root):
-                path = path[len(app_root) :] or "/"
-            return path == "/api" or path.startswith("/api/")
-
-        def auth_failure_response(status_code: int, message: str):
-            if is_api_request():
-                return jsonify({"status": status_code, "error": message}), status_code
-            flash(message, "yellow" if status_code == 401 else "red")
-            if status_code == 401:
-                return redirect(url_for("login_bp.login"))
-            return redirect(url_for("home_bp.samples_home"))
-
-        # Fetch required metadata
-        required_permission = getattr(view, "required_permission", None)
-        required_level = getattr(view, "required_access_level", None)
-        required_role = getattr(view, "required_role_name", None)
-
-        # UI routes keep authentication gating only.
-        # API endpoints are the security authority for RBAC and data access.
-        if required_permission or required_level is not None or required_role:
-            if not current_user.is_authenticated:
-                return auth_failure_response(401, "Login required")
-        return None
 
     @app.context_processor
     def inject_permission_helpers():

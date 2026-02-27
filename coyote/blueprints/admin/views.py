@@ -15,13 +15,13 @@ Coyote admin views.
 """
 
 from flask import render_template
+from flask_login import login_required
 from coyote.blueprints.admin import admin_bp
-from coyote.services.auth.decorators import require
 from typing import Any
 
 
 @admin_bp.route("/")
-@require(min_role="manager", min_level=99)
+@login_required
 def admin_home() -> Any:
     """
     Renders the admin home page template.

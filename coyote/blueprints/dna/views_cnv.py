@@ -13,8 +13,8 @@
 """DNA CNV route handlers."""
 
 from flask import Response, current_app as app, redirect, render_template, request, url_for
+from flask_login import login_required
 from coyote.blueprints.dna import dna_bp
-from coyote.services.auth.decorators import require
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
@@ -47,7 +47,7 @@ def show_cnv(sample_id: str, cnv_id: str) -> Response | str:
 
 
 @dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/unmarkinterestingcnv", methods=["POST"])
-@require("manage_cnvs", min_role="user", min_level=9)
+@login_required
 def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
         get_web_api_client().unmark_dna_cnv_interesting(
@@ -61,7 +61,7 @@ def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
 
 
 @dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/interestingcnv", methods=["POST"])
-@require("manage_cnvs", min_role="user", min_level=9)
+@login_required
 def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
         get_web_api_client().mark_dna_cnv_interesting(
@@ -75,7 +75,7 @@ def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
 
 
 @dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/fpcnv", methods=["POST"])
-@require("manage_cnvs", min_role="user", min_level=9)
+@login_required
 def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
         get_web_api_client().mark_dna_cnv_false_positive(
@@ -89,7 +89,7 @@ def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
 
 
 @dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>/unfpcnv", methods=["POST"])
-@require("manage_cnvs", min_role="user", min_level=9)
+@login_required
 def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
         get_web_api_client().unmark_dna_cnv_false_positive(
@@ -103,7 +103,7 @@ def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
 
 
 @dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/noteworthycnv", methods=["POST"])
-@require("manage_cnvs", min_role="user", min_level=9)
+@login_required
 def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
         get_web_api_client().mark_dna_cnv_noteworthy(
@@ -117,7 +117,7 @@ def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
 
 
 @dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/notnoteworthycnv", methods=["POST"])
-@require("manage_cnvs", min_role="user", min_level=9)
+@login_required
 def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
         get_web_api_client().unmark_dna_cnv_noteworthy(
@@ -131,7 +131,7 @@ def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
 
 
 @dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/hide_cnv_comment", methods=["POST"])
-@require("hide_variant_comment", min_role="manager", min_level=99)
+@login_required
 def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
@@ -147,7 +147,7 @@ def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
 
 
 @dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/unhide_cnv_comment", methods=["POST"])
-@require("unhide_variant_comment", min_role="manager", min_level=99)
+@login_required
 def unhide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:

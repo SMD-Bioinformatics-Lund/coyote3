@@ -13,14 +13,14 @@
 """DNA report route handlers."""
 
 from flask import current_app as app
+from flask_login import login_required
 from flask import Response, flash, redirect, request, url_for
 from coyote.blueprints.dna import dna_bp
-from coyote.services.auth.decorators import require
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
 @dna_bp.route("/sample/<string:sample_id>/preview_report", methods=["GET", "POST"])
-@require("preview_report", min_role="user", min_level=9)
+@login_required
 def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     """
     Generate and render a preview of the DNA report for a given sample.
@@ -39,7 +39,7 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
 
 
 @dna_bp.route("/sample/<string:sample_id>/report/save")
-@require("create_report", min_role="admin")
+@login_required
 def save_dna_report(sample_id: str) -> Response:
     """
     Generate and persist a DNA report for the specified sample.

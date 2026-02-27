@@ -18,10 +18,10 @@ from collections.abc import Callable
 from typing import Any
 
 from flask import Response, current_app as app, flash, redirect, request, url_for
+from flask_login import login_required
 
 from coyote.blueprints.dna import dna_bp
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
-from coyote.services.auth.decorators import require
 
 
 def _headers() -> dict[str, str]:
@@ -88,7 +88,7 @@ def _bulk_toggle(
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/unfp", methods=["POST"])
-@require("manage_snvs", min_role="admin")
+@login_required
 def unmark_false_variant(sample_id: str, var_id: str) -> Response:
     _call_api(
         sample_id,
@@ -100,7 +100,7 @@ def unmark_false_variant(sample_id: str, var_id: str) -> Response:
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/fp", methods=["POST"])
-@require("manage_snvs", min_role="admin")
+@login_required
 def mark_false_variant(sample_id: str, var_id: str) -> Response:
     _call_api(
         sample_id,
@@ -112,7 +112,7 @@ def mark_false_variant(sample_id: str, var_id: str) -> Response:
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/uninterest", methods=["POST"])
-@require("manage_snvs", min_role="admin")
+@login_required
 def unmark_interesting_variant(sample_id: str, var_id: str) -> Response:
     _call_api(
         sample_id,
@@ -124,7 +124,7 @@ def unmark_interesting_variant(sample_id: str, var_id: str) -> Response:
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/interest", methods=["POST"])
-@require("manage_snvs", min_role="admin")
+@login_required
 def mark_interesting_variant(sample_id: str, var_id: str) -> Response:
     _call_api(
         sample_id,
@@ -136,7 +136,7 @@ def mark_interesting_variant(sample_id: str, var_id: str) -> Response:
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/relevant", methods=["POST"])
-@require("manage_snvs", min_role="admin")
+@login_required
 def unmark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
     _call_api(
         sample_id,
@@ -148,7 +148,7 @@ def unmark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/irrelevant", methods=["POST"])
-@require("manage_snvs", min_role="admin")
+@login_required
 def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
     _call_api(
         sample_id,
@@ -160,7 +160,7 @@ def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/blacklist", methods=["POST"])
-@require("manage_snvs", min_role="admin")
+@login_required
 def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
     _call_api(
         sample_id,
@@ -173,7 +173,7 @@ def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/classify", methods=["POST"], endpoint="classify_variant")
 @dna_bp.route("/<string:sample_id>/fus/<string:fus_id>/classify", methods=["POST"], endpoint="classify_fusion")
-@require(permission="assign_tier", min_role="manager", min_level=99)
+@login_required
 def classify_variant(sample_id: str, id: str | None = None) -> Response:
     target_id = id or _resolve_target_id("var_id", "fus_id")
     form_data = request.form.to_dict()
@@ -198,7 +198,7 @@ def classify_variant(sample_id: str, id: str | None = None) -> Response:
     methods=["POST"],
     endpoint="remove_classified_fusion",
 )
-@require(permission="remove_tier", min_role="admin")
+@login_required
 def remove_classified_variant(sample_id: str, id: str | None = None) -> Response:
     target_id = id or _resolve_target_id("var_id", "fus_id")
     form_data = request.form.to_dict()
@@ -234,7 +234,7 @@ def remove_classified_variant(sample_id: str, id: str | None = None) -> Response
     methods=["POST"],
     endpoint="add_translocation_comment",
 )
-@require("add_variant_comment", min_role="user", min_level=9)
+@login_required
 def add_var_comment(sample_id: str, id: str | None = None, **kwargs: Any) -> Response:
     _ = kwargs
     target_id = id or _resolve_target_id("var_id", "cnv_id", "fus_id", "transloc_id")
@@ -257,7 +257,7 @@ def add_var_comment(sample_id: str, id: str | None = None, **kwargs: Any) -> Res
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/hide_variant_comment", methods=["POST"])
-@require("hide_variant_comment", min_role="manager", min_level=99)
+@login_required
 def hide_variant_comment(sample_id: str, var_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     _call_api(
@@ -271,7 +271,7 @@ def hide_variant_comment(sample_id: str, var_id: str) -> Response:
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/unhide_variant_comment", methods=["POST"])
-@require("unhide_variant_comment", min_role="manager", min_level=99)
+@login_required
 def unhide_variant_comment(sample_id: str, var_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     _call_api(
@@ -285,7 +285,7 @@ def unhide_variant_comment(sample_id: str, var_id: str) -> Response:
 
 
 @dna_bp.route("/<sample_id>/multi_class", methods=["POST"])
-@require("manage_snvs", min_role="user", min_level=9)
+@login_required
 def classify_multi_variant(sample_id: str) -> Response:
     action = request.form.get("action")
     variants_to_modify = request.form.getlist("selected_object_id")

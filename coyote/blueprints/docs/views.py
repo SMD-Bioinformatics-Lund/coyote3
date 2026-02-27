@@ -18,7 +18,6 @@ from coyote.blueprints.docs import docs_bp
 from pathlib import Path
 from markdown import markdown
 import bleach
-from coyote.services.auth.decorators import require
 
 
 ALLOWED_TAGS = set(bleach.sanitizer.ALLOWED_TAGS).union(
@@ -165,7 +164,6 @@ def docs_admin_index():
 
 @docs_bp.get("/developer")
 @login_required
-@require("delete_sample_global", min_role="developer", min_level=9999)
 def docs_developer_index():
     return redirect(url_for("docs_bp.docs_page", doc_path="developer/index.md"))
 

@@ -15,16 +15,16 @@
 import json
 
 from flask import Response, flash, g, redirect, render_template, request, url_for
+from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.blueprints.home.forms import SampleSearchForm
 from coyote.services.audit_logs.decorators import log_action
-from coyote.services.auth.decorators import require
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
 @admin_bp.route("/manage-samples", methods=["GET", "POST"])
-@require("view_sample_global", min_role="developer", min_level=9999)
+@login_required
 def all_samples() -> str | Response:
     form = SampleSearchForm()
     search_str = ""
@@ -45,8 +45,8 @@ def all_samples() -> str | Response:
 
 
 @admin_bp.route("/samples/<sample_id>/edit", methods=["GET", "POST"])
-@require("edit_sample", min_role="developer", min_level=9999)
 @log_action(action_name="edit_sample", call_type="developer_call")
+@login_required
 def edit_sample(sample_id: str) -> str | Response:
     try:
         payload = get_web_api_client().get_admin_sample_context(
@@ -87,8 +87,8 @@ def edit_sample(sample_id: str) -> str | Response:
 
 
 @admin_bp.route("/manage-samples/<string:sample_id>/delete", methods=["GET"])
-@require("delete_sample_global", min_role="developer", min_level=9999)
 @log_action("delete_sample", call_type="admin_call")
+@login_required
 def delete_sample(sample_id: str) -> Response:
     g.audit_metadata = {"sample": sample_id}
     try:

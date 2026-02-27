@@ -16,15 +16,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from flask import current_app as app
+from flask_login import login_required
 from flask import render_template
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
-from coyote.services.auth.decorators import require
 
 
 @admin_bp.route("/audit")
-@require("view_audit_logs", min_role="admin", min_level=99999)
+@login_required
 def audit():
     logs_path = Path(app.config["LOGS"], "audit")
     cutoff_ts = util.common.utc_now().timestamp() - (30 * 24 * 60 * 60)

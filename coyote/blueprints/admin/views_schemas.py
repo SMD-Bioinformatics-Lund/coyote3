@@ -15,16 +15,16 @@
 import json
 
 from flask import Response, abort, flash, g, redirect, render_template, request, url_for
+from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
 from coyote.services.audit_logs.decorators import log_action
-from coyote.services.auth.decorators import require
 from coyote.integrations.api.api_client import ApiRequestError, build_forward_headers, get_web_api_client
 
 
 @admin_bp.route("/schemas")
-@require("view_schema", min_role="developer", min_level=9999)
+@login_required
 def schemas() -> str:
     try:
         payload = get_web_api_client().get_admin_schemas(headers=build_forward_headers(request.headers))
@@ -36,8 +36,8 @@ def schemas() -> str:
 
 
 @admin_bp.route("/schemas/<schema_id>/toggle", methods=["POST", "GET"])
-@require("edit_schema", min_role="developer", min_level=9999)
 @log_action(action_name="edit_schema", call_type="developer_call")
+@login_required
 def toggle_schema_active(schema_id: str) -> Response:
     try:
         payload = get_web_api_client().toggle_admin_schema(
@@ -61,8 +61,8 @@ def toggle_schema_active(schema_id: str) -> Response:
 
 
 @admin_bp.route("/schemas/<schema_id>/edit", methods=["GET", "POST"])
-@require("edit_schema", min_role="developer", min_level=9999)
 @log_action(action_name="edit_schema", call_type="developer_call")
+@login_required
 def edit_schema(schema_id: str) -> str | Response:
     try:
         context = get_web_api_client().get_admin_schema_context(
@@ -106,8 +106,8 @@ def edit_schema(schema_id: str) -> str | Response:
 
 
 @admin_bp.route("/schemas/new", methods=["GET", "POST"])
-@require("create_schema", min_role="developer", min_level=9999)
 @log_action(action_name="create_schema", call_type="developer_call")
+@login_required
 def create_schema() -> str | Response:
     if request.method == "POST":
         json_blob = request.form.get("json_blob")
@@ -137,8 +137,8 @@ def create_schema() -> str | Response:
 
 
 @admin_bp.route("/schemas/<schema_id>/delete", methods=["GET"])
-@require("delete_schema", min_role="admin", min_level=99999)
 @log_action(action_name="delete_schema", call_type="admin_call")
+@login_required
 def delete_schema(schema_id: str) -> Response:
     try:
         get_web_api_client().delete_admin_schema(
