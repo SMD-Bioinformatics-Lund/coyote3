@@ -124,7 +124,6 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
     app.logger.info("Initializing app extensions + blueprints:")
     with app.app_context():
         init_login_manager(app)
-        init_ldap(app)
         init_template_filters(app)
         register_blueprints(app)
         init_utility(app)
@@ -597,9 +596,3 @@ def init_login_manager(app) -> None:
     app.logger.debug("Initializing login_manager")
     extensions.login_manager.init_app(app)
     extensions.login_manager.login_view = "login_bp.login"
-
-
-def init_ldap(app) -> None:
-    """Initialize LDAP manager for the Flask application."""
-    app.logger.debug("Initializing ldap login_manager")
-    extensions.ldap_manager.init_app(app)

@@ -25,12 +25,10 @@ shared resources.
 # Imports
 # -------------------------------------------------------------------------
 from flask_login import LoginManager
-from coyote.services.auth.ldap import LdapManager
 from coyote.util import Utility
 
 # -------------------------------------------------------------------------
 # Shared Variables and Objects
 # -------------------------------------------------------------------------
 login_manager = LoginManager()
-ldap_manager = LdapManager()
 util = Utility()
