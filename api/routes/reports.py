@@ -32,7 +32,9 @@ def _sample_meta(sample: dict) -> dict:
 def _normalize_rendered_report_payload(report_payload: dict | None) -> tuple[str, list]:
     payload = report_payload or {}
     html = payload.get("html") or ""
-    snapshot_rows = payload.get("snapshot_rows") or []
+    snapshot_rows = payload.get("snapshot_rows")
+    if snapshot_rows is None:
+        snapshot_rows = []
     if not isinstance(html, str) or not html.strip():
         raise _api_error(400, "Missing rendered report html")
     if not isinstance(snapshot_rows, list):

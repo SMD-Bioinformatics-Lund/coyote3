@@ -2,9 +2,10 @@ Test suites for Coyote3 are organized by functionality.
 
 - `tests/api`: API route/service contract and organization tests.
 - `tests/web`: Web boundary and presentation-layer tests.
-- `tests/test_api_client_architecture.py`: transport primitives and payload behavior.
-- `tests/test_api_route_security.py`: guardrail ensuring API routes stay protected.
-- `tests/test_workflow_contracts.py`: strict workflow validation behavior.
+- `tests/api/test_api_client_architecture.py`: transport primitives and payload behavior.
+- `tests/api/test_api_route_security.py`: guardrail ensuring API routes stay protected.
+- `tests/api/test_workflow_contracts.py`: strict workflow validation behavior.
+- `tests/api/routes/test_reports_routes.py`: report route-family behavior tests (preview/save).
 
 Rule of thumb:
 - Add API behavior and guardrails under `tests/api`.
