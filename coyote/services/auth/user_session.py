@@ -19,7 +19,7 @@ Classes:
 """
 
 from flask_login import UserMixin
-from shared.models.user import UserModel
+from api.domain.models.user import UserModel
 
 
 class User(UserMixin):

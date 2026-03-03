@@ -20,7 +20,7 @@ os.environ["REQUIRE_EXTERNAL_API"] = "0"
 
 from api.extensions import store, util
 from api.runtime_bootstrap import create_runtime_context
-from shared.models.user import UserModel
+from api.domain.models.user import UserModel
 from api.runtime import app as runtime_app
 from api.runtime import bind_runtime_context, reset_current_user, set_current_user
 

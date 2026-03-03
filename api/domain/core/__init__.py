@@ -1,5 +1,6 @@
-"""Backward-compatible web validator imports from API domain core."""
+"""Domain-level constants and helpers."""
 
 from api.domain.core.admin_validators import REQUIRED_SCHEMA_KEYS
 
 __all__ = ["REQUIRED_SCHEMA_KEYS"]
+

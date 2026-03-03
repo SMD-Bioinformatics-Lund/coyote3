@@ -5,7 +5,7 @@ from __future__ import annotations
 from api.runtime import app
 
 from api.extensions import ldap_manager, store
-from shared.models.user import UserModel
+from api.domain.models.user import UserModel
 
 
 def _ldap_authenticate(username: str, password: str) -> bool:

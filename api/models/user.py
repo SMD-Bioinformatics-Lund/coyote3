@@ -1,6 +1,5 @@
-"""Backward-compatible API import shim for the shared UserModel."""
+"""Backward-compatible API import shim for the API domain UserModel."""
 
-from shared.models.user import UserModel
+from api.domain.models.user import UserModel
 
 __all__ = ["UserModel"]
-
