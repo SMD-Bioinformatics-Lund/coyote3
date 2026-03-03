@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 import re
 
+import pytest
+
 
 FORBIDDEN_PATTERNS = [
     re.compile(r"^\s*(from|import)\s+pymongo\b", re.MULTILINE),
@@ -14,6 +16,7 @@ FORBIDDEN_PATTERNS = [
 ]
 
 
+@pytest.mark.contract
 def test_ui_layer_does_not_use_mongo_clients_or_drivers():
     violations: list[str] = []
 

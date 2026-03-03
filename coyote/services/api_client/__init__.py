@@ -1,6 +1,6 @@
 """Flask-to-API transport helpers for web routes."""
 
-from coyote.integrations.api.api_client import (
+from coyote.services.api_client.api_client import (
     ApiRequestError,
     CoyoteApiClient,
     build_forward_headers,
@@ -8,8 +8,8 @@ from coyote.integrations.api.api_client import (
     forward_headers,
     get_web_api_client,
 )
-from coyote.integrations.api.base import ApiPayload
-from coyote.integrations.api.web import log_api_error
+from coyote.services.api_client.base import ApiPayload
+from coyote.services.api_client.web import log_api_error
 from . import endpoints
 
 __all__ = [

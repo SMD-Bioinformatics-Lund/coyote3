@@ -6,7 +6,7 @@ from typing import Any
 
 from flask import current_app, has_request_context, request
 
-from coyote.integrations.api.base import ApiRequestError, BaseApiClient
+from coyote.services.api_client.base import ApiRequestError, BaseApiClient
 
 
 class CoyoteApiClient(BaseApiClient):

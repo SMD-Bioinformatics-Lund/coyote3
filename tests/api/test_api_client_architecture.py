@@ -5,8 +5,8 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from coyote.integrations.api.api_client import CoyoteApiClient
-from coyote.integrations.api.base import ApiPayload, ApiRequestError, BaseApiClient, _as_api_payload
+from coyote.services.api_client.api_client import CoyoteApiClient
+from coyote.services.api_client.base import ApiPayload, ApiRequestError, BaseApiClient, _as_api_payload
 
 
 class _ResponseStub:

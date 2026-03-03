@@ -14,9 +14,9 @@ from flask import (
 )
 from flask_login import login_required
 from coyote.blueprints.coverage import cov_bp
-from coyote.integrations.api import endpoints as api_endpoints
-from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
-from coyote.integrations.api.web import log_api_error
+from coyote.services.api_client import endpoints as api_endpoints
+from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.services.api_client.web import log_api_error
 
 
 @cov_bp.route("/<string:sample_id>", methods=["GET", "POST"])

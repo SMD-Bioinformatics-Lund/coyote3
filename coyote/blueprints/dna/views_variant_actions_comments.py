@@ -16,8 +16,8 @@ from coyote.blueprints.dna.views_variant_actions_common import (
     redirect_target,
     resolve_target_id,
 )
-from coyote.integrations.api import endpoints as api_endpoints
-from coyote.integrations.api.api_client import get_web_api_client
+from coyote.services.api_client import endpoints as api_endpoints
+from coyote.services.api_client.api_client import get_web_api_client
 
 
 @dna_bp.route(

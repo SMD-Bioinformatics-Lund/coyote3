@@ -5,8 +5,8 @@ from flask import current_app as app
 from flask_login import login_required
 from flask import Response, flash, redirect, url_for
 from coyote.blueprints.dna import dna_bp
-from coyote.integrations.api.api_client import ApiRequestError
-from coyote.integrations.api.web import log_api_error
+from coyote.services.api_client.api_client import ApiRequestError
+from coyote.services.api_client.web import log_api_error
 from coyote.services.reporting.web_report_bridge import (
     render_preview_report_html,
     save_report_from_preview,

@@ -18,8 +18,8 @@ from flask_login import current_user, login_required, login_user, logout_user
 from coyote.blueprints.login import login_bp
 from coyote.blueprints.login.forms import LoginForm
 from coyote.extensions import login_manager
-from coyote.integrations.api import endpoints as api_endpoints
-from coyote.integrations.api.api_client import (
+from coyote.services.api_client import endpoints as api_endpoints
+from coyote.services.api_client.api_client import (
     ApiRequestError,
     forward_headers,
     get_web_api_client,

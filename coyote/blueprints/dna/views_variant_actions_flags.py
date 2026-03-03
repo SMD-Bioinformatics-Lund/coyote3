@@ -6,8 +6,8 @@ from flask_login import login_required
 
 from coyote.blueprints.dna import dna_bp
 from coyote.blueprints.dna.views_variant_actions_common import call_api, headers
-from coyote.integrations.api import endpoints as api_endpoints
-from coyote.integrations.api.api_client import get_web_api_client
+from coyote.services.api_client import endpoints as api_endpoints
+from coyote.services.api_client.api_client import get_web_api_client
 
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/unfp", methods=["POST"])

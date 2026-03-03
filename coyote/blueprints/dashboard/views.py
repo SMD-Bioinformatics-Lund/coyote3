@@ -4,9 +4,9 @@ from coyote.extensions import util
 from coyote.blueprints.dashboard import dashboard_bp
 from flask_login import current_user
 from flask import current_app as app
-from coyote.integrations.api import endpoints as api_endpoints
-from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
-from coyote.integrations.api.web import log_api_error
+from coyote.services.api_client import endpoints as api_endpoints
+from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.services.api_client.web import log_api_error
 
 
 _DEFAULT_VARIANT_STATS = {

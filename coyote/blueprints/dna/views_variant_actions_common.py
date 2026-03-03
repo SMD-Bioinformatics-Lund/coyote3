@@ -8,7 +8,7 @@ from typing import Any
 
 from flask import Response, current_app as app, redirect, request, url_for
 
-from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
 
 
 def headers() -> dict[str, str]:

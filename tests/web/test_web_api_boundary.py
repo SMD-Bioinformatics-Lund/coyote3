@@ -23,5 +23,5 @@ def test_coyote_layer_does_not_import_api_modules_directly():
 
     assert not violations, (
         "Direct 'api.*' imports in web layer are not allowed. "
-        "Use coyote.integrations.api transport instead:\n" + "\n".join(violations)
+        "Use coyote.services.api_client transport instead:\n" + "\n".join(violations)
     )

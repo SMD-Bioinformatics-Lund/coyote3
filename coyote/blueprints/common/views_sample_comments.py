@@ -5,9 +5,9 @@ from flask import Response, current_app as app, flash, redirect, request, url_fo
 from flask_login import login_required
 
 from coyote.blueprints.common import common_bp
-from coyote.integrations.api import endpoints as api_endpoints
-from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
-from coyote.integrations.api.web import log_api_error
+from coyote.services.api_client import endpoints as api_endpoints
+from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.services.api_client.web import log_api_error
 
 
 def _redirect_for_omics_layer(sample_id: str, omics_layer: str) -> Response:

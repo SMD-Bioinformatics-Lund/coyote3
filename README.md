@@ -110,6 +110,7 @@ Current backend reorganization has started with:
 - Workflow orchestration moved from `api/services/workflow` to `api/core/workflows`
 - Interpretation logic moved from `api/services/interpretation` to `api/core/interpretation`
 - Contract models introduced under `api/contracts` (auth + reports first slice)
+- Flask-side API transport consolidated under `coyote/services/api_client` (legacy `coyote/integrations/api` removed)
 
 Execution policy during refactor:
 - work is performed as explicit, small, green tasks

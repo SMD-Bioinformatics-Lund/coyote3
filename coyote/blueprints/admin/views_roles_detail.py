@@ -8,8 +8,8 @@ from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
-from coyote.integrations.api import endpoints as api_endpoints
-from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.services.api_client import endpoints as api_endpoints
+from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
 from coyote.services.audit_logs.decorators import log_action
 
 

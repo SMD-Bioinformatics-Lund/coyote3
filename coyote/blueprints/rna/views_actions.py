@@ -4,8 +4,8 @@
 from flask import Response, current_app as app, flash, redirect, request, url_for
 
 from coyote.blueprints.rna import rna_bp
-from coyote.integrations.api import endpoints as api_endpoints
-from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.services.api_client import endpoints as api_endpoints
+from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
 
 
 @rna_bp.route("/<string:sample_id>/fusion/fp/<string:fus_id>", methods=["POST"])

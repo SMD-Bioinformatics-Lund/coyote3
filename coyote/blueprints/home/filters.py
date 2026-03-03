@@ -11,8 +11,8 @@ from flask import g
 import os
 import math
 from coyote.filters.shared import render_markdown_rich as shared_render_markdown_rich
-from coyote.integrations.api import endpoints as api_endpoints
-from coyote.integrations.api.api_client import (
+from coyote.services.api_client import endpoints as api_endpoints
+from coyote.services.api_client.api_client import (
     ApiRequestError,
     build_internal_headers,
     get_web_api_client,

@@ -8,8 +8,8 @@ from PIL import Image
 from flask import Response, current_app as app, flash, redirect, request, send_file, send_from_directory, url_for
 
 from coyote.blueprints.dna import dna_bp
-from coyote.integrations.api import endpoints as api_endpoints
-from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.services.api_client import endpoints as api_endpoints
+from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
 
 
 @dna_bp.route("/<string:sample_id>/plot/<string:fn>", endpoint="show_any_plot")  # type: ignore

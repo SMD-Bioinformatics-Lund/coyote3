@@ -6,7 +6,7 @@ from logging import Logger
 
 from flask import flash
 
-from coyote.integrations.api.api_client import ApiRequestError
+from coyote.services.api_client.api_client import ApiRequestError
 
 
 def log_api_error(

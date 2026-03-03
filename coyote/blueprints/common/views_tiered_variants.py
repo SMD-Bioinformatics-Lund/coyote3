@@ -6,9 +6,9 @@ from flask_login import login_required
 
 from coyote.blueprints.common import common_bp
 from coyote.blueprints.common.forms import TieredVariantSearchForm
-from coyote.integrations.api import endpoints as api_endpoints
-from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
-from coyote.integrations.api.web import log_api_error
+from coyote.services.api_client import endpoints as api_endpoints
+from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.services.api_client.web import log_api_error
 
 
 @common_bp.route("/reported_variants/variant/<string:variant_id>/<int:tier>", methods=["GET"])

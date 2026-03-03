@@ -8,9 +8,9 @@ from flask import current_app as app
 from flask import render_template, request
 
 from coyote.blueprints.common import common_bp
-from coyote.integrations.api import endpoints as api_endpoints
-from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
-from coyote.integrations.api.web import log_api_error
+from coyote.services.api_client import endpoints as api_endpoints
+from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.services.api_client.web import log_api_error
 
 
 @common_bp.route("/<string:sample_id>/<string:sample_assay>/genes", methods=["POST"])

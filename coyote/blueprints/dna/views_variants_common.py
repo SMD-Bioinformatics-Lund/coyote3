@@ -2,7 +2,7 @@
 """Shared helpers for DNA variant list/detail routes."""
 
 from coyote.errors.exceptions import AppError
-from coyote.integrations.api.api_client import ApiRequestError
+from coyote.services.api_client.api_client import ApiRequestError
 
 
 def raise_api_page_error(sample_id: str, page: str, exc: ApiRequestError) -> None:

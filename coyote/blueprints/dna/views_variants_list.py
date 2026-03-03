@@ -10,8 +10,8 @@ from coyote.blueprints.dna import dna_bp
 from coyote.blueprints.dna.forms import DNAFilterForm
 from coyote.blueprints.dna.views_variants_common import raise_api_page_error
 from coyote.extensions import util
-from coyote.integrations.api import endpoints as api_endpoints
-from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.services.api_client import endpoints as api_endpoints
+from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
 
 
 @dna_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])
