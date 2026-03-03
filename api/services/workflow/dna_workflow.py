@@ -23,16 +23,16 @@ from api.services.reporting.pipeline import (
     persist_report_and_snapshot as persist_shared_report_and_snapshot,
 )
 from api.services.dna.dna_reporting import build_dna_report_payload
-from api.services.workflow.contracts import validate_report_inputs_warn_only
+from api.services.workflow.contracts import validate_report_inputs
 
 
 class DNAWorkflowService:
     @staticmethod
     def validate_report_inputs(logger, sample: dict, assay_config: dict) -> None:
         """
-        Warn-only report contract validation wrapper for DNA routes.
+        Strict report contract validation wrapper for DNA routes.
         """
-        validate_report_inputs_warn_only(logger, sample, assay_config, analyte="dna")
+        validate_report_inputs(logger, sample, assay_config, analyte="dna")
 
     @staticmethod
     def build_report_location(sample: dict, assay_config: dict, reports_base_path: str) -> tuple[str, str, str]:

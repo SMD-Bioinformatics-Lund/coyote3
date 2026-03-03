@@ -39,8 +39,8 @@ from api.services.rna.helpers import (
 )
 from api.services.workflow.filter_normalization import normalize_rna_filter_keys
 from api.services.workflow.contracts import (
-    validate_report_inputs_warn_only,
-    validate_rna_filter_inputs_warn_only,
+    validate_report_inputs,
+    validate_rna_filter_inputs,
 )
 from api.utils.common_utility import CommonUtility
 
@@ -53,7 +53,7 @@ class RNAWorkflowService:
         """
         merged_sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
         sample_filters = normalize_rna_filter_keys(deepcopy(merged_sample.get("filters", {})))
-        validate_rna_filter_inputs_warn_only(logger, merged_sample.get("name", sample_id), sample_filters)
+        validate_rna_filter_inputs(logger, merged_sample.get("name", sample_id), sample_filters)
         return merged_sample, sample_filters
 
     @staticmethod
@@ -192,9 +192,9 @@ class RNAWorkflowService:
     @staticmethod
     def validate_report_inputs(logger, sample: dict, assay_config: dict) -> None:
         """
-        Warn-only report contract validation wrapper for RNA routes.
+        Strict report contract validation wrapper for RNA routes.
         """
-        validate_report_inputs_warn_only(logger, sample, assay_config, analyte="rna")
+        validate_report_inputs(logger, sample, assay_config, analyte="rna")
 
     @staticmethod
     def build_report_location(sample: dict, assay_config: dict, reports_base_path: str) -> tuple[str, str, str]:

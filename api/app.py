@@ -12,7 +12,6 @@ from collections.abc import Generator
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
-from flask.sessions import SecureCookieSessionInterface
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 # API runtime must never depend on an external API health check.
@@ -29,8 +28,6 @@ runtime_context = create_runtime_context(
     development=bool(int(os.getenv("DEVELOPMENT", "0"))),
 )
 bind_runtime_context(runtime_context)
-_session_interface = SecureCookieSessionInterface()
-_session_serializer = _session_interface.get_signing_serializer(runtime_context)
 _api_session_serializer = URLSafeTimedSerializer(
     secret_key=str(runtime_context.secret_key or runtime_app.config.get("SECRET_KEY") or "coyote3-api"),
     salt=str(runtime_app.config.get("API_SESSION_SALT", "coyote3-api-session-v1")),
@@ -227,27 +224,6 @@ def serialize_api_user(user: ApiUser) -> dict:
     }
 
 
-def _decode_legacy_flask_session_user(request: Request) -> ApiUser:
-    cookie_name = runtime_app.config.get("SESSION_COOKIE_NAME", "session")
-    cookie_val = request.cookies.get(cookie_name)
-    if not cookie_val or _session_serializer is None:
-        raise _api_error(401, "Login required")
-
-    try:
-        session_data = _session_serializer.loads(cookie_val)
-    except BadSignature:
-        raise _api_error(401, "Login required")
-
-    user_id = session_data.get("_user_id")
-    if not user_id:
-        raise _api_error(401, "Login required")
-
-    user_doc = store.user_handler.user_with_id(user_id)
-    if not user_doc:
-        raise _api_error(401, "Login required")
-    return _api_user_from_doc(user_doc)
-
-
 def _extract_api_session_token(request: Request) -> str | None:
     auth_header = (request.headers.get("Authorization") or "").strip()
     if auth_header.lower().startswith("bearer "):
@@ -278,9 +254,7 @@ def _decode_session_user(request: Request) -> ApiUser:
         if not user_doc or not user_doc.get("is_active", True):
             raise _api_error(401, "Login required")
         return _api_user_from_doc(user_doc)
-
-    # Backward-compatible fallback while Flask session migration completes.
-    return _decode_legacy_flask_session_user(request)
+    raise _api_error(401, "Login required")
 
 
 def _enforce_access(
