@@ -5,7 +5,8 @@ from copy import deepcopy
 from fastapi import Depends
 
 from api.extensions import store, util
-from api.app import ApiUser, app, require_access
+from api.app import app
+from api.security.access import ApiUser, require_access
 
 
 @app.get("/api/v1/dashboard/summary")
@@ -49,4 +50,3 @@ def dashboard_summary(user: ApiUser = Depends(require_access(min_level=1))):
             "sample_stats": sample_stats,
         }
     )
-

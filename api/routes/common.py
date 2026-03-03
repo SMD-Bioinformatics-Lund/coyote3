@@ -7,9 +7,10 @@ from typing import Any
 
 from fastapi import Depends, Query
 
-from api.app import ApiUser, _api_error, app, require_access
+from api.app import _api_error, app
 from api.extensions import store, util
 from api.runtime import app as runtime_app
+from api.security.access import ApiUser, require_access
 from api.services.interpretation.report_summary import enrich_reported_variant_docs
 
 

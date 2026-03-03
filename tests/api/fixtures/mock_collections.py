@@ -15,7 +15,7 @@ from pathlib import Path
 import json
 from typing import Any
 
-from api.app import ApiUser
+from api.security.access import ApiUser
 
 
 SNAPSHOT_DIR = Path(__file__).resolve().parent / "db_snapshots"

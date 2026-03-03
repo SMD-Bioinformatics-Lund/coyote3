@@ -6,7 +6,8 @@ from api.extensions import store, util
 from api.services.interpretation.report_summary import create_comment_doc
 from api.services.rna.helpers import create_fusioncallers, create_fusioneffectlist
 from api.services.workflow.filter_normalization import normalize_rna_filter_keys
-from api.app import ApiUser, _api_error, _get_formatted_assay_config, _get_sample_for_api, app, require_access
+from api.app import _api_error, _get_formatted_assay_config, app
+from api.security.access import ApiUser, _get_sample_for_api, require_access
 
 
 def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from api.app import ApiUser, _enforce_access
+from api.security.access import ApiUser, _enforce_access
 
 
 def _u(
@@ -56,12 +56,12 @@ def test_enforce_access_denies_insufficient_level():
 
 def test_enforce_access_allows_min_role(monkeypatch):
     # manager role threshold resolved to level 50
-    monkeypatch.setattr("api.app._role_levels", lambda: {"manager": 50})
+    monkeypatch.setattr("api.security.access._role_levels", lambda: {"manager": 50})
     _enforce_access(_u(role="manager", level=55), min_role="manager")
 
 
 def test_enforce_access_denies_when_no_constraint_matches(monkeypatch):
-    monkeypatch.setattr("api.app._role_levels", lambda: {"manager": 50})
+    monkeypatch.setattr("api.security.access._role_levels", lambda: {"manager": 50})
     with pytest.raises(HTTPException) as exc:
         _enforce_access(
             _u(level=10, permissions=[]),

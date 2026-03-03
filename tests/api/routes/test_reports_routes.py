@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from api.app import ApiUser
+from api.security.access import ApiUser
 from api.routes import reports
 
 

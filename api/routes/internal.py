@@ -3,7 +3,8 @@
 from fastapi import Request
 
 from api.extensions import store, util
-from api.app import _api_error, _require_internal_token, app
+from api.app import app
+from api.security.access import _require_internal_token
 
 
 @app.get("/api/v1/internal/roles/levels")

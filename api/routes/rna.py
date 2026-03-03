@@ -7,14 +7,8 @@ from api.services.interpretation.annotation_enrichment import add_global_annotat
 from api.services.interpretation.report_summary import generate_summary_text
 from api.services.workflow.rna_workflow import RNAWorkflowService
 from api.runtime import app as runtime_app
-from api.app import (
-    ApiUser,
-    _api_error,
-    _get_formatted_assay_config,
-    _get_sample_for_api,
-    app,
-    require_access,
-)
+from api.app import _api_error, _get_formatted_assay_config, app
+from api.security.access import ApiUser, _get_sample_for_api, require_access
 
 
 def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict:

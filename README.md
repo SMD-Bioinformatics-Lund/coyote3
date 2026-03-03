@@ -105,6 +105,7 @@ This boundary is being enforced incrementally with dedicated contract tests unde
 Current backend reorganization has started with:
 - Mongo handlers moved from `api/db` to `api/infra/db`
 - External annotation/data-source handlers moved to `api/infra/external`
+- Auth/session/RBAC access control moved to `api/security/access.py`
 
 Execution policy during refactor:
 - work is performed as explicit, small, green tasks

@@ -7,14 +7,8 @@ import re
 
 from fastapi import Body, Depends, Query
 
-from api.app import (
-    ApiUser,
-    _api_error,
-    _get_formatted_assay_config,
-    _get_sample_for_api,
-    app,
-    require_access,
-)
+from api.app import _api_error, _get_formatted_assay_config, app
+from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.extensions import store, util
 from api.runtime import app as runtime_app
 

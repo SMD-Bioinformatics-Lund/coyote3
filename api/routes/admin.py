@@ -7,7 +7,8 @@ from fastapi import Body, Depends, Query
 from api.extensions import store, util
 from api.runtime import app as runtime_app
 from api.services.admin.sample_deletion import delete_all_sample_traces
-from api.app import ApiUser, _api_error, _get_sample_for_api, app, require_access
+from api.app import _api_error, app
+from api.security.access import ApiUser, _get_sample_for_api, require_access
 
 
 def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict:

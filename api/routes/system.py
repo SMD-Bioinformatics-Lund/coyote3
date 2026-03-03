@@ -4,9 +4,10 @@ from fastapi import Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel
 
-from api.app import (
+from api.app import app
+from api.extensions import store, util
+from api.security.access import (
     ApiUser,
-    app,
     create_api_session_token,
     get_api_session_cookie_name,
     get_api_session_cookie_secure,
@@ -14,7 +15,6 @@ from api.app import (
     require_access,
     serialize_api_user,
 )
-from api.extensions import store, util
 from api.services.auth import authenticate_credentials, build_user_session_payload
 
 
