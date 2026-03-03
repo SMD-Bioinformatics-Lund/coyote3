@@ -53,5 +53,6 @@ Backend refactor status:
 - System/auth route response contracts added under `api/contracts/system.py`.
 - Internal route response contracts added under `api/contracts/internal.py`.
 - Home route response contracts added under `api/contracts/home.py`.
+- Common route response contracts added under `api/contracts/common.py`.
 - Flask API transport client consolidated to `coyote/services/api_client` (legacy `coyote/integrations/api` removed).
 - API runtime/security settings centralized in `api/settings.py`.

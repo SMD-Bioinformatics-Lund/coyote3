@@ -8,13 +8,18 @@ from typing import Any
 from fastapi import Depends, Query
 
 from api.app import _api_error, app
+from api.contracts.common import (
+    CommonGeneInfoPayload,
+    CommonTieredVariantContextPayload,
+    CommonTieredVariantSearchPayload,
+)
 from api.extensions import store, util
 from api.runtime import app as runtime_app
 from api.security.access import ApiUser, require_access
 from api.core.interpretation.report_summary import enrich_reported_variant_docs
 
 
-@app.get("/api/v1/common/gene/{gene_id}/info")
+@app.get("/api/v1/common/gene/{gene_id}/info", response_model=CommonGeneInfoPayload)
 def common_gene_info_read(gene_id: str):
     if gene_id.isnumeric():
         gene = store.hgnc_handler.get_metadata_by_hgnc_id(hgnc_id=gene_id)
@@ -23,7 +28,10 @@ def common_gene_info_read(gene_id: str):
     return util.common.convert_to_serializable({"gene": gene})
 
 
-@app.get("/api/v1/common/reported_variants/variant/{variant_id}/{tier}")
+@app.get(
+    "/api/v1/common/reported_variants/variant/{variant_id}/{tier}",
+    response_model=CommonTieredVariantContextPayload,
+)
 def common_tiered_variant_context_read(
     variant_id: str,
     tier: int,
@@ -69,7 +77,7 @@ def common_tiered_variant_context_read(
     return util.common.convert_to_serializable({"variant": variant, "docs": docs, "tier": tier, "error": None})
 
 
-@app.get("/api/v1/common/search/tiered_variants")
+@app.get("/api/v1/common/search/tiered_variants", response_model=CommonTieredVariantSearchPayload)
 def common_tiered_variant_search_read(
     search_str: str | None = None,
     search_mode: str = "gene",
