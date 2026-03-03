@@ -4,6 +4,7 @@ from fastapi import Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from api.contracts.auth import ApiAuthLoginRequest
+from api.contracts.system import AuthLoginEnvelope, AuthUserEnvelope, HealthPayload, WhoamiPayload
 from api.app import app
 from api.extensions import store, util
 from api.security.access import (
@@ -28,7 +29,7 @@ async def http_exception_handler(_request: Request, exc: HTTPException):
     )
 
 
-@app.get("/api/v1/health")
+@app.get("/api/v1/health", response_model=HealthPayload)
 def health():
     return {"status": "ok"}
 
@@ -38,7 +39,7 @@ def docs_alias_vi():
     return RedirectResponse(url="/api/v1/docs", status_code=307)
 
 
-@app.get("/api/v1/auth/whoami")
+@app.get("/api/v1/auth/whoami", response_model=WhoamiPayload)
 def whoami(user: ApiUser = Depends(require_access(min_level=1))):
     return {
         "username": user.username,
@@ -49,7 +50,7 @@ def whoami(user: ApiUser = Depends(require_access(min_level=1))):
     }
 
 
-@app.post("/api/v1/auth/login")
+@app.post("/api/v1/auth/login", response_model=AuthLoginEnvelope)
 def auth_login(payload: ApiAuthLoginRequest):
     username = payload.username.strip()
     password = payload.password
@@ -82,13 +83,13 @@ def auth_login(payload: ApiAuthLoginRequest):
     return response
 
 
-@app.post("/api/v1/auth/logout")
+@app.post("/api/v1/auth/logout", response_model=HealthPayload)
 def auth_logout():
     response = JSONResponse(status_code=200, content={"status": "ok"})
     response.delete_cookie(key=get_api_session_cookie_name(), path="/")
     return response
 
 
-@app.get("/api/v1/auth/me")
+@app.get("/api/v1/auth/me", response_model=AuthUserEnvelope)
 def auth_me(user: ApiUser = Depends(require_access(min_level=1))):
     return util.common.convert_to_serializable({"status": "ok", "user": serialize_api_user(user)})
