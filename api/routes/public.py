@@ -10,10 +10,18 @@ from copy import deepcopy
 
 from api.extensions import store, util
 from api.app import _api_error, app
+from api.contracts.public import (
+    PublicAspGenesPayload,
+    PublicAssayCatalogGenesCsvPayload,
+    PublicAssayCatalogMatrixPayload,
+    PublicAssayCatalogPayload,
+    PublicGeneSymbolsPayload,
+    PublicGenelistViewPayload,
+)
 from api.services.public_catalog import PublicCatalogService
 
 
-@app.get("/api/v1/public/genelists/{genelist_id}/view_context")
+@app.get("/api/v1/public/genelists/{genelist_id}/view_context", response_model=PublicGenelistViewPayload)
 def public_genelist_view_context_read(genelist_id: str, assay: str | None = None):
     genelist = store.isgl_handler.get_isgl(genelist_id, is_active=True)
     if not genelist:
@@ -46,7 +54,7 @@ def public_genelist_view_context_read(genelist_id: str, assay: str | None = None
     )
 
 
-@app.get("/api/v1/public/asp/{asp_id}/genes")
+@app.get("/api/v1/public/asp/{asp_id}/genes", response_model=PublicAspGenesPayload)
 def public_asp_genes_read(asp_id: str):
     gene_symbols, germline_gene_symbols = store.asp_handler.get_asp_genes(asp_id)
     gene_details = store.hgnc_handler.get_metadata_by_symbols(gene_symbols)
@@ -59,14 +67,17 @@ def public_asp_genes_read(asp_id: str):
     )
 
 
-@app.get("/api/v1/public/assay-catalog/genes/{isgl_key}/view_context")
+@app.get(
+    "/api/v1/public/assay-catalog/genes/{isgl_key}/view_context",
+    response_model=PublicGeneSymbolsPayload,
+)
 def public_assay_catalog_isgl_genes_view_read(isgl_key: str):
     isgl = store.isgl_handler.get_isgl(isgl_key) or {}
     gene_symbols = set(sorted(isgl.get("genes", []))) if isgl_key else set()
     return util.common.convert_to_serializable({"gene_symbols": sorted(gene_symbols)})
 
 
-@app.get("/api/v1/public/assay-catalog-matrix/context")
+@app.get("/api/v1/public/assay-catalog-matrix/context", response_model=PublicAssayCatalogMatrixPayload)
 def public_assay_catalog_matrix_context_read():
     catalog = PublicCatalogService.load_catalog()
     modalities = catalog.get("modalities") or {}
@@ -181,7 +192,7 @@ def public_assay_catalog_matrix_context_read():
     return util.common.convert_to_serializable(vm)
 
 
-@app.get("/api/v1/public/assay-catalog/context")
+@app.get("/api/v1/public/assay-catalog/context", response_model=PublicAssayCatalogPayload)
 def public_assay_catalog_context_read(
     mod: str | None = None,
     cat: str | None = None,
@@ -265,7 +276,10 @@ def public_assay_catalog_context_read(
     return util.common.convert_to_serializable(vm)
 
 
-@app.get("/api/v1/public/assay-catalog/genes.csv/context")
+@app.get(
+    "/api/v1/public/assay-catalog/genes.csv/context",
+    response_model=PublicAssayCatalogGenesCsvPayload,
+)
 def public_assay_catalog_genes_csv_context_read(
     mod: str,
     cat: str | None = None,
