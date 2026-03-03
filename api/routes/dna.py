@@ -21,7 +21,7 @@ from api.services.interpretation.report_summary import (
     create_comment_doc,
     generate_summary_text,
 )
-from api.services.workflow.dna_workflow import DNAWorkflowService
+from api.core.workflows.dna_workflow import DNAWorkflowService
 from api.runtime import app as runtime_app
 from api.app import _api_error, _get_formatted_assay_config, app
 from api.security.access import ApiUser, _get_sample_for_api, require_access

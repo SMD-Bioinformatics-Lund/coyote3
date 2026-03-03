@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from api.services.workflow.contracts import validate_report_inputs, validate_rna_filter_inputs
+from api.core.workflows.contracts import validate_report_inputs, validate_rna_filter_inputs
 
 
 class _LoggerStub:

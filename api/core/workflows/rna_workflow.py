@@ -26,8 +26,8 @@ from api.services.rna.helpers import (
     get_fusion_callers,
     get_selected_fusioncall,
 )
-from api.services.workflow.filter_normalization import normalize_rna_filter_keys
-from api.services.workflow.contracts import (
+from api.core.workflows.filter_normalization import normalize_rna_filter_keys
+from api.core.workflows.contracts import (
     validate_report_inputs,
     validate_rna_filter_inputs,
 )

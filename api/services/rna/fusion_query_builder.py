@@ -1,7 +1,7 @@
 
 from typing import Any, Dict
 
-from api.services.workflow.filter_normalization import coerce_nonnegative_int
+from api.core.workflows.filter_normalization import coerce_nonnegative_int
 
 
 def build_fusion_query(assay_group: str, settings: Dict[str, Any]) -> Dict[str, Any]:

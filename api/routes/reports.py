@@ -4,8 +4,8 @@ from fastapi import Body, Depends, Query
 from typing import Any, Literal
 
 from api.extensions import util
-from api.services.workflow.dna_workflow import DNAWorkflowService
-from api.services.workflow.rna_workflow import RNAWorkflowService
+from api.core.workflows.dna_workflow import DNAWorkflowService
+from api.core.workflows.rna_workflow import RNAWorkflowService
 from api.app import _api_error, _get_formatted_assay_config, _to_bool, app
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.runtime import app as runtime_app

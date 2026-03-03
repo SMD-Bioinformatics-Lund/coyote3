@@ -107,6 +107,7 @@ Current backend reorganization has started with:
 - External annotation/data-source handlers moved to `api/infra/external`
 - Auth/session/RBAC access control moved to `api/security/access.py`
 - Access-check audit event emission moved to `api/audit/access_events.py`
+- Workflow orchestration moved from `api/services/workflow` to `api/core/workflows`
 
 Execution policy during refactor:
 - work is performed as explicit, small, green tasks

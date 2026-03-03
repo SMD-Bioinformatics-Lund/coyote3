@@ -12,7 +12,7 @@ from api.services.reporting.pipeline import (
     persist_report_and_snapshot as persist_shared_report_and_snapshot,
 )
 from api.services.dna.dna_reporting import build_dna_report_payload
-from api.services.workflow.contracts import validate_report_inputs
+from api.core.workflows.contracts import validate_report_inputs
 
 
 class DNAWorkflowService:
