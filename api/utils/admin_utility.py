@@ -18,7 +18,7 @@ This module provides static methods for configuration management, form processin
 
 from datetime import datetime, timezone
 from dateutil.parser import parse as parse_datetime
-from api.utils import admin_validators as validators
+from api.domain.core.admin_validators import REQUIRED_SCHEMA_KEYS
 from api.runtime import app
 import json
 import os
@@ -426,7 +426,7 @@ class AdminUtility:
         """
         Validates the structure of the provided schema dictionary.
 
-        - Checks for required top-level keys as defined in `validators.REQUIRED_SCHEMA_KEYS`.
+        - Checks for required top-level keys as defined in `REQUIRED_SCHEMA_KEYS`.
         - Ensures the `sections` key is a dictionary, and each section contains a list of field names.
         - Verifies that every field listed in sections is defined in either `fields` or `subschemas`.
         - Supports dot notation for referencing subschema fields.
@@ -437,7 +437,7 @@ class AdminUtility:
         errors = []
 
         # Check for required top-level keys
-        for key in validators.REQUIRED_SCHEMA_KEYS:
+        for key in REQUIRED_SCHEMA_KEYS:
             if key not in schema:
                 errors.append(f"Missing required key: '{key}'")
 

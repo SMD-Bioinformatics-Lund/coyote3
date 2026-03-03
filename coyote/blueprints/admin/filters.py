@@ -24,7 +24,7 @@ from coyote.util.misc import EnhancedJSONEncoder
 from markupsafe import Markup
 import json
 from typing import Any
-from coyote.util.common_utility import CommonUtility
+from api.utils.common_utility import CommonUtility
 
 
 @app.template_filter("now")
