@@ -35,3 +35,10 @@ Current engineering direction is API-centric:
 UI/API separation is enforced by contract tests:
 - `tests/contract/test_ui_forbidden_backend_imports.py`
 - `tests/contract/test_ui_forbidden_mongo_usage.py`
+
+Tooling baseline:
+- `ruff check api coyote tests`
+- `ruff format --check api coyote tests`
+
+Backend refactor status:
+- Infrastructure DB foundation introduced at `api/infra/db` (adapter/base migration started).

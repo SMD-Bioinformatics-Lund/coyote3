@@ -30,7 +30,7 @@ Designed for MongoDB 3.4 compatibility (and forward compatible with newer versio
 from typing import Any, Optional, List, Dict
 from pymongo import ASCENDING, DESCENDING, UpdateOne
 
-from api.db.base import BaseHandler
+from api.infra.db.base import BaseHandler
 
 
 # -------------------------------------------------------------------------

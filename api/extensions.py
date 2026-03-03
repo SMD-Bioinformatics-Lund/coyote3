@@ -1,6 +1,6 @@
 """API-owned extension singletons."""
 
-from api.db.mongo import MongoAdapter
+from api.infra.db.mongo import MongoAdapter
 from api.services.ldap import LdapManager
 from api.utils.admin_utility import AdminUtility
 from api.utils.common_utility import CommonUtility
@@ -21,4 +21,3 @@ class Utility:
 store = MongoAdapter()
 ldap_manager = LdapManager()
 util = Utility()
-

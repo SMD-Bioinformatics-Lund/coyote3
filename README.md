@@ -102,6 +102,7 @@ The active refactor direction is API-centric and enforced as a hard boundary:
 - UI code must not import `api/*` internals and must not access Mongo handlers directly.
 
 This boundary is being enforced incrementally with dedicated contract tests under `tests/contract/`.
+Current backend reorganization has started with infrastructure base modules moved to `api/infra/db`.
 
 Execution policy during refactor:
 - work is performed as explicit, small, green tasks

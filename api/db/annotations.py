@@ -15,7 +15,7 @@ from copy import deepcopy
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from api.db.base import BaseHandler
+from api.infra.db.base import BaseHandler
 from datetime import datetime
 from pymongo.results import DeleteResult
 from api.runtime import current_user_is_admin, current_username, flash

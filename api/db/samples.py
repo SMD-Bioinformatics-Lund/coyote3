@@ -14,7 +14,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # Imports
 # -------------------------------------------------------------------------
 from bson.objectid import ObjectId
-from api.db.base import BaseHandler
+from api.infra.db.base import BaseHandler
 from datetime import datetime
 from api.runtime import current_username
 from api.utils.common_utility import CommonUtility

@@ -13,7 +13,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from api.db.base import BaseHandler
+from api.infra.db.base import BaseHandler
 
 
 # -------------------------------------------------------------------------

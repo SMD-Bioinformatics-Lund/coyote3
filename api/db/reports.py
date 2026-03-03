@@ -1,6 +1,6 @@
 
 from bson.objectid import ObjectId
-from api.db.base import BaseHandler
+from api.infra.db.base import BaseHandler
 
 class ReportHandler(BaseHandler):
     """
