@@ -52,7 +52,7 @@ def test_list_rna_fusions_success(monkeypatch):
 
     payload = rna.list_rna_fusions(_Req(), "S1", user=fx.api_user())
     assert payload["meta"]["count"] == 1
-    assert payload["fusions"][0]["gene1"] == "EML4"
+    assert payload["fusions"][0]["gene1"] == fusions[0]["gene1"]
     assert payload["ai_text"] == "summary"
 
 

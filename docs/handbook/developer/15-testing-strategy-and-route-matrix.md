@@ -20,6 +20,10 @@ This chapter documents the testing strategy for maintainability and safe refacto
   - `tests/api/routes/test_reports_routes.py`
   - `tests/api/routes/test_admin_routes.py`
 - Prefer collection-shaped fixture docs (`tests/api/fixtures/mock_collections.py`) and the shared fake-store harness (`tests/api/fixtures/fake_store.py`) for realistic, deterministic route testing.
+- For high-fidelity fixture freshness, refresh read-only DB snapshots with:
+  - `tests/api/fixtures/extract_latest_docs.py`
+  - `prod_latest.json` for all collections
+  - `dev_rna_wgs_latest.json` for RNA/WGS-focused collections
 
 ## Minimum standards for new work
 

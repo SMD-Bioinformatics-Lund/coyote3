@@ -12,9 +12,10 @@ from tests.api.fixtures import mock_collections as fx
 def test_permission_policy_options_maps_permission_docs(monkeypatch):
     monkeypatch.setattr(admin.store.permissions_handler, "get_all_permissions", lambda is_active=True: [fx.permission_doc()])
     options = admin._permission_policy_options()
-    assert options[0]["value"] == "view_role"
-    assert options[0]["label"] == "View Role"
-    assert options[0]["category"] == "RBAC"
+    expected = fx.permission_doc()
+    assert options[0]["value"] == expected["_id"]
+    assert options[0]["label"] == expected.get("label", expected["_id"])
+    assert options[0]["category"] == expected.get("category", "Uncategorized")
 
 
 def test_list_roles_read_success(monkeypatch):
@@ -22,7 +23,7 @@ def test_list_roles_read_success(monkeypatch):
     monkeypatch.setattr(admin.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = admin.list_roles_read(user=fx.api_user())
-    assert payload["roles"][0]["_id"] == "admin"
+    assert payload["roles"][0]["_id"] == fx.role_doc()["_id"]
 
 
 def test_create_role_context_read_no_schema_raises_400(monkeypatch):

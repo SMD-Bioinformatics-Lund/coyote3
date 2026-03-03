@@ -15,8 +15,8 @@ def test_home_isgls_read_with_fake_store(monkeypatch):
 
     payload = home.home_isgls_read("S1", user=fx.api_user())
 
-    assert payload["items"][0]["_id"] == "gl1"
-    assert payload["items"][0]["gene_count"] == 2
+    assert payload["items"][0]["_id"] == str(fx.isgl_doc()["_id"])
+    assert payload["items"][0]["gene_count"] == int(fx.isgl_doc().get("gene_count") or 0)
 
 
 def test_home_effective_genes_read_with_fake_store(monkeypatch):

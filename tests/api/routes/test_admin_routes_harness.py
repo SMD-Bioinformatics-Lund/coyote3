@@ -14,8 +14,8 @@ def test_list_roles_read_with_fake_store(monkeypatch):
 
     payload = admin.list_roles_read(user=fx.api_user())
 
-    assert payload["roles"][0]["_id"] == "admin"
-    assert payload["roles"][0]["level"] == 99999
+    assert payload["roles"][0]["_id"] == fx.role_doc()["_id"]
+    assert payload["roles"][0]["level"] == int(fx.role_doc().get("level") or 0)
 
 
 def test_create_role_context_read_with_fake_store(monkeypatch):
@@ -24,7 +24,8 @@ def test_create_role_context_read_with_fake_store(monkeypatch):
     monkeypatch.setattr(admin.util.common, "utc_now", lambda: "NOW")
     monkeypatch.setattr(admin.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = admin.create_role_context_read(schema_id="rbac_role_schema_v1", user=fx.api_user())
+    expected_schema_id = fx.schema_doc()["_id"]
+    payload = admin.create_role_context_read(schema_id=expected_schema_id, user=fx.api_user())
 
-    assert payload["selected_schema"]["_id"] == "rbac_role_schema_v1"
+    assert payload["selected_schema"]["_id"] == expected_schema_id
     assert payload["schema"]["fields"]["created_by"]["default"] == "tester"
