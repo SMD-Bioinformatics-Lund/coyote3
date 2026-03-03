@@ -6,6 +6,7 @@ from api.contracts.common import (
     CommonTieredVariantContextPayload,
     CommonTieredVariantSearchPayload,
 )
+from api.contracts.dashboard import DashboardSummaryPayload
 from api.contracts.home import (
     HomeEditContextPayload,
     HomeEffectiveGenesPayload,
@@ -33,6 +34,7 @@ __all__ = [
     "CommonGeneInfoPayload",
     "CommonTieredVariantContextPayload",
     "CommonTieredVariantSearchPayload",
+    "DashboardSummaryPayload",
     "HealthPayload",
     "HomeEditContextPayload",
     "HomeEffectiveGenesPayload",

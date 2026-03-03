@@ -115,6 +115,7 @@ Current backend reorganization has started with:
 - Home route response contracts added under `api/contracts/home.py`
 - Common route response contracts added under `api/contracts/common.py`
 - Public route response contracts added under `api/contracts/public.py`
+- Dashboard route response contracts added under `api/contracts/dashboard.py`
 - Flask-side API transport consolidated under `coyote/services/api_client` (legacy `coyote/integrations/api` removed)
 - Runtime/security config access centralized in `api/settings.py`
 

@@ -6,10 +6,11 @@ from fastapi import Depends
 
 from api.extensions import store, util
 from api.app import app
+from api.contracts.dashboard import DashboardSummaryPayload
 from api.security.access import ApiUser, require_access
 
 
-@app.get("/api/v1/dashboard/summary")
+@app.get("/api/v1/dashboard/summary", response_model=DashboardSummaryPayload)
 def dashboard_summary(user: ApiUser = Depends(require_access(min_level=1))):
     total_samples_count = store.sample_handler.get_all_sample_counts()
     analysed_samples_count = store.sample_handler.get_all_sample_counts(report=True)
