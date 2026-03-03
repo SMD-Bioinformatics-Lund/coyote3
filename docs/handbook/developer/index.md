@@ -31,3 +31,4 @@ It covers internals, runtime behavior, architecture, and extension workflows.
 1. [Code Ownership and Boundaries](./14-code-ownership-and-boundaries.md)
 2. [Testing Strategy and Route Matrix](./15-testing-strategy-and-route-matrix.md)
 3. [Refactor Change Log (March 2026)](./16-refactor-change-log-2026-03.md)
+4. [System Reference (End-to-End)](./17-system-reference-end-to-end.md)

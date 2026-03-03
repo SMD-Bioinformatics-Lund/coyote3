@@ -27,6 +27,7 @@ Use this page to navigate by task.
 
 1. [Navbar Tools: Matrix, Catalog, and Variant Search](./13-navbar-matrix-catalog-and-variant-search.md)
 2. [Application Features Reference](./14-application-features-reference.md)
+3. [UI Pages and Features Map](./16-ui-pages-and-features-map.md)
 
 ## Support
 
