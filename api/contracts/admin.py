@@ -48,3 +48,32 @@ class AdminUserContextPayload(BaseModel):
     schema_payload: dict[str, Any] = Field(alias="schema")
     role_map: dict[str, Any]
     assay_group_map: dict[str, list[dict[str, Any]]]
+
+
+class AdminPermissionsListPayload(BaseModel):
+    permission_policies: list[dict[str, Any]]
+    grouped_permissions: dict[str, list[dict[str, Any]]]
+
+
+class AdminPermissionCreateContextPayload(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    schemas: list[dict[str, Any]]
+    selected_schema: dict[str, Any]
+    schema_payload: dict[str, Any] = Field(alias="schema")
+
+
+class AdminPermissionContextPayload(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    permission: dict[str, Any]
+    schema_payload: dict[str, Any] = Field(alias="schema")
+
+
+class AdminMutationPayload(BaseModel):
+    status: str
+    sample_id: str
+    resource: str
+    resource_id: str
+    action: str
+    meta: dict[str, Any]

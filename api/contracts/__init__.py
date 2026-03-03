@@ -2,6 +2,10 @@
 
 from api.contracts.auth import ApiAuthLoginRequest
 from api.contracts.admin import (
+    AdminMutationPayload,
+    AdminPermissionContextPayload,
+    AdminPermissionCreateContextPayload,
+    AdminPermissionsListPayload,
     AdminRoleContextPayload,
     AdminRoleCreateContextPayload,
     AdminRolesListPayload,
@@ -40,6 +44,10 @@ __all__ = [
     "AdminRoleContextPayload",
     "AdminRoleCreateContextPayload",
     "AdminRolesListPayload",
+    "AdminMutationPayload",
+    "AdminPermissionContextPayload",
+    "AdminPermissionCreateContextPayload",
+    "AdminPermissionsListPayload",
     "AdminUserContextPayload",
     "AdminUserCreateContextPayload",
     "AdminUsersListPayload",

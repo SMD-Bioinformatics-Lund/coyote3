@@ -6,6 +6,10 @@ from fastapi import Body, Depends, Query
 
 from api.extensions import store, util
 from api.contracts.admin import (
+    AdminMutationPayload,
+    AdminPermissionContextPayload,
+    AdminPermissionCreateContextPayload,
+    AdminPermissionsListPayload,
     AdminRoleContextPayload,
     AdminRoleCreateContextPayload,
     AdminRolesListPayload,
@@ -130,7 +134,7 @@ def role_context_read(
     )
 
 
-@app.post("/api/v1/admin/permissions/create")
+@app.post("/api/v1/admin/permissions/create", response_model=AdminMutationPayload)
 def create_permission_mutation(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(
@@ -171,7 +175,7 @@ def create_permission_mutation(
     )
 
 
-@app.get("/api/v1/admin/permissions")
+@app.get("/api/v1/admin/permissions", response_model=AdminPermissionsListPayload)
 def list_permissions_read(
     user: ApiUser = Depends(
         require_access(permission="view_permission_policy", min_role="admin", min_level=99999)
@@ -189,7 +193,7 @@ def list_permissions_read(
     )
 
 
-@app.get("/api/v1/admin/permissions/create_context")
+@app.get("/api/v1/admin/permissions/create_context", response_model=AdminPermissionCreateContextPayload)
 def create_permission_context_read(
     schema_id: str | None = Query(default=None),
     user: ApiUser = Depends(
@@ -224,7 +228,7 @@ def create_permission_context_read(
     )
 
 
-@app.get("/api/v1/admin/permissions/{perm_id}/context")
+@app.get("/api/v1/admin/permissions/{perm_id}/context", response_model=AdminPermissionContextPayload)
 def permission_context_read(
     perm_id: str,
     user: ApiUser = Depends(
@@ -245,7 +249,7 @@ def permission_context_read(
     )
 
 
-@app.post("/api/v1/admin/permissions/{perm_id}/update")
+@app.post("/api/v1/admin/permissions/{perm_id}/update", response_model=AdminMutationPayload)
 def update_permission_mutation(
     perm_id: str,
     payload: dict = Body(default_factory=dict),
@@ -279,7 +283,7 @@ def update_permission_mutation(
     )
 
 
-@app.post("/api/v1/admin/permissions/{perm_id}/toggle")
+@app.post("/api/v1/admin/permissions/{perm_id}/toggle", response_model=AdminMutationPayload)
 def toggle_permission_mutation(
     perm_id: str,
     user: ApiUser = Depends(
@@ -296,7 +300,7 @@ def toggle_permission_mutation(
     return util.common.convert_to_serializable(result)
 
 
-@app.post("/api/v1/admin/permissions/{perm_id}/delete")
+@app.post("/api/v1/admin/permissions/{perm_id}/delete", response_model=AdminMutationPayload)
 def delete_permission_mutation(
     perm_id: str,
     user: ApiUser = Depends(
