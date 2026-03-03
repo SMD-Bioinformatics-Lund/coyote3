@@ -2,11 +2,17 @@
 
 ## Stack
 
-- Flask (modular blueprints)
+- Flask (UI layer: blueprints + Jinja templates)
+- FastAPI (backend API layer: business logic + persistence)
 - MongoDB (PyMongo + handler-based data access)
 - Flask-Login + LDAP integration
 - Jinja2 templates + static assets
 - Redis-backed Flask-Caching
+
+## Layer boundary
+
+- `coyote/` handles UI flow only and calls backend through `coyote/integrations/api`.
+- `api/` owns backend route contracts, services, domain models, and DB orchestration.
 
 ## App initialization
 

@@ -10,6 +10,6 @@ Data behavior should live in handler or utility layers, not templates. New queri
 
 UI changes should then expose the new behavior where users already work. Keep existing navigation and interaction patterns, and avoid adding controls that bypass permission checks or hide important state transitions.
 
-Testing infrastructure in this repository is still evolving. For now, treat automated test coverage as **coming soon** and focus on careful manual validation of permission behavior, state mutation behavior, and report/history behavior. When the test suite is established, this chapter should be extended with concrete test standards and CI gates.
+Testing is required for every feature. Add or update tests in the correct suite (`tests/api` for API behavior/guardrails, `tests/web` for web boundary/UI behavior), and cover at least success, permission, validation, and error-path behavior for changed routes. Manual validation is still useful, but it is not a substitute for automated checks.
 
 Before considering a feature complete, ensure the handbook is updated so future developers and users understand what changed, where it lives, and why it behaves that way.

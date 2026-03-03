@@ -20,3 +20,4 @@ This package is the web-layer adapter for calling FastAPI endpoints from Flask b
 - RBAC is enforced by API routes, not Flask routes.
 - Keep transport behavior centralized in `BaseApiClient`.
 - Keep blueprint code focused on UI rendering and request/response flow.
+- Do not import `api.*` modules from `coyote/*`; use this integration package instead.

@@ -1,14 +1,3 @@
-#  Copyright (c) 2025 Coyote3 Project Authors
-#  All rights reserved.
-#
-#  This source file is part of the Coyote3 codebase.
-#  The Coyote3 project provides a framework for genomic data analysis,
-#  interpretation, reporting, and clinical diagnostics.
-#
-#  Unauthorized use, distribution, or modification of this software or its
-#  components is strictly prohibited without prior written permission from
-#  the copyright holders.
-#
 
 """
 Coyote3 Utility Module
@@ -40,10 +29,10 @@ class Utility:
             self.common, self.report, self.main,
             self.dashboard, self.admin, self.login
         """
-        from api.utils.common_utility import CommonUtility
+        from coyote.util.common_utility import CommonUtility
         from coyote.blueprints.home.util import HomeUtility
         from coyote.blueprints.dashboard.util import DashBoardUtility
-        from api.utils.admin_utility import AdminUtility
+        from coyote.util.admin_utility import AdminUtility
 
         self.common = CommonUtility()
         self.main = HomeUtility()
