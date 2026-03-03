@@ -165,3 +165,5 @@ coyote3-core
 
 # CSS
 coyote/static/css/tailwind.css
+.internal
+coyote3_dir_structure.txt

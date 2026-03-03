@@ -47,7 +47,7 @@
     blacklist_collection = "blacklist"
     samples_collection = "samples"
     variants_collection = "variants"
-    cnvs_collection = "cnvs_wgs"
+    cnvs_collection = "cnvs"
     fusions_collection = "fusions"
     transloc_collection = "transloc"
     biomarkers_collection = "biomarkers"
