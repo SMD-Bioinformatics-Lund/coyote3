@@ -39,6 +39,7 @@ UI/API separation is enforced by contract tests:
 Tooling baseline:
 - `ruff check api coyote tests`
 - `ruff format --check api coyote tests`
+- `pytest -m unit|api|web|contract` for suite-focused execution.
 
 Backend refactor status:
 - Mongo infrastructure moved to `api/infra/db` (handlers + adapter/base migration in progress).

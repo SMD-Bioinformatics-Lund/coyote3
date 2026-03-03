@@ -127,6 +127,9 @@ Execution policy during refactor:
 PYTHONPATH=. .venv/bin/ruff check api coyote tests
 PYTHONPATH=. .venv/bin/ruff format --check api coyote tests
 PYTHONPATH=. .venv/bin/pytest -q -m contract
+PYTHONPATH=. .venv/bin/pytest -q -m unit
+PYTHONPATH=. .venv/bin/pytest -q -m api
+PYTHONPATH=. .venv/bin/pytest -q -m web
 ```
 
 ---
