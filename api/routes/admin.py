@@ -6,13 +6,25 @@ from fastapi import Body, Depends, Query
 
 from api.extensions import store, util
 from api.contracts.admin import (
+    AdminAspcContextPayload,
+    AdminAspcCreateContextPayload,
+    AdminAspcListPayload,
+    AdminGenelistContextPayload,
+    AdminGenelistCreateContextPayload,
+    AdminGenelistViewContextPayload,
+    AdminGenelistsListPayload,
     AdminMutationPayload,
+    AdminPanelContextPayload,
+    AdminPanelCreateContextPayload,
+    AdminPanelsListPayload,
     AdminPermissionContextPayload,
     AdminPermissionCreateContextPayload,
     AdminPermissionsListPayload,
     AdminRoleContextPayload,
     AdminRoleCreateContextPayload,
     AdminRolesListPayload,
+    AdminSchemaContextPayload,
+    AdminSchemasListPayload,
     AdminUserContextPayload,
     AdminUserCreateContextPayload,
     AdminUsersListPayload,
@@ -654,7 +666,7 @@ def validate_email_mutation(
     return util.common.convert_to_serializable({"exists": store.user_handler.user_exists(email=email)})
 
 
-@app.post("/api/v1/admin/asp/create")
+@app.post("/api/v1/admin/asp/create", response_model=AdminMutationPayload)
 def create_asp_mutation(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="create_asp", min_role="manager", min_level=99)),
@@ -668,7 +680,7 @@ def create_asp_mutation(
     )
 
 
-@app.get("/api/v1/admin/asp")
+@app.get("/api/v1/admin/asp", response_model=AdminPanelsListPayload)
 def list_asp_read(
     user: ApiUser = Depends(require_access(permission="view_asp", min_role="user", min_level=9)),
 ):
@@ -676,7 +688,7 @@ def list_asp_read(
     return util.common.convert_to_serializable({"panels": panels})
 
 
-@app.get("/api/v1/admin/asp/create_context")
+@app.get("/api/v1/admin/asp/create_context", response_model=AdminPanelCreateContextPayload)
 def create_asp_context_read(
     schema_id: str | None = Query(default=None),
     user: ApiUser = Depends(require_access(permission="create_asp", min_role="manager", min_level=99)),
@@ -709,7 +721,7 @@ def create_asp_context_read(
     )
 
 
-@app.get("/api/v1/admin/asp/{assay_panel_id}/context")
+@app.get("/api/v1/admin/asp/{assay_panel_id}/context", response_model=AdminPanelContextPayload)
 def asp_context_read(
     assay_panel_id: str,
     user: ApiUser = Depends(require_access(permission="view_asp", min_role="user", min_level=9)),
@@ -725,7 +737,7 @@ def asp_context_read(
     return util.common.convert_to_serializable({"panel": panel, "schema": schema})
 
 
-@app.post("/api/v1/admin/asp/{assay_panel_id}/update")
+@app.post("/api/v1/admin/asp/{assay_panel_id}/update", response_model=AdminMutationPayload)
 def update_asp_mutation(
     assay_panel_id: str,
     payload: dict = Body(default_factory=dict),
@@ -743,7 +755,7 @@ def update_asp_mutation(
     )
 
 
-@app.post("/api/v1/admin/asp/{assay_panel_id}/toggle")
+@app.post("/api/v1/admin/asp/{assay_panel_id}/toggle", response_model=AdminMutationPayload)
 def toggle_asp_mutation(
     assay_panel_id: str,
     user: ApiUser = Depends(require_access(permission="edit_asp", min_role="manager", min_level=99)),
@@ -758,7 +770,7 @@ def toggle_asp_mutation(
     return util.common.convert_to_serializable(result)
 
 
-@app.post("/api/v1/admin/asp/{assay_panel_id}/delete")
+@app.post("/api/v1/admin/asp/{assay_panel_id}/delete", response_model=AdminMutationPayload)
 def delete_asp_mutation(
     assay_panel_id: str,
     user: ApiUser = Depends(require_access(permission="delete_asp", min_role="admin", min_level=99999)),
@@ -772,7 +784,7 @@ def delete_asp_mutation(
     )
 
 
-@app.post("/api/v1/admin/genelists/create")
+@app.post("/api/v1/admin/genelists/create", response_model=AdminMutationPayload)
 def create_genelist_mutation(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="create_isgl", min_role="manager", min_level=99)),
@@ -791,7 +803,7 @@ def create_genelist_mutation(
     )
 
 
-@app.get("/api/v1/admin/genelists")
+@app.get("/api/v1/admin/genelists", response_model=AdminGenelistsListPayload)
 def list_genelists_read(
     user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
 ):
@@ -799,7 +811,7 @@ def list_genelists_read(
     return util.common.convert_to_serializable({"genelists": genelists})
 
 
-@app.get("/api/v1/admin/genelists/create_context")
+@app.get("/api/v1/admin/genelists/create_context", response_model=AdminGenelistCreateContextPayload)
 def create_genelist_context_read(
     schema_id: str | None = Query(default=None),
     user: ApiUser = Depends(require_access(permission="create_isgl", min_role="manager", min_level=99)),
@@ -834,7 +846,7 @@ def create_genelist_context_read(
     )
 
 
-@app.get("/api/v1/admin/genelists/{genelist_id}/context")
+@app.get("/api/v1/admin/genelists/{genelist_id}/context", response_model=AdminGenelistContextPayload)
 def genelist_context_read(
     genelist_id: str,
     user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
@@ -861,7 +873,10 @@ def genelist_context_read(
     )
 
 
-@app.get("/api/v1/admin/genelists/{genelist_id}/view_context")
+@app.get(
+    "/api/v1/admin/genelists/{genelist_id}/view_context",
+    response_model=AdminGenelistViewContextPayload,
+)
 def genelist_view_context_read(
     genelist_id: str,
     assay: str | None = Query(default=None),
@@ -892,7 +907,7 @@ def genelist_view_context_read(
     )
 
 
-@app.post("/api/v1/admin/genelists/{genelist_id}/update")
+@app.post("/api/v1/admin/genelists/{genelist_id}/update", response_model=AdminMutationPayload)
 def update_genelist_mutation(
     genelist_id: str,
     payload: dict = Body(default_factory=dict),
@@ -910,7 +925,7 @@ def update_genelist_mutation(
     )
 
 
-@app.post("/api/v1/admin/genelists/{genelist_id}/toggle")
+@app.post("/api/v1/admin/genelists/{genelist_id}/toggle", response_model=AdminMutationPayload)
 def toggle_genelist_mutation(
     genelist_id: str,
     user: ApiUser = Depends(require_access(permission="edit_isgl", min_role="manager", min_level=99)),
@@ -925,7 +940,7 @@ def toggle_genelist_mutation(
     return util.common.convert_to_serializable(result)
 
 
-@app.post("/api/v1/admin/genelists/{genelist_id}/delete")
+@app.post("/api/v1/admin/genelists/{genelist_id}/delete", response_model=AdminMutationPayload)
 def delete_genelist_mutation(
     genelist_id: str,
     user: ApiUser = Depends(require_access(permission="delete_isgl", min_role="admin", min_level=99999)),
@@ -939,7 +954,7 @@ def delete_genelist_mutation(
     )
 
 
-@app.get("/api/v1/admin/aspc")
+@app.get("/api/v1/admin/aspc", response_model=AdminAspcListPayload)
 def list_aspc_read(
     user: ApiUser = Depends(require_access(permission="view_aspc", min_role="user", min_level=9)),
 ):
@@ -947,7 +962,7 @@ def list_aspc_read(
     return util.common.convert_to_serializable({"assay_configs": assay_configs})
 
 
-@app.get("/api/v1/admin/aspc/create_context")
+@app.get("/api/v1/admin/aspc/create_context", response_model=AdminAspcCreateContextPayload)
 def create_aspc_context_read(
     category: str = Query(default="DNA"),
     schema_id: str | None = Query(default=None),
@@ -1008,7 +1023,7 @@ def create_aspc_context_read(
     )
 
 
-@app.get("/api/v1/admin/aspc/{assay_id}/context")
+@app.get("/api/v1/admin/aspc/{assay_id}/context", response_model=AdminAspcContextPayload)
 def aspc_context_read(
     assay_id: str,
     user: ApiUser = Depends(require_access(permission="view_aspc", min_role="user", min_level=9)),
@@ -1029,7 +1044,7 @@ def aspc_context_read(
     return util.common.convert_to_serializable({"assay_config": assay_config, "schema": schema})
 
 
-@app.post("/api/v1/admin/aspc/create")
+@app.post("/api/v1/admin/aspc/create", response_model=AdminMutationPayload)
 def create_aspc_mutation(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="create_aspc", min_role="manager", min_level=99)),
@@ -1046,7 +1061,7 @@ def create_aspc_mutation(
     )
 
 
-@app.post("/api/v1/admin/aspc/{assay_id}/update")
+@app.post("/api/v1/admin/aspc/{assay_id}/update", response_model=AdminMutationPayload)
 def update_aspc_mutation(
     assay_id: str,
     payload: dict = Body(default_factory=dict),
@@ -1064,7 +1079,7 @@ def update_aspc_mutation(
     )
 
 
-@app.post("/api/v1/admin/aspc/{assay_id}/toggle")
+@app.post("/api/v1/admin/aspc/{assay_id}/toggle", response_model=AdminMutationPayload)
 def toggle_aspc_mutation(
     assay_id: str,
     user: ApiUser = Depends(require_access(permission="edit_aspc", min_role="manager", min_level=99)),
@@ -1079,7 +1094,7 @@ def toggle_aspc_mutation(
     return util.common.convert_to_serializable(result)
 
 
-@app.post("/api/v1/admin/aspc/{assay_id}/delete")
+@app.post("/api/v1/admin/aspc/{assay_id}/delete", response_model=AdminMutationPayload)
 def delete_aspc_mutation(
     assay_id: str,
     user: ApiUser = Depends(require_access(permission="delete_aspc", min_role="admin", min_level=99999)),
@@ -1157,7 +1172,7 @@ def delete_sample_mutation(
     return util.common.convert_to_serializable(result)
 
 
-@app.post("/api/v1/admin/schemas/create")
+@app.post("/api/v1/admin/schemas/create", response_model=AdminMutationPayload)
 def create_schema_mutation(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="create_schema", min_role="developer", min_level=9999)),
@@ -1174,7 +1189,7 @@ def create_schema_mutation(
     )
 
 
-@app.get("/api/v1/admin/schemas")
+@app.get("/api/v1/admin/schemas", response_model=AdminSchemasListPayload)
 def list_schemas_read(
     user: ApiUser = Depends(require_access(permission="view_schema", min_role="developer", min_level=9999)),
 ):
@@ -1182,7 +1197,7 @@ def list_schemas_read(
     return util.common.convert_to_serializable({"schemas": schemas})
 
 
-@app.get("/api/v1/admin/schemas/{schema_id}/context")
+@app.get("/api/v1/admin/schemas/{schema_id}/context", response_model=AdminSchemaContextPayload)
 def schema_context_read(
     schema_id: str,
     user: ApiUser = Depends(require_access(permission="view_schema", min_role="developer", min_level=9999)),
@@ -1193,7 +1208,7 @@ def schema_context_read(
     return util.common.convert_to_serializable({"schema": schema_doc})
 
 
-@app.post("/api/v1/admin/schemas/{schema_id}/update")
+@app.post("/api/v1/admin/schemas/{schema_id}/update", response_model=AdminMutationPayload)
 def update_schema_mutation(
     schema_id: str,
     payload: dict = Body(default_factory=dict),
@@ -1213,7 +1228,7 @@ def update_schema_mutation(
     )
 
 
-@app.post("/api/v1/admin/schemas/{schema_id}/toggle")
+@app.post("/api/v1/admin/schemas/{schema_id}/toggle", response_model=AdminMutationPayload)
 def toggle_schema_mutation(
     schema_id: str,
     user: ApiUser = Depends(require_access(permission="edit_schema", min_role="developer", min_level=9999)),
@@ -1228,7 +1243,7 @@ def toggle_schema_mutation(
     return util.common.convert_to_serializable(result)
 
 
-@app.post("/api/v1/admin/schemas/{schema_id}/delete")
+@app.post("/api/v1/admin/schemas/{schema_id}/delete", response_model=AdminMutationPayload)
 def delete_schema_mutation(
     schema_id: str,
     user: ApiUser = Depends(require_access(permission="delete_schema", min_role="admin", min_level=99999)),
