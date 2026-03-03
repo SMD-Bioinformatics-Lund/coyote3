@@ -16,9 +16,8 @@ from datetime import datetime
 from copy import deepcopy
 import os
 from pprint import pformat
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 from api.runtime import app
-from api.runtime import render_template
 from api.extensions import store
 from api.utils.common_utility import CommonUtility
 from api.utils.report.report_util import ReportUtility
@@ -212,9 +211,9 @@ def build_dna_report_payload(
     assay_config: dict,
     save: int = 0,
     include_snapshot: bool = False,
-) -> Tuple[str, Optional[List[Dict[str, Any]]]]:
+) -> Tuple[str, Dict[str, Any], List[Dict[str, Any]]]:
     """
-    Build report HTML and optional reported-variant snapshot rows for DNA.
+    Build DNA report template context and optional reported-variant snapshot rows.
     """
     sample_assay = sample.get("assay")
     assay_group: str = assay_config.get("asp_group", "unknown")
@@ -275,9 +274,8 @@ def build_dna_report_payload(
 
     latest_sample_comment = store.sample_handler.get_latest_sample_comment(sample_id=str(sample["_id"]))
 
-    snapshot_rows: Optional[List[Dict[str, Any]]] = None
+    snapshot_rows: List[Dict[str, Any]] = []
     if include_snapshot:
-        snapshot_rows = []
         now_utc = datetime.utcnow()
 
         for v in variants:
@@ -347,25 +345,23 @@ def build_dna_report_payload(
     report_timestamp: str = shared_get_report_timestamp()
     fernet = app.config["FERNET"]
 
-    html = render_template(
-        "dna_report.html",
-        assay_config=assay_config,
-        report_sections=report_sections,
-        report_sections_data=report_sections_data,
-        sample=sample,
-        translation=ReportUtility.VARIANT_CLASS_TRANSLATION,
-        vep_var_class_translations=vep_variant_class_meta,
-        class_desc=ReportUtility.TIER_DESC,
-        class_desc_short=ReportUtility.TIER_SHORT_DESC,
-        report_date=report_date,
-        report_timestamp=report_timestamp,
-        save=save,
-        sample_assay=sample_assay,
-        assay_group=assay_group,
-        genes_covered_in_panel=genes_covered_in_panel,
-        encrypted_panel_doc=CommonUtility.encrypt_json(assay_panel_doc, fernet),
-        encrypted_genelists=CommonUtility.encrypt_json(genes_covered_in_panel, fernet),
-        encrypted_sample_filters=CommonUtility.encrypt_json(sample_filters, fernet),
-    )
-
-    return html, snapshot_rows
+    template_context: Dict[str, Any] = {
+        "assay_config": assay_config,
+        "report_sections": report_sections,
+        "report_sections_data": report_sections_data,
+        "sample": sample,
+        "translation": ReportUtility.VARIANT_CLASS_TRANSLATION,
+        "vep_var_class_translations": vep_variant_class_meta,
+        "class_desc": ReportUtility.TIER_DESC,
+        "class_desc_short": ReportUtility.TIER_SHORT_DESC,
+        "report_date": report_date,
+        "report_timestamp": report_timestamp,
+        "save": save,
+        "sample_assay": sample_assay,
+        "assay_group": assay_group,
+        "genes_covered_in_panel": genes_covered_in_panel,
+        "encrypted_panel_doc": CommonUtility.encrypt_json(assay_panel_doc, fernet),
+        "encrypted_genelists": CommonUtility.encrypt_json(genes_covered_in_panel, fernet),
+        "encrypted_sample_filters": CommonUtility.encrypt_json(sample_filters, fernet),
+    }
+    return "dna_report.html", template_context, snapshot_rows

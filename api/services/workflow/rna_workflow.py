@@ -22,7 +22,6 @@ from datetime import datetime
 from typing import Any
 
 from api.runtime import app
-from api.runtime import render_template
 
 from api.extensions import store, util
 from api.services.reporting.report_paths import build_report_file_location
@@ -293,7 +292,7 @@ class RNAWorkflowService:
     @staticmethod
     def build_report_payload(sample: dict, save: int, include_snapshot: bool):
         """
-        Build RNA report HTML and optional snapshot rows through shared workflow service.
+        Build RNA report template context and optional snapshot rows through shared workflow service.
         """
         assay = util.common.get_assay_from_sample(sample)
         fusion_query = {"SAMPLE_ID": str(sample["_id"])}
@@ -312,20 +311,19 @@ class RNAWorkflowService:
         report_header = util.common.get_report_header(assay, sample)
         report_date = datetime.now().date()
 
-        html = render_template(
-            "report_fusion.html",
-            assay=assay,
-            fusions=fusions,
-            report_header=report_header,
-            analysis_method=analysis_method,
-            analysis_desc=analysis_desc,
-            sample=sample,
-            class_desc=class_desc,
-            class_desc_short=class_desc_short,
-            report_date=report_date,
-            save=save,
-        )
+        template_context = {
+            "assay": assay,
+            "fusions": fusions,
+            "report_header": report_header,
+            "analysis_method": analysis_method,
+            "analysis_desc": analysis_desc,
+            "sample": sample,
+            "class_desc": class_desc,
+            "class_desc_short": class_desc_short,
+            "report_date": report_date,
+            "save": save,
+        }
 
         if not include_snapshot:
-            return html, []
-        return html, RNAWorkflowService._build_snapshot_rows(fusions)
+            return "report_fusion.html", template_context, []
+        return "report_fusion.html", template_context, RNAWorkflowService._build_snapshot_rows(fusions)
