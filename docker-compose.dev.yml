@@ -16,7 +16,7 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
     ports:
-      - "6815:8000"
+      - "6817:8000"
     env_file:
       - .coyote3_dev_env
     environment:
@@ -126,7 +126,7 @@ services:
     container_name: redis_coyote3_dev
     image: ramsainanduri/redis:7.4.3
     ports:
-      - "5818:6379"
+      - "5819:6379"
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
     dns:
