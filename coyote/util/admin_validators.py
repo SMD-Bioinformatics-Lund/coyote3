@@ -1,28 +1,6 @@
-#  Copyright (c) 2025 Coyote3 Project Authors
-#  All rights reserved.
-#
-#  This source file is part of the Coyote3 codebase.
-#  The Coyote3 project provides a framework for genomic data analysis,
-#  interpretation, reporting, and clinical diagnostics.
-#
-#  Unauthorized use, distribution, or modification of this software or its
-#  components is strictly prohibited without prior written permission from
-#  the copyright holders.
-#
+"""Backward-compatible web validator imports from shared core."""
 
-"""
-Schema validation for the Coyote application
-This module contains functions to validate the schema of the Coyote application.
-"""
+from shared.core.admin_validators import REQUIRED_SCHEMA_KEYS
 
-REQUIRED_SCHEMA_KEYS = [
-    "_id",
-    "schema_name",
-    "schema_type",
-    "description",
-    "is_active",
-    "version",
-    "sections",
-    "fields",
-    "subschemas",
-]
+__all__ = ["REQUIRED_SCHEMA_KEYS"]
+

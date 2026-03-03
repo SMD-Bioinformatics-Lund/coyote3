@@ -1,4 +1,4 @@
-"""Backward-compatible API validator imports from shared core."""
+"""Shared core constants and helpers."""
 
 from shared.core.admin_validators import REQUIRED_SCHEMA_KEYS
 

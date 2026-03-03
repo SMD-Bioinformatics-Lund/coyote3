@@ -1,4 +1,4 @@
-"""Backward-compatible API import shim for the shared UserModel."""
+"""Shared data models."""
 
 from shared.models.user import UserModel
 
