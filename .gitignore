@@ -176,3 +176,5 @@ coyote3_dir_structure.txt
 .internal/*.local
 .internal/*.local.md
 .internal/*.log
+.internal/*.task.md
+.internal/*.plan.md

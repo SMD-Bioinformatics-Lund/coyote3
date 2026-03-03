@@ -103,6 +103,22 @@ The active refactor direction is API-centric and enforced as a hard boundary:
 
 This boundary is being enforced incrementally with dedicated contract tests under `tests/contract/`.
 
+Execution policy during refactor:
+- work is performed as explicit, small, green tasks
+- each task updates docs immediately
+- each task ends with tests and a scoped commit
+- private task ledger is maintained in `.internal/REFACTOR_TASKS.md` (untracked)
+
+---
+
+## Quality Checks (Local)
+
+```bash
+PYTHONPATH=. .venv/bin/ruff check api coyote tests
+PYTHONPATH=. .venv/bin/ruff format --check api coyote tests
+PYTHONPATH=. .venv/bin/pytest -q -m contract
+```
+
 ---
 
 ## Feature Modules
