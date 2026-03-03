@@ -4,6 +4,7 @@ from fastapi import Body, Depends, Query
 from typing import Any, Literal
 
 from api.contracts.reports import ReportPreviewPayload
+from api.contracts.generic import GenericPayload
 from api.extensions import util
 from api.core.workflows.dna_workflow import DNAWorkflowService
 from api.core.workflows.rna_workflow import RNAWorkflowService
@@ -218,7 +219,7 @@ def preview_rna_report(
     return util.common.convert_to_serializable(payload)
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/report/save")
+@app.post("/api/v1/dna/samples/{sample_id}/report/save", response_model=GenericPayload)
 def save_dna_report(
     sample_id: str,
     report_payload: dict | None = Body(default=None),
@@ -255,7 +256,7 @@ def save_dna_report(
     return util.common.convert_to_serializable(payload)
 
 
-@app.post("/api/v1/rna/samples/{sample_id}/report/save")
+@app.post("/api/v1/rna/samples/{sample_id}/report/save", response_model=GenericPayload)
 def save_rna_report(
     sample_id: str,
     report_payload: dict | None = Body(default=None),

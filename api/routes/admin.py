@@ -5,6 +5,7 @@ from copy import deepcopy
 from fastapi import Body, Depends, Query
 
 from api.extensions import store, util
+from api.contracts.generic import GenericPayload
 from api.contracts.admin import (
     AdminAspcContextPayload,
     AdminAspcCreateContextPayload,
@@ -328,7 +329,7 @@ def delete_permission_mutation(
     )
 
 
-@app.post("/api/v1/admin/roles/create")
+@app.post("/api/v1/admin/roles/create", response_model=GenericPayload)
 def create_role_mutation(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="create_role", min_role="admin", min_level=99999)),
@@ -361,7 +362,7 @@ def create_role_mutation(
     )
 
 
-@app.post("/api/v1/admin/roles/{role_id}/update")
+@app.post("/api/v1/admin/roles/{role_id}/update", response_model=GenericPayload)
 def update_role_mutation(
     role_id: str,
     payload: dict = Body(default_factory=dict),
@@ -394,7 +395,7 @@ def update_role_mutation(
     )
 
 
-@app.post("/api/v1/admin/roles/{role_id}/toggle")
+@app.post("/api/v1/admin/roles/{role_id}/toggle", response_model=GenericPayload)
 def toggle_role_mutation(
     role_id: str,
     user: ApiUser = Depends(require_access(permission="edit_role", min_role="admin", min_level=99999)),
@@ -409,7 +410,7 @@ def toggle_role_mutation(
     return util.common.convert_to_serializable(result)
 
 
-@app.post("/api/v1/admin/roles/{role_id}/delete")
+@app.post("/api/v1/admin/roles/{role_id}/delete", response_model=GenericPayload)
 def delete_role_mutation(
     role_id: str,
     user: ApiUser = Depends(require_access(permission="delete_role", min_role="admin", min_level=99999)),
@@ -511,7 +512,7 @@ def user_context_read(
     )
 
 
-@app.post("/api/v1/admin/users/create")
+@app.post("/api/v1/admin/users/create", response_model=GenericPayload)
 def create_user_mutation(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="create_user", min_role="admin", min_level=99999)),
@@ -566,7 +567,7 @@ def create_user_mutation(
     )
 
 
-@app.post("/api/v1/admin/users/{user_id}/update")
+@app.post("/api/v1/admin/users/{user_id}/update", response_model=GenericPayload)
 def update_user_mutation(
     user_id: str,
     payload: dict = Body(default_factory=dict),
@@ -619,7 +620,7 @@ def update_user_mutation(
     )
 
 
-@app.post("/api/v1/admin/users/{user_id}/delete")
+@app.post("/api/v1/admin/users/{user_id}/delete", response_model=GenericPayload)
 def delete_user_mutation(
     user_id: str,
     user: ApiUser = Depends(require_access(permission="delete_user", min_role="admin", min_level=99999)),
@@ -633,7 +634,7 @@ def delete_user_mutation(
     )
 
 
-@app.post("/api/v1/admin/users/{user_id}/toggle")
+@app.post("/api/v1/admin/users/{user_id}/toggle", response_model=GenericPayload)
 def toggle_user_mutation(
     user_id: str,
     user: ApiUser = Depends(require_access(permission="edit_user", min_role="admin", min_level=99999)),
@@ -648,7 +649,7 @@ def toggle_user_mutation(
     return util.common.convert_to_serializable(result)
 
 
-@app.post("/api/v1/admin/users/validate_username")
+@app.post("/api/v1/admin/users/validate_username", response_model=GenericPayload)
 def validate_username_mutation(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="create_user", min_role="admin", min_level=99999)),
@@ -657,7 +658,7 @@ def validate_username_mutation(
     return util.common.convert_to_serializable({"exists": store.user_handler.user_exists(user_id=username)})
 
 
-@app.post("/api/v1/admin/users/validate_email")
+@app.post("/api/v1/admin/users/validate_email", response_model=GenericPayload)
 def validate_email_mutation(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="create_user", min_role="admin", min_level=99999)),
@@ -1108,7 +1109,7 @@ def delete_aspc_mutation(
     )
 
 
-@app.get("/api/v1/admin/samples")
+@app.get("/api/v1/admin/samples", response_model=GenericPayload)
 def list_admin_samples_read(
     search: str = Query(default=""),
     user: ApiUser = Depends(
@@ -1119,7 +1120,7 @@ def list_admin_samples_read(
     return util.common.convert_to_serializable({"samples": samples})
 
 
-@app.get("/api/v1/admin/samples/{sample_id}/context")
+@app.get("/api/v1/admin/samples/{sample_id}/context", response_model=GenericPayload)
 def admin_sample_context_read(
     sample_id: str,
     user: ApiUser = Depends(
@@ -1132,7 +1133,7 @@ def admin_sample_context_read(
     return util.common.convert_to_serializable({"sample": sample_doc})
 
 
-@app.post("/api/v1/admin/samples/{sample_id}/update")
+@app.post("/api/v1/admin/samples/{sample_id}/update", response_model=GenericPayload)
 def update_sample_mutation(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
@@ -1155,7 +1156,7 @@ def update_sample_mutation(
     )
 
 
-@app.post("/api/v1/admin/samples/{sample_id}/delete")
+@app.post("/api/v1/admin/samples/{sample_id}/delete", response_model=GenericPayload)
 def delete_sample_mutation(
     sample_id: str,
     user: ApiUser = Depends(

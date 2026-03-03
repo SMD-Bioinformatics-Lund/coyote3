@@ -121,6 +121,7 @@ Current backend reorganization has started with:
 - Coverage route response contracts added under `api/contracts/coverage.py`
 - Admin assay/genelist/aspc/schema contracts added under `api/contracts/admin.py`
 - Samples/coverage-mutation contracts added under `api/contracts/samples.py`
+- Remaining legacy route decorators normalized with `api/contracts/generic.py` for incremental contract coverage
 - Flask-side API transport consolidated under `coyote/services/api_client` (legacy `coyote/integrations/api` removed)
 - Runtime/security config access centralized in `api/settings.py`
 

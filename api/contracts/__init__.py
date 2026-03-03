@@ -32,6 +32,7 @@ from api.contracts.common import (
 )
 from api.contracts.coverage import CoverageBlacklistedPayload, CoverageSamplePayload
 from api.contracts.dashboard import DashboardSummaryPayload
+from api.contracts.generic import GenericPayload
 from api.contracts.home import (
     HomeEditContextPayload,
     HomeEffectiveGenesPayload,
@@ -85,6 +86,7 @@ __all__ = [
     "CoverageBlacklistedPayload",
     "CoverageSamplePayload",
     "DashboardSummaryPayload",
+    "GenericPayload",
     "HealthPayload",
     "HomeEditContextPayload",
     "HomeEffectiveGenesPayload",

@@ -8,6 +8,7 @@ from api.core.interpretation.report_summary import generate_summary_text
 from api.core.workflows.rna_workflow import RNAWorkflowService
 from api.runtime import app as runtime_app
 from api.app import _api_error, _get_formatted_assay_config, app
+from api.contracts.generic import GenericPayload
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 
 
@@ -22,7 +23,7 @@ def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: s
     }
 
 
-@app.get("/api/v1/rna/samples/{sample_id}/fusions")
+@app.get("/api/v1/rna/samples/{sample_id}/fusions", response_model=GenericPayload)
 def list_rna_fusions(request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
     assay_config = _get_formatted_assay_config(sample)
@@ -85,7 +86,7 @@ def list_rna_fusions(request: Request, sample_id: str, user: ApiUser = Depends(r
     return util.common.convert_to_serializable(payload)
 
 
-@app.get("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}")
+@app.get("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}", response_model=GenericPayload)
 def show_rna_fusion(sample_id: str, fusion_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
     fusion = store.fusion_handler.get_fusion(fusion_id)
@@ -125,7 +126,7 @@ def show_rna_fusion(sample_id: str, fusion_id: str, user: ApiUser = Depends(requ
     return util.common.convert_to_serializable(payload)
 
 
-@app.post("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/fp")
+@app.post("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/fp", response_model=GenericPayload)
 def mark_false_positive_fusion(
     sample_id: str,
     fusion_id: str,
@@ -138,7 +139,7 @@ def mark_false_positive_fusion(
     )
 
 
-@app.post("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/unfp")
+@app.post("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/unfp", response_model=GenericPayload)
 def unmark_false_positive_fusion(
     sample_id: str,
     fusion_id: str,
@@ -151,7 +152,7 @@ def unmark_false_positive_fusion(
     )
 
 
-@app.post("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/pick/{callidx}/{num_calls}")
+@app.post("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/pick/{callidx}/{num_calls}", response_model=GenericPayload)
 def pick_fusion_call(
     sample_id: str,
     fusion_id: str,
@@ -166,7 +167,7 @@ def pick_fusion_call(
     )
 
 
-@app.post("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/comments/{comment_id}/hide")
+@app.post("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/comments/{comment_id}/hide", response_model=GenericPayload)
 def hide_fusion_comment(
     sample_id: str,
     fusion_id: str,
@@ -180,7 +181,7 @@ def hide_fusion_comment(
     )
 
 
-@app.post("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/comments/{comment_id}/unhide")
+@app.post("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/comments/{comment_id}/unhide", response_model=GenericPayload)
 def unhide_fusion_comment(
     sample_id: str,
     fusion_id: str,
@@ -194,7 +195,7 @@ def unhide_fusion_comment(
     )
 
 
-@app.post("/api/v1/rna/samples/{sample_id}/fusions/bulk/fp")
+@app.post("/api/v1/rna/samples/{sample_id}/fusions/bulk/fp", response_model=GenericPayload)
 def set_fusion_false_positive_bulk(
     sample_id: str,
     apply: bool = Query(default=True),
@@ -209,7 +210,7 @@ def set_fusion_false_positive_bulk(
     )
 
 
-@app.post("/api/v1/rna/samples/{sample_id}/fusions/bulk/irrelevant")
+@app.post("/api/v1/rna/samples/{sample_id}/fusions/bulk/irrelevant", response_model=GenericPayload)
 def set_fusion_irrelevant_bulk(
     sample_id: str,
     apply: bool = Query(default=True),

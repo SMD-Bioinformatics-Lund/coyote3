@@ -24,6 +24,7 @@ from api.core.interpretation.report_summary import (
 from api.core.workflows.dna_workflow import DNAWorkflowService
 from api.runtime import app as runtime_app
 from api.app import _api_error, _get_formatted_assay_config, app
+from api.contracts.generic import GenericPayload
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 
 
@@ -47,7 +48,7 @@ def _load_cnvs_for_sample(sample: dict, sample_filters: dict, filter_genes: list
     return cnv_organizegenes(cnvs)
 
 
-@app.get("/api/v1/dna/samples/{sample_id}/variants")
+@app.get("/api/v1/dna/samples/{sample_id}/variants", response_model=GenericPayload)
 def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
     assay_config = _get_formatted_assay_config(sample)
@@ -184,7 +185,7 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
     return util.common.convert_to_serializable(payload)
 
 
-@app.get("/api/v1/dna/samples/{sample_id}/plot_context")
+@app.get("/api/v1/dna/samples/{sample_id}/plot_context", response_model=GenericPayload)
 def dna_plot_context(sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
     assay_config = _get_formatted_assay_config(sample)
@@ -202,7 +203,7 @@ def dna_plot_context(sample_id: str, user: ApiUser = Depends(require_access(min_
     )
 
 
-@app.get("/api/v1/dna/samples/{sample_id}/biomarkers")
+@app.get("/api/v1/dna/samples/{sample_id}/biomarkers", response_model=GenericPayload)
 def list_dna_biomarkers(sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
     biomarkers = list(store.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"])))
@@ -214,7 +215,7 @@ def list_dna_biomarkers(sample_id: str, user: ApiUser = Depends(require_access(m
     return util.common.convert_to_serializable(payload)
 
 
-@app.get("/api/v1/dna/samples/{sample_id}/variants/{var_id}")
+@app.get("/api/v1/dna/samples/{sample_id}/variants/{var_id}", response_model=GenericPayload)
 def show_dna_variant(sample_id: str, var_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
     variant = store.variant_handler.get_variant(var_id)
@@ -325,7 +326,7 @@ def show_dna_variant(sample_id: str, var_id: str, user: ApiUser = Depends(requir
     return util.common.convert_to_serializable(payload)
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/unfp")
+@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/unfp", response_model=GenericPayload)
 def unmark_false_variant(
     sample_id: str,
     var_id: str,
@@ -341,7 +342,7 @@ def unmark_false_variant(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/fp")
+@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/fp", response_model=GenericPayload)
 def mark_false_variant(
     sample_id: str,
     var_id: str,
@@ -357,7 +358,7 @@ def mark_false_variant(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/uninterest")
+@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/uninterest", response_model=GenericPayload)
 def unmark_interesting_variant(
     sample_id: str,
     var_id: str,
@@ -373,7 +374,7 @@ def unmark_interesting_variant(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/interest")
+@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/interest", response_model=GenericPayload)
 def mark_interesting_variant(
     sample_id: str,
     var_id: str,
@@ -389,7 +390,7 @@ def mark_interesting_variant(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/relevant")
+@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/relevant", response_model=GenericPayload)
 def unmark_irrelevant_variant(
     sample_id: str,
     var_id: str,
@@ -405,7 +406,7 @@ def unmark_irrelevant_variant(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/irrelevant")
+@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/irrelevant", response_model=GenericPayload)
 def mark_irrelevant_variant(
     sample_id: str,
     var_id: str,
@@ -421,7 +422,7 @@ def mark_irrelevant_variant(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/blacklist")
+@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/blacklist", response_model=GenericPayload)
 def add_variant_to_blacklist(
     sample_id: str,
     var_id: str,
@@ -441,7 +442,7 @@ def add_variant_to_blacklist(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/comments/{comment_id}/hide")
+@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/comments/{comment_id}/hide", response_model=GenericPayload)
 def hide_variant_comment(
     sample_id: str,
     var_id: str,
@@ -460,7 +461,7 @@ def hide_variant_comment(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/comments/{comment_id}/unhide")
+@app.post("/api/v1/dna/samples/{sample_id}/variants/{var_id}/comments/{comment_id}/unhide", response_model=GenericPayload)
 def unhide_variant_comment(
     sample_id: str,
     var_id: str,
@@ -479,7 +480,7 @@ def unhide_variant_comment(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/variants/bulk/fp")
+@app.post("/api/v1/dna/samples/{sample_id}/variants/bulk/fp", response_model=GenericPayload)
 def set_variant_false_positive_bulk(
     sample_id: str,
     apply: bool = Query(default=True),
@@ -497,7 +498,7 @@ def set_variant_false_positive_bulk(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/variants/bulk/irrelevant")
+@app.post("/api/v1/dna/samples/{sample_id}/variants/bulk/irrelevant", response_model=GenericPayload)
 def set_variant_irrelevant_bulk(
     sample_id: str,
     apply: bool = Query(default=True),
@@ -515,7 +516,7 @@ def set_variant_irrelevant_bulk(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/variants/bulk/tier")
+@app.post("/api/v1/dna/samples/{sample_id}/variants/bulk/tier", response_model=GenericPayload)
 def set_variant_tier_bulk(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
@@ -600,7 +601,7 @@ def set_variant_tier_bulk(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/variants/classify")
+@app.post("/api/v1/dna/samples/{sample_id}/variants/classify", response_model=GenericPayload)
 def classify_variant_mutation(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
@@ -618,7 +619,7 @@ def classify_variant_mutation(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/variants/rmclassify")
+@app.post("/api/v1/dna/samples/{sample_id}/variants/rmclassify", response_model=GenericPayload)
 def remove_classified_variant_mutation(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
@@ -634,7 +635,7 @@ def remove_classified_variant_mutation(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/comments/add")
+@app.post("/api/v1/dna/samples/{sample_id}/comments/add", response_model=GenericPayload)
 def add_variant_comment_mutation(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
@@ -668,7 +669,7 @@ def add_variant_comment_mutation(
         _mutation_payload(sample_id, resource=resource, resource_id=target_id, action="add_comment")
     )
 
-@app.get("/api/v1/dna/samples/{sample_id}/cnvs")
+@app.get("/api/v1/dna/samples/{sample_id}/cnvs", response_model=GenericPayload)
 def list_dna_cnvs(request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
     assay_config = _get_formatted_assay_config(sample)
@@ -699,7 +700,7 @@ def list_dna_cnvs(request: Request, sample_id: str, user: ApiUser = Depends(requ
     return util.common.convert_to_serializable(payload)
 
 
-@app.get("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}")
+@app.get("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}", response_model=GenericPayload)
 def show_dna_cnv(sample_id: str, cnv_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
     cnv = store.cnv_handler.get_cnv(cnv_id)
@@ -737,7 +738,7 @@ def show_dna_cnv(sample_id: str, cnv_id: str, user: ApiUser = Depends(require_ac
     return util.common.convert_to_serializable(payload)
 
 
-@app.get("/api/v1/dna/samples/{sample_id}/translocations")
+@app.get("/api/v1/dna/samples/{sample_id}/translocations", response_model=GenericPayload)
 def list_dna_translocations(
     request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))
 ):
@@ -756,7 +757,7 @@ def list_dna_translocations(
     return util.common.convert_to_serializable(payload)
 
 
-@app.get("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}")
+@app.get("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}", response_model=GenericPayload)
 def show_dna_translocation(
     sample_id: str, transloc_id: str, user: ApiUser = Depends(require_access(min_level=1))
 ):
@@ -810,7 +811,7 @@ def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: s
     }
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/unmarkinteresting")
+@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/unmarkinteresting", response_model=GenericPayload)
 def unmark_interesting_cnv(
     sample_id: str,
     cnv_id: str,
@@ -823,7 +824,7 @@ def unmark_interesting_cnv(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/interesting")
+@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/interesting", response_model=GenericPayload)
 def mark_interesting_cnv(
     sample_id: str,
     cnv_id: str,
@@ -836,7 +837,7 @@ def mark_interesting_cnv(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/fpcnv")
+@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/fpcnv", response_model=GenericPayload)
 def mark_false_positive_cnv(
     sample_id: str,
     cnv_id: str,
@@ -849,7 +850,7 @@ def mark_false_positive_cnv(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/unfpcnv")
+@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/unfpcnv", response_model=GenericPayload)
 def unmark_false_positive_cnv(
     sample_id: str,
     cnv_id: str,
@@ -862,7 +863,7 @@ def unmark_false_positive_cnv(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/noteworthycnv")
+@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/noteworthycnv", response_model=GenericPayload)
 def mark_noteworthy_cnv(
     sample_id: str,
     cnv_id: str,
@@ -875,7 +876,7 @@ def mark_noteworthy_cnv(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/notnoteworthycnv")
+@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/notnoteworthycnv", response_model=GenericPayload)
 def unmark_noteworthy_cnv(
     sample_id: str,
     cnv_id: str,
@@ -888,7 +889,7 @@ def unmark_noteworthy_cnv(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/hide")
+@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/hide", response_model=GenericPayload)
 def hide_cnv_comment(
     sample_id: str,
     cnv_id: str,
@@ -904,7 +905,7 @@ def hide_cnv_comment(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/unhide")
+@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/unhide", response_model=GenericPayload)
 def unhide_cnv_comment(
     sample_id: str,
     cnv_id: str,
@@ -920,7 +921,7 @@ def unhide_cnv_comment(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/interestingtransloc")
+@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/interestingtransloc", response_model=GenericPayload)
 def mark_interesting_translocation(
     sample_id: str,
     transloc_id: str,
@@ -938,7 +939,7 @@ def mark_interesting_translocation(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/uninterestingtransloc")
+@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/uninterestingtransloc", response_model=GenericPayload)
 def unmark_interesting_translocation(
     sample_id: str,
     transloc_id: str,
@@ -956,7 +957,7 @@ def unmark_interesting_translocation(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/fptransloc")
+@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/fptransloc", response_model=GenericPayload)
 def mark_false_positive_translocation(
     sample_id: str,
     transloc_id: str,
@@ -974,7 +975,7 @@ def mark_false_positive_translocation(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/ptransloc")
+@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/ptransloc", response_model=GenericPayload)
 def unmark_false_positive_translocation(
     sample_id: str,
     transloc_id: str,
@@ -992,7 +993,7 @@ def unmark_false_positive_translocation(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/comments/{comment_id}/hide")
+@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/comments/{comment_id}/hide", response_model=GenericPayload)
 def hide_translocation_comment(
     sample_id: str,
     transloc_id: str,
@@ -1008,7 +1009,7 @@ def hide_translocation_comment(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/comments/{comment_id}/unhide")
+@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/comments/{comment_id}/unhide", response_model=GenericPayload)
 def unhide_translocation_comment(
     sample_id: str,
     transloc_id: str,
