@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import re
-
+from pathlib import Path
 
 API_IMPORT_RE = re.compile(r"^\s*(from|import)\s+api[\.]", re.MULTILINE)
 ALLOWED_FILES: set[str] = set()

@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import re
+from pathlib import Path
 
 import pytest
-
 
 FORBIDDEN_IMPORT_RE = re.compile(r"^\s*(from|import)\s+api[\.]", re.MULTILINE)
 

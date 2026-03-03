@@ -18,7 +18,6 @@ class ApiRequestError(Exception):
         return self.message
 
 
-
 class ApiPayload(dict[str, Any]):
     """Dict with attribute access for API payloads."""
 
@@ -35,7 +34,6 @@ class ApiPayload(dict[str, Any]):
         return _to_builtin(self)
 
 
-
 def _as_api_payload(value: Any) -> Any:
     if isinstance(value, dict):
         return ApiPayload({k: _as_api_payload(v) for k, v in value.items()})
@@ -44,14 +42,12 @@ def _as_api_payload(value: Any) -> Any:
     return value
 
 
-
 def _to_builtin(value: Any) -> Any:
     if isinstance(value, ApiPayload):
         return {k: _to_builtin(v) for k, v in value.items()}
     if isinstance(value, list):
         return [_to_builtin(v) for v in value]
     return value
-
 
 
 class BaseApiClient:
@@ -87,7 +83,11 @@ class BaseApiClient:
 
         if response.status_code >= 400:
             message = payload.get("error", f"API request failed ({response.status_code})")
-            raise ApiRequestError(message=message, status_code=response.status_code, payload=payload)
+            raise ApiRequestError(
+                message=message,
+                status_code=response.status_code,
+                payload=payload,
+            )
 
         if not isinstance(payload, dict):
             raise ApiRequestError(
@@ -112,7 +112,9 @@ class BaseApiClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> ApiPayload:
-        return _as_api_payload(self._request("POST", path, headers=headers, params=params, json_body=json_body))
+        return _as_api_payload(
+            self._request("POST", path, headers=headers, params=params, json_body=json_body)
+        )
 
     def get_json(
         self,

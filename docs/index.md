@@ -40,6 +40,7 @@ Tooling baseline:
 - `ruff check api coyote tests`
 - `ruff format --check api coyote tests`
 - `pytest -m unit|api|web|contract` for suite-focused execution.
+- `.github/workflows/quality.yml` enforces the same checks in CI.
 
 Backend refactor status:
 - Mongo infrastructure moved to `api/infra/db` (handlers + adapter/base migration in progress).

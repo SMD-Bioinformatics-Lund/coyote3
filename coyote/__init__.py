@@ -25,9 +25,9 @@ from coyote import extensions
 from .errors import register_error_handlers
 from flask_login import current_user
 from coyote.util.misc import get_dynamic_assay_nav
+from coyote.services.api_client import ApiRequestError
 from coyote.services.api_client import endpoints as api_endpoints
 from coyote.services.api_client.api_client import (
-    ApiRequestError,
     build_internal_headers,
     get_web_api_client,
 )

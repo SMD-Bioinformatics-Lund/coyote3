@@ -132,6 +132,9 @@ PYTHONPATH=. .venv/bin/pytest -q -m api
 PYTHONPATH=. .venv/bin/pytest -q -m web
 ```
 
+CI parity:
+- `.github/workflows/quality.yml` runs the same lint/format checks and marker-based test suites.
+
 ---
 
 ## Feature Modules
