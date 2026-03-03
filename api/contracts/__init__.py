@@ -54,6 +54,7 @@ from api.contracts.public import (
     PublicGenelistViewPayload,
 )
 from api.contracts.reports import ReportPreviewPayload, ReportSavePayload
+from api.contracts.rna import RnaFusionContextPayload, RnaFusionListPayload
 from api.contracts.samples import CoverageBlacklistStatusPayload, SampleMutationPayload
 from api.contracts.system import AuthLoginEnvelope, AuthUserEnvelope, HealthPayload, WhoamiPayload
 
@@ -109,6 +110,8 @@ __all__ = [
     "PublicGenelistViewPayload",
     "ReportPreviewPayload",
     "ReportSavePayload",
+    "RnaFusionContextPayload",
+    "RnaFusionListPayload",
     "CoverageBlacklistStatusPayload",
     "SampleMutationPayload",
     "RoleLevelsPayload",
