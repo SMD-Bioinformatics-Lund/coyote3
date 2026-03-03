@@ -1,7 +1,7 @@
 """Report API routes for DNA and RNA."""
 
 from fastapi import Body, Depends, Query
-from typing import Any
+from typing import Any, Literal
 
 from api.extensions import util
 from api.services.workflow.dna_workflow import DNAWorkflowService
@@ -16,6 +16,8 @@ from api.app import (
     require_access,
 )
 from api.runtime import app as runtime_app
+
+ReportAnalyte = Literal["dna", "rna"]
 
 
 def _sample_meta(sample: dict) -> dict:
@@ -75,6 +77,93 @@ def _save_response_payload(*, sample: dict, report_id: str, report_oid: str, rep
     }
 
 
+def _load_report_context(sample_id: str, user: ApiUser) -> tuple[dict, dict]:
+    sample = _get_sample_for_api(sample_id, user)
+    assay_config = _get_formatted_assay_config(sample)
+    if not assay_config:
+        raise _api_error(404, "Assay config not found for sample")
+    return sample, assay_config
+
+
+def _validate_report_inputs(analyte: ReportAnalyte, sample: dict, assay_config: dict) -> None:
+    if analyte == "dna":
+        DNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
+    else:
+        RNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
+
+
+def _build_preview_report(analyte: ReportAnalyte, sample: dict, assay_config: dict, *, save: bool, include_snapshot: bool):
+    if analyte == "dna":
+        return DNAWorkflowService.build_report_payload(
+            sample=sample,
+            assay_config=assay_config,
+            save=1 if save else 0,
+            include_snapshot=include_snapshot,
+        )
+    return RNAWorkflowService.build_report_payload(
+        sample=sample,
+        save=1 if save else 0,
+        include_snapshot=include_snapshot,
+    )
+
+
+def _build_report_location(analyte: ReportAnalyte, sample: dict, assay_config: dict) -> tuple[str, str, str]:
+    base_path = runtime_app.config.get("REPORTS_BASE_PATH", "reports")
+    if analyte == "dna":
+        return DNAWorkflowService.build_report_location(
+            sample=sample,
+            assay_config=assay_config,
+            reports_base_path=base_path,
+        )
+    return RNAWorkflowService.build_report_location(
+        sample=sample,
+        assay_config=assay_config,
+        reports_base_path=base_path,
+    )
+
+
+def _prepare_report_output(analyte: ReportAnalyte, report_path: str, report_file: str) -> None:
+    if analyte == "dna":
+        DNAWorkflowService.prepare_report_output(report_path, report_file, logger=runtime_app.logger)
+    else:
+        RNAWorkflowService.prepare_report_output(report_path, report_file, logger=runtime_app.logger)
+
+
+def _persist_report(
+    analyte: ReportAnalyte,
+    *,
+    sample_id: str,
+    sample: dict,
+    report_num: int,
+    report_id: str,
+    report_file: str,
+    html: str,
+    snapshot_rows: list,
+    created_by: str,
+) -> str:
+    if analyte == "dna":
+        return DNAWorkflowService.persist_report(
+            sample_id=sample_id,
+            sample=sample,
+            report_num=report_num,
+            report_id=report_id,
+            report_file=report_file,
+            html=html,
+            snapshot_rows=snapshot_rows,
+            created_by=created_by,
+        )
+    return RNAWorkflowService.persist_report(
+        sample_id=sample_id,
+        sample=sample,
+        report_num=report_num,
+        report_id=report_id,
+        report_file=report_file,
+        html=html,
+        snapshot_rows=snapshot_rows,
+        created_by=created_by,
+    )
+
+
 @app.get("/api/v1/dna/samples/{sample_id}/report/preview")
 def preview_dna_report(
     sample_id: str,
@@ -82,16 +171,14 @@ def preview_dna_report(
     save: bool = Query(default=False),
     user: ApiUser = Depends(require_access(permission="preview_report", min_role="user", min_level=9)),
 ):
-    sample = _get_sample_for_api(sample_id, user)
-    assay_config = _get_formatted_assay_config(sample)
-    if not assay_config:
-        raise _api_error(404, "Assay config not found for sample")
-    DNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
+    sample, assay_config = _load_report_context(sample_id, user)
+    _validate_report_inputs("dna", sample, assay_config)
 
-    template_name, template_context, snapshot_rows = DNAWorkflowService.build_report_payload(
-        sample=sample,
-        assay_config=assay_config,
-        save=1 if _to_bool(save, default=False) else 0,
+    template_name, template_context, snapshot_rows = _build_preview_report(
+        "dna",
+        sample,
+        assay_config,
+        save=_to_bool(save, default=False),
         include_snapshot=_to_bool(include_snapshot, default=False),
     )
     snapshot_rows = snapshot_rows or []
@@ -113,15 +200,14 @@ def preview_rna_report(
     save: bool = Query(default=False),
     user: ApiUser = Depends(require_access(permission="preview_report", min_role="user", min_level=9)),
 ):
-    sample = _get_sample_for_api(sample_id, user)
-    assay_config = _get_formatted_assay_config(sample)
-    if not assay_config:
-        raise _api_error(404, "Assay config not found for sample")
-    RNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
+    sample, assay_config = _load_report_context(sample_id, user)
+    _validate_report_inputs("rna", sample, assay_config)
 
-    template_name, template_context, snapshot_rows = RNAWorkflowService.build_report_payload(
-        sample=sample,
-        save=1 if _to_bool(save, default=False) else 0,
+    template_name, template_context, snapshot_rows = _build_preview_report(
+        "rna",
+        sample,
+        assay_config,
+        save=_to_bool(save, default=False),
         include_snapshot=_to_bool(include_snapshot, default=False),
     )
     payload = _preview_response_payload(
@@ -141,23 +227,17 @@ def save_dna_report(
     report_payload: dict | None = Body(default=None),
     user: ApiUser = Depends(require_access(permission="create_report", min_role="admin")),
 ):
-    sample = _get_sample_for_api(sample_id, user)
-    assay_config = _get_formatted_assay_config(sample)
-    if not assay_config:
-        raise _api_error(404, "Assay config not found for sample")
-    DNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
+    sample, assay_config = _load_report_context(sample_id, user)
+    _validate_report_inputs("dna", sample, assay_config)
 
     report_num = sample.get("report_num", 0) + 1
-    report_id, report_path, report_file = DNAWorkflowService.build_report_location(
-        sample=sample,
-        assay_config=assay_config,
-        reports_base_path=runtime_app.config.get("REPORTS_BASE_PATH", "reports"),
-    )
-    DNAWorkflowService.prepare_report_output(report_path, report_file, logger=runtime_app.logger)
+    report_id, report_path, report_file = _build_report_location("dna", sample, assay_config)
+    _prepare_report_output("dna", report_path, report_file)
 
     html, snapshot_rows = _normalize_rendered_report_payload(report_payload)
 
-    report_oid = DNAWorkflowService.persist_report(
+    report_oid = _persist_report(
+        "dna",
         sample_id=sample_id,
         sample=sample,
         report_num=report_num,
@@ -184,23 +264,17 @@ def save_rna_report(
     report_payload: dict | None = Body(default=None),
     user: ApiUser = Depends(require_access(permission="create_report", min_role="admin")),
 ):
-    sample = _get_sample_for_api(sample_id, user)
-    assay_config = _get_formatted_assay_config(sample)
-    if not assay_config:
-        raise _api_error(404, "Assay config not found for sample")
-    RNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
+    sample, assay_config = _load_report_context(sample_id, user)
+    _validate_report_inputs("rna", sample, assay_config)
 
     report_num = sample.get("report_num", 0) + 1
-    report_id, report_path, report_file = RNAWorkflowService.build_report_location(
-        sample=sample,
-        assay_config=assay_config,
-        reports_base_path=runtime_app.config.get("REPORTS_BASE_PATH", "reports"),
-    )
-    RNAWorkflowService.prepare_report_output(report_path, report_file, logger=runtime_app.logger)
+    report_id, report_path, report_file = _build_report_location("rna", sample, assay_config)
+    _prepare_report_output("rna", report_path, report_file)
 
     html, snapshot_rows = _normalize_rendered_report_payload(report_payload)
 
-    report_oid = RNAWorkflowService.persist_report(
+    report_oid = _persist_report(
+        "rna",
         sample_id=sample_id,
         sample=sample,
         report_num=report_num,

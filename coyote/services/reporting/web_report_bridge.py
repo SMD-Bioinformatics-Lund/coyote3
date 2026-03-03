@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from flask import render_template
 
@@ -10,8 +10,10 @@ from coyote.integrations.api import endpoints as api_endpoints
 from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
 from coyote.integrations.api.base import ApiPayload
 
+ReportAnalyte = Literal["dna", "rna"]
 
-def _sample_report_endpoint(analyte: str, sample_id: str, action: str) -> str:
+
+def _sample_report_endpoint(analyte: ReportAnalyte, sample_id: str, action: str) -> str:
     analyte_norm = str(analyte).strip().lower()
     if analyte_norm == "dna":
         return api_endpoints.dna_sample(sample_id, "report", action)
@@ -31,7 +33,7 @@ def render_template_from_api_payload(payload: ApiPayload) -> str:
 
 
 def fetch_preview_payload(
-    analyte: str,
+    analyte: ReportAnalyte,
     sample_id: str,
     *,
     include_snapshot: bool = False,
@@ -45,7 +47,7 @@ def fetch_preview_payload(
 
 
 def persist_rendered_report(
-    analyte: str,
+    analyte: ReportAnalyte,
     sample_id: str,
     *,
     html: str,
@@ -57,3 +59,15 @@ def persist_rendered_report(
         headers=forward_headers(),
         json_body={"html": html, "snapshot_rows": snapshot_rows or []},
     )
+
+
+def render_preview_report_html(analyte: ReportAnalyte, sample_id: str, *, save: bool = False) -> str:
+    payload = fetch_preview_payload(analyte, sample_id, include_snapshot=False, save=save)
+    return render_template_from_api_payload(payload)
+
+
+def save_report_from_preview(analyte: ReportAnalyte, sample_id: str) -> ApiPayload:
+    preview_payload = fetch_preview_payload(analyte, sample_id, include_snapshot=True, save=True)
+    html = render_template_from_api_payload(preview_payload)
+    snapshot_rows = preview_payload.report.get("snapshot_rows", [])
+    return persist_rendered_report(analyte, sample_id, html=html, snapshot_rows=snapshot_rows)

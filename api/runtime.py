@@ -5,10 +5,7 @@ from __future__ import annotations
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
 import logging
-from pathlib import Path
 from typing import Any
-
-from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 
 @dataclass
@@ -19,35 +16,12 @@ class _RuntimeApp:
 
 app = _RuntimeApp(config={}, logger=logging.getLogger("api.runtime"))
 _runtime_user: ContextVar[Any | None] = ContextVar("api_runtime_user", default=None)
-_jinja_env: Environment | None = None
 
 
 def bind_runtime_context(runtime_context) -> None:
     """Bind runtime config/logger from API bootstrap context."""
     app.config = dict(runtime_context.config)
     app.logger = runtime_context.logger
-
-
-def _template_dirs() -> list[str]:
-    root = Path(__file__).resolve().parents[1]
-    dirs: list[Path] = [root / "coyote" / "templates"]
-    dirs.extend(sorted((root / "coyote" / "blueprints").glob("*/templates")))
-    return [str(d) for d in dirs if d.is_dir()]
-
-
-def _get_env() -> Environment:
-    global _jinja_env
-    if _jinja_env is None:
-        _jinja_env = Environment(
-            loader=FileSystemLoader(_template_dirs()),
-            autoescape=select_autoescape(["html", "xml"]),
-        )
-    return _jinja_env
-
-
-def render_template(template_name: str, **context: Any) -> str:
-    """Render templates without Flask request/app context."""
-    return _get_env().get_template(template_name).render(**context)
 
 
 def flash(message: str, category: str = "info") -> None:

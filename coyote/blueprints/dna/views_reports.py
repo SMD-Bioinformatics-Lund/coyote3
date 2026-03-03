@@ -19,9 +19,8 @@ from coyote.blueprints.dna import dna_bp
 from coyote.integrations.api.api_client import ApiRequestError
 from coyote.integrations.api.web import log_api_error
 from coyote.services.reporting.web_report_bridge import (
-    fetch_preview_payload,
-    persist_rendered_report,
-    render_template_from_api_payload,
+    render_preview_report_html,
+    save_report_from_preview,
 )
 
 
@@ -32,9 +31,9 @@ def generate_dna_report(sample_id: str, **kwargs) -> Response | str:
     Generate and render a preview of the DNA report for a given sample.
     """
     try:
-        payload = fetch_preview_payload("dna", sample_id, include_snapshot=False, save=False)
+        html = render_preview_report_html("dna", sample_id, save=False)
         app.logger.info("Loaded DNA preview report from API service for sample %s", sample_id)
-        return render_template_from_api_payload(payload)
+        return html
     except ApiRequestError as exc:
         log_api_error(
             exc,
@@ -52,10 +51,7 @@ def save_dna_report(sample_id: str) -> Response:
     Generate and persist a DNA report for the specified sample.
     """
     try:
-        preview_payload = fetch_preview_payload("dna", sample_id, include_snapshot=True, save=True)
-        html = render_template_from_api_payload(preview_payload)
-        snapshot_rows = preview_payload.report.get("snapshot_rows", [])
-        payload = persist_rendered_report("dna", sample_id, html=html, snapshot_rows=snapshot_rows)
+        payload = save_report_from_preview("dna", sample_id)
         report_id = payload.report.get("id", "unknown")
         report_file = payload.report.get("file", "unknown")
         flash(f"Report {report_id}.html has been successfully saved.", "green")
