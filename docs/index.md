@@ -42,3 +42,4 @@ Tooling baseline:
 
 Backend refactor status:
 - Mongo infrastructure moved to `api/infra/db` (handlers + adapter/base migration in progress).
+- External annotation/data-source handlers split into `api/infra/external`.
