@@ -6,6 +6,13 @@ Test suites for Coyote3 are organized by functionality.
 - `tests/api/test_api_route_security.py`: guardrail ensuring API routes stay protected.
 - `tests/api/test_workflow_contracts.py`: strict workflow validation behavior.
 - `tests/api/routes/test_reports_routes.py`: report route-family behavior tests (preview/save).
+- `tests/api/routes/test_dna_routes.py`: DNA route helper and endpoint behavior tests.
+- `tests/api/routes/test_rna_routes.py`: RNA route helper and endpoint behavior tests.
+- `tests/api/routes/test_home_routes.py`: home route read/mutation behavior tests.
+- `tests/api/routes/test_public_routes.py`: public route read/error behavior tests.
+- `tests/api/routes/test_common_routes.py`: common route search/context behavior tests.
+- `tests/api/routes/test_admin_routes.py`: admin route context/mutation behavior tests.
+- `tests/api/fixtures/mock_collections.py`: collection-shaped mock data used by route tests.
 
 Rule of thumb:
 - Add API behavior and guardrails under `tests/api`.
