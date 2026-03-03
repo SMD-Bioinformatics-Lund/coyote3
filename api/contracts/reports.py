@@ -1,7 +1,8 @@
 """Report API contracts."""
 
-from pydantic import BaseModel
 from typing import Any
+
+from pydantic import BaseModel
 
 
 class ReportSampleMeta(BaseModel):
@@ -27,3 +28,20 @@ class ReportPreviewPayload(BaseModel):
     sample: ReportSampleMeta
     meta: ReportPreviewMeta
     report: ReportPreviewBody
+
+
+class ReportSaveBody(BaseModel):
+    id: str
+    oid: str
+    file: str
+    snapshot_count: int
+
+
+class ReportSaveMeta(BaseModel):
+    status: str
+
+
+class ReportSavePayload(BaseModel):
+    sample: ReportSampleMeta
+    report: ReportSaveBody
+    meta: ReportSaveMeta

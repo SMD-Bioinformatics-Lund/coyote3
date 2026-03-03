@@ -50,7 +50,7 @@ from api.contracts.public import (
     PublicGeneSymbolsPayload,
     PublicGenelistViewPayload,
 )
-from api.contracts.reports import ReportPreviewPayload
+from api.contracts.reports import ReportPreviewPayload, ReportSavePayload
 from api.contracts.samples import CoverageBlacklistStatusPayload, SampleMutationPayload
 from api.contracts.system import AuthLoginEnvelope, AuthUserEnvelope, HealthPayload, WhoamiPayload
 
@@ -102,6 +102,7 @@ __all__ = [
     "PublicGeneSymbolsPayload",
     "PublicGenelistViewPayload",
     "ReportPreviewPayload",
+    "ReportSavePayload",
     "CoverageBlacklistStatusPayload",
     "SampleMutationPayload",
     "RoleLevelsPayload",
