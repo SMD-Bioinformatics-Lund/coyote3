@@ -3,22 +3,21 @@
 from __future__ import annotations
 
 from copy import deepcopy
-import os
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
-
-# API runtime must never depend on an external API health check.
-os.environ["REQUIRE_EXTERNAL_API"] = "0"
 
 from api.extensions import store, util
 from api.runtime_bootstrap import create_runtime_context
 from api.runtime import app as runtime_app
 from api.runtime import bind_runtime_context
+from api.settings import configure_process_env, get_runtime_mode_flags
 
+configure_process_env()
+mode_flags = get_runtime_mode_flags()
 runtime_context = create_runtime_context(
-    testing=bool(int(os.getenv("TESTING", "0"))),
-    development=bool(int(os.getenv("DEVELOPMENT", "0"))),
+    testing=mode_flags["testing"],
+    development=mode_flags["development"],
 )
 bind_runtime_context(runtime_context)
 
@@ -52,12 +51,6 @@ def create_api_app():
 
 def _api_error(status_code: int, message: str) -> HTTPException:
     return HTTPException(status_code=status_code, detail={"status": status_code, "error": message})
-
-
-def _to_bool(value, default: bool = False) -> bool:
-    if value is None:
-        return default
-    return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _get_formatted_assay_config(sample: dict):

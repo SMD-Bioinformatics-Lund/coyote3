@@ -14,6 +14,14 @@ from api.domain.models.user import UserModel
 from api.extensions import store
 from api.runtime import app as runtime_app
 from api.runtime import reset_current_user, set_current_user
+from api.settings import (
+    get_api_secret_key,
+    get_api_session_cookie_name as settings_session_cookie_name,
+    get_api_session_cookie_secure as settings_session_cookie_secure,
+    get_api_session_salt,
+    get_api_session_ttl_seconds as settings_session_ttl_seconds,
+    get_internal_api_token,
+)
 
 
 @dataclass
@@ -41,12 +49,6 @@ def _http_exception_message(exc: HTTPException) -> str:
     if isinstance(detail, dict):
         return str(detail.get("error") or detail.get("details") or detail)
     return str(detail)
-
-
-def _to_bool(value, default: bool = False) -> bool:
-    if value is None:
-        return default
-    return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _audit_access_event(
@@ -79,25 +81,21 @@ def _audit_access_event(
 @lru_cache(maxsize=1)
 def _api_session_serializer() -> URLSafeTimedSerializer:
     return URLSafeTimedSerializer(
-        secret_key=str(runtime_app.config.get("SECRET_KEY") or "coyote3-api"),
-        salt=str(runtime_app.config.get("API_SESSION_SALT", "coyote3-api-session-v1")),
+        secret_key=get_api_secret_key(runtime_app.config),
+        salt=get_api_session_salt(runtime_app.config),
     )
 
 
 def get_api_session_cookie_name() -> str:
-    return str(runtime_app.config.get("API_SESSION_COOKIE_NAME") or "coyote3_api_session")
+    return settings_session_cookie_name(runtime_app.config)
 
 
 def get_api_session_ttl_seconds() -> int:
-    value = runtime_app.config.get("API_SESSION_TTL_SECONDS", 12 * 60 * 60)
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return 12 * 60 * 60
+    return settings_session_ttl_seconds(runtime_app.config)
 
 
 def get_api_session_cookie_secure() -> bool:
-    return _to_bool(runtime_app.config.get("SESSION_COOKIE_SECURE"), default=False)
+    return settings_session_cookie_secure(runtime_app.config)
 
 
 def create_api_session_token(user_id: str) -> str:
@@ -270,7 +268,7 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
 
 
 def _require_internal_token(request: Request) -> None:
-    expected = runtime_app.config.get("INTERNAL_API_TOKEN") or runtime_app.config.get("SECRET_KEY")
+    expected = get_internal_api_token(runtime_app.config)
     provided = request.headers.get("X-Coyote-Internal-Token")
     if not expected or not provided or provided != expected:
         raise _api_error(403, "Forbidden")

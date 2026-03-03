@@ -7,9 +7,10 @@ from api.contracts.reports import ReportPreviewPayload
 from api.extensions import util
 from api.core.workflows.dna_workflow import DNAWorkflowService
 from api.core.workflows.rna_workflow import RNAWorkflowService
-from api.app import _api_error, _get_formatted_assay_config, _to_bool, app
+from api.app import _api_error, _get_formatted_assay_config, app
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.runtime import app as runtime_app
+from api.settings import to_bool
 
 ReportAnalyte = Literal["dna", "rna"]
 
@@ -174,8 +175,8 @@ def preview_dna_report(
         "dna",
         sample,
         assay_config,
-        save=_to_bool(save, default=False),
-        include_snapshot=_to_bool(include_snapshot, default=False),
+        save=to_bool(save, default=False),
+        include_snapshot=to_bool(include_snapshot, default=False),
     )
     snapshot_rows = snapshot_rows or []
     payload = _preview_response_payload(
@@ -203,8 +204,8 @@ def preview_rna_report(
         "rna",
         sample,
         assay_config,
-        save=_to_bool(save, default=False),
-        include_snapshot=_to_bool(include_snapshot, default=False),
+        save=to_bool(save, default=False),
+        include_snapshot=to_bool(include_snapshot, default=False),
     )
     payload = _preview_response_payload(
         sample=sample,

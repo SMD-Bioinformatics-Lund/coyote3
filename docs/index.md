@@ -49,3 +49,4 @@ Backend refactor status:
 - Interpretation logic moved to `api/core/interpretation`.
 - API request/response contracts introduced under `api/contracts` (initial auth + reports coverage).
 - Flask API transport client consolidated to `coyote/services/api_client` (legacy `coyote/integrations/api` removed).
+- API runtime/security settings centralized in `api/settings.py`.

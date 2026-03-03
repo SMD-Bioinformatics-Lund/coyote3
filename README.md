@@ -111,6 +111,7 @@ Current backend reorganization has started with:
 - Interpretation logic moved from `api/services/interpretation` to `api/core/interpretation`
 - Contract models introduced under `api/contracts` (auth + reports first slice)
 - Flask-side API transport consolidated under `coyote/services/api_client` (legacy `coyote/integrations/api` removed)
+- Runtime/security config access centralized in `api/settings.py`
 
 Execution policy during refactor:
 - work is performed as explicit, small, green tasks
