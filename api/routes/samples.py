@@ -2,6 +2,7 @@
 
 from fastapi import Body, Depends
 
+from api.contracts.samples import CoverageBlacklistStatusPayload, SampleMutationPayload
 from api.extensions import store, util
 from api.core.interpretation.report_summary import create_comment_doc
 from api.services.rna.helpers import create_fusioncallers, create_fusioneffectlist
@@ -21,7 +22,7 @@ def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: s
     }
 
 
-@app.post("/api/v1/samples/{sample_id}/sample_comments/add")
+@app.post("/api/v1/samples/{sample_id}/sample_comments/add", response_model=SampleMutationPayload)
 def add_sample_comment_mutation(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
@@ -36,7 +37,7 @@ def add_sample_comment_mutation(
     return util.common.convert_to_serializable(result)
 
 
-@app.post("/api/v1/samples/{sample_id}/sample_comments/{comment_id}/hide")
+@app.post("/api/v1/samples/{sample_id}/sample_comments/{comment_id}/hide", response_model=SampleMutationPayload)
 def hide_sample_comment_mutation(
     sample_id: str,
     comment_id: str,
@@ -49,7 +50,10 @@ def hide_sample_comment_mutation(
     return util.common.convert_to_serializable(result)
 
 
-@app.post("/api/v1/samples/{sample_id}/sample_comments/{comment_id}/unhide")
+@app.post(
+    "/api/v1/samples/{sample_id}/sample_comments/{comment_id}/unhide",
+    response_model=SampleMutationPayload,
+)
 def unhide_sample_comment_mutation(
     sample_id: str,
     comment_id: str,
@@ -62,7 +66,7 @@ def unhide_sample_comment_mutation(
     return util.common.convert_to_serializable(result)
 
 
-@app.post("/api/v1/samples/{sample_id}/filters/update")
+@app.post("/api/v1/samples/{sample_id}/filters/update", response_model=SampleMutationPayload)
 def update_sample_filters_mutation(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
@@ -98,7 +102,7 @@ def update_sample_filters_mutation(
     return util.common.convert_to_serializable(result)
 
 
-@app.post("/api/v1/samples/{sample_id}/filters/reset")
+@app.post("/api/v1/samples/{sample_id}/filters/reset", response_model=SampleMutationPayload)
 def reset_sample_filters_mutation(
     sample_id: str,
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
@@ -112,7 +116,7 @@ def reset_sample_filters_mutation(
     return util.common.convert_to_serializable(result)
 
 
-@app.post("/api/v1/coverage/blacklist/update")
+@app.post("/api/v1/coverage/blacklist/update", response_model=CoverageBlacklistStatusPayload)
 def update_coverage_blacklist_mutation(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(min_level=1)),
@@ -145,7 +149,7 @@ def update_coverage_blacklist_mutation(
     )
 
 
-@app.post("/api/v1/coverage/blacklist/{obj_id}/remove")
+@app.post("/api/v1/coverage/blacklist/{obj_id}/remove", response_model=SampleMutationPayload)
 def remove_coverage_blacklist_mutation(
     obj_id: str,
     user: ApiUser = Depends(require_access(min_level=1)),

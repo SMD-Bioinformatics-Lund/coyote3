@@ -60,5 +60,6 @@ Backend refactor status:
 - Admin permission contracts/mutation envelope added under `api/contracts/admin.py`.
 - Coverage route response contracts added under `api/contracts/coverage.py`.
 - Admin assay/genelist/aspc/schema contracts added under `api/contracts/admin.py`.
+- Samples/coverage-mutation contracts added under `api/contracts/samples.py`.
 - Flask API transport client consolidated to `coyote/services/api_client` (legacy `coyote/integrations/api` removed).
 - API runtime/security settings centralized in `api/settings.py`.
