@@ -63,5 +63,6 @@ Backend refactor status:
 - Samples/coverage-mutation contracts added under `api/contracts/samples.py`.
 - Remaining legacy route decorators normalized with `api/contracts/generic.py` for incremental contract coverage.
 - Report save endpoints upgraded from generic to typed contracts in `api/contracts/reports.py`.
+- Admin role/user/sample mutations and validation endpoints upgraded from generic to typed admin contracts.
 - Flask API transport client consolidated to `coyote/services/api_client` (legacy `coyote/integrations/api` removed).
 - API runtime/security settings centralized in `api/settings.py`.

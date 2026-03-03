@@ -155,3 +155,15 @@ class AdminSchemaContextPayload(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     schema_payload: dict[str, Any] = Field(alias="schema")
+
+
+class AdminExistsPayload(BaseModel):
+    exists: bool
+
+
+class AdminSamplesListPayload(BaseModel):
+    samples: list[dict[str, Any]]
+
+
+class AdminSampleContextPayload(BaseModel):
+    sample: dict[str, Any]
