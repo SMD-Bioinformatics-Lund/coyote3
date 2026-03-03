@@ -15,8 +15,8 @@ from api.services.dna.notation import one_letter_p
 from api.services.dna.dna_reporting import hotspot_variant
 from api.services.dna.dna_variants import format_pon, get_variant_nomenclature
 from api.services.dna.query_builders import build_cnv_query, build_query
-from api.services.interpretation.annotation_enrichment import add_alt_class, add_global_annotations
-from api.services.interpretation.report_summary import (
+from api.core.interpretation.annotation_enrichment import add_alt_class, add_global_annotations
+from api.core.interpretation.report_summary import (
     create_annotation_text_from_gene,
     create_comment_doc,
     generate_summary_text,

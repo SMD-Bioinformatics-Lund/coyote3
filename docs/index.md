@@ -46,3 +46,4 @@ Backend refactor status:
 - Authentication/session access and RBAC dependencies extracted into `api/security/access.py`.
 - Access-check audit event writing extracted to `api/audit/access_events.py`.
 - Workflow orchestration moved to `api/core/workflows`.
+- Interpretation logic moved to `api/core/interpretation`.

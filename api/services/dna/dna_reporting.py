@@ -13,7 +13,7 @@ from api.utils.report.report_util import ReportUtility
 from api.services.reporting.report_paths import get_report_timestamp as shared_get_report_timestamp
 from api.services.dna.notation import one_letter_p, standard_hgvs
 from api.services.dna.query_builders import build_query
-from api.services.interpretation.annotation_enrichment import (
+from api.core.interpretation.annotation_enrichment import (
     add_global_annotations as shared_add_global_annotations,
 )
 from api.services.dna.dna_filters import (

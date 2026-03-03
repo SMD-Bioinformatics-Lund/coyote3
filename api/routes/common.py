@@ -11,7 +11,7 @@ from api.app import _api_error, app
 from api.extensions import store, util
 from api.runtime import app as runtime_app
 from api.security.access import ApiUser, require_access
-from api.services.interpretation.report_summary import enrich_reported_variant_docs
+from api.core.interpretation.report_summary import enrich_reported_variant_docs
 
 
 @app.get("/api/v1/common/gene/{gene_id}/info")

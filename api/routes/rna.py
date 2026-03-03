@@ -3,8 +3,8 @@
 from fastapi import Depends, Query, Request
 
 from api.extensions import store, util
-from api.services.interpretation.annotation_enrichment import add_global_annotations
-from api.services.interpretation.report_summary import generate_summary_text
+from api.core.interpretation.annotation_enrichment import add_global_annotations
+from api.core.interpretation.report_summary import generate_summary_text
 from api.core.workflows.rna_workflow import RNAWorkflowService
 from api.runtime import app as runtime_app
 from api.app import _api_error, _get_formatted_assay_config, app

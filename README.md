@@ -108,6 +108,7 @@ Current backend reorganization has started with:
 - Auth/session/RBAC access control moved to `api/security/access.py`
 - Access-check audit event emission moved to `api/audit/access_events.py`
 - Workflow orchestration moved from `api/services/workflow` to `api/core/workflows`
+- Interpretation logic moved from `api/services/interpretation` to `api/core/interpretation`
 
 Execution policy during refactor:
 - work is performed as explicit, small, green tasks
