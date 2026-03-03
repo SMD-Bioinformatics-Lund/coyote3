@@ -18,6 +18,7 @@ from api.contracts.common import (
     CommonTieredVariantContextPayload,
     CommonTieredVariantSearchPayload,
 )
+from api.contracts.coverage import CoverageBlacklistedPayload, CoverageSamplePayload
 from api.contracts.dashboard import DashboardSummaryPayload
 from api.contracts.home import (
     HomeEditContextPayload,
@@ -56,6 +57,8 @@ __all__ = [
     "CommonGeneInfoPayload",
     "CommonTieredVariantContextPayload",
     "CommonTieredVariantSearchPayload",
+    "CoverageBlacklistedPayload",
+    "CoverageSamplePayload",
     "DashboardSummaryPayload",
     "HealthPayload",
     "HomeEditContextPayload",

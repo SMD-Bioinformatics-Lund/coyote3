@@ -8,12 +8,13 @@ from copy import deepcopy
 from fastapi import Depends, Query
 
 from api.app import _api_error, app
+from api.contracts.coverage import CoverageBlacklistedPayload, CoverageSamplePayload
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.services.coverage_processing import CoverageProcessingService
 from api.extensions import store, util
 
 
-@app.get("/api/v1/coverage/samples/{sample_id}")
+@app.get("/api/v1/coverage/samples/{sample_id}", response_model=CoverageSamplePayload)
 def coverage_sample_read(
     sample_id: str,
     cov_cutoff: int = Query(default=500, ge=1),
@@ -65,7 +66,7 @@ def coverage_sample_read(
     )
 
 
-@app.get("/api/v1/coverage/blacklisted/{group}")
+@app.get("/api/v1/coverage/blacklisted/{group}", response_model=CoverageBlacklistedPayload)
 def coverage_blacklisted_read(
     group: str,
     user: ApiUser = Depends(require_access(min_level=1)),

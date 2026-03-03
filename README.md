@@ -118,6 +118,7 @@ Current backend reorganization has started with:
 - Dashboard route response contracts added under `api/contracts/dashboard.py`
 - Admin roles/users read-context contracts added under `api/contracts/admin.py`
 - Admin permission contracts/mutation envelope added under `api/contracts/admin.py`
+- Coverage route response contracts added under `api/contracts/coverage.py`
 - Flask-side API transport consolidated under `coyote/services/api_client` (legacy `coyote/integrations/api` removed)
 - Runtime/security config access centralized in `api/settings.py`
 
