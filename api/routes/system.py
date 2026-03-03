@@ -2,8 +2,8 @@
 
 from fastapi import Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
-from pydantic import BaseModel
 
+from api.contracts.auth import ApiAuthLoginRequest
 from api.app import app
 from api.extensions import store, util
 from api.security.access import (
@@ -47,11 +47,6 @@ def whoami(user: ApiUser = Depends(require_access(min_level=1))):
         "permissions": sorted(user.permissions),
         "denied_permissions": sorted(user.denied_permissions),
     }
-
-
-class ApiAuthLoginRequest(BaseModel):
-    username: str
-    password: str
 
 
 @app.post("/api/v1/auth/login")

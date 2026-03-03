@@ -3,6 +3,7 @@
 from fastapi import Body, Depends, Query
 from typing import Any, Literal
 
+from api.contracts.reports import ReportPreviewPayload
 from api.extensions import util
 from api.core.workflows.dna_workflow import DNAWorkflowService
 from api.core.workflows.rna_workflow import RNAWorkflowService
@@ -159,7 +160,7 @@ def _persist_report(
     )
 
 
-@app.get("/api/v1/dna/samples/{sample_id}/report/preview")
+@app.get("/api/v1/dna/samples/{sample_id}/report/preview", response_model=ReportPreviewPayload)
 def preview_dna_report(
     sample_id: str,
     include_snapshot: bool = Query(default=False),
@@ -188,7 +189,7 @@ def preview_dna_report(
     return util.common.convert_to_serializable(payload)
 
 
-@app.get("/api/v1/rna/samples/{sample_id}/report/preview")
+@app.get("/api/v1/rna/samples/{sample_id}/report/preview", response_model=ReportPreviewPayload)
 def preview_rna_report(
     sample_id: str,
     include_snapshot: bool = Query(default=False),
