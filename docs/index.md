@@ -29,3 +29,9 @@ Current engineering direction is API-centric:
 - [API_ENDPOINT_CATALOG.md](API_ENDPOINT_CATALOG.md)
 - [TRACEABILITY_MATRIX.md](TRACEABILITY_MATRIX.md)
 - [GLOSSARY.md](GLOSSARY.md)
+
+## Boundary Enforcement
+
+UI/API separation is enforced by contract tests:
+- `tests/contract/test_ui_forbidden_backend_imports.py`
+- `tests/contract/test_ui_forbidden_mongo_usage.py`
