@@ -13,37 +13,37 @@ It is part of the `coyote.db` package.
 # Imports
 # -------------------------------------------------------------------------
 import pymongo
-from api.db.samples import SampleHandler
-from api.db.users import UsersHandler
-from api.db.asp import ASPHandler
-from api.db.variants import VariantsHandler
-from api.db.cnvs import CNVsHandler
-from api.db.translocs import TranslocsHandler
-from api.db.annotations import AnnotationsHandler
-from api.db.expression import ExpressionHandler
-from api.db.blacklist import BlacklistHandler
-from api.db.oncokb import OnkoKBHandler
-from api.db.bam_service import BamServiceHandler
-from api.db.civic import CivicHandler
-from api.db.iarc_tp53 import IARCTP53Handler
-from api.db.brcaexchange import BRCAHandler
-from api.db.fusions import FusionsHandler
-from api.db.biomarkers import BiomarkerHandler
-from api.db.coverage import CoverageHandler
-from api.db.cosmic import CosmicHandler
-from api.db.coverage2 import CoverageHandler2
-from api.db.group_coverage import GroupCoverageHandler
-from api.db.asp_configs import ASPConfigHandler
-from api.db.schemas import SchemaHandler
-from api.db.roles import RolesHandler
-from api.db.permissions import PermissionsHandler
-from api.db.vep_meta import VEPMetaHandler
-from api.db.isgl import ISGLHandler
-from api.db.hgnc import HGNCHandler
-from api.db.rna_expression import RNAExpressionHandler
-from api.db.rna_classification import RNAClassificationHandler
-from api.db.rna_qc import RNAQCHandler
-from api.db.reported_variants import ReportedVariantsHandler
+from api.infra.db.samples import SampleHandler
+from api.infra.db.users import UsersHandler
+from api.infra.db.asp import ASPHandler
+from api.infra.db.variants import VariantsHandler
+from api.infra.db.cnvs import CNVsHandler
+from api.infra.db.translocs import TranslocsHandler
+from api.infra.db.annotations import AnnotationsHandler
+from api.infra.db.expression import ExpressionHandler
+from api.infra.db.blacklist import BlacklistHandler
+from api.infra.db.oncokb import OnkoKBHandler
+from api.infra.db.bam_service import BamServiceHandler
+from api.infra.db.civic import CivicHandler
+from api.infra.db.iarc_tp53 import IARCTP53Handler
+from api.infra.db.brcaexchange import BRCAHandler
+from api.infra.db.fusions import FusionsHandler
+from api.infra.db.biomarkers import BiomarkerHandler
+from api.infra.db.coverage import CoverageHandler
+from api.infra.db.cosmic import CosmicHandler
+from api.infra.db.coverage2 import CoverageHandler2
+from api.infra.db.group_coverage import GroupCoverageHandler
+from api.infra.db.asp_configs import ASPConfigHandler
+from api.infra.db.schemas import SchemaHandler
+from api.infra.db.roles import RolesHandler
+from api.infra.db.permissions import PermissionsHandler
+from api.infra.db.vep_meta import VEPMetaHandler
+from api.infra.db.isgl import ISGLHandler
+from api.infra.db.hgnc import HGNCHandler
+from api.infra.db.rna_expression import RNAExpressionHandler
+from api.infra.db.rna_classification import RNAClassificationHandler
+from api.infra.db.rna_qc import RNAQCHandler
+from api.infra.db.reported_variants import ReportedVariantsHandler
 
 
 # -------------------------------------------------------------------------

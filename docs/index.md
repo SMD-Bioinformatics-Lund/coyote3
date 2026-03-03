@@ -41,4 +41,4 @@ Tooling baseline:
 - `ruff format --check api coyote tests`
 
 Backend refactor status:
-- Infrastructure DB foundation introduced at `api/infra/db` (adapter/base migration started).
+- Mongo infrastructure moved to `api/infra/db` (handlers + adapter/base migration in progress).
