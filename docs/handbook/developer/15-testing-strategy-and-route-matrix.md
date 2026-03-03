@@ -19,6 +19,7 @@ This chapter documents the testing strategy for maintainability and safe refacto
   - `tests/api/routes/test_rna_routes.py`
   - `tests/api/routes/test_reports_routes.py`
   - `tests/api/routes/test_admin_routes.py`
+- Prefer collection-shaped fixture docs (`tests/api/fixtures/mock_collections.py`) and the shared fake-store harness (`tests/api/fixtures/fake_store.py`) for realistic, deterministic route testing.
 
 ## Minimum standards for new work
 

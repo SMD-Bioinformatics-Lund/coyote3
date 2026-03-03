@@ -13,6 +13,8 @@ Test suites for Coyote3 are organized by functionality.
 - `tests/api/routes/test_common_routes.py`: common route search/context behavior tests.
 - `tests/api/routes/test_admin_routes.py`: admin route context/mutation behavior tests.
 - `tests/api/fixtures/mock_collections.py`: collection-shaped mock data used by route tests.
+- `tests/api/fixtures/fake_store.py`: shared fake handler/store harness for integration-style route tests.
+- `tests/api/routes/*_harness.py`: integration-style route tests using the shared fake-store harness.
 
 Rule of thumb:
 - Add API behavior and guardrails under `tests/api`.
