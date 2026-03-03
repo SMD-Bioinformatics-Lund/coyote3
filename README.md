@@ -112,6 +112,7 @@ Current backend reorganization has started with:
 - Contract models introduced under `api/contracts` (auth + reports first slice)
 - System/auth response contracts added under `api/contracts/system.py`
 - Internal route response contracts added under `api/contracts/internal.py`
+- Home route response contracts added under `api/contracts/home.py`
 - Flask-side API transport consolidated under `coyote/services/api_client` (legacy `coyote/integrations/api` removed)
 - Runtime/security config access centralized in `api/settings.py`
 

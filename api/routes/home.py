@@ -8,12 +8,20 @@ import re
 from fastapi import Body, Depends, Query
 
 from api.app import _api_error, _get_formatted_assay_config, app
+from api.contracts.home import (
+    HomeEditContextPayload,
+    HomeEffectiveGenesPayload,
+    HomeItemsPayload,
+    HomeMutationStatusPayload,
+    HomeReportContextPayload,
+    HomeSamplesPayload,
+)
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.extensions import store, util
 from api.runtime import app as runtime_app
 
 
-@app.get("/api/v1/home/samples")
+@app.get("/api/v1/home/samples", response_model=HomeSamplesPayload)
 def home_samples_read(
     status: str = "live",
     search_str: str = "",
@@ -80,7 +88,7 @@ def home_samples_read(
     )
 
 
-@app.get("/api/v1/home/samples/{sample_id}/isgls")
+@app.get("/api/v1/home/samples/{sample_id}/isgls", response_model=HomeItemsPayload)
 def home_isgls_read(
     sample_id: str,
     user: ApiUser = Depends(require_access(min_level=1)),
@@ -101,7 +109,7 @@ def home_isgls_read(
     return util.common.convert_to_serializable({"items": items})
 
 
-@app.get("/api/v1/home/samples/{sample_id}/effective_genes/all")
+@app.get("/api/v1/home/samples/{sample_id}/effective_genes/all", response_model=HomeEffectiveGenesPayload)
 def home_effective_genes_read(
     sample_id: str,
     user: ApiUser = Depends(require_access(min_level=1)),
@@ -135,7 +143,7 @@ def home_effective_genes_read(
     )
 
 
-@app.get("/api/v1/home/samples/{sample_id}/edit_context")
+@app.get("/api/v1/home/samples/{sample_id}/edit_context", response_model=HomeEditContextPayload)
 def home_edit_context_read(
     sample_id: str,
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
@@ -191,7 +199,7 @@ def home_edit_context_read(
     )
 
 
-@app.post("/api/v1/home/samples/{sample_id}/genes/apply-isgl")
+@app.post("/api/v1/home/samples/{sample_id}/genes/apply-isgl", response_model=HomeMutationStatusPayload)
 def home_apply_isgl_mutation(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
@@ -209,7 +217,7 @@ def home_apply_isgl_mutation(
     )
 
 
-@app.post("/api/v1/home/samples/{sample_id}/adhoc_genes/save")
+@app.post("/api/v1/home/samples/{sample_id}/adhoc_genes/save", response_model=HomeMutationStatusPayload)
 def home_save_adhoc_genes_mutation(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
@@ -235,7 +243,7 @@ def home_save_adhoc_genes_mutation(
     )
 
 
-@app.post("/api/v1/home/samples/{sample_id}/adhoc_genes/clear")
+@app.post("/api/v1/home/samples/{sample_id}/adhoc_genes/clear", response_model=HomeMutationStatusPayload)
 def home_clear_adhoc_genes_mutation(
     sample_id: str,
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
@@ -249,7 +257,7 @@ def home_clear_adhoc_genes_mutation(
     )
 
 
-@app.get("/api/v1/home/samples/{sample_id}/reports/{report_id}/context")
+@app.get("/api/v1/home/samples/{sample_id}/reports/{report_id}/context", response_model=HomeReportContextPayload)
 def home_report_context_read(
     sample_id: str,
     report_id: str,
