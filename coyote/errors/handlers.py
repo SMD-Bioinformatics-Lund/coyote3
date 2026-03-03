@@ -5,7 +5,7 @@ from .exceptions import AppError
 
 def register_error_handlers(app):
     """Register error handlers for the application."""
-    from coyote.integrations.api.api_client import ApiRequestError
+    from coyote.services.api_client import ApiRequestError
 
     def is_api_request() -> bool:
         path = request.path or ""

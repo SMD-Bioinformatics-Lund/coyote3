@@ -10,7 +10,6 @@ from flask_login import login_required
 
 from coyote.blueprints.docs import docs_bp
 from coyote.blueprints.docs.views_common import (
-    can_view_developer_docs,
     render_markdown_file,
     search_handbook_docs,
 )
@@ -32,7 +31,7 @@ def docs_index():
 @docs_bp.get("/user")
 @login_required
 def docs_user_index():
-    return redirect(url_for("docs_bp.docs_page", doc_path="user/index.md"))
+    return redirect(url_for("docs_bp.docs_page", doc_path="index.md"))
 
 
 @docs_bp.get("/admin")
@@ -44,23 +43,18 @@ def docs_admin_index():
 @docs_bp.get("/developer")
 @login_required
 def docs_developer_index():
-    return redirect(url_for("docs_bp.docs_page", doc_path="developer/index.md"))
+    return redirect(url_for("docs_bp.docs_page", doc_path="index.md"))
 
 
 @docs_bp.get("/<path:doc_path>")
 @login_required
 def docs_page(doc_path: str):
     """
-    Render a handbook markdown page from docs/handbook using /handbook/<path>.md.
+    Render a markdown page from docs root using /docs/<path>.md.
     """
-    docs_root = Path(__file__).resolve().parents[3] / "docs" / "handbook"
+    docs_root = Path(__file__).resolve().parents[3] / "docs"
 
     requested = (docs_root / doc_path).resolve()
-
-    if not requested.exists() and "/" not in doc_path:
-        user_candidate = (docs_root / "user" / doc_path).resolve()
-        if str(user_candidate).startswith(str(docs_root.resolve())) and user_candidate.exists():
-            return redirect(url_for("docs_bp.docs_page", doc_path=f"user/{doc_path}"))
 
     if not str(requested).startswith(str(docs_root.resolve())):
         abort(404)
@@ -70,8 +64,6 @@ def docs_page(doc_path: str):
     rel = requested.relative_to(docs_root).as_posix()
     if rel.startswith("admin/"):
         abort(404)
-    if rel.startswith("developer/") and not can_view_developer_docs():
-        abort(403)
 
     handbook_html = render_markdown_file(requested)
     return render_template(

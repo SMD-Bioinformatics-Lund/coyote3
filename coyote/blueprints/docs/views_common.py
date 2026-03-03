@@ -74,13 +74,13 @@ def can_view_developer_docs() -> bool:
 
 def search_handbook_docs(query: str, limit: int = 40) -> list[dict]:
     """
-    Search markdown files under docs/handbook and return ranked matches.
+    Search markdown files under docs and return ranked matches.
     """
     q = (query or "").strip().lower()
     if not q:
         return []
 
-    docs_root = Path(__file__).resolve().parents[3] / "docs" / "handbook"
+    docs_root = Path(__file__).resolve().parents[3] / "docs"
     terms = [t for t in q.split() if t]
     if not terms:
         return []
