@@ -4,20 +4,16 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from functools import lru_cache
-import json
-import logging
 
 from fastapi import HTTPException, Request
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
+from api.audit.access_events import emit_access_event
 from api.domain.models.user import UserModel
 from api.extensions import store
 from api.runtime import app as runtime_app
 from api.runtime import reset_current_user, set_current_user
-
-_audit_logger = logging.getLogger("audit")
 
 
 @dataclass
@@ -53,17 +49,6 @@ def _to_bool(value, default: bool = False) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _request_ip(request: Request | None) -> str:
-    if request is None:
-        return "N/A"
-    forwarded_for = (request.headers.get("X-Forwarded-For") or "").strip()
-    if forwarded_for:
-        return forwarded_for.split(",")[0].strip() or "N/A"
-    if request.client and request.client.host:
-        return str(request.client.host)
-    return "N/A"
-
-
 def _audit_access_event(
     *,
     status: str,
@@ -76,31 +61,19 @@ def _audit_access_event(
     sample_id: str | None = None,
     extra: dict | None = None,
 ) -> None:
-    event = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "source": "api",
-        "action": "access_check",
-        "status": status,
-        "reason": reason,
-        "method": request.method if request else None,
-        "path": str(request.url.path) if request else None,
-        "ip": _request_ip(request),
-        "user_id": user.id if user else None,
-        "username": user.username if user else None,
-        "role": user.role if user else None,
-        "sample_id": str(sample_id) if sample_id is not None else None,
-        "required": {
-            "permission": permission,
-            "min_level": min_level,
-            "min_role": min_role,
-        },
-        "extra": extra or {},
-    }
-    payload = json.dumps(event, default=str)
-    if status == "denied":
-        _audit_logger.warning(payload)
-    else:
-        _audit_logger.info(payload)
+    emit_access_event(
+        status=status,
+        reason=reason,
+        request=request,
+        user_id=user.id if user else None,
+        username=user.username if user else None,
+        role=user.role if user else None,
+        permission=permission,
+        min_level=min_level,
+        min_role=min_role,
+        sample_id=sample_id,
+        extra=extra,
+    )
 
 
 @lru_cache(maxsize=1)
