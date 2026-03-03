@@ -7,7 +7,8 @@ from typing import Any
 from flask import render_template
 
 from coyote.integrations.api import endpoints as api_endpoints
-from coyote.integrations.api.api_client import ApiPayload, ApiRequestError, forward_headers, get_web_api_client
+from coyote.integrations.api.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.integrations.api.base import ApiPayload
 
 
 def _sample_report_endpoint(analyte: str, sample_id: str, action: str) -> str:
@@ -56,4 +57,3 @@ def persist_rendered_report(
         headers=forward_headers(),
         json_body={"html": html, "snapshot_rows": snapshot_rows or []},
     )
-
