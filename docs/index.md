@@ -1,11 +1,31 @@
-# Coyote3 Documentation
+# Coyote3 Documentation Index
 
-This is the primary documentation root for Coyote3.
+This is the single documentation entrypoint.
 
-- Start here: [Complete Handbook](./handbook/index.md)
+## Refactor Governance Note
 
-Legacy/retired documentation from earlier structure is preserved under:
+Current engineering direction is API-centric:
+- API layer owns business logic, security, audit, and persistence.
+- Flask UI remains presentation-only and calls API endpoints over HTTP.
+- Boundary compliance is enforced incrementally with contract tests.
 
-- `docs/_legacy/`
+## Core Documentation
+- [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md)
+- [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)
+- [API_REFERENCE.md](API_REFERENCE.md)
+- [UI_USER_GUIDE.md](UI_USER_GUIDE.md)
+- [SECURITY_MODEL.md](SECURITY_MODEL.md)
+- [DATA_MODEL.md](DATA_MODEL.md)
+- [DEPLOYMENT_AND_OPERATIONS.md](DEPLOYMENT_AND_OPERATIONS.md)
+- [TESTING_STRATEGY.md](TESTING_STRATEGY.md)
+- [EXTENSION_PLAYBOOK.md](EXTENSION_PLAYBOOK.md)
 
-Use legacy docs only for historical reference. The handbook is the maintained source of truth.
+## Engineering Standards
+- [CODE_STYLE.md](CODE_STYLE.md)
+- [RELEASE_PROCESS.md](RELEASE_PROCESS.md)
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+
+## Supporting References
+- [API_ENDPOINT_CATALOG.md](API_ENDPOINT_CATALOG.md)
+- [TRACEABILITY_MATRIX.md](TRACEABILITY_MATRIX.md)
+- [GLOSSARY.md](GLOSSARY.md)

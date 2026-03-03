@@ -93,6 +93,18 @@ Coyote3 is built using Python’s **Flask** web framework and structured with a 
 
 ---
 
+## Architecture Boundary Rule (Refactor In Progress)
+
+The active refactor direction is API-centric and enforced as a hard boundary:
+
+- `api/` owns business logic, RBAC enforcement, audit logging, and Mongo access.
+- `coyote/` owns presentation only and calls API endpoints over HTTP for business operations.
+- UI code must not import `api/*` internals and must not access Mongo handlers directly.
+
+This boundary is being enforced incrementally with dedicated contract tests under `tests/contract/`.
+
+---
+
 ## Feature Modules
 
 Each major functionality is organized into a Flask blueprint:

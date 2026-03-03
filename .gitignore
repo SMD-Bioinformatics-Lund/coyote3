@@ -165,3 +165,14 @@ coyote3-core
 coyote/static/css/tailwind.css
 tests_internal
 tests/api/fixtures/db_snapshots/
+coyote3_dir_structure.txt
+
+# Private refactor tracker and scratch files
+.internal/REFACTOR_TASKS.md
+.internal/*.scratch
+.internal/*.scratch.md
+.internal/*.scratch.txt
+.internal/*.tmp
+.internal/*.local
+.internal/*.local.md
+.internal/*.log
