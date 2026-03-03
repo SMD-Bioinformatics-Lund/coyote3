@@ -1,7 +1,7 @@
 """Top-level API package.
 
 Keep imports side-effect free so callers can import model modules (for example
-``api.models.user``) without initializing the API runtime.
+``api.domain.models.user``) without initializing the API runtime.
 """
 
 from typing import Any
