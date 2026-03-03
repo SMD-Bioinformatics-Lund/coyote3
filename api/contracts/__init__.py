@@ -1,6 +1,14 @@
 """API request/response contracts."""
 
 from api.contracts.auth import ApiAuthLoginRequest
+from api.contracts.admin import (
+    AdminRoleContextPayload,
+    AdminRoleCreateContextPayload,
+    AdminRolesListPayload,
+    AdminUserContextPayload,
+    AdminUserCreateContextPayload,
+    AdminUsersListPayload,
+)
 from api.contracts.common import (
     CommonGeneInfoPayload,
     CommonTieredVariantContextPayload,
@@ -29,6 +37,12 @@ from api.contracts.system import AuthLoginEnvelope, AuthUserEnvelope, HealthPayl
 
 __all__ = [
     "ApiAuthLoginRequest",
+    "AdminRoleContextPayload",
+    "AdminRoleCreateContextPayload",
+    "AdminRolesListPayload",
+    "AdminUserContextPayload",
+    "AdminUserCreateContextPayload",
+    "AdminUsersListPayload",
     "AuthLoginEnvelope",
     "AuthUserEnvelope",
     "CommonGeneInfoPayload",

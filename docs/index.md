@@ -56,5 +56,6 @@ Backend refactor status:
 - Common route response contracts added under `api/contracts/common.py`.
 - Public route response contracts added under `api/contracts/public.py`.
 - Dashboard route response contracts added under `api/contracts/dashboard.py`.
+- Admin roles/users read-context contracts added under `api/contracts/admin.py`.
 - Flask API transport client consolidated to `coyote/services/api_client` (legacy `coyote/integrations/api` removed).
 - API runtime/security settings centralized in `api/settings.py`.

@@ -5,6 +5,14 @@ from copy import deepcopy
 from fastapi import Body, Depends, Query
 
 from api.extensions import store, util
+from api.contracts.admin import (
+    AdminRoleContextPayload,
+    AdminRoleCreateContextPayload,
+    AdminRolesListPayload,
+    AdminUserContextPayload,
+    AdminUserCreateContextPayload,
+    AdminUsersListPayload,
+)
 from api.runtime import app as runtime_app
 from api.services.admin.sample_deletion import delete_all_sample_traces
 from api.app import _api_error, app
@@ -51,7 +59,7 @@ def _assay_group_map() -> dict[str, list[dict]]:
     return util.common.create_assay_group_map(assay_groups_panels)
 
 
-@app.get("/api/v1/admin/roles")
+@app.get("/api/v1/admin/roles", response_model=AdminRolesListPayload)
 def list_roles_read(
     user: ApiUser = Depends(require_access(permission="view_role", min_role="admin", min_level=99999)),
 ):
@@ -59,7 +67,7 @@ def list_roles_read(
     return util.common.convert_to_serializable({"roles": roles})
 
 
-@app.get("/api/v1/admin/roles/create_context")
+@app.get("/api/v1/admin/roles/create_context", response_model=AdminRoleCreateContextPayload)
 def create_role_context_read(
     schema_id: str | None = Query(default=None),
     user: ApiUser = Depends(require_access(permission="create_role", min_role="admin", min_level=99999)),
@@ -95,7 +103,7 @@ def create_role_context_read(
     )
 
 
-@app.get("/api/v1/admin/roles/{role_id}/context")
+@app.get("/api/v1/admin/roles/{role_id}/context", response_model=AdminRoleContextPayload)
 def role_context_read(
     role_id: str,
     user: ApiUser = Depends(require_access(permission="view_role", min_role="admin", min_level=99999)),
@@ -399,7 +407,7 @@ def delete_role_mutation(
     )
 
 
-@app.get("/api/v1/admin/users")
+@app.get("/api/v1/admin/users", response_model=AdminUsersListPayload)
 def list_users_read(
     user: ApiUser = Depends(require_access(permission="view_user", min_role="admin", min_level=99999)),
 ):
@@ -413,7 +421,7 @@ def list_users_read(
     )
 
 
-@app.get("/api/v1/admin/users/create_context")
+@app.get("/api/v1/admin/users/create_context", response_model=AdminUserCreateContextPayload)
 def create_user_context_read(
     schema_id: str | None = Query(default=None),
     user: ApiUser = Depends(require_access(permission="create_user", min_role="admin", min_level=99999)),
@@ -453,7 +461,7 @@ def create_user_context_read(
     )
 
 
-@app.get("/api/v1/admin/users/{user_id}/context")
+@app.get("/api/v1/admin/users/{user_id}/context", response_model=AdminUserContextPayload)
 def user_context_read(
     user_id: str,
     user: ApiUser = Depends(require_access(permission="view_user", min_role="admin", min_level=99999)),
