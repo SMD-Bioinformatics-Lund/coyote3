@@ -2,12 +2,13 @@
 
 from fastapi import Request
 
+from api.contracts.internal import IsglMetaPayload, RoleLevelsPayload
 from api.extensions import store, util
 from api.app import app
 from api.security.access import _require_internal_token
 
 
-@app.get("/api/v1/internal/roles/levels")
+@app.get("/api/v1/internal/roles/levels", response_model=RoleLevelsPayload)
 def get_role_levels_internal(request: Request):
     _require_internal_token(request)
     role_levels = {
@@ -22,7 +23,7 @@ def get_role_levels_internal(request: Request):
     )
 
 
-@app.get("/api/v1/internal/isgl/{isgl_id}/meta")
+@app.get("/api/v1/internal/isgl/{isgl_id}/meta", response_model=IsglMetaPayload)
 def get_isgl_meta_internal(isgl_id: str, request: Request):
     _require_internal_token(request)
     return util.common.convert_to_serializable(
