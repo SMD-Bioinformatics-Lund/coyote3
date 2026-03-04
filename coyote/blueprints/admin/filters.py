@@ -1,4 +1,3 @@
-
 """
 Jinja2 template filters for the Coyote3 project.
 
@@ -7,13 +6,14 @@ including filters for formatting the current UTC datetime and pretty-printing
 Python objects as JSON for HTML output.
 """
 
+import json
+from datetime import datetime, timezone
+from typing import Any
 
 from flask import current_app as app
-from coyote.util.misc import EnhancedJSONEncoder
 from markupsafe import Markup
-import json
-from typing import Any
-from datetime import datetime, timezone
+
+from coyote.util.misc import EnhancedJSONEncoder
 
 
 @app.template_filter("now")

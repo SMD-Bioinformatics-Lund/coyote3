@@ -1,12 +1,11 @@
-
 """Admin audit-log routes."""
 
 from datetime import datetime, timezone
 from pathlib import Path
 
 from flask import current_app as app
-from flask_login import login_required
 from flask import render_template
+from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util

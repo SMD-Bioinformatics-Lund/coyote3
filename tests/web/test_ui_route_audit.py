@@ -37,6 +37,24 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
     def _payload(value: dict) -> ApiPayload:
         return ApiPayload(value)
 
+    def _schema_payload(schema_id: str, field_name: str = "name") -> dict:
+        return {
+            "_id": schema_id,
+            "version": 1,
+            "sections": {"general": [field_name]},
+            "fields": {
+                field_name: {
+                    "label": field_name.replace("_", " ").title(),
+                    "default": "",
+                    "readonly": False,
+                    "display_type": "text",
+                    "placeholder": "",
+                    "required": False,
+                    "data_type": "str",
+                }
+            },
+        }
+
     def _fake_get(self, path, headers=None, params=None):  # noqa: ARG001
         if path.endswith("/internal/roles/levels"):
             return _payload({"role_levels": {}})
@@ -99,6 +117,74 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
             return _payload({"roles": []})
         if path.endswith("/admin/permissions"):
             return _payload({"grouped_permissions": {}})
+        if path.endswith("/admin/users/create_context"):
+            schema = _schema_payload("schema-user", "username")
+            return _payload(
+                {
+                    "schemas": [schema],
+                    "schema_payload": schema,
+                    "selected_schema": {"_id": "schema-user"},
+                    "role_map": {},
+                    "assay_group_map": {},
+                }
+            )
+        if path.endswith("/admin/roles/create_context"):
+            schema = _schema_payload("schema-role")
+            return _payload(
+                {
+                    "schemas": [schema],
+                    "schema_payload": schema,
+                    "selected_schema": {"_id": "schema-role"},
+                }
+            )
+        if path.endswith("/admin/permissions/create_context"):
+            schema = _schema_payload("schema-perm")
+            return _payload(
+                {
+                    "schemas": [schema],
+                    "schema_payload": schema,
+                    "selected_schema": {"_id": "schema-perm"},
+                }
+            )
+        if path.endswith("/admin/samples"):
+            return _payload({"samples": []})
+        if path.endswith("/admin/asp"):
+            return _payload({"panels": []})
+        if path.endswith("/admin/asp/create_context"):
+            schema = _schema_payload("schema-asp", "assay_name")
+            return _payload(
+                {
+                    "schemas": [schema],
+                    "schema_payload": schema,
+                    "selected_schema": {"_id": "schema-asp"},
+                }
+            )
+        if path.endswith("/admin/aspc"):
+            return _payload({"assay_configs": []})
+        if path.endswith("/admin/aspc/create_context"):
+            schema = _schema_payload("schema-aspc", "assay_name")
+            return _payload(
+                {
+                    "schemas": [schema],
+                    "schema_payload": schema,
+                    "selected_schema": {"_id": "schema-aspc"},
+                    "prefill_map": {},
+                }
+            )
+        if path.endswith("/admin/genelists"):
+            return _payload({"genelists": []})
+        if path.endswith("/admin/genelists/create_context"):
+            schema = _schema_payload("schema-isgl", "name")
+            return _payload(
+                {
+                    "schemas": [schema],
+                    "schema_payload": schema,
+                    "selected_schema": {"_id": "schema-isgl"},
+                    "assay_group_map": {},
+                }
+            )
+        if path.endswith("/admin/schemas"):
+            return _payload({"schemas": []})
         return _payload({})
 
     def _fake_post(self, path, headers=None, params=None, json_body=None):  # noqa: ARG001
@@ -114,10 +200,22 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
     paths = [
         "/admin/",
         "/admin/users",
+        "/admin/users/new",
         "/admin/roles",
+        "/admin/roles/new",
         "/admin/permissions",
+        "/admin/permissions/new",
         "/admin/audit",
         "/dashboard/",
+        "/admin/manage-samples",
+        "/admin/asp/manage",
+        "/admin/asp/new",
+        "/admin/aspc",
+        "/admin/aspc/dna/new",
+        "/admin/genelists",
+        "/admin/genelists/new",
+        "/admin/schemas",
+        "/admin/schemas/new",
         "/public/assay-catalog",
         "/search/tiered_variants",
         "/samples",
@@ -129,3 +227,27 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
             failures.append(f"{path} -> {response.status_code}")
 
     assert not failures, "UI smoke route(s) returned 500:\n" + "\n".join(failures)
+
+
+def test_admin_endpoints_restored(monkeypatch):
+    monkeypatch.setattr(coyote, "verify_external_api_dependency", lambda _app: None)
+
+    app = init_app(testing=True)
+    endpoints = set(app.view_functions.keys())
+    expected = {
+        "admin_bp.all_samples",
+        "admin_bp.create_user",
+        "admin_bp.create_role",
+        "admin_bp.create_permission",
+        "admin_bp.manage_assay_panels",
+        "admin_bp.create_assay_panel",
+        "admin_bp.assay_configs",
+        "admin_bp.create_dna_assay_config",
+        "admin_bp.create_rna_assay_config",
+        "admin_bp.manage_genelists",
+        "admin_bp.create_genelist",
+        "admin_bp.schemas",
+        "admin_bp.create_schema",
+    }
+    missing = sorted(expected - endpoints)
+    assert not missing, "Expected admin endpoints missing:\n" + "\n".join(missing)

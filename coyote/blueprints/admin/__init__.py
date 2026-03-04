@@ -1,7 +1,7 @@
+import logging
 
 from flask import Blueprint
 from flask import current_app as app
-import logging
 
 # Blueprint configuration
 admin_bp = Blueprint(
@@ -12,15 +12,17 @@ admin_bp = Blueprint(
     static_url_path="admin/static",
 )
 
-from coyote.blueprints.admin import views  # noqa: F401, E402
-from coyote.blueprints.admin import views_samples  # noqa: F401, E402
-from coyote.blueprints.admin import views_users  # noqa: F401, E402
-from coyote.blueprints.admin import views_schemas  # noqa: F401, E402
-from coyote.blueprints.admin import views_permissions  # noqa: F401, E402
-from coyote.blueprints.admin import views_roles  # noqa: F401, E402
-from coyote.blueprints.admin import views_audit  # noqa: F401, E402
-from coyote.blueprints.admin import views_genelists  # noqa: F401, E402
-from coyote.blueprints.admin import views_assay_panels  # noqa: F401, E402
-from coyote.blueprints.admin import views_assay_configs  # noqa: F401, E402
+from coyote.blueprints.admin import (  # noqa: E402,F401
+    views,  # noqa: F401, E402
+    views_assay_configs,  # noqa: F401, E402
+    views_assay_panels,  # noqa: F401, E402
+    views_audit,  # noqa: F401, E402
+    views_genelists,  # noqa: F401, E402
+    views_permissions,  # noqa: F401, E402
+    views_roles,  # noqa: F401, E402
+    views_samples,  # noqa: F401, E402
+    views_schemas,  # noqa: F401, E402
+    views_users,  # noqa: F401, E402
+)
 
 app.admin_logger = logging.getLogger("coyote.admin")
