@@ -110,6 +110,7 @@ Current backend reorganization has started with:
 - Workflow orchestration moved from `api/services/workflow` to `api/core/workflows`
 - Interpretation logic moved from `api/services/interpretation` to `api/core/interpretation`
 - DNA domain logic moved from `api/services/dna` to `api/core/dna`
+- RNA domain logic moved from `api/services/rna` to `api/core/rna`
 - Contract models introduced under `api/contracts` (auth + reports first slice)
 - System/auth response contracts added under `api/contracts/system.py`
 - Internal route response contracts added under `api/contracts/internal.py`

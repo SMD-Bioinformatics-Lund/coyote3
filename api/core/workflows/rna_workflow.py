@@ -19,8 +19,8 @@ from api.services.reporting.pipeline import (
     persist_report_and_snapshot as persist_shared_report_and_snapshot,
 )
 from api.core.interpretation.annotation_enrichment import add_alt_class
-from api.services.rna.fusion_query_builder import build_fusion_query
-from api.services.rna.helpers import (
+from api.core.rna.fusion_query_builder import build_fusion_query
+from api.core.rna.helpers import (
     create_fusioncallers,
     create_fusioneffectlist,
     get_fusion_callers,

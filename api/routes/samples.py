@@ -5,7 +5,7 @@ from fastapi import Body, Depends
 from api.contracts.samples import CoverageBlacklistStatusPayload, SampleMutationPayload
 from api.extensions import store, util
 from api.core.interpretation.report_summary import create_comment_doc
-from api.services.rna.helpers import create_fusioncallers, create_fusioneffectlist
+from api.core.rna.helpers import create_fusioncallers, create_fusioneffectlist
 from api.core.workflows.filter_normalization import normalize_rna_filter_keys
 from api.app import _api_error, _get_formatted_assay_config, app
 from api.security.access import ApiUser, _get_sample_for_api, require_access
