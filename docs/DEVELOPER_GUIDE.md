@@ -160,7 +160,14 @@ Why this matters for contributors:
   - authentication/authorization -> `api/security`
   - storage/external systems -> `api/infra`
 
-A common mistake for new engineers is to optimize for “fewest files touched” rather than “correct ownership.” That strategy may pass quick smoke tests but usually introduces hidden coupling. In Coyote3, touching three modules in a clear route->service->handler flow is safer than pushing all behavior into one route function for convenience. Another common mistake is adding helper code into `utils` because it is quick to reach; utility modules should not become domain logic sinks. If a helper contains policy-sensitive behavior, it belongs in services, not generic utility files.
+A common mistake for new engineers is to optimize for “fewest files touched” rather than “correct ownership.” That strategy may pass quick smoke tests but usually introduces hidden coupling. In Coyote3, touching three modules in a clear route->service->handler flow is safer than pushing all behavior into one route function for convenience.
+
+Utility placement is now strict to prevent duplicate logic between API and UI:
+- `api/utils/*`: backend-only helpers used by backend modules; these may support workflow/security/persistence behavior and are never imported by Flask UI.
+- `coyote/util/*`: presentation-only helpers used by Flask blueprints/templates. These helpers must stay narrow (formatting, safe parsing, view payload shaping) and must not replicate backend business decisions.
+- if a helper starts affecting authorization, versioning, report computation, or persistence semantics, it must move to `api/core`, `api/security`, or `api/infra` and be consumed through API endpoints from UI.
+
+This rule exists because duplicated helper logic creates boundary drift and divergent behavior during future changes. During refactor cleanup, `coyote/util/common_utility.py` was reduced to UI-only helpers so backend utility implementations remain the canonical source for domain-level behavior.
 
 ## 3. Module Responsibilities and Extension Boundaries
 ### 3.1 FastAPI route modules
