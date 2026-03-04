@@ -152,13 +152,17 @@ Backend decomposition:
 - `api/infra/external/*`: LDAP and external annotation integrations.
 - `api/security/*`: authentication service, access resolution, and RBAC enforcement.
 - `api/audit/*`: audit event emission primitives.
-- `api/domain/*`: shared domain structures.
+- `api/domain/*`: domain models only.
 - `api/errors/*`: typed application exception model.
 
 UI decomposition:
 - `coyote/blueprints/*`: page-level composition.
 - `coyote/templates/*`: rendering assets.
 - `coyote/services/api_client/*`: transport abstractions.
+
+Domain-boundary rule:
+- `api/domain/*` is reserved for model/type definitions.
+- validators and business rules are placed in `api/core/*` (for example `api/core/admin/validators.py`).
 
 ### Example route-service split
 

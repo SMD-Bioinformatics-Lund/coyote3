@@ -7,7 +7,7 @@ This module provides static methods for configuration management, form processin
 
 from datetime import datetime, timezone
 from dateutil.parser import parse as parse_datetime
-from api.domain.core.admin_validators import REQUIRED_SCHEMA_KEYS
+from api.core.admin.validators import REQUIRED_SCHEMA_KEYS
 from api.runtime import app
 import json
 import os
