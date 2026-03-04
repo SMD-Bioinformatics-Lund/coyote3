@@ -13,7 +13,6 @@ from flask import (
 
 from coyote.blueprints.rna.forms import FusionFilter
 
-from coyote.extensions import util
 from coyote.blueprints.rna import rna_bp
 from coyote.services.api_client import endpoints as api_endpoints
 from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
@@ -54,7 +53,6 @@ def list_fusions(sample_id: str) -> str | Response:
 
     sample = fusions_payload.sample
     assay_config = fusions_payload.assay_config
-    assay_config_schema = fusions_payload.assay_config_schema
     sample_has_filters = sample.get("filters", None)
     assay_group = fusions_payload.assay_group or assay_config.get("asp_group", "unknown")
     subpanel = fusions_payload.subpanel
@@ -81,10 +79,12 @@ def list_fusions(sample_id: str) -> str | Response:
             except ApiRequestError as exc:
                 app.logger.error("Failed to reset RNA filters via API for sample %s: %s", sample_id, exc)
         else:
-            filters_from_form = util.common.format_filters_from_form(form, assay_config_schema)
-            filters_from_form["fusionlists"] = request.form.getlist("fusionlist_id")
-            if sample.get("filters", {}).get("adhoc_genes"):
-                filters_from_form["adhoc_genes"] = sample.get("filters", {}).get("adhoc_genes")
+            filters_from_form = {
+                key: value
+                for key, value in form.data.items()
+                if key not in {"csrf_token", "reset", "submit"}
+            }
+            filters_from_form["fusionlist_id"] = request.form.getlist("fusionlist_id")
             try:
                 api_client.post_json(
                     api_endpoints.sample(sample_id, "filters", "update"),
@@ -98,7 +98,6 @@ def list_fusions(sample_id: str) -> str | Response:
             fusions_payload = _load_api_context()
             sample = fusions_payload.sample
             assay_config = fusions_payload.assay_config
-            assay_config_schema = fusions_payload.assay_config_schema
             sample_filters = deepcopy(fusions_payload.filters)
             filter_context = deepcopy(fusions_payload.filter_context)
             fusionlist_options = fusions_payload.fusionlist_options
@@ -115,7 +114,6 @@ def list_fusions(sample_id: str) -> str | Response:
             fusions_payload = _load_api_context()
             sample = fusions_payload.sample
             assay_config = fusions_payload.assay_config
-            assay_config_schema = fusions_payload.assay_config_schema
             sample_filters = deepcopy(fusions_payload.filters)
             filter_context = deepcopy(fusions_payload.filter_context)
             fusionlist_options = fusions_payload.fusionlist_options

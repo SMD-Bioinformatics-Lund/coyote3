@@ -52,6 +52,15 @@ MongoDB 3.4 does not provide modern transactional guarantees for multi-document 
 
 **Performance implications**: inconsistent keys force runtime coercion and prevent efficient index usage.
 
+### 2.4 Principle: filter-state canonicalization at API boundary
+Filter payloads originating from UI forms can contain presentation-oriented key patterns (for example prefixed checkbox keys). These payloads are canonicalized in API mutation routes before persistence. Flask views are not the source of truth for filter normalization.
+
+**Why this exists**: keeping normalization in API prevents drift between UI modules and preserves a single persisted filter shape in sample documents.
+
+**What breaks if misused**: if UI modules normalize differently, saved filter documents diverge and cross-assay queries become inconsistent.
+
+**Performance implications**: canonical persisted filter keys reduce downstream query branching and avoid repeated runtime key translation.
+
 ---
 
 ## 3. Core Collection Domains and Responsibilities

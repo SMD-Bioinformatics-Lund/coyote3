@@ -6,7 +6,7 @@ from api.contracts.samples import CoverageBlacklistStatusPayload, SampleMutation
 from api.extensions import store, util
 from api.core.interpretation.report_summary import create_comment_doc
 from api.core.rna.helpers import create_fusioncallers, create_fusioneffectlist
-from api.core.workflows.filter_normalization import normalize_rna_filter_keys
+from api.core.workflows.filter_normalization import normalize_dna_filter_keys, normalize_rna_filter_keys
 from api.app import _api_error, _get_formatted_assay_config, app
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 
@@ -77,6 +77,9 @@ def update_sample_filters_mutation(
     if not isinstance(filters, dict):
         raise _api_error(400, "Invalid filters payload")
     normalized_filters = dict(filters)
+    existing_filters = dict(sample.get("filters") or {})
+    if "adhoc_genes" not in normalized_filters and "adhoc_genes" in existing_filters:
+        normalized_filters["adhoc_genes"] = existing_filters.get("adhoc_genes")
 
     if str(sample.get("omics_layer", "")).lower() == "rna":
         normalized_filters = normalize_rna_filter_keys(normalized_filters)
@@ -96,6 +99,8 @@ def update_sample_filters_mutation(
             normalized_filters["fusionlists"] = list(fusionlists)
 
         normalized_filters["fusionlists"] = list(dict.fromkeys(normalized_filters.get("fusionlists", [])))
+    else:
+        normalized_filters = normalize_dna_filter_keys(normalized_filters)
 
     store.sample_handler.update_sample_filters(sample.get("_id"), normalized_filters)
     result = _mutation_payload(sample_id, resource="sample_filters", resource_id=str(sample.get("_id")), action="update")

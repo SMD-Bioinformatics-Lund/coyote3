@@ -169,6 +169,8 @@ Utility placement is now strict to prevent duplicate logic between API and UI:
 
 This rule exists because duplicated helper logic creates boundary drift and divergent behavior during future changes. During refactor cleanup, `coyote/util/common_utility.py` was reduced to UI-only helpers so backend utility implementations remain the canonical source for domain-level behavior.
 
+Filter normalization follows the same ownership rule. UI views should submit raw filter payloads from forms, while canonical key normalization and coercion runs in API layer (`api/core/workflows/filter_normalization.py` and sample mutation routes). Avoid re-implementing prefix/key folding (`vep_*`, `genelist_*`, `fusioncaller_*`, etc.) in Flask code.
+
 ## 3. Module Responsibilities and Extension Boundaries
 ### 3.1 FastAPI route modules
 Route modules in `api/routes/*` are endpoint adapters. Their responsibilities include parsing request parameters, binding dependency checks, invoking services, and shaping deterministic response contracts. Their responsibilities explicitly exclude heavy business logic and direct multi-step persistence orchestration. A route should read as “what endpoint is this and what service does it call,” not as a multi-page workflow script.
