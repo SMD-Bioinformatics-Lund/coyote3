@@ -127,6 +127,7 @@ Current backend reorganization has started with:
 - RNA fusion routes upgraded from generic payloads to typed contracts in `api/contracts/rna.py`
 - DNA mutation endpoints upgraded from generic payloads to typed shared mutation contracts (`api/contracts/samples.py`)
 - DNA read/context endpoints upgraded from generic payloads to typed contracts in `api/contracts/dna.py`
+- Flask UI API client now forwards `Authorization: Bearer <api_session_token>` from the API session cookie on server-side API calls
 - Flask-side API transport consolidated under `coyote/services/api_client` (legacy `coyote/integrations/api` removed)
 - Runtime/security config access centralized in `api/settings.py`
 

@@ -39,6 +39,16 @@ def test_forward_headers_with_request_context_includes_cookie():
     assert headers["Cookie"] == "foo=bar"
 
 
+def test_forward_headers_with_api_session_cookie_adds_bearer_auth():
+    app = Flask(__name__)
+    app.config["API_SESSION_COOKIE_NAME"] = "coyote3_api_session"
+
+    with app.test_request_context(headers={"Cookie": "coyote3_api_session=token123; foo=bar"}):
+        headers = api_client.forward_headers()
+
+    assert headers["Authorization"] == "Bearer token123"
+
+
 def test_build_internal_headers_uses_internal_token_or_secret_key():
     app = Flask(__name__)
     app.config["INTERNAL_API_TOKEN"] = "internal-token"
