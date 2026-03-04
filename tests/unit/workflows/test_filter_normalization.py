@@ -38,5 +38,8 @@ def test_normalize_dna_filter_keys_returns_copy():
 
     normalized = norm.normalize_dna_filter_keys(payload)
 
-    assert normalized == payload
+    assert normalized["min_alt_reads"] == 5
+    assert normalized["vep_consequences"] == []
+    assert normalized["genelists"] == []
+    assert normalized["cnveffects"] == []
     assert normalized is not payload
