@@ -262,6 +262,7 @@ If UI tries to own policy decisions, controls become inconsistent and auditable 
 - UI calls API endpoints through integration client abstractions.
 - UI does not perform direct domain persistence operations.
 - Boundary tests verify no direct policy logic leakage from API to UI imports.
+- UI does not authoritatively emit audit events; audit ownership is backend-only.
 
 ## 9.4 Why this matters for auditors
 Auditors need a clear control surface where policy is enforced. A mixed policy model across templates and backend routes is difficult to validate and maintain.
@@ -320,6 +321,8 @@ Audit logs are security artifacts and compliance evidence, not convenience logs.
 4. audit event generated with actor/target/outcome
 5. event persisted or forwarded to configured sink
 6. authorized users can review event history
+
+The authoritative audit event is emitted by API/backend execution paths after authorization and domain validation. Flask UI actions are client-side requests to API operations and are not treated as independent audit-authority sources.
 
 Example event:
 

@@ -254,6 +254,7 @@ Operational recommendation:
 
 ## 7.4 Why separation matters
 Mixing audit and operational logs can lead to accidental tampering, retention mismatch, and slow forensic retrieval.
+Audit ownership is backend-only: API services emit authoritative audit events after access checks and mutation outcomes; Flask UI does not write authoritative audit entries.
 
 ## 7.5 Safe logging practices
 - use structured logging fields where possible
