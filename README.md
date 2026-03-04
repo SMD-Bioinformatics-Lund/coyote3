@@ -152,6 +152,7 @@ PYTHONPATH=. .venv/bin/pytest -q -m web
 
 CI parity:
 - `.github/workflows/quality.yml` runs the same lint/format checks and marker-based test suites.
+- `.pre-commit-config.yaml` runs quick `unit`, `web`, `api` smoke, and `contract` pytest hooks locally.
 
 ---
 

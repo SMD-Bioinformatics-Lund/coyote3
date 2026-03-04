@@ -19,6 +19,21 @@ repos:
 
 -   repo: local
     hooks:
+    -   id: pytest-unit
+        name: pytest unit quick
+        entry: .venv/bin/pytest -q -m unit tests/unit
+        language: system
+        pass_filenames: false
+    -   id: pytest-web-boundary
+        name: pytest web boundary
+        entry: .venv/bin/pytest -q -m web tests/web/test_web_api_boundary.py
+        language: system
+        pass_filenames: false
+    -   id: pytest-api-smoke
+        name: pytest api smoke
+        entry: .venv/bin/pytest -q -m api tests/api/routes/test_system_routes.py tests/api/routes/test_reports_routes.py
+        language: system
+        pass_filenames: false
     -   id: pytest-contract
         name: pytest contract boundary
         entry: .venv/bin/pytest -q -m contract
