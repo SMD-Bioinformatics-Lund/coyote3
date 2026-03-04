@@ -146,7 +146,7 @@ test
 logs/
 example_dev*
 migration_scripts
-reports
+/reports/
 ./bugs
 *dummy*
 

@@ -34,6 +34,10 @@ Coyote3 baseline runtime uses Docker containers for service separation and deplo
 - `mongo` (MongoDB 3.4-compatible runtime)
 - optional ingress/reverse proxy, monitoring agents, and log collectors
 
+Local launcher scripts follow the same separation:
+- `run.py` launches Flask UI runtime only.
+- `run_api.py` launches FastAPI API runtime only.
+
 ## 3.1 Why container separation exists
 Container separation aligns with ownership boundaries. API and UI can scale independently and can be diagnosed independently. A UI template issue should not require backend process restart. A backend route policy fix should not require static asset rebuild unless UI changes are also present.
 

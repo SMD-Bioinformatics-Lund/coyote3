@@ -1,4 +1,8 @@
-"""Local FastAPI runner for Coyote3 API service."""
+"""FastAPI API entrypoint.
+
+This launcher runs only the backend API runtime (`api.app:app`).
+Use `run.py` for Flask UI runtime.
+"""
 
 import uvicorn
 

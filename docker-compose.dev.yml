@@ -5,6 +5,7 @@ version: "3.9"
 # docker-compose up -d
 # docker-compose down
 services:
+  # UI container: Flask/Jinja presentation layer. Calls coyote3_dev_api over HTTP.
   coyote3_dev_web:
     container_name: coyote3_dev_web
     image: coyote3:${COYOTE3_VERSION:-local}-dev
@@ -58,6 +59,7 @@ services:
     depends_on:
       - coyote3_dev_api
 
+  # API container: FastAPI business/policy/data layer.
   coyote3_dev_api:
     container_name: coyote3_dev_api
     image: coyote3:${COYOTE3_VERSION:-local}-dev
@@ -106,6 +108,7 @@ services:
       - "/fs1:/fs1"
     command: "python3 -m uvicorn api.app:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/coyote --reload-dir /app/api --reload-dir /app"
 
+  # UI asset build/watch helper for development.
   coyote3_dev_tailwind:
     container_name: coyote3_dev_tailwind
     image: node:20-alpine
@@ -122,6 +125,7 @@ services:
       - coyote3-dev-net
     restart: unless-stopped
 
+  # Shared infrastructure dependency.
   redis_coyote3_dev:
     container_name: redis_coyote3_dev
     image: ramsainanduri/redis:7.4.3

@@ -184,6 +184,17 @@ Each major functionality is organized into a Flask blueprint:
 
 ---
 
+## Runtime Roles
+
+- `run.py`: starts Flask UI runtime only.
+- `run_api.py`: starts FastAPI API runtime only.
+- `docker-compose.yml`: runs `coyote3_web` (UI) and `coyote3_api` (API) as separate containers.
+- `docker-compose.dev.yml`: runs `coyote3_dev_web` and `coyote3_dev_api` separately, plus dev-only Tailwind watcher and Redis.
+
+The UI service is a client of the API service; backend business logic, RBAC checks, audit writes, and Mongo operations are owned by API.
+
+---
+
 ## Installation and Deployment
 
 Production is the default and recommended path. Development options are listed after production.
