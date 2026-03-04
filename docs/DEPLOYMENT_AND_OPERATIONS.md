@@ -39,9 +39,9 @@ Repository deployment assets:
 - development compose: `deploy/compose/docker-compose.dev.yml`
 - Gunicorn runtime config: `deploy/gunicorn/gunicorn.conf.py`
 
-Local launcher scripts follow the same separation:
-- `run.py` launches Flask UI runtime only.
-- `run_api.py` launches FastAPI API runtime only.
+Local Python entrypoints follow the same separation:
+- `python -m wsgi` launches Flask UI runtime only.
+- `python -m uvicorn api.app:app --host 0.0.0.0 --port 8001` launches FastAPI API runtime only.
 
 ## 3.1 Why container separation exists
 Container separation aligns with ownership boundaries. API and UI can scale independently and can be diagnosed independently. A UI template issue should not require backend process restart. A backend route policy fix should not require static asset rebuild unless UI changes are also present.

@@ -126,12 +126,12 @@ Use `.env` and local environment files according to deployment docs. Ensure API 
 
 ## 4.1 API runtime only
 ```bash
-.venv/bin/python run_api.py
+.venv/bin/python -m uvicorn api.app:app --host 0.0.0.0 --port 8001 --reload
 ```
 
 ## 4.2 UI runtime only
 ```bash
-.venv/bin/python run.py
+.venv/bin/python -m wsgi
 ```
 
 ## 4.3 Docker development stack

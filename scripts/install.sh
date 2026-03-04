@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
 #
 # Copyright (c) 2025 Coyote3 Project Authors
@@ -17,17 +18,26 @@
 # ------------------------------------------
 # Coyote3 Deployment Script
 # ------------------------------------------
-# This script builds and runs the Coyote3 Docker container with custom settings.
-# It automatically sources environment variables, stops any running container,
-# and starts the app with a fresh image.
+# This script deploys the Coyote3 stack using docker compose.
+# It exports version/build metadata and starts all services defined in
+# deploy/compose/docker-compose.yml.
 # ------------------------------------------
 
 echo "Starting Coyote3 Deployment..."
 
-# Source the .env file if it exists
-if [[ -f ".coyote3_env" ]]; then
+# Resolve repository root from this script location
+SCRIPT_PATH="$(realpath "$0")"
+APP_DIR="$(dirname "$(dirname "$SCRIPT_PATH")")"
+COMPOSE_FILE="$APP_DIR/deploy/compose/docker-compose.yml"
+ENV_FILE="$APP_DIR/.coyote3_env"
+
+# Source the env file if it exists so compose variable interpolation can use it
+if [[ -f "$ENV_FILE" ]]; then
     echo ".coyote3_env file found. Loading environment variables..."
-    source .coyote3_env
+    set -a
+    # shellcheck disable=SC1090
+    source "$ENV_FILE"
+    set +a
 else
     echo "No .coyote3_env file found in project root."
     read -p "Enter the file path to load environment variables or type N/No to continue without: " env_path
@@ -35,74 +45,45 @@ else
         echo "Continuing without environment variables."
     elif [[ -f "$env_path" ]]; then
         echo "File found at $env_path. Loading environment variables..."
+        set -a
+        # shellcheck disable=SC1090
         source "$env_path"
+        set +a
     else
         echo "File not found at $env_path. Exiting."
         exit 1
     fi
 fi
 
-# Set application context path (adjust if hosted under a different subpath)
-SCRIPT_NAME="/coyote3"
-
-# Read the application version from Python module
-SCRIPT_PATH=$(realpath "$0")
-APP_DIR=$(dirname "$(dirname "$SCRIPT_PATH")")
-version=$(python "$APP_DIR/coyote/__version__.py")
-echo "Deploying Coyote3 version: $version"
-
-# Define Docker image and container names
-image_name="coyote3:$version"
-container_name="coyote3_app"
+# Read and export compose build/runtime metadata
+COYOTE3_VERSION="$(python3 "$APP_DIR/coyote/__version__.py")"
+export COYOTE3_VERSION
+echo "Deploying Coyote3 version: $COYOTE3_VERSION"
 
 # GIT Commit and build time
 GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+export GIT_COMMIT BUILD_TIME
 echo "Git commit: $GIT_COMMIT"
 echo "Build time:  $BUILD_TIME"
 
+# Ensure external compose network exists
+if ! docker network inspect coyote3-net >/dev/null 2>&1; then
+    echo "Creating external docker network: coyote3-net"
+    docker network create coyote3-net >/dev/null
+fi
 
-# Optional: Uncomment this to force rebuild without cache
-# echo "Building Docker image: $image_name"
-docker build --no-cache --network host --build-arg GIT_COMMIT="$GIT_COMMIT" --build-arg BUILD_TIME="$BUILD_TIME" --target $container_name -t "$image_name" .
+# Select compose binary
+if docker compose version >/dev/null 2>&1; then
+    COMPOSE_BIN=(docker compose)
+else
+    COMPOSE_BIN=(docker-compose)
+fi
 
-# Stop and remove any existing container with the same name
-echo "Stopping and removing existing container (if any)..."
-docker stop "$container_name" >/dev/null 2>&1
-docker rm "$container_name" >/dev/null 2>&1
-
-# build redis image if it does not exist
-docker inspect redis_coyote3 >/dev/null 2>&1 \
-    && docker start redis_coyote3 \
-    || docker run -d --name redis_coyote3 --network coyote3-net --restart=unless-stopped -p 5817:6379 ramsainanduri/redis:7.4.3
-
-
-# Start the Docker container
-echo "Starting Docker container: $container_name"
-docker run \
-    -e FLASK_MONGO_HOST=${FLASK_MONGO_HOST} \
-    -e FLASK_MONGO_PORT=${FLASK_MONGO_PORT} \
-    -e FLASK_DEBUG=${FLASK_DEBUG} \
-    -e SCRIPT_NAME="${SCRIPT_NAME}" \
-    -e FLASK_SECRET_KEY="${SECRET_KEY}" \
-    -e TZ='Europe/Stockholm' \
-    -e GIT_COMMIT="$GIT_COMMIT" \
-    -e BUILD_TIME="$BUILD_TIME" \
-    --dns "${APP_DNS}" \
-    -v /data/coyote3/logs:/app/logs \
-    -v /access:/access \
-    -v /media:/media \
-    -v /data:/data \
-    -v /fs1:/fs1 \
-    -v /mnt/clarity:/mnt/clarity \
-    -p "${PORT_NBR}:8000" \
-    --name "$container_name" \
-    --restart=always \
-    --network coyote3-net \
-    -d \
-    "$image_name"
+echo "Starting compose services: coyote3_web, coyote3_api, redis_coyote3"
+"${COMPOSE_BIN[@]}" -f "$COMPOSE_FILE" up -d --build
 
 # Final message
 echo "Deployment Complete!"
-echo "Access Coyote3 at: https://mtlucmds1.lund.skane.se$SCRIPT_NAME"
-
+echo "UI:  https://mtlucmds1.lund.skane.se/coyote3"
+echo "API: http://mtlucmds1.lund.skane.se:5816"

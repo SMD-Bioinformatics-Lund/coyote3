@@ -156,8 +156,8 @@ Each major functionality is organized into a Flask blueprint:
 
 ## Runtime Roles
 
-- `run.py`: starts Flask UI runtime only.
-- `run_api.py`: starts FastAPI API runtime only.
+- `wsgi.py`: Flask UI WSGI entrypoint.
+- `asgi.py`: FastAPI ASGI entrypoint.
 - `deploy/compose/docker-compose.yml`: production-style compose stack with separate UI and API services.
 - `deploy/compose/docker-compose.dev.yml`: development compose stack with separate UI/API services plus dev Tailwind and Redis.
 
