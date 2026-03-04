@@ -45,7 +45,6 @@ from api.contracts.dna import (
     DnaVariantContextPayload,
     DnaVariantsListPayload,
 )
-from api.contracts.generic import GenericPayload
 from api.contracts.home import (
     HomeEditContextPayload,
     HomeEffectiveGenesPayload,
@@ -111,7 +110,6 @@ __all__ = [
     "DnaTranslocationsPayload",
     "DnaVariantContextPayload",
     "DnaVariantsListPayload",
-    "GenericPayload",
     "HealthPayload",
     "HomeEditContextPayload",
     "HomeEffectiveGenesPayload",
