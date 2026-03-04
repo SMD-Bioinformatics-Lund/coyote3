@@ -58,7 +58,7 @@ mongo --eval 'db.version()'
 
 2. Capture failing query/operator from logs.
 3. Compare failing query with Mongo 3.4 supported feature set.
-4. Review corresponding handler method in `api/db/*` for operator usage.
+4. Review corresponding handler method in `api/infra/db/*` for operator usage.
 5. If migration script is failing, run in read-only dry-run mode first.
 
 ### 3.4 Remediation actions

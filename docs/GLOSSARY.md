@@ -30,8 +30,8 @@
 
 ## 4. Architecture and Implementation Terms
 - **Route Layer**: FastAPI endpoint definitions in `api/routes/*`.
-- **Service Layer**: Domain orchestration logic in `api/services/*`.
-- **Handler Layer**: MongoDB query/write interfaces in `api/db/*`.
+- **Core Layer**: Domain orchestration logic in `api/core/*`, implemented as framework-agnostic modules.
+- **Handler Layer**: MongoDB query/write interfaces in `api/infra/db/*`.
 - **Blueprint**: Flask module grouping routes and templates for a UI domain.
 - **API Client Facade**: Flask-side HTTP client abstraction in `coyote/services/api_client/api_client.py`.
 - **Web Report Bridge**: UI service layer module handling report preview/save API orchestration.

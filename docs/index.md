@@ -9,6 +9,19 @@ Current engineering direction is API-centric:
 - Flask UI remains presentation-only and calls API endpoints over HTTP.
 - Boundary compliance is enforced incrementally with contract tests.
 
+## 2026 Refactor Commit Highlights
+
+The documentation set now reflects the completed migration commits that established the current architecture baseline:
+- Contract hardening: all `/api/v1` routes now return explicit typed contracts under `api/contracts/*`; generic payload contract removed.
+- UI/API auth transport hardening: Flask server-side API client forwards `Authorization: Bearer <api_session_token>`.
+- Core migration: domain modules moved from legacy `api/services/*` into `api/core/*` (`dna`, `rna`, `reporting`, `coverage`, `public`, `workflows`, `interpretation`, `admin`).
+- Security migration: auth service moved to `api/security/auth_service.py`, co-located with access checks in `api/security/access.py`.
+- Infra migration: Mongo handlers remain under `api/infra/db/*`; LDAP and other external integrations under `api/infra/external/*`.
+- Legacy package cleanup: `api/services` removed after import rewiring and regression validation.
+- Tooling enforcement: pre-commit now runs quick unit/web/api/contract test hooks in addition to Ruff.
+
+These changes were implemented in small verified commits and are now the reference structure for all new contributions.
+
 ## Core Documentation
 - [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md)
 - [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)

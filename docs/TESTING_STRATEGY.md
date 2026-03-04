@@ -26,6 +26,16 @@ If a change cannot be verified against these objectives, it is considered incomp
 ## 3. Test Layer Model
 Coyote3 uses a layered testing model to align risk with verification depth.
 
+### 3.0 Current enforced suite structure (2026 baseline)
+The repository now enforces four primary suites as first-class quality gates:
+
+- `tests/unit/`: core/security/infra-focused logic tests with high isolation.
+- `tests/api/`: FastAPI route and policy behavior tests.
+- `tests/web/`: Flask presentation and UI->API boundary tests.
+- `tests/contract/`: architectural guardrails (UI cannot import backend internals or touch Mongo directly).
+
+These suites are not only organizational; they are wired into both CI and local pre-commit hooks. The reason is to make boundary regressions fail fast before merge. Historically, architecture regressions were often detected late when broad route tests passed but boundary rules were silently violated. Marker-based suites with explicit scope reduce that risk.
+
 ## 3.1 Unit tests
 Unit tests validate isolated functions or small service methods using controlled stubs/mocks.
 
@@ -631,7 +641,7 @@ Use these metrics to prioritize test debt reduction and to identify unstable par
 PYTHONPATH=. .venv/bin/pytest -q tests/api/routes/test_reports_routes.py --cov=api/routes/reports.py --cov-report=term-missing
 
 # Service-focused run
-PYTHONPATH=. .venv/bin/pytest -q tests/api/services --cov=api/services --cov-report=term-missing
+PYTHONPATH=. .venv/bin/pytest -q tests/unit --cov=api/core --cov=api/security --cov=api/infra --cov-report=term-missing
 
 # Web boundary focused run
 PYTHONPATH=. .venv/bin/pytest -q tests/web --cov=coyote/services/api_client --cov-report=term-missing

@@ -3,7 +3,7 @@
 ## 1. Purpose and Engineering Context
 This guide is the primary implementation manual for engineers who build and maintain Coyote3. The intention is not to provide only a file listing or a set of code snippets, because that style is insufficient in a clinical platform where architectural discipline is part of product safety. The goal is to explain how to work inside this repository without violating boundaries, without introducing policy drift, and without creating hidden operational risk. Every major pattern described here exists because the system supports regulated genomic workflows, where reproducibility, traceability, and controlled change matter at least as much as throughput and developer convenience.
 
-Coyote3 combines Flask UI and FastAPI backend in a split-stack architecture. At first glance that may look like unnecessary complexity, especially if you have worked in simpler monolithic web applications. In practice, the split is deliberate. The API layer is treated as the policy and orchestration authority for all clinically meaningful actions, while the UI layer is treated as rendering and interaction orchestration. This choice enforces a repeatable mental model: if an operation changes domain state or decides authorization, it belongs in API services and route dependencies; if an operation determines layout, display flow, and user affordance, it belongs in Flask blueprints and templates. Engineers who follow this separation can safely evolve features with lower risk of side effects.
+Coyote3 combines Flask UI and FastAPI backend in a split-stack architecture. At first glance that may look like unnecessary complexity, especially if you have worked in simpler monolithic web applications. In practice, the split is deliberate. The API layer is treated as the policy and orchestration authority for all clinically meaningful actions, while the UI layer is treated as rendering and interaction orchestration. This choice enforces a repeatable mental model: if an operation changes domain state or decides authorization, it belongs in API core modules and route dependencies; if an operation determines layout, display flow, and user affordance, it belongs in Flask blueprints and templates. Engineers who follow this separation can safely evolve features with lower risk of side effects.
 
 You should read this guide as a set of required habits rather than optional style preferences. Coyote3 is not an environment where ad hoc shortcuts become harmless technical debt. A direct database call from UI code, a hidden fallback that bypasses contract validation, or an unstructured error response can all create clinical or compliance risk. The platform is designed to make correct behavior easier than risky behavior, but it still depends on disciplined implementation. The sections below give you concrete extension patterns and explain why each pattern exists, what alternatives were evaluated, and what failure modes occur when the pattern is ignored.
 
@@ -16,12 +16,32 @@ coyote3/
     __init__.py
     app.py
     extensions.py
+    settings.py
     runtime.py
     runtime_bootstrap.py
+    contracts/
+      *.py
+    core/
+      dna/
+      rna/
+      reporting/
+      coverage/
+      public/
+      workflows/
+      interpretation/
+      admin/
     domain/
       __init__.py
       models/
       core/
+    security/
+      access.py
+      auth_service.py
+    audit/
+      access_events.py
+    infra/
+      db/
+      external/
     routes/
       admin.py
       common.py
@@ -35,29 +55,6 @@ coyote3/
       rna.py
       samples.py
       system.py
-    services/
-      auth.py
-      ldap.py
-      coverage_processing.py
-      public_catalog.py
-      admin/
-      dna/
-      rna/
-      reporting/
-      workflow/
-      interpretation/
-    db/
-      mongo.py
-      base.py
-      users.py
-      roles.py
-      permissions.py
-      samples.py
-      variants.py
-      fusions.py
-      reports.py
-      schemas.py
-      ...
     errors/
       exceptions.py
     utils/
@@ -80,8 +77,8 @@ coyote3/
       public/
       rna/
       userprofile/
-    integrations/
-      api/
+    services/
+      api_client/
         base.py
         api_client.py
         endpoints.py
@@ -141,7 +138,27 @@ coyote3/
   README.md
 ```
 
-This structure is not arbitrary. The backend is segmented into routes, services, and handlers so that request contract concerns stay separate from workflow concerns and persistence concerns. The UI has dedicated integration modules for API communication to prevent hidden direct dependencies on API internals. Tests mirror this split by organizing API behavior tests, service tests, and web boundary tests. If you find yourself trying to add business logic in a Flask blueprint or direct persistence in a route module, use that impulse as a signal that a boundary is being crossed and reevaluate placement.
+This structure is not arbitrary. The backend is segmented into routes, core domain modules, security components, and infrastructure handlers so that request contract concerns stay separate from workflow concerns and persistence concerns. The UI has dedicated integration modules for API communication to prevent hidden direct dependencies on API internals. Tests mirror this split by organizing API behavior tests, unit workflow/core tests, and web boundary tests. If you find yourself trying to add business logic in a Flask blueprint or direct persistence in a route module, use that impulse as a signal that a boundary is being crossed and reevaluate placement.
+
+### 2.1 2026 architecture migration (what changed and why)
+The current repository state reflects a deliberate multi-commit migration that removed legacy service-bucket ambiguity and hardened API contracts.
+
+Key changes:
+- `api/services/*` was fully removed after moving modules to `api/core/*`, `api/security/*`, and `api/infra/*`.
+- workflow, interpretation, DNA, RNA, reporting, coverage, and public-catalog logic now live under `api/core/*`.
+- auth logic was moved to `api/security/auth_service.py`, co-located with access checks in `api/security/access.py`.
+- LDAP was moved to `api/infra/external/ldap.py`.
+- all `/api/v1` routes now use explicit typed response models in `api/contracts/*`; temporary generic payload contracts were removed.
+- Flask UI API client now forwards `Authorization: Bearer <api_session_token>` for server-side API calls.
+
+Why this matters for contributors:
+- File placement now enforces intent. A new feature should signal ownership by its package path before reviewers even open the file.
+- Contract drift risk is lower because route responses are strongly typed and validated.
+- Security review is simpler because auth/session logic is centralized in `api/security`.
+- Future module additions have a clear decision table:
+  - domain/workflow rules -> `api/core`
+  - authentication/authorization -> `api/security`
+  - storage/external systems -> `api/infra`
 
 A common mistake for new engineers is to optimize for “fewest files touched” rather than “correct ownership.” That strategy may pass quick smoke tests but usually introduces hidden coupling. In Coyote3, touching three modules in a clear route->service->handler flow is safer than pushing all behavior into one route function for convenience. Another common mistake is adding helper code into `utils` because it is quick to reach; utility modules should not become domain logic sinks. If a helper contains policy-sensitive behavior, it belongs in services, not generic utility files.
 
@@ -151,22 +168,25 @@ Route modules in `api/routes/*` are endpoint adapters. Their responsibilities in
 
 The design reason is auditability and predictability. Routes are your external contract surface; they must remain readable, stable, and easy to diff during review. If route modules accumulate domain logic, contract change review becomes difficult and side effects hide behind endpoint wrappers. That is why adding a new endpoint usually means adding a route function plus a service function plus possibly a handler method. Engineers new to this pattern may initially perceive it as ceremony; in a regulated platform, this “ceremony” is the safety structure.
 
-### 3.2 Service modules
-Service modules in `api/services/*` own domain orchestration, policy-sensitive workflow behavior, and multi-handler sequencing. They should normalize business input, enforce domain invariants not covered by simple schema validation, and coordinate changes across persistence boundaries in deterministic order. They should also emit audit events at authoritative mutation points.
+### 3.2 Core modules
+Core modules in `api/core/*` own domain orchestration, policy-sensitive workflow behavior, and multi-repository sequencing. They normalize business input, enforce domain invariants not covered by simple schema validation, and coordinate changes across persistence boundaries in deterministic order. Core modules should remain framework-agnostic and avoid FastAPI/Flask imports so they stay reusable and unit-test focused.
 
-The tradeoff is that service modules require stronger unit and integration test discipline. A service function that orchestrates three handlers and one audit emitter has several failure branches. That complexity is acceptable because it is explicit and testable. The alternative—embedding workflow logic into route functions—produces complexity anyway but with poorer isolation and weaker review quality.
+The tradeoff is that core modules require stronger unit and integration test discipline. A core function that orchestrates three repositories and one audit emitter has several failure branches. That complexity is acceptable because it is explicit and testable. The alternative, embedding workflow logic into route functions, produces complexity anyway but with poorer isolation and weaker review quality.
 
 ### 3.3 Data access handlers
-Data handlers in `api/db/*` encapsulate collection-specific queries and updates. They are not policy engines and not API contract validators. Their goal is stable persistence primitives with predictable input and output shapes. Handlers should expose intentional methods such as `get_sample_by_id`, `list_variants_for_sample`, or `save_report`, instead of requiring callers to build ad hoc query dictionaries repeatedly.
+Data handlers in `api/infra/db/*` encapsulate collection-specific queries and updates. They are not policy engines and not API contract validators. Their goal is stable persistence primitives with predictable input and output shapes. Handlers should expose intentional methods such as `get_sample_by_id`, `list_variants_for_sample`, or `save_report`, instead of requiring callers to build ad hoc query dictionaries repeatedly.
 
 The reason is twofold. First, query behavior should be centralized to maintain MongoDB 3.4 compatibility rules and indexing awareness. Second, repeating ad hoc queries across service code increases inconsistency risk and makes index tuning harder because query patterns become fragmented. If a new query pattern appears in multiple places, add a handler method and use it consistently.
 
-### 3.4 Flask blueprints
+### 3.4 Security and auth modules
+Security modules in `api/security/*` own credential checks, session token issuance/decoding, and route dependency access checks. Authentication (`api/security/auth_service.py`) is intentionally co-located with access-control logic (`api/security/access.py`) so route-level policy and session lifecycle evolve together. The design reason is to avoid split-brain semantics where credential logic changes but access dependency behavior lags.
+
+### 3.5 Flask blueprints
 Blueprint modules in `coyote/blueprints/*` control page flow, template context assembly, and user interaction handling. They should call API endpoints and render responses, not replicate backend domain logic. They should use integration helpers in `coyote/services/api_client` for URL building and header forwarding, which keeps transport behavior centralized.
 
 A frequent mistake is computing domain decisions in blueprint code because “the UI already has the data.” Avoid this. UI code can perform presentation-level transformation (formatting, grouping for display) but must not become a second business rule engine. When in doubt, move the rule to API service and expose a field indicating resolved state.
 
-### 3.5 Integration client modules
+### 3.6 Integration client modules
 `coyote/services/api_client/*` modules define transport contracts from Flask to API. Endpoint builders and client wrappers ensure path conventions, headers, and error wrapping stay consistent. If you need a new API call from UI, add endpoint helper methods and keep direct hardcoded URL strings minimized.
 
 This pattern reduces subtle drift such as typo-prone path constants, inconsistent internal token usage, or missing forwarded cookies. Centralized transport also makes global behavior changes simpler, for example adding standard request metadata headers.
@@ -198,7 +218,7 @@ def sample_quality_context(sample_id: str, user=Depends(require_access(min_level
 ```
 
 ```python
-# api/services/samples_context.py
+# api/core/workflows/samples_context.py
 from api.extensions import store
 from api.errors.exceptions import AppError
 
@@ -294,7 +314,7 @@ new_schema = {
 ```
 
 ```python
-# api/services/schema_service.py
+# api/core/schema/schema_service.py
 from api.errors.exceptions import AppError
 
 class SchemaService:
@@ -424,7 +444,7 @@ Assay group additions are system-wide extensions touching schema, workflow logic
 ### Code example
 
 ```python
-# api/services/assay_registry.py
+# api/core/assay/assay_registry.py
 ASSAY_GROUPS = {
     'DNA': {'analysis_types': ['SNV', 'CNV', 'TRANSLOC']},
     'RNA': {'analysis_types': ['FUSION']},
@@ -605,7 +625,7 @@ A robust test strategy must prove behavior, contracts, and boundaries.
 Service tests verify domain orchestration, validation, and error branches with mocked handlers.
 
 ```bash
-PYTHONPATH=. .venv/bin/pytest -q tests/api/services
+PYTHONPATH=. .venv/bin/pytest -q tests/unit
 ```
 
 ### 17.2 Route-family tests

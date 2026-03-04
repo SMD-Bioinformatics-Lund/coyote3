@@ -7,6 +7,25 @@ Coyote3 contains three foundational runtime units: a Flask-based web application
 
 This architecture should not be read as a static model. It is a controlled operating framework. The system must evolve as assays evolve, clinical policy evolves, and infrastructure evolves. The architecture therefore prioritizes explicit contracts, deterministic behavior, and auditable state transitions over convenience patterns that hide side effects.
 
+## Architecture Delta: 2026 Refactor Baseline
+The current baseline includes a completed backend structural migration that removed the legacy `api/services` package and split responsibilities into three explicit backend zones:
+
+- `api/core/*`: framework-agnostic domain and workflow orchestration (`dna`, `rna`, `reporting`, `coverage`, `public`, `workflows`, `interpretation`, `admin`).
+- `api/security/*`: authentication + access controls (`auth_service.py` and `access.py`) with route-level dependency enforcement.
+- `api/infra/*`: persistence and external integrations (`infra/db/*` for Mongo handlers and `infra/external/*` for LDAP/annotation sources).
+
+The design reason for this split is to make ownership and change impact explicit. In previous mixed-layer layouts, engineers could accidentally place policy decisions in generic service modules with no architectural signal. Under the current split, module placement itself communicates policy:
+
+- A file under `core` may implement domain decisions but may not depend on web framework request objects.
+- A file under `security` may enforce identity/authorization and token semantics but should not implement domain mutation workflow.
+- A file under `infra` may query/update storage or remote systems but should not encode business eligibility decisions.
+
+This explicit package contract reduces onboarding ambiguity and review ambiguity. During pull request review, a reviewer can quickly determine whether a change belongs to domain behavior, security behavior, or infrastructure behavior and request corrections if a layer boundary is crossed.
+
+Another architecture delta is API response contract hardening. All `/api/v1` routes now use explicit typed response models in `api/contracts/*`; the temporary generic payload model was removed. This ensures response shape changes are visible as contract diffs rather than implicit dict changes. The practical effect is stronger compatibility discipline for Flask UI consumers and more deterministic OpenAPI behavior.
+
+The UI-to-API transport boundary was also tightened. Flask now forwards `Authorization: Bearer <api_session_token>` from the API session cookie for server-side API calls. The API continues to validate authentication and authorization on every request through `require_access(...)`. This keeps UI interaction stateful and ergonomic while preserving API authority over trust decisions.
+
 ---
 
 ## 1. System Context (C4 Style)
@@ -128,8 +147,11 @@ Large “utility” modules and multi-purpose controller files were evaluated an
 ### Implementation pattern
 Backend decomposition:
 - `api/routes/*`: request parsing, dependency wiring, response shaping.
-- `api/services/*`: orchestration, workflow rules, policy-sensitive decisions.
-- `api/db/*`: collection-specific query/write operations.
+- `api/core/*`: framework-agnostic orchestration, workflow rules, and domain logic.
+- `api/infra/db/*`: collection-specific query/write operations.
+- `api/infra/external/*`: LDAP and external annotation integrations.
+- `api/security/*`: authentication service, access resolution, and RBAC enforcement.
+- `api/audit/*`: audit event emission primitives.
 - `api/domain/*`: shared domain structures.
 - `api/errors/*`: typed application exception model.
 
@@ -751,7 +773,8 @@ Revisit triggers:
 
 Implementation anchors:
 - route dependencies in `api/routes/*`
-- service orchestration in `api/services/*`
+- core orchestration in `api/core/*`
+- security decisions in `api/security/*`
 - boundary tests preventing UI direct backend coupling
 
 #### ADR-002: MongoDB 3.4 compatibility maintained
@@ -769,7 +792,7 @@ Revisit triggers:
 - Validated compatibility test suite for upgraded database features.
 
 Implementation anchors:
-- handler methods under `api/db/*`
+- handler methods under `api/infra/db/*`
 - migration strategy and rollback requirements
 
 #### ADR-003: Schema-driven configuration for governed flexibility

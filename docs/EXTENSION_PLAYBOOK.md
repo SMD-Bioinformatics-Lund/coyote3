@@ -1,17 +1,17 @@
 # Coyote3 Extension Playbook
 
 ## 1. Purpose and Operating Context
-This playbook defines the approved extension patterns for Coyote3. It is written for engineers maintaining a clinical genomics platform where extension work must preserve security, traceability, reproducibility, and operational stability. Coyote3 has clear architectural boundaries: FastAPI in `api/` owns backend workflow logic and policy enforcement, Flask in `coyote/` owns UI rendering and interaction flow, and MongoDB collections accessed through handler classes in `api/db/` remain the persistence source of truth.
+This playbook defines the approved extension patterns for Coyote3. It is written for engineers maintaining a clinical genomics platform where extension work must preserve security, traceability, reproducibility, and operational stability. Coyote3 has clear architectural boundaries: FastAPI in `api/` owns backend workflow logic and policy enforcement, Flask in `coyote/` owns UI rendering and interaction flow, and MongoDB collections accessed through handler classes in `api/infra/db/` remain the persistence source of truth.
 
 The goal of this document is long-term maintainability, not short-term feature throughput. A feature that works but bypasses boundaries produces latent defects that appear later as authorization drift, inconsistent reports, schema fragmentation, and difficult regression triage. Every extension in this document is framed to prevent that failure mode.
 
 The rules in this playbook assume current project structure and concrete modules already present in the codebase. Examples intentionally reference existing files such as:
 
 - `api/routes/dna.py`, `api/routes/rna.py`, `api/routes/reports.py`, `api/routes/admin.py`
-- `api/services/workflow/dna_workflow.py`, `api/services/workflow/rna_workflow.py`
-- `api/services/dna/*`, `api/services/reporting/*`, `api/services/interpretation/*`
+- `api/core/workflows/dna_workflow.py`, `api/core/workflows/rna_workflow.py`
+- `api/core/dna/*`, `api/core/reporting/*`, `api/core/interpretation/*`
 - `api/app.py` for `require_access(...)` and request-level access auditing
-- `api/db/roles.py`, `api/db/permissions.py`, `api/db/schemas.py`, `api/db/reports.py`
+- `api/infra/db/roles.py`, `api/infra/db/permissions.py`, `api/infra/db/schemas.py`, `api/infra/db/reports.py`
 - `coyote/blueprints/dna/views_reports.py`, `coyote/blueprints/rna/views_reports.py`
 - `coyote/services/reporting/web_report_bridge.py`
 - `coyote/services/api_client/api_client.py` and `coyote/services/api_client/endpoints.py`
@@ -23,7 +23,7 @@ The repository uses `api/app.py` as route registration root, imports `api/routes
 These rules apply to all extension work, independent of scenario.
 
 ### 2.1 Boundary ownership is mandatory
-Backend domain logic belongs to API services, not Flask views and not Jinja templates. Flask views should orchestrate request->API->template flow only. Datastore operations belong to handlers in `api/db/`, not route functions.
+Backend domain logic belongs to API core modules, not Flask views and not Jinja templates. Flask views should orchestrate request->API->template flow only. Datastore operations belong to handlers in `api/infra/db/`, not route functions.
 
 ### 2.2 Policy checks must be explicit at route boundaries
 All new FastAPI endpoints must attach `Depends(require_access(...))` with either explicit permission, level, role, or a justified combination. Avoid implicit policy assumptions in helper functions.
@@ -56,15 +56,15 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
 ```
 
 ### 3.2 API service layer
-`api/services/*` modules contain workflow and interpretation logic, such as:
+`api/core/*` modules contain workflow and interpretation logic, such as:
 
-- `api/services/workflow/dna_workflow.py`
-- `api/services/workflow/rna_workflow.py`
-- `api/services/dna/dna_reporting.py`
-- `api/services/interpretation/report_summary.py`
+- `api/core/workflows/dna_workflow.py`
+- `api/core/workflows/rna_workflow.py`
+- `api/core/dna/dna_reporting.py`
+- `api/core/interpretation/report_summary.py`
 
 ### 3.3 Persistence layer
-`api/db/*` handlers own Mongo operations and should expose meaningful methods, not low-level query fragments leaking across modules.
+`api/infra/db/*` handlers own Mongo operations and should expose meaningful methods, not low-level query fragments leaking across modules.
 
 ### 3.4 UI layer
 `coyote/blueprints/*` modules own page route handlers and template rendering. They should call API through `get_web_api_client()` and `forward_headers()`.
@@ -89,8 +89,8 @@ A clinical workflow is a domain-level end-to-end path, for example a new DNA int
 1. Define workflow state model and endpoints.
 2. Define permissions and minimum role/level policy.
 3. Add route contracts in `api/routes/`.
-4. Add or extend service orchestration in `api/services/workflow/`.
-5. Add DB handler methods in `api/db/` for new query/write needs.
+4. Add or extend service orchestration in `api/core/workflows/`.
+5. Add DB handler methods in `api/infra/db/` for new query/write needs.
 6. Add or update report summary logic if workflow affects report content.
 7. Add UI page handlers and templates in relevant blueprint.
 8. Add tests across route, permission, service, and UI boundary layers.
@@ -115,7 +115,7 @@ def dna_new_workflow_context(
 ```
 
 ```python
-# api/services/workflow/dna_workflow.py (example pattern)
+# api/core/workflows/dna_workflow.py (example pattern)
 class DNAWorkflowService:
     @staticmethod
     def build_new_workflow_context(sample: dict, assay_config: dict) -> dict:
@@ -239,8 +239,8 @@ def new_action(
 
 Role and permission persistence is managed through:
 
-- `api/db/permissions.py`
-- `api/db/roles.py`
+- `api/infra/db/permissions.py`
+- `api/infra/db/roles.py`
 
 ### 7.4 Architectural boundary
 Do not hardcode permission catalogs in route modules or templates. Keep policy data in collections and admin management flows.
@@ -422,7 +422,7 @@ Allowed in Flask views:
 
 Not allowed in Flask views:
 
-- direct use of `api/db/*`
+- direct use of `api/infra/db/*`
 - direct Mongo access
 - workflow computations for classification/tiering
 
@@ -464,7 +464,7 @@ Assert expected event emission or log marker presence for critical mutations and
 ## 14. Code Review Checklist for Extension PRs
 Use this checklist before merge:
 
-1. New logic placed in correct layer (`api/services` vs `coyote/blueprints`).
+1. New logic placed in correct layer (`api/core`/`api/security`/`api/infra` vs `coyote/blueprints`).
 2. New routes include explicit `require_access(...)` policy.
 3. Permission IDs and role updates are synchronized.
 4. Audit behavior preserved or explicitly versioned.
@@ -534,9 +534,9 @@ This appendix provides concrete checklists mapped to existing Coyote3 paths so e
 Update or create the following files intentionally:
 
 - `api/routes/<domain>.py`: route contracts, request parsing, policy dependency declaration.
-- `api/services/workflow/<domain>_workflow.py`: orchestration and business invariants.
-- `api/services/<domain>/*`: query composition, normalization, report summary integration.
-- `api/db/<collection>.py`: handler methods for new query/write operations.
+- `api/core/workflows/<domain>_workflow.py`: orchestration and business invariants.
+- `api/core/<domain>/*`: query composition, normalization, report summary integration.
+- `api/infra/db/<collection>.py`: handler methods for new query/write operations.
 - `api/app.py`: route module import registration when adding a new route module.
 - `tests/api/routes/test_<domain>_routes.py`: HTTP and contract tests.
 - `tests/api/test_access_control_matrix.py` or domain-specific policy tests.
@@ -564,8 +564,8 @@ Do not change:
 ### 18.3 When introducing policy and role changes
 Required touchpoints:
 
-- `api/db/permissions.py` usage path for permission persistence and lookup.
-- `api/db/roles.py` usage path for role grants and deny rules.
+- `api/infra/db/permissions.py` usage path for permission persistence and lookup.
+- `api/infra/db/roles.py` usage path for role grants and deny rules.
 - route decorators in `api/routes/*` using `require_access(...)`.
 - admin UI route handlers in `coyote/blueprints/admin/views_permissions*.py` and `views_roles*.py` if user-facing management is required.
 

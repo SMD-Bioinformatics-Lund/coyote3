@@ -215,7 +215,13 @@ Session management defines identity continuity between requests and controls exp
 4. Logout invalidates session representation.
 
 ## 8.2 Session transport
-UI forwards necessary session headers/cookies when calling backend. Internal clients must follow secure session transport guidance.
+UI forwards necessary session context when calling backend. Current transport behavior is:
+- API issues HttpOnly session cookie on login.
+- Flask reads the API session cookie from request context.
+- Flask forwards `Authorization: Bearer <api_session_token>` to API on server-side calls.
+- Flask also forwards cookie header for compatibility with existing route-family behavior.
+
+This architecture keeps browser-side tokens non-scriptable (HttpOnly) while giving API a deterministic auth header path for policy checks.
 
 ## 8.3 Session hardening expectations
 - use HttpOnly cookie where applicable
@@ -230,6 +236,15 @@ Session continuity improves usability and allows consistent policy checks withou
 - stale sessions after role change if invalidation logic is absent
 - accidental token leakage via logs
 - insecure local environment forwarding patterns
+
+## 8.6 CSRF considerations for UI and API boundary
+Coyote3 uses server-rendered forms with Flask-WTF CSRF protection at the browser->Flask boundary. Most privileged operations are then executed by Flask->API server-side calls, not by direct browser->API requests. This reduces classical browser-to-API CSRF exposure on protected API routes.
+
+Design implications:
+- Browser form submissions must include valid CSRF tokens (`Flask-WTF`).
+- Flask route handlers must not bypass form validation for mutation forms.
+- API remains session/permission authority and does not trust UI-side role assumptions.
+- If future features introduce direct browser->API mutation calls, explicit API-side CSRF strategy must be implemented for those paths.
 
 ---
 
@@ -276,7 +291,7 @@ It prevents accidental execution of sensitive service logic when auth/policy che
 ## 10.4 Misuse risks
 If a route lacks required dependency, service may run with insufficiently validated context.
 
-## 10.5 Additional service-layer checks
+## 10.5 Additional core-layer checks
 Route checks are necessary but not sufficient in all cases. Services should validate domain-level invariants and sensitive transition preconditions.
 
 ---

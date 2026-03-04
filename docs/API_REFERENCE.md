@@ -59,8 +59,11 @@ Coyote3 API includes the following route families:
 Most endpoints require authenticated user context resolved by backend dependencies. The common flow is:
 1. client submits credentials to login endpoint
 2. API validates credentials
-3. API returns session payload and sets cookie/token
-4. subsequent requests carry session context
+3. API returns session payload and sets an HttpOnly API session cookie
+4. Flask UI forwards session context on server-side API calls as:
+   - `Authorization: Bearer <api_session_token>` (primary)
+   - cookie header (compatibility/secondary)
+5. API validates session + permissions on every request (`require_access(...)`)
 
 ### 4.2 Internal token model
 Internal-only endpoints require an additional internal token (`X-Coyote-Internal-Token`) even when authenticated context exists. This is an extra control layer for service-to-service and privileged internal reads.
@@ -69,12 +72,16 @@ Internal-only endpoints require an additional internal token (`X-Coyote-Internal
 After authentication, route dependencies evaluate role level, permissions, and deny overlays. Endpoint consumers should expect explicit `403` responses when policy checks fail.
 
 ### 4.4 Authentication headers and cookies
-Coyote3 integrations commonly rely on cookie-based session forwarding from UI to API. For non-browser internal clients, explicit header/cookie handling should follow secure integration policy.
+Coyote3 integrations use a hybrid session transport model:
+- Browser <-> Flask: HttpOnly cookie issued by API and stored in browser session context.
+- Flask <-> API (server-side): Bearer token forwarding from the API session cookie, plus cookie forwarding for compatibility.
+
+This model exists because UI routes are server-rendered; browser JavaScript does not directly call most protected API routes. The Flask layer is therefore the trusted transport proxy, while API remains the sole authorization authority.
 
 ### 4.5 Security behavior expectations
 - authentication failure: `401`
 - authorization failure: `403`
-- internal token failure on protected internal routes: `401` or `403` depending on implementation path
+- internal token failure on protected internal routes: `403`
 
 ---
 

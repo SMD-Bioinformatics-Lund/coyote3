@@ -769,7 +769,7 @@ This checklist is mandatory for high-impact changes (policy, reporting, schema, 
 ## 17. Assumptions
 ASSUMPTION:
 - Collection names may vary slightly by deployment profile, but domain roles described here remain valid.
-- API services remain the authoritative layer for policy and workflow orchestration.
+- API core modules remain the authoritative layer for policy and workflow orchestration.
 - MongoDB 3.4 compatibility remains an active constraint.
 
 ---
