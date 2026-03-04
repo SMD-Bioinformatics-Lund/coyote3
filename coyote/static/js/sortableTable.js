@@ -19,8 +19,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Create sorting arrow (initially hidden)
         let arrow = document.createElement("span");
-        arrow.className = "sort-arrow"; // Arrow controlled via CSS
+        arrow.className =
+            "sort-arrow hidden ml-1 inline-block w-3 text-[10px] leading-none align-middle text-gray-500";
         arrow.innerHTML = "▼"; // Default down arrow
+        arrow.setAttribute("aria-hidden", "true");
         header.appendChild(arrow);
 
         header.addEventListener("click", function () {
