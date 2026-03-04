@@ -13,7 +13,7 @@ The rules in this playbook assume current project structure and concrete modules
 - `api/app.py` for `require_access(...)` and request-level access auditing
 - `api/infra/db/roles.py`, `api/infra/db/permissions.py`, `api/infra/db/schemas.py`, `api/infra/db/reports.py`
 - `coyote/blueprints/dna/views_reports.py`, `coyote/blueprints/rna/views_reports.py`
-- `coyote/services/reporting/web_report_bridge.py`
+- `coyote/services/api_client/reports.py`
 - `coyote/services/api_client/api_client.py` and `coyote/services/api_client/endpoints.py`
 
 ASSUMPTION:
@@ -79,8 +79,8 @@ payload = get_web_api_client().get_json(
 )
 ```
 
-### 3.5 UI reporting bridge
-`coyote/services/reporting/web_report_bridge.py` is the right place for report preview/save orchestration in web layer. It keeps view functions small and keeps API transport details centralized.
+### 3.5 UI report API client helpers
+`coyote/services/api_client/reports.py` is the right place for report preview/save orchestration in web layer. It keeps view functions small and keeps API transport details centralized.
 
 ## 4. Scenario A: Adding a New Clinical Workflow
 A clinical workflow is a domain-level end-to-end path, for example a new DNA interpretation flow or RNA decision-support phase.
@@ -296,7 +296,7 @@ API preview endpoint returns:
 - `report.context`
 - optional `report.snapshot_rows`
 
-Flask bridge (`web_report_bridge.py`) renders template via `render_template(...)` and posts rendered HTML to API save endpoint.
+Flask report API client helpers (`coyote/services/api_client/reports.py`) render template via `render_template(...)` and post rendered HTML to API save endpoint.
 
 This pattern enforces your stated boundary: backend decides data/structure, web handles templating/UI rendering.
 
@@ -305,7 +305,7 @@ This pattern enforces your stated boundary: backend decides data/structure, web 
 2. Add service builder in workflow/reporting service layer.
 3. Return template name and context (not raw HTML) from preview path.
 4. Extend save route to accept rendered HTML and snapshot rows.
-5. Add bridge methods in `coyote/services/reporting/web_report_bridge.py`.
+5. Add helper methods in `coyote/services/api_client/reports.py`.
 6. Add blueprint view handlers in DNA/RNA or dedicated report blueprint.
 7. Add template in proper blueprint template folder.
 
@@ -324,7 +324,7 @@ def preview_dna_report(...):
 Flask side:
 
 ```python
-html = render_preview_report_html("dna", sample_id, save=False)
+html = render_preview_html(fetch_preview_payload("dna", sample_id, include_snapshot=False, save=False))
 return html
 ```
 
@@ -429,8 +429,8 @@ Not allowed in Flask views:
 ### 12.2 API should not own Jinja presentation
 API should return template+context or raw data contracts, but should not depend on Flask-specific filters or template state. This avoids errors like template filter mismatch in API runtime and keeps renderer ownership on web side.
 
-### 12.3 Reporting bridge is the approved seam
-`coyote/services/reporting/web_report_bridge.py` should remain the abstraction for preview/save orchestration. Extend this module instead of duplicating report API call logic across blueprint views.
+### 12.3 Report API client helpers are the approved seam
+`coyote/services/api_client/reports.py` should remain the abstraction for preview/save orchestration. Extend this module instead of duplicating report API call logic across blueprint views.
 
 ## 13. Test Plan Required for Every Extension
 Every scenario above needs a concrete test matrix.
@@ -552,7 +552,7 @@ Acceptance criteria before merge:
 Change only approved seams:
 
 - `coyote/blueprints/dna/views_reports.py` or `coyote/blueprints/rna/views_reports.py` for route handlers.
-- `coyote/services/reporting/web_report_bridge.py` for API orchestration.
+- `coyote/services/api_client/reports.py` for API orchestration.
 - `coyote/services/api_client/endpoints.py` if new API endpoint path helper needed.
 - `coyote/blueprints/*/templates/*.html` for presentation.
 

@@ -23,6 +23,7 @@ You may also notice that some operations appear strict compared to ordinary web 
 
 ### Behind the scenes (simple explanation)
 When you click or submit actions in the interface, Coyote3 sends secure requests to a backend service that validates your access and checks data rules before returning results. This means the page does not decide on its own whether an action is allowed; it asks the backend, which applies policy consistently. This approach helps your team get predictable behavior across users and sessions.
+For reporting specifically, the UI calls API preview endpoints, renders the template/context returned by API, and sends save requests back to API. Report IDs, output path rules, and save validation are enforced by backend services.
 
 ---
 

@@ -78,6 +78,9 @@ Coyote3 integrations use a hybrid session transport model:
 
 This model exists because UI routes are server-rendered; browser JavaScript does not directly call most protected API routes. The Flask layer is therefore the trusted transport proxy, while API remains the sole authorization authority.
 
+### 4.6 Report preview and save contract boundary
+Report preview and save flows are API-driven. The UI requests preview payloads from `/api/v1/.../report/preview`, renders the provided template/context, and submits rendered HTML to `/api/v1/.../report/save`. Report identifier generation, snapshot-row normalization, file-path resolution, and persistence validation are backend responsibilities in `api/routes/reports.py` + `api/core/reporting/*`.
+
 ### 4.5 Security behavior expectations
 - authentication failure: `401`
 - authorization failure: `403`

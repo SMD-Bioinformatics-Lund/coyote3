@@ -1,17 +1,18 @@
 
 """RNA report preview/save routes."""
 
+from flask import Response, flash, redirect, url_for
 from flask import current_app as app
 from flask_login import login_required
-from flask import Response, flash, redirect, url_for
 
 from coyote.blueprints.rna import rna_bp
 from coyote.services.api_client.api_client import ApiRequestError
-from coyote.services.api_client.web import log_api_error
-from coyote.services.reporting.web_report_bridge import (
-    render_preview_report_html,
+from coyote.services.api_client.reports import (
+    fetch_preview_payload,
+    render_preview_html,
     save_report_from_preview,
 )
+from coyote.services.api_client.web import log_api_error
 
 
 @rna_bp.route("/sample/<string:sample_id>/preview_report", methods=["GET", "POST"])
@@ -19,7 +20,8 @@ from coyote.services.reporting.web_report_bridge import (
 @login_required
 def generate_rna_report(sample_id: str, **kwargs) -> Response | str:
     try:
-        html = render_preview_report_html("rna", sample_id, save=False)
+        payload = fetch_preview_payload("rna", sample_id, include_snapshot=False, save=False)
+        html = render_preview_html(payload)
         app.logger.info("Loaded RNA preview report from API service for sample %s", sample_id)
         return html
     except ApiRequestError as exc:

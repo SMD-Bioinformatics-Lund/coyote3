@@ -11,10 +11,10 @@ This matrix links system concerns to implementation areas, controls, and verific
 | Access audit trail | `api/audit/access_events.py`, `api/security/access.py` | authorized/denied access events logged | log assertions in route tests |
 | Auth service authority | `api/security/auth_service.py`, `api/routes/system.py` | credentials validated in security layer before session issue | system route auth tests |
 | Typed API contracts | `api/contracts/*`, `api/routes/*` | explicit response_model for all `/api/v1` routes | route-family response tests, OpenAPI contract checks |
-| UI action audit trail | `coyote/services/audit_logs/*` | decorator-based action logging metadata | web action tests, log review |
+| UI action audit trail | `api/audit/access_events.py`, `api/security/access.py` | audit ownership is backend-only; UI actions are recorded through API requests | API route/audit tests, access-control matrix tests |
 | DNA workflow integrity | `api/routes/dna.py`, `api/core/workflows/dna_workflow.py` | core-layer invariants and normalized filters | DNA route/workflow tests |
 | RNA workflow integrity | `api/routes/rna.py`, `api/core/workflows/rna_workflow.py` | core-layer filter normalization and context generation | RNA route/workflow tests |
-| Report preview/save boundary | `api/routes/reports.py`, `coyote/services/reporting/web_report_bridge.py` | API provides template context; Flask renders and submits save | report route tests, web bridge tests |
+| Report preview/save boundary | `api/routes/reports.py`, `api/core/reporting/*`, `coyote/services/api_client/reports.py` | API provides template context + save validation; Flask renders and submits save via API client | report route tests, web API integration helper tests |
 | UI->API auth transport | `coyote/services/api_client/api_client.py`, `api/security/access.py` | Flask forwards `Authorization: Bearer <api_session_token>` | web integration helper tests, auth route tests |
 | Schema-driven config correctness | `api/infra/db/schemas.py`, admin schema views, admin utility modules | schema validation + version metadata | schema tests, admin flow tests |
 | Version rewind capability | admin utility version helpers | delta generation/apply behavior | unit tests for version delta and rewind |
