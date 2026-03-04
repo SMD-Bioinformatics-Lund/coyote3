@@ -273,7 +273,9 @@ Auditors need a clear control surface where policy is enforced. A mixed policy m
 Route-level enforcement is the first active security gate for endpoint requests.
 
 ## 10.1 Enforcement pattern
-Endpoints use dependencies to require authentication and permission checks before business logic execution.
+FastAPI middleware enforces authentication by default for `/api/v1/*` before route execution.
+Only explicitly classified public/internal/doc endpoints are exempt from default session auth.
+After default authentication, endpoints use `require_access(...)` dependencies to enforce RBAC permission/role/level policy before business logic execution.
 
 ## 10.2 Example route decorator and dependency usage
 
@@ -290,7 +292,8 @@ def create_permission(payload: dict, user=Depends(require_access(min_level=900, 
 It prevents accidental execution of sensitive service logic when auth/policy checks are omitted in service function callers.
 
 ## 10.4 Misuse risks
-If a route lacks required dependency, service may run with insufficiently validated context.
+If a route lacks required RBAC dependency, authenticated users may bypass intended least-privilege policy for that operation.
+If a sensitive endpoint is incorrectly classified as public, unauthenticated exposure risk increases.
 
 ## 10.5 Additional core-layer checks
 Route checks are necessary but not sufficient in all cases. Services should validate domain-level invariants and sensitive transition preconditions.

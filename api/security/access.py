@@ -16,11 +16,31 @@ from api.runtime import app as runtime_app
 from api.runtime import reset_current_user, set_current_user
 from api.settings import (
     get_api_secret_key,
-    get_api_session_cookie_name as settings_session_cookie_name,
-    get_api_session_cookie_secure as settings_session_cookie_secure,
     get_api_session_salt,
-    get_api_session_ttl_seconds as settings_session_ttl_seconds,
     get_internal_api_token,
+)
+from api.settings import (
+    get_api_session_cookie_name as settings_session_cookie_name,
+)
+from api.settings import (
+    get_api_session_cookie_secure as settings_session_cookie_secure,
+)
+from api.settings import (
+    get_api_session_ttl_seconds as settings_session_ttl_seconds,
+)
+
+PUBLIC_API_EXACT_PATHS = {
+    "/api/v1/health",
+    "/api/vi/docs",
+    "/api/v1/auth/login",
+    "/api/v1/auth/logout",
+    "/api/v1/docs",
+    "/api/v1/openapi.json",
+    "/api/v1/redoc",
+}
+PUBLIC_API_PREFIX_PATHS = (
+    "/api/v1/public/",
+    "/api/v1/internal/",
 )
 
 
@@ -42,6 +62,17 @@ class ApiUser:
 
 def _api_error(status_code: int, message: str) -> HTTPException:
     return HTTPException(status_code=status_code, detail={"status": status_code, "error": message})
+
+
+def is_public_api_path(path: str) -> bool:
+    if path in PUBLIC_API_EXACT_PATHS:
+        return True
+    if path.startswith(PUBLIC_API_PREFIX_PATHS):
+        return True
+    # Static metadata route intentionally exposed for public catalog UI helpers.
+    if path.startswith("/api/v1/common/gene/") and path.endswith("/info"):
+        return True
+    return False
 
 
 def _http_exception_message(exc: HTTPException) -> str:
@@ -161,7 +192,7 @@ def _decode_session_user(request: Request) -> ApiUser:
                 max_age=get_api_session_ttl_seconds(),
             )
         except SignatureExpired:
-            raise _api_error(401, "Session expired")
+            raise _api_error(401, "Login required")
         except BadSignature:
             raise _api_error(401, "Login required")
 
@@ -196,7 +227,17 @@ def _enforce_access(
 
     if permission or min_level is not None or min_role:
         if not (permission_ok or level_ok or role_ok):
-            raise _api_error(403, "You do not have access to this page.")
+            raise _api_error(403, "Forbidden")
+
+
+def require_authenticated(request: Request) -> ApiUser:
+    """Require a valid authenticated session without applying route-level RBAC."""
+    user = _decode_session_user(request)
+    token = set_current_user(user)
+    try:
+        return user
+    finally:
+        reset_current_user(token)
 
 
 def require_access(
@@ -257,13 +298,13 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
     if sample_assay not in set(user.assays or []):
         _audit_access_event(
             status="denied",
-            reason="Access denied: sample assay mismatch",
+            reason="Forbidden",
             request=request,
             user=user,
             sample_id=sample_id,
             extra={"sample_assay": sample_assay},
         )
-        raise _api_error(403, "Access denied: sample assay mismatch")
+        raise _api_error(403, "Forbidden")
     return sample
 
 

@@ -57,14 +57,23 @@ Coyote3 API includes the following route families:
 
 ## 4. Authentication Model
 ### 4.1 Session-based authenticated access
-Most endpoints require authenticated user context resolved by backend dependencies. The common flow is:
+All `/api/v1/*` endpoints are authenticated by default. Authentication is centrally enforced before route handler execution, with explicit route exceptions for:
+- `/api/v1/health`
+- `/api/v1/auth/login`
+- `/api/v1/auth/logout`
+- `/api/v1/public/*`
+- `/api/v1/internal/*` (protected by internal token model)
+- API docs/openapi endpoints
+- `/api/v1/common/gene/{gene_id}/info` (public metadata read)
+
+The common flow is:
 1. client submits credentials to login endpoint
 2. API validates credentials
 3. API returns session payload and sets an HttpOnly API session cookie
 4. Flask UI forwards session context on server-side API calls as:
    - `Authorization: Bearer <api_session_token>` (primary)
    - cookie header (compatibility/secondary)
-5. API validates session + permissions on every request (`require_access(...)`)
+5. API validates session and then applies route-level RBAC (`require_access(...)`) for permission/role/level checks
 
 ### 4.2 Internal token model
 Internal-only endpoints require an additional internal token (`X-Coyote-Internal-Token`) even when authenticated context exists. This is an extra control layer for service-to-service and privileged internal reads.
@@ -79,10 +88,17 @@ Coyote3 integrations use a hybrid session transport model:
 
 This model exists because UI routes are server-rendered; browser JavaScript does not directly call most protected API routes. The Flask layer is therefore the trusted transport proxy, while API remains the sole authorization authority.
 
+### 4.5 OpenAPI security declaration
+OpenAPI now declares both supported auth transports for protected operations:
+- `ApiSessionCookie` (cookie-based apiKey scheme)
+- `BearerAuth` (HTTP bearer token scheme)
+
+Public operations do not include security requirements in OpenAPI.
+
 ### 4.6 Report preview and save contract boundary
 Report preview and save flows are API-driven. The UI requests preview payloads from `/api/v1/.../report/preview`, renders the provided template/context, and submits rendered HTML to `/api/v1/.../report/save`. Report identifier generation, snapshot-row normalization, file-path resolution, and persistence validation are backend responsibilities in `api/routes/reports.py` + `api/core/reporting/*`.
 
-### 4.5 Security behavior expectations
+### 4.7 Security behavior expectations
 - authentication failure: `401`
 - authorization failure: `403`
 - internal token failure on protected internal routes: `403`
