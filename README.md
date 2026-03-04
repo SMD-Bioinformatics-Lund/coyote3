@@ -125,6 +125,7 @@ Current backend reorganization has started with:
 - Report save endpoints upgraded from generic to typed contracts in `api/contracts/reports.py`
 - Admin role/user/sample mutations and validation endpoints upgraded from generic to typed admin contracts
 - RNA fusion routes upgraded from generic payloads to typed contracts in `api/contracts/rna.py`
+- DNA mutation endpoints upgraded from generic payloads to typed shared mutation contracts (`api/contracts/samples.py`)
 - Flask-side API transport consolidated under `coyote/services/api_client` (legacy `coyote/integrations/api` removed)
 - Runtime/security config access centralized in `api/settings.py`
 
