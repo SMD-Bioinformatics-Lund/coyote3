@@ -18,7 +18,7 @@ from api.contracts.public import (
     PublicGeneSymbolsPayload,
     PublicGenelistViewPayload,
 )
-from api.services.public_catalog import PublicCatalogService
+from api.core.public.catalog import PublicCatalogService
 
 
 @app.get("/api/v1/public/genelists/{genelist_id}/view_context", response_model=PublicGenelistViewPayload)
