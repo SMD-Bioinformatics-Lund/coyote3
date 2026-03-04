@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.errors.exceptions import AppError
 from api.core.reporting import pipeline, report_paths
+from api.errors.exceptions import AppError
 
 
 def test_build_report_file_location_with_control_id(monkeypatch):
@@ -54,7 +54,11 @@ def test_build_report_file_location_without_control_id_uses_case_only(monkeypatc
 def test_prepare_report_output_creates_directory_when_file_missing(monkeypatch):
     calls = {"makedirs": []}
 
-    monkeypatch.setattr(pipeline.os, "makedirs", lambda path, exist_ok: calls["makedirs"].append((path, exist_ok)))
+    monkeypatch.setattr(
+        pipeline.os,
+        "makedirs",
+        lambda path, exist_ok: calls["makedirs"].append((path, exist_ok)),
+    )
     monkeypatch.setattr(pipeline.os.path, "exists", lambda _path: False)
 
     pipeline.prepare_report_output("/reports/dna", "/reports/dna/r1.html")
@@ -88,7 +92,11 @@ def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypa
     monkeypatch.setattr(
         pipeline,
         "util",
-        SimpleNamespace(common=SimpleNamespace(write_report=lambda html, path: calls.setdefault("write", (html, path)) and True)),
+        SimpleNamespace(
+            common=SimpleNamespace(
+                write_report=lambda html, path: calls.setdefault("write", (html, path)) and True
+            )
+        ),
     )
     monkeypatch.setattr(
         pipeline,
@@ -98,7 +106,9 @@ def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypa
                 save_report=lambda **kwargs: (calls.setdefault("save_report", kwargs), "oid1")[1]
             ),
             reported_variants_handler=SimpleNamespace(
-                bulk_upsert_from_snapshot_rows=lambda **kwargs: calls.setdefault("bulk_upsert", kwargs)
+                bulk_upsert_from_snapshot_rows=lambda **kwargs: calls.setdefault(
+                    "bulk_upsert", kwargs
+                )
             ),
         ),
     )

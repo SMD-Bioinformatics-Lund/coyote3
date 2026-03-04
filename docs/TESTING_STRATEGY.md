@@ -71,6 +71,7 @@ Architecture tests enforce non-functional invariants such as import boundaries a
 - UI must not import backend business modules directly
 - protected routes must be guarded by auth/permission checks
 - route module organization standards remain consistent
+- UI must not import Mongo/BSON driver modules (`pymongo`, `flask_pymongo`, `motor`, `bson`)
 
 ---
 

@@ -17,12 +17,16 @@ import subprocess
 from cryptography.fernet import Fernet
 from flask import current_app as app
 from typing import Any, Literal, Dict, Tuple, List, Optional
-from bson import ObjectId
 from datetime import datetime, timezone, timedelta
 from hashlib import md5
 import base64, json
 from flask_login import current_user
 from werkzeug.security import generate_password_hash
+
+
+def _is_object_id_instance(value: Any) -> bool:
+    """UI-safe check for BSON ObjectId without importing backend Mongo libs."""
+    return value.__class__.__name__ == "ObjectId"
 
 
 class CommonUtility:
@@ -621,7 +625,7 @@ class CommonUtility:
             return [CommonUtility.convert_object_id(item) for item in data]
         elif isinstance(data, dict):
             return {key: CommonUtility.convert_object_id(value) for key, value in data.items()}
-        elif isinstance(data, ObjectId):
+        elif _is_object_id_instance(data):
             return str(data)
         else:
             return data
@@ -643,7 +647,7 @@ class CommonUtility:
             return {
                 key: CommonUtility.convert_to_serializable(value) for key, value in data.items()
             }
-        elif isinstance(data, ObjectId):
+        elif _is_object_id_instance(data):
             return str(data)
         elif isinstance(data, datetime):
             return data.isoformat()

@@ -13,7 +13,6 @@ import json
 import os
 from typing import Any, Union
 import hashlib
-from bson import ObjectId
 from coyote.util.common_utility import CommonUtility
 
 
@@ -464,16 +463,9 @@ class AdminUtility:
     @staticmethod
     def restore_objectids(obj) -> dict | list | Any:
         """
-        Recursively convert string '_id' fields back to bson.ObjectId.
-        """
-        if isinstance(obj, dict):
-            for key, value in obj.items():
-                if key == "_id" and isinstance(value, str):
-                    obj[key] = ObjectId(value)
-                else:
-                    AdminUtility.restore_objectids(value)
-        elif isinstance(obj, list):
-            for item in obj:
-                AdminUtility.restore_objectids(item)
+        Keep `_id` values as strings in UI layer structures.
 
+        UI modules must remain backend-agnostic and must not depend on Mongo driver
+        types. API layer owns identifier parsing/validation for persistence.
+        """
         return obj

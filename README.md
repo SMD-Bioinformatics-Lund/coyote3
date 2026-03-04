@@ -104,6 +104,7 @@ The active refactor direction is API-centric and enforced as a hard boundary:
 This boundary is being enforced incrementally with dedicated contract tests under `tests/contract/`.
 Current backend reorganization has started with:
 - Mongo handlers moved from `api/db` to `api/infra/db`
+- Legacy `api/db` package removed after infra migration completion
 - External annotation/data-source handlers moved to `api/infra/external`
 - LDAP integration moved from `api/services/ldap.py` to `api/infra/external/ldap.py`
 - Auth/session/RBAC access control moved to `api/security/access.py`
@@ -137,6 +138,7 @@ Current backend reorganization has started with:
 - DNA mutation endpoints upgraded from generic payloads to typed shared mutation contracts (`api/contracts/samples.py`)
 - DNA read/context endpoints upgraded from generic payloads to typed contracts in `api/contracts/dna.py`
 - Flask UI API client now forwards `Authorization: Bearer <api_session_token>` from the API session cookie on server-side API calls
+- UI boundary contracts now also block direct `bson` imports to keep UI free from backend data-layer coupling
 - Flask-side API transport consolidated under `coyote/services/api_client` (legacy `coyote/integrations/api` removed)
 - Runtime/security config access centralized in `api/settings.py`
 

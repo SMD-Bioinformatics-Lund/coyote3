@@ -20,7 +20,11 @@ from datetime import datetime
 from typing import Any
 from collections import defaultdict
 from flask_login import current_user
-from bson import ObjectId
+
+
+def _is_object_id_instance(value: Any) -> bool:
+    """UI-safe check for BSON ObjectId without importing backend Mongo libs."""
+    return value.__class__.__name__ == "ObjectId"
 
 
 # -------------------------------------------------------------------------
@@ -56,7 +60,7 @@ class EnhancedJSONEncoder(json.JSONEncoder):
         if isinstance(obj, datetime):
             return obj.isoformat()  # or use obj.strftime(...) for a custom format
 
-        if isinstance(obj, ObjectId):
+        if _is_object_id_instance(obj):
             return str(obj)
 
         return super().default(obj)

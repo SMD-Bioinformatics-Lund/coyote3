@@ -14,6 +14,7 @@ Current engineering direction is API-centric:
 The documentation set now reflects the completed migration commits that established the current architecture baseline:
 - Contract hardening: all `/api/v1` routes now return explicit typed contracts under `api/contracts/*`; generic payload contract removed.
 - UI/API auth transport hardening: Flask server-side API client forwards `Authorization: Bearer <api_session_token>`.
+- UI boundary hardening: contract tests now reject direct UI imports of Mongo drivers and BSON modules.
 - Core migration: domain modules moved from legacy `api/services/*` into `api/core/*` (`dna`, `rna`, `reporting`, `coverage`, `public`, `workflows`, `interpretation`, `admin`).
 - Security migration: auth service moved to `api/security/auth_service.py`, co-located with access checks in `api/security/access.py`.
 - Infra migration: Mongo handlers remain under `api/infra/db/*`; LDAP and other external integrations under `api/infra/external/*`.
@@ -72,6 +73,7 @@ Backend refactor status:
 - Public catalog domain logic moved to `api/core/public/catalog.py`.
 - Admin sample-deletion logic moved to `api/core/admin/sample_deletion.py`.
 - Legacy `api/services` package removed after migrations to `api/core`, `api/security`, and `api/infra`.
+- Legacy `api/db` package removed after `api/infra/db` migration completion.
 - API request/response contracts introduced under `api/contracts` (initial auth + reports coverage).
 - System/auth route response contracts added under `api/contracts/system.py`.
 - Internal route response contracts added under `api/contracts/internal.py`.

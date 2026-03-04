@@ -10,6 +10,8 @@ import pytest
 FORBIDDEN_PATTERNS = [
     re.compile(r"^\s*(from|import)\s+pymongo\b", re.MULTILINE),
     re.compile(r"^\s*(from|import)\s+flask_pymongo\b", re.MULTILINE),
+    re.compile(r"^\s*(from|import)\s+bson\b", re.MULTILINE),
+    re.compile(r"^\s*(from|import)\s+motor\b", re.MULTILINE),
     re.compile(r"\bMongoClient\s*\(", re.MULTILINE),
     re.compile(r"\bPyMongo\s*\(", re.MULTILINE),
 ]

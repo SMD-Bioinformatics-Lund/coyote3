@@ -18,7 +18,7 @@ Test suites for Coyote3 are organized by functionality.
 - `tests/api/routes/test_admin_routes.py`: admin route context/mutation behavior tests.
 - `tests/web/test_web_api_integration_helpers.py`: Flask-side API helper and endpoint-builder tests.
 - `tests/unit/workflows/test_filter_normalization.py`: workflow filter normalization unit tests.
-- `tests/api/services/test_reporting_pipeline_and_paths.py`: reporting path/pipeline service tests.
+- `tests/unit/reporting/test_reporting_pipeline_and_paths.py`: reporting path/pipeline unit tests.
 - `tests/api/fixtures/mock_collections.py`: collection-shaped mock data used by route tests.
 - `tests/api/fixtures/fake_store.py`: shared fake handler/store harness for integration-style route tests.
 - `tests/api/routes/*_harness.py`: integration-style route tests using the shared fake-store harness.
