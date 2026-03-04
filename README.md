@@ -105,6 +105,7 @@ This boundary is being enforced incrementally with dedicated contract tests unde
 Current backend reorganization has started with:
 - Mongo handlers moved from `api/db` to `api/infra/db`
 - External annotation/data-source handlers moved to `api/infra/external`
+- LDAP integration moved from `api/services/ldap.py` to `api/infra/external/ldap.py`
 - Auth/session/RBAC access control moved to `api/security/access.py`
 - API authentication service moved from `api/services/auth.py` to `api/security/auth_service.py`
 - Access-check audit event emission moved to `api/audit/access_events.py`
@@ -115,6 +116,8 @@ Current backend reorganization has started with:
 - Reporting pipeline/path logic moved from `api/services/reporting` to `api/core/reporting`
 - Coverage processing logic moved from `api/services/coverage_processing.py` to `api/core/coverage/coverage_processing.py`
 - Public catalog domain logic moved from `api/services/public_catalog.py` to `api/core/public/catalog.py`
+- Admin sample-deletion logic moved from `api/services/admin/sample_deletion.py` to `api/core/admin/sample_deletion.py`
+- Legacy `api/services` package removed after migration to `api/core`, `api/security`, and `api/infra`
 - Contract models introduced under `api/contracts` (auth + reports first slice)
 - System/auth response contracts added under `api/contracts/system.py`
 - Internal route response contracts added under `api/contracts/internal.py`

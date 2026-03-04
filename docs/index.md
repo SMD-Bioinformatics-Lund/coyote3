@@ -46,6 +46,7 @@ Tooling baseline:
 Backend refactor status:
 - Mongo infrastructure moved to `api/infra/db` (handlers + adapter/base migration in progress).
 - External annotation/data-source handlers split into `api/infra/external`.
+- LDAP integration moved to `api/infra/external/ldap.py`.
 - Authentication/session access and RBAC dependencies extracted into `api/security/access.py`.
 - API authentication service moved to `api/security/auth_service.py`.
 - Access-check audit event writing extracted to `api/audit/access_events.py`.
@@ -56,6 +57,8 @@ Backend refactor status:
 - Reporting pipeline/path logic moved to `api/core/reporting`.
 - Coverage processing logic moved to `api/core/coverage/coverage_processing.py`.
 - Public catalog domain logic moved to `api/core/public/catalog.py`.
+- Admin sample-deletion logic moved to `api/core/admin/sample_deletion.py`.
+- Legacy `api/services` package removed after migrations to `api/core`, `api/security`, and `api/infra`.
 - API request/response contracts introduced under `api/contracts` (initial auth + reports coverage).
 - System/auth route response contracts added under `api/contracts/system.py`.
 - Internal route response contracts added under `api/contracts/internal.py`.

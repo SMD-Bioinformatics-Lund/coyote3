@@ -33,7 +33,7 @@ from api.contracts.admin import (
     AdminUsersListPayload,
 )
 from api.runtime import app as runtime_app
-from api.services.admin.sample_deletion import delete_all_sample_traces
+from api.core.admin.sample_deletion import delete_all_sample_traces
 from api.app import _api_error, app
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 
