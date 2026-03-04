@@ -140,34 +140,30 @@ coyote3/
 
 This structure is not arbitrary. The backend is segmented into routes, core domain modules, security components, and infrastructure handlers so that request contract concerns stay separate from workflow concerns and persistence concerns. The UI has dedicated integration modules for API communication to prevent hidden direct dependencies on API internals. Tests mirror this split by organizing API behavior tests, unit workflow/core tests, and web boundary tests. If you find yourself trying to add business logic in a Flask blueprint or direct persistence in a route module, use that impulse as a signal that a boundary is being crossed and reevaluate placement.
 
-### 2.1 2026 architecture migration (what changed and why)
-The current repository state reflects a deliberate multi-commit migration that removed legacy service-bucket ambiguity and hardened API contracts.
+### 2.1 Architecture Ownership and Placement Rules
+The repository follows explicit ownership rules so reviewers can evaluate changes quickly and consistently:
 
-Key changes:
-- `api/services/*` was fully removed after moving modules to `api/core/*`, `api/security/*`, and `api/infra/*`.
-- workflow, interpretation, DNA, RNA, reporting, coverage, and public-catalog logic now live under `api/core/*`.
-- auth logic was moved to `api/security/auth_service.py`, co-located with access checks in `api/security/access.py`.
-- LDAP was moved to `api/infra/external/ldap.py`.
-- all `/api/v1` routes now use explicit typed response models in `api/contracts/*`; temporary generic payload contracts were removed.
-- Flask UI API client now forwards `Authorization: Bearer <api_session_token>` for server-side API calls.
+- `api/core/*`: business and workflow logic
+- `api/security/*`: authentication and authorization
+- `api/infra/*`: persistence and external integrations
+- `api/contracts/*`: typed API contracts
+- `coyote/blueprints/*`: UI request handling and template mapping
+- `coyote/services/api_client/*`: UI-to-API transport
 
 Why this matters for contributors:
-- File placement now enforces intent. A new feature should signal ownership by its package path before reviewers even open the file.
-- Contract drift risk is lower because route responses are strongly typed and validated.
-- Security review is simpler because auth/session logic is centralized in `api/security`.
-- Future module additions have a clear decision table:
-  - domain/workflow rules -> `api/core`
-  - authentication/authorization -> `api/security`
-  - storage/external systems -> `api/infra`
+- Package path communicates ownership before implementation details are reviewed.
+- Contract drift is constrained by typed response models in `api/contracts/*`.
+- Security review is focused because auth/session checks are centralized in `api/security`.
+- UI behavior stays maintainable because business rules stay in API modules and are consumed over HTTP.
 
-A common mistake for new engineers is to optimize for “fewest files touched” rather than “correct ownership.” That strategy may pass quick smoke tests but usually introduces hidden coupling. In Coyote3, touching three modules in a clear route->service->handler flow is safer than pushing all behavior into one route function for convenience.
+A common mistake is optimizing for “fewest files touched” instead of “correct ownership.” In Coyote3, route -> core -> infra separation is preferred over embedding domain logic directly in route handlers or UI views.
 
 Utility placement is now strict to prevent duplicate logic between API and UI:
 - `api/utils/*`: backend-only helpers used by backend modules; these may support workflow/security/persistence behavior and are never imported by Flask UI.
 - `coyote/util/*`: presentation-only helpers used by Flask blueprints/templates. These helpers must stay narrow (formatting, safe parsing, view payload shaping) and must not replicate backend business decisions.
 - if a helper starts affecting authorization, versioning, report computation, or persistence semantics, it must move to `api/core`, `api/security`, or `api/infra` and be consumed through API endpoints from UI.
 
-This rule exists because duplicated helper logic creates boundary drift and divergent behavior during future changes. During refactor cleanup, `coyote/util/common_utility.py` was reduced to UI-only helpers so backend utility implementations remain the canonical source for domain-level behavior.
+This rule exists because duplicated helper logic creates boundary drift and divergent behavior during future changes.
 
 Filter normalization follows the same ownership rule. UI views should submit raw filter payloads from forms, while canonical key normalization and coercion runs in API layer (`api/core/workflows/filter_normalization.py` and sample mutation routes). Avoid re-implementing prefix/key folding (`vep_*`, `genelist_*`, `fusioncaller_*`, etc.) in Flask code.
 
@@ -308,7 +304,7 @@ app.register_blueprint(home_bp, url_prefix='/samples')
 @home_bp.route('/edit/<string:sample_id>')               # -> /samples/edit/<id>
 ```
 
-If a view uses `@home_bp.route('/samples/...')` while the blueprint itself is mounted at `/samples`, the final URL becomes `/samples/samples/...`. This is a common regression during refactors and should be treated as a boundary-level routing bug.
+If a view uses `@home_bp.route('/samples/...')` while the blueprint itself is mounted at `/samples`, the final URL becomes `/samples/samples/...`. Treat this as a routing bug and keep decorators prefix-relative.
 
 ### Common mistakes
 Engineers sometimes add Flask-side direct imports from `api.services` because it seems faster. This is a boundary violation and is blocked by architecture tests. Another mistake is putting endpoint URL strings everywhere in view code; use endpoint helpers where possible.

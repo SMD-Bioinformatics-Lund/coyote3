@@ -26,7 +26,7 @@ If a change cannot be verified against these objectives, it is considered incomp
 ## 3. Test Layer Model
 Coyote3 uses a layered testing model to align risk with verification depth.
 
-### 3.0 Current enforced suite structure (2026 baseline)
+### 3.0 Current enforced suite structure
 The repository now enforces four primary suites as first-class quality gates:
 
 - `tests/unit/`: core/security/infra-focused logic tests with high isolation.

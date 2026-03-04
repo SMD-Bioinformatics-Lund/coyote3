@@ -1,97 +1,49 @@
-# Coyote3 Documentation Index
+# Coyote3 Documentation Hub
 
-This is the single documentation entrypoint.
+## Audience
+This documentation set is intended for:
+- backend and frontend engineers
+- DevOps and platform operators
+- security and compliance reviewers
+- clinical geneticists, doctors, and bioinformatics analysts
 
-## Refactor Governance Note
+## Scope
+The documentation describes the current production design of Coyote3: architecture, API contracts, data model, UI behavior, security controls, deployment, testing policy, release governance, and extension workflows.
 
-Current engineering direction is API-centric:
-- API layer owns business logic, security, audit, and persistence.
-- Flask UI remains presentation-only and calls API endpoints over HTTP.
-- Boundary compliance is enforced incrementally with contract tests.
+## Key Concepts
+For shared terminology, start with [GLOSSARY.md](GLOSSARY.md).
 
-## 2026 Refactor Commit Highlights
-
-The documentation set now reflects the completed migration commits that established the current architecture baseline:
-- Contract hardening: all `/api/v1` routes now return explicit typed contracts under `api/contracts/*`; generic payload contract removed.
-- UI/API auth transport hardening: Flask server-side API client forwards `Authorization: Bearer <api_session_token>`.
-- UI boundary hardening: contract tests now reject direct UI imports of Mongo drivers and BSON modules.
-- Core migration: domain modules moved from legacy `api/services/*` into `api/core/*` (`dna`, `rna`, `reporting`, `coverage`, `public`, `workflows`, `interpretation`, `admin`).
-- Security migration: auth service moved to `api/security/auth_service.py`, co-located with access checks in `api/security/access.py`.
-- Infra migration: Mongo handlers remain under `api/infra/db/*`; LDAP and other external integrations under `api/infra/external/*`.
-- Legacy package cleanup: `api/services` removed after import rewiring and regression validation.
-- Tooling enforcement: pre-commit now runs quick unit/web/api/contract test hooks in addition to Ruff.
-
-These changes were implemented in small verified commits and are now the reference structure for all new contributions.
-
-## Core Documentation
-- [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md)
-- [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)
-- [API_REFERENCE.md](API_REFERENCE.md)
-- [UI_USER_GUIDE.md](UI_USER_GUIDE.md)
-- [SECURITY_MODEL.md](SECURITY_MODEL.md)
-- [DATA_MODEL.md](DATA_MODEL.md)
-- [DEPLOYMENT_AND_OPERATIONS.md](DEPLOYMENT_AND_OPERATIONS.md)
-- [TESTING_STRATEGY.md](TESTING_STRATEGY.md)
-- [EXTENSION_PLAYBOOK.md](EXTENSION_PLAYBOOK.md)
+## How To Navigate
+- System architecture and boundaries: [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md)
+- Developer onboarding and coding patterns: [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)
+- API usage and contracts: [API_REFERENCE.md](API_REFERENCE.md)
+- Clinical/user-facing UI behavior: [UI_USER_GUIDE.md](UI_USER_GUIDE.md)
+- Security controls and access model: [SECURITY_MODEL.md](SECURITY_MODEL.md)
+- Data architecture and document lifecycle: [DATA_MODEL.md](DATA_MODEL.md)
+- Deployment and operations: [DEPLOYMENT_AND_OPERATIONS.md](DEPLOYMENT_AND_OPERATIONS.md)
+- Testing policy and quality gates: [TESTING_STRATEGY.md](TESTING_STRATEGY.md)
+- Safe extension workflows: [EXTENSION_PLAYBOOK.md](EXTENSION_PLAYBOOK.md)
 
 ## Engineering Standards
-- [CODE_STYLE.md](CODE_STYLE.md)
-- [RELEASE_PROCESS.md](RELEASE_PROCESS.md)
-- [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- Code and naming standards: [CODE_STYLE.md](CODE_STYLE.md)
+- Release governance: [RELEASE_PROCESS.md](RELEASE_PROCESS.md)
+- Incident diagnostics: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 
 ## Supporting References
-- [API_ENDPOINT_CATALOG.md](API_ENDPOINT_CATALOG.md)
-- [TRACEABILITY_MATRIX.md](TRACEABILITY_MATRIX.md)
-- [GLOSSARY.md](GLOSSARY.md)
+- Route inventory: [API_ENDPOINT_CATALOG.md](API_ENDPOINT_CATALOG.md)
+- Requirement-to-test mapping: [TRACEABILITY_MATRIX.md](TRACEABILITY_MATRIX.md)
 
-## Boundary Enforcement
+## Where To Look In Code
+- API HTTP layer: `api/routes/`
+- API contracts: `api/contracts/`
+- API workflows and domain logic: `api/core/`
+- API security: `api/security/`
+- API persistence and integrations: `api/infra/`
+- API audit events: `api/audit/`
+- Flask UI routes and templates: `coyote/blueprints/`
+- Flask UI API transport: `coyote/services/api_client/`
 
-UI/API separation is enforced by contract tests:
-- `tests/contract/test_ui_forbidden_backend_imports.py`
-- `tests/contract/test_ui_forbidden_mongo_usage.py`
-
-Tooling baseline:
-- `ruff check api coyote tests`
-- `ruff format --check api coyote tests`
-- `pytest -m unit|api|web|contract` for suite-focused execution.
-- `.github/workflows/quality.yml` enforces the same checks in CI.
-- `.pre-commit-config.yaml` enforces quick local hooks for `unit`, `web`, `api` smoke, and `contract` suites.
-
-Backend refactor status:
-- Mongo infrastructure moved to `api/infra/db` (handlers + adapter/base migration in progress).
-- External annotation/data-source handlers split into `api/infra/external`.
-- LDAP integration moved to `api/infra/external/ldap.py`.
-- Authentication/session access and RBAC dependencies extracted into `api/security/access.py`.
-- API authentication service moved to `api/security/auth_service.py`.
-- Access-check audit event writing extracted to `api/audit/access_events.py`.
-- Workflow orchestration moved to `api/core/workflows`.
-- Interpretation logic moved to `api/core/interpretation`.
-- DNA domain logic moved to `api/core/dna`.
-- RNA domain logic moved to `api/core/rna`.
-- Reporting pipeline/path logic moved to `api/core/reporting`.
-- Coverage processing logic moved to `api/core/coverage/coverage_processing.py`.
-- Public catalog domain logic moved to `api/core/public/catalog.py`.
-- Admin sample-deletion logic moved to `api/core/admin/sample_deletion.py`.
-- Legacy `api/services` package removed after migrations to `api/core`, `api/security`, and `api/infra`.
-- Mongo handlers are implemented under `api/infra/db` as the backend DB access layer.
-- API request/response contracts introduced under `api/contracts` (initial auth + reports coverage).
-- System/auth route response contracts added under `api/contracts/system.py`.
-- Internal route response contracts added under `api/contracts/internal.py`.
-- Home route response contracts added under `api/contracts/home.py`.
-- Common route response contracts added under `api/contracts/common.py`.
-- Public route response contracts added under `api/contracts/public.py`.
-- Dashboard route response contracts added under `api/contracts/dashboard.py`.
-- Admin roles/users read-context contracts added under `api/contracts/admin.py`.
-- Admin permission contracts/mutation envelope added under `api/contracts/admin.py`.
-- Coverage route response contracts added under `api/contracts/coverage.py`.
-- Admin assay/genelist/aspc/schema contracts added under `api/contracts/admin.py`.
-- Samples/coverage-mutation contracts added under `api/contracts/samples.py`.
-- All `/api/v1` route decorators now use explicit typed response contracts.
-- Report save endpoints upgraded from generic to typed contracts in `api/contracts/reports.py`.
-- Admin role/user/sample mutations and validation endpoints upgraded from generic to typed admin contracts.
-- RNA fusion routes upgraded from generic payloads to typed contracts in `api/contracts/rna.py`.
-- DNA mutation endpoints upgraded from generic payloads to typed shared mutation contracts (`api/contracts/samples.py`).
-- DNA read/context endpoints upgraded from generic payloads to typed contracts in `api/contracts/dna.py`.
-- Flask UI API client now forwards `Authorization: Bearer <api_session_token>` from API session cookies on server-side API calls.
-- Flask API transport client consolidated to `coyote/services/api_client` (legacy `coyote/integrations/api` removed).
-- API runtime/security settings centralized in `api/settings.py`.
+## Operational Implications
+- UI renders server-side templates and calls API over HTTP for business operations.
+- API is the authoritative layer for RBAC, audit logging, and MongoDB access.
+- Changes to contracts, permissions, and schema-driven configuration must be tested and documented before release.

@@ -93,59 +93,29 @@ Coyote3 is built using Python’s **Flask** web framework and structured with a 
 
 ---
 
-## Architecture Boundary Rule (Refactor In Progress)
+## Architecture Boundary Rule
 
-The active refactor direction is API-centric and enforced as a hard boundary:
+Coyote3 is API-centric with strict ownership boundaries:
 
-- `api/` owns business logic, RBAC enforcement, audit logging, and Mongo access.
-- `coyote/` owns presentation only and calls API endpoints over HTTP for business operations.
-- UI code must not import `api/*` internals and must not access Mongo handlers directly.
+- `api/` is the authoritative backend for business workflows, RBAC enforcement, audit logging, and MongoDB access.
+- `coyote/` is the server-rendered UI layer and calls API endpoints over HTTP for business operations.
+- UI code must not import backend internals from `api/*` and must not access Mongo drivers or handlers directly.
 
-This boundary is being enforced incrementally with dedicated contract tests under `tests/contract/`.
-Current backend reorganization has started with:
-- Mongo handlers are implemented under `api/infra/db` as the only backend DB access layer
-- External annotation/data-source handlers moved to `api/infra/external`
-- LDAP integration moved from `api/services/ldap.py` to `api/infra/external/ldap.py`
-- Auth/session/RBAC access control moved to `api/security/access.py`
-- API authentication service moved from `api/services/auth.py` to `api/security/auth_service.py`
-- Access-check audit event emission moved to `api/audit/access_events.py`
-- Workflow orchestration moved from `api/services/workflow` to `api/core/workflows`
-- Interpretation logic moved from `api/services/interpretation` to `api/core/interpretation`
-- DNA domain logic moved from `api/services/dna` to `api/core/dna`
-- RNA domain logic moved from `api/services/rna` to `api/core/rna`
-- Reporting pipeline/path logic moved from `api/services/reporting` to `api/core/reporting`
-- Coverage processing logic moved from `api/services/coverage_processing.py` to `api/core/coverage/coverage_processing.py`
-- Public catalog domain logic moved from `api/services/public_catalog.py` to `api/core/public/catalog.py`
-- Admin sample-deletion logic moved from `api/services/admin/sample_deletion.py` to `api/core/admin/sample_deletion.py`
-- Legacy `api/services` package removed after migration to `api/core`, `api/security`, and `api/infra`
-- Contract models introduced under `api/contracts` (auth + reports first slice)
-- System/auth response contracts added under `api/contracts/system.py`
-- Internal route response contracts added under `api/contracts/internal.py`
-- Home route response contracts added under `api/contracts/home.py`
-- Common route response contracts added under `api/contracts/common.py`
-- Public route response contracts added under `api/contracts/public.py`
-- Dashboard route response contracts added under `api/contracts/dashboard.py`
-- Admin roles/users read-context contracts added under `api/contracts/admin.py`
-- Admin permission contracts/mutation envelope added under `api/contracts/admin.py`
-- Coverage route response contracts added under `api/contracts/coverage.py`
-- Admin assay/genelist/aspc/schema contracts added under `api/contracts/admin.py`
-- Samples/coverage-mutation contracts added under `api/contracts/samples.py`
-- All `/api/v1` route decorators now use explicit typed response contracts
-- Report save endpoints upgraded from generic to typed contracts in `api/contracts/reports.py`
-- Admin role/user/sample mutations and validation endpoints upgraded from generic to typed admin contracts
-- RNA fusion routes upgraded from generic payloads to typed contracts in `api/contracts/rna.py`
-- DNA mutation endpoints upgraded from generic payloads to typed shared mutation contracts (`api/contracts/samples.py`)
-- DNA read/context endpoints upgraded from generic payloads to typed contracts in `api/contracts/dna.py`
-- Flask UI API client now forwards `Authorization: Bearer <api_session_token>` from the API session cookie on server-side API calls
-- UI boundary contracts now also block direct `bson` imports to keep UI free from backend data-layer coupling
-- Flask-side API transport consolidated under `coyote/services/api_client` (legacy `coyote/integrations/api` removed)
-- Runtime/security config access centralized in `api/settings.py`
+Backend structure:
+- `api/routes/` HTTP layer (FastAPI routes only)
+- `api/contracts/` typed request/response models
+- `api/core/` workflow and domain logic
+- `api/security/` authentication and authorization
+- `api/infra/db/` MongoDB repositories/handlers
+- `api/infra/external/` external integrations (LDAP, annotation providers)
+- `api/audit/` audit event writing
 
-Execution policy during refactor:
-- work is performed as explicit, small, green tasks
-- each task updates docs immediately
-- each task ends with tests and a scoped commit
-- private task ledger is maintained in `.internal/REFACTOR_TASKS.md` (untracked)
+UI structure:
+- `coyote/blueprints/` page controllers and template context mapping
+- `coyote/templates/` and blueprint-local templates for rendering
+- `coyote/services/api_client/` centralized HTTP transport to API
+
+Boundary compliance is enforced by contract tests under `tests/contract/`.
 
 ---
 
