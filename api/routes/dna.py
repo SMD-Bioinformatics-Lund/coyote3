@@ -5,16 +5,16 @@ from copy import deepcopy
 from fastapi import Body, Depends, Query, Request
 
 from api.extensions import store, util
-from api.services.dna.dna_filters import (
+from api.core.dna.dna_filters import (
     cnv_organizegenes,
     cnvtype_variant,
     create_cnveffectlist,
     get_filter_conseq_terms,
 )
-from api.services.dna.notation import one_letter_p
-from api.services.dna.dna_reporting import hotspot_variant
-from api.services.dna.dna_variants import format_pon, get_variant_nomenclature
-from api.services.dna.query_builders import build_cnv_query, build_query
+from api.core.dna.notation import one_letter_p
+from api.core.dna.dna_reporting import hotspot_variant
+from api.core.dna.dna_variants import format_pon, get_variant_nomenclature
+from api.core.dna.query_builders import build_cnv_query, build_query
 from api.core.interpretation.annotation_enrichment import add_alt_class, add_global_annotations
 from api.core.interpretation.report_summary import (
     create_annotation_text_from_gene,

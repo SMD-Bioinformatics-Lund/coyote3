@@ -50,6 +50,7 @@ Backend refactor status:
 - Access-check audit event writing extracted to `api/audit/access_events.py`.
 - Workflow orchestration moved to `api/core/workflows`.
 - Interpretation logic moved to `api/core/interpretation`.
+- DNA domain logic moved to `api/core/dna`.
 - API request/response contracts introduced under `api/contracts` (initial auth + reports coverage).
 - System/auth route response contracts added under `api/contracts/system.py`.
 - Internal route response contracts added under `api/contracts/internal.py`.

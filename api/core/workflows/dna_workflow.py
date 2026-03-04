@@ -11,7 +11,7 @@ from api.services.reporting.pipeline import (
     prepare_report_output as prepare_shared_report_output,
     persist_report_and_snapshot as persist_shared_report_and_snapshot,
 )
-from api.services.dna.dna_reporting import build_dna_report_payload
+from api.core.dna.dna_reporting import build_dna_report_payload
 from api.core.workflows.contracts import validate_report_inputs
 
 
