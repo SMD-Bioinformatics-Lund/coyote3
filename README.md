@@ -106,6 +106,7 @@ Current backend reorganization has started with:
 - Mongo handlers moved from `api/db` to `api/infra/db`
 - External annotation/data-source handlers moved to `api/infra/external`
 - Auth/session/RBAC access control moved to `api/security/access.py`
+- API authentication service moved from `api/services/auth.py` to `api/security/auth_service.py`
 - Access-check audit event emission moved to `api/audit/access_events.py`
 - Workflow orchestration moved from `api/services/workflow` to `api/core/workflows`
 - Interpretation logic moved from `api/services/interpretation` to `api/core/interpretation`

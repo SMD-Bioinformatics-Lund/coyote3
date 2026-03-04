@@ -16,7 +16,7 @@ from api.security.access import (
     require_access,
     serialize_api_user,
 )
-from api.services.auth import authenticate_credentials, build_user_session_payload
+from api.security.auth_service import authenticate_credentials, build_user_session_payload
 
 
 @app.exception_handler(HTTPException)

@@ -47,6 +47,7 @@ Backend refactor status:
 - Mongo infrastructure moved to `api/infra/db` (handlers + adapter/base migration in progress).
 - External annotation/data-source handlers split into `api/infra/external`.
 - Authentication/session access and RBAC dependencies extracted into `api/security/access.py`.
+- API authentication service moved to `api/security/auth_service.py`.
 - Access-check audit event writing extracted to `api/audit/access_events.py`.
 - Workflow orchestration moved to `api/core/workflows`.
 - Interpretation logic moved to `api/core/interpretation`.
