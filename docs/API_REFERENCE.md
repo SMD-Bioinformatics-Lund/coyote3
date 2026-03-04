@@ -14,6 +14,7 @@ Coyote3 API design follows principles intended for clinical safety, policy clari
 
 ### 2.1 Contract determinism
 Each endpoint must have a stable request and response structure. Dynamic fields should be explicit and schema-governed where possible.
+Every route decorator under `api/routes/*` declares an explicit `response_model` contract (including compatibility aliases), so response-shape intent is visible and reviewable.
 
 ### 2.2 Policy-first execution
 Authorization checks are evaluated before domain mutation behavior. A route returning data or accepting mutation must not bypass policy dependencies.

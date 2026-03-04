@@ -3,9 +3,9 @@
 from fastapi import Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
+from api.app import app
 from api.contracts.auth import ApiAuthLoginRequest
 from api.contracts.system import AuthLoginEnvelope, AuthUserEnvelope, HealthPayload, WhoamiPayload
-from api.app import app
 from api.extensions import store, util
 from api.security.access import (
     ApiUser,
@@ -34,7 +34,7 @@ def health():
     return {"status": "ok"}
 
 
-@app.get("/api/vi/docs", include_in_schema=False)
+@app.get("/api/vi/docs", response_model=HealthPayload, include_in_schema=False)
 def docs_alias_vi():
     return RedirectResponse(url="/api/v1/docs", status_code=307)
 

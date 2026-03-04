@@ -63,8 +63,9 @@ This catalog is an implementation-oriented inventory of API route families for m
 
 ## 11. Route Ownership Rules
 1. Each endpoint must be declared in exactly one route module aligned with domain ownership.
-2. Shared business behavior belongs in services, not duplicated across route modules.
-3. Route modules should remain thin and deterministic: parse input, authorize, call service, return serializable payload.
+2. Shared business behavior belongs in `api/core/*` modules, not duplicated across route modules.
+3. Route modules should remain thin and deterministic: parse input, authorize, call core workflow, return contract-defined payload.
+4. Every route decorator must declare an explicit `response_model` from `api/contracts/*` (or `response_model=None` only for non-body compatibility redirects).
 
 ## 12. Maintenance Checklist for Endpoint Changes
 - Update route tests in `tests/api/routes/`.
