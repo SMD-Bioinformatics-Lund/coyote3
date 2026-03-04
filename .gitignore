@@ -163,7 +163,7 @@ coyote/static/css/tailwind.css
 tests_internal
 tests/api/fixtures/db_snapshots/
 coyote3_dir_structure.txt
-MIGRATION_PLAN_DNA_RNA_SHARED_SERVICES.md
+MIGRATION_PLAN_DNA_RNA_SHARED_SERVICE.md
 
 # Private refactor tracker and scratch files
 .internal/REFACTOR_TASKS.md
