@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import logging
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
-import logging
 from typing import Any
 
 
@@ -16,6 +16,7 @@ class _RuntimeApp:
 
 app = _RuntimeApp(config={}, logger=logging.getLogger("api.runtime"))
 _runtime_user: ContextVar[Any | None] = ContextVar("api_runtime_user", default=None)
+_runtime_request_id: ContextVar[str | None] = ContextVar("api_runtime_request_id", default=None)
 
 
 def bind_runtime_context(runtime_context) -> None:
@@ -63,3 +64,22 @@ def current_user_is_admin() -> bool:
         return str(role) == "admin"
     is_admin = getattr(user, "is_admin", None) if user is not None else None
     return bool(is_admin)
+
+
+def set_current_request_id(request_id: str | None) -> Token:
+    """Set request-local request-id context."""
+    return _runtime_request_id.set(request_id)
+
+
+def reset_current_request_id(token: Token) -> None:
+    """Reset request-local request-id context."""
+    try:
+        _runtime_request_id.reset(token)
+    except ValueError:
+        _runtime_request_id.set(None)
+
+
+def current_request_id(default: str = "-") -> str:
+    """Resolve current request-id with fallback."""
+    rid = _runtime_request_id.get()
+    return str(rid) if rid else default

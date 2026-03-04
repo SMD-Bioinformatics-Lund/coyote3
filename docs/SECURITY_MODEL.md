@@ -356,7 +356,8 @@ Used for runtime diagnosis and monitoring.
 Required characteristics:
 - structured fields where possible
 - route/module metadata
-- correlation id
+- correlation id (`request_id`, propagated through `X-Request-ID`)
+- request method/path/status/duration and resolved actor identity when available
 - no sensitive payload dumps by default
 
 ## 12.2 Audit logs
@@ -366,7 +367,9 @@ Required characteristics:
 - actor attribution
 - target object
 - action and result
+- request correlation (`request_id`)
 - timestamp integrity
+- API/backend emission authority for mutation events (UI is not authoritative for audit writes)
 
 ## 12.3 Redaction standards
 Do not log:

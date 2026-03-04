@@ -2,15 +2,23 @@
 
 from __future__ import annotations
 
+import time
+import uuid
 from copy import deepcopy
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
+from api.audit.access_events import emit_mutation_event, request_ip
 from api.extensions import store, util
 from api.runtime import app as runtime_app
-from api.runtime import bind_runtime_context
+from api.runtime import (
+    bind_runtime_context,
+    current_username,
+    reset_current_request_id,
+    set_current_request_id,
+)
 from api.runtime_bootstrap import create_runtime_context
 from api.security.access import (
     get_api_session_cookie_name,
@@ -43,18 +51,72 @@ _PROTECTED_OPENAPI_EXACT = {
 
 @app.middleware("http")
 async def api_authentication_middleware(request: Request, call_next):
+    start = time.perf_counter()
     path = request.url.path
+    authenticated_user = None
+    request_id = (request.headers.get("X-Request-ID") or "").strip() or str(uuid.uuid4())
+    request.state.request_id = request_id
+    request_token = set_current_request_id(request_id)
+    response: JSONResponse | None = None
     if path.startswith("/api/v1/") and not is_public_api_path(path):
         try:
-            require_authenticated(request)
+            authenticated_user = require_authenticated(request)
+            request.state.authenticated_user = authenticated_user
         except HTTPException as exc:
             payload = (
                 exc.detail
                 if isinstance(exc.detail, dict)
                 else {"status": exc.status_code, "error": str(exc.detail)}
             )
-            return JSONResponse(status_code=exc.status_code, content=payload)
-    return await call_next(request)
+            response = JSONResponse(status_code=exc.status_code, content=payload)
+            response.headers["X-Request-ID"] = request_id
+            runtime_app.logger.info(
+                (
+                    "api_request request_id=%s method=%s path=%s status=%s "
+                    "duration_ms=%.2f user=%s ip=%s"
+                ),
+                request_id,
+                request.method,
+                path,
+                exc.status_code,
+                (time.perf_counter() - start) * 1000.0,
+                "anonymous",
+                request_ip(request),
+            )
+            reset_current_request_id(request_token)
+            return response
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    duration_ms = (time.perf_counter() - start) * 1000.0
+    username = (
+        authenticated_user.username
+        if authenticated_user is not None
+        else current_username(default="anonymous")
+    )
+    runtime_app.logger.info(
+        "api_request request_id=%s method=%s path=%s status=%s duration_ms=%.2f user=%s ip=%s",
+        request_id,
+        request.method,
+        path,
+        response.status_code,
+        duration_ms,
+        username,
+        request_ip(request),
+    )
+    if (
+        path.startswith("/api/v1/")
+        and request.method.upper() in {"POST", "PUT", "PATCH", "DELETE"}
+        and not is_public_api_path(path)
+    ):
+        emit_mutation_event(
+            request=request,
+            username=username,
+            status_code=response.status_code,
+            action=request.method.upper(),
+            target=path,
+        )
+    reset_current_request_id(request_token)
+    return response
 
 
 @app.exception_handler(Exception)

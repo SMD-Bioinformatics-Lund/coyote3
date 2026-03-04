@@ -1,5 +1,3 @@
-
-
 """
 Coyote3 Meta Information
 =====================================
@@ -18,7 +16,7 @@ Key Responsibilities:
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from flask import Flask
+from flask import Flask, g, request
 from flask_cors import CORS
 import config
 from coyote import extensions
@@ -37,6 +35,7 @@ import json
 import os
 import httpx
 import time
+import uuid
 
 
 # Initialize Flask-Caching
@@ -325,6 +324,34 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
         }
 
     verify_external_api_dependency(app)
+
+    @app.before_request
+    def _bind_request_id() -> None:
+        g.request_id = (request.headers.get("X-Request-ID") or "").strip() or str(uuid.uuid4())
+        g.request_start = time.perf_counter()
+
+    @app.after_request
+    def _log_request(response):
+        request_id = getattr(g, "request_id", "-")
+        start = getattr(g, "request_start", None)
+        duration_ms = ((time.perf_counter() - start) * 1000.0) if start is not None else 0.0
+        forwarded_for = (request.headers.get("X-Forwarded-For") or "").strip()
+        client_ip = (
+            forwarded_for.split(",")[0].strip() if forwarded_for else (request.remote_addr or "N/A")
+        )
+        user_id = current_user.get_id() if current_user.is_authenticated else "-"
+        app.logger.info(
+            "ui_request request_id=%s method=%s path=%s status=%s duration_ms=%.2f user=%s ip=%s",
+            request_id,
+            request.method,
+            request.path,
+            response.status_code,
+            duration_ms,
+            user_id,
+            client_ip,
+        )
+        response.headers["X-Request-ID"] = request_id
+        return response
 
     # Register the cache with the app
     cache.init_app(app)

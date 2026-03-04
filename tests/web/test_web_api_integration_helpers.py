@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from flask import Flask
+from flask import Flask, g
 
 from coyote.services.api_client import api_client, endpoints
 
@@ -23,6 +23,11 @@ def test_build_forward_headers_includes_cookie_if_present():
         "X-Requested-With": "XMLHttpRequest",
         "Cookie": "session=abc",
     }
+
+
+def test_build_forward_headers_includes_request_id_when_present():
+    headers = api_client.build_forward_headers({"X-Request-ID": "rid-123"})
+    assert headers["X-Request-ID"] == "rid-123"
 
 
 def test_forward_headers_without_request_context_returns_default_header():
@@ -47,6 +52,16 @@ def test_forward_headers_with_api_session_cookie_adds_bearer_auth():
         headers = api_client.forward_headers()
 
     assert headers["Authorization"] == "Bearer token123"
+
+
+def test_forward_headers_falls_back_to_flask_request_id_context():
+    app = Flask(__name__)
+
+    with app.test_request_context(headers={"Cookie": "foo=bar"}):
+        g.request_id = "rid-g"
+        headers = api_client.forward_headers()
+
+    assert headers["X-Request-ID"] == "rid-g"
 
 
 def test_build_internal_headers_uses_internal_token_or_secret_key():

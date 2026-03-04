@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from flask import current_app, has_request_context, request
+from flask import current_app, g, has_request_context, request
 
 from coyote.services.api_client.base import ApiPayload, ApiRequestError, BaseApiClient
 
@@ -27,9 +27,14 @@ def _api_cookie_name() -> str:
 
 def build_forward_headers(request_headers: Any) -> dict[str, str]:
     cookie_header = request_headers.get("Cookie")
+    request_id = request_headers.get("X-Request-ID")
+    if not request_id and has_request_context():
+        request_id = getattr(g, "request_id", None)
     headers = {"X-Requested-With": "XMLHttpRequest"}
     if cookie_header:
         headers["Cookie"] = cookie_header
+    if request_id:
+        headers["X-Request-ID"] = str(request_id)
     return headers
 
 

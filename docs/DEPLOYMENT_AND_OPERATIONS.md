@@ -266,10 +266,12 @@ Operational recommendation:
 ## 7.4 Why separation matters
 Mixing audit and operational logs can lead to accidental tampering, retention mismatch, and slow forensic retrieval.
 Audit ownership is backend-only: API services emit authoritative audit events after access checks and mutation outcomes; Flask UI does not write authoritative audit entries.
+For write operations, audit events should include actor, target, action, status, and request correlation (`request_id`).
 
 ## 7.5 Safe logging practices
 - use structured logging fields where possible
-- include trace/correlation identifiers
+- include trace/correlation identifiers (`X-Request-ID` propagated between UI and API)
+- include stable request fields: `method`, `path`, `status`, `duration_ms`, `user`, `ip`
 - redact sensitive payload fields
 - avoid credential/token logging
 

@@ -7,6 +7,16 @@ from typing import Any
 
 import httpx
 
+_SENSITIVE_KEYS = {
+    "password",
+    "passwd",
+    "secret",
+    "token",
+    "authorization",
+    "cookie",
+    "session",
+}
+
 
 @dataclass
 class ApiRequestError(Exception):
@@ -82,7 +92,7 @@ class BaseApiClient:
             payload = {"error": response.text}
 
         if response.status_code >= 400:
-            message = payload.get("error", f"API request failed ({response.status_code})")
+            message = self._safe_error_message(payload, response.status_code)
             raise ApiRequestError(
                 message=message,
                 status_code=response.status_code,
@@ -96,6 +106,16 @@ class BaseApiClient:
                 payload=payload,
             )
         return payload
+
+    def _safe_error_message(self, payload: Any, status_code: int) -> str:
+        if isinstance(payload, dict):
+            raw = str(payload.get("error") or payload.get("details") or "").strip()
+            if raw:
+                lowered = raw.lower()
+                if any(key in lowered for key in _SENSITIVE_KEYS):
+                    return f"API request failed ({status_code})"
+                return raw[:200]
+        return f"API request failed ({status_code})"
 
     def _get(
         self,
