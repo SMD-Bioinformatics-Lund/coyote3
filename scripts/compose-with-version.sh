@@ -7,4 +7,23 @@ APP_DIR="$(dirname "$(dirname "$SCRIPT_PATH")")"
 export COYOTE3_VERSION="$(python3 "$APP_DIR/coyote/__version__.py")"
 echo "Using COYOTE3_VERSION=${COYOTE3_VERSION}"
 
-exec docker-compose "$@"
+DEFAULT_COMPOSE_FILE="$APP_DIR/deploy/compose/docker-compose.yml"
+if docker compose version >/dev/null 2>&1; then
+  COMPOSE_BIN=(docker compose)
+else
+  COMPOSE_BIN=(docker-compose)
+fi
+
+has_compose_file=0
+for arg in "$@"; do
+  if [[ "$arg" == "-f" || "$arg" == "--file" ]]; then
+    has_compose_file=1
+    break
+  fi
+done
+
+if [[ "$has_compose_file" -eq 1 ]]; then
+  exec "${COMPOSE_BIN[@]}" "$@"
+fi
+
+exec "${COMPOSE_BIN[@]}" -f "$DEFAULT_COMPOSE_FILE" "$@"

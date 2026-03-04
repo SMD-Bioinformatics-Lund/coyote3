@@ -156,9 +156,6 @@ redis_data
 # idea
 .idea/
 
-# Docker compose
-docker-compose.dev.yml
-
 coyote3-core
 
 # CSS

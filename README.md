@@ -158,8 +158,8 @@ Each major functionality is organized into a Flask blueprint:
 
 - `run.py`: starts Flask UI runtime only.
 - `run_api.py`: starts FastAPI API runtime only.
-- `docker-compose.yml`: runs `coyote3_web` (UI) and `coyote3_api` (API) as separate containers.
-- `docker-compose.dev.yml`: runs `coyote3_dev_web` and `coyote3_dev_api` separately, plus dev-only Tailwind watcher and Redis.
+- `deploy/compose/docker-compose.yml`: production-style compose stack with separate UI and API services.
+- `deploy/compose/docker-compose.dev.yml`: development compose stack with separate UI/API services plus dev Tailwind and Redis.
 
 The UI service is a client of the API service; backend business logic, RBAC checks, audit writes, and Mongo operations are owned by API.
 
@@ -248,7 +248,7 @@ Open:
 Option A: compose wrapper
 
 ```bash
-./scripts/compose-with-version.sh -f docker-compose.dev.yml up -d --build
+./scripts/compose-with-version.sh -f deploy/compose/docker-compose.dev.yml up -d --build
 ```
 
 Option B: scripted wrapper
@@ -261,18 +261,18 @@ Option B: scripted wrapper
 
 ```bash
 export COYOTE3_VERSION="$(python3 coyote/__version__.py)"
-docker compose up -d --build
-docker compose -f docker-compose.dev.yml up -d --build
+docker compose -f deploy/compose/docker-compose.yml up -d --build
+docker compose -f deploy/compose/docker-compose.dev.yml up -d --build
 ```
 
 ### 8. Stop services
 
 ```bash
 ./scripts/compose-with-version.sh down
-./scripts/compose-with-version.sh -f docker-compose.dev.yml down
+./scripts/compose-with-version.sh -f deploy/compose/docker-compose.dev.yml down
 ```
 
-Documentation for setup, operations, user workflows, and developer internals is maintained in `docs/handbook/`.
+Documentation for setup, operations, user workflows, and developer internals is maintained in `docs/`.
 
 ### In-app handbook routes
 
@@ -282,7 +282,7 @@ Documentation for setup, operations, user workflows, and developer internals is 
 - Changelog: `/handbook/changelog`
 - License: `/handbook/license`
 
-The in-app handbook renders markdown directly from `docs/handbook/`.
+The in-app handbook renders markdown directly from `docs/`.
 
 ### Static docs site (MkDocs, ReadTheDocs theme)
 
@@ -348,7 +348,7 @@ Keep `npm run dev:css` running while editing templates/styles so the generated C
 
 - Production image build (`Dockerfile`) compiles Tailwind CSS during image build.
 - Development app image (`Dockerfile.dev`) does not compile Tailwind during build.
-- `docker-compose.dev.yml` includes a dedicated `coyote3_dev_tailwind` service that installs npm dependencies, builds CSS, and continuously rebuilds CSS (`npm run dev:css`) while developing.
+- `deploy/compose/docker-compose.dev.yml` includes a dedicated `coyote3_dev_tailwind` service that installs npm dependencies, builds CSS, and continuously rebuilds CSS (`npm run dev:css`) while developing.
 - Compose image tags use `COYOTE3_VERSION` instead of hardcoded values.
 - Use `./scripts/compose-with-version.sh up -d` to run compose with `COYOTE3_VERSION` exported from `coyote/__version__.py`.
 

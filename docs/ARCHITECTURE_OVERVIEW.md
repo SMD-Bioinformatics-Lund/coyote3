@@ -277,7 +277,7 @@ Configuration is environment-driven and split by runtime concern.
 
 - API runtime config: API auth, Mongo URI, report paths, audit behavior.
 - UI runtime config: Flask session/cookie settings, API base URL, UI rendering flags.
-- Deploy-time composition: `docker-compose.yml` and `docker-compose.dev.yml` separate API and UI services.
+- Deploy-time composition: `deploy/compose/docker-compose.yml` and `deploy/compose/docker-compose.dev.yml` separate API and UI services.
 
 Route/path behavior behind reverse proxies is supported through prefix handling in Flask initialization (`SCRIPT_NAME` support).
 

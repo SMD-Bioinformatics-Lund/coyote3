@@ -34,6 +34,11 @@ Coyote3 baseline runtime uses Docker containers for service separation and deplo
 - `mongo` (MongoDB 3.4-compatible runtime)
 - optional ingress/reverse proxy, monitoring agents, and log collectors
 
+Repository deployment assets:
+- production compose: `deploy/compose/docker-compose.yml`
+- development compose: `deploy/compose/docker-compose.dev.yml`
+- Gunicorn runtime config: `deploy/gunicorn/gunicorn.conf.py`
+
 Local launcher scripts follow the same separation:
 - `run.py` launches Flask UI runtime only.
 - `run_api.py` launches FastAPI API runtime only.
@@ -111,6 +116,8 @@ networks:
 ```
 
 This layout is an example baseline. Production organizations may use orchestrators or managed services while preserving the same service boundary principles.
+
+When using this repository directly, prefer the checked-in compose files under `deploy/compose/` and wrapper script `scripts/compose-with-version.sh`.
 
 ---
 

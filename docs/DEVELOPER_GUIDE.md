@@ -57,8 +57,7 @@ coyote3/
 ├── scripts/
 ├── pyproject.toml
 ├── .pre-commit-config.yaml
-├── docker-compose.yml
-└── docker-compose.dev.yml
+└── mkdocs.yml
 ```
 
 ### Ownership summary
@@ -137,7 +136,7 @@ Use `.env` and local environment files according to deployment docs. Ensure API 
 
 ## 4.3 Docker development stack
 ```bash
-docker compose -f docker-compose.dev.yml up --build
+docker compose -f deploy/compose/docker-compose.dev.yml up --build
 ```
 
 Expected topology:

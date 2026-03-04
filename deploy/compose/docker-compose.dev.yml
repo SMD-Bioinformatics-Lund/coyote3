@@ -2,16 +2,16 @@ version: "3.9"
 # usage:
 # COYOTE3_VERSION is read from coyote/__version__.py (example):
 #   export COYOTE3_VERSION="$(python3 coyote/__version__.py)"
-# docker-compose up -d
-# docker-compose down
+# docker compose -f deploy/compose/docker-compose.dev.yml up -d
+# docker compose -f deploy/compose/docker-compose.dev.yml down
 services:
   # UI container: Flask/Jinja presentation layer. Calls coyote3_dev_api over HTTP.
   coyote3_dev_web:
     container_name: coyote3_dev_web
     image: coyote3:${COYOTE3_VERSION:-local}-dev
     build:
-      context: .
-      dockerfile: Dockerfile.dev
+      context: ../..
+      dockerfile: ../../Dockerfile.dev
       network: host
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
@@ -19,7 +19,7 @@ services:
     ports:
       - "6817:8000"
     env_file:
-      - .coyote3_dev_env
+      - ../../.coyote3_dev_env
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
@@ -38,19 +38,19 @@ services:
     networks:
       - coyote3-dev-net
     volumes:
-      - ".git:/app/.git"
-      - "./coyote:/app/coyote"
-      - "./api:/app/api"
-      - "./config:/app/config"
+      - "../../.git:/app/.git"
+      - "../../coyote:/app/coyote"
+      - "../../api:/app/api"
+      - "../../config:/app/config"
       - "/data/coyote3/logs:/app/logs"
-      - "./docs:/app/docs"
-      - "./config.py:/app/config.py"
-      - "./wsgi.py:/app/wsgi.py"
-      - "./gunicorn.conf.py:/app/gunicorn.conf.py"
-      - "./logging_setup.py:/app/logging_setup.py"
-      - "./CHANGELOG.md:/app/CHANGELOG.md"
-      - "./README.md:/app/README.md"
-      - "./LICENSE.txt:/app/LICENSE.txt"
+      - "../../docs:/app/docs"
+      - "../../config.py:/app/config.py"
+      - "../../wsgi.py:/app/wsgi.py"
+      - "../../deploy/gunicorn/gunicorn.conf.py:/app/gunicorn.conf.py"
+      - "../../logging_setup.py:/app/logging_setup.py"
+      - "../../CHANGELOG.md:/app/CHANGELOG.md"
+      - "../../README.md:/app/README.md"
+      - "../../LICENSE.txt:/app/LICENSE.txt"
       - "/access:/access"
       - "/media:/media"
       - "/data:/data"
@@ -64,8 +64,8 @@ services:
     container_name: coyote3_dev_api
     image: coyote3:${COYOTE3_VERSION:-local}-dev
     build:
-      context: .
-      dockerfile: Dockerfile.dev
+      context: ../..
+      dockerfile: ../../Dockerfile.dev
       network: host
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
@@ -73,7 +73,7 @@ services:
     ports:
       - "6816:8001"
     env_file:
-      - .coyote3_dev_env
+      - ../../.coyote3_dev_env
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
@@ -88,20 +88,20 @@ services:
     networks:
       - coyote3-dev-net
     volumes:
-      - ".git:/app/.git"
-      - "./coyote:/app/coyote"
-      - "./api:/app/api"
-      - "./config:/app/config"
+      - "../../.git:/app/.git"
+      - "../../coyote:/app/coyote"
+      - "../../api:/app/api"
+      - "../../config:/app/config"
       - "/data/coyote3/logs:/app/logs"
-      - "./docs:/app/docs"
-      - "./config.py:/app/config.py"
-      - "./wsgi.py:/app/wsgi.py"
-      - "./asgi.py:/app/asgi.py"
-      - "./gunicorn.conf.py:/app/gunicorn.conf.py"
-      - "./logging_setup.py:/app/logging_setup.py"
-      - "./CHANGELOG.md:/app/CHANGELOG.md"
-      - "./README.md:/app/README.md"
-      - "./LICENSE.txt:/app/LICENSE.txt"
+      - "../../docs:/app/docs"
+      - "../../config.py:/app/config.py"
+      - "../../wsgi.py:/app/wsgi.py"
+      - "../../asgi.py:/app/asgi.py"
+      - "../../deploy/gunicorn/gunicorn.conf.py:/app/gunicorn.conf.py"
+      - "../../logging_setup.py:/app/logging_setup.py"
+      - "../../CHANGELOG.md:/app/CHANGELOG.md"
+      - "../../README.md:/app/README.md"
+      - "../../LICENSE.txt:/app/LICENSE.txt"
       - "/access:/access"
       - "/media:/media"
       - "/data:/data"
@@ -119,7 +119,7 @@ services:
       - ${APP_DNS:-1.1.1.1}
       - 8.8.8.8
     volumes:
-      - ".:/app"
+      - "../../:/app"
       - "coyote3-node-modules:/app/node_modules"
     networks:
       - coyote3-dev-net

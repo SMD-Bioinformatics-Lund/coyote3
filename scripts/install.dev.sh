@@ -98,7 +98,7 @@ docker run \
     -v /data/bnf/dev/ram/Pipelines/Web_Developement/coyote3/config:/app/config \
     -v /data/bnf/dev/ram/Pipelines/Web_Developement/coyote3/config.py:/app/config.py \
     -v /data/bnf/dev/ram/Pipelines/Web_Developement/coyote3/logging_setup.py:/app/logging_setup.py \
-    -v /data/bnf/dev/ram/Pipelines/Web_Developement/coyote3/gunicorn.conf.py:/app/gunicorn.conf.py \
+    -v /data/bnf/dev/ram/Pipelines/Web_Developement/coyote3/deploy/gunicorn/gunicorn.conf.py:/app/gunicorn.conf.py \
     -v /data/bnf/dev/ram/Pipelines/Web_Developement/coyote3/docs:/app/docs \
     -v /data/bnf/dev/ram/Pipelines/Web_Developement/coyote3/LICENSE.txt:/app/LICENSE.txt \
     -v /data/bnf/dev/ram/Pipelines/Web_Developement/coyote3/README.md:/app/README.md \
@@ -113,4 +113,3 @@ docker run \
 # Final message
 echo "Deployment Complete!"
 echo "Access Coyote3_dev at: https://mtlucmds1.lund.skane.se$SCRIPT_NAME"
-
