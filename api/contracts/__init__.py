@@ -35,6 +35,16 @@ from api.contracts.common import (
 )
 from api.contracts.coverage import CoverageBlacklistedPayload, CoverageSamplePayload
 from api.contracts.dashboard import DashboardSummaryPayload
+from api.contracts.dna import (
+    DnaBiomarkersPayload,
+    DnaCnvContextPayload,
+    DnaCnvListPayload,
+    DnaPlotContextPayload,
+    DnaTranslocationContextPayload,
+    DnaTranslocationsPayload,
+    DnaVariantContextPayload,
+    DnaVariantsListPayload,
+)
 from api.contracts.generic import GenericPayload
 from api.contracts.home import (
     HomeEditContextPayload,
@@ -93,6 +103,14 @@ __all__ = [
     "CoverageBlacklistedPayload",
     "CoverageSamplePayload",
     "DashboardSummaryPayload",
+    "DnaBiomarkersPayload",
+    "DnaCnvContextPayload",
+    "DnaCnvListPayload",
+    "DnaPlotContextPayload",
+    "DnaTranslocationContextPayload",
+    "DnaTranslocationsPayload",
+    "DnaVariantContextPayload",
+    "DnaVariantsListPayload",
     "GenericPayload",
     "HealthPayload",
     "HomeEditContextPayload",

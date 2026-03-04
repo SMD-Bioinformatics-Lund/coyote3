@@ -24,7 +24,16 @@ from api.core.interpretation.report_summary import (
 from api.core.workflows.dna_workflow import DNAWorkflowService
 from api.runtime import app as runtime_app
 from api.app import _api_error, _get_formatted_assay_config, app
-from api.contracts.generic import GenericPayload
+from api.contracts.dna import (
+    DnaBiomarkersPayload,
+    DnaCnvContextPayload,
+    DnaCnvListPayload,
+    DnaPlotContextPayload,
+    DnaTranslocationContextPayload,
+    DnaTranslocationsPayload,
+    DnaVariantContextPayload,
+    DnaVariantsListPayload,
+)
 from api.contracts.samples import SampleMutationPayload
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 
@@ -49,7 +58,7 @@ def _load_cnvs_for_sample(sample: dict, sample_filters: dict, filter_genes: list
     return cnv_organizegenes(cnvs)
 
 
-@app.get("/api/v1/dna/samples/{sample_id}/variants", response_model=GenericPayload)
+@app.get("/api/v1/dna/samples/{sample_id}/variants", response_model=DnaVariantsListPayload)
 def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
     assay_config = _get_formatted_assay_config(sample)
@@ -186,7 +195,7 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
     return util.common.convert_to_serializable(payload)
 
 
-@app.get("/api/v1/dna/samples/{sample_id}/plot_context", response_model=GenericPayload)
+@app.get("/api/v1/dna/samples/{sample_id}/plot_context", response_model=DnaPlotContextPayload)
 def dna_plot_context(sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
     assay_config = _get_formatted_assay_config(sample)
@@ -204,7 +213,7 @@ def dna_plot_context(sample_id: str, user: ApiUser = Depends(require_access(min_
     )
 
 
-@app.get("/api/v1/dna/samples/{sample_id}/biomarkers", response_model=GenericPayload)
+@app.get("/api/v1/dna/samples/{sample_id}/biomarkers", response_model=DnaBiomarkersPayload)
 def list_dna_biomarkers(sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
     biomarkers = list(store.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"])))
@@ -216,7 +225,7 @@ def list_dna_biomarkers(sample_id: str, user: ApiUser = Depends(require_access(m
     return util.common.convert_to_serializable(payload)
 
 
-@app.get("/api/v1/dna/samples/{sample_id}/variants/{var_id}", response_model=GenericPayload)
+@app.get("/api/v1/dna/samples/{sample_id}/variants/{var_id}", response_model=DnaVariantContextPayload)
 def show_dna_variant(sample_id: str, var_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
     variant = store.variant_handler.get_variant(var_id)
@@ -670,7 +679,7 @@ def add_variant_comment_mutation(
         _mutation_payload(sample_id, resource=resource, resource_id=target_id, action="add_comment")
     )
 
-@app.get("/api/v1/dna/samples/{sample_id}/cnvs", response_model=GenericPayload)
+@app.get("/api/v1/dna/samples/{sample_id}/cnvs", response_model=DnaCnvListPayload)
 def list_dna_cnvs(request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
     assay_config = _get_formatted_assay_config(sample)
@@ -701,7 +710,7 @@ def list_dna_cnvs(request: Request, sample_id: str, user: ApiUser = Depends(requ
     return util.common.convert_to_serializable(payload)
 
 
-@app.get("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}", response_model=GenericPayload)
+@app.get("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}", response_model=DnaCnvContextPayload)
 def show_dna_cnv(sample_id: str, cnv_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
     cnv = store.cnv_handler.get_cnv(cnv_id)
@@ -739,7 +748,7 @@ def show_dna_cnv(sample_id: str, cnv_id: str, user: ApiUser = Depends(require_ac
     return util.common.convert_to_serializable(payload)
 
 
-@app.get("/api/v1/dna/samples/{sample_id}/translocations", response_model=GenericPayload)
+@app.get("/api/v1/dna/samples/{sample_id}/translocations", response_model=DnaTranslocationsPayload)
 def list_dna_translocations(
     request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))
 ):
@@ -758,7 +767,10 @@ def list_dna_translocations(
     return util.common.convert_to_serializable(payload)
 
 
-@app.get("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}", response_model=GenericPayload)
+@app.get(
+    "/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}",
+    response_model=DnaTranslocationContextPayload,
+)
 def show_dna_translocation(
     sample_id: str, transloc_id: str, user: ApiUser = Depends(require_access(min_level=1))
 ):
