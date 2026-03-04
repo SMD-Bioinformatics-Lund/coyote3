@@ -54,7 +54,7 @@ RUN mkdir ./redis_data
 
 # Copy source code
 COPY config/ ./config/
-COPY config.py wsgi.py asgi.py run_api.py gunicorn.conf.py logging_setup.py .coyote3_env ./
+COPY config.py wsgi.py asgi.py run_api.py gunicorn.conf.py logging_setup.py .coyote3_env cache_backend.py ./
 COPY .coyote3_env ./.env
 COPY coyote/ ./coyote/
 COPY api/ ./api/

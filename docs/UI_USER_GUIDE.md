@@ -206,6 +206,8 @@ Admin pages manage governed configuration and identity/policy entities, includin
 - schemas
 - assay-related configuration entities
 
+Admin landing cards are generated from currently enabled admin routes. If a route family is not active in the deployed UI module set, its card is not shown.
+
 ### 9.2 Governance expectations
 Administrative changes affect downstream access and workflow behavior. Perform changes with review discipline and verify outcome in non-production context when available.
 

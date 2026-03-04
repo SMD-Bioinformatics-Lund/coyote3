@@ -1,12 +1,15 @@
-
 """Admin user-management list and validation routes."""
 
-from flask import Response, flash, jsonify, request, render_template
+from flask import Response, flash, jsonify, render_template, request
 from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.services.api_client import endpoints as api_endpoints
-from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.services.api_client.api_client import (
+    ApiRequestError,
+    forward_headers,
+    get_web_api_client,
+)
 
 
 @admin_bp.route("/users", methods=["GET"])
@@ -17,8 +20,12 @@ def manage_users() -> str | Response:
             api_endpoints.admin("users"),
             headers=forward_headers(),
         )
-        users = payload.users
-        roles = payload.roles
+        users = payload.get("users", [])
+        roles = payload.get("roles", {})
+    except AttributeError as exc:
+        flash(f"Failed to parse users payload: {exc}", "red")
+        users = []
+        roles = {}
     except ApiRequestError as exc:
         flash(f"Failed to fetch users: {exc}", "red")
         users = []

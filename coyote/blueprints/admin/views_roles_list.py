@@ -1,4 +1,3 @@
-
 """Admin role-management list routes."""
 
 from flask import flash, render_template
@@ -6,7 +5,11 @@ from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.services.api_client import endpoints as api_endpoints
-from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.services.api_client.api_client import (
+    ApiRequestError,
+    forward_headers,
+    get_web_api_client,
+)
 
 
 @admin_bp.route("/roles")
@@ -17,7 +20,10 @@ def list_roles() -> str:
             api_endpoints.admin("roles"),
             headers=forward_headers(),
         )
-        roles = payload.roles
+        roles = payload.get("roles", [])
+    except AttributeError as exc:
+        flash(f"Failed to parse roles payload: {exc}", "red")
+        roles = []
     except ApiRequestError as exc:
         flash(f"Failed to fetch roles: {exc}", "red")
         roles = []

@@ -11,7 +11,7 @@ services:
     image: coyote3:${COYOTE3_VERSION:-local}
     build:
       context: ../..
-      dockerfile: ../../docker/Dockerfile
+      dockerfile: docker/Dockerfile
       network: host
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
@@ -54,7 +54,7 @@ services:
     image: coyote3:${COYOTE3_VERSION:-local}
     build:
       context: ../..
-      dockerfile: ../../docker/Dockerfile
+      dockerfile: docker/Dockerfile
       network: host
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}

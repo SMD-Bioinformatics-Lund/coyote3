@@ -1,13 +1,16 @@
-from flask import render_template, request
-from flask_login import login_required
-from coyote.extensions import util
-from coyote.blueprints.dashboard import dashboard_bp
-from flask_login import current_user
 from flask import current_app as app
-from coyote.services.api_client import endpoints as api_endpoints
-from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
-from coyote.services.api_client.web import log_api_error
+from flask import render_template
+from flask_login import current_user, login_required
 
+from coyote.blueprints.dashboard import dashboard_bp
+from coyote.extensions import util
+from coyote.services.api_client import endpoints as api_endpoints
+from coyote.services.api_client.api_client import (
+    ApiRequestError,
+    forward_headers,
+    get_web_api_client,
+)
+from coyote.services.api_client.web import log_api_error
 
 _DEFAULT_VARIANT_STATS = {
     "total_variants": 0,
@@ -71,7 +74,8 @@ def dashboard() -> str:
     Results are cached for performance, and the user must be authenticated.
     """
     cache_timeout = app.config.get("CACHE_DEFAULT_TIMEOUT", 0)
-    cache_key = util.dashboard.generate_dashboard_chache_key(current_user.username)
+    username = getattr(current_user, "username", None) or current_user.get_id() or "anonymous"
+    cache_key = util.dashboard.generate_dashboard_chache_key(username)
 
     cache_payload = None
     try:
@@ -107,19 +111,21 @@ def dashboard() -> str:
                 api_endpoints.dashboard("summary"),
                 headers=forward_headers(),
             )
-            total_samples_count = payload.total_samples
-            analysed_samples_count = payload.analysed_samples
-            pending_samples_count = payload.pending_samples
-            user_samples_stats = payload.user_samples_stats
-            variant_stats = payload.variant_stats
-            unique_gene_count_all_panels = payload.unique_gene_count_all_panels
-            asp_gene_counts = payload.assay_gene_stats_grouped
-            sample_stats = payload.sample_stats
+            total_samples_count = _as_int(payload.get("total_samples"), default=0)
+            analysed_samples_count = _as_int(payload.get("analysed_samples"), default=0)
+            pending_samples_count = _as_int(payload.get("pending_samples"), default=0)
+            user_samples_stats = payload.get("user_samples_stats", {})
+            variant_stats = payload.get("variant_stats", {})
+            unique_gene_count_all_panels = _as_int(
+                payload.get("unique_gene_count_all_panels"), default=0
+            )
+            asp_gene_counts = payload.get("assay_gene_stats_grouped", {})
+            sample_stats = payload.get("sample_stats", {})
         except ApiRequestError as exc:
             log_api_error(
                 exc,
                 logger=app.logger,
-                log_message=f"Dashboard API fetch failed for user {current_user.username}",
+                log_message=f"Dashboard API fetch failed for user {username}",
             )
             total_samples_count = 0
             analysed_samples_count = 0

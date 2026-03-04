@@ -1,13 +1,17 @@
-
 """Common blueprint tiered variant search/report routes."""
 
-from flask import abort, current_app as app, flash, render_template, request
+from flask import abort, flash, render_template, request
+from flask import current_app as app
 from flask_login import login_required
 
 from coyote.blueprints.common import common_bp
 from coyote.blueprints.common.forms import TieredVariantSearchForm
 from coyote.services.api_client import endpoints as api_endpoints
-from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.services.api_client.api_client import (
+    ApiRequestError,
+    forward_headers,
+    get_web_api_client,
+)
 from coyote.services.api_client.web import log_api_error
 
 
@@ -34,10 +38,10 @@ def list_samples_with_tiered_variant(variant_id: str, tier: int):
         return render_template("tiered_variant_info.html", docs=[], variant={}, tier=tier)
     return render_template(
         "tiered_variant_info.html",
-        docs=payload.docs,
-        variant=payload.variant,
-        tier=payload.tier or tier,
-        error=payload.error,
+        docs=payload.get("docs", []),
+        variant=payload.get("variant", {}),
+        tier=payload.get("tier") or tier,
+        error=payload.get("error"),
     )
 
 
@@ -65,7 +69,7 @@ def search_tiered_variants():
             headers=forward_headers(),
             params=bootstrap_params,
         )
-        form.assay.choices = bootstrap_payload.assay_choices
+        form.assay.choices = bootstrap_payload.get("assay_choices", [])
     except ApiRequestError:
         form.assay.choices = []
 
@@ -115,7 +119,7 @@ def search_tiered_variants():
             headers=forward_headers(),
             params=params,
         )
-        form.assay.choices = payload.assay_choices
+        form.assay.choices = payload.get("assay_choices", [])
     except ApiRequestError as exc:
         log_api_error(
             exc,
@@ -128,13 +132,13 @@ def search_tiered_variants():
 
     return render_template(
         "search_tiered_variants.html",
-        docs=(payload.docs if payload else []),
-        search_str=(payload.search_str if payload else search_str),
-        search_mode=(payload.search_mode if payload else search_mode),
+        docs=(payload.get("docs", []) if payload else []),
+        search_str=(payload.get("search_str") if payload else search_str),
+        search_mode=(payload.get("search_mode") if payload else search_mode),
         include_annotation_text=(
-            payload.include_annotation_text if payload else include_annotation_text
+            payload.get("include_annotation_text") if payload else include_annotation_text
         ),
-        tier_stats=(payload.tier_stats if payload else {"total": {}, "by_assay": {}}),
-        assays=(payload.assays if payload else assays),
+        tier_stats=(payload.get("tier_stats") if payload else {"total": {}, "by_assay": {}}),
+        assays=(payload.get("assays") if payload else assays),
         form=form,
     )
