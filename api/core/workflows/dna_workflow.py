@@ -6,8 +6,8 @@ This module centralizes DNA workflow orchestration used by blueprint routes,
 while preserving existing behavior and route contracts.
 """
 
-from api.services.reporting.report_paths import build_report_file_location
-from api.services.reporting.pipeline import (
+from api.core.reporting.report_paths import build_report_file_location
+from api.core.reporting.pipeline import (
     prepare_report_output as prepare_shared_report_output,
     persist_report_and_snapshot as persist_shared_report_and_snapshot,
 )

@@ -10,7 +10,7 @@ from api.runtime import app
 from api.extensions import store
 from api.utils.common_utility import CommonUtility
 from api.utils.report.report_util import ReportUtility
-from api.services.reporting.report_paths import get_report_timestamp as shared_get_report_timestamp
+from api.core.reporting.report_paths import get_report_timestamp as shared_get_report_timestamp
 from api.core.dna.notation import one_letter_p, standard_hgvs
 from api.core.dna.query_builders import build_query
 from api.core.interpretation.annotation_enrichment import (

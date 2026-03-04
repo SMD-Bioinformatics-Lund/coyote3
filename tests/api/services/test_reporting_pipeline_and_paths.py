@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from api.errors.exceptions import AppError
-from api.services.reporting import pipeline, report_paths
+from api.core.reporting import pipeline, report_paths
 
 
 def test_build_report_file_location_with_control_id(monkeypatch):
