@@ -7,11 +7,15 @@ from flask import current_app as app
 from flask_login import login_required
 
 from coyote.blueprints.home import home_bp
-from coyote.services.api_client import endpoints as api_endpoints
-from coyote.services.api_client.api_client import (
-    ApiRequestError,
-    forward_headers,
-    get_web_api_client,
+from coyote.services.api_client.api_client import ApiRequestError
+from coyote.services.api_client.home import (
+    apply_isgl as apply_isgl_api,
+)
+from coyote.services.api_client.home import (
+    clear_adhoc_genes as clear_adhoc_genes_api,
+)
+from coyote.services.api_client.home import (
+    save_adhoc_genes as save_adhoc_genes_api,
 )
 from coyote.services.api_client.web import log_api_error
 
@@ -37,11 +41,7 @@ def apply_isgl(sample_id: str) -> tuple[Response, int] | Response:
         return jsonify({"status": "error", "error": "Invalid payload"}), 400
 
     try:
-        payload = get_web_api_client().post_json(
-            api_endpoints.home_sample(sample_id, "genes", "apply-isgl"),
-            headers=forward_headers(),
-            json_body={"isgl_ids": isgl_ids},
-        )
+        payload = apply_isgl_api(sample_id, isgl_ids)
     except ApiRequestError as exc:
         return _mutation_error(
             exc,
@@ -60,13 +60,10 @@ def save_adhoc_genes(sample_id: str) -> tuple[Response, int] | Response:
         return jsonify({"status": "error", "error": "Invalid payload"}), 400
 
     try:
-        payload = get_web_api_client().post_json(
-            api_endpoints.home_sample(sample_id, "adhoc_genes", "save"),
-            headers=forward_headers(),
-            json_body={
-                "genes": body.get("genes", ""),
-                "label": body.get("label", "adhoc"),
-            },
+        payload = save_adhoc_genes_api(
+            sample_id,
+            genes=body.get("genes", ""),
+            label=body.get("label", "adhoc"),
         )
     except ApiRequestError as exc:
         return _mutation_error(
@@ -82,11 +79,7 @@ def save_adhoc_genes(sample_id: str) -> tuple[Response, int] | Response:
 def clear_adhoc_genes(sample_id: str) -> tuple[Response, int] | Response:
     """Clear ad-hoc genes for a sample via API."""
     try:
-        payload = get_web_api_client().post_json(
-            api_endpoints.home_sample(sample_id, "adhoc_genes", "clear"),
-            headers=forward_headers(),
-            json_body={},
-        )
+        payload = clear_adhoc_genes_api(sample_id)
     except ApiRequestError as exc:
         return _mutation_error(
             exc,

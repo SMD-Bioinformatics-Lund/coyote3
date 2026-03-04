@@ -2,36 +2,21 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from flask import Response, abort, redirect, send_file, url_for
 from flask import current_app as app
 from flask_login import login_required
 
 from coyote.blueprints.home import home_bp
-from coyote.services.api_client import endpoints as api_endpoints
-from coyote.services.api_client.api_client import (
-    ApiRequestError,
-    forward_headers,
-    get_web_api_client,
-)
+from coyote.services.api_client.api_client import ApiRequestError
+from coyote.services.api_client.home import fetch_report_path
 from coyote.services.api_client.web import log_api_error
-
-
-def _fetch_report_path(sample_id: str, report_id: str) -> Path:
-    payload = get_web_api_client().get_json(
-        api_endpoints.home_sample(sample_id, "reports", report_id, "context"),
-        headers=forward_headers(),
-    )
-    filepath = payload.get("filepath")
-    if not filepath:
-        raise ApiRequestError("Report file path is missing in API response")
-    return Path(str(filepath))
 
 
 def _serve_report(sample_id: str, report_id: str, *, as_attachment: bool) -> Response:
     try:
-        report_path = _fetch_report_path(sample_id, report_id)
+        report_path = fetch_report_path(sample_id, report_id)
+        if not str(report_path):
+            raise ApiRequestError("Report file path is missing in API response")
     except ApiRequestError as exc:
         log_api_error(
             exc,

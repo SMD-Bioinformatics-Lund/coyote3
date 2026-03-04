@@ -193,6 +193,8 @@ Blueprint modules in `coyote/blueprints/*` control page flow, template context a
 
 A frequent mistake is computing domain decisions in blueprint code because “the UI already has the data.” Avoid this. UI code can perform presentation-level transformation (formatting, grouping for display) but must not become a second business rule engine. When in doubt, move the rule to API service and expose a field indicating resolved state.
 
+The current pattern is to keep route handlers intentionally thin and move repeated API orchestration into focused helper modules (for example `coyote/services/api_client/home.py` and `coyote/services/api_client/reports.py`). View functions should mostly do request parsing, helper invocation, and template/response mapping.
+
 ### 3.6 Integration client modules
 `coyote/services/api_client/*` modules define transport contracts from Flask to API. Endpoint builders and client wrappers ensure path conventions, headers, and error wrapping stay consistent. If you need a new API call from UI, add endpoint helper methods and keep direct hardcoded URL strings minimized.
 

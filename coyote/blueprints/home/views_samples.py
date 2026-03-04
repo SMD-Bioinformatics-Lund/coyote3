@@ -8,12 +8,8 @@ from flask_login import login_required
 
 from coyote.blueprints.home import home_bp
 from coyote.blueprints.home.forms import SampleSearchForm
-from coyote.services.api_client import endpoints as api_endpoints
-from coyote.services.api_client.api_client import (
-    ApiRequestError,
-    forward_headers,
-    get_web_api_client,
-)
+from coyote.services.api_client.api_client import ApiRequestError
+from coyote.services.api_client.home import fetch_edit_context, fetch_samples
 from coyote.services.api_client.web import log_api_error
 
 
@@ -57,20 +53,14 @@ def samples_home(status: str) -> str:
         if slider_value and slider_value.isdigit():
             form.search_mode_slider.data = int(slider_value)
 
-    params = {
-        "status": status,
-        "search_str": sample_search,
-        "search_mode": search_mode,
-        "panel_type": panel_type,
-        "panel_tech": panel_tech,
-        "assay_group": assay_group,
-    }
-
     try:
-        payload = get_web_api_client().get_json(
-            api_endpoints.home("samples"),
-            headers=forward_headers(),
-            params=params,
+        payload = fetch_samples(
+            status=status,
+            search_str=sample_search,
+            search_mode=search_mode,
+            panel_type=panel_type,
+            panel_tech=panel_tech,
+            assay_group=assay_group,
         )
     except ApiRequestError as exc:
         log_api_error(
@@ -108,10 +98,7 @@ def samples_home(status: str) -> str:
 def edit_sample(sample_id: str) -> str | Response:
     """Render sample edit view from API-provided context."""
     try:
-        payload = get_web_api_client().get_json(
-            api_endpoints.home_sample(sample_id, "edit_context"),
-            headers=forward_headers(),
-        )
+        payload = fetch_edit_context(sample_id)
     except ApiRequestError as exc:
         log_api_error(
             exc,
