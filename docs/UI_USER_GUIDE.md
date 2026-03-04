@@ -113,13 +113,21 @@ The sample dashboard is used to locate active or completed work and route into d
 
 ### 5.2 Common controls
 - free-text sample search
-- status selection (live/done/both behavior through route and search mode)
+- tabbed status selection (`Live`, `Reported`, `All`) preserved in URL query param `view`
 - assay panel filtering options where available
+- server-driven pagination (`page`, `per_page`) so large sample sets do not overload one response
 
 ### 5.3 Interpreting list results
 Sample lists are grouped to support operational triage:
 - active/live samples for ongoing review
 - completed/done samples with report linkage
+
+Tab behavior:
+- `Live`: shows only active samples
+- `Reported`: shows only reported samples
+- `All`: shows both sections on one page
+
+The selected tab and page index stay in the URL, enabling refresh and link sharing without losing filter state.
 
 ### 5.4 Opening sample context
 Selecting a sample opens a detail/edit context page where report access, gene-related actions, and workflow-specific links are available based on assay and permissions.

@@ -1,4 +1,3 @@
-
 """
 SampleHandler module for Coyote3
 ================================
@@ -9,16 +8,16 @@ sample data in MongoDB.
 It is part of the `coyote.db` package and extends the base handler functionality.
 """
 
-
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+from typing import Any
+
 from bson.objectid import ObjectId
+
 from api.infra.db.base import BaseHandler
-from datetime import datetime
 from api.runtime import current_username
 from api.utils.common_utility import CommonUtility
-from typing import Any
 
 
 # -------------------------------------------------------------------------
@@ -47,6 +46,7 @@ class SampleHandler(BaseHandler):
         report: bool,
         search_str: str,
         limit=None,
+        offset: int = 0,
         time_limit=None,
     ):
         """
@@ -85,12 +85,12 @@ class SampleHandler(BaseHandler):
         app_obj = self.adapter.app
         getattr(app_obj, "home_logger", app_obj.logger).debug(f"Sample query: {query}")
 
-        samples = list(self.get_collection().find(query).sort("time_added", -1))
-
+        cursor = self.get_collection().find(query).sort("time_added", -1)
+        if offset and offset > 0:
+            cursor = cursor.skip(offset)
         if limit:
-            samples = samples[:limit]
-
-        return samples
+            cursor = cursor.limit(limit)
+        return list(cursor)
 
     def get_samples(
         self,
@@ -100,6 +100,7 @@ class SampleHandler(BaseHandler):
         report: bool = False,
         search_str: str = "",
         limit: int = None,
+        offset: int = 0,
         time_limit=None,
         use_cache: bool = True,
         cache_timeout: int = 120,
@@ -134,6 +135,7 @@ class SampleHandler(BaseHandler):
             report=report,
             search_str=search_str,
             limit=limit,
+            offset=offset,
             time_limit=time_limit,
             cache_timeout=cache_timeout,
             reload=reload,
@@ -167,6 +169,7 @@ class SampleHandler(BaseHandler):
             report=report,
             search_str=search_str,
             limit=limit,
+            offset=offset,
             time_limit=time_limit,
         )
 

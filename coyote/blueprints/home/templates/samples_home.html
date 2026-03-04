@@ -1,37 +1,41 @@
 {% extends "layout.html" %}
 
 {% block body %}
-<!-- FLEX CONTAINER: Sidebar (Fixed) + Main Content (Scrollable)-->
+{% set extra_args = {} %}
+{% if panel_type %}{% set _ = extra_args.update({'panel_type': panel_type}) %}{% endif %}
+{% if panel_tech %}{% set _ = extra_args.update({'panel_tech': panel_tech}) %}{% endif %}
+{% if assay_group %}{% set _ = extra_args.update({'assay_group': assay_group}) %}{% endif %}
+{% if per_page %}{% set _ = extra_args.update({'per_page': per_page}) %}{% endif %}
+{% if search_str %}{% set _ = extra_args.update({'sample_search': search_str}) %}{% endif %}
 <div class="flex w-full h-full overflow-hidden">
-
-  <!-- LEFT SIDEBAR (Fixed Width, Full Height) -->
-  {% set extra_args = {} %}
-  {% if panel_type %}{% set _ = extra_args.update({'panel_type': panel_type}) %}{% endif %}
-  {% if panel_tech %}{% set _ = extra_args.update({'panel_tech': panel_tech}) %}{% endif %}
-  {% if assay_group %}{% set _ = extra_args.update({'assay_group': assay_group}) %}{% endif %}
-  <aside class="w-8 bg-transparent text-white flex flex-col">
-    <div class="flex border-l-8 border-blue-400 mt-1">
-      <a href="{{ url_for(request.endpoint, status='done', **extra_args) }}"
-        class="relative bg-gray-500 text-white text-base text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-        <span class="vertical-text">Analysed</span>
-      </a>
-    </div>
-    <div class="flex border-l-8 border-green-400 mt-1">
-      <a href="{{ url_for(request.endpoint, status='live', **extra_args) }}"
-        class="relative bg-gray-500 text-white text-base text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
-        <span class="vertical-text">Pending</span>
-      </a>
-    </div>
-  </aside>
-
-
-  <!-- MAIN CONTENT (Scrollable & Auto-Resizing) -->
   <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+    <section class="mt-2 mb-3">
+      <div class="inline-flex rounded-xl border border-gray-300 bg-white p-1 shadow-sm">
+        <a
+          href="{{ url_for(request.endpoint, status='live', view='live', page=1, **extra_args) }}"
+          class="px-4 py-2 text-sm font-semibold rounded-lg transition {% if sample_view == 'live' %}bg-blue-600 text-white{% else %}text-gray-700 hover:bg-gray-100{% endif %}"
+        >
+          Live
+        </a>
+        <a
+          href="{{ url_for(request.endpoint, status='live', view='reported', page=1, **extra_args) }}"
+          class="px-4 py-2 text-sm font-semibold rounded-lg transition {% if sample_view == 'reported' %}bg-blue-600 text-white{% else %}text-gray-700 hover:bg-gray-100{% endif %}"
+        >
+          Reported
+        </a>
+        <a
+          href="{{ url_for(request.endpoint, status='live', view='all', page=1, **extra_args) }}"
+          class="px-4 py-2 text-sm font-semibold rounded-lg transition {% if sample_view == 'all' %}bg-blue-600 text-white{% else %}text-gray-700 hover:bg-gray-100{% endif %}"
+        >
+          All
+        </a>
+      </div>
+    </section>
 
-    <!-- Search Bar -->
     <section id="sample-search" class="mt-2 flex">
       <form action="" method="POST" class="flex items-center space-x-4 relative max-w-lg w-full pl-5">
         {{ form.hidden_tag() }}
+        <input type="hidden" name="view" value="{{ sample_view }}">
 
         <div class="relative group flex-grow min-w-[250px]">
           <input
@@ -45,50 +49,6 @@
           <!-- Search Icon -->
           <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="Search Icon" class=" transition-transform duration-500 transform hover:scale-110 hover:rotate-6 absolute left-1 top-1 pb-1 h-7 w-9 text-gray-700 cursor-pointer hover:text-blue-500" onclick="document.getElementById('search-input').focus()">
         </div>
-
-        <!-- Compact Three-Way Toggle -->
-        <div class="relative w-32">
-          <div class="relative flex bg-blue-50 rounded-full border border-gray-400 h-8 overflow-hidden">
-            <!-- Slider -->
-            <div
-              id="slider-thumb"
-              class="absolute top-0 h-full w-1/3 bg-orange-300 transition-all duration-200 ease-in-out rounded-full"
-              style="left: calc({% if search_mode == 'done' %}0%{% elif search_mode == 'both' %}33.33%{% else %}66.66%{% endif %});">
-            </div>
-
-            <!-- Options -->
-            <label class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm">
-              <input
-                type="radio"
-                name="search_mode_slider"
-                value="1"
-                class="absolute inset-0 opacity-0 cursor-pointer"
-                onclick="moveSlider(0)"
-                {% if search_mode == 'done' %}checked{% endif %}>
-              <span class="text-xs font-bold text-gray-800">Done</span>
-            </label>
-            <label class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm">
-              <input
-                type="radio"
-                name="search_mode_slider"
-                value="2"
-                class="absolute inset-0 opacity-0 cursor-pointer"
-                onclick="moveSlider(33.33)"
-                {% if search_mode == 'both' %}checked{% endif %}>
-              <span class="text-xs font-bold text-gray-800">All</span>
-            </label>
-            <label class="flex-1 flex justify-center items-center relative cursor-pointer rounded-sm">
-              <input
-                type="radio"
-                name="search_mode_slider"
-                value="3"
-                class="absolute inset-0 opacity-0 cursor-pointer"
-                onclick="moveSlider(66.66)"
-                {% if search_mode == 'live' %}checked{% endif %}>
-              <span class="text-xs font-bold text-gray-800">Live</span>
-            </label>
-          </div>
-        </div>
       </form>
 
       <button id="toggle-other-profile"
@@ -97,6 +57,24 @@
         Show All Samples
       </button>
 
+    </section>
+
+    <section class="pl-5 mb-2 text-sm text-gray-700">
+      <div class="inline-flex items-center gap-2 rounded-lg bg-white/80 px-3 py-2 shadow-sm">
+        <span>Page {{ page }}</span>
+        {% if page > 1 %}
+          <a
+            href="{{ url_for(request.endpoint, status='live', view=sample_view, page=page-1, **extra_args) }}"
+            class="rounded-md bg-gray-200 px-2 py-1 font-medium hover:bg-gray-300"
+          >Previous</a>
+        {% endif %}
+        {% if (sample_view == 'live' and has_next_live) or (sample_view == 'reported' and has_next_done) or (sample_view == 'all' and (has_next_live or has_next_done)) %}
+          <a
+            href="{{ url_for(request.endpoint, status='live', view=sample_view, page=page+1, **extra_args) }}"
+            class="rounded-md bg-blue-600 px-2 py-1 font-medium text-white hover:bg-blue-700"
+          >Next</a>
+        {% endif %}
+      </div>
     </section>
 
     <!-- Sample Table -->
@@ -380,12 +358,6 @@
 </div>
 
 <script>
-
-  function moveSlider(percentage) {
-    const sliderThumb = document.getElementById('slider-thumb');
-    sliderThumb.style.left = `${percentage}%`;
-  }
-
   // document.getElementById("toggle-other-profile").addEventListener("click", function () {
   //  const rows = document.querySelectorAll("tr.other_profile");
   //  rows.forEach(row => row.classList.toggle("hidden"));

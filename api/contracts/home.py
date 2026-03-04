@@ -12,6 +12,11 @@ class HomeSamplesPayload(BaseModel):
     done_samples: list[dict[str, Any]]
     status: str
     search_mode: str
+    sample_view: str = "live"
+    page: int = 1
+    per_page: int = 30
+    has_next_live: bool = False
+    has_next_done: bool = False
     panel_type: str | None = None
     panel_tech: str | None = None
     assay_group: str | None = None

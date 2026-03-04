@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
 import re
+from copy import deepcopy
 
 from fastapi import Body, Depends, Query
 
@@ -16,9 +16,9 @@ from api.contracts.home import (
     HomeReportContextPayload,
     HomeSamplesPayload,
 )
-from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.extensions import store, util
 from api.runtime import app as runtime_app
+from api.security.access import ApiUser, _get_sample_for_api, require_access
 
 
 @app.get("/api/v1/home/samples", response_model=HomeSamplesPayload)
@@ -26,6 +26,9 @@ def home_samples_read(
     status: str = "live",
     search_str: str = "",
     search_mode: str = "live",
+    sample_view: str | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=30, ge=1, le=200),
     panel_type: str | None = None,
     panel_tech: str | None = None,
     assay_group: str | None = None,
@@ -41,32 +44,63 @@ def home_samples_read(
     else:
         accessible_assays = user.assays
 
-    time_limit = None if search_str else util.common.get_date_days_ago(days=90)
+    mode_to_view = {
+        "done": "reported",
+        "reported": "reported",
+        "both": "all",
+        "all": "all",
+        "live": "live",
+    }
+    normalized_search_mode = (search_mode or "").strip().lower()
+    normalized_status = (status or "").strip().lower()
+    normalized_sample_view = (sample_view or "").strip().lower()
+    resolved_view = mode_to_view.get(normalized_sample_view)
+    if resolved_view is None:
+        resolved_view = mode_to_view.get(normalized_search_mode)
+    if resolved_view is None and normalized_status in {"done", "reported"}:
+        resolved_view = "reported"
+    if resolved_view is None:
+        resolved_view = "live"
+
+    offset = max(0, (page - 1) * per_page)
+    fetch_limit = per_page + 1
 
     done_samples: list[dict] = []
     live_samples: list[dict] = []
-    if status == "done" or search_mode in ["done", "both"]:
+    has_next_live = False
+    has_next_done = False
+
+    if resolved_view in {"reported", "all"}:
         done_samples = store.sample_handler.get_samples(
             user_assays=accessible_assays,
             user_envs=user.envs,
-            status=status,
+            status="done",
             search_str=search_str,
             report=True,
-            limit=limit_done_samples,
+            limit=min(fetch_limit, limit_done_samples + 1) if limit_done_samples else fetch_limit,
+            offset=offset,
             use_cache=True,
             reload=False,
         )
+        if len(done_samples) > per_page:
+            has_next_done = True
+            done_samples = done_samples[:per_page]
 
-    if status == "live" or search_mode in ["live", "both"]:
+    if resolved_view in {"live", "all"}:
         live_samples = store.sample_handler.get_samples(
             user_assays=accessible_assays,
-            status=status,
+            status="live",
             user_envs=user.envs,
             search_str=search_str,
             report=False,
+            limit=fetch_limit,
+            offset=offset,
             use_cache=True,
             reload=False,
         )
+        if len(live_samples) > per_page:
+            has_next_live = True
+            live_samples = live_samples[:per_page]
 
     for sample in done_samples:
         sample["last_report_time_created"] = (
@@ -81,6 +115,11 @@ def home_samples_read(
             "done_samples": done_samples,
             "status": status,
             "search_mode": search_mode,
+            "sample_view": resolved_view,
+            "page": page,
+            "per_page": per_page,
+            "has_next_live": has_next_live,
+            "has_next_done": has_next_done,
             "panel_type": panel_type,
             "panel_tech": panel_tech,
             "assay_group": assay_group,
@@ -109,7 +148,9 @@ def home_isgls_read(
     return util.common.convert_to_serializable({"items": items})
 
 
-@app.get("/api/v1/home/samples/{sample_id}/effective_genes/all", response_model=HomeEffectiveGenesPayload)
+@app.get(
+    "/api/v1/home/samples/{sample_id}/effective_genes/all", response_model=HomeEffectiveGenesPayload
+)
 def home_effective_genes_read(
     sample_id: str,
     user: ApiUser = Depends(require_access(min_level=1)),
@@ -199,7 +240,9 @@ def home_edit_context_read(
     )
 
 
-@app.post("/api/v1/home/samples/{sample_id}/genes/apply-isgl", response_model=HomeMutationStatusPayload)
+@app.post(
+    "/api/v1/home/samples/{sample_id}/genes/apply-isgl", response_model=HomeMutationStatusPayload
+)
 def home_apply_isgl_mutation(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
@@ -217,7 +260,9 @@ def home_apply_isgl_mutation(
     )
 
 
-@app.post("/api/v1/home/samples/{sample_id}/adhoc_genes/save", response_model=HomeMutationStatusPayload)
+@app.post(
+    "/api/v1/home/samples/{sample_id}/adhoc_genes/save", response_model=HomeMutationStatusPayload
+)
 def home_save_adhoc_genes_mutation(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
@@ -243,7 +288,9 @@ def home_save_adhoc_genes_mutation(
     )
 
 
-@app.post("/api/v1/home/samples/{sample_id}/adhoc_genes/clear", response_model=HomeMutationStatusPayload)
+@app.post(
+    "/api/v1/home/samples/{sample_id}/adhoc_genes/clear", response_model=HomeMutationStatusPayload
+)
 def home_clear_adhoc_genes_mutation(
     sample_id: str,
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
@@ -257,7 +304,10 @@ def home_clear_adhoc_genes_mutation(
     )
 
 
-@app.get("/api/v1/home/samples/{sample_id}/reports/{report_id}/context", response_model=HomeReportContextPayload)
+@app.get(
+    "/api/v1/home/samples/{sample_id}/reports/{report_id}/context",
+    response_model=HomeReportContextPayload,
+)
 def home_report_context_read(
     sample_id: str,
     report_id: str,
@@ -271,7 +321,9 @@ def home_report_context_read(
     if not filepath and report_name:
         assay_config = _get_formatted_assay_config(sample)
         report_sub_dir = assay_config.get("reporting", {}).get("report_folder", "")
-        filepath = f"{runtime_app.config.get('REPORTS_BASE_PATH', '')}/{report_sub_dir}/{report_name}"
+        filepath = (
+            f"{runtime_app.config.get('REPORTS_BASE_PATH', '')}/{report_sub_dir}/{report_name}"
+        )
 
     return util.common.convert_to_serializable(
         {

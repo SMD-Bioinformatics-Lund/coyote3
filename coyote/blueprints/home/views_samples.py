@@ -13,20 +13,22 @@ from coyote.services.api_client.home import fetch_edit_context, fetch_samples
 from coyote.services.api_client.web import log_api_error
 
 
-def _resolve_search_mode(
-    *,
-    status: str,
-    slider_value: str | None,
-    submitted_mode: str | None,
-) -> str:
-    if submitted_mode in {"done", "both", "live"}:
-        return submitted_mode
-    slider_to_mode = {"1": "done", "2": "both", "3": "live"}
-    if slider_value in slider_to_mode:
-        return slider_to_mode[slider_value]
-    if status in {"done", "live"}:
-        return status
+def _resolve_sample_view(*, status: str, submitted_view: str | None) -> str:
+    view = (submitted_view or "").strip().lower()
+    if view in {"live", "reported", "all"}:
+        return view
+    status_norm = (status or "").strip().lower()
+    if status_norm in {"done", "reported"}:
+        return "reported"
     return "live"
+
+
+def _sample_view_to_search_mode(sample_view: str) -> str:
+    return {"reported": "done", "all": "both", "live": "live"}.get(sample_view, "live")
+
+
+def _sample_view_to_status(sample_view: str) -> str:
+    return "done" if sample_view == "reported" else "live"
 
 
 @home_bp.route("", defaults={"status": "live"}, methods=["GET", "POST"])
@@ -41,23 +43,27 @@ def samples_home(status: str) -> str:
     assay_group = request.args.get("assay_group") or None
 
     sample_search = (request.values.get("sample_search") or "").strip()
-    search_mode = _resolve_search_mode(
+    sample_view = _resolve_sample_view(
         status=status,
-        slider_value=request.values.get("search_mode_slider"),
-        submitted_mode=request.values.get("search_mode"),
+        submitted_view=request.values.get("view"),
     )
+    page = max(1, request.args.get("page", default=1, type=int) or 1)
+    per_page = max(1, min(request.args.get("per_page", default=30, type=int) or 30, 200))
+    search_mode = _sample_view_to_search_mode(sample_view)
+    status_for_api = _sample_view_to_status(sample_view)
 
     if request.method == "POST":
         form.sample_search.data = sample_search
-        slider_value = request.values.get("search_mode_slider")
-        if slider_value and slider_value.isdigit():
-            form.search_mode_slider.data = int(slider_value)
+        page = 1
 
     try:
         payload = fetch_samples(
-            status=status,
+            status=status_for_api,
             search_str=sample_search,
             search_mode=search_mode,
+            sample_view=sample_view,
+            page=page,
+            per_page=per_page,
             panel_type=panel_type,
             panel_tech=panel_tech,
             assay_group=assay_group,
@@ -74,6 +80,11 @@ def samples_home(status: str) -> str:
             "done_samples": [],
             "status": status,
             "search_mode": search_mode,
+            "sample_view": sample_view,
+            "page": page,
+            "per_page": per_page,
+            "has_next_live": False,
+            "has_next_done": False,
             "panel_type": panel_type,
             "panel_tech": panel_tech,
             "assay_group": assay_group,
@@ -86,6 +97,11 @@ def samples_home(status: str) -> str:
         done_samples=payload.get("done_samples", []),
         status=payload.get("status", status),
         search_mode=payload.get("search_mode", search_mode),
+        sample_view=payload.get("sample_view", sample_view),
+        page=payload.get("page", page),
+        per_page=payload.get("per_page", per_page),
+        has_next_live=payload.get("has_next_live", False),
+        has_next_done=payload.get("has_next_done", False),
         panel_type=payload.get("panel_type", panel_type),
         panel_tech=payload.get("panel_tech", panel_tech),
         assay_group=payload.get("assay_group", assay_group),
