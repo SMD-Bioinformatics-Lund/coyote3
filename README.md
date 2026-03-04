@@ -103,8 +103,7 @@ The active refactor direction is API-centric and enforced as a hard boundary:
 
 This boundary is being enforced incrementally with dedicated contract tests under `tests/contract/`.
 Current backend reorganization has started with:
-- Mongo handlers moved from `api/db` to `api/infra/db`
-- Legacy `api/db` package removed after infra migration completion
+- Mongo handlers are implemented under `api/infra/db` as the only backend DB access layer
 - External annotation/data-source handlers moved to `api/infra/external`
 - LDAP integration moved from `api/services/ldap.py` to `api/infra/external/ldap.py`
 - Auth/session/RBAC access control moved to `api/security/access.py`

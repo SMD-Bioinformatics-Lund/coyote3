@@ -73,7 +73,7 @@ Backend refactor status:
 - Public catalog domain logic moved to `api/core/public/catalog.py`.
 - Admin sample-deletion logic moved to `api/core/admin/sample_deletion.py`.
 - Legacy `api/services` package removed after migrations to `api/core`, `api/security`, and `api/infra`.
-- Legacy `api/db` package removed after `api/infra/db` migration completion.
+- Mongo handlers are implemented under `api/infra/db` as the backend DB access layer.
 - API request/response contracts introduced under `api/contracts` (initial auth + reports coverage).
 - System/auth route response contracts added under `api/contracts/system.py`.
 - Internal route response contracts added under `api/contracts/internal.py`.

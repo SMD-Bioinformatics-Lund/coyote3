@@ -3,6 +3,8 @@
 ## 1. Purpose and Scope
 This document defines the database architecture for Coyote3 as an internal engineering reference. It is intended for backend engineers, platform maintainers, data migration authors, and reviewers responsible for validating change safety in a regulated clinical genomics environment. The focus is MongoDB data structures and usage patterns that enable clinical workflow correctness, policy enforcement, report traceability, and operational resilience under MongoDB 3.4 compatibility constraints.
 
+All backend Mongo interaction is implemented under `api/infra/db/*`. The `api/db` package is not part of the architecture and must not be reintroduced.
+
 This is not a high-level summary. The material below is written to support implementation decisions, code reviews, migration planning, and incident analysis. For each major structural decision, the document explains why the decision exists, what failure modes appear when the decision is violated, and what performance impact should be expected in production.
 
 The model addresses:

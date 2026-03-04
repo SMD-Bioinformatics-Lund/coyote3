@@ -148,7 +148,7 @@ Large “utility” modules and multi-purpose controller files were evaluated an
 Backend decomposition:
 - `api/routes/*`: request parsing, dependency wiring, response shaping.
 - `api/core/*`: framework-agnostic orchestration, workflow rules, and domain logic.
-- `api/infra/db/*`: collection-specific query/write operations.
+- `api/infra/db/*`: collection-specific query/write operations and the only permitted Mongo access layer.
 - `api/infra/external/*`: LDAP and external annotation integrations.
 - `api/security/*`: authentication service, access resolution, and RBAC enforcement.
 - `api/audit/*`: audit event emission primitives.
