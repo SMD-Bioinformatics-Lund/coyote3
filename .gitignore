@@ -149,6 +149,8 @@ migration_scripts
 /reports/
 ./bugs
 *dummy*
+.ruff_cache
+node_modules/
 
 # coyote
 redis_data
