@@ -32,7 +32,7 @@ def _mutation_error(exc: ApiRequestError, *, log_message: str) -> tuple[Response
     return jsonify({"status": "error", "error": message}), status
 
 
-@home_bp.route("/samples/<string:sample_id>/apply_isgl", methods=["POST"])
+@home_bp.route("/<string:sample_id>/apply_isgl", methods=["POST"])
 @login_required
 def apply_isgl(sample_id: str) -> tuple[Response, int] | Response:
     """Apply selected ISGL identifiers to a sample via API."""
@@ -51,7 +51,7 @@ def apply_isgl(sample_id: str) -> tuple[Response, int] | Response:
     return jsonify(payload)
 
 
-@home_bp.route("/samples/<string:sample_id>/adhoc_genes", methods=["POST"])
+@home_bp.route("/<string:sample_id>/adhoc_genes", methods=["POST"])
 @login_required
 def save_adhoc_genes(sample_id: str) -> tuple[Response, int] | Response:
     """Persist ad-hoc genes for a sample via API."""
@@ -74,7 +74,7 @@ def save_adhoc_genes(sample_id: str) -> tuple[Response, int] | Response:
     return jsonify(payload)
 
 
-@home_bp.route("/samples/<string:sample_id>/adhoc_genes/clear", methods=["POST"])
+@home_bp.route("/<string:sample_id>/adhoc_genes/clear", methods=["POST"])
 @login_required
 def clear_adhoc_genes(sample_id: str) -> tuple[Response, int] | Response:
     """Clear ad-hoc genes for a sample via API."""

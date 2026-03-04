@@ -6,7 +6,7 @@ from typing import Any
 
 from flask import current_app, has_request_context, request
 
-from coyote.services.api_client.base import BaseApiClient
+from coyote.services.api_client.base import ApiPayload, ApiRequestError, BaseApiClient
 
 
 class CoyoteApiClient(BaseApiClient):
@@ -49,3 +49,14 @@ def build_internal_headers() -> dict[str, str]:
     if token:
         headers["X-Coyote-Internal-Token"] = str(token)
     return headers
+
+
+__all__ = [
+    "ApiPayload",
+    "ApiRequestError",
+    "CoyoteApiClient",
+    "build_forward_headers",
+    "build_internal_headers",
+    "forward_headers",
+    "get_web_api_client",
+]

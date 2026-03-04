@@ -29,8 +29,8 @@ def _resolve_search_mode(
     return "live"
 
 
-@home_bp.route("/samples", defaults={"status": "live"}, methods=["GET", "POST"])
-@home_bp.route("/samples/<string:status>", methods=["GET", "POST"])
+@home_bp.route("", defaults={"status": "live"}, methods=["GET", "POST"])
+@home_bp.route("/<string:status>", methods=["GET", "POST"])
 @login_required
 def samples_home(status: str) -> str:
     """Render the sample dashboard using API-provided context."""
@@ -93,7 +93,7 @@ def samples_home(status: str) -> str:
     )
 
 
-@home_bp.route("/samples/edit/<string:sample_id>", methods=["GET"])
+@home_bp.route("/edit/<string:sample_id>", methods=["GET"])
 @login_required
 def edit_sample(sample_id: str) -> str | Response:
     """Render sample edit view from API-provided context."""

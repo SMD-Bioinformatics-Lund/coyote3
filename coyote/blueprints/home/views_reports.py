@@ -38,14 +38,14 @@ def _serve_report(sample_id: str, report_id: str, *, as_attachment: bool) -> Res
     return send_file(report_path, as_attachment=as_attachment, download_name=report_path.name)
 
 
-@home_bp.route("/samples/<string:sample_id>/reports/<string:report_id>", methods=["GET"])
+@home_bp.route("/<string:sample_id>/reports/<string:report_id>", methods=["GET"])
 @login_required
 def view_report(sample_id: str, report_id: str) -> Response:
     """Open a generated report in browser."""
     return _serve_report(sample_id, report_id, as_attachment=False)
 
 
-@home_bp.route("/samples/<string:sample_id>/reports/<string:report_id>/download", methods=["GET"])
+@home_bp.route("/<string:sample_id>/reports/<string:report_id>/download", methods=["GET"])
 @login_required
 def download_report(sample_id: str, report_id: str) -> Response:
     """Download a generated report file."""

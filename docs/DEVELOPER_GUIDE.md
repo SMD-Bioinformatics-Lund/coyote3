@@ -295,6 +295,21 @@ def qc_sample_page(sample_id: str):
 ### Why this pattern
 It preserves the UI boundary: UI orchestrates and renders; API decides policy and domain correctness. If the UI needs computed fields, request them explicitly from API instead of replicating service rules.
 
+### Route prefix rule (important)
+When a blueprint is registered with `url_prefix`, every route declared inside that blueprint must be relative to that prefix. Do not duplicate the prefix segment in decorators.
+
+```python
+# coyote/__init__.py
+app.register_blueprint(home_bp, url_prefix='/samples')
+
+# coyote/blueprints/home/views_samples.py
+@home_bp.route('', methods=['GET', 'POST'])              # -> /samples
+@home_bp.route('/<string:status>', methods=['GET', 'POST'])  # -> /samples/live
+@home_bp.route('/edit/<string:sample_id>')               # -> /samples/edit/<id>
+```
+
+If a view uses `@home_bp.route('/samples/...')` while the blueprint itself is mounted at `/samples`, the final URL becomes `/samples/samples/...`. This is a common regression during refactors and should be treated as a boundary-level routing bug.
+
 ### Common mistakes
 Engineers sometimes add Flask-side direct imports from `api.services` because it seems faster. This is a boundary violation and is blocked by architecture tests. Another mistake is putting endpoint URL strings everywhere in view code; use endpoint helpers where possible.
 
