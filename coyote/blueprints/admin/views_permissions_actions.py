@@ -20,7 +20,7 @@ def toggle_permission_active(perm_id: str) -> Response:
             api_endpoints.admin("permissions", perm_id, "toggle"),
             headers=forward_headers(),
         )
-        new_status = bool(payload.meta.get("is_active", False))
+        new_status = bool(payload.meta.get("is_active", True))
         g.audit_metadata = {
             "permission": perm_id,
             "permission_status": "Active" if new_status else "Inactive",

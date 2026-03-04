@@ -56,6 +56,62 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
         }
 
     def _fake_get(self, path, headers=None, params=None):  # noqa: ARG001
+        if "/admin/users/" in path and path.endswith("/context"):
+            schema = _schema_payload("schema-user", "username")
+            return _payload(
+                {
+                    "user_doc": {"_id": "user1", "username": "user1", "role": "admin"},
+                    "schema_payload": schema,
+                    "role_map": {"admin": {"permissions": [], "deny_permissions": []}},
+                    "assay_group_map": {},
+                }
+            )
+        if "/admin/roles/" in path and path.endswith("/context"):
+            schema = _schema_payload("schema-role", "name")
+            return _payload({"role": {"_id": "role1", "name": "role1"}, "schema_payload": schema})
+        if "/admin/permissions/" in path and path.endswith("/context"):
+            schema = _schema_payload("schema-perm", "permission_name")
+            return _payload(
+                {
+                    "permission": {"_id": "perm.read", "permission_name": "perm.read"},
+                    "schema_payload": schema,
+                }
+            )
+        if "/admin/asp/" in path and path.endswith("/context"):
+            schema = _schema_payload("schema-asp", "assay_name")
+            return _payload(
+                {"panel": {"_id": "asp1", "assay_name": "asp1"}, "schema_payload": schema}
+            )
+        if "/admin/aspc/" in path and path.endswith("/context"):
+            schema = _schema_payload("schema-aspc", "assay_name")
+            return _payload(
+                {
+                    "assay_config": {"_id": "asp1:production", "assay_name": "asp1"},
+                    "schema_payload": schema,
+                }
+            )
+        if "/admin/genelists/" in path and path.endswith("/context"):
+            schema = _schema_payload("schema-isgl", "name")
+            return _payload(
+                {
+                    "genelist": {"_id": "gl1", "name": "gl1"},
+                    "schema_payload": schema,
+                    "assay_group_map": {},
+                }
+            )
+        if "/admin/genelists/" in path and path.endswith("/view_context"):
+            return _payload(
+                {
+                    "genelist": {"_id": "gl1", "name": "gl1", "assays": []},
+                    "selected_assay": None,
+                    "filtered_genes": [],
+                    "panel_germline_genes": [],
+                }
+            )
+        if "/admin/samples/" in path and path.endswith("/context"):
+            return _payload({"sample": {"_id": "sample1"}})
+        if "/admin/schemas/" in path and path.endswith("/context"):
+            return _payload({"schema_payload": {"_id": "schema1"}})
         if path.endswith("/internal/roles/levels"):
             return _payload({"role_levels": {}})
         if path.endswith("/dashboard/summary"):
@@ -188,6 +244,8 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
         return _payload({})
 
     def _fake_post(self, path, headers=None, params=None, json_body=None):  # noqa: ARG001
+        if path.endswith("/toggle"):
+            return _payload({"meta": {"is_active": True}})
         return _payload({})
 
     monkeypatch.setattr(coyote, "verify_external_api_dependency", lambda _app: None)
@@ -201,21 +259,42 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
         "/admin/",
         "/admin/users",
         "/admin/users/new",
+        "/admin/users/user1/view",
+        "/admin/users/user1/edit",
+        "/admin/users/user1/toggle",
         "/admin/roles",
         "/admin/roles/new",
+        "/admin/roles/role1/view",
+        "/admin/roles/role1/edit",
+        "/admin/roles/role1/toggle",
         "/admin/permissions",
         "/admin/permissions/new",
+        "/admin/permissions/perm.read/view",
+        "/admin/permissions/perm.read/edit",
+        "/admin/permissions/perm.read/toggle",
         "/admin/audit",
         "/dashboard/",
         "/admin/manage-samples",
+        "/admin/samples/sample1/edit",
         "/admin/asp/manage",
         "/admin/asp/new",
+        "/admin/asp/asp1/view",
+        "/admin/asp/asp1/edit",
+        "/admin/asp/asp1/toggle",
         "/admin/aspc",
         "/admin/aspc/dna/new",
+        "/admin/aspc/asp1:production/view",
+        "/admin/aspc/asp1:production/edit",
+        "/admin/aspc/asp1:production/toggle",
         "/admin/genelists",
         "/admin/genelists/new",
+        "/admin/genelists/gl1/view",
+        "/admin/genelists/gl1/edit",
+        "/admin/genelists/gl1/toggle",
         "/admin/schemas",
         "/admin/schemas/new",
+        "/admin/schemas/schema1/edit",
+        "/admin/schemas/schema1/toggle",
         "/public/assay-catalog",
         "/search/tiered_variants",
         "/samples",
@@ -251,3 +330,15 @@ def test_admin_endpoints_restored(monkeypatch):
     }
     missing = sorted(expected - endpoints)
     assert not missing, "Expected admin endpoints missing:\n" + "\n".join(missing)
+
+
+def test_admin_create_templates_use_correct_schema_switch_routes():
+    assert "admin_bp.create_role" in Path(
+        "coyote/blueprints/admin/templates/roles/create_role.html"
+    ).read_text(encoding="utf-8")
+    assert "admin_bp.create_permission" in Path(
+        "coyote/blueprints/admin/templates/permissions/create_permission.html"
+    ).read_text(encoding="utf-8")
+    assert "admin_bp.create_genelist" in Path(
+        "coyote/blueprints/admin/templates/isgl/create_isgl.html"
+    ).read_text(encoding="utf-8")

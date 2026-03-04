@@ -1,5 +1,3 @@
-
-
 """
 PermissionsHandler module for Coyote3
 =====================================
@@ -13,8 +11,9 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+from typing import Any, List, Optional
+
 from api.infra.db.base import BaseHandler
-from typing import List, Optional, Any
 
 
 # -------------------------------------------------------------------------
@@ -49,7 +48,9 @@ class PermissionsHandler(BaseHandler):
         Returns:
             List[dict]: A list of permission documents sorted by their `category` field.
         """
-        query = {"is_active": True} if is_active else {}
+        query = (
+            {"$or": [{"is_active": True}, {"is_active": {"$exists": False}}]} if is_active else {}
+        )
         return list(self.get_collection().find(query).sort("category"))
 
     def get_categories(self) -> List[str]:
@@ -78,7 +79,10 @@ class PermissionsHandler(BaseHandler):
         """
         return list(
             self.get_collection().find(
-                {"category": category, "is_active": True}
+                {
+                    "category": category,
+                    "$or": [{"is_active": True}, {"is_active": {"$exists": False}}],
+                }
             )
         )
 
@@ -96,7 +100,10 @@ class PermissionsHandler(BaseHandler):
         """
         return (
             self.get_collection().find_one(
-                {"_id": permission, "is_active": True}
+                {
+                    "_id": permission,
+                    "$or": [{"is_active": True}, {"is_active": {"$exists": False}}],
+                }
             )
             is not None
         )
@@ -142,13 +149,9 @@ class PermissionsHandler(BaseHandler):
         Returns:
             Any: The result of the update operation.
         """
-        return self.get_collection().update_one(
-            {"_id": permission_id}, {"$set": data}
-        )
+        return self.get_collection().update_one({"_id": permission_id}, {"$set": data})
 
-    def toggle_policy_active(
-        self, permission_id: str, active_status: bool
-    ) -> Any:
+    def toggle_policy_active(self, permission_id: str, active_status: bool) -> Any:
         """
         Toggle the active status of a permission.
 

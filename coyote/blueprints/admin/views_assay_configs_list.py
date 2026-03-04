@@ -35,7 +35,7 @@ def toggle_assay_config_active(assay_id: str) -> Response:
             api_endpoints.admin("aspc", assay_id, "toggle"),
             headers=forward_headers(),
         )
-        new_status = bool(payload.meta.get("is_active", False))
+        new_status = bool(payload.meta.get("is_active", True))
         g.audit_metadata = {
             "assay": assay_id,
             "assay_status": "Active" if new_status else "Inactive",

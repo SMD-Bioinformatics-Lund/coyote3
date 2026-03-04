@@ -20,7 +20,7 @@ def toggle_role_active(role_id: str) -> Response:
             api_endpoints.admin("roles", role_id, "toggle"),
             headers=forward_headers(),
         )
-        new_status = bool(payload.meta.get("is_active", False))
+        new_status = bool(payload.meta.get("is_active", True))
         g.audit_metadata = {
             "role": role_id,
             "role_status": "Active" if new_status else "Inactive",

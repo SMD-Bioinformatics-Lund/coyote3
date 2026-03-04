@@ -35,7 +35,7 @@ def toggle_user_active(user_id: str):
             api_endpoints.admin("users", user_id, "toggle"),
             headers=forward_headers(),
         )
-        new_status = bool(payload.meta.get("is_active", False))
+        new_status = bool(payload.meta.get("is_active", True))
         g.audit_metadata = {
             "user": user_id,
             "user_status": "Active" if new_status else "Inactive",

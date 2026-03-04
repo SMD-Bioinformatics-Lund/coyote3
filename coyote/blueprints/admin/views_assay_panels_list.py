@@ -35,7 +35,7 @@ def toggle_assay_panel_active(assay_panel_id: str) -> Response:
             api_endpoints.admin("asp", assay_panel_id, "toggle"),
             headers=forward_headers(),
         )
-        new_status = bool(payload.meta.get("is_active", False))
+        new_status = bool(payload.meta.get("is_active", True))
         g.audit_metadata = {
             "panel": assay_panel_id,
             "panel_status": "Active" if new_status else "Inactive",

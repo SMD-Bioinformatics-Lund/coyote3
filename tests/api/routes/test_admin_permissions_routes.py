@@ -11,7 +11,9 @@ from tests.api.fixtures import mock_collections as fx
 
 def test_list_permissions_read_groups_by_category(monkeypatch):
     permission = fx.permission_doc()
-    monkeypatch.setattr(admin.store.permissions_handler, "get_all_permissions", lambda is_active=False: [permission])
+    monkeypatch.setattr(
+        admin.store.permissions_handler, "get_all_permissions", lambda is_active=False: [permission]
+    )
     monkeypatch.setattr(admin.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = admin.list_permissions_read(user=fx.api_user())
@@ -19,6 +21,7 @@ def test_list_permissions_read_groups_by_category(monkeypatch):
     assert payload["permission_policies"][0]["_id"] == permission["_id"]
     assert "Uncategorized" not in payload["grouped_permissions"]
     assert permission["category"] in payload["grouped_permissions"]
+    assert payload["permission_policies"][0]["is_active"] is True
 
 
 def test_create_permission_context_read_no_schema_raises_400(monkeypatch):
@@ -42,7 +45,9 @@ def test_toggle_permission_mutation_sets_is_active_meta(monkeypatch):
         lambda perm_id: {"_id": perm_id, "is_active": False},
         raising=False,
     )
-    monkeypatch.setattr(admin.store.permissions_handler, "toggle_policy_active", lambda perm_id, status: None)
+    monkeypatch.setattr(
+        admin.store.permissions_handler, "toggle_policy_active", lambda perm_id, status: None
+    )
     monkeypatch.setattr(admin.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = admin.toggle_permission_mutation("perm.read", user=fx.api_user())
@@ -50,3 +55,25 @@ def test_toggle_permission_mutation_sets_is_active_meta(monkeypatch):
     assert payload["status"] == "ok"
     assert payload["action"] == "toggle"
     assert payload["meta"]["is_active"] is True
+
+
+def test_toggle_permission_mutation_defaults_legacy_doc_to_active(monkeypatch):
+    toggled: dict[str, bool] = {}
+
+    monkeypatch.setattr(
+        admin.store.permissions_handler,
+        "get",
+        lambda perm_id: {"_id": perm_id},
+        raising=False,
+    )
+    monkeypatch.setattr(
+        admin.store.permissions_handler,
+        "toggle_policy_active",
+        lambda perm_id, status: toggled.setdefault(perm_id, status),
+    )
+    monkeypatch.setattr(admin.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = admin.toggle_permission_mutation("perm.legacy", user=fx.api_user())
+
+    assert toggled["perm.legacy"] is False
+    assert payload["meta"]["is_active"] is False

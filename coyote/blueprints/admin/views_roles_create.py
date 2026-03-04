@@ -52,6 +52,6 @@ def create_role() -> Response | str:
     return render_template(
         "roles/create_role.html",
         schema=schema,
-        selected_schema=schema,
+        selected_schema=context.selected_schema,
         schemas=active_schemas,
     )

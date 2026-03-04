@@ -38,7 +38,7 @@ def toggle_schema_active(schema_id: str) -> Response:
             api_endpoints.admin("schemas", schema_id, "toggle"),
             headers=forward_headers(),
         )
-        new_status = bool(payload.meta.get("is_active", False))
+        new_status = bool(payload.meta.get("is_active", True))
         g.audit_metadata = {
             "schema": schema_id,
             "schema_status": "Active" if new_status else "Inactive",
