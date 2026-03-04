@@ -76,6 +76,11 @@ From sample pages, users can open:
 
 Navigation links preserve the current role and session constraints. If you open a route outside your permissions, the action is denied by backend policy.
 
+### 3.4 Embedded views and viewport behavior
+- Embedded iframe content (for example the contact/map page) uses responsive container sizing.
+- On desktop, iframe panels expand to available page height.
+- On narrow screens, layout collapses to one column while preserving readable minimum iframe height.
+
 ---
 
 ## 4. Role-Based UI Behavior
