@@ -112,6 +112,7 @@ Current backend reorganization has started with:
 - DNA domain logic moved from `api/services/dna` to `api/core/dna`
 - RNA domain logic moved from `api/services/rna` to `api/core/rna`
 - Reporting pipeline/path logic moved from `api/services/reporting` to `api/core/reporting`
+- Coverage processing logic moved from `api/services/coverage_processing.py` to `api/core/coverage/coverage_processing.py`
 - Contract models introduced under `api/contracts` (auth + reports first slice)
 - System/auth response contracts added under `api/contracts/system.py`
 - Internal route response contracts added under `api/contracts/internal.py`

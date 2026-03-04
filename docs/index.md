@@ -53,6 +53,7 @@ Backend refactor status:
 - DNA domain logic moved to `api/core/dna`.
 - RNA domain logic moved to `api/core/rna`.
 - Reporting pipeline/path logic moved to `api/core/reporting`.
+- Coverage processing logic moved to `api/core/coverage/coverage_processing.py`.
 - API request/response contracts introduced under `api/contracts` (initial auth + reports coverage).
 - System/auth route response contracts added under `api/contracts/system.py`.
 - Internal route response contracts added under `api/contracts/internal.py`.

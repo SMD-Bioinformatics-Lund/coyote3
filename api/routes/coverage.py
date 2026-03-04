@@ -10,7 +10,7 @@ from fastapi import Depends, Query
 from api.app import _api_error, app
 from api.contracts.coverage import CoverageBlacklistedPayload, CoverageSamplePayload
 from api.security.access import ApiUser, _get_sample_for_api, require_access
-from api.services.coverage_processing import CoverageProcessingService
+from api.core.coverage.coverage_processing import CoverageProcessingService
 from api.extensions import store, util
 
 
