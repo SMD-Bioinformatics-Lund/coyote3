@@ -153,14 +153,14 @@ class SampleHandler(BaseHandler):
                 samples = None
 
             if samples and not reload:
-                app_obj.logger.info(f"[SAMPLES CACHE HIT] {cache_key}")
+                app_obj.logger.debug(f"[SAMPLES CACHE HIT] {cache_key}")
                 return samples
             elif samples and reload:
-                app_obj.logger.info(
+                app_obj.logger.debug(
                     f"[SAMPLES CACHE HIT] {cache_key} — but reloading from DB since reload is set to True."
                 )
             else:
-                app_obj.logger.info(f"[SAMPLES CACHE MISS] {cache_key} — fetching from DB.")
+                app_obj.logger.debug(f"[SAMPLES CACHE MISS] {cache_key} — fetching from DB.")
 
         # If no cache or use_cache=False, or cache miss
         samples = self._query_samples(

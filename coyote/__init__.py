@@ -16,30 +16,28 @@ Key Responsibilities:
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+import json
+import os
+import time
+import uuid
+
+import httpx
 from flask import Flask, g, request
 from flask_cors import CORS
-import config
-from coyote import extensions
-from .errors import register_error_handlers
 from flask_login import current_user
-from coyote.util.misc import get_dynamic_assay_nav
+
+import config
+from cache_backend import create_cache_backend
+from coyote import extensions
 from coyote.services.api_client import ApiRequestError
 from coyote.services.api_client import endpoints as api_endpoints
 from coyote.services.api_client.api_client import (
     build_internal_headers,
     get_web_api_client,
 )
-from flask_caching import Cache
-from typing import Any
-import json
-import os
-import httpx
-import time
-import uuid
+from coyote.util.misc import get_dynamic_assay_nav
 
-
-# Initialize Flask-Caching
-cache = Cache()
+from .errors import register_error_handlers
 
 
 class PrefixMiddleware:
@@ -353,9 +351,12 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
         response.headers["X-Request-ID"] = request_id
         return response
 
-    # Register the cache with the app
-    cache.init_app(app)
-    app.cache = cache
+    # Register shared cache backend (Redis when reachable; disabled backend otherwise).
+    app.cache = create_cache_backend(
+        config=app.config,
+        logger=app.logger,
+        namespace="web",
+    )
     app.logger.info("Flask app initialized successfully.")
     return app
 

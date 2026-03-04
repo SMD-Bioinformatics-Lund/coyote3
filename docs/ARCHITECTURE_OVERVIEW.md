@@ -78,6 +78,22 @@ Coyote3 runs as separated runtime units:
 
 The architecture intentionally avoids direct UI-to-Mongo access and direct UI-to-API-internal imports. That boundary ensures stable policy enforcement and auditable state transitions.
 
+### 2.1 Redis Caching Strategy
+- Redis is used as a shared cache backend for both UI and API runtimes.
+- API cache scope:
+  - sample list retrieval (`api/infra/db/samples.py`) with keyed caching and TTL.
+- UI cache scope:
+  - dashboard payload snapshots and other explicit `app.cache` call sites.
+- Cache keys are namespaced per runtime (`coyote3_cache:api:*`, `coyote3_cache:web:*`) to avoid collisions.
+- Cache backend behavior is explicit via config:
+  - `CACHE_ENABLED=1|0`
+  - `CACHE_REQUIRED=1|0`
+  - `CACHE_REDIS_URL`
+  - `CACHE_REDIS_CONNECT_TIMEOUT`
+  - `CACHE_REDIS_SOCKET_TIMEOUT`
+- If `CACHE_REQUIRED=1`, startup fails when Redis is unreachable.
+- If `CACHE_REQUIRED=0`, runtime falls back to disabled cache backend (functional behavior preserved, performance reduced).
+
 ---
 
 ## 3. Layering and Ownership Boundaries

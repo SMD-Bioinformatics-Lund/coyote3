@@ -26,6 +26,8 @@ services:
       - FLASK_APP=wsgi
       - FLASK_DEBUG=0
       - REQUIRE_EXTERNAL_API=1
+      - CACHE_ENABLED=1
+      - CACHE_REQUIRED=1
       - API_BASE_URL=http://coyote3_api:8001
       - API_BROWSER_BASE=/api
       - TZ=Europe/Stockholm
@@ -65,6 +67,8 @@ services:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
       - REQUIRE_EXTERNAL_API=0
+      - CACHE_ENABLED=1
+      - CACHE_REQUIRED=1
       - TZ=Europe/Stockholm
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}

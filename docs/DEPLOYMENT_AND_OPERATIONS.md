@@ -514,6 +514,29 @@ Validation script should fail startup if required values are missing.
 
 ---
 
+## 15.1 Redis Cache Runtime Policy
+Redis is the authoritative cache backend for both API and UI in container deployments.
+
+Required/optional behavior is controlled by:
+- `CACHE_ENABLED=1|0`
+- `CACHE_REQUIRED=1|0`
+- `CACHE_REDIS_URL=redis://<host>:6379/0`
+- `CACHE_REDIS_CONNECT_TIMEOUT` (seconds)
+- `CACHE_REDIS_SOCKET_TIMEOUT` (seconds)
+
+Operational expectations:
+- `CACHE_REQUIRED=1`: startup fails fast if Redis is unreachable.
+- `CACHE_REQUIRED=0`: service continues with caching disabled.
+- Cache keys are namespaced (`coyote3_cache:api:*`, `coyote3_cache:web:*`) for safety and observability.
+
+Logging:
+- Cache backend startup state is logged (`cache_backend_ready` or `cache_backend_unavailable`).
+- Runtime cache activity uses debug-level hit/miss/set messages.
+
+Compose deployments should keep Redis service healthy and set `CACHE_REQUIRED=1` for API/UI containers.
+
+---
+
 ## 16. Upgrade and Release Evidence Packaging
 For each production release, store:
 - deployed image versions/digests

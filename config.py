@@ -22,18 +22,18 @@ application-specific configurations, ensuring consistency and flexibility
 across different environments.
 """
 
-
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
 import os
-from typing import Any, Literal, Optional
+from os import path
+from typing import Any, Literal
+
 import toml
 from cryptography.fernet import Fernet
-from coyote.__version__ import __version__ as app_version
 from dotenv import load_dotenv
-from os import path
-import subprocess
+
+from coyote.__version__ import __version__ as app_version
 
 # Load environment variables from a .env file if present
 basedir = path.abspath(path.dirname(__file__))
@@ -102,8 +102,12 @@ class DefaultConfig:
     CACHE_DEFAULT_TIMEOUT = 300  # 300 secs, 5 minutes
     CACHE_KEY_PREFIX = "coyote3_cache"
     CACHE_TYPE = "RedisCache"
+    CACHE_ENABLED = os.getenv("CACHE_ENABLED", "1") == "1"
+    CACHE_REQUIRED = os.getenv("CACHE_REQUIRED", "0") == "1"
     CACHE_REDIS_HOST = os.getenv("CACHE_REDIS_HOST", "localhost")
     CACHE_REDIS_URL = os.getenv("CACHE_REDIS_URL", "redis://localhost:6379/0")
+    CACHE_REDIS_CONNECT_TIMEOUT = float(os.getenv("CACHE_REDIS_CONNECT_TIMEOUT", "1.0"))
+    CACHE_REDIS_SOCKET_TIMEOUT = float(os.getenv("CACHE_REDIS_SOCKET_TIMEOUT", "1.0"))
 
     # Fernet key for encrypting sensitive data in the report
     FERNET = Fernet(os.getenv("COYOTE3_FERNET_KEY"))

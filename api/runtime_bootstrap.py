@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 from pymongo.errors import ConnectionFailure
 
 import config
 from api.extensions import ldap_manager, store, util
+from cache_backend import create_cache_backend
 
 
 @dataclass
@@ -18,6 +19,7 @@ class ApiRuntimeContext:
 
     config: dict[str, Any]
     logger: logging.Logger
+    cache: Any | None = None
 
     @property
     def secret_key(self) -> str | None:
@@ -33,6 +35,7 @@ def create_runtime_context(testing: bool = False, development: bool = False) -> 
     logger = logging.getLogger("coyote.api")
     runtime = ApiRuntimeContext(config=conf, logger=logger)
 
+    _init_cache(runtime)
     _init_store(runtime)
     ldap_manager.init_from_config(runtime.config)
     util.init_util()
@@ -70,3 +73,12 @@ def _init_store(runtime: ApiRuntimeContext) -> None:
     except ConnectionFailure as exc:
         runtime.logger.error("API MongoDB connection failed: %s", exc)
         raise RuntimeError("Could not connect to MongoDB for API runtime.") from exc
+
+
+def _init_cache(runtime: ApiRuntimeContext) -> None:
+    """Initialize API cache backend."""
+    runtime.cache = create_cache_backend(
+        config=runtime.config,
+        logger=runtime.logger,
+        namespace="api",
+    )
