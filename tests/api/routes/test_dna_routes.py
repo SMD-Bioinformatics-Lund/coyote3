@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 from fastapi import HTTPException
 
@@ -54,3 +56,52 @@ def test_show_dna_variant_not_found_raises_404(monkeypatch):
 
     assert exc.value.status_code == 404
     assert exc.value.detail["error"] == "Variant not found"
+
+
+def test_list_dna_variants_does_not_require_report_path(monkeypatch):
+    sample = fx.sample_doc()
+    sample.setdefault("filters", {}).setdefault("max_freq", 1.0)
+    sample["filters"].setdefault("min_freq", 0.0)
+    sample["filters"].setdefault("max_control_freq", 1.0)
+    sample["filters"].setdefault("min_depth", 0)
+    sample["filters"].setdefault("min_alt_reads", 0)
+    sample["filters"].setdefault("max_popfreq", 1.0)
+    sample["filters"].setdefault("vep_consequences", [])
+    sample["filters"].setdefault("genelists", [])
+    sample.setdefault("subpanel", "")
+
+    assay_config = {
+        "asp_group": "tumwgs",
+        "analysis_types": [],
+        "schema_name": "schema-dna",
+        "reporting": {},  # intentionally missing report_path
+    }
+
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(dna, "_get_formatted_assay_config", lambda _sample: assay_config)
+    monkeypatch.setattr(dna.util.common, "merge_sample_settings_with_assay_config", lambda s, a: s)
+    monkeypatch.setattr(dna.store.asp_handler, "get_asp", lambda asp_name: {"asp_name": asp_name})
+    monkeypatch.setattr(dna.store.isgl_handler, "get_isgl_by_ids", lambda ids: {})
+    monkeypatch.setattr(dna.util.common, "get_sample_effective_genes", lambda s, a, g: ([], []))
+    monkeypatch.setattr(dna, "get_filter_conseq_terms", lambda values: [])
+    monkeypatch.setattr(dna, "build_query", lambda assay_group, params: {"assay_group": assay_group, **params})
+    monkeypatch.setattr(dna.store.variant_handler, "get_case_variants", lambda query: [])
+    monkeypatch.setattr(dna.store.blacklist_handler, "add_blacklist_data", lambda variants, assay_group: variants)
+    monkeypatch.setattr(dna, "add_global_annotations", lambda variants, assay_group, subpanel: (variants, []))
+    monkeypatch.setattr(dna, "hotspot_variant", lambda variants: variants)
+    monkeypatch.setattr(dna.util.common, "get_case_and_control_sample_ids", lambda s: {"case": "C1"})
+    monkeypatch.setattr(dna.store.bam_service_handler, "get_bams", lambda sample_ids: {})
+    monkeypatch.setattr(dna.store.vep_meta_handler, "get_variant_class_translations", lambda vep: {})
+    monkeypatch.setattr(dna.store.vep_meta_handler, "get_conseq_translations", lambda vep: {})
+    monkeypatch.setattr(dna.store.sample_handler, "hidden_sample_comments", lambda sample_oid: False)
+    monkeypatch.setattr(dna.store.isgl_handler, "get_isgl_by_asp", lambda assay, is_active=True: [])
+    monkeypatch.setattr(dna.util.common, "get_assay_genelist_names", lambda docs: [])
+    monkeypatch.setattr(dna.store.schema_handler, "get_schema", lambda schema_name: {})
+    monkeypatch.setattr(dna, "generate_summary_text", lambda *args, **kwargs: "")
+    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    req = SimpleNamespace(url=SimpleNamespace(path="/api/v1/dna/samples/S1/variants"))
+    payload = dna.list_dna_variants(req, "S1", user=fx.api_user())
+
+    assert payload["sample"]["name"] == sample["name"]
+    assert payload["meta"]["count"] == 0

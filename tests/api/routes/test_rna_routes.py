@@ -40,7 +40,7 @@ def test_list_rna_fusions_success(monkeypatch):
     monkeypatch.setattr(rna.store.schema_handler, "get_schema", lambda name: {"_id": name})
     monkeypatch.setattr(rna.store.asp_handler, "get_asp", lambda asp_name: {"_id": "asp1", "asp_group": "rna"})
     monkeypatch.setattr(rna.store.isgl_handler, "get_isgl_by_asp", lambda assay, is_active=True, list_type=None: [fx.isgl_doc()])
-    monkeypatch.setattr(rna.util.common, "get_case_and_control_sample_ids", lambda s: ["s1", "s2"])
+    monkeypatch.setattr(rna.util.common, "get_case_and_control_sample_ids", lambda s: {"case": "C1", "control": "C2"})
     monkeypatch.setattr(rna.store.sample_handler, "hidden_sample_comments", lambda oid: False)
     monkeypatch.setattr(rna.RNAWorkflowService, "compute_filter_context", lambda sample, sample_filters, assay_panel_doc: filter_context)
     monkeypatch.setattr(rna.RNAWorkflowService, "build_fusion_list_query", lambda **kwargs: {"query": "ok"})

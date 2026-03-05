@@ -66,7 +66,6 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
         raise _api_error(404, "Assay config not found for sample")
 
     sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
-    DNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
     sample_filters = deepcopy(sample.get("filters", {}))
     assay_group = assay_config.get("asp_group", "unknown")
     subpanel = sample.get("subpanel")
@@ -201,7 +200,6 @@ def dna_plot_context(sample_id: str, user: ApiUser = Depends(require_access(min_
     assay_config = _get_formatted_assay_config(sample)
     if not assay_config:
         raise _api_error(404, "Assay config not found for sample")
-    DNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
     assay_config_schema = store.schema_handler.get_schema(assay_config.get("schema_name"))
     return util.common.convert_to_serializable(
         {

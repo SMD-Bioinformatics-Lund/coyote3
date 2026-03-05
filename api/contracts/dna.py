@@ -22,7 +22,7 @@ class DnaVariantsListPayload(BaseModel):
     checked_genelists: list[Any]
     checked_genelists_dict: dict[str, Any]
     filter_genes: list[str]
-    sample_ids: list[str]
+    sample_ids: dict[str, str]
     bam_id: Any
     hidden_comments: bool
     vep_var_class_translations: dict[str, Any]
@@ -70,7 +70,7 @@ class DnaVariantContextPayload(BaseModel):
     assay_group: str
     subpanel: str | None = None
     pon: Any
-    sample_ids: list[str]
+    sample_ids: dict[str, str]
     bam_id: Any
     vep_var_class_translations: dict[str, Any]
     vep_conseq_translations: dict[str, Any]
@@ -89,7 +89,7 @@ class DnaCnvContextPayload(BaseModel):
     sample_summary: dict[str, Any]
     cnv: dict[str, Any]
     annotations: list[dict[str, Any]]
-    sample_ids: list[str]
+    sample_ids: dict[str, str]
     bam_id: Any
     has_hidden_comments: bool
     hidden_comments: bool
@@ -107,7 +107,7 @@ class DnaTranslocationContextPayload(BaseModel):
     sample_summary: dict[str, Any]
     translocation: dict[str, Any]
     annotations: list[dict[str, Any]]
-    sample_ids: list[str]
+    sample_ids: dict[str, str]
     bam_id: Any
     vep_conseq_translations: dict[str, Any]
     has_hidden_comments: bool

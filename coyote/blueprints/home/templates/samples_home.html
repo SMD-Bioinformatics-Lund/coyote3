@@ -104,9 +104,12 @@
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">
-                        {% if sample.get("omics_layer", "").lower() == "rna" %}
+                        {% set omics_layer = (sample.get("omics_layer", "") or "")|lower %}
+                        {% set assay_name = (sample.get("assay", "") or "")|lower %}
+                        {% set is_rna_sample = (omics_layer == "rna") or ("rna" in assay_name) or ("fusion" in assay_name) or ("wts" in assay_name) %}
+                        {% if is_rna_sample %}
                           <a href="{{ url_for('rna_bp.list_fusions', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
-                        {% elif sample.get("omics_layer", "").lower() == "dna" %}
+                        {% else %}
                           <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% endif %}
                         {% if sample.comments|selectattr('hidden', 'equalto', 0)|list|length > 0 %}
@@ -247,7 +250,14 @@
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">
-                        <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                        {% set omics_layer = (sample.get("omics_layer", "") or "")|lower %}
+                        {% set assay_name = (sample.get("assay", "") or "")|lower %}
+                        {% set is_rna_sample = (omics_layer == "rna") or ("rna" in assay_name) or ("fusion" in assay_name) or ("wts" in assay_name) %}
+                        {% if is_rna_sample %}
+                          <a href="{{ url_for('rna_bp.list_fusions', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                        {% else %}
+                          <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                        {% endif %}
                       </td>
                       <td class="p-2 font-medium">
                         {{ sample.case_id or '-' }}

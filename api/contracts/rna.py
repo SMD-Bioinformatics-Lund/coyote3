@@ -16,7 +16,7 @@ class RnaFusionListPayload(BaseModel):
     assay_config: dict[str, Any]
     assay_config_schema: dict[str, Any] | None = None
     assay_panel_doc: dict[str, Any] | None = None
-    sample_ids: list[str]
+    sample_ids: dict[str, str]
     hidden_comments: bool
     fusionlist_options: list[dict[str, Any]]
     checked_fusionlists: list[Any]
