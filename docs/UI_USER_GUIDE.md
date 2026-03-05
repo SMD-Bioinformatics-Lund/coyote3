@@ -118,11 +118,11 @@ The sample dashboard is used to locate active or completed work and route into d
 
 ### 5.2 Common controls
 - free-text sample search
-- profile scope selection (`Production`, `All Profiles`) preserved in URL query param `profile_scope`
+- profile scope selection (`Production`, `All Profiles`) preserved in compact URL query param `scope`
 - assay panel filtering options where available
 - server-driven table pagination with independent parameters per section:
-  - live table: `live_page`, `live_per_page`
-  - reported table: `done_page`, `done_per_page`
+  - live table: `lp` (page), `lpp` (page size)
+  - reported table: `dp` (page), `dpp` (page size)
 
 ### 5.3 Interpreting list results
 Sample lists are grouped to support operational triage:
@@ -139,7 +139,7 @@ Selected filters and section paging stay in the URL, enabling refresh and link s
 
 ### 5.4 Pagination preference model
 Per-table page size resolution is designed for future user settings:
-1. explicit query parameter (`live_per_page` / `done_per_page`)
+1. explicit query parameter (`lpp` / `dpp`)
 2. persisted user preference (future)
 3. system default
 

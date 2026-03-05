@@ -11,6 +11,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+import re
 from typing import Any
 
 from bson.objectid import ObjectId
@@ -80,7 +81,9 @@ class SampleHandler(BaseHandler):
             ]
 
         if search_str:
-            query["name"] = {"$regex": search_str}
+            # Escape user input so search behaves as literal substring match,
+            # avoiding regex metacharacter abuse/ReDoS patterns.
+            query["name"] = {"$regex": re.escape(search_str)}
 
         app_obj = self.adapter.app
         getattr(app_obj, "home_logger", app_obj.logger).debug(f"Sample query: {query}")

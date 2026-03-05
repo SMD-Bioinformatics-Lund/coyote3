@@ -188,14 +188,42 @@
           <!-- Static links -->
           <div class="flex flex-wrap items-center gap-x-2 ml-5">
             {% set curr_path = request.path %}
+            {% set curr_endpoint = request.endpoint or '' %}
+            {% set curr_parts = curr_path.strip('/').split('/') %}
+            {% set is_dashboard = curr_endpoint == 'dashboard_bp.dashboard' %}
+            {% set is_samples = curr_endpoint == 'home_bp.samples_home' or curr_path.startswith('/samples') %}
+            {% set is_variant_search = curr_endpoint == 'common_bp.search_tiered_variants' or '/search' in curr_path %}
+
+            {# Keep latest samples context in navbar links. #}
+            {% set sample_nav_args = {} %}
+            {% set nav_scope = request.args.get('scope') or request.args.get('profile_scope') %}
+            {% if nav_scope == 'all' %}{% set _ = sample_nav_args.update({'scope': 'all'}) %}{% endif %}
+            {% set nav_q = request.args.get('q') or request.args.get('sample_search') %}
+            {% if nav_q %}{% set _ = sample_nav_args.update({'q': nav_q}) %}{% endif %}
+            {% set nav_lp = request.args.get('lp') or request.args.get('live_page') %}
+            {% if nav_lp and nav_lp != '1' %}{% set _ = sample_nav_args.update({'lp': nav_lp}) %}{% endif %}
+            {% set nav_dp = request.args.get('dp') or request.args.get('done_page') %}
+            {% if nav_dp and nav_dp != '1' %}{% set _ = sample_nav_args.update({'dp': nav_dp}) %}{% endif %}
+            {% set nav_lpp = request.args.get('lpp') or request.args.get('live_per_page') %}
+            {% if nav_lpp and nav_lpp != '30' %}{% set _ = sample_nav_args.update({'lpp': nav_lpp}) %}{% endif %}
+            {% set nav_dpp = request.args.get('dpp') or request.args.get('done_per_page') %}
+            {% if nav_dpp and nav_dpp != '30' %}{% set _ = sample_nav_args.update({'dpp': nav_dpp}) %}{% endif %}
+            {% if request.args.get('panel_type') %}{% set _ = sample_nav_args.update({'panel_type': request.args.get('panel_type')}) %}{% endif %}
+            {% if request.args.get('panel_tech') %}{% set _ = sample_nav_args.update({'panel_tech': request.args.get('panel_tech')}) %}{% endif %}
+            {% if request.args.get('assay_group') %}{% set _ = sample_nav_args.update({'assay_group': request.args.get('assay_group')}) %}{% endif %}
+            {# Backward compatibility: if context comes from path-based routes, carry it into samples query args. #}
+            {% if not sample_nav_args.get('panel_type') and curr_parts|length > 3 %}{% set _ = sample_nav_args.update({'panel_type': curr_parts[1]}) %}{% endif %}
+            {% if not sample_nav_args.get('panel_tech') and curr_parts|length > 3 %}{% set _ = sample_nav_args.update({'panel_tech': curr_parts[2]}) %}{% endif %}
+            {% if not sample_nav_args.get('assay_group') and curr_parts|length > 3 %}{% set _ = sample_nav_args.update({'assay_group': curr_parts[3]}) %}{% endif %}
+            {% set sample_status = request.view_args.get('status', 'live') if request.view_args else 'live' %}
 
             {% if current_user.is_authenticated %}
               <a href="{{ url_for('dashboard_bp.dashboard') }}"
-                class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path == url_for('dashboard_bp.dashboard') else 'hover:bg-indigo-200 font-semibold' }}">
+                class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if is_dashboard else 'hover:bg-indigo-200 font-semibold' }}">
                 HOME
               </a>
-              <a href="{{ url_for('home_bp.samples_home') }}"
-                class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path.split('/')[-1] == 'samples' or curr_path.split('/')[-2] == 'samples'  else 'hover:bg-indigo-200 font-semibold' }}">
+              <a href="{{ url_for('home_bp.samples_home', status=sample_status, **sample_nav_args) }}"
+                class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if is_samples else 'hover:bg-indigo-200 font-semibold' }}">
                 SAMPLES
               </a>
             {% endif %}
@@ -210,7 +238,7 @@
             {% if current_user.is_authenticated %}
               |
               <a href="{{ url_for('common_bp.search_tiered_variants') }}"
-                class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if curr_path.split('/')[-1] == 'search' or curr_path.split('/')[-2] == 'search'  else 'hover:bg-indigo-200 font-semibold' }}">
+                class="px-2 py-0.5 rounded-xl text-xs transition tracking-wide {{ 'bg-orange-300 text-black font-bold' if is_variant_search else 'hover:bg-indigo-200 font-semibold' }}">
                 VARIANT SEARCH
               </a>
             {% endif %}
@@ -224,9 +252,12 @@
 
           {# Extract URL path segments #}
           {% set path_parts = request.path.strip('/').split('/') %}
-          {% set selected_type = path_parts[1] if path_parts|length > 1 else None %}
-          {% set selected_tech = path_parts[2] if path_parts|length > 2 else None %}
-          {% set selected_group = path_parts[3] if path_parts|length > 3 else None %}
+          {% set selected_type = request.args.get('panel_type') or (path_parts[1] if path_parts|length > 1 else None) %}
+          {% set selected_tech = request.args.get('panel_tech') or (path_parts[2] if path_parts|length > 2 else None) %}
+          {% set selected_group = request.args.get('assay_group') or (path_parts[3] if path_parts|length > 3 else None) %}
+          {% set selected_type_norm = (selected_type|string)|trim|lower if selected_type else '' %}
+          {% set selected_tech_norm = (selected_tech|string)|trim|lower if selected_tech else '' %}
+          {% set selected_group_norm = (selected_group|string)|trim|lower if selected_group else '' %}
 
           <!-- DNA / RNA toggle buttons only -->
           <div class="flex flex-wrap items-center gap-x-2">
@@ -258,16 +289,31 @@
 
                     {% for group_name, panel_data in groupings.items() %}
                       {% if current_user.is_admin or group_name in current_user.assay_groups %}
-                        {% set is_selected = group_name == selected_group %}
-                        <a href="{{ url_for(panel_data.url, panel_type=panel_type, panel_tech=tech_name, assay_group=group_name) }}"
-                          class="px-2 py-0.5 rounded-full font-semibold transition text-xs whitespace-nowrap
-                                  {% if is_selected %}
-                                    bg-yellow-400 text-black border border-yellow-500
-                                  {% else %}
-                                    bg-indigo-200 hover:bg-orange-300 text-gray-800
-                                  {% endif %}">
-                          {{ panel_data.label }}
-                        </a>
+                        {% set panel_type_norm = (panel_type|string)|trim|lower %}
+                        {% set tech_name_norm = (tech_name|string)|trim|lower %}
+                        {% set group_name_norm = (group_name|string)|trim|lower %}
+                        {% set is_selected = (panel_type_norm == selected_type_norm) and (tech_name_norm == selected_tech_norm) and (group_name_norm == selected_group_norm) %}
+                        {% if panel_data.url == 'home_bp.samples_home' %}
+                          <a href="{{ url_for(panel_data.url, panel_type=panel_type, panel_tech=tech_name, assay_group=group_name, status=sample_status, scope=sample_nav_args.get('scope'), q=sample_nav_args.get('q'), lp=sample_nav_args.get('lp'), dp=sample_nav_args.get('dp'), lpp=sample_nav_args.get('lpp'), dpp=sample_nav_args.get('dpp')) }}"
+                            class="px-2 py-0.5 rounded-full font-semibold transition text-xs whitespace-nowrap
+                                    {% if is_selected %}
+                                      bg-orange-300 text-black border border-yellow-600
+                                    {% else %}
+                                      bg-gray-100 hover:bg-orange-200 text-gray-800 border border-transparent
+                                    {% endif %}">
+                            {{ panel_data.label }}
+                          </a>
+                        {% else %}
+                          <a href="{{ url_for(panel_data.url, panel_type=panel_type, panel_tech=tech_name, assay_group=group_name) }}"
+                            class="px-2 py-0.5 rounded-full font-semibold transition text-xs whitespace-nowrap
+                                    {% if is_selected %}
+                                      bg-orange-300 text-black border border-yellow-600
+                                    {% else %}
+                                      bg-gray-100 hover:bg-orange-200 text-gray-800 border border-transparent
+                                    {% endif %}">
+                            {{ panel_data.label }}
+                          </a>
+                        {% endif %}
                       {% endif %}
                     {% endfor %}
                   </div>
@@ -336,8 +382,11 @@
 
       // JavaScript for Assay Navigation
       document.addEventListener('DOMContentLoaded', () => {
-        const path = window.location.pathname.split('/').filter(Boolean);
-        const [ , selectedType, selectedTech, selectedGroup ] = path;
+        const currentUrl = new URL(window.location.href);
+        const path = currentUrl.pathname.split('/').filter(Boolean);
+        const selectedType = currentUrl.searchParams.get('panel_type') || path[1] || null;
+        const selectedTech = currentUrl.searchParams.get('panel_tech') || path[2] || null;
+        const selectedGroup = currentUrl.searchParams.get('assay_group') || path[3] || null;
 
         const sections = document.querySelectorAll('.assay-group-section');
         const toggles = document.querySelectorAll('[id^="toggle-"]');
@@ -356,14 +405,21 @@
 
         function highlightPill() {
           pills.forEach(p => {
-            const urlParts = new URL(p.href, window.location.origin).pathname.split('/').filter(Boolean);
-            const match = urlParts[1] === selectedType && urlParts[2] === selectedTech && urlParts[3] === selectedGroup;
-            p.classList.toggle('bg-yellow-300', match);
+            const pillUrl = new URL(p.href, window.location.origin);
+            const pillPathParts = pillUrl.pathname.split('/').filter(Boolean);
+            const pillType = pillUrl.searchParams.get('panel_type') || pillPathParts[1] || null;
+            const pillTech = pillUrl.searchParams.get('panel_tech') || pillPathParts[2] || null;
+            const pillGroup = pillUrl.searchParams.get('assay_group') || pillPathParts[3] || null;
+            const match = !!selectedType && !!selectedTech && !!selectedGroup &&
+              (pillType || '').toLowerCase() === selectedType.toLowerCase() &&
+              (pillTech || '').toLowerCase() === selectedTech.toLowerCase() &&
+              (pillGroup || '').toLowerCase() === selectedGroup.toLowerCase();
+            p.classList.toggle('bg-orange-300', match);
             p.classList.toggle('text-black', match);
-            p.classList.toggle('border-yellow-500', match);
+            p.classList.toggle('border-yellow-600', match);
             if (!match) {
-              p.classList.remove('bg-yellow-300', 'text-black', 'border-yellow-500');
-              p.classList.add('bg-indigo-200', 'hover:bg-orange-300', 'text-gray-800');
+              p.classList.remove('bg-orange-300', 'text-black', 'border-yellow-600');
+              p.classList.add('bg-gray-100', 'hover:bg-orange-200', 'text-gray-800', 'border-transparent');
             }
           });
         }
@@ -386,9 +442,14 @@
         // Collapse only if URL doesn't match any pill
         document.addEventListener('click', e => {
           if (!e.target.closest('#assay-pills') && !e.target.closest('[id^="toggle-"]')) {
-            const matchExists = Array.from(pills).some(p =>
-              p.href.includes(`/${selectedType}/${selectedTech}/${selectedGroup}`)
-            );
+            const matchExists = Array.from(pills).some(p => {
+              const pillUrl = new URL(p.href, window.location.origin);
+              return (
+                (pillUrl.searchParams.get('panel_type') || '').toLowerCase() === (selectedType || '').toLowerCase() &&
+                (pillUrl.searchParams.get('panel_tech') || '').toLowerCase() === (selectedTech || '').toLowerCase() &&
+                (pillUrl.searchParams.get('assay_group') || '').toLowerCase() === (selectedGroup || '').toLowerCase()
+              );
+            });
             if (!matchExists) {
               sections.forEach(s => s.classList.add('hidden'));
               toggles.forEach(t => t.classList.remove('bg-orange-300', 'text-black', 'font-bold'));

@@ -5,9 +5,9 @@
 {% if panel_type %}{% set _ = extra_args.update({'panel_type': panel_type}) %}{% endif %}
 {% if panel_tech %}{% set _ = extra_args.update({'panel_tech': panel_tech}) %}{% endif %}
 {% if assay_group %}{% set _ = extra_args.update({'assay_group': assay_group}) %}{% endif %}
-{% if live_per_page %}{% set _ = extra_args.update({'live_per_page': live_per_page}) %}{% endif %}
-{% if done_per_page %}{% set _ = extra_args.update({'done_per_page': done_per_page}) %}{% endif %}
-{% if search_str %}{% set _ = extra_args.update({'sample_search': search_str}) %}{% endif %}
+{% if live_per_page and live_per_page != 30 %}{% set _ = extra_args.update({'lpp': live_per_page}) %}{% endif %}
+{% if done_per_page and done_per_page != 30 %}{% set _ = extra_args.update({'dpp': done_per_page}) %}{% endif %}
+{% if search_str %}{% set _ = extra_args.update({'q': search_str}) %}{% endif %}
 <div class="flex w-full h-full overflow-hidden">
   <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
     <section class="mt-2 mb-3 ml-2 w-4/5 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -15,13 +15,13 @@
         <div class="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 p-2 text-sm font-semibold">
           <span class="text-gray-700">Profiles:</span>
           <a
-            href="{{ url_for(request.endpoint, status='live', live_page=1, done_page=1, profile_scope='production', **extra_args) }}"
+            href="{{ url_for(request.endpoint, status='live', **extra_args) }}"
             class="rounded-lg px-3 py-1.5 transition {% if profile_scope != 'all' %}bg-blue-600 text-white{% else %}text-gray-700 hover:bg-gray-100{% endif %}"
           >
             Production
           </a>
           <a
-            href="{{ url_for(request.endpoint, status='live', live_page=1, done_page=1, profile_scope='all', **extra_args) }}"
+            href="{{ url_for(request.endpoint, status='live', scope='all', **extra_args) }}"
             class="rounded-lg px-3 py-1.5 transition {% if profile_scope == 'all' %}bg-blue-600 text-white{% else %}text-gray-700 hover:bg-gray-100{% endif %}"
           >
             All Profiles
@@ -30,14 +30,18 @@
       </div>
 
       <div id="sample-search" class="mt-4 flex flex-wrap items-center gap-3">
-        <form action="" method="POST" class="relative min-w-[260px] flex-1 max-w-xl">
-          {{ form.hidden_tag() }}
-          <input type="hidden" name="view" value="all">
+        <form action="{{ url_for(request.endpoint, status='live') }}" method="GET" class="relative min-w-[260px] flex-1 max-w-xl">
+          {% if panel_type %}<input type="hidden" name="panel_type" value="{{ panel_type }}">{% endif %}
+          {% if panel_tech %}<input type="hidden" name="panel_tech" value="{{ panel_tech }}">{% endif %}
+          {% if assay_group %}<input type="hidden" name="assay_group" value="{{ assay_group }}">{% endif %}
+          {% if profile_scope == 'all' %}<input type="hidden" name="scope" value="all">{% endif %}
+          {% if live_per_page and live_per_page != 30 %}<input type="hidden" name="lpp" value="{{ live_per_page }}">{% endif %}
+          {% if done_per_page and done_per_page != 30 %}<input type="hidden" name="dpp" value="{{ done_per_page }}">{% endif %}
 
           <div class="relative group">
             <input
               type="text"
-              name="sample_search"
+              name="q"
               id="search-input"
               value="{{ search_str or '' }}"
               class="w-full rounded-full border border-gray-400 bg-white py-2 pl-10 pr-4 focus:border-blue-500 focus:outline-none"
@@ -177,13 +181,13 @@
                   <span class="text-gray-600">Live page {{ live_page }}</span>
                   {% if live_page > 1 %}
                     <a
-                      href="{{ url_for(request.endpoint, status='live', live_page=live_page-1, done_page=done_page, profile_scope=profile_scope, **extra_args) }}"
+                      href="{{ url_for(request.endpoint, status='live', lp=live_page-1, dp=done_page, scope='all' if profile_scope == 'all' else None, **extra_args) }}"
                       class="rounded-md border border-gray-300 px-2 py-1 font-medium hover:bg-gray-100"
                     >Previous</a>
                   {% endif %}
                   {% if has_next_live %}
                     <a
-                      href="{{ url_for(request.endpoint, status='live', live_page=live_page+1, done_page=done_page, profile_scope=profile_scope, **extra_args) }}"
+                      href="{{ url_for(request.endpoint, status='live', lp=live_page+1, dp=done_page, scope='all' if profile_scope == 'all' else None, **extra_args) }}"
                       class="rounded-md bg-blue-600 px-2 py-1 font-medium text-white hover:bg-blue-700"
                     >Next</a>
                   {% endif %}
@@ -331,13 +335,13 @@
                   <span class="text-gray-600">Reported page {{ done_page }}</span>
                   {% if done_page > 1 %}
                     <a
-                      href="{{ url_for(request.endpoint, status='live', live_page=live_page, done_page=done_page-1, profile_scope=profile_scope, **extra_args) }}"
+                      href="{{ url_for(request.endpoint, status='live', lp=live_page, dp=done_page-1, scope='all' if profile_scope == 'all' else None, **extra_args) }}"
                       class="rounded-md border border-gray-300 px-2 py-1 font-medium hover:bg-gray-100"
                     >Previous</a>
                   {% endif %}
                   {% if has_next_done %}
                     <a
-                      href="{{ url_for(request.endpoint, status='live', live_page=live_page, done_page=done_page+1, profile_scope=profile_scope, **extra_args) }}"
+                      href="{{ url_for(request.endpoint, status='live', lp=live_page, dp=done_page+1, scope='all' if profile_scope == 'all' else None, **extra_args) }}"
                       class="rounded-md bg-blue-600 px-2 py-1 font-medium text-white hover:bg-blue-700"
                     >Next</a>
                   {% endif %}

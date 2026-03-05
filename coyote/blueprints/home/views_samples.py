@@ -34,6 +34,7 @@ def _sample_view_to_status(sample_view: str) -> str:
 def _resolve_per_page(
     *,
     query_key: str,
+    legacy_query_key: str,
     user_settings_key: str,
     default_value: int,
     user_settings: dict | None = None,
@@ -44,6 +45,8 @@ def _resolve_per_page(
     This is intentionally generic for future user-configurable preferences.
     """
     query_value = request.args.get(query_key, type=int)
+    if not query_value:
+        query_value = request.args.get(legacy_query_key, type=int)
     if query_value:
         return max(1, min(query_value, 200))
     if user_settings:
@@ -53,8 +56,16 @@ def _resolve_per_page(
     return max(1, min(default_value, 200))
 
 
-@home_bp.route("", defaults={"status": "live"}, methods=["GET", "POST"])
-@home_bp.route("/<string:status>", methods=["GET", "POST"])
+def _resolve_page_param(short_key: str, legacy_key: str, default: int = 1) -> int:
+    return max(
+        1,
+        request.args.get(short_key, default=request.args.get(legacy_key, default=default, type=int), type=int)
+        or default,
+    )
+
+
+@home_bp.route("", defaults={"status": "live"}, methods=["GET"])
+@home_bp.route("/<string:status>", methods=["GET"])
 @login_required
 def samples_home(status: str) -> str:
     """Render the sample dashboard using API-provided context."""
@@ -64,41 +75,40 @@ def samples_home(status: str) -> str:
     panel_tech = request.args.get("panel_tech") or None
     assay_group = request.args.get("assay_group") or None
 
-    sample_search = (request.values.get("sample_search") or "").strip()
+    sample_search = (request.args.get("q") or request.args.get("sample_search") or "").strip()
     sample_view = _resolve_sample_view(
         status=status,
-        submitted_view=request.values.get("view"),
+        submitted_view=request.args.get("view"),
     )
     page = max(1, request.args.get("page", default=1, type=int) or 1)  # legacy global page
     per_page = max(1, min(request.args.get("per_page", default=30, type=int) or 30, 200))  # legacy fallback
     # Placeholder for future persisted user preferences.
     # When user settings are implemented, populate this from current user profile.
     user_settings: dict | None = None
-    live_page = max(1, request.args.get("live_page", default=1, type=int) or 1)
-    done_page = max(1, request.args.get("done_page", default=1, type=int) or 1)
+    live_page = _resolve_page_param("lp", "live_page", default=1)
+    done_page = _resolve_page_param("dp", "done_page", default=1)
     live_per_page = _resolve_per_page(
-        query_key="live_per_page",
+        query_key="lpp",
+        legacy_query_key="live_per_page",
         user_settings_key="home_live_per_page",
         default_value=30,
         user_settings=user_settings,
     )
     done_per_page = _resolve_per_page(
-        query_key="done_per_page",
+        query_key="dpp",
+        legacy_query_key="done_per_page",
         user_settings_key="home_done_per_page",
         default_value=30,
         user_settings=user_settings,
     )
-    profile_scope = (request.args.get("profile_scope") or "production").strip().lower()
+    profile_scope = (request.args.get("scope") or request.args.get("profile_scope") or "production").strip().lower()
     if profile_scope not in {"production", "all"}:
         profile_scope = "production"
     search_mode = _sample_view_to_search_mode(sample_view)
     status_for_api = _sample_view_to_status(sample_view)
 
-    if request.method == "POST":
-        form.sample_search.data = sample_search
-        page = 1
-        live_page = 1
-        done_page = 1
+    # GET-only flow (PRG-like behavior): search updates URL directly.
+    form.sample_search.data = sample_search
 
     try:
         payload = fetch_samples(

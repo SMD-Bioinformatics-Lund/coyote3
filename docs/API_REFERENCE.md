@@ -232,12 +232,22 @@ Invalid pagination values should return `400` with details describing invalid pa
   - `has_next_live`
   - `has_next_done`
 - `profile_scope` controls environment filtering (`production` default, `all` optional)
+- web UI compact aliases are accepted for readability:
+  - `q` -> `search_str`
+  - `scope` -> `profile_scope`
+  - `lp` -> `live_page`
+  - `dp` -> `done_page`
+  - `lpp` -> `live_per_page`
+  - `dpp` -> `done_per_page`
 
 When `search_str` is present, endpoint behavior is intentionally unbounded for this view contract:
 - both sections are searched
 - table page slicing is bypassed for that response
 
 Backward-compatibility fields (`page`, `per_page`) remain present but represent legacy/global defaults and should not be used as primary table pagination controls in new consumers.
+
+Search safety note:
+- sample-name search is treated as escaped literal regex text in persistence queries (not raw regex from user input), reducing regex-injection and pathological-pattern risks.
 
 ---
 

@@ -40,7 +40,7 @@ def test_samples_home_uses_table_specific_pagination_and_profile_scope(monkeypat
         monkeypatch.setattr(views_samples, "render_template", _render)
 
         with app.test_request_context(
-            "/samples/live?view=reported&live_page=2&done_page=3&live_per_page=15&done_per_page=25&profile_scope=all",
+            "/samples/live?view=reported&lp=2&dp=3&lpp=15&dpp=25&scope=all&q=ABC",
             method="GET",
         ):
             context = views_samples.samples_home.__wrapped__("live")
@@ -51,6 +51,7 @@ def test_samples_home_uses_table_specific_pagination_and_profile_scope(monkeypat
         assert captured["live_per_page"] == 15
         assert captured["done_per_page"] == 25
         assert captured["profile_scope"] == "all"
+        assert captured["search_str"] == "ABC"
         assert context["sample_view"] == "all"
         assert context["live_page"] == 2
         assert context["done_page"] == 3
@@ -62,6 +63,5 @@ def test_samples_template_contains_tab_filters():
     with open(template_path, encoding="utf-8") as handle:
         html = handle.read()
 
-    assert "profile_scope='production'" in html
-    assert "profile_scope='all'" in html
-    assert 'name="view"' in html
+    assert "scope='all'" in html
+    assert 'name="q"' in html
