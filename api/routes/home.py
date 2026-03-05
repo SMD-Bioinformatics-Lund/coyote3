@@ -27,8 +27,13 @@ def home_samples_read(
     search_str: str = "",
     search_mode: str = "live",
     sample_view: str | None = Query(default=None),
-    page: int = Query(default=1, ge=1),
-    per_page: int = Query(default=30, ge=1, le=200),
+    page: int = Query(default=1, ge=1),  # backward compatibility
+    per_page: int = Query(default=30, ge=1, le=200),  # backward compatibility
+    live_page: int = Query(default=1, ge=1),
+    done_page: int = Query(default=1, ge=1),
+    live_per_page: int | None = Query(default=None, ge=1, le=200),
+    done_per_page: int | None = Query(default=None, ge=1, le=200),
+    profile_scope: str = Query(default="production"),
     panel_type: str | None = None,
     panel_tech: str | None = None,
     assay_group: str | None = None,
@@ -44,63 +49,58 @@ def home_samples_read(
     else:
         accessible_assays = user.assays
 
-    mode_to_view = {
-        "done": "reported",
-        "reported": "reported",
-        "both": "all",
-        "all": "all",
-        "live": "live",
-    }
-    normalized_search_mode = (search_mode or "").strip().lower()
-    normalized_status = (status or "").strip().lower()
-    normalized_sample_view = (sample_view or "").strip().lower()
-    resolved_view = mode_to_view.get(normalized_sample_view)
-    if resolved_view is None:
-        resolved_view = mode_to_view.get(normalized_search_mode)
-    if resolved_view is None and normalized_status in {"done", "reported"}:
-        resolved_view = "reported"
-    if resolved_view is None:
-        resolved_view = "live"
+    normalized_scope = (profile_scope or "").strip().lower()
+    use_all_profiles = normalized_scope == "all"
+    query_envs = list(user.envs)
+    if not use_all_profiles:
+        query_envs = ["production"] if "production" in user.envs else list(user.envs)
 
-    offset = max(0, (page - 1) * per_page)
-    fetch_limit = per_page + 1
+    # Keep old params as fallback defaults, but support independent table pagination.
+    live_per_page = live_per_page or per_page
+    done_per_page = done_per_page or per_page
+    live_offset = max(0, (live_page - 1) * live_per_page)
+    done_offset = max(0, (done_page - 1) * done_per_page)
+    live_fetch_limit = live_per_page + 1
+    done_fetch_limit = done_per_page + 1
+    search_applied = bool((search_str or "").strip())
 
     done_samples: list[dict] = []
     live_samples: list[dict] = []
     has_next_live = False
     has_next_done = False
 
-    if resolved_view in {"reported", "all"}:
-        done_samples = store.sample_handler.get_samples(
-            user_assays=accessible_assays,
-            user_envs=user.envs,
-            status="done",
-            search_str=search_str,
-            report=True,
-            limit=min(fetch_limit, limit_done_samples + 1) if limit_done_samples else fetch_limit,
-            offset=offset,
-            use_cache=True,
-            reload=False,
-        )
-        if len(done_samples) > per_page:
-            has_next_done = True
-            done_samples = done_samples[:per_page]
+    done_limit = None if search_applied else done_fetch_limit
+    if not search_applied and limit_done_samples:
+        done_limit = min(done_fetch_limit, limit_done_samples + 1)
+    done_samples = store.sample_handler.get_samples(
+        user_assays=accessible_assays,
+        user_envs=query_envs,
+        status="done",
+        search_str=search_str,
+        report=True,
+        limit=done_limit,
+        offset=0 if search_applied else done_offset,
+        use_cache=True,
+        reload=False,
+    )
+    if not search_applied and len(done_samples) > done_per_page:
+        has_next_done = True
+        done_samples = done_samples[:done_per_page]
 
-    if resolved_view in {"live", "all"}:
-        live_samples = store.sample_handler.get_samples(
-            user_assays=accessible_assays,
-            status="live",
-            user_envs=user.envs,
-            search_str=search_str,
-            report=False,
-            limit=fetch_limit,
-            offset=offset,
-            use_cache=True,
-            reload=False,
-        )
-        if len(live_samples) > per_page:
-            has_next_live = True
-            live_samples = live_samples[:per_page]
+    live_samples = store.sample_handler.get_samples(
+        user_assays=accessible_assays,
+        status="live",
+        user_envs=query_envs,
+        search_str=search_str,
+        report=False,
+        limit=None if search_applied else live_fetch_limit,
+        offset=0 if search_applied else live_offset,
+        use_cache=True,
+        reload=False,
+    )
+    if not search_applied and len(live_samples) > live_per_page:
+        has_next_live = True
+        live_samples = live_samples[:live_per_page]
 
     for sample in done_samples:
         sample["last_report_time_created"] = (
@@ -115,9 +115,14 @@ def home_samples_read(
             "done_samples": done_samples,
             "status": status,
             "search_mode": search_mode,
-            "sample_view": resolved_view,
+            "sample_view": "all",
+            "profile_scope": "all" if use_all_profiles else "production",
             "page": page,
             "per_page": per_page,
+            "live_page": live_page,
+            "live_per_page": live_per_page,
+            "done_page": done_page,
+            "done_per_page": done_per_page,
             "has_next_live": has_next_live,
             "has_next_done": has_next_done,
             "panel_type": panel_type,

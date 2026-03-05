@@ -194,7 +194,17 @@ UI communication with API is centralized in `coyote/services/api_client/`.
 ### 5.2 Header and session forwarding
 `forward_headers()` in `coyote/services/api_client/api_client.py` forwards cookie context and adds bearer token when available (`API_SESSION_COOKIE_NAME`).
 
-### 5.3 Routing rule for prefixed blueprints
+### 5.3 Home samples view contract
+The home sample dashboard uses one API call that returns both live and reported sections:
+- endpoint: `GET /api/v1/home/samples`
+- independent server pagination for each section (`live_page/live_per_page`, `done_page/done_per_page`)
+- server-side profile filtering via `profile_scope` (`production` by default)
+- query-time search applies across both sections
+
+UI request parameter resolution for table sizes is intentionally extensible:
+`query param -> future user preference -> hardcoded default`.
+
+### 5.4 Routing rule for prefixed blueprints
 When a blueprint is registered with `url_prefix`, route decorators must be prefix-relative.
 
 Example:

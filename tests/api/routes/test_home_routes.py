@@ -30,19 +30,27 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
         sample_view=None,
         page=2,
         per_page=1,
+        live_page=2,
+        done_page=2,
+        live_per_page=1,
+        done_per_page=1,
+        profile_scope="production",
         user=user,
     )
     assert len(payload["live_samples"]) == 1
     assert len(payload["done_samples"]) == 1
     assert payload["sample_view"] == "all"
-    assert payload["page"] == 2
-    assert payload["per_page"] == 1
+    assert payload["live_page"] == 2
+    assert payload["done_page"] == 2
+    assert payload["live_per_page"] == 1
+    assert payload["done_per_page"] == 1
+    assert payload["profile_scope"] == "production"
     assert payload["has_next_live"] is True
     assert payload["has_next_done"] is True
     assert all(call["offset"] == 1 for call in calls)
 
 
-def test_home_samples_read_reported_view_only(monkeypatch):
+def test_home_samples_read_always_fetches_both_tables(monkeypatch):
     user = fx.api_user()
     calls = []
 
@@ -61,15 +69,21 @@ def test_home_samples_read_reported_view_only(monkeypatch):
         sample_view="reported",
         page=1,
         per_page=30,
+        live_page=1,
+        done_page=1,
+        live_per_page=30,
+        done_per_page=30,
+        profile_scope="all",
         user=user,
     )
 
-    assert payload["sample_view"] == "reported"
-    assert payload["live_samples"] == []
+    assert payload["sample_view"] == "all"
+    assert payload["profile_scope"] == "all"
+    assert len(payload["live_samples"]) == 1
     assert len(payload["done_samples"]) == 1
-    assert len(calls) == 1
-    assert calls[0]["report"] is True
-    assert calls[0]["status"] == "done"
+    assert len(calls) == 2
+    assert any(call["report"] is True and call["status"] == "done" for call in calls)
+    assert any(call["report"] is False and call["status"] == "live" for call in calls)
 
 
 def test_home_apply_isgl_invalid_payload_raises_400(monkeypatch):

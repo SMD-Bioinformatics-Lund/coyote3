@@ -132,9 +132,14 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
                 {
                     "live_samples": [],
                     "done_samples": [],
-                    "sample_view": "live",
+                    "sample_view": "all",
+                    "profile_scope": "production",
                     "page": 1,
                     "per_page": 30,
+                    "live_page": 1,
+                    "live_per_page": 30,
+                    "done_page": 1,
+                    "done_per_page": 30,
                     "has_next_live": False,
                     "has_next_done": False,
                 }

@@ -118,23 +118,34 @@ The sample dashboard is used to locate active or completed work and route into d
 
 ### 5.2 Common controls
 - free-text sample search
-- tabbed status selection (`Live`, `Reported`, `All`) preserved in URL query param `view`
+- profile scope selection (`Production`, `All Profiles`) preserved in URL query param `profile_scope`
 - assay panel filtering options where available
-- server-driven pagination (`page`, `per_page`) so large sample sets do not overload one response
+- server-driven table pagination with independent parameters per section:
+  - live table: `live_page`, `live_per_page`
+  - reported table: `done_page`, `done_per_page`
 
 ### 5.3 Interpreting list results
 Sample lists are grouped to support operational triage:
 - active/live samples for ongoing review
 - completed/done samples with report linkage
 
-Tab behavior:
-- `Live`: shows only active samples
-- `Reported`: shows only reported samples
-- `All`: shows both sections on one page
+List behavior:
+- Both `Live Samples` and `Reported Samples` sections are rendered on the same page.
+- Default profile scope is production-only on first load.
+- Switching to `All Profiles` expands both sections using server-side filtering.
+- Search applies to both sections and returns full matching sets (no table pagination while search is active).
 
-The selected tab and page index stay in the URL, enabling refresh and link sharing without losing filter state.
+Selected filters and section paging stay in the URL, enabling refresh and link sharing without losing context.
 
-### 5.4 Opening sample context
+### 5.4 Pagination preference model
+Per-table page size resolution is designed for future user settings:
+1. explicit query parameter (`live_per_page` / `done_per_page`)
+2. persisted user preference (future)
+3. system default
+
+This keeps behavior stable now and allows user-configurable defaults later without route redesign.
+
+### 5.5 Opening sample context
 Selecting a sample opens a detail/edit context page where report access, gene-related actions, and workflow-specific links are available based on assay and permissions.
 
 ---

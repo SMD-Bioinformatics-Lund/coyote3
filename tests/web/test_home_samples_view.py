@@ -7,7 +7,7 @@ import importlib
 from flask import Flask
 
 
-def test_samples_home_uses_query_tab_and_pagination(monkeypatch):
+def test_samples_home_uses_table_specific_pagination_and_profile_scope(monkeypatch):
     app = Flask(__name__)
     app.config.update(SECRET_KEY="test", WTF_CSRF_ENABLED=False)
     app.home_logger = app.logger
@@ -21,9 +21,14 @@ def test_samples_home_uses_query_tab_and_pagination(monkeypatch):
             return {
                 "live_samples": [{"name": "S1"}],
                 "done_samples": [],
-                "sample_view": kwargs["sample_view"],
+                "sample_view": "all",
+                "profile_scope": kwargs["profile_scope"],
                 "page": kwargs["page"],
                 "per_page": kwargs["per_page"],
+                "live_page": kwargs["live_page"],
+                "done_page": kwargs["done_page"],
+                "live_per_page": kwargs["live_per_page"],
+                "done_per_page": kwargs["done_per_page"],
                 "has_next_live": True,
                 "has_next_done": False,
             }
@@ -34,14 +39,21 @@ def test_samples_home_uses_query_tab_and_pagination(monkeypatch):
         monkeypatch.setattr(views_samples, "fetch_samples", _fetch_samples)
         monkeypatch.setattr(views_samples, "render_template", _render)
 
-        with app.test_request_context("/samples/live?view=reported&page=2&per_page=15", method="GET"):
+        with app.test_request_context(
+            "/samples/live?view=reported&live_page=2&done_page=3&live_per_page=15&done_per_page=25&profile_scope=all",
+            method="GET",
+        ):
             context = views_samples.samples_home.__wrapped__("live")
 
         assert captured["sample_view"] == "reported"
-        assert captured["page"] == 2
-        assert captured["per_page"] == 15
-        assert context["sample_view"] == "reported"
-        assert context["page"] == 2
+        assert captured["live_page"] == 2
+        assert captured["done_page"] == 3
+        assert captured["live_per_page"] == 15
+        assert captured["done_per_page"] == 25
+        assert captured["profile_scope"] == "all"
+        assert context["sample_view"] == "all"
+        assert context["live_page"] == 2
+        assert context["done_page"] == 3
         assert context["has_next_live"] is True
 
 
@@ -50,7 +62,6 @@ def test_samples_template_contains_tab_filters():
     with open(template_path, encoding="utf-8") as handle:
         html = handle.read()
 
-    assert "view='live'" in html
-    assert "view='reported'" in html
-    assert "view='all'" in html
+    assert "profile_scope='production'" in html
+    assert "profile_scope='all'" in html
     assert 'name="view"' in html

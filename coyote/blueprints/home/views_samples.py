@@ -31,6 +31,28 @@ def _sample_view_to_status(sample_view: str) -> str:
     return "done" if sample_view == "reported" else "live"
 
 
+def _resolve_per_page(
+    *,
+    query_key: str,
+    user_settings_key: str,
+    default_value: int,
+    user_settings: dict | None = None,
+) -> int:
+    """
+    Resolve per-page value with precedence:
+    query param -> user settings -> hardcoded default.
+    This is intentionally generic for future user-configurable preferences.
+    """
+    query_value = request.args.get(query_key, type=int)
+    if query_value:
+        return max(1, min(query_value, 200))
+    if user_settings:
+        settings_value = user_settings.get(user_settings_key)
+        if isinstance(settings_value, int):
+            return max(1, min(settings_value, 200))
+    return max(1, min(default_value, 200))
+
+
 @home_bp.route("", defaults={"status": "live"}, methods=["GET", "POST"])
 @home_bp.route("/<string:status>", methods=["GET", "POST"])
 @login_required
@@ -47,14 +69,36 @@ def samples_home(status: str) -> str:
         status=status,
         submitted_view=request.values.get("view"),
     )
-    page = max(1, request.args.get("page", default=1, type=int) or 1)
-    per_page = max(1, min(request.args.get("per_page", default=30, type=int) or 30, 200))
+    page = max(1, request.args.get("page", default=1, type=int) or 1)  # legacy global page
+    per_page = max(1, min(request.args.get("per_page", default=30, type=int) or 30, 200))  # legacy fallback
+    # Placeholder for future persisted user preferences.
+    # When user settings are implemented, populate this from current user profile.
+    user_settings: dict | None = None
+    live_page = max(1, request.args.get("live_page", default=1, type=int) or 1)
+    done_page = max(1, request.args.get("done_page", default=1, type=int) or 1)
+    live_per_page = _resolve_per_page(
+        query_key="live_per_page",
+        user_settings_key="home_live_per_page",
+        default_value=30,
+        user_settings=user_settings,
+    )
+    done_per_page = _resolve_per_page(
+        query_key="done_per_page",
+        user_settings_key="home_done_per_page",
+        default_value=30,
+        user_settings=user_settings,
+    )
+    profile_scope = (request.args.get("profile_scope") or "production").strip().lower()
+    if profile_scope not in {"production", "all"}:
+        profile_scope = "production"
     search_mode = _sample_view_to_search_mode(sample_view)
     status_for_api = _sample_view_to_status(sample_view)
 
     if request.method == "POST":
         form.sample_search.data = sample_search
         page = 1
+        live_page = 1
+        done_page = 1
 
     try:
         payload = fetch_samples(
@@ -64,6 +108,11 @@ def samples_home(status: str) -> str:
             sample_view=sample_view,
             page=page,
             per_page=per_page,
+            live_page=live_page,
+            done_page=done_page,
+            live_per_page=live_per_page,
+            done_per_page=done_per_page,
+            profile_scope=profile_scope,
             panel_type=panel_type,
             panel_tech=panel_tech,
             assay_group=assay_group,
@@ -83,6 +132,11 @@ def samples_home(status: str) -> str:
             "sample_view": sample_view,
             "page": page,
             "per_page": per_page,
+            "live_page": live_page,
+            "done_page": done_page,
+            "live_per_page": live_per_page,
+            "done_per_page": done_per_page,
+            "profile_scope": profile_scope,
             "has_next_live": False,
             "has_next_done": False,
             "panel_type": panel_type,
@@ -100,6 +154,11 @@ def samples_home(status: str) -> str:
         sample_view=payload.get("sample_view", sample_view),
         page=payload.get("page", page),
         per_page=payload.get("per_page", per_page),
+        live_page=payload.get("live_page", live_page),
+        done_page=payload.get("done_page", done_page),
+        live_per_page=payload.get("live_per_page", live_per_page),
+        done_per_page=payload.get("done_per_page", done_per_page),
+        profile_scope=payload.get("profile_scope", profile_scope),
         has_next_live=payload.get("has_next_live", False),
         has_next_done=payload.get("has_next_done", False),
         panel_type=payload.get("panel_type", panel_type),

@@ -12,9 +12,16 @@ class HomeSamplesPayload(BaseModel):
     done_samples: list[dict[str, Any]]
     status: str
     search_mode: str
-    sample_view: str = "live"
+    sample_view: str = "all"
+    profile_scope: str = "production"
+    # Backward-compatible summary fields (map to live table pagination)
     page: int = 1
     per_page: int = 30
+    # Independent server-side pagination for each table
+    live_page: int = 1
+    live_per_page: int = 30
+    done_page: int = 1
+    done_per_page: int = 30
     has_next_live: bool = False
     has_next_done: bool = False
     panel_type: str | None = None

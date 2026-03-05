@@ -222,6 +222,23 @@ Pagination protects API and UI from unbounded result sets, improving latency pre
 ### 8.4 Validation behavior
 Invalid pagination values should return `400` with details describing invalid parameter values.
 
+### 8.5 Home samples endpoint pagination profile
+`GET /api/v1/home/samples` uses a dual-table server pagination model:
+- both `live_samples` and `done_samples` are returned in one response
+- independent paging parameters:
+  - `live_page`, `live_per_page`
+  - `done_page`, `done_per_page`
+- independent continuation flags:
+  - `has_next_live`
+  - `has_next_done`
+- `profile_scope` controls environment filtering (`production` default, `all` optional)
+
+When `search_str` is present, endpoint behavior is intentionally unbounded for this view contract:
+- both sections are searched
+- table page slicing is bypassed for that response
+
+Backward-compatibility fields (`page`, `per_page`) remain present but represent legacy/global defaults and should not be used as primary table pagination controls in new consumers.
+
 ---
 
 ## 9. Filtering Conventions
