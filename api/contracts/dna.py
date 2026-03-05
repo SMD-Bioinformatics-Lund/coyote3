@@ -54,7 +54,7 @@ class DnaVariantContextPayload(BaseModel):
     annotations: list[dict[str, Any]]
     latest_classification: dict[str, Any] | None = None
     other_classifications: list[dict[str, Any]]
-    annotations_interesting: list[dict[str, Any]]
+    annotations_interesting: dict[str, Any]
     in_other_samples: list[dict[str, Any]]
     in_other: list[dict[str, Any]]
     has_hidden_comments: bool

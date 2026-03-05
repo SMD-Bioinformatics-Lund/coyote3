@@ -234,6 +234,12 @@ Key modules:
 
 Security implication: every request affecting clinical or administrative state is validated by API route dependencies and permission checks before persistence operations execute.
 
+### 6.1 Runtime actor context for DB writes and logs
+For authenticated API requests, runtime user context is bound at middleware entry and released after response completion. Mutation/audit code should resolve actor identity from runtime context (`current_username()`), not by threading `username` across route and handler signatures.
+
+Intentional exception:
+- admin schema/form defaults may still use explicit `user.username` assignment when constructing payload defaults (`created_by`, `updated_by`) before persistence.
+
 ---
 
 ## 7. RBAC and Permission Evaluation
@@ -256,7 +262,8 @@ Audit generation is backend-owned and tied to API-handled operations.
 1. Request reaches API route.
 2. Authentication and authorization pass.
 3. Core workflow mutates or reads governed state.
-4. Audit event is emitted by backend event helper.
+4. Request-level audit event is emitted (success/failure, status, duration, route, actor).
+5. Mutation/access-check events are emitted where applicable.
 5. Response is returned to caller.
 
 ### 8.2 Ownership rule

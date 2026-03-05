@@ -105,3 +105,34 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
 
     assert payload["sample"]["name"] == sample["name"]
     assert payload["meta"]["count"] == 0
+
+
+def test_classify_variant_mutation_calls_insert(monkeypatch):
+    captured: dict = {}
+
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(dna.util.common, "get_tier_classification", lambda form_data: 3)
+    monkeypatch.setattr(dna, "get_variant_nomenclature", lambda form_data: ("p", "TP53 p.R175H"))
+    monkeypatch.setattr(
+        dna.store.annotation_handler,
+        "insert_classified_variant",
+        lambda variant, nomenclature, class_num, form_data, **kwargs: captured.update(
+            {
+                "variant": variant,
+                "nomenclature": nomenclature,
+                "class_num": class_num,
+                "author": kwargs.get("author"),
+            }
+        ),
+    )
+    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = dna.classify_variant_mutation(
+        "S1",
+        payload={"id": "V1", "form_data": {"tier3": "on"}},
+        user=fx.api_user(),
+    )
+
+    assert payload["status"] == "ok"
+    assert captured["variant"] == "TP53 p.R175H"
+    assert captured["class_num"] == 3

@@ -9,7 +9,7 @@ from api.core.workflows.dna_workflow import DNAWorkflowService
 from api.core.workflows.rna_workflow import RNAWorkflowService
 from api.app import _api_error, _get_formatted_assay_config, app
 from api.security.access import ApiUser, _get_sample_for_api, require_access
-from api.runtime import app as runtime_app
+from api.runtime import app as runtime_app, current_username
 from api.settings import to_bool
 
 ReportAnalyte = Literal["dna", "rna"]
@@ -242,7 +242,7 @@ def save_dna_report(
         report_file=report_file,
         html=html,
         snapshot_rows=snapshot_rows,
-        created_by=user.username,
+        created_by=current_username(),
     )
 
     payload = _save_response_payload(
@@ -279,7 +279,7 @@ def save_rna_report(
         report_file=report_file,
         html=html,
         snapshot_rows=snapshot_rows,
-        created_by=user.username,
+        created_by=current_username(),
     )
 
     payload = _save_response_payload(

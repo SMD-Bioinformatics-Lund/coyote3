@@ -232,12 +232,20 @@ def _enforce_access(
 
 def require_authenticated(request: Request) -> ApiUser:
     """Require a valid authenticated session without applying route-level RBAC."""
-    user = _decode_session_user(request)
-    token = set_current_user(user)
+    return _decode_session_user(request)
+
+
+def resolve_request_user(request: Request) -> ApiUser | None:
+    """
+    Best-effort request user resolver.
+
+    Returns the authenticated user for valid session context, otherwise None.
+    Unlike `require_authenticated`, this helper never raises.
+    """
     try:
-        return user
-    finally:
-        reset_current_user(token)
+        return _decode_session_user(request)
+    except HTTPException:
+        return None
 
 
 def require_access(

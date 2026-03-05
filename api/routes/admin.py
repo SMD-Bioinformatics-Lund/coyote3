@@ -34,7 +34,7 @@ from api.contracts.admin import (
 )
 from api.core.admin.sample_deletion import delete_all_sample_traces
 from api.extensions import store, util
-from api.runtime import app as runtime_app
+from api.runtime import app as runtime_app, current_username
 from api.security.access import ApiUser, require_access
 
 
@@ -128,9 +128,9 @@ def create_role_context_read(
     options = _permission_policy_options()
     schema["fields"]["permissions"]["options"] = options
     schema["fields"]["deny_permissions"]["options"] = options
-    schema["fields"]["created_by"]["default"] = user.username
+    schema["fields"]["created_by"]["default"] = current_username(default=user.username)
     schema["fields"]["created_on"]["default"] = util.common.utc_now()
-    schema["fields"]["updated_by"]["default"] = user.username
+    schema["fields"]["updated_by"]["default"] = current_username(default=user.username)
     schema["fields"]["updated_on"]["default"] = util.common.utc_now()
 
     return util.common.convert_to_serializable(
@@ -191,9 +191,9 @@ def create_permission_mutation(
     if not schema:
         raise _api_error(404, "Selected schema not found")
 
-    schema["fields"]["created_by"]["default"] = user.username
+    schema["fields"]["created_by"]["default"] = current_username(default=user.username)
     schema["fields"]["created_on"]["default"] = util.common.utc_now()
-    schema["fields"]["updated_by"]["default"] = user.username
+    schema["fields"]["updated_by"]["default"] = current_username(default=user.username)
     schema["fields"]["updated_on"]["default"] = util.common.utc_now()
 
     form_data = payload.get("form_data", {})
@@ -203,7 +203,7 @@ def create_permission_mutation(
     policy["schema_name"] = schema["_id"]
     policy["schema_version"] = schema["version"]
     policy = util.admin.inject_version_history(
-        user_email=user.username,
+        user_email=current_username(default=user.username),
         new_config=deepcopy(policy),
         is_new=True,
     )
@@ -258,9 +258,9 @@ def create_permission_context_read(
         raise _api_error(404, "Selected schema not found")
 
     schema = deepcopy(selected_schema)
-    schema["fields"]["created_by"]["default"] = user.username
+    schema["fields"]["created_by"]["default"] = current_username(default=user.username)
     schema["fields"]["created_on"]["default"] = util.common.utc_now()
-    schema["fields"]["updated_by"]["default"] = user.username
+    schema["fields"]["updated_by"]["default"] = current_username(default=user.username)
     schema["fields"]["updated_on"]["default"] = util.common.utc_now()
 
     return util.common.convert_to_serializable(
@@ -313,12 +313,12 @@ def update_permission_mutation(
     form_data = payload.get("form_data", {})
     updated_permission = util.admin.process_form_to_config(form_data, schema)
     updated_permission["updated_on"] = util.common.utc_now()
-    updated_permission["updated_by"] = user.username
+    updated_permission["updated_by"] = current_username(default=user.username)
     updated_permission["version"] = permission.get("version", 1) + 1
     updated_permission["schema_name"] = schema["_id"]
     updated_permission["schema_version"] = schema["version"]
     updated_permission = util.admin.inject_version_history(
-        user_email=user.username,
+        user_email=current_username(default=user.username),
         new_config=updated_permission,
         old_config=permission,
         is_new=False,
@@ -388,7 +388,7 @@ def create_role_mutation(
     role["schema_name"] = schema["_id"]
     role["schema_version"] = schema["version"]
     role = util.admin.inject_version_history(
-        user_email=user.username,
+        user_email=current_username(default=user.username),
         new_config=deepcopy(role),
         is_new=True,
     )
@@ -415,14 +415,14 @@ def update_role_mutation(
 
     form_data = payload.get("form_data", {})
     updated_role = util.admin.process_form_to_config(form_data, schema)
-    updated_role["updated_by"] = user.username
+    updated_role["updated_by"] = current_username(default=user.username)
     updated_role["updated_on"] = util.common.utc_now()
     updated_role["schema_name"] = schema["_id"]
     updated_role["schema_version"] = schema["version"]
     updated_role["version"] = role.get("version", 1) + 1
     updated_role["_id"] = role.get("_id")
     updated_role = util.admin.inject_version_history(
-        user_email=user.username,
+        user_email=current_username(default=user.username),
         new_config=updated_role,
         old_config=role,
         is_new=False,
@@ -508,9 +508,9 @@ def create_user_context_read(
     schema["fields"]["permissions"]["options"] = options
     schema["fields"]["deny_permissions"]["options"] = options
     schema["fields"]["assay_groups"]["options"] = store.asp_handler.get_all_asp_groups()
-    schema["fields"]["created_by"]["default"] = user.username
+    schema["fields"]["created_by"]["default"] = current_username(default=user.username)
     schema["fields"]["created_on"]["default"] = util.common.utc_now()
-    schema["fields"]["updated_by"]["default"] = user.username
+    schema["fields"]["updated_by"]["default"] = current_username(default=user.username)
     schema["fields"]["updated_on"]["default"] = util.common.utc_now()
 
     return util.common.convert_to_serializable(
@@ -609,7 +609,7 @@ def create_user_mutation(
     else:
         user_data["password"] = None
     user_data = util.admin.inject_version_history(
-        user_email=user.username,
+        user_email=current_username(default=user.username),
         new_config=deepcopy(user_data),
         is_new=True,
     )
@@ -656,7 +656,7 @@ def update_user_mutation(
         - set(role_map.get(updated_user["role"], {}).get("deny_permissions", []))
     )
     updated_user["updated_on"] = util.common.utc_now()
-    updated_user["updated_by"] = user.username
+    updated_user["updated_by"] = current_username(default=user.username)
     if updated_user["auth_type"] == "coyote3" and updated_user["password"]:
         updated_user["password"] = util.common.hash_password(updated_user["password"])
     else:
@@ -665,7 +665,7 @@ def update_user_mutation(
     updated_user["schema_version"] = schema["version"]
     updated_user["version"] = user_doc.get("version", 1) + 1
     updated_user = util.admin.inject_version_history(
-        user_email=user.username,
+        user_email=current_username(default=user.username),
         new_config=updated_user,
         old_config=user_doc,
         is_new=False,
@@ -783,9 +783,9 @@ def create_asp_context_read(
         raise _api_error(404, "Selected schema not found")
 
     schema = deepcopy(selected_schema)
-    schema["fields"]["created_by"]["default"] = user.username
+    schema["fields"]["created_by"]["default"] = current_username(default=user.username)
     schema["fields"]["created_on"]["default"] = util.common.utc_now()
-    schema["fields"]["updated_by"]["default"] = user.username
+    schema["fields"]["updated_by"]["default"] = current_username(default=user.username)
     schema["fields"]["updated_on"]["default"] = util.common.utc_now()
 
     return util.common.convert_to_serializable(
@@ -918,9 +918,9 @@ def create_genelist_context_read(
 
     schema = deepcopy(selected_schema)
     schema["fields"]["assay_groups"]["options"] = store.asp_handler.get_all_asp_groups()
-    schema["fields"]["created_by"]["default"] = user.username
+    schema["fields"]["created_by"]["default"] = current_username(default=user.username)
     schema["fields"]["created_on"]["default"] = util.common.utc_now()
-    schema["fields"]["updated_by"]["default"] = user.username
+    schema["fields"]["updated_by"]["default"] = current_username(default=user.username)
     schema["fields"]["updated_on"]["default"] = util.common.utc_now()
 
     return util.common.convert_to_serializable(
@@ -1106,9 +1106,9 @@ def create_aspc_context_read(
         schema["fields"]["vep_consequences"]["options"] = list(
             runtime_app.config.get("CONSEQ_TERMS_MAPPER", {}).keys()
         )
-    schema["fields"]["created_by"]["default"] = user.username
+    schema["fields"]["created_by"]["default"] = current_username(default=user.username)
     schema["fields"]["created_on"]["default"] = util.common.utc_now()
-    schema["fields"]["updated_by"]["default"] = user.username
+    schema["fields"]["updated_by"]["default"] = current_username(default=user.username)
     schema["fields"]["updated_on"]["default"] = util.common.utc_now()
 
     return util.common.convert_to_serializable(
@@ -1258,7 +1258,7 @@ def update_sample_mutation(
     if not updated_sample:
         raise _api_error(400, "Missing sample payload")
     updated_sample["updated_on"] = util.common.utc_now()
-    updated_sample["updated_by"] = user.username
+    updated_sample["updated_by"] = current_username(default=user.username)
     updated_sample = util.admin.restore_objectids(deepcopy(updated_sample))
     updated_sample["_id"] = sample_obj
     store.sample_handler.update_sample(sample_obj, updated_sample)
@@ -1295,9 +1295,9 @@ def create_schema_mutation(
     schema_doc["_id"] = schema_doc.get("schema_name")
     schema_doc.setdefault("is_active", True)
     schema_doc["created_on"] = util.common.utc_now()
-    schema_doc["created_by"] = user.username
+    schema_doc["created_by"] = current_username(default=user.username)
     schema_doc["updated_on"] = util.common.utc_now()
-    schema_doc["updated_by"] = user.username
+    schema_doc["updated_by"] = current_username(default=user.username)
     store.schema_handler.create_schema(schema_doc)
     return util.common.convert_to_serializable(
         _mutation_payload(
@@ -1343,7 +1343,7 @@ def update_schema_mutation(
     updated_schema = payload.get("schema", {})
     updated_schema["_id"] = schema_doc["_id"]
     updated_schema["updated_on"] = util.common.utc_now()
-    updated_schema["updated_by"] = user.username
+    updated_schema["updated_by"] = current_username(default=user.username)
     updated_schema["version"] = schema_doc.get("version", 1) + 1
     store.schema_handler.update_schema(schema_id, updated_schema)
     return util.common.convert_to_serializable(

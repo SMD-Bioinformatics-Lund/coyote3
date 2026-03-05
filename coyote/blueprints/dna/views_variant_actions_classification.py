@@ -22,8 +22,8 @@ from coyote.services.api_client.api_client import get_web_api_client
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/classify", methods=["POST"], endpoint="classify_variant")
 @dna_bp.route("/<string:sample_id>/fus/<string:fus_id>/classify", methods=["POST"], endpoint="classify_fusion")
 @login_required
-def classify_variant(sample_id: str, id: str | None = None) -> Response:
-    target_id = id or resolve_target_id("var_id", "fus_id")
+def classify_variant(sample_id: str, var_id: str | None = None, fus_id: str | None = None) -> Response:
+    target_id = var_id or fus_id or resolve_target_id("var_id", "fus_id")
     form_data = request.form.to_dict()
     nomenclature = derive_nomenclature(form_data)
     call_api(
@@ -49,8 +49,8 @@ def classify_variant(sample_id: str, id: str | None = None) -> Response:
     endpoint="remove_classified_fusion",
 )
 @login_required
-def remove_classified_variant(sample_id: str, id: str | None = None) -> Response:
-    target_id = id or resolve_target_id("var_id", "fus_id")
+def remove_classified_variant(sample_id: str, var_id: str | None = None, fus_id: str | None = None) -> Response:
+    target_id = var_id or fus_id or resolve_target_id("var_id", "fus_id")
     form_data = request.form.to_dict()
     nomenclature = derive_nomenclature(form_data)
 

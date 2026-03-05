@@ -74,6 +74,7 @@ The common flow is:
    - `Authorization: Bearer <api_session_token>` (primary)
    - cookie header (compatibility/secondary)
 5. API validates session and then applies route-level RBAC (`require_access(...)`) for permission/role/level checks
+6. API binds request actor context for downstream logging and mutation attribution (`current_username()`)
 
 ### 4.2 Internal token model
 Internal-only endpoints require an additional internal token (`X-Coyote-Internal-Token`) even when authenticated context exists. This is an extra control layer for service-to-service and privileged internal reads.
@@ -102,6 +103,21 @@ Report preview and save flows are API-driven. The UI requests preview payloads f
 - authentication failure: `401`
 - authorization failure: `403`
 - internal token failure on protected internal routes: `403`
+
+### 4.8 Actor attribution standard
+For API-owned mutation paths, author/actor fields and mutation logs should resolve identity from runtime request context (`current_username()`). This prevents divergence between route parameters and persisted attribution metadata.
+
+Route audit note:
+- explicit `user.username` use in route modules should be limited to response payload rendering (for example auth whoami/me) or deterministic schema-default materialization where route-level user object is already validated.
+
+### 4.9 Request audit coverage
+API emits request audit events for every `/api/v1/*` request, including:
+- method/path
+- status code and success/failure outcome
+- request duration (`duration_ms`)
+- request id, ip, and resolved username
+
+Mutation events remain separate and are emitted for write methods (`POST/PUT/PATCH/DELETE`) on non-public API paths.
 
 ---
 

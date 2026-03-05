@@ -17,9 +17,11 @@ Key Responsibilities:
 # Imports
 # -------------------------------------------------------------------------
 import json
+import logging
 import os
 import time
 import uuid
+from datetime import datetime, timezone
 
 import httpx
 from flask import Flask, g, request
@@ -347,6 +349,24 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
             duration_ms,
             user_id,
             client_ip,
+        )
+        logging.getLogger("audit").info(
+            json.dumps(
+                {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "source": "web",
+                    "action": "request",
+                    "status": "ok" if 200 <= int(response.status_code) < 400 else "failed",
+                    "status_code": int(response.status_code),
+                    "duration_ms": round(float(duration_ms), 2),
+                    "method": request.method,
+                    "path": request.path,
+                    "request_id": request_id,
+                    "username": user_id,
+                    "ip": client_ip,
+                },
+                default=str,
+            )
         )
         response.headers["X-Request-ID"] = request_id
         return response

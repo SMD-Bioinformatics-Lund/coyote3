@@ -99,3 +99,28 @@ def emit_mutation_event(
         "extra": extra or {},
     }
     _audit_logger.info(json.dumps(event, default=str))
+
+
+def emit_request_event(
+    *,
+    request: Request,
+    username: str,
+    status_code: int,
+    duration_ms: float,
+    extra: dict | None = None,
+) -> None:
+    event = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "source": "api",
+        "action": "request",
+        "status": "ok" if 200 <= int(status_code) < 400 else "failed",
+        "status_code": int(status_code),
+        "duration_ms": round(float(duration_ms), 2),
+        "method": request.method,
+        "path": str(request.url.path),
+        "ip": request_ip(request),
+        "request_id": request_id(request),
+        "username": username,
+        "extra": extra or {},
+    }
+    _audit_logger.info(json.dumps(event, default=str))

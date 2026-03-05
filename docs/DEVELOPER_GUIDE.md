@@ -287,6 +287,13 @@ Do not write authoritative audit events from UI code.
 - Include route/module context in messages.
 - Do not log secrets or sensitive credentials.
 - Use backend logs for policy/audit-sensitive tracing.
+- For authenticated API request logs, rely on runtime actor context (`current_username()`), not ad hoc username plumbing through helpers.
+
+### 11.4 Mutation attribution conventions
+- API mutation writes should derive `author`/`created_by` from runtime actor context where possible.
+- Avoid passing username manually through multiple helper layers for ordinary mutation paths.
+- Keep explicit route-level username assignment only where constructing schema/admin defaults before persistence.
+- For route helpers invoked directly in tests (without middleware context), use `current_username(default=user.username)` when a validated route user object is available.
 
 ---
 

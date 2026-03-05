@@ -10,20 +10,22 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
-from api.audit.access_events import emit_mutation_event, request_ip
+from api.audit.access_events import emit_mutation_event, emit_request_event, request_ip
 from api.extensions import store, util
 from api.runtime import app as runtime_app
 from api.runtime import (
     bind_runtime_context,
     current_username,
+    reset_current_user,
     reset_current_request_id,
+    set_current_user,
     set_current_request_id,
 )
 from api.runtime_bootstrap import create_runtime_context
 from api.security.access import (
     get_api_session_cookie_name,
     is_public_api_path,
-    require_authenticated,
+    resolve_request_user,
 )
 from api.settings import configure_process_env, get_runtime_mode_flags
 
@@ -54,15 +56,18 @@ async def api_authentication_middleware(request: Request, call_next):
     start = time.perf_counter()
     path = request.url.path
     authenticated_user = None
+    user_token = None
     request_id = (request.headers.get("X-Request-ID") or "").strip() or str(uuid.uuid4())
     request.state.request_id = request_id
     request_token = set_current_request_id(request_id)
     response: JSONResponse | None = None
-    if path.startswith("/api/v1/") and not is_public_api_path(path):
-        try:
-            authenticated_user = require_authenticated(request)
+    if path.startswith("/api/v1/"):
+        authenticated_user = resolve_request_user(request)
+        if authenticated_user is not None:
             request.state.authenticated_user = authenticated_user
-        except HTTPException as exc:
+            user_token = set_current_user(authenticated_user)
+        if not is_public_api_path(path) and authenticated_user is None:
+            exc = HTTPException(status_code=401, detail={"status": 401, "error": "Login required"})
             payload = (
                 exc.detail
                 if isinstance(exc.detail, dict)
@@ -83,6 +88,15 @@ async def api_authentication_middleware(request: Request, call_next):
                 "anonymous",
                 request_ip(request),
             )
+            emit_request_event(
+                request=request,
+                username="anonymous",
+                status_code=exc.status_code,
+                duration_ms=(time.perf_counter() - start) * 1000.0,
+                extra={"kind": "authentication"},
+            )
+            if user_token is not None:
+                reset_current_user(user_token)
             reset_current_request_id(request_token)
             return response
     response = await call_next(request)
@@ -103,6 +117,13 @@ async def api_authentication_middleware(request: Request, call_next):
         username,
         request_ip(request),
     )
+    if path.startswith("/api/v1/"):
+        emit_request_event(
+            request=request,
+            username=username,
+            status_code=response.status_code,
+            duration_ms=duration_ms,
+        )
     if (
         path.startswith("/api/v1/")
         and request.method.upper() in {"POST", "PUT", "PATCH", "DELETE"}
@@ -115,6 +136,8 @@ async def api_authentication_middleware(request: Request, call_next):
             action=request.method.upper(),
             target=path,
         )
+    if user_token is not None:
+        reset_current_user(user_token)
     reset_current_request_id(request_token)
     return response
 

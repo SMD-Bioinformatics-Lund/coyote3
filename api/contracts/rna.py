@@ -34,7 +34,7 @@ class RnaFusionContextPayload(BaseModel):
     in_other: list[dict[str, Any]]
     annotations: list[dict[str, Any]]
     latest_classification: dict[str, Any] | None = None
-    annotations_interesting: list[dict[str, Any]]
+    annotations_interesting: dict[str, Any]
     other_classifications: list[dict[str, Any]]
     has_hidden_comments: bool
     hidden_comments: bool
