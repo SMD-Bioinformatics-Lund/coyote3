@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import ssl
-from urllib.parse import urlparse
 
 from ldap3 import (
     ALL,
@@ -17,7 +16,12 @@ from ldap3 import (
     Server,
     Tls,
 )
-from ldap3.core.exceptions import LDAPBindError, LDAPInvalidDnError, LDAPInvalidFilterError
+from ldap3.core.exceptions import (
+    LDAPBindError,
+    LDAPInvalidDnError,
+    LDAPInvalidFilterError,
+    LDAPSocketOpenError,
+)
 from ldap3.utils.dn import parse_dn
 
 LOG = logging.getLogger(__name__)
@@ -35,15 +39,19 @@ class LdapManager:
         self._config = config
         ssl_defaults = ssl.get_default_verify_paths()
 
-        host_value = str(config.get("LDAP_HOST") or config.get("LDAP_SERVER") or "localhost")
-        parsed = urlparse(host_value) if "://" in host_value else None
-        host = parsed.hostname if parsed and parsed.hostname else host_value
-
-        use_ssl = bool(config.get("LDAP_USE_SSL", False))
-        if parsed and parsed.scheme == "ldaps":
-            use_ssl = True
-
-        port = int(config.get("LDAP_PORT") or (parsed.port if parsed else 389) or 389)
+        # Match old Flask LDAP defaults/behavior exactly.
+        host = str(config.get("LDAP_HOST") or config.get("LDAP_SERVER") or "localhost")
+        if host.startswith("ldap://"):
+            host = host[len("ldap://") :]
+        elif host.startswith("ldaps://"):
+            host = host[len("ldaps://") :]
+            config["LDAP_USE_SSL"] = True
+        host = host.split("/", 1)[0].strip()
+        if ":" in host:
+            host, _, host_port = host.partition(":")
+            if host_port.isdigit() and not config.get("LDAP_PORT"):
+                config["LDAP_PORT"] = int(host_port)
+        host = host or "localhost"
 
         tls = Tls(
             local_private_key_file=config.get("LDAP_CLIENT_PRIVATE_KEY"),
@@ -63,11 +71,17 @@ class LdapManager:
 
         self._server = Server(
             host=host,
-            port=port,
-            use_ssl=use_ssl,
+            port=int(config.get("LDAP_PORT", 389)),
+            use_ssl=bool(config.get("LDAP_USE_SSL", False)),
             connect_timeout=int(config.get("LDAP_CONNECT_TIMEOUT", 10)),
             tls=tls,
             get_info=ALL,
+        )
+        LOG.info(
+            "LDAP server host='%s' port=%s use_ssl=%s",
+            host,
+            config.get("LDAP_PORT", 389),
+            config.get("LDAP_USE_SSL", False),
         )
 
     def _auto_bind_mode(self) -> int:
@@ -95,16 +109,24 @@ class LdapManager:
             read_only=read_only,
         )
 
-    def _lookup_user_dn(self, username: str, base_dn: str, attribute: str) -> str | None:
+    def _lookup_user_dn(
+        self, username: str, base_dn: str, attribute: str
+    ) -> str | None:
         bind_dn = self._config.get("LDAP_BINDDN")
         bind_secret = self._config.get("LDAP_SECRET")
         anonymous = not (bind_dn and bind_secret)
-        conn = self._connect(
-            user=str(bind_dn) if bind_dn else None,
-            password=str(bind_secret) if bind_secret else None,
-            anonymous=anonymous,
-            read_only=True,
-        )
+        try:
+            conn = self._connect(
+                user=str(bind_dn) if bind_dn else None,
+                password=str(bind_secret) if bind_secret else None,
+                anonymous=anonymous,
+                read_only=True,
+            )
+        except LDAPSocketOpenError:
+            LOG.error(
+                "LDAP socket open failed during DN lookup (host unreachable or invalid)"
+            )
+            return None
         try:
             user_filter = f"({attribute}={username})"
             conn.search(
@@ -138,7 +160,9 @@ class LdapManager:
             parse_dn(username)
         except LDAPInvalidDnError:
             if base_dn and attribute:
-                resolved_dn = self._lookup_user_dn(username=username, base_dn=base_dn, attribute=attribute)
+                resolved_dn = self._lookup_user_dn(
+                    username=username, base_dn=base_dn, attribute=attribute
+                )
                 if not resolved_dn:
                     return False
                 bind_user = resolved_dn
@@ -148,6 +172,9 @@ class LdapManager:
             ok = bool(conn.bound)
             conn.unbind()
             return ok
+        except LDAPSocketOpenError as exc:
+            LOG.error("LDAP socket open failed for '%s': %s", username, exc)
+            return False
         except Exception as exc:
             LOG.warning("LDAP authentication failed for '%s': %s", username, exc)
             return False
