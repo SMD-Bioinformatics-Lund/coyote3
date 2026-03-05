@@ -184,6 +184,8 @@ Given MongoDB 3.4 compatibility constraints, every release must verify DB compat
 - [ ] new indexes justified by query use
 - [ ] write overhead impact reviewed
 - [ ] index rollout plan documented
+- [ ] startup index bootstrap (`ensure_indexes`) updated when new high-volume query paths are introduced
+- [ ] explain-plan evidence captured for hot routes (no unintended `COLLSCAN` on large collections)
 
 ## 8.4 Data safety checks
 - [ ] backup snapshot confirmed pre-release

@@ -393,6 +393,13 @@ Indexes should reflect actual workload, not theoretical completeness.
 4. Reporting lookups: `reports.report_id`, `reports.sample_oid`, snapshots by `report_oid`.
 5. Audit lookup patterns: timestamp + actor/entity filters.
 
+### Route-critical baseline indexes
+- `variants.SAMPLE_ID` is mandatory for DNA sample variant list/read paths.
+- `reported_variants` indexes are managed via `ReportedVariantsHandler.ensure_indexes()`.
+- `variants` indexes are managed via `VariantsHandler.ensure_indexes()`.
+
+These indexes are initialized from API startup through the Mongo adapter handler bootstrap.
+
 ## 8.2 Why this strategy exists
 Route-family behavior is dominated by sample/finding retrieval and policy checks. Index policy must align with these reads first.
 
@@ -410,6 +417,7 @@ Route-family behavior is dominated by sample/finding retrieval and policy checks
 ```javascript
 db.users.createIndex({"username": 1}, {unique: true})
 db.samples.createIndex({"case_id": 1})
+db.variants.createIndex({"SAMPLE_ID": 1})
 db.variants.createIndex({"SAMPLE_ID": 1, "POS": 1})
 db.reports.createIndex({"report_id": 1}, {unique: true})
 db.reported_variants.createIndex({"report_oid": 1})

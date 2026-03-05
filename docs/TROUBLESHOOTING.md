@@ -400,12 +400,27 @@ docker stats
 5. test endpoint with controlled parameters (pagination/filter).
 6. compare latency with and without optional payload expansions.
 
+### 12.3.1 DNA variant route slow-path checklist
+Use this path when `/api/v1/dna/samples/{sample_id}/variants` is significantly slower than other routes.
+
+1. confirm latency in web logs (`/dna/sample/<id>` often mirrors API route latency).
+2. capture API timing or route duration around `get_case_variants`.
+3. run Mongo `explain()` for the generated query.
+4. verify winning plan is index-backed, not `COLLSCAN`.
+5. verify `variants` collection has at least `sample_id_1` (`{"SAMPLE_ID": 1}`).
+
+Expected healthy signature:
+- winning plan contains `IXSCAN` on `sample_id_1`.
+- `totalDocsExamined` is bounded by sample-specific cardinality, not full collection size.
+- route latency is in sub-second to low-hundreds-millisecond range for typical samples.
+
 ### 12.4 Remediation actions
 - add/adjust indexes based on observed query path
 - enforce pagination limits
 - refactor N+1 handler calls to batch queries
 - tune container resource allocations
 - optimize projections to reduce payload size
+- for temporary diagnostics, use short-lived route timing instrumentation and remove it after root cause is confirmed
 
 ### 12.5 Prevention
 - include performance checks on high-volume routes in release validation
