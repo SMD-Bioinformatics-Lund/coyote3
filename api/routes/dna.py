@@ -1,6 +1,7 @@
 """DNA API routes."""
 
 from copy import deepcopy
+from time import perf_counter
 
 from fastapi import Body, Depends, Query, Request
 
@@ -60,10 +61,17 @@ def _load_cnvs_for_sample(sample: dict, sample_filters: dict, filter_genes: list
 
 @app.get("/api/v1/dna/samples/{sample_id}/variants", response_model=DnaVariantsListPayload)
 def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
+    started_at = perf_counter()
+    checkpoints: list[tuple[str, float]] = []
+
+    def _mark(label: str) -> None:
+        checkpoints.append((label, perf_counter() - started_at))
+
     sample = _get_sample_for_api(sample_id, user)
     assay_config = _get_formatted_assay_config(sample)
     if not assay_config:
         raise _api_error(404, "Assay config not found for sample")
+    _mark("load_sample_and_assay_config")
 
     sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
     sample_filters = deepcopy(sample.get("filters", {}))
@@ -78,6 +86,7 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
         sample, assay_panel_doc, checked_genelists_genes_dict
     )
     filter_conseq = get_filter_conseq_terms(sample_filters.get("vep_consequences", []))
+    _mark("resolve_filters_and_effective_genes")
 
     disp_pos = []
     verification_sample_used = None
@@ -106,9 +115,13 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
     )
 
     variants = list(store.variant_handler.get_case_variants(query))
+    _mark("db_get_case_variants")
     variants = store.blacklist_handler.add_blacklist_data(variants, assay_group)
+    _mark("add_blacklist_data")
     variants, tiered_variants = add_global_annotations(variants, assay_group, subpanel)
+    _mark("add_global_annotations")
     variants = hotspot_variant(variants)
+    _mark("hotspot_variant")
 
     sample_ids = util.common.get_case_and_control_sample_ids(sample)
     bam_id = store.bam_service_handler.get_bams(sample_ids)
@@ -118,6 +131,7 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
     insilico_panel_genelists = store.isgl_handler.get_isgl_by_asp(sample.get("assay"), is_active=True)
     all_panel_genelist_names = util.common.get_assay_genelist_names(insilico_panel_genelists)
     assay_config_schema = store.schema_handler.get_schema(assay_config.get("schema_name"))
+    _mark("load_meta_context")
 
     oncokb_genes = []
     for variant in variants:
@@ -129,6 +143,7 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
             hugo_symbol = oncokb_gene["Hugo Symbol"]
             if hugo_symbol not in oncokb_genes:
                 oncokb_genes.append(hugo_symbol)
+    _mark("resolve_oncokb_genes")
 
     display_sections_data = {"snvs": deepcopy(variants)}
     summary_sections_data = {"snvs": tiered_variants}
@@ -137,15 +152,18 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
         cnvs = _load_cnvs_for_sample(sample, sample_filters, filter_genes)
         display_sections_data["cnvs"] = deepcopy(cnvs)
         summary_sections_data["cnvs"] = [cnv for cnv in cnvs if cnv.get("interesting")]
+        _mark("load_cnvs")
 
     if "BIOMARKER" in analysis_sections:
         biomarkers = list(store.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"])))
         display_sections_data["biomarkers"] = biomarkers
         summary_sections_data["biomarkers"] = biomarkers
+        _mark("load_biomarkers")
 
     if "TRANSLOCATION" in analysis_sections:
         translocs = list(store.transloc_handler.get_sample_translocations(sample_id=str(sample["_id"])))
         display_sections_data["translocs"] = translocs
+        _mark("load_translocations")
 
     if "FUSION" in analysis_sections:
         display_sections_data["fusions"] = []
@@ -164,6 +182,7 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
         filter_genes,
         checked_genelists,
     )
+    _mark("generate_summary_text")
 
     payload = {
         "sample": sample,
@@ -191,7 +210,17 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
         "display_sections_data": display_sections_data,
         "ai_text": ai_text,
     }
-    return util.common.convert_to_serializable(payload)
+    serialized_payload = util.common.convert_to_serializable(payload)
+    _mark("serialize_payload")
+    checkpoints_msg = " | ".join(f"{name}={elapsed * 1000:.1f}ms" for name, elapsed in checkpoints)
+    runtime_app.logger.warning(
+        "dna_variants_timing sample_id=%s variants=%s total_ms=%.1f %s",
+        sample_id,
+        len(variants),
+        (perf_counter() - started_at) * 1000.0,
+        checkpoints_msg,
+    )
+    return serialized_payload
 
 
 @app.get("/api/v1/dna/samples/{sample_id}/plot_context", response_model=DnaPlotContextPayload)

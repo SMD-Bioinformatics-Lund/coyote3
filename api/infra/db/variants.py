@@ -37,6 +37,19 @@ class VariantsHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.variants_collection)
 
+    def ensure_indexes(self) -> None:
+        """
+        Create required indexes for variant-heavy read paths.
+
+        Safe to call multiple times; MongoDB keeps existing indexes.
+        """
+        col = self.get_collection()
+        col.create_index(
+            [("SAMPLE_ID", 1)],
+            name="sample_id_1",
+            background=True,
+        )
+
     def get_case_variants(self, query: dict):
         """
         Retrieve variants based on a constructed query.

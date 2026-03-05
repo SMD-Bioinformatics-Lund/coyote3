@@ -1,5 +1,6 @@
 """Report API routes for DNA and RNA."""
 
+from time import perf_counter
 from fastapi import Body, Depends, Query
 from typing import Any, Literal
 
@@ -168,6 +169,7 @@ def preview_dna_report(
     save: bool = Query(default=False),
     user: ApiUser = Depends(require_access(permission="preview_report", min_role="user", min_level=9)),
 ):
+    started_at = perf_counter()
     sample, assay_config = _load_report_context(sample_id, user)
     _validate_report_inputs("dna", sample, assay_config)
 
@@ -186,6 +188,14 @@ def preview_dna_report(
         template_name=template_name,
         template_context=template_context,
         snapshot_rows=snapshot_rows,
+    )
+    runtime_app.logger.warning(
+        "dna_report_preview_timing sample_id=%s include_snapshot=%s save=%s snapshot_rows=%s total_ms=%.1f",
+        sample_id,
+        bool(include_snapshot),
+        bool(save),
+        len(snapshot_rows),
+        (perf_counter() - started_at) * 1000.0,
     )
     return util.common.convert_to_serializable(payload)
 

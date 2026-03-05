@@ -186,3 +186,5 @@ class MongoAdapter:
         self.rna_classification_handler = RNAClassificationHandler(self)
         self.rna_qc_handler = RNAQCHandler(self)
         self.reported_variants_handler = ReportedVariantsHandler(self)
+        self.variant_handler.ensure_indexes()
+        self.reported_variants_handler.ensure_indexes()
