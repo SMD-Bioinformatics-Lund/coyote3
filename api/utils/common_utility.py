@@ -1136,6 +1136,9 @@ class CommonUtility:
         else:
             document["class"] = class_num
 
+        if "source" in kwargs:
+            document["source"] = kwargs["source"]
+
         if nomenclature != "f":
             document["gene"] = variant_data.get("gene", None)
             document["transcript"] = variant_data.get("transcript", None)

@@ -163,6 +163,14 @@ DNA review pages are available from sample context links and DNA navigation entr
 5. Review tiering, evidence, and annotation context.
 6. Save/update permitted interpretation fields.
 
+### 6.2.1 Variant list default sort and bulk actions
+- On page load, the SNV list defaults to sorting by the `case` frequency column in descending order (highest AF first).
+- In `Modify Variants`, bulk actions apply to the checked rows:
+  - `Tier3`:
+    - `Apply` adds tier-3 class + default interpretation text annotation docs.
+    - `Remove` removes tier-3 class docs and their matching default interpretation text docs for the same scoped context (`assay`, `subpanel`, `gene`, and transcript when available).
+  - `Irrelevant` and `False Positive` support both `Apply` and `Remove` in the same bulk flow.
+
 ### 6.3 Tiered variant interpretation in UI
 Tiered views organize findings by clinical significance and configured logic. Users should treat tier placement as review guidance tied to configured workflow rules and assay context.
 

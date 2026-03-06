@@ -364,6 +364,9 @@ class AnnotationsHandler(BaseHandler):
         else:
             document["class"] = class_num
 
+        if "source" in kwargs:
+            document["source"] = kwargs["source"]
+
         if nomenclature != "f":
             document["gene"] = variant_data.get("gene", None)
             document["transcript"] = variant_data.get("transcript", None)
@@ -380,7 +383,12 @@ class AnnotationsHandler(BaseHandler):
         return result
 
     def delete_classified_variant(
-        self, variant: str, nomenclature: str, variant_data: dict
+        self,
+        variant: str,
+        nomenclature: str,
+        variant_data: dict,
+        class_num: int | None = None,
+        annotation_text: str | None = None,
     ) -> list | DeleteResult:
         """
         Delete a classified variant from the database.
@@ -401,46 +409,44 @@ class AnnotationsHandler(BaseHandler):
         Returns:
             list | DeleteResult: A list of matching documents or the result of the delete operation.
         """
-        print(variant_data)
-        classified_docs = list(
-            self.get_collection().find(
-                {
-                    "class": {"$exists": True},
-                    "variant": variant,
-                    "assay": variant_data.get("assay_group", None),
-                    "gene": variant_data.get("gene", None),
-                    "gene1": variant_data.get("gene1", None),  # this is for fusion
-                    "gene2": variant_data.get("gene2", None),  # this is for fusion
-                    "nomenclature": nomenclature,
-                    "subpanel": variant_data.get("subpanel", None),
-                }
-            )
-        )
+        query = {
+            "variant": variant,
+            "assay": variant_data.get("assay_group", None),
+            "gene": variant_data.get("gene", None),
+            "gene1": variant_data.get("gene1", None),  # this is for fusion
+            "gene2": variant_data.get("gene2", None),  # this is for fusion
+            "nomenclature": nomenclature,
+            "subpanel": variant_data.get("subpanel", None),
+        }
+        if nomenclature != "f":
+            query["transcript"] = variant_data.get("transcript", None)
+
+        class_filter: dict = {"class": {"$exists": True}}
+        if class_num is not None:
+            class_filter["class"] = class_num
+
+        delete_clause: list[dict] = [class_filter]
+        if annotation_text:
+            delete_clause.append({"text": annotation_text})
+            delete_clause.append({"source": "bulk_tier_default_text"})
+
+        scoped_query = {**query, "$or": delete_clause}
+        classified_docs = list(self.get_collection().find(scoped_query))
         ## If variant has no match to current assay, it has an historical variant, i.e. not assigned to an assay. THIS IS DANGEROUS, maybe limit to admin?
         if len(classified_docs) == 0 and current_user_is_admin():
-            delete_result = self.get_collection().find(  # may be change it to delete later
-                {
-                    "class": {"$exists": True},
-                    "variant": variant,
-                    "gene": variant_data.get("gene", None),
-                    "gene1": variant_data.get("gene1", None),  # this is for fusion
-                    "gene2": variant_data.get("gene2", None),  # this is for fusion
-                    "nomenclature": nomenclature,
-                }
-            )
+            historic_query = {
+                "variant": variant,
+                "gene": variant_data.get("gene", None),
+                "gene1": variant_data.get("gene1", None),  # this is for fusion
+                "gene2": variant_data.get("gene2", None),  # this is for fusion
+                "nomenclature": nomenclature,
+                "$or": delete_clause,
+            }
+            if nomenclature != "f":
+                historic_query["transcript"] = variant_data.get("transcript", None)
+            delete_result = self.get_collection().find(historic_query)  # may be change it to delete later
         else:
-            delete_result = self.get_collection().delete_many(
-                {
-                    "class": {"$exists": True},
-                    "variant": variant,
-                    "assay": variant_data.get("assay_group", None),
-                    "gene": variant_data.get("gene", None),
-                    "gene1": variant_data.get("gene1", None),  # this is for fusion
-                    "gene2": variant_data.get("gene2", None),  # this is for fusion
-                    "nomenclature": nomenclature,
-                    "subpanel": variant_data.get("subpanel", None),
-                }
-            )
+            delete_result = self.get_collection().delete_many(scoped_query)
 
         return delete_result
 

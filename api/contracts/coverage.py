@@ -13,7 +13,7 @@ class CoverageSamplePayload(BaseModel):
     sample: dict[str, Any]
     genelists: list[str]
     smp_grp: str
-    cov_table: list[dict[str, Any]]
+    cov_table: dict[str, dict[str, Any]]
 
 
 class CoverageBlacklistedPayload(BaseModel):

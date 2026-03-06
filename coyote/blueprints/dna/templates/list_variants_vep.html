@@ -187,7 +187,7 @@
                         {% if variants and variants[0].GT %}
                           {% for gt in variants[0].GT|sort(attribute='type') %}
                             {% if gt.type == "case" %}
-                              <th data-autoclick="true" class="px-1 py-3 font-semibold max-w-[20ch] break-words whitespace-normal" id="variant-table-header-case">{{ gt.type }} ({{gt.sample}})</th>
+                              <th data-autoclick="true" data-default-order="desc" class="px-1 py-3 font-semibold max-w-[20ch] break-words whitespace-normal" id="variant-table-header-case">{{ gt.type }} ({{gt.sample}})</th>
                             {% else %}
                               <th class="px-2 py-3 font-semibold max-w-[20ch] break-words whitespace-normal" id="variant-table-header-control">{{ gt.type }} ({{gt.sample}})</th>
                             {% endif %}

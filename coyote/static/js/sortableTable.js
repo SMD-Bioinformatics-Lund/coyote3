@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // Create sorting arrow (initially hidden)
         let arrow = document.createElement("span");
         arrow.className =
-            "sort-arrow hidden ml-1 inline-block w-3 text-[10px] leading-none align-middle text-gray-500";
+            "sort-arrow hidden ml-1 inline-flex h-2 w-2 items-center justify-center text-[7px] leading-[1] align-middle text-gray-500";
         arrow.innerHTML = "▼"; // Default down arrow
         arrow.setAttribute("aria-hidden", "true");
         header.appendChild(arrow);
@@ -41,7 +41,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Toggle sort order (ascending/descending)
             let currentOrder = header.dataset.order || "none";
-            let newOrder = currentOrder === "asc" ? "desc" : "asc";
+            let defaultOrder = (header.dataset.defaultOrder || "asc").toLowerCase();
+            if (defaultOrder !== "desc") {
+                defaultOrder = "asc";
+            }
+            let newOrder = currentOrder === "none" ? defaultOrder : (currentOrder === "asc" ? "desc" : "asc");
             header.dataset.order = newOrder;
 
             // Update arrow visibility and direction

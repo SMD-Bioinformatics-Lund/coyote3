@@ -71,6 +71,6 @@ def bulk_toggle(
         lambda: get_web_api_client().post_json(
             endpoint,
             headers=headers(),
-            params={"apply": str(apply).lower(), "variant_ids": variant_ids},
+            json_body={"apply": apply, "variant_ids": variant_ids},
         ),
     )

@@ -9,5 +9,13 @@ def test_sort_arrows_are_hidden_by_default_and_sized():
         script = handle.read()
 
     assert "sort-arrow hidden" in script
-    assert "w-3 text-[10px] leading-none" in script
+    assert "h-2 w-2 items-center justify-center text-[7px] leading-[1]" in script
     assert "aria-hidden" in script
+
+
+def test_case_frequency_column_defaults_to_descending_sort():
+    template_path = "coyote/blueprints/dna/templates/list_variants_vep.html"
+    with open(template_path, encoding="utf-8") as handle:
+        template = handle.read()
+
+    assert 'data-autoclick="true" data-default-order="desc"' in template

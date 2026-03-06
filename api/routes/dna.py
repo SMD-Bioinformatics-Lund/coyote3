@@ -49,6 +49,18 @@ def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: s
     }
 
 
+def _coerce_bool(value: object, default: bool = True) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"true", "1", "yes", "on"}:
+            return True
+        if lowered in {"false", "0", "no", "off"}:
+            return False
+    return default
+
+
 def _load_cnvs_for_sample(sample: dict, sample_filters: dict, filter_genes: list[str]) -> list[dict]:
     cnv_query = build_cnv_query(str(sample["_id"]), filters={**sample_filters, "filter_genes": filter_genes})
     cnvs = list(store.cnv_handler.get_sample_cnvs(cnv_query))
@@ -488,14 +500,19 @@ def unhide_variant_comment(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/variants/bulk/fp", response_model=SampleMutationPayload)
+@app.post("/api/v1/dna/samples/{sample_id}/variants/fp/bulk", response_model=SampleMutationPayload)
 def set_variant_false_positive_bulk(
     sample_id: str,
     apply: bool = Query(default=True),
     variant_ids: list[str] = Query(default_factory=list),
+    payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="user", min_level=9)),
 ):
     _get_sample_for_api(sample_id, user)
+    payload_variant_ids = payload.get("variant_ids") if isinstance(payload, dict) else None
+    if isinstance(payload_variant_ids, list):
+        variant_ids = payload_variant_ids
+    apply = _coerce_bool(payload.get("apply") if isinstance(payload, dict) else None, default=apply)
     if variant_ids:
         if apply:
             store.variant_handler.mark_false_positive_var_bulk(variant_ids)
@@ -506,14 +523,19 @@ def set_variant_false_positive_bulk(
     )
 
 
-@app.post("/api/v1/dna/samples/{sample_id}/variants/bulk/irrelevant", response_model=SampleMutationPayload)
+@app.post("/api/v1/dna/samples/{sample_id}/variants/irrelevant/bulk", response_model=SampleMutationPayload)
 def set_variant_irrelevant_bulk(
     sample_id: str,
     apply: bool = Query(default=True),
     variant_ids: list[str] = Query(default_factory=list),
+    payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="user", min_level=9)),
 ):
     _get_sample_for_api(sample_id, user)
+    payload_variant_ids = payload.get("variant_ids") if isinstance(payload, dict) else None
+    if isinstance(payload_variant_ids, list):
+        variant_ids = payload_variant_ids
+    apply = _coerce_bool(payload.get("apply") if isinstance(payload, dict) else None, default=apply)
     if variant_ids:
         if apply:
             store.variant_handler.mark_irrelevant_var_bulk(variant_ids)
@@ -534,6 +556,7 @@ def set_variant_tier_bulk(
     variant_ids = payload.get("variant_ids", []) or []
     assay_group = payload.get("assay_group")
     subpanel = payload.get("subpanel")
+    apply = _coerce_bool(payload.get("apply", True), default=True)
     tier_raw = payload.get("tier", 3)
     try:
         class_num = int(tier_raw)
@@ -584,6 +607,16 @@ def set_variant_tier_bulk(
             "transcript": transcript,
         }
 
+        if not apply:
+            store.annotation_handler.delete_classified_variant(
+                variant=variant,
+                nomenclature=nomenclature,
+                variant_data=variant_data,
+                class_num=class_num,
+                annotation_text=text,
+            )
+            continue
+
         class_doc = util.common.create_classified_variant_doc(
             variant=variant,
             nomenclature=nomenclature,
@@ -598,6 +631,7 @@ def set_variant_tier_bulk(
             class_num=class_num,
             variant_data=variant_data,
             text=text,
+            source="bulk_tier_default_text",
         )
         bulk_docs.append(deepcopy(text_doc))
 

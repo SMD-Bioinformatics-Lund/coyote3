@@ -77,14 +77,15 @@ def classify_multi_variant(sample_id: str) -> Response:
     irrelevant = request.form.get("irrelevant")
     false_positive = request.form.get("false_positive")
 
-    if tier and action == "apply":
+    if tier and action in {"apply", "remove"}:
         call_api(
             sample_id,
-            "Failed to bulk assign variant tier via API",
+            "Failed to bulk update variant tier via API",
             lambda: get_web_api_client().post_json(
                 api_endpoints.dna_sample(sample_id, "variants", "bulk", "tier"),
                 headers=headers(),
                 json_body={
+                    "apply": action == "apply",
                     "variant_ids": variants_to_modify,
                     "assay_group": assay_group,
                     "subpanel": subpanel,
@@ -99,7 +100,7 @@ def classify_multi_variant(sample_id: str) -> Response:
         action=action,
         variant_ids=variants_to_modify,
         operation_label="false-positive",
-        endpoint=api_endpoints.dna_sample(sample_id, "variants", "bulk", "fp"),
+        endpoint=api_endpoints.dna_sample(sample_id, "variants", "fp", "bulk"),
     )
     bulk_toggle(
         sample_id=sample_id,
@@ -107,7 +108,7 @@ def classify_multi_variant(sample_id: str) -> Response:
         action=action,
         variant_ids=variants_to_modify,
         operation_label="irrelevant",
-        endpoint=api_endpoints.dna_sample(sample_id, "variants", "bulk", "irrelevant"),
+        endpoint=api_endpoints.dna_sample(sample_id, "variants", "irrelevant", "bulk"),
     )
 
     return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))
