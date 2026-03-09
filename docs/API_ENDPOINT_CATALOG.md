@@ -51,7 +51,13 @@ This catalog is an implementation-oriented inventory of API route families for m
 
 ## 7. Coverage Domain
 - Module: `api/routes/coverage.py`
-- Scope: coverage and related quality metrics endpoints.
+- Example paths:
+  - `GET /api/v1/coverage/samples/{sample_id}`
+  - `GET /api/v1/coverage/blacklisted/{group}`
+- Scope: coverage sample payloads, filtered low-coverage structures, and blacklisted-region retrieval for assay/group context.
+- Related mutation endpoints (implemented in `api/routes/samples.py`):
+  - `POST /api/v1/coverage/blacklist/update`
+  - `POST /api/v1/coverage/blacklist/{obj_id}/remove`
 
 ## 8. Admin Domain
 - Module: `api/routes/admin.py`

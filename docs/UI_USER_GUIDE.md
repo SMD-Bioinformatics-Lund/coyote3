@@ -197,6 +197,65 @@ RNA behavior can differ across assay groups. Users should confirm assay group me
 
 ---
 
+## Coverage Workflow in the UI
+
+### Purpose
+The Coverage Review page is used to evaluate low-depth regions for a sample, inspect gene-level transcript coverage, and apply blacklist actions for genes or regions in a governed assay context.
+
+### Entry points
+- Coverage page from sample context: `/cov/<sample_id>`
+- Blacklisted coverage overview for assay/group: `/cov/blacklisted/<group>`
+
+### Coverage page layout model
+- Left sidebar:
+  - actions (open blacklisted regions page)
+  - cutoff controls (`100X`, `500X`, `1000X`)
+  - low coverage region table (sortable)
+- Right panel:
+  - selected gene plot (with zoom controls)
+  - low-coverage detail tables (exons/probes) below the plot
+
+Behavior rules:
+- Sidebar can be collapsed/expanded.
+- On desktop, sidebar width is resizable and constrained to max 30% width.
+- When collapsed, plot/details area uses full available width.
+- Plot and detail tables are synchronized in the right panel and resize with available space.
+
+### Plot and table behavior
+After selecting a gene in the low-coverage table:
+1. A gene coverage plot is rendered.
+2. A legend is displayed below the plot area.
+3. Low-coverage detail tabs (exons/probes) appear below the plot.
+4. Region-level blacklist actions are available in table rows.
+
+Zoom controls:
+- `Zoom In`
+- `Zoom Out`
+- `Reset`
+
+The plot initializes to available panel width and uses internal horizontal scrolling when zoomed, so page-level layout remains stable.
+
+### Blacklist actions and effect
+Available actions:
+- `Blacklist Gene` (from plot header)
+- `Blacklist` for individual region/probe rows
+
+These actions call backend mutation routes and apply group/assay-scoped blacklist state.
+
+### Operational notes for support teams
+- Coverage UI route handlers: `coyote/blueprints/coverage/views.py`
+- Coverage UI template and interaction logic: `coyote/blueprints/coverage/templates/show_cov.html`
+- Coverage API reads: `api/routes/coverage.py`
+- Coverage blacklist mutations: `api/routes/samples.py`
+- Local vendored plotting dependency: `coyote/static/js/vendor/d3.v7.min.js`
+
+### If colors/layout do not update as expected
+- Confirm `tailwind.css` is rebuilt from `coyote/static/css/tailwind.input.css`.
+- Hard refresh browser assets after CSS updates.
+- If classes are present in templates but missing in compiled CSS, verify Tailwind build runtime and class source/safelist coverage.
+
+---
+
 ## 8. Reporting Workflow (Read and Download)
 
 ### 8.1 Report access model

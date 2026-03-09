@@ -1,0 +1,12 @@
+/* Coverage page utility backfill when compiled tailwind.css is stale. */
+.border-purple-200 { border-color: var(--color-purple-200); }
+.border-t-purple-500 { border-top-color: var(--color-purple-500); }
+.border-cyan-200 { border-color: var(--color-cyan-200); }
+.border-t-cyan-500 { border-top-color: var(--color-cyan-500); }
+.border-emerald-200 { border-color: var(--color-emerald-200); }
+.border-t-emerald-500 { border-top-color: var(--color-emerald-500); }
+.border-sky-200 { border-color: var(--color-sky-200); }
+.border-t-sky-500 { border-top-color: var(--color-sky-500); }
+.border-indigo-300 { border-color: var(--color-indigo-300); }
+.border-t-indigo-500 { border-top-color: var(--color-indigo-500); }
+.border-t-blue-500 { border-top-color: var(--color-blue-500); }
