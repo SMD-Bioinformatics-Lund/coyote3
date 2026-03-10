@@ -148,6 +148,80 @@ This keeps behavior stable now and allows user-configurable defaults later witho
 ### 5.5 Opening sample context
 Selecting a sample opens a detail/edit context page where report access, gene-related actions, and workflow-specific links are available based on assay and permissions.
 
+### 5.6 Dashboard visualization behavior
+The operational dashboard is a summary of throughput, quality, assay load, and catalog/system capacity.  
+All values are derived from `/api/v1/dashboard/summary` and rendered as cards + charts.
+
+Primary KPI cards:
+- `Total Samples`: total sample count in dashboard scope.
+- `Analysed`: number of samples marked analysed.
+- `Pending`: number of samples pending analysis.
+- `Panel Genes`: unique gene count across configured panels in scope.
+- Header `Analysed rate`: `analysed / total * 100`.
+
+Sample Progress:
+- Donut with two slices: `Analysed` and `Pending`.
+- Shows proportion of completed vs remaining work.
+- Hover shows absolute counts.
+
+Variant Composition:
+- Donut with variant-type mix (for example SNP, Indel, CNV, Fusion, Translocation).
+- Side info cards show:
+  - `Small Variants`: total small variant count.
+  - `SNP Fraction in Small Variants`: `total_snps / total_variants * 100`.
+  - `Blacklist Rate`: blacklist variants as percentage of total variants.
+  - `FP Rate`: false positives as percentage of total variants.
+
+Tier Distribution (Reported):
+- Bar chart of reported variants grouped by Tier 1/2/3/4.
+- Used to monitor reporting mix and tiering pressure.
+
+My Assay Workload:
+- 100% stacked bar per assay.
+- Dark segment = analysed %, light segment = pending % for that same assay.
+- Center label = analysed percentage for the full bar.
+- Hover shows absolute counts: `total`, `analysed`, `pending`.
+- Clicking a bar routes to filtered live samples for that assay group.
+
+Quality Snapshot:
+- Multi-ring radial chart with three metrics:
+  - `Analysed` (%)
+  - `Blacklist` (%)
+  - `FP` (%)
+- Companion cards repeat the same values with fixed precision.
+
+Sample Distribution:
+- Four donut charts:
+  - `By Profile`: production/validation/development/testing split.
+  - `By Omics Layer`: DNA vs RNA split.
+  - `By Sequencing Scope`: scope distribution (for example WGS, WTS, PANEL, DNA, RNA, UNKNOWN).
+  - `Pairing Status`: paired, unpaired, unknown.
+
+Sequencing Scope Summary:
+- Top scope categories shown as compact cards with absolute counts.
+- Intended as a quick “top scopes” read without opening donut tooltips.
+
+Platform Capacity Rings:
+- Radial rings for `Users`, `Roles`, `ASP`, `ASPC`, `ISGL`.
+- Ring length is normalized to the maximum entity count in this set.
+- Hover and ring labels show absolute counts (not normalized percentages).
+
+ISGL Visibility Overlap:
+- 3-set overlap (Public, Private, Adhoc).
+- Displays only non-zero regions to reduce clutter.
+- Hovering circles/regions shows exact region counts.
+- Legend hover highlights matching regions.
+
+Admin Insights (admin-only section):
+- `Users per Role`: donut distribution of users across roles.
+- `Professions by Role`: stacked bar matrix for profession-role composition.
+
+Metric interpretation notes:
+- Counts are absolute unless explicitly labeled as `%`.
+- Most chart tooltips are count-based for operational triage.
+- If displayed values appear stale, verify static asset rebuild and browser cache first.
+- If displayed values appear incorrect, validate `/api/v1/dashboard/summary` payload fields before debugging rendering logic.
+
 ---
 
 ## 6. DNA Workflow in the UI

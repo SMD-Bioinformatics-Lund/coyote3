@@ -1,10 +1,15 @@
 # Changelog
 
-
 # 4.0.0
 - Coming soon
 - API based backend and Flask Frontend with tailwind CSS
 - Mongo Containnnerized
+- Dashboard: standardized chart visual system for bar/donut plots (legend style, label behavior, tooltip formatting, grid/typography consistency).
+- Dashboard: reworked ISGL visibility overlap into an interactive 3-set visualization with hover tooltips and non-zero region rendering.
+- Dashboard: moved ISGL overlap card to general logged-in dashboard visibility and aligned card sizing with 3-column section layout.
+- Dashboard: fixed radial capacity ring layout overflow and normalized-value display issues.
+- Dashboard: updated ring/stacked-bar label behavior (capacity ring labels show counts; assay workload center labels rendered vertically).
+- Docs: expanded dashboard user guide with metric-by-metric definitions, formulas, and panel interpretation notes.
 
 ## v3.1.21
 - Fixed HGVS display/toggle behavior across DNA variant list, tiered search, and reported variants views (unique row IDs, stacked HGVS lines, and no blank indent when only one HGVS value exists).

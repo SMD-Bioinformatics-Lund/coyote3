@@ -1,6 +1,105 @@
 @config "../../../tailwind.config.js";
 @import "tailwindcss";
 
+/* Tailwind v4 custom colors: defining --color-* here generates all color utilities. */
+@theme {
+  /* Subtle UI palettes */
+  --color-brown-50: #f5f5ef;
+  --color-brown-100: #e2d6c0;
+  --color-brown-200: #caae80;
+  --color-brown-300: #b08d57;
+  --color-brown-400: #926a3d;
+  --color-brown-500: #79553a;
+  --color-brown-600: #604330;
+  --color-brown-700: #4d3526;
+  --color-brown-800: #3d2a1e;
+  --color-brown-900: #312218;
+  --color-brown-950: #1f140f;
+
+  --color-olive-50: #fafdf5;
+  --color-olive-100: #e3edcd;
+  --color-olive-200: #ccdbae;
+  --color-olive-300: #b2c48c;
+  --color-olive-400: #99ad6b;
+  --color-olive-500: #7d9151;
+  --color-olive-600: #667741;
+  --color-olive-700: #515f34;
+  --color-olive-800: #3d4927;
+  --color-olive-900: #2f391d;
+  --color-olive-950: #1e2412;
+
+  --color-sage-50: #f6faf8;
+  --color-sage-100: #e7f0ec;
+  --color-sage-200: #cedfd7;
+  --color-sage-300: #adc8bc;
+  --color-sage-400: #88ad9d;
+  --color-sage-500: #6e9383;
+  --color-sage-600: #587767;
+  --color-sage-700: #475f53;
+  --color-sage-800: #394d44;
+  --color-sage-900: #2f4039;
+
+  --color-sand-50: #fdfbf7;
+  --color-sand-100: #f7f1e7;
+  --color-sand-200: #ede1cc;
+  --color-sand-300: #dfcbab;
+  --color-sand-400: #d1b58a;
+  --color-sand-500: #b89a6d;
+  --color-sand-600: #967e57;
+  --color-sand-700: #796648;
+  --color-sand-800: #62523c;
+  --color-sand-900: #524535;
+
+  --color-mist-50: #f8fafb;
+  --color-mist-100: #eef2f4;
+  --color-mist-200: #dce3e8;
+  --color-mist-300: #c3ced6;
+  --color-mist-400: #a4b3bf;
+  --color-mist-500: #889aa8;
+  --color-mist-600: #6e7f8d;
+  --color-mist-700: #596771;
+  --color-mist-800: #4a555c;
+  --color-mist-900: #40474e;
+
+  /* Semantic single colors */
+  --color-production: #216869;
+  --color-development: #3b5ba0;
+  --color-testing: #857d88;
+  --color-validation: #a37c27;
+  --color-pass: #166534;
+  --color-germline: #b5761b;
+  --color-germline-risk: #9b3d12;
+  --color-warn: #c17c00;
+  --color-fail: #8c1d1d;
+  --color-tier1: #d55e00;
+  --color-tier2: #e69f00;
+  --color-tier3: #0072b2;
+  --color-tier4: #009e73;
+  --color-tier999: #666666;
+  --color-tierother: #999999;
+  --color-tier-header1: rgb(213 94 0 / 50%);
+  --color-tier-header2: rgb(230 159 0 / 50%);
+  --color-tier-header3: rgb(0 114 178 / 50%);
+  --color-tier-header4: rgb(0 158 115 / 50%);
+  --color-tier-header999: rgb(102 102 102 / 50%);
+  --color-melanoma: #fb6b6b;
+  --color-cns: #76c7a6;
+  --color-lung: #f57c94;
+  --color-colon: #bbbbbb;
+  --color-gi: #f8a488;
+  --color-dna: #f5a25d;
+  --color-rna: #ab7dff;
+  --color-genelist: #d1d2fa;
+  --color-fusionlist: #ccf9d8;
+  --color-cnvlist: #ffe3c2;
+  --color-panel: #2563eb;
+  --color-wts: #7c3aed;
+  --color-wgs: #0f766e;
+  --color-paired: #009e73;
+  --color-unpaired: #e69f00;
+  --color-unknown: #6b7280;
+}
+
 /* Tailwind v4 compatibility: restore v3-like default border color. */
 @layer base {
   *,
@@ -66,8 +165,8 @@
   }
 }
 
-/* Coverage page explicit class source: ensure these shades exist in compiled CSS. */
-@source inline("border-indigo-100 border-indigo-200 border-indigo-300 border-blue-200 border-t-blue-500 border-purple-200 border-t-purple-500 border-cyan-200 border-t-cyan-500 border-emerald-200 border-t-emerald-500 border-sky-200 border-t-sky-500");
+/* Ensure critical dashboard card color utilities are always generated. */
+@source inline("border-slate-200 border-t-tier1 border-t-tier2 border-t-tier3 border-t-tier4 border-t-panel border-t-wgs border-t-dna bg-sage-50 bg-sand-50 bg-mist-50");
 
 /* Ensure dynamic profile/scope classes are always generated in Tailwind v4. */
-@source inline("bg-production bg-validation bg-development bg-testing bg-pass bg-warn bg-fail bg-germline bg-germline-risk bg-tier1 bg-tier2 bg-tier3 bg-tier4 bg-tier999 bg-tierother bg-tier-header1 bg-tier-header2 bg-tier-header3 bg-tier-header4 bg-tier-header999 bg-melanoma bg-cns bg-lung bg-colon bg-gi bg-dna bg-rna bg-genelist bg-fusionlist bg-cnvlist bg-panel bg-wts bg-wgs bg-unknown text-production text-validation text-development text-testing text-pass text-warn text-fail text-germline text-germline-risk text-tier1 text-tier2 text-tier3 text-tier4 text-tier999 text-tierother text-tier-header1 text-tier-header2 text-tier-header3 text-tier-header4 text-tier-header999 text-melanoma text-cns text-lung text-colon text-gi text-dna text-rna text-genelist text-fusionlist text-cnvlist text-panel text-wts text-wgs text-unknown border-production border-validation border-development border-testing border-pass border-warn border-fail border-germline border-germline-risk border-tier1 border-tier2 border-tier3 border-tier4 border-tier999 border-tierother border-tier-header1 border-tier-header2 border-tier-header3 border-tier-header4 border-tier-header999 border-melanoma border-cns border-lung border-colon border-gi border-dna border-rna border-genelist border-fusionlist border-cnvlist border-panel border-wts border-wgs border-unknown ring-production ring-validation ring-development ring-testing ring-pass ring-warn ring-fail ring-germline ring-germline-risk ring-tier1 ring-tier2 ring-tier3 ring-tier4 ring-tier999 ring-tierother ring-tier-header1 ring-tier-header2 ring-tier-header3 ring-tier-header4 ring-tier-header999 ring-melanoma ring-cns ring-lung ring-colon ring-gi ring-dna ring-rna ring-genelist ring-fusionlist ring-cnvlist ring-panel ring-wts ring-wgs ring-unknown hover:bg-production hover:bg-validation hover:bg-development hover:bg-testing hover:bg-pass hover:bg-warn hover:bg-fail hover:bg-germline hover:bg-germline-risk hover:bg-tier1 hover:bg-tier2 hover:bg-tier3 hover:bg-tier4 hover:bg-tier999 hover:bg-tierother hover:bg-tier-header1 hover:bg-tier-header2 hover:bg-tier-header3 hover:bg-tier-header4 hover:bg-tier-header999 hover:bg-melanoma hover:bg-cns hover:bg-lung hover:bg-colon hover:bg-gi hover:bg-dna hover:bg-rna hover:bg-genelist hover:bg-fusionlist hover:bg-cnvlist hover:bg-panel hover:bg-wts hover:bg-wgs hover:bg-unknown focus:bg-production focus:bg-validation focus:bg-development focus:bg-testing focus:bg-pass focus:bg-warn focus:bg-fail focus:bg-germline focus:bg-germline-risk focus:bg-tier1 focus:bg-tier2 focus:bg-tier3 focus:bg-tier4 focus:bg-tier999 focus:bg-tierother focus:bg-tier-header1 focus:bg-tier-header2 focus:bg-tier-header3 focus:bg-tier-header4 focus:bg-tier-header999 focus:bg-melanoma focus:bg-cns focus:bg-lung focus:bg-colon focus:bg-gi focus:bg-dna focus:bg-rna focus:bg-genelist focus:bg-fusionlist focus:bg-cnvlist focus:bg-panel focus:bg-wts focus:bg-wgs focus:bg-unknown");
+@source inline("bg-production bg-validation bg-development bg-testing bg-pass bg-warn bg-fail bg-germline bg-germline-risk bg-tier1 bg-tier2 bg-tier3 bg-tier4 bg-tier999 bg-tierother bg-tier-header1 bg-tier-header2 bg-tier-header3 bg-tier-header4 bg-tier-header999 bg-melanoma bg-cns bg-lung bg-colon bg-gi bg-dna bg-rna bg-genelist bg-fusionlist bg-cnvlist bg-panel bg-wts bg-wgs bg-paired bg-unpaired bg-unknown text-production text-validation text-development text-testing text-pass text-warn text-fail text-germline text-germline-risk text-tier1 text-tier2 text-tier3 text-tier4 text-tier999 text-tierother text-tier-header1 text-tier-header2 text-tier-header3 text-tier-header4 text-tier-header999 text-melanoma text-cns text-lung text-colon text-gi text-dna text-rna text-genelist text-fusionlist text-cnvlist text-panel text-wts text-wgs text-paired text-unpaired text-unknown border-production border-validation border-development border-testing border-pass border-warn border-fail border-germline border-germline-risk border-tier1 border-tier2 border-tier3 border-tier4 border-tier999 border-tierother border-tier-header1 border-tier-header2 border-tier-header3 border-tier-header4 border-tier-header999 border-melanoma border-cns border-lung border-colon border-gi border-dna border-rna border-genelist border-fusionlist border-cnvlist border-panel border-wts border-wgs border-paired border-unpaired border-unknown ring-production ring-validation ring-development ring-testing ring-pass ring-warn ring-fail ring-germline ring-germline-risk ring-tier1 ring-tier2 ring-tier3 ring-tier4 ring-tier999 ring-tierother ring-tier-header1 ring-tier-header2 ring-tier-header3 ring-tier-header4 ring-tier-header999 ring-melanoma ring-cns ring-lung ring-colon ring-gi ring-dna ring-rna ring-genelist ring-fusionlist ring-cnvlist ring-panel ring-wts ring-wgs ring-paired ring-unpaired ring-unknown hover:bg-production hover:bg-validation hover:bg-development hover:bg-testing hover:bg-pass hover:bg-warn hover:bg-fail hover:bg-germline hover:bg-germline-risk hover:bg-tier1 hover:bg-tier2 hover:bg-tier3 hover:bg-tier4 hover:bg-tier999 hover:bg-tierother hover:bg-tier-header1 hover:bg-tier-header2 hover:bg-tier-header3 hover:bg-tier-header4 hover:bg-tier-header999 hover:bg-melanoma hover:bg-cns hover:bg-lung hover:bg-colon hover:bg-gi hover:bg-dna hover:bg-rna hover:bg-genelist hover:bg-fusionlist hover:bg-cnvlist hover:bg-panel hover:bg-wts hover:bg-wgs hover:bg-paired hover:bg-unpaired hover:bg-unknown focus:bg-production focus:bg-validation focus:bg-development focus:bg-testing focus:bg-pass focus:bg-warn focus:bg-fail focus:bg-germline focus:bg-germline-risk focus:bg-tier1 focus:bg-tier2 focus:bg-tier3 focus:bg-tier4 focus:bg-tier999 focus:bg-tierother focus:bg-tier-header1 focus:bg-tier-header2 focus:bg-tier-header3 focus:bg-tier-header4 focus:bg-tier-header999 focus:bg-melanoma focus:bg-cns focus:bg-lung focus:bg-colon focus:bg-gi focus:bg-dna focus:bg-rna focus:bg-genelist focus:bg-fusionlist focus:bg-cnvlist focus:bg-panel focus:bg-wts focus:bg-wgs focus:bg-paired focus:bg-unpaired focus:bg-unknown");

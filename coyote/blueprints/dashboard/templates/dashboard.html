@@ -1,249 +1,1061 @@
 {% extends "layout.html" %}
 {% block style %}
+  {{ super() }}
   <script src="{{ url_for('dashboard_bp.static', filename='js/apexcharts.js') }}"></script>
+  <style>
+    .workload-center-label {
+      writing-mode: vertical-rl !important;
+      text-orientation: mixed !important;
+      transform: translate(-50%, -50%) rotate(180deg) !important;
+      transform-origin: center center !important;
+      white-space: nowrap !important;
+    }
+  </style>
 {% endblock %}
 
-
 {% block body %}
-<div class="flex w-full h-full overflow-hidden">
-  <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
+<div class="flex h-full w-full overflow-hidden">
+  <main class="flex-1 overflow-y-auto bg-transparent p-4">
+    {% set total_variants = variant_stats.total_variants | int %}
+    {% set total_snps = variant_stats.total_snps | int %}
 
-    <!-- Total Samples Horizontal Visual Bar -->
-    <section class="bg-blue-50 shadow-lg rounded-xl px-2 py-2 my-2 relative">
-      <div class="flex justify-between items-center mb-3">
-        <h2 class="text-lg font-semibold text-black px-2">Samples Progress Overview</h2>
-        <span class="text-sm font-semibold text-black px-4">Total: {{ total_samples }}</span>
-      </div>
-      <div class="relative h-8 bg-purple-100 rounded-full overflow-hidden">
-        {% set analysed_percent = ((analysed_samples / total_samples) * 100) | round(2) if total_samples > 0 else 0 %}
-        <div class="absolute left-0 top-0 h-full bg-pink-300 transition-all duration-700"
-            style="width: {{ analysed_percent }}%;">
-        </div>
-        <div class="absolute inset-0 flex justify-between items-center px-4 text-xs font-semibold text-black">
-          <span>Analysed: {{ analysed_samples }}</span>
-          <span>Pending: {{ pending_samples }}</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Second Row: Variant Stats + User Stats -->
-    <section class="bg-transparent relative">
-      <div class="grid grid-cols-{{ 2 if user_samples_stats else 1 }} gap-6">
-        <!-- Variant Stats -->
-        <div class="bg-blue-50 flex flex-col gap-4 w-full break-all p-4 my-4 mr-4 shadow-lg rounded-xl">
-          <h3 class="text-xl font-bold text-black mb-2">Variant Stats</h3>
-          <div class="grid grid-cols-3 gap-5">
-            <div class="bg-yellow-100 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.total_variants }}</span>`)">
-                {{ variant_stats.total_variants|shorten_number }}
-              </p>
-              <p class="text-sm text-gray-700">Total Variants</p>
-            </div>
-
-            <div class="bg-purple-200 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.total_snps }}</span>`)">
-                {{ variant_stats.total_snps|shorten_number }}
-              </p>
-              <p class="text-sm text-gray-700">SNPs</p>
-            </div>
-            <div class="bg-purple-300 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.total_variants - variant_stats.total_snps }}</span>`)">
-                {{ (variant_stats.total_variants - variant_stats.total_snps)|shorten_number }}
-              </p>
-              <p class="text-sm text-gray-700">Indels</p>
-            </div>
-            <div class="bg-red-200 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.total_cnvs }}</span>`)">
-                {{ variant_stats.total_cnvs|shorten_number }}
-              </p>
-              <p class="text-sm text-gray-700">CNVs</p>
-            </div>
-            <div class="bg-pink-200 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.total_translocs }}</span>`)">
-                {{ variant_stats.total_translocs|shorten_number }}
-              </p>
-              <p class="text-sm text-gray-700">Translocations</p>
-            </div>
-            <div class="bg-blue-200 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.total_fusions }}</span>`)">
-                {{ variant_stats.total_fusions|shorten_number }}
-              </p>
-              <p class="text-sm text-gray-700">Fusions</p>
-            </div>
-            <div class="bg-orange-300 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.blacklisted }}</span>`)">
-                {{ variant_stats.blacklisted|shorten_number }}
-              </p>
-              <p class="text-sm text-gray-700">Blacklisted</p>
-            </div>
-            <div class="bg-pink-300 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-              <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ variant_stats.fps }}</span>`)">
-                {{ variant_stats.fps|shorten_number }}
-              </p>
-              <p class="text-sm text-gray-700">False Positives</p>
-            </div>
+    <div class="mx-auto w-full space-y-4">
+      <section class="rounded-xl border border-slate-200 border-t-4 border-t-panel bg-white p-4 shadow-sm">
+        <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 class="text-xl font-semibold text-slate-900">Operational Dashboard</h1>
+            <p class="text-xs text-slate-600">Throughput, quality, and assay signals for production operations.</p>
+          </div>
+          <div class="rounded-md bg-slate-100 px-3 py-1 text-xs text-slate-700">
+            Analysed rate: <span class="font-semibold text-slate-900">{{ quality_stats.analysed_rate_percent }}%</span>
           </div>
         </div>
+        <div class="grid grid-cols-4 gap-3 xl:grid-cols-6">
+          <div class="rounded-lg border border-slate-200 bg-mist-50 p-3">
+            <p class="text-xs uppercase tracking-wide text-blue-700">Total Samples</p>
+            <p class="text-2xl font-bold text-slate-900">{{ total_samples | shorten_number }}</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-sage-50 p-3">
+            <p class="text-xs uppercase tracking-wide text-emerald-700">Analysed</p>
+            <p class="text-2xl font-bold text-slate-900">{{ analysed_samples | shorten_number }}</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-sand-50 p-3">
+            <p class="text-xs uppercase tracking-wide text-amber-700">Pending</p>
+            <p class="text-2xl font-bold text-slate-900">{{ pending_samples | shorten_number }}</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-mist-50 p-3">
+            <p class="text-xs uppercase tracking-wide text-cyan-700">Panel Genes</p>
+            <p class="text-2xl font-bold text-slate-900">{{ unique_gene_count_all_panels | shorten_number }}</p>
+          </div>
+        </div>
+      </section>
 
-        {% if user_samples_stats %}
-        <!-- User Specific Sample Stats -->
+      <section class="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <div class="rounded-xl border border-slate-200 border-t-4 border-t-tier4 bg-white p-4 shadow-sm">
+          <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-700">Sample Progress</h2>
+          <div id="sampleProgressChart"></div>
+        </div>
 
-        <div class="bg-blue-50 flex flex-col gap-4 w-full break-all p-4 my-4 mr-4 shadow-lg rounded-xl" >
-          <h3 class="text-xl font-bold text-black mb-2">My Progress</h3>
-          <div class="grid grid-cols-3 gap-5">
-            {% for assay, stats in user_samples_stats.items() %}
-              {% set percent = (stats.analysed / stats.total * 100) | round(1) if stats.total > 0 else 0 %}
-              <div class="bg-yellow-100 shadow-lg rounded-lg p-4">
-                <div class="flex justify-between mb-1">
-                  <h3 class="text-sm font-medium text-black pr-5">{{ assay }}</h3>
-                  <span class="text-xs font-semibold text-black pl-5">{{ stats.analysed }} / {{ stats.total }}</span>
-                </div>
-                <div class="w-full bg-gray-300 rounded-full h-3">
-                  <div class="bg-blue-500 h-3 rounded-full transition-all duration-500" style="width: {{ percent }}%;"></div>
-                </div>
-                <div class="text-right text-xs text-black mt-1">Pending: {{ stats.pending }}</div>
+        <div class="rounded-xl border border-slate-200 border-t-4 border-t-tier3 bg-white p-4 shadow-sm">
+          <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-700">Variant Composition</h2>
+          <div class="grid grid-cols-1 gap-3 xl:grid-cols-5">
+            <div class="rounded-lg border border-slate-200 bg-mist-50 p-2 xl:col-span-3">
+              <div id="variantMixChart"></div>
+            </div>
+            <div class="grid grid-cols-1 gap-2 text-xs xl:col-span-2">
+              <div class="rounded-md border border-slate-200 bg-mist-50 p-2">
+                <p class="text-indigo-700">Small Variants</p>
+                <p class="text-lg font-semibold text-slate-900">{{ total_variants | shorten_number }}</p>
               </div>
-            {% endfor %}
-          </div>
-        </div>
-        {% endif %}
-      </div>
-    </section>
-
-    <!-- Third Row: Sample Stats: Profiles, omics Layer, paired, unpaired (basic) -->
-    <section class="bg-transparent relative">
-      <div class="grid grid-cols-4 gap-6">
-        <!-- profile Stats -->
-        <div class="bg-blue-50 flex flex-col gap-4 w-full break-all p-4 my-4 mr-4 shadow-lg rounded-xl">
-          <h3 class="text-xl font-bold text-black mb-2">Profiles</h3>
-          <div class="grid grid-cols-2 gap-5">
-            {% for profile, profile_count in sample_stats.profiles.items() %}
-              <div class="bg-orange-100 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-                <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ profile_count }}</span>`)">
-                  {{ profile_count|shorten_number }}
-                </p>
-                <p class="text-sm text-gray-700 capitalize">{{ profile }}</p>
+              <div class="rounded-md border border-slate-200 bg-mist-50 p-2">
+                <p class="text-sky-700">SNP Fraction in Small Variants</p>
+                <p class="text-lg font-semibold text-slate-900">{{ ((total_snps / total_variants) * 100) | round(2) if total_variants > 0 else 0 }}%</p>
               </div>
-            {% endfor %}
-          </div>
-        </div>
-        <!-- Omics Layer Stats -->
-        <div class="bg-blue-50 flex flex-col gap-4 w-full break-all p-4 my-4 mr-4 shadow-lg rounded-xl">
-          <h3 class="text-xl font-bold text-black mb-2">Omics</h3>
-          <div class="grid grid-cols-2 gap-5">
-            {% for layer, layer_count in sample_stats.omics_layers.items() %}
-              <div class="bg-orange-200 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-                <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ layer_count }}</span>`)">
-                  {{ layer_count|shorten_number }}
-                </p>
-                <p class="text-sm text-gray-700 capitalize">{{ layer }}</p>
+              <div class="rounded-md border border-slate-200 border-t-4 border-t-tier2 bg-sand-50 px-3 py-2">
+                <p class="text-amber-700">Blacklist Rate</p>
+                <p class="text-base font-semibold text-slate-900">{{ quality_stats.blacklist_rate_percent }}%</p>
               </div>
-            {% endfor %}
-          </div>
-        </div>
-        <!-- sequencing_scope Stats -->
-        <div class="bg-blue-50 flex flex-col gap-4 w-full break-all p-4 my-4 mr-4 shadow-lg rounded-xl">
-          <h3 class="text-xl font-bold text-black mb-2">Sequencing Scope</h3>
-          <div class="grid grid-cols-2 gap-5">
-            {% for scope, scope_count in sample_stats.sequencing_scopes.items() %}
-              <div class="bg-orange-200 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-                <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ scope_count }}</span>`)">
-                  {{ scope_count|shorten_number }}
-                </p>
-                <p class="text-sm text-gray-700 capitalize">{{ scope }}</p>
+              <div class="rounded-md border border-slate-200 border-t-4 border-t-tier1 bg-sand-50 px-3 py-2">
+                <p class="text-red-700">FP Rate</p>
+                <p class="text-base font-semibold text-slate-900">{{ quality_stats.fp_rate_percent }}%</p>
               </div>
-            {% endfor %}
+            </div>
           </div>
         </div>
 
-        <!-- Paired vs Unpaired Stats -->
-        <div class="bg-blue-50 flex flex-col gap-4 w-full break-all p-4 my-4 mr-4 shadow-lg rounded-xl">
-          <h3 class="text-xl font-bold text-black mb-2">Paired vs Unpaired</h3>
-          <div class="grid grid-cols-2 gap-5">
-            {% for pair, pair_count in sample_stats.pair_count.items() %}
-              <div class="bg-orange-100 p-4 rounded-xl shadow-md text-center transform transition duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]">
-                <p class="text-3xl font-bold" onmouseover="showTooltip(event, `<span>{{ pair_count }}</span>`)">
-                  {{ pair_count|shorten_number }}
-                </p>
-                <p class="text-sm text-gray-700">{{pair}}</p>
-              </div>
-            {% endfor %}
+        <div class="rounded-xl border border-slate-200 border-t-4 border-t-tier2 bg-white p-4 shadow-sm">
+          <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-700">Tier Distribution (Reported)</h2>
+          <div id="tierChart"></div>
+        </div>
+      </section>
+
+      <section class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div class="rounded-xl border border-slate-200 border-t-4 border-t-wgs bg-white p-4 shadow-sm">
+          <div class="mb-2 flex items-center justify-between gap-2">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-700">My Assay Workload</h2>
+            <span class="text-xs text-slate-500">Click a bar to open samples for that assay group</span>
+          </div>
+          <div class="grid grid-cols-1 gap-3 xl:grid-cols-5">
+            <div class="rounded-lg border border-slate-200 bg-sage-50 p-2 xl:col-span-3">
+              <div id="userAssayChart"></div>
+            </div>
+            <div id="userAssaySummary" class="space-y-2 xl:col-span-2"></div>
           </div>
         </div>
-      </div>
-    </section>
 
-    <section class="bg-blue-50 rounded-xl px-6 py-6 my-6 shadow-md">
-      <h2 class="text-xl font-bold text-black mb-2">Gene Coverage per Assay</h2>
-      <div id="geneChart" class="w-full max-w-6xl mx-auto my-8 bg-white p-4 rounded-xl shadow"></div>
-    </section>
+        <div class="rounded-xl border border-slate-200 border-t-4 border-t-tier2 bg-white p-4 shadow-sm">
+          <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-700">Quality Snapshot</h2>
+          <p class="mb-2 text-xs text-slate-500">Analysed% = analysed/total samples. Blacklist% and FP% = of total variants.</p>
+          <div class="grid grid-cols-1 gap-3 xl:grid-cols-5">
+            <div class="rounded-lg border border-slate-200 bg-sage-50 p-2 xl:col-span-3">
+              <div id="qualityChart"></div>
+            </div>
+            <div id="qualitySummaryCards" class="space-y-2 xl:col-span-2"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid grid-cols-1 gap-4">
+        <div class="rounded-xl border border-slate-200 border-t-4 border-t-dna bg-white p-4 shadow-sm">
+          <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-700">Sample Distribution</h2>
+          <div class="grid grid-cols-1 gap-3 xl:grid-cols-4">
+            <div class="rounded-lg border border-slate-200 bg-sage-50 p-2">
+              <p class="mb-1 text-xs font-medium text-slate-600">By Profile</p>
+              <div id="profileChart"></div>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-mist-50 p-2">
+              <p class="mb-1 text-xs font-medium text-slate-600">By Omics Layer</p>
+              <div id="omicsChart"></div>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-mist-50 p-2">
+              <p class="mb-1 text-xs font-medium text-slate-600">By Sequencing Scope</p>
+              <div id="scopeChart"></div>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-mist-50 p-2">
+              <p class="mb-1 text-xs font-medium text-slate-600">Pairing Status</p>
+              <div id="pairChart"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <div class="rounded-xl border border-slate-200 border-t-4 border-t-panel bg-white p-4 shadow-sm">
+          <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-700">Sequencing Scope Summary</h2>
+          <div id="scopeSummaryCards" class="grid grid-cols-2 gap-2"></div>
+        </div>
+        <div class="overflow-hidden rounded-xl border border-slate-200 border-t-4 border-t-wgs bg-white p-4 shadow-sm">
+          <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-700">Platform Capacity Rings</h2>
+          <div id="capacityRingsChart" class="h-[360px]"></div>
+        </div>
+        <div class="rounded-xl border border-slate-200 border-t-4 border-t-rna bg-white p-4 shadow-sm">
+          <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-700">ISGL Visibility Overlap</h2>
+          <div id="adminIsglVennChart"></div>
+          <div id="adminIsglExtraFlags" class="mt-2 grid grid-cols-2 gap-2"></div>
+        </div>
+      </section>
+
+      {% if has_access(min_role="admin", min_level=99999) %}
+      <section class="rounded-xl border border-slate-200 border-t-4 border-t-rna bg-white p-4 shadow-sm">
+        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-700">Admin Insights</h2>
+        <div class="grid grid-cols-1 gap-3 xl:grid-cols-12">
+          <div class="rounded-lg border border-slate-200 bg-mist-50 p-2 xl:col-span-6">
+            <p class="mb-1 text-xs font-medium text-slate-600">Users per Role</p>
+            <div id="adminUserRoleChart"></div>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-mist-50 p-2 xl:col-span-6">
+            <p class="mb-1 text-xs font-medium text-slate-600">Professions by Role</p>
+            <div id="adminProfessionRoleChart"></div>
+          </div>
+        </div>
+      </section>
+      {% endif %}
+
+      <section class="rounded-xl border border-slate-200 border-t-4 border-t-panel bg-white p-4 shadow-sm">
+        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-700">Gene Coverage per Assay</h2>
+        <div id="geneChart"></div>
+      </section>
+
+    </div>
   </main>
-
 </div>
 
-
 <script>
-  function renderGroupedAssayGeneChart(containerId, groupedData) {
+  const variantStats = {{ variant_stats | tojson }};
+  const userSamplesStats = {{ user_samples_stats | tojson }};
+  const sampleStats = {{ sample_stats | tojson }};
+  const tierStats = {{ tier_stats | tojson }};
+  const qualityStats = {{ quality_stats | tojson }};
+  const dashboardMeta = {{ dashboard_meta | tojson }};
+  const adminInsights = {{ admin_insights | tojson }};
+  const capacityCounts = {{ capacity_counts | tojson }};
+  const isglVisibility = {{ isgl_visibility | tojson }};
+  const assayGeneStatsGrouped = {{ assay_gene_stats_grouped | tojson }};
+  const analysedSamples = {{ analysed_samples | int }};
+  const pendingSamples = {{ pending_samples | int }};
+  const samplesHomeUrl = {{ url_for("home_bp.samples_home") | tojson }};
+
+  function cssVarColor(name, fallback = "currentColor") {
+    const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return value || fallback;
+  }
+
+  const tierPalette = [
+    cssVarColor("--color-tier1"),
+    cssVarColor("--color-tier2"),
+    cssVarColor("--color-tier3"),
+    cssVarColor("--color-tier4"),
+  ];
+  const profilePalette = {
+    production: cssVarColor("--color-wgs"),
+    validation: cssVarColor("--color-tier2"),
+    development: cssVarColor("--color-panel"),
+    testing: cssVarColor("--color-rna"),
+  };
+  const omicsPalette = {
+    dna: cssVarColor("--color-dna"),
+    rna: cssVarColor("--color-rna"),
+  };
+  const chartTextColor = cssVarColor("--color-slate-700", "#334155");
+  const chartGridColor = cssVarColor("--color-slate-200", "#e2e8f0");
+  const chartFont = "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif";
+
+  function donutStyle(height = 260) {
+    return {
+      chart: { type: "donut", height, toolbar: { show: false }, fontFamily: chartFont },
+      stroke: { width: 2, colors: ["#ffffff"] },
+      legend: {
+        show: true,
+        position: "bottom",
+        fontSize: "11px",
+        labels: { colors: chartTextColor },
+        markers: { size: 7 },
+      },
+      dataLabels: { enabled: true, style: { fontSize: "10px", fontWeight: 600 } },
+      tooltip: { theme: "light" },
+    };
+  }
+
+  function barStyle(height = 260) {
+    return {
+      chart: { type: "bar", height, toolbar: { show: false }, fontFamily: chartFont },
+      grid: {
+        borderColor: chartGridColor,
+        strokeDashArray: 3,
+        padding: { left: 8, right: 8, top: 0, bottom: 0 },
+      },
+      legend: { show: false },
+      dataLabels: {
+        enabled: true,
+        style: { fontSize: "10px", fontWeight: 600, colors: [chartTextColor] },
+      },
+      tooltip: { theme: "light" },
+    };
+  }
+
+  function compactNumber(v) {
+    return new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(Number(v || 0));
+  }
+
+  function renderUserAssaySummary(assays) {
+    const summaryEl = document.querySelector("#userAssaySummary");
+    if (!summaryEl) return;
+    if (!assays.length) {
+      summaryEl.innerHTML = '<p class="py-8 text-center text-sm text-slate-500">No assay summary available.</p>';
+      return;
+    }
+    const totals = assays.reduce((acc, assay) => {
+      const row = userSamplesStats[assay] || {};
+      acc.total += Number(row.total || 0);
+      acc.analysed += Number(row.analysed || 0);
+      acc.pending += Number(row.pending || 0);
+      return acc;
+    }, { total: 0, analysed: 0, pending: 0 });
+    const pendingRate = totals.total > 0 ? ((totals.pending / totals.total) * 100).toFixed(1) : "0.0";
+    const hotAssays = assays
+      .map((assay) => {
+        const row = userSamplesStats[assay] || {};
+        const pending = Number(row.pending || 0);
+        const total = Number(row.total || 0);
+        const rate = total > 0 ? (pending / total) * 100 : 0;
+        return { assay, pending, rate };
+      })
+      .sort((a, b) => b.pending - a.pending)
+      .slice(0, 3);
+
+    summaryEl.innerHTML = `
+      <div class="grid grid-cols-2 gap-2">
+        <div class="rounded-md border border-slate-200 bg-mist-50 px-3 py-2">
+          <p class="text-[11px] uppercase tracking-wide text-slate-600">Total</p>
+          <p class="text-lg font-semibold text-slate-900">${totals.total.toLocaleString()}</p>
+        </div>
+        <div class="rounded-md border border-slate-200 bg-sage-50 px-3 py-2">
+          <p class="text-[11px] uppercase tracking-wide text-emerald-700">Analysed</p>
+          <p class="text-lg font-semibold text-slate-900">${totals.analysed.toLocaleString()}</p>
+        </div>
+        <div class="rounded-md border border-slate-200 bg-sand-50 px-3 py-2">
+          <p class="text-[11px] uppercase tracking-wide text-amber-700">Pending</p>
+          <p class="text-lg font-semibold text-slate-900">${totals.pending.toLocaleString()}</p>
+        </div>
+        <div class="rounded-md border border-slate-200 bg-sage-50 px-3 py-2">
+          <p class="text-[11px] uppercase tracking-wide text-teal-700">Pending Rate</p>
+          <p class="text-lg font-semibold text-slate-900">${pendingRate}%</p>
+        </div>
+      </div>
+      <div class="rounded-md border border-slate-200 bg-mist-50 px-3 py-2">
+        <p class="mb-1 text-[11px] uppercase tracking-wide text-sky-700">Highest Pending Assays</p>
+        <div class="space-y-1 text-xs text-slate-700">
+          ${hotAssays.map((row) => `<div class="flex items-center justify-between"><span class="truncate pr-2">${row.assay}</span><span class="font-medium">${row.pending.toLocaleString()} (${row.rate.toFixed(1)}%)</span></div>`).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderSampleProgress() {
+    const chartEl = document.querySelector("#sampleProgressChart");
+    if (!chartEl) return;
+    new ApexCharts(chartEl, {
+      ...donutStyle(270),
+      series: [analysedSamples, pendingSamples],
+      labels: ["Analysed", "Pending"],
+      colors: [cssVarColor("--color-tier4"), cssVarColor("--color-tier2")],
+      dataLabels: { enabled: true, formatter: (val) => `${val.toFixed(1)}%` },
+      legend: { ...donutStyle().legend, offsetY: 2 },
+    }).render();
+  }
+
+  function renderVariantMix() {
+    const chartEl = document.querySelector("#variantMixChart");
+    if (!chartEl) return;
+    const totalVariants = Number(variantStats.total_variants || 0);
+    const totalSnps = Number(variantStats.total_snps || 0);
+    const totalIndels = Math.max(totalVariants - totalSnps, 0);
+    const categories = ["SNPs", "Indels", "CNVs", "Translocs", "Fusions"];
+    const data = [
+      totalSnps,
+      totalIndels,
+      Number(variantStats.total_cnvs || 0),
+      Number(variantStats.total_translocs || 0),
+      Number(variantStats.total_fusions || 0),
+    ];
+
+    const totalForMix = data.reduce((acc, value) => acc + Number(value || 0), 0);
+    new ApexCharts(chartEl, {
+      ...donutStyle(300),
+      series: data,
+      labels: categories,
+      colors: [
+        cssVarColor("--color-panel"),
+        cssVarColor("--color-mist-500"),
+        cssVarColor("--color-mist-700"),
+        cssVarColor("--color-rna"),
+        cssVarColor("--color-dna"),
+      ],
+      legend: { ...donutStyle().legend, horizontalAlign: "left" },
+      dataLabels: {
+        enabled: true,
+        formatter: (v) => `${Number(v).toFixed(1)}%`,
+      },
+      tooltip: {
+        y: {
+          formatter: (v, opts) => {
+            const count = Number(data[opts.seriesIndex] || 0).toLocaleString();
+            const pct = totalForMix > 0 ? ((Number(data[opts.seriesIndex] || 0) / totalForMix) * 100).toFixed(2) : "0.00";
+            return `${count} (${pct}%)`;
+          }
+        }
+      }
+    }).render();
+  }
+
+  function renderTierChart() {
+    const chartEl = document.querySelector("#tierChart");
+    if (!chartEl) return;
+    const total = (tierStats && tierStats.total) || {};
+    const values = [
+      Number(total.tier1 || 0),
+      Number(total.tier2 || 0),
+      Number(total.tier3 || 0),
+      Number(total.tier4 || 0),
+    ];
+
+    new ApexCharts(chartEl, {
+      ...barStyle(255),
+      series: [{ name: "Reported", data: values }],
+      xaxis: { categories: ["Tier 1", "Tier 2", "Tier 3", "Tier 4"] },
+      colors: tierPalette,
+      plotOptions: { bar: { borderRadius: 6, columnWidth: "45%", distributed: true } },
+      dataLabels: { enabled: true, formatter: (v) => compactNumber(v) },
+      tooltip: { y: { formatter: (v) => Number(v).toLocaleString() } }
+    }).render();
+  }
+
+  function renderUserAssayChart() {
+    const chartEl = document.querySelector("#userAssayChart");
+    if (!chartEl) return;
+
+    const assayToGroup = {};
+    Object.entries(assayGeneStatsGrouped || {}).forEach(([groupName, assays]) => {
+      (assays || []).forEach((assay) => {
+        const assayName = assay.assay_name;
+        if (assayName) assayToGroup[assayName] = groupName;
+      });
+    });
+    function resolveAssayGroup(assayName) {
+      const direct = assayToGroup[assayName];
+      if (direct) return direct;
+      const raw = String(assayName || "").toLowerCase();
+      if (raw.includes("tumwgs") || raw.includes("wgs")) return "tumwgs";
+      if (raw.includes("wts")) return "wts";
+      if (raw.includes("rna") || raw.includes("fusion")) return "wts";
+      return raw.split("_")[0].split("-")[0] || raw;
+    }
+
+    const assays = Object.keys(userSamplesStats || {});
+    renderUserAssaySummary(assays);
+    if (!assays.length) {
+      chartEl.innerHTML = '<p class="py-8 text-center text-sm text-slate-500">No scoped assay workload available.</p>';
+      return;
+    }
+    if (assays.length === 1) {
+      const assay = assays[0];
+      const row = userSamplesStats[assay] || {};
+      const total = Number(row.total || 0);
+      const analysed = Number(row.analysed || 0);
+      const pending = Number(row.pending || 0);
+      const pendingPct = total > 0 ? ((pending / total) * 100).toFixed(1) : "0.0";
+      chartEl.innerHTML = `
+        <div class="grid grid-cols-2 gap-3">
+          <div class="rounded-lg border border-slate-200 bg-sage-50 p-3 col-span-2">
+            <p class="text-xs text-slate-500">Assay</p>
+            <p class="text-base font-semibold text-slate-900">${assay}</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-sage-50 p-3">
+            <p class="text-xs text-emerald-700">Analysed</p>
+            <p class="text-xl font-semibold text-slate-900">${analysed.toLocaleString()}</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-sand-50 p-3">
+            <p class="text-xs text-amber-700">Pending</p>
+            <p class="text-xl font-semibold text-slate-900">${pending.toLocaleString()}</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-mist-50 p-3 col-span-2">
+            <p class="text-xs text-indigo-700">Pending Rate</p>
+            <p class="text-xl font-semibold text-slate-900">${pendingPct}%</p>
+          </div>
+        </div>
+      `;
+      chartEl.onclick = () => {
+        const group = resolveAssayGroup(assay);
+        window.location.href = `${samplesHomeUrl}?status=live&assay_group=${encodeURIComponent(group)}&view=all`;
+      };
+      chartEl.classList.add("cursor-pointer");
+      return;
+    }
+
+    const analysedRate = assays.map((assay) => {
+      const row = userSamplesStats[assay] || {};
+      const total = Number(row.total || 0);
+      const analysed = Number(row.analysed || 0);
+      return total > 0 ? Number(((analysed / total) * 100).toFixed(2)) : 0;
+    });
+    const pendingRate = analysedRate.map((value) => Number((100 - value).toFixed(2)));
+    const basePalette = [
+      cssVarColor("--color-wgs"),
+      cssVarColor("--color-tier4"),
+      cssVarColor("--color-panel"),
+      cssVarColor("--color-dna"),
+      cssVarColor("--color-rna"),
+      cssVarColor("--color-tier3"),
+      cssVarColor("--color-tier2"),
+      cssVarColor("--color-sage-700"),
+      cssVarColor("--color-mist-700"),
+    ];
+    const lightPalette = [
+      cssVarColor("--color-mist-500"),
+      cssVarColor("--color-sage-400"),
+      cssVarColor("--color-mist-400"),
+      cssVarColor("--color-sand-400"),
+      cssVarColor("--color-sand-300"),
+      cssVarColor("--color-mist-400"),
+      cssVarColor("--color-sand-300"),
+      cssVarColor("--color-sage-300"),
+      cssVarColor("--color-mist-300"),
+    ];
+    const pairedColors = assays.flatMap((_, idx) => [
+      basePalette[idx % basePalette.length],
+      lightPalette[idx % lightPalette.length],
+    ]);
+    const analysedCenterLabels = assays.map((assay, idx) => ({
+      x: assay,
+      y: 50,
+      yAxisIndex: 0,
+      marker: { size: 0 },
+      label: {
+        text: `${Number(analysedRate[idx] || 0).toFixed(1)}%`,
+        cssClass: "workload-center-label",
+        textAnchor: "middle",
+        offsetX: 0,
+        offsetY: 0,
+        borderWidth: 0,
+        borderColor: "transparent",
+        style: {
+          background: "transparent",
+          color: chartTextColor,
+          fontSize: "10px",
+          fontWeight: 700,
+        },
+      },
+    }));
+
+    const chart = new ApexCharts(chartEl, {
+      ...barStyle(340),
+      chart: {
+        ...barStyle().chart,
+        type: "bar",
+        height: 340,
+        stacked: true,
+        events: {
+          dataPointSelection: function(_event, _chartContext, config) {
+            const assay = assays[config.dataPointIndex];
+            const group = resolveAssayGroup(assay);
+            window.location.href = `${samplesHomeUrl}?status=live&assay_group=${encodeURIComponent(group)}&view=all`;
+          }
+        }
+      },
+      series: [
+        { name: "Analysed %", data: analysedRate },
+        { name: "Pending %", data: pendingRate },
+      ],
+      annotations: { points: analysedCenterLabels },
+      xaxis: {
+        categories: assays,
+        labels: { rotate: -25, style: { fontSize: "11px" } }
+      },
+      yaxis: {
+        min: 0,
+        max: 100,
+        tickAmount: 5,
+        labels: { formatter: (v) => `${Math.round(v)}%` }
+      },
+      plotOptions: {
+        bar: {
+          borderRadius: 6,
+          columnWidth: "58%",
+        }
+      },
+      colors: [
+        ({ dataPointIndex, seriesIndex }) => pairedColors[(dataPointIndex * 2) + seriesIndex] || cssVarColor("--color-sage-500"),
+        ({ dataPointIndex }) => pairedColors[(dataPointIndex * 2) + 1] || cssVarColor("--color-sage-300"),
+      ],
+      dataLabels: {
+        enabled: false,
+        enabledOnSeries: [],
+        offsetY: 1,
+        style: { fontSize: "10px" },
+        formatter: () => "",
+      },
+      tooltip: {
+        y: {
+          formatter: (_v, opts) => {
+            const assay = assays[opts.dataPointIndex];
+            const row = userSamplesStats[assay] || {};
+            return `total ${Number(row.total || 0).toLocaleString()} | analysed ${Number(row.analysed || 0).toLocaleString()} | pending ${Number(row.pending || 0).toLocaleString()}`;
+          }
+        }
+      }
+    });
+    chart.render().then(() => {
+      const labelNodes = chartEl.querySelectorAll(".workload-center-label");
+      labelNodes.forEach((node) => {
+        if (!String(node.textContent || "").includes("%")) return;
+        if (node instanceof SVGTextElement) {
+          node.setAttribute("writing-mode", "tb");
+          node.setAttribute("glyph-orientation-vertical", "0");
+          node.setAttribute("text-anchor", "middle");
+          node.setAttribute("dominant-baseline", "middle");
+        } else if (node && node.style) {
+          node.style.writingMode = "vertical-rl";
+          node.style.textOrientation = "mixed";
+          node.style.transform = "translate(-50%, -50%) rotate(180deg)";
+          node.style.transformOrigin = "center center";
+        }
+      });
+    });
+  }
+
+  function renderDistributionCharts() {
+    const profiles = sampleStats.profiles || {};
+    const omics = sampleStats.omics_layers || {};
+    const scopes = sampleStats.sequencing_scopes || {};
+    const normalizedScopes = {};
+    Object.entries(scopes).forEach(([k, v]) => {
+      const key = String(k || "unknown").toLowerCase().trim();
+      normalizedScopes[key] = (normalizedScopes[key] || 0) + Number(v || 0);
+    });
+
+    const profileLabels = Object.keys(profiles);
+    const profileSeries = profileLabels.map((k) => Number(profiles[k] || 0));
+    const profileColors = profileLabels.map((k) => profilePalette[String(k).toLowerCase()] || cssVarColor("--color-slate-500"));
+    const profileEl = document.querySelector("#profileChart");
+    if (profileEl) {
+      new ApexCharts(profileEl, {
+        ...donutStyle(210),
+        labels: profileLabels.length ? profileLabels : ["No data"],
+        series: profileSeries.length ? profileSeries : [1],
+        colors: profileSeries.length ? profileColors : [cssVarColor("--color-slate-400")],
+        dataLabels: { enabled: false },
+        tooltip: { y: { formatter: (v) => Number(v).toLocaleString() } }
+      }).render();
+    }
+
+    const omicsLabels = Object.keys(omics);
+    const omicsSeries = omicsLabels.map((k) => Number(omics[k] || 0));
+    const omicsColors = omicsLabels.map((k) => omicsPalette[String(k).toLowerCase()] || cssVarColor("--color-slate-500"));
+    const omicsEl = document.querySelector("#omicsChart");
+    if (omicsEl) {
+      new ApexCharts(omicsEl, {
+        ...donutStyle(210),
+        labels: omicsLabels.length ? omicsLabels : ["No data"],
+        series: omicsSeries.length ? omicsSeries : [1],
+        colors: omicsSeries.length ? omicsColors : [cssVarColor("--color-slate-400")],
+        dataLabels: { enabled: false },
+        tooltip: { y: { formatter: (v) => Number(v).toLocaleString() } }
+      }).render();
+    }
+
+    const scopeLabels = Object.keys(normalizedScopes).map((k) => String(k).toUpperCase());
+    const scopeData = Object.keys(normalizedScopes).map((k) => Number(normalizedScopes[k] || 0));
+    const scopeEl = document.querySelector("#scopeChart");
+    const scopePalette = {
+      WGS: cssVarColor("--color-wgs"),
+      WTS: cssVarColor("--color-wts"),
+      PANEL: cssVarColor("--color-panel"),
+      DNA: cssVarColor("--color-dna"),
+      RNA: cssVarColor("--color-rna"),
+      UNKNOWN: cssVarColor("--color-unknown"),
+    };
+    const scopeColors = scopeLabels.map((label) => scopePalette[String(label).toUpperCase()] || cssVarColor("--color-mist-500"));
+    if (scopeEl) {
+      new ApexCharts(scopeEl, {
+        ...donutStyle(210),
+        labels: scopeLabels.length ? scopeLabels : ["No data"],
+        series: scopeData.length ? scopeData : [1],
+        colors: scopeData.length ? scopeColors : [cssVarColor("--color-slate-400")],
+        dataLabels: { enabled: false },
+        tooltip: { y: { formatter: (v) => Number(v).toLocaleString() } }
+      }).render();
+    }
+    const pair = sampleStats.pair_count || {};
+    const pairEl = document.querySelector("#pairChart");
+    if (pairEl) {
+      new ApexCharts(pairEl, {
+        ...donutStyle(210),
+        series: [Number(pair.paired || 0), Number(pair.unpaired || 0), Number(pair.unknown || 0)],
+        labels: ["Paired", "Unpaired", "Unknown"],
+        colors: [
+          cssVarColor("--color-paired"),
+          cssVarColor("--color-unpaired"),
+          cssVarColor("--color-unknown"),
+        ],
+        dataLabels: { enabled: false },
+        tooltip: { y: { formatter: (v) => Number(v).toLocaleString() } }
+      }).render();
+    }
+  }
+
+  function renderQualityChart() {
+    const chartEl = document.querySelector("#qualityChart");
+    if (!chartEl) return;
+    new ApexCharts(chartEl, {
+      chart: { type: "radialBar", height: 300, toolbar: { show: false } },
+      series: [
+        Number(qualityStats.analysed_rate_percent || 0),
+        Number(qualityStats.blacklist_rate_percent || 0),
+        Number(qualityStats.fp_rate_percent || 0),
+      ],
+      labels: ["Analysed", "Blacklist", "FP"],
+      colors: [
+        cssVarColor("--color-tier4"),
+        cssVarColor("--color-tier2"),
+        cssVarColor("--color-tier1"),
+      ],
+      plotOptions: {
+        radialBar: {
+          dataLabels: {
+            name: { fontSize: "11px" },
+            value: { fontSize: "13px", formatter: (v) => `${Number(v).toFixed(1)}%` },
+          }
+        }
+      },
+      legend: { show: true, position: "bottom", fontSize: "10px" }
+    }).render();
+  }
+
+  function renderQualitySummaryCards() {
+    const cardEl = document.querySelector("#qualitySummaryCards");
+    if (!cardEl) return;
+    const cards = [
+      {
+        label: "Analysed Rate",
+        value: `${Number(qualityStats.analysed_rate_percent || 0).toFixed(2)}%`,
+        cls: "bg-sage-50",
+        text: "text-emerald-700",
+      },
+      {
+        label: "Blacklist Rate",
+        value: `${Number(qualityStats.blacklist_rate_percent || 0).toFixed(2)}%`,
+        cls: "bg-sand-50",
+        text: "text-amber-700",
+      },
+      {
+        label: "FP Rate",
+        value: `${Number(qualityStats.fp_rate_percent || 0).toFixed(2)}%`,
+        cls: "bg-sand-50",
+        text: "text-red-700",
+      },
+    ];
+    cardEl.innerHTML = cards
+      .map(
+        (c) => `
+      <div class="rounded-md border border-slate-200 ${c.cls} px-3 py-2">
+        <p class="text-[11px] uppercase tracking-wide ${c.text}">${c.label}</p>
+        <p class="text-base font-semibold text-slate-900">${c.value}</p>
+      </div>
+    `
+      )
+      .join("");
+  }
+
+  function renderCapacityRings() {
+    const chartEl = document.querySelector("#capacityRingsChart");
+    if (!chartEl) return;
+    const counts = capacityCounts || {};
+    const labels = ["Users", "Roles", "ASP", "ASPC", "ISGL"];
+    const ringValuesRaw = [
+      Number(counts.users_total ?? counts.users ?? 0),
+      Number(counts.roles_total ?? counts.roles ?? 0),
+      Number(counts.asps_total ?? counts.asp_total ?? counts.asps ?? counts.asp ?? 0),
+      Number(counts.aspcs_total ?? counts.aspc_total ?? counts.aspcs ?? counts.aspc ?? 0),
+      Number(counts.isgl_total ?? counts.isgls_total ?? counts.isgl ?? counts.isgls ?? 0),
+    ];
+    const maxValue = Math.max(...ringValuesRaw, 1);
+    const ringValues = ringValuesRaw.map((v) => Number(((v / maxValue) * 100).toFixed(2)));
+
+    new ApexCharts(chartEl, {
+      chart: { type: "radialBar", height: 360, toolbar: { show: false }, fontFamily: chartFont },
+      series: ringValues,
+      labels,
+      colors: [
+        cssVarColor("--color-tier4"),
+        cssVarColor("--color-tier3"),
+        cssVarColor("--color-panel"),
+        cssVarColor("--color-dna"),
+        cssVarColor("--color-rna"),
+      ],
+      plotOptions: {
+        radialBar: {
+          hollow: { size: "42%" },
+          track: { strokeWidth: "95%" },
+          dataLabels: {
+            name: { show: true, fontSize: "12px", color: chartTextColor },
+            value: {
+              show: true,
+              fontSize: "16px",
+              fontWeight: 700,
+              color: chartTextColor,
+              formatter: (v, opts) => {
+                const idx = Number(opts?.seriesIndex ?? 0);
+                const raw = Number(ringValuesRaw[idx] || 0);
+                return raw.toLocaleString();
+              },
+            },
+            total: { show: false },
+          },
+        },
+      },
+      tooltip: {
+        y: {
+          formatter: (_value, opts) => {
+            const idx = Number(opts?.seriesIndex ?? 0);
+            const raw = Number(ringValuesRaw[idx] || 0);
+            return raw.toLocaleString();
+          },
+        },
+      },
+      legend: { ...donutStyle().legend, fontSize: "10px" },
+    }).render();
+  }
+
+  function renderAdminUserRoleChart() {
+    const chartEl = document.querySelector("#adminUserRoleChart");
+    if (!chartEl) return;
+    const roleCounts = adminInsights.role_user_counts || {};
+    const labels = Object.keys(roleCounts);
+    const data = labels.map((role) => Number(roleCounts[role] || 0));
+    new ApexCharts(chartEl, {
+      ...donutStyle(280),
+      labels: labels.length ? labels : ["No roles"],
+      series: data.length ? data : [1],
+      colors: [
+        cssVarColor("--color-tier3"),
+        cssVarColor("--color-tier4"),
+        cssVarColor("--color-tier2"),
+        cssVarColor("--color-panel"),
+        cssVarColor("--color-dna"),
+        cssVarColor("--color-rna"),
+        cssVarColor("--color-sage-700"),
+      ],
+      dataLabels: { enabled: false },
+      tooltip: { y: { formatter: (v) => `${Number(v).toLocaleString()} users` } },
+    }).render();
+  }
+
+  function renderAdminProfessionRoleChart() {
+    const chartEl = document.querySelector("#adminProfessionRoleChart");
+    if (!chartEl) return;
+    const matrix = adminInsights.profession_role_matrix || {};
+    const professions = Object.keys(matrix);
+    if (!professions.length) {
+      chartEl.innerHTML = '<p class="py-8 text-center text-sm text-slate-500">No profession-role mapping found.</p>';
+      return;
+    }
+    const roleSet = new Set();
+    professions.forEach((p) => Object.keys(matrix[p] || {}).forEach((r) => roleSet.add(r)));
+    const roles = Array.from(roleSet);
+    const topProfessions = professions
+      .map((p) => ({
+        profession: p,
+        total: Object.values(matrix[p] || {}).reduce((acc, n) => acc + Number(n || 0), 0),
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 8)
+      .map((row) => row.profession);
+
+    const series = roles.map((role, idx) => ({
+      name: role,
+      data: topProfessions.map((profession) => Number((matrix[profession] || {})[role] || 0)),
+      color: [cssVarColor("--color-tier4"), cssVarColor("--color-tier3"), cssVarColor("--color-tier2"), cssVarColor("--color-panel"), cssVarColor("--color-dna"), cssVarColor("--color-rna")][idx % 6],
+    }));
+
+    new ApexCharts(chartEl, {
+      ...barStyle(280),
+      chart: { ...barStyle().chart, type: "bar", stacked: true, height: 280 },
+      series,
+      xaxis: { categories: topProfessions, labels: { rotate: -20 } },
+      plotOptions: { bar: { borderRadius: 5, columnWidth: "55%" } },
+      dataLabels: { enabled: true, formatter: (v) => (Number(v) > 0 ? compactNumber(v) : "") },
+      legend: { ...donutStyle().legend, position: "bottom", fontSize: "10px" },
+      tooltip: { y: { formatter: (v) => `${Number(v).toLocaleString()} users` } },
+    }).render();
+  }
+
+  function renderAdminIsglVennChart() {
+    const chartEl = document.querySelector("#adminIsglVennChart");
+    if (!chartEl) return;
+    const venn = isglVisibility || {};
+    const regionCountText = (value, x, y, label, sets) => {
+      const count = Number(value || 0);
+      if (count <= 0) return "";
+      return `
+        <g class="venn-region cursor-pointer" data-label="${label}" data-value="${count}" data-sets="${sets}">
+          <circle cx="${x}" cy="${y - 5}" r="18" fill="transparent"></circle>
+          <text x="${x}" y="${y}" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">${count.toLocaleString()}</text>
+        </g>
+      `;
+    };
+
+    chartEl.innerHTML = `
+      <div data-venn-wrap class="relative mx-auto w-full max-w-3xl rounded-lg border border-slate-200 bg-white p-2">
+        <svg viewBox="0 0 1000 520" class="h-[360px] w-full">
+          <defs>
+            <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.15"/>
+            </filter>
+          </defs>
+
+          <g style="mix-blend-mode:multiply" filter="url(#softShadow)">
+            <circle class="venn-circle cursor-pointer" data-sets="public" data-label="Public total" data-value="${Number(venn.public_total || 0)}" cx="360" cy="270" r="150" fill="${cssVarColor("--color-panel")}" fill-opacity="0.30" stroke="${cssVarColor("--color-panel")}" stroke-width="2"/>
+            <circle class="venn-circle cursor-pointer" data-sets="private" data-label="Private total" data-value="${Number(venn.private_total || 0)}" cx="640" cy="270" r="150" fill="${cssVarColor("--color-dna")}" fill-opacity="0.30" stroke="${cssVarColor("--color-dna")}" stroke-width="2"/>
+            <circle class="venn-circle cursor-pointer" data-sets="adhoc" data-label="Adhoc total" data-value="${Number(venn.adhoc_total || 0)}" cx="500" cy="170" r="150" fill="${cssVarColor("--color-rna")}" fill-opacity="0.30" stroke="${cssVarColor("--color-rna")}" stroke-width="2"/>
+          </g>
+
+          <text x="232" y="124" font-size="12" fill="#334155" font-weight="600">Public</text>
+          <text x="768" y="124" font-size="12" fill="#334155" font-weight="600">Private</text>
+          <text x="500" y="30" font-size="12" fill="#334155" font-weight="600" text-anchor="middle">Adhoc</text>
+
+          ${regionCountText(venn.public_only, 260, 300, "Public only", "public")}
+          ${regionCountText(venn.private_only, 740, 300, "Private only", "private")}
+          ${regionCountText(venn.adhoc_only, 500, 90, "Adhoc only", "adhoc")}
+          ${regionCountText(venn.public_adhoc, 420, 208, "Public + Adhoc", "public,adhoc")}
+          ${regionCountText(venn.private_adhoc, 580, 208, "Private + Adhoc", "private,adhoc")}
+          ${regionCountText(venn.public_private, 500, 350, "Public + Private", "public,private")}
+          ${regionCountText(venn.public_private_adhoc, 500, 270, "Public + Private + Adhoc", "public,private,adhoc")}
+        </svg>
+        <div data-venn-tooltip class="pointer-events-none absolute z-20 hidden rounded border border-slate-300 bg-white px-2 py-1 text-[11px] text-slate-700 shadow-md"></div>
+        <div class="mt-1 flex items-center justify-center gap-3 text-[11px] text-slate-600">
+          <span class="venn-legend-item inline-flex cursor-pointer items-center gap-1 rounded px-2 py-0.5 hover:bg-slate-100" data-venn-key="public"><span class="h-2 w-2 rounded-full" style="background:${cssVarColor("--color-panel")}"></span>Public</span>
+          <span class="venn-legend-item inline-flex cursor-pointer items-center gap-1 rounded px-2 py-0.5 hover:bg-slate-100" data-venn-key="private"><span class="h-2 w-2 rounded-full" style="background:${cssVarColor("--color-dna")}"></span>Private</span>
+          <span class="venn-legend-item inline-flex cursor-pointer items-center gap-1 rounded px-2 py-0.5 hover:bg-slate-100" data-venn-key="adhoc"><span class="h-2 w-2 rounded-full" style="background:${cssVarColor("--color-rna")}"></span>Adhoc</span>
+        </div>
+      </div>
+    `;
+
+    const wrap = chartEl.querySelector("[data-venn-wrap]");
+    const tooltip = chartEl.querySelector("[data-venn-tooltip]");
+    if (!wrap || !tooltip) return;
+    const targets = chartEl.querySelectorAll(".venn-region, .venn-circle");
+    const showTip = (evt, node) => {
+      const label = node.getAttribute("data-label") || "Value";
+      const value = Number(node.getAttribute("data-value") || 0).toLocaleString();
+      tooltip.innerHTML = `${label}: <b>${value}</b>`;
+      tooltip.classList.remove("hidden");
+      const rect = wrap.getBoundingClientRect();
+      const x = Math.min(Math.max(evt.clientX - rect.left + 12, 8), rect.width - 120);
+      const y = Math.min(Math.max(evt.clientY - rect.top - 28, 8), rect.height - 36);
+      tooltip.style.left = `${x}px`;
+      tooltip.style.top = `${y}px`;
+    };
+    const hideTip = () => tooltip.classList.add("hidden");
+    targets.forEach((node) => {
+      node.addEventListener("mousemove", (evt) => showTip(evt, node));
+      node.addEventListener("mouseenter", (evt) => showTip(evt, node));
+      node.addEventListener("mouseleave", hideTip);
+    });
+    const vennNodes = Array.from(chartEl.querySelectorAll(".venn-circle, .venn-region"));
+    const legendItems = Array.from(chartEl.querySelectorAll(".venn-legend-item"));
+    const resetHighlight = () => {
+      vennNodes.forEach((node) => {
+        node.style.opacity = "1";
+      });
+    };
+    const applyHighlight = (key) => {
+      vennNodes.forEach((node) => {
+        const sets = String(node.getAttribute("data-sets") || "").split(",").map((v) => v.trim());
+        node.style.opacity = sets.includes(key) ? "1" : "0.18";
+      });
+    };
+    legendItems.forEach((legend) => {
+      legend.addEventListener("mouseenter", () => applyHighlight(String(legend.getAttribute("data-venn-key") || "")));
+      legend.addEventListener("mouseleave", resetHighlight);
+    });
+  }
+
+  function renderAdminIsglExtraFlags() {
+    const cardEl = document.querySelector("#adminIsglExtraFlags");
+    if (!cardEl) return;
+    const extra = (isglVisibility || {}).extra_visibility_counts || {};
+    const entries = Object.entries(extra).sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0));
+    if (!entries.length) {
+      cardEl.innerHTML = "";
+      return;
+    }
+    cardEl.innerHTML = entries
+      .map(([k, v]) => `
+      <div class="rounded-md border border-slate-200 bg-mist-50 px-3 py-2">
+        <p class="text-[11px] uppercase tracking-wide text-slate-600">${String(k).replace(/^is_/, "").replaceAll("_", " ")}</p>
+        <p class="text-base font-semibold text-slate-900">${Number(v || 0).toLocaleString()}</p>
+      </div>
+    `)
+      .join("");
+  }
+
+  function renderScopeSummaryCards() {
+    const cardEl = document.querySelector("#scopeSummaryCards");
+    if (!cardEl) return;
+    const scopes = sampleStats.sequencing_scopes || {};
+    const normalizedScopes = {};
+    Object.entries(scopes).forEach(([k, v]) => {
+      const key = String(k || "unknown").toLowerCase().trim();
+      normalizedScopes[key] = (normalizedScopes[key] || 0) + Number(v || 0);
+    });
+    const entries = Object.entries(normalizedScopes).sort((a, b) => b[1] - a[1]).slice(0, 4);
+    const cards = entries.map(([k, v]) => ({ label: String(k).toUpperCase(), value: Number(v || 0).toLocaleString() }));
+    if (!cards.length) cards.push({ label: "NO DATA", value: "0" });
+    const cardPalette = [
+      "border-slate-200 bg-mist-50",
+      "border-slate-200 bg-mist-50",
+      "border-slate-200 bg-sage-50",
+      "border-slate-200 bg-mist-50",
+    ];
+    cardEl.innerHTML = cards.map((c, idx) => `
+      <div class="rounded-lg border ${cardPalette[idx % cardPalette.length]} p-3">
+        <p class="text-xs text-slate-500">${c.label}</p>
+        <p class="text-lg font-semibold text-slate-900">${c.value}</p>
+      </div>
+    `).join("");
+  }
+
+  function renderAssayGeneChart() {
+    const chartEl = document.querySelector("#geneChart");
+    if (!chartEl) return;
     const labels = [];
     const coveredGenes = [];
     const germlineGenes = [];
 
-    for (const group in groupedData) {
-      for (const assay of groupedData[group]) {
-        labels.push(assay.display_name || assay.assay_name);
-        coveredGenes.push(assay.covered_genes_count || 0);
-        germlineGenes.push(assay.germline_genes_count || 0);
+    for (const group in (assayGeneStatsGrouped || {})) {
+      const groupLower = String(group || "").toLowerCase();
+      if (groupLower.includes("wts") || groupLower.includes("wgs") || groupLower.includes("tumwgs")) continue;
+      for (const assay of (assayGeneStatsGrouped[group] || [])) {
+        const assayNameLower = String(assay.assay_name || "").toLowerCase();
+        if (assayNameLower.includes("wts") || assayNameLower.includes("wgs") || assayNameLower.includes("tumwgs")) continue;
+        labels.push(assay.display_name || assay.assay_name || group);
+        coveredGenes.push(Number(assay.covered_genes_count || 0));
+        germlineGenes.push(Number(assay.germline_genes_count || 0));
       }
     }
 
-    const options = {
-      chart: {
-        type: 'bar',
-        height: 360,
-        toolbar: { show: false },
-        animations: { easing: 'easeinout', speed: 300 }
-      },
+    if (labels.length === 0) {
+      chartEl.innerHTML = '<p class="py-8 text-center text-sm text-slate-500">No panel assay gene data available.</p>';
+      return;
+    }
+    if (labels.length === 1) {
+      chartEl.innerHTML = `
+        <div class="grid grid-cols-2 gap-3">
+          <div class="rounded-lg border border-slate-200 bg-mist-50 p-3 col-span-2">
+            <p class="text-xs text-slate-500">Assay</p>
+            <p class="text-base font-semibold text-slate-900">${labels[0]}</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-mist-50 p-3">
+            <p class="text-xs text-blue-700">Covered Genes</p>
+            <p class="text-xl font-semibold text-slate-900">${Number(coveredGenes[0] || 0).toLocaleString()}</p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-sand-50 p-3">
+            <p class="text-xs text-orange-700">Germline Genes</p>
+            <p class="text-xl font-semibold text-slate-900">${Number(germlineGenes[0] || 0).toLocaleString()}</p>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    new ApexCharts(chartEl, {
+      ...barStyle(360),
       series: [
-        { name: 'Covered Genes', data: coveredGenes },
-        { name: 'Germline Genes', data: germlineGenes }
+        { name: "Covered Genes", data: coveredGenes },
+        { name: "Germline Genes", data: germlineGenes }
       ],
-      xaxis: {
-        categories: labels,
-        labels: {
-          rotate: -30,
-          style: { fontSize: '12px' }
-        }
-      },
-      plotOptions: {
-        bar: {
-          horizontal: false,
-          columnWidth: '40%',
-          borderRadius: 6
-        }
-      },
-      colors: ['#2563EB', '#F97316'],
-      dataLabels: { enabled: false },
-      legend: {
-        position: 'top',
-        fontSize: '14px',
-      },
-      tooltip: {
-        y: { formatter: val => `${val} genes` }
-      },
-      grid: {
-        borderColor: '#E5E7EB',
-        row: { colors: ['#F9FAFB', 'transparent'], opacity: 0.5 }
-      }
-    };
-
-    const chart = new ApexCharts(document.querySelector(`#${containerId}`), options);
-    chart.render();
+      xaxis: { categories: labels, labels: { rotate: -20 } },
+      colors: [cssVarColor("--color-panel"), cssVarColor("--color-dna")],
+      plotOptions: { bar: { borderRadius: 6, columnWidth: "45%" } },
+      legend: { ...donutStyle().legend, position: "top" },
+      dataLabels: { enabled: true, formatter: (v) => compactNumber(v) },
+      tooltip: { y: { formatter: (v) => `${Number(v).toLocaleString()} genes` } }
+    }).render();
   }
-  const assayGeneStatsGrouped = {{ assay_gene_stats_grouped | tojson }};
-  renderGroupedAssayGeneChart("geneChart", assayGeneStatsGrouped);
-  </script>
 
-
-
-
+  renderSampleProgress();
+  renderVariantMix();
+  renderTierChart();
+  renderUserAssayChart();
+  renderDistributionCharts();
+  renderQualityChart();
+  renderScopeSummaryCards();
+  renderAssayGeneChart();
+  renderQualitySummaryCards();
+  renderCapacityRings();
+  renderAdminUserRoleChart();
+  renderAdminProfessionRoleChart();
+  renderAdminIsglVennChart();
+  renderAdminIsglExtraFlags();
+</script>
 {% endblock %}
