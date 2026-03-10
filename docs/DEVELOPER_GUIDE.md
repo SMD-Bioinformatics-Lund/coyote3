@@ -170,6 +170,33 @@ Expected topology:
 .venv/bin/ruff check .
 ```
 
+### 5.4 Mongo Index and Count Strategy
+To improve retrieval speed without unnecessary disk growth, Coyote3 uses a minimal index policy:
+- index only fields used in recurring filter/sort hot paths
+- avoid blanket indexing of every field
+- prefer `count_documents()` for count-only metrics instead of loading full documents
+
+Where indexes are created:
+- handler-level `ensure_indexes()` methods in `api/infra/db/*`
+- called centrally from `MongoAdapter._setup_handlers()` in `api/infra/db/mongo.py`
+
+Current high-value index targets include:
+- sample dashboard/list filters (`assay`, `profile`, `report_num`, `time_added`, `paired`)
+- variant lookup filters (`SAMPLE_ID`, `variant_class`, `fp`)
+- dashboard/admin entities (`users`, `roles`, `asp`, `aspc`, `isgl`) for active-status and sort/filter patterns
+
+Contributor rules:
+1. Add an index only when a query pattern is known and recurring.
+2. Prefer compound indexes that match real query prefixes over many single-field indexes.
+3. Reuse existing indexed fields before introducing new indexes.
+4. Add tests for route/query behavior when count/query code changes.
+5. Document index rationale in code comments and changelog.
+
+Anti-patterns:
+- adding speculative indexes without a concrete query path
+- indexing rarely used one-off admin/debug queries
+- replacing indexed count paths with full `find()` plus Python `len(...)`
+
 ---
 
 ## 6. Adding a New FastAPI Endpoint

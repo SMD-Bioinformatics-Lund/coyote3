@@ -309,6 +309,28 @@ A backup is not valid until restore has been tested in isolated environment. Per
 - missing report artifact backups break report history continuity
 - inconsistent backup timestamps complicate coordinated restore
 
+## 8.7 Mongo index lifecycle and storage policy
+Index creation is handled by application startup via handler `ensure_indexes()` methods in `api/infra/db/*`.
+
+Operational policy:
+- keep index set minimal and query-driven
+- prioritize indexes for recurring API/dashboard filters and sorts
+- avoid broad indexing that increases disk and memory footprint without measurable benefit
+
+Current startup-covered index families:
+- sample/variant/reporting hot paths
+- dashboard/admin capacity and visibility paths (`users`, `roles`, `asp`, `aspc`, `isgl`)
+
+Validation after deployment:
+1. confirm service startup completed without Mongo index errors
+2. verify key dashboard/API routes latency under expected load
+3. inspect Mongo index list and size growth before and after rollout
+
+When adding new indexes:
+- include rationale tied to an explicit query path
+- monitor disk growth and working-set impact
+- remove or consolidate low-value indexes during maintenance windows
+
 ---
 
 ## 9. Upgrade Procedure

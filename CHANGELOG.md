@@ -10,6 +10,8 @@
 - Dashboard: fixed radial capacity ring layout overflow and normalized-value display issues.
 - Dashboard: updated ring/stacked-bar label behavior (capacity ring labels show counts; assay workload center labels rendered vertically).
 - Docs: expanded dashboard user guide with metric-by-metric definitions, formulas, and panel interpretation notes.
+- DB: added targeted `ensure_indexes()` coverage for dashboard/admin hot collections (`users`, `roles`, `asp`, `aspc`, `isgl`) with a minimal-index strategy.
+- Docs: added developer + operations guidance for Mongo index lifecycle, count-query patterns, and storage-aware indexing policy.
 
 ## v3.1.21
 - Fixed HGVS display/toggle behavior across DNA variant list, tiered search, and reported variants views (unique row IDs, stacked HGVS lines, and no blank indent when only one HGVS value exists).
