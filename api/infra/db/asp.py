@@ -44,6 +44,31 @@ class ASPHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.asp_collection)
 
+    def ensure_indexes(self) -> None:
+        """
+        Create minimal indexes for ASP dashboard/admin queries.
+        """
+        col = self.get_collection()
+        col.create_index(
+            [("is_active", 1), ("created_on", -1)],
+            name="is_active_created_on",
+            background=True,
+        )
+        col.create_index(
+            [("is_active", 1), ("assay_name", 1)],
+            name="is_active_assay_name",
+            background=True,
+        )
+
+    def count_asps(self, is_active: bool | None = None) -> int:
+        """
+        Count ASPs with an optional active-status filter.
+        """
+        query = {}
+        if is_active is not None:
+            query["is_active"] = is_active
+        return int(self.get_collection().count_documents(query))
+
     def get_asp(self, asp_name: str) -> dict | None:
         """
         Retrieve an assay specific panel (ASP) by its name or ID.

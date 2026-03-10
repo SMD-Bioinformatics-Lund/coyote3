@@ -36,6 +36,40 @@ class ISGLHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.insilico_genelist_collection)
 
+    def ensure_indexes(self) -> None:
+        """
+        Create targeted indexes for ISGL visibility and assay/subpanel lookup paths.
+
+        Avoids broad indexing to keep disk usage controlled.
+        """
+        col = self.get_collection()
+        col.create_index(
+            [("is_active", 1), ("is_public", 1), ("adhoc", 1), ("created_on", -1)],
+            name="active_public_adhoc_created_on",
+            background=True,
+        )
+        col.create_index([("assays", 1)], name="assays_1", background=True)
+        col.create_index([("diagnosis", 1)], name="diagnosis_1", background=True)
+        col.create_index([("list_type", 1)], name="list_type_1", background=True)
+
+    def count_isgls(
+        self,
+        is_active: bool | None = None,
+        is_public: bool | None = None,
+        adhoc: bool | None = None,
+    ) -> int:
+        """
+        Count ISGL documents with optional visibility/activity filters.
+        """
+        query = {}
+        if is_active is not None:
+            query["is_active"] = is_active
+        if is_public is not None:
+            query["is_public"] = is_public
+        if adhoc is not None:
+            query["adhoc"] = adhoc
+        return int(self.get_collection().count_documents(query))
+
     def get_isgl(
         self, isgl_id: str, is_active: bool | None = None, is_public: bool | None = None
     ) -> dict | None:

@@ -36,6 +36,23 @@ class RolesHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.roles_collection)
 
+    def ensure_indexes(self) -> None:
+        """
+        Create minimal indexes for role list/count paths.
+        """
+        col = self.get_collection()
+        col.create_index([("level", -1)], name="level_-1", background=True)
+        col.create_index([("is_active", 1)], name="is_active_1", background=True)
+
+    def count_roles(self, is_active: bool | None = None) -> int:
+        """
+        Count roles with an optional active-status filter.
+        """
+        query = {}
+        if is_active is not None:
+            query["is_active"] = is_active
+        return int(self.get_collection().count_documents(query))
+
     def get_all_roles(self) -> list:
         """
         Retrieve all roles from the database.

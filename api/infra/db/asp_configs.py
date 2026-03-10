@@ -36,6 +36,26 @@ class ASPConfigHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.aspc_collection)
 
+    def ensure_indexes(self) -> None:
+        """
+        Create minimal indexes for ASPC filter/distinct paths.
+        """
+        col = self.get_collection()
+        col.create_index(
+            [("is_active", 1), ("assay_name", 1)],
+            name="is_active_assay_name",
+            background=True,
+        )
+
+    def count_aspcs(self, is_active: bool | None = None) -> int:
+        """
+        Count ASPCs with an optional active-status filter.
+        """
+        query = {}
+        if is_active is not None:
+            query["is_active"] = is_active
+        return int(self.get_collection().count_documents(query))
+
     def get_all_aspc(self) -> cursor.Cursor:
         """
         Retrieves all assay configuration documents from the collection.

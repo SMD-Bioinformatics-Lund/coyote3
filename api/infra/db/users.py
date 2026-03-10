@@ -35,6 +35,26 @@ class UsersHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.users_collection)
 
+    def ensure_indexes(self) -> None:
+        """
+        Create minimal indexes for hot user lookup/count paths.
+
+        Kept intentionally small to avoid unnecessary disk growth.
+        """
+        col = self.get_collection()
+        col.create_index([("email", 1)], name="email_1", background=True)
+        col.create_index([("is_active", 1)], name="is_active_1", background=True)
+        col.create_index([("firstname", 1)], name="firstname_1", background=True)
+
+    def count_users(self, is_active: bool | None = None) -> int:
+        """
+        Count users with an optional active-status filter.
+        """
+        query = {}
+        if is_active is not None:
+            query["is_active"] = is_active
+        return int(self.get_collection().count_documents(query))
+
     def user(self, user_mail: str) -> dict:
         """
         Retrieves a user document from the database by email.
