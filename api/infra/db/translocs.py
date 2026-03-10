@@ -37,6 +37,13 @@ class TranslocsHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.transloc_collection)
 
+    def ensure_indexes(self) -> None:
+        """
+        Create indexes used by dashboard and sample lookup paths.
+        """
+        col = self.get_collection()
+        col.create_index([("SAMPLE_ID", 1)], name="sample_id_1", background=True)
+
     def get_sample_translocations(self, sample_id: str) -> list:
         """
         Retrieve all translocations for a given sample.

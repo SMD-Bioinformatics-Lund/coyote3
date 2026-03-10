@@ -215,3 +215,54 @@ class ReportedVariantsHandler(BaseHandler):
             name="ix_created_on_desc",
             background=True,
         )
+
+        col.create_index(
+            [("tier", ASCENDING)],
+            name="ix_tier",
+            background=True,
+        )
+        col.create_index(
+            [("assay", ASCENDING), ("tier", ASCENDING)],
+            name="ix_assay_tier",
+            background=True,
+        )
+
+    def get_dashboard_tier_stats(self) -> dict:
+        """
+        Return reported tier distribution for dashboard cards/charts.
+
+        The aggregation reads tiered snapshots from reported_variants and returns:
+        {
+          "total": {"tier1": int, "tier2": int, "tier3": int, "tier4": int},
+          "by_assay": {"ASSAY": {"tier1": int, ...}}
+        }
+        """
+        col = self.get_collection()
+        totals_pipeline = [
+            {"$match": {"tier": {"$in": [1, 2, 3, 4]}}},
+            {"$group": {"_id": "$tier", "count": {"$sum": 1}}},
+        ]
+        by_assay_pipeline = [
+            {"$match": {"tier": {"$in": [1, 2, 3, 4]}}},
+            {"$group": {"_id": {"assay": {"$ifNull": ["$assay", "Unknown"]}, "tier": "$tier"}, "count": {"$sum": 1}}},
+        ]
+
+        total = {"tier1": 0, "tier2": 0, "tier3": 0, "tier4": 0}
+        for row in list(col.aggregate(totals_pipeline)):
+            tier = row.get("_id")
+            key = f"tier{tier}"
+            if key in total:
+                total[key] = int(row.get("count", 0) or 0)
+
+        by_assay: dict[str, dict[str, int]] = {}
+        for row in list(col.aggregate(by_assay_pipeline)):
+            key = row.get("_id") or {}
+            assay = str(key.get("assay") or "Unknown")
+            tier = key.get("tier")
+            tier_key = f"tier{tier}"
+            if assay not in by_assay:
+                by_assay[assay] = {"tier1": 0, "tier2": 0, "tier3": 0, "tier4": 0}
+            if tier_key in by_assay[assay]:
+                by_assay[assay][tier_key] += int(row.get("count", 0) or 0)
+
+        return {"total": total, "by_assay": by_assay}

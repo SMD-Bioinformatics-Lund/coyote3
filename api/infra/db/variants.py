@@ -49,6 +49,16 @@ class VariantsHandler(BaseHandler):
             name="sample_id_1",
             background=True,
         )
+        col.create_index(
+            [("variant_class", 1)],
+            name="variant_class_1",
+            background=True,
+        )
+        col.create_index(
+            [("fp", 1)],
+            name="fp_1",
+            background=True,
+        )
 
     def get_case_variants(self, query: dict):
         """
@@ -422,7 +432,7 @@ class VariantsHandler(BaseHandler):
         Returns:
             int: The total number of variants in the collection.
         """
-        return self.get_collection().find().count()
+        return self.get_collection().count_documents({})
 
     def get_unique_total_variant_counts(self) -> int:
         """
@@ -447,7 +457,7 @@ class VariantsHandler(BaseHandler):
         Returns:
             int: The total number of SNP variants in the collection.
         """
-        return self.get_collection().find({"variant_class": "SNV"}).count()
+        return self.get_collection().count_documents({"variant_class": "SNV"})
 
     def get_fp_counts(self):
         """
@@ -459,7 +469,37 @@ class VariantsHandler(BaseHandler):
         Returns:
             int: The total number of false positive variants in the collection.
         """
-        return self.get_collection().find({"fp": True}).count()
+        return self.get_collection().count_documents({"fp": True})
+
+    def get_dashboard_variant_counts(self) -> dict[str, int]:
+        """
+        Return variant summary counters for dashboard in a single aggregation.
+
+        Output keys:
+          - total_variants
+          - total_snps
+          - fps
+        """
+        pipeline = [
+            {
+                "$group": {
+                    "_id": None,
+                    "total_variants": {"$sum": 1},
+                    "total_snps": {"$sum": {"$cond": [{"$eq": ["$variant_class", "SNV"]}, 1, 0]}},
+                    "fps": {"$sum": {"$cond": [{"$eq": ["$fp", True]}, 1, 0]}},
+                }
+            },
+            {"$project": {"_id": 0, "total_variants": 1, "total_snps": 1, "fps": 1}},
+        ]
+        result = list(self.get_collection().aggregate(pipeline))
+        if not result:
+            return {"total_variants": 0, "total_snps": 0, "fps": 0}
+        row = result[0]
+        return {
+            "total_variants": int(row.get("total_variants", 0) or 0),
+            "total_snps": int(row.get("total_snps", 0) or 0),
+            "fps": int(row.get("fps", 0) or 0),
+        }
 
     def get_unique_snp_count(self) -> int:
         """

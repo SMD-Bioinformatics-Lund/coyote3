@@ -28,6 +28,43 @@ _DEFAULT_SAMPLE_STATS = {
     "sequencing_scopes": {},
     "pair_count": {},
 }
+_DEFAULT_TIER_STATS = {
+    "total": {"tier1": 0, "tier2": 0, "tier3": 0, "tier4": 0},
+    "by_assay": {},
+}
+_DEFAULT_QUALITY_STATS = {
+    "analysed_rate_percent": 0.0,
+    "fp_rate_percent": 0.0,
+    "blacklist_rate_percent": 0.0,
+}
+_DEFAULT_DASHBOARD_META = {"timings_ms": {}, "scope_assays": None}
+_DEFAULT_CAPACITY_COUNTS = {
+    "users_total": 0,
+    "roles_total": 0,
+    "asps_total": 0,
+    "aspcs_total": 0,
+    "isgl_total": 0,
+}
+_DEFAULT_ISGL_VISIBILITY = {
+    "public_total": 0,
+    "adhoc_total": 0,
+    "private_total": 0,
+    "public_only": 0,
+    "private_only": 0,
+    "adhoc_only": 0,
+    "public_private": 0,
+    "public_adhoc": 0,
+    "private_adhoc": 0,
+    "public_private_adhoc": 0,
+    "overlap_total": 0,
+    "extra_visibility_counts": {},
+}
+_DEFAULT_ADMIN_INSIGHTS = {
+    "counts": {},
+    "role_user_counts": {},
+    "profession_role_matrix": {},
+    "isgl_venn": {},
+}
 
 
 def _as_int(value: object, default: int = 0) -> int:
@@ -57,6 +94,76 @@ def _normalize_sample_stats(stats: object) -> dict[str, dict]:
     return normalized
 
 
+def _normalize_tier_stats(stats: object) -> dict:
+    if not isinstance(stats, dict):
+        return dict(_DEFAULT_TIER_STATS)
+    total = stats.get("total", {}) if isinstance(stats.get("total"), dict) else {}
+    by_assay = stats.get("by_assay", {}) if isinstance(stats.get("by_assay"), dict) else {}
+    return {
+        "total": {
+            "tier1": _as_int(total.get("tier1"), 0),
+            "tier2": _as_int(total.get("tier2"), 0),
+            "tier3": _as_int(total.get("tier3"), 0),
+            "tier4": _as_int(total.get("tier4"), 0),
+        },
+        "by_assay": by_assay,
+    }
+
+
+def _normalize_quality_stats(stats: object) -> dict:
+    if not isinstance(stats, dict):
+        return dict(_DEFAULT_QUALITY_STATS)
+    return {
+        "analysed_rate_percent": float(stats.get("analysed_rate_percent", 0.0) or 0.0),
+        "fp_rate_percent": float(stats.get("fp_rate_percent", 0.0) or 0.0),
+        "blacklist_rate_percent": float(stats.get("blacklist_rate_percent", 0.0) or 0.0),
+    }
+
+
+def _normalize_dashboard_meta(meta: object) -> dict:
+    if not isinstance(meta, dict):
+        return dict(_DEFAULT_DASHBOARD_META)
+    timings = meta.get("timings_ms", {})
+    if not isinstance(timings, dict):
+        timings = {}
+    scope_assays = meta.get("scope_assays")
+    if scope_assays is not None and not isinstance(scope_assays, list):
+        scope_assays = []
+    return {"timings_ms": timings, "scope_assays": scope_assays}
+
+
+def _normalize_admin_insights(insights: object) -> dict:
+    if not isinstance(insights, dict):
+        return dict(_DEFAULT_ADMIN_INSIGHTS)
+    normalized = dict(_DEFAULT_ADMIN_INSIGHTS)
+    for key in normalized:
+        value = insights.get(key, normalized[key])
+        normalized[key] = value if isinstance(value, dict) else normalized[key]
+    return normalized
+
+
+def _normalize_capacity_counts(counts: object) -> dict:
+    if not isinstance(counts, dict):
+        return dict(_DEFAULT_CAPACITY_COUNTS)
+    normalized = dict(_DEFAULT_CAPACITY_COUNTS)
+    for key in normalized:
+        normalized[key] = _as_int(counts.get(key), default=0)
+    return normalized
+
+
+def _normalize_isgl_visibility(payload: object) -> dict:
+    if not isinstance(payload, dict):
+        return dict(_DEFAULT_ISGL_VISIBILITY)
+    normalized = dict(_DEFAULT_ISGL_VISIBILITY)
+    for key in normalized:
+        if key == "extra_visibility_counts":
+            value = payload.get(key, {})
+            normalized[key] = value if isinstance(value, dict) else {}
+        else:
+            normalized[key] = _as_int(payload.get(key), default=0)
+    return normalized
+
+
 @dashboard_bp.route("/", methods=["GET", "POST"])
 @login_required
 def dashboard() -> str:
@@ -75,42 +182,65 @@ def dashboard() -> str:
     """
     cache_timeout = app.config.get("CACHE_DEFAULT_TIMEOUT", 0)
     username = getattr(current_user, "username", None) or current_user.get_id() or "anonymous"
-    cache_key = util.dashboard.generate_dashboard_chache_key(username)
+    scope_assays = sorted(list(getattr(current_user, "assays", []) or []))
+    scope_groups = sorted(list(getattr(current_user, "assay_groups", []) or []))
+    scope_role = str(getattr(current_user, "role", "") or "")
+    scope_fingerprint = f"v3|r={scope_role}|a={scope_assays}|g={scope_groups}"
+    cache_key = util.dashboard.generate_dashboard_chache_key(username, scope=scope_fingerprint)
 
     cache_payload = None
+    fetched_from_api_ok = False
     try:
         cache_payload = app.cache.get(cache_key)
     except Exception as exc:
         app.logger.warning("Dashboard cache read failed for %s: %s", cache_key, exc)
 
-    if cache_payload:
-        (
-            total_samples_count,
-            analysed_samples_count,
-            pending_samples_count,
-            user_samples_stats,
-            variant_stats,
-            unique_gene_count_all_panels,
-            asp_gene_counts,
-            sample_stats,
-        ) = cache_payload
+    if isinstance(cache_payload, dict):
         app.logger.info(f"Dashboard cache hit for {cache_key}")
-        if not isinstance(user_samples_stats, dict):
-            app.logger.warning(
-                "Dashboard cache payload has invalid user_samples_stats type (%s); resetting.",
-                type(user_samples_stats).__name__,
-            )
-            user_samples_stats = {}
-        variant_stats = _normalize_variant_stats(variant_stats)
-        sample_stats = _normalize_sample_stats(sample_stats)
-
+        total_samples_count = _as_int(cache_payload.get("total_samples"), default=0)
+        analysed_samples_count = _as_int(cache_payload.get("analysed_samples"), default=0)
+        pending_samples_count = _as_int(cache_payload.get("pending_samples"), default=0)
+        user_samples_stats = cache_payload.get("user_samples_stats", {})
+        variant_stats = cache_payload.get("variant_stats", {})
+        unique_gene_count_all_panels = _as_int(
+            cache_payload.get("unique_gene_count_all_panels"), default=0
+        )
+        asp_gene_counts = cache_payload.get("assay_gene_stats_grouped", {})
+        sample_stats = cache_payload.get("sample_stats", {})
+        tier_stats = cache_payload.get("tier_stats", {})
+        quality_stats = cache_payload.get("quality_stats", {})
+        dashboard_meta = cache_payload.get("dashboard_meta", {})
+        admin_insights = cache_payload.get("admin_insights", {})
+        capacity_counts = cache_payload.get("capacity_counts", {})
+        isgl_visibility = cache_payload.get("isgl_visibility", {})
     else:
         app.logger.info(f"Dashboard cache miss for {cache_key}")
+        payload = None
+        last_error = None
+        forwarded_headers = forward_headers()
+        for attempt in range(2):
+            try:
+                payload = get_web_api_client().get_json(
+                    api_endpoints.dashboard("summary"),
+                    headers=forwarded_headers,
+                )
+                break
+            except ApiRequestError as exc:
+                last_error = exc
+                if attempt == 0:
+                    # Retries help with transient cold-start/time-to-first-auth spikes right after login.
+                    app.logger.warning(
+                        "Dashboard summary fetch attempt %s failed for user %s (status=%s), retrying once.",
+                        attempt + 1,
+                        username,
+                        exc.status_code,
+                    )
+                    forwarded_headers = forward_headers()
+
         try:
-            payload = get_web_api_client().get_json(
-                api_endpoints.dashboard("summary"),
-                headers=forward_headers(),
-            )
+            if payload is None:
+                raise last_error or ApiRequestError(message="Dashboard summary unavailable")
+            fetched_from_api_ok = True
             total_samples_count = _as_int(payload.get("total_samples"), default=0)
             analysed_samples_count = _as_int(payload.get("analysed_samples"), default=0)
             pending_samples_count = _as_int(payload.get("pending_samples"), default=0)
@@ -121,6 +251,12 @@ def dashboard() -> str:
             )
             asp_gene_counts = payload.get("assay_gene_stats_grouped", {})
             sample_stats = payload.get("sample_stats", {})
+            tier_stats = payload.get("tier_stats", {})
+            quality_stats = payload.get("quality_stats", {})
+            dashboard_meta = payload.get("dashboard_meta", {})
+            admin_insights = payload.get("admin_insights", {})
+            capacity_counts = payload.get("capacity_counts", {})
+            isgl_visibility = payload.get("isgl_visibility", {})
         except ApiRequestError as exc:
             log_api_error(
                 exc,
@@ -135,28 +271,47 @@ def dashboard() -> str:
             unique_gene_count_all_panels = 0
             asp_gene_counts = {}
             sample_stats = dict(_DEFAULT_SAMPLE_STATS)
+            tier_stats = dict(_DEFAULT_TIER_STATS)
+            quality_stats = dict(_DEFAULT_QUALITY_STATS)
+            dashboard_meta = dict(_DEFAULT_DASHBOARD_META)
+            admin_insights = dict(_DEFAULT_ADMIN_INSIGHTS)
+            capacity_counts = dict(_DEFAULT_CAPACITY_COUNTS)
+            isgl_visibility = dict(_DEFAULT_ISGL_VISIBILITY)
 
     variant_stats = _normalize_variant_stats(variant_stats)
     sample_stats = _normalize_sample_stats(sample_stats)
+    tier_stats = _normalize_tier_stats(tier_stats)
+    quality_stats = _normalize_quality_stats(quality_stats)
+    dashboard_meta = _normalize_dashboard_meta(dashboard_meta)
+    admin_insights = _normalize_admin_insights(admin_insights)
+    capacity_counts = _normalize_capacity_counts(capacity_counts)
+    isgl_visibility = _normalize_isgl_visibility(isgl_visibility)
 
-    # Check if the cache exists and is still valid
-    try:
-        app.cache.set(
-            cache_key,
-            (
-                total_samples_count,
-                analysed_samples_count,
-                pending_samples_count,
-                user_samples_stats,
-                variant_stats,
-                unique_gene_count_all_panels,
-                asp_gene_counts,
-                sample_stats,
-            ),
-            timeout=cache_timeout,
-        )
-    except Exception as exc:
-        app.logger.warning("Dashboard cache write failed for %s: %s", cache_key, exc)
+    # Only cache successful API payloads to avoid poisoning cache with fallback zeros.
+    if fetched_from_api_ok:
+        try:
+            app.cache.set(
+                cache_key,
+                {
+                    "total_samples": total_samples_count,
+                    "analysed_samples": analysed_samples_count,
+                    "pending_samples": pending_samples_count,
+                    "user_samples_stats": user_samples_stats,
+                    "variant_stats": variant_stats,
+                    "unique_gene_count_all_panels": unique_gene_count_all_panels,
+                    "assay_gene_stats_grouped": asp_gene_counts,
+                    "sample_stats": sample_stats,
+                    "tier_stats": tier_stats,
+                    "quality_stats": quality_stats,
+                    "dashboard_meta": dashboard_meta,
+                    "admin_insights": admin_insights,
+                    "capacity_counts": capacity_counts,
+                    "isgl_visibility": isgl_visibility,
+                },
+                timeout=cache_timeout,
+            )
+        except Exception as exc:
+            app.logger.warning("Dashboard cache write failed for %s: %s", cache_key, exc)
 
     return render_template(
         "dashboard.html",
@@ -168,4 +323,10 @@ def dashboard() -> str:
         assay_gene_stats_grouped=asp_gene_counts,
         user_samples_stats=user_samples_stats,
         sample_stats=sample_stats,
+        tier_stats=tier_stats,
+        quality_stats=quality_stats,
+        dashboard_meta=dashboard_meta,
+        admin_insights=admin_insights,
+        capacity_counts=capacity_counts,
+        isgl_visibility=isgl_visibility,
     )

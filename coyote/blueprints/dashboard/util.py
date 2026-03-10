@@ -105,7 +105,7 @@ class DashBoardUtility:
         return grouped
 
     @staticmethod
-    def generate_dashboard_chache_key(username: str) -> str:
+    def generate_dashboard_chache_key(username: str, scope: str | None = None) -> str:
         """
         Generates a cache key for dashboard data based on the provided username.
 
@@ -115,5 +115,5 @@ class DashBoardUtility:
         Returns:
             str: A unique cache key string for the user's dashboard data.
         """
-        raw_key = f"dashboard_data_{username}"
+        raw_key = f"dashboard_data_{username}:{scope or 'default'}"
         return f"dashboard:{md5(raw_key.encode()).hexdigest()}"

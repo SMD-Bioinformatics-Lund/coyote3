@@ -43,6 +43,13 @@ class FusionsHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.fusions_collection)
 
+    def ensure_indexes(self) -> None:
+        """
+        Create indexes used by dashboard and sample lookup paths.
+        """
+        col = self.get_collection()
+        col.create_index([("SAMPLE_ID", 1)], name="sample_id_1", background=True)
+
     def get_sample_fusions(self, query: dict) -> Any:
         """
         Retrieve fusions based on a constructed query.

@@ -40,6 +40,22 @@ class SampleHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.samples_collection)
 
+    def ensure_indexes(self) -> None:
+        """
+        Create indexes used by dashboard and sample list/read paths.
+        """
+        col = self.get_collection()
+        col.create_index([("assay", 1)], name="assay_1", background=True)
+        col.create_index([("profile", 1)], name="profile_1", background=True)
+        col.create_index([("report_num", 1)], name="report_num_1", background=True)
+        col.create_index([("time_added", -1)], name="time_added_-1", background=True)
+        col.create_index([("paired", 1)], name="paired_1", background=True)
+        col.create_index(
+            [("assay", 1), ("profile", 1), ("report_num", 1)],
+            name="assay_profile_reportnum_1",
+            background=True,
+        )
+
     def _query_samples(
         self,
         user_assays: list,
@@ -413,33 +429,19 @@ class SampleHandler(BaseHandler):
         Returns:
             list: A list containing the total count of samples based on the specified criteria.
         """
-        samples = []
         if report is None:
-            samples = self.get_collection().find().sort("time_added", -1).count()
-        elif report:
-            samples = (
-                self.get_collection()
-                .find({"report_num": {"$gt": 0}})
-                .sort("time_added", -1)
-                .count()
-            )
-        elif not report:
-            samples = (
-                self.get_collection()
-                .find(
-                    {
-                        "$or": [
-                            {"report_num": 0},
-                            {"report_num": None},
-                            {"report_num": {"$exists": False}},
-                        ]
-                    }
-                )
-                .sort("time_added", -1)
-                .count()
-            )
-
-        return samples
+            return self.get_collection().count_documents({})
+        if report:
+            return self.get_collection().count_documents({"report_num": {"$gt": 0}})
+        return self.get_collection().count_documents(
+            {
+                "$or": [
+                    {"report_num": 0},
+                    {"report_num": None},
+                    {"report_num": {"$exists": False}},
+                ]
+            }
+        )
 
     def user_sample_counts_by_assay(self, report: bool | None = None, assays: list = None) -> dict:
         """
@@ -451,17 +453,6 @@ class SampleHandler(BaseHandler):
         Returns:
             dict: A dictionary where each key is an assay group and the value is the count of samples in that group.
         """
-        samples = []
-        if report is None and assays is None:
-            samples = self.get_collection().find().sort("time_added", -1).count()
-        elif assays and report is None:
-            samples = (
-                self.get_collection()
-                .find({"assay": {"$in": assays}})
-                .sort("time_added", -1)
-                .count()
-            )
-
         pipeline = [
             {"$match": {"assay": {"$in": assays}}} if assays else {},
             {"$group": {"_id": "$assay", "count": {"$sum": 1}}},
@@ -474,6 +465,81 @@ class SampleHandler(BaseHandler):
             ]
         result = list(self.get_collection().aggregate(pipeline))
         return {item["assay"]: item["count"] for item in result}
+
+    def get_dashboard_sample_rollup(self, assays: list[str] | None = None) -> dict:
+        """
+        Aggregate all dashboard sample counters in a single query.
+        """
+        # assays=None => unscoped (admin/all), assays=[] => explicit no access (match nothing)
+        base_match = {"assay": {"$in": assays}} if assays is not None else {}
+        collection = self.get_collection()
+
+        total_samples = int(collection.count_documents(base_match))
+        analysed_match = dict(base_match)
+        analysed_match["report_num"] = {"$gt": 0}
+        analysed_samples = int(collection.count_documents(analysed_match))
+
+        def _group_counts(field: str, project_alias: str = "key") -> list[dict]:
+            pipeline = []
+            if base_match:
+                pipeline.append({"$match": base_match})
+            pipeline.extend(
+                [
+                    {"$group": {"_id": f"${field}", "count": {"$sum": 1}}},
+                    {"$project": {"_id": 0, project_alias: "$_id", "count": 1}},
+                ]
+            )
+            return list(collection.aggregate(pipeline))
+
+        user_samples_stats: dict[str, dict[str, int]] = {}
+        for row in _group_counts("assay", project_alias="assay"):
+            assay = row.get("assay")
+            if not assay:
+                continue
+            assay_match = dict(base_match)
+            assay_match["assay"] = assay
+            assay_total = int(collection.count_documents(assay_match))
+            assay_analysed_match = dict(assay_match)
+            assay_analysed_match["report_num"] = {"$gt": 0}
+            assay_analysed = int(collection.count_documents(assay_analysed_match))
+            user_samples_stats[assay] = {
+                "total": assay_total,
+                "analysed": assay_analysed,
+                "pending": max(assay_total - assay_analysed, 0),
+            }
+
+        def _kv_to_dict(items: list[dict]) -> dict:
+            out = {}
+            for row in items or []:
+                key = row.get("key")
+                if key is None:
+                    key = "unknown"
+                out[str(key)] = int(row.get("count", 0) or 0)
+            return out
+
+        pair_counts = {"paired": 0, "unpaired": 0, "unknown": 0}
+        for row in _group_counts("paired") or []:
+            key = row.get("key")
+            count = int(row.get("count", 0) or 0)
+            if key is True:
+                pair_counts["paired"] = count
+            elif key is False:
+                pair_counts["unpaired"] = count
+            else:
+                pair_counts["unknown"] = count
+
+        return {
+            "total_samples": total_samples,
+            "analysed_samples": analysed_samples,
+            "pending_samples": max(total_samples - analysed_samples, 0),
+            "user_samples_stats": user_samples_stats,
+            "sample_stats": {
+                "profiles": _kv_to_dict(_group_counts("profile") or []),
+                "omics_layers": _kv_to_dict(_group_counts("omics_layer") or []),
+                "sequencing_scopes": _kv_to_dict(_group_counts("sequencing_scope") or []),
+                "pair_count": pair_counts,
+            },
+        }
 
     def get_assay_specific_sample_stats(
         self, assays: list = None, profile: str = "production"

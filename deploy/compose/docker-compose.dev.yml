@@ -122,15 +122,21 @@ services:
     image: node:20-alpine
     working_dir: /app
     command: >
-      sh -c "for i in 1 2 3 4 5; do npm install --no-audit --no-fund && break || sleep 5; done && npm run build:css && npm run dev:css"
-    dns:
-      - ${APP_DNS:-1.1.1.1}
-      - 8.8.8.8
+      sh -lc "npm config set fund false &&
+              npm config set audit false &&
+              npm config set fetch-retries 6 &&
+              npm config set fetch-retry-mintimeout 20000 &&
+              npm config set fetch-retry-maxtimeout 120000 &&
+              npm ci --prefer-offline &&
+              npm run build:css &&
+              npm run dev:css"
+    environment:
+      - CHOKIDAR_USEPOLLING=1
+      - CHOKIDAR_INTERVAL=700
+    network_mode: host
     volumes:
       - "../../:/app"
       - "coyote3-node-modules:/app/node_modules"
-    networks:
-      - coyote3-dev-net
     restart: unless-stopped
 
   # Shared infrastructure dependency.

@@ -11,6 +11,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    session,
     url_for,
 )
 from flask_login import current_user, login_required, login_user, logout_user
@@ -25,6 +26,8 @@ from coyote.services.api_client.api_client import (
     get_web_api_client,
 )
 from coyote.services.auth.user_session import User
+
+_SESSION_USER_PAYLOAD_KEY = "auth_user_payload"
 
 
 def _api_cookie_name() -> str:
@@ -83,6 +86,7 @@ def login() -> str | Response:
 
         user = User(auth_payload.user)
         login_user(user)
+        session[_SESSION_USER_PAYLOAD_KEY] = user.to_dict()
 
         response = redirect(url_for("dashboard_bp.dashboard"))
         _set_api_cookie(response, auth_payload.session_token)
@@ -105,6 +109,7 @@ def logout() -> Response:
         app.logger.warning("API logout request failed: %s", exc)
 
     logout_user()
+    session.pop(_SESSION_USER_PAYLOAD_KEY, None)
     response = redirect(url_for("login_bp.login"))
     _clear_api_cookie(response)
     return response
@@ -117,6 +122,12 @@ def load_user(user_id: str) -> User | None:
         if not has_request_context():
             return None
 
+        cached_user = session.get(_SESSION_USER_PAYLOAD_KEY)
+        if isinstance(cached_user, dict):
+            cached_id = str(cached_user.get("_id") or cached_user.get("id") or "")
+            if cached_id and cached_id == str(user_id):
+                return User(cached_user)
+
         payload = get_web_api_client().get_json(
             api_endpoints.auth("me"),
             headers=forward_headers(),
@@ -125,6 +136,7 @@ def load_user(user_id: str) -> User | None:
         api_user_id = str(user_payload.get("_id") or user_payload.get("id") or "")
         if not api_user_id or api_user_id != str(user_id):
             return None
+        session[_SESSION_USER_PAYLOAD_KEY] = dict(user_payload)
         return User(user_payload)
     except ApiRequestError:
         return None

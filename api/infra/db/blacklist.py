@@ -40,6 +40,14 @@ class BlacklistHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.blacklist_collection)
 
+    def ensure_indexes(self) -> None:
+        """
+        Create indexes used by blacklist read/write paths and dashboard metrics.
+        """
+        col = self.get_collection()
+        col.create_index([("assay", 1), ("pos", 1)], name="assay_pos_1", background=True)
+        col.create_index([("pos", 1)], name="pos_1", background=True)
+
     def add_blacklist_data(self, variants: list, assay: str) -> dict:
         """
         Add blacklist data to variants.
@@ -120,4 +128,5 @@ class BlacklistHandler(BaseHandler):
             int: The count of unique blacklist entries. Returns 0 if no entries are found
                  or if an error occurs during the aggregation.
         """
+        # Use distinct for compatibility with older MongoDB versions (no $count stage support).
         return len(self.get_collection().distinct("pos")) or 0
