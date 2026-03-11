@@ -13,6 +13,7 @@ It is part of the `coyote.db` package.
 # Imports
 # -------------------------------------------------------------------------
 import pymongo
+from pymongo.errors import OperationFailure
 from api.infra.db.samples import SampleHandler
 from api.infra.db.users import UsersHandler
 from api.infra.db.asp import ASPHandler
@@ -186,15 +187,31 @@ class MongoAdapter:
         self.rna_classification_handler = RNAClassificationHandler(self)
         self.rna_qc_handler = RNAQCHandler(self)
         self.reported_variants_handler = ReportedVariantsHandler(self)
-        self.user_handler.ensure_indexes()
-        self.roles_handler.ensure_indexes()
-        self.asp_handler.ensure_indexes()
-        self.aspc_handler.ensure_indexes()
-        self.isgl_handler.ensure_indexes()
-        self.sample_handler.ensure_indexes()
-        self.variant_handler.ensure_indexes()
-        self.cnv_handler.ensure_indexes()
-        self.transloc_handler.ensure_indexes()
-        self.fusion_handler.ensure_indexes()
-        self.blacklist_handler.ensure_indexes()
-        self.reported_variants_handler.ensure_indexes()
+        self._ensure_handler_indexes("users", self.user_handler)
+        self._ensure_handler_indexes("roles", self.roles_handler)
+        self._ensure_handler_indexes("asp", self.asp_handler)
+        self._ensure_handler_indexes("aspc", self.aspc_handler)
+        self._ensure_handler_indexes("isgl", self.isgl_handler)
+        self._ensure_handler_indexes("samples", self.sample_handler)
+        self._ensure_handler_indexes("variants", self.variant_handler)
+        self._ensure_handler_indexes("cnvs", self.cnv_handler)
+        self._ensure_handler_indexes("translocs", self.transloc_handler)
+        self._ensure_handler_indexes("fusions", self.fusion_handler)
+        self._ensure_handler_indexes("blacklist", self.blacklist_handler)
+        self._ensure_handler_indexes("reported_variants", self.reported_variants_handler)
+
+    def _ensure_handler_indexes(self, handler_name: str, handler: object) -> None:
+        """Create indexes for a handler while tolerating legacy index-name conflicts."""
+        try:
+            handler.ensure_indexes()
+        except OperationFailure as exc:
+            code = getattr(exc, "code", None)
+            # pymongo 4 raises code 85 when index spec exists with another name.
+            if code == 85:
+                self.app.logger.warning(
+                    "Skipping index-name conflict for handler=%s: %s",
+                    handler_name,
+                    exc,
+                )
+                return
+            raise

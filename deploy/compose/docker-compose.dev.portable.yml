@@ -1,0 +1,186 @@
+# Portable dev stack for local/Wsl/Docker Desktop testing.
+# Usage:
+#   ./scripts/compose-with-version.sh -f deploy/compose/docker-compose.dev.portable.yml up -d --build
+#   ./scripts/compose-with-version.sh -f deploy/compose/docker-compose.dev.portable.yml down
+
+services:
+  coyote3_portable_web:
+    container_name: coyote3_portable_web
+    image: coyote3:${COYOTE3_VERSION:-local}-portable-dev
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.dev
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+    ports:
+      - "6817:8000"
+    env_file:
+      - ../../.coyote3_dev_env
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - FLASK_APP=wsgi
+      - FLASK_DEBUG=1
+      - REQUIRE_EXTERNAL_API=1
+      - API_BASE_URL=http://coyote3_portable_api:8001
+      - API_BROWSER_BASE=/api
+      - CACHE_ENABLED=1
+      - CACHE_REQUIRED=1
+      - CACHE_REDIS_URL=redis://coyote3_portable_redis:6379/0
+      - CACHE_REDIS_HOST=coyote3_portable_redis
+      - FLASK_MONGO_HOST=coyote3_portable_mongo
+      - FLASK_MONGO_PORT=27017
+      - REPORTS_BASE_PATH=/data/coyote3/reports
+      - TZ=Europe/Stockholm
+      - GIT_COMMIT=${GIT_COMMIT:-unknown}
+      - BUILD_TIME=${BUILD_TIME:-unknown}
+    restart: unless-stopped
+    networks:
+      - coyote3-portable-net
+    volumes:
+      - "../../coyote:/app/coyote"
+      - "../../api:/app/api"
+      - "../../config:/app/config"
+      - "../../docs:/app/docs"
+      - "../../config.py:/app/config.py"
+      - "../../wsgi.py:/app/wsgi.py"
+      - "../../asgi.py:/app/asgi.py"
+      - "../../logging_setup.py:/app/logging_setup.py"
+      - "../../cache_backend.py:/app/cache_backend.py"
+      - "../../tailwind.config.js:/app/tailwind.config.js"
+      - "../../package.json:/app/package.json"
+      - "../../package-lock.json:/app/package-lock.json"
+      - coyote3-portable-logs:/app/logs
+      - coyote3-portable-access:/access
+      - coyote3-portable-media:/media
+      - coyote3-portable-data:/data
+      - coyote3-portable-fs1:/fs1
+    command: "python3 -m wsgi"
+    depends_on:
+      - coyote3_portable_api
+
+  coyote3_portable_api:
+    container_name: coyote3_portable_api
+    image: coyote3:${COYOTE3_VERSION:-local}-portable-dev
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.dev
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+    ports:
+      - "6816:8001"
+    env_file:
+      - ../../.coyote3_dev_env
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - REQUIRE_EXTERNAL_API=0
+      - CACHE_ENABLED=1
+      - CACHE_REQUIRED=1
+      - CACHE_REDIS_URL=redis://coyote3_portable_redis:6379/0
+      - CACHE_REDIS_HOST=coyote3_portable_redis
+      - FLASK_MONGO_HOST=coyote3_portable_mongo
+      - FLASK_MONGO_PORT=27017
+      - REPORTS_BASE_PATH=/data/coyote3/reports
+      - TZ=Europe/Stockholm
+      - GIT_COMMIT=${GIT_COMMIT:-unknown}
+      - BUILD_TIME=${BUILD_TIME:-unknown}
+    restart: unless-stopped
+    networks:
+      - coyote3-portable-net
+    volumes:
+      - "../../coyote:/app/coyote"
+      - "../../api:/app/api"
+      - "../../config:/app/config"
+      - "../../docs:/app/docs"
+      - "../../config.py:/app/config.py"
+      - "../../wsgi.py:/app/wsgi.py"
+      - "../../asgi.py:/app/asgi.py"
+      - "../../logging_setup.py:/app/logging_setup.py"
+      - "../../cache_backend.py:/app/cache_backend.py"
+      - coyote3-portable-logs:/app/logs
+      - coyote3-portable-access:/access
+      - coyote3-portable-media:/media
+      - coyote3-portable-data:/data
+      - coyote3-portable-fs1:/fs1
+    command: "python3 -m uvicorn api.app:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/coyote --reload-dir /app/api --reload-dir /app"
+    depends_on:
+      coyote3_portable_mongo:
+        condition: service_healthy
+      coyote3_portable_redis:
+        condition: service_started
+
+  coyote3_portable_mongo:
+    container_name: coyote3_portable_mongo
+    image: mongo:7.0
+    command: ["--bind_ip_all"]
+    ports:
+      - "${COYOTE3_PORTABLE_MONGO_PORT:-37017}:27017"
+    restart: unless-stopped
+    networks:
+      - coyote3-portable-net
+    volumes:
+      - coyote3-portable-mongo-data:/data/db
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'mongosh --quiet --eval "db.adminCommand(''ping'').ok" | grep 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  coyote3_portable_redis:
+    container_name: coyote3_portable_redis
+    image: redis:7.4-alpine
+    ports:
+      - "5819:6379"
+    restart: unless-stopped
+    networks:
+      - coyote3-portable-net
+    command: ["redis-server", "--appendonly", "no"]
+
+  coyote3_portable_tailwind:
+    container_name: coyote3_portable_tailwind
+    image: node:20-alpine
+    working_dir: /app
+    command: >
+      sh -lc "npm config set fund false &&
+              npm config set audit false &&
+              npm config set fetch-retries 6 &&
+              npm config set fetch-retry-mintimeout 20000 &&
+              npm config set fetch-retry-maxtimeout 120000 &&
+              npm ci --prefer-offline &&
+              while true; do
+                ./node_modules/.bin/tailwindcss -i ./coyote/static/css/tailwind.input.css -o ./coyote/static/css/tailwind.css --minify;
+                sleep 2;
+              done"
+    environment:
+      - CHOKIDAR_USEPOLLING=1
+      - CHOKIDAR_INTERVAL=700
+    restart: unless-stopped
+    networks:
+      - coyote3-portable-net
+    volumes:
+      - "../../:/app"
+      - coyote3-portable-node-modules:/app/node_modules
+
+networks:
+  coyote3-portable-net:
+    name: coyote3-portable-net
+    driver: bridge
+
+volumes:
+  coyote3-portable-mongo-data:
+    external: true
+    name: ${COYOTE3_PORTABLE_MONGO_VOLUME:-coyote3-portable-mongo-data}
+  coyote3-portable-logs:
+  coyote3-portable-access:
+  coyote3-portable-media:
+  coyote3-portable-data:
+  coyote3-portable-fs1:
+  coyote3-portable-node-modules:

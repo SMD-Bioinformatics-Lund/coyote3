@@ -155,9 +155,34 @@ services:
     restart: unless-stopped
     privileged: true
 
+  # Optional local Mongo for dev when host Mongo is unavailable.
+  # Enable with:
+  #   ./scripts/compose-with-version.sh -f deploy/compose/docker-compose.dev.yml --profile with-mongo up -d
+  # Set FLASK_MONGO_HOST=coyote3_dev_mongo in .coyote3_dev_env when profile is used.
+  coyote3_dev_mongo:
+    container_name: coyote3_dev_mongo
+    image: mongo:7.0
+    profiles: ["with-mongo"]
+    command: ["--bind_ip_all"]
+    ports:
+      - "${COYOTE3_DEV_MONGO_PORT:-37017}:27017"
+    restart: unless-stopped
+    stop_grace_period: 120s
+    networks:
+      - coyote3-dev-net
+    volumes:
+      - coyote3-dev-mongo-data:/data/db
+      - /data/coyote3/dev/backups/mongo:/backup
+
 networks:
   coyote3-dev-net:
     external: true
 
 volumes:
   coyote3-node-modules:
+  # External volume prevents accidental deletion by `docker compose down -v`.
+  # Must exist before first start:
+  #   docker volume create coyote3-dev-mongo-data
+  coyote3-dev-mongo-data:
+    external: true
+    name: ${COYOTE3_DEV_MONGO_VOLUME:-coyote3-dev-mongo-data}

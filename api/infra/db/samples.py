@@ -52,7 +52,7 @@ class SampleHandler(BaseHandler):
         col.create_index([("paired", 1)], name="paired_1", background=True)
         col.create_index(
             [("assay", 1), ("profile", 1), ("report_num", 1)],
-            name="assay_profile_reportnum_1",
+            name="assay_1_profile_1_report_num_1",
             background=True,
         )
 

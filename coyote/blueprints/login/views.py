@@ -122,6 +122,13 @@ def load_user(user_id: str) -> User | None:
         if not has_request_context():
             return None
 
+        # Do not trust cached Flask user payload when API session cookie is missing.
+        # This prevents "logged-in UI but 401 API calls" drift after container restarts.
+        session_token = request.cookies.get(_api_cookie_name())
+        if not session_token:
+            session.pop(_SESSION_USER_PAYLOAD_KEY, None)
+            return None
+
         cached_user = session.get(_SESSION_USER_PAYLOAD_KEY)
         if isinstance(cached_user, dict):
             cached_id = str(cached_user.get("_id") or cached_user.get("id") or "")

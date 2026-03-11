@@ -257,6 +257,30 @@ Option B: scripted wrapper
 ./scripts/install.dev.sh
 ```
 
+### 6b. Portable dev stack (WSL/local cross-platform test)
+
+This stack is self-contained (web + api + mongo + redis) and avoids server-specific
+external networks and absolute host mounts.
+
+```bash
+./scripts/compose-with-version.sh -f deploy/compose/docker-compose.dev.portable.yml up -d --build
+```
+
+Restore the micro snapshot into Docker Mongo:
+
+```bash
+/home/ram/.virtualenvs/coyote3/bin/python scripts/restore_mongo_micro_snapshot.py \
+  --mongo-uri mongodb://localhost:37017 \
+  --snapshot-dir .internal/mongo_micro_snapshot \
+  --drop
+```
+
+Stop portable stack:
+
+```bash
+./scripts/compose-with-version.sh -f deploy/compose/docker-compose.dev.portable.yml down
+```
+
 ### 7. Direct compose (manual version export)
 
 ```bash
@@ -270,6 +294,38 @@ docker compose -f deploy/compose/docker-compose.dev.yml up -d --build
 ```bash
 ./scripts/compose-with-version.sh down
 ./scripts/compose-with-version.sh -f deploy/compose/docker-compose.dev.yml down
+```
+
+### 9. Patient-data durability controls (mandatory)
+
+For environments storing patient data, follow:
+- [Patient Data Backup and Recovery Runbook](docs/PATIENT_DATA_BACKUP_AND_RECOVERY.md)
+
+Bootstrap external Mongo volumes (prevents accidental deletion via compose):
+
+```bash
+./scripts/create_external_mongo_volumes.sh all
+```
+
+Create backup archive:
+
+```bash
+./scripts/mongo_backup_archive.sh \
+  --mongo-uri "mongodb://localhost:27017" \
+  --db "coyote3" \
+  --out-dir "/data/coyote3/backups/mongo" \
+  --label "manual"
+```
+
+Restore archive (guarded):
+
+```bash
+./scripts/mongo_restore_archive.sh \
+  --mongo-uri "mongodb://localhost:27017" \
+  --db "coyote3" \
+  --archive "/data/coyote3/backups/mongo/<archive>.archive.gz" \
+  --drop \
+  --confirm RESTORE_PATIENT_DATA
 ```
 
 Documentation for setup, operations, user workflows, and developer internals is maintained in `docs/`.

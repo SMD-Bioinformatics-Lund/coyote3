@@ -8,7 +8,7 @@
     "prebuild:css": "npm run sync:version",
     "build:css": "./node_modules/.bin/tailwindcss -i ./coyote/static/css/tailwind.input.css -o ./coyote/static/css/tailwind.css --minify",
     "predev:css": "npm run sync:version",
-    "dev:css": "./node_modules/.bin/tailwindcss -i ./coyote/static/css/tailwind.input.css -o ./coyote/static/css/tailwind.css --watch"
+    "dev:css": "./node_modules/.bin/tailwindcss -i ./coyote/static/css/tailwind.input.css -o ./coyote/static/css/tailwind.css --watch=always"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.12",

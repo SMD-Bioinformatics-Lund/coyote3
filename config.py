@@ -122,6 +122,24 @@ class DefaultConfig:
     API_SESSION_COOKIE_NAME = os.getenv("API_SESSION_COOKIE_NAME", "coyote3_api_session")
     API_SESSION_TTL_SECONDS = int(os.getenv("API_SESSION_TTL_SECONDS", str(12 * 60 * 60)))
     API_SESSION_SALT = os.getenv("API_SESSION_SALT", "coyote3-api-session-v1")
+    LOCAL_AUTH_USER_IDENTIFIERS = tuple(
+        item.strip().lower()
+        for item in os.getenv(
+            "LOCAL_AUTH_USER_IDENTIFIERS",
+            (
+                "coyote3.admin,coyote3.admin@skane.se,"
+                "coyote3.demo,coyote3.demo@skane.se,"
+                "coyote3.developer,coyote3.developer@skane.se,"
+                "coyote3.external,coyote3.external@skane.se,"
+                "coyote3.intern,coyote3.intern@skane.se,"
+                "coyote3.manager,coyote3.manager@skane.se,"
+                "coyote3.tester,coyote3.tester@skane.se,"
+                "coyote3.user,coyote3.user@skane.se,"
+                "coyote3.viewer,coyote3.viewer@skane.se"
+            ),
+        ).split(",")
+        if item.strip()
+    )
 
     MONGO_HOST: str = os.getenv("FLASK_MONGO_HOST") or "localhost"
     MONGO_PORT: str | Literal[27017] = os.getenv("FLASK_MONGO_PORT") or 27017
