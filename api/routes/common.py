@@ -8,23 +8,35 @@ from typing import Any
 from fastapi import Depends, Query
 
 from api.app import _api_error, app
+from api.core.common.ports import CommonRepository
 from api.contracts.common import (
     CommonGeneInfoPayload,
     CommonTieredVariantContextPayload,
     CommonTieredVariantSearchPayload,
 )
-from api.extensions import store, util
+from api.extensions import util
 from api.runtime import app as runtime_app
 from api.security.access import ApiUser, require_access
 from api.core.interpretation.report_summary import enrich_reported_variant_docs
+from api.infra.repositories.common_mongo import MongoCommonRepository
+
+
+_common_repo_instance: CommonRepository | None = None
+
+
+def _common_repo() -> CommonRepository:
+    global _common_repo_instance
+    if _common_repo_instance is None:
+        _common_repo_instance = MongoCommonRepository()
+    return _common_repo_instance
 
 
 @app.get("/api/v1/common/gene/{gene_id}/info", response_model=CommonGeneInfoPayload)
 def common_gene_info_read(gene_id: str):
     if gene_id.isnumeric():
-        gene = store.hgnc_handler.get_metadata_by_hgnc_id(hgnc_id=gene_id)
+        gene = _common_repo().get_hgnc_metadata_by_id(hgnc_id=gene_id)
     else:
-        gene = store.hgnc_handler.get_metadata_by_symbol(symbol=gene_id)
+        gene = _common_repo().get_hgnc_metadata_by_symbol(symbol=gene_id)
     return util.common.convert_to_serializable({"gene": gene})
 
 
@@ -38,7 +50,7 @@ def common_tiered_variant_context_read(
     user: ApiUser = Depends(require_access(permission="view_gene_annotations", min_role="user", min_level=9)),
 ):
     _ = user
-    variant = store.variant_handler.get_variant(variant_id)
+    variant = _common_repo().get_variant(variant_id)
     if not variant:
         raise _api_error(404, "Variant not found")
 
@@ -72,7 +84,7 @@ def common_tiered_variant_context_read(
         )
 
     query = {"gene": gene, "$or": or_conditions}
-    docs = store.reported_variants_handler.list_reported_variants(query)
+    docs = _common_repo().list_reported_variants(query)
     docs = enrich_reported_variant_docs(deepcopy(docs))
     return util.common.convert_to_serializable({"variant": variant, "docs": docs, "tier": tier, "error": None})
 
@@ -90,8 +102,8 @@ def common_tiered_variant_search_read(
     if limit_entries is None:
         limit_entries = runtime_app.config.get("TIERED_VARIANT_SEARCH_LIMIT", 1000)
 
-    assay_choices = store.asp_handler.get_all_asp_groups()
-    docs_found = store.annotation_handler.find_variants_by_search_string(
+    assay_choices = _common_repo().get_all_asp_groups()
+    docs_found = _common_repo().find_variants_by_search_string(
         search_str=search_str,
         search_mode=search_mode,
         include_annotation_text=include_annotation_text,
@@ -101,7 +113,7 @@ def common_tiered_variant_search_read(
 
     tier_stats = {"total": {}, "by_assay": {}}
     if search_mode != "variant" and search_str:
-        tier_stats = store.annotation_handler.get_tier_stats_by_search(
+        tier_stats = _common_repo().get_tier_stats_by_search(
             search_str=search_str,
             search_mode=search_mode,
             include_annotation_text=include_annotation_text,
@@ -114,14 +126,14 @@ def common_tiered_variant_search_read(
     for doc in docs_found:
         merged_doc = deepcopy(doc)
         sample_oids: dict[str, dict[str, Any]] = {}
-        reported_docs = store.reported_variants_handler.list_reported_variants({"annotation_oid": doc["_id"]})
+        reported_docs = _common_repo().list_reported_variants({"annotation_oid": doc["_id"]})
 
         for reported_doc in reported_docs:
             sample_oid = reported_doc.get("sample_oid")
             report_oid = reported_doc.get("report_oid")
             annotation_text_oid = reported_doc.get("annotation_text_oid")
             report_id = reported_doc.get("report_id")
-            sample_doc = store.sample_handler.get_sample_by_oid(sample_oid)
+            sample_doc = _common_repo().get_sample_by_oid(sample_oid)
             sample_name = reported_doc.get("sample_name") or sample_doc.get("name") if sample_doc else None
             report_num = next(
                 (
@@ -145,7 +157,7 @@ def common_tiered_variant_search_read(
 
             if include_annotation_text and annotation_text_oid:
                 associated_annotation_text_oids.add(annotation_text_oid)
-                merged_doc["text"] = store.annotation_handler.get_annotation_text_by_oid(annotation_text_oid)
+                merged_doc["text"] = _common_repo().get_annotation_text_by_oid(annotation_text_oid)
 
         merged_doc["reported_docs"] = reported_docs
         merged_doc["samples"] = sample_oids
@@ -164,3 +176,4 @@ def common_tiered_variant_search_read(
             "assay_choices": assay_choices,
         }
     )
+

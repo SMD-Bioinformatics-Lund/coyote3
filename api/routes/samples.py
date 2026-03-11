@@ -2,13 +2,25 @@
 
 from fastapi import Body, Depends
 
+from api.core.samples.ports import SamplesRepository
 from api.contracts.samples import CoverageBlacklistStatusPayload, SampleMutationPayload
-from api.extensions import store, util
+from api.extensions import util
 from api.core.interpretation.report_summary import create_comment_doc
 from api.core.rna.helpers import create_fusioncallers, create_fusioneffectlist
 from api.core.workflows.filter_normalization import normalize_dna_filter_keys, normalize_rna_filter_keys
 from api.app import _api_error, _get_formatted_assay_config, app
+from api.infra.repositories.samples_mongo import MongoSamplesRepository
 from api.security.access import ApiUser, _get_sample_for_api, require_access
+
+
+_samples_repo_instance: SamplesRepository | None = None
+
+
+def _samples_repo() -> SamplesRepository:
+    global _samples_repo_instance
+    if _samples_repo_instance is None:
+        _samples_repo_instance = MongoSamplesRepository()
+    return _samples_repo_instance
 
 
 def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict:
@@ -31,7 +43,7 @@ def add_sample_comment_mutation(
     sample = _get_sample_for_api(sample_id, user)
     form_data = payload.get("form_data", {})
     doc = create_comment_doc(form_data, key="sample_comment")
-    store.sample_handler.add_sample_comment(sample_id, doc)
+    _samples_repo().add_sample_comment(sample_id, doc)
     result = _mutation_payload(sample_id, resource="sample_comment", resource_id="new", action="add")
     result["meta"]["omics_layer"] = sample.get("omics_layer")
     return util.common.convert_to_serializable(result)
@@ -44,7 +56,7 @@ def hide_sample_comment_mutation(
     user: ApiUser = Depends(require_access(permission="hide_sample_comment", min_role="manager", min_level=99)),
 ):
     sample = _get_sample_for_api(sample_id, user)
-    store.sample_handler.hide_sample_comment(sample_id, comment_id)
+    _samples_repo().hide_sample_comment(sample_id, comment_id)
     result = _mutation_payload(sample_id, resource="sample_comment", resource_id=comment_id, action="hide")
     result["meta"]["omics_layer"] = sample.get("omics_layer")
     return util.common.convert_to_serializable(result)
@@ -60,7 +72,7 @@ def unhide_sample_comment_mutation(
     user: ApiUser = Depends(require_access(permission="unhide_sample_comment", min_role="manager", min_level=99)),
 ):
     sample = _get_sample_for_api(sample_id, user)
-    store.sample_handler.unhide_sample_comment(sample_id, comment_id)
+    _samples_repo().unhide_sample_comment(sample_id, comment_id)
     result = _mutation_payload(sample_id, resource="sample_comment", resource_id=comment_id, action="unhide")
     result["meta"]["omics_layer"] = sample.get("omics_layer")
     return util.common.convert_to_serializable(result)
@@ -102,7 +114,7 @@ def update_sample_filters_mutation(
     else:
         normalized_filters = normalize_dna_filter_keys(normalized_filters)
 
-    store.sample_handler.update_sample_filters(sample.get("_id"), normalized_filters)
+    _samples_repo().update_sample_filters(sample.get("_id"), normalized_filters)
     result = _mutation_payload(sample_id, resource="sample_filters", resource_id=str(sample.get("_id")), action="update")
     return util.common.convert_to_serializable(result)
 
@@ -116,7 +128,7 @@ def reset_sample_filters_mutation(
     assay_config = _get_formatted_assay_config(sample)
     if not assay_config:
         raise _api_error(404, "Assay config not found for sample")
-    store.sample_handler.reset_sample_settings(sample.get("_id"), assay_config.get("filters"))
+    _samples_repo().reset_sample_settings(sample.get("_id"), assay_config.get("filters"))
     result = _mutation_payload(sample_id, resource="sample_filters", resource_id=str(sample.get("_id")), action="reset")
     return util.common.convert_to_serializable(result)
 
@@ -132,7 +144,7 @@ def update_coverage_blacklist_mutation(
     region = payload.get("region")
     if coord:
         coord = str(coord).replace(":", "_").replace("-", "_")
-        store.groupcov_handler.blacklist_coord(gene, coord, region, smp_grp)
+        _samples_repo().blacklist_coord(gene, coord, region, smp_grp)
         return util.common.convert_to_serializable(
             {
                 "status": "ok",
@@ -142,7 +154,7 @@ def update_coverage_blacklist_mutation(
                 ),
             }
         )
-    store.groupcov_handler.blacklist_gene(gene, smp_grp)
+    _samples_repo().blacklist_gene(gene, smp_grp)
     return util.common.convert_to_serializable(
         {
             "status": "ok",
@@ -159,7 +171,8 @@ def remove_coverage_blacklist_mutation(
     obj_id: str,
     user: ApiUser = Depends(require_access(min_level=1)),
 ):
-    store.groupcov_handler.remove_blacklist(obj_id)
+    _samples_repo().remove_blacklist(obj_id)
     return util.common.convert_to_serializable(
         _mutation_payload("coverage", resource="blacklist", resource_id=obj_id, action="remove")
     )
+

@@ -8,10 +8,29 @@ from copy import deepcopy
 from fastapi import Depends, Query
 
 from api.app import _api_error, app
+from api.core.coverage.route_ports import CoverageRouteRepository
 from api.contracts.coverage import CoverageBlacklistedPayload, CoverageSamplePayload
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.core.coverage.coverage_processing import CoverageProcessingService
-from api.extensions import store, util
+from api.infra.repositories.coverage_mongo import MongoCoverageRepository
+from api.infra.repositories.coverage_route_mongo import MongoCoverageRouteRepository
+from api.extensions import util
+
+
+_coverage_repo_instance: CoverageRouteRepository | None = None
+
+
+def _coverage_repo() -> CoverageRouteRepository:
+    global _coverage_repo_instance
+    if _coverage_repo_instance is None:
+        _coverage_repo_instance = MongoCoverageRouteRepository()
+    return _coverage_repo_instance
+
+
+def _coverage_processing_service() -> type[CoverageProcessingService]:
+    if not CoverageProcessingService.has_repository():
+        CoverageProcessingService.set_repository(MongoCoverageRepository())
+    return CoverageProcessingService
 
 
 @app.get("/api/v1/coverage/samples/{sample_id}", response_model=CoverageSamplePayload)
@@ -20,20 +39,21 @@ def coverage_sample_read(
     cov_cutoff: int = Query(default=500, ge=1),
     user: ApiUser = Depends(require_access(min_level=1)),
 ):
+    _coverage_processing_service()
     sample = _get_sample_for_api(sample_id, user)
     sample_assay = sample.get("assay", "unknown")
     sample_profile = sample.get("profile", "production")
-    assay_config = store.aspc_handler.get_aspc_no_meta(sample_assay, sample_profile)
+    assay_config = _coverage_repo().get_aspc_no_meta(sample_assay, sample_profile)
     if not assay_config:
         raise _api_error(404, "Assay config not found")
 
     assay_group = assay_config.get("assay_group", "unknown")
-    assay_panel_doc = store.asp_handler.get_asp(asp_name=sample_assay)
+    assay_panel_doc = _coverage_repo().get_asp(asp_name=sample_assay)
     sample_filters = sample.get("filters", {})
     checked_genelists = sample_filters.get("genelists", [])
 
     if checked_genelists:
-        checked_genelists_genes_dict = store.isgl_handler.get_isgl_by_ids(checked_genelists)
+        checked_genelists_genes_dict = _coverage_repo().get_isgl_by_ids(checked_genelists)
         _genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
             sample,
             assay_panel_doc,
@@ -43,7 +63,7 @@ def coverage_sample_read(
         checked_genelists = [assay_panel_doc.get("_id")]
         filter_genes = assay_panel_doc.get("covered_genes", [])
 
-    cov_dict = store.coverage2_handler.get_sample_coverage(str(sample["_id"])) or {}
+    cov_dict = _coverage_repo().get_sample_coverage(str(sample["_id"])) or {}
     cov_dict = deepcopy(cov_dict)
     cov_dict.pop("_id", None)
     sample_payload = deepcopy(sample)
@@ -75,7 +95,7 @@ def coverage_blacklisted_read(
         raise _api_error(403, "Access denied: You do not belong to the target assay.")
 
     grouped_by_gene = defaultdict(dict)
-    blacklisted = store.groupcov_handler.get_regions_per_group(group)
+    blacklisted = _coverage_repo().get_regions_per_group(group)
     for entry in blacklisted:
         if entry["region"] == "gene":
             grouped_by_gene[entry["gene"]]["gene"] = entry["_id"]
@@ -85,3 +105,4 @@ def coverage_blacklisted_read(
             grouped_by_gene[entry["gene"]]["probe"] = entry
 
     return util.common.convert_to_serializable({"blacklisted": grouped_by_gene, "group": group})
+
