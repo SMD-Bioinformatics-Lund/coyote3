@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+import threading
 import uuid
 from copy import deepcopy
 
@@ -31,11 +32,26 @@ from api.settings import configure_process_env, get_runtime_mode_flags
 
 configure_process_env()
 mode_flags = get_runtime_mode_flags()
-runtime_context = create_runtime_context(
-    testing=mode_flags["testing"],
-    development=mode_flags["development"],
-)
-bind_runtime_context(runtime_context)
+util.init_util()
+
+_runtime_bootstrap_lock = threading.Lock()
+_runtime_initialized = False
+
+
+def ensure_runtime_initialized() -> None:
+    """Initialize API runtime dependencies once, lazily."""
+    global _runtime_initialized
+    if _runtime_initialized:
+        return
+    with _runtime_bootstrap_lock:
+        if _runtime_initialized:
+            return
+        runtime_context = create_runtime_context(
+            testing=mode_flags["testing"],
+            development=mode_flags["development"],
+        )
+        bind_runtime_context(runtime_context)
+        _runtime_initialized = True
 
 app = FastAPI(
     title="Coyote3 API",
@@ -45,6 +61,11 @@ app = FastAPI(
     openapi_url="/api/v1/openapi.json",
 )
 
+
+@app.on_event("startup")
+async def startup_runtime_dependencies() -> None:
+    ensure_runtime_initialized()
+
 _PROTECTED_OPENAPI_EXACT = {
     "/api/v1/auth/me",
     "/api/v1/auth/whoami",
@@ -53,6 +74,7 @@ _PROTECTED_OPENAPI_EXACT = {
 
 @app.middleware("http")
 async def api_authentication_middleware(request: Request, call_next):
+    ensure_runtime_initialized()
     start = time.perf_counter()
     path = request.url.path
     authenticated_user = None

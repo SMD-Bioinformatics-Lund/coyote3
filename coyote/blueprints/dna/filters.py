@@ -378,7 +378,7 @@ def no_transid(nom: str) -> str | None:
 
 
 @app.template_filter(name="format_hotspot_note")
-def format_hotspot_note(dummy) -> str:
+def format_hotspot_note(_unused) -> str:
     """
     Generates a legend of hotspot types as colored HTML badges for display in templates.
 

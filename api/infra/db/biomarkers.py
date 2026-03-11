@@ -46,7 +46,7 @@ class BiomarkerHandler(BaseHandler):
         )
         col.create_index([("SAMPLE_ID", 1)], name="sample_id_1", background=True)
 
-    def get_sample_biomarkers_doc(self, sample_id: str, normal: bool = False):
+    def get_sample_biomarkers_doc(self, sample_id: str, _normal: bool = False):
         """
         Retrieve the full biomarkers document for a given sample.
 
@@ -64,7 +64,7 @@ class BiomarkerHandler(BaseHandler):
         """
         return self.get_collection().find({"SAMPLE_ID": sample_id})
 
-    def get_sample_biomarkers(self, sample_id: str, normal: bool = False):
+    def get_sample_biomarkers(self, sample_id: str, _normal: bool = False):
         """
         Get biomarkers data for a sample excluding `_id`, `name`, and `SAMPLE_ID`.
 
