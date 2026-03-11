@@ -12,7 +12,7 @@ from typing import Any
 
 from api.runtime import app
 
-from api.extensions import store, util
+from api.extensions import util
 from api.core.reporting.report_paths import build_report_file_location
 from api.core.reporting.pipeline import (
     prepare_report_output as prepare_shared_report_output,
@@ -31,10 +31,27 @@ from api.core.workflows.contracts import (
     validate_report_inputs,
     validate_rna_filter_inputs,
 )
+from api.core.workflows.ports import RNAWorkflowRepository
 from api.utils.common_utility import CommonUtility
 
 
 class RNAWorkflowService:
+    _repository: RNAWorkflowRepository | None = None
+
+    @classmethod
+    def set_repository(cls, repository: RNAWorkflowRepository) -> None:
+        cls._repository = repository
+
+    @classmethod
+    def has_repository(cls) -> bool:
+        return cls._repository is not None
+
+    @classmethod
+    def _repo(cls) -> RNAWorkflowRepository:
+        if cls._repository is None:
+            raise RuntimeError("RNAWorkflowService repository is not configured")
+        return cls._repository
+
     @staticmethod
     def merge_and_normalize_sample_filters(sample: dict, assay_config: dict, sample_id: str, logger) -> tuple[dict, dict]:
         """
@@ -66,9 +83,9 @@ class RNAWorkflowService:
         )
         if sample.get("filters", {}).get("adhoc_genes"):
             filters_from_form["adhoc_genes"] = sample.get("filters", {}).get("adhoc_genes")
-        store.sample_handler.update_sample_filters(_id, filters_from_form)
+        RNAWorkflowService._repo().update_sample_filters(_id, filters_from_form)
 
-        updated_sample = store.sample_handler.get_sample_by_id(_id)
+        updated_sample = RNAWorkflowService._repo().get_sample_by_id(_id)
         updated_filters = normalize_rna_filter_keys(deepcopy(updated_sample.get("filters")))
         return updated_sample, updated_filters
 
@@ -84,7 +101,7 @@ class RNAWorkflowService:
         fusion_effects = create_fusioneffectlist(sample_filters.get("fusion_effects", []))
         fusion_callers = create_fusioncallers(sample_filters.get("fusion_callers", []))
         checked_fusionlists = sample_filters.get("fusionlists", [])
-        checked_fusionlists_genes_dict = store.isgl_handler.get_isgl_by_ids(checked_fusionlists)
+        checked_fusionlists_genes_dict = RNAWorkflowService._repo().get_isgl_by_ids(checked_fusionlists)
 
         sample_for_gene_filter = deepcopy(sample)
         sample_for_gene_filter.setdefault("filters", {})
@@ -137,11 +154,11 @@ class RNAWorkflowService:
         """
         Attach RNA expression/classification/QC sections to sample payload.
         """
-        sample["expr"] = store.rna_expression_handler.get_rna_expression(str(sample["_id"]))
-        sample["classification"] = store.rna_classification_handler.get_rna_classification(
+        sample["expr"] = RNAWorkflowService._repo().get_rna_expression(str(sample["_id"]))
+        sample["classification"] = RNAWorkflowService._repo().get_rna_classification(
             str(sample["_id"])
         )
-        sample["QC_metrics"] = store.rna_qc_handler.get_rna_qc(str(sample["_id"]))
+        sample["QC_metrics"] = RNAWorkflowService._repo().get_rna_qc(str(sample["_id"]))
         return sample
 
     @staticmethod
@@ -149,22 +166,24 @@ class RNAWorkflowService:
         """
         Build show-fusion annotation and classification context.
         """
-        in_other = store.fusion_handler.get_fusion_in_other_samples(fusion)
+        in_other = RNAWorkflowService._repo().get_fusion_in_other_samples(fusion)
         selected_fusion_call = get_selected_fusioncall(fusion)
         (
             annotations,
             latest_classification,
             other_classifications,
             annotations_interesting,
-        ) = store.annotation_handler.get_global_annotations(selected_fusion_call, assay_group, subpanel)
+        ) = RNAWorkflowService._repo().get_global_annotations(
+            selected_fusion_call, assay_group, subpanel
+        )
 
         if not latest_classification or latest_classification.get("class") == 999:
             fusion = add_alt_class(fusion, assay_group, subpanel)
         else:
             fusion["additional_classifications"] = None
 
-        has_hidden_comments = store.fusion_handler.hidden_fusion_comments(str(fusion.get("_id")))
-        assay_group_mappings = store.asp_handler.get_asp_group_mappings()
+        has_hidden_comments = RNAWorkflowService._repo().hidden_fusion_comments(str(fusion.get("_id")))
+        assay_group_mappings = RNAWorkflowService._repo().get_asp_group_mappings()
         fusion["fusion_callers"] = get_fusion_callers(fusion)
 
         return {
@@ -285,13 +304,13 @@ class RNAWorkflowService:
         """
         assay = util.common.get_assay_from_sample(sample)
         fusion_query = {"SAMPLE_ID": str(sample["_id"])}
-        fusions = list(store.fusion_handler.get_sample_fusions(fusion_query))
+        fusions = RNAWorkflowService._repo().get_sample_fusions(fusion_query)
 
         for fus_idx, fusion in enumerate(fusions):
             (
                 fusions[fus_idx]["global_annotations"],
                 fusions[fus_idx]["classification"],
-            ) = store.fusion_handler.get_fusion_annotations(fusion)
+            ) = RNAWorkflowService._repo().get_fusion_annotations(fusion)
 
         class_desc = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC").values())
         class_desc_short = list(app.config.get("REPORT_CONFIG").get("CLASS_DESC_SHORT").values())

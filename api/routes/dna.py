@@ -4,7 +4,7 @@ from copy import deepcopy
 
 from fastapi import Body, Depends, Query, Request
 
-from api.extensions import store, util
+from api.extensions import util
 from api.core.dna.dna_filters import (
     cnv_organizegenes,
     cnvtype_variant,
@@ -22,6 +22,7 @@ from api.core.interpretation.report_summary import (
     generate_summary_text,
 )
 from api.core.workflows.dna_workflow import DNAWorkflowService
+from api.infra.repositories.dna_route_mongo import MongoDNARouteRepository
 from api.runtime import app as runtime_app
 from api.app import _api_error, _get_formatted_assay_config, app
 from api.contracts.dna import (
@@ -49,6 +50,16 @@ def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: s
     }
 
 
+_dna_repo_instance: MongoDNARouteRepository | None = None
+
+
+def _dna_repo() -> MongoDNARouteRepository:
+    global _dna_repo_instance
+    if _dna_repo_instance is None:
+        _dna_repo_instance = MongoDNARouteRepository()
+    return _dna_repo_instance
+
+
 def _coerce_bool(value: object, default: bool = True) -> bool:
     if isinstance(value, bool):
         return value
@@ -63,7 +74,7 @@ def _coerce_bool(value: object, default: bool = True) -> bool:
 
 def _load_cnvs_for_sample(sample: dict, sample_filters: dict, filter_genes: list[str]) -> list[dict]:
     cnv_query = build_cnv_query(str(sample["_id"]), filters={**sample_filters, "filter_genes": filter_genes})
-    cnvs = list(store.cnv_handler.get_sample_cnvs(cnv_query))
+    cnvs = list(_dna_repo().cnv_handler.get_sample_cnvs(cnv_query))
     filter_cnveffects = create_cnveffectlist(sample_filters.get("cnveffects", []))
     if filter_cnveffects:
         cnvs = cnvtype_variant(cnvs, filter_cnveffects)
@@ -83,9 +94,9 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
     subpanel = sample.get("subpanel")
     analysis_sections = assay_config.get("analysis_types", [])
 
-    assay_panel_doc = store.asp_handler.get_asp(asp_name=sample.get("assay"))
+    assay_panel_doc = _dna_repo().asp_handler.get_asp(asp_name=sample.get("assay"))
     checked_genelists = sample_filters.get("genelists", [])
-    checked_genelists_genes_dict = store.isgl_handler.get_isgl_by_ids(checked_genelists)
+    checked_genelists_genes_dict = _dna_repo().isgl_handler.get_isgl_by_ids(checked_genelists)
     genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
         sample, assay_panel_doc, checked_genelists_genes_dict
     )
@@ -117,26 +128,26 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
         },
     )
 
-    variants = list(store.variant_handler.get_case_variants(query))
-    variants = store.blacklist_handler.add_blacklist_data(variants, assay_group)
+    variants = list(_dna_repo().variant_handler.get_case_variants(query))
+    variants = _dna_repo().blacklist_handler.add_blacklist_data(variants, assay_group)
     variants, tiered_variants = add_global_annotations(variants, assay_group, subpanel)
     variants = hotspot_variant(variants)
 
     sample_ids = util.common.get_case_and_control_sample_ids(sample)
-    bam_id = store.bam_service_handler.get_bams(sample_ids)
-    vep_variant_class_meta = store.vep_meta_handler.get_variant_class_translations(sample.get("vep", 103))
-    vep_conseq_meta = store.vep_meta_handler.get_conseq_translations(sample.get("vep", 103))
-    has_hidden_comments = store.sample_handler.hidden_sample_comments(sample.get("_id"))
-    insilico_panel_genelists = store.isgl_handler.get_isgl_by_asp(sample.get("assay"), is_active=True)
+    bam_id = _dna_repo().bam_service_handler.get_bams(sample_ids)
+    vep_variant_class_meta = _dna_repo().vep_meta_handler.get_variant_class_translations(sample.get("vep", 103))
+    vep_conseq_meta = _dna_repo().vep_meta_handler.get_conseq_translations(sample.get("vep", 103))
+    has_hidden_comments = _dna_repo().sample_handler.hidden_sample_comments(sample.get("_id"))
+    insilico_panel_genelists = _dna_repo().isgl_handler.get_isgl_by_asp(sample.get("assay"), is_active=True)
     all_panel_genelist_names = util.common.get_assay_genelist_names(insilico_panel_genelists)
-    assay_config_schema = store.schema_handler.get_schema(assay_config.get("schema_name"))
+    assay_config_schema = _dna_repo().schema_handler.get_schema(assay_config.get("schema_name"))
 
     oncokb_genes = []
     for variant in variants:
         symbol = variant.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL")
         if not symbol:
             continue
-        oncokb_gene = store.oncokb_handler.get_oncokb_action_gene(symbol)
+        oncokb_gene = _dna_repo().oncokb_handler.get_oncokb_action_gene(symbol)
         if oncokb_gene and "Hugo Symbol" in oncokb_gene:
             hugo_symbol = oncokb_gene["Hugo Symbol"]
             if hugo_symbol not in oncokb_genes:
@@ -151,12 +162,12 @@ def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(
         summary_sections_data["cnvs"] = [cnv for cnv in cnvs if cnv.get("interesting")]
 
     if "BIOMARKER" in analysis_sections:
-        biomarkers = list(store.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"])))
+        biomarkers = list(_dna_repo().biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"])))
         display_sections_data["biomarkers"] = biomarkers
         summary_sections_data["biomarkers"] = biomarkers
 
     if "TRANSLOCATION" in analysis_sections:
-        translocs = list(store.transloc_handler.get_sample_translocations(sample_id=str(sample["_id"])))
+        translocs = list(_dna_repo().transloc_handler.get_sample_translocations(sample_id=str(sample["_id"])))
         display_sections_data["translocs"] = translocs
 
     if "FUSION" in analysis_sections:
@@ -212,7 +223,7 @@ def dna_plot_context(sample_id: str, user: ApiUser = Depends(require_access(min_
     assay_config = _get_formatted_assay_config(sample)
     if not assay_config:
         raise _api_error(404, "Assay config not found for sample")
-    assay_config_schema = store.schema_handler.get_schema(assay_config.get("schema_name"))
+    assay_config_schema = _dna_repo().schema_handler.get_schema(assay_config.get("schema_name"))
     return util.common.convert_to_serializable(
         {
             "sample": sample,
@@ -226,7 +237,7 @@ def dna_plot_context(sample_id: str, user: ApiUser = Depends(require_access(min_
 @app.get("/api/v1/dna/samples/{sample_id}/biomarkers", response_model=DnaBiomarkersPayload)
 def list_dna_biomarkers(sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
-    biomarkers = list(store.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"])))
+    biomarkers = list(_dna_repo().biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"])))
     payload = {
         "sample": sample,
         "meta": {"count": len(biomarkers)},
@@ -238,7 +249,7 @@ def list_dna_biomarkers(sample_id: str, user: ApiUser = Depends(require_access(m
 @app.get("/api/v1/dna/samples/{sample_id}/variants/{var_id}", response_model=DnaVariantContextPayload)
 def show_dna_variant(sample_id: str, var_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
-    variant = store.variant_handler.get_variant(var_id)
+    variant = _dna_repo().variant_handler.get_variant(var_id)
     if not variant:
         raise _api_error(404, "Variant not found")
     if str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
@@ -250,18 +261,18 @@ def show_dna_variant(sample_id: str, var_id: str, user: ApiUser = Depends(requir
     assay_group = assay_config.get("asp_group", "unknown")
     subpanel = sample.get("subpanel")
 
-    variant = store.blacklist_handler.add_blacklist_data([variant], assay_group)[0]
-    in_other = store.variant_handler.get_variant_in_other_samples(variant)
-    has_hidden_comments = store.variant_handler.hidden_var_comments(var_id)
+    variant = _dna_repo().blacklist_handler.add_blacklist_data([variant], assay_group)[0]
+    in_other = _dna_repo().variant_handler.get_variant_in_other_samples(variant)
+    has_hidden_comments = _dna_repo().variant_handler.hidden_var_comments(var_id)
     annotations, latest_classification, other_classifications, annotations_interesting = (
-        store.annotation_handler.get_global_annotations(variant, assay_group, subpanel)
+        _dna_repo().annotation_handler.get_global_annotations(variant, assay_group, subpanel)
     )
     if not latest_classification or latest_classification.get("class") == 999:
         variant = add_alt_class(variant, assay_group, subpanel)
     else:
         variant["additional_classifications"] = None
 
-    expression = store.expression_handler.get_expression_data(list(variant.get("transcripts", [])))
+    expression = _dna_repo().expression_handler.get_expression_data(list(variant.get("transcripts", [])))
 
     variant_desc = "NOTHING_IN_HERE"
     selected_csq = variant.get("INFO", {}).get("selected_CSQ", {})
@@ -278,8 +289,8 @@ def show_dna_variant(sample_id: str, var_id: str, user: ApiUser = Depends(requir
     ):
         variant_desc = "ITD"
 
-    civic = store.civic_handler.get_civic_data(variant, variant_desc)
-    civic_gene = store.civic_handler.get_civic_gene_info(selected_csq.get("SYMBOL"))
+    civic = _dna_repo().civic_handler.get_civic_data(variant, variant_desc)
+    civic_gene = _dna_repo().civic_handler.get_civic_gene_info(selected_csq.get("SYMBOL"))
 
     oncokb_hgvsp = []
     if selected_csq.get("HGVSp"):
@@ -294,19 +305,19 @@ def show_dna_variant(sample_id: str, var_id: str, user: ApiUser = Depends(requir
     ]:
         oncokb_hgvsp.append("Truncating Mutations")
 
-    oncokb = store.oncokb_handler.get_oncokb_anno(variant, oncokb_hgvsp)
-    oncokb_action = store.oncokb_handler.get_oncokb_action(variant, oncokb_hgvsp)
-    oncokb_gene = store.oncokb_handler.get_oncokb_gene(selected_csq.get("SYMBOL"))
-    brca_exchange = store.brca_handler.get_brca_data(variant, assay_group)
-    iarc_tp53 = store.iarc_tp53_handler.find_iarc_tp53(variant)
+    oncokb = _dna_repo().oncokb_handler.get_oncokb_anno(variant, oncokb_hgvsp)
+    oncokb_action = _dna_repo().oncokb_handler.get_oncokb_action(variant, oncokb_hgvsp)
+    oncokb_gene = _dna_repo().oncokb_handler.get_oncokb_gene(selected_csq.get("SYMBOL"))
+    brca_exchange = _dna_repo().brca_handler.get_brca_data(variant, assay_group)
+    iarc_tp53 = _dna_repo().iarc_tp53_handler.find_iarc_tp53(variant)
 
     sample_ids = util.common.get_case_and_control_sample_ids(sample)
-    bam_id = store.bam_service_handler.get_bams(sample_ids)
+    bam_id = _dna_repo().bam_service_handler.get_bams(sample_ids)
 
     pon = format_pon(variant)
-    assay_group_mappings = store.asp_handler.get_asp_group_mappings()
-    vep_variant_class_meta = store.vep_meta_handler.get_variant_class_translations(sample.get("vep", 103))
-    vep_conseq_meta = store.vep_meta_handler.get_conseq_translations(sample.get("vep", 103))
+    assay_group_mappings = _dna_repo().asp_handler.get_asp_group_mappings()
+    vep_variant_class_meta = _dna_repo().vep_meta_handler.get_variant_class_translations(sample.get("vep", 103))
+    vep_conseq_meta = _dna_repo().vep_meta_handler.get_conseq_translations(sample.get("vep", 103))
 
     payload = {
         "sample": sample,
@@ -353,10 +364,10 @@ def unmark_false_variant(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
 ):
     sample = _get_sample_for_api(sample_id, user)
-    variant = store.variant_handler.get_variant(var_id)
+    variant = _dna_repo().variant_handler.get_variant(var_id)
     if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
         raise _api_error(404, "Variant not found for sample")
-    store.variant_handler.unmark_false_positive_var(var_id)
+    _dna_repo().variant_handler.unmark_false_positive_var(var_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="variant", resource_id=var_id, action="unmark_false_positive")
     )
@@ -369,10 +380,10 @@ def mark_false_variant(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
 ):
     sample = _get_sample_for_api(sample_id, user)
-    variant = store.variant_handler.get_variant(var_id)
+    variant = _dna_repo().variant_handler.get_variant(var_id)
     if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
         raise _api_error(404, "Variant not found for sample")
-    store.variant_handler.mark_false_positive_var(var_id)
+    _dna_repo().variant_handler.mark_false_positive_var(var_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="variant", resource_id=var_id, action="mark_false_positive")
     )
@@ -385,10 +396,10 @@ def unmark_interesting_variant(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
 ):
     sample = _get_sample_for_api(sample_id, user)
-    variant = store.variant_handler.get_variant(var_id)
+    variant = _dna_repo().variant_handler.get_variant(var_id)
     if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
         raise _api_error(404, "Variant not found for sample")
-    store.variant_handler.unmark_interesting_var(var_id)
+    _dna_repo().variant_handler.unmark_interesting_var(var_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="variant", resource_id=var_id, action="unmark_interesting")
     )
@@ -401,10 +412,10 @@ def mark_interesting_variant(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
 ):
     sample = _get_sample_for_api(sample_id, user)
-    variant = store.variant_handler.get_variant(var_id)
+    variant = _dna_repo().variant_handler.get_variant(var_id)
     if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
         raise _api_error(404, "Variant not found for sample")
-    store.variant_handler.mark_interesting_var(var_id)
+    _dna_repo().variant_handler.mark_interesting_var(var_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="variant", resource_id=var_id, action="mark_interesting")
     )
@@ -417,10 +428,10 @@ def unmark_irrelevant_variant(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
 ):
     sample = _get_sample_for_api(sample_id, user)
-    variant = store.variant_handler.get_variant(var_id)
+    variant = _dna_repo().variant_handler.get_variant(var_id)
     if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
         raise _api_error(404, "Variant not found for sample")
-    store.variant_handler.unmark_irrelevant_var(var_id)
+    _dna_repo().variant_handler.unmark_irrelevant_var(var_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="variant", resource_id=var_id, action="unmark_irrelevant")
     )
@@ -433,10 +444,10 @@ def mark_irrelevant_variant(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
 ):
     sample = _get_sample_for_api(sample_id, user)
-    variant = store.variant_handler.get_variant(var_id)
+    variant = _dna_repo().variant_handler.get_variant(var_id)
     if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
         raise _api_error(404, "Variant not found for sample")
-    store.variant_handler.mark_irrelevant_var(var_id)
+    _dna_repo().variant_handler.mark_irrelevant_var(var_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="variant", resource_id=var_id, action="mark_irrelevant")
     )
@@ -449,14 +460,14 @@ def add_variant_to_blacklist(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
 ):
     sample = _get_sample_for_api(sample_id, user)
-    variant = store.variant_handler.get_variant(var_id)
+    variant = _dna_repo().variant_handler.get_variant(var_id)
     if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
         raise _api_error(404, "Variant not found for sample")
     assay_config = _get_formatted_assay_config(sample)
     if not assay_config:
         raise _api_error(404, "Assay config not found for sample")
     assay_group = assay_config.get("asp_group", "unknown")
-    store.blacklist_handler.blacklist_variant(variant, assay_group)
+    _dna_repo().blacklist_handler.blacklist_variant(variant, assay_group)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="variant", resource_id=var_id, action="blacklist")
     )
@@ -472,10 +483,10 @@ def hide_variant_comment(
     ),
 ):
     sample = _get_sample_for_api(sample_id, user)
-    variant = store.variant_handler.get_variant(var_id)
+    variant = _dna_repo().variant_handler.get_variant(var_id)
     if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
         raise _api_error(404, "Variant not found for sample")
-    store.variant_handler.hide_var_comment(var_id, comment_id)
+    _dna_repo().variant_handler.hide_var_comment(var_id, comment_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="variant_comment", resource_id=comment_id, action="hide")
     )
@@ -491,10 +502,10 @@ def unhide_variant_comment(
     ),
 ):
     sample = _get_sample_for_api(sample_id, user)
-    variant = store.variant_handler.get_variant(var_id)
+    variant = _dna_repo().variant_handler.get_variant(var_id)
     if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
         raise _api_error(404, "Variant not found for sample")
-    store.variant_handler.unhide_variant_comment(var_id, comment_id)
+    _dna_repo().variant_handler.unhide_variant_comment(var_id, comment_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="variant_comment", resource_id=comment_id, action="unhide")
     )
@@ -515,9 +526,9 @@ def set_variant_false_positive_bulk(
     apply = _coerce_bool(payload.get("apply") if isinstance(payload, dict) else None, default=apply)
     if variant_ids:
         if apply:
-            store.variant_handler.mark_false_positive_var_bulk(variant_ids)
+            _dna_repo().variant_handler.mark_false_positive_var_bulk(variant_ids)
         else:
-            store.variant_handler.unmark_false_positive_var_bulk(variant_ids)
+            _dna_repo().variant_handler.unmark_false_positive_var_bulk(variant_ids)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="variant_bulk", resource_id="bulk", action="set_false_positive_bulk")
     )
@@ -538,9 +549,9 @@ def set_variant_irrelevant_bulk(
     apply = _coerce_bool(payload.get("apply") if isinstance(payload, dict) else None, default=apply)
     if variant_ids:
         if apply:
-            store.variant_handler.mark_irrelevant_var_bulk(variant_ids)
+            _dna_repo().variant_handler.mark_irrelevant_var_bulk(variant_ids)
         else:
-            store.variant_handler.unmark_irrelevant_var_bulk(variant_ids)
+            _dna_repo().variant_handler.unmark_irrelevant_var_bulk(variant_ids)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="variant_bulk", resource_id="bulk", action="set_irrelevant_bulk")
     )
@@ -571,7 +582,7 @@ def set_variant_tier_bulk(
 
     bulk_docs = []
     for variant_id in variant_ids:
-        var = store.variant_handler.get_variant(str(variant_id))
+        var = _dna_repo().variant_handler.get_variant(str(variant_id))
         if not var:
             continue
         if str(var.get("SAMPLE_ID")) != str(sample.get("_id")):
@@ -584,7 +595,7 @@ def set_variant_tier_bulk(
         hgvs_c = selected_csq.get("HGVSc")
         hgvs_g = f"{var['CHROM']}:{var['POS']}:{var['REF']}/{var['ALT']}"
         consequence = selected_csq.get("Consequence")
-        gene_oncokb = store.oncokb_handler.get_oncokb_gene(gene)
+        gene_oncokb = _dna_repo().oncokb_handler.get_oncokb_gene(gene)
 
         text = create_annotation_text_from_gene(
             gene, consequence, assay_group, gene_oncokb=gene_oncokb
@@ -608,7 +619,7 @@ def set_variant_tier_bulk(
         }
 
         if not apply:
-            store.annotation_handler.delete_classified_variant(
+            _dna_repo().annotation_handler.delete_classified_variant(
                 variant=variant,
                 nomenclature=nomenclature,
                 variant_data=variant_data,
@@ -636,7 +647,7 @@ def set_variant_tier_bulk(
         bulk_docs.append(deepcopy(text_doc))
 
     if bulk_docs:
-        store.annotation_handler.insert_annotation_bulk(bulk_docs)
+        _dna_repo().annotation_handler.insert_annotation_bulk(bulk_docs)
 
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="variant_bulk", resource_id="bulk", action="set_tier_bulk")
@@ -655,7 +666,7 @@ def classify_variant_mutation(
     class_num = util.common.get_tier_classification(form_data)
     nomenclature, variant = get_variant_nomenclature(form_data)
     if class_num != 0:
-        store.annotation_handler.insert_classified_variant(variant, nomenclature, class_num, form_data)
+        _dna_repo().annotation_handler.insert_classified_variant(variant, nomenclature, class_num, form_data)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="classification", resource_id=target_id, action="classify")
     )
@@ -671,7 +682,7 @@ def remove_classified_variant_mutation(
     form_data = payload.get("form_data", {})
     target_id = str(payload.get("id", "unknown"))
     nomenclature, variant = get_variant_nomenclature(form_data)
-    store.annotation_handler.delete_classified_variant(variant, nomenclature, form_data)
+    _dna_repo().annotation_handler.delete_classified_variant(variant, nomenclature, form_data)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="classification", resource_id=target_id, action="remove_classified")
     )
@@ -690,22 +701,22 @@ def add_variant_comment_mutation(
     doc = create_comment_doc(form_data, nomenclature=nomenclature, variant=variant)
     comment_scope = form_data.get("global")
     if comment_scope == "global":
-        store.annotation_handler.add_anno_comment(doc)
+        _dna_repo().annotation_handler.add_anno_comment(doc)
     if nomenclature == "f":
         if comment_scope != "global":
-            store.fusion_handler.add_fusion_comment(target_id, doc)
+            _dna_repo().fusion_handler.add_fusion_comment(target_id, doc)
         resource = "fusion_comment"
     elif nomenclature == "t":
         if comment_scope != "global":
-            store.transloc_handler.add_transloc_comment(target_id, doc)
+            _dna_repo().transloc_handler.add_transloc_comment(target_id, doc)
         resource = "translocation_comment"
     elif nomenclature == "cn":
         if comment_scope != "global":
-            store.cnv_handler.add_cnv_comment(target_id, doc)
+            _dna_repo().cnv_handler.add_cnv_comment(target_id, doc)
         resource = "cnv_comment"
     else:
         if comment_scope != "global":
-            store.variant_handler.add_var_comment(target_id, doc)
+            _dna_repo().variant_handler.add_var_comment(target_id, doc)
         resource = "variant_comment"
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource=resource, resource_id=target_id, action="add_comment")
@@ -720,9 +731,9 @@ def list_dna_cnvs(request: Request, sample_id: str, user: ApiUser = Depends(requ
 
     sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
     sample_filters = deepcopy(sample.get("filters", {}))
-    assay_panel_doc = store.asp_handler.get_asp(asp_name=sample.get("assay"))
+    assay_panel_doc = _dna_repo().asp_handler.get_asp(asp_name=sample.get("assay"))
     checked_genelists = sample_filters.get("genelists", [])
-    checked_genelists_genes_dict = store.isgl_handler.get_isgl_by_ids(checked_genelists)
+    checked_genelists_genes_dict = _dna_repo().isgl_handler.get_isgl_by_ids(checked_genelists)
     _genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
         sample, assay_panel_doc, checked_genelists_genes_dict
     )
@@ -745,14 +756,14 @@ def list_dna_cnvs(request: Request, sample_id: str, user: ApiUser = Depends(requ
 @app.get("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}", response_model=DnaCnvContextPayload)
 def show_dna_cnv(sample_id: str, cnv_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
-    cnv = store.cnv_handler.get_cnv(cnv_id)
+    cnv = _dna_repo().cnv_handler.get_cnv(cnv_id)
     if not cnv:
         raise _api_error(404, "CNV not found")
     cnv_sample_id = cnv.get("SAMPLE_ID") or cnv.get("sample_id")
     if cnv_sample_id and str(cnv_sample_id) != str(sample.get("_id")):
         raise _api_error(404, "CNV not found for sample")
     if not cnv_sample_id:
-        sample_cnvs = list(store.cnv_handler.get_sample_cnvs({"SAMPLE_ID": str(sample.get("_id"))}))
+        sample_cnvs = list(_dna_repo().cnv_handler.get_sample_cnvs({"SAMPLE_ID": str(sample.get("_id"))}))
         sample_cnv_ids = {str(doc.get("_id")) for doc in sample_cnvs}
         if str(cnv.get("_id")) not in sample_cnv_ids:
             raise _api_error(404, "CNV not found for sample")
@@ -770,11 +781,11 @@ def show_dna_cnv(sample_id: str, cnv_id: str, user: ApiUser = Depends(require_ac
             "assay_group": assay_group,
         },
         "cnv": cnv,
-        "annotations": store.cnv_handler.get_cnv_annotations(cnv),
+        "annotations": _dna_repo().cnv_handler.get_cnv_annotations(cnv),
         "sample_ids": sample_ids,
-        "bam_id": store.bam_service_handler.get_bams(sample_ids),
-        "has_hidden_comments": store.cnv_handler.hidden_cnv_comments(cnv_id),
-        "hidden_comments": store.cnv_handler.hidden_cnv_comments(cnv_id),
+        "bam_id": _dna_repo().bam_service_handler.get_bams(sample_ids),
+        "has_hidden_comments": _dna_repo().cnv_handler.hidden_cnv_comments(cnv_id),
+        "hidden_comments": _dna_repo().cnv_handler.hidden_cnv_comments(cnv_id),
         "assay_group": assay_group,
     }
     return util.common.convert_to_serializable(payload)
@@ -785,7 +796,7 @@ def list_dna_translocations(
     request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))
 ):
     sample = _get_sample_for_api(sample_id, user)
-    translocs = list(store.transloc_handler.get_sample_translocations(sample_id=str(sample["_id"])))
+    translocs = list(_dna_repo().transloc_handler.get_sample_translocations(sample_id=str(sample["_id"])))
     payload = {
         "sample": {
             "id": str(sample.get("_id")),
@@ -807,7 +818,7 @@ def show_dna_translocation(
     sample_id: str, transloc_id: str, user: ApiUser = Depends(require_access(min_level=1))
 ):
     sample = _get_sample_for_api(sample_id, user)
-    transloc = store.transloc_handler.get_transloc(transloc_id)
+    transloc = _dna_repo().transloc_handler.get_transloc(transloc_id)
     if not transloc:
         raise _api_error(404, "Translocation not found")
     transloc_sample_id = transloc.get("SAMPLE_ID") or transloc.get("sample_id")
@@ -815,7 +826,7 @@ def show_dna_translocation(
         raise _api_error(404, "Translocation not found for sample")
     if not transloc_sample_id:
         sample_translocs = list(
-            store.transloc_handler.get_sample_translocations(sample_id=str(sample.get("_id")))
+            _dna_repo().transloc_handler.get_sample_translocations(sample_id=str(sample.get("_id")))
         )
         sample_transloc_ids = {str(doc.get("_id")) for doc in sample_translocs}
         if str(transloc.get("_id")) not in sample_transloc_ids:
@@ -834,12 +845,12 @@ def show_dna_translocation(
             "assay_group": assay_group,
         },
         "translocation": transloc,
-        "annotations": store.transloc_handler.get_transloc_annotations(transloc),
+        "annotations": _dna_repo().transloc_handler.get_transloc_annotations(transloc),
         "sample_ids": sample_ids,
-        "bam_id": store.bam_service_handler.get_bams(sample_ids),
-        "vep_conseq_translations": store.vep_meta_handler.get_conseq_translations(sample.get("vep", 103)),
-        "has_hidden_comments": store.transloc_handler.hidden_transloc_comments(transloc_id),
-        "hidden_comments": store.transloc_handler.hidden_transloc_comments(transloc_id),
+        "bam_id": _dna_repo().bam_service_handler.get_bams(sample_ids),
+        "vep_conseq_translations": _dna_repo().vep_meta_handler.get_conseq_translations(sample.get("vep", 103)),
+        "has_hidden_comments": _dna_repo().transloc_handler.hidden_transloc_comments(transloc_id),
+        "hidden_comments": _dna_repo().transloc_handler.hidden_transloc_comments(transloc_id),
         "assay_group": assay_group,
     }
     return util.common.convert_to_serializable(payload)
@@ -863,7 +874,7 @@ def unmark_interesting_cnv(
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
 ):
     _get_sample_for_api(sample_id, user)
-    store.cnv_handler.unmark_interesting_cnv(cnv_id)
+    _dna_repo().cnv_handler.unmark_interesting_cnv(cnv_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="unmark_interesting")
     )
@@ -876,7 +887,7 @@ def mark_interesting_cnv(
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
 ):
     _get_sample_for_api(sample_id, user)
-    store.cnv_handler.mark_interesting_cnv(cnv_id)
+    _dna_repo().cnv_handler.mark_interesting_cnv(cnv_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="mark_interesting")
     )
@@ -889,7 +900,7 @@ def mark_false_positive_cnv(
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
 ):
     _get_sample_for_api(sample_id, user)
-    store.cnv_handler.mark_false_positive_cnv(cnv_id)
+    _dna_repo().cnv_handler.mark_false_positive_cnv(cnv_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="mark_false_positive")
     )
@@ -902,7 +913,7 @@ def unmark_false_positive_cnv(
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
 ):
     _get_sample_for_api(sample_id, user)
-    store.cnv_handler.unmark_false_positive_cnv(cnv_id)
+    _dna_repo().cnv_handler.unmark_false_positive_cnv(cnv_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="unmark_false_positive")
     )
@@ -915,7 +926,7 @@ def mark_noteworthy_cnv(
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
 ):
     _get_sample_for_api(sample_id, user)
-    store.cnv_handler.noteworthy_cnv(cnv_id)
+    _dna_repo().cnv_handler.noteworthy_cnv(cnv_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="mark_noteworthy")
     )
@@ -928,7 +939,7 @@ def unmark_noteworthy_cnv(
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
 ):
     _get_sample_for_api(sample_id, user)
-    store.cnv_handler.unnoteworthy_cnv(cnv_id)
+    _dna_repo().cnv_handler.unnoteworthy_cnv(cnv_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="unmark_noteworthy")
     )
@@ -944,7 +955,7 @@ def hide_cnv_comment(
     ),
 ):
     _get_sample_for_api(sample_id, user)
-    store.cnv_handler.hide_cnvs_comment(cnv_id, comment_id)
+    _dna_repo().cnv_handler.hide_cnvs_comment(cnv_id, comment_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="cnv_comment", resource_id=comment_id, action="hide")
     )
@@ -960,7 +971,7 @@ def unhide_cnv_comment(
     ),
 ):
     _get_sample_for_api(sample_id, user)
-    store.cnv_handler.unhide_cnvs_comment(cnv_id, comment_id)
+    _dna_repo().cnv_handler.unhide_cnvs_comment(cnv_id, comment_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="cnv_comment", resource_id=comment_id, action="unhide")
     )
@@ -973,7 +984,7 @@ def mark_interesting_translocation(
     user: ApiUser = Depends(require_access(permission="manage_translocs", min_role="user", min_level=9)),
 ):
     _get_sample_for_api(sample_id, user)
-    store.transloc_handler.mark_interesting_transloc(transloc_id)
+    _dna_repo().transloc_handler.mark_interesting_transloc(transloc_id)
     return util.common.convert_to_serializable(
         _mutation_payload(
             sample_id,
@@ -991,7 +1002,7 @@ def unmark_interesting_translocation(
     user: ApiUser = Depends(require_access(permission="manage_translocs", min_role="user", min_level=9)),
 ):
     _get_sample_for_api(sample_id, user)
-    store.transloc_handler.unmark_interesting_transloc(transloc_id)
+    _dna_repo().transloc_handler.unmark_interesting_transloc(transloc_id)
     return util.common.convert_to_serializable(
         _mutation_payload(
             sample_id,
@@ -1009,7 +1020,7 @@ def mark_false_positive_translocation(
     user: ApiUser = Depends(require_access(permission="manage_translocs", min_role="user", min_level=9)),
 ):
     _get_sample_for_api(sample_id, user)
-    store.transloc_handler.mark_false_positive_transloc(transloc_id)
+    _dna_repo().transloc_handler.mark_false_positive_transloc(transloc_id)
     return util.common.convert_to_serializable(
         _mutation_payload(
             sample_id,
@@ -1027,7 +1038,7 @@ def unmark_false_positive_translocation(
     user: ApiUser = Depends(require_access(permission="manage_translocs", min_role="user", min_level=9)),
 ):
     _get_sample_for_api(sample_id, user)
-    store.transloc_handler.unmark_false_positive_transloc(transloc_id)
+    _dna_repo().transloc_handler.unmark_false_positive_transloc(transloc_id)
     return util.common.convert_to_serializable(
         _mutation_payload(
             sample_id,
@@ -1048,7 +1059,7 @@ def hide_translocation_comment(
     ),
 ):
     _get_sample_for_api(sample_id, user)
-    store.transloc_handler.hide_transloc_comment(transloc_id, comment_id)
+    _dna_repo().transloc_handler.hide_transloc_comment(transloc_id, comment_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="translocation_comment", resource_id=comment_id, action="hide")
     )
@@ -1064,7 +1075,8 @@ def unhide_translocation_comment(
     ),
 ):
     _get_sample_for_api(sample_id, user)
-    store.transloc_handler.unhide_transloc_comment(transloc_id, comment_id)
+    _dna_repo().transloc_handler.unhide_transloc_comment(transloc_id, comment_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="translocation_comment", resource_id=comment_id, action="unhide")
     )
+

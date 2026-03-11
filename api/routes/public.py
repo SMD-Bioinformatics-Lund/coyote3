@@ -8,7 +8,7 @@ import io
 from collections import defaultdict
 from copy import deepcopy
 
-from api.extensions import store, util
+from api.extensions import util
 from api.app import _api_error, app
 from api.contracts.public import (
     PublicAspGenesPayload,
@@ -19,52 +19,28 @@ from api.contracts.public import (
     PublicGenelistViewPayload,
 )
 from api.core.public.catalog import PublicCatalogService
+from api.infra.repositories.public_catalog_mongo import MongoPublicCatalogRepository
+
+
+def _catalog_service() -> type[PublicCatalogService]:
+    if not PublicCatalogService.has_repository():
+        PublicCatalogService.set_repository(MongoPublicCatalogRepository())
+    return PublicCatalogService
 
 
 @app.get("/api/v1/public/genelists/{genelist_id}/view_context", response_model=PublicGenelistViewPayload)
 def public_genelist_view_context_read(genelist_id: str, assay: str | None = None):
-    genelist = store.isgl_handler.get_isgl(genelist_id, is_active=True)
-    if not genelist:
+    service = _catalog_service()
+    payload = service.genelist_view_context(genelist_id, assay)
+    if not payload:
         raise _api_error(404, "Genelist not found")
-
-    selected_assay = assay
-    all_genes = genelist.get("genes", [])
-    assays = genelist.get("assays", [])
-
-    filtered_genes = all_genes
-    germline_genes: list[str] = []
-    if selected_assay and selected_assay in assays:
-        panel = store.asp_handler.get_asp(selected_assay)
-        panel_genes = panel.get("covered_genes", []) if panel else []
-        germline_genes = panel.get("germline_genes", []) if panel else []
-        filtered_genes = (
-            sorted(set(all_genes).intersection(panel_genes))
-            if panel and panel.get("asp_family") not in ["WGS", "WTS"]
-            else all_genes
-        )
-
-    return util.common.convert_to_serializable(
-        {
-            "genelist": genelist,
-            "selected_assay": selected_assay,
-            "filtered_genes": filtered_genes,
-            "germline_genes": germline_genes,
-            "is_public": True,
-        }
-    )
+    return util.common.convert_to_serializable(payload)
 
 
 @app.get("/api/v1/public/asp/{asp_id}/genes", response_model=PublicAspGenesPayload)
 def public_asp_genes_read(asp_id: str):
-    gene_symbols, germline_gene_symbols = store.asp_handler.get_asp_genes(asp_id)
-    gene_details = store.hgnc_handler.get_metadata_by_symbols(gene_symbols)
-    return util.common.convert_to_serializable(
-        {
-            "asp_id": asp_id,
-            "gene_details": gene_details,
-            "germline_gene_symbols": germline_gene_symbols,
-        }
-    )
+    service = _catalog_service()
+    return util.common.convert_to_serializable(service.asp_genes_payload(asp_id))
 
 
 @app.get(
@@ -72,16 +48,16 @@ def public_asp_genes_read(asp_id: str):
     response_model=PublicGeneSymbolsPayload,
 )
 def public_assay_catalog_isgl_genes_view_read(isgl_key: str):
-    isgl = store.isgl_handler.get_isgl(isgl_key) or {}
-    gene_symbols = set(sorted(isgl.get("genes", []))) if isgl_key else set()
-    return util.common.convert_to_serializable({"gene_symbols": sorted(gene_symbols)})
+    service = _catalog_service()
+    return util.common.convert_to_serializable(service.assay_catalog_gene_symbols_payload(isgl_key))
 
 
 @app.get("/api/v1/public/assay-catalog-matrix/context", response_model=PublicAssayCatalogMatrixPayload)
 def public_assay_catalog_matrix_context_read():
-    catalog = PublicCatalogService.load_catalog()
+    service = _catalog_service()
+    catalog = service.load_catalog()
     modalities = catalog.get("modalities") or {}
-    order = PublicCatalogService.modalities_order() or list(modalities.keys())
+    order = service.modalities_order() or list(modalities.keys())
 
     columns: list[dict] = []
     mod_spans: dict[str, int] = defaultdict(int)
@@ -91,7 +67,7 @@ def public_assay_catalog_matrix_context_read():
 
     def fetch_asp_genes(asp_id: str) -> set[str]:
         try:
-            _gene_mode, gene_objs, _stats = PublicCatalogService.resolve_gene_table(asp_id, None)
+            _gene_mode, gene_objs, _stats = service.resolve_gene_table(asp_id, None)
         except Exception:
             return set()
         symbols: set[str] = set()
@@ -137,8 +113,7 @@ def public_assay_catalog_matrix_context_read():
                 if (asp_id and asp_id == isgl_key) or isgl_key == "single_gene":
                     genes_here = fetch_asp_genes(asp_id)
                 else:
-                    isgl_doc = store.isgl_handler.get_isgl(isgl_key, is_active=True, is_public=True)
-                    genes_here = set(isgl_doc.get("genes") or []) if isgl_doc else set()
+                    genes_here = service.isgl_genes_for_matrix(isgl_key)
 
                 columns.append(
                     {
@@ -198,12 +173,13 @@ def public_assay_catalog_context_read(
     cat: str | None = None,
     isgl_key: str | None = None,
 ):
-    catalog = PublicCatalogService.load_catalog()
-    order = PublicCatalogService.modalities_order()
+    service = _catalog_service()
+    catalog = service.load_catalog()
+    order = service.modalities_order()
     if not order:
         raise _api_error(404, "Catalog not found")
 
-    selected_mod = PublicCatalogService.normalize_mod(mod) if mod else None
+    selected_mod = service.normalize_mod(mod) if mod else None
     selected_cat = cat if cat else None
     selected_isgl = isgl_key if isgl_key else None
     mods = catalog.get("modalities") or {}
@@ -225,15 +201,15 @@ def public_assay_catalog_context_read(
             {"total": 0, "covered_total": 0, "germline_total": 0},
         )
     elif selected_mod and not selected_cat:
-        right = PublicCatalogService.hydrate_modality(selected_mod)
-        gene_mode, genes, stats = PublicCatalogService.resolve_gene_table(right.get("asp_id"), None)
+        right = service.hydrate_modality(selected_mod)
+        gene_mode, genes, stats = service.resolve_gene_table(right.get("asp_id"), None)
     else:
         if selected_isgl:
-            hydrated_cat = PublicCatalogService.hydrate_category(
+            hydrated_cat = service.hydrate_category(
                 selected_mod, selected_cat, selected_isgl, env="production"
             )
         else:
-            hydrated_cat = PublicCatalogService.hydrate_category(
+            hydrated_cat = service.hydrate_category(
                 selected_mod, selected_cat, env="production"
             )
         if not hydrated_cat:
@@ -249,11 +225,11 @@ def public_assay_catalog_context_read(
             "asp": hydrated_cat.get("asp"),
             "gene_lists": hydrated_cat.get("gene_lists") or [],
         }
-        gene_mode, genes, stats = PublicCatalogService.resolve_gene_table(
+        gene_mode, genes, stats = service.resolve_gene_table(
             hydrated_cat.get("asp_id"), selected_isgl
         )
 
-    genes = PublicCatalogService.apply_drug_info(genes=deepcopy(genes), druglist_name="Drug_Addon")
+    genes = service.apply_drug_info(genes=deepcopy(genes), druglist_name="Drug_Addon")
     vm = {
         "meta": {
             "version": catalog.get("version"),
@@ -265,7 +241,7 @@ def public_assay_catalog_context_read(
         "order": order,
         "modalities": mods,
         "selected_mod": selected_mod,
-        "categories": PublicCatalogService.categories_for(selected_mod) if selected_mod else [],
+        "categories": service.categories_for(selected_mod) if selected_mod else [],
         "selected_cat": selected_cat,
         "selected_isgl": selected_isgl,
         "right": right,
@@ -285,20 +261,21 @@ def public_assay_catalog_genes_csv_context_read(
     cat: str | None = None,
     isgl_key: str | None = None,
 ):
-    selected_mod = PublicCatalogService.normalize_mod(mod)
+    service = _catalog_service()
+    selected_mod = service.normalize_mod(mod)
     if not selected_mod:
         raise _api_error(404, "Modality not found")
 
     if not cat:
-        right = PublicCatalogService.hydrate_modality(selected_mod)
+        right = service.hydrate_modality(selected_mod)
         asp_id = right.get("asp_id")
     else:
-        hydrated_cat = PublicCatalogService.hydrate_category(selected_mod, cat, env="production")
+        hydrated_cat = service.hydrate_category(selected_mod, cat, env="production")
         if not hydrated_cat:
             raise _api_error(404, "Category not found")
         asp_id = hydrated_cat.get("asp_id")
 
-    mode, rows, _stats = PublicCatalogService.resolve_gene_table(asp_id, isgl_key)
+    mode, rows, _stats = service.resolve_gene_table(asp_id, isgl_key)
 
     sio = io.StringIO()
     writer = csv.writer(sio, lineterminator="\n")

@@ -2,10 +2,12 @@
 
 from fastapi import Depends, Query, Request
 
-from api.extensions import store, util
+from api.extensions import util
 from api.core.interpretation.annotation_enrichment import add_global_annotations
 from api.core.interpretation.report_summary import generate_summary_text
 from api.core.workflows.rna_workflow import RNAWorkflowService
+from api.infra.repositories.rna_route_mongo import MongoRNARouteRepository
+from api.infra.repositories.rna_workflow_mongo import MongoRNAWorkflowRepository
 from api.contracts.rna import RnaFusionContextPayload, RnaFusionListPayload
 from api.contracts.samples import SampleMutationPayload
 from api.runtime import app as runtime_app
@@ -24,8 +26,25 @@ def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: s
     }
 
 
+_rna_repo_instance: MongoRNARouteRepository | None = None
+
+
+def _rna_repo() -> MongoRNARouteRepository:
+    global _rna_repo_instance
+    if _rna_repo_instance is None:
+        _rna_repo_instance = MongoRNARouteRepository()
+    return _rna_repo_instance
+
+
+def _rna_workflow_service() -> type[RNAWorkflowService]:
+    if not RNAWorkflowService.has_repository():
+        RNAWorkflowService.set_repository(MongoRNAWorkflowRepository())
+    return RNAWorkflowService
+
+
 @app.get("/api/v1/rna/samples/{sample_id}/fusions", response_model=RnaFusionListPayload)
 def list_rna_fusions(request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
+    _rna_workflow_service()
     sample = _get_sample_for_api(sample_id, user)
     assay_config = _get_formatted_assay_config(sample)
     if not assay_config:
@@ -36,13 +55,13 @@ def list_rna_fusions(request: Request, sample_id: str, user: ApiUser = Depends(r
     )
     assay_group = assay_config.get("asp_group", "unknown")
     subpanel = sample.get("subpanel")
-    assay_config_schema = store.schema_handler.get_schema(assay_config.get("schema_name"))
-    assay_panel_doc = store.asp_handler.get_asp(asp_name=sample.get("assay"))
-    fusionlist_options = store.isgl_handler.get_isgl_by_asp(
+    assay_config_schema = _rna_repo().schema_handler.get_schema(assay_config.get("schema_name"))
+    assay_panel_doc = _rna_repo().asp_handler.get_asp(asp_name=sample.get("assay"))
+    fusionlist_options = _rna_repo().isgl_handler.get_isgl_by_asp(
         sample.get("assay"), is_active=True, list_type="fusionlist"
     )
     sample_ids = util.common.get_case_and_control_sample_ids(sample)
-    has_hidden_comments = store.sample_handler.hidden_sample_comments(sample.get("_id"))
+    has_hidden_comments = _rna_repo().sample_handler.hidden_sample_comments(sample.get("_id"))
     filter_context = RNAWorkflowService.compute_filter_context(
         sample=sample, sample_filters=sample_filters, assay_panel_doc=assay_panel_doc
     )
@@ -52,7 +71,7 @@ def list_rna_fusions(request: Request, sample_id: str, user: ApiUser = Depends(r
         sample_filters=sample_filters,
         filter_context=filter_context,
     )
-    fusions = list(store.fusion_handler.get_sample_fusions(query))
+    fusions = list(_rna_repo().fusion_handler.get_sample_fusions(query))
     fusions, tiered_fusions = add_global_annotations(fusions, assay_group, subpanel)
     sample = RNAWorkflowService.attach_rna_analysis_sections(sample)
     summary_sections_data = {"fusions": tiered_fusions}
@@ -89,8 +108,9 @@ def list_rna_fusions(request: Request, sample_id: str, user: ApiUser = Depends(r
 
 @app.get("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}", response_model=RnaFusionContextPayload)
 def show_rna_fusion(sample_id: str, fusion_id: str, user: ApiUser = Depends(require_access(min_level=1))):
+    _rna_workflow_service()
     sample = _get_sample_for_api(sample_id, user)
-    fusion = store.fusion_handler.get_fusion(fusion_id)
+    fusion = _rna_repo().fusion_handler.get_fusion(fusion_id)
     if not fusion:
         raise _api_error(404, "Fusion not found")
     if str(fusion.get("SAMPLE_ID", "")) != str(sample.get("_id")):
@@ -134,7 +154,7 @@ def mark_false_positive_fusion(
     user: ApiUser = Depends(require_access(min_level=1)),
 ):
     _get_sample_for_api(sample_id, user)
-    store.fusion_handler.mark_false_positive_fusion(fusion_id)
+    _rna_repo().fusion_handler.mark_false_positive_fusion(fusion_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="fusion", resource_id=fusion_id, action="mark_false_positive")
     )
@@ -147,7 +167,7 @@ def unmark_false_positive_fusion(
     user: ApiUser = Depends(require_access(min_level=1)),
 ):
     _get_sample_for_api(sample_id, user)
-    store.fusion_handler.unmark_false_positive_fusion(fusion_id)
+    _rna_repo().fusion_handler.unmark_false_positive_fusion(fusion_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="fusion", resource_id=fusion_id, action="unmark_false_positive")
     )
@@ -165,7 +185,7 @@ def pick_fusion_call(
     user: ApiUser = Depends(require_access(min_level=1)),
 ):
     _get_sample_for_api(sample_id, user)
-    store.fusion_handler.pick_fusion(fusion_id, callidx, num_calls)
+    _rna_repo().fusion_handler.pick_fusion(fusion_id, callidx, num_calls)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="fusion", resource_id=fusion_id, action="pick_fusion_call")
     )
@@ -182,7 +202,7 @@ def hide_fusion_comment(
     user: ApiUser = Depends(require_access(min_level=1)),
 ):
     _get_sample_for_api(sample_id, user)
-    store.fusion_handler.hide_fus_comment(fusion_id, comment_id)
+    _rna_repo().fusion_handler.hide_fus_comment(fusion_id, comment_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="fusion_comment", resource_id=comment_id, action="hide")
     )
@@ -199,7 +219,7 @@ def unhide_fusion_comment(
     user: ApiUser = Depends(require_access(min_level=1)),
 ):
     _get_sample_for_api(sample_id, user)
-    store.fusion_handler.unhide_fus_comment(fusion_id, comment_id)
+    _rna_repo().fusion_handler.unhide_fus_comment(fusion_id, comment_id)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="fusion_comment", resource_id=comment_id, action="unhide")
     )
@@ -214,7 +234,7 @@ def set_fusion_false_positive_bulk(
 ):
     _get_sample_for_api(sample_id, user)
     if fusion_ids:
-        store.fusion_handler.mark_false_positive_bulk(fusion_ids, apply)
+        _rna_repo().fusion_handler.mark_false_positive_bulk(fusion_ids, apply)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="fusion_bulk", resource_id="bulk", action="set_false_positive_bulk")
     )
@@ -229,7 +249,8 @@ def set_fusion_irrelevant_bulk(
 ):
     _get_sample_for_api(sample_id, user)
     if fusion_ids:
-        store.fusion_handler.mark_irrelevant_bulk(fusion_ids, apply)
+        _rna_repo().fusion_handler.mark_irrelevant_bulk(fusion_ids, apply)
     return util.common.convert_to_serializable(
         _mutation_payload(sample_id, resource="fusion_bulk", resource_id="bulk", action="set_irrelevant_bulk")
     )
+

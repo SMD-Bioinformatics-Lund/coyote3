@@ -4,10 +4,26 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from api.extensions import store
+from api.core.coverage.ports import CoverageRepository
 
 
 class CoverageProcessingService:
+    _repository: CoverageRepository | None = None
+
+    @classmethod
+    def set_repository(cls, repository: CoverageRepository) -> None:
+        cls._repository = repository
+
+    @classmethod
+    def has_repository(cls) -> bool:
+        return cls._repository is not None
+
+    @classmethod
+    def _repo(cls) -> CoverageRepository:
+        if cls._repository is None:
+            raise RuntimeError("CoverageProcessingService repository is not configured")
+        return cls._repository
+
     @staticmethod
     def _genes_map(cov: dict | None) -> dict:
         if not isinstance(cov, dict):
@@ -70,7 +86,7 @@ class CoverageProcessingService:
         filtered_dict = defaultdict(dict)
         genes = CoverageProcessingService._genes_map(cov_dict)
         for gene, gene_cov in genes.items():
-            blacklisted = store.groupcov_handler.is_gene_blacklisted(gene, smp_grp)
+            blacklisted = CoverageProcessingService._repo().is_gene_blacklisted(gene, smp_grp)
             if gene in filter_genes and not blacklisted:
                 filtered_dict["genes"][gene] = gene_cov
         return filtered_dict
@@ -80,7 +96,9 @@ class CoverageProcessingService:
         has_low = False
         for reg in region_dict:
             if "cov" in region_dict[reg] and float(region_dict[reg]["cov"]) < cutoff:
-                blacklisted = store.groupcov_handler.is_region_blacklisted(gene, region, reg, smp_grp)
+                blacklisted = CoverageProcessingService._repo().is_region_blacklisted(
+                    gene, region, reg, smp_grp
+                )
                 if not blacklisted:
                     has_low = True
         return has_low

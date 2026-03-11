@@ -48,7 +48,7 @@ def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
 
     monkeypatch.setattr(system, "authenticate_credentials", lambda _u, _p: user_doc)
     monkeypatch.setattr(
-        system.store.user_handler,
+        system,
         "update_user_last_login",
         lambda user_id: calls.setdefault("updated_user", user_id),
     )

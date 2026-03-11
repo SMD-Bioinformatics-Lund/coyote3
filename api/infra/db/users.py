@@ -66,15 +66,16 @@ class UsersHandler(BaseHandler):
 
         return self.get_collection().find_one({"email": user_mail})
 
-    def user_with_id(self, user_id: str) -> dict:
+    def user_with_id(self, user_id: str) -> dict | None:
         """
         Retrieve a user document from the database by user ID.
         Args:
             user_id (str): The unique identifier of the user.
         Returns:
-            dict: A dictionary representation of the user document.
+            dict | None: A dictionary representation of the user document, or None when missing.
         """
-        return dict(self.get_collection().find_one({"_id": user_id}))
+        doc = self.get_collection().find_one({"_id": user_id})
+        return dict(doc) if doc else None
 
     def update_password(self, username, password_hash) -> None:
         """

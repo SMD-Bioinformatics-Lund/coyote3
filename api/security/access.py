@@ -11,7 +11,7 @@ from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from api.audit.access_events import emit_access_event
 from api.domain.models.user import UserModel
-from api.extensions import store
+from api.security.repository import get_security_repository
 from api.runtime import app as runtime_app
 from api.runtime import reset_current_user, set_current_user
 from api.settings import (
@@ -134,12 +134,13 @@ def create_api_session_token(user_id: str) -> str:
 
 
 def _role_levels() -> dict[str, int]:
-    return {role["_id"]: role.get("level", 0) for role in store.roles_handler.get_all_roles()}
+    return {role["_id"]: role.get("level", 0) for role in get_security_repository().get_all_roles()}
 
 
 def _api_user_from_doc(user_doc: dict) -> ApiUser:
-    role_doc = store.roles_handler.get_role(user_doc.get("role")) or {}
-    asp_docs = store.asp_handler.get_all_asps(is_active=True)
+    repo = get_security_repository()
+    role_doc = repo.get_role(user_doc.get("role")) or {}
+    asp_docs = repo.get_all_active_asps()
     user_model = UserModel.from_mongo(user_doc, role_doc, asp_docs)
     return ApiUser(
         id=str(user_model.id),
@@ -200,7 +201,7 @@ def _decode_session_user(request: Request) -> ApiUser:
         if not user_id:
             raise _api_error(401, "Login required")
 
-        user_doc = store.user_handler.user_with_id(str(user_id))
+        user_doc = get_security_repository().get_user_by_id(str(user_id))
         if not user_doc or not user_doc.get("is_active", True):
             raise _api_error(401, "Login required")
         return _api_user_from_doc(user_doc)
@@ -288,9 +289,10 @@ def require_access(
 
 
 def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None = None):
-    sample = store.sample_handler.get_sample(sample_id)
+    repo = get_security_repository()
+    sample = repo.get_sample(sample_id)
     if not sample:
-        sample = store.sample_handler.get_sample_by_id(sample_id)
+        sample = repo.get_sample_by_id(sample_id)
     if not sample:
         _audit_access_event(
             status="denied",

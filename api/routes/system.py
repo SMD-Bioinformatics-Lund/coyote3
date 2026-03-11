@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from api.app import app
 from api.contracts.auth import ApiAuthLoginRequest
 from api.contracts.system import AuthLoginEnvelope, AuthUserEnvelope, HealthPayload, WhoamiPayload
-from api.extensions import store, util
+from api.extensions import util
 from api.security.access import (
     ApiUser,
     create_api_session_token,
@@ -16,7 +16,11 @@ from api.security.access import (
     require_access,
     serialize_api_user,
 )
-from api.security.auth_service import authenticate_credentials, build_user_session_payload
+from api.security.auth_service import (
+    authenticate_credentials,
+    build_user_session_payload,
+    update_user_last_login,
+)
 
 
 @app.exception_handler(HTTPException)
@@ -59,7 +63,7 @@ def auth_login(payload: ApiAuthLoginRequest):
         raise HTTPException(status_code=401, detail={"status": 401, "error": "Invalid credentials"})
 
     user_id = str(user_doc.get("_id"))
-    store.user_handler.update_user_last_login(user_id)
+    update_user_last_login(user_id)
     session_token = create_api_session_token(user_id)
     response = JSONResponse(
         status_code=200,

@@ -2,21 +2,39 @@
 
 from __future__ import annotations
 
-from api.extensions import store
+from api.core.admin.ports import AdminSampleDeletionRepository
+
+
+class SampleDeletionService:
+    _repository: AdminSampleDeletionRepository | None = None
+
+    @classmethod
+    def set_repository(cls, repository: AdminSampleDeletionRepository) -> None:
+        cls._repository = repository
+
+    @classmethod
+    def has_repository(cls) -> bool:
+        return cls._repository is not None
+
+    @classmethod
+    def _repo(cls) -> AdminSampleDeletionRepository:
+        if cls._repository is None:
+            raise RuntimeError("SampleDeletionService repository is not configured")
+        return cls._repository
 
 
 def delete_all_sample_traces(sample_id: str) -> dict[str, object]:
     """Delete all persisted traces for a sample and return summary metadata."""
-    sample = store.sample_handler.get_sample_by_id(sample_id) or {}
+    sample = SampleDeletionService._repo().get_sample_by_id(sample_id) or {}
     actions = [
-        store.variant_handler.delete_sample_variants,
-        store.cnv_handler.delete_sample_cnvs,
-        store.coverage_handler.delete_sample_coverage,
-        store.coverage2_handler.delete_sample_coverage,
-        store.transloc_handler.delete_sample_translocs,
-        store.fusion_handler.delete_sample_fusions,
-        store.biomarker_handler.delete_sample_biomarkers,
-        store.sample_handler.delete_sample,
+        SampleDeletionService._repo().delete_sample_variants,
+        SampleDeletionService._repo().delete_sample_cnvs,
+        SampleDeletionService._repo().delete_sample_coverage,
+        SampleDeletionService._repo().delete_sample_panel_coverage,
+        SampleDeletionService._repo().delete_sample_translocs,
+        SampleDeletionService._repo().delete_sample_fusions,
+        SampleDeletionService._repo().delete_sample_biomarkers,
+        SampleDeletionService._repo().delete_sample,
     ]
     results: list[dict[str, object]] = []
     for handler in actions:
@@ -34,4 +52,3 @@ def delete_all_sample_traces(sample_id: str) -> dict[str, object]:
         "sample_name": sample.get("name"),
         "results": results,
     }
-

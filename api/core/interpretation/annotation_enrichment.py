@@ -3,14 +3,24 @@
 Shared annotation enrichment helpers for DNA/RNA analyte flows.
 """
 
-from api.extensions import store
+from api.infra.repositories.core_store_mongo import MongoCoreStoreRepository
+
+
+_core_repo_instance: MongoCoreStoreRepository | None = None
+
+
+def _core_repo() -> MongoCoreStoreRepository:
+    global _core_repo_instance
+    if _core_repo_instance is None:
+        _core_repo_instance = MongoCoreStoreRepository()
+    return _core_repo_instance
 
 
 def add_alt_class(variant: dict, assay: str, subpanel: str) -> dict:
     """
     Add alternative classifications to a variant/fusion entry.
     """
-    additional_classifications = store.annotation_handler.get_additional_classifications(
+    additional_classifications = _core_repo().annotation_handler.get_additional_classifications(
         variant, assay, subpanel
     )
     if additional_classifications:
@@ -35,7 +45,7 @@ def add_global_annotations(variants: list, assay: str, subpanel: str) -> tuple[l
             variants[var_idx]["classification"],
             variants[var_idx]["other_classification"],
             variants[var_idx]["annotations_interesting"],
-        ) = store.annotation_handler.get_global_annotations(var, assay, subpanel)
+        ) = _core_repo().annotation_handler.get_global_annotations(var, assay, subpanel)
         classification = variants[var_idx]["classification"]
         if classification is not None:
             class_value = classification.get("class")

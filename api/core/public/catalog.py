@@ -8,11 +8,26 @@ from typing import Any, Dict, List, Optional, Tuple
 import yaml
 from api.runtime import app
 
-from api.extensions import store
+from api.core.public.ports import PublicCatalogRepository
 
 
 class PublicCatalogService:
     DEFAULT_ENV = "production"
+    _repository: PublicCatalogRepository | None = None
+
+    @classmethod
+    def set_repository(cls, repository: PublicCatalogRepository) -> None:
+        cls._repository = repository
+
+    @classmethod
+    def has_repository(cls) -> bool:
+        return cls._repository is not None
+
+    @classmethod
+    def _repo(cls) -> PublicCatalogRepository:
+        if cls._repository is None:
+            raise RuntimeError("PublicCatalogService repository is not configured")
+        return cls._repository
 
     @staticmethod
     def load_catalog() -> Dict[str, Any]:
@@ -71,20 +86,20 @@ class PublicCatalogService:
                 return category
         return None
 
-    @staticmethod
-    def _fetch_aspc(aspc_ids: Optional[Dict[str, str]], env: str) -> Optional[Dict[str, Any]]:
+    @classmethod
+    def _fetch_aspc(cls, aspc_ids: Optional[Dict[str, str]], env: str) -> Optional[Dict[str, Any]]:
         if not aspc_ids:
             return None
         aspc_id = aspc_ids.get(env)
         if not aspc_id:
             return None
-        return store.aspc_handler.get_aspc_with_id(aspc_id)
+        return cls._repo().get_aspc_with_id(aspc_id)
 
-    @staticmethod
+    @classmethod
     def hydrate_category(
-        mod: str, cat_id: str, gl_id: str | None = None, env: str = DEFAULT_ENV
+        cls, mod: str, cat_id: str, gl_id: str | None = None, env: str = DEFAULT_ENV
     ) -> Optional[Dict[str, Any]]:
-        node = PublicCatalogService.category_def(mod, cat_id)
+        node = cls.category_def(mod, cat_id)
         if not node:
             return None
 
@@ -99,8 +114,8 @@ class PublicCatalogService:
         asp_id = node.get("asp_id")
         aspc_ids = node.get("aspc_ids") or {}
 
-        asp = store.asp_handler.get_asp(asp_id) if asp_id else None
-        aspc = PublicCatalogService._fetch_aspc(aspc_ids, env) if aspc_ids else None
+        asp = cls._repo().get_asp(asp_id) if asp_id else None
+        aspc = cls._fetch_aspc(aspc_ids, env) if aspc_ids else None
 
         analysis = node.get("analysis", []) or []
         if aspc and not analysis:
@@ -143,23 +158,23 @@ class PublicCatalogService:
             "asp": modality.get("asp"),
         }
 
-    @staticmethod
-    def _covered_genes(asp_id: Optional[str]) -> Tuple[List[str], List[str]]:
+    @classmethod
+    def _covered_genes(cls, asp_id: Optional[str]) -> Tuple[List[str], List[str]]:
         if not asp_id:
             return [], []
-        genes, germline = store.asp_handler.get_asp_genes(asp_id)
+        genes, germline = cls._repo().get_asp_genes(asp_id)
         return list(genes or []), list(germline or [])
 
-    @staticmethod
+    @classmethod
     def resolve_gene_table(
-        asp_id: Optional[str], isgl_key: Optional[str]
+        cls, asp_id: Optional[str], isgl_key: Optional[str]
     ) -> Tuple[str, List[Dict[str, Any]], Dict[str, int]]:
-        covered, germline = PublicCatalogService._covered_genes(asp_id)
+        covered, germline = cls._covered_genes(asp_id)
 
         if isgl_key == asp_id:
             show = sorted(set(covered))
-            rows_raw = store.hgnc_handler.get_metadata_by_symbols(show) if show else []
-            rows = PublicCatalogService._merge_with_placeholders(show, rows_raw)
+            rows_raw = cls._repo().get_hgnc_metadata_by_symbols(show) if show else []
+            rows = cls._merge_with_placeholders(show, rows_raw)
             return (
                 "covered",
                 rows,
@@ -172,7 +187,7 @@ class PublicCatalogService:
             )
 
         if isgl_key:
-            isgl = store.isgl_handler.get_isgl(isgl_key) or {}
+            isgl = cls._repo().get_isgl(isgl_key) or {}
             isgl_genes = list(isgl.get("genes", []) or [])
             if covered:
                 show = sorted(set(isgl_genes).intersection(set(covered)))
@@ -180,8 +195,8 @@ class PublicCatalogService:
             else:
                 show = sorted(set(isgl_genes))
                 mode = "genelist"
-            rows_raw = store.hgnc_handler.get_metadata_by_symbols(show) if show else []
-            rows = PublicCatalogService._merge_with_placeholders(show, rows_raw)
+            rows_raw = cls._repo().get_hgnc_metadata_by_symbols(show) if show else []
+            rows = cls._merge_with_placeholders(show, rows_raw)
             return (
                 mode,
                 rows,
@@ -194,8 +209,8 @@ class PublicCatalogService:
             )
 
         show = sorted(set(covered))
-        rows_raw = store.hgnc_handler.get_metadata_by_symbols(show) if show else []
-        rows = PublicCatalogService._merge_with_placeholders(show, rows_raw)
+        rows_raw = cls._repo().get_hgnc_metadata_by_symbols(show) if show else []
+        rows = cls._merge_with_placeholders(show, rows_raw)
         return (
             "covered",
             rows,
@@ -266,11 +281,64 @@ class PublicCatalogService:
 
         return sorted(out_rows, key=lambda g: (g.get("hgnc_symbol") or g.get("symbol") or "").upper())
 
-    @staticmethod
-    def apply_drug_info(genes: List[Dict[str, Any]], druglist_name: str | None = None) -> List[Dict[str, Any]]:
-        drug_genes = store.isgl_handler.get_isgl(druglist_name) or {}
+    @classmethod
+    def apply_drug_info(
+        cls, genes: List[Dict[str, Any]], druglist_name: str | None = None
+    ) -> List[Dict[str, Any]]:
+        drug_genes = cls._repo().get_isgl(druglist_name) or {}
         drug_symbols = set(drug_genes.get("genes", [])) if drug_genes else set()
         for gene in genes:
             symbol = gene.get("hgnc_symbol") or gene.get("symbol") or ""
             gene["drug_target"] = symbol in drug_symbols
         return genes
+
+    @classmethod
+    def genelist_view_context(cls, genelist_id: str, assay: str | None = None) -> dict[str, Any] | None:
+        genelist = cls._repo().get_isgl(genelist_id, is_active=True)
+        if not genelist:
+            return None
+
+        selected_assay = assay
+        all_genes = genelist.get("genes", [])
+        assays = genelist.get("assays", [])
+
+        filtered_genes = all_genes
+        germline_genes: list[str] = []
+        if selected_assay and selected_assay in assays:
+            panel = cls._repo().get_asp(selected_assay)
+            panel_genes = panel.get("covered_genes", []) if panel else []
+            germline_genes = panel.get("germline_genes", []) if panel else []
+            filtered_genes = (
+                sorted(set(all_genes).intersection(panel_genes))
+                if panel and panel.get("asp_family") not in ["WGS", "WTS"]
+                else all_genes
+            )
+
+        return {
+            "genelist": genelist,
+            "selected_assay": selected_assay,
+            "filtered_genes": filtered_genes,
+            "germline_genes": germline_genes,
+            "is_public": True,
+        }
+
+    @classmethod
+    def asp_genes_payload(cls, asp_id: str) -> dict[str, Any]:
+        gene_symbols, germline_gene_symbols = cls._repo().get_asp_genes(asp_id)
+        gene_details = cls._repo().get_hgnc_metadata_by_symbols(list(gene_symbols or []))
+        return {
+            "asp_id": asp_id,
+            "gene_details": gene_details,
+            "germline_gene_symbols": list(germline_gene_symbols or []),
+        }
+
+    @classmethod
+    def assay_catalog_gene_symbols_payload(cls, isgl_key: str) -> dict[str, Any]:
+        isgl = cls._repo().get_isgl(isgl_key) or {}
+        gene_symbols = set(sorted(isgl.get("genes", []))) if isgl_key else set()
+        return {"gene_symbols": sorted(gene_symbols)}
+
+    @classmethod
+    def isgl_genes_for_matrix(cls, isgl_key: str) -> set[str]:
+        isgl_doc = cls._repo().get_isgl(isgl_key, is_active=True, is_public=True) or {}
+        return set(isgl_doc.get("genes") or [])

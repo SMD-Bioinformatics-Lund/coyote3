@@ -12,10 +12,27 @@ from api.core.reporting.pipeline import (
     persist_report_and_snapshot as persist_shared_report_and_snapshot,
 )
 from api.core.dna.dna_reporting import build_dna_report_payload
+from api.core.dna.ports import DNAReportingRepository
 from api.core.workflows.contracts import validate_report_inputs
 
 
 class DNAWorkflowService:
+    _repository: DNAReportingRepository | None = None
+
+    @classmethod
+    def set_repository(cls, repository: DNAReportingRepository) -> None:
+        cls._repository = repository
+
+    @classmethod
+    def has_repository(cls) -> bool:
+        return cls._repository is not None
+
+    @classmethod
+    def _repo(cls) -> DNAReportingRepository:
+        if cls._repository is None:
+            raise RuntimeError("DNAWorkflowService repository is not configured")
+        return cls._repository
+
     @staticmethod
     def validate_report_inputs(logger, sample: dict, assay_config: dict) -> None:
         """
@@ -44,6 +61,7 @@ class DNAWorkflowService:
         return build_dna_report_payload(
             sample=sample,
             assay_config=assay_config,
+            repository=DNAWorkflowService._repo(),
             save=save,
             include_snapshot=include_snapshot,
         )

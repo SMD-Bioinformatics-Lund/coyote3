@@ -3,12 +3,21 @@
 
 from collections import defaultdict
 
-from bson.objectid import ObjectId
 from api.runtime import app
 from api.runtime import current_username
 
-from api.extensions import store
+from api.infra.repositories.core_store_mongo import MongoCoreStoreRepository
 from api.utils.common_utility import CommonUtility
+
+
+_core_repo_instance: MongoCoreStoreRepository | None = None
+
+
+def _core_repo() -> MongoCoreStoreRepository:
+    global _core_repo_instance
+    if _core_repo_instance is None:
+        _core_repo_instance = MongoCoreStoreRepository()
+    return _core_repo_instance
 
 
 def process_gene_annotations(annotations: dict) -> dict:
@@ -70,7 +79,7 @@ def create_comment_doc(data: dict, nomenclature: str = "", variant: str = "", ke
         doc = {
             "$push": {
                 "comments": {
-                    "_id": ObjectId(),
+                    "_id": _core_repo().new_object_id(),
                     "hidden": 0,
                     "text": data.get(key),
                     "author": author,
@@ -412,7 +421,7 @@ def enrich_reported_variant_docs(tier_docs: list) -> list:
     enriched_docs = []
     for doc in tier_docs:
         enriched_doc = doc.copy()
-        sample = store.sample_handler.get_sample_by_oid(doc.get("sample_oid", None)) or {}
+        sample = _core_repo().sample_handler.get_sample_by_oid(doc.get("sample_oid", None)) or {}
         enriched_doc["sample"] = {}
         enriched_doc["sample"]["sample_name"] = sample.get("name")
         enriched_doc["sample"]["case_id"] = sample.get("case_id")
@@ -422,7 +431,7 @@ def enrich_reported_variant_docs(tier_docs: list) -> list:
         enriched_doc["sample"]["assay"] = sample.get("assay")
         enriched_doc["sample"]["subpanel"] = sample.get("subpanel")
 
-        annotation = store.annotation_handler.get_annotation_by_oid(doc.get("annotation_oid", None))
+        annotation = _core_repo().annotation_handler.get_annotation_by_oid(doc.get("annotation_oid", None))
         enriched_doc["annotation"] = {**annotation}
         enriched_docs.append(enriched_doc)
     return enriched_docs

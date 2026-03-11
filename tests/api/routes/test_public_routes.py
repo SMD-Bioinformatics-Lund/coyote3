@@ -10,7 +10,7 @@ from tests.api.fixtures import mock_collections as fx
 
 
 def test_public_genelist_view_context_not_found_raises_404(monkeypatch):
-    monkeypatch.setattr(public.store.isgl_handler, "get_isgl", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(public.PublicCatalogService, "genelist_view_context", lambda *_args, **_kwargs: None)
 
     with pytest.raises(HTTPException) as exc:
         public.public_genelist_view_context_read("missing")
@@ -20,8 +20,15 @@ def test_public_genelist_view_context_not_found_raises_404(monkeypatch):
 
 
 def test_public_asp_genes_read_success(monkeypatch):
-    monkeypatch.setattr(public.store.asp_handler, "get_asp_genes", lambda asp_id: (["TP53"], ["BRCA1"]))
-    monkeypatch.setattr(public.store.hgnc_handler, "get_metadata_by_symbols", lambda symbols: [{"symbol": "TP53"}])
+    monkeypatch.setattr(
+        public.PublicCatalogService,
+        "asp_genes_payload",
+        lambda asp_id: {
+            "asp_id": asp_id,
+            "gene_details": [{"symbol": "TP53"}],
+            "germline_gene_symbols": ["BRCA1"],
+        },
+    )
     monkeypatch.setattr(public.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = public.public_asp_genes_read("WGS")

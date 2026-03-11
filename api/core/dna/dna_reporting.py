@@ -7,10 +7,10 @@ import os
 from pprint import pformat
 from typing import Any, Dict, List, Tuple
 from api.runtime import app
-from api.extensions import store
 from api.utils.common_utility import CommonUtility
 from api.utils.report.report_util import ReportUtility
 from api.core.reporting.report_paths import get_report_timestamp as shared_get_report_timestamp
+from api.core.dna.ports import DNAReportingRepository
 from api.core.dna.notation import one_letter_p, standard_hgvs
 from api.core.dna.query_builders import build_query
 from api.core.interpretation.annotation_enrichment import (
@@ -198,6 +198,7 @@ def get_simple_variants_for_report(variants: list, assay_config: dict) -> list:
 def build_dna_report_payload(
     sample: dict,
     assay_config: dict,
+    repository: DNAReportingRepository,
     save: int = 0,
     include_snapshot: bool = False,
 ) -> Tuple[str, Dict[str, Any], List[Dict[str, Any]]]:
@@ -213,9 +214,9 @@ def build_dna_report_payload(
     app.logger.debug(f"Assay group: {assay_group} - DNA config: {pformat(report_sections)}")
     app.logger.debug(f"Assay group: {assay_group} - Subpanel: {subpanel}")
 
-    assay_panel_doc = store.asp_handler.get_asp(asp_name=sample_assay)
+    assay_panel_doc = repository.get_asp(asp_name=sample_assay)
 
-    insilico_panel_genelists = store.isgl_handler.get_isgl_by_asp(sample_assay, is_active=True)
+    insilico_panel_genelists = repository.get_isgl_by_asp(sample_assay, is_active=True)
     all_panel_genelist_names = CommonUtility.get_assay_genelist_names(insilico_panel_genelists)
 
     if not sample.get("filters"):
@@ -224,7 +225,7 @@ def build_dna_report_payload(
     sample_filters = deepcopy(sample.get("filters", {}))
 
     checked_genelists = sample_filters.get("genelists", [])
-    checked_genelists_genes_dict: list[dict] = store.isgl_handler.get_isgl_by_ids(checked_genelists)
+    checked_genelists_genes_dict: list[dict] = repository.get_isgl_by_ids(checked_genelists)
     genes_covered_in_panel, filter_genes = CommonUtility.get_sample_effective_genes(
         sample, assay_panel_doc, checked_genelists_genes_dict
     )
@@ -254,14 +255,14 @@ def build_dna_report_payload(
         },
     )
 
-    variants = list(store.variant_handler.get_case_variants(query))
-    variants = store.blacklist_handler.add_blacklist_data(variants, assay=assay_group)
+    variants = repository.get_case_variants(query)
+    variants = repository.add_blacklist_data(variants, assay=assay_group)
 
     variants, tiered_variants = shared_add_global_annotations(variants, assay_group, subpanel)
     variants = hotspot_variant(variants)
     variants = filter_variants_for_report(variants, filter_genes, assay_group)
 
-    latest_sample_comment = store.sample_handler.get_latest_sample_comment(sample_id=str(sample["_id"]))
+    latest_sample_comment = repository.get_latest_sample_comment(sample_id=str(sample["_id"]))
 
     snapshot_rows: List[Dict[str, Any]] = []
     if include_snapshot:
@@ -301,7 +302,7 @@ def build_dna_report_payload(
 
     if "CNV" in report_sections:
         report_sections_data["cnvs"] = list(
-            store.cnv_handler.get_interesting_sample_cnvs(sample_id=str(sample["_id"]))
+            repository.get_interesting_sample_cnvs(sample_id=str(sample["_id"]))
         )
 
     if "CNV_PROFILE" in report_sections:
@@ -311,11 +312,11 @@ def build_dna_report_payload(
 
     if "BIOMARKER" in report_sections:
         report_sections_data["biomarkers"] = list(
-            store.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"]))
+            repository.get_sample_biomarkers(sample_id=str(sample["_id"]))
         )
 
     if "TRANSLOCATION" in report_sections:
-        report_sections_data["translocs"] = store.transloc_handler.get_interesting_sample_translocations(
+        report_sections_data["translocs"] = repository.get_interesting_sample_translocations(
             sample_id=str(sample["_id"])
         )
 
@@ -328,7 +329,7 @@ def build_dna_report_payload(
         assay_config["reporting"].get("report_header", "Unknown"),
     )
 
-    vep_variant_class_meta = store.vep_meta_handler.get_variant_class_translations(sample.get("vep", 103))
+    vep_variant_class_meta = repository.get_variant_class_translations(sample.get("vep", 103))
 
     report_date = datetime.now().date()
     report_timestamp: str = shared_get_report_timestamp()

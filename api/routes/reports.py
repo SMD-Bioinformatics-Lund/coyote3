@@ -7,6 +7,8 @@ from api.contracts.reports import ReportPreviewPayload, ReportSavePayload
 from api.extensions import util
 from api.core.workflows.dna_workflow import DNAWorkflowService
 from api.core.workflows.rna_workflow import RNAWorkflowService
+from api.infra.repositories.dna_reporting_mongo import MongoDNAReportingRepository
+from api.infra.repositories.rna_workflow_mongo import MongoRNAWorkflowRepository
 from api.app import _api_error, _get_formatted_assay_config, app
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.runtime import app as runtime_app, current_username
@@ -22,6 +24,18 @@ def _sample_meta(sample: dict) -> dict:
         "assay": sample.get("assay"),
         "profile": sample.get("profile"),
     }
+
+
+def _rna_workflow_service() -> type[RNAWorkflowService]:
+    if not RNAWorkflowService.has_repository():
+        RNAWorkflowService.set_repository(MongoRNAWorkflowRepository())
+    return RNAWorkflowService
+
+
+def _dna_workflow_service() -> type[DNAWorkflowService]:
+    if not DNAWorkflowService.has_repository():
+        DNAWorkflowService.set_repository(MongoDNAReportingRepository())
+    return DNAWorkflowService
 
 
 def _normalize_rendered_report_payload(report_payload: dict | None) -> tuple[str, list]:
@@ -84,19 +98,23 @@ def _load_report_context(sample_id: str, user: ApiUser) -> tuple[dict, dict]:
 
 def _validate_report_inputs(analyte: ReportAnalyte, sample: dict, assay_config: dict) -> None:
     if analyte == "dna":
+        _dna_workflow_service()
         DNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
     else:
+        _rna_workflow_service()
         RNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
 
 
 def _build_preview_report(analyte: ReportAnalyte, sample: dict, assay_config: dict, *, save: bool, include_snapshot: bool):
     if analyte == "dna":
+        _dna_workflow_service()
         return DNAWorkflowService.build_report_payload(
             sample=sample,
             assay_config=assay_config,
             save=1 if save else 0,
             include_snapshot=include_snapshot,
         )
+    _rna_workflow_service()
     return RNAWorkflowService.build_report_payload(
         sample=sample,
         save=1 if save else 0,
@@ -107,11 +125,13 @@ def _build_preview_report(analyte: ReportAnalyte, sample: dict, assay_config: di
 def _build_report_location(analyte: ReportAnalyte, sample: dict, assay_config: dict) -> tuple[str, str, str]:
     base_path = runtime_app.config.get("REPORTS_BASE_PATH", "reports")
     if analyte == "dna":
+        _dna_workflow_service()
         return DNAWorkflowService.build_report_location(
             sample=sample,
             assay_config=assay_config,
             reports_base_path=base_path,
         )
+    _rna_workflow_service()
     return RNAWorkflowService.build_report_location(
         sample=sample,
         assay_config=assay_config,
@@ -121,8 +141,10 @@ def _build_report_location(analyte: ReportAnalyte, sample: dict, assay_config: d
 
 def _prepare_report_output(analyte: ReportAnalyte, report_path: str, report_file: str) -> None:
     if analyte == "dna":
+        _dna_workflow_service()
         DNAWorkflowService.prepare_report_output(report_path, report_file, logger=runtime_app.logger)
     else:
+        _rna_workflow_service()
         RNAWorkflowService.prepare_report_output(report_path, report_file, logger=runtime_app.logger)
 
 
@@ -139,6 +161,7 @@ def _persist_report(
     created_by: str,
 ) -> str:
     if analyte == "dna":
+        _dna_workflow_service()
         return DNAWorkflowService.persist_report(
             sample_id=sample_id,
             sample=sample,
@@ -149,6 +172,7 @@ def _persist_report(
             snapshot_rows=snapshot_rows,
             created_by=created_by,
         )
+    _rna_workflow_service()
     return RNAWorkflowService.persist_report(
         sample_id=sample_id,
         sample=sample,

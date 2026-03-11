@@ -32,8 +32,10 @@ from api.contracts.admin import (
     AdminUserCreateContextPayload,
     AdminUsersListPayload,
 )
-from api.core.admin.sample_deletion import delete_all_sample_traces
-from api.extensions import store, util
+from api.core.admin.sample_deletion import SampleDeletionService, delete_all_sample_traces
+from api.extensions import util
+from api.infra.repositories.admin_route_mongo import MongoAdminRouteRepository
+from api.infra.repositories.admin_sample_mongo import MongoAdminSampleDeletionRepository
 from api.runtime import app as runtime_app, current_username
 from api.security.access import ApiUser, require_access
 
@@ -47,6 +49,16 @@ def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: s
         "action": action,
         "meta": {"status": "updated"},
     }
+
+
+_admin_repo_instance: MongoAdminRouteRepository | None = None
+
+
+def _admin_repo() -> MongoAdminRouteRepository:
+    global _admin_repo_instance
+    if _admin_repo_instance is None:
+        _admin_repo_instance = MongoAdminRouteRepository()
+    return _admin_repo_instance
 
 
 def _active_flag(doc: dict | None, default: bool = True) -> bool:
@@ -66,7 +78,7 @@ def _with_active_default(items: list[dict], default: bool = True) -> list[dict]:
 
 
 def _permission_policy_options() -> list[dict]:
-    permission_policies = store.permissions_handler.get_all_permissions(is_active=True)
+    permission_policies = _admin_repo().permissions_handler.get_all_permissions(is_active=True)
     return [
         {
             "value": p["_id"],
@@ -78,7 +90,7 @@ def _permission_policy_options() -> list[dict]:
 
 
 def _role_map() -> dict[str, dict]:
-    all_roles = store.roles_handler.get_all_roles()
+    all_roles = _admin_repo().roles_handler.get_all_roles()
     return {
         role["_id"]: {
             "permissions": role.get("permissions", []),
@@ -90,8 +102,14 @@ def _role_map() -> dict[str, dict]:
 
 
 def _assay_group_map() -> dict[str, list[dict]]:
-    assay_groups_panels = store.asp_handler.get_all_asps()
+    assay_groups_panels = _admin_repo().asp_handler.get_all_asps()
     return util.common.create_assay_group_map(assay_groups_panels)
+
+
+def _sample_deletion_service() -> type[SampleDeletionService]:
+    if not SampleDeletionService.has_repository():
+        SampleDeletionService.set_repository(MongoAdminSampleDeletionRepository())
+    return SampleDeletionService
 
 
 @app.get("/api/v1/admin/roles", response_model=AdminRolesListPayload)
@@ -100,7 +118,7 @@ def list_roles_read(
         require_access(permission="view_role", min_role="admin", min_level=99999)
     ),
 ):
-    roles = _with_active_default(store.roles_handler.get_all_roles())
+    roles = _with_active_default(_admin_repo().roles_handler.get_all_roles())
     return util.common.convert_to_serializable({"roles": roles})
 
 
@@ -111,7 +129,7 @@ def create_role_context_read(
         require_access(permission="create_role", min_role="admin", min_level=99999)
     ),
 ):
-    active_schemas = store.schema_handler.get_schemas_by_category_type(
+    active_schemas = _admin_repo().schema_handler.get_schemas_by_category_type(
         schema_type="rbac_role",
         schema_category="RBAC_role",
         is_active=True,
@@ -149,10 +167,10 @@ def role_context_read(
         require_access(permission="view_role", min_role="admin", min_level=99999)
     ),
 ):
-    role = store.roles_handler.get_role(role_id)
+    role = _admin_repo().roles_handler.get_role(role_id)
     if not role:
         raise _api_error(404, "Role not found")
-    schema = store.schema_handler.get_schema(role.get("schema_name"))
+    schema = _admin_repo().schema_handler.get_schema(role.get("schema_name"))
     if not schema:
         raise _api_error(404, "Schema not found for role")
 
@@ -178,7 +196,7 @@ def create_permission_mutation(
         require_access(permission="create_permission_policy", min_role="admin", min_level=99999)
     ),
 ):
-    active_schemas = store.schema_handler.get_schemas_by_category_type(
+    active_schemas = _admin_repo().schema_handler.get_schemas_by_category_type(
         schema_type="acl_config",
         schema_category="RBAC",
         is_active=True,
@@ -207,7 +225,7 @@ def create_permission_mutation(
         new_config=deepcopy(policy),
         is_new=True,
     )
-    store.permissions_handler.create_new_policy(policy)
+    _admin_repo().permissions_handler.create_new_policy(policy)
     return util.common.convert_to_serializable(
         _mutation_payload(
             "admin", resource="permission", resource_id=policy["_id"], action="create"
@@ -222,7 +240,7 @@ def list_permissions_read(
     ),
 ):
     permission_policies = _with_active_default(
-        store.permissions_handler.get_all_permissions(is_active=False)
+        _admin_repo().permissions_handler.get_all_permissions(is_active=False)
     )
     grouped_permissions: dict[str, list[dict]] = {}
     for policy in permission_policies:
@@ -244,7 +262,7 @@ def create_permission_context_read(
         require_access(permission="create_permission_policy", min_role="admin", min_level=99999)
     ),
 ):
-    active_schemas = store.schema_handler.get_schemas_by_category_type(
+    active_schemas = _admin_repo().schema_handler.get_schemas_by_category_type(
         schema_type="acl_config",
         schema_category="RBAC",
         is_active=True,
@@ -281,10 +299,10 @@ def permission_context_read(
         require_access(permission="view_permission_policy", min_role="admin", min_level=99999)
     ),
 ):
-    permission = store.permissions_handler.get(perm_id)
+    permission = _admin_repo().permissions_handler.get(perm_id)
     if not permission:
         raise _api_error(404, "Permission policy not found")
-    schema = store.schema_handler.get_schema(permission.get("schema_name"))
+    schema = _admin_repo().schema_handler.get_schema(permission.get("schema_name"))
     if not schema:
         raise _api_error(404, "Schema not found for permission policy")
     return util.common.convert_to_serializable(
@@ -303,10 +321,10 @@ def update_permission_mutation(
         require_access(permission="edit_permission_policy", min_role="admin", min_level=99999)
     ),
 ):
-    permission = store.permissions_handler.get(perm_id)
+    permission = _admin_repo().permissions_handler.get(perm_id)
     if not permission:
         raise _api_error(404, "Permission policy not found")
-    schema = store.schema_handler.get_schema(permission.get("schema_name"))
+    schema = _admin_repo().schema_handler.get_schema(permission.get("schema_name"))
     if not schema:
         raise _api_error(404, "Schema not found for permission policy")
 
@@ -323,7 +341,7 @@ def update_permission_mutation(
         old_config=permission,
         is_new=False,
     )
-    store.permissions_handler.update_policy(perm_id, updated_permission)
+    _admin_repo().permissions_handler.update_policy(perm_id, updated_permission)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="permission", resource_id=perm_id, action="update")
     )
@@ -336,11 +354,11 @@ def toggle_permission_mutation(
         require_access(permission="edit_permission_policy", min_role="admin", min_level=99999)
     ),
 ):
-    perm = store.permissions_handler.get(perm_id)
+    perm = _admin_repo().permissions_handler.get(perm_id)
     if not perm:
         raise _api_error(404, "Permission policy not found")
     new_status = not _active_flag(perm)
-    store.permissions_handler.toggle_policy_active(perm_id, new_status)
+    _admin_repo().permissions_handler.toggle_policy_active(perm_id, new_status)
     result = _mutation_payload("admin", resource="permission", resource_id=perm_id, action="toggle")
     result["meta"]["is_active"] = new_status
     return util.common.convert_to_serializable(result)
@@ -353,10 +371,10 @@ def delete_permission_mutation(
         require_access(permission="delete_permission_policy", min_role="admin", min_level=99999)
     ),
 ):
-    perm = store.permissions_handler.get(perm_id)
+    perm = _admin_repo().permissions_handler.get(perm_id)
     if not perm:
         raise _api_error(404, "Permission policy not found")
-    store.permissions_handler.delete_policy(perm_id)
+    _admin_repo().permissions_handler.delete_policy(perm_id)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="permission", resource_id=perm_id, action="delete")
     )
@@ -369,7 +387,7 @@ def create_role_mutation(
         require_access(permission="create_role", min_role="admin", min_level=99999)
     ),
 ):
-    active_schemas = store.schema_handler.get_schemas_by_category_type(
+    active_schemas = _admin_repo().schema_handler.get_schemas_by_category_type(
         schema_type="rbac_role",
         schema_category="RBAC_role",
         is_active=True,
@@ -392,7 +410,7 @@ def create_role_mutation(
         new_config=deepcopy(role),
         is_new=True,
     )
-    store.roles_handler.create_role(role)
+    _admin_repo().roles_handler.create_role(role)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="role", resource_id=role["_id"], action="create")
     )
@@ -406,10 +424,10 @@ def update_role_mutation(
         require_access(permission="edit_role", min_role="admin", min_level=99999)
     ),
 ):
-    role = store.roles_handler.get_role(role_id)
+    role = _admin_repo().roles_handler.get_role(role_id)
     if not role:
         raise _api_error(404, "Role not found")
-    schema = store.schema_handler.get_schema(role.get("schema_name"))
+    schema = _admin_repo().schema_handler.get_schema(role.get("schema_name"))
     if not schema:
         raise _api_error(404, "Schema not found for role")
 
@@ -427,7 +445,7 @@ def update_role_mutation(
         old_config=role,
         is_new=False,
     )
-    store.roles_handler.update_role(role_id, updated_role)
+    _admin_repo().roles_handler.update_role(role_id, updated_role)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="role", resource_id=role_id, action="update")
     )
@@ -440,11 +458,11 @@ def toggle_role_mutation(
         require_access(permission="edit_role", min_role="admin", min_level=99999)
     ),
 ):
-    role = store.roles_handler.get(role_id)
+    role = _admin_repo().roles_handler.get(role_id)
     if not role:
         raise _api_error(404, "Role not found")
     new_status = not _active_flag(role)
-    store.roles_handler.toggle_role_active(role_id, new_status)
+    _admin_repo().roles_handler.toggle_role_active(role_id, new_status)
     result = _mutation_payload("admin", resource="role", resource_id=role_id, action="toggle")
     result["meta"]["is_active"] = new_status
     return util.common.convert_to_serializable(result)
@@ -457,10 +475,10 @@ def delete_role_mutation(
         require_access(permission="delete_role", min_role="admin", min_level=99999)
     ),
 ):
-    role = store.roles_handler.get_role(role_id)
+    role = _admin_repo().roles_handler.get_role(role_id)
     if not role:
         raise _api_error(404, "Role not found")
-    store.roles_handler.delete_role(role_id)
+    _admin_repo().roles_handler.delete_role(role_id)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="role", resource_id=role_id, action="delete")
     )
@@ -472,8 +490,8 @@ def list_users_read(
         require_access(permission="view_user", min_role="admin", min_level=99999)
     ),
 ):
-    users = _with_active_default(store.user_handler.get_all_users())
-    roles = store.roles_handler.get_role_colors()
+    users = _with_active_default(_admin_repo().user_handler.get_all_users())
+    roles = _admin_repo().roles_handler.get_role_colors()
     return util.common.convert_to_serializable(
         {
             "users": users,
@@ -489,7 +507,7 @@ def create_user_context_read(
         require_access(permission="create_user", min_role="admin", min_level=99999)
     ),
 ):
-    active_schemas = store.schema_handler.get_schemas_by_category_type(
+    active_schemas = _admin_repo().schema_handler.get_schemas_by_category_type(
         schema_type="rbac_user",
         schema_category="RBAC_user",
         is_active=True,
@@ -503,11 +521,11 @@ def create_user_context_read(
         raise _api_error(404, "User schema not found")
 
     schema = deepcopy(selected_schema)
-    schema["fields"]["role"]["options"] = store.roles_handler.get_all_role_names()
+    schema["fields"]["role"]["options"] = _admin_repo().roles_handler.get_all_role_names()
     options = _permission_policy_options()
     schema["fields"]["permissions"]["options"] = options
     schema["fields"]["deny_permissions"]["options"] = options
-    schema["fields"]["assay_groups"]["options"] = store.asp_handler.get_all_asp_groups()
+    schema["fields"]["assay_groups"]["options"] = _admin_repo().asp_handler.get_all_asp_groups()
     schema["fields"]["created_by"]["default"] = current_username(default=user.username)
     schema["fields"]["created_on"]["default"] = util.common.utc_now()
     schema["fields"]["updated_by"]["default"] = current_username(default=user.username)
@@ -531,22 +549,22 @@ def user_context_read(
         require_access(permission="view_user", min_role="admin", min_level=99999)
     ),
 ):
-    user_doc = store.user_handler.user_with_id(user_id)
+    user_doc = _admin_repo().user_handler.user_with_id(user_id)
     if not user_doc:
         raise _api_error(404, "User not found")
 
-    schema = store.schema_handler.get_schema(user_doc.get("schema_name"))
+    schema = _admin_repo().schema_handler.get_schema(user_doc.get("schema_name"))
     if not schema:
         raise _api_error(404, "Schema not found for user")
 
     schema = deepcopy(schema)
-    schema["fields"]["role"]["options"] = store.roles_handler.get_all_role_names()
+    schema["fields"]["role"]["options"] = _admin_repo().roles_handler.get_all_role_names()
     options = _permission_policy_options()
     schema["fields"]["permissions"]["options"] = options
     schema["fields"]["deny_permissions"]["options"] = options
     schema["fields"]["permissions"]["default"] = user_doc.get("permissions")
     schema["fields"]["deny_permissions"]["default"] = user_doc.get("deny_permissions")
-    schema["fields"]["assay_groups"]["options"] = store.asp_handler.get_all_asp_groups()
+    schema["fields"]["assay_groups"]["options"] = _admin_repo().asp_handler.get_all_asp_groups()
     schema["fields"]["assay_groups"]["default"] = user_doc.get("assay_groups", [])
     schema["fields"]["assays"]["default"] = user_doc.get("assays", [])
 
@@ -567,7 +585,7 @@ def create_user_mutation(
         require_access(permission="create_user", min_role="admin", min_level=99999)
     ),
 ):
-    active_schemas = store.schema_handler.get_schemas_by_category_type(
+    active_schemas = _admin_repo().schema_handler.get_schemas_by_category_type(
         schema_type="rbac_user",
         schema_category="RBAC_user",
         is_active=True,
@@ -579,7 +597,7 @@ def create_user_mutation(
     if not schema:
         raise _api_error(404, "User schema not found")
 
-    all_roles = store.roles_handler.get_all_roles()
+    all_roles = _admin_repo().roles_handler.get_all_roles()
     role_map = {
         role["_id"]: {
             "permissions": role.get("permissions", []),
@@ -613,7 +631,7 @@ def create_user_mutation(
         new_config=deepcopy(user_data),
         is_new=True,
     )
-    store.user_handler.create_user(user_data)
+    _admin_repo().user_handler.create_user(user_data)
     return util.common.convert_to_serializable(
         _mutation_payload(
             "admin", resource="user", resource_id=user_data["username"], action="create"
@@ -629,14 +647,14 @@ def update_user_mutation(
         require_access(permission="edit_user", min_role="admin", min_level=99999)
     ),
 ):
-    user_doc = store.user_handler.user_with_id(user_id)
+    user_doc = _admin_repo().user_handler.user_with_id(user_id)
     if not user_doc:
         raise _api_error(404, "User not found")
-    schema = store.schema_handler.get_schema(user_doc.get("schema_name"))
+    schema = _admin_repo().schema_handler.get_schema(user_doc.get("schema_name"))
     if not schema:
         raise _api_error(404, "Schema not found for user")
 
-    all_roles = store.roles_handler.get_all_roles()
+    all_roles = _admin_repo().roles_handler.get_all_roles()
     role_map = {
         role["_id"]: {
             "permissions": role.get("permissions", []),
@@ -670,7 +688,7 @@ def update_user_mutation(
         old_config=user_doc,
         is_new=False,
     )
-    store.user_handler.update_user(user_id, updated_user)
+    _admin_repo().user_handler.update_user(user_id, updated_user)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="user", resource_id=user_id, action="update")
     )
@@ -683,10 +701,10 @@ def delete_user_mutation(
         require_access(permission="delete_user", min_role="admin", min_level=99999)
     ),
 ):
-    user_doc = store.user_handler.user_with_id(user_id)
+    user_doc = _admin_repo().user_handler.user_with_id(user_id)
     if not user_doc:
         raise _api_error(404, "User not found")
-    store.user_handler.delete_user(user_id)
+    _admin_repo().user_handler.delete_user(user_id)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="user", resource_id=user_id, action="delete")
     )
@@ -699,11 +717,11 @@ def toggle_user_mutation(
         require_access(permission="edit_user", min_role="admin", min_level=99999)
     ),
 ):
-    user_doc = store.user_handler.user_with_id(user_id)
+    user_doc = _admin_repo().user_handler.user_with_id(user_id)
     if not user_doc:
         raise _api_error(404, "User not found")
     new_status = not _active_flag(user_doc)
-    store.user_handler.toggle_user_active(user_id, new_status)
+    _admin_repo().user_handler.toggle_user_active(user_id, new_status)
     result = _mutation_payload("admin", resource="user", resource_id=user_id, action="toggle")
     result["meta"]["is_active"] = new_status
     return util.common.convert_to_serializable(result)
@@ -718,7 +736,7 @@ def validate_username_mutation(
 ):
     username = str(payload.get("username", "")).lower()
     return util.common.convert_to_serializable(
-        {"exists": store.user_handler.user_exists(user_id=username)}
+        {"exists": _admin_repo().user_handler.user_exists(user_id=username)}
     )
 
 
@@ -731,7 +749,7 @@ def validate_email_mutation(
 ):
     email = str(payload.get("email", "")).lower()
     return util.common.convert_to_serializable(
-        {"exists": store.user_handler.user_exists(email=email)}
+        {"exists": _admin_repo().user_handler.user_exists(email=email)}
     )
 
 
@@ -746,7 +764,7 @@ def create_asp_mutation(
     if not config:
         raise _api_error(400, "Missing panel config payload")
     config.setdefault("is_active", True)
-    store.asp_handler.create_asp(config)
+    _admin_repo().asp_handler.create_asp(config)
     return util.common.convert_to_serializable(
         _mutation_payload(
             "admin", resource="asp", resource_id=str(config.get("_id", "unknown")), action="create"
@@ -758,7 +776,7 @@ def create_asp_mutation(
 def list_asp_read(
     user: ApiUser = Depends(require_access(permission="view_asp", min_role="user", min_level=9)),
 ):
-    panels = _with_active_default(store.asp_handler.get_all_asps())
+    panels = _with_active_default(_admin_repo().asp_handler.get_all_asps())
     return util.common.convert_to_serializable({"panels": panels})
 
 
@@ -769,7 +787,7 @@ def create_asp_context_read(
         require_access(permission="create_asp", min_role="manager", min_level=99)
     ),
 ):
-    active_schemas = store.schema_handler.get_schemas_by_category_type(
+    active_schemas = _admin_repo().schema_handler.get_schemas_by_category_type(
         schema_type="asp_schema",
         schema_category="ASP",
         is_active=True,
@@ -802,11 +820,11 @@ def asp_context_read(
     assay_panel_id: str,
     user: ApiUser = Depends(require_access(permission="view_asp", min_role="user", min_level=9)),
 ):
-    panel = store.asp_handler.get_asp(assay_panel_id)
+    panel = _admin_repo().asp_handler.get_asp(assay_panel_id)
     if not panel:
         raise _api_error(404, "Panel not found")
 
-    schema = store.schema_handler.get_schema(panel.get("schema_name", "ASP-Schema"))
+    schema = _admin_repo().schema_handler.get_schema(panel.get("schema_name", "ASP-Schema"))
     if not schema:
         raise _api_error(404, "Schema not found for panel")
 
@@ -821,13 +839,13 @@ def update_asp_mutation(
         require_access(permission="edit_asp", min_role="manager", min_level=99)
     ),
 ):
-    panel = store.asp_handler.get_asp(assay_panel_id)
+    panel = _admin_repo().asp_handler.get_asp(assay_panel_id)
     if not panel:
         raise _api_error(404, "Panel not found")
     updated = payload.get("config", {})
     if not updated:
         raise _api_error(400, "Missing panel config payload")
-    store.asp_handler.update_asp(assay_panel_id, updated)
+    _admin_repo().asp_handler.update_asp(assay_panel_id, updated)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="asp", resource_id=assay_panel_id, action="update")
     )
@@ -840,11 +858,11 @@ def toggle_asp_mutation(
         require_access(permission="edit_asp", min_role="manager", min_level=99)
     ),
 ):
-    panel = store.asp_handler.get_asp(assay_panel_id)
+    panel = _admin_repo().asp_handler.get_asp(assay_panel_id)
     if not panel:
         raise _api_error(404, "Panel not found")
     new_status = not _active_flag(panel)
-    store.asp_handler.toggle_asp_active(assay_panel_id, new_status)
+    _admin_repo().asp_handler.toggle_asp_active(assay_panel_id, new_status)
     result = _mutation_payload("admin", resource="asp", resource_id=assay_panel_id, action="toggle")
     result["meta"]["is_active"] = new_status
     return util.common.convert_to_serializable(result)
@@ -857,10 +875,10 @@ def delete_asp_mutation(
         require_access(permission="delete_asp", min_role="admin", min_level=99999)
     ),
 ):
-    panel = store.asp_handler.get_asp(assay_panel_id)
+    panel = _admin_repo().asp_handler.get_asp(assay_panel_id)
     if not panel:
         raise _api_error(404, "Panel not found")
-    store.asp_handler.delete_asp(assay_panel_id)
+    _admin_repo().asp_handler.delete_asp(assay_panel_id)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="asp", resource_id=assay_panel_id, action="delete")
     )
@@ -877,7 +895,7 @@ def create_genelist_mutation(
     if not config:
         raise _api_error(400, "Missing genelist config payload")
     config.setdefault("is_active", True)
-    store.isgl_handler.create_isgl(config)
+    _admin_repo().isgl_handler.create_isgl(config)
     return util.common.convert_to_serializable(
         _mutation_payload(
             "admin",
@@ -892,7 +910,7 @@ def create_genelist_mutation(
 def list_genelists_read(
     user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
 ):
-    genelists = _with_active_default(store.isgl_handler.get_all_isgl())
+    genelists = _with_active_default(_admin_repo().isgl_handler.get_all_isgl())
     return util.common.convert_to_serializable({"genelists": genelists})
 
 
@@ -903,7 +921,7 @@ def create_genelist_context_read(
         require_access(permission="create_isgl", min_role="manager", min_level=99)
     ),
 ):
-    active_schemas = store.schema_handler.get_schemas_by_category_type(
+    active_schemas = _admin_repo().schema_handler.get_schemas_by_category_type(
         schema_type="isgl_config",
         schema_category="ISGL",
         is_active=True,
@@ -917,7 +935,7 @@ def create_genelist_context_read(
         raise _api_error(404, "Genelist schema not found")
 
     schema = deepcopy(selected_schema)
-    schema["fields"]["assay_groups"]["options"] = store.asp_handler.get_all_asp_groups()
+    schema["fields"]["assay_groups"]["options"] = _admin_repo().asp_handler.get_all_asp_groups()
     schema["fields"]["created_by"]["default"] = current_username(default=user.username)
     schema["fields"]["created_on"]["default"] = util.common.utc_now()
     schema["fields"]["updated_by"]["default"] = current_username(default=user.username)
@@ -940,16 +958,16 @@ def genelist_context_read(
     genelist_id: str,
     user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
 ):
-    genelist = store.isgl_handler.get_isgl(genelist_id)
+    genelist = _admin_repo().isgl_handler.get_isgl(genelist_id)
     if not genelist:
         raise _api_error(404, "Genelist not found")
 
-    schema = store.schema_handler.get_schema(genelist.get("schema_name"))
+    schema = _admin_repo().schema_handler.get_schema(genelist.get("schema_name"))
     if not schema:
         raise _api_error(404, "Schema not found for genelist")
 
     schema = deepcopy(schema)
-    schema["fields"]["assay_groups"]["options"] = store.asp_handler.get_all_asp_groups()
+    schema["fields"]["assay_groups"]["options"] = _admin_repo().asp_handler.get_all_asp_groups()
     schema["fields"]["assay_groups"]["default"] = genelist.get("assay_groups", [])
     schema["fields"]["assays"]["default"] = genelist.get("assays", [])
 
@@ -971,7 +989,7 @@ def genelist_view_context_read(
     assay: str | None = Query(default=None),
     user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
 ):
-    genelist = store.isgl_handler.get_isgl(genelist_id)
+    genelist = _admin_repo().isgl_handler.get_isgl(genelist_id)
     if not genelist:
         raise _api_error(404, "Genelist not found")
 
@@ -981,7 +999,7 @@ def genelist_view_context_read(
     panel_germline_genes: list[str] = []
 
     if assay and assay in assays:
-        panel = store.asp_handler.get_asp(assay)
+        panel = _admin_repo().asp_handler.get_asp(assay)
         panel_genes = panel.get("covered_genes", []) if panel else []
         panel_germline_genes = panel.get("germline_genes", []) if panel else []
         filtered_genes = sorted(set(all_genes).intersection(panel_genes))
@@ -1004,13 +1022,13 @@ def update_genelist_mutation(
         require_access(permission="edit_isgl", min_role="manager", min_level=99)
     ),
 ):
-    genelist = store.isgl_handler.get_isgl(genelist_id)
+    genelist = _admin_repo().isgl_handler.get_isgl(genelist_id)
     if not genelist:
         raise _api_error(404, "Genelist not found")
     updated = payload.get("config", {})
     if not updated:
         raise _api_error(400, "Missing genelist config payload")
-    store.isgl_handler.update_isgl(genelist_id, updated)
+    _admin_repo().isgl_handler.update_isgl(genelist_id, updated)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="genelist", resource_id=genelist_id, action="update")
     )
@@ -1023,11 +1041,11 @@ def toggle_genelist_mutation(
         require_access(permission="edit_isgl", min_role="manager", min_level=99)
     ),
 ):
-    genelist = store.isgl_handler.get_isgl(genelist_id)
+    genelist = _admin_repo().isgl_handler.get_isgl(genelist_id)
     if not genelist:
         raise _api_error(404, "Genelist not found")
     new_status = not _active_flag(genelist)
-    store.isgl_handler.toggle_isgl_active(genelist_id, new_status)
+    _admin_repo().isgl_handler.toggle_isgl_active(genelist_id, new_status)
     result = _mutation_payload(
         "admin", resource="genelist", resource_id=genelist_id, action="toggle"
     )
@@ -1042,10 +1060,10 @@ def delete_genelist_mutation(
         require_access(permission="delete_isgl", min_role="admin", min_level=99999)
     ),
 ):
-    genelist = store.isgl_handler.get_isgl(genelist_id)
+    genelist = _admin_repo().isgl_handler.get_isgl(genelist_id)
     if not genelist:
         raise _api_error(404, "Genelist not found")
-    store.isgl_handler.delete_isgl(genelist_id)
+    _admin_repo().isgl_handler.delete_isgl(genelist_id)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="genelist", resource_id=genelist_id, action="delete")
     )
@@ -1055,7 +1073,7 @@ def delete_genelist_mutation(
 def list_aspc_read(
     user: ApiUser = Depends(require_access(permission="view_aspc", min_role="user", min_level=9)),
 ):
-    assay_configs = _with_active_default(list(store.aspc_handler.get_all_aspc()))
+    assay_configs = _with_active_default(list(_admin_repo().aspc_handler.get_all_aspc()))
     return util.common.convert_to_serializable({"assay_configs": assay_configs})
 
 
@@ -1068,7 +1086,7 @@ def create_aspc_context_read(
     ),
 ):
     schema_category = str(category or "DNA").upper()
-    active_schemas = store.schema_handler.get_schemas_by_category_type(
+    active_schemas = _admin_repo().schema_handler.get_schemas_by_category_type(
         schema_type="asp_config",
         schema_category=schema_category,
         is_active=True,
@@ -1082,13 +1100,13 @@ def create_aspc_context_read(
         raise _api_error(404, "Selected schema not found")
 
     schema = deepcopy(selected_schema)
-    assay_panels = store.asp_handler.get_all_asps(is_active=True)
+    assay_panels = _admin_repo().asp_handler.get_all_asps(is_active=True)
     prefill_map: dict[str, dict] = {}
     valid_assay_ids: list[str] = []
 
     for panel in assay_panels:
         if panel.get("asp_category") == schema_category:
-            envs = store.aspc_handler.get_available_assay_envs(
+            envs = _admin_repo().aspc_handler.get_available_assay_envs(
                 panel["_id"], schema["fields"]["environment"]["options"]
             )
             if envs:
@@ -1127,11 +1145,11 @@ def aspc_context_read(
     assay_id: str,
     user: ApiUser = Depends(require_access(permission="view_aspc", min_role="user", min_level=9)),
 ):
-    assay_config = store.aspc_handler.get_aspc_with_id(assay_id)
+    assay_config = _admin_repo().aspc_handler.get_aspc_with_id(assay_id)
     if not assay_config:
         raise _api_error(404, "Assay config not found")
 
-    schema = store.schema_handler.get_schema(assay_config.get("schema_name"))
+    schema = _admin_repo().schema_handler.get_schema(assay_config.get("schema_name"))
     if not schema:
         raise _api_error(404, "Schema for this assay config is missing")
     schema = deepcopy(schema)
@@ -1154,10 +1172,10 @@ def create_aspc_mutation(
     if not config:
         raise _api_error(400, "Missing assay config payload")
     config.setdefault("is_active", True)
-    existing_config = store.aspc_handler.get_aspc_with_id(config.get("_id"))
+    existing_config = _admin_repo().aspc_handler.get_aspc_with_id(config.get("_id"))
     if existing_config:
         raise _api_error(409, "Assay config already exists")
-    store.aspc_handler.create_aspc(config)
+    _admin_repo().aspc_handler.create_aspc(config)
     return util.common.convert_to_serializable(
         _mutation_payload(
             "admin", resource="aspc", resource_id=str(config.get("_id", "unknown")), action="create"
@@ -1173,13 +1191,13 @@ def update_aspc_mutation(
         require_access(permission="edit_aspc", min_role="manager", min_level=99)
     ),
 ):
-    assay_config = store.aspc_handler.get_aspc_with_id(assay_id)
+    assay_config = _admin_repo().aspc_handler.get_aspc_with_id(assay_id)
     if not assay_config:
         raise _api_error(404, "Assay config not found")
     updated_config = payload.get("config", {})
     if not updated_config:
         raise _api_error(400, "Missing assay config payload")
-    store.aspc_handler.update_aspc(assay_id, updated_config)
+    _admin_repo().aspc_handler.update_aspc(assay_id, updated_config)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="aspc", resource_id=assay_id, action="update")
     )
@@ -1192,11 +1210,11 @@ def toggle_aspc_mutation(
         require_access(permission="edit_aspc", min_role="manager", min_level=99)
     ),
 ):
-    assay_config = store.aspc_handler.get_aspc_with_id(assay_id)
+    assay_config = _admin_repo().aspc_handler.get_aspc_with_id(assay_id)
     if not assay_config:
         raise _api_error(404, "Assay config not found")
     new_status = not _active_flag(assay_config)
-    store.aspc_handler.toggle_aspc_active(assay_id, new_status)
+    _admin_repo().aspc_handler.toggle_aspc_active(assay_id, new_status)
     result = _mutation_payload("admin", resource="aspc", resource_id=assay_id, action="toggle")
     result["meta"]["is_active"] = new_status
     return util.common.convert_to_serializable(result)
@@ -1209,10 +1227,10 @@ def delete_aspc_mutation(
         require_access(permission="delete_aspc", min_role="admin", min_level=99999)
     ),
 ):
-    assay_config = store.aspc_handler.get_aspc_with_id(assay_id)
+    assay_config = _admin_repo().aspc_handler.get_aspc_with_id(assay_id)
     if not assay_config:
         raise _api_error(404, "Assay config not found")
-    store.aspc_handler.delete_aspc(assay_id)
+    _admin_repo().aspc_handler.delete_aspc(assay_id)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="aspc", resource_id=assay_id, action="delete")
     )
@@ -1225,7 +1243,7 @@ def list_admin_samples_read(
         require_access(permission="view_sample_global", min_role="developer", min_level=9999)
     ),
 ):
-    samples = list(store.sample_handler.get_all_samples(user.assays, None, search))
+    samples = list(_admin_repo().sample_handler.get_all_samples(user.assays, None, search))
     return util.common.convert_to_serializable({"samples": samples})
 
 
@@ -1236,7 +1254,7 @@ def admin_sample_context_read(
         require_access(permission="edit_sample", min_role="developer", min_level=9999)
     ),
 ):
-    sample_doc = store.sample_handler.get_sample(sample_id)
+    sample_doc = _admin_repo().sample_handler.get_sample(sample_id)
     if not sample_doc:
         raise _api_error(404, "Sample not found")
     return util.common.convert_to_serializable({"sample": sample_doc})
@@ -1250,7 +1268,7 @@ def update_sample_mutation(
         require_access(permission="edit_sample", min_role="developer", min_level=9999)
     ),
 ):
-    sample_doc = store.sample_handler.get_sample(sample_id)
+    sample_doc = _admin_repo().sample_handler.get_sample(sample_id)
     if not sample_doc:
         raise _api_error(404, "Sample not found")
     sample_obj = sample_doc.get("_id")
@@ -1261,7 +1279,7 @@ def update_sample_mutation(
     updated_sample["updated_by"] = current_username(default=user.username)
     updated_sample = util.admin.restore_objectids(deepcopy(updated_sample))
     updated_sample["_id"] = sample_obj
-    store.sample_handler.update_sample(sample_obj, updated_sample)
+    _admin_repo().sample_handler.update_sample(sample_obj, updated_sample)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="sample", resource_id=str(sample_obj), action="update")
     )
@@ -1274,7 +1292,8 @@ def delete_sample_mutation(
         require_access(permission="delete_sample_global", min_role="developer", min_level=9999)
     ),
 ):
-    sample_name = store.sample_handler.get_sample_name(sample_id)
+    _sample_deletion_service()
+    sample_name = _admin_repo().sample_handler.get_sample_name(sample_id)
     if not sample_name:
         raise _api_error(404, "Sample not found")
     deletion_summary = delete_all_sample_traces(sample_id)
@@ -1298,7 +1317,7 @@ def create_schema_mutation(
     schema_doc["created_by"] = current_username(default=user.username)
     schema_doc["updated_on"] = util.common.utc_now()
     schema_doc["updated_by"] = current_username(default=user.username)
-    store.schema_handler.create_schema(schema_doc)
+    _admin_repo().schema_handler.create_schema(schema_doc)
     return util.common.convert_to_serializable(
         _mutation_payload(
             "admin", resource="schema", resource_id=schema_doc["_id"], action="create"
@@ -1312,7 +1331,7 @@ def list_schemas_read(
         require_access(permission="view_schema", min_role="developer", min_level=9999)
     ),
 ):
-    schemas = _with_active_default(list(store.schema_handler.get_all_schemas()))
+    schemas = _with_active_default(list(_admin_repo().schema_handler.get_all_schemas()))
     return util.common.convert_to_serializable({"schemas": schemas})
 
 
@@ -1323,7 +1342,7 @@ def schema_context_read(
         require_access(permission="view_schema", min_role="developer", min_level=9999)
     ),
 ):
-    schema_doc = store.schema_handler.get_schema(schema_id)
+    schema_doc = _admin_repo().schema_handler.get_schema(schema_id)
     if not schema_doc:
         raise _api_error(404, "Schema not found")
     return util.common.convert_to_serializable({"schema": schema_doc})
@@ -1337,7 +1356,7 @@ def update_schema_mutation(
         require_access(permission="edit_schema", min_role="developer", min_level=9999)
     ),
 ):
-    schema_doc = store.schema_handler.get_schema(schema_id)
+    schema_doc = _admin_repo().schema_handler.get_schema(schema_id)
     if not schema_doc:
         raise _api_error(404, "Schema not found")
     updated_schema = payload.get("schema", {})
@@ -1345,7 +1364,7 @@ def update_schema_mutation(
     updated_schema["updated_on"] = util.common.utc_now()
     updated_schema["updated_by"] = current_username(default=user.username)
     updated_schema["version"] = schema_doc.get("version", 1) + 1
-    store.schema_handler.update_schema(schema_id, updated_schema)
+    _admin_repo().schema_handler.update_schema(schema_id, updated_schema)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="schema", resource_id=schema_id, action="update")
     )
@@ -1358,11 +1377,11 @@ def toggle_schema_mutation(
         require_access(permission="edit_schema", min_role="developer", min_level=9999)
     ),
 ):
-    schema_doc = store.schema_handler.get_schema(schema_id)
+    schema_doc = _admin_repo().schema_handler.get_schema(schema_id)
     if not schema_doc:
         raise _api_error(404, "Schema not found")
     new_status = not _active_flag(schema_doc)
-    store.schema_handler.toggle_schema_active(schema_id, new_status)
+    _admin_repo().schema_handler.toggle_schema_active(schema_id, new_status)
     result = _mutation_payload("admin", resource="schema", resource_id=schema_id, action="toggle")
     result["meta"]["is_active"] = new_status
     return util.common.convert_to_serializable(result)
@@ -1375,10 +1394,10 @@ def delete_schema_mutation(
         require_access(permission="delete_schema", min_role="admin", min_level=99999)
     ),
 ):
-    schema_doc = store.schema_handler.get_schema(schema_id)
+    schema_doc = _admin_repo().schema_handler.get_schema(schema_id)
     if not schema_doc:
         raise _api_error(404, "Schema not found")
-    store.schema_handler.delete_schema(schema_id)
+    _admin_repo().schema_handler.delete_schema(schema_id)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="schema", resource_id=schema_id, action="delete")
     )
