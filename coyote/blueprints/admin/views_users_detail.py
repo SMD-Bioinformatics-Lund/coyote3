@@ -37,6 +37,13 @@ def _apply_selected_version(
     return user_doc, delta
 
 
+def _schema_from_context(context) -> dict:
+    schema = context.get("schema_payload") or context.get("schema")
+    if not schema:
+        raise ApiRequestError("User schema payload missing in API response")
+    return schema
+
+
 @admin_bp.route("/users/<user_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit_user(user_id: str) -> Response | str:
@@ -52,7 +59,11 @@ def edit_user(user_id: str) -> Response | str:
         return redirect(url_for("admin_bp.manage_users"))
 
     user_doc = context.user_doc
-    schema = context.schema_payload
+    try:
+        schema = _schema_from_context(context)
+    except ApiRequestError as exc:
+        flash(f"Failed to load user schema: {exc}", "red")
+        return redirect(url_for("admin_bp.manage_users"))
     role_map = context.role_map
     assay_group_map = context.assay_group_map
 
@@ -103,7 +114,11 @@ def view_user(user_id: str) -> str | Response:
         return redirect(url_for("admin_bp.manage_users"))
 
     user_doc = context.user_doc
-    schema = context.schema_payload
+    try:
+        schema = _schema_from_context(context)
+    except ApiRequestError as exc:
+        flash(f"Failed to load user schema: {exc}", "red")
+        return redirect(url_for("admin_bp.manage_users"))
 
     selected_version = request.args.get("version", type=int)
     user_doc, delta = _apply_selected_version(user_doc, selected_version)

@@ -6,9 +6,10 @@ This module defines the user profile views for the Coyote3 project.
 from flask import (
     Response,
     abort,
+    redirect,
+    url_for,
 )
 from flask_login import current_user, login_required
-from coyote.blueprints.admin import admin_bp
 from coyote.blueprints.userprofile import profile_bp
 
 
@@ -30,4 +31,4 @@ def user_profile(user_id: str) -> str | Response:
     """
     if user_id != current_user.username:
         abort(403)
-    return admin_bp.view_user(user_id)
+    return redirect(url_for("admin_bp.view_user", user_id=user_id))

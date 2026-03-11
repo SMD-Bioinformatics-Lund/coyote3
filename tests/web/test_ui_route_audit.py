@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
 
 import coyote
@@ -13,6 +14,34 @@ from coyote.services.api_client.base import ApiPayload
 
 def _view_modules() -> list[Path]:
     return sorted(Path("coyote/blueprints").glob("*/views*.py"))
+
+
+def _literal_url_for_endpoints_from_python() -> list[tuple[str, int, str]]:
+    calls: list[tuple[str, int, str]] = []
+    for py_file in sorted(Path("coyote").rglob("*.py")):
+        tree = ast.parse(py_file.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            if not isinstance(node.func, ast.Name) or node.func.id != "url_for":
+                continue
+            if not node.args:
+                continue
+            endpoint_node = node.args[0]
+            if isinstance(endpoint_node, ast.Constant) and isinstance(endpoint_node.value, str):
+                calls.append((str(py_file), node.lineno, endpoint_node.value))
+    return calls
+
+
+def _literal_url_for_endpoints_from_templates() -> list[tuple[str, int, str]]:
+    calls: list[tuple[str, int, str]] = []
+    pattern = re.compile(r"url_for\(\s*['\"]([^'\"]+)['\"]")
+    for html_file in sorted(Path("coyote").rglob("*.html")):
+        content = html_file.read_text(encoding="utf-8")
+        for match in pattern.finditer(content):
+            line = 1 + content.count("\n", 0, match.start())
+            calls.append((str(html_file), line, match.group(1)))
+    return calls
 
 
 def test_ui_views_do_not_import_api_core_or_infra():
@@ -347,3 +376,18 @@ def test_admin_create_templates_use_correct_schema_switch_routes():
     assert "admin_bp.create_genelist" in Path(
         "coyote/blueprints/admin/templates/isgl/create_isgl.html"
     ).read_text(encoding="utf-8")
+
+
+def test_ui_literal_url_for_endpoints_exist():
+    app = init_app(testing=True)
+    with app.app_context():
+        existing_endpoints = set(app.view_functions.keys())
+
+    missing: list[str] = []
+    for source, line, endpoint in (
+        _literal_url_for_endpoints_from_python() + _literal_url_for_endpoints_from_templates()
+    ):
+        if endpoint not in existing_endpoints:
+            missing.append(f"{source}:{line} -> {endpoint}")
+
+    assert not missing, "Unknown literal url_for endpoint(s):\n" + "\n".join(sorted(missing))
