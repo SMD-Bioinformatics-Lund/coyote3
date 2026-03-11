@@ -69,6 +69,31 @@ def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
     assert "HttpOnly" in cookies
 
 
+def test_auth_login_prefers_business_user_id_for_session(monkeypatch):
+    user_doc = fx.user_doc()
+    user_doc["user_id"] = "coyote3.admin"
+    calls = {}
+
+    monkeypatch.setattr(system, "authenticate_credentials", lambda _u, _p: user_doc)
+    monkeypatch.setattr(
+        system,
+        "update_user_last_login",
+        lambda user_id: calls.setdefault("updated_user", user_id),
+    )
+    monkeypatch.setattr(system, "create_api_session_token", lambda user_id: f"session-{user_id}")
+    monkeypatch.setattr(system, "build_user_session_payload", lambda _doc: {"username": "tester"})
+    monkeypatch.setattr(system.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(system, "get_api_session_cookie_name", lambda: "api_session")
+    monkeypatch.setattr(system, "get_api_session_cookie_secure", lambda: True)
+    monkeypatch.setattr(system, "get_api_session_ttl_seconds", lambda: 600)
+
+    response = system.auth_login(system.ApiAuthLoginRequest(username="tester", password="p"))
+
+    assert response.status_code == 200
+    assert calls["updated_user"] == "coyote3.admin"
+    assert b"session-coyote3.admin" in response.body
+
+
 def test_auth_logout_deletes_session_cookie(monkeypatch):
     monkeypatch.setattr(system, "get_api_session_cookie_name", lambda: "api_session")
 

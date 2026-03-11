@@ -11,11 +11,14 @@ from api.security.repository import get_security_repository
 
 def _lookup_user_doc(login_identifier: str) -> dict | None:
     repo = get_security_repository()
-    user_doc = repo.get_user_by_username(login_identifier)
+    normalized = str(login_identifier).strip()
+    if not normalized:
+        return None
+    user_doc = repo.get_user_by_username(normalized)
     if user_doc:
         return user_doc
-    # Support direct username/id login in addition to email-based lookup.
-    return repo.get_user_by_id(login_identifier)
+    # Support explicit business-key lookup in addition to email/username.
+    return repo.get_user_by_id(normalized)
 
 
 def _is_local_auth_allowlisted(login_identifier: str, user_doc: dict) -> bool:
@@ -50,6 +53,16 @@ def build_user_session_payload(user_doc: dict) -> dict:
     asp_docs = repo.get_all_active_asps()
     user_model = UserModel.from_mongo(user_doc, role_doc, asp_docs)
     return user_model.to_dict()
+
+
+def resolve_user_identity(user_doc: dict) -> str:
+    """
+    Return canonical user identity for session/update calls.
+    """
+    user_id = str(user_doc.get("user_id") or "").strip()
+    if user_id:
+        return user_id
+    return str(user_doc.get("_id") or "").strip()
 
 
 def authenticate_credentials(username: str, password: str) -> dict | None:

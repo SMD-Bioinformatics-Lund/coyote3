@@ -22,8 +22,8 @@ High-level:
 ## 4. Collection matrix
 | Area | Collection / Handler | Current `_id` pattern | Business Key target | Current usage in contracts | Unique index status | Migration status |
 |---|---|---|---|---|---|---|
-| Auth/Admin | users | string user identifier (mixed username/email semantics) | `user_id` | mixed (`_id`, email) | pending | in_progress |
-| Auth/Admin | roles | string role id | `role_id` | mostly `_id` | pending | todo |
+| Auth/Admin | users | string user identifier (mixed username/email semantics) | `user_id` | `user_id` canonical, `_id` compatibility fallback | done | done |
+| Auth/Admin | roles | string role id | `role_id` | `role_id` canonical, `_id` compatibility fallback | done | done |
 | Admin | permissions | string permission id | `permission_id` | mostly `_id` | pending | todo |
 | Admin | schemas | string schema id | `schema_id` | mostly `_id` | pending | todo |
 | Assay config | assay_specific_panels (asp) | string assay panel id | `asp_id` | mostly `_id` | pending | todo |
@@ -72,3 +72,42 @@ High-level:
 - service contracts no longer require `_id` semantics
 - adapter layer performs any remaining `_id` bridging
 - regression tests cover uniqueness and lookup behavior
+
+## 8. Completed rollout: users collection
+Delivered for `users`:
+1. Business key:
+   - canonical field: `user_id`
+   - compatibility fields: `_id`, `email`, `username` (read fallback only)
+2. Unique index:
+   - `user_id_1` (`unique=true`, `partialFilterExpression={"user_id": {"$exists": true, "$type": "string"}}`)
+3. Repository/handler behavior:
+   - identity lookup and updates now prefer `user_id`, then fallback to `_id`
+   - local auth lookup supports email/username/user_id while preserving existing users
+   - `toggle_user_active` now updates `is_active` (not generic `active`)
+4. Session/auth identity:
+   - auth session token and last-login updates now resolve canonical identity via `user_id` first
+5. Backfill tooling:
+   - script: `scripts/backfill_users_user_id.py`
+   - dry-run example:
+     - `python scripts/backfill_users_user_id.py --mongo-uri mongodb://localhost:37017 --db coyote_dev_3 --dry-run`
+   - apply example:
+     - `python scripts/backfill_users_user_id.py --mongo-uri mongodb://localhost:37017 --db coyote_dev_3`
+6. Tests:
+   - `tests/api/test_auth_service.py`
+   - `tests/api/routes/test_system_routes.py` (business-key session path)
+
+## 9. Completed rollout: roles collection
+Delivered for `roles`:
+1. Business key:
+   - canonical field: `role_id`
+   - compatibility field: `_id` (read/update fallback)
+2. Unique index:
+   - `role_id_1` (`unique=true`, `partialFilterExpression={"role_id": {"$exists": true, "$type": "string"}}`)
+3. Repository/handler behavior:
+   - lookups, updates, deletes, and toggle-active flows accept either `role_id` or `_id`
+   - role identity normalization is lowercase to preserve existing role semantics
+   - active flag mutation corrected to `is_active` (not generic `active`)
+4. Backfill tooling:
+   - script: `scripts/backfill_roles_role_id.py`
+   - example:
+     - `python scripts/backfill_roles_role_id.py --mongo-uri mongodb://localhost:37017 --db coyote_dev_3`

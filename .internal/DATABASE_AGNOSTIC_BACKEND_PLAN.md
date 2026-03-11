@@ -53,6 +53,14 @@ Completed:
    - coverage-read (`api/core/coverage/route_ports.py`, `api/infra/repositories/coverage_route_mongo.py`)
    - internal utilities (`api/core/internal/ports.py`, `api/infra/repositories/internal_mongo.py`)
 8. Shared transitional route facade removed (`api/infra/repositories/route_store_mongo.py` deleted).
+9. Collection business-key rollout started with first two collections completed:
+   - `users`: canonical `user_id` path added in handler/auth/session flow
+   - `roles`: canonical `role_id` path added in handler flows
+   - partial unique indexes: `users.user_id`, `roles.role_id`
+   - compatibility fallback to `_id` retained in adapter layer
+   - backfill scripts added:
+     - `scripts/backfill_users_user_id.py`
+     - `scripts/backfill_roles_role_id.py`
 
 Latest baseline totals after refactor:
 - `store_usage_total=0` (down from 322)
@@ -237,3 +245,26 @@ Use this template for each collection to ensure full-scope, non-partial progress
 3. Complete collection-level business-key rollout and unique-index enforcement using:
    - `.internal/COLLECTION_KEY_MIGRATION_MATRIX.md`
 4. Increase service-level regression test depth for route flows currently validated primarily by boundary tests.
+
+## Active Collection Execution Order
+This is the implementation order to make provider swap practical and low-risk:
+1. `users` (done)
+2. `roles` (done)
+3. `permissions`
+4. `schemas`
+5. `asp`
+6. `asp_configs`
+7. `isgl`
+8. `samples`
+9. `variants`
+10. `cnvs`
+11. `translocations`
+12. `fusions`
+13. `annotation`
+14. `reported_variants`
+15. `group_coverage`
+16. `blacklist`
+17. `biomarkers`
+18. `rna_expression`
+19. `rna_classification`
+20. `rna_qc`

@@ -19,6 +19,7 @@ from api.security.access import (
 from api.security.auth_service import (
     authenticate_credentials,
     build_user_session_payload,
+    resolve_user_identity,
     update_user_last_login,
 )
 
@@ -62,7 +63,9 @@ def auth_login(payload: ApiAuthLoginRequest):
     if not user_doc:
         raise HTTPException(status_code=401, detail={"status": 401, "error": "Invalid credentials"})
 
-    user_id = str(user_doc.get("_id"))
+    user_id = resolve_user_identity(user_doc)
+    if not user_id:
+        raise HTTPException(status_code=500, detail={"status": 500, "error": "User identity missing"})
     update_user_last_login(user_id)
     session_token = create_api_session_token(user_id)
     response = JSONResponse(

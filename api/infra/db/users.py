@@ -42,6 +42,13 @@ class UsersHandler(BaseHandler):
         Kept intentionally small to avoid unnecessary disk growth.
         """
         col = self.get_collection()
+        col.create_index(
+            [("user_id", 1)],
+            name="user_id_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"user_id": {"$exists": True, "$type": "string"}},
+        )
         col.create_index([("email", 1)], name="email_1", background=True)
         col.create_index([("is_active", 1)], name="is_active_1", background=True)
         col.create_index([("firstname", 1)], name="firstname_1", background=True)
@@ -55,6 +62,13 @@ class UsersHandler(BaseHandler):
             query["is_active"] = is_active
         return int(self.get_collection().count_documents(query))
 
+    @staticmethod
+    def _normalize_user_id(value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = str(value).strip()
+        return normalized or None
+
     def user(self, user_mail: str) -> dict:
         """
         Retrieves a user document from the database by email.
@@ -63,8 +77,16 @@ class UsersHandler(BaseHandler):
         Returns:
             dict: A dictionary representation of the user document.
         """
-
-        return self.get_collection().find_one({"email": user_mail})
+        normalized = self._normalize_user_id(user_mail)
+        if not normalized:
+            return None
+        col = self.get_collection()
+        return (
+            col.find_one({"email": normalized})
+            or col.find_one({"username": normalized})
+            or col.find_one({"user_id": normalized})
+            or col.find_one({"_id": normalized})
+        )
 
     def user_with_id(self, user_id: str) -> dict | None:
         """
@@ -74,8 +96,28 @@ class UsersHandler(BaseHandler):
         Returns:
             dict | None: A dictionary representation of the user document, or None when missing.
         """
-        doc = self.get_collection().find_one({"_id": user_id})
+        normalized = self._normalize_user_id(user_id)
+        if not normalized:
+            return None
+        doc = self.get_collection().find_one({"user_id": normalized}) or self.get_collection().find_one(
+            {"_id": normalized}
+        )
         return dict(doc) if doc else None
+
+    def ensure_user_id(self, user_data: dict) -> dict:
+        """
+        Ensure user payload contains explicit business key (`user_id`).
+        """
+        if not isinstance(user_data, dict):
+            return user_data
+        if self._normalize_user_id(user_data.get("user_id")):
+            return user_data
+        for candidate in (user_data.get("_id"), user_data.get("username"), user_data.get("email")):
+            normalized = self._normalize_user_id(candidate)
+            if normalized:
+                user_data["user_id"] = normalized
+                return user_data
+        return user_data
 
     def update_password(self, username, password_hash) -> None:
         """
@@ -86,8 +128,10 @@ class UsersHandler(BaseHandler):
         Returns:
             None
         """
+        normalized = self._normalize_user_id(username)
         if self.get_collection().update_one(
-            {"_id": username}, {"$set": {"password": password_hash}}
+            {"$or": [{"user_id": normalized}, {"_id": normalized}]},
+            {"$set": {"password": password_hash}},
         ):
             flash("Password updated", "green")
         else:
@@ -106,7 +150,10 @@ class UsersHandler(BaseHandler):
             return bool(self.get_collection().find_one({"email": email}))
 
         if user_id:
-            return bool(self.get_collection().find_one({"_id": user_id}))
+            normalized = self._normalize_user_id(user_id)
+            return bool(
+                self.get_collection().find_one({"$or": [{"user_id": normalized}, {"_id": normalized}]})
+            )
 
         return False
 
@@ -118,7 +165,8 @@ class UsersHandler(BaseHandler):
         Returns:
             None
         """
-        return self.get_collection().insert_one(user_data)
+        payload = self.ensure_user_id(dict(user_data))
+        return self.get_collection().insert_one(payload)
 
     def get_all_users(self) -> list:
         """
@@ -136,7 +184,8 @@ class UsersHandler(BaseHandler):
         Returns:
             None
         """
-        return self.get_collection().delete_one({"_id": user_id})
+        normalized = self._normalize_user_id(user_id)
+        return self.get_collection().delete_one({"$or": [{"user_id": normalized}, {"_id": normalized}]})
 
     def update_user(self, user_id, user_data) -> None:
         """
@@ -147,7 +196,11 @@ class UsersHandler(BaseHandler):
         Returns:
             None
         """
-        return self.get_collection().replace_one({"_id": user_id}, user_data)
+        normalized = self._normalize_user_id(user_id)
+        payload = self.ensure_user_id(dict(user_data))
+        return self.get_collection().replace_one(
+            {"$or": [{"user_id": normalized}, {"_id": normalized}]}, payload
+        )
 
     def update_user_last_login(self, user_id: str):
         """
@@ -156,8 +209,10 @@ class UsersHandler(BaseHandler):
         Args:
             user_id (str): The unique identifier of the user.
         """
+        normalized = self._normalize_user_id(user_id)
         self.get_collection().update_one(
-            {"_id": user_id}, {"$set": {"last_login": datetime.utcnow()}}
+            {"$or": [{"user_id": normalized}, {"_id": normalized}]},
+            {"$set": {"last_login": datetime.utcnow()}},
         )
 
     def toggle_user_active(self, user_id: str, active_status: bool) -> bool:
@@ -169,4 +224,9 @@ class UsersHandler(BaseHandler):
         Returns:
             bool: True if the update was successful, False otherwise.
         """
-        return self.toggle_active(user_id, active_status)
+        normalized = self._normalize_user_id(user_id)
+        result = self.get_collection().update_one(
+            {"$or": [{"user_id": normalized}, {"_id": normalized}]},
+            {"$set": {"is_active": active_status}},
+        )
+        return bool(getattr(result, "modified_count", 0) or getattr(result, "matched_count", 0))

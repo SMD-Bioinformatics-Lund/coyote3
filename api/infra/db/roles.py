@@ -41,8 +41,37 @@ class RolesHandler(BaseHandler):
         Create minimal indexes for role list/count paths.
         """
         col = self.get_collection()
+        col.create_index(
+            [("role_id", 1)],
+            name="role_id_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"role_id": {"$exists": True, "$type": "string"}},
+        )
         col.create_index([("level", -1)], name="level_-1", background=True)
         col.create_index([("is_active", 1)], name="is_active_1", background=True)
+
+    @staticmethod
+    def _normalize_role_id(role_id: str | None) -> str | None:
+        if role_id is None:
+            return None
+        normalized = str(role_id).strip().lower()
+        return normalized or None
+
+    def _role_lookup_query(self, role_id: str) -> dict:
+        normalized = self._normalize_role_id(role_id)
+        return {"$or": [{"role_id": normalized}, {"_id": normalized}]}
+
+    def ensure_role_id(self, role_data: dict) -> dict:
+        if not isinstance(role_data, dict):
+            return role_data
+        if self._normalize_role_id(role_data.get("role_id")):
+            role_data["role_id"] = self._normalize_role_id(role_data.get("role_id"))
+            return role_data
+        fallback = self._normalize_role_id(role_data.get("_id"))
+        if fallback:
+            role_data["role_id"] = fallback
+        return role_data
 
     def count_roles(self, is_active: bool | None = None) -> int:
         """
@@ -75,9 +104,9 @@ class RolesHandler(BaseHandler):
             list: A list of role names (IDs) for active roles.
         """
         return [
-            role["_id"]
+            role.get("role_id") or role.get("_id")
             for role in self.get_collection().find(
-                {"is_active": True}, {"_id": 1}
+                {"is_active": True}, {"_id": 1, "role_id": 1}
             )
         ]
 
@@ -93,7 +122,8 @@ class RolesHandler(BaseHandler):
         roles = self.get_collection().find({}, {"color": 1})
         roles_colors = {}
         for role in roles:
-            roles_colors[role["_id"]] = role["color"]
+            role_key = role.get("role_id") or role.get("_id")
+            roles_colors[role_key] = role["color"]
         return roles_colors
 
     def create_role(self, role_data: dict) -> Any:
@@ -108,7 +138,8 @@ class RolesHandler(BaseHandler):
         Returns:
             Any
         """
-        self.get_collection().insert_one(role_data)
+        payload = self.ensure_role_id(dict(role_data))
+        self.get_collection().insert_one(payload)
 
     def update_role(self, role_id: str, role_data: dict) -> dict:
         """
@@ -123,7 +154,8 @@ class RolesHandler(BaseHandler):
         Returns:
             dict: The updated role document.
         """
-        self.get_collection().update_one({"_id": role_id}, {"$set": role_data})
+        payload = self.ensure_role_id(dict(role_data))
+        self.get_collection().update_one(self._role_lookup_query(role_id), {"$set": payload})
         return self.get_role(role_id)
 
     def get_role(self, role_id: str) -> dict:
@@ -138,7 +170,12 @@ class RolesHandler(BaseHandler):
         Returns:
             dict: The role document if found, otherwise None.
         """
-        return self.get_collection().find_one({"_id": role_id.lower()})
+        normalized = self._normalize_role_id(role_id)
+        if not normalized:
+            return None
+        return self.get_collection().find_one({"role_id": normalized}) or self.get_collection().find_one(
+            {"_id": normalized}
+        )
 
     def delete_role(self, role_id: str) -> Any:
         """
@@ -152,7 +189,7 @@ class RolesHandler(BaseHandler):
         Returns:
             Any: The result of the delete operation.
         """
-        self.get_collection().delete_one({"_id": role_id})
+        self.get_collection().delete_one(self._role_lookup_query(role_id))
 
     def toggle_role_active(self, role_id: str, active_status: bool) -> Any:
         """
@@ -167,7 +204,10 @@ class RolesHandler(BaseHandler):
         Returns:
             Any: The result of the update operation.
         """
-        return self.toggle_active(role_id, active_status)
+        return self.get_collection().update_one(
+            self._role_lookup_query(role_id),
+            {"$set": {"is_active": active_status}},
+        )
 
     def get_all_roles_plus_permissions(self) -> list:
         """
@@ -200,5 +240,5 @@ class RolesHandler(BaseHandler):
             dict: A dictionary containing the permissions and deny_permissions fields.
         """
         return self.get_collection().find_one(
-            {"_id": role_id}, {"permissions": 1, "deny_permissions": 1}
+            self._role_lookup_query(role_id), {"permissions": 1, "deny_permissions": 1}
         )

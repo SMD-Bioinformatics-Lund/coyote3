@@ -96,3 +96,16 @@ This architecture intentionally accepts some adapter boilerplate in exchange for
 - better long-term maintainability in regulated clinical workflows
 
 For Coyote3, this tradeoff is favorable and required for safe evolution.
+
+## 9. Why ports are mandatory for DB swap simplicity
+If route/core code talks to Mongo directly, a provider swap requires editing business code everywhere. Ports prevent that.
+
+With ports:
+1. Business code calls a stable interface (for example `SecurityRepository.get_user_by_id`).
+2. Mongo-specific query details stay in one adapter (`*_mongo.py`).
+3. A new provider only needs a new adapter implementation for the same port.
+4. Wiring selects provider at bootstrap; route/core logic stays unchanged.
+
+Result:
+- provider change becomes an infrastructure replacement task, not an application rewrite task.
+- migration risk is limited to adapter tests and data-mapping validation.
