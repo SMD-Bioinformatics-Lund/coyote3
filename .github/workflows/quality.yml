@@ -44,3 +44,9 @@ jobs:
 
       - name: Contract tests
         run: PYTHONPATH=. pytest -q -m contract tests/contract
+
+      - name: Boundary baseline drift check
+        run: PYTHONPATH=. python scripts/refresh_backend_db_boundary_baseline.py --check
+
+      - name: Web/API route contract guardrail
+        run: PYTHONPATH=. pytest -q tests/contract/test_web_api_route_contract.py

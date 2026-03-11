@@ -13,6 +13,7 @@ Usage:
 
 Optional:
   --label nightly
+  --docker-network coyote3-dev-net
 EOF
 }
 
@@ -20,6 +21,7 @@ MONGO_URI=""
 DB_NAME=""
 OUT_DIR=""
 LABEL=""
+DOCKER_NETWORK=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -27,6 +29,7 @@ while [[ $# -gt 0 ]]; do
     --db) DB_NAME="$2"; shift 2 ;;
     --out-dir) OUT_DIR="$2"; shift 2 ;;
     --label) LABEL="$2"; shift 2 ;;
+    --docker-network) DOCKER_NETWORK="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "[error] unknown arg: $1"; usage; exit 2 ;;
   esac
@@ -50,9 +53,12 @@ archive_path="${OUT_DIR}/${archive_file}"
 
 echo "[info] creating backup archive: $archive_path"
 
-docker run --rm \
-  -v "${OUT_DIR}:/backup" \
-  mongo:7.0 \
+docker_args=(--rm -v "${OUT_DIR}:/backup")
+if [[ -n "$DOCKER_NETWORK" ]]; then
+  docker_args+=(--network "$DOCKER_NETWORK")
+fi
+
+docker run "${docker_args[@]}" mongo:7.0 \
   sh -lc "mongodump --uri='${MONGO_URI}' --db='${DB_NAME}' --archive='/backup/${archive_file}' --gzip --readPreference=primary"
 
 sha256="$(sha256sum "$archive_path" | awk '{print $1}')"

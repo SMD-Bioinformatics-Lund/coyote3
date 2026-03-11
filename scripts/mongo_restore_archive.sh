@@ -15,6 +15,8 @@ Usage:
 
 Safety:
   --confirm RESTORE_PATIENT_DATA is mandatory.
+Optional:
+  --docker-network coyote3-dev-net
 EOF
 }
 
@@ -23,6 +25,7 @@ DB_NAME=""
 ARCHIVE_PATH=""
 DROP_FLAG=0
 CONFIRM=""
+DOCKER_NETWORK=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -31,6 +34,7 @@ while [[ $# -gt 0 ]]; do
     --archive) ARCHIVE_PATH="$2"; shift 2 ;;
     --drop) DROP_FLAG=1; shift ;;
     --confirm) CONFIRM="$2"; shift 2 ;;
+    --docker-network) DOCKER_NETWORK="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "[error] unknown arg: $1"; usage; exit 2 ;;
   esac
@@ -64,9 +68,12 @@ echo "[warn] restore target db=${DB_NAME} uri=${MONGO_URI}"
 echo "[warn] archive=${ARCHIVE_PATH}"
 echo "[info] starting restore"
 
-docker run --rm \
-  -v "${ARCHIVE_DIR}:/backup:ro" \
-  mongo:7.0 \
+docker_args=(--rm -v "${ARCHIVE_DIR}:/backup:ro")
+if [[ -n "$DOCKER_NETWORK" ]]; then
+  docker_args+=(--network "$DOCKER_NETWORK")
+fi
+
+docker run "${docker_args[@]}" mongo:7.0 \
   sh -lc "mongorestore --uri='${MONGO_URI}' --archive='/backup/${ARCHIVE_FILE}' --gzip --nsInclude='${DB_NAME}.*' ${drop_opt}"
 
 echo "[ok] restore complete"
