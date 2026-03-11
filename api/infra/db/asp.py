@@ -76,17 +76,16 @@ class ASPHandler(BaseHandler):
 
     def _asp_lookup_query(self, asp_id: str) -> dict:
         normalized = self._normalize_asp_id(asp_id)
-        return {"$or": [{"asp_id": normalized}, {"_id": normalized}]}
+        return {"asp_id": normalized}
 
     def ensure_asp_id(self, data: dict) -> dict:
         if not isinstance(data, dict):
             return data
-        if self._normalize_asp_id(data.get("asp_id")):
+        normalized = self._normalize_asp_id(data.get("asp_id"))
+        if normalized:
+            data["asp_id"] = normalized
             return data
-        fallback = self._normalize_asp_id(data.get("_id"))
-        if fallback:
-            data["asp_id"] = fallback
-        return data
+        raise ValueError("assay_specific_panels.asp_id is required in strict business-key mode")
 
     def count_asps(self, is_active: bool | None = None) -> int:
         """
@@ -111,9 +110,7 @@ class ASPHandler(BaseHandler):
             dict: A dictionary representing the panel document, or None if no
             document is found.
         """
-        return self.get_collection().find_one({"asp_id": asp_name}) or self.get_collection().find_one(
-            {"_id": asp_name}
-        )
+        return self.get_collection().find_one({"asp_id": asp_name})
 
     def get_all_asps(self, is_active: bool | None = None) -> list:
         """

@@ -63,17 +63,16 @@ class ASPConfigHandler(BaseHandler):
 
     def _aspc_lookup_query(self, aspc_id: str) -> dict:
         normalized = self._normalize_aspc_id(aspc_id)
-        return {"$or": [{"aspc_id": normalized}, {"_id": normalized}]}
+        return {"aspc_id": normalized}
 
     def ensure_aspc_id(self, data: dict) -> dict:
         if not isinstance(data, dict):
             return data
-        if self._normalize_aspc_id(data.get("aspc_id")):
+        normalized = self._normalize_aspc_id(data.get("aspc_id"))
+        if normalized:
+            data["aspc_id"] = normalized
             return data
-        fallback = self._normalize_aspc_id(data.get("_id"))
-        if fallback:
-            data["aspc_id"] = fallback
-        return data
+        raise ValueError("asp_configs.aspc_id is required in strict business-key mode")
 
     def count_aspcs(self, is_active: bool | None = None) -> int:
         """
@@ -105,9 +104,7 @@ class ASPConfigHandler(BaseHandler):
             dict | None: The assay configuration document if found, otherwise None.
         """
         aspc_id = f"{assay}:{profile.lower()}"
-        return self.get_collection().find_one({"aspc_id": aspc_id}) or self.get_collection().find_one(
-            {"_id": aspc_id}
-        )
+        return self.get_collection().find_one({"aspc_id": aspc_id})
 
     def get_aspc_with_id(self, aspc_id: str) -> dict | None:
         """

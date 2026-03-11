@@ -66,6 +66,7 @@ def _with_defaults(doc: dict[str, Any] | None, defaults: dict[str, Any]) -> dict
 def user_doc() -> dict:
     defaults = {
         "_id": "u1",
+        "user_id": "u1",
         "email": "tester@example.com",
         "fullname": "Test User",
         "username": "tester",
@@ -219,6 +220,7 @@ def reported_variant_doc() -> dict:
 def role_doc() -> dict:
     defaults = {
         "_id": "admin",
+        "role_id": "admin",
         "label": "Administrator",
         "permissions": ["view_role", "create_role"],
         "deny_permissions": [],
@@ -231,6 +233,7 @@ def role_doc() -> dict:
 def permission_doc() -> dict:
     defaults = {
         "_id": "view_role",
+        "permission_id": "view_role",
         "label": "View Role",
         "category": "RBAC",
         "is_active": True,
@@ -242,6 +245,7 @@ def permission_doc() -> dict:
 def schema_doc() -> dict:
     defaults = {
         "_id": "rbac_role_schema_v1",
+        "schema_id": "rbac_role_schema_v1",
         "schema_type": "rbac_role",
         "schema_category": "RBAC_role",
         "version": 1,

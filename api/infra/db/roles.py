@@ -60,18 +60,16 @@ class RolesHandler(BaseHandler):
 
     def _role_lookup_query(self, role_id: str) -> dict:
         normalized = self._normalize_role_id(role_id)
-        return {"$or": [{"role_id": normalized}, {"_id": normalized}]}
+        return {"role_id": normalized}
 
     def ensure_role_id(self, role_data: dict) -> dict:
         if not isinstance(role_data, dict):
             return role_data
-        if self._normalize_role_id(role_data.get("role_id")):
-            role_data["role_id"] = self._normalize_role_id(role_data.get("role_id"))
+        normalized = self._normalize_role_id(role_data.get("role_id"))
+        if normalized:
+            role_data["role_id"] = normalized
             return role_data
-        fallback = self._normalize_role_id(role_data.get("_id"))
-        if fallback:
-            role_data["role_id"] = fallback
-        return role_data
+        raise ValueError("roles.role_id is required in strict business-key mode")
 
     def count_roles(self, is_active: bool | None = None) -> int:
         """
@@ -104,7 +102,7 @@ class RolesHandler(BaseHandler):
             list: A list of role names (IDs) for active roles.
         """
         return [
-            role.get("role_id") or role.get("_id")
+            role.get("role_id")
             for role in self.get_collection().find(
                 {"is_active": True}, {"_id": 1, "role_id": 1}
             )
@@ -122,7 +120,7 @@ class RolesHandler(BaseHandler):
         roles = self.get_collection().find({}, {"color": 1})
         roles_colors = {}
         for role in roles:
-            role_key = role.get("role_id") or role.get("_id")
+            role_key = role.get("role_id")
             roles_colors[role_key] = role["color"]
         return roles_colors
 
@@ -173,9 +171,7 @@ class RolesHandler(BaseHandler):
         normalized = self._normalize_role_id(role_id)
         if not normalized:
             return None
-        return self.get_collection().find_one({"role_id": normalized}) or self.get_collection().find_one(
-            {"_id": normalized}
-        )
+        return self.get_collection().find_one({"role_id": normalized})
 
     def delete_role(self, role_id: str) -> Any:
         """

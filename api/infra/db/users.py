@@ -85,7 +85,6 @@ class UsersHandler(BaseHandler):
             col.find_one({"email": normalized})
             or col.find_one({"username": normalized})
             or col.find_one({"user_id": normalized})
-            or col.find_one({"_id": normalized})
         )
 
     def user_with_id(self, user_id: str) -> dict | None:
@@ -99,9 +98,7 @@ class UsersHandler(BaseHandler):
         normalized = self._normalize_user_id(user_id)
         if not normalized:
             return None
-        doc = self.get_collection().find_one({"user_id": normalized}) or self.get_collection().find_one(
-            {"_id": normalized}
-        )
+        doc = self.get_collection().find_one({"user_id": normalized})
         return dict(doc) if doc else None
 
     def ensure_user_id(self, user_data: dict) -> dict:
@@ -110,14 +107,11 @@ class UsersHandler(BaseHandler):
         """
         if not isinstance(user_data, dict):
             return user_data
-        if self._normalize_user_id(user_data.get("user_id")):
+        normalized = self._normalize_user_id(user_data.get("user_id"))
+        if normalized:
+            user_data["user_id"] = normalized
             return user_data
-        for candidate in (user_data.get("_id"), user_data.get("username"), user_data.get("email")):
-            normalized = self._normalize_user_id(candidate)
-            if normalized:
-                user_data["user_id"] = normalized
-                return user_data
-        return user_data
+        raise ValueError("users.user_id is required in strict business-key mode")
 
     def update_password(self, username, password_hash) -> None:
         """
@@ -130,7 +124,7 @@ class UsersHandler(BaseHandler):
         """
         normalized = self._normalize_user_id(username)
         if self.get_collection().update_one(
-            {"$or": [{"user_id": normalized}, {"_id": normalized}]},
+            {"user_id": normalized},
             {"$set": {"password": password_hash}},
         ):
             flash("Password updated", "green")
@@ -151,9 +145,7 @@ class UsersHandler(BaseHandler):
 
         if user_id:
             normalized = self._normalize_user_id(user_id)
-            return bool(
-                self.get_collection().find_one({"$or": [{"user_id": normalized}, {"_id": normalized}]})
-            )
+            return bool(self.get_collection().find_one({"user_id": normalized}))
 
         return False
 
@@ -185,7 +177,7 @@ class UsersHandler(BaseHandler):
             None
         """
         normalized = self._normalize_user_id(user_id)
-        return self.get_collection().delete_one({"$or": [{"user_id": normalized}, {"_id": normalized}]})
+        return self.get_collection().delete_one({"user_id": normalized})
 
     def update_user(self, user_id, user_data) -> None:
         """
@@ -198,9 +190,7 @@ class UsersHandler(BaseHandler):
         """
         normalized = self._normalize_user_id(user_id)
         payload = self.ensure_user_id(dict(user_data))
-        return self.get_collection().replace_one(
-            {"$or": [{"user_id": normalized}, {"_id": normalized}]}, payload
-        )
+        return self.get_collection().replace_one({"user_id": normalized}, payload)
 
     def update_user_last_login(self, user_id: str):
         """
@@ -211,7 +201,7 @@ class UsersHandler(BaseHandler):
         """
         normalized = self._normalize_user_id(user_id)
         self.get_collection().update_one(
-            {"$or": [{"user_id": normalized}, {"_id": normalized}]},
+            {"user_id": normalized},
             {"$set": {"last_login": datetime.utcnow()}},
         )
 
@@ -226,7 +216,7 @@ class UsersHandler(BaseHandler):
         """
         normalized = self._normalize_user_id(user_id)
         result = self.get_collection().update_one(
-            {"$or": [{"user_id": normalized}, {"_id": normalized}]},
+            {"user_id": normalized},
             {"$set": {"is_active": active_status}},
         )
         return bool(getattr(result, "modified_count", 0) or getattr(result, "matched_count", 0))

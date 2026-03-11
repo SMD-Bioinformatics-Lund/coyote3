@@ -1,8 +1,4 @@
-"""Mongo-backed facade for admin route data access.
-
-This is a transitional adapter that lets routes stop calling `store.*` directly
-while preserving current behavior.
-"""
+"""Mongo-backed repository for admin route data access."""
 
 from __future__ import annotations
 
@@ -10,6 +6,12 @@ from api.extensions import store
 
 
 class MongoAdminRouteRepository:
-    def __getattr__(self, name: str):
-        return getattr(store, name)
-
+    def __init__(self) -> None:
+        self.permissions_handler = store.permissions_handler
+        self.roles_handler = store.roles_handler
+        self.asp_handler = store.asp_handler
+        self.schema_handler = store.schema_handler
+        self.user_handler = store.user_handler
+        self.isgl_handler = store.isgl_handler
+        self.aspc_handler = store.aspc_handler
+        self.sample_handler = store.sample_handler

@@ -68,17 +68,16 @@ class ISGLHandler(BaseHandler):
 
     def _isgl_lookup_query(self, isgl_id: str) -> dict:
         normalized = self._normalize_isgl_id(isgl_id)
-        return {"$or": [{"isgl_id": normalized}, {"_id": normalized}]}
+        return {"isgl_id": normalized}
 
     def ensure_isgl_id(self, data: dict) -> dict:
         if not isinstance(data, dict):
             return data
-        if self._normalize_isgl_id(data.get("isgl_id")):
+        normalized = self._normalize_isgl_id(data.get("isgl_id"))
+        if normalized:
+            data["isgl_id"] = normalized
             return data
-        fallback = self._normalize_isgl_id(data.get("_id"))
-        if fallback:
-            data["isgl_id"] = fallback
-        return data
+        raise ValueError("insilico_genelists.isgl_id is required in strict business-key mode")
 
     def count_isgls(
         self,

@@ -29,7 +29,7 @@ def _is_local_auth_allowlisted(login_identifier: str, user_doc: dict) -> bool:
     allow = {str(item).strip().lower() for item in allowlist if str(item).strip()}
     candidates = {
         str(login_identifier).strip().lower(),
-        str(user_doc.get("_id") or "").strip().lower(),
+        str(user_doc.get("user_id") or "").strip().lower(),
         str(user_doc.get("username") or "").strip().lower(),
         str(user_doc.get("email") or "").strip().lower(),
     }
@@ -59,10 +59,7 @@ def resolve_user_identity(user_doc: dict) -> str:
     """
     Return canonical user identity for session/update calls.
     """
-    user_id = str(user_doc.get("user_id") or "").strip()
-    if user_id:
-        return user_id
-    return str(user_doc.get("_id") or "").strip()
+    return str(user_doc.get("user_id") or "").strip()
 
 
 def authenticate_credentials(username: str, password: str) -> dict | None:

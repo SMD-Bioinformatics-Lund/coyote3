@@ -55,11 +55,14 @@ Examples already migrated to explicit ports/adapters:
 - coverage route read flows
 - internal utility routes
 
-### 4.3 Remaining architectural debt
-Some areas still require deeper migration from "route orchestration" to dedicated use-case services and richer repository contracts:
-- high-churn DNA/RNA/admin route workflows
-- business-key-first contracts (collection-by-collection)
-- stronger service-level regression tests per bounded context
+### 4.3 Strict mode status
+Business-key migration and strict adapter wiring are complete for active backend collections.
+
+Key outcomes:
+- business key fields are now canonical in handler lookup/update paths
+- `_id` compatibility read-fallbacks removed for string-id bounded contexts
+- dynamic shim repositories (`__getattr__` forwarding to `store`) replaced with explicit adapter surfaces
+- collection migration is automated through one script: `scripts/backfill_business_keys.py`
 
 ## 5. Route/core dependency rules
 ### 5.1 Allowed
@@ -88,7 +91,68 @@ Some areas still require deeper migration from "route orchestration" to dedicate
   - `api/infra/repositories/home_mongo.py`
   - `api/routes/home.py`
 
-## 8. Decision record summary
+## 8. Final strict-mode implementation (what changed)
+### 8.1 Shim cleanup
+Removed dynamic passthrough shims by making repository surfaces explicit:
+- `api/infra/repositories/admin_route_mongo.py`
+- `api/infra/repositories/dna_route_mongo.py`
+- `api/infra/repositories/rna_route_mongo.py`
+- `api/infra/repositories/core_store_mongo.py`
+
+Why:
+- explicit attributes make coupling visible in review and static analysis
+- removing `__getattr__` prevents accidental handler reach-through and hidden dependency growth
+
+### 8.2 Business-key strictness
+Collection handlers now enforce canonical business keys for read/update operations in string-id contexts:
+- users: `user_id`
+- roles: `role_id`
+- permissions: `permission_id`
+- schemas: `schema_id`
+- asp: `asp_id`
+- asp_configs: `aspc_id`
+- isgl: `isgl_id`
+
+ObjectId-dominant collections also receive explicit business key fields + unique indexes for provider portability:
+- samples, variants, cnvs, translocations, fusions
+- annotation, reported_variants, group_coverage, blacklist
+- optional collections when present: biomarkers, rna_expression, rna_classification, rna_qc
+
+### 8.3 Route-side canonical writes
+Admin create/update flows now set canonical key fields explicitly before persistence (for example `permission_id`, `role_id`, `user_id`, `aspc_id`, `schema_id`).
+
+Why:
+- removes implicit ID derivation logic from handler fallback branches
+- ensures future non-Mongo adapters receive stable identity fields
+
+## 9. Migration runbook (how to apply)
+1. Restore snapshot.
+2. Run business-key backfill and index enforcement:
+
+```bash
+/home/ram/.virtualenvs/coyote3/bin/python scripts/backfill_business_keys.py \
+  --mongo-uri mongodb://localhost:37017 \
+  --db coyote_dev_3 \
+  --db coyote3
+```
+
+3. Validate a representative sample:
+
+```bash
+/home/ram/.virtualenvs/coyote3/bin/python - <<'PY'
+from pymongo import MongoClient
+c = MongoClient("mongodb://localhost:37017")
+for dbn in ("coyote_dev_3", "coyote3"):
+    db = c[dbn]
+    print(dbn, {
+        "users_user_id": db["users"].count_documents({"user_id": {"$exists": True, "$type": "string"}}),
+        "roles_role_id": db["roles"].count_documents({"role_id": {"$exists": True, "$type": "string"}}),
+        "variants_variant_id": db["variants"].count_documents({"variant_id": {"$exists": True, "$type": "string"}}),
+    })
+PY
+```
+
+## 10. Decision record summary
 This architecture intentionally accepts some adapter boilerplate in exchange for:
 - predictable boundaries
 - reduced hidden coupling
@@ -97,7 +161,7 @@ This architecture intentionally accepts some adapter boilerplate in exchange for
 
 For Coyote3, this tradeoff is favorable and required for safe evolution.
 
-## 9. Why ports are mandatory for DB swap simplicity
+## 11. Why ports are mandatory for DB swap simplicity
 If route/core code talks to Mongo directly, a provider swap requires editing business code everywhere. Ports prevent that.
 
 With ports:

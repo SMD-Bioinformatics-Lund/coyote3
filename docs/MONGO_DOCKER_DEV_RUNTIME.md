@@ -48,7 +48,8 @@ The active container port mapping remains host-facing `37017 -> 27017` for local
 1. Ensure network/volume prerequisites.
 2. Start compose profile with Mongo.
 3. Restore approved snapshot.
-4. Validate counts and login.
+4. Run business-key migration script.
+5. Validate counts and login.
 
 Example:
 
@@ -60,7 +61,17 @@ Example:
   --mongo-uri mongodb://localhost:37017 \
   --snapshot-dir .internal/mongo_sample_linked_snapshot \
   --drop
+
+/home/ram/.virtualenvs/coyote3/bin/python scripts/backfill_business_keys.py \
+  --mongo-uri mongodb://localhost:37017 \
+  --db coyote_dev_3 \
+  --db coyote3
 ```
+
+Why this extra step is mandatory:
+- restored snapshots may contain older document shapes (`*_beta2`, alternate collection aliases, missing business key fields)
+- strict backend mode now expects canonical key fields for identity reads/writes in migrated bounded contexts
+- running backfill keeps dev/prod-like environments behaviorally identical
 
 ## 6. Snapshot sources
 Current restore tooling supports curated snapshot directories under `.internal/`.

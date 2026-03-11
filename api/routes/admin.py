@@ -81,8 +81,8 @@ def _permission_policy_options() -> list[dict]:
     permission_policies = _admin_repo().permissions_handler.get_all_permissions(is_active=True)
     return [
         {
-            "value": p["_id"],
-            "label": p.get("label", p["_id"]),
+            "value": p.get("permission_id"),
+            "label": p.get("label", p.get("permission_id")),
             "category": p.get("category", "Uncategorized"),
         }
         for p in permission_policies
@@ -92,7 +92,7 @@ def _permission_policy_options() -> list[dict]:
 def _role_map() -> dict[str, dict]:
     all_roles = _admin_repo().roles_handler.get_all_roles()
     return {
-        role["_id"]: {
+        role["role_id"]: {
             "permissions": role.get("permissions", []),
             "deny_permissions": role.get("deny_permissions", []),
             "level": role.get("level", 0),
@@ -217,8 +217,10 @@ def create_permission_mutation(
     form_data = payload.get("form_data", {})
     policy = util.admin.process_form_to_config(form_data, schema)
     policy.setdefault("is_active", True)
-    policy["_id"] = policy["permission_name"]
-    policy["schema_name"] = schema["_id"]
+    policy_id = str(policy["permission_name"]).strip()
+    policy["permission_id"] = policy_id
+    policy["_id"] = policy_id
+    policy["schema_name"] = schema.get("schema_id") or schema["_id"]
     policy["schema_version"] = schema["version"]
     policy = util.admin.inject_version_history(
         user_email=current_username(default=user.username),
@@ -299,7 +301,7 @@ def permission_context_read(
         require_access(permission="view_permission_policy", min_role="admin", min_level=99999)
     ),
 ):
-    permission = _admin_repo().permissions_handler.get(perm_id)
+    permission = _admin_repo().permissions_handler.get_permission(perm_id)
     if not permission:
         raise _api_error(404, "Permission policy not found")
     schema = _admin_repo().schema_handler.get_schema(permission.get("schema_name"))
@@ -321,7 +323,7 @@ def update_permission_mutation(
         require_access(permission="edit_permission_policy", min_role="admin", min_level=99999)
     ),
 ):
-    permission = _admin_repo().permissions_handler.get(perm_id)
+    permission = _admin_repo().permissions_handler.get_permission(perm_id)
     if not permission:
         raise _api_error(404, "Permission policy not found")
     schema = _admin_repo().schema_handler.get_schema(permission.get("schema_name"))
@@ -333,7 +335,9 @@ def update_permission_mutation(
     updated_permission["updated_on"] = util.common.utc_now()
     updated_permission["updated_by"] = current_username(default=user.username)
     updated_permission["version"] = permission.get("version", 1) + 1
-    updated_permission["schema_name"] = schema["_id"]
+    updated_permission["schema_name"] = schema.get("schema_id") or schema["_id"]
+    updated_permission["permission_id"] = permission.get("permission_id", perm_id)
+    updated_permission["_id"] = permission.get("_id")
     updated_permission["schema_version"] = schema["version"]
     updated_permission = util.admin.inject_version_history(
         user_email=current_username(default=user.username),
@@ -354,7 +358,7 @@ def toggle_permission_mutation(
         require_access(permission="edit_permission_policy", min_role="admin", min_level=99999)
     ),
 ):
-    perm = _admin_repo().permissions_handler.get(perm_id)
+    perm = _admin_repo().permissions_handler.get_permission(perm_id)
     if not perm:
         raise _api_error(404, "Permission policy not found")
     new_status = not _active_flag(perm)
@@ -371,7 +375,7 @@ def delete_permission_mutation(
         require_access(permission="delete_permission_policy", min_role="admin", min_level=99999)
     ),
 ):
-    perm = _admin_repo().permissions_handler.get(perm_id)
+    perm = _admin_repo().permissions_handler.get_permission(perm_id)
     if not perm:
         raise _api_error(404, "Permission policy not found")
     _admin_repo().permissions_handler.delete_policy(perm_id)
@@ -402,8 +406,10 @@ def create_role_mutation(
     form_data = payload.get("form_data", {})
     role = util.admin.process_form_to_config(form_data, schema)
     role.setdefault("is_active", True)
-    role["_id"] = role.get("name")
-    role["schema_name"] = schema["_id"]
+    role_id = str(role.get("name", "")).strip().lower()
+    role["role_id"] = role_id
+    role["_id"] = role_id
+    role["schema_name"] = schema.get("schema_id") or schema["_id"]
     role["schema_version"] = schema["version"]
     role = util.admin.inject_version_history(
         user_email=current_username(default=user.username),
@@ -435,9 +441,10 @@ def update_role_mutation(
     updated_role = util.admin.process_form_to_config(form_data, schema)
     updated_role["updated_by"] = current_username(default=user.username)
     updated_role["updated_on"] = util.common.utc_now()
-    updated_role["schema_name"] = schema["_id"]
+    updated_role["schema_name"] = schema.get("schema_id") or schema["_id"]
     updated_role["schema_version"] = schema["version"]
     updated_role["version"] = role.get("version", 1) + 1
+    updated_role["role_id"] = role.get("role_id", role_id)
     updated_role["_id"] = role.get("_id")
     updated_role = util.admin.inject_version_history(
         user_email=current_username(default=user.username),
@@ -458,7 +465,7 @@ def toggle_role_mutation(
         require_access(permission="edit_role", min_role="admin", min_level=99999)
     ),
 ):
-    role = _admin_repo().roles_handler.get(role_id)
+    role = _admin_repo().roles_handler.get_role(role_id)
     if not role:
         raise _api_error(404, "Role not found")
     new_status = not _active_flag(role)
@@ -599,7 +606,7 @@ def create_user_mutation(
 
     all_roles = _admin_repo().roles_handler.get_all_roles()
     role_map = {
-        role["_id"]: {
+        role["role_id"]: {
             "permissions": role.get("permissions", []),
             "deny_permissions": role.get("deny_permissions", []),
         }
@@ -618,7 +625,8 @@ def create_user_mutation(
     user_data = util.admin.process_form_to_config(form_data, schema)
     user_data.setdefault("is_active", True)
     user_data["_id"] = user_data["username"]
-    user_data["schema_name"] = schema["_id"]
+    user_data["user_id"] = user_data["username"]
+    user_data["schema_name"] = schema.get("schema_id") or schema["_id"]
     user_data["schema_version"] = schema["version"]
     user_data["email"] = user_data["email"].lower()
     user_data["username"] = user_data["username"].lower()
@@ -656,7 +664,7 @@ def update_user_mutation(
 
     all_roles = _admin_repo().roles_handler.get_all_roles()
     role_map = {
-        role["_id"]: {
+        role["role_id"]: {
             "permissions": role.get("permissions", []),
             "deny_permissions": role.get("deny_permissions", []),
         }
@@ -679,9 +687,11 @@ def update_user_mutation(
         updated_user["password"] = util.common.hash_password(updated_user["password"])
     else:
         updated_user["password"] = user_doc.get("password")
-    updated_user["schema_name"] = schema["_id"]
+    updated_user["schema_name"] = schema.get("schema_id") or schema["_id"]
     updated_user["schema_version"] = schema["version"]
     updated_user["version"] = user_doc.get("version", 1) + 1
+    updated_user["user_id"] = user_doc.get("user_id", user_id)
+    updated_user["_id"] = user_doc.get("_id")
     updated_user = util.admin.inject_version_history(
         user_email=current_username(default=user.username),
         new_config=updated_user,
@@ -764,10 +774,11 @@ def create_asp_mutation(
     if not config:
         raise _api_error(400, "Missing panel config payload")
     config.setdefault("is_active", True)
+    config["asp_id"] = config.get("asp_id") or config.get("_id") or config.get("assay_name")
     _admin_repo().asp_handler.create_asp(config)
     return util.common.convert_to_serializable(
         _mutation_payload(
-            "admin", resource="asp", resource_id=str(config.get("_id", "unknown")), action="create"
+            "admin", resource="asp", resource_id=str(config.get("asp_id", "unknown")), action="create"
         )
     )
 
@@ -845,6 +856,8 @@ def update_asp_mutation(
     updated = payload.get("config", {})
     if not updated:
         raise _api_error(400, "Missing panel config payload")
+    updated["asp_id"] = panel.get("asp_id", assay_panel_id)
+    updated["_id"] = panel.get("_id")
     _admin_repo().asp_handler.update_asp(assay_panel_id, updated)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="asp", resource_id=assay_panel_id, action="update")
@@ -895,12 +908,13 @@ def create_genelist_mutation(
     if not config:
         raise _api_error(400, "Missing genelist config payload")
     config.setdefault("is_active", True)
+    config["isgl_id"] = config.get("isgl_id") or config.get("_id") or config.get("name")
     _admin_repo().isgl_handler.create_isgl(config)
     return util.common.convert_to_serializable(
         _mutation_payload(
             "admin",
             resource="genelist",
-            resource_id=str(config.get("_id", "unknown")),
+            resource_id=str(config.get("isgl_id", "unknown")),
             action="create",
         )
     )
@@ -1028,6 +1042,8 @@ def update_genelist_mutation(
     updated = payload.get("config", {})
     if not updated:
         raise _api_error(400, "Missing genelist config payload")
+    updated["isgl_id"] = genelist.get("isgl_id", genelist_id)
+    updated["_id"] = genelist.get("_id")
     _admin_repo().isgl_handler.update_isgl(genelist_id, updated)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="genelist", resource_id=genelist_id, action="update")
@@ -1172,13 +1188,19 @@ def create_aspc_mutation(
     if not config:
         raise _api_error(400, "Missing assay config payload")
     config.setdefault("is_active", True)
-    existing_config = _admin_repo().aspc_handler.get_aspc_with_id(config.get("_id"))
+    config["aspc_id"] = (
+        config.get("aspc_id")
+        or config.get("_id")
+        or f"{str(config.get('assay_name', '')).strip()}:{str(config.get('environment', '')).strip().lower()}"
+    )
+    config["_id"] = config["aspc_id"]
+    existing_config = _admin_repo().aspc_handler.get_aspc_with_id(config.get("aspc_id"))
     if existing_config:
         raise _api_error(409, "Assay config already exists")
     _admin_repo().aspc_handler.create_aspc(config)
     return util.common.convert_to_serializable(
         _mutation_payload(
-            "admin", resource="aspc", resource_id=str(config.get("_id", "unknown")), action="create"
+            "admin", resource="aspc", resource_id=str(config.get("aspc_id", "unknown")), action="create"
         )
     )
 
@@ -1197,6 +1219,8 @@ def update_aspc_mutation(
     updated_config = payload.get("config", {})
     if not updated_config:
         raise _api_error(400, "Missing assay config payload")
+    updated_config["aspc_id"] = assay_config.get("aspc_id", assay_id)
+    updated_config["_id"] = assay_config.get("_id", assay_id)
     _admin_repo().aspc_handler.update_aspc(assay_id, updated_config)
     return util.common.convert_to_serializable(
         _mutation_payload("admin", resource="aspc", resource_id=assay_id, action="update")
@@ -1312,6 +1336,7 @@ def create_schema_mutation(
 ):
     schema_doc = payload.get("schema", {})
     schema_doc["_id"] = schema_doc.get("schema_name")
+    schema_doc["schema_id"] = schema_doc.get("schema_name")
     schema_doc.setdefault("is_active", True)
     schema_doc["created_on"] = util.common.utc_now()
     schema_doc["created_by"] = current_username(default=user.username)
@@ -1361,6 +1386,7 @@ def update_schema_mutation(
         raise _api_error(404, "Schema not found")
     updated_schema = payload.get("schema", {})
     updated_schema["_id"] = schema_doc["_id"]
+    updated_schema["schema_id"] = schema_doc.get("schema_id", schema_id)
     updated_schema["updated_on"] = util.common.utc_now()
     updated_schema["updated_by"] = current_username(default=user.username)
     updated_schema["version"] = schema_doc.get("version", 1) + 1

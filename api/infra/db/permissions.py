@@ -56,17 +56,16 @@ class PermissionsHandler(BaseHandler):
 
     def _permission_lookup_query(self, permission_id: str) -> dict:
         normalized = self._normalize_permission_id(permission_id)
-        return {"$or": [{"permission_id": normalized}, {"_id": normalized}]}
+        return {"permission_id": normalized}
 
     def ensure_permission_id(self, policy: dict) -> dict:
         if not isinstance(policy, dict):
             return policy
-        if self._normalize_permission_id(policy.get("permission_id")):
+        normalized = self._normalize_permission_id(policy.get("permission_id"))
+        if normalized:
+            policy["permission_id"] = normalized
             return policy
-        fallback = self._normalize_permission_id(policy.get("_id"))
-        if fallback:
-            policy["permission_id"] = fallback
-        return policy
+        raise ValueError("permissions.permission_id is required in strict business-key mode")
 
     def get_all_permissions(self, is_active=True) -> List[dict]:
         """
@@ -135,7 +134,7 @@ class PermissionsHandler(BaseHandler):
             self.get_collection().find_one(
                 {
                     "$and": [
-                        {"$or": [{"permission_id": permission}, {"_id": permission}]},
+                        {"permission_id": permission},
                         {"$or": [{"is_active": True}, {"is_active": {"$exists": False}}]},
                     ]
                 }
@@ -155,9 +154,7 @@ class PermissionsHandler(BaseHandler):
         Returns:
         Optional[dict]: The permission document if found, otherwise None.
         """
-        return self.get_collection().find_one({"permission_id": permission_id}) or self.get_collection().find_one(
-            {"_id": permission_id}
-        )
+        return self.get_collection().find_one({"permission_id": permission_id})
 
     def create_new_policy(self, policy: dict) -> Any:
         """

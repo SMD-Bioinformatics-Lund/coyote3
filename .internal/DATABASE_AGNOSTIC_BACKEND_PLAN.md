@@ -36,7 +36,7 @@ Completed:
    - RNA workflow repository port + Mongo adapter
    - DNA reporting repository port + Mongo adapter
    - Coverage processing repository port + Mongo adapter
-   - Shared/admin/RNA/DNA route transitional repository facades (remove direct `store.*` from route layer)
+   - Shared/admin/RNA/DNA route repository facades (remove direct `store.*` from route layer)
 4. Core auth/public/admin/RNA/DNA-reporting/coverage workflows now run through repository services in targeted paths.
 5. Route-layer boundary hardening complete for current API surface:
    - `api/routes/{admin,dna,rna,dashboard,home,common,samples,coverage,internal}.py` now use route repository facades instead of direct `store.*`.
@@ -52,7 +52,7 @@ Completed:
    - samples (`api/core/samples/ports.py`, `api/infra/repositories/samples_mongo.py`)
    - coverage-read (`api/core/coverage/route_ports.py`, `api/infra/repositories/coverage_route_mongo.py`)
    - internal utilities (`api/core/internal/ports.py`, `api/infra/repositories/internal_mongo.py`)
-8. Shared transitional route facade removed (`api/infra/repositories/route_store_mongo.py` deleted).
+8. Shared route facade removed (`api/infra/repositories/route_store_mongo.py` deleted).
 9. Collection business-key rollout started with first two collections completed:
    - `users`: canonical `user_id` path added in handler/auth/session flow
    - `roles`: canonical `role_id` path added in handler flows
@@ -63,10 +63,14 @@ Completed:
      - `scripts/backfill_roles_role_id.py`
 10. Collection-wide business-key rollout completed for all planned collections:
    - handler-level business-key index definitions added in `api/infra/db/*`
-   - compatibility lookup support added for string-id collections (`permissions`, `schemas`, `asp`, `asp_configs`, `isgl`)
+   - strict business-key lookup enabled for string-id collections (`users`, `roles`, `permissions`, `schemas`, `asp`, `asp_configs`, `isgl`)
    - bulk migration tool added: `scripts/backfill_business_keys.py`
    - executed on both local DBs: `coyote_dev_3`, `coyote3`
    - alias collections also migrated: `*_beta2`, `cnvs_wgs`, `transloc`
+11. Final shim/fallback cleanup completed:
+   - removed dynamic `__getattr__` passthrough shims from admin/dna/rna/core repository adapters
+   - admin mutation flows now write canonical key fields explicitly before persistence
+   - `_id` compatibility read-fallbacks removed in strict business-key handlers
 
 Latest baseline totals after refactor:
 - `store_usage_total=0` (down from 322)
@@ -79,18 +83,18 @@ Latest baseline totals after refactor:
 - `api/routes`: request/response mapping + service invocation only.
 - Runtime wiring selects one concrete adapter implementation (Mongo today).
 
-## Data Identity Policy (Gradual)
+## Data Identity Policy (Strict Runtime, Gradual Rollout Process)
 Mongo remains active, but identity strategy is normalized now to be future-portable:
 
 1. `_id` stays as technical primary identifier for existing collections.
 2. Add explicit unique key fields for business identity in most collections (examples: `user_id`, `sample_id`, `variant_id`, `asp_id`, `isgl_id`).
-3. New code must use business keys in domain/service contracts; `_id` conversion stays inside repository adapters.
-4. Migration is gradual per collection/workstream; no big-bang rewrite.
+3. New code must use business keys in domain/service contracts; `_id` is not used as business identity.
+4. Rollout was gradual per collection/workstream; runtime policy is now strict business-key mode.
 5. Every new business key must have a unique index and collision test coverage.
 
 Notes:
-- For legacy collections already using string `_id`, preserve compatibility while introducing explicit business keys.
-- For ObjectId-backed collections, introduce business keys first, then progressively reduce `_id` assumptions in contracts.
+- For legacy collections already using string `_id`, `*_id` business fields are now canonical for service/repository behavior.
+- For ObjectId-backed collections, business keys are now present + indexed; `_id` remains technical identity for document storage internals.
 
 ## Mongo Runtime Policy (Docker First)
 1. Use Docker Compose Mongo image as the default local/dev runtime.
@@ -247,7 +251,7 @@ Use this template for each collection to ensure full-scope, non-partial progress
 ## Next Up (Immediate)
 1. Expand repository ports for remaining bounded contexts:
    - DNA/RNA entities, coverage, reporting, admin schemas/panels/users.
-2. Move from transitional facades to explicit repository-port contracts per module to complete DB-agnostic architecture.
+2. Continue replacing any remaining broad route orchestration with explicit repository-port contracts per module.
 3. Validate collection-level business-key rollout in CI and promote to deployment runbook:
    - `.internal/COLLECTION_KEY_MIGRATION_MATRIX.md`
    - `scripts/backfill_business_keys.py`

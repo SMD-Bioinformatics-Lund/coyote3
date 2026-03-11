@@ -56,17 +56,16 @@ class SchemaHandler(BaseHandler):
 
     def _schema_lookup_query(self, schema_id: str) -> dict:
         normalized = self._normalize_schema_id(schema_id)
-        return {"$or": [{"schema_id": normalized}, {"_id": normalized}]}
+        return {"schema_id": normalized}
 
     def ensure_schema_id(self, schema_doc: dict) -> dict:
         if not isinstance(schema_doc, dict):
             return schema_doc
-        if self._normalize_schema_id(schema_doc.get("schema_id")):
+        normalized = self._normalize_schema_id(schema_doc.get("schema_id"))
+        if normalized:
+            schema_doc["schema_id"] = normalized
             return schema_doc
-        fallback = self._normalize_schema_id(schema_doc.get("_id"))
-        if fallback:
-            schema_doc["schema_id"] = fallback
-        return schema_doc
+        raise ValueError("schemas.schema_id is required in strict business-key mode")
 
     def get_all_schemas(self) -> Any:
         """
@@ -87,9 +86,7 @@ class SchemaHandler(BaseHandler):
         Returns:
             dict: The schema document if found, otherwise None.
         """
-        return self.get_collection().find_one({"schema_id": schema_id}) or self.get_collection().find_one(
-            {"_id": schema_id}
-        )
+        return self.get_collection().find_one({"schema_id": schema_id})
 
     def list_schemas(self, schema_type: str = None) -> list:
         """

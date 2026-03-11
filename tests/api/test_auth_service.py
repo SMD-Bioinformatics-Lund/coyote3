@@ -42,4 +42,4 @@ def test_lookup_user_doc_skips_id_when_username_hit(monkeypatch):
 
 def test_resolve_user_identity_prefers_business_key():
     assert auth_service.resolve_user_identity({"user_id": "coyote3.admin", "_id": "legacy"}) == "coyote3.admin"
-    assert auth_service.resolve_user_identity({"_id": "legacy"}) == "legacy"
+    assert auth_service.resolve_user_identity({"_id": "legacy"}) == ""

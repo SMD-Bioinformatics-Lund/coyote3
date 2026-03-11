@@ -62,7 +62,7 @@ def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
     response = system.auth_login(system.ApiAuthLoginRequest(username=" tester ", password="p"))
 
     assert response.status_code == 200
-    assert calls["updated_user"] == str(user_doc["_id"])
+    assert calls["updated_user"] == str(user_doc["user_id"])
     assert b"session-" in response.body
     cookies = response.headers.get("set-cookie", "")
     assert "api_session=session-" in cookies
