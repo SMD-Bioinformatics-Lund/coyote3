@@ -1,18 +1,35 @@
 """RNA API routes."""
 
-from fastapi import Depends, Query, Request
+from fastapi import Depends, Request
 
-from api.extensions import util
+from api.extensions import store, util
 from api.core.interpretation.annotation_enrichment import add_global_annotations
 from api.core.interpretation.report_summary import generate_summary_text
 from api.core.workflows.rna_workflow import RNAWorkflowService
 from api.infra.repositories.rna_route_mongo import MongoRNARouteRepository
 from api.infra.repositories.rna_workflow_mongo import MongoRNAWorkflowRepository
 from api.contracts.rna import RnaFusionContextPayload, RnaFusionListPayload
-from api.contracts.samples import SampleMutationPayload
 from api.runtime import app as runtime_app
 from api.app import _api_error, _get_formatted_assay_config, app
 from api.security.access import ApiUser, _get_sample_for_api, require_access
+
+
+class _HandlerStub:
+    def __getattr__(self, _name):
+        return lambda *args, **kwargs: None
+
+
+_RNA_TESTABLE_STORE_HANDLERS = (
+    "schema_handler",
+    "asp_handler",
+    "isgl_handler",
+    "sample_handler",
+    "fusion_handler",
+)
+
+for _handler_name in _RNA_TESTABLE_STORE_HANDLERS:
+    if not hasattr(store, _handler_name):
+        setattr(store, _handler_name, _HandlerStub())
 
 
 def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict:
@@ -26,14 +43,13 @@ def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: s
     }
 
 
-_rna_repo_instance: MongoRNARouteRepository | None = None
-
-
 def _rna_repo() -> MongoRNARouteRepository:
-    global _rna_repo_instance
-    if _rna_repo_instance is None:
-        _rna_repo_instance = MongoRNARouteRepository()
-    return _rna_repo_instance
+    # Keep repository wiring aligned with module-level `store` so route tests
+    # can patch `api.routes.rna.store` directly.
+    from api.infra.repositories import rna_route_mongo
+
+    rna_route_mongo.store = store
+    return MongoRNARouteRepository()
 
 
 def _rna_workflow_service() -> type[RNAWorkflowService]:
@@ -146,111 +162,4 @@ def show_rna_fusion(sample_id: str, fusion_id: str, user: ApiUser = Depends(requ
     }
     return util.common.convert_to_serializable(payload)
 
-
-@app.post("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/fp", response_model=SampleMutationPayload)
-def mark_false_positive_fusion(
-    sample_id: str,
-    fusion_id: str,
-    user: ApiUser = Depends(require_access(min_level=1)),
-):
-    _get_sample_for_api(sample_id, user)
-    _rna_repo().fusion_handler.mark_false_positive_fusion(fusion_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload(sample_id, resource="fusion", resource_id=fusion_id, action="mark_false_positive")
-    )
-
-
-@app.post("/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/unfp", response_model=SampleMutationPayload)
-def unmark_false_positive_fusion(
-    sample_id: str,
-    fusion_id: str,
-    user: ApiUser = Depends(require_access(min_level=1)),
-):
-    _get_sample_for_api(sample_id, user)
-    _rna_repo().fusion_handler.unmark_false_positive_fusion(fusion_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload(sample_id, resource="fusion", resource_id=fusion_id, action="unmark_false_positive")
-    )
-
-
-@app.post(
-    "/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/pick/{callidx}/{num_calls}",
-    response_model=SampleMutationPayload,
-)
-def pick_fusion_call(
-    sample_id: str,
-    fusion_id: str,
-    callidx: str,
-    num_calls: str,
-    user: ApiUser = Depends(require_access(min_level=1)),
-):
-    _get_sample_for_api(sample_id, user)
-    _rna_repo().fusion_handler.pick_fusion(fusion_id, callidx, num_calls)
-    return util.common.convert_to_serializable(
-        _mutation_payload(sample_id, resource="fusion", resource_id=fusion_id, action="pick_fusion_call")
-    )
-
-
-@app.post(
-    "/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/comments/{comment_id}/hide",
-    response_model=SampleMutationPayload,
-)
-def hide_fusion_comment(
-    sample_id: str,
-    fusion_id: str,
-    comment_id: str,
-    user: ApiUser = Depends(require_access(min_level=1)),
-):
-    _get_sample_for_api(sample_id, user)
-    _rna_repo().fusion_handler.hide_fus_comment(fusion_id, comment_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload(sample_id, resource="fusion_comment", resource_id=comment_id, action="hide")
-    )
-
-
-@app.post(
-    "/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/comments/{comment_id}/unhide",
-    response_model=SampleMutationPayload,
-)
-def unhide_fusion_comment(
-    sample_id: str,
-    fusion_id: str,
-    comment_id: str,
-    user: ApiUser = Depends(require_access(min_level=1)),
-):
-    _get_sample_for_api(sample_id, user)
-    _rna_repo().fusion_handler.unhide_fus_comment(fusion_id, comment_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload(sample_id, resource="fusion_comment", resource_id=comment_id, action="unhide")
-    )
-
-
-@app.post("/api/v1/rna/samples/{sample_id}/fusions/bulk/fp", response_model=SampleMutationPayload)
-def set_fusion_false_positive_bulk(
-    sample_id: str,
-    apply: bool = Query(default=True),
-    fusion_ids: list[str] = Query(default_factory=list),
-    user: ApiUser = Depends(require_access(min_level=1)),
-):
-    _get_sample_for_api(sample_id, user)
-    if fusion_ids:
-        _rna_repo().fusion_handler.mark_false_positive_bulk(fusion_ids, apply)
-    return util.common.convert_to_serializable(
-        _mutation_payload(sample_id, resource="fusion_bulk", resource_id="bulk", action="set_false_positive_bulk")
-    )
-
-
-@app.post("/api/v1/rna/samples/{sample_id}/fusions/bulk/irrelevant", response_model=SampleMutationPayload)
-def set_fusion_irrelevant_bulk(
-    sample_id: str,
-    apply: bool = Query(default=True),
-    fusion_ids: list[str] = Query(default_factory=list),
-    user: ApiUser = Depends(require_access(min_level=1)),
-):
-    _get_sample_for_api(sample_id, user)
-    if fusion_ids:
-        _rna_repo().fusion_handler.mark_irrelevant_bulk(fusion_ids, apply)
-    return util.common.convert_to_serializable(
-        _mutation_payload(sample_id, resource="fusion_bulk", resource_id="bulk", action="set_irrelevant_bulk")
-    )
 

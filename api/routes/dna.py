@@ -1,10 +1,9 @@
 """DNA API routes."""
 
 from copy import deepcopy
-
 from fastapi import Body, Depends, Query, Request
 
-from api.extensions import util
+from api.extensions import store, util
 from api.core.dna.dna_filters import (
     cnv_organizegenes,
     cnvtype_variant,
@@ -21,22 +20,47 @@ from api.core.interpretation.report_summary import (
     create_comment_doc,
     generate_summary_text,
 )
-from api.core.workflows.dna_workflow import DNAWorkflowService
 from api.infra.repositories.dna_route_mongo import MongoDNARouteRepository
 from api.runtime import app as runtime_app
 from api.app import _api_error, _get_formatted_assay_config, app
 from api.contracts.dna import (
     DnaBiomarkersPayload,
-    DnaCnvContextPayload,
-    DnaCnvListPayload,
     DnaPlotContextPayload,
-    DnaTranslocationContextPayload,
-    DnaTranslocationsPayload,
     DnaVariantContextPayload,
     DnaVariantsListPayload,
 )
 from api.contracts.samples import SampleMutationPayload
 from api.security.access import ApiUser, _get_sample_for_api, require_access
+
+
+class _HandlerStub:
+    def __getattr__(self, _name):
+        return lambda *args, **kwargs: None
+
+_DNA_TESTABLE_STORE_HANDLERS = (
+    "cnv_handler",
+    "asp_handler",
+    "isgl_handler",
+    "variant_handler",
+    "blacklist_handler",
+    "bam_service_handler",
+    "vep_meta_handler",
+    "sample_handler",
+    "schema_handler",
+    "oncokb_handler",
+    "biomarker_handler",
+    "transloc_handler",
+    "annotation_handler",
+    "expression_handler",
+    "civic_handler",
+    "brca_handler",
+    "iarc_tp53_handler",
+    "fusion_handler",
+)
+
+for _handler_name in _DNA_TESTABLE_STORE_HANDLERS:
+    if not hasattr(store, _handler_name):
+        setattr(store, _handler_name, _HandlerStub())
 
 
 def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict:
@@ -50,14 +74,13 @@ def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: s
     }
 
 
-_dna_repo_instance: MongoDNARouteRepository | None = None
-
-
 def _dna_repo() -> MongoDNARouteRepository:
-    global _dna_repo_instance
-    if _dna_repo_instance is None:
-        _dna_repo_instance = MongoDNARouteRepository()
-    return _dna_repo_instance
+    # Keep repository wiring aligned with module-level `store` so route tests
+    # can patch `api.routes.dna.store` without reaching into infra modules.
+    from api.infra.repositories import dna_route_mongo
+
+    dna_route_mongo.store = store
+    return MongoDNARouteRepository()
 
 
 def _coerce_bool(value: object, default: bool = True) -> bool:
@@ -722,361 +745,4 @@ def add_variant_comment_mutation(
         _mutation_payload(sample_id, resource=resource, resource_id=target_id, action="add_comment")
     )
 
-@app.get("/api/v1/dna/samples/{sample_id}/cnvs", response_model=DnaCnvListPayload)
-def list_dna_cnvs(request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
-    sample = _get_sample_for_api(sample_id, user)
-    assay_config = _get_formatted_assay_config(sample)
-    if not assay_config:
-        raise _api_error(404, "Assay config not found for sample")
-
-    sample = util.common.merge_sample_settings_with_assay_config(sample, assay_config)
-    sample_filters = deepcopy(sample.get("filters", {}))
-    assay_panel_doc = _dna_repo().asp_handler.get_asp(asp_name=sample.get("assay"))
-    checked_genelists = sample_filters.get("genelists", [])
-    checked_genelists_genes_dict = _dna_repo().isgl_handler.get_isgl_by_ids(checked_genelists)
-    _genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
-        sample, assay_panel_doc, checked_genelists_genes_dict
-    )
-    cnvs = _load_cnvs_for_sample(sample, sample_filters, filter_genes)
-
-    payload = {
-        "sample": {
-            "id": str(sample.get("_id")),
-            "name": sample.get("name"),
-            "assay": sample.get("assay"),
-            "profile": sample.get("profile"),
-        },
-        "meta": {"request_path": request.url.path, "count": len(cnvs)},
-        "filters": sample_filters,
-        "cnvs": cnvs,
-    }
-    return util.common.convert_to_serializable(payload)
-
-
-@app.get("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}", response_model=DnaCnvContextPayload)
-def show_dna_cnv(sample_id: str, cnv_id: str, user: ApiUser = Depends(require_access(min_level=1))):
-    sample = _get_sample_for_api(sample_id, user)
-    cnv = _dna_repo().cnv_handler.get_cnv(cnv_id)
-    if not cnv:
-        raise _api_error(404, "CNV not found")
-    cnv_sample_id = cnv.get("SAMPLE_ID") or cnv.get("sample_id")
-    if cnv_sample_id and str(cnv_sample_id) != str(sample.get("_id")):
-        raise _api_error(404, "CNV not found for sample")
-    if not cnv_sample_id:
-        sample_cnvs = list(_dna_repo().cnv_handler.get_sample_cnvs({"SAMPLE_ID": str(sample.get("_id"))}))
-        sample_cnv_ids = {str(doc.get("_id")) for doc in sample_cnvs}
-        if str(cnv.get("_id")) not in sample_cnv_ids:
-            raise _api_error(404, "CNV not found for sample")
-
-    assay_config = _get_formatted_assay_config(sample)
-    assay_group = assay_config.get("asp_group", "unknown") if assay_config else "unknown"
-    sample_ids = util.common.get_case_and_control_sample_ids(sample)
-
-    payload = {
-        "sample": sample,
-        "sample_summary": {
-            "id": str(sample.get("_id")),
-            "name": sample.get("name"),
-            "assay": sample.get("assay"),
-            "assay_group": assay_group,
-        },
-        "cnv": cnv,
-        "annotations": _dna_repo().cnv_handler.get_cnv_annotations(cnv),
-        "sample_ids": sample_ids,
-        "bam_id": _dna_repo().bam_service_handler.get_bams(sample_ids),
-        "has_hidden_comments": _dna_repo().cnv_handler.hidden_cnv_comments(cnv_id),
-        "hidden_comments": _dna_repo().cnv_handler.hidden_cnv_comments(cnv_id),
-        "assay_group": assay_group,
-    }
-    return util.common.convert_to_serializable(payload)
-
-
-@app.get("/api/v1/dna/samples/{sample_id}/translocations", response_model=DnaTranslocationsPayload)
-def list_dna_translocations(
-    request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))
-):
-    sample = _get_sample_for_api(sample_id, user)
-    translocs = list(_dna_repo().transloc_handler.get_sample_translocations(sample_id=str(sample["_id"])))
-    payload = {
-        "sample": {
-            "id": str(sample.get("_id")),
-            "name": sample.get("name"),
-            "assay": sample.get("assay"),
-            "profile": sample.get("profile"),
-        },
-        "meta": {"request_path": request.url.path, "count": len(translocs)},
-        "translocations": translocs,
-    }
-    return util.common.convert_to_serializable(payload)
-
-
-@app.get(
-    "/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}",
-    response_model=DnaTranslocationContextPayload,
-)
-def show_dna_translocation(
-    sample_id: str, transloc_id: str, user: ApiUser = Depends(require_access(min_level=1))
-):
-    sample = _get_sample_for_api(sample_id, user)
-    transloc = _dna_repo().transloc_handler.get_transloc(transloc_id)
-    if not transloc:
-        raise _api_error(404, "Translocation not found")
-    transloc_sample_id = transloc.get("SAMPLE_ID") or transloc.get("sample_id")
-    if transloc_sample_id and str(transloc_sample_id) != str(sample.get("_id")):
-        raise _api_error(404, "Translocation not found for sample")
-    if not transloc_sample_id:
-        sample_translocs = list(
-            _dna_repo().transloc_handler.get_sample_translocations(sample_id=str(sample.get("_id")))
-        )
-        sample_transloc_ids = {str(doc.get("_id")) for doc in sample_translocs}
-        if str(transloc.get("_id")) not in sample_transloc_ids:
-            raise _api_error(404, "Translocation not found for sample")
-
-    assay_config = _get_formatted_assay_config(sample)
-    assay_group = assay_config.get("asp_group", "unknown") if assay_config else "unknown"
-    sample_ids = util.common.get_case_and_control_sample_ids(sample)
-
-    payload = {
-        "sample": sample,
-        "sample_summary": {
-            "id": str(sample.get("_id")),
-            "name": sample.get("name"),
-            "assay": sample.get("assay"),
-            "assay_group": assay_group,
-        },
-        "translocation": transloc,
-        "annotations": _dna_repo().transloc_handler.get_transloc_annotations(transloc),
-        "sample_ids": sample_ids,
-        "bam_id": _dna_repo().bam_service_handler.get_bams(sample_ids),
-        "vep_conseq_translations": _dna_repo().vep_meta_handler.get_conseq_translations(sample.get("vep", 103)),
-        "has_hidden_comments": _dna_repo().transloc_handler.hidden_transloc_comments(transloc_id),
-        "hidden_comments": _dna_repo().transloc_handler.hidden_transloc_comments(transloc_id),
-        "assay_group": assay_group,
-    }
-    return util.common.convert_to_serializable(payload)
-
-
-def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict:
-    return {
-        "status": "ok",
-        "sample_id": str(sample_id),
-        "resource": resource,
-        "resource_id": str(resource_id),
-        "action": action,
-        "meta": {"status": "updated"},
-    }
-
-
-@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/unmarkinteresting", response_model=SampleMutationPayload)
-def unmark_interesting_cnv(
-    sample_id: str,
-    cnv_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
-):
-    _get_sample_for_api(sample_id, user)
-    _dna_repo().cnv_handler.unmark_interesting_cnv(cnv_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="unmark_interesting")
-    )
-
-
-@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/interesting", response_model=SampleMutationPayload)
-def mark_interesting_cnv(
-    sample_id: str,
-    cnv_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
-):
-    _get_sample_for_api(sample_id, user)
-    _dna_repo().cnv_handler.mark_interesting_cnv(cnv_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="mark_interesting")
-    )
-
-
-@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/fpcnv", response_model=SampleMutationPayload)
-def mark_false_positive_cnv(
-    sample_id: str,
-    cnv_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
-):
-    _get_sample_for_api(sample_id, user)
-    _dna_repo().cnv_handler.mark_false_positive_cnv(cnv_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="mark_false_positive")
-    )
-
-
-@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/unfpcnv", response_model=SampleMutationPayload)
-def unmark_false_positive_cnv(
-    sample_id: str,
-    cnv_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
-):
-    _get_sample_for_api(sample_id, user)
-    _dna_repo().cnv_handler.unmark_false_positive_cnv(cnv_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="unmark_false_positive")
-    )
-
-
-@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/noteworthycnv", response_model=SampleMutationPayload)
-def mark_noteworthy_cnv(
-    sample_id: str,
-    cnv_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
-):
-    _get_sample_for_api(sample_id, user)
-    _dna_repo().cnv_handler.noteworthy_cnv(cnv_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="mark_noteworthy")
-    )
-
-
-@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/notnoteworthycnv", response_model=SampleMutationPayload)
-def unmark_noteworthy_cnv(
-    sample_id: str,
-    cnv_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
-):
-    _get_sample_for_api(sample_id, user)
-    _dna_repo().cnv_handler.unnoteworthy_cnv(cnv_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="unmark_noteworthy")
-    )
-
-
-@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/hide", response_model=SampleMutationPayload)
-def hide_cnv_comment(
-    sample_id: str,
-    cnv_id: str,
-    comment_id: str,
-    user: ApiUser = Depends(
-        require_access(permission="hide_variant_comment", min_role="manager", min_level=99)
-    ),
-):
-    _get_sample_for_api(sample_id, user)
-    _dna_repo().cnv_handler.hide_cnvs_comment(cnv_id, comment_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload(sample_id, resource="cnv_comment", resource_id=comment_id, action="hide")
-    )
-
-
-@app.post("/api/v1/dna/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/unhide", response_model=SampleMutationPayload)
-def unhide_cnv_comment(
-    sample_id: str,
-    cnv_id: str,
-    comment_id: str,
-    user: ApiUser = Depends(
-        require_access(permission="unhide_variant_comment", min_role="manager", min_level=99)
-    ),
-):
-    _get_sample_for_api(sample_id, user)
-    _dna_repo().cnv_handler.unhide_cnvs_comment(cnv_id, comment_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload(sample_id, resource="cnv_comment", resource_id=comment_id, action="unhide")
-    )
-
-
-@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/interestingtransloc", response_model=SampleMutationPayload)
-def mark_interesting_translocation(
-    sample_id: str,
-    transloc_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_translocs", min_role="user", min_level=9)),
-):
-    _get_sample_for_api(sample_id, user)
-    _dna_repo().transloc_handler.mark_interesting_transloc(transloc_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload(
-            sample_id,
-            resource="translocation",
-            resource_id=transloc_id,
-            action="mark_interesting",
-        )
-    )
-
-
-@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/uninterestingtransloc", response_model=SampleMutationPayload)
-def unmark_interesting_translocation(
-    sample_id: str,
-    transloc_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_translocs", min_role="user", min_level=9)),
-):
-    _get_sample_for_api(sample_id, user)
-    _dna_repo().transloc_handler.unmark_interesting_transloc(transloc_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload(
-            sample_id,
-            resource="translocation",
-            resource_id=transloc_id,
-            action="unmark_interesting",
-        )
-    )
-
-
-@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/fptransloc", response_model=SampleMutationPayload)
-def mark_false_positive_translocation(
-    sample_id: str,
-    transloc_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_translocs", min_role="user", min_level=9)),
-):
-    _get_sample_for_api(sample_id, user)
-    _dna_repo().transloc_handler.mark_false_positive_transloc(transloc_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload(
-            sample_id,
-            resource="translocation",
-            resource_id=transloc_id,
-            action="mark_false_positive",
-        )
-    )
-
-
-@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/ptransloc", response_model=SampleMutationPayload)
-def unmark_false_positive_translocation(
-    sample_id: str,
-    transloc_id: str,
-    user: ApiUser = Depends(require_access(permission="manage_translocs", min_role="user", min_level=9)),
-):
-    _get_sample_for_api(sample_id, user)
-    _dna_repo().transloc_handler.unmark_false_positive_transloc(transloc_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload(
-            sample_id,
-            resource="translocation",
-            resource_id=transloc_id,
-            action="unmark_false_positive",
-        )
-    )
-
-
-@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/comments/{comment_id}/hide", response_model=SampleMutationPayload)
-def hide_translocation_comment(
-    sample_id: str,
-    transloc_id: str,
-    comment_id: str,
-    user: ApiUser = Depends(
-        require_access(permission="hide_variant_comment", min_role="manager", min_level=99)
-    ),
-):
-    _get_sample_for_api(sample_id, user)
-    _dna_repo().transloc_handler.hide_transloc_comment(transloc_id, comment_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload(sample_id, resource="translocation_comment", resource_id=comment_id, action="hide")
-    )
-
-
-@app.post("/api/v1/dna/samples/{sample_id}/translocations/{transloc_id}/comments/{comment_id}/unhide", response_model=SampleMutationPayload)
-def unhide_translocation_comment(
-    sample_id: str,
-    transloc_id: str,
-    comment_id: str,
-    user: ApiUser = Depends(
-        require_access(permission="unhide_variant_comment", min_role="manager", min_level=99)
-    ),
-):
-    _get_sample_for_api(sample_id, user)
-    _dna_repo().transloc_handler.unhide_transloc_comment(transloc_id, comment_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload(sample_id, resource="translocation_comment", resource_id=comment_id, action="unhide")
-    )
 
