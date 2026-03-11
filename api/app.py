@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 import threading
 import uuid
+from importlib import import_module
 from copy import deepcopy
 
 from fastapi import FastAPI, HTTPException, Request
@@ -245,15 +246,26 @@ def _get_formatted_assay_config(sample: dict):
     return util.common.format_assay_config(deepcopy(assay_config), assay_config_schema)
 
 
-from api.routes import admin as _admin_routes  # noqa: E402,F401
-from api.routes import common as _common_routes  # noqa: E402,F401
-from api.routes import coverage as _coverage_routes  # noqa: E402,F401
-from api.routes import dashboard as _dashboard_routes  # noqa: E402,F401
-from api.routes import dna as _dna_routes  # noqa: E402,F401
-from api.routes import home as _home_routes  # noqa: E402,F401
-from api.routes import internal as _internal_routes  # noqa: E402,F401
-from api.routes import public as _public_routes  # noqa: E402,F401
-from api.routes import reports as _report_routes  # noqa: E402,F401
-from api.routes import rna as _rna_routes  # noqa: E402,F401
-from api.routes import samples as _sample_routes  # noqa: E402,F401
-from api.routes import system as _system_routes  # noqa: E402,F401
+_ROUTE_MODULES = (
+    "api.routes.admin",
+    "api.routes.common",
+    "api.routes.coverage",
+    "api.routes.dashboard",
+    "api.routes.dna",
+    "api.routes.home",
+    "api.routes.internal",
+    "api.routes.public",
+    "api.routes.reports",
+    "api.routes.rna",
+    "api.routes.samples",
+    "api.routes.system",
+)
+
+
+def _register_route_modules() -> None:
+    """Import route modules for side-effect registration with FastAPI."""
+    for module_path in _ROUTE_MODULES:
+        import_module(module_path)
+
+
+_register_route_modules()
