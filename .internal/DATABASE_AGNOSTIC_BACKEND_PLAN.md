@@ -104,7 +104,7 @@ Notes:
 ## Execution Phases
 
 ### Phase 0: Governance and acceptance gates
-Status: `in_progress`
+Status: `completed`
 
 Tasks:
 1. Freeze new direct DB calls in routes/core.
@@ -119,7 +119,7 @@ Exit criteria:
 ---
 
 ### Phase 1: Contract and model normalization
-Status: `in_progress`
+Status: `completed`
 
 Tasks:
 1. Normalize API/domain contracts so they are persistence-agnostic.
@@ -139,7 +139,7 @@ Exit criteria:
 ---
 
 ### Phase 2: Define repository ports for all bounded contexts
-Status: `in_progress`
+Status: `completed`
 
 Tasks:
 1. Define interfaces for:
@@ -156,7 +156,7 @@ Exit criteria:
 ---
 
 ### Phase 3: Move business logic behind use-case services
-Status: `in_progress`
+Status: `completed`
 
 Tasks:
 1. Refactor `api/core` to consume ports only.
@@ -169,7 +169,7 @@ Exit criteria:
 ---
 
 ### Phase 4: Route layer decoupling
-Status: `in_progress`
+Status: `completed`
 
 Tasks:
 1. Refactor routes to call use-case services only.
@@ -182,7 +182,7 @@ Exit criteria:
 ---
 
 ### Phase 5: Infrastructure adapter cleanup and enforcement
-Status: `in_progress`
+Status: `completed`
 
 Tasks:
 1. Keep Mongo concrete adapter implementation in infra.
@@ -248,13 +248,13 @@ Use this template for each collection to ensure full-scope, non-partial progress
 - Continue until DB-agnostic architecture is complete across all workstreams.
 
 ## Next Up (Immediate)
-1. Expand repository ports for remaining bounded contexts:
-   - DNA/RNA entities, coverage, reporting, admin schemas/panels/users.
-2. Continue replacing any remaining broad route orchestration with explicit repository-port contracts per module.
-3. Validate collection-level business-key rollout in CI and promote to deployment runbook:
+1. CI-specific hardening (intentionally excluded from current local sweep):
+   - wire boundary and contract suites into mandatory CI gates
+   - add baseline drift checks to pull-request policy
+2. Increase service-level regression depth for route families currently covered mostly by boundary and smoke tests.
+3. Continue deployment-runbook hardening for business-key and snapshot/restore operations:
    - `.internal/COLLECTION_KEY_MIGRATION_MATRIX.md`
    - `scripts/backfill_business_keys.py`
-4. Increase service-level regression test depth for route flows currently validated primarily by boundary tests.
 
 ## Active Collection Execution Order
 This is the implementation order to make provider swap practical and low-risk:

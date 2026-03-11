@@ -17,6 +17,7 @@ For shared terminology, start with [GLOSSARY.md](GLOSSARY.md).
 - System architecture and boundaries: [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md)
 - Database-agnostic backend and ports strategy: [BACKEND_DB_AGNOSTIC_REFACTOR.md](BACKEND_DB_AGNOSTIC_REFACTOR.md)
 - Developer onboarding and coding patterns: [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)
+- Route design, wiring, and test checklist: [ROUTE_IMPLEMENTATION_GUIDE.md](ROUTE_IMPLEMENTATION_GUIDE.md)
 - API usage and contracts: [API_REFERENCE.md](API_REFERENCE.md)
 - Clinical/user-facing UI behavior: [UI_USER_GUIDE.md](UI_USER_GUIDE.md)
 - Security controls and access model: [SECURITY_MODEL.md](SECURITY_MODEL.md)

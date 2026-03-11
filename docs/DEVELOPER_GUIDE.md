@@ -16,6 +16,7 @@ For shared terminology, see [GLOSSARY.md](GLOSSARY.md).
 - Data model: [DATA_MODEL.md](DATA_MODEL.md)
 - Testing policy: [TESTING_STRATEGY.md](TESTING_STRATEGY.md)
 - Extension procedures: [EXTENSION_PLAYBOOK.md](EXTENSION_PLAYBOOK.md)
+- Route implementation workflow: [ROUTE_IMPLEMENTATION_GUIDE.md](ROUTE_IMPLEMENTATION_GUIDE.md)
 - Deployment: [DEPLOYMENT_AND_OPERATIONS.md](DEPLOYMENT_AND_OPERATIONS.md)
 
 ---
