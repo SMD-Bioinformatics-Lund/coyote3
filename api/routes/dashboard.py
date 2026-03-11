@@ -5,24 +5,36 @@ from time import perf_counter
 
 from fastapi import Depends
 
-from api.extensions import store, util
+from api.extensions import util
 from api.app import app
+from api.core.dashboard.ports import DashboardRepository
 from api.contracts.dashboard import DashboardSummaryPayload
+from api.infra.repositories.dashboard_mongo import MongoDashboardRepository
 from api.security.access import ApiUser, require_access
+
+
+_dashboard_repo_instance: DashboardRepository | None = None
+
+
+def _dashboard_repo() -> DashboardRepository:
+    global _dashboard_repo_instance
+    if _dashboard_repo_instance is None:
+        _dashboard_repo_instance = MongoDashboardRepository()
+    return _dashboard_repo_instance
 
 
 def _build_capacity_counts() -> dict:
     return {
-        "users_total": int(store.user_handler.count_users()),
-        "roles_total": int(store.roles_handler.count_roles()),
-        "asps_total": int(store.asp_handler.count_asps()),
-        "aspcs_total": int(store.aspc_handler.count_aspcs()),
-        "isgl_total": int(store.isgl_handler.count_isgls()),
+        "users_total": _dashboard_repo().count_users(),
+        "roles_total": _dashboard_repo().count_roles(),
+        "asps_total": _dashboard_repo().count_asps(),
+        "aspcs_total": _dashboard_repo().count_aspcs(),
+        "isgl_total": _dashboard_repo().count_isgls(),
     }
 
 
 def _build_isgl_visibility(isgls: list[dict] | None = None) -> dict:
-    rows = isgls if isinstance(isgls, list) else (store.isgl_handler.get_all_isgl() or [])
+    rows = isgls if isinstance(isgls, list) else (_dashboard_repo().get_all_isgl() or [])
     public_total = 0
     private_total = 0
     adhoc_total = 0
@@ -92,8 +104,8 @@ def _build_isgl_visibility(isgls: list[dict] | None = None) -> dict:
 
 
 def _build_admin_insights() -> dict:
-    users = store.user_handler.get_all_users() or []
-    isgls = store.isgl_handler.get_all_isgl() or []
+    users = _dashboard_repo().get_all_users() or []
+    isgls = _dashboard_repo().get_all_isgl() or []
 
     role_user_counts: dict[str, int] = {}
     profession_role_matrix: dict[str, dict[str, int]] = {}
@@ -116,9 +128,9 @@ def _build_admin_insights() -> dict:
             profession_role_matrix[profession].get(role, 0) + 1
         )
 
-    active_roles = int(store.roles_handler.count_roles(is_active=True))
-    active_asps = int(store.asp_handler.count_asps(is_active=True))
-    active_aspcs = int(store.aspc_handler.count_aspcs(is_active=True))
+    active_roles = _dashboard_repo().count_roles(is_active=True)
+    active_asps = _dashboard_repo().count_asps(is_active=True)
+    active_aspcs = _dashboard_repo().count_aspcs(is_active=True)
 
     isgl_total = 0
     isgl_active = 0
@@ -131,11 +143,11 @@ def _build_admin_insights() -> dict:
         "counts": {
             "users_total": len(users),
             "users_active": active_users,
-            "roles_total": int(store.roles_handler.count_roles()),
+            "roles_total": _dashboard_repo().count_roles(),
             "roles_active": active_roles,
-            "asps_total": int(store.asp_handler.count_asps()),
+            "asps_total": _dashboard_repo().count_asps(),
             "asps_active": active_asps,
-            "aspcs_total": int(store.aspc_handler.count_aspcs()),
+            "aspcs_total": _dashboard_repo().count_aspcs(),
             "aspcs_active": active_aspcs,
             "isgl_total": isgl_total,
             "isgl_active": isgl_active,
@@ -157,7 +169,7 @@ def _resolve_dashboard_scope_assays(user: ApiUser) -> list[str] | None:
     """
     fresh_user_doc = {}
     try:
-        fresh_user_doc = store.user_handler.user_with_id(str(user.id)) or {}
+        fresh_user_doc = _dashboard_repo().get_user_by_id(str(user.id)) or {}
     except Exception:
         fresh_user_doc = {}
 
@@ -178,7 +190,7 @@ def _resolve_dashboard_scope_assays(user: ApiUser) -> list[str] | None:
         return []
 
     effective_assays = set(user_assays)
-    for asp in store.asp_handler.get_all_asps(is_active=True):
+    for asp in _dashboard_repo().get_all_active_asps():
         asp_id = str(asp.get("_id") or "").strip()
         asp_group = str(asp.get("asp_group") or "").strip()
         assay_name = str(asp.get("assay_name") or "").strip()
@@ -210,28 +222,28 @@ def dashboard_summary(user: ApiUser = Depends(require_access())):
 
     sample_rollup_global = _timed(
         "sample_rollup_global",
-        lambda: store.sample_handler.get_dashboard_sample_rollup(assays=None),
+        lambda: _dashboard_repo().get_dashboard_sample_rollup(assays=None),
     )
     sample_rollup_scoped = _timed(
         "sample_rollup_scoped",
-        lambda: store.sample_handler.get_dashboard_sample_rollup(assays=scope_assays),
+        lambda: _dashboard_repo().get_dashboard_sample_rollup(assays=scope_assays),
     )
 
     variant_rollup = _timed(
         "variant_rollup",
-        lambda: store.variant_handler.get_dashboard_variant_counts(),
+        lambda: _dashboard_repo().get_dashboard_variant_counts(),
     )
-    total_cnvs = _timed("cnv_total", lambda: store.cnv_handler.get_total_cnv_count())
-    total_translocs = _timed("transloc_total", lambda: store.transloc_handler.get_total_transloc_count())
-    total_fusions = _timed("fusion_total", lambda: store.fusion_handler.get_total_fusion_count())
+    total_cnvs = _timed("cnv_total", lambda: _dashboard_repo().get_total_cnv_count())
+    total_translocs = _timed("transloc_total", lambda: _dashboard_repo().get_total_transloc_count())
+    total_fusions = _timed("fusion_total", lambda: _dashboard_repo().get_total_fusion_count())
     total_blacklisted = _timed(
         "blacklist_unique",
-        lambda: store.blacklist_handler.get_unique_blacklist_count(),
+        lambda: _dashboard_repo().get_unique_blacklist_count(),
     )
 
     tier_stats = _timed(
         "reported_tier_stats",
-        lambda: store.reported_variants_handler.get_dashboard_tier_stats(),
+        lambda: _dashboard_repo().get_dashboard_tier_stats(),
     )
 
     # Global counters are visible to every logged-in user.
@@ -252,8 +264,8 @@ def dashboard_summary(user: ApiUser = Depends(require_access())):
         "fps": int(variant_rollup.get("fps", 0) or 0),
     }
 
-    unique_gene_count_all_panels = store.asp_handler.get_all_asps_unique_gene_count()
-    asp_gene_counts = store.asp_handler.get_all_asp_gene_counts()
+    unique_gene_count_all_panels = _dashboard_repo().get_all_asps_unique_gene_count()
+    asp_gene_counts = _dashboard_repo().get_all_asp_gene_counts()
     asp_gene_counts = util.dashboard.format_asp_gene_stats(deepcopy(asp_gene_counts))
 
     analysed_rate = round((analysed_samples_count / total_samples_count) * 100, 2) if total_samples_count else 0.0
@@ -302,3 +314,4 @@ def dashboard_admin_insights(
     user: ApiUser = Depends(require_access(min_role="admin", min_level=99999)),
 ):
     return util.common.convert_to_serializable(_build_admin_insights())
+

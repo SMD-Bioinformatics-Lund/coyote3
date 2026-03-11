@@ -16,9 +16,21 @@ from api.contracts.home import (
     HomeReportContextPayload,
     HomeSamplesPayload,
 )
-from api.extensions import store, util
+from api.core.home.ports import HomeRepository
+from api.extensions import util
+from api.infra.repositories.home_mongo import MongoHomeRepository
 from api.runtime import app as runtime_app
 from api.security.access import ApiUser, _get_sample_for_api, require_access
+
+
+_home_repo_instance: HomeRepository | None = None
+
+
+def _home_repo() -> HomeRepository:
+    global _home_repo_instance
+    if _home_repo_instance is None:
+        _home_repo_instance = MongoHomeRepository()
+    return _home_repo_instance
 
 
 @app.get("/api/v1/home/samples", response_model=HomeSamplesPayload)
@@ -72,7 +84,7 @@ def home_samples_read(
     done_limit = None if search_applied else done_fetch_limit
     if not search_applied and limit_done_samples:
         done_limit = min(done_fetch_limit, limit_done_samples + 1)
-    done_samples = store.sample_handler.get_samples(
+    done_samples = _home_repo().get_samples(
         user_assays=accessible_assays,
         user_envs=query_envs,
         status="done",
@@ -87,7 +99,7 @@ def home_samples_read(
         has_next_done = True
         done_samples = done_samples[:done_per_page]
 
-    live_samples = store.sample_handler.get_samples(
+    live_samples = _home_repo().get_samples(
         user_assays=accessible_assays,
         status="live",
         user_envs=query_envs,
@@ -139,7 +151,7 @@ def home_isgls_read(
 ):
     sample = _get_sample_for_api(sample_id, user)
     query = {"asp_name": sample.get("assay"), "is_active": True}
-    isgls = store.isgl_handler.get_isgl_by_asp(**query)
+    isgls = _home_repo().get_isgl_by_asp(**query)
     items = [
         {
             "_id": str(gl["_id"]),
@@ -163,9 +175,9 @@ def home_effective_genes_read(
     sample = _get_sample_for_api(sample_id, user)
     filters = sample.get("filters", {})
     assay = sample.get("assay")
-    asp = store.asp_handler.get_asp(assay)
+    asp = _home_repo().get_asp(assay)
     asp_group = asp.get("asp_group")
-    asp_covered_genes, _asp_germline_genes = store.asp_handler.get_asp_genes(assay)
+    asp_covered_genes, _asp_germline_genes = _home_repo().get_asp_genes(assay)
 
     effective_genes = set(asp_covered_genes)
     adhoc_genes = set(filters.get("adhoc_genes", {}).get("genes", []))
@@ -173,7 +185,7 @@ def home_effective_genes_read(
 
     genelists = filters.get("genelists", [])
     if genelists:
-        isgls = store.isgl_handler.get_isgl_by_ids(genelists)
+        isgls = _home_repo().get_isgl_by_ids(genelists)
         for _gl_key, gl_values in isgls.items():
             isgl_genes.update(gl_values.get("genes", []))
 
@@ -195,24 +207,24 @@ def home_edit_context_read(
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
 ):
     sample = _get_sample_for_api(sample_id, user)
-    asp = store.asp_handler.get_asp(sample.get("assay"))
+    asp = _home_repo().get_asp(sample.get("assay"))
     asp_group = asp.get("asp_group")
 
     if sample.get("filters") is None:
         assay_config = _get_formatted_assay_config(sample)
-        store.sample_handler.reset_sample_settings(sample.get("_id"), assay_config.get("filters"))
-        sample = store.sample_handler.get_sample(sample_id)
+        _home_repo().reset_sample_settings(sample.get("_id"), assay_config.get("filters"))
+        sample = _home_repo().get_sample(sample_id)
 
     filters = sample.get("filters", {})
     assay = sample.get("assay")
-    asp_covered_genes, _asp_germline_genes = store.asp_handler.get_asp_genes(assay)
+    asp_covered_genes, _asp_germline_genes = _home_repo().get_asp_genes(assay)
     effective_genes = set(asp_covered_genes)
 
     adhoc_genes = set(filters.get("adhoc_genes", {}).get("genes", []))
     isgl_genes: set[str] = set()
     genelists = filters.get("genelists", [])
     if genelists:
-        isgls = store.isgl_handler.get_isgl_by_ids(genelists)
+        isgls = _home_repo().get_isgl_by_ids(genelists)
         for _gl_key, gl_values in isgls.items():
             isgl_genes.update(gl_values.get("genes", []))
     filter_genes = adhoc_genes.union(isgl_genes) if adhoc_genes or isgl_genes else set()
@@ -223,13 +235,13 @@ def home_edit_context_read(
         effective_genes = deepcopy(filter_genes)
     effective_genes = sorted(effective_genes)
 
-    variant_stats_raw = store.variant_handler.get_variant_stats(str(sample.get("_id")))
+    variant_stats_raw = _home_repo().get_variant_stats(str(sample.get("_id")))
     if (
         effective_genes
         and variant_stats_raw
         and (len(effective_genes) < len(asp_covered_genes) or asp_group in ["tumwgs", "wts"])
     ):
-        variant_stats_filtered = store.variant_handler.get_variant_stats(
+        variant_stats_filtered = _home_repo().get_variant_stats(
             str(sample.get("_id")), genes=effective_genes
         )
     else:
@@ -259,7 +271,7 @@ def home_apply_isgl_mutation(
     if not isinstance(isgl_ids, list):
         raise _api_error(400, "Invalid isgl_ids payload")
     filters["genelists"] = list(deepcopy(isgl_ids))
-    store.sample_handler.update_sample_filters(sample.get("_id"), filters)
+    _home_repo().update_sample_filters(sample.get("_id"), filters)
     return util.common.convert_to_serializable(
         {"status": "ok", "sample_id": sample_id, "action": "apply_isgl", "isgl_ids": isgl_ids}
     )
@@ -281,7 +293,7 @@ def home_save_adhoc_genes_mutation(
 
     filters = sample.get("filters", {})
     filters["adhoc_genes"] = {"label": label, "genes": genes}
-    store.sample_handler.update_sample_filters(sample.get("_id"), filters)
+    _home_repo().update_sample_filters(sample.get("_id"), filters)
     return util.common.convert_to_serializable(
         {
             "status": "ok",
@@ -303,7 +315,7 @@ def home_clear_adhoc_genes_mutation(
     sample = _get_sample_for_api(sample_id, user)
     filters = sample.get("filters", {})
     filters.pop("adhoc_genes", None)
-    store.sample_handler.update_sample_filters(sample.get("_id"), filters)
+    _home_repo().update_sample_filters(sample.get("_id"), filters)
     return util.common.convert_to_serializable(
         {"status": "ok", "sample_id": sample_id, "action": "clear_adhoc_genes"}
     )
@@ -319,7 +331,7 @@ def home_report_context_read(
     user: ApiUser = Depends(require_access(permission="view_reports", min_role="admin")),
 ):
     sample = _get_sample_for_api(sample_id, user)
-    report = store.sample_handler.get_report(sample_id, report_id)
+    report = _home_repo().get_report(sample_id, report_id)
     report_name = report.get("report_name")
     filepath = report.get("filepath")
 
@@ -338,3 +350,4 @@ def home_report_context_read(
             "filepath": filepath,
         }
     )
+
