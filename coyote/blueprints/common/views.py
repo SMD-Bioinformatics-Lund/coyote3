@@ -83,7 +83,7 @@ def hide_sample_comment(sample_id: str) -> Response:
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
     else:
         app.logger.info(
-            f"Unrecognized omics type {sample["name"]}! Unable to redirect to the sample page"
+            f"Unrecognized omics type {sample['name']}! Unable to redirect to the sample page"
         )
         flash("Unrecognized omics type! Unable to redirect to the sample page", "red")
         return redirect(url_for("home_bp.samples_home"))
@@ -111,10 +111,155 @@ def unhide_sample_comment(sample_id: str) -> Response:
         return redirect(url_for("rna_bp.list_fusions", id=sample_id))
     else:
         app.logger.info(
-            f"Unrecognized omics type {sample["name"]}! Unable to redirect to the sample page"
+            f"Unrecognized omics type {sample['name']}! Unable to redirect to the sample page"
         )
         flash("Unrecognized omics type! Unable to redirect to the sample page", "red")
         return redirect(url_for("home_bp.samples_home"))
+
+
+@common_bp.route(
+    "/dna/<string:sample_id>/var/<string:var_id>/classify",
+    methods=["POST"],
+    endpoint="classify_variant",
+)
+@common_bp.route(
+    "/dna/<string:sample_id>/fus/<string:fus_id>/classify",
+    methods=["POST"],
+    endpoint="classify_fusion",
+)
+@require(permission="assign_tier", min_role="manager", min_level=99)
+@require_sample_access("sample_id")
+def classify_variant(
+    sample_id: str, var_id: str | None = None, fus_id: str | None = None
+) -> Response:
+    """
+    Classify a DNA variant or RNA fusion from shared form payload.
+    """
+    if request.endpoint == "common_bp.classify_variant":
+        id = var_id or request.view_args.get("var_id")
+    elif request.endpoint == "common_bp.classify_fusion":
+        id = fus_id or request.view_args.get("fus_id")
+    else:
+        id = var_id or fus_id
+
+    form_data = request.form.to_dict()
+    class_num = util.common.get_tier_classification(form_data)
+    nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
+    if class_num != 0:
+        store.annotation_handler.insert_classified_variant(
+            variant, nomenclature, class_num, form_data
+        )
+
+    if nomenclature == "f":
+        return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=id))
+
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=id))
+
+
+@common_bp.route(
+    "/dna/<string:sample_id>/var/<string:var_id>/rmclassify",
+    methods=["POST"],
+    endpoint="remove_classified_variant",
+)
+@common_bp.route(
+    "/dna/<string:sample_id>/fus/<string:fus_id>/rmclassify",
+    methods=["POST"],
+    endpoint="remove_classified_fusion",
+)
+@require(permission="remove_tier", min_role="admin")
+@require_sample_access("sample_id")
+def remove_classified_variant(
+    sample_id: str, var_id: str | None = None, fus_id: str | None = None
+) -> Response:
+    """
+    Remove a classified DNA variant or RNA fusion.
+    """
+    if request.endpoint == "common_bp.remove_classified_variant":
+        id = var_id or request.view_args.get("var_id")
+    elif request.endpoint == "common_bp.remove_classified_fusion":
+        id = fus_id or request.view_args.get("fus_id")
+    else:
+        id = var_id or fus_id
+    form_data = request.form.to_dict()
+    nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
+
+    delete_result = store.annotation_handler.delete_classified_variant(
+        variant, nomenclature, form_data
+    )
+    app.logger.debug(delete_result)
+    if nomenclature == "f":
+        return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=id))
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=id))
+
+
+@common_bp.route(
+    "/dna/<string:sample_id>/var/<string:var_id>/add_variant_comment",
+    methods=["POST"],
+    endpoint="add_variant_comment",
+)
+@common_bp.route(
+    "/dna/<string:sample_id>/cnv/<string:cnv_id>/add_cnv_comment",
+    methods=["POST"],
+    endpoint="add_cnv_comment",
+)
+@common_bp.route(
+    "/dna/<string:sample_id>/fusion/<string:fus_id>/add_fusion_comment",
+    methods=["POST"],
+    endpoint="add_fusion_comment",
+)
+@common_bp.route(
+    "/dna/<string:sample_id>/translocation/<string:transloc_id>/add_translocation_comment",
+    methods=["POST"],
+    endpoint="add_translocation_comment",
+)
+@require("add_variant_comment", min_role="user", min_level=9)
+@require_sample_access("sample_id")
+def add_var_comment(
+    sample_id: str,
+    var_id: str | None = None,
+    cnv_id: str | None = None,
+    fus_id: str | None = None,
+    transloc_id: str | None = None,
+) -> Response | str:
+    """
+    Add a comment to a variant, CNV, fusion, or translocation.
+    """
+    id = (
+        var_id
+        or cnv_id
+        or fus_id
+        or transloc_id
+        or request.view_args.get("var_id")
+        or request.view_args.get("cnv_id")
+        or request.view_args.get("fus_id")
+        or request.view_args.get("transloc_id")
+    )
+
+    form_data = request.form.to_dict()
+    nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
+    doc = util.bpcommon.create_comment_doc(form_data, nomenclature=nomenclature, variant=variant)
+    _type = form_data.get("global", None)
+    if _type == "global":
+        store.annotation_handler.add_anno_comment(doc)
+        flash("Global comment added", "green")
+
+    if nomenclature == "f":
+        if _type != "global":
+            store.fusion_handler.add_fusion_comment(id, doc)
+        return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=id))
+    elif nomenclature == "t":
+        if _type != "global":
+            store.transloc_handler.add_transloc_comment(id, doc)
+        return redirect(url_for("dna_bp.show_transloc", sample_id=sample_id, transloc_id=id))
+    elif nomenclature == "cn":
+        if _type != "global":
+            store.cnv_handler.add_cnv_comment(id, doc)
+        return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=id))
+    else:
+        if _type != "global":
+            store.variant_handler.add_var_comment(id, doc)
+
+    return redirect(url_for("dna_bp.show_variant", sample_id=sample_id, var_id=id))
 
 
 @common_bp.route("/<string:sample_id>/<string:sample_assay>/genes", methods=["POST"])

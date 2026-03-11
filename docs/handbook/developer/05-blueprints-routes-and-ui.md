@@ -41,7 +41,7 @@ Primary responsibilities:
 
 - DNA case list and filter workflow
 - SNV/CNV/translocation detail actions
-- variant classification and flags
+- variant flagging actions
 - DNA report preview and save
 
 Key routes:
@@ -80,6 +80,8 @@ Module:
 Primary responsibilities:
 
 - sample comment actions shared by DNA/RNA
+- shared classify/remove-classify handlers for DNA variants and RNA fusions
+- shared variant/CNV/fusion/translocation comment handlers
 - gene information pages
 - tiered interpretation search views
 - reported-variant history views
@@ -87,6 +89,14 @@ Primary responsibilities:
 Key routes:
 
 - `/sample/<sample_id>/sample_comment`
+- `/dna/<sample_id>/var/<var_id>/classify`
+- `/dna/<sample_id>/fus/<fus_id>/classify`
+- `/dna/<sample_id>/var/<var_id>/rmclassify`
+- `/dna/<sample_id>/fus/<fus_id>/rmclassify`
+- `/dna/<sample_id>/var/<var_id>/add_variant_comment`
+- `/dna/<sample_id>/cnv/<cnv_id>/add_cnv_comment`
+- `/dna/<sample_id>/fusion/<fus_id>/add_fusion_comment`
+- `/dna/<sample_id>/translocation/<transloc_id>/add_translocation_comment`
 - `/search/tiered_variants`
 - `/reported_variants/variant/<variant_id>/<tier>`
 

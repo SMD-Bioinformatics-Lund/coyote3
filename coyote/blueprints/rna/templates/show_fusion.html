@@ -102,7 +102,7 @@
         </h2>
         <div class="flex flex-wrap items-center justify-end">
           <!-- Tier Buttons -->
-          <form action="{{ url_for('dna_bp.classify_fusion', sample_id=sample.name, fus_id=fusion._id) }}" method="post">
+          <form action="{{ url_for('common_bp.classify_fusion', sample_id=sample.name, fus_id=fusion._id) }}" method="post">
             <input type="hidden" name="assay_group" value="{{ assay_group }}">
             <input type="hidden" name="subpanel" value="{{ subpanel }}">
             <input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
@@ -172,7 +172,7 @@
 
           <!-- Remove Tier Info -->
           {% if latest_classification.class != 999 %}
-          <form id="form" action="{{ url_for('dna_bp.remove_classified_variant', sample_id=sample.name ,fus_id=fusion._id) }}" method="post" class="inline-flex items-center space-x-2" >
+          <form id="form" action="{{ url_for('common_bp.remove_classified_fusion', sample_id=sample.name ,fus_id=fusion._id) }}" method="post" class="inline-flex items-center space-x-2" >
             <input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
             <input type="hidden" name="gene2" value="{{ fusion.gene2 }}">
             <input type="hidden" name="fusionpoints" value="{{sel_fus.breakpoint1}}^{{sel_fus.breakpoint2}}">
@@ -304,7 +304,7 @@
           <div class="bg-transparent min-w-[400px] w-full max-w-xl" id="commenting-box-card">
             <h2 class="text-sm font-semibold bg-gradient-to-b from-indigo-400 to-indigo-200 p-2 shadow-md rounded-t-lg break-all">Add new comment/annotation</h2>
             <div id="commenting_box" class="rounded-b-lg border border-gray-400 shadow-md p-2 overflow-x-auto">
-              <form action="{{ url_for('dna_bp.add_fusion_comment', sample_id=sample.name, fus_id=fusion._id) }}" method="post">
+              <form action="{{ url_for('common_bp.add_fusion_comment', sample_id=sample.name, fus_id=fusion._id) }}" method="post">
                 <textarea id="comment_textarea" name="text" placeholder="Enter fusion comment/annotation..." class="h-40 w-full p-2 border border-gray-300 rounded-lg focus:bg-yellow-50 mb-4"></textarea><br>
                 <input type="hidden" name="gene1" value="{{ fusion.gene1 }}">
                 <input type="hidden" name="gene2" value="{{ fusion.gene2 }}">

@@ -6,6 +6,7 @@
 - Fixed development Tailwind watcher stability in Docker by running `npm run dev:css -- --watch=always` in `coyote3_dev_tailwind` to prevent restart loops and stale CSS.
 - Fixed DNA variant sidebar CNV ratio filter inputs to render as numeric controls (`type="number"`, `step="0.1"`), enabling proper decimal stepping/validation for gain/loss cutoffs.
 - Fixed DNA/RNA classify/remove-classify/comment action handlers to accept explicit Flask route kwargs (`var_id`, `fus_id`, `cnv_id`, `transloc_id`) and avoid `unexpected keyword argument` errors from multi-route endpoints.
+- Moved shared classify/remove-classify/comment routes from `dna_bp` to `common_bp` (keeping existing `/dna/...` URL paths), and updated DNA/RNA templates to call `common_bp` endpoints.
 
 
 ## v3.1.21
