@@ -360,7 +360,7 @@
         <div class="bg-gray-50 w-full max-w-xl shadow-md rounded-lg mb-1" id="transloc-sample-data">
           <h2 class="text-sm font-semibold bg-gradient-to-b from-blue-400 to-blue-200 p-2 shadow-md rounded-t-lg break-all">Sample-Specific Data</h2>
           <div class="rounded-b-lg overflow-x-auto">
-            {% if tl.comments|length > 0 %}
+            {% if tl.GT|length > 0 %}
               <table class="w-full max-w-xl table-auto text-xs text-gray-800">
                 <thead class="capitalize tracking-wide rounded-t-lg bg-blue-100">
                   <tr class="border-b text-left border-gray-800">
@@ -388,7 +388,7 @@
                       {% set SR_sum = SR[0]|int+SR[1]|int %}
                     {% endif %}
                     <tr class="hover:bg-blue-100 border-t border-gray-400 text-left align-top">
-                      <td class="p-2">{{gt.sample}}</td>
+                      <td class="p-2">{{gt._sample_id}}</td>
                       {% if gt.PR %}
                         <td class="p-2">{{PR[1]}}/{{PR_sum}}</td>
                         <td class="p-2">{{(100*PR[1]|float/PR_sum|float)|round(2)}}</td>

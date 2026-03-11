@@ -1,12 +1,15 @@
 # Changelog
 
-## v3.1.22
+## v3.2.0
 - Changed the headers in the reports for CNVs (Kliniskt relevanta genspecifika kopietalsförändringar) and Fusions (removed DNA in the name), diagnosis is fixed as 'Solid tumör' for solid tumors.
 - Fixed ASPC Create/Edit numeric input step handling: float fields now use `step="0.1"` (including CNV gain/loss ratio fields) and int fields use `step="1"`, so decimal CNV ratio values save correctly.
 - Fixed development Tailwind watcher stability in Docker by running `npm run dev:css -- --watch=always` in `coyote3_dev_tailwind` to prevent restart loops and stale CSS.
 - Fixed DNA variant sidebar CNV ratio filter inputs to render as numeric controls (`type="number"`, `step="0.1"`), enabling proper decimal stepping/validation for gain/loss cutoffs.
 - Fixed DNA/RNA classify/remove-classify/comment action handlers to accept explicit Flask route kwargs (`var_id`, `fus_id`, `cnv_id`, `transloc_id`) and avoid `unexpected keyword argument` errors from multi-route endpoints.
 - Moved shared classify/remove-classify/comment routes from `dna_bp` to `common_bp` (keeping existing `/dna/...` URL paths), and updated DNA/RNA templates to call `common_bp` endpoints.
+- RNA: Updated fusion detail views to use shared `common_bp` endpoints for classify, remove-tier, and add-comment flows.
+- RNA: Fixed legacy fusion template action URLs to pass correct route params (`sample_id`, `fus_id`) for shared handlers.
+- Fixed TumWGS translocation Sample-Specific Data rendering by iterating on `tl.GT` and using `_sample_id`, restoring per-sample values in the detail table.
 
 
 ## v3.1.21
