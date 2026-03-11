@@ -31,7 +31,7 @@ For production, planned changes should be performed in approved windows with rol
 Coyote3 baseline runtime uses Docker containers for service separation and deployment consistency. Core runtime units are:
 - `web` (Flask UI)
 - `api` (FastAPI backend)
-- `mongo` (MongoDB 3.4-compatible runtime)
+- `mongo` (MongoDB 7.x container runtime)
 - optional ingress/reverse proxy, monitoring agents, and log collectors
 
 Repository deployment assets:
@@ -98,7 +98,7 @@ services:
       - coyote_net
 
   mongo:
-    image: mongo:3.4
+    image: mongo:7.0
     container_name: coyote3_mongo
     restart: unless-stopped
     volumes:
@@ -118,6 +118,8 @@ networks:
 This layout is an example baseline. Production organizations may use orchestrators or managed services while preserving the same service boundary principles.
 
 When using this repository directly, prefer the checked-in compose files under `deploy/compose/` and wrapper script `scripts/compose-with-version.sh`.
+For dev and portable environments, use the dedicated runtime guide:
+- `docs/MONGO_DOCKER_DEV_RUNTIME.md`
 
 ---
 

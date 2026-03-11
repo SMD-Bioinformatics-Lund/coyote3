@@ -208,6 +208,9 @@ Non-deterministic override order can produce unpredictable authorization outcome
 ## 8. Session Management Model
 Session management defines identity continuity between requests and controls exposure to session abuse.
 
+Detailed runtime auth mode documentation (LDAP vs local allowlist, internal token usage, measured dev stats) is maintained in:
+- `docs/AUTH_LOGIN_MODEL_AND_STATS.md`
+
 ## 8.1 Session lifecycle
 1. Login endpoint validates credentials.
 2. Session token/cookie issued.

@@ -15,12 +15,15 @@ For shared terminology, start with [GLOSSARY.md](GLOSSARY.md).
 
 ## How To Navigate
 - System architecture and boundaries: [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md)
+- Database-agnostic backend and ports strategy: [BACKEND_DB_AGNOSTIC_REFACTOR.md](BACKEND_DB_AGNOSTIC_REFACTOR.md)
 - Developer onboarding and coding patterns: [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)
 - API usage and contracts: [API_REFERENCE.md](API_REFERENCE.md)
 - Clinical/user-facing UI behavior: [UI_USER_GUIDE.md](UI_USER_GUIDE.md)
 - Security controls and access model: [SECURITY_MODEL.md](SECURITY_MODEL.md)
+- Authentication/login runtime model and measured stats: [AUTH_LOGIN_MODEL_AND_STATS.md](AUTH_LOGIN_MODEL_AND_STATS.md)
 - Data architecture and document lifecycle: [DATA_MODEL.md](DATA_MODEL.md)
 - Deployment and operations: [DEPLOYMENT_AND_OPERATIONS.md](DEPLOYMENT_AND_OPERATIONS.md)
+- Dev/portable Mongo Docker runtime and snapshot workflow: [MONGO_DOCKER_DEV_RUNTIME.md](MONGO_DOCKER_DEV_RUNTIME.md)
 - Testing policy and quality gates: [TESTING_STRATEGY.md](TESTING_STRATEGY.md)
 - Safe extension workflows: [EXTENSION_PLAYBOOK.md](EXTENSION_PLAYBOOK.md)
 
