@@ -199,21 +199,19 @@
 {% endif %}
 
 <!-- DNA Fusions Summary -->
-{% if "TRANSLOCATION" in report_sections %}
-  {% set transloc = report_sections_data.translocs %}
+{% if "TRANSLOCATION" in report_sections or "FUSION" in report_sections %}
+  {% set transloc = report_sections_data.get("translocs", report_sections_data.get("fusions", [])) %}
   <span class="report_header">Kliniskt relevanta fusioner</span>
   <table class="variant_table">
     <tr>
-      <th>Gen 1</th>
-      <th>Gen 2</th>
+      <th>Gener</th>
       <th>HGVS.p</th>
     </tr>
-    {% for tl in translocs %}
+    {% for tl in transloc %}
       {% set sel_ann = tl.INFO.MANE_ANN or tl.INFO.ANN[0] %}
       {% set genes = sel_ann.Gene_Name.split('&') %}
       <tr>
-        <td>{{ genes[0] }}</td>
-        <td>{{ genes[1] }}</td>
+        <td>{{ genes[0] }}::{{ genes[1] }}</td>
         <td>{{ sel_ann.HGVSp|unesc }}</td>
       </tr>
     {% else %}

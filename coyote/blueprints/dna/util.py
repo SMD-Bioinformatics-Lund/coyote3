@@ -714,7 +714,12 @@ class DNAUtility:
             )
 
         if "FUSION" in report_sections:
-            report_sections_data["fusions"] = []
+            fusions = store.transloc_handler.get_interesting_sample_translocations(
+                sample_id=str(sample["_id"])
+            )
+            report_sections_data["fusions"] = fusions
+            # Backward-compatible alias for templates that still read translocs.
+            report_sections_data.setdefault("translocs", fusions)
 
         assay_config["reporting"]["report_header"] = CommonUtility.get_report_header(
             assay_group,

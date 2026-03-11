@@ -10,6 +10,7 @@
 - RNA: Updated fusion detail views to use shared `common_bp` endpoints for classify, remove-tier, and add-comment flows.
 - RNA: Fixed legacy fusion template action URLs to pass correct route params (`sample_id`, `fus_id`) for shared handlers.
 - Fixed TumWGS translocation Sample-Specific Data rendering by iterating on `tl.GT` and using `_sample_id`, restoring per-sample values in the detail table.
+- Fixed TumWGS DNA report fusion rendering: corrected fusion summary iteration/section handling and populated fusion report payload data so clinically relevant fusions appear in generated reports.
 
 
 ## v3.1.21
