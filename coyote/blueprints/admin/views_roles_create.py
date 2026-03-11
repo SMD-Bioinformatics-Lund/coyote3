@@ -26,7 +26,7 @@ def create_role() -> Response | str:
         flash(f"Failed to load role schema context: {exc}", "red")
         return redirect(url_for("admin_bp.list_roles"))
 
-    schema = context.schema_payload
+    schema = context.schema
     active_schemas = context.schemas
 
     if request.method == "POST":

@@ -30,7 +30,7 @@ def create_assay_panel():
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
     active_schemas = context.schemas
-    schema = context.schema_payload
+    schema = context.schema
 
     if request.method == "POST":
         form_data: dict[str, list[str] | str] = {

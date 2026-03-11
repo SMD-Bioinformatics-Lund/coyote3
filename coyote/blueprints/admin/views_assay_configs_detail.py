@@ -60,7 +60,7 @@ def edit_assay_config(assay_id: str) -> Response | str:
         return redirect(url_for("admin_bp.assay_configs"))
 
     assay_config = context.assay_config
-    schema = context.schema_payload
+    schema = context.schema
 
     selected_version = request.args.get("version", type=int)
     assay_config, delta = _apply_selected_version(assay_config, selected_version, assay_id)
@@ -126,7 +126,7 @@ def view_assay_config(assay_id: str) -> str | Response:
         return redirect(url_for("admin_bp.assay_configs"))
 
     assay_config = context.assay_config
-    schema = context.schema_payload
+    schema = context.schema
 
     selected_version = request.args.get("version", type=int)
     assay_config, delta = _apply_selected_version(assay_config, selected_version, assay_id)
@@ -148,7 +148,7 @@ def print_assay_config(assay_id: str) -> str | Response:
         return redirect(url_for("admin_bp.assay_configs"))
 
     assay_config = context.assay_config
-    schema = context.schema_payload
+    schema = context.schema
 
     selected_version = request.args.get("version", type=int)
     assay_config, _ = _apply_selected_version(

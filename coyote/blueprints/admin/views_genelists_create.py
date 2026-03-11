@@ -45,7 +45,7 @@ def create_genelist() -> Response | str:
         return redirect(url_for("admin_bp.manage_genelists"))
 
     active_schemas = context.schemas
-    schema = context.schema_payload
+    schema = context.schema
     assay_group_map = context.assay_group_map
 
     if request.method == "POST":

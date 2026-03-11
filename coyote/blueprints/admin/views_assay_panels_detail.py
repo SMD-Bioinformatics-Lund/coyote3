@@ -63,7 +63,7 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
     panel = context.panel
-    schema = context.schema_payload
+    schema = context.schema
 
     selected_version = request.args.get("version", type=int)
     panel, delta = _apply_selected_version(panel, selected_version, assay_panel_id)
@@ -140,7 +140,7 @@ def view_assay_panel(assay_panel_id: str) -> Response | str:
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
     panel = context.panel
-    schema = context.schema_payload
+    schema = context.schema
     selected_version = request.args.get("version", type=int)
     panel, delta = _apply_selected_version(panel, selected_version, assay_panel_id)
 
@@ -161,7 +161,7 @@ def print_assay_panel(panel_id: str) -> str | Response:
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
     panel = context.panel
-    schema = context.schema_payload
+    schema = context.schema
 
     selected_version = request.args.get("version", type=int)
     panel, _ = _apply_selected_version(panel, selected_version, panel_id, keep_version=True)

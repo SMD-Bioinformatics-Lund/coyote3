@@ -50,7 +50,7 @@ def edit_role(role_id: str) -> Response | str:
         return redirect(url_for("admin_bp.list_roles"))
 
     role = context.role
-    schema = context.schema_payload
+    schema = context.schema
     selected_version = request.args.get("version", type=int)
     role, delta = _apply_selected_version(role, selected_version, role_id)
 
@@ -95,7 +95,7 @@ def view_role(role_id: str) -> Response | str:
         return redirect(url_for("admin_bp.list_roles"))
 
     role = context.role
-    schema = context.schema_payload
+    schema = context.schema
     selected_version = request.args.get("version", type=int)
     role, delta = _apply_selected_version(role, selected_version)
 

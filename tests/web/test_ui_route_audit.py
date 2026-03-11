@@ -66,7 +66,7 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
     def _payload(value: dict) -> ApiPayload:
         return ApiPayload(value)
 
-    def _schema_payload(schema_id: str, field_name: str = "name") -> dict:
+    def _schema(schema_id: str, field_name: str = "name") -> dict:
         return {
             "_id": schema_id,
             "version": 1,
@@ -86,45 +86,45 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
 
     def _fake_get(self, path, headers=None, params=None):  # noqa: ARG001
         if "/admin/users/" in path and path.endswith("/context"):
-            schema = _schema_payload("schema-user", "username")
+            schema = _schema("schema-user", "username")
             return _payload(
                 {
                     "user_doc": {"_id": "user1", "username": "user1", "role": "admin"},
-                    "schema_payload": schema,
+                    "schema": schema,
                     "role_map": {"admin": {"permissions": [], "deny_permissions": []}},
                     "assay_group_map": {},
                 }
             )
         if "/admin/roles/" in path and path.endswith("/context"):
-            schema = _schema_payload("schema-role", "name")
-            return _payload({"role": {"_id": "role1", "name": "role1"}, "schema_payload": schema})
+            schema = _schema("schema-role", "name")
+            return _payload({"role": {"_id": "role1", "name": "role1"}, "schema": schema})
         if "/admin/permissions/" in path and path.endswith("/context"):
-            schema = _schema_payload("schema-perm", "permission_name")
+            schema = _schema("schema-perm", "permission_name")
             return _payload(
                 {
                     "permission": {"_id": "perm.read", "permission_name": "perm.read"},
-                    "schema_payload": schema,
+                    "schema": schema,
                 }
             )
         if "/admin/asp/" in path and path.endswith("/context"):
-            schema = _schema_payload("schema-asp", "assay_name")
+            schema = _schema("schema-asp", "assay_name")
             return _payload(
-                {"panel": {"_id": "asp1", "assay_name": "asp1"}, "schema_payload": schema}
+                {"panel": {"_id": "asp1", "assay_name": "asp1"}, "schema": schema}
             )
         if "/admin/aspc/" in path and path.endswith("/context"):
-            schema = _schema_payload("schema-aspc", "assay_name")
+            schema = _schema("schema-aspc", "assay_name")
             return _payload(
                 {
                     "assay_config": {"_id": "asp1:production", "assay_name": "asp1"},
-                    "schema_payload": schema,
+                    "schema": schema,
                 }
             )
         if "/admin/genelists/" in path and path.endswith("/context"):
-            schema = _schema_payload("schema-isgl", "name")
+            schema = _schema("schema-isgl", "name")
             return _payload(
                 {
                     "genelist": {"_id": "gl1", "name": "gl1"},
-                    "schema_payload": schema,
+                    "schema": schema,
                     "assay_group_map": {},
                 }
             )
@@ -140,7 +140,7 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
         if "/admin/samples/" in path and path.endswith("/context"):
             return _payload({"sample": {"_id": "sample1"}})
         if "/admin/schemas/" in path and path.endswith("/context"):
-            return _payload({"schema_payload": {"_id": "schema1"}})
+            return _payload({"schema": {"_id": "schema1"}})
         if path.endswith("/internal/roles/levels"):
             return _payload({"role_levels": {}})
         if path.endswith("/dashboard/summary"):
@@ -208,31 +208,31 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
         if path.endswith("/admin/permissions"):
             return _payload({"grouped_permissions": {}})
         if path.endswith("/admin/users/create_context"):
-            schema = _schema_payload("schema-user", "username")
+            schema = _schema("schema-user", "username")
             return _payload(
                 {
                     "schemas": [schema],
-                    "schema_payload": schema,
+                    "schema": schema,
                     "selected_schema": {"_id": "schema-user"},
                     "role_map": {},
                     "assay_group_map": {},
                 }
             )
         if path.endswith("/admin/roles/create_context"):
-            schema = _schema_payload("schema-role")
+            schema = _schema("schema-role")
             return _payload(
                 {
                     "schemas": [schema],
-                    "schema_payload": schema,
+                    "schema": schema,
                     "selected_schema": {"_id": "schema-role"},
                 }
             )
         if path.endswith("/admin/permissions/create_context"):
-            schema = _schema_payload("schema-perm")
+            schema = _schema("schema-perm")
             return _payload(
                 {
                     "schemas": [schema],
-                    "schema_payload": schema,
+                    "schema": schema,
                     "selected_schema": {"_id": "schema-perm"},
                 }
             )
@@ -241,22 +241,22 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
         if path.endswith("/admin/asp"):
             return _payload({"panels": []})
         if path.endswith("/admin/asp/create_context"):
-            schema = _schema_payload("schema-asp", "assay_name")
+            schema = _schema("schema-asp", "assay_name")
             return _payload(
                 {
                     "schemas": [schema],
-                    "schema_payload": schema,
+                    "schema": schema,
                     "selected_schema": {"_id": "schema-asp"},
                 }
             )
         if path.endswith("/admin/aspc"):
             return _payload({"assay_configs": []})
         if path.endswith("/admin/aspc/create_context"):
-            schema = _schema_payload("schema-aspc", "assay_name")
+            schema = _schema("schema-aspc", "assay_name")
             return _payload(
                 {
                     "schemas": [schema],
-                    "schema_payload": schema,
+                    "schema": schema,
                     "selected_schema": {"_id": "schema-aspc"},
                     "prefill_map": {},
                 }
@@ -264,11 +264,11 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
         if path.endswith("/admin/genelists"):
             return _payload({"genelists": []})
         if path.endswith("/admin/genelists/create_context"):
-            schema = _schema_payload("schema-isgl", "name")
+            schema = _schema("schema-isgl", "name")
             return _payload(
                 {
                     "schemas": [schema],
-                    "schema_payload": schema,
+                    "schema": schema,
                     "selected_schema": {"_id": "schema-isgl"},
                     "assay_group_map": {},
                 }

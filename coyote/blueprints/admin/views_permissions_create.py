@@ -27,7 +27,7 @@ def create_permission() -> Response | str:
         return redirect(url_for("admin_bp.list_permissions"))
 
     active_schemas = context.schemas
-    schema = context.schema_payload
+    schema = context.schema
 
     if request.method == "POST":
         form_data = {

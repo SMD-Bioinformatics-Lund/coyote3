@@ -62,7 +62,7 @@ def edit_schema(schema_id: str) -> str | Response:
             api_endpoints.admin("schemas", schema_id, "context"),
             headers=forward_headers(),
         )
-        schema_doc = context.schema_payload
+        schema_doc = context.schema
     except ApiRequestError as exc:
         if exc.status_code == 404:
             return abort(404)

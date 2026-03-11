@@ -32,7 +32,7 @@ def _render_create_form(category: str) -> Response | str:
         return redirect(url_for("admin_bp.assay_configs"))
 
     active_schemas = context.schemas
-    schema = context.schema_payload
+    schema = context.schema
     prefill_map = context.prefill_map
 
     if request.method == "POST":

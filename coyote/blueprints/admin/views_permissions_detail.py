@@ -52,7 +52,7 @@ def edit_permission(perm_id: str) -> Response | str:
         return redirect(url_for("admin_bp.list_permissions"))
 
     permission = context.permission
-    schema = context.schema_payload
+    schema = context.schema
     selected_version = request.args.get("version", type=int)
     permission, delta = _apply_selected_version(permission, selected_version, perm_id)
 
@@ -97,7 +97,7 @@ def view_permission(perm_id: str) -> str | Response:
         return redirect(url_for("admin_bp.list_permissions"))
 
     permission = context.permission
-    schema = context.schema_payload
+    schema = context.schema
     selected_version = request.args.get("version", type=int)
     permission, delta = _apply_selected_version(permission, selected_version)
 

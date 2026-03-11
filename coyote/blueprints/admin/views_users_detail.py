@@ -38,7 +38,7 @@ def _apply_selected_version(
 
 
 def _schema_from_context(context) -> dict:
-    schema = context.get("schema_payload") or context.get("schema")
+    schema = context.get("schema")
     if not schema:
         raise ApiRequestError("User schema payload missing in API response")
     return schema

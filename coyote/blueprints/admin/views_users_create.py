@@ -27,7 +27,7 @@ def create_user() -> Response | str:
         return redirect(url_for("admin_bp.manage_users"))
 
     active_schemas = context.schemas
-    schema = context.schema_payload
+    schema = context.schema
     role_map = context.role_map
     assay_group_map = context.assay_group_map
 

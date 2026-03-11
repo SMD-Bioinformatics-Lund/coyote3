@@ -71,7 +71,7 @@ def edit_genelist(genelist_id: str) -> Response | str:
         return redirect(url_for("admin_bp.manage_genelists"))
 
     genelist = context.genelist
-    schema = context.schema_payload
+    schema = context.schema
     assay_group_map = context.assay_group_map
 
     selected_version = request.args.get("version", type=int)
