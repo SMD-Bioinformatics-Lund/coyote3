@@ -24,6 +24,7 @@ For shared terminology, start with [GLOSSARY.md](GLOSSARY.md).
 - Authentication/login runtime model and measured stats: [AUTH_LOGIN_MODEL_AND_STATS.md](AUTH_LOGIN_MODEL_AND_STATS.md)
 - Data architecture and document lifecycle: [DATA_MODEL.md](DATA_MODEL.md)
 - Deployment and operations: [DEPLOYMENT_AND_OPERATIONS.md](DEPLOYMENT_AND_OPERATIONS.md)
+- Operations verification evidence (latest): [OPERATIONS_VERIFICATION_2026-03-11.md](OPERATIONS_VERIFICATION_2026-03-11.md)
 - Dev/portable Mongo Docker runtime and snapshot workflow: [MONGO_DOCKER_DEV_RUNTIME.md](MONGO_DOCKER_DEV_RUNTIME.md)
 - Testing policy and quality gates: [TESTING_STRATEGY.md](TESTING_STRATEGY.md)
 - Safe extension workflows: [EXTENSION_PLAYBOOK.md](EXTENSION_PLAYBOOK.md)

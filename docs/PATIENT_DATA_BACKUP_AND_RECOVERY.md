@@ -51,6 +51,17 @@ Example production-style backup:
   --label "nightly"
 ```
 
+If Mongo is reachable only inside a Docker network (common in WSL/compose):
+
+```bash
+./scripts/mongo_backup_archive.sh \
+  --mongo-uri "mongodb://coyote3_dev_mongo:27017" \
+  --db "coyote_dev_3" \
+  --out-dir ".internal/drills/mongo_backups" \
+  --label "restore-drill" \
+  --docker-network "coyote3-dev-net"
+```
+
 Output:
 - `*.archive.gz` backup archive
 - `*.archive.gz.meta` metadata containing UTC timestamp and SHA256
@@ -76,6 +87,18 @@ Example restore:
   --archive "/data/coyote3/backups/mongo/coyote3_20260311T000000Z.archive.gz" \
   --drop \
   --confirm RESTORE_PATIENT_DATA
+```
+
+For isolated drill restore into a temporary Mongo container on custom network:
+
+```bash
+./scripts/mongo_restore_archive.sh \
+  --mongo-uri "mongodb://coyote3_restore_drill_mongo:27017" \
+  --db "coyote_dev_3" \
+  --archive ".internal/drills/mongo_backups/coyote_dev_3_20260311T140633Z_restore-drill.archive.gz" \
+  --drop \
+  --confirm RESTORE_PATIENT_DATA \
+  --docker-network "coyote3-restore-net"
 ```
 
 The script blocks execution unless `--confirm RESTORE_PATIENT_DATA` is explicitly provided.
