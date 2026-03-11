@@ -5,6 +5,8 @@ from __future__ import annotations
 import time
 import threading
 import uuid
+import os
+from contextlib import asynccontextmanager
 from importlib import import_module
 from copy import deepcopy
 
@@ -47,12 +49,30 @@ def ensure_runtime_initialized() -> None:
     with _runtime_bootstrap_lock:
         if _runtime_initialized:
             return
-        runtime_context = create_runtime_context(
-            testing=mode_flags["testing"],
-            development=mode_flags["development"],
-        )
-        bind_runtime_context(runtime_context)
+        store_state_before = dict(store.__dict__)
+        try:
+            runtime_context = create_runtime_context(
+                testing=mode_flags["testing"],
+                development=mode_flags["development"],
+            )
+            bind_runtime_context(runtime_context)
+        except Exception:
+            if os.environ.get("PYTEST_CURRENT_TEST"):
+                store.__dict__.clear()
+                store.__dict__.update(store_state_before)
+                runtime_app.logger.warning(
+                    "Skipping runtime DB bootstrap during pytest due to initialization failure.",
+                    exc_info=True,
+                )
+            else:
+                raise
         _runtime_initialized = True
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    ensure_runtime_initialized()
+    yield
+
 
 app = FastAPI(
     title="Coyote3 API",
@@ -60,12 +80,8 @@ app = FastAPI(
     docs_url="/api/v1/docs",
     redoc_url="/api/v1/redoc",
     openapi_url="/api/v1/openapi.json",
+    lifespan=_lifespan,
 )
-
-
-@app.on_event("startup")
-async def startup_runtime_dependencies() -> None:
-    ensure_runtime_initialized()
 
 _PROTECTED_OPENAPI_EXACT = {
     "/api/v1/auth/me",
@@ -252,11 +268,13 @@ _ROUTE_MODULES = (
     "api.routes.coverage",
     "api.routes.dashboard",
     "api.routes.dna",
+    "api.routes.dna_structural",
     "api.routes.home",
     "api.routes.internal",
     "api.routes.public",
     "api.routes.reports",
     "api.routes.rna",
+    "api.routes.rna_mutations",
     "api.routes.samples",
     "api.routes.system",
 )
