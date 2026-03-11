@@ -58,9 +58,8 @@ Completed:
    - `roles`: canonical `role_id` path added in handler flows
    - partial unique indexes: `users.user_id`, `roles.role_id`
    - compatibility fallback to `_id` retained in adapter layer
-   - backfill scripts added:
-     - `scripts/backfill_users_user_id.py`
-     - `scripts/backfill_roles_role_id.py`
+   - backfill scripts consolidated:
+     - `scripts/backfill_business_keys.py`
 10. Collection-wide business-key rollout completed for all planned collections:
    - handler-level business-key index definitions added in `api/infra/db/*`
    - strict business-key lookup enabled for string-id collections (`users`, `roles`, `permissions`, `schemas`, `asp`, `asp_configs`, `isgl`)

@@ -87,11 +87,11 @@ Delivered for `users`:
 4. Session/auth identity:
    - auth session token and last-login updates now resolve canonical identity via `user_id` first
 5. Backfill tooling:
-   - script: `scripts/backfill_users_user_id.py`
+   - script: `scripts/backfill_business_keys.py`
    - dry-run example:
-     - `python scripts/backfill_users_user_id.py --mongo-uri mongodb://localhost:37017 --db coyote_dev_3 --dry-run`
+     - `python scripts/backfill_business_keys.py --mongo-uri mongodb://localhost:37017 --db coyote_dev_3 --dry-run`
    - apply example:
-     - `python scripts/backfill_users_user_id.py --mongo-uri mongodb://localhost:37017 --db coyote_dev_3`
+     - `python scripts/backfill_business_keys.py --mongo-uri mongodb://localhost:37017 --db coyote_dev_3`
 6. Tests:
    - `tests/api/test_auth_service.py`
    - `tests/api/routes/test_system_routes.py` (business-key session path)
@@ -107,9 +107,9 @@ Delivered for `roles`:
    - role identity normalization is lowercase to preserve existing role semantics
    - active flag mutation corrected to `is_active` (not generic `active`)
 4. Backfill tooling:
-   - script: `scripts/backfill_roles_role_id.py`
+   - script: `scripts/backfill_business_keys.py`
    - example:
-     - `python scripts/backfill_roles_role_id.py --mongo-uri mongodb://localhost:37017 --db coyote_dev_3`
+     - `python scripts/backfill_business_keys.py --mongo-uri mongodb://localhost:37017 --db coyote_dev_3`
 
 ## 10. Completed rollout: all remaining collections
 Delivered:

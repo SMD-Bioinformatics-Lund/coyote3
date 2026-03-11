@@ -51,26 +51,6 @@ def test_build_report_file_location_without_control_id_uses_case_only(monkeypatc
     assert report_file == "/reports/rna/CASE1_CC1.260303101112.html"
 
 
-def test_build_report_file_location_uses_legacy_report_folder(monkeypatch):
-    monkeypatch.setattr(report_paths, "get_report_timestamp", lambda: "260303101112")
-    sample = {
-        "case_id": "CASE1",
-        "case": {"clarity_id": "CC1"},
-    }
-    assay_config = {"reporting": {"report_folder": "legacy/reports"}}
-
-    report_id, report_path, report_file = report_paths.build_report_file_location(
-        sample=sample,
-        assay_config=assay_config,
-        default_assay_group="dna",
-        reports_base_path="/reports",
-    )
-
-    assert report_id == "CASE1_CC1.260303101112"
-    assert report_path == "/reports/legacy/reports"
-    assert report_file == "/reports/legacy/reports/CASE1_CC1.260303101112.html"
-
-
 def test_prepare_report_output_creates_directory_when_file_missing(monkeypatch):
     calls = {"makedirs": []}
 
@@ -120,15 +100,13 @@ def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypa
     )
     monkeypatch.setattr(
         pipeline,
-        "store",
-        SimpleNamespace(
+        "_core_repo",
+        lambda: SimpleNamespace(
             sample_handler=SimpleNamespace(
                 save_report=lambda **kwargs: (calls.setdefault("save_report", kwargs), "oid1")[1]
             ),
             reported_variants_handler=SimpleNamespace(
-                bulk_upsert_from_snapshot_rows=lambda **kwargs: calls.setdefault(
-                    "bulk_upsert", kwargs
-                )
+                bulk_upsert_from_snapshot_rows=lambda **kwargs: calls.setdefault("bulk_upsert", kwargs)
             ),
         ),
     )

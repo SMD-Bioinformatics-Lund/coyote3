@@ -31,7 +31,7 @@ def build_report_file_location(
         report_id = f"{case_id}_{clarity_case_id}.{report_timestamp}"
 
     reporting = assay_config.get("reporting", {}) or {}
-    report_subdir = reporting.get("report_path") or reporting.get("report_folder") or default_assay_group
+    report_subdir = reporting.get("report_path") or default_assay_group
     report_path = os.path.join(reports_base_path, report_subdir)
     report_file = os.path.join(report_path, f"{report_id}.html")
     return report_id, report_path, report_file

@@ -35,13 +35,13 @@ def validate_report_inputs(
     if not assay_config.get("asp_group"):
         _raise_contract_error(logger, "report", sample_name, "Missing assay_config.asp_group")
     reporting = assay_config.get("reporting", {}) or {}
-    report_subdir = reporting.get("report_path") or reporting.get("report_folder")
+    report_subdir = reporting.get("report_path")
     if not report_subdir:
         _raise_contract_error(
             logger,
             "report",
             sample_name,
-            "Missing assay_config.reporting.report_path (or legacy report_folder)",
+            "Missing assay_config.reporting.report_path",
         )
     if analyte not in {"dna", "rna"}:
         _raise_contract_error(logger, "report", sample_name, f"Invalid analyte value: {analyte}")

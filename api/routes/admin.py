@@ -61,20 +61,14 @@ def _admin_repo() -> MongoAdminRouteRepository:
     return _admin_repo_instance
 
 
-def _active_flag(doc: dict | None, default: bool = True) -> bool:
+def _active_flag(doc: dict | None) -> bool:
     if not isinstance(doc, dict):
-        return default
-    return bool(doc.get("is_active", default))
+        return False
+    return bool(doc.get("is_active"))
 
 
-def _with_active_default(items: list[dict], default: bool = True) -> list[dict]:
-    normalized: list[dict] = []
-    for item in items:
-        if isinstance(item, dict):
-            row = dict(item)
-            row.setdefault("is_active", default)
-            normalized.append(row)
-    return normalized
+def _as_dict_rows(items: list[dict]) -> list[dict]:
+    return [dict(item) for item in items if isinstance(item, dict)]
 
 
 def _permission_policy_options() -> list[dict]:
@@ -118,7 +112,7 @@ def list_roles_read(
         require_access(permission="view_role", min_role="admin", min_level=99999)
     ),
 ):
-    roles = _with_active_default(_admin_repo().roles_handler.get_all_roles())
+    roles = _as_dict_rows(_admin_repo().roles_handler.get_all_roles())
     return util.common.convert_to_serializable({"roles": roles})
 
 
@@ -241,7 +235,7 @@ def list_permissions_read(
         require_access(permission="view_permission_policy", min_role="admin", min_level=99999)
     ),
 ):
-    permission_policies = _with_active_default(
+    permission_policies = _as_dict_rows(
         _admin_repo().permissions_handler.get_all_permissions(is_active=False)
     )
     grouped_permissions: dict[str, list[dict]] = {}
@@ -497,7 +491,7 @@ def list_users_read(
         require_access(permission="view_user", min_role="admin", min_level=99999)
     ),
 ):
-    users = _with_active_default(_admin_repo().user_handler.get_all_users())
+    users = _as_dict_rows(_admin_repo().user_handler.get_all_users())
     roles = _admin_repo().roles_handler.get_role_colors()
     return util.common.convert_to_serializable(
         {
@@ -787,7 +781,7 @@ def create_asp_mutation(
 def list_asp_read(
     user: ApiUser = Depends(require_access(permission="view_asp", min_role="user", min_level=9)),
 ):
-    panels = _with_active_default(_admin_repo().asp_handler.get_all_asps())
+    panels = _as_dict_rows(_admin_repo().asp_handler.get_all_asps())
     return util.common.convert_to_serializable({"panels": panels})
 
 
@@ -924,7 +918,7 @@ def create_genelist_mutation(
 def list_genelists_read(
     user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
 ):
-    genelists = _with_active_default(_admin_repo().isgl_handler.get_all_isgl())
+    genelists = _as_dict_rows(_admin_repo().isgl_handler.get_all_isgl())
     return util.common.convert_to_serializable({"genelists": genelists})
 
 
@@ -1089,7 +1083,7 @@ def delete_genelist_mutation(
 def list_aspc_read(
     user: ApiUser = Depends(require_access(permission="view_aspc", min_role="user", min_level=9)),
 ):
-    assay_configs = _with_active_default(list(_admin_repo().aspc_handler.get_all_aspc()))
+    assay_configs = _as_dict_rows(list(_admin_repo().aspc_handler.get_all_aspc()))
     return util.common.convert_to_serializable({"assay_configs": assay_configs})
 
 
@@ -1356,7 +1350,7 @@ def list_schemas_read(
         require_access(permission="view_schema", min_role="developer", min_level=9999)
     ),
 ):
-    schemas = _with_active_default(list(_admin_repo().schema_handler.get_all_schemas()))
+    schemas = _as_dict_rows(list(_admin_repo().schema_handler.get_all_schemas()))
     return util.common.convert_to_serializable({"schemas": schemas})
 
 

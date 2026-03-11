@@ -28,19 +28,22 @@ def test_validate_report_inputs_accepts_valid_payload():
     )
 
 
-def test_validate_report_inputs_accepts_legacy_report_folder():
+def test_validate_report_inputs_raises_without_report_path():
     logger = _LoggerStub()
-    validate_report_inputs(
-        logger,
-        sample={
-            "name": "S1",
-            "assay": "WGS",
-            "case_id": "C1",
-            "case": {"clarity_id": "CL1"},
-        },
-        assay_config={"asp_group": "dna", "reporting": {"report_folder": "dna/reports"}},
-        analyte="dna",
-    )
+    with pytest.raises(HTTPException) as exc:
+        validate_report_inputs(
+            logger,
+            sample={
+                "name": "S1",
+                "assay": "WGS",
+                "case_id": "C1",
+                "case": {"clarity_id": "CL1"},
+            },
+            assay_config={"asp_group": "dna", "reporting": {}},
+            analyte="dna",
+        )
+    assert exc.value.status_code == 400
+    assert exc.value.detail["error"] == "Missing assay_config.reporting.report_path"
 
 
 def test_validate_report_inputs_raises_on_missing_assay():
