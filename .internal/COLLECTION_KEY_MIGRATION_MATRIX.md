@@ -24,24 +24,24 @@ High-level:
 |---|---|---|---|---|---|---|
 | Auth/Admin | users | string user identifier (mixed username/email semantics) | `user_id` | `user_id` canonical, `_id` compatibility fallback | done | done |
 | Auth/Admin | roles | string role id | `role_id` | `role_id` canonical, `_id` compatibility fallback | done | done |
-| Admin | permissions | string permission id | `permission_id` | mostly `_id` | pending | todo |
-| Admin | schemas | string schema id | `schema_id` | mostly `_id` | pending | todo |
-| Assay config | assay_specific_panels (asp) | string assay panel id | `asp_id` | mostly `_id` | pending | todo |
-| Assay config | asp_configs (aspc) | composite string key | `aspc_id` | mixed | pending | todo |
-| Gene lists | insilico_genelists (isgl) | string id with mixed semantics | `isgl_id` | mixed | pending | todo |
-| Sample workflow | samples | ObjectId dominant | `sample_id` | mixed (`_id`, sample name) | pending | todo |
-| DNA | variants | ObjectId dominant | `variant_id` | mostly `_id` refs | pending | todo |
-| DNA | cnvs | ObjectId dominant | `cnv_id` | mostly `_id` refs | pending | todo |
-| DNA | translocations | ObjectId dominant | `transloc_id` | mostly `_id` refs | pending | todo |
-| RNA | fusions | ObjectId dominant | `fusion_id` | mostly `_id` refs | pending | todo |
-| Interpretation | annotation | ObjectId dominant | `annotation_id` | mostly `_id` refs | pending | todo |
-| Reporting | reported_variants | mixed ObjectId references | `reported_variant_id` | mixed | pending | todo |
-| Coverage | group_coverage | ObjectId dominant | `group_region_id` | mostly `_id` refs | pending | todo |
-| Coverage | blacklist | ObjectId dominant | `blacklist_entry_id` | mostly `_id` refs | pending | todo |
-| Biomarkers | biomarkers | ObjectId dominant | `biomarker_id` | mostly `_id` refs | pending | todo |
-| RNA QC | rna_expression | mixed/sample keyed | `rna_expression_id` | mixed | pending | todo |
-| RNA QC | rna_classification | mixed/sample keyed | `rna_classification_id` | mixed | pending | todo |
-| RNA QC | rna_qc | mixed/sample keyed | `rna_qc_id` | mixed | pending | todo |
+| Admin | permissions | string permission id | `permission_id` | `permission_id` canonical, `_id` compatibility fallback | done | done |
+| Admin | schemas | string schema id | `schema_id` | `schema_id` canonical, `_id` compatibility fallback | done | done |
+| Assay config | assay_specific_panels (asp) | string assay panel id | `asp_id` | `asp_id` canonical, `_id` compatibility fallback | done | done |
+| Assay config | asp_configs (aspc) | composite string key | `aspc_id` | `aspc_id` canonical, `_id` compatibility fallback | done | done |
+| Gene lists | insilico_genelists (isgl) | string id with mixed semantics | `isgl_id` | `isgl_id` canonical, `_id` compatibility fallback | done | done |
+| Sample workflow | samples | ObjectId dominant | `sample_id` | `sample_id` canonical, `_id` retained as technical identity | done | done |
+| DNA | variants | ObjectId dominant | `variant_id` | `variant_id` canonical, `_id` retained as technical identity | done | done |
+| DNA | cnvs | ObjectId dominant | `cnv_id` | `cnv_id` canonical, `_id` retained as technical identity | done | done |
+| DNA | translocations | ObjectId dominant | `transloc_id` | `transloc_id` canonical, `_id` retained as technical identity | done | done |
+| RNA | fusions | ObjectId dominant | `fusion_id` | `fusion_id` canonical, `_id` retained as technical identity | done | done |
+| Interpretation | annotation | ObjectId dominant | `annotation_id` | `annotation_id` canonical, `_id` retained as technical identity | done | done |
+| Reporting | reported_variants | mixed ObjectId references | `reported_variant_id` | `reported_variant_id` canonical, `_id` retained as technical identity | done | done |
+| Coverage | group_coverage | ObjectId dominant | `group_region_id` | `group_region_id` canonical, `_id` retained as technical identity | done | done |
+| Coverage | blacklist | ObjectId dominant | `blacklist_entry_id` | `blacklist_entry_id` canonical, `_id` retained as technical identity | done | done |
+| Biomarkers | biomarkers | ObjectId dominant | `biomarker_id` | `biomarker_id` canonical (when collection exists) | done | done |
+| RNA QC | rna_expression | mixed/sample keyed | `rna_expression_id` | `rna_expression_id` canonical (when collection exists) | done | done |
+| RNA QC | rna_classification | mixed/sample keyed | `rna_classification_id` | `rna_classification_id` canonical (when collection exists) | done | done |
+| RNA QC | rna_qc | mixed/sample keyed | `rna_qc_id` | `rna_qc_id` canonical (when collection exists) | done | done |
 
 ## 5. Rollout playbook (per collection)
 1. Add business key field definition and generation rule.
@@ -111,3 +111,20 @@ Delivered for `roles`:
    - script: `scripts/backfill_roles_role_id.py`
    - example:
      - `python scripts/backfill_roles_role_id.py --mongo-uri mongodb://localhost:37017 --db coyote_dev_3`
+
+## 10. Completed rollout: all remaining collections
+Delivered:
+1. Business-key field rollout and unique partial indexes for:
+   - `permissions`, `schemas`, `assay_specific_panels`, `asp_configs`, `insilico_genelists`
+   - `samples`, `variants`, `cnvs`, `translocations`, `fusions`
+   - `annotation`, `reported_variants`, `group_coverage`, `blacklist`
+   - optional/conditional collections when present: `biomarkers`, `rna_expression`, `rna_classification`, `rna_qc`
+2. Startup-level index definitions added in handlers under `api/infra/db/*`.
+3. Bulk backfill/index script:
+   - `scripts/backfill_business_keys.py`
+4. Executed against both DBs:
+   - `coyote_dev_3`
+   - `coyote3`
+5. Alias collections included:
+   - `users_beta2`, `roles_beta2`, `permissions_beta2`, `schemas_beta2`
+   - `insilico_genelists_beta2`, `insilico_genelist_beta2`, `cnvs_wgs`, `transloc`

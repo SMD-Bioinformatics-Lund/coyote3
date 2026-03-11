@@ -50,6 +50,13 @@ class ASPHandler(BaseHandler):
         """
         col = self.get_collection()
         col.create_index(
+            [("asp_id", 1)],
+            name="asp_id_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"asp_id": {"$exists": True, "$type": "string"}},
+        )
+        col.create_index(
             [("is_active", 1), ("created_on", -1)],
             name="is_active_created_on",
             background=True,
@@ -59,6 +66,27 @@ class ASPHandler(BaseHandler):
             name="is_active_assay_name",
             background=True,
         )
+
+    @staticmethod
+    def _normalize_asp_id(asp_id: str | None) -> str | None:
+        if asp_id is None:
+            return None
+        normalized = str(asp_id).strip()
+        return normalized or None
+
+    def _asp_lookup_query(self, asp_id: str) -> dict:
+        normalized = self._normalize_asp_id(asp_id)
+        return {"$or": [{"asp_id": normalized}, {"_id": normalized}]}
+
+    def ensure_asp_id(self, data: dict) -> dict:
+        if not isinstance(data, dict):
+            return data
+        if self._normalize_asp_id(data.get("asp_id")):
+            return data
+        fallback = self._normalize_asp_id(data.get("_id"))
+        if fallback:
+            data["asp_id"] = fallback
+        return data
 
     def count_asps(self, is_active: bool | None = None) -> int:
         """
@@ -83,7 +111,9 @@ class ASPHandler(BaseHandler):
             dict: A dictionary representing the panel document, or None if no
             document is found.
         """
-        return self.get_collection().find_one({"_id": asp_name})
+        return self.get_collection().find_one({"asp_id": asp_name}) or self.get_collection().find_one(
+            {"_id": asp_name}
+        )
 
     def get_all_asps(self, is_active: bool | None = None) -> list:
         """
@@ -124,7 +154,7 @@ class ASPHandler(BaseHandler):
             Any: The result of the insert operation, typically an instance of
             `pymongo.results.InsertOneResult` that includes the ID of the inserted document.
         """
-        return self.get_collection().insert_one(data)
+        return self.get_collection().insert_one(self.ensure_asp_id(dict(data)))
 
     def update_asp(self, asp_id, asp_data) -> None:
         """
@@ -135,7 +165,7 @@ class ASPHandler(BaseHandler):
         Returns:
             None
         """
-        return self.get_collection().replace_one({"_id": asp_id}, asp_data)
+        return self.get_collection().replace_one(self._asp_lookup_query(asp_id), self.ensure_asp_id(dict(asp_data)))
 
     def toggle_asp_active(self, asp_id: str, active_status: bool) -> bool:
         """
@@ -151,7 +181,7 @@ class ASPHandler(BaseHandler):
         Returns:
             bool: True if the update was successful, False otherwise.
         """
-        return self.toggle_active(asp_id, active_status)
+        return self.get_collection().update_one(self._asp_lookup_query(asp_id), {"$set": {"is_active": active_status}})
 
     def delete_asp(self, asp_id: str) -> None:
         """
@@ -166,7 +196,7 @@ class ASPHandler(BaseHandler):
         Returns:
             None
         """
-        self.get_collection().delete_one({"_id": asp_id})
+        self.get_collection().delete_one(self._asp_lookup_query(asp_id))
 
     def get_all_asps_unique_gene_count(self) -> int:
         """

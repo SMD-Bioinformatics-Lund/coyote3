@@ -45,6 +45,13 @@ class SampleHandler(BaseHandler):
         Create indexes used by dashboard and sample list/read paths.
         """
         col = self.get_collection()
+        col.create_index(
+            [("sample_id", 1)],
+            name="sample_id_business_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"sample_id": {"$exists": True, "$type": "string"}},
+        )
         col.create_index([("assay", 1)], name="assay_1", background=True)
         col.create_index([("profile", 1)], name="profile_1", background=True)
         col.create_index([("report_num", 1)], name="report_num_1", background=True)

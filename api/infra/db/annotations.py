@@ -46,6 +46,18 @@ class AnnotationsHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.annotations_collection)
 
+    def ensure_indexes(self) -> None:
+        col = self.get_collection()
+        col.create_index(
+            [("annotation_id", 1)],
+            name="annotation_id_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"annotation_id": {"$exists": True, "$type": "string"}},
+        )
+        col.create_index([("gene", 1)], name="gene_1", background=True)
+        col.create_index([("variant", 1)], name="variant_1", background=True)
+
     def get_annotation_by_oid(self, oid: str) -> dict | None:
         """
         Retrieve an annotation by its ObjectId.

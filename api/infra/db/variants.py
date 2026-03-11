@@ -45,6 +45,13 @@ class VariantsHandler(BaseHandler):
         """
         col = self.get_collection()
         col.create_index(
+            [("variant_id", 1)],
+            name="variant_id_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"variant_id": {"$exists": True, "$type": "string"}},
+        )
+        col.create_index(
             [("SAMPLE_ID", 1)],
             name="sample_id_1",
             background=True,

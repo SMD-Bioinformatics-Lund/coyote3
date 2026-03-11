@@ -35,6 +35,39 @@ class SchemaHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.schemas_collection)
 
+    def ensure_indexes(self) -> None:
+        col = self.get_collection()
+        col.create_index(
+            [("schema_id", 1)],
+            name="schema_id_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"schema_id": {"$exists": True, "$type": "string"}},
+        )
+        col.create_index([("schema_type", 1)], name="schema_type_1", background=True)
+        col.create_index([("is_active", 1)], name="is_active_1", background=True)
+
+    @staticmethod
+    def _normalize_schema_id(schema_id: str | None) -> str | None:
+        if schema_id is None:
+            return None
+        normalized = str(schema_id).strip()
+        return normalized or None
+
+    def _schema_lookup_query(self, schema_id: str) -> dict:
+        normalized = self._normalize_schema_id(schema_id)
+        return {"$or": [{"schema_id": normalized}, {"_id": normalized}]}
+
+    def ensure_schema_id(self, schema_doc: dict) -> dict:
+        if not isinstance(schema_doc, dict):
+            return schema_doc
+        if self._normalize_schema_id(schema_doc.get("schema_id")):
+            return schema_doc
+        fallback = self._normalize_schema_id(schema_doc.get("_id"))
+        if fallback:
+            schema_doc["schema_id"] = fallback
+        return schema_doc
+
     def get_all_schemas(self) -> Any:
         """
         Retrieves all schema documents from the collection.
@@ -54,7 +87,9 @@ class SchemaHandler(BaseHandler):
         Returns:
             dict: The schema document if found, otherwise None.
         """
-        return self.get_collection().find_one({"_id": schema_id})
+        return self.get_collection().find_one({"schema_id": schema_id}) or self.get_collection().find_one(
+            {"_id": schema_id}
+        )
 
     def list_schemas(self, schema_type: str = None) -> list:
         """
@@ -80,9 +115,7 @@ class SchemaHandler(BaseHandler):
         Returns:
             Any: The result of the update operation.
         """
-        return self.get_collection().replace_one(
-            {"_id": schema_id}, updated_doc
-        )
+        return self.get_collection().replace_one(self._schema_lookup_query(schema_id), self.ensure_schema_id(updated_doc))
 
     def toggle_schema_active(self, schema_id: str, active_status: bool) -> Any:
         """
@@ -95,7 +128,10 @@ class SchemaHandler(BaseHandler):
         Returns:
             Any: The result of the update operation.
         """
-        return self.toggle_active(schema_id, active_status)
+        return self.get_collection().update_one(
+            self._schema_lookup_query(schema_id),
+            {"$set": {"is_active": active_status}},
+        )
 
     def create_schema(self, schema_doc: dict) -> Any:
         """
@@ -107,7 +143,7 @@ class SchemaHandler(BaseHandler):
         Returns:
             Any: The result of the insert operation.
         """
-        self.get_collection().insert_one(schema_doc)
+        self.get_collection().insert_one(self.ensure_schema_id(dict(schema_doc)))
 
     def delete_schema(self, schema_id: str) -> Any:
         """
@@ -119,7 +155,7 @@ class SchemaHandler(BaseHandler):
         Returns:
             Any: The result of the delete operation.
         """
-        return self.get_collection().delete_one({"_id": schema_id})
+        return self.get_collection().delete_one(self._schema_lookup_query(schema_id))
 
     def get_schemas_by_category_type(
         self,

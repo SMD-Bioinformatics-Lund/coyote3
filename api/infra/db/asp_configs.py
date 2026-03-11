@@ -42,10 +42,38 @@ class ASPConfigHandler(BaseHandler):
         """
         col = self.get_collection()
         col.create_index(
+            [("aspc_id", 1)],
+            name="aspc_id_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"aspc_id": {"$exists": True, "$type": "string"}},
+        )
+        col.create_index(
             [("is_active", 1), ("assay_name", 1)],
             name="is_active_assay_name",
             background=True,
         )
+
+    @staticmethod
+    def _normalize_aspc_id(aspc_id: str | None) -> str | None:
+        if aspc_id is None:
+            return None
+        normalized = str(aspc_id).strip()
+        return normalized or None
+
+    def _aspc_lookup_query(self, aspc_id: str) -> dict:
+        normalized = self._normalize_aspc_id(aspc_id)
+        return {"$or": [{"aspc_id": normalized}, {"_id": normalized}]}
+
+    def ensure_aspc_id(self, data: dict) -> dict:
+        if not isinstance(data, dict):
+            return data
+        if self._normalize_aspc_id(data.get("aspc_id")):
+            return data
+        fallback = self._normalize_aspc_id(data.get("_id"))
+        if fallback:
+            data["aspc_id"] = fallback
+        return data
 
     def count_aspcs(self, is_active: bool | None = None) -> int:
         """
@@ -77,7 +105,9 @@ class ASPConfigHandler(BaseHandler):
             dict | None: The assay configuration document if found, otherwise None.
         """
         aspc_id = f"{assay}:{profile.lower()}"
-        return self.get_collection().find_one({"_id": aspc_id})
+        return self.get_collection().find_one({"aspc_id": aspc_id}) or self.get_collection().find_one(
+            {"_id": aspc_id}
+        )
 
     def get_aspc_with_id(self, aspc_id: str) -> dict | None:
         """
@@ -111,7 +141,7 @@ class ASPConfigHandler(BaseHandler):
         """
         aspc_id = f"{assay_id}:{profile.lower()}"
         return self.get_collection().find_one(
-            {"_id": aspc_id, "is_active": True},
+            {"$and": [self._aspc_lookup_query(aspc_id), {"is_active": True}]},
             {
                 "updated_on": 0,
                 "updated_by": 0,
@@ -131,9 +161,7 @@ class ASPConfigHandler(BaseHandler):
         Returns:
             Any: The result of the update operation, typically a `pymongo.results.UpdateResult` object.
         """
-        return self.get_collection().update_one(
-            {"_id": aspc_id}, {"$set": data}
-        )
+        return self.get_collection().update_one(self._aspc_lookup_query(aspc_id), {"$set": self.ensure_aspc_id(data)})
 
     def create_aspc(self, data: dict) -> Any:
         """
@@ -145,7 +173,7 @@ class ASPConfigHandler(BaseHandler):
         Returns:
             Any: The result of the insert operation, typically a `pymongo.results.InsertOneResult` object.
         """
-        return self.get_collection().insert_one(data)
+        return self.get_collection().insert_one(self.ensure_aspc_id(dict(data)))
 
     def delete_aspc(self, assay_id: str) -> Any:
         """
@@ -157,7 +185,7 @@ class ASPConfigHandler(BaseHandler):
         Returns:
             Any: The result of the delete operation, typically a `pymongo.results.DeleteResult` object.
         """
-        return self.get_collection().delete_one({"_id": assay_id})
+        return self.get_collection().delete_one(self._aspc_lookup_query(assay_id))
 
     def toggle_aspc_active(self, aspc_id: str, active_status: bool) -> bool:
         """
@@ -170,7 +198,10 @@ class ASPConfigHandler(BaseHandler):
         Returns:
             bool: True if the update was successful, False otherwise.
         """
-        return self.toggle_active(aspc_id, active_status)
+        return self.get_collection().update_one(
+            self._aspc_lookup_query(aspc_id),
+            {"$set": {"is_active": active_status}},
+        )
 
     def get_all_assay_names(self, is_active: bool | None = None) -> dict:
         """

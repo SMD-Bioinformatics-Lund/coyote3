@@ -45,6 +45,13 @@ class BlacklistHandler(BaseHandler):
         Create indexes used by blacklist read/write paths and dashboard metrics.
         """
         col = self.get_collection()
+        col.create_index(
+            [("blacklist_entry_id", 1)],
+            name="blacklist_entry_id_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"blacklist_entry_id": {"$exists": True, "$type": "string"}},
+        )
         col.create_index([("assay", 1), ("pos", 1)], name="assay_pos_1", background=True)
         col.create_index([("pos", 1)], name="pos_1", background=True)
 

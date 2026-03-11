@@ -42,6 +42,13 @@ class TranslocsHandler(BaseHandler):
         Create indexes used by dashboard and sample lookup paths.
         """
         col = self.get_collection()
+        col.create_index(
+            [("transloc_id", 1)],
+            name="transloc_id_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"transloc_id": {"$exists": True, "$type": "string"}},
+        )
         col.create_index([("SAMPLE_ID", 1)], name="sample_id_1", background=True)
 
     def get_sample_translocations(self, sample_id: str) -> list:

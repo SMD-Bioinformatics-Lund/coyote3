@@ -170,6 +170,13 @@ class ReportedVariantsHandler(BaseHandler):
         Compatible with MongoDB 3.4.
         """
         col = self.get_collection()
+        col.create_index(
+            [("reported_variant_id", ASCENDING)],
+            name="reported_variant_id_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"reported_variant_id": {"$exists": True, "$type": "string"}},
+        )
 
         # Prevent duplicates: same variant cannot be recorded twice in the same report
         col.create_index(

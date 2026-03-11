@@ -35,6 +35,39 @@ class PermissionsHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.permissions_collection)
 
+    def ensure_indexes(self) -> None:
+        col = self.get_collection()
+        col.create_index(
+            [("permission_id", 1)],
+            name="permission_id_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"permission_id": {"$exists": True, "$type": "string"}},
+        )
+        col.create_index([("category", 1)], name="category_1", background=True)
+        col.create_index([("is_active", 1)], name="is_active_1", background=True)
+
+    @staticmethod
+    def _normalize_permission_id(permission_id: str | None) -> str | None:
+        if permission_id is None:
+            return None
+        normalized = str(permission_id).strip()
+        return normalized or None
+
+    def _permission_lookup_query(self, permission_id: str) -> dict:
+        normalized = self._normalize_permission_id(permission_id)
+        return {"$or": [{"permission_id": normalized}, {"_id": normalized}]}
+
+    def ensure_permission_id(self, policy: dict) -> dict:
+        if not isinstance(policy, dict):
+            return policy
+        if self._normalize_permission_id(policy.get("permission_id")):
+            return policy
+        fallback = self._normalize_permission_id(policy.get("_id"))
+        if fallback:
+            policy["permission_id"] = fallback
+        return policy
+
     def get_all_permissions(self, is_active=True) -> List[dict]:
         """
         Retrieve all permissions.
@@ -101,8 +134,10 @@ class PermissionsHandler(BaseHandler):
         return (
             self.get_collection().find_one(
                 {
-                    "_id": permission,
-                    "$or": [{"is_active": True}, {"is_active": {"$exists": False}}],
+                    "$and": [
+                        {"$or": [{"permission_id": permission}, {"_id": permission}]},
+                        {"$or": [{"is_active": True}, {"is_active": {"$exists": False}}]},
+                    ]
                 }
             )
             is not None
@@ -120,7 +155,9 @@ class PermissionsHandler(BaseHandler):
         Returns:
         Optional[dict]: The permission document if found, otherwise None.
         """
-        return self.get_collection().find_one({"_id": permission_id})
+        return self.get_collection().find_one({"permission_id": permission_id}) or self.get_collection().find_one(
+            {"_id": permission_id}
+        )
 
     def create_new_policy(self, policy: dict) -> Any:
         """
@@ -134,7 +171,7 @@ class PermissionsHandler(BaseHandler):
         Returns:
             Any: The result of the insert operation.
         """
-        self.get_collection().insert_one(policy)
+        self.get_collection().insert_one(self.ensure_permission_id(dict(policy)))
 
     def update_policy(self, permission_id: str, data: dict) -> Any:
         """
@@ -149,7 +186,7 @@ class PermissionsHandler(BaseHandler):
         Returns:
             Any: The result of the update operation.
         """
-        return self.get_collection().update_one({"_id": permission_id}, {"$set": data})
+        return self.get_collection().update_one(self._permission_lookup_query(permission_id), {"$set": data})
 
     def toggle_policy_active(self, permission_id: str, active_status: bool) -> Any:
         """
@@ -164,9 +201,9 @@ class PermissionsHandler(BaseHandler):
         Returns:
             Any: The result of the update operation.
         """
-        return self.toggle_active(
-            permission_id,
-            active_status,
+        return self.get_collection().update_one(
+            self._permission_lookup_query(permission_id),
+            {"$set": {"is_active": active_status}},
         )
 
     def delete_policy(self, permission_id: str) -> Any:
@@ -181,4 +218,4 @@ class PermissionsHandler(BaseHandler):
         Returns:
             Any: The result of the delete operation.
         """
-        return self.get_collection().delete_one({"_id": permission_id})
+        return self.get_collection().delete_one(self._permission_lookup_query(permission_id))

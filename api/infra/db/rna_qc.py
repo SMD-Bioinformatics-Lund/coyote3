@@ -33,6 +33,17 @@ class RNAQCHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.rna_qc_collection)
 
+    def ensure_indexes(self) -> None:
+        col = self.get_collection()
+        col.create_index(
+            [("rna_qc_id", 1)],
+            name="rna_qc_id_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"rna_qc_id": {"$exists": True, "$type": "string"}},
+        )
+        col.create_index([("SAMPLE_ID", 1)], name="sample_id_1", background=True)
+
     def get_rna_qc(self, sample_id: str) -> dict:
         """
         Retrieve qc data for a sample.

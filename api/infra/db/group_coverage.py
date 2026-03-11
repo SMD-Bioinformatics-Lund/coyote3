@@ -34,6 +34,18 @@ class GroupCoverageHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.groupcov_collection)
 
+    def ensure_indexes(self) -> None:
+        col = self.get_collection()
+        col.create_index(
+            [("group_region_id", 1)],
+            name="group_region_id_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"group_region_id": {"$exists": True, "$type": "string"}},
+        )
+        col.create_index([("group", 1)], name="group_1", background=True)
+        col.create_index([("gene", 1)], name="gene_1", background=True)
+
     def blacklist_coord(
         self, gene: str, coord: str, region: str, group: str
     ) -> dict:

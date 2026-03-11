@@ -37,6 +37,17 @@ class RNAExpressionHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.rna_expression_collection)
 
+    def ensure_indexes(self) -> None:
+        col = self.get_collection()
+        col.create_index(
+            [("rna_expression_id", 1)],
+            name="rna_expression_id_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"rna_expression_id": {"$exists": True, "$type": "string"}},
+        )
+        col.create_index([("SAMPLE_ID", 1)], name="sample_id_1", background=True)
+
     def get_rna_expression(self, sample_id: str) -> dict:
         """
         Retrieve expression data for a sample.

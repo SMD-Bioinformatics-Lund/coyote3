@@ -61,6 +61,12 @@ Completed:
    - backfill scripts added:
      - `scripts/backfill_users_user_id.py`
      - `scripts/backfill_roles_role_id.py`
+10. Collection-wide business-key rollout completed for all planned collections:
+   - handler-level business-key index definitions added in `api/infra/db/*`
+   - compatibility lookup support added for string-id collections (`permissions`, `schemas`, `asp`, `asp_configs`, `isgl`)
+   - bulk migration tool added: `scripts/backfill_business_keys.py`
+   - executed on both local DBs: `coyote_dev_3`, `coyote3`
+   - alias collections also migrated: `*_beta2`, `cnvs_wgs`, `transloc`
 
 Latest baseline totals after refactor:
 - `store_usage_total=0` (down from 322)
@@ -242,29 +248,30 @@ Use this template for each collection to ensure full-scope, non-partial progress
 1. Expand repository ports for remaining bounded contexts:
    - DNA/RNA entities, coverage, reporting, admin schemas/panels/users.
 2. Move from transitional facades to explicit repository-port contracts per module to complete DB-agnostic architecture.
-3. Complete collection-level business-key rollout and unique-index enforcement using:
+3. Validate collection-level business-key rollout in CI and promote to deployment runbook:
    - `.internal/COLLECTION_KEY_MIGRATION_MATRIX.md`
+   - `scripts/backfill_business_keys.py`
 4. Increase service-level regression test depth for route flows currently validated primarily by boundary tests.
 
 ## Active Collection Execution Order
 This is the implementation order to make provider swap practical and low-risk:
 1. `users` (done)
 2. `roles` (done)
-3. `permissions`
-4. `schemas`
-5. `asp`
-6. `asp_configs`
-7. `isgl`
-8. `samples`
-9. `variants`
-10. `cnvs`
-11. `translocations`
-12. `fusions`
-13. `annotation`
-14. `reported_variants`
-15. `group_coverage`
-16. `blacklist`
-17. `biomarkers`
-18. `rna_expression`
-19. `rna_classification`
-20. `rna_qc`
+3. `permissions` (done)
+4. `schemas` (done)
+5. `asp` (done)
+6. `asp_configs` (done)
+7. `isgl` (done)
+8. `samples` (done)
+9. `variants` (done)
+10. `cnvs` (done)
+11. `translocations` (done)
+12. `fusions` (done)
+13. `annotation` (done)
+14. `reported_variants` (done)
+15. `group_coverage` (done)
+16. `blacklist` (done)
+17. `biomarkers` (done when collection exists)
+18. `rna_expression` (done when collection exists)
+19. `rna_classification` (done when collection exists)
+20. `rna_qc` (done when collection exists)

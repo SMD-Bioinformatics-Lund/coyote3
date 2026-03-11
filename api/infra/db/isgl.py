@@ -44,6 +44,13 @@ class ISGLHandler(BaseHandler):
         """
         col = self.get_collection()
         col.create_index(
+            [("isgl_id", 1)],
+            name="isgl_id_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"isgl_id": {"$exists": True, "$type": "string"}},
+        )
+        col.create_index(
             [("is_active", 1), ("is_public", 1), ("adhoc", 1), ("created_on", -1)],
             name="active_public_adhoc_created_on",
             background=True,
@@ -51,6 +58,27 @@ class ISGLHandler(BaseHandler):
         col.create_index([("assays", 1)], name="assays_1", background=True)
         col.create_index([("diagnosis", 1)], name="diagnosis_1", background=True)
         col.create_index([("list_type", 1)], name="list_type_1", background=True)
+
+    @staticmethod
+    def _normalize_isgl_id(isgl_id: str | None) -> str | None:
+        if isgl_id is None:
+            return None
+        normalized = str(isgl_id).strip()
+        return normalized or None
+
+    def _isgl_lookup_query(self, isgl_id: str) -> dict:
+        normalized = self._normalize_isgl_id(isgl_id)
+        return {"$or": [{"isgl_id": normalized}, {"_id": normalized}]}
+
+    def ensure_isgl_id(self, data: dict) -> dict:
+        if not isinstance(data, dict):
+            return data
+        if self._normalize_isgl_id(data.get("isgl_id")):
+            return data
+        fallback = self._normalize_isgl_id(data.get("_id"))
+        if fallback:
+            data["isgl_id"] = fallback
+        return data
 
     def count_isgls(
         self,
@@ -87,7 +115,7 @@ class ISGLHandler(BaseHandler):
             dict | None: A dictionary representing the gene list document if found,
             otherwise None.
         """
-        query = {"_id": isgl_id}
+        query = self._isgl_lookup_query(isgl_id)
         if is_active is not None:
             query["is_active"] = is_active
         if is_public is not None:
@@ -135,7 +163,7 @@ class ISGLHandler(BaseHandler):
             pymongo.results.InsertOneResult: The result of the insert operation,
             including the ID of the inserted document.
         """
-        return self.get_collection().insert_one(data)
+        return self.get_collection().insert_one(self.ensure_isgl_id(dict(data)))
 
     def update_isgl(self, isgl_id: str, updated_data: dict) -> Any:
         """
@@ -151,7 +179,7 @@ class ISGLHandler(BaseHandler):
         Returns:
             Any: The result of the replace operation, typically a `pymongo.results.UpdateResult` object.
         """
-        return self.get_collection().replace_one({"_id": isgl_id}, updated_data)
+        return self.get_collection().replace_one(self._isgl_lookup_query(isgl_id), self.ensure_isgl_id(dict(updated_data)))
 
     def toggle_isgl_active(self, isgl_id: str, active_status: bool) -> bool:
         """
@@ -167,7 +195,10 @@ class ISGLHandler(BaseHandler):
         Returns:
             bool: True if the update operation was acknowledged, otherwise False.
         """
-        return self.toggle_active(isgl_id, active_status)
+        return self.get_collection().update_one(
+            self._isgl_lookup_query(isgl_id),
+            {"$set": {"is_active": active_status}},
+        )
 
     def delete_isgl(self, isgl_id: str) -> Any:
         """
@@ -183,7 +214,7 @@ class ISGLHandler(BaseHandler):
             pymongo.results.DeleteResult: The result of the delete operation,
             including information about the deletion.
         """
-        return self.get_collection().delete_one({"_id": isgl_id})
+        return self.get_collection().delete_one(self._isgl_lookup_query(isgl_id))
 
     def get_subpanels_for_asp(
         self, asp_names: list[str], is_public: bool | None = None, adhoc: bool | None = None
@@ -285,10 +316,8 @@ class ISGLHandler(BaseHandler):
         Returns:
             bool: True if a matching gene list document exists, otherwise False.
         """
-        query = {
-            "_id": isgl_id,
-            "is_active": is_active,
-        }
+        query = self._isgl_lookup_query(isgl_id)
+        query["is_active"] = is_active
         return self.get_collection().count_documents(query) > 0
 
     def get_isgl_by_asp(
