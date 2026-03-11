@@ -56,13 +56,7 @@
             &lt;DIAGNOSIS&gt;
           {% endif %}
         {% elif assay_group == "solid" %}
-          {% if 'subpanel' in sample %}
-            {% if sample.subpanel == "BP" %}
-              Bröst-Pilot
-            {% else %}
-              {{sample.subpanel}}
-            {% endif %}
-          {% endif %}
+          Solid tumör
         {% endif %}
       </td>
     </tr>
@@ -159,7 +153,7 @@
 <!-- CNV Summary -->
 {% if "CNV" in report_sections %}
   {% set cnvs = report_sections_data.cnvs %}
-  <span class="report_header">Kliniskt relevanta kopietalsförändringar</span>
+  <span class="report_header">Kliniskt relevanta genspecifika kopietalsförändringar</span>
   <table class="variant_table">
     <tr>
       <th>Gen(er)</th>
@@ -197,7 +191,7 @@
       {% else %}
         <tr>
           <td>
-            Inga detekterade kopietalsförändringar.
+            Inga detekterade genspecifika kopietalsförändringar.
           </td>
         </tr>
       {% endfor %}
@@ -207,7 +201,7 @@
 <!-- DNA Fusions Summary -->
 {% if "TRANSLOCATION" in report_sections %}
   {% set transloc = report_sections_data.translocs %}
-  <span class="report_header">Kliniskt relevanta fusioner (DNA)</span>
+  <span class="report_header">Kliniskt relevanta fusioner</span>
   <table class="variant_table">
     <tr>
       <th>Gen 1</th>

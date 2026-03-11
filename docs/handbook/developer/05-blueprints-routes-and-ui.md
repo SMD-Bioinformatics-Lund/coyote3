@@ -175,3 +175,4 @@ Required pattern for state-changing routes:
 3. Keep templates presentation-focused.
 4. Reuse existing helper services before adding new cross-module utilities.
 5. Update handbook chapter references when route ownership changes.
+6. For handlers shared by multiple route patterns, keep function parameters aligned with Flask path variable names (for example `var_id`, `fus_id`, `cnv_id`) instead of a generic `id` argument to prevent runtime `unexpected keyword argument` failures.

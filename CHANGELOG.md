@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.1.22
+- Changed the headers in the reports for CNVs (Kliniskt relevanta genspecifika kopietalsförändringar) and Fusions (removed DNA in the name), diagnosis is fixed as 'Solid tumör' for solid tumors.
+- Fixed ASPC Create/Edit numeric input step handling: float fields now use `step="0.1"` (including CNV gain/loss ratio fields) and int fields use `step="1"`, so decimal CNV ratio values save correctly.
+- Fixed development Tailwind watcher stability in Docker by running `npm run dev:css -- --watch=always` in `coyote3_dev_tailwind` to prevent restart loops and stale CSS.
+- Fixed DNA variant sidebar CNV ratio filter inputs to render as numeric controls (`type="number"`, `step="0.1"`), enabling proper decimal stepping/validation for gain/loss cutoffs.
+- Fixed DNA/RNA classify/remove-classify/comment action handlers to accept explicit Flask route kwargs (`var_id`, `fus_id`, `cnv_id`, `transloc_id`) and avoid `unexpected keyword argument` errors from multi-route endpoints.
+
+
 ## v3.1.21
 - Fixed HGVS display/toggle behavior across DNA variant list, tiered search, and reported variants views (unique row IDs, stacked HGVS lines, and no blank indent when only one HGVS value exists).
 - Replaced legacy custom width utility usage (`max-w-15c` style) with Tailwind arbitrary values where used.

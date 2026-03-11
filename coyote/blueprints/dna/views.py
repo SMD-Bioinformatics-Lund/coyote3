@@ -747,18 +747,27 @@ def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
 )
 @require(permission="assign_tier", min_role="manager", min_level=99)
 @require_sample_access("sample_id")
-def classify_variant(sample_id: str, id: str = None) -> Response:
+def classify_variant(
+    sample_id: str, var_id: str | None = None, fus_id: str | None = None
+) -> Response:
     """
     Classify a DNA variant based on the provided form data.
 
     Args:
         sample_id (str): The unique identifier of the sample.
-        id (str): The unique identifier of the variant.
+        var_id (str | None): Variant ID from the variant classify route.
+        fus_id (str | None): Fusion ID from the fusion classify route.
 
     Returns:
         flask.Response: The response after classifying the variant.
     """
-    id = id or request.view_args.get("var_id") or request.view_args.get("fus_id")
+    if request.endpoint == "dna_bp.classify_variant":
+        id = var_id or request.view_args.get("var_id")
+    elif request.endpoint == "dna_bp.classify_fusion":
+        id = fus_id or request.view_args.get("fus_id")
+    else:
+        id = var_id or fus_id
+
     form_data = request.form.to_dict()
     class_num = util.common.get_tier_classification(form_data)
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
@@ -786,18 +795,26 @@ def classify_variant(sample_id: str, id: str = None) -> Response:
 )
 @require(permission="remove_tier", min_role="admin")
 @require_sample_access("sample_id")
-def remove_classified_variant(sample_id: str, id: str) -> Response:
+def remove_classified_variant(
+    sample_id: str, var_id: str | None = None, fus_id: str | None = None
+) -> Response:
     """
     Remove a classified variant from the database.
 
     Args:
         sample_id (str): The unique identifier of the sample.
-        var_id (str): The unique identifier of the variant.
+        var_id (str | None): Variant ID from the variant remove-classification route.
+        fus_id (str | None): Fusion ID from the fusion remove-classification route.
 
     Returns:
         flask.Response: Redirects to the variant detail view after removing the classified variant.
     """
-    id = id or request.view_args.get("var_id") or request.view_args.get("fus_id")
+    if request.endpoint == "dna_bp.remove_classified_variant":
+        id = var_id or request.view_args.get("var_id")
+    elif request.endpoint == "dna_bp.remove_classified_fusion":
+        id = fus_id or request.view_args.get("fus_id")
+    else:
+        id = var_id or fus_id
     form_data = request.form.to_dict()
     nomenclature, variant = util.dna.get_variant_nomenclature(form_data)
 
@@ -833,20 +850,31 @@ def remove_classified_variant(sample_id: str, id: str) -> Response:
 )
 @require("add_variant_comment", min_role="user", min_level=9)
 @require_sample_access("sample_id")
-def add_var_comment(sample_id: str, id: str = None, **kwargs) -> Response | str:
+def add_var_comment(
+    sample_id: str,
+    var_id: str | None = None,
+    cnv_id: str | None = None,
+    fus_id: str | None = None,
+    transloc_id: str | None = None,
+) -> Response | str:
     """
     Add a comment to a variant.
 
     Args:
         sample_id (str): The unique identifier of the sample.
-        id (str, optional): The identifier of the variant, CNV, fusion, or translocation. Defaults to None.
-        **kwargs: Additional keyword arguments.
+        var_id (str | None): Variant ID from the variant comment route.
+        cnv_id (str | None): CNV ID from the CNV comment route.
+        fus_id (str | None): Fusion ID from the fusion comment route.
+        transloc_id (str | None): Translocation ID from the translocation comment route.
 
     Returns:
         Response | str: A redirect or rendered template after adding the comment.
     """
     id = (
-        id
+        var_id
+        or cnv_id
+        or fus_id
+        or transloc_id
         or request.view_args.get("var_id")
         or request.view_args.get("cnv_id")
         or request.view_args.get("fus_id")
