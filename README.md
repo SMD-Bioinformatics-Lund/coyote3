@@ -139,9 +139,17 @@ PYTHONPATH=. .venv/bin/pytest -q -m web
 PYTHONPATH=. .venv/bin/pytest -q
 ```
 
+Install and run the local pre-commit pipeline:
+
+```bash
+.venv/bin/pre-commit install
+.venv/bin/pre-commit run --all-files
+```
+
 CI parity:
 - `.github/workflows/quality.yml` runs the same lint/format checks and marker-based test suites.
-- `.pre-commit-config.yaml` runs quick `unit`, `web`, `api` smoke, and `contract` pytest hooks locally.
+- `.pre-commit-config.yaml` runs `ruff-check --fix`, `black --line-length 100`, and the quick
+  `unit`, `web`, `api`, and `contract` pytest hooks locally.
 
 Directory mapping:
 - `tests/ui/` carries the `web` marker.

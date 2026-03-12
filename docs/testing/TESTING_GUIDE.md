@@ -79,6 +79,22 @@ Run router-focused backend tests:
 python -m pytest -q tests/api/routers
 ```
 
+Run the local pre-commit pipeline:
+
+```bash
+.venv/bin/pre-commit install
+.venv/bin/pre-commit run --all-files
+```
+
+The pre-commit pipeline runs these checks in order:
+
+- `ruff-check --fix`
+- `black --line-length 100`
+- quick `unit` tests
+- UI boundary smoke
+- API smoke
+- integration contract smoke
+
 ## What To Run When You Change Code
 
 ### If you change backend routes or contracts
