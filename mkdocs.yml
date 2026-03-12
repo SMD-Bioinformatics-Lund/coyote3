@@ -18,6 +18,7 @@ nav:
   - Home: index.md
   - Architecture:
       - Overview: ARCHITECTURE_OVERVIEW.md
+      - Repository Structure: architecture/repository-structure.md
       - API Architecture: architecture/API_ARCHITECTURE.md
       - Security Model: SECURITY_MODEL.md
       - Data Model: DATA_MODEL.md
@@ -31,6 +32,7 @@ nav:
       - User Guide: ui/user-guide.md
   - Development:
       - Developer Guide: development/developer-guide.md
+      - Maintenance Guide: development/maintenance-guide.md
       - Route Implementation Guide: development/route-implementation-guide.md
       - Extension Playbook: development/extension-playbook.md
       - Code Style: development/code-style.md

@@ -25,7 +25,7 @@ from pymongo.errors import OperationFailure, PyMongoError
 
 """
 /home/ram/.virtualenvs/coyote3/bin/python scripts/restore_mongo_micro_snapshot.py \
-  --snapshot-dir .internal/mongo_micro_snapshot \
+  --snapshot-dir var/mongo/micro_snapshot \
   --target dev \
   --drop-db \
   --db-map coyote3=coyote_dev_3
@@ -74,7 +74,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--snapshot-dir",
-        default=".internal/mongo_micro_snapshot",
+        default="var/mongo/micro_snapshot",
         help="Snapshot directory containing manifest.json",
     )
     parser.add_argument(

@@ -68,8 +68,8 @@ Admin context payloads in Flask code must use `schema` key semantics.
 Do not consume `schema_payload` in UI blueprint logic.
 
 ## Runtime initialization rule
-`api.app` initializes runtime dependencies lazily (startup/request guard), not at import time.
-Reason: test modules can import API modules without requiring immediate DB bootstrap.
+`api.main` is the canonical backend entrypoint and runtime dependencies are initialized through backend startup and request guards rather than at arbitrary import sites.
+Reason: test modules and tooling should be able to import backend modules without forcing immediate database bootstrap.
 
 ## What to edit when adding/changing a route
 1. API contracts: `api/contracts/*.py`

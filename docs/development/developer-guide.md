@@ -109,7 +109,7 @@ python scripts/create_mongo_micro_snapshot.py \
   --mongo-uri "mongodb://172.17.0.1:27017" \
   --db coyote3 \
   --db BAM_Service \
-  --out .internal/mongo_micro_snapshot
+  --out var/mongo/micro_snapshot
 ```
 
 Snapshot rules:
@@ -123,7 +123,7 @@ Restore that snapshot into the dev Docker Mongo and map the prod DB name into th
 
 ```bash
 python scripts/restore_mongo_micro_snapshot.py \
-  --snapshot-dir .internal/mongo_micro_snapshot \
+  --snapshot-dir var/mongo/micro_snapshot \
   --target dev \
   --drop-db \
   --db-map coyote3=coyote_dev_3

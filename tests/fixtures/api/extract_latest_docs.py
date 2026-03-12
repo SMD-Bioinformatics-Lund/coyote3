@@ -1,8 +1,14 @@
-"""Read-only extraction of latest Mongo documents for test fixture seeding.
+"""Read-only extraction of Mongo documents for test fixture seeding.
 
 Outputs:
 - tests/fixtures/api/db_snapshots/prod_latest.json
 - tests/fixtures/api/db_snapshots/dev_rna_wgs_latest.json
+
+Extraction rules:
+- collections are read from the active config's DB collection mapping
+- `samples` snapshots include the latest 10 documents per assay
+- collections containing `SAMPLE_ID` are filtered to sampled `samples._id`
+- all other configured collections are snapshotted in full
 """
 
 from __future__ import annotations
@@ -10,15 +16,20 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 import json
+import sys
 from typing import Any
 
 import pymongo
 from bson import ObjectId
 
+ROOT = Path(__file__).resolve().parents[3]
+root_str = str(ROOT)
+if root_str not in sys.path:
+    sys.path.insert(0, root_str)
+
 import config
 
-ROOT = Path(__file__).resolve().parents[3]
-OUT_DIR = ROOT / "tests" / "api" / "fixtures" / "db_snapshots"
+OUT_DIR = ROOT / "tests" / "fixtures" / "api" / "db_snapshots"
 
 SORT_CANDIDATES = [
     "updated_on",
@@ -40,6 +51,9 @@ RNA_WGS_PATTERN = {
     ]
 }
 
+SAMPLES_ALIAS = "samples_collection"
+SAMPLES_PER_ASSAY = 10
+
 
 def _json_safe(value: Any) -> Any:
     if isinstance(value, ObjectId):
@@ -55,21 +69,93 @@ def _json_safe(value: Any) -> Any:
     return value
 
 
-def _latest_doc(coll, query: dict | None = None) -> dict | None:
+def _sorted_cursor(coll, query: dict | None = None):
     query = query or {}
     for key in SORT_CANDIDATES:
         try:
-            doc = coll.find(query).sort([(key, pymongo.DESCENDING)]).limit(1).next()
-            if doc is not None:
-                return doc
-        except StopIteration:
-            return None
+            return coll.find(query).sort([(key, pymongo.DESCENDING)])
         except Exception:
             continue
+    return coll.find(query)
+
+
+def _latest_doc(coll, query: dict | None = None) -> dict | None:
     try:
-        return coll.find(query).limit(1).next()
-    except Exception:
+        return _sorted_cursor(coll, query=query).limit(1).next()
+    except StopIteration:
         return None
+    except Exception:
+        try:
+            return coll.find(query or {}).limit(1).next()
+        except Exception:
+            return None
+
+
+def _collection_counts(coll, scoped_query: dict | None = None) -> tuple[int, int | None]:
+    count_total = 0
+    count_scoped = None
+    try:
+        count_total = coll.count_documents({})
+        if scoped_query:
+            count_scoped = coll.count_documents(scoped_query)
+    except Exception:
+        pass
+    return count_total, count_scoped
+
+
+def _sample_assay_values(coll, scoped_query: dict | None = None) -> list[Any]:
+    query = scoped_query or {}
+    try:
+        values = list(coll.distinct("assay", query))
+    except Exception:
+        values = []
+    normalized = [value for value in values if value not in (None, "")]
+    return sorted(normalized, key=lambda value: str(value).lower())
+
+
+def _merge_query(base: dict | None, extra: dict | None) -> dict:
+    if base and extra:
+        return {"$and": [base, extra]}
+    return dict(base or extra or {})
+
+
+def _sample_documents(coll, scoped_query: dict | None = None) -> list[dict[str, Any]]:
+    docs: list[dict[str, Any]] = []
+    assay_values = _sample_assay_values(coll, scoped_query=scoped_query)
+    if not assay_values:
+        query = scoped_query or {}
+        return list(_sorted_cursor(coll, query=query).limit(SAMPLES_PER_ASSAY))
+
+    for assay in assay_values:
+        assay_query = _merge_query(scoped_query, {"assay": assay})
+        docs.extend(list(_sorted_cursor(coll, query=assay_query).limit(SAMPLES_PER_ASSAY)))
+    return docs
+
+
+def _collection_has_sample_id(coll) -> bool:
+    try:
+        return coll.find_one({"SAMPLE_ID": {"$exists": True}}, {"_id": 1}) is not None
+    except Exception:
+        return False
+
+
+def _documents_for_collection(
+    *,
+    alias: str,
+    coll,
+    scoped_query: dict | None,
+    sampled_sample_ids: list[Any],
+) -> tuple[list[dict[str, Any]], str]:
+    if alias == SAMPLES_ALIAS:
+        return _sample_documents(coll, scoped_query=scoped_query), "latest_10_per_assay"
+
+    if _collection_has_sample_id(coll):
+        if not sampled_sample_ids:
+            return [], "sample_id_dependency"
+        query = {"SAMPLE_ID": {"$in": sampled_sample_ids}}
+        return list(_sorted_cursor(coll, query=query)), "sample_id_dependency"
+
+    return list(coll.find({})), "full_collection"
 
 
 def _extract(config_obj, scoped_query: dict | None = None) -> dict[str, Any]:
@@ -86,30 +172,38 @@ def _extract(config_obj, scoped_query: dict | None = None) -> dict[str, Any]:
             "db_name": db_name,
             "extracted_at": datetime.now(timezone.utc).isoformat(),
             "scoped_query": scoped_query or {},
+            "samples_per_assay": SAMPLES_PER_ASSAY,
         },
         "collections": {},
     }
 
+    samples_coll = db[mapping[SAMPLES_ALIAS]]
+    sample_docs = _sample_documents(samples_coll, scoped_query=scoped_query)
+    sampled_sample_ids = [doc.get("_id") for doc in sample_docs if doc.get("_id") is not None]
+
     for alias, coll_name in mapping.items():
         coll = db[coll_name]
-        count_total = 0
-        count_scoped = None
-        try:
-            count_total = coll.count_documents({})
-            if scoped_query:
-                count_scoped = coll.count_documents(scoped_query)
-        except Exception:
-            pass
+        count_total, count_scoped = _collection_counts(coll, scoped_query=scoped_query)
+        docs, strategy = _documents_for_collection(
+            alias=alias,
+            coll=coll,
+            scoped_query=scoped_query,
+            sampled_sample_ids=sampled_sample_ids,
+        )
 
-        doc = _latest_doc(coll, query=scoped_query)
-        if doc is None and scoped_query:
-            doc = _latest_doc(coll, query={})
+        latest = docs[0] if docs else None
+        if latest is None and strategy != "full_collection":
+            latest = _latest_doc(coll)
 
         result["collections"][alias] = {
             "collection": coll_name,
             "count_total": count_total,
             "count_scoped": count_scoped,
-            "latest": _json_safe(doc) if doc is not None else None,
+            "strategy": strategy,
+            "document_count": len(docs),
+            "sampled_sample_ids": _json_safe(sampled_sample_ids) if alias != SAMPLES_ALIAS else None,
+            "latest": _json_safe(latest) if latest is not None else None,
+            "docs": _json_safe(docs),
         }
 
     client.close()
@@ -125,9 +219,13 @@ def main() -> None:
     prod_snapshot = _extract(prod)
     dev_snapshot = _extract(dev, scoped_query=RNA_WGS_PATTERN)
 
-    (OUT_DIR / "prod_latest.json").write_text(json.dumps(prod_snapshot, indent=2, ensure_ascii=False), encoding="utf-8")
+    (OUT_DIR / "prod_latest.json").write_text(
+        json.dumps(prod_snapshot, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
     (OUT_DIR / "dev_rna_wgs_latest.json").write_text(
-        json.dumps(dev_snapshot, indent=2, ensure_ascii=False), encoding="utf-8"
+        json.dumps(dev_snapshot, indent=2, ensure_ascii=False),
+        encoding="utf-8",
     )
 
     print("wrote:", OUT_DIR / "prod_latest.json")

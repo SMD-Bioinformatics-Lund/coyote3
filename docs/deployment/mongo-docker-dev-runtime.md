@@ -58,7 +58,7 @@ Example:
   -f deploy/compose/docker-compose.dev.yml --profile with-mongo up -d --build
 
 /home/ram/.virtualenvs/coyote3/bin/python scripts/restore_mongo_micro_snapshot.py \
-  --snapshot-dir .internal/mongo_micro_snapshot \
+  --snapshot-dir var/mongo/micro_snapshot \
   --target dev \
   --drop-db \
   --db-map coyote3=coyote_dev_3
@@ -77,12 +77,12 @@ Why the built-in backfill matters:
 - automatic backfill keeps dev restores usable without a second manual repair step
 
 ## 6. Snapshot sources
-Current restore tooling supports curated snapshot directories under `.internal/`.
+Current restore tooling supports curated snapshot directories in an operator-managed snapshot directory.
 
 Common examples:
-- `.internal/mongo_micro_snapshot`
+- `var/mongo/micro_snapshot`
 
-Snapshot extraction behavior for `.internal/mongo_micro_snapshot`:
+Snapshot extraction behavior for `var/mongo/micro_snapshot`:
 - reads collections from `config/coyote3_collections.toml`
 - exports the latest 10 samples per assay from `samples`
 - exports only docs linked by `SAMPLE_ID` for sample-dependent collections

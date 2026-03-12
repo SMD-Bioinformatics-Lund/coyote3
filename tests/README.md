@@ -4,6 +4,7 @@ Test suites for Coyote3 are organized by functionality.
 - `tests/api`: API router/service contract and organization tests.
 - `tests/ui`: Web boundary and presentation-layer tests.
 - `tests/integration`: architecture boundary and cross-layer integration tests.
+- `tests/fixtures`: shared test fixtures, fake stores, and baseline data.
 - `tests/api/test_api_client_architecture.py`: transport primitives and payload behavior.
 - `tests/api/test_api_route_security.py`: guardrail ensuring API routes stay protected.
 - `tests/api/test_workflow_contracts.py`: strict workflow validation behavior.
@@ -55,4 +56,21 @@ PYTHONPATH=. .venv/bin/pytest -q -m unit
 PYTHONPATH=. .venv/bin/pytest -q -m api
 PYTHONPATH=. .venv/bin/pytest -q -m web
 PYTHONPATH=. .venv/bin/pytest -q -m contract
+```
+
+Marker-to-directory mapping:
+
+- `unit` -> `tests/unit`
+- `api` -> `tests/api`
+- `web` -> `tests/ui`
+- `contract` -> `tests/integration`
+
+Run by directory:
+
+```bash
+PYTHONPATH=. .venv/bin/pytest -q tests/unit
+PYTHONPATH=. .venv/bin/pytest -q tests/api
+PYTHONPATH=. .venv/bin/pytest -q tests/ui
+PYTHONPATH=. .venv/bin/pytest -q tests/integration
+PYTHONPATH=. .venv/bin/pytest -q tests/fixtures
 ```

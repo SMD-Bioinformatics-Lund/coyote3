@@ -289,7 +289,7 @@ Restore the micro snapshot into Docker Mongo:
 
 ```bash
 /home/ram/.virtualenvs/coyote3/bin/python scripts/restore_mongo_micro_snapshot.py \
-  --snapshot-dir .internal/mongo_micro_snapshot \
+  --snapshot-dir var/mongo/micro_snapshot \
   --target dev \
   --drop-db \
   --db-map coyote3=coyote_dev_3

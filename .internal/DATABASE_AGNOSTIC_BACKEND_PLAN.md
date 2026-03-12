@@ -36,7 +36,7 @@ Completed:
    - RNA workflow repository port + Mongo adapter
    - DNA reporting repository port + Mongo adapter
    - Coverage processing repository port + Mongo adapter
-   - Shared/admin/RNA/DNA route repository facades (remove direct `store.*` from route layer)
+   - Shared/admin/RNA/DNA route transitional repository facades (remove direct `store.*` from route layer)
 4. Core auth/public/admin/RNA/DNA-reporting/coverage workflows now run through repository services in targeted paths.
 5. Route-layer boundary hardening complete for current API surface:
    - `api/routes/{admin,dna,rna,dashboard,home,common,samples,coverage,internal}.py` now use route repository facades instead of direct `store.*`.
@@ -52,24 +52,21 @@ Completed:
    - samples (`api/core/samples/ports.py`, `api/infra/repositories/samples_mongo.py`)
    - coverage-read (`api/core/coverage/route_ports.py`, `api/infra/repositories/coverage_route_mongo.py`)
    - internal utilities (`api/core/internal/ports.py`, `api/infra/repositories/internal_mongo.py`)
-8. Shared route facade removed (`api/infra/repositories/route_store_mongo.py` deleted).
+8. Shared transitional route facade removed (`api/infra/repositories/route_store_mongo.py` deleted).
 9. Collection business-key rollout started with first two collections completed:
    - `users`: canonical `user_id` path added in handler/auth/session flow
    - `roles`: canonical `role_id` path added in handler flows
    - partial unique indexes: `users.user_id`, `roles.role_id`
    - compatibility fallback to `_id` retained in adapter layer
-   - backfill scripts consolidated:
-     - `scripts/backfill_business_keys.py`
+   - backfill scripts added:
+     - `scripts/backfill_users_user_id.py`
+     - `scripts/backfill_roles_role_id.py`
 10. Collection-wide business-key rollout completed for all planned collections:
    - handler-level business-key index definitions added in `api/infra/db/*`
-   - strict business-key lookup enabled for string-id collections (`users`, `roles`, `permissions`, `schemas`, `asp`, `asp_configs`, `isgl`)
+   - compatibility lookup support added for string-id collections (`permissions`, `schemas`, `asp`, `asp_configs`, `isgl`)
    - bulk migration tool added: `scripts/backfill_business_keys.py`
    - executed on both local DBs: `coyote_dev_3`, `coyote3`
    - alias collections also migrated: `*_beta2`, `cnvs_wgs`, `transloc`
-11. Final shim/fallback cleanup completed:
-   - removed dynamic `__getattr__` passthrough shims from admin/dna/rna/core repository adapters
-   - admin mutation flows now write canonical key fields explicitly before persistence
-   - `_id` compatibility read-fallbacks removed in strict business-key handlers
 
 Latest baseline totals after refactor:
 - `store_usage_total=0` (down from 322)
@@ -82,18 +79,18 @@ Latest baseline totals after refactor:
 - `api/routes`: request/response mapping + service invocation only.
 - Runtime wiring selects one concrete adapter implementation (Mongo today).
 
-## Data Identity Policy (Strict Runtime, Gradual Rollout Process)
+## Data Identity Policy (Gradual)
 Mongo remains active, but identity strategy is normalized now to be future-portable:
 
 1. `_id` stays as technical primary identifier for existing collections.
 2. Add explicit unique key fields for business identity in most collections (examples: `user_id`, `sample_id`, `variant_id`, `asp_id`, `isgl_id`).
-3. New code must use business keys in domain/service contracts; `_id` is not used as business identity.
-4. Rollout was gradual per collection/workstream; runtime policy is now strict business-key mode.
+3. New code must use business keys in domain/service contracts; `_id` conversion stays inside repository adapters.
+4. Migration is gradual per collection/workstream; no big-bang rewrite.
 5. Every new business key must have a unique index and collision test coverage.
 
 Notes:
-- For legacy collections already using string `_id`, `*_id` business fields are now canonical for service/repository behavior.
-- For ObjectId-backed collections, business keys are now present + indexed; `_id` remains technical identity for document storage internals.
+- For legacy collections already using string `_id`, preserve compatibility while introducing explicit business keys.
+- For ObjectId-backed collections, introduce business keys first, then progressively reduce `_id` assumptions in contracts.
 
 ## Mongo Runtime Policy (Docker First)
 1. Use Docker Compose Mongo image as the default local/dev runtime.
@@ -104,7 +101,7 @@ Notes:
 ## Execution Phases
 
 ### Phase 0: Governance and acceptance gates
-Status: `completed`
+Status: `in_progress`
 
 Tasks:
 1. Freeze new direct DB calls in routes/core.
@@ -119,7 +116,7 @@ Exit criteria:
 ---
 
 ### Phase 1: Contract and model normalization
-Status: `completed`
+Status: `in_progress`
 
 Tasks:
 1. Normalize API/domain contracts so they are persistence-agnostic.
@@ -139,7 +136,7 @@ Exit criteria:
 ---
 
 ### Phase 2: Define repository ports for all bounded contexts
-Status: `completed`
+Status: `in_progress`
 
 Tasks:
 1. Define interfaces for:
@@ -156,7 +153,7 @@ Exit criteria:
 ---
 
 ### Phase 3: Move business logic behind use-case services
-Status: `completed`
+Status: `in_progress`
 
 Tasks:
 1. Refactor `api/core` to consume ports only.
@@ -169,7 +166,7 @@ Exit criteria:
 ---
 
 ### Phase 4: Route layer decoupling
-Status: `completed`
+Status: `in_progress`
 
 Tasks:
 1. Refactor routes to call use-case services only.
@@ -182,7 +179,7 @@ Exit criteria:
 ---
 
 ### Phase 5: Infrastructure adapter cleanup and enforcement
-Status: `completed`
+Status: `in_progress`
 
 Tasks:
 1. Keep Mongo concrete adapter implementation in infra.
@@ -248,13 +245,13 @@ Use this template for each collection to ensure full-scope, non-partial progress
 - Continue until DB-agnostic architecture is complete across all workstreams.
 
 ## Next Up (Immediate)
-1. CI-specific hardening (intentionally excluded from current local sweep):
-   - wire boundary and contract suites into mandatory CI gates
-   - add baseline drift checks to pull-request policy
-2. Increase service-level regression depth for route families currently covered mostly by boundary and smoke tests.
-3. Continue deployment-runbook hardening for business-key and snapshot/restore operations:
+1. Expand repository ports for remaining bounded contexts:
+   - DNA/RNA entities, coverage, reporting, admin schemas/panels/users.
+2. Move from transitional facades to explicit repository-port contracts per module to complete DB-agnostic architecture.
+3. Validate collection-level business-key rollout in CI and promote to deployment runbook:
    - `.internal/COLLECTION_KEY_MIGRATION_MATRIX.md`
    - `scripts/backfill_business_keys.py`
+4. Increase service-level regression test depth for route flows currently validated primarily by boundary tests.
 
 ## Active Collection Execution Order
 This is the implementation order to make provider swap practical and low-risk:

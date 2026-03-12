@@ -1,69 +1,94 @@
-# Coyote3 Documentation Hub
+# Coyote3 Documentation
 
-This documentation set is organized by concern so engineers, operators, and reviewers can start from the layer they own instead of reading a single long manual front to back.
+This documentation set describes the repository as it exists today. The codebase is split into two runtime applications:
 
-## Start Here
+- `api/`: the independent FastAPI backend and the authoritative backend contract
+- `coyote/`: the Flask UI that consumes the API and renders the user-facing application
 
-- Architecture overview: [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md)
-- API architecture: [architecture/API_ARCHITECTURE.md](architecture/API_ARCHITECTURE.md)
-- Developer guide: [development/developer-guide.md](development/developer-guide.md)
-- Testing guide: [testing/TESTING_GUIDE.md](testing/TESTING_GUIDE.md)
-- Deployment and operations: [deployment/operations.md](deployment/operations.md)
+The rest of the repository supports those two applications: deployment, tests, shared utilities, and documentation.
 
-## Architecture
+## Current Status
 
-- System architecture and boundaries: [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md)
-- API package structure and startup: [architecture/API_ARCHITECTURE.md](architecture/API_ARCHITECTURE.md)
-- Security model and RBAC: [SECURITY_MODEL.md](SECURITY_MODEL.md)
-- Data model and Mongo conventions: [DATA_MODEL.md](DATA_MODEL.md)
-- Requirement-to-control mapping: [TRACEABILITY_MATRIX.md](TRACEABILITY_MATRIX.md)
-- Shared terminology: [GLOSSARY.md](GLOSSARY.md)
+The repository is in a working state with the following validated behavior:
 
-## API
+- the API starts from `api.main:app`
+- the UI starts independently and calls the API through `coyote/services/api_client/`
+- Docker development and portable stacks both start successfully
+- the backend route layer is centralized in `api/routers/`
+- API contracts are centralized in `api/contracts/`
+- Mongo runtime code is centralized in `api/db/mongo/`
+- the automated test suite passes
 
-- API reference: [api/reference.md](api/reference.md)
-- Endpoint inventory: [api/endpoint-catalog.md](api/endpoint-catalog.md)
-- Login/session model notes: [AUTH_LOGIN_MODEL_AND_STATS.md](AUTH_LOGIN_MODEL_AND_STATS.md)
+## Recommended Reading Order
 
-## UI
+1. Start with [Architecture Overview](ARCHITECTURE_OVERVIEW.md).
+2. Read [Repository Structure](architecture/repository-structure.md).
+3. Read [API Architecture](architecture/API_ARCHITECTURE.md).
+4. Read [Developer Guide](development/developer-guide.md).
+5. Read [Maintenance Guide](development/maintenance-guide.md).
+6. Read [Testing Guide](testing/TESTING_GUIDE.md) before changing behavior or removing tests.
+7. Read [Operations](deployment/operations.md) before changing Compose files, environment variables, or startup logic.
 
-- User-facing workflow and page behavior: [ui/user-guide.md](ui/user-guide.md)
+## Documentation Map
 
-## Development
+### Architecture
 
-- Contributor workflow and repository map: [development/developer-guide.md](development/developer-guide.md)
-- Route and endpoint implementation rules: [development/route-implementation-guide.md](development/route-implementation-guide.md)
-- Feature extension playbook: [development/extension-playbook.md](development/extension-playbook.md)
-- Code and naming standards: [development/code-style.md](development/code-style.md)
+- [Architecture Overview](ARCHITECTURE_OVERVIEW.md)
+- [Repository Structure](architecture/repository-structure.md)
+- [API Architecture](architecture/API_ARCHITECTURE.md)
+- [Security Model](SECURITY_MODEL.md)
+- [Data Model](DATA_MODEL.md)
+- [Traceability Matrix](TRACEABILITY_MATRIX.md)
+- [Glossary](GLOSSARY.md)
 
-## Deployment
+### API
 
-- Operations manual: [deployment/operations.md](deployment/operations.md)
-- Release process: [deployment/release-process.md](deployment/release-process.md)
-- Troubleshooting: [deployment/troubleshooting.md](deployment/troubleshooting.md)
-- Dev and portable Mongo runtime: [deployment/mongo-docker-dev-runtime.md](deployment/mongo-docker-dev-runtime.md)
-- Backup and recovery: [deployment/patient-data-backup-and-recovery.md](deployment/patient-data-backup-and-recovery.md)
+- [API Reference](api/reference.md)
+- [Endpoint Catalog](api/endpoint-catalog.md)
+- [Auth Login Model and Stats](AUTH_LOGIN_MODEL_AND_STATS.md)
 
-## Testing
+### UI
 
-- Testing command guide: [testing/TESTING_GUIDE.md](testing/TESTING_GUIDE.md)
-- Testing strategy and quality policy: [testing/strategy.md](testing/strategy.md)
+- [User Guide](ui/user-guide.md)
 
-## Repository Map
+### Development
 
-- API entrypoint: `api/main.py`
-- API HTTP layer: `api/routers/`
-- API contracts: `api/contracts/`
-- API services and workflows: `api/services/`, `api/core/`
-- API repositories and Mongo runtime: `api/repositories/`, `api/db/mongo/`, `api/infra/db/`
-- UI route and template layer: `coyote/blueprints/`, `coyote/templates/`
-- UI-to-API transport layer: `coyote/services/api_client/`
-- Test suites: `tests/api/`, `tests/ui/`, `tests/integration/`, `tests/unit/`
+- [Developer Guide](development/developer-guide.md)
+- [Maintenance Guide](development/maintenance-guide.md)
+- [Route Implementation Guide](development/route-implementation-guide.md)
+- [Extension Playbook](development/extension-playbook.md)
+- [Code Style](development/code-style.md)
 
-## Reading Order
+### Deployment
 
-1. Read architecture docs before moving modules or changing dependency direction.
-2. Read API docs before changing endpoint behavior or response contracts.
-3. Read development docs before adding a feature or removing a layer.
-4. Read deployment docs before changing Compose files, env vars, or startup defaults.
-5. Read testing docs before removing tests or introducing new quality gates.
+- [Operations](deployment/operations.md)
+- [Release Process](deployment/release-process.md)
+- [Troubleshooting](deployment/troubleshooting.md)
+- [Mongo Docker Dev Runtime](deployment/mongo-docker-dev-runtime.md)
+- [Patient Data Backup and Recovery](deployment/patient-data-backup-and-recovery.md)
+
+### Testing
+
+- [Testing Guide](testing/TESTING_GUIDE.md)
+- [Testing Strategy](testing/strategy.md)
+
+## Working Repository Model
+
+Use this model when deciding where code belongs:
+
+- HTTP request handling belongs in `api/routers/`
+- API data contracts belong in `api/contracts/`
+- backend domain and workflow logic belongs in `api/core/` and `api/services/`
+- backend persistence adapters belong in `api/repositories/`, `api/infra/db/`, and `api/db/mongo/`
+- UI page orchestration belongs in `coyote/blueprints/`
+- UI-to-API transport belongs in `coyote/services/api_client/`
+- tests belong in `tests/api/`, `tests/ui/`, `tests/integration/`, `tests/unit/`, and `tests/fixtures/`
+
+## Rules That Keep The Repository Healthy
+
+- Treat the API as the primary backend contract.
+- Keep the UI presentation-focused.
+- Do not add direct Mongo access outside `api/repositories/`, `api/infra/db/`, and `api/db/mongo/`.
+- Do not add backend policy logic to Flask blueprints.
+- Do not hardcode UI-to-API endpoint strings when an API client helper can own the path.
+- Update docs and tests in the same change set as architecture or behavior changes.

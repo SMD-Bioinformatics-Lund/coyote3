@@ -41,6 +41,9 @@ def _latest_doc(collection_alias: str, *, prefer_dev_rna_wgs: bool = False) -> d
     pools = [_DEV_RNA_WGS, _PROD] if prefer_dev_rna_wgs else [_PROD, _DEV_RNA_WGS]
     for pool in pools:
         meta = pool.get(collection_alias) or {}
+        docs = meta.get("docs")
+        if isinstance(docs, list) and docs and isinstance(docs[0], dict):
+            return deepcopy(docs[0])
         latest = meta.get("latest")
         if isinstance(latest, dict):
             return deepcopy(latest)

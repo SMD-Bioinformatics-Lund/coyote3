@@ -35,7 +35,7 @@ from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
 """
-python scripts/create_mongo_micro_snapshot.py --mongo-uri "mongodb://172.17.0.1:27017" --db coyote3 --db BAM_Service --out .internal/mongo_micro_snapshot
+python scripts/create_mongo_micro_snapshot.py --mongo-uri "mongodb://172.17.0.1:27017" --db coyote3 --db BAM_Service --out var/mongo/micro_snapshot
 """
 
 
@@ -74,8 +74,8 @@ def parse_args() -> SnapshotConfig:
     )
     parser.add_argument(
         "--out",
-        default=".internal/mongo_micro_snapshot",
-        help="Output directory (default: .internal/mongo_micro_snapshot)",
+        default="var/mongo/micro_snapshot",
+        help="Output directory (default: var/mongo/micro_snapshot)",
     )
     parser.add_argument(
         "--sample-limit",
