@@ -23,6 +23,7 @@ from api.security.access import is_public_api_path, resolve_request_user
 
 
 def build_authentication_middleware(*, testing: bool, development: bool) -> Callable[[Request, Callable[..., Awaitable[JSONResponse]]], Awaitable[JSONResponse]]:
+    """Build the request middleware that initializes runtime state and enforces API auth."""
     async def api_authentication_middleware(request: Request, call_next):
         ensure_runtime_initialized(testing=testing, development=development)
         start = time.perf_counter()
@@ -90,6 +91,7 @@ def build_authentication_middleware(*, testing: bool, development: bool) -> Call
 
 
 def _unauthorized_response(*, request: Request, request_id: str, start: float) -> JSONResponse:
+    """Return a standardized unauthenticated API response and emit request audit metadata."""
     exc = HTTPException(status_code=401, detail={"status": 401, "error": "Login required"})
     payload = exc.detail if isinstance(exc.detail, dict) else {"status": exc.status_code, "error": str(exc.detail)}
     response = JSONResponse(status_code=exc.status_code, content=payload)

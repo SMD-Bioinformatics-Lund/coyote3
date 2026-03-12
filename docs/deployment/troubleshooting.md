@@ -400,8 +400,8 @@ docker stats
 5. test endpoint with controlled parameters (pagination/filter).
 6. compare latency with and without optional payload expansions.
 
-### 12.3.1 DNA variant route slow-path checklist
-Use this path when `/api/v1/dna/samples/{sample_id}/variants` is significantly slower than other routes.
+### 12.3.1 DNA small-variant route slow-path checklist
+Use this path when `/api/v1/samples/{sample_id}/small-variants` is significantly slower than other routes.
 
 1. confirm latency in web logs (`/dna/sample/<id>` often mirrors API route latency).
 2. capture API timing or route duration around `get_case_variants`.

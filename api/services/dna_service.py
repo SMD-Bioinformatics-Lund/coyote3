@@ -43,20 +43,20 @@ class DnaService:
             raise api_error(404, "Variant not found for sample")
         return variant
 
-    def set_variant_bulk_flag(self, *, variant_ids: list[str], apply: bool, flag: str) -> None:
-        if not variant_ids:
+    def set_variant_bulk_flag(self, *, resource_ids: list[str], apply: bool, flag: str) -> None:
+        if not resource_ids:
             return
         if flag == "false_positive":
             if apply:
-                self.repository.variant_handler.mark_false_positive_var_bulk(variant_ids)
+                self.repository.variant_handler.mark_false_positive_var_bulk(resource_ids)
             else:
-                self.repository.variant_handler.unmark_false_positive_var_bulk(variant_ids)
+                self.repository.variant_handler.unmark_false_positive_var_bulk(resource_ids)
             return
         if flag == "irrelevant":
             if apply:
-                self.repository.variant_handler.mark_irrelevant_var_bulk(variant_ids)
+                self.repository.variant_handler.mark_irrelevant_var_bulk(resource_ids)
             else:
-                self.repository.variant_handler.unmark_irrelevant_var_bulk(variant_ids)
+                self.repository.variant_handler.unmark_irrelevant_var_bulk(resource_ids)
             return
         raise ValueError(f"Unsupported flag: {flag}")
 
@@ -64,7 +64,7 @@ class DnaService:
         self,
         *,
         sample: dict,
-        variant_ids: list[str],
+        resource_ids: list[str],
         assay_group: str | None,
         subpanel: str | None,
         apply: bool,
@@ -73,7 +73,7 @@ class DnaService:
         create_classified_variant_doc_fn,
     ) -> None:
         bulk_docs: list[dict[str, Any]] = []
-        for variant_id in variant_ids:
+        for variant_id in resource_ids:
             var = self.repository.variant_handler.get_variant(str(variant_id))
             if not var:
                 continue

@@ -22,7 +22,7 @@ def _service() -> AdminRoleService:
     return get_admin_role_service()
 
 
-@router.get("/api/v1/admin/roles", response_model=AdminRolesListPayload)
+@router.get("/api/v1/roles", response_model=AdminRolesListPayload)
 def list_roles_read(
     user: ApiUser = Depends(require_access(permission="view_role", min_role="admin", min_level=99999)),
     service: AdminRoleService = Depends(get_admin_role_service),
@@ -31,7 +31,7 @@ def list_roles_read(
     return util.common.convert_to_serializable(service.list_roles_payload())
 
 
-@router.get("/api/v1/admin/roles/create_context", response_model=AdminRoleCreateContextPayload)
+@router.get("/api/v1/roles/create_context", response_model=AdminRoleCreateContextPayload)
 def create_role_context_read(
     schema_id: str | None = Query(default=None),
     user: ApiUser = Depends(require_access(permission="create_role", min_role="admin", min_level=99999)),
@@ -42,7 +42,7 @@ def create_role_context_read(
     )
 
 
-@router.get("/api/v1/admin/roles/{role_id}/context", response_model=AdminRoleContextPayload)
+@router.get("/api/v1/roles/{role_id}/context", response_model=AdminRoleContextPayload)
 def role_context_read(
     role_id: str,
     user: ApiUser = Depends(require_access(permission="view_role", min_role="admin", min_level=99999)),
@@ -58,7 +58,7 @@ def _create_role(payload: dict, actor_username: str, service: AdminRoleService):
     )
 
 
-@router.post("/api/v1/admin/roles", response_model=AdminMutationPayload, status_code=201, summary="Create role")
+@router.post("/api/v1/roles", response_model=AdminMutationPayload, status_code=201, summary="Create role")
 def create_role(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="create_role", min_role="admin", min_level=99999)),
@@ -73,7 +73,7 @@ def _update_role(role_id: str, payload: dict, actor_username: str, service: Admi
     )
 
 
-@router.put("/api/v1/admin/roles/{role_id}", response_model=AdminMutationPayload, summary="Update role")
+@router.put("/api/v1/roles/{role_id}", response_model=AdminMutationPayload, summary="Update role")
 def update_role(
     role_id: str,
     payload: dict = Body(default_factory=dict),
@@ -87,7 +87,7 @@ def _toggle_role(role_id: str, service: AdminRoleService):
     return util.common.convert_to_serializable(service.toggle_role(role_id=role_id))
 
 
-@router.patch("/api/v1/admin/roles/{role_id}/status", response_model=AdminMutationPayload, summary="Toggle role active status")
+@router.patch("/api/v1/roles/{role_id}/status", response_model=AdminMutationPayload, summary="Toggle role active status")
 def toggle_role_status(
     role_id: str,
     user: ApiUser = Depends(require_access(permission="edit_role", min_role="admin", min_level=99999)),
@@ -101,7 +101,7 @@ def _delete_role(role_id: str, service: AdminRoleService):
     return util.common.convert_to_serializable(service.delete_role(role_id=role_id))
 
 
-@router.delete("/api/v1/admin/roles/{role_id}", response_model=AdminMutationPayload, summary="Delete role")
+@router.delete("/api/v1/roles/{role_id}", response_model=AdminMutationPayload, summary="Delete role")
 def delete_role(
     role_id: str,
     user: ApiUser = Depends(require_access(permission="delete_role", min_role="admin", min_level=99999)),

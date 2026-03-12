@@ -10,7 +10,7 @@ from api.extensions import util
 from api.http import api_error
 from api.repositories.admin_repository import AdminRepository, AdminSampleDeletionRepository
 from api.runtime import app as runtime_app
-from api.services.admin_common import current_actor, mutation_payload, utc_now
+from api.services.management_common import current_actor, mutation_payload, utc_now
 
 
 class AdminPanelService:

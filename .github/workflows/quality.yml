@@ -28,25 +28,35 @@ jobs:
           pip install -r requirements.txt
 
       - name: Ruff check
-        run: PYTHONPATH=. ruff check api/settings.py coyote/services/api_client tests/unit tests/contract tests/web
+        run: PYTHONPATH=. ruff check api/settings.py coyote/services/api_client tests/unit tests/integration tests/ui
 
       - name: Ruff format check
-        run: PYTHONPATH=. ruff format --check api/settings.py coyote/services/api_client tests/unit tests/contract tests/web
+        run: PYTHONPATH=. ruff format --check api/settings.py coyote/services/api_client tests/unit tests/integration tests/ui
 
       - name: Unit tests
         run: PYTHONPATH=. pytest -q -m unit tests/unit
 
       - name: Web boundary tests
-        run: PYTHONPATH=. pytest -q -m web tests/web/test_web_api_boundary.py
+        run: PYTHONPATH=. pytest -q -m web tests/ui/test_web_api_boundary.py
 
       - name: API smoke tests
-        run: PYTHONPATH=. pytest -q -m api tests/api/routes/test_system_routes.py tests/api/routes/test_reports_routes.py
+        run: PYTHONPATH=. pytest -q -m api tests/api/routers/test_system_routes.py tests/api/routers/test_reports_routes.py
 
       - name: Contract tests
-        run: PYTHONPATH=. pytest -q -m contract tests/contract
+        run: PYTHONPATH=. pytest -q -m contract tests/integration
 
       - name: Boundary baseline drift check
         run: PYTHONPATH=. python scripts/refresh_backend_db_boundary_baseline.py --check
 
       - name: Web/API route contract guardrail
-        run: PYTHONPATH=. pytest -q tests/contract/test_web_api_route_contract.py
+        run: PYTHONPATH=. pytest -q tests/integration/test_web_api_route_contract.py
+
+      - name: Compose config smoke
+        run: |
+          docker compose -f deploy/compose/docker-compose.dev.yml config -q
+          docker compose -f deploy/compose/docker-compose.dev.portable.yml config -q
+
+      - name: Snapshot tooling smoke
+        run: |
+          python scripts/create_mongo_micro_snapshot.py --help > /dev/null
+          python scripts/restore_mongo_micro_snapshot.py --help > /dev/null

@@ -133,6 +133,6 @@ After startup/restore:
 1. `docker ps` shows web/api/mongo/redis/tailwind all `Up`.
 2. `GET /api/v1/health` returns `200`.
 3. login succeeds for approved local user.
-4. `/api/v1/home/samples` returns expected snapshot data.
+4. `/api/v1/samples` returns expected snapshot data.
 5. dashboard/public routes render without repeated 401 loops.
 6. restored users have `user_id` populated and restored samples have `sample_id` populated.

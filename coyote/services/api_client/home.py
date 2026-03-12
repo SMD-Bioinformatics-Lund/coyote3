@@ -61,7 +61,7 @@ def fetch_edit_context(sample_id: str) -> ApiPayload:
 
 
 def apply_isgl(sample_id: str, isgl_ids: list[str]) -> ApiPayload:
-    return get_web_api_client().post_json(
+    return get_web_api_client().put_json(
         api_endpoints.home_sample(sample_id, "genes", "apply-isgl"),
         headers=forward_headers(),
         json_body={"isgl_ids": isgl_ids},
@@ -69,7 +69,7 @@ def apply_isgl(sample_id: str, isgl_ids: list[str]) -> ApiPayload:
 
 
 def save_adhoc_genes(sample_id: str, *, genes: str, label: str) -> ApiPayload:
-    return get_web_api_client().post_json(
+    return get_web_api_client().put_json(
         api_endpoints.home_sample(sample_id, "adhoc_genes", "save"),
         headers=forward_headers(),
         json_body={"genes": genes, "label": label},
@@ -77,10 +77,9 @@ def save_adhoc_genes(sample_id: str, *, genes: str, label: str) -> ApiPayload:
 
 
 def clear_adhoc_genes(sample_id: str) -> ApiPayload:
-    return get_web_api_client().post_json(
+    return get_web_api_client().delete_json(
         api_endpoints.home_sample(sample_id, "adhoc_genes", "clear"),
         headers=forward_headers(),
-        json_body={},
     )
 
 

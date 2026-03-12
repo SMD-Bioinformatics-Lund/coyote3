@@ -4,19 +4,26 @@ Views for handling RNA fusion cases in the Coyote3 application.
 All routes require user authentication and appropriate sample access.
 """
 
+from __future__ import annotations
+
+from copy import deepcopy
+
 from flask import current_app as app
 from flask import (
+    Response,
+    flash,
+    redirect,
     render_template,
     request,
-    Response,
+    url_for,
 )
+from flask_login import login_required
 
 from coyote.blueprints.rna.forms import FusionFilter
 
 from coyote.blueprints.rna import rna_bp
 from coyote.services.api_client import endpoints as api_endpoints
 from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
-from copy import deepcopy
 
 
 @rna_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])
@@ -192,3 +199,128 @@ def show_fusion(sample_id: str, fusion_id: str) -> Response | str:
     except ApiRequestError as exc:
         app.logger.error("RNA fusion detail API fetch failed for sample %s: %s", sample_id, exc)
         return Response(str(exc), status=exc.status_code or 502)
+
+
+def _bulk_fusion_flag_update(
+    *,
+    sample_id: str,
+    apply: bool,
+    fusion_ids: list[str],
+    endpoint: str,
+    log_message: str,
+) -> None:
+    """Apply a bulk fusion flag update through the canonical API."""
+    try:
+        get_web_api_client().patch_json(
+            endpoint,
+            headers=forward_headers(),
+            params={"apply": str(apply).lower(), "fusion_ids": fusion_ids},
+        )
+    except ApiRequestError as exc:
+        app.logger.error("%s for sample %s: %s", log_message, sample_id, exc)
+
+
+@rna_bp.route("/<string:sample_id>/fusion/fp/<string:fus_id>", methods=["POST"])
+def mark_false_fusion(sample_id: str, fus_id: str) -> Response:
+    """Mark a fusion as false-positive and redirect back to its detail page."""
+    try:
+        get_web_api_client().patch_json(
+            api_endpoints.rna_sample(sample_id, "fusions", fus_id, "flags", "false-positive"),
+            headers=forward_headers(),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("Failed to mark RNA fusion false-positive via API for sample %s: %s", sample_id, exc)
+    return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=fus_id))
+
+
+@rna_bp.route("/<string:sample_id>/fusion/unfp/<string:fus_id>", methods=["POST"])
+def unmark_false_fusion(sample_id: str, fus_id: str) -> Response:
+    """Remove the false-positive flag from a fusion and redirect back to its detail page."""
+    try:
+        get_web_api_client().delete_json(
+            api_endpoints.rna_sample(sample_id, "fusions", fus_id, "flags", "false-positive"),
+            headers=forward_headers(),
+        )
+    except ApiRequestError as exc:
+        app.logger.error(
+            "Failed to unmark RNA fusion false-positive via API for sample %s: %s", sample_id, exc
+        )
+    return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=fus_id))
+
+
+@rna_bp.route(
+    "/<string:sample_id>/fusion/pickfusioncall/<string:fus_id>/<string:callidx>/<string:num_calls>",
+    methods=["GET", "POST"],
+)
+def pick_fusioncall(sample_id: str, fus_id: str, callidx: str, num_calls: str) -> Response:
+    """Select the active fusion call and redirect back to fusion detail."""
+    try:
+        get_web_api_client().patch_json(
+            api_endpoints.rna_sample(sample_id, "fusions", fus_id, "selection", callidx, num_calls),
+            headers=forward_headers(),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("Failed to pick RNA fusion call via API for sample %s: %s", sample_id, exc)
+    return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=fus_id))
+
+
+@rna_bp.route("/<string:sample_id>/fusion/hide_fusion_comment/<string:fus_id>", methods=["POST"])
+def hide_fusion_comment(sample_id: str, fus_id: str) -> Response:
+    """Hide a fusion comment and redirect back to fusion detail."""
+    comment_id = request.form.get("comment_id", "MISSING_ID")
+    try:
+        get_web_api_client().patch_json(
+            api_endpoints.rna_sample(sample_id, "fusions", fus_id, "comments", comment_id, "hidden"),
+            headers=forward_headers(),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("Failed to hide RNA fusion comment via API for sample %s: %s", sample_id, exc)
+    return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=fus_id))
+
+
+@rna_bp.route("/<string:sample_id>/fusion/unhide_fusion_comment/<string:fus_id>", methods=["POST"])
+def unhide_fusion_comment(sample_id: str, fus_id: str) -> Response:
+    """Unhide a fusion comment and redirect back to fusion detail."""
+    comment_id = request.form.get("comment_id", "MISSING_ID")
+    try:
+        get_web_api_client().delete_json(
+            api_endpoints.rna_sample(sample_id, "fusions", fus_id, "comments", comment_id, "hidden"),
+            headers=forward_headers(),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("Failed to unhide RNA fusion comment via API for sample %s: %s", sample_id, exc)
+    return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=fus_id))
+
+
+@rna_bp.route("/multi_class/<sample_id>", methods=["POST"], endpoint="classify_multi_fusions")
+@login_required
+def classify_multi_fusions(sample_id: str) -> Response:
+    """Apply supported bulk fusion actions from the list view."""
+    action = request.form.get("action")
+    fusion_ids = request.form.getlist("selected_object_id")
+    tier = request.form.get("tier")
+    irrelevant = request.form.get("irrelevant")
+    false_positive = request.form.get("false_positive")
+
+    if tier and action == "apply":
+        flash(
+            "Bulk tier assignment is not supported for RNA fusions. Use fusion detail page.",
+            "yellow",
+        )
+    elif false_positive and action in {"apply", "remove"}:
+        _bulk_fusion_flag_update(
+            sample_id=sample_id,
+            apply=action == "apply",
+            fusion_ids=fusion_ids,
+            endpoint=api_endpoints.rna_sample(sample_id, "fusions", "flags", "false-positive"),
+            log_message="Failed to bulk update RNA false-positive fusion flags via API",
+        )
+    elif irrelevant and action in {"apply", "remove"}:
+        _bulk_fusion_flag_update(
+            sample_id=sample_id,
+            apply=action == "apply",
+            fusion_ids=fusion_ids,
+            endpoint=api_endpoints.rna_sample(sample_id, "fusions", "flags", "irrelevant"),
+            log_message="Failed to bulk update RNA irrelevant fusion flags via API",
+        )
+    return redirect(url_for("rna_bp.list_fusions", sample_id=sample_id))

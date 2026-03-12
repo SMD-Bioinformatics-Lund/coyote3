@@ -7,7 +7,7 @@ The goal of this document is long-term maintainability, not short-term feature t
 
 The rules in this playbook assume current project structure and concrete modules already present in the codebase. Examples intentionally reference existing files such as:
 
-- `api/routers/variants.py`, `api/routers/rna.py`, `api/routers/reports.py`, `api/routers/admin_resources.py`
+- `api/routers/small_variants.py`, `api/routers/fusions.py`, `api/routers/reports.py`, `api/routers/resources/asp.py`, `api/routers/resources/aspc.py`, `api/routers/resources/genelists.py`
 - `api/core/workflows/dna_workflow.py`, `api/core/workflows/rna_workflow.py`
 - `api/core/dna/*`, `api/core/reporting/*`, `api/core/interpretation/*`
 - `api/main.py` and `api/routers/registry.py` for `require_access(...)` and request-level access auditing
@@ -46,7 +46,7 @@ Before scenario guides, this map shows where extension code should go in Coyote3
 Example current pattern from DNA route family:
 
 ```python
-@app.get("/api/v1/dna/samples/{sample_id}/variants")
+@app.get("/api/v1/samples/{sample_id}/small-variants")
 def list_dna_variants(request: Request, sample_id: str, user: ApiUser = Depends(require_access(min_level=1))):
     sample = _get_sample_for_api(sample_id, user)
     assay_config = _get_formatted_assay_config(sample)
@@ -100,8 +100,8 @@ A clinical workflow is a domain-level end-to-end path, for example a new DNA int
 If adding new DNA workflow endpoint family:
 
 ```python
-# api/routers/variants.py
-@app.get("/api/v1/dna/samples/{sample_id}/new_workflow/context")
+# api/routers/small_variants.py
+@app.get("/api/v1/samples/{sample_id}/new_workflow/context")
 def dna_new_workflow_context(
     sample_id: str,
     user: ApiUser = Depends(require_access(permission="view_new_workflow", min_role="user", min_level=9)),
@@ -229,7 +229,7 @@ Design implication: if endpoint is sensitive, use explicit permission plus level
 
 ### 7.3 Implementation pattern
 ```python
-@app.post("/api/v1/dna/samples/{sample_id}/new-action")
+@app.post("/api/v1/samples/{sample_id}/new-action")
 def new_action(
     sample_id: str,
     user: ApiUser = Depends(require_access(permission="dna_new_action", min_role="user", min_level=9)),
@@ -313,7 +313,7 @@ This pattern enforces your stated boundary: backend decides data/structure, web 
 API route:
 
 ```python
-@app.get("/api/v1/dna/samples/{sample_id}/reports/preview")
+@app.get("/api/v1/samples/{sample_id}/reports/{report_type}/preview")
 def preview_dna_report(...):
     ...
     template_name, template_context, snapshot_rows = DNAWorkflowService.build_report_payload(...)
@@ -567,6 +567,6 @@ Required touchpoints:
 - `api/infra/db/permissions.py` usage path for permission persistence and lookup.
 - `api/infra/db/roles.py` usage path for role grants and deny rules.
 - route decorators in `api/routers/*` using `require_access(...)`.
-- admin UI route handlers in `coyote/blueprints/admin/views_permissions*.py` and `views_roles*.py` if user-facing management is required.
+- admin UI route handlers in feature modules like `coyote/blueprints/admin/views_permissions.py` and `coyote/blueprints/admin/views_roles.py` if user-facing management is required.
 
 This checklist should be attached to the PR description for every policy-impacting change so reviewers can verify completeness quickly.

@@ -7,7 +7,7 @@ from typing import Any
 from api.extensions import util
 from api.http import api_error
 from api.repositories.admin_repository import AdminRepository
-from api.services.admin_common import current_actor, inject_version_history, lower, mutation_payload, utc_now
+from api.services.management_common import current_actor, inject_version_history, lower, mutation_payload, utc_now
 
 
 class AdminRoleService:

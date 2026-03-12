@@ -110,7 +110,7 @@
                         {% if is_rna_sample %}
                           <a href="{{ url_for('rna_bp.list_fusions', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% else %}
-                          <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                          <a href="{{ url_for('dna_bp.list_small_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% endif %}
                         {% if sample.comments|selectattr('hidden', 'equalto', 0)|list|length > 0 %}
                           *
@@ -256,7 +256,7 @@
                         {% if is_rna_sample %}
                           <a href="{{ url_for('rna_bp.list_fusions', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% else %}
-                          <a href="{{ url_for('dna_bp.list_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                          <a href="{{ url_for('dna_bp.list_small_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">

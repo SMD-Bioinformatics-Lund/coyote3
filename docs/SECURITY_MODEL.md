@@ -287,7 +287,7 @@ from fastapi import Depends
 from api.main import app
 from api.security.access import require_access
 
-@app.post('/api/v1/admin/permissions')
+@app.post('/api/v1/permissions')
 def create_permission(payload: dict, user=Depends(require_access(min_level=900, permissions=['create_permission']))):
     return permission_service.create(payload=payload, actor=user)
 ```
@@ -386,7 +386,7 @@ Do not log:
 ```python
 logger.info('variant_list_request', extra={
     'trace_id': trace_id,
-    'route': '/api/v1/dna/samples/{sample_id}/variants',
+    'route': '/api/v1/samples/{sample_id}/small-variants',
     'actor': user.username,
     'sample_id': sample_id,
 })

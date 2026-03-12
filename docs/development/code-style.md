@@ -76,7 +76,10 @@ These standards are mandatory for new code unless an exception is documented in 
 
 ## 4. Blueprint Naming Rules
 - Use domain-specific blueprint package names: `dna`, `rna`, `admin`, `home`, `public`.
-- View module names should reflect responsibility: `views_reports.py`, `views_variants.py`.
+- View module names should reflect responsibility: `views_reports.py`, `views_small_variants.py`.
+- Group Flask blueprint code by feature area, not by one tiny action at a time.
+- Prefer modules like `views_small_variants.py`, `views_small_variant_actions.py`, `views_users.py`, `views_assay_configs.py`, or `views_genes.py`.
+- Avoid shards like `views_users_list.py`, `views_users_detail.py`, `views_users_actions.py` unless a cohesive feature module has grown too large to review.
 - Blueprint variables should end with `_bp`.
 
 ### Good
@@ -90,7 +93,7 @@ These standards are mandatory for new code unless an exception is documented in 
 ---
 
 ## 5. Router Naming Rules
-- Route module files should match feature families (`api/routers/variants.py`, `api/routers/reports.py`).
+- Route module files should match feature families (`api/routers/small_variants.py`, `api/routers/fusions.py`, `api/routers/reports.py`).
 - Route function names should indicate domain and operation.
 - Path prefixes must remain versioned (`/api/v1/...`).
 
@@ -249,29 +252,29 @@ Include:
 
 ## 11.1 Good: route-service separation
 ```python
-@app.get('/api/v1/home/samples')
-def home_samples_read(user=Depends(require_access(min_level=1))):
-    return HomeWorkflowService.read_samples(user)
+@app.get('/api/v1/samples')
+def list_samples_read(user=Depends(require_access(min_level=1))):
+    return SampleCatalogService.read_samples(user)
 ```
 
 ## 11.2 Bad: route owns all logic
 ```python
-@app.get('/api/v1/home/samples')
-def home_samples_read():
+@app.get('/api/v1/samples')
+def list_samples_read():
     # direct query + policy + transformation + response in one function
     ...
 ```
 
 ## 11.3 Good: explicit permission check
 ```python
-@app.post('/api/v1/admin/roles')
+@app.post('/api/v1/roles')
 def create_role(payload: dict, user=Depends(require_access(min_level=900, permissions=['create_role']))):
     ...
 ```
 
 ## 11.4 Bad: hidden implicit access
 ```python
-@app.post('/api/v1/admin/roles')
+@app.post('/api/v1/roles')
 def create_role(payload: dict):
     ...  # no explicit policy dependency
 ```

@@ -23,7 +23,7 @@ def _service() -> AdminUserService:
     return get_admin_user_service()
 
 
-@router.get("/api/v1/admin/users", response_model=AdminUsersListPayload)
+@router.get("/api/v1/users", response_model=AdminUsersListPayload)
 def list_users_read(
     user: ApiUser = Depends(require_access(permission="view_user", min_role="admin", min_level=99999)),
     service: AdminUserService = Depends(get_admin_user_service),
@@ -32,7 +32,7 @@ def list_users_read(
     return util.common.convert_to_serializable(service.list_users_payload())
 
 
-@router.get("/api/v1/admin/users/create_context", response_model=AdminUserCreateContextPayload)
+@router.get("/api/v1/users/create_context", response_model=AdminUserCreateContextPayload)
 def create_user_context_read(
     schema_id: str | None = Query(default=None),
     user: ApiUser = Depends(require_access(permission="create_user", min_role="admin", min_level=99999)),
@@ -43,7 +43,7 @@ def create_user_context_read(
     )
 
 
-@router.get("/api/v1/admin/users/{user_id}/context", response_model=AdminUserContextPayload)
+@router.get("/api/v1/users/{user_id}/context", response_model=AdminUserContextPayload)
 def user_context_read(
     user_id: str,
     user: ApiUser = Depends(require_access(permission="view_user", min_role="admin", min_level=99999)),
@@ -59,7 +59,7 @@ def _create_user(payload: dict, actor_username: str, service: AdminUserService):
     )
 
 
-@router.post("/api/v1/admin/users", response_model=AdminMutationPayload, status_code=201, summary="Create user")
+@router.post("/api/v1/users", response_model=AdminMutationPayload, status_code=201, summary="Create user")
 def create_user(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="create_user", min_role="admin", min_level=99999)),
@@ -74,7 +74,7 @@ def _update_user(user_id: str, payload: dict, actor_username: str, service: Admi
     )
 
 
-@router.put("/api/v1/admin/users/{user_id}", response_model=AdminMutationPayload, summary="Update user")
+@router.put("/api/v1/users/{user_id}", response_model=AdminMutationPayload, summary="Update user")
 def update_user(
     user_id: str,
     payload: dict = Body(default_factory=dict),
@@ -88,7 +88,7 @@ def _delete_user(user_id: str, service: AdminUserService):
     return util.common.convert_to_serializable(service.delete_user(user_id=user_id))
 
 
-@router.delete("/api/v1/admin/users/{user_id}", response_model=AdminMutationPayload, summary="Delete user")
+@router.delete("/api/v1/users/{user_id}", response_model=AdminMutationPayload, summary="Delete user")
 def delete_user(
     user_id: str,
     user: ApiUser = Depends(require_access(permission="delete_user", min_role="admin", min_level=99999)),
@@ -102,7 +102,7 @@ def _toggle_user(user_id: str, service: AdminUserService):
     return util.common.convert_to_serializable(service.toggle_user(user_id=user_id))
 
 
-@router.patch("/api/v1/admin/users/{user_id}/status", response_model=AdminMutationPayload, summary="Toggle user active status")
+@router.patch("/api/v1/users/{user_id}/status", response_model=AdminMutationPayload, summary="Toggle user active status")
 def toggle_user_status(
     user_id: str,
     user: ApiUser = Depends(require_access(permission="edit_user", min_role="admin", min_level=99999)),
@@ -112,7 +112,7 @@ def toggle_user_status(
     return _toggle_user(user_id=user_id, service=service)
 
 
-@router.post("/api/v1/admin/users/validate_username", response_model=AdminExistsPayload)
+@router.post("/api/v1/users/validate_username", response_model=AdminExistsPayload)
 def validate_username_mutation(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="create_user", min_role="admin", min_level=99999)),
@@ -124,7 +124,7 @@ def validate_username_mutation(
     )
 
 
-@router.post("/api/v1/admin/users/validate_email", response_model=AdminExistsPayload)
+@router.post("/api/v1/users/validate_email", response_model=AdminExistsPayload)
 def validate_email_mutation(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="create_user", min_role="admin", min_level=99999)),

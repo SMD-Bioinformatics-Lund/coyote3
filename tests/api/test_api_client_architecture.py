@@ -80,7 +80,7 @@ def test_http_error_payload_is_mapped(monkeypatch):
 
     client = BaseApiClient(base_url="http://example.invalid")
     with pytest.raises(ApiRequestError) as exc:
-        client._request("GET", "/api/v1/admin/users")
+        client._request("GET", "/api/v1/users")
     assert exc.value.status_code == 403
     assert exc.value.message == "Forbidden"
     assert exc.value.payload == {"error": "Forbidden"}

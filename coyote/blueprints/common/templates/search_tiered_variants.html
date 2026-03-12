@@ -206,7 +206,7 @@
                           {% if total_samples > 0 %}
                             {% for sample_oid, sample_info in samples_list[:max_visible] %}
                               <div>
-                                <a href="{{ url_for('dna_bp.list_variants', sample_id=sample_info.sample_name) }}"
+                                <a href="{{ url_for('dna_bp.list_small_variants', sample_id=sample_info.sample_name) }}"
                                    class="text-blue-500 hover:underline">
                                   {{ sample_info.sample_name }}
                                 </a>
@@ -234,7 +234,7 @@
                           <div data-samples-hidden class="hidden">
                             {% for sample_oid, sample_info in samples_list[max_visible:] %}
                               <div>
-                                <a href="{{ url_for('dna_bp.list_variants', sample_id=sample_info.sample_name) }}"
+                                <a href="{{ url_for('dna_bp.list_small_variants', sample_id=sample_info.sample_name) }}"
                                    class="text-blue-500 hover:underline">
                                   {{ sample_info.sample_name }}
                                 </a>

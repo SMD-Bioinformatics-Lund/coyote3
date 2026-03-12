@@ -12,7 +12,7 @@ from api.deps.repositories import (
     get_rna_repository,
     get_rna_workflow_repository,
 )
-from api.services.admin_permission_service import AdminPermissionService
+from api.services.permission_management_service import PermissionManagementService
 from api.services.admin_resource_service import (
     AdminAspcService,
     AdminGenelistService,
@@ -22,13 +22,21 @@ from api.services.admin_resource_service import (
 )
 from api.services.admin_role_service import AdminRoleService
 from api.services.admin_user_service import AdminUserService
+from api.services.resource_annotation_service import ResourceAnnotationService
+from api.services.biomarker_service import BiomarkerService
+from api.services.resource_classification_service import ResourceClassificationService
+from api.services.cnv_service import CnvService
 from api.services.coverage_service import CoverageService
 from api.services.dashboard_service import DashboardService
 from api.services.dna_service import DnaService
 from api.services.dna_structural_service import DnaStructuralService
-from api.services.home_service import HomeService
+from api.services.fusion_service import FusionService
+from api.services.sample_catalog_service import SampleCatalogService
+from api.services.report_service import ReportService
 from api.services.rna_service import RnaService
 from api.services.sample_service import SampleService
+from api.services.small_variant_service import SmallVariantService
+from api.services.translocation_service import TranslocationService
 from api.services.user_service import UserService
 
 
@@ -43,8 +51,8 @@ def get_admin_role_service() -> AdminRoleService:
 
 
 @lru_cache
-def get_admin_permission_service() -> AdminPermissionService:
-    return AdminPermissionService(repository=get_admin_repository())
+def get_permission_management_service() -> PermissionManagementService:
+    return PermissionManagementService(repository=get_admin_repository())
 
 
 @lru_cache
@@ -89,9 +97,25 @@ def get_dna_service() -> DnaService:
     return DnaService(repository=get_dna_repository())
 
 
+def get_small_variant_service() -> SmallVariantService:
+    return SmallVariantService(repository=get_dna_repository())
+
+
+def get_biomarker_service() -> BiomarkerService:
+    return BiomarkerService(repository=get_dna_repository())
+
+
+def get_classification_service() -> ResourceClassificationService:
+    return ResourceClassificationService(repository=get_dna_repository())
+
+
+def get_resource_annotation_service() -> ResourceAnnotationService:
+    return ResourceAnnotationService(repository=get_dna_repository())
+
+
 @lru_cache
-def get_home_service() -> HomeService:
-    return HomeService(repository=get_home_repository())
+def get_sample_catalog_service() -> SampleCatalogService:
+    return SampleCatalogService(repository=get_home_repository())
 
 
 def get_rna_service() -> RnaService:
@@ -101,8 +125,28 @@ def get_rna_service() -> RnaService:
     )
 
 
+def get_fusion_service() -> FusionService:
+    return FusionService(
+        repository=get_rna_repository(),
+        workflow_repository=get_rna_workflow_repository(),
+    )
+
+
 def get_dna_structural_service() -> DnaStructuralService:
     return DnaStructuralService(repository=get_dna_repository())
+
+
+def get_cnv_service() -> CnvService:
+    return CnvService(repository=get_dna_repository())
+
+
+def get_translocation_service() -> TranslocationService:
+    return TranslocationService(repository=get_dna_repository())
+
+
+@lru_cache
+def get_report_service() -> ReportService:
+    return ReportService()
 
 
 def get_user_service() -> UserService:

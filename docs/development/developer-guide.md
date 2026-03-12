@@ -64,6 +64,7 @@ coyote3/
 - `coyote/services/api_client/`: all UI-to-API communication, including session-cookie relay and request-scoped client lifecycle
 - `coyote/templates/`: HTML rendering
 - `coyote/static/`: client assets
+- organize blueprint modules by feature-sized concerns, not one-file-per-button or one-file-per-verb
 
 ### Tests
 
@@ -150,7 +151,8 @@ These rules keep the codebase maintainable:
 6. Prefer explicit service dependencies over router-level singletons.
 7. Extend existing domain packages before creating new generic utility modules.
 8. Update tests and docs in the same change set as code.
-9. Prefer canonical REST endpoints and keep compatibility aliases explicitly deprecated.
+9. Prefer sample-centric resource endpoints for genomics behavior (`small-variants`, `cnvs`, `translocations`, `fusions`, `biomarkers`, `classifications`, `annotations`, `reports`).
+   Keep classification logic in its own router/service when it applies across more than one genomics entity type.
 10. Treat the API session cookie as authoritative for login flows; do not introduce new UI code that depends on bearer tokens in JSON auth payloads.
 
 ## Standard Backend Extension Pattern
@@ -163,6 +165,7 @@ For new or refactored API behavior, use this sequence:
 4. Repository owns persistence-facing operations and handler composition.
 5. Mongo handlers own raw collection queries.
 6. New routes should use resource nouns and HTTP semantics before introducing any alias.
+7. For genomics workflows, prefer sample-centric resources over assay-bucket routers like `dna` or `rna`.
 
 Practical rule: if a router needs to branch on domain state, normalize payloads, or coordinate multiple persistence calls, move that logic into a service.
 
@@ -182,6 +185,7 @@ Practical rule: if a service starts building Mongo query documents directly, mov
 ### UI behavior change
 
 1. Update the blueprint handler.
+   Prefer extending a feature module like `views_small_variants.py`, `views_small_variant_actions.py`, `views_users.py`, or `views_genes.py` instead of creating another shard file.
 2. Use or extend the API client helper.
 3. Update the template.
 4. Update `tests/ui/`.
@@ -233,6 +237,17 @@ Use this sequence:
    - relevant `tests/unit/`
    - relevant `tests/integration/`
 9. Update API docs.
+
+For genomics work, default to this ownership model:
+
+- `small_variants`: SNVs, indels, MNVs
+- `cnvs`: copy number variants
+- `translocations`: structural translocation events
+- `fusions`: RNA fusion events
+- `biomarkers`: biomarker reads and summaries
+- `classifications`: shared tiering and classification mutations across genomics entities
+- `annotations`: comment and annotation mutations
+- `reports`: preview/save orchestration by `report_type`
 
 ## How To Add A New UI Integration
 

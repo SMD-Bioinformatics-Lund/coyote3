@@ -1,19 +1,20 @@
-"""Behavior tests for Home API routes using collection-shaped fixtures."""
+"""Behavior tests for sample list and sample workflow API routes."""
 
 from __future__ import annotations
 
 import pytest
 from fastapi import HTTPException
 
-from api.routers import home
-from api.services.home_service import HomeService
+from api.routers import samples
+from api.services import sample_catalog_service as sample_catalog_service_module
+from api.services.sample_catalog_service import SampleCatalogService
 from tests.fixtures.api import mock_collections as fx
 
 
 def test_home_samples_read_returns_live_and_done(monkeypatch):
     user = fx.api_user()
     calls = []
-    service = HomeService()
+    service = SampleCatalogService()
 
     def _get_samples(**kwargs):
         calls.append(kwargs)
@@ -21,11 +22,11 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
             return [{"_id": "d1", "reports": [{"time_created": 123}]}, {"_id": "d2"}]
         return [{"_id": "l1"}, {"_id": "l2"}]
 
-    monkeypatch.setattr(home.runtime_app, "config", {"REPORTED_SAMPLES_SEARCH_LIMIT": 50})
+    monkeypatch.setattr(sample_catalog_service_module, "runtime_app", type("_App", (), {"config": {"REPORTED_SAMPLES_SEARCH_LIMIT": 50}})())
     monkeypatch.setattr(service.repository, "get_samples", _get_samples)
-    monkeypatch.setattr(home.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = home.home_samples_read(
+    payload = samples.list_samples_read(
         status="live",
         search_mode="both",
         sample_view=None,
@@ -55,17 +56,17 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
 def test_home_samples_read_always_fetches_both_tables(monkeypatch):
     user = fx.api_user()
     calls = []
-    service = HomeService()
+    service = SampleCatalogService()
 
     def _get_samples(**kwargs):
         calls.append(kwargs)
         return [{"_id": "d1", "reports": [{"time_created": 123}]}]
 
-    monkeypatch.setattr(home.runtime_app, "config", {"REPORTED_SAMPLES_SEARCH_LIMIT": 50})
+    monkeypatch.setattr(sample_catalog_service_module, "runtime_app", type("_App", (), {"config": {"REPORTED_SAMPLES_SEARCH_LIMIT": 50}})())
     monkeypatch.setattr(service.repository, "get_samples", _get_samples)
-    monkeypatch.setattr(home.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = home.home_samples_read(
+    payload = samples.list_samples_read(
         status="live",
         search_mode="live",
         sample_view="reported",
@@ -90,10 +91,10 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
 
 
 def test_home_apply_isgl_invalid_payload_raises_400(monkeypatch):
-    monkeypatch.setattr(home, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
 
     with pytest.raises(HTTPException) as exc:
-        home.home_apply_isgl_mutation("S1", payload={"isgl_ids": "bad"}, user=fx.api_user(), service=HomeService())
+        samples.sample_apply_genelists_mutation("S1", payload={"isgl_ids": "bad"}, user=fx.api_user(), service=SampleCatalogService())
 
     assert exc.value.status_code == 400
     assert exc.value.detail["error"] == "Invalid isgl_ids payload"
@@ -102,17 +103,17 @@ def test_home_apply_isgl_invalid_payload_raises_400(monkeypatch):
 def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
     sample = fx.sample_doc()
     calls = {}
-    service = HomeService()
+    service = SampleCatalogService()
 
-    monkeypatch.setattr(home, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
 
     def _update_sample_filters(sample_id, filters):
         calls["filters"] = filters
 
     monkeypatch.setattr(service.repository, "update_sample_filters", _update_sample_filters)
-    monkeypatch.setattr(home.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = home.home_save_adhoc_genes_mutation(
+    payload = samples.sample_save_adhoc_genes_mutation(
         "S1",
         payload={"genes": "NPM1 TP53\nIDH1", "label": "focus"},
         user=fx.api_user(),

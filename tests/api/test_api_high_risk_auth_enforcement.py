@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 
 from api.deps.repositories import get_sample_repository
 from api.main import app
-from api.routers import admin_resources as admin
+from api.routers.resources import aspc as admin_aspc
 from api.routers import permissions, roles, users
 from api.routers import reports
 from api.routers import samples
@@ -66,7 +66,7 @@ def _setup_admin_list_roles(monkeypatch: pytest.MonkeyPatch) -> None:
 def _setup_admin_list_permissions(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(
         app.dependency_overrides,
-        permissions.get_admin_permission_service,
+        permissions.get_permission_management_service,
         lambda: SimpleNamespace(
             list_permissions_payload=lambda: {"permission_policies": [], "grouped_permissions": {}}
         ),
@@ -77,10 +77,10 @@ def _setup_admin_list_permissions(monkeypatch: pytest.MonkeyPatch) -> None:
 def _setup_admin_list_aspc(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(
         app.dependency_overrides,
-        admin.get_admin_aspc_service,
+        admin_aspc.get_admin_aspc_service,
         lambda: SimpleNamespace(list_payload=lambda: {"assay_configs": []}),
     )
-    monkeypatch.setattr(admin.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(admin_aspc.util.common, "convert_to_serializable", lambda payload: payload)
 
 
 def _setup_samples_blacklist_update(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -103,12 +103,12 @@ def _setup_reports_preview(monkeypatch: pytest.MonkeyPatch) -> None:
         reports, "_build_preview_report", lambda *args, **kwargs: ("dna_report.html", {}, [])
     )
     monkeypatch.setattr(
-        reports,
-        "_preview_response_payload",
+        reports.report_service,
+        "preview_payload",
         lambda **kwargs: {
             "sample": {"id": "S1", "name": "S1", "assay": "DNA", "profile": "production"},
             "meta": {
-                "request_path": "/api/v1/dna/samples/S1/reports/preview",
+                "request_path": "/api/v1/samples/S1/reports/dna/preview",
                 "include_snapshot": False,
                 "snapshot_count": 0,
             },
@@ -124,17 +124,17 @@ _EndpointSetup = Callable[[pytest.MonkeyPatch], None]
 @pytest.mark.parametrize(
     ("method", "path", "payload", "required_permission", "required_level", "setup"),
     [
-        ("GET", "/api/v1/admin/users", None, "view_user", 99999, _setup_admin_list_users),
-        ("GET", "/api/v1/admin/roles", None, "view_role", 99999, _setup_admin_list_roles),
+        ("GET", "/api/v1/users", None, "view_user", 99999, _setup_admin_list_users),
+        ("GET", "/api/v1/roles", None, "view_role", 99999, _setup_admin_list_roles),
         (
             "GET",
-            "/api/v1/admin/permissions",
+            "/api/v1/permissions",
             None,
             "view_permission_policy",
             99999,
             _setup_admin_list_permissions,
         ),
-        ("GET", "/api/v1/admin/aspc", None, "view_aspc", 9, _setup_admin_list_aspc),
+        ("GET", "/api/v1/resources/aspc", None, "view_aspc", 9, _setup_admin_list_aspc),
         (
             "POST",
             "/api/v1/coverage/blacklist/entries",
@@ -151,7 +151,7 @@ _EndpointSetup = Callable[[pytest.MonkeyPatch], None]
         ),
         (
             "GET",
-            "/api/v1/dna/samples/S1/reports/preview",
+            "/api/v1/samples/S1/reports/dna/preview",
             None,
             "preview_report",
             9,
@@ -199,7 +199,7 @@ def test_openapi_security_declares_auth_for_protected_routes():
     client = TestClient(app)
     schema = client.get("/api/v1/openapi.json").json()
 
-    protected_operation = schema["paths"]["/api/v1/admin/users"]["get"]
+    protected_operation = schema["paths"]["/api/v1/users"]["get"]
     assert {"ApiSessionCookie": []} in protected_operation.get("security", [])
     assert {"BearerAuth": []} in protected_operation.get("security", [])
     assert "401" in protected_operation.get("responses", {})

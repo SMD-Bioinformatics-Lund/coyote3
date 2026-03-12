@@ -26,10 +26,10 @@ Canonical REST routes are the only supported API surface. Compatibility paths ar
 
 ### Admin Users
 
-- `POST /api/v1/admin/users`
-- `PUT /api/v1/admin/users/{user_id}`
-- `DELETE /api/v1/admin/users/{user_id}`
-- `PATCH /api/v1/admin/users/{user_id}/status`
+- `POST /api/v1/users`
+- `PUT /api/v1/users/{user_id}`
+- `DELETE /api/v1/users/{user_id}`
+- `PATCH /api/v1/users/{user_id}/status`
 
 ### Admin Roles and Permissions
 
@@ -39,10 +39,10 @@ The same normalization pattern now applies to roles and permission policies.
 
 The same canonical CRUD and status pattern now also applies to:
 
-- assay panels (`/api/v1/admin/asp`)
-- genelists (`/api/v1/admin/genelists`)
-- assay configs (`/api/v1/admin/aspc`)
-- schemas (`/api/v1/admin/schemas`)
+- assay panels (`/api/v1/resources/asp`)
+- genelists (`/api/v1/resources/genelists`)
+- assay configs (`/api/v1/resources/aspc`)
+- schemas (`/api/v1/resources/schemas`)
 - admin sample update/delete flows
 
 ### Sample Mutations
@@ -75,8 +75,8 @@ Examples:
   - `/variants/flags/false-positive`
   - `/variants/flags/irrelevant`
   - `/variants/tier`
-  - `/variant-classifications`
-  - `/variant-comments`
+  - canonical UI callers now use `/classifications`
+  - canonical UI callers now use `/annotations`
 - DNA structural:
   - `/cnvs/{id}/flags/*`
   - `/translocations/{id}/flags/*`

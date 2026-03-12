@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from api.services.admin_permission_service import AdminPermissionService
+from api.services.permission_management_service import PermissionManagementService
 from api.services.admin_resource_service import (
     AdminAspcService,
     AdminGenelistService,
@@ -335,7 +335,7 @@ def test_admin_role_service_delete_role_removes_existing_role():
 
 def test_admin_permission_service_groups_permissions():
     repo = _AdminRepoStub()
-    service = AdminPermissionService(repository=repo)
+    service = PermissionManagementService(repository=repo)
 
     payload = service.list_permissions_payload()
 
@@ -346,7 +346,7 @@ def test_admin_permission_service_groups_permissions():
 def test_admin_permission_service_create_context_raises_when_missing_schema():
     repo = _AdminRepoStub()
     repo.get_active_schema = lambda **kwargs: ([], {})
-    service = AdminPermissionService(repository=repo)
+    service = PermissionManagementService(repository=repo)
 
     with pytest.raises(HTTPException) as exc:
         service.create_context_payload(schema_id=None, actor_username="actor@example.com")
@@ -356,7 +356,7 @@ def test_admin_permission_service_create_context_raises_when_missing_schema():
 
 def test_admin_permission_service_toggle_permission_sets_status():
     repo = _AdminRepoStub()
-    service = AdminPermissionService(repository=repo)
+    service = PermissionManagementService(repository=repo)
 
     payload = service.toggle_permission(permission_id="perm.read")
 

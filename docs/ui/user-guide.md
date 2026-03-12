@@ -53,7 +53,7 @@ The UI is not a standalone decision engine. It is a structured clinical workspac
 
 ### 3.1 Main navigation structure
 Coyote3 navigation groups pages by function:
-- sample-centric workflows (home/samples)
+- sample-centric workflows (`/samples` backed by `/api/v1/samples`)
 - DNA review routes
 - RNA review routes
 - coverage and quality views
@@ -70,7 +70,7 @@ This page lists active and completed sample sets and provides filter/search cont
 ### 3.3 Context transitions
 From sample pages, users can open:
 - sample edit/context pages
-- DNA variant views
+- DNA small-variant views
 - RNA fusion views
 - linked report views
 
@@ -231,7 +231,7 @@ DNA review pages are available from sample context links and DNA navigation entr
 
 ### 6.2 Typical DNA review sequence
 1. Open sample context.
-2. Enter DNA variant listing page.
+2. Enter the DNA small-variant listing page.
 3. Apply filters and sort relevant findings.
 4. Open variant detail cards/pages.
 5. Review tiering, evidence, and annotation context.
@@ -447,7 +447,7 @@ Action: reset filters and confirm expected sample status scope.
 
 ### 13.3 Perform DNA review
 1. Open sample context.
-2. Go to DNA variants.
+2. Go to DNA small variants.
 3. Apply filters and inspect tiered results.
 
 ### 13.4 Perform RNA review

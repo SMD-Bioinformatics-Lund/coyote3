@@ -14,7 +14,7 @@ def test_sort_arrows_are_hidden_by_default_and_sized():
 
 
 def test_case_frequency_column_defaults_to_descending_sort():
-    template_path = "coyote/blueprints/dna/templates/list_variants_vep.html"
+    template_path = "coyote/blueprints/dna/templates/list_small_variants_vep.html"
     with open(template_path, encoding="utf-8") as handle:
         template = handle.read()
 

@@ -77,6 +77,14 @@ Representative route families already following this pattern:
 - home sample context flows
 - dashboard summary flows
 - coverage read flows
+- sample-centric genomics flows:
+  - `small_variants`
+  - `fusions`
+  - `cnvs`
+  - `translocations`
+  - `biomarkers`
+  - `reports`
+  - shared `classifications` and `annotations`
 
 ## UI Request Flow
 
@@ -205,6 +213,29 @@ When changing code, keep these maintenance rules:
 4. Add repository methods in `api/repositories/`.
 5. Add Mongo handler support in `api/infra/db/`.
 6. Add tests in `tests/api/`, `tests/unit/`, and `tests/integration/`.
+
+### Add a new genomics resource
+
+Prefer resource ownership over assay buckets:
+
+1. Add or extend a sample-centric router such as `api/routers/small_variants.py`, `api/routers/fusions.py`, or `api/routers/cnvs.py`.
+2. Keep assay or omics type as context, not as the top-level route family.
+3. Put shared tiering in `api/services/resource_classification_service.py`.
+4. Put shared comment/annotation mutations in `api/services/resource_annotation_service.py`.
+5. Put report preview/save orchestration in `api/services/report_service.py`.
+
+Current canonical pattern:
+
+```text
+/api/v1/samples/{sample_id}/small-variants
+/api/v1/samples/{sample_id}/cnvs
+/api/v1/samples/{sample_id}/translocations
+/api/v1/samples/{sample_id}/fusions
+/api/v1/samples/{sample_id}/biomarkers
+/api/v1/samples/{sample_id}/classifications
+/api/v1/samples/{sample_id}/annotations
+/api/v1/samples/{sample_id}/reports/{report_type}
+```
 
 ### Add a new UI feature
 

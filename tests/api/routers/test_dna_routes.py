@@ -10,7 +10,9 @@ from fastapi.testclient import TestClient
 
 from api.main import app as api_app
 from api.repositories import dna_repository as dna_repo_module
-from api.routers import variants as dna
+from api.routers import biomarkers as biomarker_router
+from api.routers import classifications as classification_router
+from api.routers import small_variants as dna
 from api.security import access
 from api.security.access import ApiUser
 from api.services.dna_service import DnaService
@@ -45,13 +47,13 @@ def test_load_cnvs_for_sample_uses_collection_shaped_docs(monkeypatch):
 def test_list_dna_biomarkers_success(monkeypatch):
     sample = fx.sample_doc()
     biomarkers = [{"_id": "b1", "name": "TMB", "value": "High"}]
-    service = DnaService()
+    service = biomarker_router.BiomarkerService()
 
-    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(biomarker_router, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(dna_repo_module.store.biomarker_handler, "get_sample_biomarkers", lambda sample_id: biomarkers)
-    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(biomarker_router.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = dna.list_dna_biomarkers("S1", user=fx.api_user(), service=service)
+    payload = biomarker_router.list_dna_biomarkers("S1", user=fx.api_user(), service=service)
     assert payload["meta"]["count"] == 1
     assert payload["biomarkers"][0]["name"] == "TMB"
 
@@ -111,7 +113,7 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
     monkeypatch.setattr(dna, "generate_summary_text", lambda *args, **kwargs: "")
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
-    req = SimpleNamespace(url=SimpleNamespace(path="/api/v1/dna/samples/S1/variants"))
+    req = SimpleNamespace(url=SimpleNamespace(path="/api/v1/samples/S1/small-variants"))
     payload = dna.list_dna_variants(req, "S1", user=fx.api_user(), service=service)
 
     assert payload["sample"]["name"] == sample["name"]
@@ -121,9 +123,9 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
 def test_classify_variant_mutation_calls_insert(monkeypatch):
     captured: dict = {}
 
-    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
-    monkeypatch.setattr(dna.util.common, "get_tier_classification", lambda form_data: 3)
-    monkeypatch.setattr(dna, "get_variant_nomenclature", lambda form_data: ("p", "TP53 p.R175H"))
+    monkeypatch.setattr(classification_router, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(classification_router.util.common, "get_tier_classification", lambda form_data: 3)
+    monkeypatch.setattr(classification_router, "get_variant_nomenclature", lambda form_data: ("p", "TP53 p.R175H"))
     monkeypatch.setattr(
         dna_repo_module.store.annotation_handler,
         "insert_classified_variant",
@@ -136,13 +138,13 @@ def test_classify_variant_mutation_calls_insert(monkeypatch):
             }
         ),
     )
-    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(classification_router.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = dna.classify_variant_mutation(
+    payload = classification_router.classify_resource_mutation(
         "S1",
         payload={"id": "V1", "form_data": {"tier3": "on"}},
         user=fx.api_user(),
-        service=DnaService(),
+        service=classification_router.ResourceClassificationService(),
     )
 
     assert payload["status"] == "ok"
@@ -168,8 +170,8 @@ def test_set_variant_false_positive_bulk_prefers_json_payload(monkeypatch):
     payload = dna.set_variant_false_positive_bulk(
         "S1",
         apply=False,
-        variant_ids=["ignored-query-id"],
-        payload={"apply": True, "variant_ids": ["V1", "V2"]},
+        resource_ids=["ignored-query-id"],
+        payload={"apply": True, "resource_ids": ["V1", "V2"]},
         user=fx.api_user(),
         service=DnaService(),
     )
@@ -197,8 +199,8 @@ def test_set_variant_irrelevant_bulk_remove_uses_json_payload(monkeypatch):
     payload = dna.set_variant_irrelevant_bulk(
         "S1",
         apply=True,
-        variant_ids=["ignored-query-id"],
-        payload={"apply": False, "variant_ids": ["V9"]},
+        resource_ids=["ignored-query-id"],
+        payload={"apply": False, "resource_ids": ["V9"]},
         user=fx.api_user(),
         service=DnaService(),
     )
@@ -222,12 +224,12 @@ def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
         "INFO": {"selected_CSQ": {"Feature": "NM_0000.1", "SYMBOL": "BRAF", "HGVSp": "p.V600E", "Consequence": []}},
     }
 
-    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(classification_router, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(dna_repo_module.store.variant_handler, "get_variant", lambda variant_id: variant)
     monkeypatch.setattr(dna_repo_module.store.oncokb_handler, "get_oncokb_gene", lambda gene: None)
-    monkeypatch.setattr(dna, "create_annotation_text_from_gene", lambda *args, **kwargs: "AUTO_TEXT")
+    monkeypatch.setattr(classification_router, "create_annotation_text_from_gene", lambda *args, **kwargs: "AUTO_TEXT")
     monkeypatch.setattr(
-        dna.util.common,
+        classification_router.util.common,
         "create_classified_variant_doc",
         lambda variant, nomenclature, class_num, variant_data, **kwargs: {
             "variant": variant,
@@ -243,13 +245,13 @@ def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
         "insert_annotation_bulk",
         lambda docs: captured.__setitem__("docs", docs),
     )
-    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(classification_router.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = dna.set_variant_tier_bulk(
+    payload = classification_router.set_resource_tier_bulk(
         "S1",
-        payload={"apply": True, "variant_ids": ["v1"], "assay_group": "solid", "subpanel": "A", "tier": 3},
+        payload={"apply": True, "resource_ids": ["v1"], "resource_type": "small_variant", "assay_group": "solid", "subpanel": "A", "tier": 3},
         user=fx.api_user(),
-        service=DnaService(),
+        service=classification_router.ResourceClassificationService(),
     )
 
     assert payload["status"] == "ok"
@@ -273,10 +275,10 @@ def test_set_variant_tier_bulk_remove_deletes_class_and_matching_text(monkeypatc
         "INFO": {"selected_CSQ": {"Feature": "NM_0000.1", "SYMBOL": "BRAF", "HGVSp": "p.V600E", "Consequence": []}},
     }
 
-    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(classification_router, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(dna_repo_module.store.variant_handler, "get_variant", lambda variant_id: variant)
     monkeypatch.setattr(dna_repo_module.store.oncokb_handler, "get_oncokb_gene", lambda gene: None)
-    monkeypatch.setattr(dna, "create_annotation_text_from_gene", lambda *args, **kwargs: "AUTO_TEXT")
+    monkeypatch.setattr(classification_router, "create_annotation_text_from_gene", lambda *args, **kwargs: "AUTO_TEXT")
     monkeypatch.setattr(
         dna_repo_module.store.annotation_handler,
         "delete_classified_variant",
@@ -287,13 +289,13 @@ def test_set_variant_tier_bulk_remove_deletes_class_and_matching_text(monkeypatc
         "insert_annotation_bulk",
         lambda docs: pytest.fail("insert_annotation_bulk must not be called on tier remove"),
     )
-    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(classification_router.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = dna.set_variant_tier_bulk(
+    payload = classification_router.set_resource_tier_bulk(
         "S1",
-        payload={"apply": False, "variant_ids": ["v1"], "assay_group": "solid", "subpanel": "A", "tier": 3},
+        payload={"apply": False, "resource_ids": ["v1"], "resource_type": "small_variant", "assay_group": "solid", "subpanel": "A", "tier": 3},
         user=fx.api_user(),
-        service=DnaService(),
+        service=classification_router.ResourceClassificationService(),
     )
 
     assert payload["status"] == "ok"
@@ -304,16 +306,12 @@ def test_set_variant_tier_bulk_remove_deletes_class_and_matching_text(monkeypatc
 
 def test_bulk_flag_routes_use_non_colliding_paths():
     paths = {route.path for route in api_app.routes}
-    assert "/api/v1/dna/samples/{sample_id}/variants/flags/false-positive" in paths
-    assert "/api/v1/dna/samples/{sample_id}/variants/flags/irrelevant" in paths
-    assert "/api/v1/dna/samples/{sample_id}/variants/tier" in paths
-    assert "/api/v1/dna/samples/{sample_id}/variant-classifications" in paths
-    assert "/api/v1/dna/samples/{sample_id}/variant-comments" in paths
-    assert "/api/v1/dna/samples/{sample_id}/variants/{var_id}/flags/false-positive" in paths
-    assert "/api/v1/dna/samples/{sample_id}/variants/bulk/fp" not in paths
-    assert "/api/v1/dna/samples/{sample_id}/variants/bulk/irrelevant" not in paths
-    assert "/api/v1/dna/samples/{sample_id}/variants/fp/bulk" not in paths
-    assert "/api/v1/dna/samples/{sample_id}/variants/irrelevant/bulk" not in paths
+    assert "/api/v1/samples/{sample_id}/small-variants/flags/false-positive" in paths
+    assert "/api/v1/samples/{sample_id}/small-variants/flags/irrelevant" in paths
+    assert "/api/v1/samples/{sample_id}/classifications/tier" in paths
+    assert "/api/v1/samples/{sample_id}/classifications" in paths
+    assert "/api/v1/samples/{sample_id}/annotations" in paths
+    assert "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/false-positive" in paths
 
 
 def _route_test_user() -> ApiUser:
@@ -347,16 +345,16 @@ def test_bulk_fp_endpoint_dispatches_in_real_http_route(monkeypatch):
 
     client = TestClient(api_app, raise_server_exceptions=False)
     response = client.patch(
-        "/api/v1/dna/samples/S1/variants/flags/false-positive",
-        json={"apply": True, "variant_ids": ["V1", "V2"]},
+        "/api/v1/samples/S1/small-variants/flags/false-positive",
+        json={"apply": True, "resource_ids": ["V1", "V2"], "resource_type": "small_variant"},
     )
 
     assert response.status_code == 200
     assert captured["ids"] == ["V1", "V2"]
 
     old_path_response = client.post(
-        "/api/v1/dna/samples/S1/variants/fp/bulk",
-        json={"apply": True, "variant_ids": ["V1", "V2"]},
+        "/api/v1/samples/S1/small-variants/fp/bulk",
+        json={"apply": True, "resource_ids": ["V1", "V2"], "resource_type": "small_variant"},
     )
     assert old_path_response.status_code >= 400
 
@@ -375,8 +373,8 @@ def test_bulk_irrelevant_endpoint_dispatches_in_real_http_route(monkeypatch):
 
     client = TestClient(api_app, raise_server_exceptions=False)
     response = client.patch(
-        "/api/v1/dna/samples/S1/variants/flags/irrelevant",
-        json={"apply": True, "variant_ids": ["V5"]},
+        "/api/v1/samples/S1/small-variants/flags/irrelevant",
+        json={"apply": True, "resource_ids": ["V5"], "resource_type": "small_variant"},
     )
 
     assert response.status_code == 200

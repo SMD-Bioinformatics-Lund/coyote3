@@ -26,7 +26,7 @@ Endpoints with side effects must execute through service flows that produce audi
 Additive changes are preferred within major API version. Breaking contract changes require a new major version path.
 
 ### 2.5 Clinical workflow alignment
-Endpoint design reflects sample-centric workflows and report traceability requirements rather than generic CRUD abstractions only.
+Endpoint design reflects sample-centric workflows and report traceability requirements rather than assay-bucket routers. Genomics resources are organized as small variants, CNVs, translocations, fusions, biomarkers, classifications, annotations, and reports. Classification is a standalone resource family because tiering and review state can apply across multiple genomics entity types.
 
 ---
 
@@ -45,13 +45,12 @@ Some compatibility aliases may exist temporarily (for example docs alias routes)
 Coyote3 API includes the following route families:
 - system/auth
 - internal
-- home/sample context
-- DNA workflows
-- RNA workflows
+- sample context and workflows
+- genomics resources (small variants, CNVs, translocations, fusions, biomarkers, classifications, annotations)
 - reporting workflows
 - common/shared context
 - public catalog endpoints
-- admin/governance endpoints
+- governance/resource configuration endpoints
 
 ---
 
@@ -97,7 +96,7 @@ OpenAPI now declares both supported auth transports for protected operations:
 Public operations do not include security requirements in OpenAPI.
 
 ### 4.6 Report preview and save contract boundary
-Report preview and save flows are API-driven. The canonical routes are `/api/v1/.../reports/preview` and `/api/v1/.../reports`. Report identifier generation, snapshot-row normalization, file-path resolution, and persistence validation are backend responsibilities in `api/routers/reports.py` + `api/core/reporting/*`.
+Report preview and save flows are API-driven. The canonical routes are `/api/v1/samples/{sample_id}/reports/{report_type}/preview` and `/api/v1/samples/{sample_id}/reports/{report_type}`. Report identifier generation, snapshot-row normalization, file-path resolution, and persistence validation are backend responsibilities in `api/routers/reports.py` + `api/services/report_service.py` + `api/core/reporting/*`.
 
 ### 4.7 Security behavior expectations
 - authentication failure: `401`
@@ -239,7 +238,7 @@ Pagination protects API and UI from unbounded result sets, improving latency pre
 Invalid pagination values should return `400` with details describing invalid parameter values.
 
 ### 8.5 Home samples endpoint pagination profile
-`GET /api/v1/home/samples` uses a dual-table server pagination model:
+`GET /api/v1/samples` uses a dual-table server pagination model:
 - both `live_samples` and `done_samples` are returned in one response
 - independent paging parameters:
   - `live_page`, `live_per_page`
@@ -511,8 +510,8 @@ None.
 ---
 
 ## 14. Variant Endpoint Documentation Examples
-## 14.1 List DNA Variants
-- Endpoint: `/api/v1/dna/samples/{sample_id}/variants`
+## 14.1 List Small Variants
+- Endpoint: `/api/v1/samples/{sample_id}/small-variants`
 - Method: `GET`
 - Purpose: Return paginated variant list for DNA sample context.
 
@@ -582,10 +581,10 @@ Not applicable.
 - `403` forbidden
 - `404` sample not found
 
-## 14.2 Classify Variant
-- Endpoint: `/api/v1/dna/samples/{sample_id}/variant-classifications`
+## 14.2 Create Classification
+- Endpoint: `/api/v1/samples/{sample_id}/classifications`
 - Method: `POST`
-- Purpose: Apply classification/tier mutation for one or more variants.
+- Purpose: Apply a classification/tier mutation for a resource within a sample workflow.
 
 ### Security notes
 - Authentication required.
@@ -603,9 +602,12 @@ None.
 ### Request body
 ```json
 {
-  "variant_ids": ["v1", "v2"],
-  "tier": 2,
-  "comment": "Clinically relevant based on review"
+  "id": "v1",
+  "resource_type": "small_variant",
+  "form_data": {
+    "tier2": "on",
+    "gene": "TP53"
+  }
 }
 ```
 
@@ -614,8 +616,9 @@ None.
 {
   "status": "ok",
   "data": {
-    "updated_count": 2,
-    "tier": 2
+    "resource": "classification",
+    "resource_id": "v1",
+    "action": "classify"
   }
 }
 ```
@@ -623,8 +626,11 @@ None.
 ### Example request JSON
 ```json
 {
-  "variant_ids": ["v1"],
-  "tier": 3
+  "id": "v1",
+  "resource_type": "small_variant",
+  "form_data": {
+    "tier3": "on"
+  }
 }
 ```
 
@@ -633,8 +639,9 @@ None.
 {
   "status": "ok",
   "data": {
-    "updated_count": 1,
-    "tier": 3
+    "resource": "classification",
+    "resource_id": "v1",
+    "action": "classify"
   }
 }
 ```
@@ -644,7 +651,7 @@ None.
 - `400` invalid body or tier
 - `401` unauthenticated
 - `403` forbidden
-- `404` variant or sample not found
+- `404` resource or sample not found
 
 ---
 
@@ -701,7 +708,7 @@ Not applicable.
 - `404` catalog not configured
 
 ## 15.2 Admin Assay Config Update
-- Endpoint: `/api/v1/admin/aspc/{assay_id}`
+- Endpoint: `/api/v1/resources/aspc/{assay_id}`
 - Method: `PUT`
 - Purpose: Update assay configuration document.
 
@@ -869,7 +876,7 @@ Not applicable.
 
 ## 17. Permission Endpoint Documentation Examples
 ## 17.1 List Permissions
-- Endpoint: `/api/v1/admin/permissions`
+- Endpoint: `/api/v1/permissions`
 - Method: `GET`
 - Purpose: Return permission registry for admin governance views.
 
@@ -921,7 +928,7 @@ Not applicable.
 - `403` forbidden
 
 ## 17.2 Create Permission
-- Endpoint: `/api/v1/admin/permissions`
+- Endpoint: `/api/v1/permissions`
 - Method: `POST`
 - Purpose: Create a new permission policy entry.
 

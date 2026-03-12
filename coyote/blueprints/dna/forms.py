@@ -10,9 +10,9 @@ from wtforms.validators import InputRequired, NumberRange
 
 class DNAFilterForm(FlaskForm):
     """
-    Filter form for DNA variant analysis.
+    Filter form for DNA small-variant analysis.
 
-    This form provides numeric and boolean filters for DNA variant data,
+    This form provides numeric and boolean filters for DNA small-variant data,
     including read depth, allele frequency, CNV size, VEP consequences,
     CNV effects, and genelist options. Used in the Coyote3 genomic analysis
     workflow to allow users to customize variant filtering criteria.

@@ -6,7 +6,7 @@ import pytest
 from fastapi import HTTPException
 
 from api.main import app as api_app
-from api.routers import rna
+from api.routers import fusions as rna
 from api.repositories import rna_repository as rna_repo_module
 from api.services.rna_service import RnaService
 from api.services import rna_service as rna_service_module
@@ -15,7 +15,7 @@ from tests.fixtures.api import mock_collections as fx
 
 class _Req:
     class _URL:
-        path = "/api/v1/rna/samples/S1/fusions"
+        path = "/api/v1/samples/S1/fusions"
 
     url = _URL()
 
@@ -87,8 +87,8 @@ def test_show_rna_fusion_not_found_raises_404(monkeypatch):
 
 def test_restful_rna_mutation_routes_are_registered():
     paths = {route.path for route in api_app.routes}
-    assert "/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/flags/false-positive" in paths
-    assert "/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/selection/{callidx}/{num_calls}" in paths
-    assert "/api/v1/rna/samples/{sample_id}/fusions/{fusion_id}/comments/{comment_id}/hidden" in paths
-    assert "/api/v1/rna/samples/{sample_id}/fusions/flags/false-positive" in paths
-    assert "/api/v1/rna/samples/{sample_id}/fusions/flags/irrelevant" in paths
+    assert "/api/v1/samples/{sample_id}/fusions/{fusion_id}/flags/false-positive" in paths
+    assert "/api/v1/samples/{sample_id}/fusions/{fusion_id}/selection/{callidx}/{num_calls}" in paths
+    assert "/api/v1/samples/{sample_id}/fusions/{fusion_id}/comments/{comment_id}/hidden" in paths
+    assert "/api/v1/samples/{sample_id}/fusions/flags/false-positive" in paths
+    assert "/api/v1/samples/{sample_id}/fusions/flags/irrelevant" in paths

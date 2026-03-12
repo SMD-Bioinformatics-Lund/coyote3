@@ -64,7 +64,8 @@ def read_example(
 ```
 
 ## Standard process for adding a new UI route
-1. Add/extend Flask view in `coyote/blueprints/<domain>/views*.py`.
+1. Add or extend Flask view code in a feature-sized module under `coyote/blueprints/<domain>/`.
+   Prefer cohesive files like `views_small_variants.py`, `views_small_variant_actions.py`, `views_users.py`, or `views_genes.py`.
 2. Build API path only via `api_endpoints.*` helpers.
 3. Call API through `get_web_api_client()` helpers.
 4. Render/update template under the same blueprint domain.
@@ -92,7 +93,7 @@ Reason: test modules and tooling should be able to import backend modules withou
 3. API dependencies: `api/deps/*.py`
 4. Core/service or repository facade: `api/core/*`, `api/services/*`, `api/repositories/*`
 5. UI endpoint builder: `coyote/services/api_client/endpoints.py`
-6. UI view/template: `coyote/blueprints/*/views*.py`, matching templates
+6. UI view/template: feature-sized `coyote/blueprints/*/views*.py` modules, matching templates
 7. Tests across layers: `tests/api`, `tests/ui`, `tests/integration`, `tests/unit`
 
 ## Required tests by layer

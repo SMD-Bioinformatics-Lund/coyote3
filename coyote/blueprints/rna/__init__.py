@@ -24,7 +24,6 @@ rna_bp = Blueprint(
 )
 
 from coyote.blueprints.rna import views_fusions  # noqa: F401, E402
-from coyote.blueprints.rna import views_actions  # noqa: F401, E402
 from coyote.blueprints.rna import views_reports  # noqa: F401, E402
 
 

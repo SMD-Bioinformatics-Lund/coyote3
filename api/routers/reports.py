@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any
 
 from fastapi import APIRouter, Body, Depends, Query
 
@@ -14,6 +14,7 @@ from api.http import api_error as _api_error, get_formatted_assay_config as _get
 from api.repositories.report_repository import ReportRepository as MongoDNAReportingRepository
 from api.repositories.rna_repository import RnaWorkflowRepository as MongoRNAWorkflowRepository
 from api.runtime import app as runtime_app, current_username
+from api.services.report_service import ReportAnalyte, ReportService
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.settings import to_bool
 
@@ -21,18 +22,6 @@ router = APIRouter(tags=["reports"])
 
 if not hasattr(util, "common"):
     util.init_util()
-
-ReportAnalyte = Literal["dna", "rna"]
-
-
-def _sample_meta(sample: dict) -> dict:
-    return {
-        "id": str(sample.get("_id")),
-        "name": sample.get("name"),
-        "assay": sample.get("assay"),
-        "profile": sample.get("profile"),
-    }
-
 
 def _rna_workflow_service() -> type[RNAWorkflowService]:
     if not RNAWorkflowService.has_repository():
@@ -59,41 +48,7 @@ def _normalize_rendered_report_payload(report_payload: dict | None) -> tuple[str
     return html, snapshot_rows
 
 
-def _preview_response_payload(
-    *,
-    sample: dict,
-    request_path: str,
-    include_snapshot: bool,
-    template_name: str,
-    template_context: dict[str, Any],
-    snapshot_rows: list,
-) -> dict:
-    return {
-        "sample": _sample_meta(sample),
-        "meta": {
-            "request_path": request_path,
-            "include_snapshot": include_snapshot,
-            "snapshot_count": len(snapshot_rows),
-        },
-        "report": {
-            "template": template_name,
-            "context": template_context,
-            "snapshot_rows": snapshot_rows if include_snapshot else [],
-        },
-    }
-
-
-def _save_response_payload(*, sample: dict, report_id: str, report_oid: str, report_file: str, snapshot_rows: list):
-    return {
-        "sample": _sample_meta(sample),
-        "report": {
-            "id": report_id,
-            "oid": str(report_oid),
-            "file": report_file,
-            "snapshot_count": len(snapshot_rows),
-        },
-        "meta": {"status": "saved"},
-    }
+report_service = ReportService()
 
 
 def _load_report_context(sample_id: str, user: ApiUser) -> tuple[dict, dict]:
@@ -193,27 +148,28 @@ def _persist_report(
     )
 
 
-@router.get("/api/v1/dna/samples/{sample_id}/reports/preview", response_model=ReportPreviewPayload, summary="Preview DNA report")
-def preview_dna_report(
+@router.get("/api/v1/samples/{sample_id}/reports/{report_type}/preview", response_model=ReportPreviewPayload, summary="Preview sample report")
+def preview_report(
     sample_id: str,
+    report_type: ReportAnalyte,
     include_snapshot: bool = Query(default=False),
     save: bool = Query(default=False),
     user: ApiUser = Depends(require_access(permission="preview_report", min_role="user", min_level=9)),
 ):
     sample, assay_config = _load_report_context(sample_id, user)
-    _validate_report_inputs("dna", sample, assay_config)
+    _validate_report_inputs(report_type, sample, assay_config)
 
     template_name, template_context, snapshot_rows = _build_preview_report(
-        "dna",
+        report_type,
         sample,
         assay_config,
         save=to_bool(save, default=False),
         include_snapshot=to_bool(include_snapshot, default=False),
     )
     snapshot_rows = snapshot_rows or []
-    payload = _preview_response_payload(
+    payload = report_service.preview_payload(
         sample=sample,
-        request_path=f"/api/v1/dna/samples/{sample_id}/reports/preview",
+        request_path=f"/api/v1/samples/{sample_id}/reports/{report_type}/preview",
         include_snapshot=include_snapshot,
         template_name=template_name,
         template_context=template_context,
@@ -221,52 +177,24 @@ def preview_dna_report(
     )
     return util.common.convert_to_serializable(payload)
 
-
-@router.get("/api/v1/rna/samples/{sample_id}/reports/preview", response_model=ReportPreviewPayload, summary="Preview RNA report")
-def preview_rna_report(
+@router.post("/api/v1/samples/{sample_id}/reports/{report_type}", response_model=ReportSavePayload, status_code=201, summary="Create sample report")
+def save_report(
     sample_id: str,
-    include_snapshot: bool = Query(default=False),
-    save: bool = Query(default=False),
-    user: ApiUser = Depends(require_access(permission="preview_report", min_role="user", min_level=9)),
-):
-    sample, assay_config = _load_report_context(sample_id, user)
-    _validate_report_inputs("rna", sample, assay_config)
-
-    template_name, template_context, snapshot_rows = _build_preview_report(
-        "rna",
-        sample,
-        assay_config,
-        save=to_bool(save, default=False),
-        include_snapshot=to_bool(include_snapshot, default=False),
-    )
-    payload = _preview_response_payload(
-        sample=sample,
-        request_path=f"/api/v1/rna/samples/{sample_id}/reports/preview",
-        include_snapshot=include_snapshot,
-        template_name=template_name,
-        template_context=template_context,
-        snapshot_rows=snapshot_rows,
-    )
-    return util.common.convert_to_serializable(payload)
-
-
-@router.post("/api/v1/dna/samples/{sample_id}/reports", response_model=ReportSavePayload, status_code=201, summary="Create DNA report")
-def save_dna_report(
-    sample_id: str,
+    report_type: ReportAnalyte,
     report_payload: dict | None = Body(default=None),
     user: ApiUser = Depends(require_access(permission="create_report", min_role="admin")),
 ):
     sample, assay_config = _load_report_context(sample_id, user)
-    _validate_report_inputs("dna", sample, assay_config)
+    _validate_report_inputs(report_type, sample, assay_config)
 
     report_num = sample.get("report_num", 0) + 1
-    report_id, report_path, report_file = _build_report_location("dna", sample, assay_config)
-    _prepare_report_output("dna", report_path, report_file)
+    report_id, report_path, report_file = _build_report_location(report_type, sample, assay_config)
+    _prepare_report_output(report_type, report_path, report_file)
 
     html, snapshot_rows = _normalize_rendered_report_payload(report_payload)
 
     report_oid = _persist_report(
-        "dna",
+        report_type,
         sample_id=sample_id,
         sample=sample,
         report_num=report_num,
@@ -277,7 +205,7 @@ def save_dna_report(
         created_by=current_username(),
     )
 
-    payload = _save_response_payload(
+    payload = report_service.save_payload(
         sample=sample,
         report_id=report_id,
         report_oid=str(report_oid),
@@ -286,40 +214,3 @@ def save_dna_report(
     )
     response_payload = util.common.convert_to_serializable(payload)
     return response_payload
-
-
-@router.post("/api/v1/rna/samples/{sample_id}/reports", response_model=ReportSavePayload, status_code=201, summary="Create RNA report")
-def save_rna_report(
-    sample_id: str,
-    report_payload: dict | None = Body(default=None),
-    user: ApiUser = Depends(require_access(permission="create_report", min_role="admin")),
-):
-    sample, assay_config = _load_report_context(sample_id, user)
-    _validate_report_inputs("rna", sample, assay_config)
-
-    report_num = sample.get("report_num", 0) + 1
-    report_id, report_path, report_file = _build_report_location("rna", sample, assay_config)
-    _prepare_report_output("rna", report_path, report_file)
-
-    html, snapshot_rows = _normalize_rendered_report_payload(report_payload)
-
-    report_oid = _persist_report(
-        "rna",
-        sample_id=sample_id,
-        sample=sample,
-        report_num=report_num,
-        report_id=report_id,
-        report_file=report_file,
-        html=html,
-        snapshot_rows=snapshot_rows,
-        created_by=current_username(),
-    )
-
-    payload = _save_response_payload(
-        sample=sample,
-        report_id=report_id,
-        report_oid=str(report_oid),
-        report_file=report_file,
-        snapshot_rows=snapshot_rows,
-    )
-    return util.common.convert_to_serializable(payload)

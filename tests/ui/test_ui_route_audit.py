@@ -85,7 +85,7 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
         }
 
     def _fake_get(self, path, headers=None, params=None):  # noqa: ARG001
-        if "/admin/users/" in path and path.endswith("/context"):
+        if "/users/" in path and path.endswith("/context"):
             schema = _schema("schema-user", "username")
             return _payload(
                 {
@@ -95,10 +95,10 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
                     "assay_group_map": {},
                 }
             )
-        if "/admin/roles/" in path and path.endswith("/context"):
+        if "/roles/" in path and path.endswith("/context"):
             schema = _schema("schema-role", "name")
             return _payload({"role": {"_id": "role1", "name": "role1"}, "schema": schema})
-        if "/admin/permissions/" in path and path.endswith("/context"):
+        if "/permissions/" in path and path.endswith("/context"):
             schema = _schema("schema-perm", "permission_name")
             return _payload(
                 {
@@ -106,12 +106,12 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
                     "schema": schema,
                 }
             )
-        if "/admin/asp/" in path and path.endswith("/context"):
+        if "/resources/asp/" in path and path.endswith("/context"):
             schema = _schema("schema-asp", "assay_name")
             return _payload(
                 {"panel": {"_id": "asp1", "assay_name": "asp1"}, "schema": schema}
             )
-        if "/admin/aspc/" in path and path.endswith("/context"):
+        if "/resources/aspc/" in path and path.endswith("/context"):
             schema = _schema("schema-aspc", "assay_name")
             return _payload(
                 {
@@ -119,7 +119,7 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
                     "schema": schema,
                 }
             )
-        if "/admin/genelists/" in path and path.endswith("/context"):
+        if "/resources/genelists/" in path and path.endswith("/context"):
             schema = _schema("schema-isgl", "name")
             return _payload(
                 {
@@ -128,7 +128,7 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
                     "assay_group_map": {},
                 }
             )
-        if "/admin/genelists/" in path and path.endswith("/view_context"):
+        if "/resources/genelists/" in path and path.endswith("/view_context"):
             return _payload(
                 {
                     "genelist": {"_id": "gl1", "name": "gl1", "assays": []},
@@ -137,9 +137,9 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
                     "panel_germline_genes": [],
                 }
             )
-        if "/admin/samples/" in path and path.endswith("/context"):
+        if "/resources/samples/" in path and path.endswith("/context"):
             return _payload({"sample": {"_id": "sample1"}})
-        if "/admin/schemas/" in path and path.endswith("/context"):
+        if "/resources/schemas/" in path and path.endswith("/context"):
             return _payload({"schema": {"_id": "schema1"}})
         if path.endswith("/internal/roles/levels"):
             return _payload({"role_levels": {}})
@@ -156,7 +156,7 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
                     "sample_stats": {},
                 }
             )
-        if path.endswith("/home/samples"):
+        if path.endswith("/api/v1/samples"):
             return _payload(
                 {
                     "live_samples": [],
@@ -201,13 +201,13 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
                     "stats": {},
                 }
             )
-        if path.endswith("/admin/users"):
+        if path.endswith("/users"):
             return _payload({"users": [], "roles": {}})
-        if path.endswith("/admin/roles"):
+        if path.endswith("/roles"):
             return _payload({"roles": []})
-        if path.endswith("/admin/permissions"):
+        if path.endswith("/permissions"):
             return _payload({"grouped_permissions": {}})
-        if path.endswith("/admin/users/create_context"):
+        if path.endswith("/users/create_context"):
             schema = _schema("schema-user", "username")
             return _payload(
                 {
@@ -218,7 +218,7 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
                     "assay_group_map": {},
                 }
             )
-        if path.endswith("/admin/roles/create_context"):
+        if path.endswith("/roles/create_context"):
             schema = _schema("schema-role")
             return _payload(
                 {
@@ -227,7 +227,7 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
                     "selected_schema": {"_id": "schema-role"},
                 }
             )
-        if path.endswith("/admin/permissions/create_context"):
+        if path.endswith("/permissions/create_context"):
             schema = _schema("schema-perm")
             return _payload(
                 {
@@ -236,11 +236,11 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
                     "selected_schema": {"_id": "schema-perm"},
                 }
             )
-        if path.endswith("/admin/samples"):
+        if path.endswith("/resources/samples"):
             return _payload({"samples": []})
-        if path.endswith("/admin/asp"):
+        if path.endswith("/resources/asp"):
             return _payload({"panels": []})
-        if path.endswith("/admin/asp/create_context"):
+        if path.endswith("/resources/asp/create_context"):
             schema = _schema("schema-asp", "assay_name")
             return _payload(
                 {
@@ -249,9 +249,9 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
                     "selected_schema": {"_id": "schema-asp"},
                 }
             )
-        if path.endswith("/admin/aspc"):
+        if path.endswith("/resources/aspc"):
             return _payload({"assay_configs": []})
-        if path.endswith("/admin/aspc/create_context"):
+        if path.endswith("/resources/aspc/create_context"):
             schema = _schema("schema-aspc", "assay_name")
             return _payload(
                 {
@@ -261,9 +261,9 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
                     "prefill_map": {},
                 }
             )
-        if path.endswith("/admin/genelists"):
+        if path.endswith("/resources/genelists"):
             return _payload({"genelists": []})
-        if path.endswith("/admin/genelists/create_context"):
+        if path.endswith("/resources/genelists/create_context"):
             schema = _schema("schema-isgl", "name")
             return _payload(
                 {
@@ -273,7 +273,7 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
                     "assay_group_map": {},
                 }
             )
-        if path.endswith("/admin/schemas"):
+        if path.endswith("/resources/schemas"):
             return _payload({"schemas": []})
         return _payload({})
 
