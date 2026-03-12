@@ -36,6 +36,15 @@ def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
 @dna_bp.route("/<string:sample_id>/transloc/<string:transloc_id>/interestingtransloc", methods=["POST"])
 @login_required
 def mark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
+    """Handle mark interesting transloc.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        transloc_id (str): Value for ``transloc_id``.
+
+    Returns:
+        Response: The function result.
+    """
     try:
         get_web_api_client().patch_json(
             api_endpoints.dna_sample(sample_id, "translocations", transloc_id, "flags", "interesting"),
@@ -49,6 +58,15 @@ def mark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/transloc/<string:transloc_id>/uninterestingtransloc", methods=["POST"])
 @login_required
 def unmark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
+    """Handle unmark interesting transloc.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        transloc_id (str): Value for ``transloc_id``.
+
+    Returns:
+        Response: The function result.
+    """
     try:
         get_web_api_client().delete_json(
             api_endpoints.dna_sample(sample_id, "translocations", transloc_id, "flags", "interesting"),
@@ -64,6 +82,15 @@ def unmark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/transloc/<string:transloc_id>/fptransloc", methods=["POST"])
 @login_required
 def mark_false_transloc(sample_id: str, transloc_id: str) -> Response:
+    """Handle mark false transloc.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        transloc_id (str): Value for ``transloc_id``.
+
+    Returns:
+        Response: The function result.
+    """
     try:
         get_web_api_client().patch_json(
             api_endpoints.dna_sample(sample_id, "translocations", transloc_id, "flags", "false-positive"),
@@ -79,6 +106,15 @@ def mark_false_transloc(sample_id: str, transloc_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/transloc/<string:transloc_id>/ptransloc", methods=["POST"])
 @login_required
 def unmark_false_transloc(sample_id: str, transloc_id: str) -> Response:
+    """Handle unmark false transloc.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        transloc_id (str): Value for ``transloc_id``.
+
+    Returns:
+        Response: The function result.
+    """
     try:
         get_web_api_client().delete_json(
             api_endpoints.dna_sample(sample_id, "translocations", transloc_id, "flags", "false-positive"),
@@ -94,6 +130,15 @@ def unmark_false_transloc(sample_id: str, transloc_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/transloc/<string:transloc_id>/hide_variant_comment", methods=["POST"])
 @login_required
 def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
+    """Handle hide transloc comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        transloc_id (str): Value for ``transloc_id``.
+
+    Returns:
+        Response: The function result.
+    """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
         get_web_api_client().patch_json(
@@ -110,6 +155,15 @@ def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/transloc/<string:transloc_id>/unhide_variant_comment", methods=["POST"])
 @login_required
 def unhide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
+    """Handle unhide transloc comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        transloc_id (str): Value for ``transloc_id``.
+
+    Returns:
+        Response: The function result.
+    """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
         get_web_api_client().delete_json(

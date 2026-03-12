@@ -18,6 +18,11 @@ from coyote.blueprints.docs.views_common import (
 @docs_bp.get("/")
 @login_required
 def docs_index():
+    """Handle docs index.
+
+    Returns:
+        The function result.
+    """
     q = request.args.get("q", "").strip()
     search_results = search_handbook_docs(q) if q else []
     return render_template(
@@ -31,18 +36,33 @@ def docs_index():
 @docs_bp.get("/user")
 @login_required
 def docs_user_index():
+    """Handle docs user index.
+
+    Returns:
+        The function result.
+    """
     return redirect(url_for("docs_bp.docs_page", doc_path="index.md"))
 
 
 @docs_bp.get("/admin")
 @login_required
 def docs_admin_index():
+    """Handle docs admin index.
+
+    Returns:
+        The function result.
+    """
     return redirect(url_for("docs_bp.docs_page", doc_path="index.md"))
 
 
 @docs_bp.get("/developer")
 @login_required
 def docs_developer_index():
+    """Handle docs developer index.
+
+    Returns:
+        The function result.
+    """
     return redirect(url_for("docs_bp.docs_page", doc_path="index.md"))
 
 

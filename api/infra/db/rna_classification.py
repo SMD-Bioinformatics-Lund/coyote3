@@ -30,6 +30,11 @@ class RNAClassificationHandler(BaseHandler):
         self.set_collection(self.adapter.rna_classification_collection)
 
     def ensure_indexes(self) -> None:
+        """Handle ensure indexes.
+
+        Returns:
+            None.
+        """
         col = self.get_collection()
         col.create_index(
             [("rna_classification_id", 1)],

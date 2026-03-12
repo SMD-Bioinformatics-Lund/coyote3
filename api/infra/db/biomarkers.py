@@ -36,6 +36,11 @@ class BiomarkerHandler(BaseHandler):
         self.set_collection(self.adapter.biomarkers_collection)
 
     def ensure_indexes(self) -> None:
+        """Handle ensure indexes.
+
+        Returns:
+            None.
+        """
         col = self.get_collection()
         col.create_index(
             [("biomarker_id", 1)],

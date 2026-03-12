@@ -28,6 +28,15 @@ if not hasattr(util, "common"):
 
 @router.get("/api/v1/common/gene/{gene_id}/info", response_model=CommonGeneInfoPayload)
 def common_gene_info_read(gene_id: str, repository: CommonRepository = Depends(get_common_repository)):
+    """Handle common gene info read.
+
+    Args:
+        gene_id (str): Value for ``gene_id``.
+        repository (CommonRepository): Value for ``repository``.
+
+    Returns:
+        The function result.
+    """
     if gene_id.isnumeric():
         gene = repository.get_hgnc_metadata_by_id(hgnc_id=gene_id)
     else:
@@ -45,6 +54,17 @@ def common_tiered_variant_context_read(
     user: ApiUser = Depends(require_access(permission="view_gene_annotations", min_role="user", min_level=9)),
     repository: CommonRepository = Depends(get_common_repository),
 ):
+    """Handle common tiered variant context read.
+
+    Args:
+        variant_id (str): Value for ``variant_id``.
+        tier (int): Value for ``tier``.
+        user (ApiUser): Value for ``user``.
+        repository (CommonRepository): Value for ``repository``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     variant = repository.get_variant(variant_id)
     if not variant:
@@ -95,6 +115,20 @@ def common_tiered_variant_search_read(
     user: ApiUser = Depends(require_access(permission="view_gene_annotations", min_role="user", min_level=9)),
     repository: CommonRepository = Depends(get_common_repository),
 ):
+    """Handle common tiered variant search read.
+
+    Args:
+        search_str (str | None): Value for ``search_str``.
+        search_mode (str): Value for ``search_mode``.
+        include_annotation_text (bool): Value for ``include_annotation_text``.
+        assays (list[str] | None): Value for ``assays``.
+        limit_entries (int | None): Value for ``limit_entries``.
+        user (ApiUser): Value for ``user``.
+        repository (CommonRepository): Value for ``repository``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     if limit_entries is None:
         limit_entries = runtime_app.config.get("TIERED_VARIANT_SEARCH_LIMIT", 1000)

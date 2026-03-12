@@ -38,6 +38,11 @@ class RNAExpressionHandler(BaseHandler):
         self.set_collection(self.adapter.rna_expression_collection)
 
     def ensure_indexes(self) -> None:
+        """Handle ensure indexes.
+
+        Returns:
+            None.
+        """
         col = self.get_collection()
         col.create_index(
             [("rna_expression_id", 1)],

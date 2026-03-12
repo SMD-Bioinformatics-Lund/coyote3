@@ -11,6 +11,7 @@ from pymongo.errors import ConnectionFailure
 import config
 from api.extensions import ldap_manager, store, util
 from cache_backend import create_cache_backend
+from shared.logging import ensure_logging_configured
 
 
 @dataclass
@@ -23,6 +24,11 @@ class ApiRuntimeContext:
 
     @property
     def secret_key(self) -> str | None:
+        """Handle secret key.
+
+        Returns:
+            str | None: The function result.
+        """
         return self.config.get("SECRET_KEY")
 
 
@@ -32,6 +38,10 @@ def create_runtime_context(testing: bool = False, development: bool = False) -> 
     """
     config_obj = _select_config(testing=testing, development=development)
     conf = _config_dict(config_obj)
+    ensure_logging_configured(
+        str(conf.get("LOGS", "logs/api")),
+        is_production=bool(conf.get("PRODUCTION", False)),
+    )
     logger = logging.getLogger("coyote.api")
     runtime = ApiRuntimeContext(config=conf, logger=logger)
 
@@ -44,6 +54,15 @@ def create_runtime_context(testing: bool = False, development: bool = False) -> 
 
 
 def _select_config(testing: bool, development: bool):
+    """Handle  select config.
+
+    Args:
+            testing: Testing.
+            development: Development.
+
+    Returns:
+            The  select config result.
+    """
     if testing:
         return config.TestConfig()
     if development:
@@ -52,6 +71,14 @@ def _select_config(testing: bool, development: bool):
 
 
 def _config_dict(config_obj) -> dict[str, Any]:
+    """Handle  config dict.
+
+    Args:
+            config_obj: Config obj.
+
+    Returns:
+            The  config dict result.
+    """
     out: dict[str, Any] = {}
     for name in dir(config_obj):
         if not name.isupper():

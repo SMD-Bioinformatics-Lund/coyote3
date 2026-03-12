@@ -6,18 +6,38 @@ from api.core.admin.ports import AdminSampleDeletionRepository
 
 
 class SampleDeletionService:
+    """Provide sample deletion workflows.
+    """
     _repository: AdminSampleDeletionRepository | None = None
 
     @classmethod
     def set_repository(cls, repository: AdminSampleDeletionRepository) -> None:
+        """Set repository.
+
+        Args:
+            repository (AdminSampleDeletionRepository): Value for ``repository``.
+
+        Returns:
+            None.
+        """
         cls._repository = repository
 
     @classmethod
     def has_repository(cls) -> bool:
+        """Return whether repository is available.
+
+        Returns:
+            bool: The function result.
+        """
         return cls._repository is not None
 
     @classmethod
     def _repo(cls) -> AdminSampleDeletionRepository:
+        """Handle  repo.
+
+        Returns:
+                The  repo result.
+        """
         if cls._repository is None:
             raise RuntimeError("SampleDeletionService repository is not configured")
         return cls._repository

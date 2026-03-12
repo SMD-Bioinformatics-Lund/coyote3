@@ -10,6 +10,8 @@ from typing import Any
 
 @dataclass
 class _RuntimeApp:
+    """Provide  RuntimeApp behavior.
+    """
     config: dict[str, Any]
     logger: logging.Logger
 

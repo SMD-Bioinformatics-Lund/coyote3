@@ -1,7 +1,7 @@
 # Authentication Login Modes and Runtime Stats
 
 ## 1. Scope
-This document explains how Coyote3 login works in current runtime, with emphasis on:
+This document explains how Coyote3 login works, with emphasis on:
 - LDAP-backed enterprise users
 - local allowlisted users for controlled offline/dev operation
 - internal service token usage for internal endpoints

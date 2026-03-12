@@ -10,6 +10,14 @@ from api.routers.resources import asp, aspc, genelists, schemas
 
 
 def test_list_asp_read_returns_panels(monkeypatch):
+    """Handle test list asp read returns panels.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     monkeypatch.setattr(asp.util.common, "convert_to_serializable", lambda payload: payload)
     service = type("_Service", (), {"list_payload": staticmethod(lambda: {"panels": [{"_id": "WGS"}]})})()
 
@@ -20,6 +28,11 @@ def test_list_asp_read_returns_panels(monkeypatch):
 
 
 def test_create_genelist_context_missing_schema_raises_404():
+    """Handle test create genelist context missing schema raises 404.
+
+    Returns:
+        The function result.
+    """
     from tests.fixtures.api import mock_collections as fx
     service = type(
         "_Service",
@@ -39,6 +52,14 @@ def test_create_genelist_context_missing_schema_raises_404():
 
 
 def test_schema_context_read_returns_schema_payload(monkeypatch):
+    """Handle test schema context read returns schema payload.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     monkeypatch.setattr(schemas.util.common, "convert_to_serializable", lambda payload: payload)
     service = type("_Service", (), {"context_payload": staticmethod(lambda **kwargs: {"schema": {"_id": kwargs["schema_id"]}})})()
 
@@ -48,6 +69,11 @@ def test_schema_context_read_returns_schema_payload(monkeypatch):
 
 
 def test_restful_admin_resource_routes_are_registered():
+    """Handle test restful admin resource routes are registered.
+
+    Returns:
+        The function result.
+    """
     paths = {route.path for route in api_app.routes}
     assert "/api/v1/resources/asp" in paths
     assert "/api/v1/resources/asp/{assay_panel_id}" in paths

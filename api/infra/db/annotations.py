@@ -47,6 +47,11 @@ class AnnotationsHandler(BaseHandler):
         self.set_collection(self.adapter.annotations_collection)
 
     def ensure_indexes(self) -> None:
+        """Handle ensure indexes.
+
+        Returns:
+            None.
+        """
         col = self.get_collection()
         col.create_index(
             [("annotation_id", 1)],
@@ -704,6 +709,11 @@ class AnnotationsHandler(BaseHandler):
         }
 
         def _tier_rollup_stage():
+            """Handle  tier rollup stage.
+
+            Returns:
+                    The  tier rollup stage result.
+            """
             return [
                 {
                     "$group": {

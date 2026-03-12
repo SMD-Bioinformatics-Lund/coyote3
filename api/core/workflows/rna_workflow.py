@@ -36,18 +36,38 @@ from api.utils.common_utility import CommonUtility
 
 
 class RNAWorkflowService:
+    """Provide rna workflow workflows.
+    """
     _repository: RNAWorkflowRepository | None = None
 
     @classmethod
     def set_repository(cls, repository: RNAWorkflowRepository) -> None:
+        """Set repository.
+
+        Args:
+            repository (RNAWorkflowRepository): Value for ``repository``.
+
+        Returns:
+            None.
+        """
         cls._repository = repository
 
     @classmethod
     def has_repository(cls) -> bool:
+        """Return whether repository is available.
+
+        Returns:
+            bool: The function result.
+        """
         return cls._repository is not None
 
     @classmethod
     def _repo(cls) -> RNAWorkflowRepository:
+        """Handle  repo.
+
+        Returns:
+                The  repo result.
+        """
         if cls._repository is None:
             raise RuntimeError("RNAWorkflowService repository is not configured")
         return cls._repository

@@ -29,6 +29,11 @@ _SKIP_METHODS = {"HEAD", "OPTIONS"}
 
 
 def _iter_api_routes() -> Iterable[tuple[str, str]]:
+    """Handle  iter api routes.
+
+    Returns:
+            The  iter api routes result.
+    """
     for route in app.routes:
         if not isinstance(route, APIRoute):
             continue
@@ -42,6 +47,14 @@ def _iter_api_routes() -> Iterable[tuple[str, str]]:
 
 
 def _materialize_path(path: str) -> str:
+    """Handle  materialize path.
+
+    Args:
+            path: Path.
+
+    Returns:
+            The  materialize path result.
+    """
     replacements = {
         "sample_id": "SAMPLE1",
         "var_id": "VAR1",
@@ -56,6 +69,14 @@ def _materialize_path(path: str) -> str:
     }
 
     def repl(match: re.Match[str]) -> str:
+        """Handle repl.
+
+        Args:
+            match (re.Match[str]): Value for ``match``.
+
+        Returns:
+            str: The function result.
+        """
         key = match.group(1)
         return replacements.get(key, "X")
 
@@ -63,10 +84,23 @@ def _materialize_path(path: str) -> str:
 
 
 def _is_open(path: str) -> bool:
+    """Handle  is open.
+
+    Args:
+            path: Path.
+
+    Returns:
+            The  is open result.
+    """
     return path in _OPEN_EXACT or path.startswith(_OPEN_PREFIX)
 
 
 def test_protected_routes_fail_closed_without_auth():
+    """Handle test protected routes fail closed without auth.
+
+    Returns:
+        The function result.
+    """
     client = TestClient(app)
     unexpected: list[str] = []
 

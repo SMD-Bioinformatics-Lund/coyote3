@@ -18,6 +18,15 @@ ReportAnalyte = Literal["dna", "rna"]
 
 
 def _report_collection_endpoint(analyte: ReportAnalyte, sample_id: str) -> str:
+    """Handle  report collection endpoint.
+
+    Args:
+            analyte: Analyte.
+            sample_id: Sample id.
+
+    Returns:
+            The  report collection endpoint result.
+    """
     analyte_norm = str(analyte).strip().lower()
     if analyte_norm == "dna":
         return api_endpoints.dna_sample(sample_id, "reports")
@@ -27,6 +36,15 @@ def _report_collection_endpoint(analyte: ReportAnalyte, sample_id: str) -> str:
 
 
 def _report_preview_endpoint(analyte: ReportAnalyte, sample_id: str) -> str:
+    """Handle  report preview endpoint.
+
+    Args:
+            analyte: Analyte.
+            sample_id: Sample id.
+
+    Returns:
+            The  report preview endpoint result.
+    """
     return f"{_report_collection_endpoint(analyte, sample_id)}/preview"
 
 
@@ -37,6 +55,17 @@ def fetch_preview_payload(
     include_snapshot: bool = False,
     save: bool = False,
 ) -> ApiPayload:
+    """Fetch preview payload.
+
+    Args:
+        analyte (ReportAnalyte): Value for ``analyte``.
+        sample_id (str): Value for ``sample_id``.
+        include_snapshot (bool): Value for ``include_snapshot``.
+        save (bool): Value for ``save``.
+
+    Returns:
+        ApiPayload: The function result.
+    """
     params: dict[str, Any] = {"save": 1 if save else 0}
     if include_snapshot:
         params["include_snapshot"] = 1
@@ -48,6 +77,14 @@ def fetch_preview_payload(
 
 
 def render_preview_html(payload: ApiPayload) -> str:
+    """Render preview html.
+
+    Args:
+        payload (ApiPayload): Value for ``payload``.
+
+    Returns:
+        str: The function result.
+    """
     template_name = payload.report.get("template")
     context = payload.report.get("context") or {}
     if not template_name:
@@ -58,6 +95,15 @@ def render_preview_html(payload: ApiPayload) -> str:
 
 
 def save_report_from_preview(analyte: ReportAnalyte, sample_id: str) -> ApiPayload:
+    """Handle save report from preview.
+
+    Args:
+        analyte (ReportAnalyte): Value for ``analyte``.
+        sample_id (str): Value for ``sample_id``.
+
+    Returns:
+        ApiPayload: The function result.
+    """
     preview_payload = fetch_preview_payload(analyte, sample_id, include_snapshot=True, save=True)
     html = render_preview_html(preview_payload)
     snapshot_rows = preview_payload.report.get("snapshot_rows", [])

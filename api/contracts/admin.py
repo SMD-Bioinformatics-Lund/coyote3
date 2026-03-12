@@ -8,10 +8,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class AdminRolesListPayload(BaseModel):
+    """Represent the admin roles list payload.
+    """
     roles: list[dict[str, Any]]
 
 
 class AdminRoleCreateContextPayload(BaseModel):
+    """Represent the admin role create context payload.
+    """
     model_config = ConfigDict(populate_by_name=True)
 
     schemas: list[dict[str, Any]]
@@ -20,6 +24,8 @@ class AdminRoleCreateContextPayload(BaseModel):
 
 
 class AdminRoleContextPayload(BaseModel):
+    """Represent the admin role context payload.
+    """
     model_config = ConfigDict(populate_by_name=True)
 
     role: dict[str, Any]
@@ -27,11 +33,15 @@ class AdminRoleContextPayload(BaseModel):
 
 
 class AdminUsersListPayload(BaseModel):
+    """Represent the admin users list payload.
+    """
     users: list[dict[str, Any]]
     roles: dict[str, Any]
 
 
 class AdminUserCreateContextPayload(BaseModel):
+    """Represent the admin user create context payload.
+    """
     model_config = ConfigDict(populate_by_name=True)
 
     schemas: list[dict[str, Any]]
@@ -42,6 +52,8 @@ class AdminUserCreateContextPayload(BaseModel):
 
 
 class AdminUserContextPayload(BaseModel):
+    """Represent the admin user context payload.
+    """
     model_config = ConfigDict(populate_by_name=True)
 
     user_doc: dict[str, Any]
@@ -51,11 +63,15 @@ class AdminUserContextPayload(BaseModel):
 
 
 class AdminPermissionsListPayload(BaseModel):
+    """Represent the admin permissions list payload.
+    """
     permission_policies: list[dict[str, Any]]
     grouped_permissions: dict[str, list[dict[str, Any]]]
 
 
 class AdminPermissionCreateContextPayload(BaseModel):
+    """Represent the admin permission create context payload.
+    """
     model_config = ConfigDict(populate_by_name=True)
 
     schemas: list[dict[str, Any]]
@@ -64,6 +80,8 @@ class AdminPermissionCreateContextPayload(BaseModel):
 
 
 class AdminPermissionContextPayload(BaseModel):
+    """Represent the admin permission context payload.
+    """
     model_config = ConfigDict(populate_by_name=True)
 
     permission: dict[str, Any]
@@ -71,6 +89,8 @@ class AdminPermissionContextPayload(BaseModel):
 
 
 class AdminMutationPayload(BaseModel):
+    """Represent the admin mutation payload.
+    """
     status: str
     sample_id: str
     resource: str
@@ -80,10 +100,14 @@ class AdminMutationPayload(BaseModel):
 
 
 class AdminPanelsListPayload(BaseModel):
+    """Represent the admin panels list payload.
+    """
     panels: list[dict[str, Any]]
 
 
 class AdminPanelContextPayload(BaseModel):
+    """Represent the admin panel context payload.
+    """
     model_config = ConfigDict(populate_by_name=True)
 
     panel: dict[str, Any]
@@ -91,6 +115,8 @@ class AdminPanelContextPayload(BaseModel):
 
 
 class AdminPanelCreateContextPayload(BaseModel):
+    """Represent the admin panel create context payload.
+    """
     model_config = ConfigDict(populate_by_name=True)
 
     schemas: list[dict[str, Any]]
@@ -99,10 +125,14 @@ class AdminPanelCreateContextPayload(BaseModel):
 
 
 class AdminGenelistsListPayload(BaseModel):
+    """Represent the admin genelists list payload.
+    """
     genelists: list[dict[str, Any]]
 
 
 class AdminGenelistCreateContextPayload(BaseModel):
+    """Represent the admin genelist create context payload.
+    """
     model_config = ConfigDict(populate_by_name=True)
 
     schemas: list[dict[str, Any]]
@@ -112,6 +142,8 @@ class AdminGenelistCreateContextPayload(BaseModel):
 
 
 class AdminGenelistContextPayload(BaseModel):
+    """Represent the admin genelist context payload.
+    """
     model_config = ConfigDict(populate_by_name=True)
 
     genelist: dict[str, Any]
@@ -120,6 +152,8 @@ class AdminGenelistContextPayload(BaseModel):
 
 
 class AdminGenelistViewContextPayload(BaseModel):
+    """Represent the admin genelist view context payload.
+    """
     genelist: dict[str, Any]
     selected_assay: str | None = None
     filtered_genes: list[str]
@@ -127,10 +161,14 @@ class AdminGenelistViewContextPayload(BaseModel):
 
 
 class AdminAspcListPayload(BaseModel):
+    """Represent the admin aspc list payload.
+    """
     assay_configs: list[dict[str, Any]]
 
 
 class AdminAspcCreateContextPayload(BaseModel):
+    """Represent the admin aspc create context payload.
+    """
     model_config = ConfigDict(populate_by_name=True)
 
     category: str
@@ -141,6 +179,8 @@ class AdminAspcCreateContextPayload(BaseModel):
 
 
 class AdminAspcContextPayload(BaseModel):
+    """Represent the admin aspc context payload.
+    """
     model_config = ConfigDict(populate_by_name=True)
 
     assay_config: dict[str, Any]
@@ -148,22 +188,32 @@ class AdminAspcContextPayload(BaseModel):
 
 
 class AdminSchemasListPayload(BaseModel):
+    """Represent the admin schemas list payload.
+    """
     schemas: list[dict[str, Any]]
 
 
 class AdminSchemaContextPayload(BaseModel):
+    """Represent the admin schema context payload.
+    """
     model_config = ConfigDict(populate_by_name=True)
 
     schema_payload: dict[str, Any] = Field(alias="schema")
 
 
 class AdminExistsPayload(BaseModel):
+    """Represent the admin exists payload.
+    """
     exists: bool
 
 
 class AdminSamplesListPayload(BaseModel):
+    """Represent the admin samples list payload.
+    """
     samples: list[dict[str, Any]]
 
 
 class AdminSampleContextPayload(BaseModel):
+    """Represent the admin sample context payload.
+    """
     sample: dict[str, Any]

@@ -18,10 +18,25 @@ from coyote.services.api_client.api_client import (
 
 
 def headers() -> dict[str, str]:
+    """Handle headers.
+
+    Returns:
+        dict[str, str]: The function result.
+    """
     return forward_headers()
 
 
 def call_api(sample_id: str, log_message: str, api_call: Callable[[], Any]) -> bool:
+    """Handle call api.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        log_message (str): Value for ``log_message``.
+        api_call (Callable[[], Any]): Value for ``api_call``.
+
+    Returns:
+        bool: The function result.
+    """
     try:
         api_call()
         return True
@@ -31,6 +46,14 @@ def call_api(sample_id: str, log_message: str, api_call: Callable[[], Any]) -> b
 
 
 def resolve_target_id(*keys: str) -> str:
+    """Handle resolve target id.
+
+    Args:
+        *keys (str): Additional positional values for ``keys``.
+
+    Returns:
+        str: The function result.
+    """
     for key in keys:
         value = request.view_args.get(key)
         if value:
@@ -39,6 +62,14 @@ def resolve_target_id(*keys: str) -> str:
 
 
 def derive_nomenclature(form_data: dict[str, Any]) -> str:
+    """Handle derive nomenclature.
+
+    Args:
+        form_data (dict[str, Any]): Value for ``form_data``.
+
+    Returns:
+        str: The function result.
+    """
     if form_data.get("fusionpoints"):
         return "f"
     if form_data.get("translocpoints"):
@@ -49,6 +80,14 @@ def derive_nomenclature(form_data: dict[str, Any]) -> str:
 
 
 def derive_resource_type(form_data: dict[str, Any]) -> str:
+    """Handle derive resource type.
+
+    Args:
+        form_data (dict[str, Any]): Value for ``form_data``.
+
+    Returns:
+        str: The function result.
+    """
     nomenclature = derive_nomenclature(form_data)
     if nomenclature == "f":
         return "fusion"
@@ -60,6 +99,16 @@ def derive_resource_type(form_data: dict[str, Any]) -> str:
 
 
 def redirect_target(sample_id: str, target_id: str, nomenclature: str) -> Response:
+    """Handle redirect target.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        target_id (str): Value for ``target_id``.
+        nomenclature (str): Value for ``nomenclature``.
+
+    Returns:
+        Response: The function result.
+    """
     if nomenclature == "f":
         return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=target_id))
     if nomenclature == "t":
@@ -77,6 +126,19 @@ def bulk_toggle(
     operation_label: str,
     endpoint: str,
 ) -> None:
+    """Handle bulk toggle.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        enabled (str | None): Value for ``enabled``.
+        action (str | None): Value for ``action``.
+        resource_ids (list[str]): Value for ``resource_ids``.
+        operation_label (str): Value for ``operation_label``.
+        endpoint (str): Value for ``endpoint``.
+
+    Returns:
+        None.
+    """
     if not enabled or action not in {"apply", "remove"}:
         return
 
@@ -96,6 +158,15 @@ def bulk_toggle(
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/unfp", methods=["POST"])
 @login_required
 def unmark_false_variant(sample_id: str, var_id: str) -> Response:
+    """Handle unmark false variant.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+
+    Returns:
+        Response: The function result.
+    """
     call_api(
         sample_id,
         "Failed to unmark variant false-positive via API",
@@ -110,6 +181,15 @@ def unmark_false_variant(sample_id: str, var_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/fp", methods=["POST"])
 @login_required
 def mark_false_variant(sample_id: str, var_id: str) -> Response:
+    """Handle mark false variant.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+
+    Returns:
+        Response: The function result.
+    """
     call_api(
         sample_id,
         "Failed to mark variant false-positive via API",
@@ -124,6 +204,15 @@ def mark_false_variant(sample_id: str, var_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/uninterest", methods=["POST"])
 @login_required
 def unmark_interesting_variant(sample_id: str, var_id: str) -> Response:
+    """Handle unmark interesting variant.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+
+    Returns:
+        Response: The function result.
+    """
     call_api(
         sample_id,
         "Failed to unmark variant interesting via API",
@@ -138,6 +227,15 @@ def unmark_interesting_variant(sample_id: str, var_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/interest", methods=["POST"])
 @login_required
 def mark_interesting_variant(sample_id: str, var_id: str) -> Response:
+    """Handle mark interesting variant.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+
+    Returns:
+        Response: The function result.
+    """
     call_api(
         sample_id,
         "Failed to mark variant interesting via API",
@@ -152,6 +250,15 @@ def mark_interesting_variant(sample_id: str, var_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/relevant", methods=["POST"])
 @login_required
 def unmark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
+    """Handle unmark irrelevant variant.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+
+    Returns:
+        Response: The function result.
+    """
     call_api(
         sample_id,
         "Failed to unmark variant irrelevant via API",
@@ -166,6 +273,15 @@ def unmark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/irrelevant", methods=["POST"])
 @login_required
 def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
+    """Handle mark irrelevant variant.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+
+    Returns:
+        Response: The function result.
+    """
     call_api(
         sample_id,
         "Failed to mark variant irrelevant via API",
@@ -180,6 +296,15 @@ def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/blacklist", methods=["POST"])
 @login_required
 def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
+    """Handle add variant to blacklist.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+
+    Returns:
+        Response: The function result.
+    """
     call_api(
         sample_id,
         "Failed to blacklist variant via API",
@@ -213,6 +338,16 @@ def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
 )
 @login_required
 def add_var_comment(sample_id: str, id: str | None = None, **kwargs: Any) -> Response:
+    """Handle add var comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        id (str | None): Value for ``id``.
+        **kwargs (Any): Additional keyword values for ``kwargs``.
+
+    Returns:
+        Response: The function result.
+    """
     _ = kwargs
     target_id = id or resolve_target_id("var_id", "cnv_id", "fus_id", "transloc_id")
 
@@ -238,6 +373,15 @@ def add_var_comment(sample_id: str, id: str | None = None, **kwargs: Any) -> Res
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/hide_variant_comment", methods=["POST"])
 @login_required
 def hide_variant_comment(sample_id: str, var_id: str) -> Response:
+    """Handle hide variant comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+
+    Returns:
+        Response: The function result.
+    """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     call_api(
         sample_id,
@@ -253,6 +397,15 @@ def hide_variant_comment(sample_id: str, var_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/unhide_variant_comment", methods=["POST"])
 @login_required
 def unhide_variant_comment(sample_id: str, var_id: str) -> Response:
+    """Handle unhide variant comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+
+    Returns:
+        Response: The function result.
+    """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     call_api(
         sample_id,
@@ -275,6 +428,16 @@ def unhide_variant_comment(sample_id: str, var_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/fus/<string:fus_id>/classify", methods=["POST"], endpoint="classify_fusion")
 @login_required
 def classify_small_variant(sample_id: str, var_id: str | None = None, fus_id: str | None = None) -> Response:
+    """Handle classify small variant.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str | None): Value for ``var_id``.
+        fus_id (str | None): Value for ``fus_id``.
+
+    Returns:
+        Response: The function result.
+    """
     target_id = var_id or fus_id or resolve_target_id("var_id", "fus_id")
     form_data = request.form.to_dict()
     nomenclature = derive_nomenclature(form_data)
@@ -305,6 +468,16 @@ def classify_small_variant(sample_id: str, var_id: str | None = None, fus_id: st
 def remove_classified_small_variant(
     sample_id: str, var_id: str | None = None, fus_id: str | None = None
 ) -> Response:
+    """Remove classified small variant.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str | None): Value for ``var_id``.
+        fus_id (str | None): Value for ``fus_id``.
+
+    Returns:
+        Response: The function result.
+    """
     target_id = var_id or fus_id or resolve_target_id("var_id", "fus_id")
     form_data = request.form.to_dict()
     nomenclature = derive_nomenclature(form_data)
@@ -325,6 +498,14 @@ def remove_classified_small_variant(
 @dna_bp.route("/<sample_id>/multi_class", methods=["POST"], endpoint="classify_multi_small_variant")
 @login_required
 def classify_multi_small_variant(sample_id: str) -> Response:
+    """Handle classify multi small variant.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+
+    Returns:
+        Response: The function result.
+    """
     action = request.form.get("action")
     variants_to_modify = request.form.getlist("selected_object_id")
     assay_group = request.form.get("assay_group")

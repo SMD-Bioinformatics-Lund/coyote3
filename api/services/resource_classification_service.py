@@ -10,11 +10,29 @@ from api.repositories.dna_repository import DnaRouteRepository
 
 
 class ResourceClassificationService:
+    """Own cross-resource classification and tiering workflows."""
+
     def __init__(self, repository: DnaRouteRepository | None = None) -> None:
+        """Handle __init__.
+
+        Args:
+                repository: Repository. Optional argument.
+        """
         self.repository = repository or DnaRouteRepository()
 
     @staticmethod
     def mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict[str, Any]:
+        """Handle mutation payload.
+
+        Args:
+            sample_id (str): Value for ``sample_id``.
+            resource (str): Value for ``resource``.
+            resource_id (str): Value for ``resource_id``.
+            action (str): Value for ``action``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         return {
             "status": "ok",
             "sample_id": str(sample_id),
@@ -26,6 +44,14 @@ class ResourceClassificationService:
 
     @staticmethod
     def normalize_resource_type(resource_type: str | None) -> str:
+        """Normalize resource type.
+
+        Args:
+            resource_type (str | None): Value for ``resource_type``.
+
+        Returns:
+            str: The function result.
+        """
         value = str(resource_type or "small_variant").strip().lower().replace("-", "_")
         aliases = {
             "variant": "small_variant",
@@ -48,6 +74,19 @@ class ResourceClassificationService:
         subpanel: str | None,
         create_annotation_text_fn,
     ) -> dict[str, Any] | None:
+        """Handle  load resource identity.
+
+        Args:
+                sample: Sample. Keyword-only argument.
+                resource_type: Resource type. Keyword-only argument.
+                resource_id: Resource id. Keyword-only argument.
+                assay_group: Assay group. Keyword-only argument.
+                subpanel: Subpanel. Keyword-only argument.
+                create_annotation_text_fn: Create annotation text fn. Keyword-only argument.
+
+        Returns:
+                The  load resource identity result.
+        """
         normalized_type = self.normalize_resource_type(resource_type)
         if normalized_type == "small_variant":
             var = self.repository.variant_handler.get_variant(str(resource_id))
@@ -167,6 +206,22 @@ class ResourceClassificationService:
         create_annotation_text_fn,
         create_classified_variant_doc_fn,
     ) -> None:
+        """Set tier bulk.
+
+        Args:
+            sample (dict): Value for ``sample``.
+            resource_type (str): Value for ``resource_type``.
+            resource_ids (list[str]): Value for ``resource_ids``.
+            assay_group (str | None): Value for ``assay_group``.
+            subpanel (str | None): Value for ``subpanel``.
+            apply (bool): Value for ``apply``.
+            class_num (int): Value for ``class_num``.
+            create_annotation_text_fn: Value for ``create_annotation_text_fn``.
+            create_classified_variant_doc_fn: Value for ``create_classified_variant_doc_fn``.
+
+        Returns:
+            None.
+        """
         bulk_docs: list[dict[str, Any]] = []
         for resource_id in resource_ids:
             identity = self._load_resource_identity(
@@ -224,6 +279,17 @@ class ResourceClassificationService:
         get_tier_classification_fn,
         get_variant_nomenclature_fn,
     ) -> None:
+        """Handle classify resource.
+
+        Args:
+            resource_type (str): Value for ``resource_type``.
+            form_data (dict): Value for ``form_data``.
+            get_tier_classification_fn: Value for ``get_tier_classification_fn``.
+            get_variant_nomenclature_fn: Value for ``get_variant_nomenclature_fn``.
+
+        Returns:
+            None.
+        """
         class_num = get_tier_classification_fn(form_data)
         nomenclature, variant = get_variant_nomenclature_fn(form_data)
         if class_num != 0:
@@ -238,6 +304,16 @@ class ResourceClassificationService:
         form_data: dict,
         get_variant_nomenclature_fn,
     ) -> None:
+        """Remove resource.
+
+        Args:
+            resource_type (str): Value for ``resource_type``.
+            form_data (dict): Value for ``form_data``.
+            get_variant_nomenclature_fn: Value for ``get_variant_nomenclature_fn``.
+
+        Returns:
+            None.
+        """
         nomenclature, variant = get_variant_nomenclature_fn(form_data)
         enriched_form = dict(form_data)
         enriched_form.setdefault("resource_type", self.normalize_resource_type(resource_type))

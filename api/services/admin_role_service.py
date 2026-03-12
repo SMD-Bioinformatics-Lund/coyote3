@@ -11,13 +11,34 @@ from api.services.management_common import current_actor, inject_version_history
 
 
 class AdminRoleService:
+    """Own role-management workflows for admin HTTP routes."""
+
     def __init__(self, repository: AdminRepository | None = None) -> None:
+        """Handle __init__.
+
+        Args:
+                repository: Repository. Optional argument.
+        """
         self.repository = repository or AdminRepository()
 
     def list_roles_payload(self) -> dict[str, Any]:
+        """List roles payload.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         return {"roles": self.repository.list_roles()}
 
     def create_context_payload(self, *, schema_id: str | None, actor_username: str) -> dict[str, Any]:
+        """Create context payload.
+
+        Args:
+            schema_id (str | None): Value for ``schema_id``.
+            actor_username (str): Value for ``actor_username``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         schemas, selected_schema = self.repository.get_active_schema(
             schema_type="rbac_role",
             schema_category="RBAC_role",
@@ -44,6 +65,14 @@ class AdminRoleService:
         }
 
     def context_payload(self, *, role_id: str) -> dict[str, Any]:
+        """Handle context payload.
+
+        Args:
+            role_id (str): Value for ``role_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         role = self.repository.get_role(role_id)
         if not role:
             raise api_error(404, "Role not found")
@@ -60,6 +89,15 @@ class AdminRoleService:
         return {"role": role, "schema": schema}
 
     def create_role(self, *, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
+        """Create role.
+
+        Args:
+            payload (dict[str, Any]): Value for ``payload``.
+            actor_username (str): Value for ``actor_username``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         schemas, schema = self.repository.get_active_schema(
             schema_type="rbac_role",
             schema_category="RBAC_role",
@@ -86,6 +124,16 @@ class AdminRoleService:
         return mutation_payload(resource="role", resource_id=role_id, action="create")
 
     def update_role(self, *, role_id: str, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
+        """Update role.
+
+        Args:
+            role_id (str): Value for ``role_id``.
+            payload (dict[str, Any]): Value for ``payload``.
+            actor_username (str): Value for ``actor_username``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         role = self.repository.get_role(role_id)
         if not role:
             raise api_error(404, "Role not found")
@@ -111,6 +159,14 @@ class AdminRoleService:
         return mutation_payload(resource="role", resource_id=role_id, action="update")
 
     def toggle_role(self, *, role_id: str) -> dict[str, Any]:
+        """Toggle role.
+
+        Args:
+            role_id (str): Value for ``role_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         role = self.repository.get_role(role_id)
         if not role:
             raise api_error(404, "Role not found")
@@ -121,6 +177,14 @@ class AdminRoleService:
         return payload
 
     def delete_role(self, *, role_id: str) -> dict[str, Any]:
+        """Delete role.
+
+        Args:
+            role_id (str): Value for ``role_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         role = self.repository.get_role(role_id)
         if not role:
             raise api_error(404, "Role not found")

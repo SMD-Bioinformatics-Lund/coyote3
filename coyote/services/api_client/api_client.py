@@ -17,6 +17,12 @@ class CoyoteApiClient(BaseApiClient):
 
 
 def get_web_api_client() -> CoyoteApiClient:
+    """Return the request-scoped Flask API client.
+
+    Returns:
+        A configured ``CoyoteApiClient`` instance. Within a request context, the
+        client is reused and stored on ``flask.g``.
+    """
     base_url = current_app.config.get("API_BASE_URL", "http://127.0.0.1:8001")
     timeout_seconds = float(current_app.config.get("API_CLIENT_TIMEOUT_SECONDS", 30.0))
     if has_request_context():
@@ -33,6 +39,11 @@ def get_web_api_client() -> CoyoteApiClient:
 
 
 def close_web_api_client() -> None:
+    """Close and discard the request-scoped Flask API client.
+
+    Returns:
+        ``None``.
+    """
     if not has_request_context():
         return
     client = getattr(g, "_coyote_api_client", None)
@@ -45,12 +56,25 @@ def close_web_api_client() -> None:
 
 
 def _api_cookie_name() -> str:
+    """Handle  api cookie name.
+
+    Returns:
+            The  api cookie name result.
+    """
     if has_request_context():
         return str(current_app.config.get("API_SESSION_COOKIE_NAME", "coyote3_api_session"))
     return "coyote3_api_session"
 
 
 def build_forward_headers(request_headers: Any) -> dict[str, str]:
+    """Build headers to forward request identity and session context to the API.
+
+    Args:
+        request_headers: Incoming Flask request headers.
+
+    Returns:
+        The forwarded header dictionary for an upstream API request.
+    """
     cookie_header = request_headers.get("Cookie")
     request_id = request_headers.get("X-Request-ID")
     if not request_id and has_request_context():
@@ -64,6 +88,11 @@ def build_forward_headers(request_headers: Any) -> dict[str, str]:
 
 
 def forward_headers() -> dict[str, str]:
+    """Return forwarded headers for the active Flask request.
+
+    Returns:
+        Header values that preserve request identity and API session context.
+    """
     if not has_request_context():
         return {"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
     headers = build_forward_headers(request.headers)
@@ -74,6 +103,11 @@ def forward_headers() -> dict[str, str]:
 
 
 def build_internal_headers() -> dict[str, str]:
+    """Build headers for trusted internal API calls.
+
+    Returns:
+        Header values containing the internal API token when configured.
+    """
     testing = str(current_app.config.get("TESTING", "")).strip().lower() in {"1", "true", "yes", "on"}
     token = current_app.config.get("INTERNAL_API_TOKEN")
     if not token and testing:

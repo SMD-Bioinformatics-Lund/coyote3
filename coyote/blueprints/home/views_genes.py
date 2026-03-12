@@ -21,6 +21,15 @@ from coyote.services.api_client.web import log_api_error
 
 
 def _mutation_error(exc: ApiRequestError, *, log_message: str) -> tuple[Response, int]:
+    """Handle  mutation error.
+
+    Args:
+            exc: Exc.
+            log_message: Log message. Keyword-only argument.
+
+    Returns:
+            The  mutation error result.
+    """
     status = exc.status_code or 500
     payload = exc.payload if isinstance(exc.payload, dict) else None
     message = payload.get("error") if payload else str(exc)
@@ -34,6 +43,14 @@ def _mutation_error(exc: ApiRequestError, *, log_message: str) -> tuple[Response
 
 @home_bp.route("/<string:sample_id>/isgls", methods=["GET"])
 def list_isgls(sample_id: str) -> Response:
+    """List isgls.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+
+    Returns:
+        Response: The function result.
+    """
     try:
         payload = get_web_api_client().get_json(
             api_endpoints.home_sample(sample_id, "isgls"),
@@ -51,6 +68,14 @@ def list_isgls(sample_id: str) -> Response:
 
 @home_bp.route("/<string:sample_id>/effective-genes/all", methods=["GET"])
 def get_effective_genes_all(sample_id: str) -> Response:
+    """Return effective genes all.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+
+    Returns:
+        Response: The function result.
+    """
     try:
         payload = get_web_api_client().get_json(
             api_endpoints.home_sample(sample_id, "effective_genes", "all"),
@@ -74,6 +99,14 @@ def get_effective_genes_all(sample_id: str) -> Response:
 @home_bp.route("/<string:sample_id>/apply_isgl", methods=["POST"])
 @login_required
 def apply_isgl(sample_id: str) -> tuple[Response, int] | Response:
+    """Apply isgl.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+
+    Returns:
+        tuple[Response, int] | Response: The function result.
+    """
     isgl_ids = request.get_json(silent=True)
     if not isinstance(isgl_ids, list):
         return jsonify({"status": "error", "error": "Invalid payload"}), 400
@@ -92,6 +125,14 @@ def apply_isgl(sample_id: str) -> tuple[Response, int] | Response:
 @home_bp.route("/<string:sample_id>/adhoc_genes", methods=["POST"])
 @login_required
 def save_adhoc_genes(sample_id: str) -> tuple[Response, int] | Response:
+    """Handle save adhoc genes.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+
+    Returns:
+        tuple[Response, int] | Response: The function result.
+    """
     body = request.get_json(silent=True) or {}
     if not isinstance(body, dict):
         return jsonify({"status": "error", "error": "Invalid payload"}), 400
@@ -114,6 +155,14 @@ def save_adhoc_genes(sample_id: str) -> tuple[Response, int] | Response:
 @home_bp.route("/<string:sample_id>/adhoc_genes/clear", methods=["POST"])
 @login_required
 def clear_adhoc_genes(sample_id: str) -> tuple[Response, int] | Response:
+    """Handle clear adhoc genes.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+
+    Returns:
+        tuple[Response, int] | Response: The function result.
+    """
     try:
         payload = clear_adhoc_genes_api(sample_id)
     except ApiRequestError as exc:

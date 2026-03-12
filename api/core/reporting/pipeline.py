@@ -14,6 +14,11 @@ _core_repo_instance: MongoCoreStoreRepository | None = None
 
 
 def _core_repo() -> MongoCoreStoreRepository:
+    """Handle  core repo.
+
+    Returns:
+            The  core repo result.
+    """
     global _core_repo_instance
     if _core_repo_instance is None:
         _core_repo_instance = MongoCoreStoreRepository()

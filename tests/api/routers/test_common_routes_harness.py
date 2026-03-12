@@ -8,6 +8,14 @@ from tests.fixtures.api.fake_store import build_fake_store
 
 
 def test_common_gene_info_read_numeric_path_with_fake_store(monkeypatch):
+    """Handle test common gene info read numeric path with fake store.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     fake_store = build_fake_store()
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
     repository = type(
@@ -22,6 +30,14 @@ def test_common_gene_info_read_numeric_path_with_fake_store(monkeypatch):
 
 
 def test_common_tiered_variant_context_read_with_fake_store(monkeypatch):
+    """Handle test common tiered variant context read with fake store.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     fake_store = build_fake_store()
     monkeypatch.setattr(common, "enrich_reported_variant_docs", lambda docs: docs)
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)

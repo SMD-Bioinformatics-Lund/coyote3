@@ -890,6 +890,14 @@ class CommonUtility:
         report_section = sections.get("reporting", {})
 
         def section_keys_and_defaults(section_obj):
+            """Handle section keys and defaults.
+
+            Args:
+                section_obj: Value for ``section_obj``.
+
+            Returns:
+                The function result.
+            """
             keys = []
             defaults = {}
             if isinstance(section_obj, dict):

@@ -56,6 +56,14 @@ SAMPLES_PER_ASSAY = 10
 
 
 def _json_safe(value: Any) -> Any:
+    """Handle  json safe.
+
+    Args:
+            value: Value.
+
+    Returns:
+            The  json safe result.
+    """
     if isinstance(value, ObjectId):
         return str(value)
     if isinstance(value, datetime):
@@ -70,6 +78,15 @@ def _json_safe(value: Any) -> Any:
 
 
 def _sorted_cursor(coll, query: dict | None = None):
+    """Handle  sorted cursor.
+
+    Args:
+            coll: Coll.
+            query: Query. Optional argument.
+
+    Returns:
+            The  sorted cursor result.
+    """
     query = query or {}
     for key in SORT_CANDIDATES:
         try:
@@ -80,6 +97,15 @@ def _sorted_cursor(coll, query: dict | None = None):
 
 
 def _latest_doc(coll, query: dict | None = None) -> dict | None:
+    """Handle  latest doc.
+
+    Args:
+            coll: Coll.
+            query: Query. Optional argument.
+
+    Returns:
+            The  latest doc result.
+    """
     try:
         return _sorted_cursor(coll, query=query).limit(1).next()
     except StopIteration:
@@ -92,6 +118,15 @@ def _latest_doc(coll, query: dict | None = None) -> dict | None:
 
 
 def _collection_counts(coll, scoped_query: dict | None = None) -> tuple[int, int | None]:
+    """Handle  collection counts.
+
+    Args:
+            coll: Coll.
+            scoped_query: Scoped query. Optional argument.
+
+    Returns:
+            The  collection counts result.
+    """
     count_total = 0
     count_scoped = None
     try:
@@ -104,6 +139,15 @@ def _collection_counts(coll, scoped_query: dict | None = None) -> tuple[int, int
 
 
 def _sample_assay_values(coll, scoped_query: dict | None = None) -> list[Any]:
+    """Handle  sample assay values.
+
+    Args:
+            coll: Coll.
+            scoped_query: Scoped query. Optional argument.
+
+    Returns:
+            The  sample assay values result.
+    """
     query = scoped_query or {}
     try:
         values = list(coll.distinct("assay", query))
@@ -114,12 +158,30 @@ def _sample_assay_values(coll, scoped_query: dict | None = None) -> list[Any]:
 
 
 def _merge_query(base: dict | None, extra: dict | None) -> dict:
+    """Handle  merge query.
+
+    Args:
+            base: Base.
+            extra: Extra.
+
+    Returns:
+            The  merge query result.
+    """
     if base and extra:
         return {"$and": [base, extra]}
     return dict(base or extra or {})
 
 
 def _sample_documents(coll, scoped_query: dict | None = None) -> list[dict[str, Any]]:
+    """Handle  sample documents.
+
+    Args:
+            coll: Coll.
+            scoped_query: Scoped query. Optional argument.
+
+    Returns:
+            The  sample documents result.
+    """
     docs: list[dict[str, Any]] = []
     assay_values = _sample_assay_values(coll, scoped_query=scoped_query)
     if not assay_values:
@@ -133,6 +195,14 @@ def _sample_documents(coll, scoped_query: dict | None = None) -> list[dict[str, 
 
 
 def _collection_has_sample_id(coll) -> bool:
+    """Handle  collection has sample id.
+
+    Args:
+            coll: Coll.
+
+    Returns:
+            The  collection has sample id result.
+    """
     try:
         return coll.find_one({"SAMPLE_ID": {"$exists": True}}, {"_id": 1}) is not None
     except Exception:
@@ -146,6 +216,17 @@ def _documents_for_collection(
     scoped_query: dict | None,
     sampled_sample_ids: list[Any],
 ) -> tuple[list[dict[str, Any]], str]:
+    """Handle  documents for collection.
+
+    Args:
+            alias: Alias. Keyword-only argument.
+            coll: Coll. Keyword-only argument.
+            scoped_query: Scoped query. Keyword-only argument.
+            sampled_sample_ids: Sampled sample ids. Keyword-only argument.
+
+    Returns:
+            The  documents for collection result.
+    """
     if alias == SAMPLES_ALIAS:
         return _sample_documents(coll, scoped_query=scoped_query), "latest_10_per_assay"
 
@@ -159,6 +240,15 @@ def _documents_for_collection(
 
 
 def _extract(config_obj, scoped_query: dict | None = None) -> dict[str, Any]:
+    """Handle  extract.
+
+    Args:
+            config_obj: Config obj.
+            scoped_query: Scoped query. Optional argument.
+
+    Returns:
+            The  extract result.
+    """
     mongo_uri = config_obj.MONGO_URI
     db_name = config_obj.MONGO_DB_NAME
     mapping = config_obj.DB_COLLECTIONS_CONFIG.get(db_name, {})
@@ -211,6 +301,11 @@ def _extract(config_obj, scoped_query: dict | None = None) -> dict[str, Any]:
 
 
 def main() -> None:
+    """Handle main.
+
+    Returns:
+        None.
+    """
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     prod = config.ProductionConfig()

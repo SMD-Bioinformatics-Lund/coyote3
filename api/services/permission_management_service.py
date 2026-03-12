@@ -11,10 +11,22 @@ from api.services.management_common import current_actor, inject_version_history
 
 
 class PermissionManagementService:
+    """Own permission-policy workflows for admin HTTP routes."""
+
     def __init__(self, repository: AdminRepository | None = None) -> None:
+        """Handle __init__.
+
+        Args:
+                repository: Repository. Optional argument.
+        """
         self.repository = repository or AdminRepository()
 
     def list_permissions_payload(self) -> dict[str, Any]:
+        """List permissions payload.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         permission_policies = self.repository.list_permissions(is_active=False)
         grouped_permissions: dict[str, list[dict[str, Any]]] = {}
         for policy in permission_policies:
@@ -25,6 +37,15 @@ class PermissionManagementService:
         }
 
     def create_context_payload(self, *, schema_id: str | None, actor_username: str) -> dict[str, Any]:
+        """Create context payload.
+
+        Args:
+            schema_id (str | None): Value for ``schema_id``.
+            actor_username (str): Value for ``actor_username``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         schemas, selected_schema = self.repository.get_active_schema(
             schema_type="acl_config",
             schema_category="RBAC",
@@ -43,6 +64,14 @@ class PermissionManagementService:
         return {"schemas": schemas, "selected_schema": selected_schema, "schema": schema}
 
     def context_payload(self, *, permission_id: str) -> dict[str, Any]:
+        """Handle context payload.
+
+        Args:
+            permission_id (str): Value for ``permission_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         permission = self.repository.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
@@ -52,6 +81,15 @@ class PermissionManagementService:
         return {"permission": permission, "schema": schema}
 
     def create_permission(self, *, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
+        """Create permission.
+
+        Args:
+            payload (dict[str, Any]): Value for ``payload``.
+            actor_username (str): Value for ``actor_username``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         schemas, schema = self.repository.get_active_schema(
             schema_type="acl_config",
             schema_category="RBAC",
@@ -79,6 +117,16 @@ class PermissionManagementService:
         return mutation_payload(resource="permission", resource_id=policy_id, action="create")
 
     def update_permission(self, *, permission_id: str, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
+        """Update permission.
+
+        Args:
+            permission_id (str): Value for ``permission_id``.
+            payload (dict[str, Any]): Value for ``payload``.
+            actor_username (str): Value for ``actor_username``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         permission = self.repository.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
@@ -105,6 +153,14 @@ class PermissionManagementService:
         return mutation_payload(resource="permission", resource_id=permission_id, action="update")
 
     def toggle_permission(self, *, permission_id: str) -> dict[str, Any]:
+        """Toggle permission.
+
+        Args:
+            permission_id (str): Value for ``permission_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         permission = self.repository.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
@@ -115,6 +171,14 @@ class PermissionManagementService:
         return payload
 
     def delete_permission(self, *, permission_id: str) -> dict[str, Any]:
+        """Delete permission.
+
+        Args:
+            permission_id (str): Value for ``permission_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         permission = self.repository.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")

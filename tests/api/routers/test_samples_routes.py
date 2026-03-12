@@ -17,6 +17,11 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def _route_test_user() -> ApiUser:
+    """Handle  route test user.
+
+    Returns:
+            The  route test user result.
+    """
     return ApiUser(
         id="u1",
         email="tester@example.com",
@@ -34,6 +39,14 @@ def _route_test_user() -> ApiUser:
 
 
 def test_update_sample_filters_rejects_invalid_filters_payload(monkeypatch):
+    """Handle test update sample filters rejects invalid filters payload.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     sample = fx.sample_doc()
     sample["_id"] = "S1"
     monkeypatch.setattr(access, "_decode_session_user", lambda _request: _route_test_user())
@@ -50,6 +63,14 @@ def test_update_sample_filters_rejects_invalid_filters_payload(monkeypatch):
 
 
 def test_reset_sample_filters_requires_assay_config(monkeypatch):
+    """Handle test reset sample filters requires assay config.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     sample = fx.sample_doc()
     monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(samples, "get_formatted_assay_config", lambda _sample: None)
@@ -63,6 +84,14 @@ def test_reset_sample_filters_requires_assay_config(monkeypatch):
 
 
 def test_update_coverage_blacklist_gene_returns_status_message(monkeypatch):
+    """Handle test update coverage blacklist gene returns status message.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     calls = {}
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
     repository = SimpleNamespace(
@@ -83,6 +112,14 @@ def test_update_coverage_blacklist_gene_returns_status_message(monkeypatch):
 
 
 def test_restful_sample_comment_route_creates_comment(monkeypatch):
+    """Handle test restful sample comment route creates comment.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     sample = fx.sample_doc()
     sample["_id"] = "S1"
     calls = {}

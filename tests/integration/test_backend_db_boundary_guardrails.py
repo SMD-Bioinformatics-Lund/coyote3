@@ -19,6 +19,14 @@ OBJECT_ID_PATTERN = re.compile(r"\bObjectId\s*\(")
 
 
 def _iter_py_files(target_dirs: tuple[Path, ...]) -> list[Path]:
+    """Handle  iter py files.
+
+    Args:
+            target_dirs: Target dirs.
+
+    Returns:
+            The  iter py files result.
+    """
     files: list[Path] = []
     for target_dir in target_dirs:
         files.extend(target_dir.rglob("*.py"))
@@ -26,6 +34,11 @@ def _iter_py_files(target_dirs: tuple[Path, ...]) -> list[Path]:
 
 
 def _count_store_usage_by_file() -> dict[str, int]:
+    """Handle  count store usage by file.
+
+    Returns:
+            The  count store usage by file result.
+    """
     counts: Counter[str] = Counter()
     for py_file in _iter_py_files(STORE_TARGET_DIRS):
         text = py_file.read_text(encoding="utf-8")
@@ -36,6 +49,11 @@ def _count_store_usage_by_file() -> dict[str, int]:
 
 
 def _count_mongo_leaks_by_file() -> dict[str, int]:
+    """Handle  count mongo leaks by file.
+
+    Returns:
+            The  count mongo leaks by file result.
+    """
     counts: Counter[str] = Counter()
     for py_file in _iter_py_files(MONGO_LEAK_TARGET_DIRS):
         hits = 0
@@ -50,10 +68,25 @@ def _count_mongo_leaks_by_file() -> dict[str, int]:
 
 
 def _load_baseline() -> dict:
+    """Handle  load baseline.
+
+    Returns:
+            The  load baseline result.
+    """
     return json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
 
 
 def _assert_not_above_baseline(category: str, current: dict[str, int], baseline: dict[str, int]) -> None:
+    """Handle  assert not above baseline.
+
+    Args:
+            category: Category.
+            current: Current.
+            baseline: Baseline.
+
+    Returns:
+            None.
+    """
     offenders: list[str] = []
 
     for file_path, current_count in current.items():
@@ -72,12 +105,22 @@ def _assert_not_above_baseline(category: str, current: dict[str, int], baseline:
 
 
 def test_store_usage_in_routes_core_does_not_increase():
+    """Handle test store usage in routes core does not increase.
+
+    Returns:
+        The function result.
+    """
     baseline = _load_baseline()["store_usage_by_file"]
     current = _count_store_usage_by_file()
     _assert_not_above_baseline("store.* usage in api/routers+api/core", current, baseline)
 
 
 def test_mongo_specific_leaks_do_not_increase():
+    """Handle test mongo specific leaks do not increase.
+
+    Returns:
+        The function result.
+    """
     baseline = _load_baseline()["mongo_leak_usage_by_file"]
     current = _count_mongo_leaks_by_file()
     _assert_not_above_baseline("Mongo-specific leaks in backend layers", current, baseline)

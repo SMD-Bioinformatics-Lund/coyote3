@@ -2,7 +2,7 @@
 
 import json
 
-from flask import Response, abort, flash, g, redirect, render_template, request, url_for
+from flask import Response, abort, current_app as app, g, redirect, render_template, request, url_for
 from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
@@ -13,11 +13,21 @@ from coyote.services.api_client.api_client import (
     forward_headers,
     get_web_api_client,
 )
+from coyote.services.api_client.web import (
+    flash_api_failure,
+    flash_api_success,
+    raise_page_load_error,
+)
 
 
 @admin_bp.route("/schemas")
 @login_required
 def schemas() -> str:
+    """Render the schema-management page.
+
+    Returns:
+        The rendered management page response.
+    """
     try:
         payload = get_web_api_client().get_json(
             api_endpoints.admin("schemas"),
@@ -25,14 +35,26 @@ def schemas() -> str:
         )
         schemas = payload.schemas
     except ApiRequestError as exc:
-        flash(f"Failed to fetch schemas: {exc}", "red")
-        schemas = []
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message="Failed to fetch schemas",
+            summary="Unable to load schemas.",
+        )
     return render_template("schemas/schemas.html", schemas=schemas)
 
 
 @admin_bp.route("/schemas/<schema_id>/toggle", methods=["POST", "GET"])
 @login_required
 def toggle_schema_active(schema_id: str) -> Response:
+    """Toggle the active flag on a schema.
+
+    Args:
+        schema_id: Schema identifier for the document being updated.
+
+    Returns:
+        A redirect response back to the management page.
+    """
     try:
         payload = get_web_api_client().patch_json(
             api_endpoints.admin("schemas", schema_id, "status"),
@@ -43,20 +65,25 @@ def toggle_schema_active(schema_id: str) -> Response:
             "schema": schema_id,
             "schema_status": "Active" if new_status else "Inactive",
         }
-        flash(
-            f"Schema '{schema_id}' is now {'active' if new_status else 'inactive'}.",
-            "green",
-        )
+        flash_api_success(f"Schema '{schema_id}' is now {'active' if new_status else 'inactive'}.")
     except ApiRequestError as exc:
         if exc.status_code == 404:
             return abort(404)
-        flash(f"Failed to toggle schema: {exc}", "red")
+        flash_api_failure("Failed to update schema status.", exc)
     return redirect(url_for("admin_bp.schemas"))
 
 
 @admin_bp.route("/schemas/<schema_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit_schema(schema_id: str) -> str | Response:
+    """Edit a schema document.
+
+    Args:
+        schema_id: Schema identifier for the document being edited.
+
+    Returns:
+        The rendered form on ``GET`` or a redirect response after ``POST``.
+    """
     try:
         context = get_web_api_client().get_json(
             api_endpoints.admin("schemas", schema_id, "context"),
@@ -64,10 +91,13 @@ def edit_schema(schema_id: str) -> str | Response:
         )
         schema_doc = context.schema
     except ApiRequestError as exc:
-        if exc.status_code == 404:
-            return abort(404)
-        flash(f"Failed to load schema context: {exc}", "red")
-        return redirect(url_for("admin_bp.schemas"))
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to load schema context for {schema_id}",
+            summary="Unable to load the schema.",
+            not_found_summary="Schema not found.",
+        )
 
     if request.method == "POST":
         json_blob = request.form.get("json_blob", "")
@@ -76,10 +106,10 @@ def edit_schema(schema_id: str) -> str | Response:
             errors = util.admin.validate_schema_structure(updated_schema)
             if errors:
                 for err in errors:
-                    flash(f"{err}", "red")
+                    flash_api_failure(str(err), ApiRequestError(str(err)))
                 return render_template("schemas/schema_edit.html", schema_blob=updated_schema)
-        except json.JSONDecodeError as e:
-            flash(f"Invalid JSON: {e}", "red")
+        except json.JSONDecodeError as exc:
+            flash_api_failure("Invalid schema JSON.", ApiRequestError(str(exc)))
             return redirect(request.url)
 
         try:
@@ -88,10 +118,10 @@ def edit_schema(schema_id: str) -> str | Response:
                 headers=forward_headers(),
                 json_body={"schema": updated_schema},
             )
-            flash("Schema updated successfully.", "green")
+            flash_api_success("Schema updated successfully.")
             return redirect(url_for("admin_bp.schemas"))
-        except ApiRequestError as e:
-            flash(f"Error updating schema: {e}", "red")
+        except ApiRequestError as exc:
+            flash_api_failure("Failed to update schema.", exc)
 
         g.audit_metadata = {"schema": schema_id}
 
@@ -101,6 +131,11 @@ def edit_schema(schema_id: str) -> str | Response:
 @admin_bp.route("/schemas/new", methods=["GET", "POST"])
 @login_required
 def create_schema() -> str | Response:
+    """Create a schema document.
+
+    Returns:
+        The rendered form on ``GET`` or a redirect response after ``POST``.
+    """
     if request.method == "POST":
         json_blob = request.form.get("json_blob")
         try:
@@ -109,7 +144,7 @@ def create_schema() -> str | Response:
             errors = util.admin.validate_schema_structure(parsed_schema)
             if errors:
                 for err in errors:
-                    flash(f"{err}", "red")
+                    flash_api_failure(str(err), ApiRequestError(str(err)))
                 return render_template("schemas/schema_create.html", initial_blob=parsed_schema)
 
             get_web_api_client().post_json(
@@ -117,11 +152,11 @@ def create_schema() -> str | Response:
                 headers=forward_headers(),
                 json_body={"schema": parsed_schema},
             )
-            flash("Schema created successfully!", "green")
+            flash_api_success("Schema created successfully.")
             return redirect(url_for("admin_bp.schemas"))
 
-        except ApiRequestError as e:
-            flash(f"Error: {e}", "red")
+        except ApiRequestError as exc:
+            flash_api_failure("Failed to create schema.", exc)
 
         g.audit_metadata = {"schema": parsed_schema.get("schema_name")}
 
@@ -132,15 +167,23 @@ def create_schema() -> str | Response:
 @admin_bp.route("/schemas/<schema_id>/delete", methods=["GET"])
 @login_required
 def delete_schema(schema_id: str) -> Response:
+    """Delete a schema document.
+
+    Args:
+        schema_id: Schema identifier for the document being deleted.
+
+    Returns:
+        A redirect response back to the management page.
+    """
     try:
         get_web_api_client().delete_json(
             api_endpoints.admin("schemas", schema_id),
             headers=forward_headers(),
         )
         g.audit_metadata = {"schema": schema_id}
-        flash(f"Schema '{schema_id}' deleted successfully.", "green")
+        flash_api_success(f"Schema '{schema_id}' deleted successfully.")
     except ApiRequestError as exc:
         if exc.status_code == 404:
             return abort(404)
-        flash(f"Failed to delete schema: {exc}", "red")
+        flash_api_failure("Failed to delete schema.", exc)
     return redirect(url_for("admin_bp.schemas"))

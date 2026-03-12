@@ -72,6 +72,25 @@ def read_example(
 5. Wire links/forms with `url_for(...)`, never hardcoded Flask URLs.
 6. Add UI route audit and contract coverage tests.
 
+Page-failure rule:
+
+- if the route cannot render the page because required API context failed to load, raise a typed web error and let the global Flask error handler render the standard error page
+- if the route is handling a mutation inside an already-valid page, keep the user in context and use a clear flash message
+
+Flash-message rule:
+
+- use `flash_api_success(...)` for success messages
+- use `flash_api_failure(...)` for upstream mutation failures
+- do not interpolate raw exception text directly into the UI unless the operator genuinely needs it
+- keep messages action-oriented and specific to the resource being changed
+
+Audit rule:
+
+- request handlers that perform meaningful reads or mutations must leave an auditable trail
+- API request, access, mutation, validation, and exception audit events are emitted centrally
+- UI request and error audit events are emitted centrally
+- route handlers should add `g.audit_metadata` when a mutation needs resource-specific context attached to the audit record
+
 ## Endpoint builder rules
 1. Never hardcode `/api/v1/...` paths in blueprints.
 2. Always use `api_endpoints.*`.
@@ -95,6 +114,23 @@ Reason: test modules and tooling should be able to import backend modules withou
 5. UI endpoint builder: `coyote/services/api_client/endpoints.py`
 6. UI view/template: feature-sized `coyote/blueprints/*/views*.py` modules, matching templates
 7. Tests across layers: `tests/api`, `tests/ui`, `tests/integration`, `tests/unit`
+
+## Docstring standard
+
+Every public route handler, service entrypoint, repository class, and error helper should have a concise docstring that answers one question:
+what responsibility does this function or class own?
+
+Good docstrings in this repository:
+
+- describe intent and responsibility
+- mention whether the function loads a page, performs a mutation, or translates data
+- stay brief and factual
+
+Bad docstrings:
+
+- restate the function name
+- describe Python syntax instead of behavior
+- document internal trivia instead of responsibility
 
 ## Required tests by layer
 1. API route tests:
@@ -138,6 +174,8 @@ When refactoring an older route family:
 3. Flask handler calls correct API endpoint builder.
 4. API route method/path exists and matches intent.
 5. Response/redirect flow handles both success and API failure.
+   For GET page loads, use the standard error-page path.
+   For in-page mutations, use clear flash messaging and preserve navigation context.
 6. Tests cover one success and one failure branch.
 
 ## Common failure patterns and fixes

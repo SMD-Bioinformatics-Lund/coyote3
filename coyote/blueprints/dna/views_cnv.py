@@ -38,6 +38,15 @@ def show_cnv(sample_id: str, cnv_id: str) -> Response | str:
 @dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/unmarkinterestingcnv", methods=["POST"])
 @login_required
 def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
+    """Handle unmark interesting cnv.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        cnv_id (str): Value for ``cnv_id``.
+
+    Returns:
+        Response: The function result.
+    """
     try:
         get_web_api_client().delete_json(
             api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "flags", "interesting"),
@@ -51,6 +60,15 @@ def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
 @dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/interestingcnv", methods=["POST"])
 @login_required
 def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
+    """Handle mark interesting cnv.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        cnv_id (str): Value for ``cnv_id``.
+
+    Returns:
+        Response: The function result.
+    """
     try:
         get_web_api_client().patch_json(
             api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "flags", "interesting"),
@@ -64,6 +82,15 @@ def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
 @dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/fpcnv", methods=["POST"])
 @login_required
 def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
+    """Handle mark false cnv.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        cnv_id (str): Value for ``cnv_id``.
+
+    Returns:
+        Response: The function result.
+    """
     try:
         get_web_api_client().patch_json(
             api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "flags", "false-positive"),
@@ -77,6 +104,15 @@ def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>/unfpcnv", methods=["POST"])
 @login_required
 def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
+    """Handle unmark false cnv.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        cnv_id (str): Value for ``cnv_id``.
+
+    Returns:
+        Response: The function result.
+    """
     try:
         get_web_api_client().delete_json(
             api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "flags", "false-positive"),
@@ -90,6 +126,15 @@ def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
 @dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/noteworthycnv", methods=["POST"])
 @login_required
 def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
+    """Handle mark noteworthy cnv.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        cnv_id (str): Value for ``cnv_id``.
+
+    Returns:
+        Response: The function result.
+    """
     try:
         get_web_api_client().patch_json(
             api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "flags", "noteworthy"),
@@ -103,6 +148,15 @@ def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
 @dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/notnoteworthycnv", methods=["POST"])
 @login_required
 def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
+    """Handle unmark noteworthy cnv.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        cnv_id (str): Value for ``cnv_id``.
+
+    Returns:
+        Response: The function result.
+    """
     try:
         get_web_api_client().delete_json(
             api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "flags", "noteworthy"),
@@ -116,6 +170,15 @@ def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
 @dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/hide_cnv_comment", methods=["POST"])
 @login_required
 def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
+    """Handle hide cnv comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        cnv_id (str): Value for ``cnv_id``.
+
+    Returns:
+        Response: The function result.
+    """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
         get_web_api_client().patch_json(
@@ -130,6 +193,15 @@ def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
 @dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/unhide_cnv_comment", methods=["POST"])
 @login_required
 def unhide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
+    """Handle unhide cnv comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        cnv_id (str): Value for ``cnv_id``.
+
+    Returns:
+        Response: The function result.
+    """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
         get_web_api_client().delete_json(

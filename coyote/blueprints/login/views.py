@@ -26,16 +26,27 @@ from coyote.services.api_client.api_client import (
     forward_headers,
     get_web_api_client,
 )
+from coyote.services.api_client.web import flash_api_failure
 from coyote.services.auth.user_session import User
 
 _SESSION_USER_PAYLOAD_KEY = "auth_user_payload"
 
 
 def _api_cookie_name() -> str:
+    """Handle  api cookie name.
+
+    Returns:
+            The  api cookie name result.
+    """
     return str(app.config.get("API_SESSION_COOKIE_NAME", "coyote3_api_session"))
 
 
 def _api_cookie_max_age() -> int:
+    """Handle  api cookie max age.
+
+    Returns:
+            The  api cookie max age result.
+    """
     try:
         return int(app.config.get("API_SESSION_TTL_SECONDS", 12 * 60 * 60))
     except (TypeError, ValueError):
@@ -43,6 +54,15 @@ def _api_cookie_max_age() -> int:
 
 
 def _set_api_cookie(response: Response, token: str) -> None:
+    """Handle  set api cookie.
+
+    Args:
+            response: Response.
+            token: Token.
+
+    Returns:
+            None.
+    """
     response.set_cookie(
         key=_api_cookie_name(),
         value=str(token),
@@ -55,10 +75,26 @@ def _set_api_cookie(response: Response, token: str) -> None:
 
 
 def _clear_api_cookie(response: Response) -> None:
+    """Handle  clear api cookie.
+
+    Args:
+            response: Response.
+
+    Returns:
+            None.
+    """
     response.delete_cookie(key=_api_cookie_name(), path="/")
 
 
 def _extract_session_token(client: CoyoteApiClient) -> str:
+    """Handle  extract session token.
+
+    Args:
+            client: Client.
+
+    Returns:
+            The  extract session token result.
+    """
     token = client.last_response_cookie(_api_cookie_name())
     if token:
         return str(token)
@@ -87,10 +123,10 @@ def login() -> str | Response:
             session_token = _extract_session_token(api_client)
         except ApiRequestError as exc:
             if exc.status_code == 401:
-                flash("Invalid credentials", "red")
+                flash_api_failure("Invalid credentials.", exc)
                 app.logger.warning("Login failed: invalid credentials (%s)", email)
             else:
-                flash("Authentication backend unavailable.", "red")
+                flash_api_failure("Authentication backend unavailable.", exc)
                 app.logger.error("Login API request failed for %s: %s", email, exc)
             return render_template("login.html", form=form)
 

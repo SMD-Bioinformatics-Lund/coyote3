@@ -8,6 +8,8 @@ from pydantic import BaseModel
 
 
 class CoverageSamplePayload(BaseModel):
+    """Represent the coverage sample payload.
+    """
     coverage: dict[str, Any]
     cov_cutoff: int
     sample: dict[str, Any]
@@ -17,5 +19,7 @@ class CoverageSamplePayload(BaseModel):
 
 
 class CoverageBlacklistedPayload(BaseModel):
+    """Represent the coverage blacklisted payload.
+    """
     blacklisted: dict[str, dict[str, Any]]
     group: str

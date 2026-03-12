@@ -15,6 +15,14 @@ from api.security.access import ApiUser
 
 
 def _user(level: int = 9) -> ApiUser:
+    """Handle  user.
+
+    Args:
+            level: Level. Optional argument.
+
+    Returns:
+            The  user result.
+    """
     return ApiUser(
         id="U1",
         email="user@example.org",
@@ -32,6 +40,14 @@ def _user(level: int = 9) -> ApiUser:
 
 
 def test_api_response_includes_request_id_header(monkeypatch: pytest.MonkeyPatch):
+    """Handle test api response includes request id header.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     monkeypatch.setattr(access, "_decode_session_user", lambda _request: _user(level=9))
     monkeypatch.setattr(access, "_role_levels", lambda: {"user": 9})
     monkeypatch.setitem(
@@ -52,9 +68,25 @@ def test_api_response_includes_request_id_header(monkeypatch: pytest.MonkeyPatch
 
 
 def test_mutation_event_emits_request_id_user_and_target(monkeypatch: pytest.MonkeyPatch):
+    """Handle test mutation event emits request id user and target.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     captured: dict = {}
 
     def _capture_mutation_event(**kwargs):
+        """Handle  capture mutation event.
+
+        Args:
+                **kwargs: Kwargs. Additional keyword arguments.
+
+        Returns:
+                The  capture mutation event result.
+        """
         captured.update(kwargs)
 
     monkeypatch.setattr(access, "_decode_session_user", lambda _request: _user(level=9))

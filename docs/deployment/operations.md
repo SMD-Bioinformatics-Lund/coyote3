@@ -587,7 +587,7 @@ Each anti-pattern increases either outage risk or compliance risk.
 
 ## 18. Assumptions
 ASSUMPTION:
-- Deployment currently uses Docker and Docker Compose style orchestration for at least development and controlled environments.
+- Deployment uses Docker and Docker Compose style orchestration for development and controlled environments.
 - MongoDB runtime must remain compatible with 3.4 behavior constraints.
 - Organization provides secure secret storage and governance process for production credentials.
 

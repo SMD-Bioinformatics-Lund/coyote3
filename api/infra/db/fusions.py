@@ -99,6 +99,17 @@ class FusionsHandler(BaseHandler):
         limit: int = 20,
     ) -> List[Dict[str, Any]]:
 
+        """Handle find fusions with matching breakpoints.
+
+        Args:
+            current_sample_id (str): Value for ``current_sample_id``.
+            bp1 (str): Value for ``bp1``.
+            bp2 (str): Value for ``bp2``.
+            limit (int): Value for ``limit``.
+
+        Returns:
+            List[Dict[str, Any]]: The function result.
+        """
         base_projection = {
             "_id": 1,
             "SAMPLE_ID": 1,

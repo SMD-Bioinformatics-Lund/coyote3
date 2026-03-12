@@ -14,6 +14,11 @@ _core_repo_instance: MongoCoreStoreRepository | None = None
 
 
 def _core_repo() -> MongoCoreStoreRepository:
+    """Handle  core repo.
+
+    Returns:
+            The  core repo result.
+    """
     global _core_repo_instance
     if _core_repo_instance is None:
         _core_repo_instance = MongoCoreStoreRepository()
@@ -21,6 +26,14 @@ def _core_repo() -> MongoCoreStoreRepository:
 
 
 def process_gene_annotations(annotations: dict) -> dict:
+    """Process gene annotations.
+
+    Args:
+        annotations (dict): Value for ``annotations``.
+
+    Returns:
+        dict: The function result.
+    """
     annotations_dict = defaultdict(lambda: defaultdict(dict))
     for anno in annotations:
         if "class" in anno:
@@ -39,6 +52,17 @@ def process_gene_annotations(annotations: dict) -> dict:
 
 
 def create_annotation_text_from_gene(gene: str, csq: list, assay_group: str, **kwargs) -> str:
+    """Create annotation text from gene.
+
+    Args:
+        gene (str): Value for ``gene``.
+        csq (list): Value for ``csq``.
+        assay_group (str): Value for ``assay_group``.
+        **kwargs: Additional keyword values for ``kwargs``.
+
+    Returns:
+        str: The function result.
+    """
     first_csq = str(csq[0])
     consequence = first_csq.replace("_", " ")
     tumor_type = ""
@@ -58,6 +82,17 @@ def create_annotation_text_from_gene(gene: str, csq: list, assay_group: str, **k
 
 
 def create_comment_doc(data: dict, nomenclature: str = "", variant: str = "", key: str = "text") -> dict:
+    """Create comment doc.
+
+    Args:
+        data (dict): Value for ``data``.
+        nomenclature (str): Value for ``nomenclature``.
+        variant (str): Value for ``variant``.
+        key (str): Value for ``key``.
+
+    Returns:
+        dict: The function result.
+    """
     author = current_username()
     if data.get("global", None) == "global":
         doc = {
@@ -98,6 +133,19 @@ def generate_summary_text(
     genes_chosen: list,
     checked_genelists: list,
 ) -> str:
+    """Handle generate summary text.
+
+    Args:
+        sample_ids (list): Value for ``sample_ids``.
+        assay_config (dict): Value for ``assay_config``.
+        assay_panel_doc (dict): Value for ``assay_panel_doc``.
+        summary_sections_data (dict): Value for ``summary_sections_data``.
+        genes_chosen (list): Value for ``genes_chosen``.
+        checked_genelists (list): Value for ``checked_genelists``.
+
+    Returns:
+        str: The function result.
+    """
     text = summarize_intro(sample_ids, genes_chosen, checked_genelists, assay_config, assay_panel_doc)
 
     if "snvs" in summary_sections_data:
@@ -148,6 +196,18 @@ def summarize_intro(
     assay_config: dict,
     assay_panel_doc: dict,
 ) -> str:
+    """Handle summarize intro.
+
+    Args:
+        sample_ids (list): Value for ``sample_ids``.
+        genes_chosen (list): Value for ``genes_chosen``.
+        checked_genelists (list): Value for ``checked_genelists``.
+        assay_config (dict): Value for ``assay_config``.
+        assay_panel_doc (dict): Value for ``assay_panel_doc``.
+
+    Returns:
+        str: The function result.
+    """
     text = assay_config.get("reporting", {}).get("general_report_summary", "") or ""
     germline_intersection = list(set(assay_panel_doc.get("germline_genes", [])) & set(genes_chosen))
     controll_tissue = "hudbiopsi"
@@ -177,6 +237,14 @@ def summarize_intro(
 
 
 def summarize_transloc(variants: list) -> str:
+    """Handle summarize transloc.
+
+    Args:
+        variants (list): Value for ``variants``.
+
+    Returns:
+        str: The function result.
+    """
     interesting = {}
     for var in variants:
         if "interesting" in var and var["interesting"]:
@@ -246,6 +314,14 @@ def summarize_transloc(variants: list) -> str:
 
 
 def summarize_cnv(variants: list) -> str:
+    """Handle summarize cnv.
+
+    Args:
+        variants (list): Value for ``variants``.
+
+    Returns:
+        str: The function result.
+    """
     interesting = {}
     for var in variants:
         if "interesting" in var and var["interesting"]:
@@ -325,6 +401,14 @@ def summarize_cnv(variants: list) -> str:
 
 
 def summarize_bio(variants: list) -> str:
+    """Handle summarize bio.
+
+    Args:
+        variants (list): Value for ``variants``.
+
+    Returns:
+        str: The function result.
+    """
     text = ""
     for bio in variants:
         if "HRD" in bio and bio["HRD"]["sum"] > 42:
@@ -349,6 +433,15 @@ def summarize_bio(variants: list) -> str:
 
 
 def sort_tiered_variants(variants: list, genes_chosen: list) -> tuple:
+    """Handle sort tiered variants.
+
+    Args:
+        variants (list): Value for ``variants``.
+        genes_chosen (list): Value for ``genes_chosen``.
+
+    Returns:
+        tuple: The function result.
+    """
     class_vars = defaultdict(lambda: defaultdict(list))
     class_cnt = defaultdict(int)
     for v in sorted(variants, key=lambda d: d["GT"][0]["AF"], reverse=True):
@@ -366,6 +459,16 @@ def sort_tiered_variants(variants: list, genes_chosen: list) -> tuple:
 
 
 def summarize_tiered_snvs(class_vars: dict, class_cnt: dict, text: str) -> str:
+    """Handle summarize tiered snvs.
+
+    Args:
+        class_vars (dict): Value for ``class_vars``.
+        class_cnt (dict): Value for ``class_cnt``.
+        text (str): Value for ``text``.
+
+    Returns:
+        str: The function result.
+    """
     first = 1
     tiers_text = {
         1: " av stark klinisk signifikans (Tier I)",
@@ -409,6 +512,14 @@ def summarize_tiered_snvs(class_vars: dict, class_cnt: dict, text: str) -> str:
 
 
 def get_tier_classification(data: dict) -> int:
+    """Return tier classification.
+
+    Args:
+        data (dict): Value for ``data``.
+
+    Returns:
+        int: The function result.
+    """
     tiers = {"tier1": 1, "tier2": 2, "tier3": 3, "tier4": 4}
     class_num = 0
     for key, value in tiers.items():
@@ -418,6 +529,14 @@ def get_tier_classification(data: dict) -> int:
 
 
 def enrich_reported_variant_docs(tier_docs: list) -> list:
+    """Handle enrich reported variant docs.
+
+    Args:
+        tier_docs (list): Value for ``tier_docs``.
+
+    Returns:
+        list: The function result.
+    """
     enriched_docs = []
     for doc in tier_docs:
         enriched_doc = doc.copy()

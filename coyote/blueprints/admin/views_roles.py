@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from flask import Response, abort, flash, g, redirect, render_template, request, url_for
+from flask import Response, abort, current_app as app, g, redirect, render_template, request, url_for
 from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
@@ -15,9 +15,26 @@ from coyote.services.api_client.api_client import (
     forward_headers,
     get_web_api_client,
 )
+from coyote.services.api_client.web import (
+    flash_api_failure,
+    flash_api_success,
+    raise_page_load_error,
+)
 
 
 def _apply_selected_role_version(role: dict, selected_version: int | None, role_id: str | None = None):
+    """Return the selected historical role version for diff-aware rendering.
+
+    Args:
+        role: Role document returned by the API context endpoint.
+        selected_version: Historical version requested by the operator.
+        role_id: Optional role identifier used to restore ``_id`` after delta
+            application.
+
+    Returns:
+        A tuple of ``(role_document, delta)`` where ``delta`` is the applied
+        version delta or ``None`` when no historical projection was needed.
+    """
     delta = None
     if selected_version and selected_version != role.get("version"):
         version_index = next(
@@ -40,6 +57,11 @@ def _apply_selected_role_version(role: dict, selected_version: int | None, role_
 @admin_bp.route("/roles")
 @login_required
 def list_roles() -> str:
+    """Render the role-management page.
+
+    Returns:
+        The rendered role-management page response.
+    """
     try:
         payload = get_web_api_client().get_json(
             api_endpoints.admin("roles"),
@@ -47,17 +69,31 @@ def list_roles() -> str:
         )
         roles = payload.get("roles", [])
     except AttributeError as exc:
-        flash(f"Failed to parse roles payload: {exc}", "red")
-        roles = []
+        app.logger.error("Failed to parse roles payload: %s", exc)
+        raise_page_load_error(
+            ApiRequestError(str(exc)),
+            logger=app.logger,
+            log_message="Failed to parse role list payload",
+            summary="Unable to load roles.",
+        )
     except ApiRequestError as exc:
-        flash(f"Failed to fetch roles: {exc}", "red")
-        roles = []
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message="Failed to fetch roles",
+            summary="Unable to load roles.",
+        )
     return render_template("roles/roles.html", roles=roles)
 
 
 @admin_bp.route("/roles/new", methods=["GET", "POST"])
 @login_required
 def create_role() -> Response | str:
+    """Create a role from the configured role schema.
+
+    Returns:
+        The rendered form on ``GET`` or a redirect response after ``POST``.
+    """
     try:
         selected_schema_id = request.args.get("schema_id")
         context = get_web_api_client().get_json(
@@ -66,8 +102,12 @@ def create_role() -> Response | str:
             params={"schema_id": selected_schema_id} if selected_schema_id else None,
         )
     except ApiRequestError as exc:
-        flash(f"Failed to load role schema context: {exc}", "red")
-        return redirect(url_for("admin_bp.list_roles"))
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message="Failed to load role create context",
+            summary="Unable to load the role creation form.",
+        )
 
     if request.method == "POST":
         form_data: dict[str, str | list[str]] = {
@@ -84,9 +124,9 @@ def create_role() -> Response | str:
                 },
             )
             g.audit_metadata = {"role": payload.resource_id}
-            flash(f"Role '{payload.resource_id}' created successfully.", "green")
+            flash_api_success(f"Role '{payload.resource_id}' created successfully.")
         except ApiRequestError as exc:
-            flash(f"Failed to create role: {exc}", "red")
+            flash_api_failure("Failed to create role.", exc)
         return redirect(url_for("admin_bp.list_roles"))
 
     return render_template(
@@ -100,16 +140,27 @@ def create_role() -> Response | str:
 @admin_bp.route("/roles/<role_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit_role(role_id: str) -> Response | str:
+    """Edit an existing role definition.
+
+    Args:
+        role_id: Role identifier for the document being edited.
+
+    Returns:
+        The rendered form on ``GET`` or a redirect response after ``POST``.
+    """
     try:
         context = get_web_api_client().get_json(
             api_endpoints.admin("roles", role_id, "context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
-        if exc.status_code == 404:
-            return abort(404)
-        flash(f"Failed to load role context: {exc}", "red")
-        return redirect(url_for("admin_bp.list_roles"))
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to load role context for {role_id}",
+            summary="Unable to load the role.",
+            not_found_summary="Role not found.",
+        )
 
     role, delta = _apply_selected_role_version(
         context.role,
@@ -129,9 +180,9 @@ def edit_role(role_id: str) -> Response | str:
                 json_body={"form_data": form_data},
             )
             g.audit_metadata = {"role": role_id}
-            flash(f"Role '{role_id}' updated successfully.", "green")
+            flash_api_success(f"Role '{role_id}' updated successfully.")
         except ApiRequestError as exc:
-            flash(f"Failed to update role: {exc}", "red")
+            flash_api_failure("Failed to update role.", exc)
         return redirect(url_for("admin_bp.list_roles"))
 
     return render_template(
@@ -146,16 +197,27 @@ def edit_role(role_id: str) -> Response | str:
 @admin_bp.route("/roles/<role_id>/view", methods=["GET"])
 @login_required
 def view_role(role_id: str) -> Response | str:
+    """Display a read-only role view.
+
+    Args:
+        role_id: Role identifier for the document being displayed.
+
+    Returns:
+        The rendered detail page response.
+    """
     try:
         context = get_web_api_client().get_json(
             api_endpoints.admin("roles", role_id, "context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
-        if exc.status_code == 404:
-            return abort(404)
-        flash(f"Failed to load role context: {exc}", "red")
-        return redirect(url_for("admin_bp.list_roles"))
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to load role view context for {role_id}",
+            summary="Unable to load the role.",
+            not_found_summary="Role not found.",
+        )
 
     selected_version = request.args.get("version", type=int)
     role, delta = _apply_selected_role_version(context.role, selected_version)
@@ -172,6 +234,14 @@ def view_role(role_id: str) -> Response | str:
 @admin_bp.route("/roles/<role_id>/toggle", methods=["POST", "GET"])
 @login_required
 def toggle_role_active(role_id: str) -> Response:
+    """Toggle the active flag on a role.
+
+    Args:
+        role_id: Role identifier for the document being updated.
+
+    Returns:
+        A redirect response back to the management page.
+    """
     try:
         payload = get_web_api_client().patch_json(
             api_endpoints.admin("roles", role_id, "status"),
@@ -182,26 +252,34 @@ def toggle_role_active(role_id: str) -> Response:
             "role": role_id,
             "role_status": "Active" if new_status else "Inactive",
         }
-        flash(f"Role '{role_id}' is now {'Active' if new_status else 'Inactive'}.", "green")
+        flash_api_success(f"Role '{role_id}' is now {'Active' if new_status else 'Inactive'}.")
     except ApiRequestError as exc:
         if exc.status_code == 404:
             return abort(404)
-        flash(f"Failed to toggle role: {exc}", "red")
+        flash_api_failure("Failed to update role status.", exc)
     return redirect(url_for("admin_bp.list_roles"))
 
 
 @admin_bp.route("/roles/<role_id>/delete", methods=["GET"])
 @login_required
 def delete_role(role_id: str) -> Response:
+    """Delete a role definition.
+
+    Args:
+        role_id: Role identifier for the document being deleted.
+
+    Returns:
+        A redirect response back to the management page.
+    """
     try:
         get_web_api_client().delete_json(
             api_endpoints.admin("roles", role_id),
             headers=forward_headers(),
         )
         g.audit_metadata = {"role": role_id}
-        flash(f"Role '{role_id}' deleted successfully.", "green")
+        flash_api_success(f"Role '{role_id}' deleted successfully.")
     except ApiRequestError as exc:
         if exc.status_code == 404:
             return abort(404)
-        flash(f"Failed to delete role: {exc}", "red")
+        flash_api_failure("Failed to delete role.", exc)
     return redirect(url_for("admin_bp.list_roles"))

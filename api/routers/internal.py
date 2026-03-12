@@ -15,6 +15,15 @@ router = APIRouter(tags=["internal"])
 
 @router.get("/api/v1/internal/roles/levels", response_model=RoleLevelsPayload)
 def get_role_levels_internal(request: Request, repository: InternalRepository = Depends(get_internal_repository)):
+    """Return role levels internal.
+
+    Args:
+        request (Request): Value for ``request``.
+        repository (InternalRepository): Value for ``repository``.
+
+    Returns:
+        The function result.
+    """
     _require_internal_token(request)
     role_levels = {
         role["_id"]: role.get("level", 0)
@@ -29,6 +38,16 @@ def get_isgl_meta_internal(
     request: Request,
     repository: InternalRepository = Depends(get_internal_repository),
 ):
+    """Return isgl meta internal.
+
+    Args:
+        isgl_id (str): Value for ``isgl_id``.
+        request (Request): Value for ``request``.
+        repository (InternalRepository): Value for ``repository``.
+
+    Returns:
+        The function result.
+    """
     _require_internal_token(request)
     return util.common.convert_to_serializable(
         {

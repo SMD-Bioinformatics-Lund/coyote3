@@ -18,13 +18,34 @@ from api.extensions import util
 
 
 class AdminUserService:
+    """Own user-management workflows for admin HTTP routes."""
+
     def __init__(self, repository: AdminRepository | None = None) -> None:
+        """Handle __init__.
+
+        Args:
+                repository: Repository. Optional argument.
+        """
         self.repository = repository or AdminRepository()
 
     def list_users_payload(self) -> dict[str, Any]:
+        """List users payload.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         return {"users": self.repository.list_users(), "roles": self.repository.get_role_colors()}
 
     def create_context_payload(self, *, schema_id: str | None, actor_username: str) -> dict[str, Any]:
+        """Create context payload.
+
+        Args:
+            schema_id (str | None): Value for ``schema_id``.
+            actor_username (str): Value for ``actor_username``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         schemas, selected_schema = self.repository.get_active_schema(
             schema_type="rbac_user",
             schema_category="RBAC_user",
@@ -55,6 +76,14 @@ class AdminUserService:
         }
 
     def context_payload(self, *, user_id: str) -> dict[str, Any]:
+        """Handle context payload.
+
+        Args:
+            user_id (str): Value for ``user_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         user_doc = self.repository.get_user(user_id)
         if not user_doc:
             raise api_error(404, "User not found")
@@ -82,6 +111,15 @@ class AdminUserService:
         }
 
     def create_user(self, *, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
+        """Create user.
+
+        Args:
+            payload (dict[str, Any]): Value for ``payload``.
+            actor_username (str): Value for ``actor_username``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         schemas, schema = self.repository.get_active_schema(
             schema_type="rbac_user",
             schema_category="RBAC_user",
@@ -126,6 +164,16 @@ class AdminUserService:
         return mutation_payload(resource="user", resource_id=username, action="create")
 
     def update_user(self, *, user_id: str, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
+        """Update user.
+
+        Args:
+            user_id (str): Value for ``user_id``.
+            payload (dict[str, Any]): Value for ``payload``.
+            actor_username (str): Value for ``actor_username``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         user_doc = self.repository.get_user(user_id)
         if not user_doc:
             raise api_error(404, "User not found")
@@ -167,6 +215,14 @@ class AdminUserService:
         return mutation_payload(resource="user", resource_id=user_id, action="update")
 
     def delete_user(self, *, user_id: str) -> dict[str, Any]:
+        """Delete user.
+
+        Args:
+            user_id (str): Value for ``user_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         user_doc = self.repository.get_user(user_id)
         if not user_doc:
             raise api_error(404, "User not found")
@@ -174,6 +230,14 @@ class AdminUserService:
         return mutation_payload(resource="user", resource_id=user_id, action="delete")
 
     def toggle_user(self, *, user_id: str) -> dict[str, Any]:
+        """Toggle user.
+
+        Args:
+            user_id (str): Value for ``user_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         user_doc = self.repository.get_user(user_id)
         if not user_doc:
             raise api_error(404, "User not found")
@@ -184,7 +248,23 @@ class AdminUserService:
         return payload
 
     def username_exists(self, *, username: str) -> bool:
+        """Handle username exists.
+
+        Args:
+            username (str): Value for ``username``.
+
+        Returns:
+            bool: The function result.
+        """
         return bool(self.repository.user_handler.user_exists(user_id=lower(username)))
 
     def email_exists(self, *, email: str) -> bool:
+        """Handle email exists.
+
+        Args:
+            email (str): Value for ``email``.
+
+        Returns:
+            bool: The function result.
+        """
         return bool(self.repository.user_handler.user_exists(email=lower(email)))

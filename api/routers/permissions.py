@@ -19,10 +19,25 @@ router = APIRouter(tags=["admin-permissions"])
 
 
 def _service() -> PermissionManagementService:
+    """Handle  service.
+
+    Returns:
+            The  service result.
+    """
     return get_permission_management_service()
 
 
 def _create_permission(payload: dict, actor_username: str, service: PermissionManagementService):
+    """Handle  create permission.
+
+    Args:
+            payload: Payload.
+            actor_username: Actor username.
+            service: Service.
+
+    Returns:
+            The  create permission result.
+    """
     return util.common.convert_to_serializable(
         service.create_permission(payload=payload, actor_username=actor_username)
     )
@@ -34,6 +49,16 @@ def create_permission(
     user: ApiUser = Depends(require_access(permission="create_permission_policy", min_role="admin", min_level=99999)),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
+    """Create permission.
+
+    Args:
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (PermissionManagementService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     return _create_permission(payload=payload, actor_username=user.username, service=service)
 
 
@@ -42,6 +67,15 @@ def list_permissions_read(
     user: ApiUser = Depends(require_access(permission="view_permission_policy", min_role="admin", min_level=99999)),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
+    """List permissions read.
+
+    Args:
+        user (ApiUser): Value for ``user``.
+        service (PermissionManagementService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.list_permissions_payload())
 
@@ -52,6 +86,16 @@ def create_permission_context_read(
     user: ApiUser = Depends(require_access(permission="create_permission_policy", min_role="admin", min_level=99999)),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
+    """Create permission context read.
+
+    Args:
+        schema_id (str | None): Value for ``schema_id``.
+        user (ApiUser): Value for ``user``.
+        service (PermissionManagementService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     return util.common.convert_to_serializable(
         service.create_context_payload(schema_id=schema_id, actor_username=user.username)
     )
@@ -63,11 +107,32 @@ def permission_context_read(
     user: ApiUser = Depends(require_access(permission="view_permission_policy", min_role="admin", min_level=99999)),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
+    """Handle permission context read.
+
+    Args:
+        perm_id (str): Value for ``perm_id``.
+        user (ApiUser): Value for ``user``.
+        service (PermissionManagementService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.context_payload(permission_id=perm_id))
 
 
 def _update_permission(permission_id: str, payload: dict, actor_username: str, service: PermissionManagementService):
+    """Handle  update permission.
+
+    Args:
+            permission_id: Permission id.
+            payload: Payload.
+            actor_username: Actor username.
+            service: Service.
+
+    Returns:
+            The  update permission result.
+    """
     return util.common.convert_to_serializable(
         service.update_permission(permission_id=permission_id, payload=payload, actor_username=actor_username)
     )
@@ -80,10 +145,30 @@ def update_permission(
     user: ApiUser = Depends(require_access(permission="edit_permission_policy", min_role="admin", min_level=99999)),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
+    """Update permission.
+
+    Args:
+        perm_id (str): Value for ``perm_id``.
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (PermissionManagementService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     return _update_permission(permission_id=perm_id, payload=payload, actor_username=user.username, service=service)
 
 
 def _toggle_permission(permission_id: str, service: PermissionManagementService):
+    """Handle  toggle permission.
+
+    Args:
+            permission_id: Permission id.
+            service: Service.
+
+    Returns:
+            The  toggle permission result.
+    """
     return util.common.convert_to_serializable(service.toggle_permission(permission_id=permission_id))
 
 
@@ -93,11 +178,30 @@ def toggle_permission_status(
     user: ApiUser = Depends(require_access(permission="edit_permission_policy", min_role="admin", min_level=99999)),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
+    """Toggle permission status.
+
+    Args:
+        perm_id (str): Value for ``perm_id``.
+        user (ApiUser): Value for ``user``.
+        service (PermissionManagementService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return _toggle_permission(permission_id=perm_id, service=service)
 
 
 def _delete_permission(permission_id: str, service: PermissionManagementService):
+    """Handle  delete permission.
+
+    Args:
+            permission_id: Permission id.
+            service: Service.
+
+    Returns:
+            The  delete permission result.
+    """
     return util.common.convert_to_serializable(service.delete_permission(permission_id=permission_id))
 
 
@@ -107,6 +211,16 @@ def delete_permission(
     user: ApiUser = Depends(require_access(permission="delete_permission_policy", min_role="admin", min_level=99999)),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
+    """Delete permission.
+
+    Args:
+        perm_id (str): Value for ``perm_id``.
+        user (ApiUser): Value for ``user``.
+        service (PermissionManagementService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return _delete_permission(permission_id=perm_id, service=service)
 

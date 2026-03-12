@@ -19,6 +19,16 @@ def list_dna_biomarkers(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: BiomarkerService = Depends(get_biomarker_service),
 ):
+    """List dna biomarkers.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        user (ApiUser): Value for ``user``.
+        service (BiomarkerService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(service.list_payload(sample=sample))
 

@@ -13,11 +13,19 @@ from api.runtime import app as runtime_app
 
 
 class RnaService:
+    """Own shared RNA and fusion support workflows."""
+
     def __init__(
         self,
         repository: RnaRouteRepository | None = None,
         workflow_repository: RnaWorkflowRepository | None = None,
     ) -> None:
+        """Handle __init__.
+
+        Args:
+                repository: Repository. Optional argument.
+                workflow_repository: Workflow repository. Optional argument.
+        """
         self.repository = repository or RnaRouteRepository()
         self.workflow_repository = workflow_repository or RnaWorkflowRepository()
         if not RNAWorkflowService.has_repository():
@@ -25,6 +33,17 @@ class RnaService:
 
     @staticmethod
     def mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict[str, Any]:
+        """Handle mutation payload.
+
+        Args:
+            sample_id (str): Value for ``sample_id``.
+            resource (str): Value for ``resource``.
+            resource_id (str): Value for ``resource_id``.
+            action (str): Value for ``action``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         return {
             "status": "ok",
             "sample_id": str(sample_id),
@@ -35,6 +54,16 @@ class RnaService:
         }
 
     def list_fusions_payload(self, *, request, sample: dict, util_module) -> dict[str, Any]:
+        """List fusions payload.
+
+        Args:
+            request: Value for ``request``.
+            sample (dict): Value for ``sample``.
+            util_module: Value for ``util_module``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         assay_config = get_formatted_assay_config(sample)
         if not assay_config:
             raise api_error(404, "Assay config not found for sample")
@@ -94,6 +123,15 @@ class RnaService:
         }
 
     def show_fusion_payload(self, *, sample: dict, fusion_id: str) -> dict[str, Any]:
+        """Show fusion payload.
+
+        Args:
+            sample (dict): Value for ``sample``.
+            fusion_id (str): Value for ``fusion_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         fusion = self.repository.fusion_handler.get_fusion(fusion_id)
         if not fusion:
             raise api_error(404, "Fusion not found")
@@ -127,4 +165,3 @@ class RnaService:
             "subpanel": subpanel,
             "assay_group_mappings": show_context["assay_group_mappings"],
         }
-

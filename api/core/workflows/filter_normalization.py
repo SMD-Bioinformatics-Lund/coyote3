@@ -91,6 +91,14 @@ def _fold_prefixed_flags(filters: dict[str, Any], prefix_map: dict[str, str]) ->
 
 
 def _is_truthy_flag(value: Any) -> bool:
+    """Handle  is truthy flag.
+
+    Args:
+            value: Value.
+
+    Returns:
+            The  is truthy flag result.
+    """
     if isinstance(value, bool):
         return value
     if value is None:

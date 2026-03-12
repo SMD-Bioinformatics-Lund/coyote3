@@ -10,25 +10,66 @@ from cache_backend import DisabledCacheBackend, RedisCacheBackend, create_cache_
 
 
 class _FakeRedis:
+    """Provide  FakeRedis behavior.
+    """
     def __init__(self):
+        """Handle __init__.
+        """
         self._values: dict[str, bytes] = {}
 
     def ping(self) -> bool:
+        """Handle ping.
+
+        Returns:
+            bool: The function result.
+        """
         return True
 
     def get(self, key: str):
+        """Handle get.
+
+        Args:
+            key (str): Value for ``key``.
+
+        Returns:
+            The function result.
+        """
         return self._values.get(key)
 
     def set(self, key: str, value: bytes):
+        """Handle set.
+
+        Args:
+            key (str): Value for ``key``.
+            value (bytes): Value for ``value``.
+
+        Returns:
+            The function result.
+        """
         self._values[key] = value
         return True
 
     def setex(self, key: str, _ttl: int, value: bytes):
+        """Handle setex.
+
+        Args:
+            key (str): Value for ``key``.
+            _ttl (int): Value for ``_ttl``.
+            value (bytes): Value for ``value``.
+
+        Returns:
+            The function result.
+        """
         self._values[key] = value
         return True
 
 
 def test_cache_backend_disabled_by_config():
+    """Handle test cache backend disabled by config.
+
+    Returns:
+        The function result.
+    """
     backend = create_cache_backend(
         config={"CACHE_ENABLED": False},
         logger=logging.getLogger("test.cache"),
@@ -40,9 +81,28 @@ def test_cache_backend_disabled_by_config():
 
 
 def test_cache_backend_falls_back_when_redis_unavailable(monkeypatch: pytest.MonkeyPatch):
+    """Handle test cache backend falls back when redis unavailable.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     class _NoRedis:
+        """Provide  NoRedis behavior.
+        """
         @staticmethod
         def from_url(*args, **kwargs):  # noqa: ARG004
+            """Handle from url.
+
+            Args:
+                *args: Additional positional values for ``args``.
+                **kwargs: Additional keyword values for ``kwargs``.
+
+            Returns:
+                The function result.
+            """
             raise RuntimeError("boom")
 
     monkeypatch.setattr("cache_backend.redis.Redis", _NoRedis)
@@ -59,9 +119,28 @@ def test_cache_backend_falls_back_when_redis_unavailable(monkeypatch: pytest.Mon
 
 
 def test_cache_backend_required_raises_when_redis_unavailable(monkeypatch: pytest.MonkeyPatch):
+    """Handle test cache backend required raises when redis unavailable.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     class _NoRedis:
+        """Provide  NoRedis behavior.
+        """
         @staticmethod
         def from_url(*args, **kwargs):  # noqa: ARG004
+            """Handle from url.
+
+            Args:
+                *args: Additional positional values for ``args``.
+                **kwargs: Additional keyword values for ``kwargs``.
+
+            Returns:
+                The function result.
+            """
             raise RuntimeError("boom")
 
     monkeypatch.setattr("cache_backend.redis.Redis", _NoRedis)
@@ -78,11 +157,30 @@ def test_cache_backend_required_raises_when_redis_unavailable(monkeypatch: pytes
 
 
 def test_redis_cache_backend_roundtrip(monkeypatch: pytest.MonkeyPatch):
+    """Handle test redis cache backend roundtrip.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     fake = _FakeRedis()
 
     class _RedisFactory:
+        """Provide  RedisFactory behavior.
+        """
         @staticmethod
         def from_url(*args, **kwargs):  # noqa: ARG004
+            """Handle from url.
+
+            Args:
+                *args: Additional positional values for ``args``.
+                **kwargs: Additional keyword values for ``kwargs``.
+
+            Returns:
+                The function result.
+            """
             return fake
 
     monkeypatch.setattr("cache_backend.redis.Redis", _RedisFactory)

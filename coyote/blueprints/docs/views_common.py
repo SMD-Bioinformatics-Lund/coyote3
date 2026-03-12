@@ -65,6 +65,11 @@ def render_markdown_file(md_path: Path) -> str:
 
 
 def can_view_developer_docs() -> bool:
+    """Return whether view developer docs is allowed.
+
+    Returns:
+        bool: The function result.
+    """
     if not current_user.is_authenticated:
         return False
     return current_user.has_permission("delete_sample_global") or current_user.has_min_access_level(

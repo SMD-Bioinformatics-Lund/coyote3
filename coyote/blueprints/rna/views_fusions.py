@@ -24,6 +24,7 @@ from coyote.blueprints.rna.forms import FusionFilter
 from coyote.blueprints.rna import rna_bp
 from coyote.services.api_client import endpoints as api_endpoints
 from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.services.api_client.web import raise_page_load_error
 
 
 @rna_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])
@@ -46,6 +47,11 @@ def list_fusions(sample_id: str) -> str | Response:
     api_client = get_web_api_client()
 
     def _load_api_context():
+        """Handle  load api context.
+
+        Returns:
+                The  load api context result.
+        """
         payload = api_client.get_json(
             api_endpoints.rna_sample(sample_id, "fusions"),
             headers=headers,
@@ -55,8 +61,13 @@ def list_fusions(sample_id: str) -> str | Response:
     try:
         fusions_payload = _load_api_context()
     except ApiRequestError as exc:
-        app.logger.error("RNA fusion API fetch failed for sample %s: %s", sample_id, exc)
-        return Response(str(exc), status=exc.status_code or 502)
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to load RNA fusions for sample {sample_id}",
+            summary="Unable to load RNA fusions for this sample.",
+            not_found_summary="RNA fusion data for this sample was not found.",
+        )
 
     sample = fusions_payload.sample
     assay_config = fusions_payload.assay_config
@@ -110,7 +121,13 @@ def list_fusions(sample_id: str) -> str | Response:
             fusionlist_options = fusions_payload.fusionlist_options
         except ApiRequestError as exc:
             app.logger.error("RNA fusion API refresh failed for sample %s: %s", sample_id, exc)
-            return Response(str(exc), status=exc.status_code or 502)
+            raise_page_load_error(
+                exc,
+                logger=app.logger,
+                log_message=f"Failed to refresh RNA fusions for sample {sample_id}",
+                summary="Unable to refresh RNA fusions for this sample.",
+                not_found_summary="RNA fusion data for this sample was not found.",
+            )
 
     if not sample_has_filters:
         try:
@@ -197,8 +214,13 @@ def show_fusion(sample_id: str, fusion_id: str) -> Response | str:
             assay_group_mappings=payload.assay_group_mappings,
         )
     except ApiRequestError as exc:
-        app.logger.error("RNA fusion detail API fetch failed for sample %s: %s", sample_id, exc)
-        return Response(str(exc), status=exc.status_code or 502)
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to load RNA fusion detail for sample {sample_id} fusion {fusion_id}",
+            summary="Unable to load the requested fusion.",
+            not_found_summary="The requested fusion was not found for this sample.",
+        )
 
 
 def _bulk_fusion_flag_update(

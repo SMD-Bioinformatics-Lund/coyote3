@@ -8,10 +8,14 @@ from pydantic import BaseModel
 
 
 class CommonGeneInfoPayload(BaseModel):
+    """Represent the common gene info payload.
+    """
     gene: dict[str, Any] | None = None
 
 
 class CommonTieredVariantContextPayload(BaseModel):
+    """Represent the common tiered variant context payload.
+    """
     variant: dict[str, Any]
     docs: list[dict[str, Any]]
     tier: int
@@ -19,6 +23,8 @@ class CommonTieredVariantContextPayload(BaseModel):
 
 
 class CommonTieredVariantSearchPayload(BaseModel):
+    """Represent the common tiered variant search payload.
+    """
     docs: list[dict[str, Any]]
     search_str: str | None = None
     search_mode: str

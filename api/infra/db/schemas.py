@@ -36,6 +36,11 @@ class SchemaHandler(BaseHandler):
         self.set_collection(self.adapter.schemas_collection)
 
     def ensure_indexes(self) -> None:
+        """Handle ensure indexes.
+
+        Returns:
+            None.
+        """
         col = self.get_collection()
         col.create_index(
             [("schema_id", 1)],
@@ -49,16 +54,40 @@ class SchemaHandler(BaseHandler):
 
     @staticmethod
     def _normalize_schema_id(schema_id: str | None) -> str | None:
+        """Handle  normalize schema id.
+
+        Args:
+                schema_id: Schema id.
+
+        Returns:
+                The  normalize schema id result.
+        """
         if schema_id is None:
             return None
         normalized = str(schema_id).strip()
         return normalized or None
 
     def _schema_lookup_query(self, schema_id: str) -> dict:
+        """Handle  schema lookup query.
+
+        Args:
+                schema_id: Schema id.
+
+        Returns:
+                The  schema lookup query result.
+        """
         normalized = self._normalize_schema_id(schema_id)
         return {"schema_id": normalized}
 
     def ensure_schema_id(self, schema_doc: dict) -> dict:
+        """Handle ensure schema id.
+
+        Args:
+            schema_doc (dict): Value for ``schema_doc``.
+
+        Returns:
+            dict: The function result.
+        """
         if not isinstance(schema_doc, dict):
             return schema_doc
         normalized = self._normalize_schema_id(schema_doc.get("schema_id"))

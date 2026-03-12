@@ -11,6 +11,14 @@ from api.errors.exceptions import AppError
 
 
 def test_build_report_file_location_with_control_id(monkeypatch):
+    """Handle test build report file location with control id.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     monkeypatch.setattr(report_paths, "get_report_timestamp", lambda: "260303101112")
     sample = {
         "case_id": "CASE1",
@@ -33,6 +41,14 @@ def test_build_report_file_location_with_control_id(monkeypatch):
 
 
 def test_build_report_file_location_without_control_id_uses_case_only(monkeypatch):
+    """Handle test build report file location without control id uses case only.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     monkeypatch.setattr(report_paths, "get_report_timestamp", lambda: "260303101112")
     sample = {
         "case_id": "CASE1",
@@ -52,6 +68,14 @@ def test_build_report_file_location_without_control_id_uses_case_only(monkeypatc
 
 
 def test_prepare_report_output_creates_directory_when_file_missing(monkeypatch):
+    """Handle test prepare report output creates directory when file missing.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     calls = {"makedirs": []}
 
     monkeypatch.setattr(
@@ -67,11 +91,31 @@ def test_prepare_report_output_creates_directory_when_file_missing(monkeypatch):
 
 
 def test_prepare_report_output_raises_conflict_when_file_exists(monkeypatch):
+    """Handle test prepare report output raises conflict when file exists.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     class _Logger:
+        """Provide  Logger behavior.
+        """
         def __init__(self):
+            """Handle __init__.
+            """
             self.messages = []
 
         def warning(self, msg):
+            """Handle warning.
+
+            Args:
+                msg: Value for ``msg``.
+
+            Returns:
+                The function result.
+            """
             self.messages.append(msg)
 
     logger = _Logger()
@@ -87,6 +131,14 @@ def test_prepare_report_output_raises_conflict_when_file_exists(monkeypatch):
 
 
 def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypatch):
+    """Handle test persist report and snapshot writes report and upserts snapshot.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     calls = {}
 
     monkeypatch.setattr(
@@ -129,6 +181,14 @@ def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypa
 
 
 def test_persist_report_and_snapshot_raises_when_report_write_fails(monkeypatch):
+    """Handle test persist report and snapshot raises when report write fails.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     monkeypatch.setattr(
         pipeline,
         "util",

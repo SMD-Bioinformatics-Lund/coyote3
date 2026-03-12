@@ -6,18 +6,86 @@ from typing import Any, Protocol
 
 
 class SecurityRepository(Protocol):
-    def get_role(self, role_id: str | None) -> dict[str, Any] | None: ...
+    """Define the persistence operations required by security workflows."""
 
-    def get_all_roles(self) -> list[dict[str, Any]]: ...
+    def get_role(self, role_id: str | None) -> dict[str, Any] | None:
+        """Return role.
 
-    def get_all_active_asps(self) -> list[dict[str, Any]]: ...
+        Args:
+            role_id (str | None): Value for ``role_id``.
 
-    def get_user_by_username(self, username: str) -> dict[str, Any] | None: ...
+        Returns:
+            dict[str, Any] | None: The function result.
+        """
+        ...
 
-    def get_user_by_id(self, user_id: str) -> dict[str, Any] | None: ...
+    def get_all_roles(self) -> list[dict[str, Any]]:
+        """Return all roles.
 
-    def get_sample(self, sample_id: str) -> dict[str, Any] | None: ...
+        Returns:
+            list[dict[str, Any]]: The function result.
+        """
+        ...
 
-    def get_sample_by_id(self, sample_id: str) -> dict[str, Any] | None: ...
+    def get_all_active_asps(self) -> list[dict[str, Any]]:
+        """Return all active asps.
 
-    def update_user_last_login(self, user_id: str) -> None: ...
+        Returns:
+            list[dict[str, Any]]: The function result.
+        """
+        ...
+
+    def get_user_by_username(self, username: str) -> dict[str, Any] | None:
+        """Return user by username.
+
+        Args:
+            username (str): Value for ``username``.
+
+        Returns:
+            dict[str, Any] | None: The function result.
+        """
+        ...
+
+    def get_user_by_id(self, user_id: str) -> dict[str, Any] | None:
+        """Return user by id.
+
+        Args:
+            user_id (str): Value for ``user_id``.
+
+        Returns:
+            dict[str, Any] | None: The function result.
+        """
+        ...
+
+    def get_sample(self, sample_id: str) -> dict[str, Any] | None:
+        """Return sample.
+
+        Args:
+            sample_id (str): Value for ``sample_id``.
+
+        Returns:
+            dict[str, Any] | None: The function result.
+        """
+        ...
+
+    def get_sample_by_id(self, sample_id: str) -> dict[str, Any] | None:
+        """Return sample by id.
+
+        Args:
+            sample_id (str): Value for ``sample_id``.
+
+        Returns:
+            dict[str, Any] | None: The function result.
+        """
+        ...
+
+    def update_user_last_login(self, user_id: str) -> None:
+        """Update user last login.
+
+        Args:
+            user_id (str): Value for ``user_id``.
+
+        Returns:
+            None.
+        """
+        ...

@@ -19,6 +19,11 @@ class SessionUserModel:
     """
 
     def __init__(self, payload: dict[str, Any]):
+        """Handle __init__.
+
+        Args:
+                payload: Payload.
+        """
         self.id = str(payload.get("_id") or payload.get("id") or "")
         self.email = str(payload.get("email") or "")
         self.fullname = str(payload.get("fullname") or "")
@@ -54,6 +59,11 @@ class User(UserMixin):
     """Flask-Login user wrapper backed by :class:`SessionUserModel`."""
 
     def __init__(self, user_model: SessionUserModel | dict[str, Any]):
+        """Handle __init__.
+
+        Args:
+                user_model: User model.
+        """
         if isinstance(user_model, SessionUserModel):
             self.user_model = user_model
         else:

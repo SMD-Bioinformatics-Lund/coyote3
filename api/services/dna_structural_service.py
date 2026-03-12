@@ -12,11 +12,29 @@ from api.repositories.dna_repository import DnaRouteRepository
 
 
 class DnaStructuralService:
+    """Provide dna structural workflows.
+    """
     def __init__(self, repository: DnaRouteRepository | None = None) -> None:
+        """Handle __init__.
+
+        Args:
+                repository: Repository. Optional argument.
+        """
         self.repository = repository or DnaRouteRepository()
 
     @staticmethod
     def mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict[str, Any]:
+        """Handle mutation payload.
+
+        Args:
+            sample_id (str): Value for ``sample_id``.
+            resource (str): Value for ``resource``.
+            resource_id (str): Value for ``resource_id``.
+            action (str): Value for ``action``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         return {
             "status": "ok",
             "sample_id": str(sample_id),
@@ -27,6 +45,16 @@ class DnaStructuralService:
         }
 
     def load_cnvs_for_sample(self, *, sample: dict, sample_filters: dict, filter_genes: list[str]) -> list[dict]:
+        """Load cnvs for sample.
+
+        Args:
+            sample (dict): Value for ``sample``.
+            sample_filters (dict): Value for ``sample_filters``.
+            filter_genes (list[str]): Value for ``filter_genes``.
+
+        Returns:
+            list[dict]: The function result.
+        """
         cnv_query = build_cnv_query(str(sample["_id"]), filters={**sample_filters, "filter_genes": filter_genes})
         cnvs = list(self.repository.cnv_handler.get_sample_cnvs(cnv_query))
         filter_cnveffects = create_cnveffectlist(sample_filters.get("cnveffects", []))
@@ -35,6 +63,16 @@ class DnaStructuralService:
         return cnv_organizegenes(cnvs)
 
     def list_cnvs_payload(self, *, request, sample: dict, util_module) -> dict[str, Any]:
+        """List cnvs payload.
+
+        Args:
+            request: Value for ``request``.
+            sample (dict): Value for ``sample``.
+            util_module: Value for ``util_module``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         assay_config = get_formatted_assay_config(sample)
         if not assay_config:
             raise api_error(404, "Assay config not found for sample")
@@ -61,6 +99,16 @@ class DnaStructuralService:
         }
 
     def show_cnv_payload(self, *, sample: dict, cnv_id: str, util_module) -> dict[str, Any]:
+        """Show cnv payload.
+
+        Args:
+            sample (dict): Value for ``sample``.
+            cnv_id (str): Value for ``cnv_id``.
+            util_module: Value for ``util_module``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         cnv = self.repository.cnv_handler.get_cnv(cnv_id)
         if not cnv:
             raise api_error(404, "CNV not found")
@@ -94,6 +142,15 @@ class DnaStructuralService:
         }
 
     def list_translocations_payload(self, *, request, sample: dict) -> dict[str, Any]:
+        """List translocations payload.
+
+        Args:
+            request: Value for ``request``.
+            sample (dict): Value for ``sample``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         translocs = list(self.repository.transloc_handler.get_sample_translocations(sample_id=str(sample["_id"])))
         return {
             "sample": {
@@ -107,6 +164,16 @@ class DnaStructuralService:
         }
 
     def show_translocation_payload(self, *, sample: dict, transloc_id: str, util_module) -> dict[str, Any]:
+        """Show translocation payload.
+
+        Args:
+            sample (dict): Value for ``sample``.
+            transloc_id (str): Value for ``transloc_id``.
+            util_module: Value for ``util_module``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         transloc = self.repository.transloc_handler.get_transloc(transloc_id)
         if not transloc:
             raise api_error(404, "Translocation not found")

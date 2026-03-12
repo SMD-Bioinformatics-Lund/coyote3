@@ -17,6 +17,14 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def test_coverage_sample_read_builds_payload(monkeypatch):
+    """Handle test coverage sample read builds payload.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     sample = fx.sample_doc()
     sample["filters"] = {"genelists": ["GL1"]}
     sample["assay"] = "WGS"
@@ -76,6 +84,11 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
 
 
 def test_coverage_blacklisted_read_denies_non_member_group():
+    """Handle test coverage blacklisted read denies non member group.
+
+    Returns:
+        The function result.
+    """
     user = fx.api_user()
     user.assay_groups = ["rna"]
 
@@ -87,6 +100,11 @@ def test_coverage_blacklisted_read_denies_non_member_group():
 
 
 def _route_test_user() -> ApiUser:
+    """Handle  route test user.
+
+    Returns:
+            The  route test user result.
+    """
     return ApiUser(
         id="u1",
         email="tester@example.com",
@@ -104,6 +122,14 @@ def _route_test_user() -> ApiUser:
 
 
 def test_coverage_sample_read_http_validates_cov_table_dict_shape(monkeypatch):
+    """Handle test coverage sample read http validates cov table dict shape.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     sample = fx.sample_doc()
     sample["filters"] = {"genelists": ["GL1"]}
     sample["assay"] = "WGS"

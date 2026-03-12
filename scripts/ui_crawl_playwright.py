@@ -30,6 +30,15 @@ SEED_PATHS = [
 
 
 def normalize_href(current_url: str, href: str) -> str | None:
+    """Normalize href.
+
+    Args:
+        current_url (str): Value for ``current_url``.
+        href (str): Value for ``href``.
+
+    Returns:
+        str | None: The function result.
+    """
     href = (href or "").strip()
     if (
         not href
@@ -48,6 +57,14 @@ def normalize_href(current_url: str, href: str) -> str | None:
 
 
 def collect_targets(page) -> tuple[list[str], list[tuple[str, str]]]:
+    """Handle collect targets.
+
+    Args:
+        page: Value for ``page``.
+
+    Returns:
+        tuple[list[str], list[tuple[str, str]]]: The function result.
+    """
     urls: set[str] = set()
     actions: list[tuple[str, str]] = []
 
@@ -90,6 +107,11 @@ def collect_targets(page) -> tuple[list[str], list[tuple[str, str]]]:
 
 
 def main() -> None:
+    """Handle main.
+
+    Returns:
+        None.
+    """
     results: dict[str, object] = {
         "login_success": False,
         "login_user": None,

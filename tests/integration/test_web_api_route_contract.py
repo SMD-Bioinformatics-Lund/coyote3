@@ -10,6 +10,11 @@ from coyote.services.api_client import endpoints as api_endpoints
 
 
 def _api_route_templates() -> set[str]:
+    """Handle  api route templates.
+
+    Returns:
+            The  api route templates result.
+    """
     templates: set[str] = set()
     for route in api_app.routes:
         path = getattr(route, "path", "")
@@ -19,6 +24,15 @@ def _api_route_templates() -> set[str]:
 
 
 def _matches_template(path: str, template: str) -> bool:
+    """Handle  matches template.
+
+    Args:
+            path: Path.
+            template: Template.
+
+    Returns:
+            The  matches template result.
+    """
     path_parts = [part for part in path.strip("/").split("/") if part]
     template_parts = [part for part in template.strip("/").split("/") if part]
     if len(path_parts) != len(template_parts):
@@ -32,12 +46,26 @@ def _matches_template(path: str, template: str) -> bool:
 
 
 def _literal_or_placeholder(node: ast.AST, idx: int) -> object:
+    """Handle  literal or placeholder.
+
+    Args:
+            node: Node.
+            idx: Idx.
+
+    Returns:
+            The  literal or placeholder result.
+    """
     if isinstance(node, ast.Constant):
         return node.value
     return f"arg{idx}"
 
 
 def _collect_endpoint_paths_from_web_layer() -> list[tuple[str, int, str, str]]:
+    """Handle  collect endpoint paths from web layer.
+
+    Returns:
+            The  collect endpoint paths from web layer result.
+    """
     calls: list[tuple[str, int, str, str]] = []
     for py_file in sorted(Path("coyote").rglob("*.py")):
         tree = ast.parse(py_file.read_text(encoding="utf-8"))
@@ -64,6 +92,11 @@ def _collect_endpoint_paths_from_web_layer() -> list[tuple[str, int, str, str]]:
 
 
 def test_web_api_endpoint_builders_match_existing_api_routes():
+    """Handle test web api endpoint builders match existing api routes.
+
+    Returns:
+        The function result.
+    """
     templates = _api_route_templates()
     assert templates, "No API route templates discovered"
 
@@ -85,6 +118,11 @@ def test_web_api_endpoint_builders_match_existing_api_routes():
 
 
 def test_report_action_endpoints_exist():
+    """Handle test report action endpoints exist.
+
+    Returns:
+        The function result.
+    """
     templates = _api_route_templates()
     explicit_paths = {
         api_endpoints.dna_sample("S1", "reports", "preview"),

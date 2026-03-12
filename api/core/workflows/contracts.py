@@ -7,10 +7,32 @@ from fastapi import HTTPException
 
 
 class _LoggerLike(Protocol):
-    def error(self, msg: str) -> None: ...
+    """Define the minimal logger interface used by workflow contract checks."""
+
+    def error(self, msg: str) -> None:
+        """Handle error.
+
+        Args:
+            msg (str): Value for ``msg``.
+
+        Returns:
+            None.
+        """
+        ...
 
 
 def _raise_contract_error(logger: _LoggerLike, tag: str, sample_name: str, message: str) -> None:
+    """Handle  raise contract error.
+
+    Args:
+            logger: Logger.
+            tag: Tag.
+            sample_name: Sample name.
+            message: Message.
+
+    Returns:
+            None.
+    """
     logger.error(f"[contract:{tag}] sample={sample_name} {message}")
     raise HTTPException(status_code=400, detail={"status": 400, "error": message})
 

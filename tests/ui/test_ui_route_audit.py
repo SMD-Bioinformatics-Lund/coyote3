@@ -13,10 +13,20 @@ from coyote.services.api_client.base import ApiPayload
 
 
 def _view_modules() -> list[Path]:
+    """Handle  view modules.
+
+    Returns:
+            The  view modules result.
+    """
     return sorted(Path("coyote/blueprints").glob("*/views*.py"))
 
 
 def _literal_url_for_endpoints_from_python() -> list[tuple[str, int, str]]:
+    """Handle  literal url for endpoints from python.
+
+    Returns:
+            The  literal url for endpoints from python result.
+    """
     calls: list[tuple[str, int, str]] = []
     for py_file in sorted(Path("coyote").rglob("*.py")):
         tree = ast.parse(py_file.read_text(encoding="utf-8"))
@@ -34,6 +44,11 @@ def _literal_url_for_endpoints_from_python() -> list[tuple[str, int, str]]:
 
 
 def _literal_url_for_endpoints_from_templates() -> list[tuple[str, int, str]]:
+    """Handle  literal url for endpoints from templates.
+
+    Returns:
+            The  literal url for endpoints from templates result.
+    """
     calls: list[tuple[str, int, str]] = []
     pattern = re.compile(r"url_for\(\s*['\"]([^'\"]+)['\"]")
     for html_file in sorted(Path("coyote").rglob("*.html")):
@@ -45,6 +60,11 @@ def _literal_url_for_endpoints_from_templates() -> list[tuple[str, int, str]]:
 
 
 def test_ui_views_do_not_import_api_core_or_infra():
+    """Handle test ui views do not import api core or infra.
+
+    Returns:
+        The function result.
+    """
     offenders: list[str] = []
     for module_path in _view_modules():
         tree = ast.parse(module_path.read_text(encoding="utf-8"))
@@ -63,10 +83,35 @@ def test_ui_views_do_not_import_api_core_or_infra():
 
 
 def test_ui_route_smoke_with_stubbed_api(monkeypatch):
+    """Handle test ui route smoke with stubbed api.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     def _payload(value: dict) -> ApiPayload:
+        """Handle  payload.
+
+        Args:
+                value: Value.
+
+        Returns:
+                The  payload result.
+        """
         return ApiPayload(value)
 
     def _schema(schema_id: str, field_name: str = "name") -> dict:
+        """Handle  schema.
+
+        Args:
+                schema_id: Schema id.
+                field_name: Field name. Optional argument.
+
+        Returns:
+                The  schema result.
+        """
         return {
             "_id": schema_id,
             "version": 1,
@@ -85,6 +130,16 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
         }
 
     def _fake_get(self, path, headers=None, params=None):  # noqa: ARG001
+        """Handle  fake get.
+
+        Args:
+                path: Path.
+                headers: Headers. Optional argument.
+                params: Params. Optional argument.
+
+        Returns:
+                The  fake get result.
+        """
         if "/users/" in path and path.endswith("/context"):
             schema = _schema("schema-user", "username")
             return _payload(
@@ -278,6 +333,17 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
         return _payload({})
 
     def _fake_post(self, path, headers=None, params=None, json_body=None):  # noqa: ARG001
+        """Handle  fake post.
+
+        Args:
+                path: Path.
+                headers: Headers. Optional argument.
+                params: Params. Optional argument.
+                json_body: Json body. Optional argument.
+
+        Returns:
+                The  fake post result.
+        """
         if path.endswith("/toggle"):
             return _payload({"meta": {"is_active": True}})
         return _payload({})
@@ -343,6 +409,14 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
 
 
 def test_admin_endpoints_restored(monkeypatch):
+    """Handle test admin endpoints restored.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     monkeypatch.setattr(coyote, "verify_external_api_dependency", lambda _app: None)
 
     app = init_app(testing=True)
@@ -367,6 +441,11 @@ def test_admin_endpoints_restored(monkeypatch):
 
 
 def test_admin_create_templates_use_correct_schema_switch_routes():
+    """Handle test admin create templates use correct schema switch routes.
+
+    Returns:
+        The function result.
+    """
     assert "admin_bp.create_role" in Path(
         "coyote/blueprints/admin/templates/roles/create_role.html"
     ).read_text(encoding="utf-8")
@@ -379,6 +458,11 @@ def test_admin_create_templates_use_correct_schema_switch_routes():
 
 
 def test_ui_literal_url_for_endpoints_exist():
+    """Handle test ui literal url for endpoints exist.
+
+    Returns:
+        The function result.
+    """
     app = init_app(testing=True)
     with app.app_context():
         existing_endpoints = set(app.view_functions.keys())

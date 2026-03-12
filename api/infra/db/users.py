@@ -64,6 +64,14 @@ class UsersHandler(BaseHandler):
 
     @staticmethod
     def _normalize_user_id(value: str | None) -> str | None:
+        """Handle  normalize user id.
+
+        Args:
+                value: Value.
+
+        Returns:
+                The  normalize user id result.
+        """
         if value is None:
             return None
         normalized = str(value).strip()

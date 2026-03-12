@@ -5,6 +5,14 @@ from __future__ import annotations
 from api.routers import roles
 from tests.fixtures.api import mock_collections as fx
 def test_list_roles_read_with_fake_store(monkeypatch):
+    """Handle test list roles read with fake store.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     monkeypatch.setattr(roles.util.common, "convert_to_serializable", lambda payload: payload)
     service = type(
         "_Service",
@@ -19,6 +27,14 @@ def test_list_roles_read_with_fake_store(monkeypatch):
 
 
 def test_create_role_context_read_with_fake_store(monkeypatch):
+    """Handle test create role context read with fake store.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     monkeypatch.setattr(roles.util.common, "utc_now", lambda: "NOW")
     monkeypatch.setattr(roles.util.common, "convert_to_serializable", lambda payload: payload)
     service = type(

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from flask import Response, abort, flash, g, redirect, render_template, request, url_for
+from flask import Response, abort, current_app as app, g, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from coyote.blueprints.admin import admin_bp
@@ -15,11 +15,25 @@ from coyote.services.api_client.api_client import (
     forward_headers,
     get_web_api_client,
 )
+from coyote.services.api_client.web import (
+    flash_api_failure,
+    flash_api_success,
+    raise_page_load_error,
+)
 
 
 def _extract_genes_from_request(
     form_data: dict[str, list[str] | str], fallback_genes: list[str] | None = None
 ) -> list[str]:
+    """Extract a normalized gene list from uploaded or pasted form input.
+
+    Args:
+        form_data: Submitted form payload.
+        fallback_genes: Existing genes to reuse when no new input is supplied.
+
+    Returns:
+        A sorted, de-duplicated gene list.
+    """
     fallback = fallback_genes or []
     if "genes_file" in request.files and request.files["genes_file"].filename:
         content = request.files["genes_file"].read().decode("utf-8")
@@ -37,6 +51,19 @@ def _extract_genes_from_request(
 def _apply_selected_genelist_version(
     genelist: dict, selected_version: int | None, genelist_id: str | None = None
 ) -> tuple[dict, dict | None]:
+    """Return the selected historical genelist version for diff-aware rendering.
+
+    Args:
+        genelist: Genelist document returned by the API context endpoint.
+        selected_version: Historical version requested by the operator.
+        genelist_id: Optional genelist identifier used to restore ``_id`` after
+            delta application.
+
+    Returns:
+        A tuple of ``(genelist_document, delta)`` where ``delta`` is the
+        applied version delta or ``None`` when no historical projection was
+        needed.
+    """
     delta = None
     if selected_version and selected_version != genelist.get("version"):
         version_index = next(
@@ -59,6 +86,11 @@ def _apply_selected_genelist_version(
 @admin_bp.route("/genelists", methods=["GET"])
 @login_required
 def manage_genelists() -> str:
+    """Render the genelist management page.
+
+    Returns:
+        The rendered management page response.
+    """
     try:
         payload = get_web_api_client().get_json(
             api_endpoints.admin("genelists"),
@@ -66,14 +98,23 @@ def manage_genelists() -> str:
         )
         genelists = payload.genelists
     except ApiRequestError as exc:
-        flash(f"Failed to fetch genelists: {exc}", "red")
-        genelists = []
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message="Failed to fetch genelists",
+            summary="Unable to load genelists.",
+        )
     return render_template("isgl/manage_isgl.html", genelists=genelists, is_public=False)
 
 
 @admin_bp.route("/genelists/new", methods=["GET", "POST"])
 @login_required
 def create_genelist() -> Response | str:
+    """Create a managed genelist.
+
+    Returns:
+        The rendered form on ``GET`` or a redirect response after ``POST``.
+    """
     try:
         selected_schema_id = request.args.get("schema_id")
         context = get_web_api_client().get_json(
@@ -82,8 +123,12 @@ def create_genelist() -> Response | str:
             params={"schema_id": selected_schema_id} if selected_schema_id else None,
         )
     except ApiRequestError as exc:
-        flash(f"Failed to load genelist create context: {exc}", "red")
-        return redirect(url_for("admin_bp.manage_genelists"))
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message="Failed to load genelist create context",
+            summary="Unable to load the genelist creation form.",
+        )
 
     if request.method == "POST":
         form_data: dict[str, list[str] | str] = {
@@ -108,9 +153,9 @@ def create_genelist() -> Response | str:
                 headers=forward_headers(),
                 json_body={"config": config},
             )
-            flash(f"Genelist {config['name']} created successfully!", "green")
+            flash_api_success(f"Genelist {config['name']} created successfully.")
         except ApiRequestError as exc:
-            flash(f"Failed to create genelist: {exc}", "red")
+            flash_api_failure("Failed to create genelist.", exc)
         return redirect(url_for("admin_bp.manage_genelists"))
 
     return render_template(
@@ -125,17 +170,27 @@ def create_genelist() -> Response | str:
 @admin_bp.route("/genelists/<genelist_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit_genelist(genelist_id: str) -> Response | str:
+    """Edit a managed genelist.
+
+    Args:
+        genelist_id: Genelist identifier for the document being edited.
+
+    Returns:
+        The rendered form on ``GET`` or a redirect response after ``POST``.
+    """
     try:
         context = get_web_api_client().get_json(
             api_endpoints.admin("genelists", genelist_id, "context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
-        if exc.status_code == 404:
-            flash("Genelist not found!", "red")
-            return redirect(url_for("admin_bp.manage_genelists"))
-        flash(f"Failed to load genelist context: {exc}", "red")
-        return redirect(url_for("admin_bp.manage_genelists"))
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to load genelist context for {genelist_id}",
+            summary="Unable to load the genelist.",
+            not_found_summary="Genelist not found.",
+        )
 
     selected_version = request.args.get("version", type=int)
     genelist, delta = _apply_selected_genelist_version(context.genelist, selected_version, genelist_id)
@@ -167,9 +222,9 @@ def edit_genelist(genelist_id: str) -> Response | str:
                 json_body={"config": updated},
             )
             g.audit_metadata = {"genelist": genelist_id}
-            flash(f"Genelist '{genelist_id}' updated successfully!", "green")
+            flash_api_success(f"Genelist '{genelist_id}' updated successfully.")
         except ApiRequestError as exc:
-            flash(f"Failed to update genelist: {exc}", "red")
+            flash_api_failure("Failed to update genelist.", exc)
         return redirect(url_for("admin_bp.manage_genelists"))
 
     return render_template(
@@ -185,6 +240,14 @@ def edit_genelist(genelist_id: str) -> Response | str:
 @admin_bp.route("/genelists/<genelist_id>/view", methods=["GET"])
 @login_required
 def view_genelist(genelist_id: str) -> Response | str:
+    """Display a read-only genelist view.
+
+    Args:
+        genelist_id: Genelist identifier for the document being displayed.
+
+    Returns:
+        The rendered detail page response.
+    """
     selected_assay = request.args.get("assay")
     try:
         view_context = get_web_api_client().get_json(
@@ -193,11 +256,13 @@ def view_genelist(genelist_id: str) -> Response | str:
             params={"assay": selected_assay} if selected_assay else None,
         )
     except ApiRequestError as exc:
-        if exc.status_code == 404:
-            flash(f"Genelist '{genelist_id}' not found!", "red")
-            return redirect(url_for("admin_bp.manage_genelists"))
-        flash(f"Failed to load genelist view context: {exc}", "red")
-        return redirect(url_for("admin_bp.manage_genelists"))
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to load genelist view context for {genelist_id}",
+            summary="Unable to load the genelist.",
+            not_found_summary="Genelist not found.",
+        )
 
     selected_version = request.args.get("version", type=int)
     genelist, delta = _apply_selected_genelist_version(view_context.genelist, selected_version)
@@ -217,6 +282,14 @@ def view_genelist(genelist_id: str) -> Response | str:
 @admin_bp.route("/genelists/<genelist_id>/toggle", methods=["GET"])
 @login_required
 def toggle_genelist(genelist_id: str) -> Response:
+    """Toggle the active flag on a genelist.
+
+    Args:
+        genelist_id: Genelist identifier for the document being updated.
+
+    Returns:
+        A redirect response back to the management page.
+    """
     try:
         payload = get_web_api_client().patch_json(
             api_endpoints.admin("genelists", genelist_id, "status"),
@@ -227,24 +300,32 @@ def toggle_genelist(genelist_id: str) -> Response:
             "genelist": genelist_id,
             "genelist_status": "Active" if new_status else "Inactive",
         }
-        flash(f"Genelist: '{genelist_id}' is now {'active' if new_status else 'inactive'}.", "green")
+        flash_api_success(f"Genelist '{genelist_id}' is now {'active' if new_status else 'inactive'}.")
     except ApiRequestError as exc:
         if exc.status_code == 404:
             return abort(404)
-        flash(f"Failed to toggle genelist: {exc}", "red")
+        flash_api_failure("Failed to update genelist status.", exc)
     return redirect(url_for("admin_bp.manage_genelists"))
 
 
 @admin_bp.route("/genelists/<genelist_id>/delete", methods=["GET"])
 @login_required
 def delete_genelist(genelist_id: str) -> Response:
+    """Delete a genelist.
+
+    Args:
+        genelist_id: Genelist identifier for the document being deleted.
+
+    Returns:
+        A redirect response back to the management page.
+    """
     try:
         get_web_api_client().delete_json(
             api_endpoints.admin("genelists", genelist_id),
             headers=forward_headers(),
         )
         g.audit_metadata = {"genelist": genelist_id}
-        flash(f"Genelist '{genelist_id}' deleted successfully!", "green")
+        flash_api_success(f"Genelist '{genelist_id}' deleted successfully.")
     except ApiRequestError as exc:
-        flash(f"Failed to delete genelist: {exc}", "red")
+        flash_api_failure("Failed to delete genelist.", exc)
     return redirect(url_for("admin_bp.manage_genelists"))

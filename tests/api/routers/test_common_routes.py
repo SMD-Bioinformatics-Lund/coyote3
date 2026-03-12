@@ -11,6 +11,14 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def test_common_gene_info_read_by_symbol(monkeypatch):
+    """Handle test common gene info read by symbol.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     repository = CommonRepository()
     monkeypatch.setattr(repository, "get_hgnc_metadata_by_symbol", lambda symbol: {"symbol": symbol})
     monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
@@ -20,6 +28,14 @@ def test_common_gene_info_read_by_symbol(monkeypatch):
 
 
 def test_common_tiered_variant_context_not_found_raises_404(monkeypatch):
+    """Handle test common tiered variant context not found raises 404.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     repository = CommonRepository()
     monkeypatch.setattr(repository, "get_variant", lambda variant_id: None)
 
@@ -31,6 +47,14 @@ def test_common_tiered_variant_context_not_found_raises_404(monkeypatch):
 
 
 def test_common_tiered_variant_context_insufficient_identity_returns_error_payload(monkeypatch):
+    """Handle test common tiered variant context insufficient identity returns error payload.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     variant = {"_id": "v1", "INFO": {"selected_CSQ": {}}, "simple_id": None, "simple_id_hash": None}
     repository = CommonRepository()
     monkeypatch.setattr(repository, "get_variant", lambda variant_id: variant)

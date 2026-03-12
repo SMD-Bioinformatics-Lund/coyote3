@@ -16,12 +16,30 @@ from api.middleware import build_authentication_middleware
 from api.openapi import apply_openapi_security_schema
 from api.routers.registry import ROUTERS, auth_http_exception_handler
 from api.runtime import app as runtime_app
+from shared.logging import emit_audit_event
 
 def _api_error(status_code: int, message: str) -> HTTPException:
+    """Handle  api error.
+
+    Args:
+            status_code: Status code.
+            message: Message.
+
+    Returns:
+            The  api error result.
+    """
     return api_error(status_code, message)
 
 
 def _get_formatted_assay_config(sample: dict):
+    """Handle  get formatted assay config.
+
+    Args:
+            sample: Sample.
+
+    Returns:
+            The  get formatted assay config result.
+    """
     return get_formatted_assay_config(sample)
 
 
@@ -29,6 +47,17 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     """Return a consistent JSON payload for unexpected API failures."""
     runtime_app.logger.exception(
         "Unhandled API exception on %s %s", request.method, request.url.path
+    )
+    emit_audit_event(
+        source="api",
+        action="exception",
+        status="error",
+        severity="error",
+        method=request.method,
+        path=request.url.path,
+        request_id=getattr(request.state, "request_id", "-"),
+        message="Unhandled API exception",
+        details=str(exc),
     )
     return JSONResponse(
         status_code=500,
@@ -41,10 +70,27 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 
 async def validation_exception_handler(_request: Request, exc: RequestValidationError):
+    """Handle validation exception handler.
+
+    Args:
+        _request (Request): Value for ``_request``.
+        exc (RequestValidationError): Value for ``exc``.
+
+    Returns:
+        The function result.
+    """
     issues = []
     for err in exc.errors():
         location = ".".join(str(item) for item in err.get("loc", []) if item != "body")
         issues.append(ApiValidationIssue(field=location or "body", message=err.get("msg", "Invalid value")).model_dump())
+    emit_audit_event(
+        source="api",
+        action="validation",
+        status="failed",
+        severity="warning",
+        message="API request validation failed",
+        details=issues,
+    )
     return JSONResponse(
         status_code=422,
         content={

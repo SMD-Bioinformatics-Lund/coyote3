@@ -3,6 +3,14 @@
 
 
 def create_fusioneffectlist(eff_names: list) -> list:
+    """Create fusioneffectlist.
+
+    Args:
+        eff_names (list): Value for ``eff_names``.
+
+    Returns:
+        list: The function result.
+    """
     canonical_map = {
         "inframe": "in-frame",
         "in-frame": "in-frame",
@@ -22,6 +30,14 @@ def create_fusioneffectlist(eff_names: list) -> list:
 
 
 def create_fusioncallers(fuscallers: list) -> list:
+    """Create fusioncallers.
+
+    Args:
+        fuscallers (list): Value for ``fuscallers``.
+
+    Returns:
+        list: The function result.
+    """
     canonical_map = {
         "arriba": "arriba",
         "fusioncatcher": "fusioncatcher",
@@ -49,6 +65,14 @@ def create_fusioncallers(fuscallers: list) -> list:
 
 
 def get_selected_fusioncall(fusion: list) -> dict:
+    """Return selected fusioncall.
+
+    Args:
+        fusion (list): Value for ``fusion``.
+
+    Returns:
+        dict: The function result.
+    """
     for call in fusion.get("calls", []):
         if call.get("selected") == 1:
             return call
@@ -56,6 +80,14 @@ def get_selected_fusioncall(fusion: list) -> dict:
 
 
 def get_fusion_callers(fusion: list) -> list:
+    """Return fusion callers.
+
+    Args:
+        fusion (list): Value for ``fusion``.
+
+    Returns:
+        list: The function result.
+    """
     callers = []
     for call in fusion.get("calls", []):
         caller_name = call.get("caller")

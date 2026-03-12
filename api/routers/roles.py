@@ -19,6 +19,11 @@ router = APIRouter(tags=["admin-roles"])
 
 
 def _service() -> AdminRoleService:
+    """Handle  service.
+
+    Returns:
+            The  service result.
+    """
     return get_admin_role_service()
 
 
@@ -27,6 +32,15 @@ def list_roles_read(
     user: ApiUser = Depends(require_access(permission="view_role", min_role="admin", min_level=99999)),
     service: AdminRoleService = Depends(get_admin_role_service),
 ):
+    """List roles read.
+
+    Args:
+        user (ApiUser): Value for ``user``.
+        service (AdminRoleService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.list_roles_payload())
 
@@ -37,6 +51,16 @@ def create_role_context_read(
     user: ApiUser = Depends(require_access(permission="create_role", min_role="admin", min_level=99999)),
     service: AdminRoleService = Depends(get_admin_role_service),
 ):
+    """Create role context read.
+
+    Args:
+        schema_id (str | None): Value for ``schema_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminRoleService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     return util.common.convert_to_serializable(
         service.create_context_payload(schema_id=schema_id, actor_username=user.username)
     )
@@ -48,11 +72,31 @@ def role_context_read(
     user: ApiUser = Depends(require_access(permission="view_role", min_role="admin", min_level=99999)),
     service: AdminRoleService = Depends(get_admin_role_service),
 ):
+    """Handle role context read.
+
+    Args:
+        role_id (str): Value for ``role_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminRoleService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.context_payload(role_id=role_id))
 
 
 def _create_role(payload: dict, actor_username: str, service: AdminRoleService):
+    """Handle  create role.
+
+    Args:
+            payload: Payload.
+            actor_username: Actor username.
+            service: Service.
+
+    Returns:
+            The  create role result.
+    """
     return util.common.convert_to_serializable(
         service.create_role(payload=payload, actor_username=actor_username)
     )
@@ -64,10 +108,31 @@ def create_role(
     user: ApiUser = Depends(require_access(permission="create_role", min_role="admin", min_level=99999)),
     service: AdminRoleService = Depends(get_admin_role_service),
 ):
+    """Create role.
+
+    Args:
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (AdminRoleService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     return _create_role(payload=payload, actor_username=user.username, service=service)
 
 
 def _update_role(role_id: str, payload: dict, actor_username: str, service: AdminRoleService):
+    """Handle  update role.
+
+    Args:
+            role_id: Role id.
+            payload: Payload.
+            actor_username: Actor username.
+            service: Service.
+
+    Returns:
+            The  update role result.
+    """
     return util.common.convert_to_serializable(
         service.update_role(role_id=role_id, payload=payload, actor_username=actor_username)
     )
@@ -80,10 +145,30 @@ def update_role(
     user: ApiUser = Depends(require_access(permission="edit_role", min_role="admin", min_level=99999)),
     service: AdminRoleService = Depends(get_admin_role_service),
 ):
+    """Update role.
+
+    Args:
+        role_id (str): Value for ``role_id``.
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (AdminRoleService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     return _update_role(role_id=role_id, payload=payload, actor_username=user.username, service=service)
 
 
 def _toggle_role(role_id: str, service: AdminRoleService):
+    """Handle  toggle role.
+
+    Args:
+            role_id: Role id.
+            service: Service.
+
+    Returns:
+            The  toggle role result.
+    """
     return util.common.convert_to_serializable(service.toggle_role(role_id=role_id))
 
 
@@ -93,11 +178,30 @@ def toggle_role_status(
     user: ApiUser = Depends(require_access(permission="edit_role", min_role="admin", min_level=99999)),
     service: AdminRoleService = Depends(get_admin_role_service),
 ):
+    """Toggle role status.
+
+    Args:
+        role_id (str): Value for ``role_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminRoleService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return _toggle_role(role_id=role_id, service=service)
 
 
 def _delete_role(role_id: str, service: AdminRoleService):
+    """Handle  delete role.
+
+    Args:
+            role_id: Role id.
+            service: Service.
+
+    Returns:
+            The  delete role result.
+    """
     return util.common.convert_to_serializable(service.delete_role(role_id=role_id))
 
 
@@ -107,6 +211,16 @@ def delete_role(
     user: ApiUser = Depends(require_access(permission="delete_role", min_role="admin", min_level=99999)),
     service: AdminRoleService = Depends(get_admin_role_service),
 ):
+    """Delete role.
+
+    Args:
+        role_id (str): Value for ``role_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminRoleService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return _delete_role(role_id=role_id, service=service)
 

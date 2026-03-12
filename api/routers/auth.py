@@ -29,6 +29,14 @@ router = APIRouter(tags=["auth"])
 
 @router.get("/api/v1/auth/whoami", response_model=WhoamiPayload)
 def whoami(user: ApiUser = Depends(require_access(min_level=1))):
+    """Handle whoami.
+
+    Args:
+        user (ApiUser): Value for ``user``.
+
+    Returns:
+        The function result.
+    """
     return {
         "username": user.username,
         "role": user.role,
@@ -39,6 +47,14 @@ def whoami(user: ApiUser = Depends(require_access(min_level=1))):
 
 
 def _login_response(payload: ApiAuthLoginRequest):
+    """Handle  login response.
+
+    Args:
+            payload: Payload.
+
+    Returns:
+            The  login response result.
+    """
     username = payload.username.strip()
     password = payload.password
     user_doc = authenticate_credentials(username, password)
@@ -73,12 +89,25 @@ def _login_response(payload: ApiAuthLoginRequest):
 
 @router.post("/api/v1/auth/sessions", response_model=AuthLoginEnvelope, status_code=201, summary="Create session")
 def create_auth_session(payload: ApiAuthLoginRequest):
+    """Create auth session.
+
+    Args:
+        payload (ApiAuthLoginRequest): Value for ``payload``.
+
+    Returns:
+        The function result.
+    """
     response = _login_response(payload)
     response.status_code = 201
     return response
 
 
 def _logout_response():
+    """Handle  logout response.
+
+    Returns:
+            The  logout response result.
+    """
     response = JSONResponse(status_code=200, content={"status": "ok"})
     response.delete_cookie(key=get_api_session_cookie_name(), path="/")
     return response
@@ -86,15 +115,37 @@ def _logout_response():
 
 @router.delete("/api/v1/auth/sessions/current", response_model=ApiSessionDeleteResponse, summary="Delete current session")
 def delete_auth_session():
+    """Delete auth session.
+
+    Returns:
+        The function result.
+    """
     return _logout_response()
 
 
 @router.get("/api/v1/auth/session", response_model=AuthUserEnvelope, summary="Get current authenticated session")
 def auth_session(user: ApiUser = Depends(require_access(min_level=1))):
+    """Handle auth session.
+
+    Args:
+        user (ApiUser): Value for ``user``.
+
+    Returns:
+        The function result.
+    """
     return util.common.convert_to_serializable({"status": "ok", "user": serialize_api_user(user)})
 
 
 async def http_exception_handler(_request: Request, exc: HTTPException):
+    """Handle http exception handler.
+
+    Args:
+        _request (Request): Value for ``_request``.
+        exc (HTTPException): Value for ``exc``.
+
+    Returns:
+        The function result.
+    """
     if isinstance(exc.detail, dict):
         return JSONResponse(status_code=exc.status_code, content=exc.detail)
     return JSONResponse(

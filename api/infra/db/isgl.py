@@ -61,16 +61,40 @@ class ISGLHandler(BaseHandler):
 
     @staticmethod
     def _normalize_isgl_id(isgl_id: str | None) -> str | None:
+        """Handle  normalize isgl id.
+
+        Args:
+                isgl_id: Isgl id.
+
+        Returns:
+                The  normalize isgl id result.
+        """
         if isgl_id is None:
             return None
         normalized = str(isgl_id).strip()
         return normalized or None
 
     def _isgl_lookup_query(self, isgl_id: str) -> dict:
+        """Handle  isgl lookup query.
+
+        Args:
+                isgl_id: Isgl id.
+
+        Returns:
+                The  isgl lookup query result.
+        """
         normalized = self._normalize_isgl_id(isgl_id)
         return {"isgl_id": normalized}
 
     def ensure_isgl_id(self, data: dict) -> dict:
+        """Handle ensure isgl id.
+
+        Args:
+            data (dict): Value for ``data``.
+
+        Returns:
+            dict: The function result.
+        """
         if not isinstance(data, dict):
             return data
         normalized = self._normalize_isgl_id(data.get("isgl_id"))

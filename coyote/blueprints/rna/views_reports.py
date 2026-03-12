@@ -1,7 +1,7 @@
 
 """RNA report preview/save routes."""
 
-from flask import Response, flash, redirect, url_for
+from flask import Response, redirect, url_for
 from flask import current_app as app
 from flask_login import login_required
 
@@ -12,13 +12,22 @@ from coyote.services.api_client.reports import (
     render_preview_html,
     save_report_from_preview,
 )
-from coyote.services.api_client.web import log_api_error
+from coyote.services.api_client.web import flash_api_success, log_api_error
 
 
 @rna_bp.route("/sample/<string:sample_id>/preview_report", methods=["GET", "POST"])
 @rna_bp.route("/sample/preview_report/<string:sample_id>", methods=["GET", "POST"])
 @login_required
 def generate_rna_report(sample_id: str, **kwargs) -> Response | str:
+    """Handle generate rna report.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        **kwargs: Additional keyword values for ``kwargs``.
+
+    Returns:
+        Response | str: The function result.
+    """
     try:
         payload = fetch_preview_payload("rna", sample_id, include_snapshot=False, save=False)
         html = render_preview_html(payload)
@@ -37,11 +46,19 @@ def generate_rna_report(sample_id: str, **kwargs) -> Response | str:
 @rna_bp.route("/sample/<string:sample_id>/report/save")
 @login_required
 def save_rna_report(sample_id: str) -> Response:
+    """Handle save rna report.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+
+    Returns:
+        Response: The function result.
+    """
     try:
         payload = save_report_from_preview("rna", sample_id)
         report_id = payload.report.get("id", "unknown")
         report_file = payload.report.get("file", "unknown")
-        flash(f"Report {report_id}.html has been successfully saved.", "green")
+        flash_api_success(f"Report {report_id}.html has been successfully saved.")
         app.logger.info("Report saved via API: %s", report_file)
     except ApiRequestError as exc:
         log_api_error(

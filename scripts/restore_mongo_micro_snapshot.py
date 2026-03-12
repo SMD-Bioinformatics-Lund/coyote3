@@ -37,6 +37,8 @@ DEFAULT_COLLECTIONS_TOML = Path("config/coyote3_collections.toml")
 
 @dataclass(frozen=True)
 class Rule:
+    """Provide the rule type.
+    """
     collection_names: tuple[str, ...]
     key_field: str
 
@@ -66,6 +68,11 @@ RULES: tuple[Rule, ...] = (
 
 
 def parse_args() -> argparse.Namespace:
+    """Handle parse args.
+
+    Returns:
+        argparse.Namespace: The function result.
+    """
     parser = argparse.ArgumentParser(description="Restore Coyote3 Mongo micro snapshot.")
     parser.add_argument(
         "--mongo-uri",
@@ -108,6 +115,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def read_ndjson(path: Path) -> list[dict[str, Any]]:
+    """Handle read ndjson.
+
+    Args:
+        path (Path): Value for ``path``.
+
+    Returns:
+        list[dict[str, Any]]: The function result.
+    """
     if not path.exists():
         return []
     rows: list[dict[str, Any]] = []
@@ -120,6 +135,14 @@ def read_ndjson(path: Path) -> list[dict[str, Any]]:
 
 
 def _normalize_index_direction(value: Any) -> Any:
+    """Handle  normalize index direction.
+
+    Args:
+            value: Value.
+
+    Returns:
+            The  normalize index direction result.
+    """
     if isinstance(value, dict):
         if "$numberInt" in value:
             return int(value["$numberInt"])
@@ -134,6 +157,14 @@ def _normalize_index_direction(value: Any) -> Any:
 
 
 def _normalize_index_keys(key_doc: dict[str, Any]) -> list[tuple[str, Any]]:
+    """Handle  normalize index keys.
+
+    Args:
+            key_doc: Key doc.
+
+    Returns:
+            The  normalize index keys result.
+    """
     key_items: list[tuple[str, Any]] = []
     for field, direction in (key_doc or {}).items():
         key_items.append((field, _normalize_index_direction(direction)))
@@ -141,6 +172,15 @@ def _normalize_index_keys(key_doc: dict[str, Any]) -> list[tuple[str, Any]]:
 
 
 def restore_indexes(coll, index_rows: list[dict[str, Any]]) -> None:
+    """Handle restore indexes.
+
+    Args:
+        coll: Value for ``coll``.
+        index_rows (list[dict[str, Any]]): Value for ``index_rows``.
+
+    Returns:
+        None.
+    """
     for idx in index_rows:
         if idx.get("name") == "_id_":
             continue
@@ -160,6 +200,14 @@ def restore_indexes(coll, index_rows: list[dict[str, Any]]) -> None:
 
 
 def resolve_mongo_uri(args: argparse.Namespace) -> str:
+    """Handle resolve mongo uri.
+
+    Args:
+        args (argparse.Namespace): Value for ``args``.
+
+    Returns:
+        str: The function result.
+    """
     if args.target == "portable":
         return os.getenv("COYOTE3_PORTABLE_RESTORE_MONGO_URI", "mongodb://localhost:47017")
     if args.target == "custom":
@@ -168,6 +216,14 @@ def resolve_mongo_uri(args: argparse.Namespace) -> str:
 
 
 def load_collections_map(path: Path) -> dict[str, dict[str, str]]:
+    """Load collections map.
+
+    Args:
+        path (Path): Value for ``path``.
+
+    Returns:
+        dict[str, dict[str, str]]: The function result.
+    """
     if not path.exists():
         raise FileNotFoundError(f"Collections config not found: {path}")
     data = tomllib.loads(path.read_text(encoding="utf-8"))
@@ -183,6 +239,14 @@ def load_collections_map(path: Path) -> dict[str, dict[str, str]]:
 
 
 def parse_db_map(rows: list[str]) -> dict[str, str]:
+    """Handle parse db map.
+
+    Args:
+        rows (list[str]): Value for ``rows``.
+
+    Returns:
+        dict[str, str]: The function result.
+    """
     mapping: dict[str, str] = {}
     for row in rows or []:
         if "=" not in str(row):
@@ -197,6 +261,14 @@ def parse_db_map(rows: list[str]) -> dict[str, str]:
 
 
 def reverse_collection_map(mapping: dict[str, str]) -> dict[str, str]:
+    """Handle reverse collection map.
+
+    Args:
+        mapping (dict[str, str]): Value for ``mapping``.
+
+    Returns:
+        dict[str, str]: The function result.
+    """
     return {collection: alias for alias, collection in mapping.items()}
 
 
@@ -207,6 +279,17 @@ def resolve_target_collection_name(
     target_db: str,
     collections_by_db: dict[str, dict[str, str]],
 ) -> str:
+    """Handle resolve target collection name.
+
+    Args:
+        source_db (str): Value for ``source_db``.
+        source_collection (str): Value for ``source_collection``.
+        target_db (str): Value for ``target_db``.
+        collections_by_db (dict[str, dict[str, str]]): Value for ``collections_by_db``.
+
+    Returns:
+        str: The function result.
+    """
     if source_db == target_db:
         return source_collection
 
@@ -220,6 +303,15 @@ def resolve_target_collection_name(
 
 
 def _normalize(value: Any, lowercase: bool = False) -> str | None:
+    """Handle  normalize.
+
+    Args:
+            value: Value.
+            lowercase: Lowercase. Optional argument.
+
+    Returns:
+            The  normalize result.
+    """
     if value is None:
         return None
     normalized = str(value).strip()
@@ -229,6 +321,15 @@ def _normalize(value: Any, lowercase: bool = False) -> str | None:
 
 
 def _resolve_business_key(doc: dict[str, Any], key_field: str) -> str | None:
+    """Handle  resolve business key.
+
+    Args:
+            doc: Doc.
+            key_field: Key field.
+
+    Returns:
+            The  resolve business key result.
+    """
     lower = key_field in {"role_id"}
     existing = _normalize(doc.get(key_field), lowercase=lower)
     if existing:
@@ -241,6 +342,15 @@ def _resolve_business_key(doc: dict[str, Any], key_field: str) -> str | None:
 
 
 def _backfill_collection_keys(col, key_field: str) -> tuple[int, int, int]:
+    """Handle  backfill collection keys.
+
+    Args:
+            col: Col.
+            key_field: Key field.
+
+    Returns:
+            The  backfill collection keys result.
+    """
     scanned = 0
     updated = 0
     failed = 0
@@ -272,6 +382,15 @@ def _backfill_collection_keys(col, key_field: str) -> tuple[int, int, int]:
 
 
 def _ensure_business_key_index(col, key_field: str) -> str:
+    """Handle  ensure business key index.
+
+    Args:
+            col: Col.
+            key_field: Key field.
+
+    Returns:
+            The  ensure business key index result.
+    """
     index_name = f"{key_field}_1"
     try:
         col.create_index(
@@ -288,6 +407,14 @@ def _ensure_business_key_index(col, key_field: str) -> str:
 
 
 def backfill_business_keys_for_db(db) -> None:
+    """Handle backfill business keys for db.
+
+    Args:
+        db: Value for ``db``.
+
+    Returns:
+        None.
+    """
     existing = set(db.list_collection_names())
     for rule in RULES:
         target_cols = [c for c in rule.collection_names if c in existing]
@@ -302,6 +429,11 @@ def backfill_business_keys_for_db(db) -> None:
 
 
 def main() -> int:
+    """Handle main.
+
+    Returns:
+        int: The function result.
+    """
     args = parse_args()
     mongo_uri = resolve_mongo_uri(args)
     root = Path(args.snapshot_dir)

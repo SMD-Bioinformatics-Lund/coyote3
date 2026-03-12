@@ -10,6 +10,14 @@ from api import settings
 
 
 def test_configure_process_env_defaults_external_api_off_in_non_production(monkeypatch: pytest.MonkeyPatch):
+    """Handle test configure process env defaults external api off in non production.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     monkeypatch.delenv("REQUIRE_EXTERNAL_API", raising=False)
     monkeypatch.setenv("TESTING", "1")
 
@@ -19,6 +27,14 @@ def test_configure_process_env_defaults_external_api_off_in_non_production(monke
 
 
 def test_configure_process_env_defaults_external_api_on_in_production(monkeypatch: pytest.MonkeyPatch):
+    """Handle test configure process env defaults external api on in production.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     monkeypatch.delenv("REQUIRE_EXTERNAL_API", raising=False)
     monkeypatch.delenv("TESTING", raising=False)
     monkeypatch.delenv("DEVELOPMENT", raising=False)
@@ -29,21 +45,41 @@ def test_configure_process_env_defaults_external_api_on_in_production(monkeypatc
 
 
 def test_production_requires_explicit_secret_key():
+    """Handle test production requires explicit secret key.
+
+    Returns:
+        The function result.
+    """
     with pytest.raises(RuntimeError, match="SECRET_KEY"):
         settings.get_api_secret_key({})
 
 
 def test_production_requires_explicit_internal_api_token():
+    """Handle test production requires explicit internal api token.
+
+    Returns:
+        The function result.
+    """
     with pytest.raises(RuntimeError, match="INTERNAL_API_TOKEN"):
         settings.get_internal_api_token({"SECRET_KEY": "x"})
 
 
 def test_production_requires_explicit_session_salt():
+    """Handle test production requires explicit session salt.
+
+    Returns:
+        The function result.
+    """
     with pytest.raises(RuntimeError, match="API_SESSION_SALT"):
         settings.get_api_session_salt({"SECRET_KEY": "x", "INTERNAL_API_TOKEN": "y"})
 
 
 def test_non_production_allows_dev_fallbacks():
+    """Handle test non production allows dev fallbacks.
+
+    Returns:
+        The function result.
+    """
     config = {"TESTING": True}
 
     assert settings.get_api_secret_key(config) == "coyote3-api-dev-only"
@@ -53,4 +89,9 @@ def test_non_production_allows_dev_fallbacks():
 
 
 def test_production_session_cookie_secure_defaults_true():
+    """Handle test production session cookie secure defaults true.
+
+    Returns:
+        The function result.
+    """
     assert settings.get_api_session_cookie_secure({}) is True

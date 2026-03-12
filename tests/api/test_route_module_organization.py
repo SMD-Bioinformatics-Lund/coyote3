@@ -11,11 +11,24 @@ ALLOWED_PREFIXES = ("/api/v1/", "/api/vi/")
 
 
 def _route_paths(py_file: Path) -> list[str]:
+    """Handle  route paths.
+
+    Args:
+            py_file: Py file.
+
+    Returns:
+            The  route paths result.
+    """
     lines = py_file.read_text(encoding="utf-8").splitlines()
     return [m.group(1) for line in lines if (m := ROUTE_RE.search(line))]
 
 
 def _canonical_http_modules() -> list[Path]:
+    """Handle  canonical http modules.
+
+    Returns:
+            The  canonical http modules result.
+    """
     modules: list[Path] = []
     for path in sorted(Path("api/routers").glob("*.py")):
         if path.name in {"__init__.py", "registry.py"}:
@@ -27,6 +40,11 @@ def _canonical_http_modules() -> list[Path]:
 
 
 def test_api_router_modules_have_docstrings_and_routes():
+    """Handle test api router modules have docstrings and routes.
+
+    Returns:
+        The function result.
+    """
     route_files = _canonical_http_modules()
     missing_docstring: list[str] = []
     missing_routes: list[str] = []
@@ -43,6 +61,11 @@ def test_api_router_modules_have_docstrings_and_routes():
 
 
 def test_api_routes_use_versioned_prefixes():
+    """Handle test api routes use versioned prefixes.
+
+    Returns:
+        The function result.
+    """
     invalid_paths: list[str] = []
 
     for route_file in _canonical_http_modules():

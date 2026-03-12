@@ -31,6 +31,8 @@ class LdapManager:
     """Framework-neutral LDAP manager used by API auth service."""
 
     def __init__(self) -> None:
+        """Handle __init__.
+        """
         self._config: dict = {}
         self._server: Server | None = None
 
@@ -85,6 +87,11 @@ class LdapManager:
         )
 
     def _auto_bind_mode(self) -> int:
+        """Handle  auto bind mode.
+
+        Returns:
+                The  auto bind mode result.
+        """
         if bool(self._config.get("LDAP_USE_TLS", False)):
             return AUTO_BIND_TLS_BEFORE_BIND
         return AUTO_BIND_NO_TLS
@@ -97,6 +104,17 @@ class LdapManager:
         anonymous: bool = False,
         read_only: bool = True,
     ) -> Connection:
+        """Handle  connect.
+
+        Args:
+                user: User.
+                password: Password.
+                anonymous: Anonymous. Keyword-only argument.
+                read_only: Read only. Keyword-only argument.
+
+        Returns:
+                The  connect result.
+        """
         if self._server is None:
             raise LDAPBindError("LDAP server not initialized")
         return Connection(
@@ -112,6 +130,16 @@ class LdapManager:
     def _lookup_user_dn(
         self, username: str, base_dn: str, attribute: str
     ) -> str | None:
+        """Handle  lookup user dn.
+
+        Args:
+                username: Username.
+                base_dn: Base dn.
+                attribute: Attribute.
+
+        Returns:
+                The  lookup user dn result.
+        """
         bind_dn = self._config.get("LDAP_BINDDN")
         bind_secret = self._config.get("LDAP_SECRET")
         anonymous = not (bind_dn and bind_secret)

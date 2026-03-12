@@ -29,6 +29,16 @@ ROLE_LEVELS = {
 def _user(
     *, level: int, permissions: list[str] | None = None, denied: list[str] | None = None
 ) -> ApiUser:
+    """Handle  user.
+
+    Args:
+            level: Level. Keyword-only argument.
+            permissions: Permissions. Keyword-only argument.
+            denied: Denied. Keyword-only argument.
+
+    Returns:
+            The  user result.
+    """
     return ApiUser(
         id="U1",
         email="user@example.org",
@@ -46,6 +56,14 @@ def _user(
 
 
 def _setup_admin_list_users(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Handle  setup admin list users.
+
+    Args:
+            monkeypatch: Monkeypatch.
+
+    Returns:
+            None.
+    """
     monkeypatch.setitem(
         app.dependency_overrides,
         users.get_admin_user_service,
@@ -55,6 +73,14 @@ def _setup_admin_list_users(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _setup_admin_list_roles(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Handle  setup admin list roles.
+
+    Args:
+            monkeypatch: Monkeypatch.
+
+    Returns:
+            None.
+    """
     monkeypatch.setitem(
         app.dependency_overrides,
         roles.get_admin_role_service,
@@ -64,6 +90,14 @@ def _setup_admin_list_roles(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _setup_admin_list_permissions(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Handle  setup admin list permissions.
+
+    Args:
+            monkeypatch: Monkeypatch.
+
+    Returns:
+            None.
+    """
     monkeypatch.setitem(
         app.dependency_overrides,
         permissions.get_permission_management_service,
@@ -75,6 +109,14 @@ def _setup_admin_list_permissions(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _setup_admin_list_aspc(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Handle  setup admin list aspc.
+
+    Args:
+            monkeypatch: Monkeypatch.
+
+    Returns:
+            None.
+    """
     monkeypatch.setitem(
         app.dependency_overrides,
         admin_aspc.get_admin_aspc_service,
@@ -84,6 +126,14 @@ def _setup_admin_list_aspc(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _setup_samples_blacklist_update(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Handle  setup samples blacklist update.
+
+    Args:
+            monkeypatch: Monkeypatch.
+
+    Returns:
+            None.
+    """
     monkeypatch.setitem(
         app.dependency_overrides,
         get_sample_repository,
@@ -93,6 +143,14 @@ def _setup_samples_blacklist_update(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _setup_reports_preview(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Handle  setup reports preview.
+
+    Args:
+            monkeypatch: Monkeypatch.
+
+    Returns:
+            None.
+    """
     monkeypatch.setattr(
         reports,
         "_load_report_context",
@@ -168,16 +226,43 @@ def test_high_risk_endpoints_auth_matrix(
     required_level: int,
     setup: _EndpointSetup,
 ):
+    """Handle test high risk endpoints auth matrix.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
+        method (str): Value for ``method``.
+        path (str): Value for ``path``.
+        payload (dict | None): Value for ``payload``.
+        required_permission (str | None): Value for ``required_permission``.
+        required_level (int): Value for ``required_level``.
+        setup (_EndpointSetup): Value for ``setup``.
+
+    Returns:
+        The function result.
+    """
     setup(monkeypatch)
     monkeypatch.setattr(access, "_role_levels", lambda: ROLE_LEVELS)
     client = TestClient(app)
 
     def _request() -> int:
+        """Handle  request.
+
+        Returns:
+                The  request result.
+        """
         kwargs = {"json": payload} if payload is not None else {}
         return client.request(method, path, **kwargs).status_code
 
     # 1) Unauthenticated -> 401
     def _raise_unauth(_request):
+        """Handle  raise unauth.
+
+        Args:
+                _request:  request.
+
+        Returns:
+                The  raise unauth result.
+        """
         raise HTTPException(status_code=401, detail={"status": 401, "error": "Login required"})
 
     monkeypatch.setattr(access, "_decode_session_user", _raise_unauth)
@@ -196,6 +281,11 @@ def test_high_risk_endpoints_auth_matrix(
 
 
 def test_openapi_security_declares_auth_for_protected_routes():
+    """Handle test openapi security declares auth for protected routes.
+
+    Returns:
+        The function result.
+    """
     client = TestClient(app)
     schema = client.get("/api/v1/openapi.json").json()
 

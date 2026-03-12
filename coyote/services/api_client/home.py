@@ -30,6 +30,27 @@ def fetch_samples(
     panel_tech: str | None,
     assay_group: str | None,
 ) -> ApiPayload:
+    """Fetch sample-list data for the UI sample home screen.
+
+    Args:
+        status: Selected sample status filter.
+        search_str: Free-text search value.
+        search_mode: Search mode selector.
+        sample_view: Requested sample view mode.
+        page: Requested page number.
+        per_page: Requested page size.
+        live_page: Current live-sample page.
+        done_page: Current completed-sample page.
+        live_per_page: Live-sample page size.
+        done_per_page: Completed-sample page size.
+        profile_scope: Profile-scope filter.
+        panel_type: Optional panel-type filter.
+        panel_tech: Optional panel-technology filter.
+        assay_group: Optional assay-group filter.
+
+    Returns:
+        The decoded API payload for the sample list view.
+    """
     params = {
         "status": status,
         "search_str": search_str,
@@ -54,6 +75,14 @@ def fetch_samples(
 
 
 def fetch_edit_context(sample_id: str) -> ApiPayload:
+    """Fetch the edit-context payload for a sample.
+
+    Args:
+        sample_id: Sample identifier.
+
+    Returns:
+        The decoded API payload for the sample edit page.
+    """
     return get_web_api_client().get_json(
         api_endpoints.home_sample(sample_id, "edit_context"),
         headers=forward_headers(),
@@ -61,6 +90,15 @@ def fetch_edit_context(sample_id: str) -> ApiPayload:
 
 
 def apply_isgl(sample_id: str, isgl_ids: list[str]) -> ApiPayload:
+    """Apply selected genelists to a sample.
+
+    Args:
+        sample_id: Sample identifier.
+        isgl_ids: Selected genelist identifiers.
+
+    Returns:
+        The decoded API payload for the mutation result.
+    """
     return get_web_api_client().put_json(
         api_endpoints.home_sample(sample_id, "genes", "apply-isgl"),
         headers=forward_headers(),
@@ -69,6 +107,16 @@ def apply_isgl(sample_id: str, isgl_ids: list[str]) -> ApiPayload:
 
 
 def save_adhoc_genes(sample_id: str, *, genes: str, label: str) -> ApiPayload:
+    """Persist an ad hoc gene selection for a sample.
+
+    Args:
+        sample_id: Sample identifier.
+        genes: Raw gene input string.
+        label: User-facing label for the ad hoc gene set.
+
+    Returns:
+        The decoded API payload for the mutation result.
+    """
     return get_web_api_client().put_json(
         api_endpoints.home_sample(sample_id, "adhoc_genes", "save"),
         headers=forward_headers(),
@@ -77,6 +125,14 @@ def save_adhoc_genes(sample_id: str, *, genes: str, label: str) -> ApiPayload:
 
 
 def clear_adhoc_genes(sample_id: str) -> ApiPayload:
+    """Remove ad hoc genes from a sample.
+
+    Args:
+        sample_id: Sample identifier.
+
+    Returns:
+        The decoded API payload for the mutation result.
+    """
     return get_web_api_client().delete_json(
         api_endpoints.home_sample(sample_id, "adhoc_genes", "clear"),
         headers=forward_headers(),
@@ -84,6 +140,15 @@ def clear_adhoc_genes(sample_id: str) -> ApiPayload:
 
 
 def fetch_report_path(sample_id: str, report_id: str) -> Path:
+    """Fetch the on-disk report path for a sample report.
+
+    Args:
+        sample_id: Sample identifier.
+        report_id: Report identifier.
+
+    Returns:
+        The resolved filesystem path returned by the API context payload.
+    """
     payload = get_web_api_client().get_json(
         api_endpoints.home_sample(sample_id, "reports", report_id, "context"),
         headers=forward_headers(),

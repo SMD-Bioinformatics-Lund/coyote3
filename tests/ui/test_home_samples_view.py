@@ -8,6 +8,14 @@ from flask import Flask
 
 
 def test_samples_home_uses_table_specific_pagination_and_profile_scope(monkeypatch):
+    """Handle test samples home uses table specific pagination and profile scope.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     app = Flask(__name__)
     app.config.update(SECRET_KEY="test", WTF_CSRF_ENABLED=False)
     app.home_logger = app.logger
@@ -17,6 +25,14 @@ def test_samples_home_uses_table_specific_pagination_and_profile_scope(monkeypat
         captured: dict = {}
 
         def _fetch_samples(**kwargs):
+            """Handle  fetch samples.
+
+            Args:
+                    **kwargs: Kwargs. Additional keyword arguments.
+
+            Returns:
+                    The  fetch samples result.
+            """
             captured.update(kwargs)
             return {
                 "live_samples": [{"name": "S1"}],
@@ -34,6 +50,15 @@ def test_samples_home_uses_table_specific_pagination_and_profile_scope(monkeypat
             }
 
         def _render(_template_name, **context):
+            """Handle  render.
+
+            Args:
+                    _template_name:  template name.
+                    **context: Context. Additional keyword arguments.
+
+            Returns:
+                    The  render result.
+            """
             return context
 
         monkeypatch.setattr(views_samples, "fetch_samples", _fetch_samples)
@@ -59,6 +84,11 @@ def test_samples_home_uses_table_specific_pagination_and_profile_scope(monkeypat
 
 
 def test_samples_template_contains_tab_filters():
+    """Handle test samples template contains tab filters.
+
+    Returns:
+        The function result.
+    """
     template_path = "coyote/blueprints/home/templates/samples_home.html"
     with open(template_path, encoding="utf-8") as handle:
         html = handle.read()

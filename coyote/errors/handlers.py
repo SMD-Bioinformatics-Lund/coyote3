@@ -1,6 +1,6 @@
-
-from flask import jsonify, render_template, request
+from flask import g, jsonify, render_template, request
 from .exceptions import AppError
+from shared.logging import emit_audit_event
 
 
 def register_error_handlers(app):
@@ -8,6 +8,11 @@ def register_error_handlers(app):
     from coyote.services.api_client import ApiRequestError
 
     def is_api_request() -> bool:
+        """Return whether api request is true.
+
+        Returns:
+            bool: The function result.
+        """
         path = request.path or ""
         app_root = app.config.get("APPLICATION_ROOT", "")
         if app_root and path.startswith(app_root):
@@ -15,13 +20,47 @@ def register_error_handlers(app):
         return path == "/api" or path.startswith("/api/")
 
     def error_response(status_code: int, error: str, details: str):
+        """Handle error response.
+
+        Args:
+            status_code (int): Value for ``status_code``.
+            error (str): Value for ``error``.
+            details (str): Value for ``details``.
+
+        Returns:
+            The function result.
+        """
+        request_id = getattr(g, "request_id", None) or request.headers.get("X-Request-ID") or "-"
+        app.logger.warning(
+            "web_error request_id=%s method=%s path=%s status=%s error=%s",
+            request_id,
+            request.method,
+            request.path,
+            status_code,
+            error,
+        )
+        emit_audit_event(
+            source="web",
+            action="error",
+            status="error" if status_code >= 500 else "failed",
+            severity="error" if status_code >= 500 else "warning",
+            status_code=status_code,
+            method=request.method,
+            path=request.path,
+            request_id=request_id,
+            user=getattr(getattr(g, "_login_user", None), "id", None),
+            message=error,
+            details=details,
+        )
         if is_api_request():
             return jsonify({"status": status_code, "error": error, "details": details}), status_code
         return (
             render_template(
-                "error.html",
+                "errors.html",
+                status_code=status_code,
                 error=error,
                 details=details,
+                request_id=request_id,
             ),
             status_code,
         )

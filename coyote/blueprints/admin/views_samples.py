@@ -2,7 +2,7 @@
 
 import json
 
-from flask import Response, flash, g, redirect, render_template, request, url_for
+from flask import Response, current_app as app, g, redirect, render_template, request, url_for
 from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
@@ -13,11 +13,21 @@ from coyote.services.api_client.api_client import (
     forward_headers,
     get_web_api_client,
 )
+from coyote.services.api_client.web import (
+    flash_api_failure,
+    flash_api_success,
+    raise_page_load_error,
+)
 
 
 @admin_bp.route("/manage-samples", methods=["GET", "POST"])
 @login_required
 def all_samples() -> str | Response:
+    """Render the administrative sample-management page.
+
+    Returns:
+        The rendered management page response.
+    """
     form = SampleSearchForm()
     search_str = ""
 
@@ -32,14 +42,26 @@ def all_samples() -> str | Response:
         )
         samples = payload.samples
     except ApiRequestError as exc:
-        flash(f"Failed to fetch samples: {exc}", "red")
-        samples = []
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message="Failed to fetch admin sample list",
+            summary="Unable to load samples.",
+        )
     return render_template("samples/all_samples.html", all_samples=samples, form=form)
 
 
 @admin_bp.route("/samples/<sample_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit_sample(sample_id: str) -> str | Response:
+    """Edit the raw stored representation of a sample.
+
+    Args:
+        sample_id: Sample identifier for the document being edited.
+
+    Returns:
+        The rendered form on ``GET`` or a redirect response after ``POST``.
+    """
     try:
         payload = get_web_api_client().get_json(
             api_endpoints.admin("samples", sample_id, "context"),
@@ -47,19 +69,21 @@ def edit_sample(sample_id: str) -> str | Response:
         )
         sample_doc = payload.sample
     except ApiRequestError as exc:
-        if exc.status_code == 404:
-            flash("Sample not found.", "red")
-        else:
-            flash(f"Failed to load sample context: {exc}", "red")
-        return redirect(url_for("admin_bp.all_samples"))
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to load admin sample context for {sample_id}",
+            summary="Unable to load the sample.",
+            not_found_summary="Sample not found.",
+        )
     sample_obj = sample_doc.pop("_id", sample_id)
 
     if request.method == "POST":
         json_blob = request.form.get("json_blob", "")
         try:
             updated_sample = json.loads(json_blob)
-        except json.JSONDecodeError as e:
-            flash(f"Invalid JSON: {e}", "red")
+        except json.JSONDecodeError as exc:
+            flash_api_failure("Invalid sample JSON.", ApiRequestError(str(exc)))
             return redirect(request.url)
 
         try:
@@ -68,10 +92,10 @@ def edit_sample(sample_id: str) -> str | Response:
                 headers=forward_headers(),
                 json_body={"sample": updated_sample},
             )
-            flash("Sample updated successfully.", "green")
+            flash_api_success("Sample updated successfully.")
             return redirect(url_for("admin_bp.all_samples"))
-        except ApiRequestError as e:
-            flash(f"Error updating sample: {e}", "red")
+        except ApiRequestError as exc:
+            flash_api_failure("Failed to update sample.", exc)
 
         g.audit_metadata = {"sample_id": str(sample_obj), "sample_name": sample_id}
 
@@ -81,6 +105,14 @@ def edit_sample(sample_id: str) -> str | Response:
 @admin_bp.route("/manage-samples/<string:sample_id>/delete", methods=["GET"])
 @login_required
 def delete_sample(sample_id: str) -> Response:
+    """Delete sample data across related collections.
+
+    Args:
+        sample_id: Sample identifier for the data being deleted.
+
+    Returns:
+        A redirect response back to the management page.
+    """
     g.audit_metadata = {"sample": sample_id}
     try:
         payload = get_web_api_client().delete_json(
@@ -91,9 +123,12 @@ def delete_sample(sample_id: str) -> Response:
         for item in payload.meta.get("results", []):
             collection = item.get("collection", "unknown")
             if item.get("ok"):
-                flash(f"Deleted {collection} for {sample_name}", "green")
+                flash_api_success(f"Deleted {collection} for {sample_name}.")
             else:
-                flash(f"Failed to delete {collection} for {sample_name}", "red")
+                flash_api_failure(
+                    f"Failed to delete {collection} for {sample_name}.",
+                    ApiRequestError(item.get("error") or "Deletion failed."),
+                )
     except ApiRequestError as exc:
-        flash(f"Error deleting sample: {exc}", "red")
+        flash_api_failure("Failed to delete sample data.", exc)
     return redirect(url_for("admin_bp.all_samples"))

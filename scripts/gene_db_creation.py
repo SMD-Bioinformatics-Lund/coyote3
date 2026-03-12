@@ -16,6 +16,16 @@ from datetime import datetime
 
 
 def load_file(path, delimiter="\t", skip_header_lines=0):
+    """Load file.
+
+    Args:
+        path: Value for ``path``.
+        delimiter: Value for ``delimiter``.
+        skip_header_lines: Value for ``skip_header_lines``.
+
+    Returns:
+        The function result.
+    """
     with open(path, encoding="utf-8") as f:
         reader = csv.reader(f, delimiter=delimiter)
         lines = list(reader)

@@ -19,6 +19,11 @@ from pymongo.errors import DuplicateKeyError
 
 def main():
     # Connect to the DB
+    """Handle main.
+
+    Returns:
+        The function result.
+    """
     collection = MongoClient("dev-cdm-mongo:27017")["coyote"]["users"]
 
     # Ask for data to store

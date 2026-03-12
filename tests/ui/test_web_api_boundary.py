@@ -10,6 +10,11 @@ ALLOWED_FILES: set[str] = set()
 
 
 def test_coyote_layer_does_not_import_api_modules_directly():
+    """Handle test coyote layer does not import api modules directly.
+
+    Returns:
+        The function result.
+    """
     violations: list[str] = []
 
     for py_file in sorted(Path("coyote").rglob("*.py")):

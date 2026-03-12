@@ -9,11 +9,26 @@ from api.core.workflows.contracts import validate_report_inputs, validate_rna_fi
 
 
 class _LoggerStub:
+    """Provide  LoggerStub behavior.
+    """
     def error(self, msg: str) -> None:
+        """Handle error.
+
+        Args:
+            msg (str): Value for ``msg``.
+
+        Returns:
+            None.
+        """
         self.last_error = msg
 
 
 def test_validate_report_inputs_accepts_valid_payload():
+    """Handle test validate report inputs accepts valid payload.
+
+    Returns:
+        The function result.
+    """
     logger = _LoggerStub()
     validate_report_inputs(
         logger,
@@ -29,6 +44,11 @@ def test_validate_report_inputs_accepts_valid_payload():
 
 
 def test_validate_report_inputs_raises_without_report_path():
+    """Handle test validate report inputs raises without report path.
+
+    Returns:
+        The function result.
+    """
     logger = _LoggerStub()
     with pytest.raises(HTTPException) as exc:
         validate_report_inputs(
@@ -47,6 +67,11 @@ def test_validate_report_inputs_raises_without_report_path():
 
 
 def test_validate_report_inputs_raises_on_missing_assay():
+    """Handle test validate report inputs raises on missing assay.
+
+    Returns:
+        The function result.
+    """
     logger = _LoggerStub()
     with pytest.raises(HTTPException) as exc:
         validate_report_inputs(
@@ -60,6 +85,11 @@ def test_validate_report_inputs_raises_on_missing_assay():
 
 
 def test_validate_rna_filter_inputs_raises_on_non_list_field():
+    """Handle test validate rna filter inputs raises on non list field.
+
+    Returns:
+        The function result.
+    """
     logger = _LoggerStub()
     with pytest.raises(HTTPException) as exc:
         validate_rna_filter_inputs(
@@ -72,6 +102,11 @@ def test_validate_rna_filter_inputs_raises_on_non_list_field():
 
 
 def test_validate_rna_filter_inputs_raises_on_non_integer_threshold():
+    """Handle test validate rna filter inputs raises on non integer threshold.
+
+    Returns:
+        The function result.
+    """
     logger = _LoggerStub()
     with pytest.raises(HTTPException) as exc:
         validate_rna_filter_inputs(

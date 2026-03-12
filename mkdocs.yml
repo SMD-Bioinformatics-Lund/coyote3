@@ -25,12 +25,14 @@ nav:
       - Traceability Matrix: TRACEABILITY_MATRIX.md
       - Glossary: GLOSSARY.md
   - API:
+      - Concepts And Layering: api/concepts-and-layering.md
       - Reference: api/reference.md
       - Endpoint Catalog: api/endpoint-catalog.md
       - REST Migration Notes: api/rest-migration-notes.md
       - Auth Login Model and Stats: AUTH_LOGIN_MODEL_AND_STATS.md
   - UI:
       - User Guide: ui/user-guide.md
+      - UI Surface And Permissions: ui/ui-surface-and-permissions.md
   - Development:
       - Developer Guide: development/developer-guide.md
       - Maintenance Guide: development/maintenance-guide.md

@@ -36,6 +36,17 @@ def list_dna_variants(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: DnaService = Depends(get_dna_service),
 ):
+    """List dna variants.
+
+    Args:
+        request (Request): Value for ``request``.
+        sample_id (str): Value for ``sample_id``.
+        user (ApiUser): Value for ``user``.
+        service (DnaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
         service.list_variants_payload(
@@ -57,6 +68,16 @@ def dna_plot_context(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: DnaService = Depends(get_dna_service),
 ):
+    """Handle dna plot context.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        user (ApiUser): Value for ``user``.
+        service (DnaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
         service.plot_context_payload(sample=sample, assay_config_getter=_get_formatted_assay_config)
@@ -70,6 +91,17 @@ def show_dna_variant(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: DnaService = Depends(get_dna_service),
 ):
+    """Show dna variant.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+        user (ApiUser): Value for ``user``.
+        service (DnaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
         service.variant_context_payload(
@@ -83,6 +115,17 @@ def show_dna_variant(
 
 
 def _require_variant_for_sample(sample_id: str, var_id: str, user: ApiUser, service: DnaService) -> tuple[dict, dict]:
+    """Handle  require variant for sample.
+
+    Args:
+            sample_id: Sample id.
+            var_id: Var id.
+            user: User.
+            service: Service.
+
+    Returns:
+            The  require variant for sample result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     variant = service.require_variant_for_sample(sample=sample, var_id=var_id)
     return sample, variant
@@ -95,6 +138,17 @@ def unmark_false_variant(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
+    """Handle unmark false variant.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+        user (ApiUser): Value for ``user``.
+        service (DnaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _require_variant_for_sample(sample_id, var_id, user, service)
     service.repository.variant_handler.unmark_false_positive_var(var_id)
     return util.common.convert_to_serializable(
@@ -109,6 +163,17 @@ def mark_false_variant(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
+    """Handle mark false variant.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+        user (ApiUser): Value for ``user``.
+        service (DnaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _require_variant_for_sample(sample_id, var_id, user, service)
     service.repository.variant_handler.mark_false_positive_var(var_id)
     return util.common.convert_to_serializable(
@@ -123,6 +188,17 @@ def unmark_interesting_variant(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
+    """Handle unmark interesting variant.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+        user (ApiUser): Value for ``user``.
+        service (DnaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _require_variant_for_sample(sample_id, var_id, user, service)
     service.repository.variant_handler.unmark_interesting_var(var_id)
     return util.common.convert_to_serializable(
@@ -137,6 +213,17 @@ def mark_interesting_variant(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
+    """Handle mark interesting variant.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+        user (ApiUser): Value for ``user``.
+        service (DnaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _require_variant_for_sample(sample_id, var_id, user, service)
     service.repository.variant_handler.mark_interesting_var(var_id)
     return util.common.convert_to_serializable(
@@ -151,6 +238,17 @@ def unmark_irrelevant_variant(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
+    """Handle unmark irrelevant variant.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+        user (ApiUser): Value for ``user``.
+        service (DnaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _require_variant_for_sample(sample_id, var_id, user, service)
     service.repository.variant_handler.unmark_irrelevant_var(var_id)
     return util.common.convert_to_serializable(
@@ -165,6 +263,17 @@ def mark_irrelevant_variant(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
+    """Handle mark irrelevant variant.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+        user (ApiUser): Value for ``user``.
+        service (DnaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _require_variant_for_sample(sample_id, var_id, user, service)
     service.repository.variant_handler.mark_irrelevant_var(var_id)
     return util.common.convert_to_serializable(
@@ -179,6 +288,17 @@ def add_variant_to_blacklist(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
+    """Handle add variant to blacklist.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+        user (ApiUser): Value for ``user``.
+        service (DnaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     sample, variant = _require_variant_for_sample(sample_id, var_id, user, service)
     assay_config = _get_formatted_assay_config(sample)
     if not assay_config:
@@ -204,6 +324,18 @@ def hide_variant_comment(
     ),
     service: DnaService = Depends(get_dna_service),
 ):
+    """Handle hide variant comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+        comment_id (str): Value for ``comment_id``.
+        user (ApiUser): Value for ``user``.
+        service (DnaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _require_variant_for_sample(sample_id, var_id, user, service)
     service.repository.variant_handler.hide_var_comment(var_id, comment_id)
     return util.common.convert_to_serializable(
@@ -225,6 +357,18 @@ def unhide_variant_comment(
     ),
     service: DnaService = Depends(get_dna_service),
 ):
+    """Handle unhide variant comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        var_id (str): Value for ``var_id``.
+        comment_id (str): Value for ``comment_id``.
+        user (ApiUser): Value for ``user``.
+        service (DnaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _require_variant_for_sample(sample_id, var_id, user, service)
     service.repository.variant_handler.unhide_variant_comment(var_id, comment_id)
     return util.common.convert_to_serializable(
@@ -241,6 +385,19 @@ def set_variant_false_positive_bulk(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="user", min_level=9)),
     service: DnaService = Depends(get_dna_service),
 ):
+    """Set variant false positive bulk.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        apply (bool): Value for ``apply``.
+        resource_ids (list[str]): Value for ``resource_ids``.
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (DnaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     payload_resource_ids = payload.get("resource_ids") if isinstance(payload, dict) else None
     payload_variant_ids = payload.get("variant_ids") if isinstance(payload, dict) else None
@@ -264,6 +421,19 @@ def set_variant_irrelevant_bulk(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="user", min_level=9)),
     service: DnaService = Depends(get_dna_service),
 ):
+    """Set variant irrelevant bulk.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        apply (bool): Value for ``apply``.
+        resource_ids (list[str]): Value for ``resource_ids``.
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (DnaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     payload_resource_ids = payload.get("resource_ids") if isinstance(payload, dict) else None
     payload_variant_ids = payload.get("variant_ids") if isinstance(payload, dict) else None
@@ -284,6 +454,17 @@ def add_variant_comment_mutation(
     user: ApiUser = Depends(require_access(permission="add_variant_comment", min_role="user", min_level=9)),
     service: ResourceAnnotationService = Depends(get_resource_annotation_service),
 ):
+    """Handle add variant comment mutation.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (ResourceAnnotationService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     target_id = str(payload.get("id", "unknown"))
     form_data = payload.get("form_data", {})

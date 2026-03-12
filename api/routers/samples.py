@@ -37,6 +37,17 @@ if not hasattr(util, "common"):
 
 
 def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict:
+    """Handle  mutation payload.
+
+    Args:
+            sample_id: Sample id.
+            resource: Resource.
+            resource_id: Resource id.
+            action: Action.
+
+    Returns:
+            The  mutation payload result.
+    """
     return {
         "status": "ok",
         "sample_id": str(sample_id),
@@ -67,6 +78,30 @@ def list_samples_read(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
+    """List samples read.
+
+    Args:
+        status (str): Value for ``status``.
+        search_str (str): Value for ``search_str``.
+        search_mode (str): Value for ``search_mode``.
+        sample_view (str | None): Value for ``sample_view``.
+        page (int): Value for ``page``.
+        per_page (int): Value for ``per_page``.
+        live_page (int): Value for ``live_page``.
+        done_page (int): Value for ``done_page``.
+        live_per_page (int | None): Value for ``live_per_page``.
+        done_per_page (int | None): Value for ``done_per_page``.
+        profile_scope (str): Value for ``profile_scope``.
+        panel_type (str | None): Value for ``panel_type``.
+        panel_tech (str | None): Value for ``panel_tech``.
+        assay_group (str | None): Value for ``assay_group``.
+        limit_done_samples (int | None): Value for ``limit_done_samples``.
+        user (ApiUser): Value for ``user``.
+        service (SampleCatalogService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = sample_view
     live_per_page = live_per_page or per_page
     done_per_page = done_per_page or per_page
@@ -97,6 +132,16 @@ def sample_genelists_read(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
+    """Handle sample genelists read.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        user (ApiUser): Value for ``user``.
+        service (SampleCatalogService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(service.genelist_items_payload(sample=sample))
 
@@ -107,6 +152,16 @@ def sample_effective_genes_read(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
+    """Handle sample effective genes read.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        user (ApiUser): Value for ``user``.
+        service (SampleCatalogService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(service.effective_genes_payload(sample=sample))
 
@@ -117,6 +172,16 @@ def sample_edit_context_read(
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
+    """Handle sample edit context read.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        user (ApiUser): Value for ``user``.
+        service (SampleCatalogService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(service.edit_context_payload(sample=sample))
 
@@ -128,6 +193,17 @@ def sample_apply_genelists_mutation(
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
+    """Handle sample apply genelists mutation.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (SampleCatalogService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(service.apply_genelists(sample=sample, payload=payload, sample_id=sample_id))
 
@@ -139,6 +215,17 @@ def sample_save_adhoc_genes_mutation(
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
+    """Handle sample save adhoc genes mutation.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (SampleCatalogService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
         service.save_adhoc_genes(sample=sample, payload=payload, sample_id=sample_id)
@@ -151,6 +238,16 @@ def sample_clear_adhoc_genes_mutation(
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
+    """Handle sample clear adhoc genes mutation.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        user (ApiUser): Value for ``user``.
+        service (SampleCatalogService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(service.clear_adhoc_genes(sample=sample, sample_id=sample_id))
 
@@ -162,6 +259,17 @@ def sample_report_context_read(
     user: ApiUser = Depends(require_access(permission="view_reports", min_role="admin")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
+    """Handle sample report context read.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        report_id (str): Value for ``report_id``.
+        user (ApiUser): Value for ``user``.
+        service (SampleCatalogService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
         service.report_context_payload(sample=sample, report_id=report_id, sample_id=sample_id)
@@ -174,6 +282,17 @@ def _add_sample_comment(
     user: ApiUser,
     repository: SamplesRepository,
 ):
+    """Handle  add sample comment.
+
+    Args:
+            sample_id: Sample id.
+            payload: Payload.
+            user: User.
+            repository: Repository.
+
+    Returns:
+            The  add sample comment result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     form_data = payload.form_data
     doc = create_comment_doc(form_data, key="sample_comment")
@@ -190,10 +309,32 @@ def create_sample_comment(
     user: ApiUser = Depends(require_access(permission="add_sample_comment", min_role="user", min_level=9)),
     repository: SamplesRepository = Depends(get_sample_repository),
 ):
+    """Create sample comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        payload (SampleCommentCreateRequest): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        repository (SamplesRepository): Value for ``repository``.
+
+    Returns:
+        The function result.
+    """
     return _add_sample_comment(sample_id=sample_id, payload=payload, user=user, repository=repository)
 
 
 def _hide_sample_comment(sample_id: str, comment_id: str, user: ApiUser, repository: SamplesRepository):
+    """Handle  hide sample comment.
+
+    Args:
+            sample_id: Sample id.
+            comment_id: Comment id.
+            user: User.
+            repository: Repository.
+
+    Returns:
+            The  hide sample comment result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     repository.hide_sample_comment(sample_id, comment_id)
     result = _mutation_payload(sample_id, resource="sample_comment", resource_id=comment_id, action="hide")
@@ -208,10 +349,32 @@ def hide_sample_comment(
     user: ApiUser = Depends(require_access(permission="hide_sample_comment", min_role="manager", min_level=99)),
     repository: SamplesRepository = Depends(get_sample_repository),
 ):
+    """Handle hide sample comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        comment_id (str): Value for ``comment_id``.
+        user (ApiUser): Value for ``user``.
+        repository (SamplesRepository): Value for ``repository``.
+
+    Returns:
+        The function result.
+    """
     return _hide_sample_comment(sample_id=sample_id, comment_id=comment_id, user=user, repository=repository)
 
 
 def _unhide_sample_comment(sample_id: str, comment_id: str, user: ApiUser, repository: SamplesRepository):
+    """Handle  unhide sample comment.
+
+    Args:
+            sample_id: Sample id.
+            comment_id: Comment id.
+            user: User.
+            repository: Repository.
+
+    Returns:
+            The  unhide sample comment result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     repository.unhide_sample_comment(sample_id, comment_id)
     result = _mutation_payload(sample_id, resource="sample_comment", resource_id=comment_id, action="unhide")
@@ -226,6 +389,17 @@ def unhide_sample_comment(
     user: ApiUser = Depends(require_access(permission="unhide_sample_comment", min_role="manager", min_level=99)),
     repository: SamplesRepository = Depends(get_sample_repository),
 ):
+    """Handle unhide sample comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        comment_id (str): Value for ``comment_id``.
+        user (ApiUser): Value for ``user``.
+        repository (SamplesRepository): Value for ``repository``.
+
+    Returns:
+        The function result.
+    """
     return _unhide_sample_comment(sample_id=sample_id, comment_id=comment_id, user=user, repository=repository)
 
 
@@ -235,6 +409,17 @@ def _update_sample_filters(
     user: ApiUser,
     repository: SamplesRepository,
 ):
+    """Handle  update sample filters.
+
+    Args:
+            sample_id: Sample id.
+            payload: Payload.
+            user: User.
+            repository: Repository.
+
+    Returns:
+            The  update sample filters result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     filters = payload.filters
     normalized_filters = dict(filters)
@@ -269,10 +454,31 @@ def update_sample_filters(
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
     repository: SamplesRepository = Depends(get_sample_repository),
 ):
+    """Update sample filters.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        payload (SampleFiltersUpdateRequest): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        repository (SamplesRepository): Value for ``repository``.
+
+    Returns:
+        The function result.
+    """
     return _update_sample_filters(sample_id=sample_id, payload=payload, user=user, repository=repository)
 
 
 def _reset_sample_filters(sample_id: str, user: ApiUser, repository: SamplesRepository):
+    """Handle  reset sample filters.
+
+    Args:
+            sample_id: Sample id.
+            user: User.
+            repository: Repository.
+
+    Returns:
+            The  reset sample filters result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     assay_config = get_formatted_assay_config(sample)
     if not assay_config:
@@ -288,10 +494,29 @@ def reset_sample_filters(
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
     repository: SamplesRepository = Depends(get_sample_repository),
 ):
+    """Reset sample filters.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        user (ApiUser): Value for ``user``.
+        repository (SamplesRepository): Value for ``repository``.
+
+    Returns:
+        The function result.
+    """
     return _reset_sample_filters(sample_id=sample_id, user=user, repository=repository)
 
 
 def _update_coverage_blacklist(payload: CoverageBlacklistUpdateRequest, repository: SamplesRepository):
+    """Handle  update coverage blacklist.
+
+    Args:
+            payload: Payload.
+            repository: Repository.
+
+    Returns:
+            The  update coverage blacklist result.
+    """
     gene = payload.gene
     coord = payload.coord or ""
     smp_grp = payload.smp_grp
@@ -327,11 +552,30 @@ def create_coverage_blacklist_entry(
     user: ApiUser = Depends(require_access(min_level=1)),
     repository: SamplesRepository = Depends(get_sample_repository),
 ):
+    """Create coverage blacklist entry.
+
+    Args:
+        payload (CoverageBlacklistUpdateRequest): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        repository (SamplesRepository): Value for ``repository``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return _update_coverage_blacklist(payload=payload, repository=repository)
 
 
 def _remove_coverage_blacklist(obj_id: str, repository: SamplesRepository):
+    """Handle  remove coverage blacklist.
+
+    Args:
+            obj_id: Obj id.
+            repository: Repository.
+
+    Returns:
+            The  remove coverage blacklist result.
+    """
     repository.remove_blacklist(obj_id)
     return util.common.convert_to_serializable(
         _mutation_payload("coverage", resource="blacklist", resource_id=obj_id, action="remove")
@@ -344,5 +588,15 @@ def delete_coverage_blacklist_entry(
     user: ApiUser = Depends(require_access(min_level=1)),
     repository: SamplesRepository = Depends(get_sample_repository),
 ):
+    """Delete coverage blacklist entry.
+
+    Args:
+        obj_id (str): Value for ``obj_id``.
+        user (ApiUser): Value for ``user``.
+        repository (SamplesRepository): Value for ``repository``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return _remove_coverage_blacklist(obj_id=obj_id, repository=repository)

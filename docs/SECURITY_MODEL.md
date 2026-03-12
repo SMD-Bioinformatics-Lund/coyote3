@@ -364,6 +364,15 @@ Required characteristics:
 - request method/path/status/duration and resolved actor identity when available
 - no sensitive payload dumps by default
 
+In Coyote3, operational logging is written to file-backed handlers and is intended to answer:
+
+- what request or page failed
+- who triggered it
+- what route was involved
+- what status code was returned
+- how long it took
+- what request id ties the event to audit and upstream logs
+
 ## 12.2 Audit logs
 Used for governance and forensic evidence.
 
@@ -374,6 +383,26 @@ Required characteristics:
 - request correlation (`request_id`)
 - timestamp integrity
 - API/backend emission authority for mutation events (UI is not authoritative for audit writes)
+
+The repository uses a dedicated audit logger so the admin audit screen can surface:
+
+- request outcomes
+- mutation outcomes
+- access-check outcomes
+- upstream API failures seen by the UI
+- web and API error events
+
+The intent is that warnings and failures remain visible in the same audit surface as successful mutations, rather than being hidden in unrelated operational logs.
+
+### Audit event severity
+
+Severity is derived from outcome so operators can triage events quickly:
+
+- `info` for successful requests and completed mutations
+- `warning` for denied access, failed validation, and failed mutations
+- `error` for unhandled exceptions and server-side failures
+
+This severity model is visible both in the log files and in the admin audit surface.
 
 ## 12.3 Redaction standards
 Do not log:
@@ -391,6 +420,24 @@ logger.info('variant_list_request', extra={
     'sample_id': sample_id,
 })
 ```
+
+## 12.5 Web error-page model
+
+The UI uses a standard error-page model for full-page failures:
+
+- page-load failures raise typed web exceptions
+- Flask error handlers render a standard error template with:
+  - HTTP status code
+  - summary message
+  - details
+  - request id
+
+Mutation failures that occur inside an already-rendered workflow usually stay in the workflow and use user-facing flash messages instead of replacing the page with an error screen.
+
+This distinction is intentional:
+
+- page-load failures prevent the page from being rendered correctly, so they should terminate in a standard error page
+- mutation failures happen inside a valid page context, so they should preserve navigation context and provide clear feedback without losing the page state
 
 ---
 

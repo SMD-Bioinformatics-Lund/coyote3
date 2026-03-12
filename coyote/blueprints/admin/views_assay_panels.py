@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from flask import Response, abort, flash, g, redirect, render_template, request, url_for
+from flask import Response, abort, current_app as app, g, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from coyote.blueprints.admin import admin_bp
@@ -15,22 +15,54 @@ from coyote.services.api_client.api_client import (
     forward_headers,
     get_web_api_client,
 )
+from coyote.services.api_client.web import (
+    flash_api_failure,
+    flash_api_success,
+    raise_page_load_error,
+)
 
 
 def _load_panel_context(assay_panel_id: str):
+    """Load assay-panel context for edit, view, and print screens.
+
+    Args:
+        assay_panel_id: Assay-panel identifier.
+
+    Returns:
+        The decoded API context payload for the assay panel.
+    """
     try:
         return get_web_api_client().get_json(
             api_endpoints.admin("asp", assay_panel_id, "context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
-        flash("Panel or schema not found." if exc.status_code == 404 else f"Failed to load panel context: {exc}", "red")
-        return None
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to load assay panel context for {assay_panel_id}",
+            summary="Unable to load the assay panel.",
+            not_found_summary="Assay panel not found.",
+        )
 
 
 def _apply_selected_panel_version(
     panel: dict, selected_version: int | None, panel_id: str, keep_version: bool = False
 ) -> tuple[dict, dict | None]:
+    """Return the selected historical panel version for diff-aware rendering.
+
+    Args:
+        panel: Assay-panel document returned by the API context endpoint.
+        selected_version: Historical version requested by the operator.
+        panel_id: Panel identifier used to restore ``_id`` after delta
+            application.
+        keep_version: Whether the selected version should remain visible in the
+            projected document.
+
+    Returns:
+        A tuple of ``(panel_document, delta)`` where ``delta`` is the applied
+        version delta or ``None`` when no historical projection was needed.
+    """
     delta = None
     if selected_version and selected_version != panel.get("version"):
         version_index = next(
@@ -57,6 +89,11 @@ def _apply_selected_panel_version(
 @admin_bp.route("/asp/manage", methods=["GET"])
 @login_required
 def manage_assay_panels():
+    """Render the assay-panel management page.
+
+    Returns:
+        The rendered management page response.
+    """
     try:
         payload = get_web_api_client().get_json(
             api_endpoints.admin("asp"),
@@ -64,14 +101,23 @@ def manage_assay_panels():
         )
         panels = payload.panels
     except ApiRequestError as exc:
-        flash(f"Failed to fetch panels: {exc}", "red")
-        panels = []
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message="Failed to fetch assay panels",
+            summary="Unable to load assay panels.",
+        )
     return render_template("asp/manage_asp.html", panels=panels)
 
 
 @admin_bp.route("/asp/new", methods=["GET", "POST"])
 @login_required
 def create_assay_panel():
+    """Create an assay panel definition.
+
+    Returns:
+        The rendered form on ``GET`` or a redirect response after ``POST``.
+    """
     try:
         selected_schema_id = request.args.get("schema_id")
         context = get_web_api_client().get_json(
@@ -80,8 +126,12 @@ def create_assay_panel():
             params={"schema_id": selected_schema_id} if selected_schema_id else None,
         )
     except ApiRequestError as exc:
-        flash(f"Failed to load panel create context: {exc}", "red")
-        return redirect(url_for("admin_bp.manage_assay_panels"))
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message="Failed to load assay panel create context",
+            summary="Unable to load the assay panel creation form.",
+        )
 
     if request.method == "POST":
         form_data: dict[str, list[str] | str] = {
@@ -120,9 +170,9 @@ def create_assay_panel():
                 json_body={"config": config},
             )
             g.audit_metadata = {"panel": config["_id"]}
-            flash(f"Panel {config['assay_name']} created successfully!", "green")
+            flash_api_success(f"Panel {config['assay_name']} created successfully.")
         except ApiRequestError as exc:
-            flash(f"Failed to create panel: {exc}", "red")
+            flash_api_failure("Failed to create assay panel.", exc)
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
     return render_template(
@@ -136,9 +186,15 @@ def create_assay_panel():
 @admin_bp.route("/asp/<assay_panel_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit_assay_panel(assay_panel_id: str) -> str | Response:
+    """Edit an assay panel definition.
+
+    Args:
+        assay_panel_id: Assay-panel identifier for the document being edited.
+
+    Returns:
+        The rendered form on ``GET`` or a redirect response after ``POST``.
+    """
     context = _load_panel_context(assay_panel_id)
-    if context is None:
-        return redirect(url_for("admin_bp.manage_assay_panels"))
 
     selected_version = request.args.get("version", type=int)
     panel, delta = _apply_selected_panel_version(context.panel, selected_version, assay_panel_id)
@@ -185,9 +241,9 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
                 json_body={"config": updated},
             )
             g.audit_metadata = {"panel": assay_panel_id}
-            flash(f"Panel '{panel['assay_name']}' updated successfully!", "green")
+            flash_api_success(f"Panel '{panel['assay_name']}' updated successfully.")
         except ApiRequestError as exc:
-            flash(f"Failed to update panel: {exc}", "red")
+            flash_api_failure("Failed to update assay panel.", exc)
         return redirect(url_for("admin_bp.manage_assay_panels"))
 
     return render_template(
@@ -202,9 +258,15 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
 @admin_bp.route("/asp/<assay_panel_id>/view", methods=["GET"])
 @login_required
 def view_assay_panel(assay_panel_id: str) -> Response | str:
+    """Display a read-only assay panel view.
+
+    Args:
+        assay_panel_id: Assay-panel identifier for the document being displayed.
+
+    Returns:
+        The rendered detail page response.
+    """
     context = _load_panel_context(assay_panel_id)
-    if context is None:
-        return redirect(url_for("admin_bp.manage_assay_panels"))
 
     selected_version = request.args.get("version", type=int)
     panel, delta = _apply_selected_panel_version(context.panel, selected_version, assay_panel_id)
@@ -221,9 +283,15 @@ def view_assay_panel(assay_panel_id: str) -> Response | str:
 @admin_bp.route("/asp/<panel_id>/print", methods=["GET"])
 @login_required
 def print_assay_panel(panel_id: str) -> str | Response:
+    """Render a print-friendly assay panel document.
+
+    Args:
+        panel_id: Assay-panel identifier for the document being printed.
+
+    Returns:
+        The rendered print view response.
+    """
     context = _load_panel_context(panel_id)
-    if context is None:
-        return redirect(url_for("admin_bp.manage_assay_panels"))
 
     selected_version = request.args.get("version", type=int)
     panel, _ = _apply_selected_panel_version(context.panel, selected_version, panel_id, keep_version=True)
@@ -240,6 +308,14 @@ def print_assay_panel(panel_id: str) -> str | Response:
 @admin_bp.route("/asp/<assay_panel_id>/toggle", methods=["POST", "GET"])
 @login_required
 def toggle_assay_panel_active(assay_panel_id: str) -> Response:
+    """Toggle the active flag on an assay panel.
+
+    Args:
+        assay_panel_id: Assay-panel identifier for the document being updated.
+
+    Returns:
+        A redirect response back to the management page.
+    """
     try:
         payload = get_web_api_client().patch_json(
             api_endpoints.admin("asp", assay_panel_id, "status"),
@@ -250,24 +326,32 @@ def toggle_assay_panel_active(assay_panel_id: str) -> Response:
             "panel": assay_panel_id,
             "panel_status": "Active" if new_status else "Inactive",
         }
-        flash(f"Panel '{assay_panel_id}' status toggled!", "green")
+        flash_api_success(f"Panel '{assay_panel_id}' is now {'Active' if new_status else 'Inactive'}.")
     except ApiRequestError as exc:
         if exc.status_code == 404:
             return abort(404)
-        flash(f"Failed to toggle panel: {exc}", "red")
+        flash_api_failure("Failed to update assay panel status.", exc)
     return redirect(url_for("admin_bp.manage_assay_panels"))
 
 
 @admin_bp.route("/asp/<assay_panel_id>/delete", methods=["GET"])
 @login_required
 def delete_assay_panel(assay_panel_id: str) -> Response:
+    """Delete an assay panel definition.
+
+    Args:
+        assay_panel_id: Assay-panel identifier for the document being deleted.
+
+    Returns:
+        A redirect response back to the management page.
+    """
     try:
         get_web_api_client().delete_json(
             api_endpoints.admin("asp", assay_panel_id),
             headers=forward_headers(),
         )
         g.audit_metadata = {"panel": assay_panel_id}
-        flash(f"Panel '{assay_panel_id}' deleted!", "green")
+        flash_api_success(f"Panel '{assay_panel_id}' deleted successfully.")
     except ApiRequestError as exc:
-        flash(f"Failed to delete panel: {exc}", "red")
+        flash_api_failure("Failed to delete assay panel.", exc)
     return redirect(url_for("admin_bp.manage_assay_panels"))

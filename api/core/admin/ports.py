@@ -6,20 +6,103 @@ from typing import Any, Protocol
 
 
 class AdminSampleDeletionRepository(Protocol):
-    def get_sample_by_id(self, sample_id: str) -> dict[str, Any] | None: ...
+    """Define the persistence operations required for admin sample deletion."""
 
-    def delete_sample_variants(self, sample_id: str) -> Any: ...
+    def get_sample_by_id(self, sample_id: str) -> dict[str, Any] | None:
+        """Return sample by id.
 
-    def delete_sample_cnvs(self, sample_id: str) -> Any: ...
+        Args:
+            sample_id (str): Value for ``sample_id``.
 
-    def delete_sample_coverage(self, sample_id: str) -> Any: ...
+        Returns:
+            dict[str, Any] | None: The function result.
+        """
+        ...
 
-    def delete_sample_panel_coverage(self, sample_id: str) -> Any: ...
+    def delete_sample_variants(self, sample_id: str) -> Any:
+        """Delete sample variants.
 
-    def delete_sample_translocs(self, sample_id: str) -> Any: ...
+        Args:
+            sample_id (str): Value for ``sample_id``.
 
-    def delete_sample_fusions(self, sample_id: str) -> Any: ...
+        Returns:
+            Any: The function result.
+        """
+        ...
 
-    def delete_sample_biomarkers(self, sample_id: str) -> Any: ...
+    def delete_sample_cnvs(self, sample_id: str) -> Any:
+        """Delete sample cnvs.
 
-    def delete_sample(self, sample_id: str) -> Any: ...
+        Args:
+            sample_id (str): Value for ``sample_id``.
+
+        Returns:
+            Any: The function result.
+        """
+        ...
+
+    def delete_sample_coverage(self, sample_id: str) -> Any:
+        """Delete sample coverage.
+
+        Args:
+            sample_id (str): Value for ``sample_id``.
+
+        Returns:
+            Any: The function result.
+        """
+        ...
+
+    def delete_sample_panel_coverage(self, sample_id: str) -> Any:
+        """Delete sample panel coverage.
+
+        Args:
+            sample_id (str): Value for ``sample_id``.
+
+        Returns:
+            Any: The function result.
+        """
+        ...
+
+    def delete_sample_translocs(self, sample_id: str) -> Any:
+        """Delete sample translocs.
+
+        Args:
+            sample_id (str): Value for ``sample_id``.
+
+        Returns:
+            Any: The function result.
+        """
+        ...
+
+    def delete_sample_fusions(self, sample_id: str) -> Any:
+        """Delete sample fusions.
+
+        Args:
+            sample_id (str): Value for ``sample_id``.
+
+        Returns:
+            Any: The function result.
+        """
+        ...
+
+    def delete_sample_biomarkers(self, sample_id: str) -> Any:
+        """Delete sample biomarkers.
+
+        Args:
+            sample_id (str): Value for ``sample_id``.
+
+        Returns:
+            Any: The function result.
+        """
+        ...
+
+    def delete_sample(self, sample_id: str) -> Any:
+        """Delete sample.
+
+        Args:
+            sample_id (str): Value for ``sample_id``.
+
+        Returns:
+            Any: The function result.
+        """
+        ...

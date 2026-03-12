@@ -11,6 +11,11 @@ class ReportHandler(BaseHandler):
     """
 
     def __init__(self, adapter):
+        """Handle __init__.
+
+        Args:
+                adapter: Adapter.
+        """
         super().__init__(adapter)
         self.set_collection(self.adapter.samples_collection)
 

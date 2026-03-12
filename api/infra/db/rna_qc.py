@@ -34,6 +34,11 @@ class RNAQCHandler(BaseHandler):
         self.set_collection(self.adapter.rna_qc_collection)
 
     def ensure_indexes(self) -> None:
+        """Handle ensure indexes.
+
+        Returns:
+            None.
+        """
         col = self.get_collection()
         col.create_index(
             [("rna_qc_id", 1)],

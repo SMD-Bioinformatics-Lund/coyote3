@@ -24,6 +24,17 @@ def list_dna_translocations(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: TranslocationService = Depends(get_translocation_service),
 ):
+    """List dna translocations.
+
+    Args:
+        request (Request): Value for ``request``.
+        sample_id (str): Value for ``sample_id``.
+        user (ApiUser): Value for ``user``.
+        service (TranslocationService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(service.list_translocations_payload(request=request, sample=sample))
 
@@ -35,6 +46,17 @@ def show_dna_translocation(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: TranslocationService = Depends(get_translocation_service),
 ):
+    """Show dna translocation.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        transloc_id (str): Value for ``transloc_id``.
+        user (ApiUser): Value for ``user``.
+        service (TranslocationService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
         service.show_translocation_payload(sample=sample, transloc_id=transloc_id, util_module=util)
@@ -48,6 +70,17 @@ def mark_interesting_translocation(
     user: ApiUser = Depends(require_access(permission="manage_translocs", min_role="user", min_level=9)),
     service: TranslocationService = Depends(get_translocation_service),
 ):
+    """Handle mark interesting translocation.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        transloc_id (str): Value for ``transloc_id``.
+        user (ApiUser): Value for ``user``.
+        service (TranslocationService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     service.repository.transloc_handler.mark_interesting_transloc(transloc_id)
     return util.common.convert_to_serializable(
@@ -62,6 +95,17 @@ def unmark_interesting_translocation(
     user: ApiUser = Depends(require_access(permission="manage_translocs", min_role="user", min_level=9)),
     service: TranslocationService = Depends(get_translocation_service),
 ):
+    """Handle unmark interesting translocation.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        transloc_id (str): Value for ``transloc_id``.
+        user (ApiUser): Value for ``user``.
+        service (TranslocationService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     service.repository.transloc_handler.unmark_interesting_transloc(transloc_id)
     return util.common.convert_to_serializable(
@@ -76,6 +120,17 @@ def mark_false_positive_translocation(
     user: ApiUser = Depends(require_access(permission="manage_translocs", min_role="user", min_level=9)),
     service: TranslocationService = Depends(get_translocation_service),
 ):
+    """Handle mark false positive translocation.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        transloc_id (str): Value for ``transloc_id``.
+        user (ApiUser): Value for ``user``.
+        service (TranslocationService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     service.repository.transloc_handler.mark_false_positive_transloc(transloc_id)
     return util.common.convert_to_serializable(
@@ -90,6 +145,17 @@ def unmark_false_positive_translocation(
     user: ApiUser = Depends(require_access(permission="manage_translocs", min_role="user", min_level=9)),
     service: TranslocationService = Depends(get_translocation_service),
 ):
+    """Handle unmark false positive translocation.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        transloc_id (str): Value for ``transloc_id``.
+        user (ApiUser): Value for ``user``.
+        service (TranslocationService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     service.repository.transloc_handler.unmark_false_positive_transloc(transloc_id)
     return util.common.convert_to_serializable(
@@ -105,6 +171,18 @@ def hide_translocation_comment(
     user: ApiUser = Depends(require_access(permission="hide_variant_comment", min_role="manager", min_level=99)),
     service: TranslocationService = Depends(get_translocation_service),
 ):
+    """Handle hide translocation comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        transloc_id (str): Value for ``transloc_id``.
+        comment_id (str): Value for ``comment_id``.
+        user (ApiUser): Value for ``user``.
+        service (TranslocationService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     service.repository.transloc_handler.hide_transloc_comment(transloc_id, comment_id)
     return util.common.convert_to_serializable(
@@ -120,6 +198,18 @@ def unhide_translocation_comment(
     user: ApiUser = Depends(require_access(permission="unhide_variant_comment", min_role="manager", min_level=99)),
     service: TranslocationService = Depends(get_translocation_service),
 ):
+    """Handle unhide translocation comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        transloc_id (str): Value for ``transloc_id``.
+        comment_id (str): Value for ``comment_id``.
+        user (ApiUser): Value for ``user``.
+        service (TranslocationService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     service.repository.transloc_handler.unhide_transloc_comment(transloc_id, comment_id)
     return util.common.convert_to_serializable(

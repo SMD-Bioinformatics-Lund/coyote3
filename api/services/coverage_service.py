@@ -15,13 +15,31 @@ from api.repositories.coverage_repository import (
 
 
 class CoverageService:
+    """Own coverage read and blacklist-view workflows."""
+
     def __init__(self, repository=None, processing_repository=None) -> None:
+        """Handle __init__.
+
+        Args:
+                repository: Repository. Optional argument.
+                processing_repository: Processing repository. Optional argument.
+        """
         self.repository = repository or MongoCoverageRouteRepository()
         self.processing_repository = processing_repository or MongoCoverageRepository()
         if not CoverageProcessingService.has_repository():
             CoverageProcessingService.set_repository(self.processing_repository)
 
     def sample_payload(self, *, sample: dict, cov_cutoff: int, effective_genes_resolver) -> dict[str, Any]:
+        """Handle sample payload.
+
+        Args:
+            sample (dict): Value for ``sample``.
+            cov_cutoff (int): Value for ``cov_cutoff``.
+            effective_genes_resolver: Value for ``effective_genes_resolver``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         sample_assay = sample.get("assay", "unknown")
         sample_profile = sample.get("profile", "production")
         assay_config = self.repository.get_aspc_no_meta(sample_assay, sample_profile)
@@ -65,6 +83,15 @@ class CoverageService:
         }
 
     def blacklisted_payload(self, *, group: str, user) -> dict[str, Any]:
+        """Handle blacklisted payload.
+
+        Args:
+            group (str): Value for ``group``.
+            user: Value for ``user``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         if group not in set(user.assay_groups or []):
             raise api_error(403, "Access denied: You do not belong to the target assay.")
 
@@ -79,4 +106,3 @@ class CoverageService:
                 grouped_by_gene[entry["gene"]]["probe"] = entry
 
         return {"blacklisted": grouped_by_gene, "group": group}
-

@@ -1,6 +1,10 @@
 # Repository Structure
 
-This document explains the current repository layout, why each top-level area exists, and where new code should be added.
+This document defines the repository layout and the ownership model behind it. It is written so that an engineer can answer three questions quickly:
+
+1. What lives here?
+2. Why does it live here?
+3. Where should the next change go?
 
 ## Top-Level Layout
 
@@ -36,6 +40,12 @@ Owns:
 - audit behavior
 - Mongo access and persistence orchestration
 
+Why it exists:
+
+- to provide one authoritative backend contract
+- to centralize policy enforcement
+- to keep persistence and workflow logic out of the UI
+
 Important subpackages:
 
 - `api/main.py`: canonical FastAPI entrypoint
@@ -63,6 +73,12 @@ Owns:
 - UI-level form handling
 - API transport client usage
 
+Why it exists:
+
+- to render browser-facing pages
+- to manage user navigation and interaction flow
+- to consume the API without duplicating backend logic
+
 Important subpackages:
 
 - `coyote/blueprints/`: page and action routing by UI domain
@@ -75,6 +91,12 @@ Important subpackages:
 
 Repository quality gates, organized by scope.
 
+Why this split exists:
+
+- route and API behavior should be tested differently from UI rendering
+- cross-layer seams need their own tests
+- business workflows need isolated unit tests
+
 - `tests/api/`: backend route and backend-focused behavior tests
 - `tests/ui/`: Flask UI and presentation-layer tests
 - `tests/integration/`: cross-layer boundary and integration tests
@@ -84,6 +106,8 @@ Repository quality gates, organized by scope.
 ### `docs/`
 
 Authoritative operational and engineering documentation.
+
+Docs are part of the system, not an afterthought. The intended design, ownership rules, and operating model should be readable here without reverse-engineering code history.
 
 ### `deploy/`
 
@@ -96,6 +120,11 @@ Deployment and runtime packaging assets.
 
 Small neutral shared utilities only. This package should stay lightweight.
 
+Why this restraint matters:
+
+- shared code is easy to abuse
+- if `shared/` starts owning domain behavior, the architecture becomes harder to reason about
+
 ## Dependency Direction
 
 The intended dependency direction is:
@@ -105,6 +134,12 @@ coyote/blueprints -> coyote/services/api_client -> api HTTP endpoints
 
 api/routers -> api/deps -> api/core/api/services -> api/repositories -> api/infra/db + api/db/mongo
 ```
+
+This dependency direction is intentional. It keeps:
+
+- the UI from becoming a second backend
+- routers from becoming persistence layers
+- shared code from becoming an unbounded dependency sink
 
 Allowed shared support:
 

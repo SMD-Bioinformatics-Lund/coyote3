@@ -11,6 +11,7 @@ from coyote.services.api_client.api_client import (
     get_web_api_client,
 )
 from coyote.services.api_client.web import log_api_error
+from coyote.services.api_client.web import raise_page_load_error
 
 _DEFAULT_VARIANT_STATS = {
     "total_variants": 0,
@@ -68,6 +69,15 @@ _DEFAULT_ADMIN_INSIGHTS = {
 
 
 def _as_int(value: object, default: int = 0) -> int:
+    """Handle  as int.
+
+    Args:
+            value: Value.
+            default: Default. Optional argument.
+
+    Returns:
+            The  as int result.
+    """
     try:
         return int(value)
     except (TypeError, ValueError):
@@ -75,6 +85,14 @@ def _as_int(value: object, default: int = 0) -> int:
 
 
 def _normalize_variant_stats(stats: object) -> dict[str, int]:
+    """Handle  normalize variant stats.
+
+    Args:
+            stats: Stats.
+
+    Returns:
+            The  normalize variant stats result.
+    """
     if not isinstance(stats, dict):
         return dict(_DEFAULT_VARIANT_STATS)
     normalized = dict(_DEFAULT_VARIANT_STATS)
@@ -84,6 +102,14 @@ def _normalize_variant_stats(stats: object) -> dict[str, int]:
 
 
 def _normalize_sample_stats(stats: object) -> dict[str, dict]:
+    """Handle  normalize sample stats.
+
+    Args:
+            stats: Stats.
+
+    Returns:
+            The  normalize sample stats result.
+    """
     if not isinstance(stats, dict):
         return dict(_DEFAULT_SAMPLE_STATS)
 
@@ -95,6 +121,14 @@ def _normalize_sample_stats(stats: object) -> dict[str, dict]:
 
 
 def _normalize_tier_stats(stats: object) -> dict:
+    """Handle  normalize tier stats.
+
+    Args:
+            stats: Stats.
+
+    Returns:
+            The  normalize tier stats result.
+    """
     if not isinstance(stats, dict):
         return dict(_DEFAULT_TIER_STATS)
     total = stats.get("total", {}) if isinstance(stats.get("total"), dict) else {}
@@ -111,6 +145,14 @@ def _normalize_tier_stats(stats: object) -> dict:
 
 
 def _normalize_quality_stats(stats: object) -> dict:
+    """Handle  normalize quality stats.
+
+    Args:
+            stats: Stats.
+
+    Returns:
+            The  normalize quality stats result.
+    """
     if not isinstance(stats, dict):
         return dict(_DEFAULT_QUALITY_STATS)
     return {
@@ -121,6 +163,14 @@ def _normalize_quality_stats(stats: object) -> dict:
 
 
 def _normalize_dashboard_meta(meta: object) -> dict:
+    """Handle  normalize dashboard meta.
+
+    Args:
+            meta: Meta.
+
+    Returns:
+            The  normalize dashboard meta result.
+    """
     if not isinstance(meta, dict):
         return dict(_DEFAULT_DASHBOARD_META)
     timings = meta.get("timings_ms", {})
@@ -133,6 +183,14 @@ def _normalize_dashboard_meta(meta: object) -> dict:
 
 
 def _normalize_admin_insights(insights: object) -> dict:
+    """Handle  normalize admin insights.
+
+    Args:
+            insights: Insights.
+
+    Returns:
+            The  normalize admin insights result.
+    """
     if not isinstance(insights, dict):
         return dict(_DEFAULT_ADMIN_INSIGHTS)
     normalized = dict(_DEFAULT_ADMIN_INSIGHTS)
@@ -143,6 +201,14 @@ def _normalize_admin_insights(insights: object) -> dict:
 
 
 def _normalize_capacity_counts(counts: object) -> dict:
+    """Handle  normalize capacity counts.
+
+    Args:
+            counts: Counts.
+
+    Returns:
+            The  normalize capacity counts result.
+    """
     if not isinstance(counts, dict):
         return dict(_DEFAULT_CAPACITY_COUNTS)
     normalized = dict(_DEFAULT_CAPACITY_COUNTS)
@@ -152,6 +218,14 @@ def _normalize_capacity_counts(counts: object) -> dict:
 
 
 def _normalize_isgl_visibility(payload: object) -> dict:
+    """Handle  normalize isgl visibility.
+
+    Args:
+            payload: Payload.
+
+    Returns:
+            The  normalize isgl visibility result.
+    """
     if not isinstance(payload, dict):
         return dict(_DEFAULT_ISGL_VISIBILITY)
     normalized = dict(_DEFAULT_ISGL_VISIBILITY)
@@ -258,25 +332,12 @@ def dashboard() -> str:
             capacity_counts = payload.get("capacity_counts", {})
             isgl_visibility = payload.get("isgl_visibility", {})
         except ApiRequestError as exc:
-            log_api_error(
+            raise_page_load_error(
                 exc,
                 logger=app.logger,
                 log_message=f"Dashboard API fetch failed for user {username}",
+                summary="Unable to load the dashboard.",
             )
-            total_samples_count = 0
-            analysed_samples_count = 0
-            pending_samples_count = 0
-            user_samples_stats = {}
-            variant_stats = dict(_DEFAULT_VARIANT_STATS)
-            unique_gene_count_all_panels = 0
-            asp_gene_counts = {}
-            sample_stats = dict(_DEFAULT_SAMPLE_STATS)
-            tier_stats = dict(_DEFAULT_TIER_STATS)
-            quality_stats = dict(_DEFAULT_QUALITY_STATS)
-            dashboard_meta = dict(_DEFAULT_DASHBOARD_META)
-            admin_insights = dict(_DEFAULT_ADMIN_INSIGHTS)
-            capacity_counts = dict(_DEFAULT_CAPACITY_COUNTS)
-            isgl_visibility = dict(_DEFAULT_ISGL_VISIBILITY)
 
     variant_stats = _normalize_variant_stats(variant_stats)
     sample_stats = _normalize_sample_stats(sample_stats)

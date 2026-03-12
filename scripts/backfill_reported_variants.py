@@ -196,6 +196,14 @@ def setup_logger(log_path: str, verbose: bool) -> logging.Logger:
 
 
 def parse_tier(value: str) -> Optional[int]:
+    """Handle parse tier.
+
+    Args:
+        value (str): Value for ``value``.
+
+    Returns:
+        Optional[int]: The function result.
+    """
     if not value:
         return None
     v = value.strip()
@@ -254,6 +262,14 @@ def normalize_hgvsp_three_letter(hgvsp: str) -> str:
     # --- Local helpers ---
     def to_three(aa: str) -> str:
         # Already 3-letter (e.g., Arg)
+        """Handle to three.
+
+        Args:
+            aa (str): Value for ``aa``.
+
+        Returns:
+            str: The function result.
+        """
         if len(aa) == 3 and aa[0].isalpha() and aa[1:].islower():
             return aa
         return ONE_TO_THREE.get(aa, aa)
@@ -367,6 +383,14 @@ def map_sample_assay_to_annotation_assay(sample_assay: Optional[str]) -> Optiona
 
 
 def normalize_variant_text(s: str) -> str:
+    """Normalize variant text.
+
+    Args:
+        s (str): Value for ``s``.
+
+    Returns:
+        str: The function result.
+    """
     if s is None:
         return ""
     s = s.strip()
@@ -377,6 +401,16 @@ def normalize_variant_text(s: str) -> str:
 
 
 def safe_get(d: Dict[str, Any], path: str, default=None):
+    """Handle safe get.
+
+    Args:
+        d (Dict[str, Any]): Value for ``d``.
+        path (str): Value for ``path``.
+        default: Value for ``default``.
+
+    Returns:
+        The function result.
+    """
     cur: Any = d
     for part in path.split("."):
         if not isinstance(cur, dict):
@@ -388,6 +422,14 @@ def safe_get(d: Dict[str, Any], path: str, default=None):
 
 
 def parse_iso_dt(x: Any) -> Optional[dt.datetime]:
+    """Handle parse iso dt.
+
+    Args:
+        x (Any): Value for ``x``.
+
+    Returns:
+        Optional[dt.datetime]: The function result.
+    """
     if isinstance(x, dt.datetime):
         return x
     return None
@@ -397,6 +439,14 @@ class JSONEncoder(json.JSONEncoder):
     """Make ObjectId + datetime JSON serializable."""
 
     def default(self, o):
+        """Handle default.
+
+        Args:
+            o: Value for ``o``.
+
+        Returns:
+            The function result.
+        """
         if isinstance(o, ObjectId):
             return {"$oid": str(o)}
         if isinstance(o, dt.datetime):
@@ -411,6 +461,15 @@ def json_sanitize(doc: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def write_jsonl(path: str, docs: List[Dict[str, Any]]) -> None:
+    """Handle write jsonl.
+
+    Args:
+        path (str): Value for ``path``.
+        docs (List[Dict[str, Any]]): Value for ``docs``.
+
+    Returns:
+        None.
+    """
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         for d in docs:
@@ -418,6 +477,14 @@ def write_jsonl(path: str, docs: List[Dict[str, Any]]) -> None:
 
 
 def read_jsonl(path: str) -> List[Dict[str, Any]]:
+    """Handle read jsonl.
+
+    Args:
+        path (str): Value for ``path``.
+
+    Returns:
+        List[Dict[str, Any]]: The function result.
+    """
     out = []
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
@@ -435,6 +502,14 @@ def extjson_to_native(doc: Dict[str, Any]) -> Dict[str, Any]:
     """
 
     def conv(x):
+        """Handle conv.
+
+        Args:
+            x: Value for ``x``.
+
+        Returns:
+            The function result.
+        """
         if isinstance(x, dict):
             if "$oid" in x and len(x) == 1:
                 return ObjectId(x["$oid"])
@@ -454,6 +529,8 @@ def extjson_to_native(doc: Dict[str, Any]) -> Dict[str, Any]:
 
 @dataclass
 class ExtractedReportedVariant:
+    """Provide the extracted reported variant type.
+    """
     tier: Optional[int]
     variant_text: str
     gene: Optional[str] = None
@@ -463,7 +540,17 @@ class ExtractedReportedVariant:
 
 
 class ReportVariantExtractor:
+    """Provide the report variant extractor type.
+    """
     def extract(self, html: str) -> List[ExtractedReportedVariant]:
+        """Handle extract.
+
+        Args:
+            html (str): Value for ``html``.
+
+        Returns:
+            List[ExtractedReportedVariant]: The function result.
+        """
         soup = BeautifulSoup(html, "html.parser")
 
         anchor = soup.find(
@@ -487,6 +574,14 @@ class ReportVariantExtractor:
             header_map = {h.strip().lower(): i for i, h in enumerate(headers)}
 
             def col(*names: str) -> Optional[int]:
+                """Handle col.
+
+                Args:
+                        *names: Names. Additional positional arguments.
+
+                Returns:
+                        The col result.
+                """
                 for n in names:
                     n_l = n.lower()
                     for h, idx in header_map.items():
@@ -511,6 +606,14 @@ class ReportVariantExtractor:
                 cells = [td.get_text(" ", strip=True) for td in tds]
 
                 def get(i: Optional[int]) -> str:
+                    """Handle get.
+
+                    Args:
+                            i: I.
+
+                    Returns:
+                            The get result.
+                    """
                     if i is None or i < 0 or i >= len(cells):
                         return ""
                     return cells[i].strip()
@@ -552,6 +655,8 @@ class ReportVariantExtractor:
 
 @dataclass
 class DBConfig:
+    """Provide the db config type.
+    """
     samples_coll: str
     variants_coll: str
     annotations_coll: str
@@ -570,7 +675,17 @@ class DBConfig:
 
 
 class ReportedVariantsBackfiller:
+    """Provide the reported variants backfiller type.
+    """
     def __init__(self, db, cfg: DBConfig, extractor: ReportVariantExtractor, logger):
+        """Handle __init__.
+
+        Args:
+                db: Db.
+                cfg: Cfg.
+                extractor: Extractor.
+                logger: Logger.
+        """
         self.db = db
         self.cfg = cfg
         self.extractor = extractor
@@ -582,9 +697,27 @@ class ReportedVariantsBackfiller:
         self.reported = db[cfg.reported_coll]
 
     def _log(self, msg: str, level: str = "info") -> None:
+        """Handle  log.
+
+        Args:
+                msg: Msg.
+                level: Level. Optional argument.
+
+        Returns:
+                None.
+        """
         getattr(self.logger, level.lower(), self.logger.info)(msg)
 
     def report_already_materialized(self, report_oid: ObjectId, report_id: str) -> bool:
+        """Handle report already materialized.
+
+        Args:
+            report_oid (ObjectId): Value for ``report_oid``.
+            report_id (str): Value for ``report_id``.
+
+        Returns:
+            bool: The function result.
+        """
         q = {"$or": [{"report_oid": report_oid}, {"report_id": report_id}]}
         return self.reported.find_one(q, {"_id": 1}) is not None
 
@@ -620,6 +753,15 @@ class ReportedVariantsBackfiller:
     def find_variant_doc(
         self, sample_oid: ObjectId, extracted: ExtractedReportedVariant
     ) -> Optional[Dict[str, Any]]:
+        """Handle find variant doc.
+
+        Args:
+            sample_oid (ObjectId): Value for ``sample_oid``.
+            extracted (ExtractedReportedVariant): Value for ``extracted``.
+
+        Returns:
+            Optional[Dict[str, Any]]: The function result.
+        """
         sample_id_str = str(sample_oid)
 
         # single query: gene + (HGVSp OR HGVSc OR simple_id)
@@ -722,6 +864,17 @@ class ReportedVariantsBackfiller:
         extracted: ExtractedReportedVariant,
         variant_doc: Dict[str, Any],
     ) -> Dict[str, Any]:
+        """Build reported variant doc.
+
+        Args:
+            sample_doc (Dict[str, Any]): Value for ``sample_doc``.
+            report_obj (Dict[str, Any]): Value for ``report_obj``.
+            extracted (ExtractedReportedVariant): Value for ``extracted``.
+            variant_doc (Dict[str, Any]): Value for ``variant_doc``.
+
+        Returns:
+            Dict[str, Any]: The function result.
+        """
         report_oid: ObjectId = report_obj["_id"]
         sample_oid: ObjectId = sample_doc["_id"]
 
@@ -962,6 +1115,14 @@ class ReportedVariantsBackfiller:
         counts = {"inserted": 0, "duplicates": 0, "other_errors": 0}
 
         def flush(batch_docs: List[Dict[str, Any]]) -> None:
+            """Handle flush.
+
+            Args:
+                batch_docs (List[Dict[str, Any]]): Value for ``batch_docs``.
+
+            Returns:
+                None.
+            """
             if not batch_docs:
                 return
 
@@ -1018,6 +1179,11 @@ class ReportedVariantsBackfiller:
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
+    """Build arg parser.
+
+    Returns:
+        argparse.ArgumentParser: The function result.
+    """
     p = argparse.ArgumentParser(
         description="Backfill reported_variants by scanning sample HTML reports, output JSONL, optionally insert into MongoDB."
     )
@@ -1087,6 +1253,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Handle main.
+
+    Returns:
+        int: The function result.
+    """
     args = build_arg_parser().parse_args()
 
     logger = setup_logger(f"{args.out_prefix}.log", args.verbose)

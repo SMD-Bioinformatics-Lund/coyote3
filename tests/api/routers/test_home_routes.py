@@ -12,11 +12,27 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def test_home_samples_read_returns_live_and_done(monkeypatch):
+    """Handle test home samples read returns live and done.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     user = fx.api_user()
     calls = []
     service = SampleCatalogService()
 
     def _get_samples(**kwargs):
+        """Handle  get samples.
+
+        Args:
+                **kwargs: Kwargs. Additional keyword arguments.
+
+        Returns:
+                The  get samples result.
+        """
         calls.append(kwargs)
         if kwargs.get("report"):
             return [{"_id": "d1", "reports": [{"time_created": 123}]}, {"_id": "d2"}]
@@ -54,11 +70,27 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
 
 
 def test_home_samples_read_always_fetches_both_tables(monkeypatch):
+    """Handle test home samples read always fetches both tables.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     user = fx.api_user()
     calls = []
     service = SampleCatalogService()
 
     def _get_samples(**kwargs):
+        """Handle  get samples.
+
+        Args:
+                **kwargs: Kwargs. Additional keyword arguments.
+
+        Returns:
+                The  get samples result.
+        """
         calls.append(kwargs)
         return [{"_id": "d1", "reports": [{"time_created": 123}]}]
 
@@ -91,6 +123,14 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
 
 
 def test_home_apply_isgl_invalid_payload_raises_400(monkeypatch):
+    """Handle test home apply isgl invalid payload raises 400.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
 
     with pytest.raises(HTTPException) as exc:
@@ -101,6 +141,14 @@ def test_home_apply_isgl_invalid_payload_raises_400(monkeypatch):
 
 
 def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
+    """Handle test home save adhoc genes mutation parses and sorts.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     sample = fx.sample_doc()
     calls = {}
     service = SampleCatalogService()
@@ -108,6 +156,15 @@ def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
     monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
 
     def _update_sample_filters(sample_id, filters):
+        """Handle  update sample filters.
+
+        Args:
+                sample_id: Sample id.
+                filters: Filters.
+
+        Returns:
+                The  update sample filters result.
+        """
         calls["filters"] = filters
 
     monkeypatch.setattr(service.repository, "update_sample_filters", _update_sample_filters)

@@ -9,6 +9,8 @@ This guide is for:
 ## Scope
 This manual explains the current web user interface behavior in Coyote3, including navigation, role-based visibility, sample workflows, DNA and RNA review flows, report access, and operational troubleshooting from an end-user perspective.
 
+For the full route-by-route UI inventory, tested surface summary, and permission matrix, see [ui-surface-and-permissions.md](ui-surface-and-permissions.md).
+
 ## Key Concepts
 For terminology used in this guide (sample, assay group, tiered variants, RBAC, audit trail), refer to [GLOSSARY.md](GLOSSARY.md).
 
@@ -358,7 +360,7 @@ Admin pages manage governed configuration and identity/policy entities, includin
 - schemas
 - assay-related configuration entities
 
-Admin landing cards are generated from currently enabled admin routes. If a route family is not active in the deployed UI module set, its card is not shown.
+Admin landing cards are generated from the enabled admin routes. If a route family is not active in the deployed UI module set, its card is not shown.
 
 ### 9.2 Governance expectations
 Administrative changes affect downstream access and workflow behavior. Perform changes with review discipline and verify outcome in non-production context when available.

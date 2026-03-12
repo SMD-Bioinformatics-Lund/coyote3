@@ -10,10 +10,19 @@ from coyote.blueprints.home import home_bp
 from coyote.blueprints.home.forms import SampleSearchForm
 from coyote.services.api_client.api_client import ApiRequestError
 from coyote.services.api_client.home import fetch_edit_context, fetch_samples
-from coyote.services.api_client.web import log_api_error
+from coyote.services.api_client.web import raise_page_load_error
 
 
 def _resolve_sample_view(*, status: str, submitted_view: str | None) -> str:
+    """Handle  resolve sample view.
+
+    Args:
+            status: Status. Keyword-only argument.
+            submitted_view: Submitted view. Keyword-only argument.
+
+    Returns:
+            The  resolve sample view result.
+    """
     view = (submitted_view or "").strip().lower()
     if view in {"live", "reported", "all"}:
         return view
@@ -24,10 +33,26 @@ def _resolve_sample_view(*, status: str, submitted_view: str | None) -> str:
 
 
 def _sample_view_to_search_mode(sample_view: str) -> str:
+    """Handle  sample view to search mode.
+
+    Args:
+            sample_view: Sample view.
+
+    Returns:
+            The  sample view to search mode result.
+    """
     return {"reported": "done", "all": "both", "live": "live"}.get(sample_view, "live")
 
 
 def _sample_view_to_status(sample_view: str) -> str:
+    """Handle  sample view to status.
+
+    Args:
+            sample_view: Sample view.
+
+    Returns:
+            The  sample view to status result.
+    """
     return "done" if sample_view == "reported" else "live"
 
 
@@ -57,6 +82,16 @@ def _resolve_per_page(
 
 
 def _resolve_page_param(short_key: str, legacy_key: str, default: int = 1) -> int:
+    """Handle  resolve page param.
+
+    Args:
+            short_key: Short key.
+            legacy_key: Legacy key.
+            default: Default. Optional argument.
+
+    Returns:
+            The  resolve page param result.
+    """
     return max(
         1,
         request.args.get(short_key, default=request.args.get(legacy_key, default=default, type=int), type=int)
@@ -65,6 +100,15 @@ def _resolve_page_param(short_key: str, legacy_key: str, default: int = 1) -> in
 
 
 def _first_non_empty_query_arg(*keys: str, default: str | None = None) -> str | None:
+    """Handle  first non empty query arg.
+
+    Args:
+            *keys: Keys. Additional positional arguments.
+            default: Default. Keyword-only argument.
+
+    Returns:
+            The  first non empty query arg result.
+    """
     for key in keys:
         value = request.args.get(key)
         if value is None:
@@ -76,6 +120,14 @@ def _first_non_empty_query_arg(*keys: str, default: str | None = None) -> str | 
 
 
 def _parse_samples_home_query(status: str) -> dict:
+    """Handle  parse samples home query.
+
+    Args:
+            status: Status.
+
+    Returns:
+            The  parse samples home query result.
+    """
     panel_type = _first_non_empty_query_arg("panel_type")
     panel_tech = _first_non_empty_query_arg("panel_tech")
     assay_group = _first_non_empty_query_arg("assay_group")
@@ -162,31 +214,12 @@ def samples_home(status: str) -> str:
             assay_group=assay_group,
         )
     except ApiRequestError as exc:
-        log_api_error(
+        raise_page_load_error(
             exc,
             logger=app.home_logger,
             log_message="Failed to fetch home sample context via API",
-            flash_message="Failed to load samples.",
+            summary="Unable to load the sample list.",
         )
-        payload = {
-            "live_samples": [],
-            "done_samples": [],
-            "status": status,
-            "search_mode": search_mode,
-            "sample_view": sample_view,
-            "page": page,
-            "per_page": per_page,
-            "live_page": live_page,
-            "done_page": done_page,
-            "live_per_page": live_per_page,
-            "done_per_page": done_per_page,
-            "profile_scope": profile_scope,
-            "has_next_live": False,
-            "has_next_done": False,
-            "panel_type": panel_type,
-            "panel_tech": panel_tech,
-            "assay_group": assay_group,
-        }
 
     return render_template(
         "samples_home.html",
@@ -219,13 +252,13 @@ def edit_sample(sample_id: str) -> str | Response:
     try:
         payload = fetch_edit_context(sample_id)
     except ApiRequestError as exc:
-        log_api_error(
+        raise_page_load_error(
             exc,
             logger=app.home_logger,
             log_message=f"Failed to fetch edit context via API for sample {sample_id}",
-            flash_message="Failed to load sample settings.",
+            summary="Unable to load sample settings.",
+            not_found_summary="The requested sample was not found.",
         )
-        return redirect(url_for("home_bp.samples_home"))
 
     return render_template(
         "edit_sample.html",

@@ -17,18 +17,38 @@ from api.core.workflows.contracts import validate_report_inputs
 
 
 class DNAWorkflowService:
+    """Provide dna workflow workflows.
+    """
     _repository: DNAReportingRepository | None = None
 
     @classmethod
     def set_repository(cls, repository: DNAReportingRepository) -> None:
+        """Set repository.
+
+        Args:
+            repository (DNAReportingRepository): Value for ``repository``.
+
+        Returns:
+            None.
+        """
         cls._repository = repository
 
     @classmethod
     def has_repository(cls) -> bool:
+        """Return whether repository is available.
+
+        Returns:
+            bool: The function result.
+        """
         return cls._repository is not None
 
     @classmethod
     def _repo(cls) -> DNAReportingRepository:
+        """Handle  repo.
+
+        Returns:
+                The  repo result.
+        """
         if cls._repository is None:
             raise RuntimeError("DNAWorkflowService repository is not configured")
         return cls._repository

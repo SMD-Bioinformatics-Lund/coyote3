@@ -12,25 +12,50 @@ from api.core.public.ports import PublicCatalogRepository
 
 
 class PublicCatalogService:
+    """Provide public catalog workflows.
+    """
     DEFAULT_ENV = "production"
     _repository: PublicCatalogRepository | None = None
 
     @classmethod
     def set_repository(cls, repository: PublicCatalogRepository) -> None:
+        """Set repository.
+
+        Args:
+            repository (PublicCatalogRepository): Value for ``repository``.
+
+        Returns:
+            None.
+        """
         cls._repository = repository
 
     @classmethod
     def has_repository(cls) -> bool:
+        """Return whether repository is available.
+
+        Returns:
+            bool: The function result.
+        """
         return cls._repository is not None
 
     @classmethod
     def _repo(cls) -> PublicCatalogRepository:
+        """Handle  repo.
+
+        Returns:
+                The  repo result.
+        """
         if cls._repository is None:
             raise RuntimeError("PublicCatalogService repository is not configured")
         return cls._repository
 
     @staticmethod
     def load_catalog() -> Dict[str, Any]:
+        """Load catalog.
+
+        Returns:
+            Dict[str, Any]: The function result.
+        """
         if not hasattr(app, "_assay_catalog_cache"):
             path = app.config.get("ASSAY_CATALOG_YAML", "assay_catalog.yaml")
             with open(Path(path), "r", encoding="utf-8") as fh:
@@ -39,12 +64,25 @@ class PublicCatalogService:
 
     @staticmethod
     def modalities_order() -> List[str]:
+        """Handle modalities order.
+
+        Returns:
+            List[str]: The function result.
+        """
         catalog = PublicCatalogService.load_catalog()
         order = (catalog.get("layout") or {}).get("order") or []
         return order or list((catalog.get("modalities") or {}).keys())
 
     @staticmethod
     def normalize_mod(mod: Optional[str]) -> Optional[str]:
+        """Normalize mod.
+
+        Args:
+            mod (Optional[str]): Value for ``mod``.
+
+        Returns:
+            Optional[str]: The function result.
+        """
         if not mod:
             return None
         value = (mod or "").strip().lower()
@@ -60,10 +98,26 @@ class PublicCatalogService:
 
     @staticmethod
     def modality_block(mod: str) -> Optional[Dict[str, Any]]:
+        """Handle modality block.
+
+        Args:
+            mod (str): Value for ``mod``.
+
+        Returns:
+            Optional[Dict[str, Any]]: The function result.
+        """
         return (PublicCatalogService.load_catalog().get("modalities") or {}).get(mod)
 
     @staticmethod
     def categories_for(mod: str) -> List[Dict[str, Any]]:
+        """Handle categories for.
+
+        Args:
+            mod (str): Value for ``mod``.
+
+        Returns:
+            List[Dict[str, Any]]: The function result.
+        """
         modality = PublicCatalogService.modality_block(mod) or {}
         categories = modality.get("categories") or {}
         out: List[Dict[str, Any]] = []
@@ -79,6 +133,15 @@ class PublicCatalogService:
 
     @staticmethod
     def category_def(mod: str, cat_id: str) -> Optional[Dict[str, Any]]:
+        """Handle category def.
+
+        Args:
+            mod (str): Value for ``mod``.
+            cat_id (str): Value for ``cat_id``.
+
+        Returns:
+            Optional[Dict[str, Any]]: The function result.
+        """
         modality = PublicCatalogService.modality_block(mod) or {}
         categories = modality.get("categories") or {}
         for key, category in categories.items():
@@ -88,6 +151,15 @@ class PublicCatalogService:
 
     @classmethod
     def _fetch_aspc(cls, aspc_ids: Optional[Dict[str, str]], env: str) -> Optional[Dict[str, Any]]:
+        """Handle  fetch aspc.
+
+        Args:
+                aspc_ids: Aspc ids.
+                env: Env.
+
+        Returns:
+                The  fetch aspc result.
+        """
         if not aspc_ids:
             return None
         aspc_id = aspc_ids.get(env)
@@ -99,6 +171,17 @@ class PublicCatalogService:
     def hydrate_category(
         cls, mod: str, cat_id: str, gl_id: str | None = None, env: str = DEFAULT_ENV
     ) -> Optional[Dict[str, Any]]:
+        """Handle hydrate category.
+
+        Args:
+            mod (str): Value for ``mod``.
+            cat_id (str): Value for ``cat_id``.
+            gl_id (str | None): Value for ``gl_id``.
+            env (str): Value for ``env``.
+
+        Returns:
+            Optional[Dict[str, Any]]: The function result.
+        """
         node = cls.category_def(mod, cat_id)
         if not node:
             return None
@@ -146,6 +229,14 @@ class PublicCatalogService:
 
     @staticmethod
     def hydrate_modality(mod: str) -> Dict[str, Any]:
+        """Handle hydrate modality.
+
+        Args:
+            mod (str): Value for ``mod``.
+
+        Returns:
+            Dict[str, Any]: The function result.
+        """
         modality = PublicCatalogService.modality_block(mod) or {}
         return {
             "label": modality.get("label", mod),
@@ -160,6 +251,14 @@ class PublicCatalogService:
 
     @classmethod
     def _covered_genes(cls, asp_id: Optional[str]) -> Tuple[List[str], List[str]]:
+        """Handle  covered genes.
+
+        Args:
+                asp_id: Asp id.
+
+        Returns:
+                The  covered genes result.
+        """
         if not asp_id:
             return [], []
         genes, germline = cls._repo().get_asp_genes(asp_id)
@@ -169,6 +268,15 @@ class PublicCatalogService:
     def resolve_gene_table(
         cls, asp_id: Optional[str], isgl_key: Optional[str]
     ) -> Tuple[str, List[Dict[str, Any]], Dict[str, int]]:
+        """Handle resolve gene table.
+
+        Args:
+            asp_id (Optional[str]): Value for ``asp_id``.
+            isgl_key (Optional[str]): Value for ``isgl_key``.
+
+        Returns:
+            Tuple[str, List[Dict[str, Any]], Dict[str, int]]: The function result.
+        """
         covered, germline = cls._covered_genes(asp_id)
 
         if isgl_key == asp_id:
@@ -223,6 +331,14 @@ class PublicCatalogService:
 
     @staticmethod
     def _hgnc_placeholder(symbol: str) -> Dict[str, Any]:
+        """Handle  hgnc placeholder.
+
+        Args:
+                symbol: Symbol.
+
+        Returns:
+                The  hgnc placeholder result.
+        """
         cleaned = (symbol or "").strip()
         return {
             "_id": "HGNC:",
@@ -268,6 +384,15 @@ class PublicCatalogService:
     def _merge_with_placeholders(
         symbols: List[str], rows: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
+        """Handle  merge with placeholders.
+
+        Args:
+                symbols: Symbols.
+                rows: Rows.
+
+        Returns:
+                The  merge with placeholders result.
+        """
         have = set()
         out_rows: List[Dict[str, Any]] = rows or []
         for row in out_rows:
@@ -285,6 +410,15 @@ class PublicCatalogService:
     def apply_drug_info(
         cls, genes: List[Dict[str, Any]], druglist_name: str | None = None
     ) -> List[Dict[str, Any]]:
+        """Apply drug info.
+
+        Args:
+            genes (List[Dict[str, Any]]): Value for ``genes``.
+            druglist_name (str | None): Value for ``druglist_name``.
+
+        Returns:
+            List[Dict[str, Any]]: The function result.
+        """
         drug_genes = cls._repo().get_isgl(druglist_name) or {}
         drug_symbols = set(drug_genes.get("genes", [])) if drug_genes else set()
         for gene in genes:
@@ -294,6 +428,15 @@ class PublicCatalogService:
 
     @classmethod
     def genelist_view_context(cls, genelist_id: str, assay: str | None = None) -> dict[str, Any] | None:
+        """Handle genelist view context.
+
+        Args:
+            genelist_id (str): Value for ``genelist_id``.
+            assay (str | None): Value for ``assay``.
+
+        Returns:
+            dict[str, Any] | None: The function result.
+        """
         genelist = cls._repo().get_isgl(genelist_id, is_active=True)
         if not genelist:
             return None
@@ -324,6 +467,14 @@ class PublicCatalogService:
 
     @classmethod
     def asp_genes_payload(cls, asp_id: str) -> dict[str, Any]:
+        """Handle asp genes payload.
+
+        Args:
+            asp_id (str): Value for ``asp_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         gene_symbols, germline_gene_symbols = cls._repo().get_asp_genes(asp_id)
         gene_details = cls._repo().get_hgnc_metadata_by_symbols(list(gene_symbols or []))
         return {
@@ -334,11 +485,27 @@ class PublicCatalogService:
 
     @classmethod
     def assay_catalog_gene_symbols_payload(cls, isgl_key: str) -> dict[str, Any]:
+        """Handle assay catalog gene symbols payload.
+
+        Args:
+            isgl_key (str): Value for ``isgl_key``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         isgl = cls._repo().get_isgl(isgl_key) or {}
         gene_symbols = set(sorted(isgl.get("genes", []))) if isgl_key else set()
         return {"gene_symbols": sorted(gene_symbols)}
 
     @classmethod
     def isgl_genes_for_matrix(cls, isgl_key: str) -> set[str]:
+        """Handle isgl genes for matrix.
+
+        Args:
+            isgl_key (str): Value for ``isgl_key``.
+
+        Returns:
+            set[str]: The function result.
+        """
         isgl_doc = cls._repo().get_isgl(isgl_key, is_active=True, is_public=True) or {}
         return set(isgl_doc.get("genes") or [])

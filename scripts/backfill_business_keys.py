@@ -17,6 +17,8 @@ from pymongo.errors import OperationFailure, PyMongoError
 
 @dataclass(frozen=True)
 class Rule:
+    """Provide the rule type.
+    """
     collection_names: tuple[str, ...]
     key_field: str
 
@@ -46,6 +48,11 @@ RULES: tuple[Rule, ...] = (
 
 
 def parse_args() -> argparse.Namespace:
+    """Handle parse args.
+
+    Returns:
+        argparse.Namespace: The function result.
+    """
     parser = argparse.ArgumentParser(description="Backfill business keys for Coyote3 collections.")
     parser.add_argument("--mongo-uri", default="mongodb://localhost:27017")
     parser.add_argument("--db", action="append", dest="dbs", required=True, help="Target DB name; repeatable")
@@ -54,6 +61,15 @@ def parse_args() -> argparse.Namespace:
 
 
 def _normalize(value: Any, lowercase: bool = False) -> str | None:
+    """Handle  normalize.
+
+    Args:
+            value: Value.
+            lowercase: Lowercase. Optional argument.
+
+    Returns:
+            The  normalize result.
+    """
     if value is None:
         return None
     normalized = str(value).strip()
@@ -63,6 +79,15 @@ def _normalize(value: Any, lowercase: bool = False) -> str | None:
 
 
 def _resolve_business_key(doc: dict[str, Any], key_field: str) -> str | None:
+    """Handle  resolve business key.
+
+    Args:
+            doc: Doc.
+            key_field: Key field.
+
+    Returns:
+            The  resolve business key result.
+    """
     lower = key_field in {"role_id"}
     existing = _normalize(doc.get(key_field), lowercase=lower)
     if existing:
@@ -75,6 +100,16 @@ def _resolve_business_key(doc: dict[str, Any], key_field: str) -> str | None:
 
 
 def backfill_collection(col, key_field: str, dry_run: bool) -> tuple[int, int, int]:
+    """Handle backfill collection.
+
+    Args:
+        col: Value for ``col``.
+        key_field (str): Value for ``key_field``.
+        dry_run (bool): Value for ``dry_run``.
+
+    Returns:
+        tuple[int, int, int]: The function result.
+    """
     scanned = 0
     updated = 0
     failed = 0
@@ -100,6 +135,16 @@ def backfill_collection(col, key_field: str, dry_run: bool) -> tuple[int, int, i
 
 
 def ensure_index(col, key_field: str, dry_run: bool) -> str:
+    """Handle ensure index.
+
+    Args:
+        col: Value for ``col``.
+        key_field (str): Value for ``key_field``.
+        dry_run (bool): Value for ``dry_run``.
+
+    Returns:
+        str: The function result.
+    """
     index_name = f"{key_field}_1"
     if dry_run:
         return index_name
@@ -118,6 +163,11 @@ def ensure_index(col, key_field: str, dry_run: bool) -> str:
 
 
 def main() -> int:
+    """Handle main.
+
+    Returns:
+        int: The function result.
+    """
     args = parse_args()
     client = MongoClient(args.mongo_uri, serverSelectionTimeoutMS=7000)
     try:

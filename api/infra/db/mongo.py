@@ -60,6 +60,11 @@ class MongoAdapter:
     """
 
     def __init__(self, client: pymongo.MongoClient = None):
+        """Handle __init__.
+
+        Args:
+                client: Client. Optional argument.
+        """
         self.client = client
         if self.client:
             self._setup_dbs(self.client)

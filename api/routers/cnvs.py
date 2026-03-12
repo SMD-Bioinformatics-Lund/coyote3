@@ -24,6 +24,17 @@ def list_dna_cnvs(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: CnvService = Depends(get_cnv_service),
 ):
+    """List dna cnvs.
+
+    Args:
+        request (Request): Value for ``request``.
+        sample_id (str): Value for ``sample_id``.
+        user (ApiUser): Value for ``user``.
+        service (CnvService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(service.list_cnvs_payload(request=request, sample=sample, util_module=util))
 
@@ -35,6 +46,17 @@ def show_dna_cnv(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: CnvService = Depends(get_cnv_service),
 ):
+    """Show dna cnv.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        cnv_id (str): Value for ``cnv_id``.
+        user (ApiUser): Value for ``user``.
+        service (CnvService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(service.show_cnv_payload(sample=sample, cnv_id=cnv_id, util_module=util))
 
@@ -46,6 +68,17 @@ def unmark_interesting_cnv(
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
     service: CnvService = Depends(get_cnv_service),
 ):
+    """Handle unmark interesting cnv.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        cnv_id (str): Value for ``cnv_id``.
+        user (ApiUser): Value for ``user``.
+        service (CnvService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     service.repository.cnv_handler.unmark_interesting_cnv(cnv_id)
     return util.common.convert_to_serializable(
@@ -60,6 +93,17 @@ def mark_interesting_cnv(
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
     service: CnvService = Depends(get_cnv_service),
 ):
+    """Handle mark interesting cnv.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        cnv_id (str): Value for ``cnv_id``.
+        user (ApiUser): Value for ``user``.
+        service (CnvService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     service.repository.cnv_handler.mark_interesting_cnv(cnv_id)
     return util.common.convert_to_serializable(
@@ -74,6 +118,17 @@ def mark_false_positive_cnv(
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
     service: CnvService = Depends(get_cnv_service),
 ):
+    """Handle mark false positive cnv.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        cnv_id (str): Value for ``cnv_id``.
+        user (ApiUser): Value for ``user``.
+        service (CnvService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     service.repository.cnv_handler.mark_false_positive_cnv(cnv_id)
     return util.common.convert_to_serializable(
@@ -88,6 +143,17 @@ def unmark_false_positive_cnv(
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
     service: CnvService = Depends(get_cnv_service),
 ):
+    """Handle unmark false positive cnv.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        cnv_id (str): Value for ``cnv_id``.
+        user (ApiUser): Value for ``user``.
+        service (CnvService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     service.repository.cnv_handler.unmark_false_positive_cnv(cnv_id)
     return util.common.convert_to_serializable(
@@ -102,6 +168,17 @@ def mark_noteworthy_cnv(
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
     service: CnvService = Depends(get_cnv_service),
 ):
+    """Handle mark noteworthy cnv.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        cnv_id (str): Value for ``cnv_id``.
+        user (ApiUser): Value for ``user``.
+        service (CnvService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     service.repository.cnv_handler.noteworthy_cnv(cnv_id)
     return util.common.convert_to_serializable(
@@ -116,6 +193,17 @@ def unmark_noteworthy_cnv(
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
     service: CnvService = Depends(get_cnv_service),
 ):
+    """Handle unmark noteworthy cnv.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        cnv_id (str): Value for ``cnv_id``.
+        user (ApiUser): Value for ``user``.
+        service (CnvService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     service.repository.cnv_handler.unnoteworthy_cnv(cnv_id)
     return util.common.convert_to_serializable(
@@ -131,6 +219,18 @@ def hide_cnv_comment(
     user: ApiUser = Depends(require_access(permission="hide_variant_comment", min_role="manager", min_level=99)),
     service: CnvService = Depends(get_cnv_service),
 ):
+    """Handle hide cnv comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        cnv_id (str): Value for ``cnv_id``.
+        comment_id (str): Value for ``comment_id``.
+        user (ApiUser): Value for ``user``.
+        service (CnvService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     service.repository.cnv_handler.hide_cnvs_comment(cnv_id, comment_id)
     return util.common.convert_to_serializable(
@@ -146,6 +246,18 @@ def unhide_cnv_comment(
     user: ApiUser = Depends(require_access(permission="unhide_variant_comment", min_role="manager", min_level=99)),
     service: CnvService = Depends(get_cnv_service),
 ):
+    """Handle unhide cnv comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        cnv_id (str): Value for ``cnv_id``.
+        comment_id (str): Value for ``comment_id``.
+        user (ApiUser): Value for ``user``.
+        service (CnvService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     service.repository.cnv_handler.unhide_cnvs_comment(cnv_id, comment_id)
     return util.common.convert_to_serializable(

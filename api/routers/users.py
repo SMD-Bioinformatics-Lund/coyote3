@@ -20,6 +20,11 @@ router = APIRouter(tags=["admin-users"])
 
 
 def _service() -> AdminUserService:
+    """Handle  service.
+
+    Returns:
+            The  service result.
+    """
     return get_admin_user_service()
 
 
@@ -28,6 +33,15 @@ def list_users_read(
     user: ApiUser = Depends(require_access(permission="view_user", min_role="admin", min_level=99999)),
     service: AdminUserService = Depends(get_admin_user_service),
 ):
+    """List users read.
+
+    Args:
+        user (ApiUser): Value for ``user``.
+        service (AdminUserService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.list_users_payload())
 
@@ -38,6 +52,16 @@ def create_user_context_read(
     user: ApiUser = Depends(require_access(permission="create_user", min_role="admin", min_level=99999)),
     service: AdminUserService = Depends(get_admin_user_service),
 ):
+    """Create user context read.
+
+    Args:
+        schema_id (str | None): Value for ``schema_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminUserService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     return util.common.convert_to_serializable(
         service.create_context_payload(schema_id=schema_id, actor_username=user.username)
     )
@@ -49,11 +73,31 @@ def user_context_read(
     user: ApiUser = Depends(require_access(permission="view_user", min_role="admin", min_level=99999)),
     service: AdminUserService = Depends(get_admin_user_service),
 ):
+    """Handle user context read.
+
+    Args:
+        user_id (str): Value for ``user_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminUserService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.context_payload(user_id=user_id))
 
 
 def _create_user(payload: dict, actor_username: str, service: AdminUserService):
+    """Handle  create user.
+
+    Args:
+            payload: Payload.
+            actor_username: Actor username.
+            service: Service.
+
+    Returns:
+            The  create user result.
+    """
     return util.common.convert_to_serializable(
         service.create_user(payload=payload, actor_username=actor_username)
     )
@@ -65,10 +109,31 @@ def create_user(
     user: ApiUser = Depends(require_access(permission="create_user", min_role="admin", min_level=99999)),
     service: AdminUserService = Depends(get_admin_user_service),
 ):
+    """Create user.
+
+    Args:
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (AdminUserService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     return _create_user(payload=payload, actor_username=user.username, service=service)
 
 
 def _update_user(user_id: str, payload: dict, actor_username: str, service: AdminUserService):
+    """Handle  update user.
+
+    Args:
+            user_id: User id.
+            payload: Payload.
+            actor_username: Actor username.
+            service: Service.
+
+    Returns:
+            The  update user result.
+    """
     return util.common.convert_to_serializable(
         service.update_user(user_id=user_id, payload=payload, actor_username=actor_username)
     )
@@ -81,10 +146,30 @@ def update_user(
     user: ApiUser = Depends(require_access(permission="edit_user", min_role="admin", min_level=99999)),
     service: AdminUserService = Depends(get_admin_user_service),
 ):
+    """Update user.
+
+    Args:
+        user_id (str): Value for ``user_id``.
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (AdminUserService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     return _update_user(user_id=user_id, payload=payload, actor_username=user.username, service=service)
 
 
 def _delete_user(user_id: str, service: AdminUserService):
+    """Handle  delete user.
+
+    Args:
+            user_id: User id.
+            service: Service.
+
+    Returns:
+            The  delete user result.
+    """
     return util.common.convert_to_serializable(service.delete_user(user_id=user_id))
 
 
@@ -94,11 +179,30 @@ def delete_user(
     user: ApiUser = Depends(require_access(permission="delete_user", min_role="admin", min_level=99999)),
     service: AdminUserService = Depends(get_admin_user_service),
 ):
+    """Delete user.
+
+    Args:
+        user_id (str): Value for ``user_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminUserService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return _delete_user(user_id=user_id, service=service)
 
 
 def _toggle_user(user_id: str, service: AdminUserService):
+    """Handle  toggle user.
+
+    Args:
+            user_id: User id.
+            service: Service.
+
+    Returns:
+            The  toggle user result.
+    """
     return util.common.convert_to_serializable(service.toggle_user(user_id=user_id))
 
 
@@ -108,6 +212,16 @@ def toggle_user_status(
     user: ApiUser = Depends(require_access(permission="edit_user", min_role="admin", min_level=99999)),
     service: AdminUserService = Depends(get_admin_user_service),
 ):
+    """Toggle user status.
+
+    Args:
+        user_id (str): Value for ``user_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminUserService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return _toggle_user(user_id=user_id, service=service)
 
@@ -118,6 +232,16 @@ def validate_username_mutation(
     user: ApiUser = Depends(require_access(permission="create_user", min_role="admin", min_level=99999)),
     service: AdminUserService = Depends(get_admin_user_service),
 ):
+    """Validate username mutation.
+
+    Args:
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (AdminUserService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(
         {"exists": service.username_exists(username=str(payload.get("username", "")))}
@@ -130,6 +254,16 @@ def validate_email_mutation(
     user: ApiUser = Depends(require_access(permission="create_user", min_role="admin", min_level=99999)),
     service: AdminUserService = Depends(get_admin_user_service),
 ):
+    """Validate email mutation.
+
+    Args:
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (AdminUserService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(
         {"exists": service.email_exists(email=str(payload.get("email", "")))}

@@ -39,6 +39,7 @@ from coyote.services.api_client.api_client import (
     get_web_api_client,
 )
 from coyote.util.misc import get_dynamic_assay_nav
+from shared.logging import emit_audit_event
 
 from .errors import register_error_handlers
 
@@ -49,10 +50,25 @@ class PrefixMiddleware:
     """
 
     def __init__(self, app, prefix: str):
+        """Handle __init__.
+
+        Args:
+                app: App.
+                prefix: Prefix.
+        """
         self.app = app
         self.prefix = prefix.rstrip("/")
 
     def __call__(self, environ, start_response):
+        """Handle __call__.
+
+        Args:
+                environ: Environ.
+                start_response: Start response.
+
+        Returns:
+                The __call__ result.
+        """
         if self.prefix:
             path = environ.get("PATH_INFO", "")
             environ["SCRIPT_NAME"] = self.prefix
@@ -162,6 +178,11 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
 
         @app.context_processor
         def inject_build_meta():
+            """Handle inject build meta.
+
+            Returns:
+                    The inject build meta result.
+            """
             return {
                 "APP_VERSION": app.config.get("APP_VERSION"),
                 "ENV_NAME": app.config.get("ENV_NAME"),
@@ -328,11 +349,24 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
 
     @app.before_request
     def _bind_request_id() -> None:
+        """Handle  bind request id.
+
+        Returns:
+                None.
+        """
         g.request_id = (request.headers.get("X-Request-ID") or "").strip() or str(uuid.uuid4())
         g.request_start = time.perf_counter()
 
     @app.after_request
     def _log_request(response):
+        """Handle  log request.
+
+        Args:
+                response: Response.
+
+        Returns:
+                The  log request result.
+        """
         request_id = getattr(g, "request_id", "-")
         start = getattr(g, "request_start", None)
         duration_ms = ((time.perf_counter() - start) * 1000.0) if start is not None else 0.0
@@ -351,29 +385,34 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
             user_id,
             client_ip,
         )
-        logging.getLogger("audit").info(
-            json.dumps(
-                {
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "source": "web",
-                    "action": "request",
-                    "status": "ok" if 200 <= int(response.status_code) < 400 else "failed",
-                    "status_code": int(response.status_code),
-                    "duration_ms": round(float(duration_ms), 2),
-                    "method": request.method,
-                    "path": request.path,
-                    "request_id": request_id,
-                    "username": user_id,
-                    "ip": client_ip,
-                },
-                default=str,
-            )
+        emit_audit_event(
+            source="web",
+            action="request",
+            status="success" if 200 <= int(response.status_code) < 400 else ("error" if int(response.status_code) >= 500 else "failed"),
+            severity="error" if int(response.status_code) >= 500 else ("warning" if int(response.status_code) >= 400 else "info"),
+            status_code=int(response.status_code),
+            duration_ms=round(float(duration_ms), 2),
+            method=request.method,
+            path=request.path,
+            request_id=request_id,
+            username=user_id,
+            user=user_id,
+            role=getattr(current_user, "role", "-") if current_user.is_authenticated else "-",
+            ip=client_ip,
         )
         response.headers["X-Request-ID"] = request_id
         return response
 
     @app.teardown_appcontext
     def _close_api_client(_exc) -> None:
+        """Handle  close api client.
+
+        Args:
+                _exc:  exc.
+
+        Returns:
+                None.
+        """
         close_web_api_client()
 
     # Register shared cache backend (Redis when reachable; disabled backend otherwise).

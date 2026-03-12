@@ -11,6 +11,15 @@ from api.routers import reports
 
 
 def _user(username: str = "tester", role: str = "admin") -> ApiUser:
+    """Handle  user.
+
+    Args:
+            username: Username. Optional argument.
+            role: Role. Optional argument.
+
+    Returns:
+            The  user result.
+    """
     return ApiUser(
         id="u1",
         email="tester@example.com",
@@ -28,6 +37,11 @@ def _user(username: str = "tester", role: str = "admin") -> ApiUser:
 
 
 def test_normalize_rendered_report_payload_success():
+    """Handle test normalize rendered report payload success.
+
+    Returns:
+        The function result.
+    """
     html, rows = reports._normalize_rendered_report_payload(
         {"html": "<html>ok</html>", "snapshot_rows": [{"id": 1}]}
     )
@@ -36,6 +50,11 @@ def test_normalize_rendered_report_payload_success():
 
 
 def test_normalize_rendered_report_payload_missing_html_raises_400():
+    """Handle test normalize rendered report payload missing html raises 400.
+
+    Returns:
+        The function result.
+    """
     with pytest.raises(HTTPException) as exc:
         reports._normalize_rendered_report_payload({"snapshot_rows": []})
     assert exc.value.status_code == 400
@@ -43,6 +62,11 @@ def test_normalize_rendered_report_payload_missing_html_raises_400():
 
 
 def test_normalize_rendered_report_payload_invalid_snapshot_rows_raises_400():
+    """Handle test normalize rendered report payload invalid snapshot rows raises 400.
+
+    Returns:
+        The function result.
+    """
     with pytest.raises(HTTPException) as exc:
         reports._normalize_rendered_report_payload({"html": "<html>x</html>", "snapshot_rows": {}})
     assert exc.value.status_code == 400
@@ -50,6 +74,14 @@ def test_normalize_rendered_report_payload_invalid_snapshot_rows_raises_400():
 
 
 def test_preview_report_success_includes_snapshot_when_requested(monkeypatch):
+    """Handle test preview report success includes snapshot when requested.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     monkeypatch.setattr(
         reports,
         "_load_report_context",
@@ -82,6 +114,14 @@ def test_preview_report_success_includes_snapshot_when_requested(monkeypatch):
 
 
 def test_preview_report_hides_snapshot_when_not_requested(monkeypatch):
+    """Handle test preview report hides snapshot when not requested.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     monkeypatch.setattr(
         reports,
         "_load_report_context",
@@ -112,6 +152,14 @@ def test_preview_report_hides_snapshot_when_not_requested(monkeypatch):
 
 
 def test_save_report_success(monkeypatch):
+    """Handle test save report success.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     monkeypatch.setattr(
         reports,
         "_load_report_context",
@@ -144,6 +192,14 @@ def test_save_report_success(monkeypatch):
 
 
 def test_save_dna_report_missing_html_raises_400(monkeypatch):
+    """Handle test save dna report missing html raises 400.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     monkeypatch.setattr(
         reports,
         "_load_report_context",
@@ -169,6 +225,14 @@ def test_save_dna_report_missing_html_raises_400(monkeypatch):
 
 
 def test_save_report_calls_rna_persist_path(monkeypatch):
+    """Handle test save report calls rna persist path.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     calls: dict[str, str] = {}
 
     monkeypatch.setattr(
@@ -184,6 +248,15 @@ def test_save_report_calls_rna_persist_path(monkeypatch):
     monkeypatch.setattr(reports, "_prepare_report_output", lambda analyte, report_path, report_file: None)
 
     def _persist(analyte, **kwargs):
+        """Handle  persist.
+
+        Args:
+                analyte: Analyte.
+                **kwargs: Kwargs. Additional keyword arguments.
+
+        Returns:
+                The  persist result.
+        """
         calls["analyte"] = analyte
         calls["report_id"] = kwargs["report_id"]
         return "oid-rna"
@@ -204,6 +277,11 @@ def test_save_report_calls_rna_persist_path(monkeypatch):
 
 
 def test_restful_report_routes_are_registered():
+    """Handle test restful report routes are registered.
+
+    Returns:
+        The function result.
+    """
     paths = {route.path for route in api_app.routes}
     assert "/api/v1/samples/{sample_id}/reports/{report_type}/preview" in paths
     assert "/api/v1/samples/{sample_id}/reports/{report_type}" in paths

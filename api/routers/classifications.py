@@ -22,6 +22,17 @@ def set_resource_tier_bulk(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="user", min_level=9)),
     service: ResourceClassificationService = Depends(get_classification_service),
 ):
+    """Set resource tier bulk.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (ResourceClassificationService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     sample = _get_sample_for_api(sample_id, user)
     resource_type = str(payload.get("resource_type", "small_variant"))
     resource_ids = payload.get("resource_ids", payload.get("variant_ids", [])) or []
@@ -60,6 +71,17 @@ def classify_resource_mutation(
     user: ApiUser = Depends(require_access(permission="assign_tier", min_role="manager", min_level=99)),
     service: ResourceClassificationService = Depends(get_classification_service),
 ):
+    """Handle classify resource mutation.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (ResourceClassificationService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     resource_type = str(payload.get("resource_type", "small_variant"))
     target_id = str(payload.get("id", "unknown"))
@@ -82,6 +104,17 @@ def remove_classified_resource_mutation(
     user: ApiUser = Depends(require_access(permission="remove_tier", min_role="admin")),
     service: ResourceClassificationService = Depends(get_classification_service),
 ):
+    """Remove classified resource mutation.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (ResourceClassificationService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _get_sample_for_api(sample_id, user)
     resource_type = str(payload.get("resource_type", "small_variant"))
     target_id = str(payload.get("id", "unknown"))

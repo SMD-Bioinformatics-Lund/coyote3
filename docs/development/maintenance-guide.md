@@ -1,10 +1,10 @@
 # Maintenance Guide
 
-This guide explains how to keep Coyote3 healthy over time after the architectural cleanup.
+This guide defines how the repository should be maintained over time. It is not a cleanup memo. It is the operating standard for keeping the system coherent as more engineers change it.
 
 ## What Is Stable
 
-These parts of the repository should be treated as stable structural decisions:
+These parts of the repository should be treated as stable architectural decisions:
 
 - `api/main.py` is the only FastAPI app entrypoint
 - `api/routers/` is the active backend HTTP layer
@@ -13,7 +13,7 @@ These parts of the repository should be treated as stable structural decisions:
 - `coyote/services/api_client/` is the UI-to-API transport layer
 - tests are split into `api`, `ui`, `integration`, `unit`, and `fixtures`
 
-If you change one of those decisions, update architecture docs, deployment docs, and relevant tests in the same change.
+If one of these decisions must change, treat that as an architectural change, not a routine implementation edit. Update the architecture docs, deployment docs, and relevant tests in the same change set.
 
 ## What To Check Regularly
 
@@ -45,7 +45,7 @@ Regularly verify:
 
 ## Safe Maintenance Pattern
 
-When touching a feature:
+When touching a feature, use this sequence:
 
 1. locate the owning layer
 2. change only the owning layer first
@@ -106,6 +106,6 @@ The repository is being maintained correctly when:
 
 - new work follows the existing folder ownership
 - tests still reflect the real architecture
-- docs still read like the current system, not a migration history
+- docs read like the system design, not a migration history
 - startup and deployment paths remain unambiguous
 - the UI remains a client of the API instead of a second backend

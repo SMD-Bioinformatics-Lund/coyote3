@@ -46,6 +46,8 @@ DEFAULT_COLLECTIONS_TOML = Path("config/coyote3_collections.toml")
 
 @dataclass(frozen=True)
 class SnapshotConfig:
+    """Provide the snapshot config type.
+    """
     mongo_uri: str
     db_names: List[str]
     collections_toml: Path
@@ -55,6 +57,11 @@ class SnapshotConfig:
 
 
 def parse_args() -> SnapshotConfig:
+    """Handle parse args.
+
+    Returns:
+        SnapshotConfig: The function result.
+    """
     parser = argparse.ArgumentParser(description="Create tiny Mongo snapshot for Coyote3 collections.")
     parser.add_argument(
         "--mongo-uri",
@@ -111,6 +118,14 @@ def parse_args() -> SnapshotConfig:
 
 
 def load_collections_map(path: Path) -> Dict[str, List[str]]:
+    """Load collections map.
+
+    Args:
+        path (Path): Value for ``path``.
+
+    Returns:
+        Dict[str, List[str]]: The function result.
+    """
     if not path.exists():
         raise FileNotFoundError(f"Collections config not found: {path}")
     data = tomllib.loads(path.read_text(encoding="utf-8"))
@@ -123,6 +138,15 @@ def load_collections_map(path: Path) -> Dict[str, List[str]]:
 
 
 def write_ndjson(path: Path, rows: List[Dict[str, Any]]) -> None:
+    """Handle write ndjson.
+
+    Args:
+        path (Path): Value for ``path``.
+        rows (List[Dict[str, Any]]): Value for ``rows``.
+
+    Returns:
+        None.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as fh:
         for row in rows:
@@ -132,6 +156,14 @@ def write_ndjson(path: Path, rows: List[Dict[str, Any]]) -> None:
 
 def sanitize_uri(uri: str) -> str:
     # Minimal sanitization for manifest readability.
+    """Handle sanitize uri.
+
+    Args:
+        uri (str): Value for ``uri``.
+
+    Returns:
+        str: The function result.
+    """
     if "@" not in uri:
         return uri
     left, right = uri.split("@", 1)
@@ -140,6 +172,14 @@ def sanitize_uri(uri: str) -> str:
 
 
 def pick_sample_collection(collections: List[str]) -> Optional[str]:
+    """Handle pick sample collection.
+
+    Args:
+        collections (List[str]): Value for ``collections``.
+
+    Returns:
+        Optional[str]: The function result.
+    """
     if "samples" in collections:
         return "samples"
     candidates = [c for c in collections if "sample" in c.lower()]
@@ -147,6 +187,14 @@ def pick_sample_collection(collections: List[str]) -> Optional[str]:
 
 
 def choose_sample_sort(coll) -> List[Tuple[str, int]]:
+    """Handle choose sample sort.
+
+    Args:
+        coll: Value for ``coll``.
+
+    Returns:
+        List[Tuple[str, int]]: The function result.
+    """
     candidates = ("time_added", "TIME_ADDED", "updated_at", "created_at", "timestamp", "DATE")
     for field in candidates:
         try:
@@ -158,6 +206,14 @@ def choose_sample_sort(coll) -> List[Tuple[str, int]]:
 
 
 def get_sample_assays(coll) -> List[Any]:
+    """Return sample assays.
+
+    Args:
+        coll: Value for ``coll``.
+
+    Returns:
+        List[Any]: The function result.
+    """
     try:
         values = list(coll.distinct("assay", {"assay": {"$exists": True, "$ne": None}}))
     except Exception:
@@ -166,6 +222,15 @@ def get_sample_assays(coll) -> List[Any]:
 
 
 def select_latest_samples_per_assay(coll, sample_limit: int) -> Tuple[List[Dict[str, Any]], int]:
+    """Handle select latest samples per assay.
+
+    Args:
+        coll: Value for ``coll``.
+        sample_limit (int): Value for ``sample_limit``.
+
+    Returns:
+        Tuple[List[Dict[str, Any]], int]: The function result.
+    """
     sample_sort = choose_sample_sort(coll)
     assay_values = get_sample_assays(coll)
     selected_samples: List[Dict[str, Any]] = []
@@ -195,6 +260,14 @@ def select_latest_samples_per_assay(coll, sample_limit: int) -> Tuple[List[Dict[
 
 
 def has_sample_id_field(coll) -> bool:
+    """Return whether sample id field is available.
+
+    Args:
+        coll: Value for ``coll``.
+
+    Returns:
+        bool: The function result.
+    """
     try:
         return coll.find_one({"SAMPLE_ID": {"$exists": True}}, {"_id": 1}) is not None
     except Exception:
@@ -202,6 +275,11 @@ def has_sample_id_field(coll) -> bool:
 
 
 def main() -> int:
+    """Handle main.
+
+    Returns:
+        int: The function result.
+    """
     cfg = parse_args()
     collections_by_db = load_collections_map(cfg.collections_toml)
     requested_dbs = [db for db in cfg.db_names if db in collections_by_db]

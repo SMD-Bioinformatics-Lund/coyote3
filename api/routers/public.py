@@ -30,6 +30,11 @@ if not hasattr(util, "common"):
 
 
 def _catalog_service() -> type[PublicCatalogService]:
+    """Handle  catalog service.
+
+    Returns:
+            The  catalog service result.
+    """
     if not PublicCatalogService.has_repository():
         PublicCatalogService.set_repository(MongoPublicCatalogRepository())
     return PublicCatalogService
@@ -37,6 +42,15 @@ def _catalog_service() -> type[PublicCatalogService]:
 
 @router.get("/api/v1/public/genelists/{genelist_id}/view_context", response_model=PublicGenelistViewPayload)
 def public_genelist_view_context_read(genelist_id: str, assay: str | None = None):
+    """Handle public genelist view context read.
+
+    Args:
+        genelist_id (str): Value for ``genelist_id``.
+        assay (str | None): Value for ``assay``.
+
+    Returns:
+        The function result.
+    """
     service = _catalog_service()
     payload = service.genelist_view_context(genelist_id, assay)
     if not payload:
@@ -46,6 +60,14 @@ def public_genelist_view_context_read(genelist_id: str, assay: str | None = None
 
 @router.get("/api/v1/public/asp/{asp_id}/genes", response_model=PublicAspGenesPayload)
 def public_asp_genes_read(asp_id: str):
+    """Handle public asp genes read.
+
+    Args:
+        asp_id (str): Value for ``asp_id``.
+
+    Returns:
+        The function result.
+    """
     service = _catalog_service()
     return util.common.convert_to_serializable(service.asp_genes_payload(asp_id))
 
@@ -55,12 +77,25 @@ def public_asp_genes_read(asp_id: str):
     response_model=PublicGeneSymbolsPayload,
 )
 def public_assay_catalog_isgl_genes_view_read(isgl_key: str):
+    """Handle public assay catalog isgl genes view read.
+
+    Args:
+        isgl_key (str): Value for ``isgl_key``.
+
+    Returns:
+        The function result.
+    """
     service = _catalog_service()
     return util.common.convert_to_serializable(service.assay_catalog_gene_symbols_payload(isgl_key))
 
 
 @router.get("/api/v1/public/assay-catalog-matrix/context", response_model=PublicAssayCatalogMatrixPayload)
 def public_assay_catalog_matrix_context_read():
+    """Handle public assay catalog matrix context read.
+
+    Returns:
+        The function result.
+    """
     service = _catalog_service()
     catalog = service.load_catalog()
     modalities = catalog.get("modalities") or {}
@@ -73,6 +108,14 @@ def public_assay_catalog_matrix_context_read():
     matrix: dict[str, dict] = {}
 
     def fetch_asp_genes(asp_id: str) -> set[str]:
+        """Fetch asp genes.
+
+        Args:
+            asp_id (str): Value for ``asp_id``.
+
+        Returns:
+            set[str]: The function result.
+        """
         try:
             _gene_mode, gene_objs, _stats = service.resolve_gene_table(asp_id, None)
         except Exception:
@@ -176,6 +219,16 @@ def public_assay_catalog_context_read(
     cat: str | None = None,
     isgl_key: str | None = None,
 ):
+    """Handle public assay catalog context read.
+
+    Args:
+        mod (str | None): Value for ``mod``.
+        cat (str | None): Value for ``cat``.
+        isgl_key (str | None): Value for ``isgl_key``.
+
+    Returns:
+        The function result.
+    """
     service = _catalog_service()
     catalog = service.load_catalog()
     order = service.modalities_order()
@@ -258,6 +311,16 @@ def public_assay_catalog_genes_csv_context_read(
     cat: str | None = None,
     isgl_key: str | None = None,
 ):
+    """Handle public assay catalog genes csv context read.
+
+    Args:
+        mod (str): Value for ``mod``.
+        cat (str | None): Value for ``cat``.
+        isgl_key (str | None): Value for ``isgl_key``.
+
+    Returns:
+        The function result.
+    """
     service = _catalog_service()
     selected_mod = service.normalize_mod(mod)
     if not selected_mod:

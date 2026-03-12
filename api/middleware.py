@@ -25,6 +25,15 @@ from api.security.access import is_public_api_path, resolve_request_user
 def build_authentication_middleware(*, testing: bool, development: bool) -> Callable[[Request, Callable[..., Awaitable[JSONResponse]]], Awaitable[JSONResponse]]:
     """Build the request middleware that initializes runtime state and enforces API auth."""
     async def api_authentication_middleware(request: Request, call_next):
+        """Handle api authentication middleware.
+
+        Args:
+            request (Request): Value for ``request``.
+            call_next: Value for ``call_next``.
+
+        Returns:
+            The function result.
+        """
         ensure_runtime_initialized(testing=testing, development=development)
         start = time.perf_counter()
         path = request.url.path

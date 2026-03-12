@@ -41,6 +41,11 @@ def about():
 @docs_bp.get("/changelog")
 @login_required
 def changelog():
+    """Handle changelog.
+
+    Returns:
+        The function result.
+    """
     file_path = app.config.get("CHANGELOG_FILE")
     if not file_path:
         abort(404)

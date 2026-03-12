@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from copy import deepcopy
 
-from flask import Response, abort, flash, g, redirect, render_template, request, url_for
+from flask import Response, abort, current_app as app, g, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from coyote.blueprints.admin import admin_bp
@@ -16,22 +16,56 @@ from coyote.services.api_client.api_client import (
     forward_headers,
     get_web_api_client,
 )
+from coyote.services.api_client.web import (
+    flash_api_failure,
+    flash_api_success,
+    raise_page_load_error,
+)
 
 
 def _load_assay_context(assay_id: str):
+    """Load assay-configuration context for edit, view, and print screens.
+
+    Args:
+        assay_id: Assay-configuration identifier.
+
+    Returns:
+        The decoded API context payload for the assay configuration.
+    """
     try:
         return get_web_api_client().get_json(
             api_endpoints.admin("aspc", assay_id, "context"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
-        flash("Assay config not found." if exc.status_code == 404 else f"Failed to load assay config context: {exc}", "red")
-        return None
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to load assay config context for {assay_id}",
+            summary="Unable to load the assay configuration.",
+            not_found_summary="Assay configuration not found.",
+        )
 
 
 def _apply_selected_assay_version(
     assay_config: dict, selected_version: int | None, assay_id: str, keep_version: bool = False
 ) -> tuple[dict, dict | None]:
+    """Return the selected historical assay-config version for diff-aware rendering.
+
+    Args:
+        assay_config: Assay-configuration document returned by the API context
+            endpoint.
+        selected_version: Historical version requested by the operator.
+        assay_id: Assay identifier used to restore ``_id`` after delta
+            application.
+        keep_version: Whether the selected version should remain visible in the
+            projected document.
+
+    Returns:
+        A tuple of ``(assay_configuration, delta)`` where ``delta`` is the
+        applied version delta or ``None`` when no historical projection was
+        needed.
+    """
     delta = None
     if selected_version and selected_version != assay_config.get("version"):
         version_index = next(
@@ -53,6 +87,14 @@ def _apply_selected_assay_version(
 
 
 def _render_create_form(category: str) -> Response | str:
+    """Render and submit the create form for a DNA or RNA assay configuration.
+
+    Args:
+        category: Assay category, typically ``DNA`` or ``RNA``.
+
+    Returns:
+        The rendered form on ``GET`` or a redirect response after ``POST``.
+    """
     try:
         selected_schema_id = request.args.get("schema_id")
         params = {"category": category}
@@ -64,8 +106,12 @@ def _render_create_form(category: str) -> Response | str:
             params=params,
         )
     except ApiRequestError as exc:
-        flash(f"Failed to load {category} assay config context: {exc}", "red")
-        return redirect(url_for("admin_bp.assay_configs"))
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to load {category} assay config create context",
+            summary=f"Unable to load the {category} assay configuration form.",
+        )
 
     if request.method == "POST":
         form_data = {
@@ -97,9 +143,9 @@ def _render_create_form(category: str) -> Response | str:
                 headers=forward_headers(),
                 json_body={"config": config},
             )
-            flash(f"{config['assay_name']} : {config['environment']} assay config created!", "green")
+            flash_api_success(f"{config['assay_name']} : {config['environment']} assay config created.")
         except ApiRequestError as exc:
-            flash(f"Failed to create assay config: {exc}", "red")
+            flash_api_failure("Failed to create assay configuration.", exc)
 
         g.audit_metadata = {
             "assay": config["assay_name"],
@@ -119,6 +165,11 @@ def _render_create_form(category: str) -> Response | str:
 @admin_bp.route("/aspc")
 @login_required
 def assay_configs() -> str:
+    """Render the assay-configuration management page.
+
+    Returns:
+        The rendered management page response.
+    """
     try:
         payload = get_web_api_client().get_json(
             api_endpoints.admin("aspc"),
@@ -126,29 +177,49 @@ def assay_configs() -> str:
         )
         assay_configs = payload.assay_configs
     except ApiRequestError as exc:
-        flash(f"Failed to fetch assay configs: {exc}", "red")
-        assay_configs = []
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message="Failed to fetch assay configs",
+            summary="Unable to load assay configurations.",
+        )
     return render_template("aspc/manage_aspc.html", assay_configs=assay_configs)
 
 
 @admin_bp.route("/aspc/dna/new", methods=["GET", "POST"])
 @login_required
 def create_dna_assay_config() -> Response | str:
+    """Create a DNA assay configuration.
+
+    Returns:
+        The rendered form on ``GET`` or a redirect response after ``POST``.
+    """
     return _render_create_form("DNA")
 
 
 @admin_bp.route("/aspc/rna/new", methods=["GET", "POST"])
 @login_required
 def create_rna_assay_config() -> Response | str:
+    """Create an RNA assay configuration.
+
+    Returns:
+        The rendered form on ``GET`` or a redirect response after ``POST``.
+    """
     return _render_create_form("RNA")
 
 
 @admin_bp.route("/aspc/<assay_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit_assay_config(assay_id: str) -> Response | str:
+    """Edit an assay configuration.
+
+    Args:
+        assay_id: Assay-configuration identifier for the document being edited.
+
+    Returns:
+        The rendered form on ``GET`` or a redirect response after ``POST``.
+    """
     context = _load_assay_context(assay_id)
-    if context is None:
-        return redirect(url_for("admin_bp.assay_configs"))
 
     selected_version = request.args.get("version", type=int)
     assay_config, delta = _apply_selected_assay_version(context.assay_config, selected_version, assay_id)
@@ -186,9 +257,9 @@ def edit_assay_config(assay_id: str) -> Response | str:
                 "assay": updated_config.get("assay_name"),
                 "environment": updated_config.get("environment"),
             }
-            flash("Assay configuration updated successfully.", "green")
+            flash_api_success("Assay configuration updated successfully.")
         except ApiRequestError as exc:
-            flash(f"Failed to update assay config: {exc}", "red")
+            flash_api_failure("Failed to update assay configuration.", exc)
         return redirect(url_for("admin_bp.assay_configs"))
 
     return render_template(
@@ -203,9 +274,15 @@ def edit_assay_config(assay_id: str) -> Response | str:
 @admin_bp.route("/aspc/<assay_id>/view", methods=["GET"])
 @login_required
 def view_assay_config(assay_id: str) -> str | Response:
+    """Display a read-only assay configuration view.
+
+    Args:
+        assay_id: Assay-configuration identifier for the document being displayed.
+
+    Returns:
+        The rendered detail page response.
+    """
     context = _load_assay_context(assay_id)
-    if context is None:
-        return redirect(url_for("admin_bp.assay_configs"))
 
     selected_version = request.args.get("version", type=int)
     assay_config, delta = _apply_selected_assay_version(context.assay_config, selected_version, assay_id)
@@ -222,9 +299,15 @@ def view_assay_config(assay_id: str) -> str | Response:
 @admin_bp.route("/aspc/<assay_id>/print", methods=["GET"])
 @login_required
 def print_assay_config(assay_id: str) -> str | Response:
+    """Render a print-friendly assay configuration view.
+
+    Args:
+        assay_id: Assay-configuration identifier for the document being printed.
+
+    Returns:
+        The rendered print view response.
+    """
     context = _load_assay_context(assay_id)
-    if context is None:
-        return redirect(url_for("admin_bp.assay_configs"))
 
     selected_version = request.args.get("version", type=int)
     assay_config, _ = _apply_selected_assay_version(
@@ -243,6 +326,14 @@ def print_assay_config(assay_id: str) -> str | Response:
 @admin_bp.route("/aspc/<assay_id>/toggle", methods=["POST", "GET"])
 @login_required
 def toggle_assay_config_active(assay_id: str) -> Response:
+    """Toggle the active flag on an assay configuration.
+
+    Args:
+        assay_id: Assay-configuration identifier for the document being updated.
+
+    Returns:
+        A redirect response back to the management page.
+    """
     try:
         payload = get_web_api_client().patch_json(
             api_endpoints.admin("aspc", assay_id, "status"),
@@ -253,24 +344,32 @@ def toggle_assay_config_active(assay_id: str) -> Response:
             "assay": assay_id,
             "assay_status": "Active" if new_status else "Inactive",
         }
-        flash(f"Assay config '{assay_id}' is now {'active' if new_status else 'inactive'}.", "green")
+        flash_api_success(f"Assay config '{assay_id}' is now {'active' if new_status else 'inactive'}.")
     except ApiRequestError as exc:
         if exc.status_code == 404:
             return abort(404)
-        flash(f"Failed to toggle assay config: {exc}", "red")
+        flash_api_failure("Failed to update assay configuration status.", exc)
     return redirect(url_for("admin_bp.assay_configs"))
 
 
 @admin_bp.route("/aspc/<assay_id>/delete", methods=["GET"])
 @login_required
 def delete_assay_config(assay_id: str) -> Response:
+    """Delete an assay configuration.
+
+    Args:
+        assay_id: Assay-configuration identifier for the document being deleted.
+
+    Returns:
+        A redirect response back to the management page.
+    """
     try:
         get_web_api_client().delete_json(
             api_endpoints.admin("aspc", assay_id),
             headers=forward_headers(),
         )
         g.audit_metadata = {"assay": assay_id}
-        flash(f"Assay config '{assay_id}' deleted successfully.", "green")
+        flash_api_success(f"Assay config '{assay_id}' deleted successfully.")
     except ApiRequestError as exc:
-        flash(f"Failed to delete assay config: {exc}", "red")
+        flash_api_failure("Failed to delete assay configuration.", exc)
     return redirect(url_for("admin_bp.assay_configs"))

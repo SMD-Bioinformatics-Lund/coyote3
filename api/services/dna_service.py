@@ -15,11 +15,29 @@ from api.repositories.dna_repository import DnaRouteRepository
 
 
 class DnaService:
+    """Own shared DNA, CNV, and small-variant support workflows."""
+
     def __init__(self, repository: DnaRouteRepository | None = None) -> None:
+        """Handle __init__.
+
+        Args:
+                repository: Repository. Optional argument.
+        """
         self.repository = repository or DnaRouteRepository()
 
     @staticmethod
     def mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict[str, Any]:
+        """Handle mutation payload.
+
+        Args:
+            sample_id (str): Value for ``sample_id``.
+            resource (str): Value for ``resource``.
+            resource_id (str): Value for ``resource_id``.
+            action (str): Value for ``action``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         return {
             "status": "ok",
             "sample_id": str(sample_id),
@@ -30,6 +48,16 @@ class DnaService:
         }
 
     def load_cnvs_for_sample(self, *, sample: dict, sample_filters: dict, filter_genes: list[str]) -> list[dict]:
+        """Load cnvs for sample.
+
+        Args:
+            sample (dict): Value for ``sample``.
+            sample_filters (dict): Value for ``sample_filters``.
+            filter_genes (list[str]): Value for ``filter_genes``.
+
+        Returns:
+            list[dict]: The function result.
+        """
         cnv_query = build_cnv_query(str(sample["_id"]), filters={**sample_filters, "filter_genes": filter_genes})
         cnvs = list(self.repository.cnv_handler.get_sample_cnvs(cnv_query))
         filter_cnveffects = create_cnveffectlist(sample_filters.get("cnveffects", []))
@@ -38,12 +66,31 @@ class DnaService:
         return cnv_organizegenes(cnvs)
 
     def require_variant_for_sample(self, *, sample: dict, var_id: str) -> dict:
+        """Handle require variant for sample.
+
+        Args:
+            sample (dict): Value for ``sample``.
+            var_id (str): Value for ``var_id``.
+
+        Returns:
+            dict: The function result.
+        """
         variant = self.repository.variant_handler.get_variant(var_id)
         if not variant or str(variant.get("SAMPLE_ID", "")) != str(sample.get("_id")):
             raise api_error(404, "Variant not found for sample")
         return variant
 
     def set_variant_bulk_flag(self, *, resource_ids: list[str], apply: bool, flag: str) -> None:
+        """Set variant bulk flag.
+
+        Args:
+            resource_ids (list[str]): Value for ``resource_ids``.
+            apply (bool): Value for ``apply``.
+            flag (str): Value for ``flag``.
+
+        Returns:
+            None.
+        """
         if not resource_ids:
             return
         if flag == "false_positive":
@@ -72,6 +119,21 @@ class DnaService:
         create_annotation_text_fn,
         create_classified_variant_doc_fn,
     ) -> None:
+        """Set variant tier bulk.
+
+        Args:
+            sample (dict): Value for ``sample``.
+            resource_ids (list[str]): Value for ``resource_ids``.
+            assay_group (str | None): Value for ``assay_group``.
+            subpanel (str | None): Value for ``subpanel``.
+            apply (bool): Value for ``apply``.
+            class_num (int): Value for ``class_num``.
+            create_annotation_text_fn: Value for ``create_annotation_text_fn``.
+            create_classified_variant_doc_fn: Value for ``create_classified_variant_doc_fn``.
+
+        Returns:
+            None.
+        """
         bulk_docs: list[dict[str, Any]] = []
         for variant_id in resource_ids:
             var = self.repository.variant_handler.get_variant(str(variant_id))
@@ -144,16 +206,46 @@ class DnaService:
             self.repository.annotation_handler.insert_annotation_bulk(bulk_docs)
 
     def classify_variant(self, *, form_data: dict, get_tier_classification_fn, get_variant_nomenclature_fn) -> None:
+        """Handle classify variant.
+
+        Args:
+            form_data (dict): Value for ``form_data``.
+            get_tier_classification_fn: Value for ``get_tier_classification_fn``.
+            get_variant_nomenclature_fn: Value for ``get_variant_nomenclature_fn``.
+
+        Returns:
+            None.
+        """
         class_num = get_tier_classification_fn(form_data)
         nomenclature, variant = get_variant_nomenclature_fn(form_data)
         if class_num != 0:
             self.repository.annotation_handler.insert_classified_variant(variant, nomenclature, class_num, form_data)
 
     def remove_classified_variant(self, *, form_data: dict, get_variant_nomenclature_fn) -> None:
+        """Remove classified variant.
+
+        Args:
+            form_data (dict): Value for ``form_data``.
+            get_variant_nomenclature_fn: Value for ``get_variant_nomenclature_fn``.
+
+        Returns:
+            None.
+        """
         nomenclature, variant = get_variant_nomenclature_fn(form_data)
         self.repository.annotation_handler.delete_classified_variant(variant, nomenclature, form_data)
 
     def add_variant_comment(self, *, form_data: dict, target_id: str, get_variant_nomenclature_fn, create_comment_doc_fn) -> str:
+        """Handle add variant comment.
+
+        Args:
+            form_data (dict): Value for ``form_data``.
+            target_id (str): Value for ``target_id``.
+            get_variant_nomenclature_fn: Value for ``get_variant_nomenclature_fn``.
+            create_comment_doc_fn: Value for ``create_comment_doc_fn``.
+
+        Returns:
+            str: The function result.
+        """
         nomenclature, variant = get_variant_nomenclature_fn(form_data)
         doc = create_comment_doc_fn(form_data, nomenclature=nomenclature, variant=variant)
         comment_scope = form_data.get("global")
@@ -187,6 +279,21 @@ class DnaService:
         get_filter_conseq_terms_fn,
         assay_config_getter,
     ) -> dict[str, Any]:
+        """List variants payload.
+
+        Args:
+            request: Value for ``request``.
+            sample (dict): Value for ``sample``.
+            util_module: Value for ``util_module``.
+            add_global_annotations_fn: Value for ``add_global_annotations_fn``.
+            generate_summary_text_fn: Value for ``generate_summary_text_fn``.
+            build_query_fn: Value for ``build_query_fn``.
+            get_filter_conseq_terms_fn: Value for ``get_filter_conseq_terms_fn``.
+            assay_config_getter: Value for ``assay_config_getter``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         assay_config = assay_config_getter(sample)
         if not assay_config:
             raise api_error(404, "Assay config not found for sample")
@@ -318,6 +425,15 @@ class DnaService:
         }
 
     def plot_context_payload(self, *, sample: dict, assay_config_getter) -> dict[str, Any]:
+        """Handle plot context payload.
+
+        Args:
+            sample (dict): Value for ``sample``.
+            assay_config_getter: Value for ``assay_config_getter``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         assay_config = assay_config_getter(sample)
         if not assay_config:
             raise api_error(404, "Assay config not found for sample")
@@ -330,6 +446,14 @@ class DnaService:
         }
 
     def biomarkers_payload(self, *, sample: dict) -> dict[str, Any]:
+        """Handle biomarkers payload.
+
+        Args:
+            sample (dict): Value for ``sample``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         biomarkers = list(self.repository.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"])))
         return {"sample": sample, "meta": {"count": len(biomarkers)}, "biomarkers": biomarkers}
 
@@ -342,6 +466,18 @@ class DnaService:
         util_module,
         assay_config_getter,
     ) -> dict[str, Any]:
+        """Handle variant context payload.
+
+        Args:
+            sample (dict): Value for ``sample``.
+            var_id (str): Value for ``var_id``.
+            add_alt_class_fn: Value for ``add_alt_class_fn``.
+            util_module: Value for ``util_module``.
+            assay_config_getter: Value for ``assay_config_getter``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         variant = self.repository.variant_handler.get_variant(var_id)
         if not variant:
             raise api_error(404, "Variant not found")
@@ -441,6 +577,15 @@ class DnaService:
 
     @staticmethod
     def coerce_bool(value: object, default: bool = True) -> bool:
+        """Handle coerce bool.
+
+        Args:
+            value (object): Value for ``value``.
+            default (bool): Value for ``default``.
+
+        Returns:
+            bool: The function result.
+        """
         if isinstance(value, bool):
             return value
         if isinstance(value, str):

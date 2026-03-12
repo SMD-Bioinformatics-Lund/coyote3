@@ -21,6 +21,14 @@ OBJECT_ID_PATTERN = re.compile(r"\bObjectId\s*\(")
 
 
 def _iter_py_files(target_dirs: tuple[Path, ...]) -> list[Path]:
+    """Handle  iter py files.
+
+    Args:
+            target_dirs: Target dirs.
+
+    Returns:
+            The  iter py files result.
+    """
     files: list[Path] = []
     for target_dir in target_dirs:
         files.extend(target_dir.rglob("*.py"))
@@ -28,6 +36,11 @@ def _iter_py_files(target_dirs: tuple[Path, ...]) -> list[Path]:
 
 
 def _count_store_usage_by_file() -> dict[str, int]:
+    """Handle  count store usage by file.
+
+    Returns:
+            The  count store usage by file result.
+    """
     counts: Counter[str] = Counter()
     for py_file in _iter_py_files(STORE_TARGET_DIRS):
         text = py_file.read_text(encoding="utf-8")
@@ -38,6 +51,11 @@ def _count_store_usage_by_file() -> dict[str, int]:
 
 
 def _count_mongo_leaks_by_file() -> dict[str, int]:
+    """Handle  count mongo leaks by file.
+
+    Returns:
+            The  count mongo leaks by file result.
+    """
     counts: Counter[str] = Counter()
     for py_file in _iter_py_files(MONGO_LEAK_TARGET_DIRS):
         hits = 0
@@ -52,6 +70,11 @@ def _count_mongo_leaks_by_file() -> dict[str, int]:
 
 
 def main() -> None:
+    """Handle main.
+
+    Returns:
+        None.
+    """
     store_usage = _count_store_usage_by_file()
     mongo_leaks = _count_mongo_leaks_by_file()
 

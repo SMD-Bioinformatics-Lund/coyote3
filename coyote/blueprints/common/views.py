@@ -21,6 +21,15 @@ from coyote.services.api_client.web import log_api_error
 
 @common_bp.route("/<string:sample_id>/<string:sample_assay>/genes", methods=["POST"])
 def get_sample_genelists(sample_id: str, sample_assay: str) -> str:
+    """Return sample genelists.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+        sample_assay (str): Value for ``sample_assay``.
+
+    Returns:
+        str: The function result.
+    """
     _ = sample_assay
     enc_genelists = request.form.get("enc_genelists")
     enc_panel_doc = request.form.get("enc_panel_doc")
@@ -50,6 +59,14 @@ def get_sample_genelists(sample_id: str, sample_assay: str) -> str:
 @common_bp.route("/public/gene/<string:id>/info", endpoint="public_gene_info", methods=["GET"])
 @common_bp.route("/gene/<string:id>/info", endpoint="gene_info", methods=["GET"])
 def gene_info(id: str) -> str:
+    """Handle gene info.
+
+    Args:
+        id (str): Value for ``id``.
+
+    Returns:
+        str: The function result.
+    """
     gene: dict[str, Any] = {}
     try:
         payload = get_web_api_client().get_json(
@@ -70,6 +87,15 @@ def gene_info(id: str) -> str:
 @common_bp.route("/reported_variants/variant/<string:variant_id>/<int:tier>", methods=["GET"])
 @login_required
 def list_samples_with_tiered_variant(variant_id: str, tier: int):
+    """List samples with tiered variant.
+
+    Args:
+        variant_id (str): Value for ``variant_id``.
+        tier (int): Value for ``tier``.
+
+    Returns:
+        The function result.
+    """
     try:
         payload = get_web_api_client().get_json(
             api_endpoints.common("reported_variants", "variant", variant_id, tier),
@@ -97,6 +123,11 @@ def list_samples_with_tiered_variant(variant_id: str, tier: int):
 @common_bp.route("/search/tiered_variants", methods=["GET", "POST"])
 @login_required
 def search_tiered_variants():
+    """Handle search tiered variants.
+
+    Returns:
+        The function result.
+    """
     form = TieredVariantSearchForm()
     search_mode = form.search_options.default
     include_annotation_text = form.include_annotation_text.default
@@ -189,6 +220,15 @@ def search_tiered_variants():
 
 
 def _redirect_for_omics_layer(sample_id: str, omics_layer: str) -> Response:
+    """Handle  redirect for omics layer.
+
+    Args:
+            sample_id: Sample id.
+            omics_layer: Omics layer.
+
+    Returns:
+            The  redirect for omics layer result.
+    """
     if omics_layer == "dna":
         return redirect(url_for("dna_bp.list_small_variants", sample_id=sample_id))
     if omics_layer == "rna":
@@ -211,6 +251,14 @@ def _redirect_for_omics_layer(sample_id: str, omics_layer: str) -> Response:
 @common_bp.route("/sample/<string:sample_id>/sample_comment", methods=["POST"])
 @login_required
 def add_sample_comment(sample_id: str) -> Response:
+    """Handle add sample comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+
+    Returns:
+        Response: The function result.
+    """
     data = request.form.to_dict()
     try:
         get_web_api_client().post_json(
@@ -234,6 +282,14 @@ def add_sample_comment(sample_id: str) -> Response:
 @common_bp.route("/sample/<string:sample_id>/hide_sample_comment", methods=["POST"])
 @login_required
 def hide_sample_comment(sample_id: str) -> Response:
+    """Handle hide sample comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+
+    Returns:
+        Response: The function result.
+    """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
         payload = get_web_api_client().patch_json(
@@ -255,6 +311,14 @@ def hide_sample_comment(sample_id: str) -> Response:
 @common_bp.route("/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"])
 @login_required
 def unhide_sample_comment(sample_id: str) -> Response:
+    """Handle unhide sample comment.
+
+    Args:
+        sample_id (str): Value for ``sample_id``.
+
+    Returns:
+        Response: The function result.
+    """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
         payload = get_web_api_client().delete_json(

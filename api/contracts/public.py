@@ -8,6 +8,8 @@ from pydantic import BaseModel
 
 
 class PublicGenelistViewPayload(BaseModel):
+    """Represent the public genelist view payload.
+    """
     genelist: dict[str, Any]
     selected_assay: str | None = None
     filtered_genes: list[str]
@@ -16,16 +18,22 @@ class PublicGenelistViewPayload(BaseModel):
 
 
 class PublicAspGenesPayload(BaseModel):
+    """Represent the public asp genes payload.
+    """
     asp_id: str
     gene_details: list[dict[str, Any]]
     germline_gene_symbols: list[str]
 
 
 class PublicGeneSymbolsPayload(BaseModel):
+    """Represent the public gene symbols payload.
+    """
     gene_symbols: list[str]
 
 
 class PublicAssayCatalogMatrixPayload(BaseModel):
+    """Represent the public assay catalog matrix payload.
+    """
     modalities: dict[str, Any]
     order: list[str]
     columns: list[dict[str, Any]]
@@ -36,6 +44,8 @@ class PublicAssayCatalogMatrixPayload(BaseModel):
 
 
 class PublicAssayCatalogPayload(BaseModel):
+    """Represent the public assay catalog payload.
+    """
     meta: dict[str, Any]
     order: list[str]
     modalities: dict[str, Any]
@@ -50,5 +60,7 @@ class PublicAssayCatalogPayload(BaseModel):
 
 
 class PublicAssayCatalogGenesCsvPayload(BaseModel):
+    """Represent the public assay catalog genes csv payload.
+    """
     filename: str
     content: str

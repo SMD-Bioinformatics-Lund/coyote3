@@ -4,6 +4,11 @@ from __future__ import annotations
 
 
 def test_contact_iframe_uses_viewport_fitting_classes():
+    """Handle test contact iframe uses viewport fitting classes.
+
+    Returns:
+        The function result.
+    """
     template_path = "coyote/blueprints/public/templates/contact.html"
     with open(template_path, encoding="utf-8") as handle:
         html = handle.read()

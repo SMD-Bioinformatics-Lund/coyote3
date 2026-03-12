@@ -6,7 +6,7 @@
 import logging
 import logging.config
 from logging.handlers import TimedRotatingFileHandler, QueueHandler, QueueListener
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, Dict, Literal
 from flask import request, has_request_context, session
 from pathlib import Path
@@ -151,11 +151,11 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
         If a file's last modification time is older than the UTC cutoff date (`days_to_keep` days ago),
         it attempts to delete the file. Errors during deletion are logged to the `coyote` logger.
         """
-        cutoff = datetime.utcnow() - timedelta(days=self.days_to_keep)
+        cutoff = datetime.now(UTC) - timedelta(days=self.days_to_keep)
         log_root = Path(self.log_dir)
         for file in log_root.rglob("*.log"):
             try:
-                if datetime.utcfromtimestamp(file.stat().st_mtime) < cutoff:
+                if datetime.fromtimestamp(file.stat().st_mtime, UTC) < cutoff:
                     file.unlink()
             except Exception as e:
                 logging.getLogger("coyote").error(f"Failed to delete log file {file}: {e}")
@@ -177,7 +177,7 @@ def get_utc_log_path(log_dir: str, level: str, now: datetime | None = None, subd
         str: Full file path
     """
     if now is None:
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
 
     base_path = Path(log_dir)
     if subdir:

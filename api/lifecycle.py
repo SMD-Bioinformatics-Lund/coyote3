@@ -14,11 +14,19 @@ from api.runtime_bootstrap import create_runtime_context
 _runtime_bootstrap_lock = threading.Lock()
 _runtime_initialized = False
 
-ROUTE_MODULES = ()
+ROUTE_MODULE_PATHS: tuple[str, ...] = ()
 
 
 def ensure_runtime_initialized(*, testing: bool, development: bool) -> None:
-    """Initialize runtime dependencies once, lazily."""
+    """Initialize shared runtime dependencies once for the process.
+
+    Args:
+        testing: Whether the application is running under the test runtime.
+        development: Whether development-mode runtime settings should be used.
+
+    Returns:
+        ``None``. Runtime state is bound as a process-wide side effect.
+    """
     global _runtime_initialized
     if _runtime_initialized:
         return
@@ -43,16 +51,36 @@ def ensure_runtime_initialized(*, testing: bool, development: bool) -> None:
 
 
 def register_route_modules() -> None:
-    """Import route modules for side-effect registration with FastAPI."""
-    for module_path in ROUTE_MODULES:
+    """Import route modules for side-effect registration with FastAPI.
+
+    Returns:
+        ``None``. Import side effects register route modules with the app.
+    """
+    for module_path in ROUTE_MODULE_PATHS:
         import_module(module_path)
 
 
 def create_lifespan(*, testing: bool, development: bool):
-    """Create the FastAPI lifespan handler."""
+    """Create the FastAPI lifespan handler.
+
+    Args:
+        testing: Whether the application is running under the test runtime.
+        development: Whether development-mode runtime settings should be used.
+
+    Returns:
+        A FastAPI lifespan context manager.
+    """
 
     @asynccontextmanager
     async def _lifespan(_app):
+        """Handle  lifespan.
+
+        Args:
+                _app:  app.
+
+        Returns:
+                The  lifespan result.
+        """
         ensure_runtime_initialized(testing=testing, development=development)
         yield
 

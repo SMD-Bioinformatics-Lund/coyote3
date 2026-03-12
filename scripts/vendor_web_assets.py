@@ -27,6 +27,15 @@ ASSETS = [
 
 
 def _download(url: str, destination: Path) -> None:
+    """Handle  download.
+
+    Args:
+            url: Url.
+            destination: Destination.
+
+    Returns:
+            None.
+    """
     destination.parent.mkdir(parents=True, exist_ok=True)
     with urlopen(url, timeout=30) as response:  # nosec B310
         content = response.read()
@@ -35,6 +44,11 @@ def _download(url: str, destination: Path) -> None:
 
 
 def main() -> None:
+    """Handle main.
+
+    Returns:
+        None.
+    """
     for url, destination in ASSETS:
         _download(url, destination)
 

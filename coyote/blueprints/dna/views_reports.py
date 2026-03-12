@@ -1,7 +1,7 @@
 
 """DNA report route handlers."""
 
-from flask import Response, flash, redirect, url_for
+from flask import Response, redirect, url_for
 from flask import current_app as app
 from flask_login import login_required
 
@@ -12,7 +12,7 @@ from coyote.services.api_client.reports import (
     render_preview_html,
     save_report_from_preview,
 )
-from coyote.services.api_client.web import log_api_error
+from coyote.services.api_client.web import flash_api_success, log_api_error
 
 
 @dna_bp.route("/sample/<string:sample_id>/preview_report", methods=["GET", "POST"])
@@ -46,7 +46,7 @@ def save_dna_report(sample_id: str) -> Response:
         payload = save_report_from_preview("dna", sample_id)
         report_id = payload.report.get("id", "unknown")
         report_file = payload.report.get("file", "unknown")
-        flash(f"Report {report_id}.html has been successfully saved.", "green")
+        flash_api_success(f"Report {report_id}.html has been successfully saved.")
         app.logger.info("Report saved via API: %s", report_file)
     except ApiRequestError as exc:
         log_api_error(

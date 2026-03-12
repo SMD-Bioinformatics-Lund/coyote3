@@ -342,6 +342,14 @@ def uniq_callers(calls: list) -> set:
 
 @app.template_filter("markdown")
 def markdown_filter(s):
+    """Handle markdown filter.
+
+    Args:
+        s: Value for ``s``.
+
+    Returns:
+        The function result.
+    """
     return shared_render_markdown_basic(s)
 
 

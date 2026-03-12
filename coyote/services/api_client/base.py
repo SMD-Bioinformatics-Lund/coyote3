@@ -20,11 +20,18 @@ _SENSITIVE_KEYS = {
 
 @dataclass
 class ApiRequestError(Exception):
+    """Represent the api request error type.
+    """
     message: str
     status_code: int | None = None
     payload: Any | None = None
 
     def __str__(self) -> str:
+        """Handle __str__.
+
+        Returns:
+                The __str__ result.
+        """
         return self.message
 
 
@@ -32,19 +39,49 @@ class ApiPayload(dict[str, Any]):
     """Dict with attribute access for API payloads."""
 
     def __getattr__(self, key: str) -> Any:
+        """Handle __getattr__.
+
+        Args:
+                key: Key.
+
+        Returns:
+                The __getattr__ result.
+        """
         try:
             return self[key]
         except KeyError as exc:
             raise AttributeError(key) from exc
 
     def __setattr__(self, key: str, value: Any) -> None:
+        """Handle __setattr__.
+
+        Args:
+                key: Key.
+                value: Value.
+
+        Returns:
+                None.
+        """
         self[key] = value
 
     def model_dump(self) -> dict[str, Any]:
+        """Handle model dump.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         return _to_builtin(self)
 
 
 def _as_api_payload(value: Any) -> Any:
+    """Handle  as api payload.
+
+    Args:
+            value: Value.
+
+    Returns:
+            The  as api payload result.
+    """
     if isinstance(value, dict):
         return ApiPayload({k: _as_api_payload(v) for k, v in value.items()})
     if isinstance(value, list):
@@ -53,6 +90,14 @@ def _as_api_payload(value: Any) -> Any:
 
 
 def _to_builtin(value: Any) -> Any:
+    """Handle  to builtin.
+
+    Args:
+            value: Value.
+
+    Returns:
+            The  to builtin result.
+    """
     if isinstance(value, ApiPayload):
         return {k: _to_builtin(v) for k, v in value.items()}
     if isinstance(value, list):
@@ -61,7 +106,16 @@ def _to_builtin(value: Any) -> Any:
 
 
 class BaseApiClient:
+    """Provide the base api client type.
+    """
     def __init__(self, base_url: str, timeout_seconds: float = 30.0, client: httpx.Client | None = None) -> None:
+        """Handle __init__.
+
+        Args:
+                base_url: Base url.
+                timeout_seconds: Timeout seconds. Optional argument.
+                client: Client. Optional argument.
+        """
         self._base_url = str(base_url).rstrip("/")
         self._timeout_seconds = timeout_seconds
         self._client = client or httpx.Client(
@@ -79,6 +133,18 @@ class BaseApiClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        """Handle  request.
+
+        Args:
+                method: Method.
+                path: Path.
+                headers: Headers. Optional argument.
+                params: Params. Optional argument.
+                json_body: Json body. Optional argument.
+
+        Returns:
+                The  request result.
+        """
         url = f"{self._base_url}{path}"
         try:
             response = self._client.request(
@@ -121,6 +187,15 @@ class BaseApiClient:
         return payload
 
     def _safe_error_message(self, payload: Any, status_code: int) -> str:
+        """Handle  safe error message.
+
+        Args:
+                payload: Payload.
+                status_code: Status code.
+
+        Returns:
+                The  safe error message result.
+        """
         if isinstance(payload, dict):
             raw = str(payload.get("error") or payload.get("details") or "").strip()
             if raw:
@@ -136,6 +211,16 @@ class BaseApiClient:
         headers: dict[str, str] | None = None,
         params: dict[str, Any] | None = None,
     ) -> ApiPayload:
+        """Handle  get.
+
+        Args:
+                path: Path.
+                headers: Headers. Optional argument.
+                params: Params. Optional argument.
+
+        Returns:
+                The  get result.
+        """
         return _as_api_payload(self._request("GET", path, headers=headers, params=params))
 
     def _post(
@@ -145,6 +230,17 @@ class BaseApiClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> ApiPayload:
+        """Handle  post.
+
+        Args:
+                path: Path.
+                headers: Headers. Optional argument.
+                params: Params. Optional argument.
+                json_body: Json body. Optional argument.
+
+        Returns:
+                The  post result.
+        """
         return _as_api_payload(
             self._request("POST", path, headers=headers, params=params, json_body=json_body)
         )
@@ -156,6 +252,17 @@ class BaseApiClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> ApiPayload:
+        """Handle  put.
+
+        Args:
+                path: Path.
+                headers: Headers. Optional argument.
+                params: Params. Optional argument.
+                json_body: Json body. Optional argument.
+
+        Returns:
+                The  put result.
+        """
         return _as_api_payload(
             self._request("PUT", path, headers=headers, params=params, json_body=json_body)
         )
@@ -167,6 +274,17 @@ class BaseApiClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> ApiPayload:
+        """Handle  patch.
+
+        Args:
+                path: Path.
+                headers: Headers. Optional argument.
+                params: Params. Optional argument.
+                json_body: Json body. Optional argument.
+
+        Returns:
+                The  patch result.
+        """
         return _as_api_payload(
             self._request("PATCH", path, headers=headers, params=params, json_body=json_body)
         )
@@ -178,6 +296,17 @@ class BaseApiClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> ApiPayload:
+        """Handle  delete.
+
+        Args:
+                path: Path.
+                headers: Headers. Optional argument.
+                params: Params. Optional argument.
+                json_body: Json body. Optional argument.
+
+        Returns:
+                The  delete result.
+        """
         return _as_api_payload(
             self._request("DELETE", path, headers=headers, params=params, json_body=json_body)
         )
@@ -188,6 +317,16 @@ class BaseApiClient:
         headers: dict[str, str] | None = None,
         params: dict[str, Any] | None = None,
     ) -> ApiPayload:
+        """Return json.
+
+        Args:
+            path (str): Value for ``path``.
+            headers (dict[str, str] | None): Value for ``headers``.
+            params (dict[str, Any] | None): Value for ``params``.
+
+        Returns:
+            ApiPayload: The function result.
+        """
         return self._get(path, headers=headers, params=params)
 
     def post_json(
@@ -197,6 +336,17 @@ class BaseApiClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> ApiPayload:
+        """Handle post json.
+
+        Args:
+            path (str): Value for ``path``.
+            headers (dict[str, str] | None): Value for ``headers``.
+            params (dict[str, Any] | None): Value for ``params``.
+            json_body (dict[str, Any] | None): Value for ``json_body``.
+
+        Returns:
+            ApiPayload: The function result.
+        """
         return self._post(path, headers=headers, params=params, json_body=json_body)
 
     def put_json(
@@ -206,6 +356,17 @@ class BaseApiClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> ApiPayload:
+        """Handle put json.
+
+        Args:
+            path (str): Value for ``path``.
+            headers (dict[str, str] | None): Value for ``headers``.
+            params (dict[str, Any] | None): Value for ``params``.
+            json_body (dict[str, Any] | None): Value for ``json_body``.
+
+        Returns:
+            ApiPayload: The function result.
+        """
         return self._put(path, headers=headers, params=params, json_body=json_body)
 
     def patch_json(
@@ -215,6 +376,17 @@ class BaseApiClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> ApiPayload:
+        """Handle patch json.
+
+        Args:
+            path (str): Value for ``path``.
+            headers (dict[str, str] | None): Value for ``headers``.
+            params (dict[str, Any] | None): Value for ``params``.
+            json_body (dict[str, Any] | None): Value for ``json_body``.
+
+        Returns:
+            ApiPayload: The function result.
+        """
         return self._patch(path, headers=headers, params=params, json_body=json_body)
 
     def delete_json(
@@ -224,13 +396,45 @@ class BaseApiClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> ApiPayload:
+        """Delete json.
+
+        Args:
+            path (str): Value for ``path``.
+            headers (dict[str, str] | None): Value for ``headers``.
+            params (dict[str, Any] | None): Value for ``params``.
+            json_body (dict[str, Any] | None): Value for ``json_body``.
+
+        Returns:
+            ApiPayload: The function result.
+        """
         return self._delete(path, headers=headers, params=params, json_body=json_body)
 
     def close(self) -> None:
+        """Handle close.
+
+        Returns:
+            None.
+        """
         self._client.close()
 
     def last_response_cookie(self, name: str) -> str | None:
+        """Handle last response cookie.
+
+        Args:
+            name (str): Value for ``name``.
+
+        Returns:
+            str | None: The function result.
+        """
         return self._last_response_cookies.get(name)
 
     def last_response_header(self, name: str) -> str | None:
+        """Handle last response header.
+
+        Args:
+            name (str): Value for ``name``.
+
+        Returns:
+            str | None: The function result.
+        """
         return self._last_response_headers.get(name)

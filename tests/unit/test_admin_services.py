@@ -18,7 +18,11 @@ from api.services.admin_user_service import AdminUserService
 
 
 class _AdminRepoStub:
+    """Provide  AdminRepoStub behavior.
+    """
     def __init__(self) -> None:
+        """Handle __init__.
+        """
         self.created_user = None
         self.updated_user = None
         self.created_role = None
@@ -27,18 +31,44 @@ class _AdminRepoStub:
         self.deleted_roles: list[str] = []
 
     def list_users(self):
+        """List users.
+
+        Returns:
+            The function result.
+        """
         return [{"_id": "tester", "user_id": "tester"}]
 
     def get_role_colors(self):
+        """Return role colors.
+
+        Returns:
+            The function result.
+        """
         return {"admin": "#000"}
 
     def get_active_schema(self, **kwargs):
+        """Return active schema.
+
+        Args:
+            **kwargs: Additional keyword values for ``kwargs``.
+
+        Returns:
+            The function result.
+        """
         return (
             [{"_id": "schema1", "schema_id": "schema1", "version": 2, "fields": {"role": {}, "permissions": {}, "deny_permissions": {}, "assay_groups": {}, "created_by": {}, "created_on": {}, "updated_by": {}, "updated_on": {}}}],
             {"_id": "schema1", "schema_id": "schema1", "version": 2, "fields": {"role": {}, "permissions": {}, "deny_permissions": {}, "assay_groups": {}, "created_by": {}, "created_on": {}, "updated_by": {}, "updated_on": {}}},
         )
 
     def clone_schema(self, schema):
+        """Handle clone schema.
+
+        Args:
+            schema: Value for ``schema``.
+
+        Returns:
+            The function result.
+        """
         return {
             "_id": schema["_id"],
             "schema_id": schema["schema_id"],
@@ -47,24 +77,65 @@ class _AdminRepoStub:
         }
 
     def list_permission_policy_options(self):
+        """List permission policy options.
+
+        Returns:
+            The function result.
+        """
         return [{"value": "perm.a", "label": "perm.a", "category": "General"}]
 
     def get_role_names(self):
+        """Return role names.
+
+        Returns:
+            The function result.
+        """
         return ["admin"]
 
     def get_roles_policy_map(self):
+        """Return roles policy map.
+
+        Returns:
+            The function result.
+        """
         return {"admin": {"permissions": ["perm.a"], "deny_permissions": [], "level": 99}}
 
     def get_assay_group_map(self):
+        """Return assay group map.
+
+        Returns:
+            The function result.
+        """
         return {"dna": [{"_id": "WGS"}]}
 
     def get_asp_groups(self):
+        """Return asp groups.
+
+        Returns:
+            The function result.
+        """
         return ["dna"]
 
     def create_user(self, user_data):
+        """Create user.
+
+        Args:
+            user_data: Value for ``user_data``.
+
+        Returns:
+            The function result.
+        """
         self.created_user = user_data
 
     def get_user(self, user_id):
+        """Return user.
+
+        Args:
+            user_id: Value for ``user_id``.
+
+        Returns:
+            The function result.
+        """
         if user_id == "missing":
             return None
         return {
@@ -84,21 +155,60 @@ class _AdminRepoStub:
         }
 
     def get_schema(self, schema_name):
+        """Return schema.
+
+        Args:
+            schema_name: Value for ``schema_name``.
+
+        Returns:
+            The function result.
+        """
         if not schema_name:
             return None
         return {"_id": "schema1", "schema_id": "schema1", "version": 2, "fields": {"role": {}, "permissions": {}, "deny_permissions": {}, "assay_groups": {}, "assays": {}}}
 
     def update_user(self, user_id, user_data):
+        """Update user.
+
+        Args:
+            user_id: Value for ``user_id``.
+            user_data: Value for ``user_data``.
+
+        Returns:
+            The function result.
+        """
         self.updated_user = (user_id, user_data)
 
     def delete_user(self, user_id):
+        """Delete user.
+
+        Args:
+            user_id: Value for ``user_id``.
+
+        Returns:
+            The function result.
+        """
         self.deleted_users.append(user_id)
 
     def set_user_active(self, user_id, is_active):
+        """Set user active.
+
+        Args:
+            user_id: Value for ``user_id``.
+            is_active: Value for ``is_active``.
+
+        Returns:
+            The function result.
+        """
         self.updated_user = (user_id, {"is_active": is_active})
 
     @property
     def user_handler(self):
+        """Handle user handler.
+
+        Returns:
+            The function result.
+        """
         return type(
             "_UserHandler",
             (),
@@ -108,9 +218,22 @@ class _AdminRepoStub:
         )()
 
     def list_roles(self):
+        """List roles.
+
+        Returns:
+            The function result.
+        """
         return [{"_id": "admin", "role_id": "admin", "level": 99}]
 
     def get_role(self, role_id):
+        """Return role.
+
+        Args:
+            role_id: Value for ``role_id``.
+
+        Returns:
+            The function result.
+        """
         if role_id == "missing":
             return None
         return {
@@ -124,21 +247,71 @@ class _AdminRepoStub:
         }
 
     def create_role(self, role_data):
+        """Create role.
+
+        Args:
+            role_data: Value for ``role_data``.
+
+        Returns:
+            The function result.
+        """
         self.created_role = role_data
 
     def update_role(self, role_id, role_data):
+        """Update role.
+
+        Args:
+            role_id: Value for ``role_id``.
+            role_data: Value for ``role_data``.
+
+        Returns:
+            The function result.
+        """
         self.updated_role = (role_id, role_data)
 
     def set_role_active(self, role_id, is_active):
+        """Set role active.
+
+        Args:
+            role_id: Value for ``role_id``.
+            is_active: Value for ``is_active``.
+
+        Returns:
+            The function result.
+        """
         self.updated_role = (role_id, {"is_active": is_active})
 
     def delete_role(self, role_id):
+        """Delete role.
+
+        Args:
+            role_id: Value for ``role_id``.
+
+        Returns:
+            The function result.
+        """
         self.deleted_roles.append(role_id)
 
     def list_permissions(self, *, is_active=False):
+        """List permissions.
+
+        Args:
+            is_active: Value for ``is_active``.
+
+        Returns:
+            The function result.
+        """
         return [{"_id": "perm.read", "permission_id": "perm.read", "category": "General", "is_active": True}]
 
     def get_permission(self, permission_id):
+        """Return permission.
+
+        Args:
+            permission_id: Value for ``permission_id``.
+
+        Returns:
+            The function result.
+        """
         if permission_id == "missing":
             return None
         return {
@@ -152,118 +325,386 @@ class _AdminRepoStub:
         }
 
     def create_permission(self, policy):
+        """Create permission.
+
+        Args:
+            policy: Value for ``policy``.
+
+        Returns:
+            The function result.
+        """
         self.created_permission = policy
 
     def update_permission(self, permission_id, policy):
+        """Update permission.
+
+        Args:
+            permission_id: Value for ``permission_id``.
+            policy: Value for ``policy``.
+
+        Returns:
+            The function result.
+        """
         self.updated_permission = (permission_id, policy)
 
     def set_permission_active(self, permission_id, is_active):
+        """Set permission active.
+
+        Args:
+            permission_id: Value for ``permission_id``.
+            is_active: Value for ``is_active``.
+
+        Returns:
+            The function result.
+        """
         self.updated_permission = (permission_id, {"is_active": is_active})
 
     def delete_permission(self, permission_id):
+        """Delete permission.
+
+        Args:
+            permission_id: Value for ``permission_id``.
+
+        Returns:
+            The function result.
+        """
         self.deleted_permissions = getattr(self, "deleted_permissions", [])
         self.deleted_permissions.append(permission_id)
 
     def list_panels(self, *, is_active=None):
+        """List panels.
+
+        Args:
+            is_active: Value for ``is_active``.
+
+        Returns:
+            The function result.
+        """
         return [{"_id": "WGS", "asp_id": "WGS", "schema_name": "ASP-Schema"}]
 
     def get_panel(self, panel_id):
+        """Return panel.
+
+        Args:
+            panel_id: Value for ``panel_id``.
+
+        Returns:
+            The function result.
+        """
         if panel_id == "missing":
             return None
         return {"_id": panel_id, "asp_id": panel_id, "schema_name": "ASP-Schema", "is_active": False, "covered_genes": ["TP53"], "germline_genes": ["BRCA1"]}
 
     def create_panel(self, panel):
+        """Create panel.
+
+        Args:
+            panel: Value for ``panel``.
+
+        Returns:
+            The function result.
+        """
         self.created_panel = panel
 
     def update_panel(self, panel_id, panel):
+        """Update panel.
+
+        Args:
+            panel_id: Value for ``panel_id``.
+            panel: Value for ``panel``.
+
+        Returns:
+            The function result.
+        """
         self.updated_panel = (panel_id, panel)
 
     def set_panel_active(self, panel_id, is_active):
+        """Set panel active.
+
+        Args:
+            panel_id: Value for ``panel_id``.
+            is_active: Value for ``is_active``.
+
+        Returns:
+            The function result.
+        """
         self.updated_panel = (panel_id, {"is_active": is_active})
 
     def delete_panel(self, panel_id):
+        """Delete panel.
+
+        Args:
+            panel_id: Value for ``panel_id``.
+
+        Returns:
+            The function result.
+        """
         self.deleted_panels = getattr(self, "deleted_panels", [])
         self.deleted_panels.append(panel_id)
 
     def list_genelists(self):
+        """List genelists.
+
+        Returns:
+            The function result.
+        """
         return [{"_id": "GL1", "isgl_id": "GL1", "schema_name": "schema1", "genes": ["TP53"], "assays": ["WGS"]}]
 
     def get_genelist(self, genelist_id):
+        """Return genelist.
+
+        Args:
+            genelist_id: Value for ``genelist_id``.
+
+        Returns:
+            The function result.
+        """
         if genelist_id == "missing":
             return None
         return {"_id": genelist_id, "isgl_id": genelist_id, "schema_name": "schema1", "genes": ["TP53", "EGFR"], "assays": ["WGS"], "assay_groups": ["dna"], "is_active": True}
 
     def create_genelist(self, genelist):
+        """Create genelist.
+
+        Args:
+            genelist: Value for ``genelist``.
+
+        Returns:
+            The function result.
+        """
         self.created_genelist = genelist
 
     def update_genelist(self, genelist_id, genelist):
+        """Update genelist.
+
+        Args:
+            genelist_id: Value for ``genelist_id``.
+            genelist: Value for ``genelist``.
+
+        Returns:
+            The function result.
+        """
         self.updated_genelist = (genelist_id, genelist)
 
     def set_genelist_active(self, genelist_id, is_active):
+        """Set genelist active.
+
+        Args:
+            genelist_id: Value for ``genelist_id``.
+            is_active: Value for ``is_active``.
+
+        Returns:
+            The function result.
+        """
         self.updated_genelist = (genelist_id, {"is_active": is_active})
 
     def delete_genelist(self, genelist_id):
+        """Delete genelist.
+
+        Args:
+            genelist_id: Value for ``genelist_id``.
+
+        Returns:
+            The function result.
+        """
         self.deleted_genelists = getattr(self, "deleted_genelists", [])
         self.deleted_genelists.append(genelist_id)
 
     def list_assay_configs(self):
+        """List assay configs.
+
+        Returns:
+            The function result.
+        """
         return [{"_id": "WGS:prod", "aspc_id": "WGS:prod", "schema_name": "schema1"}]
 
     def get_assay_config(self, assay_id):
+        """Return assay config.
+
+        Args:
+            assay_id: Value for ``assay_id``.
+
+        Returns:
+            The function result.
+        """
         if assay_id == "missing":
             return None
         return {"_id": assay_id, "aspc_id": assay_id, "schema_name": "schema1", "is_active": True}
 
     def create_assay_config(self, config):
+        """Create assay config.
+
+        Args:
+            config: Value for ``config``.
+
+        Returns:
+            The function result.
+        """
         self.created_aspc = config
 
     def update_assay_config(self, assay_id, config):
+        """Update assay config.
+
+        Args:
+            assay_id: Value for ``assay_id``.
+            config: Value for ``config``.
+
+        Returns:
+            The function result.
+        """
         self.updated_aspc = (assay_id, config)
 
     def set_assay_config_active(self, assay_id, is_active):
+        """Set assay config active.
+
+        Args:
+            assay_id: Value for ``assay_id``.
+            is_active: Value for ``is_active``.
+
+        Returns:
+            The function result.
+        """
         self.updated_aspc = (assay_id, {"is_active": is_active})
 
     def delete_assay_config(self, assay_id):
+        """Delete assay config.
+
+        Args:
+            assay_id: Value for ``assay_id``.
+
+        Returns:
+            The function result.
+        """
         self.deleted_aspc = getattr(self, "deleted_aspc", [])
         self.deleted_aspc.append(assay_id)
 
     def get_available_assay_envs(self, assay_id, allowed_envs):
+        """Return available assay envs.
+
+        Args:
+            assay_id: Value for ``assay_id``.
+            allowed_envs: Value for ``allowed_envs``.
+
+        Returns:
+            The function result.
+        """
         return ["production"]
 
     def list_samples_for_admin(self, *, assays, search):
+        """List samples for admin.
+
+        Args:
+            assays: Value for ``assays``.
+            search: Value for ``search``.
+
+        Returns:
+            The function result.
+        """
         return [{"_id": "S1"}]
 
     def get_sample(self, sample_id):
+        """Return sample.
+
+        Args:
+            sample_id: Value for ``sample_id``.
+
+        Returns:
+            The function result.
+        """
         if sample_id == "missing":
             return None
         return {"_id": sample_id, "sample_id": sample_id}
 
     def update_sample(self, sample_obj, updated_sample):
+        """Update sample.
+
+        Args:
+            sample_obj: Value for ``sample_obj``.
+            updated_sample: Value for ``updated_sample``.
+
+        Returns:
+            The function result.
+        """
         self.updated_sample_doc = (sample_obj, updated_sample)
 
     def get_sample_name(self, sample_id):
+        """Return sample name.
+
+        Args:
+            sample_id: Value for ``sample_id``.
+
+        Returns:
+            The function result.
+        """
         if sample_id == "missing":
             return None
         return sample_id
 
     def list_schemas(self):
+        """List schemas.
+
+        Returns:
+            The function result.
+        """
         return [{"_id": "schema1"}]
 
     def create_schema(self, schema_doc):
+        """Create schema.
+
+        Args:
+            schema_doc: Value for ``schema_doc``.
+
+        Returns:
+            The function result.
+        """
         self.created_schema = schema_doc
 
     def update_schema(self, schema_id, schema_doc):
+        """Update schema.
+
+        Args:
+            schema_id: Value for ``schema_id``.
+            schema_doc: Value for ``schema_doc``.
+
+        Returns:
+            The function result.
+        """
         self.updated_schema = (schema_id, schema_doc)
 
     def set_schema_active(self, schema_id, is_active):
+        """Set schema active.
+
+        Args:
+            schema_id: Value for ``schema_id``.
+            is_active: Value for ``is_active``.
+
+        Returns:
+            The function result.
+        """
         self.updated_schema = (schema_id, {"is_active": is_active})
 
     def delete_schema(self, schema_id):
+        """Delete schema.
+
+        Args:
+            schema_id: Value for ``schema_id``.
+
+        Returns:
+            The function result.
+        """
         self.deleted_schemas = getattr(self, "deleted_schemas", [])
         self.deleted_schemas.append(schema_id)
 
 
 def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
+    """Handle test admin user service create user normalizes identity.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     repo = _AdminRepoStub()
     service = AdminUserService(repository=repo)
     monkeypatch.setattr("api.services.admin_user_service.current_actor", lambda username: username)
@@ -297,6 +738,11 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
 
 
 def test_admin_user_service_toggle_user_sets_status():
+    """Handle test admin user service toggle user sets status.
+
+    Returns:
+        The function result.
+    """
     repo = _AdminRepoStub()
     service = AdminUserService(repository=repo)
 
@@ -307,6 +753,14 @@ def test_admin_user_service_toggle_user_sets_status():
 
 
 def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
+    """Handle test admin role service create role normalizes business key.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     repo = _AdminRepoStub()
     service = AdminRoleService(repository=repo)
     monkeypatch.setattr("api.services.admin_role_service.current_actor", lambda username: username)
@@ -324,6 +778,11 @@ def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
 
 
 def test_admin_role_service_delete_role_removes_existing_role():
+    """Handle test admin role service delete role removes existing role.
+
+    Returns:
+        The function result.
+    """
     repo = _AdminRepoStub()
     service = AdminRoleService(repository=repo)
 
@@ -334,6 +793,11 @@ def test_admin_role_service_delete_role_removes_existing_role():
 
 
 def test_admin_permission_service_groups_permissions():
+    """Handle test admin permission service groups permissions.
+
+    Returns:
+        The function result.
+    """
     repo = _AdminRepoStub()
     service = PermissionManagementService(repository=repo)
 
@@ -344,6 +808,11 @@ def test_admin_permission_service_groups_permissions():
 
 
 def test_admin_permission_service_create_context_raises_when_missing_schema():
+    """Handle test admin permission service create context raises when missing schema.
+
+    Returns:
+        The function result.
+    """
     repo = _AdminRepoStub()
     repo.get_active_schema = lambda **kwargs: ([], {})
     service = PermissionManagementService(repository=repo)
@@ -355,6 +824,11 @@ def test_admin_permission_service_create_context_raises_when_missing_schema():
 
 
 def test_admin_permission_service_toggle_permission_sets_status():
+    """Handle test admin permission service toggle permission sets status.
+
+    Returns:
+        The function result.
+    """
     repo = _AdminRepoStub()
     service = PermissionManagementService(repository=repo)
 
@@ -365,6 +839,11 @@ def test_admin_permission_service_toggle_permission_sets_status():
 
 
 def test_admin_panel_service_toggle_panel_sets_status():
+    """Handle test admin panel service toggle panel sets status.
+
+    Returns:
+        The function result.
+    """
     repo = _AdminRepoStub()
     service = AdminPanelService(repository=repo)
 
@@ -375,6 +854,11 @@ def test_admin_panel_service_toggle_panel_sets_status():
 
 
 def test_admin_genelist_service_view_context_filters_genes():
+    """Handle test admin genelist service view context filters genes.
+
+    Returns:
+        The function result.
+    """
     repo = _AdminRepoStub()
     service = AdminGenelistService(repository=repo)
 
@@ -385,6 +869,11 @@ def test_admin_genelist_service_view_context_filters_genes():
 
 
 def test_admin_aspc_service_create_rejects_duplicate():
+    """Handle test admin aspc service create rejects duplicate.
+
+    Returns:
+        The function result.
+    """
     repo = _AdminRepoStub()
     service = AdminAspcService(repository=repo)
 
@@ -395,6 +884,14 @@ def test_admin_aspc_service_create_rejects_duplicate():
 
 
 def test_admin_schema_service_create_sets_identity(monkeypatch):
+    """Handle test admin schema service create sets identity.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     repo = _AdminRepoStub()
     service = AdminSchemaService(repository=repo)
     monkeypatch.setattr("api.services.admin_resource_service.current_actor", lambda username: username)
@@ -407,6 +904,14 @@ def test_admin_schema_service_create_sets_identity(monkeypatch):
 
 
 def test_admin_sample_service_update_restores_ids(monkeypatch):
+    """Handle test admin sample service update restores ids.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     repo = _AdminRepoStub()
     service = AdminSampleService(repository=repo)
     monkeypatch.setattr("api.services.admin_resource_service.current_actor", lambda username: username)

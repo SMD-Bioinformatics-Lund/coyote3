@@ -201,7 +201,11 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
 @admin_bp.route("/")
 @login_required
 def admin_home() -> Any:
-    """Render the admin landing page with the currently available admin cards."""
+    """Render the admin landing page and available governance cards.
+
+    Returns:
+        The rendered admin landing page response.
+    """
     registered = set(current_app.view_functions.keys())
     cards: list[dict[str, Any]] = []
     for item in _ADMIN_CARDS:

@@ -11,10 +11,22 @@ from api.repositories.dashboard_repository import DashboardRepository as MongoDa
 
 
 class DashboardService:
+    """Provide dashboard workflows.
+    """
     def __init__(self, repository=None) -> None:
+        """Handle __init__.
+
+        Args:
+                repository: Repository. Optional argument.
+        """
         self.repository = repository or MongoDashboardRepository()
 
     def build_capacity_counts(self) -> dict[str, int]:
+        """Build capacity counts.
+
+        Returns:
+            dict[str, int]: The function result.
+        """
         return {
             "users_total": self.repository.count_users(),
             "roles_total": self.repository.count_roles(),
@@ -24,6 +36,14 @@ class DashboardService:
         }
 
     def build_isgl_visibility(self, isgls: list[dict] | None = None) -> dict[str, Any]:
+        """Build isgl visibility.
+
+        Args:
+            isgls (list[dict] | None): Value for ``isgls``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         rows = isgls if isinstance(isgls, list) else (self.repository.get_all_isgl() or [])
         public_total = private_total = adhoc_total = 0
         public_only = private_only = adhoc_only = 0
@@ -86,6 +106,11 @@ class DashboardService:
         }
 
     def build_admin_insights(self) -> dict[str, Any]:
+        """Build admin insights.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         users = self.repository.get_all_users() or []
         isgls = self.repository.get_all_isgl() or []
 
@@ -126,6 +151,14 @@ class DashboardService:
         }
 
     def resolve_scope_assays(self, *, user) -> list[str] | None:
+        """Handle resolve scope assays.
+
+        Args:
+            user: Value for ``user``.
+
+        Returns:
+            list[str] | None: The function result.
+        """
         try:
             fresh_user_doc = self.repository.get_user_by_id(str(user.id)) or {}
         except Exception:
@@ -164,11 +197,28 @@ class DashboardService:
         return sorted(effective_assays)
 
     def summary_payload(self, *, user) -> dict[str, Any]:
+        """Handle summary payload.
+
+        Args:
+            user: Value for ``user``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         timings_ms: dict[str, float] = {}
         api_start = perf_counter()
         scope_assays = self.resolve_scope_assays(user=user)
 
         def _timed(name: str, fn):
+            """Handle  timed.
+
+            Args:
+                    name: Name.
+                    fn: Fn.
+
+            Returns:
+                    The  timed result.
+            """
             t0 = perf_counter()
             value = fn()
             timings_ms[name] = round((perf_counter() - t0) * 1000, 2)

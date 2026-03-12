@@ -8,6 +8,11 @@ from api.main import app
 
 
 def test_canonical_api_entrypoint_serves_health():
+    """Handle test canonical api entrypoint serves health.
+
+    Returns:
+        The function result.
+    """
     client = TestClient(app)
 
     response = client.get("/api/v1/health")

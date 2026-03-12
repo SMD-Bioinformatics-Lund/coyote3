@@ -14,13 +14,34 @@ from api.services.management_common import current_actor, mutation_payload, utc_
 
 
 class AdminPanelService:
+    """Own assay-panel resource-management workflows."""
+
     def __init__(self, repository: AdminRepository | None = None) -> None:
+        """Handle __init__.
+
+        Args:
+                repository: Repository. Optional argument.
+        """
         self.repository = repository or AdminRepository()
 
     def list_payload(self) -> dict[str, Any]:
+        """List payload.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         return {"panels": self.repository.list_panels()}
 
     def create_context_payload(self, *, schema_id: str | None, actor_username: str) -> dict[str, Any]:
+        """Create context payload.
+
+        Args:
+            schema_id (str | None): Value for ``schema_id``.
+            actor_username (str): Value for ``actor_username``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         schemas, selected_schema = self.repository.get_active_schema(
             schema_type="asp_schema",
             schema_category="ASP",
@@ -38,6 +59,14 @@ class AdminPanelService:
         return {"schemas": schemas, "selected_schema": selected_schema, "schema": schema}
 
     def context_payload(self, *, panel_id: str) -> dict[str, Any]:
+        """Handle context payload.
+
+        Args:
+            panel_id (str): Value for ``panel_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         panel = self.repository.get_panel(panel_id)
         if not panel:
             raise api_error(404, "Panel not found")
@@ -47,6 +76,14 @@ class AdminPanelService:
         return {"panel": panel, "schema": schema}
 
     def create(self, *, payload: dict[str, Any]) -> dict[str, Any]:
+        """Handle create.
+
+        Args:
+            payload (dict[str, Any]): Value for ``payload``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         config = payload.get("config", {})
         if not config:
             raise api_error(400, "Missing panel config payload")
@@ -56,6 +93,15 @@ class AdminPanelService:
         return mutation_payload(resource="asp", resource_id=str(config.get("asp_id", "unknown")), action="create")
 
     def update(self, *, panel_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """Handle update.
+
+        Args:
+            panel_id (str): Value for ``panel_id``.
+            payload (dict[str, Any]): Value for ``payload``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         panel = self.repository.get_panel(panel_id)
         if not panel:
             raise api_error(404, "Panel not found")
@@ -68,6 +114,14 @@ class AdminPanelService:
         return mutation_payload(resource="asp", resource_id=panel_id, action="update")
 
     def toggle(self, *, panel_id: str) -> dict[str, Any]:
+        """Handle toggle.
+
+        Args:
+            panel_id (str): Value for ``panel_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         panel = self.repository.get_panel(panel_id)
         if not panel:
             raise api_error(404, "Panel not found")
@@ -78,6 +132,14 @@ class AdminPanelService:
         return payload
 
     def delete(self, *, panel_id: str) -> dict[str, Any]:
+        """Handle delete.
+
+        Args:
+            panel_id (str): Value for ``panel_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         panel = self.repository.get_panel(panel_id)
         if not panel:
             raise api_error(404, "Panel not found")
@@ -86,13 +148,34 @@ class AdminPanelService:
 
 
 class AdminGenelistService:
+    """Own genelist resource-management workflows."""
+
     def __init__(self, repository: AdminRepository | None = None) -> None:
+        """Handle __init__.
+
+        Args:
+                repository: Repository. Optional argument.
+        """
         self.repository = repository or AdminRepository()
 
     def list_payload(self) -> dict[str, Any]:
+        """List payload.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         return {"genelists": self.repository.list_genelists()}
 
     def create_context_payload(self, *, schema_id: str | None, actor_username: str) -> dict[str, Any]:
+        """Create context payload.
+
+        Args:
+            schema_id (str | None): Value for ``schema_id``.
+            actor_username (str): Value for ``actor_username``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         schemas, selected_schema = self.repository.get_active_schema(
             schema_type="isgl_config",
             schema_category="ISGL",
@@ -116,6 +199,14 @@ class AdminGenelistService:
         }
 
     def context_payload(self, *, genelist_id: str) -> dict[str, Any]:
+        """Handle context payload.
+
+        Args:
+            genelist_id (str): Value for ``genelist_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         genelist = self.repository.get_genelist(genelist_id)
         if not genelist:
             raise api_error(404, "Genelist not found")
@@ -133,6 +224,15 @@ class AdminGenelistService:
         }
 
     def view_context_payload(self, *, genelist_id: str, assay: str | None) -> dict[str, Any]:
+        """Render the context payload view.
+
+        Args:
+            genelist_id (str): Value for ``genelist_id``.
+            assay (str | None): Value for ``assay``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         genelist = self.repository.get_genelist(genelist_id)
         if not genelist:
             raise api_error(404, "Genelist not found")
@@ -153,6 +253,14 @@ class AdminGenelistService:
         }
 
     def create(self, *, payload: dict[str, Any]) -> dict[str, Any]:
+        """Handle create.
+
+        Args:
+            payload (dict[str, Any]): Value for ``payload``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         config = payload.get("config", {})
         if not config:
             raise api_error(400, "Missing genelist config payload")
@@ -162,6 +270,15 @@ class AdminGenelistService:
         return mutation_payload(resource="genelist", resource_id=str(config.get("isgl_id", "unknown")), action="create")
 
     def update(self, *, genelist_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """Handle update.
+
+        Args:
+            genelist_id (str): Value for ``genelist_id``.
+            payload (dict[str, Any]): Value for ``payload``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         genelist = self.repository.get_genelist(genelist_id)
         if not genelist:
             raise api_error(404, "Genelist not found")
@@ -174,6 +291,14 @@ class AdminGenelistService:
         return mutation_payload(resource="genelist", resource_id=genelist_id, action="update")
 
     def toggle(self, *, genelist_id: str) -> dict[str, Any]:
+        """Handle toggle.
+
+        Args:
+            genelist_id (str): Value for ``genelist_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         genelist = self.repository.get_genelist(genelist_id)
         if not genelist:
             raise api_error(404, "Genelist not found")
@@ -184,6 +309,14 @@ class AdminGenelistService:
         return payload
 
     def delete(self, *, genelist_id: str) -> dict[str, Any]:
+        """Handle delete.
+
+        Args:
+            genelist_id (str): Value for ``genelist_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         genelist = self.repository.get_genelist(genelist_id)
         if not genelist:
             raise api_error(404, "Genelist not found")
@@ -192,13 +325,35 @@ class AdminGenelistService:
 
 
 class AdminAspcService:
+    """Own assay-configuration resource-management workflows."""
+
     def __init__(self, repository: AdminRepository | None = None) -> None:
+        """Handle __init__.
+
+        Args:
+                repository: Repository. Optional argument.
+        """
         self.repository = repository or AdminRepository()
 
     def list_payload(self) -> dict[str, Any]:
+        """List payload.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         return {"assay_configs": self.repository.list_assay_configs()}
 
     def create_context_payload(self, *, category: str, schema_id: str | None, actor_username: str) -> dict[str, Any]:
+        """Create context payload.
+
+        Args:
+            category (str): Value for ``category``.
+            schema_id (str | None): Value for ``schema_id``.
+            actor_username (str): Value for ``actor_username``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         schema_category = str(category or "DNA").upper()
         schemas, selected_schema = self.repository.get_active_schema(
             schema_type="asp_config",
@@ -242,6 +397,14 @@ class AdminAspcService:
         }
 
     def context_payload(self, *, assay_id: str) -> dict[str, Any]:
+        """Handle context payload.
+
+        Args:
+            assay_id (str): Value for ``assay_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         assay_config = self.repository.get_assay_config(assay_id)
         if not assay_config:
             raise api_error(404, "Assay config not found")
@@ -254,6 +417,14 @@ class AdminAspcService:
         return {"assay_config": assay_config, "schema": schema}
 
     def create(self, *, payload: dict[str, Any]) -> dict[str, Any]:
+        """Handle create.
+
+        Args:
+            payload (dict[str, Any]): Value for ``payload``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         config = payload.get("config", {})
         if not config:
             raise api_error(400, "Missing assay config payload")
@@ -267,6 +438,15 @@ class AdminAspcService:
         return mutation_payload(resource="aspc", resource_id=str(config.get("aspc_id", "unknown")), action="create")
 
     def update(self, *, assay_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """Handle update.
+
+        Args:
+            assay_id (str): Value for ``assay_id``.
+            payload (dict[str, Any]): Value for ``payload``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         assay_config = self.repository.get_assay_config(assay_id)
         if not assay_config:
             raise api_error(404, "Assay config not found")
@@ -279,6 +459,14 @@ class AdminAspcService:
         return mutation_payload(resource="aspc", resource_id=assay_id, action="update")
 
     def toggle(self, *, assay_id: str) -> dict[str, Any]:
+        """Handle toggle.
+
+        Args:
+            assay_id (str): Value for ``assay_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         assay_config = self.repository.get_assay_config(assay_id)
         if not assay_config:
             raise api_error(404, "Assay config not found")
@@ -289,6 +477,14 @@ class AdminAspcService:
         return payload
 
     def delete(self, *, assay_id: str) -> dict[str, Any]:
+        """Handle delete.
+
+        Args:
+            assay_id (str): Value for ``assay_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         assay_config = self.repository.get_assay_config(assay_id)
         if not assay_config:
             raise api_error(404, "Assay config not found")
@@ -297,21 +493,55 @@ class AdminAspcService:
 
 
 class AdminSampleService:
+    """Own admin sample-management and deletion workflows."""
+
     def __init__(self, repository: AdminRepository | None = None) -> None:
+        """Handle __init__.
+
+        Args:
+                repository: Repository. Optional argument.
+        """
         self.repository = repository or AdminRepository()
         if not SampleDeletionService.has_repository():
             SampleDeletionService.set_repository(AdminSampleDeletionRepository())
 
     def list_payload(self, *, assays: list[str], search: str) -> dict[str, Any]:
+        """List payload.
+
+        Args:
+            assays (list[str]): Value for ``assays``.
+            search (str): Value for ``search``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         return {"samples": self.repository.list_samples_for_admin(assays=assays, search=search)}
 
     def context_payload(self, *, sample_id: str) -> dict[str, Any]:
+        """Handle context payload.
+
+        Args:
+            sample_id (str): Value for ``sample_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         sample_doc = self.repository.get_sample(sample_id)
         if not sample_doc:
             raise api_error(404, "Sample not found")
         return {"sample": sample_doc}
 
     def update(self, *, sample_id: str, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
+        """Handle update.
+
+        Args:
+            sample_id (str): Value for ``sample_id``.
+            payload (dict[str, Any]): Value for ``payload``.
+            actor_username (str): Value for ``actor_username``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         sample_doc = self.repository.get_sample(sample_id)
         if not sample_doc:
             raise api_error(404, "Sample not found")
@@ -327,6 +557,14 @@ class AdminSampleService:
         return mutation_payload(resource="sample", resource_id=str(sample_obj), action="update")
 
     def delete(self, *, sample_id: str) -> dict[str, Any]:
+        """Handle delete.
+
+        Args:
+            sample_id (str): Value for ``sample_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         sample_name = self.repository.get_sample_name(sample_id)
         if not sample_name:
             raise api_error(404, "Sample not found")
@@ -338,19 +576,48 @@ class AdminSampleService:
 
 
 class AdminSchemaService:
+    """Own schema-management workflows for admin routes."""
+
     def __init__(self, repository: AdminRepository | None = None) -> None:
+        """Handle __init__.
+
+        Args:
+                repository: Repository. Optional argument.
+        """
         self.repository = repository or AdminRepository()
 
     def list_payload(self) -> dict[str, Any]:
+        """List payload.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         return {"schemas": self.repository.list_schemas()}
 
     def context_payload(self, *, schema_id: str) -> dict[str, Any]:
+        """Handle context payload.
+
+        Args:
+            schema_id (str): Value for ``schema_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         schema_doc = self.repository.get_schema(schema_id)
         if not schema_doc:
             raise api_error(404, "Schema not found")
         return {"schema": schema_doc}
 
     def create(self, *, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
+        """Handle create.
+
+        Args:
+            payload (dict[str, Any]): Value for ``payload``.
+            actor_username (str): Value for ``actor_username``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         schema_doc = payload.get("schema", {})
         schema_doc["_id"] = schema_doc.get("schema_name")
         schema_doc["schema_id"] = schema_doc.get("schema_name")
@@ -363,6 +630,16 @@ class AdminSchemaService:
         return mutation_payload(resource="schema", resource_id=schema_doc["_id"], action="create")
 
     def update(self, *, schema_id: str, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
+        """Handle update.
+
+        Args:
+            schema_id (str): Value for ``schema_id``.
+            payload (dict[str, Any]): Value for ``payload``.
+            actor_username (str): Value for ``actor_username``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         schema_doc = self.repository.get_schema(schema_id)
         if not schema_doc:
             raise api_error(404, "Schema not found")
@@ -376,6 +653,14 @@ class AdminSchemaService:
         return mutation_payload(resource="schema", resource_id=schema_id, action="update")
 
     def toggle(self, *, schema_id: str) -> dict[str, Any]:
+        """Handle toggle.
+
+        Args:
+            schema_id (str): Value for ``schema_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         schema_doc = self.repository.get_schema(schema_id)
         if not schema_doc:
             raise api_error(404, "Schema not found")
@@ -386,6 +671,14 @@ class AdminSchemaService:
         return payload
 
     def delete(self, *, schema_id: str) -> dict[str, Any]:
+        """Handle delete.
+
+        Args:
+            schema_id (str): Value for ``schema_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         schema_doc = self.repository.get_schema(schema_id)
         if not schema_doc:
             raise api_error(404, "Schema not found")

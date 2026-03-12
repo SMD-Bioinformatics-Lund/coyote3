@@ -16,6 +16,14 @@ class FakeHandler:
     methods: dict[str, Any] = field(default_factory=dict)
 
     def __getattr__(self, name: str) -> Any:
+        """Handle __getattr__.
+
+        Args:
+                name: Name.
+
+        Returns:
+                The __getattr__ result.
+        """
         if name not in self.methods:
             raise AttributeError(name)
         return self.methods[name]

@@ -25,6 +25,16 @@ def create_genelist_mutation(
     user: ApiUser = Depends(require_access(permission="create_isgl", min_role="manager", min_level=99)),
     service: AdminGenelistService = Depends(get_admin_genelist_service),
 ):
+    """Create genelist mutation.
+
+    Args:
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (AdminGenelistService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.create(payload=payload))
 
@@ -34,6 +44,15 @@ def list_genelists_read(
     user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
     service: AdminGenelistService = Depends(get_admin_genelist_service),
 ):
+    """List genelists read.
+
+    Args:
+        user (ApiUser): Value for ``user``.
+        service (AdminGenelistService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.list_payload())
 
@@ -44,6 +63,16 @@ def create_genelist_context_read(
     user: ApiUser = Depends(require_access(permission="create_isgl", min_role="manager", min_level=99)),
     service: AdminGenelistService = Depends(get_admin_genelist_service),
 ):
+    """Create genelist context read.
+
+    Args:
+        schema_id (str | None): Value for ``schema_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminGenelistService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     return util.common.convert_to_serializable(
         service.create_context_payload(schema_id=schema_id, actor_username=user.username)
     )
@@ -55,6 +84,16 @@ def genelist_context_read(
     user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
     service: AdminGenelistService = Depends(get_admin_genelist_service),
 ):
+    """Handle genelist context read.
+
+    Args:
+        genelist_id (str): Value for ``genelist_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminGenelistService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.context_payload(genelist_id=genelist_id))
 
@@ -66,6 +105,17 @@ def genelist_view_context_read(
     user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
     service: AdminGenelistService = Depends(get_admin_genelist_service),
 ):
+    """Handle genelist view context read.
+
+    Args:
+        genelist_id (str): Value for ``genelist_id``.
+        assay (str | None): Value for ``assay``.
+        user (ApiUser): Value for ``user``.
+        service (AdminGenelistService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.view_context_payload(genelist_id=genelist_id, assay=assay))
 
@@ -77,6 +127,17 @@ def update_genelist_mutation(
     user: ApiUser = Depends(require_access(permission="edit_isgl", min_role="manager", min_level=99)),
     service: AdminGenelistService = Depends(get_admin_genelist_service),
 ):
+    """Update genelist mutation.
+
+    Args:
+        genelist_id (str): Value for ``genelist_id``.
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (AdminGenelistService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.update(genelist_id=genelist_id, payload=payload))
 
@@ -87,6 +148,16 @@ def toggle_genelist_mutation(
     user: ApiUser = Depends(require_access(permission="edit_isgl", min_role="manager", min_level=99)),
     service: AdminGenelistService = Depends(get_admin_genelist_service),
 ):
+    """Toggle genelist mutation.
+
+    Args:
+        genelist_id (str): Value for ``genelist_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminGenelistService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.toggle(genelist_id=genelist_id))
 
@@ -97,5 +168,15 @@ def delete_genelist_mutation(
     user: ApiUser = Depends(require_access(permission="delete_isgl", min_role="admin", min_level=99999)),
     service: AdminGenelistService = Depends(get_admin_genelist_service),
 ):
+    """Delete genelist mutation.
+
+    Args:
+        genelist_id (str): Value for ``genelist_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminGenelistService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.delete(genelist_id=genelist_id))

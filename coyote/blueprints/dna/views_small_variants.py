@@ -28,20 +28,32 @@ from coyote.services.api_client.api_client import (
     forward_headers,
     get_web_api_client,
 )
+from coyote.services.api_client.web import raise_page_load_error
 
 
 def raise_api_page_error(sample_id: str, page_name: str, exc: ApiRequestError) -> None:
-    flash(f"Failed to load {page_name}: {exc}", "red")
-    app.logger.error("Failed to load %s for sample %s: %s", page_name, sample_id, exc)
-    raise exc
+    """Raise a standardized page error for DNA page-load failures."""
+    raise_page_load_error(
+        exc,
+        logger=app.logger,
+        log_message=f"Failed to load {page_name} for sample {sample_id}",
+        summary=f"Unable to load {page_name}.",
+        not_found_summary=f"{page_name} was not found for the selected sample.",
+    )
 
 
 @dna_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])
 def list_small_variants(sample_id: str) -> Response | str:
+    """Render the DNA small-variant list page for a sample."""
     headers = forward_headers()
     api_client = get_web_api_client()
 
     def _load_api_context():
+        """Handle  load api context.
+
+        Returns:
+                The  load api context result.
+        """
         return api_client.get_json(
             api_endpoints.dna_sample(sample_id, "small_variants"),
             headers=headers,
@@ -184,6 +196,7 @@ def list_small_variants(sample_id: str) -> Response | str:
 
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>")
 def show_small_variant(sample_id: str, var_id: str) -> Response | str:
+    """Render the DNA small-variant detail page for a sample resource."""
     try:
         payload = get_web_api_client().get_json(
             api_endpoints.dna_sample(sample_id, "small_variants", var_id),
@@ -225,6 +238,7 @@ def show_small_variant(sample_id: str, var_id: str) -> Response | str:
 @dna_bp.route("/<string:sample_id>/plot/<string:fn>", endpoint="show_any_plot")  # type: ignore
 @dna_bp.route("/<string:sample_id>/plot/rotated/<string:fn>", endpoint="show_any_plot_rotated")  # type: ignore
 def show_any_plot(sample_id: str, fn: str, angle: int = 90) -> Response | str:
+    """Serve a DNA plot image or a rotated variant of the same image."""
     try:
         payload = get_web_api_client().get_json(
             api_endpoints.dna_sample(sample_id, "plot_context"),
@@ -232,8 +246,13 @@ def show_any_plot(sample_id: str, fn: str, angle: int = 90) -> Response | str:
         )
     except ApiRequestError as exc:
         app.logger.error("DNA plot context API fetch failed for sample %s: %s", sample_id, exc)
-        flash("Failed to load sample context for plot", "red")
-        return redirect(url_for("home_bp.samples_home"))
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to load DNA plot context for sample {sample_id}",
+            summary="Unable to load the requested plot.",
+            not_found_summary="The plot context for this sample was not found.",
+        )
 
     assay_config = payload.assay_config
     base_dir = payload.plots_base_dir or assay_config.get("reporting", {}).get("plots_path", None)
@@ -241,8 +260,13 @@ def show_any_plot(sample_id: str, fn: str, angle: int = 90) -> Response | str:
     if base_dir:
         file_path = os.path.join(base_dir, fn)
         if not os.path.exists(file_path):
-            flash(f"File not found: {file_path}", "red")
-            return request.url
+            raise_page_load_error(
+                ApiRequestError("Plot file not found.", status_code=404),
+                logger=app.logger,
+                log_message=f"Plot file missing at {file_path}",
+                summary="Unable to open the requested plot.",
+                not_found_summary="The requested plot file was not found.",
+            )
 
     if request.endpoint == "dna_bp.show_any_plot_rotated":
         try:
@@ -254,7 +278,11 @@ def show_any_plot(sample_id: str, fn: str, angle: int = 90) -> Response | str:
                 return send_file(img_io, mimetype="image/png")
         except Exception as exc:  # noqa: BLE001
             app.logger.error("Error rotating image: %s", exc)
-            flash("Error processing image", "red")
-            return request.url
+            raise_page_load_error(
+                ApiRequestError("Plot processing failed.", status_code=500),
+                logger=app.logger,
+                log_message=f"Failed to rotate DNA plot for sample {sample_id}",
+                summary="Unable to process the requested plot.",
+            )
 
     return send_from_directory(base_dir, fn)

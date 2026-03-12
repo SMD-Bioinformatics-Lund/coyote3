@@ -10,6 +10,14 @@ from api.security.repository import get_security_repository
 
 
 def _lookup_user_doc(login_identifier: str) -> dict | None:
+    """Handle  lookup user doc.
+
+    Args:
+            login_identifier: Login identifier.
+
+    Returns:
+            The  lookup user doc result.
+    """
     repo = get_security_repository()
     normalized = str(login_identifier).strip()
     if not normalized:
@@ -22,6 +30,15 @@ def _lookup_user_doc(login_identifier: str) -> dict | None:
 
 
 def _is_local_auth_allowlisted(login_identifier: str, user_doc: dict) -> bool:
+    """Handle  is local auth allowlisted.
+
+    Args:
+            login_identifier: Login identifier.
+            user_doc: User doc.
+
+    Returns:
+            The  is local auth allowlisted result.
+    """
     allowlist = app.config.get("LOCAL_AUTH_USER_IDENTIFIERS") or ()
     if not allowlist:
         return False
@@ -37,6 +54,15 @@ def _is_local_auth_allowlisted(login_identifier: str, user_doc: dict) -> bool:
 
 
 def _ldap_authenticate(username: str, password: str) -> bool:
+    """Handle  ldap authenticate.
+
+    Args:
+            username: Username.
+            password: Password.
+
+    Returns:
+            The  ldap authenticate result.
+    """
     return bool(
         ldap_manager.authenticate(
             username=username,
@@ -48,6 +74,14 @@ def _ldap_authenticate(username: str, password: str) -> bool:
 
 
 def build_user_session_payload(user_doc: dict) -> dict:
+    """Build the canonical API session payload for a user document.
+
+    Args:
+        user_doc: Authenticated user document loaded from persistence.
+
+    Returns:
+        The normalized session payload returned to API clients.
+    """
     repo = get_security_repository()
     role_doc = repo.get_role(user_doc.get("role")) or {}
     asp_docs = repo.get_all_active_asps()
@@ -56,13 +90,27 @@ def build_user_session_payload(user_doc: dict) -> dict:
 
 
 def resolve_user_identity(user_doc: dict) -> str:
-    """
-    Return canonical user identity for session/update calls.
+    """Return the canonical user identity for session and update flows.
+
+    Args:
+        user_doc: Authenticated user document loaded from persistence.
+
+    Returns:
+        The canonical ``user_id`` string for the user.
     """
     return str(user_doc.get("user_id") or "").strip()
 
 
 def authenticate_credentials(username: str, password: str) -> dict | None:
+    """Authenticate a username/password pair against local or LDAP auth.
+
+    Args:
+        username: Submitted login identifier.
+        password: Submitted password.
+
+    Returns:
+        The authenticated user document, or ``None`` when authentication fails.
+    """
     user_doc = _lookup_user_doc(username)
     if not user_doc or not user_doc.get("is_active", True):
         return None
@@ -81,4 +129,12 @@ def authenticate_credentials(username: str, password: str) -> dict | None:
 
 
 def update_user_last_login(user_id: str) -> None:
+    """Persist the last-login timestamp for a user.
+
+    Args:
+        user_id: User identifier being updated.
+
+    Returns:
+        ``None``.
+    """
     get_security_repository().update_user_last_login(user_id)

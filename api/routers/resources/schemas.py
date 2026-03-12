@@ -19,6 +19,16 @@ def create_schema_mutation(
     user: ApiUser = Depends(require_access(permission="create_schema", min_role="developer", min_level=9999)),
     service: AdminSchemaService = Depends(get_admin_schema_service),
 ):
+    """Create schema mutation.
+
+    Args:
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (AdminSchemaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     return util.common.convert_to_serializable(
         service.create(payload=payload, actor_username=user.username)
     )
@@ -29,6 +39,15 @@ def list_schemas_read(
     user: ApiUser = Depends(require_access(permission="view_schema", min_role="developer", min_level=9999)),
     service: AdminSchemaService = Depends(get_admin_schema_service),
 ):
+    """List schemas read.
+
+    Args:
+        user (ApiUser): Value for ``user``.
+        service (AdminSchemaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.list_payload())
 
@@ -39,6 +58,16 @@ def schema_context_read(
     user: ApiUser = Depends(require_access(permission="view_schema", min_role="developer", min_level=9999)),
     service: AdminSchemaService = Depends(get_admin_schema_service),
 ):
+    """Handle schema context read.
+
+    Args:
+        schema_id (str): Value for ``schema_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminSchemaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.context_payload(schema_id=schema_id))
 
@@ -50,6 +79,17 @@ def update_schema_mutation(
     user: ApiUser = Depends(require_access(permission="edit_schema", min_role="developer", min_level=9999)),
     service: AdminSchemaService = Depends(get_admin_schema_service),
 ):
+    """Update schema mutation.
+
+    Args:
+        schema_id (str): Value for ``schema_id``.
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (AdminSchemaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     return util.common.convert_to_serializable(
         service.update(schema_id=schema_id, payload=payload, actor_username=user.username)
     )
@@ -61,6 +101,16 @@ def toggle_schema_mutation(
     user: ApiUser = Depends(require_access(permission="edit_schema", min_role="developer", min_level=9999)),
     service: AdminSchemaService = Depends(get_admin_schema_service),
 ):
+    """Toggle schema mutation.
+
+    Args:
+        schema_id (str): Value for ``schema_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminSchemaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.toggle(schema_id=schema_id))
 
@@ -71,5 +121,15 @@ def delete_schema_mutation(
     user: ApiUser = Depends(require_access(permission="delete_schema", min_role="admin", min_level=99999)),
     service: AdminSchemaService = Depends(get_admin_schema_service),
 ):
+    """Delete schema mutation.
+
+    Args:
+        schema_id (str): Value for ``schema_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminSchemaService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.delete(schema_id=schema_id))

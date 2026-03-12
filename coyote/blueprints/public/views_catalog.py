@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import io
 
-from flask import abort, flash, render_template, send_file
+from flask import abort, current_app as app, render_template, send_file
 
 from coyote.blueprints.public import public_bp
 from coyote.services.api_client import endpoints as api_endpoints
 from coyote.services.api_client.api_client import ApiRequestError, get_web_api_client
+from coyote.services.api_client.web import raise_page_load_error
 
 
 @public_bp.route("/asp/genes/<asp_id>")
@@ -19,12 +20,13 @@ def asp_genes(asp_id: str) -> str:
     try:
         payload = get_web_api_client().get_json(api_endpoints.public("asp", asp_id, "genes"))
     except ApiRequestError as exc:
-        flash(f"Unable to load assay genes: {exc}", "red")
-        payload = {
-            "asp_id": asp_id,
-            "gene_details": [],
-            "germline_gene_symbols": [],
-        }
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to load public assay genes for {asp_id}",
+            summary="Unable to load assay genes.",
+            not_found_summary="Assay panel not found.",
+        )
 
     return render_template(
         "asp_genes.html",
@@ -45,16 +47,12 @@ def assay_catalog_matrix():
             api_endpoints.public("assay-catalog-matrix", "context")
         )
     except ApiRequestError as exc:
-        flash(f"Unable to load assay catalog matrix: {exc}", "red")
-        payload = {
-            "modalities": {},
-            "order": [],
-            "columns": [],
-            "mod_spans": {},
-            "cat_spans": {},
-            "genes": [],
-            "matrix": {},
-        }
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message="Failed to load assay catalog matrix",
+            summary="Unable to load the assay catalog matrix.",
+        )
     return render_template("assay_catalog_matrix.html", **dict(payload))
 
 
@@ -81,20 +79,12 @@ def assay_catalog(mod: str | None = None, cat: str | None = None, isgl_key: str 
     except ApiRequestError as exc:
         if exc.status_code == 404:
             abort(404)
-        flash(f"Unable to load assay catalog: {exc}", "red")
-        payload = {
-            "meta": {},
-            "order": [],
-            "modalities": {},
-            "selected_mod": mod,
-            "categories": [],
-            "selected_cat": cat,
-            "selected_isgl": isgl_key,
-            "right": {},
-            "gene_mode": "all",
-            "genes": [],
-            "stats": {},
-        }
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message="Failed to load assay catalog",
+            summary="Unable to load the assay catalog.",
+        )
     return render_template("assay_catalog.html", **dict(payload))
 
 
@@ -125,6 +115,14 @@ def assay_catalog_genes_csv(mod: str, cat: str | None = None, isgl_key: str | No
 
 @public_bp.route("/assay-catalog/genes/<isgl_key>/view")
 def assay_catalog_isgl_genes_view(isgl_key: str | None = None) -> str:
+    """Handle assay catalog isgl genes view.
+
+    Args:
+        isgl_key (str | None): Value for ``isgl_key``.
+
+    Returns:
+        str: The function result.
+    """
     if not isgl_key:
         return render_template("genes.html", gene_symbols=[])
     payload = get_web_api_client().get_json(

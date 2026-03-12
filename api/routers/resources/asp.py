@@ -24,6 +24,16 @@ def create_asp_mutation(
     user: ApiUser = Depends(require_access(permission="create_asp", min_role="manager", min_level=99)),
     service: AdminPanelService = Depends(get_admin_panel_service),
 ):
+    """Create asp mutation.
+
+    Args:
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (AdminPanelService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.create(payload=payload))
 
@@ -33,6 +43,15 @@ def list_asp_read(
     user: ApiUser = Depends(require_access(permission="view_asp", min_role="user", min_level=9)),
     service: AdminPanelService = Depends(get_admin_panel_service),
 ):
+    """List asp read.
+
+    Args:
+        user (ApiUser): Value for ``user``.
+        service (AdminPanelService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.list_payload())
 
@@ -43,6 +62,16 @@ def create_asp_context_read(
     user: ApiUser = Depends(require_access(permission="create_asp", min_role="manager", min_level=99)),
     service: AdminPanelService = Depends(get_admin_panel_service),
 ):
+    """Create asp context read.
+
+    Args:
+        schema_id (str | None): Value for ``schema_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminPanelService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     return util.common.convert_to_serializable(
         service.create_context_payload(schema_id=schema_id, actor_username=user.username)
     )
@@ -54,6 +83,16 @@ def asp_context_read(
     user: ApiUser = Depends(require_access(permission="view_asp", min_role="user", min_level=9)),
     service: AdminPanelService = Depends(get_admin_panel_service),
 ):
+    """Handle asp context read.
+
+    Args:
+        assay_panel_id (str): Value for ``assay_panel_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminPanelService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.context_payload(panel_id=assay_panel_id))
 
@@ -65,6 +104,17 @@ def update_asp_mutation(
     user: ApiUser = Depends(require_access(permission="edit_asp", min_role="manager", min_level=99)),
     service: AdminPanelService = Depends(get_admin_panel_service),
 ):
+    """Update asp mutation.
+
+    Args:
+        assay_panel_id (str): Value for ``assay_panel_id``.
+        payload (dict): Value for ``payload``.
+        user (ApiUser): Value for ``user``.
+        service (AdminPanelService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.update(panel_id=assay_panel_id, payload=payload))
 
@@ -75,6 +125,16 @@ def toggle_asp_mutation(
     user: ApiUser = Depends(require_access(permission="edit_asp", min_role="manager", min_level=99)),
     service: AdminPanelService = Depends(get_admin_panel_service),
 ):
+    """Toggle asp mutation.
+
+    Args:
+        assay_panel_id (str): Value for ``assay_panel_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminPanelService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.toggle(panel_id=assay_panel_id))
 
@@ -85,5 +145,15 @@ def delete_asp_mutation(
     user: ApiUser = Depends(require_access(permission="delete_asp", min_role="admin", min_level=99999)),
     service: AdminPanelService = Depends(get_admin_panel_service),
 ):
+    """Delete asp mutation.
+
+    Args:
+        assay_panel_id (str): Value for ``assay_panel_id``.
+        user (ApiUser): Value for ``user``.
+        service (AdminPanelService): Value for ``service``.
+
+    Returns:
+        The function result.
+    """
     _ = user
     return util.common.convert_to_serializable(service.delete(panel_id=assay_panel_id))

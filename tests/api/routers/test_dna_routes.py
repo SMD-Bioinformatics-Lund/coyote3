@@ -21,6 +21,11 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def test_mutation_payload_shape():
+    """Handle test mutation payload shape.
+
+    Returns:
+        The function result.
+    """
     payload = DnaService.mutation_payload("S1", "variant", "V1", "flag")
     assert payload["status"] == "ok"
     assert payload["sample_id"] == "S1"
@@ -30,6 +35,14 @@ def test_mutation_payload_shape():
 
 
 def test_load_cnvs_for_sample_uses_collection_shaped_docs(monkeypatch):
+    """Handle test load cnvs for sample uses collection shaped docs.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     sample = fx.sample_doc()
     sample_filters = sample["filters"]
     cnv_rows = [fx.cnv_doc()]
@@ -45,6 +58,14 @@ def test_load_cnvs_for_sample_uses_collection_shaped_docs(monkeypatch):
 
 
 def test_list_dna_biomarkers_success(monkeypatch):
+    """Handle test list dna biomarkers success.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     sample = fx.sample_doc()
     biomarkers = [{"_id": "b1", "name": "TMB", "value": "High"}]
     service = biomarker_router.BiomarkerService()
@@ -59,6 +80,14 @@ def test_list_dna_biomarkers_success(monkeypatch):
 
 
 def test_show_dna_variant_not_found_raises_404(monkeypatch):
+    """Handle test show dna variant not found raises 404.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     service = DnaService()
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(dna_repo_module.store.variant_handler, "get_variant", lambda var_id: None)
@@ -71,6 +100,14 @@ def test_show_dna_variant_not_found_raises_404(monkeypatch):
 
 
 def test_list_dna_variants_does_not_require_report_path(monkeypatch):
+    """Handle test list dna variants does not require report path.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     sample = fx.sample_doc()
     sample.setdefault("filters", {}).setdefault("max_freq", 1.0)
     sample["filters"].setdefault("min_freq", 0.0)
@@ -121,6 +158,14 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
 
 
 def test_classify_variant_mutation_calls_insert(monkeypatch):
+    """Handle test classify variant mutation calls insert.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     captured: dict = {}
 
     monkeypatch.setattr(classification_router, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
@@ -153,6 +198,14 @@ def test_classify_variant_mutation_calls_insert(monkeypatch):
 
 
 def test_set_variant_false_positive_bulk_prefers_json_payload(monkeypatch):
+    """Handle test set variant false positive bulk prefers json payload.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     calls: dict = {"mark": None, "unmark": None}
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
@@ -182,6 +235,14 @@ def test_set_variant_false_positive_bulk_prefers_json_payload(monkeypatch):
 
 
 def test_set_variant_irrelevant_bulk_remove_uses_json_payload(monkeypatch):
+    """Handle test set variant irrelevant bulk remove uses json payload.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     calls: dict = {"mark": None, "unmark": None}
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
     monkeypatch.setattr(
@@ -211,6 +272,14 @@ def test_set_variant_irrelevant_bulk_remove_uses_json_payload(monkeypatch):
 
 
 def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
+    """Handle test set variant tier bulk apply inserts class and text docs.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     sample = fx.sample_doc()
     sample["_id"] = "sample-1"
     captured: dict = {"docs": None}
@@ -262,6 +331,14 @@ def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
 
 
 def test_set_variant_tier_bulk_remove_deletes_class_and_matching_text(monkeypatch):
+    """Handle test set variant tier bulk remove deletes class and matching text.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     sample = fx.sample_doc()
     sample["_id"] = "sample-1"
     captured: list[dict] = []
@@ -305,6 +382,11 @@ def test_set_variant_tier_bulk_remove_deletes_class_and_matching_text(monkeypatc
 
 
 def test_bulk_flag_routes_use_non_colliding_paths():
+    """Handle test bulk flag routes use non colliding paths.
+
+    Returns:
+        The function result.
+    """
     paths = {route.path for route in api_app.routes}
     assert "/api/v1/samples/{sample_id}/small-variants/flags/false-positive" in paths
     assert "/api/v1/samples/{sample_id}/small-variants/flags/irrelevant" in paths
@@ -315,6 +397,11 @@ def test_bulk_flag_routes_use_non_colliding_paths():
 
 
 def _route_test_user() -> ApiUser:
+    """Handle  route test user.
+
+    Returns:
+            The  route test user result.
+    """
     return ApiUser(
         id="u1",
         email="tester@example.com",
@@ -332,6 +419,14 @@ def _route_test_user() -> ApiUser:
 
 
 def test_bulk_fp_endpoint_dispatches_in_real_http_route(monkeypatch):
+    """Handle test bulk fp endpoint dispatches in real http route.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     captured: dict = {"ids": None}
     monkeypatch.setattr(access, "_decode_session_user", lambda _request: _route_test_user())
     monkeypatch.setattr(access, "_role_levels", lambda: {"user": 9, "manager": 99, "admin": 999})
@@ -360,6 +455,14 @@ def test_bulk_fp_endpoint_dispatches_in_real_http_route(monkeypatch):
 
 
 def test_bulk_irrelevant_endpoint_dispatches_in_real_http_route(monkeypatch):
+    """Handle test bulk irrelevant endpoint dispatches in real http route.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
     captured: dict = {"ids": None}
     monkeypatch.setattr(access, "_decode_session_user", lambda _request: _route_test_user())
     monkeypatch.setattr(access, "_role_levels", lambda: {"user": 9, "manager": 99, "admin": 999})

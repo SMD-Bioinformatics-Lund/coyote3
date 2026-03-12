@@ -10,6 +10,14 @@ __all__ = ["app", "create_api_app"]
 
 
 def __getattr__(name: str) -> Any:
+    """Handle __getattr__.
+
+    Args:
+            name: Name.
+
+    Returns:
+            The __getattr__ result.
+    """
     if name in {"app", "create_api_app"}:
         from .app import app, create_api_app
 

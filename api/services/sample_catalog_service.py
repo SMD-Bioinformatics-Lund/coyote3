@@ -13,7 +13,14 @@ from api.runtime import app as runtime_app
 
 
 class SampleCatalogService:
+    """Own sample-list and sample-context workflows for the API."""
+
     def __init__(self, repository: HomeRepository | None = None) -> None:
+        """Handle __init__.
+
+        Args:
+                repository: Repository. Optional argument.
+        """
         self.repository = repository or MongoHomeRepository()
 
     def samples_payload(
@@ -35,6 +42,28 @@ class SampleCatalogService:
         assay_group: str | None,
         limit_done_samples: int | None,
     ) -> dict[str, Any]:
+        """Handle samples payload.
+
+        Args:
+            user: Value for ``user``.
+            status (str): Value for ``status``.
+            search_str (str): Value for ``search_str``.
+            search_mode (str): Value for ``search_mode``.
+            page (int): Value for ``page``.
+            per_page (int): Value for ``per_page``.
+            live_page (int): Value for ``live_page``.
+            per_live_page (int): Value for ``per_live_page``.
+            done_page (int): Value for ``done_page``.
+            per_done_page (int): Value for ``per_done_page``.
+            profile_scope (str): Value for ``profile_scope``.
+            panel_type (str | None): Value for ``panel_type``.
+            panel_tech (str | None): Value for ``panel_tech``.
+            assay_group (str | None): Value for ``assay_group``.
+            limit_done_samples (int | None): Value for ``limit_done_samples``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         if limit_done_samples is None:
             limit_done_samples = runtime_app.config.get("REPORTED_SAMPLES_SEARCH_LIMIT", 50)
 
@@ -121,6 +150,14 @@ class SampleCatalogService:
         }
 
     def genelist_items_payload(self, *, sample: dict) -> dict[str, Any]:
+        """Handle genelist items payload.
+
+        Args:
+            sample (dict): Value for ``sample``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         query = {"asp_name": sample.get("assay"), "is_active": True}
         isgls = self.repository.get_isgl_by_asp(**query)
         return {
@@ -137,6 +174,14 @@ class SampleCatalogService:
         }
 
     def effective_genes_payload(self, *, sample: dict) -> dict[str, Any]:
+        """Handle effective genes payload.
+
+        Args:
+            sample (dict): Value for ``sample``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         filters = sample.get("filters", {})
         assay = sample.get("assay")
         asp = self.repository.get_asp(assay)
@@ -163,6 +208,14 @@ class SampleCatalogService:
         return {"items": items, "asp_covered_genes_count": len(asp_covered_genes)}
 
     def edit_context_payload(self, *, sample: dict) -> dict[str, Any]:
+        """Handle edit context payload.
+
+        Args:
+            sample (dict): Value for ``sample``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         asp = self.repository.get_asp(sample.get("assay"))
         asp_group = asp.get("asp_group")
 
@@ -207,6 +260,16 @@ class SampleCatalogService:
         }
 
     def apply_genelists(self, *, sample: dict, payload: dict[str, Any], sample_id: str) -> dict[str, Any]:
+        """Apply genelists.
+
+        Args:
+            sample (dict): Value for ``sample``.
+            payload (dict[str, Any]): Value for ``payload``.
+            sample_id (str): Value for ``sample_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         filters = sample.get("filters", {})
         genelist_ids = payload.get("isgl_ids", [])
         if not isinstance(genelist_ids, list):
@@ -216,6 +279,16 @@ class SampleCatalogService:
         return {"status": "ok", "sample_id": sample_id, "action": "apply_genelists", "genelist_ids": genelist_ids}
 
     def save_adhoc_genes(self, *, sample: dict, payload: dict[str, Any], sample_id: str) -> dict[str, Any]:
+        """Handle save adhoc genes.
+
+        Args:
+            sample (dict): Value for ``sample``.
+            payload (dict[str, Any]): Value for ``payload``.
+            sample_id (str): Value for ``sample_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         genes_raw = payload.get("genes", "")
         genes = [g.strip() for g in re.split(r"[ ,\n]+", genes_raw) if g.strip()]
         genes.sort()
@@ -233,12 +306,31 @@ class SampleCatalogService:
         }
 
     def clear_adhoc_genes(self, *, sample: dict, sample_id: str) -> dict[str, Any]:
+        """Handle clear adhoc genes.
+
+        Args:
+            sample (dict): Value for ``sample``.
+            sample_id (str): Value for ``sample_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         filters = sample.get("filters", {})
         filters.pop("adhoc_genes", None)
         self.repository.update_sample_filters(sample.get("_id"), filters)
         return {"status": "ok", "sample_id": sample_id, "action": "clear_adhoc_genes"}
 
     def report_context_payload(self, *, sample: dict, report_id: str, sample_id: str) -> dict[str, Any]:
+        """Handle report context payload.
+
+        Args:
+            sample (dict): Value for ``sample``.
+            report_id (str): Value for ``report_id``.
+            sample_id (str): Value for ``sample_id``.
+
+        Returns:
+            dict[str, Any]: The function result.
+        """
         report = self.repository.get_report(sample_id, report_id)
         report_name = report.get("report_name")
         filepath = report.get("filepath")

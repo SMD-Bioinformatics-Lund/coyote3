@@ -487,6 +487,15 @@ class SampleHandler(BaseHandler):
         analysed_samples = int(collection.count_documents(analysed_match))
 
         def _group_counts(field: str, project_alias: str = "key") -> list[dict]:
+            """Handle  group counts.
+
+            Args:
+                    field: Field.
+                    project_alias: Project alias. Optional argument.
+
+            Returns:
+                    The  group counts result.
+            """
             pipeline = []
             if base_match:
                 pipeline.append({"$match": base_match})
@@ -516,6 +525,14 @@ class SampleHandler(BaseHandler):
             }
 
         def _kv_to_dict(items: list[dict]) -> dict:
+            """Handle  kv to dict.
+
+            Args:
+                    items: Items.
+
+            Returns:
+                    The  kv to dict result.
+            """
             out = {}
             for row in items or []:
                 key = row.get("key")

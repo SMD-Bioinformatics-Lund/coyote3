@@ -46,6 +46,8 @@ PUBLIC_API_PREFIX_PATHS = (
 
 @dataclass
 class ApiUser:
+    """Provide the api user type.
+    """
     id: str
     email: str
     fullname: str
@@ -61,10 +63,27 @@ class ApiUser:
 
 
 def _api_error(status_code: int, message: str) -> HTTPException:
+    """Handle  api error.
+
+    Args:
+            status_code: Status code.
+            message: Message.
+
+    Returns:
+            The  api error result.
+    """
     return HTTPException(status_code=status_code, detail={"status": status_code, "error": message})
 
 
 def is_public_api_path(path: str) -> bool:
+    """Return whether public api path is true.
+
+    Args:
+        path (str): Value for ``path``.
+
+    Returns:
+        bool: The function result.
+    """
     if path in PUBLIC_API_EXACT_PATHS:
         return True
     if path.startswith(PUBLIC_API_PREFIX_PATHS):
@@ -76,6 +95,14 @@ def is_public_api_path(path: str) -> bool:
 
 
 def _http_exception_message(exc: HTTPException) -> str:
+    """Handle  http exception message.
+
+    Args:
+            exc: Exc.
+
+    Returns:
+            The  http exception message result.
+    """
     detail = exc.detail
     if isinstance(detail, dict):
         return str(detail.get("error") or detail.get("details") or detail)
@@ -94,6 +121,22 @@ def _audit_access_event(
     sample_id: str | None = None,
     extra: dict | None = None,
 ) -> None:
+    """Handle  audit access event.
+
+    Args:
+            status: Status. Keyword-only argument.
+            reason: Reason. Keyword-only argument.
+            request: Request. Keyword-only argument.
+            user: User. Keyword-only argument.
+            permission: Permission. Keyword-only argument.
+            min_level: Min level. Keyword-only argument.
+            min_role: Min role. Keyword-only argument.
+            sample_id: Sample id. Keyword-only argument.
+            extra: Extra. Keyword-only argument.
+
+    Returns:
+            None.
+    """
     emit_access_event(
         status=status,
         reason=reason,
@@ -111,6 +154,11 @@ def _audit_access_event(
 
 @lru_cache(maxsize=1)
 def _api_session_serializer() -> URLSafeTimedSerializer:
+    """Handle  api session serializer.
+
+    Returns:
+            The  api session serializer result.
+    """
     return URLSafeTimedSerializer(
         secret_key=get_api_secret_key(runtime_app.config),
         salt=get_api_session_salt(runtime_app.config),
@@ -118,26 +166,62 @@ def _api_session_serializer() -> URLSafeTimedSerializer:
 
 
 def get_api_session_cookie_name() -> str:
+    """Return api session cookie name.
+
+    Returns:
+        str: The function result.
+    """
     return settings_session_cookie_name(runtime_app.config)
 
 
 def get_api_session_ttl_seconds() -> int:
+    """Return api session ttl seconds.
+
+    Returns:
+        int: The function result.
+    """
     return settings_session_ttl_seconds(runtime_app.config)
 
 
 def get_api_session_cookie_secure() -> bool:
+    """Return api session cookie secure.
+
+    Returns:
+        bool: The function result.
+    """
     return settings_session_cookie_secure(runtime_app.config)
 
 
 def create_api_session_token(user_id: str) -> str:
+    """Create api session token.
+
+    Args:
+        user_id (str): Value for ``user_id``.
+
+    Returns:
+        str: The function result.
+    """
     return str(_api_session_serializer().dumps({"uid": str(user_id)}))
 
 
 def _role_levels() -> dict[str, int]:
+    """Handle  role levels.
+
+    Returns:
+            The  role levels result.
+    """
     return {role["_id"]: role.get("level", 0) for role in get_security_repository().get_all_roles()}
 
 
 def _api_user_from_doc(user_doc: dict) -> ApiUser:
+    """Handle  api user from doc.
+
+    Args:
+            user_doc: User doc.
+
+    Returns:
+            The  api user from doc result.
+    """
     repo = get_security_repository()
     role_doc = repo.get_role(user_doc.get("role")) or {}
     asp_docs = repo.get_all_active_asps()
@@ -159,6 +243,14 @@ def _api_user_from_doc(user_doc: dict) -> ApiUser:
 
 
 def serialize_api_user(user: ApiUser) -> dict:
+    """Serialize api user.
+
+    Args:
+        user (ApiUser): Value for ``user``.
+
+    Returns:
+        dict: The function result.
+    """
     return {
         "_id": user.id,
         "email": user.email,
@@ -176,6 +268,14 @@ def serialize_api_user(user: ApiUser) -> dict:
 
 
 def _extract_api_session_token(request: Request) -> str | None:
+    """Handle  extract api session token.
+
+    Args:
+            request: Request.
+
+    Returns:
+            The  extract api session token result.
+    """
     auth_header = (request.headers.get("Authorization") or "").strip()
     if auth_header.lower().startswith("bearer "):
         token = auth_header.split(" ", 1)[1].strip()
@@ -185,6 +285,14 @@ def _extract_api_session_token(request: Request) -> str | None:
 
 
 def _decode_session_user(request: Request) -> ApiUser:
+    """Handle  decode session user.
+
+    Args:
+            request: Request.
+
+    Returns:
+            The  decode session user result.
+    """
     api_token = _extract_api_session_token(request)
     if api_token:
         try:
@@ -214,6 +322,17 @@ def _enforce_access(
     min_level: int | None = None,
     min_role: str | None = None,
 ) -> None:
+    """Handle  enforce access.
+
+    Args:
+            user: User.
+            permission: Permission. Optional argument.
+            min_level: Min level. Optional argument.
+            min_role: Min role. Optional argument.
+
+    Returns:
+            None.
+    """
     resolved_role_level = 0
     if min_role:
         resolved_role_level = _role_levels().get(min_role, 0)
@@ -254,7 +373,25 @@ def require_access(
     min_level: int | None = None,
     min_role: str | None = None,
 ):
+    """Handle require access.
+
+    Args:
+        permission (str | None): Value for ``permission``.
+        min_level (int | None): Value for ``min_level``.
+        min_role (str | None): Value for ``min_role``.
+
+    Returns:
+        The function result.
+    """
     def dep(request: Request) -> Generator[ApiUser, None, None]:
+        """Handle dep.
+
+        Args:
+            request (Request): Value for ``request``.
+
+        Returns:
+            Generator[ApiUser, None, None]: The function result.
+        """
         user: ApiUser | None = None
         try:
             user = _decode_session_user(request)
@@ -289,6 +426,16 @@ def require_access(
 
 
 def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None = None):
+    """Handle  get sample for api.
+
+    Args:
+            sample_id: Sample id.
+            user: User.
+            request: Request. Optional argument.
+
+    Returns:
+            The  get sample for api result.
+    """
     repo = get_security_repository()
     sample = repo.get_sample(sample_id)
     if not sample:
@@ -319,6 +466,14 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
 
 
 def _require_internal_token(request: Request) -> None:
+    """Handle  require internal token.
+
+    Args:
+            request: Request.
+
+    Returns:
+            None.
+    """
     try:
         expected = get_internal_api_token(runtime_app.config)
     except RuntimeError:

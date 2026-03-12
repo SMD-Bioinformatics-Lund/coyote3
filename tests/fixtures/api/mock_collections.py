@@ -24,6 +24,14 @@ DEV_RNA_WGS_SNAPSHOT_PATH = SNAPSHOT_DIR / "dev_rna_wgs_latest.json"
 
 
 def _load_snapshot(path: Path) -> dict[str, Any]:
+    """Handle  load snapshot.
+
+    Args:
+            path: Path.
+
+    Returns:
+            The  load snapshot result.
+    """
     if not path.exists():
         return {}
     try:
@@ -38,6 +46,15 @@ _DEV_RNA_WGS = _load_snapshot(DEV_RNA_WGS_SNAPSHOT_PATH)
 
 
 def _latest_doc(collection_alias: str, *, prefer_dev_rna_wgs: bool = False) -> dict[str, Any] | None:
+    """Handle  latest doc.
+
+    Args:
+            collection_alias: Collection alias.
+            prefer_dev_rna_wgs: Prefer dev rna wgs. Keyword-only argument.
+
+    Returns:
+            The  latest doc result.
+    """
     pools = [_DEV_RNA_WGS, _PROD] if prefer_dev_rna_wgs else [_PROD, _DEV_RNA_WGS]
     for pool in pools:
         meta = pool.get(collection_alias) or {}
@@ -51,11 +68,29 @@ def _latest_doc(collection_alias: str, *, prefer_dev_rna_wgs: bool = False) -> d
 
 
 def _with_defaults(doc: dict[str, Any] | None, defaults: dict[str, Any]) -> dict[str, Any]:
+    """Handle  with defaults.
+
+    Args:
+            doc: Doc.
+            defaults: Defaults.
+
+    Returns:
+            The  with defaults result.
+    """
     merged = deepcopy(defaults)
     if not isinstance(doc, dict):
         return merged
 
     def rec(dst: dict[str, Any], src: dict[str, Any]) -> None:
+        """Handle rec.
+
+        Args:
+            dst (dict[str, Any]): Value for ``dst``.
+            src (dict[str, Any]): Value for ``src``.
+
+        Returns:
+            None.
+        """
         for k, v in src.items():
             if isinstance(v, dict) and isinstance(dst.get(k), dict):
                 rec(dst[k], v)
@@ -67,6 +102,11 @@ def _with_defaults(doc: dict[str, Any] | None, defaults: dict[str, Any]) -> dict
 
 
 def user_doc() -> dict:
+    """Handle user doc.
+
+    Returns:
+        dict: The function result.
+    """
     defaults = {
         "_id": "u1",
         "user_id": "u1",
@@ -87,6 +127,11 @@ def user_doc() -> dict:
 
 
 def api_user() -> ApiUser:
+    """Handle api user.
+
+    Returns:
+        ApiUser: The function result.
+    """
     doc = user_doc()
     return ApiUser(
         id=str(doc.get("_id") or "u1"),
@@ -105,6 +150,14 @@ def api_user() -> ApiUser:
 
 
 def sample_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
+    """Handle sample doc.
+
+    Args:
+        prefer_dev_rna_wgs (bool): Value for ``prefer_dev_rna_wgs``.
+
+    Returns:
+        dict: The function result.
+    """
     defaults = {
         "_id": "s1",
         "name": "SAMPLE_001",
@@ -135,6 +188,14 @@ def sample_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
 
 
 def assay_config_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
+    """Handle assay config doc.
+
+    Args:
+        prefer_dev_rna_wgs (bool): Value for ``prefer_dev_rna_wgs``.
+
+    Returns:
+        dict: The function result.
+    """
     defaults = {
         "_id": "aspc1",
         "schema_name": "aspc_schema_v1",
@@ -149,6 +210,14 @@ def assay_config_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
 
 
 def variant_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
+    """Handle variant doc.
+
+    Args:
+        prefer_dev_rna_wgs (bool): Value for ``prefer_dev_rna_wgs``.
+
+    Returns:
+        dict: The function result.
+    """
     defaults = {
         "_id": "v1",
         "SAMPLE_ID": "s1",
@@ -174,6 +243,11 @@ def variant_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
 
 
 def cnv_doc() -> dict:
+    """Handle cnv doc.
+
+    Returns:
+        dict: The function result.
+    """
     defaults = {
         "_id": "cnv1",
         "SAMPLE_ID": "s1",
@@ -186,6 +260,14 @@ def cnv_doc() -> dict:
 
 
 def fusion_doc(*, prefer_dev_rna_wgs: bool = True) -> dict:
+    """Handle fusion doc.
+
+    Args:
+        prefer_dev_rna_wgs (bool): Value for ``prefer_dev_rna_wgs``.
+
+    Returns:
+        dict: The function result.
+    """
     defaults = {
         "_id": "fus1",
         "SAMPLE_ID": "s1",
@@ -203,6 +285,11 @@ def fusion_doc(*, prefer_dev_rna_wgs: bool = True) -> dict:
 
 
 def reported_variant_doc() -> dict:
+    """Handle reported variant doc.
+
+    Returns:
+        dict: The function result.
+    """
     defaults = {
         "_id": "rv1",
         "sample_oid": "s1",
@@ -221,6 +308,11 @@ def reported_variant_doc() -> dict:
 
 
 def role_doc() -> dict:
+    """Handle role doc.
+
+    Returns:
+        dict: The function result.
+    """
     defaults = {
         "_id": "admin",
         "role_id": "admin",
@@ -234,6 +326,11 @@ def role_doc() -> dict:
 
 
 def permission_doc() -> dict:
+    """Handle permission doc.
+
+    Returns:
+        dict: The function result.
+    """
     defaults = {
         "_id": "view_role",
         "permission_id": "view_role",
@@ -246,6 +343,11 @@ def permission_doc() -> dict:
 
 
 def schema_doc() -> dict:
+    """Handle schema doc.
+
+    Returns:
+        dict: The function result.
+    """
     defaults = {
         "_id": "rbac_role_schema_v1",
         "schema_id": "rbac_role_schema_v1",
@@ -266,6 +368,11 @@ def schema_doc() -> dict:
 
 
 def isgl_doc() -> dict:
+    """Handle isgl doc.
+
+    Returns:
+        dict: The function result.
+    """
     defaults = {
         "_id": "gl1",
         "displayname": "Myeloid shortlist",

@@ -36,6 +36,11 @@ class PermissionsHandler(BaseHandler):
         self.set_collection(self.adapter.permissions_collection)
 
     def ensure_indexes(self) -> None:
+        """Handle ensure indexes.
+
+        Returns:
+            None.
+        """
         col = self.get_collection()
         col.create_index(
             [("permission_id", 1)],
@@ -49,16 +54,40 @@ class PermissionsHandler(BaseHandler):
 
     @staticmethod
     def _normalize_permission_id(permission_id: str | None) -> str | None:
+        """Handle  normalize permission id.
+
+        Args:
+                permission_id: Permission id.
+
+        Returns:
+                The  normalize permission id result.
+        """
         if permission_id is None:
             return None
         normalized = str(permission_id).strip()
         return normalized or None
 
     def _permission_lookup_query(self, permission_id: str) -> dict:
+        """Handle  permission lookup query.
+
+        Args:
+                permission_id: Permission id.
+
+        Returns:
+                The  permission lookup query result.
+        """
         normalized = self._normalize_permission_id(permission_id)
         return {"permission_id": normalized}
 
     def ensure_permission_id(self, policy: dict) -> dict:
+        """Handle ensure permission id.
+
+        Args:
+            policy (dict): Value for ``policy``.
+
+        Returns:
+            dict: The function result.
+        """
         if not isinstance(policy, dict):
             return policy
         normalized = self._normalize_permission_id(policy.get("permission_id"))

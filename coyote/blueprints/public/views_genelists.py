@@ -4,12 +4,13 @@
 from __future__ import annotations
 
 from flask import current_app as app
-from flask import redirect, render_template, request, flash
+from flask import render_template, request
 from werkzeug import Response
 
 from coyote.blueprints.public import public_bp
 from coyote.services.api_client import endpoints as api_endpoints
 from coyote.services.api_client.api_client import ApiRequestError, get_web_api_client
+from coyote.services.api_client.web import raise_page_load_error
 
 
 @public_bp.route("/genelists/<genelist_id>/view", methods=["GET"])
@@ -24,14 +25,14 @@ def view_genelist(genelist_id: str) -> Response | str:
             api_endpoints.public("genelists", genelist_id, "view_context"),
             params=params,
         )
-    except ApiRequestError:
-        app.public_logger.info(
-            "Genelist '%s' not found via API",
-            genelist_id,
-            extra={"genelist_id": genelist_id},
+    except ApiRequestError as exc:
+        raise_page_load_error(
+            exc,
+            logger=app.logger,
+            log_message=f"Failed to load public genelist {genelist_id}",
+            summary="Unable to load the genelist.",
+            not_found_summary="Genelist not found.",
         )
-        flash(f"Genelist '{genelist_id}' not found!", "red")
-        return redirect(request.url)
 
     return render_template(
         "isgl/view_isgl.html",
