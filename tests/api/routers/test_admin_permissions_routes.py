@@ -6,7 +6,7 @@ import pytest
 from fastapi import HTTPException
 
 from api.routers import permissions
-from tests.api.fixtures import mock_collections as fx
+from tests.fixtures.api import mock_collections as fx
 
 
 def test_list_permissions_read_groups_by_category(monkeypatch):

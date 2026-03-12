@@ -6,7 +6,7 @@ import pytest
 from fastapi import HTTPException
 
 from api.routers import common
-from tests.api.fixtures import mock_collections as fx
+from tests.fixtures.api import mock_collections as fx
 
 
 def test_common_gene_info_read_by_symbol(monkeypatch):

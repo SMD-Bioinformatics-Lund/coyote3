@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from types import SimpleNamespace
 from typing import Any
 
-from tests.api.fixtures import mock_collections as fx
+from tests.fixtures.api import mock_collections as fx
 
 
 @dataclass

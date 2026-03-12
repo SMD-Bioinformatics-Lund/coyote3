@@ -6,7 +6,7 @@ import pytest
 from fastapi import HTTPException
 
 from api.routers import public
-from tests.api.fixtures import mock_collections as fx
+from tests.fixtures.api import mock_collections as fx
 
 
 def test_public_genelist_view_context_not_found_raises_404(monkeypatch):

@@ -9,7 +9,7 @@ from fastapi import HTTPException
 
 from api.routers import auth as auth_router
 from api.routers import health as health_router
-from tests.api.fixtures import mock_collections as fx
+from tests.fixtures.api import mock_collections as fx
 
 
 def test_health_returns_ok():

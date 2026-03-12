@@ -8,7 +8,7 @@ from collections import Counter
 from pathlib import Path
 
 
-BASELINE_PATH = Path("tests/contract/fixtures/backend_db_boundary_baseline.json")
+BASELINE_PATH = Path("tests/fixtures/backend_db_boundary_baseline.json")
 
 STORE_TARGET_DIRS = (Path("api/routers"), Path("api/core"))
 MONGO_LEAK_TARGET_DIRS = (Path("api/routers"), Path("api/core"), Path("api/domain"))

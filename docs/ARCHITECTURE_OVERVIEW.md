@@ -150,8 +150,8 @@ The backend uses explicit layers with clear placement rules.
 
 ### 3.3 Boundary enforcement
 Boundary integrity is verified by contract tests:
-- `tests/contract/test_ui_forbidden_backend_imports.py`
-- `tests/contract/test_ui_forbidden_mongo_usage.py`
+- `tests/integration/test_ui_forbidden_backend_imports.py`
+- `tests/integration/test_ui_forbidden_mongo_usage.py`
 
 These tests fail when UI code imports backend internals or Mongo/BSON drivers directly.
 

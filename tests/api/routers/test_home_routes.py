@@ -6,7 +6,7 @@ import pytest
 from fastapi import HTTPException
 
 from api.routers import home
-from tests.api.fixtures import mock_collections as fx
+from tests.fixtures.api import mock_collections as fx
 
 
 def test_home_samples_read_returns_live_and_done(monkeypatch):

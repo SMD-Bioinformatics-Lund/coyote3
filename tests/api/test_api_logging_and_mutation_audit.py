@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from types import SimpleNamespace
 
-from api.app import app
+from api.main import app
 from api.routers import samples
 from api.security import access
 from api.security.access import ApiUser

@@ -6,7 +6,7 @@ The Coyote3 backend is an independent FastAPI application rooted in `api/`.
 
 - `api.main` is the authoritative ASGI application module.
 - `uvicorn api.main:app` is the canonical local startup command.
-- `api.app` remains only as a compatibility shim for legacy imports.
+- `api.main` is the only supported FastAPI application module.
 
 ### Package responsibilities
 

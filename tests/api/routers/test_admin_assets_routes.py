@@ -6,7 +6,7 @@ import pytest
 from fastapi import HTTPException
 
 from api.routers import admin_resources as admin
-from tests.api.fixtures import mock_collections as fx
+from tests.fixtures.api import mock_collections as fx
 
 
 def test_list_asp_read_returns_panels(monkeypatch):

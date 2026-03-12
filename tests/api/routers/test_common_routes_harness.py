@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from api.routers import common
-from tests.api.fixtures import mock_collections as fx
-from tests.api.fixtures.fake_store import build_fake_store
+from tests.fixtures.api import mock_collections as fx
+from tests.fixtures.api.fake_store import build_fake_store
 
 
 def test_common_gene_info_read_numeric_path_with_fake_store(monkeypatch):

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from api.routers import dashboard
-from tests.api.fixtures import mock_collections as fx
+from tests.fixtures.api import mock_collections as fx
 
 
 def test_dashboard_summary_aggregates_counts(monkeypatch):

@@ -5,7 +5,7 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from api.app import app as api_app
+from api.main import app as api_app
 from coyote.services.api_client import endpoints as api_endpoints
 
 

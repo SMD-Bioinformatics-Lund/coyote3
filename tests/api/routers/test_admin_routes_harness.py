@@ -5,8 +5,8 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from api.routers import roles
-from tests.api.fixtures import mock_collections as fx
-from tests.api.fixtures.fake_store import build_fake_store
+from tests.fixtures.api import mock_collections as fx
+from tests.fixtures.api.fake_store import build_fake_store
 
 
 def test_list_roles_read_with_fake_store(monkeypatch):

@@ -6,7 +6,7 @@ import pytest
 from fastapi import HTTPException
 
 from api.routers import rna
-from tests.api.fixtures import mock_collections as fx
+from tests.fixtures.api import mock_collections as fx
 
 
 class _Req:

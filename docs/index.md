@@ -58,7 +58,7 @@ This documentation set is organized by concern so engineers, operators, and revi
 - API repositories and Mongo runtime: `api/repositories/`, `api/db/mongo/`, `api/infra/db/`
 - UI route and template layer: `coyote/blueprints/`, `coyote/templates/`
 - UI-to-API transport layer: `coyote/services/api_client/`
-- Test suites: `tests/api/`, `tests/web/`, `tests/contract/`, `tests/unit/`
+- Test suites: `tests/api/`, `tests/ui/`, `tests/integration/`, `tests/unit/`
 
 ## Reading Order
 

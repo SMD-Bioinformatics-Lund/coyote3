@@ -9,7 +9,7 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from api.app import app
+from api.main import app
 from api.routers import admin_resources as admin
 from api.routers import reports
 from api.routers import samples

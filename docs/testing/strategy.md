@@ -31,8 +31,8 @@ The repository now enforces four primary suites as first-class quality gates:
 
 - `tests/unit/`: core/security/infra-focused logic tests with high isolation.
 - `tests/api/`: FastAPI route and policy behavior tests.
-- `tests/web/`: Flask presentation and UI->API boundary tests.
-- `tests/contract/`: architectural guardrails (UI cannot import backend internals or touch Mongo directly).
+- `tests/ui/`: Flask presentation and UI->API boundary tests.
+- `tests/integration/`: architectural guardrails and cross-layer contract tests.
 
 These suites are not only organizational; they are wired into both CI and local pre-commit hooks. The reason is to make boundary regressions fail fast before merge. Historically, architecture regressions were often detected late when broad route tests passed but boundary rules were silently violated. Marker-based suites with explicit scope reduce that risk.
 
@@ -497,7 +497,7 @@ This sequence reduces late-stage rework and keeps quality artifacts aligned with
 ## 19. Assumptions
 ASSUMPTION:
 - Pytest is the standard framework.
-- Test suites are organized under `tests/api` and `tests/web`.
+- Test suites are organized under `tests/api`, `tests/ui`, and `tests/integration`.
 - Coyote3 policy and route guardrails are enforced by dedicated tests already present in repository.
 
 ---
@@ -645,7 +645,7 @@ PYTHONPATH=. .venv/bin/pytest -q tests/api/routers/test_reports_routes.py --cov=
 PYTHONPATH=. .venv/bin/pytest -q tests/unit --cov=api/core --cov=api/security --cov=api/infra --cov-report=term-missing
 
 # Web boundary focused run
-PYTHONPATH=. .venv/bin/pytest -q tests/web --cov=coyote/services/api_client --cov-report=term-missing
+PYTHONPATH=. .venv/bin/pytest -q tests/ui --cov=coyote/services/api_client --cov-report=term-missing
 ```
 
 These focused commands are useful during development, but final merge validation should still include full suite coverage.

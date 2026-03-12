@@ -1,8 +1,8 @@
 """Read-only extraction of latest Mongo documents for test fixture seeding.
 
 Outputs:
-- tests/api/fixtures/db_snapshots/prod_latest.json
-- tests/api/fixtures/db_snapshots/dev_rna_wgs_latest.json
+- tests/fixtures/api/db_snapshots/prod_latest.json
+- tests/fixtures/api/db_snapshots/dev_rna_wgs_latest.json
 """
 
 from __future__ import annotations

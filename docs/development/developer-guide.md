@@ -101,8 +101,8 @@ Do not:
 - duplicate backend workflow logic in Flask blueprints
 
 Boundary tests enforce these rules:
-- `tests/contract/test_ui_forbidden_backend_imports.py`
-- `tests/contract/test_ui_forbidden_mongo_usage.py`
+- `tests/integration/test_ui_forbidden_backend_imports.py`
+- `tests/integration/test_ui_forbidden_mongo_usage.py`
 
 ---
 
@@ -169,8 +169,8 @@ Expected topology:
 ### 5.2 Common targeted runs
 ```bash
 .venv/bin/pytest -q tests/api/routers
-.venv/bin/pytest -q tests/web
-.venv/bin/pytest -q tests/contract
+.venv/bin/pytest -q tests/ui
+.venv/bin/pytest -q tests/integration
 ```
 
 ### 5.3 Lint and formatting

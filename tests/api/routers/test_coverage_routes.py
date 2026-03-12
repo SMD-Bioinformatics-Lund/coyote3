@@ -6,11 +6,11 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from api.app import app as api_app
+from api.main import app as api_app
 from api.routers import coverage
 from api.security import access
 from api.security.access import ApiUser
-from tests.api.fixtures import mock_collections as fx
+from tests.fixtures.api import mock_collections as fx
 
 
 def test_coverage_sample_read_builds_payload(monkeypatch):

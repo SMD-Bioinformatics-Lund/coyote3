@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from types import SimpleNamespace
 
 from api.routers import samples
-from tests.api.fixtures import mock_collections as fx
+from tests.fixtures.api import mock_collections as fx
 
 
 def test_update_sample_filters_rejects_invalid_filters_payload(monkeypatch):

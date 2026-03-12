@@ -284,7 +284,8 @@ After default authentication, endpoints use `require_access(...)` dependencies t
 
 ```python
 from fastapi import Depends
-from api.app import app, require_access
+from api.main import app
+from api.security.access import require_access
 
 @app.post('/api/v1/admin/permissions/create')
 def create_permission(payload: dict, user=Depends(require_access(min_level=900, permissions=['create_permission']))):

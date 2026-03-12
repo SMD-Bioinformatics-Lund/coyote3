@@ -115,7 +115,7 @@ UI structure:
 - `coyote/templates/` and blueprint-local templates for rendering
 - `coyote/services/api_client/` centralized HTTP transport to API
 
-Boundary compliance is enforced by contract tests under `tests/contract/`.
+Boundary compliance is enforced by integration guardrail tests under `tests/integration/`.
 
 ---
 

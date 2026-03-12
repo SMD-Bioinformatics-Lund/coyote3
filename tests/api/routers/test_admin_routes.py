@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 from api.routers import admin_resources
 from api.routers import roles
-from tests.api.fixtures import mock_collections as fx
+from tests.fixtures.api import mock_collections as fx
 
 
 def test_permission_policy_options_maps_permission_docs(monkeypatch):

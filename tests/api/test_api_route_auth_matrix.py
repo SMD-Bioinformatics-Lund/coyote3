@@ -12,7 +12,7 @@ from typing import Iterable
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
-from api.app import app
+from api.main import app
 
 
 _OPEN_EXACT = {

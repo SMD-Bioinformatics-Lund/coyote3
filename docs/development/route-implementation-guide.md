@@ -77,7 +77,7 @@ Reason: test modules can import API modules without requiring immediate DB boots
 3. Core/service or route facade: `api/core/*`, `api/infra/repositories/*`
 4. UI endpoint builder: `coyote/services/api_client/endpoints.py`
 5. UI view/template: `coyote/blueprints/*/views*.py`, matching templates
-6. Tests across layers: `tests/api`, `tests/web`, `tests/contract`, `tests/unit`
+6. Tests across layers: `tests/api`, `tests/ui`, `tests/integration`, `tests/unit`
 
 ## Required tests by layer
 1. API route tests:
@@ -87,13 +87,13 @@ Reason: test modules can import API modules without requiring immediate DB boots
    - File: `tests/unit/...`
    - Validate behavior independent of transport and DB.
 3. UI route audit:
-   - File: `tests/web/test_ui_route_audit.py`
+   - File: `tests/ui/test_ui_route_audit.py`
    - Validate Flask route/link integrity and smoke rendering.
 4. Web/API contract wiring:
-   - File: `tests/contract/test_web_api_route_contract.py`
+   - File: `tests/integration/test_web_api_route_contract.py`
    - Validate that every `api_endpoints.*` path maps to an actual API route template.
 5. Boundary guardrails:
-   - Files: `tests/web/test_web_api_boundary.py`, `tests/contract/test_backend_db_boundary_guardrails.py`
+   - Files: `tests/ui/test_web_api_boundary.py`, `tests/integration/test_backend_db_boundary_guardrails.py`
    - Validate no route/core leakage of direct persistence coupling.
 
 ## Minimal acceptance checklist for any new route

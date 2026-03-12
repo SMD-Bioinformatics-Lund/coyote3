@@ -22,7 +22,7 @@ def pytest_collection_modifyitems(config, items):  # noqa: ARG001
             item.add_marker(pytest.mark.unit)
         elif "/tests/api/" in path:
             item.add_marker(pytest.mark.api)
-        elif "/tests/web/" in path:
+        elif "/tests/ui/" in path:
             item.add_marker(pytest.mark.web)
-        elif "/tests/contract/" in path:
+        elif "/tests/integration/" in path:
             item.add_marker(pytest.mark.contract)

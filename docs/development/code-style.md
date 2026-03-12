@@ -64,7 +64,7 @@ These standards are mandatory for new code unless an exception is documented in 
 
 ## 3.3 Tests (`tests/`)
 - `tests/api`: backend behavior and guardrails
-- `tests/web`: boundary and web integration tests
+- `tests/ui`: boundary and web integration tests
 - test module names should match feature families
 
 ### Anti-patterns
