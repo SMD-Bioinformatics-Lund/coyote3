@@ -1,4 +1,3 @@
-
 """
 This module provides a collection of Jinja2 template filters for use in Flask-based
 web applications, specifically tailored for genomic data analysis, interpretation,
@@ -6,10 +5,12 @@ and clinical reporting. These filters enhance the presentation and usability of
 data in web templates.
 """
 
+import math
+import os
+
 from flask import current_app as app
 from flask import g
-import os
-import math
+
 from coyote.filters.shared import render_markdown_rich as shared_render_markdown_rich
 from coyote.services.api_client import endpoints as api_endpoints
 from coyote.services.api_client.api_client import (

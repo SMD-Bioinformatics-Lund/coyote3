@@ -1,4 +1,3 @@
-
 """
 ASPHandler module for Coyote3
 ================================
@@ -13,8 +12,9 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from api.infra.db.base import BaseHandler
 from typing import Any
+
+from api.infra.db.base import BaseHandler
 
 
 # -------------------------------------------------------------------------
@@ -186,7 +186,9 @@ class ASPHandler(BaseHandler):
         Returns:
             None
         """
-        return self.get_collection().replace_one(self._asp_lookup_query(asp_id), self.ensure_asp_id(dict(asp_data)))
+        return self.get_collection().replace_one(
+            self._asp_lookup_query(asp_id), self.ensure_asp_id(dict(asp_data))
+        )
 
     def toggle_asp_active(self, asp_id: str, active_status: bool) -> bool:
         """
@@ -202,7 +204,9 @@ class ASPHandler(BaseHandler):
         Returns:
             bool: True if the update was successful, False otherwise.
         """
-        return self.get_collection().update_one(self._asp_lookup_query(asp_id), {"$set": {"is_active": active_status}})
+        return self.get_collection().update_one(
+            self._asp_lookup_query(asp_id), {"$set": {"is_active": active_status}}
+        )
 
     def delete_asp(self, asp_id: str) -> None:
         """

@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import re
-
+from pathlib import Path
 
 ROUTE_RE = re.compile(r'@(?:app|router)\.(?:get|post|put|delete|patch)\("([^"]+)"')
 DEF_RE = re.compile(r"^\s*def\s+")

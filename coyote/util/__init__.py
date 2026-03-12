@@ -1,4 +1,3 @@
-
 """
 Coyote3 Utility Module
 =====================================
@@ -19,8 +18,7 @@ class Utility:
     """
 
     def __init__(self):
-        """Handle __init__.
-        """
+        """Handle __init__."""
         pass
 
     def init_util(self) -> None:
@@ -31,10 +29,10 @@ class Utility:
             self.common, self.report, self.main,
             self.dashboard, self.admin, self.login
         """
-        from coyote.util.common_utility import CommonUtility
-        from coyote.blueprints.home.util import HomeUtility
         from coyote.blueprints.dashboard.util import DashBoardUtility
+        from coyote.blueprints.home.util import HomeUtility
         from coyote.util.admin_utility import AdminUtility
+        from coyote.util.common_utility import CommonUtility
 
         self.common = CommonUtility()
         self.main = HomeUtility()

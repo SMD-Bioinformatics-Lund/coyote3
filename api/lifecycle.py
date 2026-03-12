@@ -8,7 +8,8 @@ from contextlib import asynccontextmanager
 from importlib import import_module
 
 from api.extensions import store
-from api.runtime import app as runtime_app, bind_runtime_context
+from api.runtime import app as runtime_app
+from api.runtime import bind_runtime_context
 from api.runtime_bootstrap import create_runtime_context
 
 _runtime_bootstrap_lock = threading.Lock()

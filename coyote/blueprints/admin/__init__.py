@@ -13,11 +13,11 @@ admin_bp = Blueprint(
 )
 
 from coyote.blueprints.admin import (  # noqa: E402,F401
-    views_home,  # noqa: F401, E402
     views_assay_configs,  # noqa: F401, E402
     views_assay_panels,  # noqa: F401, E402
     views_audit,  # noqa: F401, E402
     views_genelists,  # noqa: F401, E402
+    views_home,  # noqa: F401, E402
     views_permissions,  # noqa: F401, E402
     views_roles,  # noqa: F401, E402
     views_samples,  # noqa: F401, E402

@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from flask import Response, abort, current_app as app, flash, redirect, render_template, request, url_for
+from flask import Response, abort, flash, redirect, render_template, request, url_for
+from flask import current_app as app
 from flask_login import login_required
 
 from coyote.blueprints.common import common_bp
@@ -233,7 +234,9 @@ def _redirect_for_omics_layer(sample_id: str, omics_layer: str) -> Response:
         return redirect(url_for("dna_bp.list_small_variants", sample_id=sample_id))
     if omics_layer == "rna":
         return redirect(url_for("rna_bp.list_fusions", sample_id=sample_id))
-    app.logger.info("Unrecognized omics type for sample %s! Unable to redirect to sample page", sample_id)
+    app.logger.info(
+        "Unrecognized omics type for sample %s! Unable to redirect to sample page", sample_id
+    )
     flash("Unrecognized omics type! Unable to redirect to the sample page", "red")
     return redirect(url_for("home_bp.samples_home"))
 

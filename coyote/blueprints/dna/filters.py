@@ -1,4 +1,3 @@
-
 """
 This module provides a collection of Jinja2 template filters for use in Flask-based
 genomic data analysis and reporting applications. The filters support formatting,
@@ -12,19 +11,23 @@ Key functionalities include:
 - Utility filters for string manipulation, set operations, and rounding.
 """
 
-from flask import current_app as app
 import os
 import re
-from math import floor, log10
-import arrow
-from markupsafe import Markup, escape
 from datetime import datetime
-from dateutil import tz
+from math import floor, log10
 from urllib.parse import unquote
+
+from flask import current_app as app
+from markupsafe import Markup
+
 from coyote.filters.shared import (
     format_fusion_desc_legacy as shared_format_fusion_desc_legacy,
-    uniq_callers as shared_uniq_callers,
+)
+from coyote.filters.shared import (
     render_markdown_basic as shared_render_markdown_basic,
+)
+from coyote.filters.shared import (
+    uniq_callers as shared_uniq_callers,
 )
 
 

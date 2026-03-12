@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-
 from api.extensions import store
 
 
 class MongoDashboardRepository:
-    """Provide mongo dashboard persistence operations.
-    """
+    """Provide mongo dashboard persistence operations."""
+
     def count_users(self) -> int:
         """Handle count users.
 

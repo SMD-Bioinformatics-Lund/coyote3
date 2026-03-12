@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from flask import Response, redirect, render_template, request, url_for
+from flask import Response, render_template, request
 from flask import current_app as app
 from flask_login import login_required
 
@@ -94,7 +94,9 @@ def _resolve_page_param(short_key: str, legacy_key: str, default: int = 1) -> in
     """
     return max(
         1,
-        request.args.get(short_key, default=request.args.get(legacy_key, default=default, type=int), type=int)
+        request.args.get(
+            short_key, default=request.args.get(legacy_key, default=default, type=int), type=int
+        )
         or default,
     )
 
@@ -137,7 +139,9 @@ def _parse_samples_home_query(status: str) -> dict:
     # Placeholder for future persisted user preferences.
     # When user settings are implemented, populate this from current user profile.
     user_settings: dict | None = None
-    profile_scope = (_first_non_empty_query_arg("scope", "profile_scope", default="production") or "").lower()
+    profile_scope = (
+        _first_non_empty_query_arg("scope", "profile_scope", default="production") or ""
+    ).lower()
     if profile_scope not in {"production", "all"}:
         profile_scope = "production"
 

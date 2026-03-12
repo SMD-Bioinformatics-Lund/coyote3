@@ -1,7 +1,7 @@
+import logging
 
 from flask import Blueprint
 from flask import current_app as app
-import logging
 
 # Blueprint configuration
 docs_bp = Blueprint(
@@ -13,6 +13,5 @@ docs_bp = Blueprint(
 )
 
 from coyote.blueprints.docs import views  # noqa: F401, E402
-
 
 app.docs_logger = logging.getLogger("coyote.docs")

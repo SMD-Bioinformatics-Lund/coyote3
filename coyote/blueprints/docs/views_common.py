@@ -1,4 +1,3 @@
-
 """Shared helpers for docs blueprint routes."""
 
 from __future__ import annotations
@@ -9,7 +8,6 @@ import bleach
 from flask import abort
 from flask_login import current_user
 from markdown import markdown
-
 
 ALLOWED_TAGS = set(bleach.sanitizer.ALLOWED_TAGS).union(
     {

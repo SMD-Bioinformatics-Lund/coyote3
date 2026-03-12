@@ -1,5 +1,3 @@
-
-
 """
 RolesHandler module for Coyote3
 ===============================
@@ -13,8 +11,9 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from api.infra.db.base import BaseHandler
 from typing import Any
+
+from api.infra.db.base import BaseHandler
 
 
 # -------------------------------------------------------------------------
@@ -127,9 +126,7 @@ class RolesHandler(BaseHandler):
         """
         return [
             role.get("role_id")
-            for role in self.get_collection().find(
-                {"is_active": True}, {"_id": 1, "role_id": 1}
-            )
+            for role in self.get_collection().find({"is_active": True}, {"_id": 1, "role_id": 1})
         ]
 
     def get_role_colors(self) -> list:

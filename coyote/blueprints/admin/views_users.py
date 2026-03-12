@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from flask import Response, abort, current_app as app, g, jsonify, redirect, render_template, request, url_for
+from flask import Response, abort, g, jsonify, redirect, render_template, request, url_for
+from flask import current_app as app
 from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
@@ -15,10 +16,16 @@ from coyote.services.api_client.api_client import (
     forward_headers,
     get_web_api_client,
 )
-from coyote.services.api_client.web import flash_api_failure, flash_api_success, raise_page_load_error
+from coyote.services.api_client.web import (
+    flash_api_failure,
+    flash_api_success,
+    raise_page_load_error,
+)
 
 
-def _apply_selected_user_version(user_doc: dict, selected_version: int | None, user_id: str | None = None):
+def _apply_selected_user_version(
+    user_doc: dict, selected_version: int | None, user_id: str | None = None
+):
     """Project a versioned user document into the selected historical view.
 
     Args:

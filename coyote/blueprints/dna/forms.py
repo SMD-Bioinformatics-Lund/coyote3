@@ -1,10 +1,9 @@
-
 """
 This module defines Flask-WTF form classes for genomic data analysis and reporting in the Coyote3 project.
 """
 
 from flask_wtf import FlaskForm
-from wtforms import BooleanField, IntegerField, FloatField
+from wtforms import BooleanField, FloatField, IntegerField
 from wtforms.validators import InputRequired, NumberRange
 
 
@@ -83,4 +82,3 @@ class DNAFilterForm(FlaskForm):
 
     # Reset button
     reset = BooleanField("reset")
-

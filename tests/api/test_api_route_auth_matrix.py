@@ -14,7 +14,6 @@ from fastapi.testclient import TestClient
 
 from api.main import app
 
-
 _OPEN_EXACT = {
     "/api/v1/health",
     "/api/v1/auth/sessions",

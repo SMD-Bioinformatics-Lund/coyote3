@@ -1,8 +1,6 @@
-
 """Centralized Jinja filter registration entrypoint."""
 
 from importlib import import_module
-
 
 FILTER_MODULES = [
     "coyote.blueprints.admin.filters",
@@ -23,4 +21,3 @@ def register_filters(app) -> None:
     for module in FILTER_MODULES:
         import_module(module)
     app.logger.debug(f"Registered filter modules: {', '.join(FILTER_MODULES)}")
-

@@ -8,7 +8,6 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parent.parent
 BASELINE_PATH = ROOT / "tests" / "contract" / "fixtures" / "backend_db_boundary_baseline.json"
 

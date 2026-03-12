@@ -4,10 +4,6 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Body, Depends, Query
 
-from api.core.interpretation.report_summary import create_comment_doc
-from api.core.rna.helpers import create_fusioncallers, create_fusioneffectlist
-from api.core.samples.ports import SamplesRepository
-from api.core.workflows.filter_normalization import normalize_dna_filter_keys, normalize_rna_filter_keys
 from api.contracts.home import (
     HomeEditContextPayload,
     HomeEffectiveGenesPayload,
@@ -16,10 +12,6 @@ from api.contracts.home import (
     HomeReportContextPayload,
     HomeSamplesPayload,
 )
-from api.deps.repositories import get_sample_repository
-from api.deps.services import get_sample_catalog_service
-from api.extensions import util
-from api.http import api_error, get_formatted_assay_config
 from api.contracts.samples import (
     CoverageBlacklistStatusPayload,
     CoverageBlacklistUpdateRequest,
@@ -27,6 +19,17 @@ from api.contracts.samples import (
     SampleFiltersUpdateRequest,
     SampleMutationPayload,
 )
+from api.core.interpretation.report_summary import create_comment_doc
+from api.core.rna.helpers import create_fusioncallers, create_fusioneffectlist
+from api.core.samples.ports import SamplesRepository
+from api.core.workflows.filter_normalization import (
+    normalize_dna_filter_keys,
+    normalize_rna_filter_keys,
+)
+from api.deps.repositories import get_sample_repository
+from api.deps.services import get_sample_catalog_service
+from api.extensions import util
+from api.http import api_error, get_formatted_assay_config
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.services.sample_catalog_service import SampleCatalogService
 
@@ -186,7 +189,9 @@ def sample_edit_context_read(
     return util.common.convert_to_serializable(service.edit_context_payload(sample=sample))
 
 
-@router.put("/api/v1/samples/{sample_id}/genelists/selection", response_model=HomeMutationStatusPayload)
+@router.put(
+    "/api/v1/samples/{sample_id}/genelists/selection", response_model=HomeMutationStatusPayload
+)
 def sample_apply_genelists_mutation(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
@@ -205,7 +210,9 @@ def sample_apply_genelists_mutation(
         The function result.
     """
     sample = _get_sample_for_api(sample_id, user)
-    return util.common.convert_to_serializable(service.apply_genelists(sample=sample, payload=payload, sample_id=sample_id))
+    return util.common.convert_to_serializable(
+        service.apply_genelists(sample=sample, payload=payload, sample_id=sample_id)
+    )
 
 
 @router.put("/api/v1/samples/{sample_id}/adhoc-genes", response_model=HomeMutationStatusPayload)
@@ -249,10 +256,15 @@ def sample_clear_adhoc_genes_mutation(
         The function result.
     """
     sample = _get_sample_for_api(sample_id, user)
-    return util.common.convert_to_serializable(service.clear_adhoc_genes(sample=sample, sample_id=sample_id))
+    return util.common.convert_to_serializable(
+        service.clear_adhoc_genes(sample=sample, sample_id=sample_id)
+    )
 
 
-@router.get("/api/v1/samples/{sample_id}/reports/{report_id}/context", response_model=HomeReportContextPayload)
+@router.get(
+    "/api/v1/samples/{sample_id}/reports/{report_id}/context",
+    response_model=HomeReportContextPayload,
+)
 def sample_report_context_read(
     sample_id: str,
     report_id: str,
@@ -297,16 +309,25 @@ def _add_sample_comment(
     form_data = payload.form_data
     doc = create_comment_doc(form_data, key="sample_comment")
     repository.add_sample_comment(sample_id, doc)
-    result = _mutation_payload(sample_id, resource="sample_comment", resource_id="new", action="add")
+    result = _mutation_payload(
+        sample_id, resource="sample_comment", resource_id="new", action="add"
+    )
     result["meta"]["omics_layer"] = sample.get("omics_layer")
     return util.common.convert_to_serializable(result)
 
 
-@router.post("/api/v1/samples/{sample_id}/comments", response_model=SampleMutationPayload, status_code=201, summary="Create sample comment")
+@router.post(
+    "/api/v1/samples/{sample_id}/comments",
+    response_model=SampleMutationPayload,
+    status_code=201,
+    summary="Create sample comment",
+)
 def create_sample_comment(
     sample_id: str,
     payload: SampleCommentCreateRequest,
-    user: ApiUser = Depends(require_access(permission="add_sample_comment", min_role="user", min_level=9)),
+    user: ApiUser = Depends(
+        require_access(permission="add_sample_comment", min_role="user", min_level=9)
+    ),
     repository: SamplesRepository = Depends(get_sample_repository),
 ):
     """Create sample comment.
@@ -320,10 +341,14 @@ def create_sample_comment(
     Returns:
         The function result.
     """
-    return _add_sample_comment(sample_id=sample_id, payload=payload, user=user, repository=repository)
+    return _add_sample_comment(
+        sample_id=sample_id, payload=payload, user=user, repository=repository
+    )
 
 
-def _hide_sample_comment(sample_id: str, comment_id: str, user: ApiUser, repository: SamplesRepository):
+def _hide_sample_comment(
+    sample_id: str, comment_id: str, user: ApiUser, repository: SamplesRepository
+):
     """Handle  hide sample comment.
 
     Args:
@@ -337,16 +362,24 @@ def _hide_sample_comment(sample_id: str, comment_id: str, user: ApiUser, reposit
     """
     sample = _get_sample_for_api(sample_id, user)
     repository.hide_sample_comment(sample_id, comment_id)
-    result = _mutation_payload(sample_id, resource="sample_comment", resource_id=comment_id, action="hide")
+    result = _mutation_payload(
+        sample_id, resource="sample_comment", resource_id=comment_id, action="hide"
+    )
     result["meta"]["omics_layer"] = sample.get("omics_layer")
     return util.common.convert_to_serializable(result)
 
 
-@router.patch("/api/v1/samples/{sample_id}/comments/{comment_id}/hidden", response_model=SampleMutationPayload, summary="Hide sample comment")
+@router.patch(
+    "/api/v1/samples/{sample_id}/comments/{comment_id}/hidden",
+    response_model=SampleMutationPayload,
+    summary="Hide sample comment",
+)
 def hide_sample_comment(
     sample_id: str,
     comment_id: str,
-    user: ApiUser = Depends(require_access(permission="hide_sample_comment", min_role="manager", min_level=99)),
+    user: ApiUser = Depends(
+        require_access(permission="hide_sample_comment", min_role="manager", min_level=99)
+    ),
     repository: SamplesRepository = Depends(get_sample_repository),
 ):
     """Handle hide sample comment.
@@ -360,10 +393,14 @@ def hide_sample_comment(
     Returns:
         The function result.
     """
-    return _hide_sample_comment(sample_id=sample_id, comment_id=comment_id, user=user, repository=repository)
+    return _hide_sample_comment(
+        sample_id=sample_id, comment_id=comment_id, user=user, repository=repository
+    )
 
 
-def _unhide_sample_comment(sample_id: str, comment_id: str, user: ApiUser, repository: SamplesRepository):
+def _unhide_sample_comment(
+    sample_id: str, comment_id: str, user: ApiUser, repository: SamplesRepository
+):
     """Handle  unhide sample comment.
 
     Args:
@@ -377,16 +414,24 @@ def _unhide_sample_comment(sample_id: str, comment_id: str, user: ApiUser, repos
     """
     sample = _get_sample_for_api(sample_id, user)
     repository.unhide_sample_comment(sample_id, comment_id)
-    result = _mutation_payload(sample_id, resource="sample_comment", resource_id=comment_id, action="unhide")
+    result = _mutation_payload(
+        sample_id, resource="sample_comment", resource_id=comment_id, action="unhide"
+    )
     result["meta"]["omics_layer"] = sample.get("omics_layer")
     return util.common.convert_to_serializable(result)
 
 
-@router.delete("/api/v1/samples/{sample_id}/comments/{comment_id}/hidden", response_model=SampleMutationPayload, summary="Unhide sample comment")
+@router.delete(
+    "/api/v1/samples/{sample_id}/comments/{comment_id}/hidden",
+    response_model=SampleMutationPayload,
+    summary="Unhide sample comment",
+)
 def unhide_sample_comment(
     sample_id: str,
     comment_id: str,
-    user: ApiUser = Depends(require_access(permission="unhide_sample_comment", min_role="manager", min_level=99)),
+    user: ApiUser = Depends(
+        require_access(permission="unhide_sample_comment", min_role="manager", min_level=99)
+    ),
     repository: SamplesRepository = Depends(get_sample_repository),
 ):
     """Handle unhide sample comment.
@@ -400,7 +445,9 @@ def unhide_sample_comment(
     Returns:
         The function result.
     """
-    return _unhide_sample_comment(sample_id=sample_id, comment_id=comment_id, user=user, repository=repository)
+    return _unhide_sample_comment(
+        sample_id=sample_id, comment_id=comment_id, user=user, repository=repository
+    )
 
 
 def _update_sample_filters(
@@ -429,8 +476,12 @@ def _update_sample_filters(
 
     if str(sample.get("omics_layer", "")).lower() == "rna":
         normalized_filters = normalize_rna_filter_keys(normalized_filters)
-        normalized_filters["fusion_callers"] = create_fusioncallers(normalized_filters.get("fusion_callers", []))
-        normalized_filters["fusion_effects"] = create_fusioneffectlist(normalized_filters.get("fusion_effects", []))
+        normalized_filters["fusion_callers"] = create_fusioncallers(
+            normalized_filters.get("fusion_callers", [])
+        )
+        normalized_filters["fusion_effects"] = create_fusioneffectlist(
+            normalized_filters.get("fusion_effects", [])
+        )
         fusionlists = normalized_filters.get("fusionlists")
         if fusionlists is None:
             normalized_filters["fusionlists"] = []
@@ -438,16 +489,24 @@ def _update_sample_filters(
             normalized_filters["fusionlists"] = [fusionlists] if fusionlists else []
         elif isinstance(fusionlists, tuple):
             normalized_filters["fusionlists"] = list(fusionlists)
-        normalized_filters["fusionlists"] = list(dict.fromkeys(normalized_filters.get("fusionlists", [])))
+        normalized_filters["fusionlists"] = list(
+            dict.fromkeys(normalized_filters.get("fusionlists", []))
+        )
     else:
         normalized_filters = normalize_dna_filter_keys(normalized_filters)
 
     repository.update_sample_filters(sample.get("_id"), normalized_filters)
-    result = _mutation_payload(sample_id, resource="sample_filters", resource_id=str(sample.get("_id")), action="update")
+    result = _mutation_payload(
+        sample_id, resource="sample_filters", resource_id=str(sample.get("_id")), action="update"
+    )
     return util.common.convert_to_serializable(result)
 
 
-@router.put("/api/v1/samples/{sample_id}/filters", response_model=SampleMutationPayload, summary="Replace sample filters")
+@router.put(
+    "/api/v1/samples/{sample_id}/filters",
+    response_model=SampleMutationPayload,
+    summary="Replace sample filters",
+)
 def update_sample_filters(
     sample_id: str,
     payload: SampleFiltersUpdateRequest,
@@ -465,7 +524,9 @@ def update_sample_filters(
     Returns:
         The function result.
     """
-    return _update_sample_filters(sample_id=sample_id, payload=payload, user=user, repository=repository)
+    return _update_sample_filters(
+        sample_id=sample_id, payload=payload, user=user, repository=repository
+    )
 
 
 def _reset_sample_filters(sample_id: str, user: ApiUser, repository: SamplesRepository):
@@ -484,11 +545,17 @@ def _reset_sample_filters(sample_id: str, user: ApiUser, repository: SamplesRepo
     if not assay_config:
         raise api_error(404, "Assay config not found for sample")
     repository.reset_sample_settings(sample.get("_id"), assay_config.get("filters"))
-    result = _mutation_payload(sample_id, resource="sample_filters", resource_id=str(sample.get("_id")), action="reset")
+    result = _mutation_payload(
+        sample_id, resource="sample_filters", resource_id=str(sample.get("_id")), action="reset"
+    )
     return util.common.convert_to_serializable(result)
 
 
-@router.delete("/api/v1/samples/{sample_id}/filters", response_model=SampleMutationPayload, summary="Reset sample filters")
+@router.delete(
+    "/api/v1/samples/{sample_id}/filters",
+    response_model=SampleMutationPayload,
+    summary="Reset sample filters",
+)
 def reset_sample_filters(
     sample_id: str,
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
@@ -507,7 +574,9 @@ def reset_sample_filters(
     return _reset_sample_filters(sample_id=sample_id, user=user, repository=repository)
 
 
-def _update_coverage_blacklist(payload: CoverageBlacklistUpdateRequest, repository: SamplesRepository):
+def _update_coverage_blacklist(
+    payload: CoverageBlacklistUpdateRequest, repository: SamplesRepository
+):
     """Handle  update coverage blacklist.
 
     Args:
@@ -546,7 +615,11 @@ def _update_coverage_blacklist(payload: CoverageBlacklistUpdateRequest, reposito
     )
 
 
-@router.post("/api/v1/coverage/blacklist/entries", response_model=CoverageBlacklistStatusPayload, summary="Create coverage blacklist entry")
+@router.post(
+    "/api/v1/coverage/blacklist/entries",
+    response_model=CoverageBlacklistStatusPayload,
+    summary="Create coverage blacklist entry",
+)
 def create_coverage_blacklist_entry(
     payload: CoverageBlacklistUpdateRequest,
     user: ApiUser = Depends(require_access(min_level=1)),
@@ -582,7 +655,11 @@ def _remove_coverage_blacklist(obj_id: str, repository: SamplesRepository):
     )
 
 
-@router.delete("/api/v1/coverage/blacklist/entries/{obj_id}", response_model=SampleMutationPayload, summary="Delete coverage blacklist entry")
+@router.delete(
+    "/api/v1/coverage/blacklist/entries/{obj_id}",
+    response_model=SampleMutationPayload,
+    summary="Delete coverage blacklist entry",
+)
 def delete_coverage_blacklist_entry(
     obj_id: str,
     user: ApiUser = Depends(require_access(min_level=1)),

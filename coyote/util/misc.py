@@ -1,5 +1,3 @@
-
-
 """
 Coyote3 Miscellaneous Utilities
 =====================================
@@ -16,9 +14,10 @@ functions used across the application.
 # Imports
 # -------------------------------------------------------------------------
 import json
+from collections import defaultdict
 from datetime import datetime
 from typing import Any
-from collections import defaultdict
+
 from flask_login import current_user
 
 

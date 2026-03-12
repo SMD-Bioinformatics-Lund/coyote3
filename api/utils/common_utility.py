@@ -1,4 +1,3 @@
-
 """
 Coyote3 Common Utility
 ===============================
@@ -9,20 +8,21 @@ data formatting, serialization, and reporting.
 
 from __future__ import annotations
 
+import base64
+import json
 import os
-from copy import deepcopy
-from pathlib import Path
 import subprocess
-
-from cryptography.fernet import Fernet
-from api.runtime import app
-from api.runtime import current_username
-from typing import Any, Literal, Dict, Tuple, List, Optional
-from bson import ObjectId
-from datetime import datetime, timezone, timedelta
+from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 from hashlib import md5
-import base64, json
+from pathlib import Path
+from typing import Any, Dict, Tuple
+
+from bson import ObjectId
+from cryptography.fernet import Fernet
 from werkzeug.security import generate_password_hash
+
+from api.runtime import app, current_username
 
 
 class CommonUtility:

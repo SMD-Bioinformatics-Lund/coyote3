@@ -1,4 +1,3 @@
-
 """
 This module initializes the DNA blueprint for the Coyote3 project.
 
@@ -13,18 +12,20 @@ Logger:
     app.dna_logger: Logger instance for DNA operations.
 """
 
+import logging
+
 from flask import Blueprint
 from flask import current_app as app
-import logging
 
 # Blueprint configuration
 dna_bp = Blueprint("dna_bp", __name__, template_folder="templates", static_folder="static")
 
-from coyote.blueprints.dna import views_small_variants  # noqa: F401, E402
-from coyote.blueprints.dna import views_small_variant_actions  # noqa: F401, E402
-from coyote.blueprints.dna import views_cnv  # noqa: F401, E402
-from coyote.blueprints.dna import views_transloc  # noqa: F401, E402
-from coyote.blueprints.dna import views_reports  # noqa: F401, E402
-
+from coyote.blueprints.dna import (
+    views_cnv,  # noqa: F401, E402
+    views_reports,  # noqa: F401, E402
+    views_small_variant_actions,  # noqa: F401, E402
+    views_small_variants,  # noqa: F401, E402
+    views_transloc,  # noqa: F401, E402
+)
 
 app.dna_logger = logging.getLogger("coyote.dna")

@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import re
+from pathlib import Path
 
-
-ROUTE_RE = re.compile(r'@(?:app|router)\.(?:get|post|put|delete|patch)\("([^"]+)"')
+ROUTE_RE = re.compile(r'@(?:app|router)\.(?:get|post|put|delete|patch)\(\s*"([^"]+)"', re.MULTILINE)
 ALLOWED_PREFIXES = ("/api/v1/", "/api/vi/")
 
 
@@ -19,8 +18,8 @@ def _route_paths(py_file: Path) -> list[str]:
     Returns:
             The  route paths result.
     """
-    lines = py_file.read_text(encoding="utf-8").splitlines()
-    return [m.group(1) for line in lines if (m := ROUTE_RE.search(line))]
+    text = py_file.read_text(encoding="utf-8")
+    return [match.group(1) for match in ROUTE_RE.finditer(text)]
 
 
 def _canonical_http_modules() -> list[Path]:
@@ -56,7 +55,9 @@ def test_api_router_modules_have_docstrings_and_routes():
         if not _route_paths(route_file):
             missing_routes.append(str(route_file))
 
-    assert not missing_docstring, "Router modules missing top-level docstring:\n" + "\n".join(missing_docstring)
+    assert not missing_docstring, "Router modules missing top-level docstring:\n" + "\n".join(
+        missing_docstring
+    )
     assert not missing_routes, "Router modules without HTTP routes:\n" + "\n".join(missing_routes)
 
 
@@ -73,4 +74,6 @@ def test_api_routes_use_versioned_prefixes():
             if not path.startswith(ALLOWED_PREFIXES):
                 invalid_paths.append(f"{route_file}:{path}")
 
-    assert not invalid_paths, "Routes with non-versioned prefixes found:\n" + "\n".join(invalid_paths)
+    assert not invalid_paths, "Routes with non-versioned prefixes found:\n" + "\n".join(
+        invalid_paths
+    )

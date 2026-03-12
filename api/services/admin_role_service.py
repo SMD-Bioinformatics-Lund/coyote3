@@ -7,7 +7,13 @@ from typing import Any
 from api.extensions import util
 from api.http import api_error
 from api.repositories.admin_repository import AdminRepository
-from api.services.management_common import current_actor, inject_version_history, lower, mutation_payload, utc_now
+from api.services.management_common import (
+    current_actor,
+    inject_version_history,
+    lower,
+    mutation_payload,
+    utc_now,
+)
 
 
 class AdminRoleService:
@@ -29,7 +35,9 @@ class AdminRoleService:
         """
         return {"roles": self.repository.list_roles()}
 
-    def create_context_payload(self, *, schema_id: str | None, actor_username: str) -> dict[str, Any]:
+    def create_context_payload(
+        self, *, schema_id: str | None, actor_username: str
+    ) -> dict[str, Any]:
         """Create context payload.
 
         Args:
@@ -123,7 +131,9 @@ class AdminRoleService:
         self.repository.create_role(role)
         return mutation_payload(resource="role", resource_id=role_id, action="create")
 
-    def update_role(self, *, role_id: str, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
+    def update_role(
+        self, *, role_id: str, payload: dict[str, Any], actor_username: str
+    ) -> dict[str, Any]:
         """Update role.
 
         Args:

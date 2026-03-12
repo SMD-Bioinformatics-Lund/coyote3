@@ -1,6 +1,5 @@
 """API request/response contracts."""
 
-from api.contracts.auth import ApiAuthLoginRequest
 from api.contracts.admin import (
     AdminAspcContextPayload,
     AdminAspcCreateContextPayload,
@@ -8,8 +7,8 @@ from api.contracts.admin import (
     AdminExistsPayload,
     AdminGenelistContextPayload,
     AdminGenelistCreateContextPayload,
-    AdminGenelistViewContextPayload,
     AdminGenelistsListPayload,
+    AdminGenelistViewContextPayload,
     AdminMutationPayload,
     AdminPanelContextPayload,
     AdminPanelCreateContextPayload,
@@ -28,6 +27,7 @@ from api.contracts.admin import (
     AdminUserCreateContextPayload,
     AdminUsersListPayload,
 )
+from api.contracts.auth import ApiAuthLoginRequest
 from api.contracts.common import (
     CommonGeneInfoPayload,
     CommonTieredVariantContextPayload,
@@ -59,8 +59,8 @@ from api.contracts.public import (
     PublicAssayCatalogGenesCsvPayload,
     PublicAssayCatalogMatrixPayload,
     PublicAssayCatalogPayload,
-    PublicGeneSymbolsPayload,
     PublicGenelistViewPayload,
+    PublicGeneSymbolsPayload,
 )
 from api.contracts.reports import ReportPreviewPayload, ReportSavePayload
 from api.contracts.rna import RnaFusionContextPayload, RnaFusionListPayload

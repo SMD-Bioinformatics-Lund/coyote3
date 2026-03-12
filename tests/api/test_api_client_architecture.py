@@ -6,12 +6,17 @@ import httpx
 import pytest
 
 from coyote.services.api_client.api_client import CoyoteApiClient
-from coyote.services.api_client.base import ApiPayload, ApiRequestError, BaseApiClient, _as_api_payload
+from coyote.services.api_client.base import (
+    ApiPayload,
+    ApiRequestError,
+    BaseApiClient,
+    _as_api_payload,
+)
 
 
 class _ResponseStub:
-    """Provide  ResponseStub behavior.
-    """
+    """Provide  ResponseStub behavior."""
+
     def __init__(self, status_code: int, json_payload, text: str = ""):
         """Handle __init__.
 
@@ -67,9 +72,10 @@ def test_request_error_is_wrapped_as_api_request_error(monkeypatch):
     Returns:
         The function result.
     """
+
     class _ClientRaises:
-        """Provide  ClientRaises behavior.
-        """
+        """Provide  ClientRaises behavior."""
+
         def __init__(self, *args, **kwargs):
             """Handle __init__.
 
@@ -129,9 +135,10 @@ def test_http_error_payload_is_mapped(monkeypatch):
     Returns:
         The function result.
     """
+
     class _ClientReturns403:
-        """Provide  ClientReturns403 behavior.
-        """
+        """Provide  ClientReturns403 behavior."""
+
         def __init__(self, *args, **kwargs):
             """Handle __init__.
 
@@ -192,9 +199,10 @@ def test_non_dict_payload_rejected(monkeypatch):
     Returns:
         The function result.
     """
+
     class _ClientReturnsList:
-        """Provide  ClientReturnsList behavior.
-        """
+        """Provide  ClientReturnsList behavior."""
+
         def __init__(self, *args, **kwargs):
             """Handle __init__.
 

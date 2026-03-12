@@ -12,7 +12,6 @@ from api.deps.repositories import (
     get_rna_repository,
     get_rna_workflow_repository,
 )
-from api.services.permission_management_service import PermissionManagementService
 from api.services.admin_resource_service import (
     AdminAspcService,
     AdminGenelistService,
@@ -22,18 +21,19 @@ from api.services.admin_resource_service import (
 )
 from api.services.admin_role_service import AdminRoleService
 from api.services.admin_user_service import AdminUserService
-from api.services.resource_annotation_service import ResourceAnnotationService
 from api.services.biomarker_service import BiomarkerService
-from api.services.resource_classification_service import ResourceClassificationService
 from api.services.cnv_service import CnvService
 from api.services.coverage_service import CoverageService
 from api.services.dashboard_service import DashboardService
 from api.services.dna_service import DnaService
 from api.services.dna_structural_service import DnaStructuralService
 from api.services.fusion_service import FusionService
-from api.services.sample_catalog_service import SampleCatalogService
+from api.services.permission_management_service import PermissionManagementService
 from api.services.report_service import ReportService
+from api.services.resource_annotation_service import ResourceAnnotationService
+from api.services.resource_classification_service import ResourceClassificationService
 from api.services.rna_service import RnaService
+from api.services.sample_catalog_service import SampleCatalogService
 from api.services.sample_service import SampleService
 from api.services.small_variant_service import SmallVariantService
 from api.services.translocation_service import TranslocationService

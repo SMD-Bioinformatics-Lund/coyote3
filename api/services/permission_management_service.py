@@ -7,7 +7,12 @@ from typing import Any
 from api.extensions import util
 from api.http import api_error
 from api.repositories.admin_repository import AdminRepository
-from api.services.management_common import current_actor, inject_version_history, mutation_payload, utc_now
+from api.services.management_common import (
+    current_actor,
+    inject_version_history,
+    mutation_payload,
+    utc_now,
+)
 
 
 class PermissionManagementService:
@@ -30,13 +35,17 @@ class PermissionManagementService:
         permission_policies = self.repository.list_permissions(is_active=False)
         grouped_permissions: dict[str, list[dict[str, Any]]] = {}
         for policy in permission_policies:
-            grouped_permissions.setdefault(policy.get("category", "Uncategorized"), []).append(policy)
+            grouped_permissions.setdefault(policy.get("category", "Uncategorized"), []).append(
+                policy
+            )
         return {
             "permission_policies": permission_policies,
             "grouped_permissions": grouped_permissions,
         }
 
-    def create_context_payload(self, *, schema_id: str | None, actor_username: str) -> dict[str, Any]:
+    def create_context_payload(
+        self, *, schema_id: str | None, actor_username: str
+    ) -> dict[str, Any]:
         """Create context payload.
 
         Args:
@@ -116,7 +125,9 @@ class PermissionManagementService:
         self.repository.create_permission(policy)
         return mutation_payload(resource="permission", resource_id=policy_id, action="create")
 
-    def update_permission(self, *, permission_id: str, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
+    def update_permission(
+        self, *, permission_id: str, payload: dict[str, Any], actor_username: str
+    ) -> dict[str, Any]:
         """Update permission.
 
         Args:
@@ -166,7 +177,9 @@ class PermissionManagementService:
             raise api_error(404, "Permission policy not found")
         new_status = not bool(permission.get("is_active", True))
         self.repository.set_permission_active(permission_id, new_status)
-        payload = mutation_payload(resource="permission", resource_id=permission_id, action="toggle")
+        payload = mutation_payload(
+            resource="permission", resource_id=permission_id, action="toggle"
+        )
         payload["meta"]["is_active"] = new_status
         return payload
 

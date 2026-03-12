@@ -1,4 +1,3 @@
-
 """
 This module defines the user profile views for the Coyote3 project.
 """
@@ -10,6 +9,7 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required
+
 from coyote.blueprints.userprofile import profile_bp
 
 

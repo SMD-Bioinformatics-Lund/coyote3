@@ -1,5 +1,3 @@
-
-
 """
 This module initializes the RNA blueprint for the Coyote3 project.
 
@@ -14,17 +12,17 @@ Logger:
     app.rna_logger: Logger instance for RNA events.
 """
 
-from flask import Blueprint
-from flask import current_app as app
 import logging
 
+from flask import Blueprint
+from flask import current_app as app
+
 # Blueprint configuration
-rna_bp = Blueprint(
-    "rna_bp", __name__, template_folder="templates", static_folder="static"
+rna_bp = Blueprint("rna_bp", __name__, template_folder="templates", static_folder="static")
+
+from coyote.blueprints.rna import (
+    views_fusions,  # noqa: F401, E402
+    views_reports,  # noqa: F401, E402
 )
-
-from coyote.blueprints.rna import views_fusions  # noqa: F401, E402
-from coyote.blueprints.rna import views_reports  # noqa: F401, E402
-
 
 app.rna_logger = logging.getLogger("coyote.rna")

@@ -1,4 +1,3 @@
-
 """
 This module defines WTForms forms for the Coyote3 Flask application.
 
@@ -8,14 +7,14 @@ Classes:
 
 from flask_wtf import FlaskForm
 from wtforms import (
-    StringField,
-    validators,
     BooleanField,
-    SubmitField,
     SelectField,
     SelectMultipleField,
+    StringField,
+    SubmitField,
+    validators,
 )
-from wtforms.widgets import ListWidget, CheckboxInput
+from wtforms.widgets import CheckboxInput, ListWidget
 
 
 class TieredVariantSearchForm(FlaskForm):

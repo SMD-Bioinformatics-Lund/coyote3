@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from api.contracts.auth import ApiAuthLoginRequest, ApiSessionDeleteResponse
-from api.contracts.system import AuthLoginEnvelope, AuthUserEnvelope, HealthPayload, WhoamiPayload
+from api.contracts.system import AuthLoginEnvelope, AuthUserEnvelope, WhoamiPayload
 from api.extensions import util
 from api.security.access import (
     ApiUser,
@@ -63,7 +63,9 @@ def _login_response(payload: ApiAuthLoginRequest):
 
     user_id = resolve_user_identity(user_doc)
     if not user_id:
-        raise HTTPException(status_code=500, detail={"status": 500, "error": "User identity missing"})
+        raise HTTPException(
+            status_code=500, detail={"status": 500, "error": "User identity missing"}
+        )
     update_user_last_login(user_id)
     session_token = create_api_session_token(user_id)
     response = JSONResponse(
@@ -87,7 +89,12 @@ def _login_response(payload: ApiAuthLoginRequest):
     return response
 
 
-@router.post("/api/v1/auth/sessions", response_model=AuthLoginEnvelope, status_code=201, summary="Create session")
+@router.post(
+    "/api/v1/auth/sessions",
+    response_model=AuthLoginEnvelope,
+    status_code=201,
+    summary="Create session",
+)
 def create_auth_session(payload: ApiAuthLoginRequest):
     """Create auth session.
 
@@ -113,7 +120,11 @@ def _logout_response():
     return response
 
 
-@router.delete("/api/v1/auth/sessions/current", response_model=ApiSessionDeleteResponse, summary="Delete current session")
+@router.delete(
+    "/api/v1/auth/sessions/current",
+    response_model=ApiSessionDeleteResponse,
+    summary="Delete current session",
+)
 def delete_auth_session():
     """Delete auth session.
 
@@ -123,7 +134,11 @@ def delete_auth_session():
     return _logout_response()
 
 
-@router.get("/api/v1/auth/session", response_model=AuthUserEnvelope, summary="Get current authenticated session")
+@router.get(
+    "/api/v1/auth/session",
+    response_model=AuthUserEnvelope,
+    summary="Get current authenticated session",
+)
 def auth_session(user: ApiUser = Depends(require_access(min_level=1))):
     """Handle auth session.
 

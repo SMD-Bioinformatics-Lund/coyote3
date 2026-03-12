@@ -1,14 +1,10 @@
-
 """Report summary and shared interpretation helpers."""
 
 from collections import defaultdict
 
-from api.runtime import app
-from api.runtime import current_username
-
 from api.infra.repositories.core_store_mongo import MongoCoreStoreRepository
+from api.runtime import app, current_username
 from api.utils.common_utility import CommonUtility
-
 
 _core_repo_instance: MongoCoreStoreRepository | None = None
 
@@ -81,7 +77,9 @@ def create_annotation_text_from_gene(gene: str, csq: list, assay_group: str, **k
     return text
 
 
-def create_comment_doc(data: dict, nomenclature: str = "", variant: str = "", key: str = "text") -> dict:
+def create_comment_doc(
+    data: dict, nomenclature: str = "", variant: str = "", key: str = "text"
+) -> dict:
     """Create comment doc.
 
     Args:
@@ -146,7 +144,9 @@ def generate_summary_text(
     Returns:
         str: The function result.
     """
-    text = summarize_intro(sample_ids, genes_chosen, checked_genelists, assay_config, assay_panel_doc)
+    text = summarize_intro(
+        sample_ids, genes_chosen, checked_genelists, assay_config, assay_panel_doc
+    )
 
     if "snvs" in summary_sections_data:
         text = text + "## Kliniskt relevanta SNVs och små INDELs:"
@@ -222,12 +222,23 @@ def summarize_intro(
         gene_plural = "en" if len(genes_chosen) == 1 else "erna"
         incl_genes_copy = genes_chosen[:]
         if len(genes_chosen) <= 20:
-            the_genes = " som innefattar gen" + gene_plural + ": " + str(
-                CommonUtility.nl_join(incl_genes_copy, "samt")
+            the_genes = (
+                " som innefattar gen"
+                + gene_plural
+                + ": "
+                + str(CommonUtility.nl_join(incl_genes_copy, "samt"))
             )
         else:
             the_genes = " som innefattar " + str(len(genes_chosen)) + " gener"
-        text += "Analysen omfattar " + "genlist" + str(genepanel_plural) + ": " + str(the_lists_spoken) + the_genes + ". "
+        text += (
+            "Analysen omfattar "
+            + "genlist"
+            + str(genepanel_plural)
+            + ": "
+            + str(the_lists_spoken)
+            + the_genes
+            + ". "
+        )
         if len(sample_ids) == 2 and germline_intersection:
             germ_spoken = str(CommonUtility.nl_join(germline_intersection, "samt"))
             text += f"För {germ_spoken} undersöks även konstitutionella mutationer."
@@ -306,9 +317,15 @@ def summarize_transloc(variants: list) -> str:
             text += "i " + str(interesting[voi]["af_pr"]) + "%" + " av överspännande läsningar"
             af = 1
         if interesting[voi]["af_ur"] > 0 and af > 0:
-            text += " samt uppskattas det finnas " + str(interesting[voi]["af_ur"]) + " unika läsningar"
+            text += (
+                " samt uppskattas det finnas " + str(interesting[voi]["af_ur"]) + " unika läsningar"
+            )
         elif interesting[voi]["af_ur"] > 0:
-            text += " i vilken det uppskattas finnas " + str(interesting[voi]["af_ur"]) + " unika läsningar"
+            text += (
+                " i vilken det uppskattas finnas "
+                + str(interesting[voi]["af_ur"])
+                + " unika läsningar"
+            )
         text += ")\n"
     return text
 
@@ -327,7 +344,11 @@ def summarize_cnv(variants: list) -> str:
         if "interesting" in var and var["interesting"]:
             coord = str(var["chr"]) + ":" + str(var["start"]) + "-" + str(var["end"])
             af_dict = {"af_pr": 0, "af_sr": 0, "cn": 0, "cnp": 0, "coord": coord, "other_genes": 0}
-            cn = round(2 * (2 ** var["ratio"]), ndigits=2) if isinstance(var["ratio"], float) else var["ratio"]
+            cn = (
+                round(2 * (2 ** var["ratio"]), ndigits=2)
+                if isinstance(var["ratio"], float)
+                else var["ratio"]
+            )
             other_genes = 0
             goi = []
             for gene in var["genes"]:
@@ -453,7 +474,9 @@ def sort_tiered_variants(variants: list, genes_chosen: list) -> tuple:
         for gt in v["GT"]:
             if gt["type"] == "case":
                 percent = str(int(round(100 * gt["AF"], 0))) + "%"
-        class_vars[v["classification"]["class"]][v["INFO"]["selected_CSQ"]["SYMBOL"]].append(percent)
+        class_vars[v["classification"]["class"]][v["INFO"]["selected_CSQ"]["SYMBOL"]].append(
+            percent
+        )
         class_cnt[v["classification"]["class"]] += 1
     return class_vars, class_cnt
 
@@ -492,7 +515,13 @@ def summarize_tiered_snvs(class_vars: dict, class_cnt: dict, text: str) -> str:
         if num_genes == 1:
             first = 0
             for gene, perc_arr in class_vars[tier].items():
-                text += " i " + gene + " (i " + CommonUtility.nl_join(perc_arr, "respektive") + " av läsningarna)"
+                text += (
+                    " i "
+                    + gene
+                    + " (i "
+                    + CommonUtility.nl_join(perc_arr, "respektive")
+                    + " av läsningarna)"
+                )
         elif num_genes > 1:
             text += ": "
             gene_texts = []
@@ -550,7 +579,9 @@ def enrich_reported_variant_docs(tier_docs: list) -> list:
         enriched_doc["sample"]["assay"] = sample.get("assay")
         enriched_doc["sample"]["subpanel"] = sample.get("subpanel")
 
-        annotation = _core_repo().annotation_handler.get_annotation_by_oid(doc.get("annotation_oid", None))
+        annotation = _core_repo().annotation_handler.get_annotation_by_oid(
+            doc.get("annotation_oid", None)
+        )
         enriched_doc["annotation"] = {**annotation}
         enriched_docs.append(enriched_doc)
     return enriched_docs

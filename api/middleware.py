@@ -13,6 +13,8 @@ from api.audit.access_events import emit_mutation_event, emit_request_event, req
 from api.lifecycle import ensure_runtime_initialized
 from api.runtime import (
     app as runtime_app,
+)
+from api.runtime import (
     current_username,
     reset_current_request_id,
     reset_current_user,
@@ -22,8 +24,11 @@ from api.runtime import (
 from api.security.access import is_public_api_path, resolve_request_user
 
 
-def build_authentication_middleware(*, testing: bool, development: bool) -> Callable[[Request, Callable[..., Awaitable[JSONResponse]]], Awaitable[JSONResponse]]:
+def build_authentication_middleware(
+    *, testing: bool, development: bool
+) -> Callable[[Request, Callable[..., Awaitable[JSONResponse]]], Awaitable[JSONResponse]]:
     """Build the request middleware that initializes runtime state and enforces API auth."""
+
     async def api_authentication_middleware(request: Request, call_next):
         """Handle api authentication middleware.
 
@@ -48,7 +53,9 @@ def build_authentication_middleware(*, testing: bool, development: bool) -> Call
                 request.state.authenticated_user = authenticated_user
                 user_token = set_current_user(authenticated_user)
             if not is_public_api_path(path) and authenticated_user is None:
-                response = _unauthorized_response(request=request, request_id=request_id, start=start)
+                response = _unauthorized_response(
+                    request=request, request_id=request_id, start=start
+                )
                 if user_token is not None:
                     reset_current_user(user_token)
                 reset_current_request_id(request_token)
@@ -102,7 +109,11 @@ def build_authentication_middleware(*, testing: bool, development: bool) -> Call
 def _unauthorized_response(*, request: Request, request_id: str, start: float) -> JSONResponse:
     """Return a standardized unauthenticated API response and emit request audit metadata."""
     exc = HTTPException(status_code=401, detail={"status": 401, "error": "Login required"})
-    payload = exc.detail if isinstance(exc.detail, dict) else {"status": exc.status_code, "error": str(exc.detail)}
+    payload = (
+        exc.detail
+        if isinstance(exc.detail, dict)
+        else {"status": exc.status_code, "error": str(exc.detail)}
+    )
     response = JSONResponse(status_code=exc.status_code, content=payload)
     response.headers["X-Request-ID"] = request_id
     duration_ms = (time.perf_counter() - start) * 1000.0

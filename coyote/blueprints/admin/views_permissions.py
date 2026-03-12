@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from flask import Response, abort, current_app as app, g, redirect, render_template, request, url_for
+from flask import Response, abort, g, redirect, render_template, request, url_for
+from flask import current_app as app
 from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
@@ -166,7 +167,9 @@ def edit_permission(perm_id: str) -> Response | str:
         )
 
     selected_version = request.args.get("version", type=int)
-    permission, delta = _apply_selected_permission_version(context.permission, selected_version, perm_id)
+    permission, delta = _apply_selected_permission_version(
+        context.permission, selected_version, perm_id
+    )
 
     if request.method == "POST":
         form_data = {
@@ -252,7 +255,9 @@ def toggle_permission_active(perm_id: str) -> Response:
             "permission": perm_id,
             "permission_status": "Active" if new_status else "Inactive",
         }
-        flash_api_success(f"Permission '{perm_id}' is now {'Active' if new_status else 'Inactive'}.")
+        flash_api_success(
+            f"Permission '{perm_id}' is now {'Active' if new_status else 'Inactive'}."
+        )
     except ApiRequestError as exc:
         if exc.status_code == 404:
             return abort(404)

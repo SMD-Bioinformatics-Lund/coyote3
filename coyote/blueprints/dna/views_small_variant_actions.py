@@ -5,7 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from flask import Response, current_app as app, flash, redirect, request, url_for
+from flask import Response, flash, redirect, request, url_for
+from flask import current_app as app
 from flask_login import login_required
 
 from coyote.blueprints.dna import dna_bp
@@ -150,7 +151,11 @@ def bulk_toggle(
         lambda: get_web_api_client().patch_json(
             endpoint,
             headers=headers(),
-            json_body={"apply": apply, "resource_ids": resource_ids, "resource_type": "small_variant"},
+            json_body={
+                "apply": apply,
+                "resource_ids": resource_ids,
+                "resource_type": "small_variant",
+            },
         ),
     )
 
@@ -171,7 +176,9 @@ def unmark_false_variant(sample_id: str, var_id: str) -> Response:
         sample_id,
         "Failed to unmark variant false-positive via API",
         lambda: get_web_api_client().delete_json(
-            api_endpoints.dna_sample(sample_id, "small_variants", var_id, "flags", "false-positive"),
+            api_endpoints.dna_sample(
+                sample_id, "small_variants", var_id, "flags", "false-positive"
+            ),
             headers=headers(),
         ),
     )
@@ -194,7 +201,9 @@ def mark_false_variant(sample_id: str, var_id: str) -> Response:
         sample_id,
         "Failed to mark variant false-positive via API",
         lambda: get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "small_variants", var_id, "flags", "false-positive"),
+            api_endpoints.dna_sample(
+                sample_id, "small_variants", var_id, "flags", "false-positive"
+            ),
             headers=headers(),
         ),
     )
@@ -387,7 +396,9 @@ def hide_variant_comment(sample_id: str, var_id: str) -> Response:
         sample_id,
         "Failed to hide variant comment via API",
         lambda: get_web_api_client().patch_json(
-            api_endpoints.dna_sample(sample_id, "small_variants", var_id, "comments", comment_id, "hidden"),
+            api_endpoints.dna_sample(
+                sample_id, "small_variants", var_id, "comments", comment_id, "hidden"
+            ),
             headers=headers(),
         ),
     )
@@ -425,9 +436,13 @@ def unhide_variant_comment(sample_id: str, var_id: str) -> Response:
     methods=["POST"],
     endpoint="classify_small_variant",
 )
-@dna_bp.route("/<string:sample_id>/fus/<string:fus_id>/classify", methods=["POST"], endpoint="classify_fusion")
+@dna_bp.route(
+    "/<string:sample_id>/fus/<string:fus_id>/classify", methods=["POST"], endpoint="classify_fusion"
+)
 @login_required
-def classify_small_variant(sample_id: str, var_id: str | None = None, fus_id: str | None = None) -> Response:
+def classify_small_variant(
+    sample_id: str, var_id: str | None = None, fus_id: str | None = None
+) -> Response:
     """Handle classify small variant.
 
     Args:

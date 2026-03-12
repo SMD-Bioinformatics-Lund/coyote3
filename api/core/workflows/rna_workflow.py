@@ -1,4 +1,3 @@
-
 """
 RNA workflow service facade.
 
@@ -10,15 +9,14 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any
 
-from api.runtime import app
-
-from api.extensions import util
-from api.core.reporting.report_paths import build_report_file_location
+from api.core.interpretation.annotation_enrichment import add_alt_class
 from api.core.reporting.pipeline import (
-    prepare_report_output as prepare_shared_report_output,
     persist_report_and_snapshot as persist_shared_report_and_snapshot,
 )
-from api.core.interpretation.annotation_enrichment import add_alt_class
+from api.core.reporting.pipeline import (
+    prepare_report_output as prepare_shared_report_output,
+)
+from api.core.reporting.report_paths import build_report_file_location
 from api.core.rna.fusion_query_builder import build_fusion_query
 from api.core.rna.helpers import (
     create_fusioncallers,
@@ -26,18 +24,20 @@ from api.core.rna.helpers import (
     get_fusion_callers,
     get_selected_fusioncall,
 )
-from api.core.workflows.filter_normalization import normalize_rna_filter_keys
 from api.core.workflows.contracts import (
     validate_report_inputs,
     validate_rna_filter_inputs,
 )
+from api.core.workflows.filter_normalization import normalize_rna_filter_keys
 from api.core.workflows.ports import RNAWorkflowRepository
+from api.extensions import util
+from api.runtime import app
 from api.utils.common_utility import CommonUtility
 
 
 class RNAWorkflowService:
-    """Provide rna workflow workflows.
-    """
+    """Provide rna workflow workflows."""
+
     _repository: RNAWorkflowRepository | None = None
 
     @classmethod
@@ -73,7 +73,9 @@ class RNAWorkflowService:
         return cls._repository
 
     @staticmethod
-    def merge_and_normalize_sample_filters(sample: dict, assay_config: dict, sample_id: str, logger) -> tuple[dict, dict]:
+    def merge_and_normalize_sample_filters(
+        sample: dict, assay_config: dict, sample_id: str, logger
+    ) -> tuple[dict, dict]:
         """
         Merge assay defaults into sample and return canonicalized RNA filters.
         """
@@ -121,7 +123,9 @@ class RNAWorkflowService:
         fusion_effects = create_fusioneffectlist(sample_filters.get("fusion_effects", []))
         fusion_callers = create_fusioncallers(sample_filters.get("fusion_callers", []))
         checked_fusionlists = sample_filters.get("fusionlists", [])
-        checked_fusionlists_genes_dict = RNAWorkflowService._repo().get_isgl_by_ids(checked_fusionlists)
+        checked_fusionlists_genes_dict = RNAWorkflowService._repo().get_isgl_by_ids(
+            checked_fusionlists
+        )
 
         sample_for_gene_filter = deepcopy(sample)
         sample_for_gene_filter.setdefault("filters", {})
@@ -202,7 +206,9 @@ class RNAWorkflowService:
         else:
             fusion["additional_classifications"] = None
 
-        has_hidden_comments = RNAWorkflowService._repo().hidden_fusion_comments(str(fusion.get("_id")))
+        has_hidden_comments = RNAWorkflowService._repo().hidden_fusion_comments(
+            str(fusion.get("_id"))
+        )
         assay_group_mappings = RNAWorkflowService._repo().get_asp_group_mappings()
         fusion["fusion_callers"] = get_fusion_callers(fusion)
 
@@ -225,7 +231,9 @@ class RNAWorkflowService:
         validate_report_inputs(logger, sample, assay_config, analyte="rna")
 
     @staticmethod
-    def build_report_location(sample: dict, assay_config: dict, reports_base_path: str) -> tuple[str, str, str]:
+    def build_report_location(
+        sample: dict, assay_config: dict, reports_base_path: str
+    ) -> tuple[str, str, str]:
         """
         Build report id/path/file location for RNA save flow.
         """
@@ -354,4 +362,8 @@ class RNAWorkflowService:
 
         if not include_snapshot:
             return "report_fusion.html", template_context, []
-        return "report_fusion.html", template_context, RNAWorkflowService._build_snapshot_rows(fusions)
+        return (
+            "report_fusion.html",
+            template_context,
+            RNAWorkflowService._build_snapshot_rows(fusions),
+        )

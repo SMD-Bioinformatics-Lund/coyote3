@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-import pytest
-from fastapi.testclient import TestClient
 from types import SimpleNamespace
 
-from api.main import app
-from api.deps.repositories import get_sample_repository
+import pytest
+from fastapi.testclient import TestClient
+
 from api import middleware
-from api.routers import samples
+from api.deps.repositories import get_sample_repository
+from api.main import app
 from api.security import access
 from api.security.access import ApiUser
 

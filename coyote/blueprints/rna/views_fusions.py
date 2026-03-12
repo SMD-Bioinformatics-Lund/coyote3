@@ -1,4 +1,3 @@
-
 """
 Views for handling RNA fusion cases in the Coyote3 application.
 All routes require user authentication and appropriate sample access.
@@ -8,7 +7,6 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from flask import current_app as app
 from flask import (
     Response,
     flash,
@@ -17,13 +15,17 @@ from flask import (
     request,
     url_for,
 )
+from flask import current_app as app
 from flask_login import login_required
 
-from coyote.blueprints.rna.forms import FusionFilter
-
 from coyote.blueprints.rna import rna_bp
+from coyote.blueprints.rna.forms import FusionFilter
 from coyote.services.api_client import endpoints as api_endpoints
-from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.services.api_client.api_client import (
+    ApiRequestError,
+    forward_headers,
+    get_web_api_client,
+)
 from coyote.services.api_client.web import raise_page_load_error
 
 
@@ -95,7 +97,9 @@ def list_fusions(sample_id: str) -> str | Response:
                     headers=headers,
                 )
             except ApiRequestError as exc:
-                app.logger.error("Failed to reset RNA filters via API for sample %s: %s", sample_id, exc)
+                app.logger.error(
+                    "Failed to reset RNA filters via API for sample %s: %s", sample_id, exc
+                )
         else:
             filters_from_form = {
                 key: value
@@ -110,7 +114,9 @@ def list_fusions(sample_id: str) -> str | Response:
                     json_body={"filters": filters_from_form},
                 )
             except ApiRequestError as exc:
-                app.logger.error("Failed to update RNA filters via API for sample %s: %s", sample_id, exc)
+                app.logger.error(
+                    "Failed to update RNA filters via API for sample %s: %s", sample_id, exc
+                )
 
         try:
             fusions_payload = _load_api_context()
@@ -142,7 +148,9 @@ def list_fusions(sample_id: str) -> str | Response:
             filter_context = deepcopy(fusions_payload.filter_context)
             fusionlist_options = fusions_payload.fusionlist_options
         except ApiRequestError as exc:
-            app.logger.error("Failed to reset RNA filters via API for sample %s: %s", sample_id, exc)
+            app.logger.error(
+                "Failed to reset RNA filters via API for sample %s: %s", sample_id, exc
+            )
     ############################################################################
     has_hidden_comments = fusions_payload.hidden_comments
 
@@ -251,7 +259,9 @@ def mark_false_fusion(sample_id: str, fus_id: str) -> Response:
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
-        app.logger.error("Failed to mark RNA fusion false-positive via API for sample %s: %s", sample_id, exc)
+        app.logger.error(
+            "Failed to mark RNA fusion false-positive via API for sample %s: %s", sample_id, exc
+        )
     return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=fus_id))
 
 
@@ -292,11 +302,15 @@ def hide_fusion_comment(sample_id: str, fus_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
         get_web_api_client().patch_json(
-            api_endpoints.rna_sample(sample_id, "fusions", fus_id, "comments", comment_id, "hidden"),
+            api_endpoints.rna_sample(
+                sample_id, "fusions", fus_id, "comments", comment_id, "hidden"
+            ),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
-        app.logger.error("Failed to hide RNA fusion comment via API for sample %s: %s", sample_id, exc)
+        app.logger.error(
+            "Failed to hide RNA fusion comment via API for sample %s: %s", sample_id, exc
+        )
     return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=fus_id))
 
 
@@ -306,11 +320,15 @@ def unhide_fusion_comment(sample_id: str, fus_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
         get_web_api_client().delete_json(
-            api_endpoints.rna_sample(sample_id, "fusions", fus_id, "comments", comment_id, "hidden"),
+            api_endpoints.rna_sample(
+                sample_id, "fusions", fus_id, "comments", comment_id, "hidden"
+            ),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
-        app.logger.error("Failed to unhide RNA fusion comment via API for sample %s: %s", sample_id, exc)
+        app.logger.error(
+            "Failed to unhide RNA fusion comment via API for sample %s: %s", sample_id, exc
+        )
     return redirect(url_for("rna_bp.show_fusion", sample_id=sample_id, fusion_id=fus_id))
 
 

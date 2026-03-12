@@ -1,4 +1,3 @@
-
 """
 This module initializes the user profile blueprint for the Coyote3 project.
 
@@ -13,15 +12,13 @@ Logger:
     app.profile_logger: Logger for profile operations under the "coyote.profile" namespace.
 """
 
-from flask import Blueprint
-from flask import current_app as app
 import logging
 
-profile_bp = Blueprint(
-    "profile_bp", __name__, template_folder="templates", static_folder="static"
-)
+from flask import Blueprint
+from flask import current_app as app
+
+profile_bp = Blueprint("profile_bp", __name__, template_folder="templates", static_folder="static")
 
 from coyote.blueprints.userprofile import views  # noqa: F401, E402
-
 
 app.profile_logger = logging.getLogger("coyote.profile")

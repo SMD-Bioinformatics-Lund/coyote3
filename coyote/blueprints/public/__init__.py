@@ -1,4 +1,3 @@
-
 """
 This module initializes the public blueprint for the Coyote3 project.
 
@@ -13,9 +12,10 @@ Logger:
     app.public_logger: Logger instance for public events.
 """
 
+import logging
+
 from flask import Blueprint
 from flask import current_app as app
-import logging
 
 # Blueprint configuration
 public_bp = Blueprint("public_bp", __name__, template_folder="templates", static_folder="static")

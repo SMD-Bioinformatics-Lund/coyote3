@@ -1,4 +1,3 @@
-
 """
 MongoAdapter module for Coyote3
 ===============================
@@ -14,37 +13,38 @@ It is part of the `coyote.db` package.
 # -------------------------------------------------------------------------
 import pymongo
 from pymongo.errors import OperationFailure
-from api.infra.db.samples import SampleHandler
-from api.infra.db.users import UsersHandler
-from api.infra.db.asp import ASPHandler
-from api.infra.db.variants import VariantsHandler
-from api.infra.db.cnvs import CNVsHandler
-from api.infra.db.translocs import TranslocsHandler
+
 from api.infra.db.annotations import AnnotationsHandler
-from api.infra.db.expression import ExpressionHandler
-from api.infra.db.blacklist import BlacklistHandler
-from api.infra.external.oncokb import OnkoKBHandler
-from api.infra.db.bam_service import BamServiceHandler
-from api.infra.external.civic import CivicHandler
-from api.infra.external.iarc_tp53 import IARCTP53Handler
-from api.infra.external.brcaexchange import BRCAHandler
-from api.infra.db.fusions import FusionsHandler
-from api.infra.db.biomarkers import BiomarkerHandler
-from api.infra.db.coverage import CoverageHandler
-from api.infra.external.cosmic import CosmicHandler
-from api.infra.db.coverage2 import CoverageHandler2
-from api.infra.db.group_coverage import GroupCoverageHandler
+from api.infra.db.asp import ASPHandler
 from api.infra.db.asp_configs import ASPConfigHandler
-from api.infra.db.schemas import SchemaHandler
-from api.infra.db.roles import RolesHandler
-from api.infra.db.permissions import PermissionsHandler
-from api.infra.db.vep_meta import VEPMetaHandler
+from api.infra.db.bam_service import BamServiceHandler
+from api.infra.db.biomarkers import BiomarkerHandler
+from api.infra.db.blacklist import BlacklistHandler
+from api.infra.db.cnvs import CNVsHandler
+from api.infra.db.coverage import CoverageHandler
+from api.infra.db.coverage2 import CoverageHandler2
+from api.infra.db.expression import ExpressionHandler
+from api.infra.db.fusions import FusionsHandler
+from api.infra.db.group_coverage import GroupCoverageHandler
 from api.infra.db.isgl import ISGLHandler
-from api.infra.external.hgnc import HGNCHandler
-from api.infra.db.rna_expression import RNAExpressionHandler
-from api.infra.db.rna_classification import RNAClassificationHandler
-from api.infra.db.rna_qc import RNAQCHandler
+from api.infra.db.permissions import PermissionsHandler
 from api.infra.db.reported_variants import ReportedVariantsHandler
+from api.infra.db.rna_classification import RNAClassificationHandler
+from api.infra.db.rna_expression import RNAExpressionHandler
+from api.infra.db.rna_qc import RNAQCHandler
+from api.infra.db.roles import RolesHandler
+from api.infra.db.samples import SampleHandler
+from api.infra.db.schemas import SchemaHandler
+from api.infra.db.translocs import TranslocsHandler
+from api.infra.db.users import UsersHandler
+from api.infra.db.variants import VariantsHandler
+from api.infra.db.vep_meta import VEPMetaHandler
+from api.infra.external.brcaexchange import BRCAHandler
+from api.infra.external.civic import CivicHandler
+from api.infra.external.cosmic import CosmicHandler
+from api.infra.external.hgnc import HGNCHandler
+from api.infra.external.iarc_tp53 import IARCTP53Handler
+from api.infra.external.oncokb import OnkoKBHandler
 
 
 # -------------------------------------------------------------------------

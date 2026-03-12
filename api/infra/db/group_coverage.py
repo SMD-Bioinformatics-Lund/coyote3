@@ -1,4 +1,3 @@
-
 """
 GroupCoverageHandler module for Coyote3
 =======================================
@@ -12,8 +11,9 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from api.infra.db.base import BaseHandler
 from bson.objectid import ObjectId
+
+from api.infra.db.base import BaseHandler
 
 
 # -------------------------------------------------------------------------
@@ -51,9 +51,7 @@ class GroupCoverageHandler(BaseHandler):
         col.create_index([("group", 1)], name="group_1", background=True)
         col.create_index([("gene", 1)], name="gene_1", background=True)
 
-    def blacklist_coord(
-        self, gene: str, coord: str, region: str, group: str
-    ) -> dict:
+    def blacklist_coord(self, gene: str, coord: str, region: str, group: str) -> dict:
         """
         Blacklist a specific exon, probe, or region for a given gene and group.
 
@@ -107,9 +105,7 @@ class GroupCoverageHandler(BaseHandler):
         if data:
             return False
         else:
-            self.get_collection().insert_one(
-                {"gene": gene, "group": group, "region": "gene"}
-            )
+            self.get_collection().insert_one({"gene": gene, "group": group, "region": "gene"})
         return gene
 
     def get_regions_per_group(self, group: str) -> dict:
@@ -127,9 +123,7 @@ class GroupCoverageHandler(BaseHandler):
         data = self.get_collection().find({"group": group})
         return data
 
-    def is_region_blacklisted(
-        self, gene: str, region: str, coord: str, assay: str
-    ) -> bool:
+    def is_region_blacklisted(self, gene: str, region: str, coord: str, assay: str) -> bool:
         """
         Check if a region is blacklisted for a specific assay.
 
@@ -167,9 +161,7 @@ class GroupCoverageHandler(BaseHandler):
         Returns:
             bool: True if the gene is blacklisted for the assay, False otherwise.
         """
-        data = self.get_collection().find_one(
-            {"gene": gene, "group": group, "region": "gene"}
-        )
+        data = self.get_collection().find_one({"gene": gene, "group": group, "region": "gene"})
         if data:
             return True
         else:

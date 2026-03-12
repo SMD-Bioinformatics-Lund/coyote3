@@ -6,18 +6,17 @@ import io
 import os
 from copy import deepcopy
 
-from PIL import Image
 from flask import (
     Response,
-    current_app as app,
-    flash,
-    redirect,
     render_template,
     request,
     send_file,
     send_from_directory,
-    url_for,
 )
+from flask import (
+    current_app as app,
+)
+from PIL import Image
 from wtforms import BooleanField
 
 from coyote.blueprints.dna import dna_bp
@@ -158,7 +157,9 @@ def list_small_variants(sample_id: str) -> Response | str:
             genes_covered_in_panel = variants_payload.checked_genelists_dict
             verification_sample_used = variants_payload.verification_sample_used
         except ApiRequestError as exc:
-            app.logger.error("DNA small-variant API refresh failed for sample %s: %s", sample_id, exc)
+            app.logger.error(
+                "DNA small-variant API refresh failed for sample %s: %s", sample_id, exc
+            )
             raise_api_page_error(sample_id, "DNA small variants", exc)
 
     has_hidden_comments = variants_payload.hidden_comments
@@ -231,7 +232,9 @@ def show_small_variant(sample_id: str, var_id: str) -> Response | str:
             assay_group_mappings=payload.assay_group_mappings,
         )
     except ApiRequestError as exc:
-        app.logger.error("DNA small-variant detail API fetch failed for sample %s: %s", sample_id, exc)
+        app.logger.error(
+            "DNA small-variant detail API fetch failed for sample %s: %s", sample_id, exc
+        )
         raise_api_page_error(sample_id, "DNA small-variant detail", exc)
 
 

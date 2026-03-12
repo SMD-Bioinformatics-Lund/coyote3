@@ -10,6 +10,8 @@ from api.core.coverage.coverage_processing import CoverageProcessingService
 from api.http import api_error
 from api.repositories.coverage_repository import (
     CoverageRepository as MongoCoverageRepository,
+)
+from api.repositories.coverage_repository import (
     CoverageRouteRepository as MongoCoverageRouteRepository,
 )
 
@@ -29,7 +31,9 @@ class CoverageService:
         if not CoverageProcessingService.has_repository():
             CoverageProcessingService.set_repository(self.processing_repository)
 
-    def sample_payload(self, *, sample: dict, cov_cutoff: int, effective_genes_resolver) -> dict[str, Any]:
+    def sample_payload(
+        self, *, sample: dict, cov_cutoff: int, effective_genes_resolver
+    ) -> dict[str, Any]:
         """Handle sample payload.
 
         Args:
@@ -68,8 +72,12 @@ class CoverageService:
         sample_payload = deepcopy(sample)
         sample_payload.pop("_id", None)
 
-        filtered_dict = CoverageProcessingService.filter_genes_from_form(cov_dict, filter_genes, assay_group)
-        filtered_dict = CoverageProcessingService.find_low_covered_genes(filtered_dict, cov_cutoff, assay_group)
+        filtered_dict = CoverageProcessingService.filter_genes_from_form(
+            cov_dict, filter_genes, assay_group
+        )
+        filtered_dict = CoverageProcessingService.find_low_covered_genes(
+            filtered_dict, cov_cutoff, assay_group
+        )
         cov_table = CoverageProcessingService.coverage_table(filtered_dict, cov_cutoff)
         filtered_dict = CoverageProcessingService.organize_data_for_d3(filtered_dict)
 

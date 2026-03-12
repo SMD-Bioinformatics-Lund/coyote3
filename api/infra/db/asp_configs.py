@@ -1,4 +1,3 @@
-
 """
 ASPConfigHandler module for Coyote3
 ======================================
@@ -12,9 +11,11 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from api.infra.db.base import BaseHandler
 from typing import Any
+
 from pymongo import cursor
+
+from api.infra.db.base import BaseHandler
 
 
 # -------------------------------------------------------------------------
@@ -142,9 +143,7 @@ class ASPConfigHandler(BaseHandler):
         """
         return self.get_collection().find_one({"_id": aspc_id})
 
-    def get_aspc_no_meta(
-        self, assay_id: str, profile: str = "production"
-    ) -> dict | None:
+    def get_aspc_no_meta(self, assay_id: str, profile: str = "production") -> dict | None:
         """
         Retrieves a specific assay configuration document by its ID, ensuring it is active.
 
@@ -182,7 +181,9 @@ class ASPConfigHandler(BaseHandler):
         Returns:
             Any: The result of the update operation, typically a `pymongo.results.UpdateResult` object.
         """
-        return self.get_collection().update_one(self._aspc_lookup_query(aspc_id), {"$set": self.ensure_aspc_id(data)})
+        return self.get_collection().update_one(
+            self._aspc_lookup_query(aspc_id), {"$set": self.ensure_aspc_id(data)}
+        )
 
     def create_aspc(self, data: dict) -> Any:
         """
@@ -234,15 +235,9 @@ class ASPConfigHandler(BaseHandler):
         if is_active is None:
             return self.get_collection().distinct("assay_name")
         else:
-            return (
-                self.get_collection()
-                .find({"is_active": is_active})
-                .distinct("assay_name")
-            )
+            return self.get_collection().find({"is_active": is_active}).distinct("assay_name")
 
-    def get_available_assay_envs(
-        self, assay_name: str, all_envs: list
-    ) -> list:
+    def get_available_assay_envs(self, assay_name: str, all_envs: list) -> list:
         """
         Retrieves a list of available environments for a specific assay configuration.
 
@@ -255,9 +250,7 @@ class ASPConfigHandler(BaseHandler):
         """
         # Match _id like "Demo:production", "Demo:development", etc.
         regex = f"^{assay_name}:"
-        assay_configs = self.get_collection().find(
-            {"_id": {"$regex": regex}}, {"_id": 1}
-        )
+        assay_configs = self.get_collection().find({"_id": {"$regex": regex}}, {"_id": 1})
 
         used_envs = set()
         for config in assay_configs:

@@ -2,7 +2,8 @@
 
 import json
 
-from flask import Response, abort, current_app as app, g, redirect, render_template, request, url_for
+from flask import Response, abort, g, redirect, render_template, request, url_for
+from flask import current_app as app
 from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp

@@ -1,6 +1,7 @@
-
 from flask import current_app as app
+
 from coyote.filters.shared import shorten_number as shared_shorten_number
+
 
 @app.template_filter("shorten_number")
 def shorten_number(n: int) -> str:

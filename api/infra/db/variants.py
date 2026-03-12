@@ -1,4 +1,3 @@
-
 """
 VariantsHandler module for Coyote3
 ==================================
@@ -11,10 +10,11 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from bson.objectid import ObjectId
-from api.infra.db.base import BaseHandler
-from api.runtime import app
 from typing import Any
+
+from bson.objectid import ObjectId
+
+from api.infra.db.base import BaseHandler
 
 
 # -------------------------------------------------------------------------

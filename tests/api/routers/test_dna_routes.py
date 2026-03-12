@@ -15,8 +15,8 @@ from api.routers import classifications as classification_router
 from api.routers import small_variants as dna
 from api.security import access
 from api.security.access import ApiUser
-from api.services.dna_service import DnaService
 from api.services import dna_service as dna_service_module
+from api.services.dna_service import DnaService
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -48,12 +48,20 @@ def test_load_cnvs_for_sample_uses_collection_shaped_docs(monkeypatch):
     cnv_rows = [fx.cnv_doc()]
     service = DnaService()
 
-    monkeypatch.setattr(dna_repo_module.store.cnv_handler, "get_sample_cnvs", lambda query: cnv_rows)
-    monkeypatch.setattr(dna_service_module, "build_cnv_query", lambda sample_id, filters: {"sample_id": sample_id, **filters})
+    monkeypatch.setattr(
+        dna_repo_module.store.cnv_handler, "get_sample_cnvs", lambda query: cnv_rows
+    )
+    monkeypatch.setattr(
+        dna_service_module,
+        "build_cnv_query",
+        lambda sample_id, filters: {"sample_id": sample_id, **filters},
+    )
     monkeypatch.setattr(dna_service_module, "create_cnveffectlist", lambda cnv_effects: [])
     monkeypatch.setattr(dna_service_module, "cnv_organizegenes", lambda cnvs: cnvs)
 
-    rows = service.load_cnvs_for_sample(sample=sample, sample_filters=sample_filters, filter_genes=["ERBB2"])
+    rows = service.load_cnvs_for_sample(
+        sample=sample, sample_filters=sample_filters, filter_genes=["ERBB2"]
+    )
     assert rows == cnv_rows
 
 
@@ -71,8 +79,14 @@ def test_list_dna_biomarkers_success(monkeypatch):
     service = biomarker_router.BiomarkerService()
 
     monkeypatch.setattr(biomarker_router, "_get_sample_for_api", lambda sample_id, user: sample)
-    monkeypatch.setattr(dna_repo_module.store.biomarker_handler, "get_sample_biomarkers", lambda sample_id: biomarkers)
-    monkeypatch.setattr(biomarker_router.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(
+        dna_repo_module.store.biomarker_handler,
+        "get_sample_biomarkers",
+        lambda sample_id: biomarkers,
+    )
+    monkeypatch.setattr(
+        biomarker_router.util.common, "convert_to_serializable", lambda payload: payload
+    )
 
     payload = biomarker_router.list_dna_biomarkers("S1", user=fx.api_user(), service=service)
     assert payload["meta"]["count"] == 1
@@ -130,21 +144,45 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(dna, "_get_formatted_assay_config", lambda _sample: assay_config)
     monkeypatch.setattr(dna.util.common, "merge_sample_settings_with_assay_config", lambda s, a: s)
-    monkeypatch.setattr(dna_repo_module.store.asp_handler, "get_asp", lambda asp_name: {"asp_name": asp_name})
+    monkeypatch.setattr(
+        dna_repo_module.store.asp_handler, "get_asp", lambda asp_name: {"asp_name": asp_name}
+    )
     monkeypatch.setattr(dna_repo_module.store.isgl_handler, "get_isgl_by_ids", lambda ids: {})
     monkeypatch.setattr(dna.util.common, "get_sample_effective_genes", lambda s, a, g: ([], []))
     monkeypatch.setattr(dna, "get_filter_conseq_terms", lambda values: [])
-    monkeypatch.setattr(dna, "build_query", lambda assay_group, params: {"assay_group": assay_group, **params})
-    monkeypatch.setattr(dna_repo_module.store.variant_handler, "get_case_variants", lambda query: [])
-    monkeypatch.setattr(dna_repo_module.store.blacklist_handler, "add_blacklist_data", lambda variants, assay_group: variants)
-    monkeypatch.setattr(dna, "add_global_annotations", lambda variants, assay_group, subpanel: (variants, []))
+    monkeypatch.setattr(
+        dna, "build_query", lambda assay_group, params: {"assay_group": assay_group, **params}
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.variant_handler, "get_case_variants", lambda query: []
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.blacklist_handler,
+        "add_blacklist_data",
+        lambda variants, assay_group: variants,
+    )
+    monkeypatch.setattr(
+        dna, "add_global_annotations", lambda variants, assay_group, subpanel: (variants, [])
+    )
     monkeypatch.setattr(dna, "hotspot_variant", lambda variants: variants)
-    monkeypatch.setattr(dna.util.common, "get_case_and_control_sample_ids", lambda s: {"case": "C1"})
-    monkeypatch.setattr(dna_repo_module.store.bam_service_handler, "get_bams", lambda sample_ids: {})
-    monkeypatch.setattr(dna_repo_module.store.vep_meta_handler, "get_variant_class_translations", lambda vep: {})
-    monkeypatch.setattr(dna_repo_module.store.vep_meta_handler, "get_conseq_translations", lambda vep: {})
-    monkeypatch.setattr(dna_repo_module.store.sample_handler, "hidden_sample_comments", lambda sample_oid: False)
-    monkeypatch.setattr(dna_repo_module.store.isgl_handler, "get_isgl_by_asp", lambda assay, is_active=True: [])
+    monkeypatch.setattr(
+        dna.util.common, "get_case_and_control_sample_ids", lambda s: {"case": "C1"}
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.bam_service_handler, "get_bams", lambda sample_ids: {}
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.vep_meta_handler, "get_variant_class_translations", lambda vep: {}
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.vep_meta_handler, "get_conseq_translations", lambda vep: {}
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.sample_handler, "hidden_sample_comments", lambda sample_oid: False
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.isgl_handler, "get_isgl_by_asp", lambda assay, is_active=True: []
+    )
     monkeypatch.setattr(dna.util.common, "get_assay_genelist_names", lambda docs: [])
     monkeypatch.setattr(dna_repo_module.store.schema_handler, "get_schema", lambda schema_name: {})
     monkeypatch.setattr(dna, "generate_summary_text", lambda *args, **kwargs: "")
@@ -168,9 +206,15 @@ def test_classify_variant_mutation_calls_insert(monkeypatch):
     """
     captured: dict = {}
 
-    monkeypatch.setattr(classification_router, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
-    monkeypatch.setattr(classification_router.util.common, "get_tier_classification", lambda form_data: 3)
-    monkeypatch.setattr(classification_router, "get_variant_nomenclature", lambda form_data: ("p", "TP53 p.R175H"))
+    monkeypatch.setattr(
+        classification_router, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc()
+    )
+    monkeypatch.setattr(
+        classification_router.util.common, "get_tier_classification", lambda form_data: 3
+    )
+    monkeypatch.setattr(
+        classification_router, "get_variant_nomenclature", lambda form_data: ("p", "TP53 p.R175H")
+    )
     monkeypatch.setattr(
         dna_repo_module.store.annotation_handler,
         "insert_classified_variant",
@@ -183,7 +227,9 @@ def test_classify_variant_mutation_calls_insert(monkeypatch):
             }
         ),
     )
-    monkeypatch.setattr(classification_router.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(
+        classification_router.util.common, "convert_to_serializable", lambda payload: payload
+    )
 
     payload = classification_router.classify_resource_mutation(
         "S1",
@@ -290,13 +336,28 @@ def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
         "POS": 140453136,
         "REF": "A",
         "ALT": "T",
-        "INFO": {"selected_CSQ": {"Feature": "NM_0000.1", "SYMBOL": "BRAF", "HGVSp": "p.V600E", "Consequence": []}},
+        "INFO": {
+            "selected_CSQ": {
+                "Feature": "NM_0000.1",
+                "SYMBOL": "BRAF",
+                "HGVSp": "p.V600E",
+                "Consequence": [],
+            }
+        },
     }
 
-    monkeypatch.setattr(classification_router, "_get_sample_for_api", lambda sample_id, user: sample)
-    monkeypatch.setattr(dna_repo_module.store.variant_handler, "get_variant", lambda variant_id: variant)
+    monkeypatch.setattr(
+        classification_router, "_get_sample_for_api", lambda sample_id, user: sample
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.variant_handler, "get_variant", lambda variant_id: variant
+    )
     monkeypatch.setattr(dna_repo_module.store.oncokb_handler, "get_oncokb_gene", lambda gene: None)
-    monkeypatch.setattr(classification_router, "create_annotation_text_from_gene", lambda *args, **kwargs: "AUTO_TEXT")
+    monkeypatch.setattr(
+        classification_router,
+        "create_annotation_text_from_gene",
+        lambda *args, **kwargs: "AUTO_TEXT",
+    )
     monkeypatch.setattr(
         classification_router.util.common,
         "create_classified_variant_doc",
@@ -314,11 +375,20 @@ def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
         "insert_annotation_bulk",
         lambda docs: captured.__setitem__("docs", docs),
     )
-    monkeypatch.setattr(classification_router.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(
+        classification_router.util.common, "convert_to_serializable", lambda payload: payload
+    )
 
     payload = classification_router.set_resource_tier_bulk(
         "S1",
-        payload={"apply": True, "resource_ids": ["v1"], "resource_type": "small_variant", "assay_group": "solid", "subpanel": "A", "tier": 3},
+        payload={
+            "apply": True,
+            "resource_ids": ["v1"],
+            "resource_type": "small_variant",
+            "assay_group": "solid",
+            "subpanel": "A",
+            "tier": 3,
+        },
         user=fx.api_user(),
         service=classification_router.ResourceClassificationService(),
     )
@@ -349,13 +419,28 @@ def test_set_variant_tier_bulk_remove_deletes_class_and_matching_text(monkeypatc
         "POS": 140453136,
         "REF": "A",
         "ALT": "T",
-        "INFO": {"selected_CSQ": {"Feature": "NM_0000.1", "SYMBOL": "BRAF", "HGVSp": "p.V600E", "Consequence": []}},
+        "INFO": {
+            "selected_CSQ": {
+                "Feature": "NM_0000.1",
+                "SYMBOL": "BRAF",
+                "HGVSp": "p.V600E",
+                "Consequence": [],
+            }
+        },
     }
 
-    monkeypatch.setattr(classification_router, "_get_sample_for_api", lambda sample_id, user: sample)
-    monkeypatch.setattr(dna_repo_module.store.variant_handler, "get_variant", lambda variant_id: variant)
+    monkeypatch.setattr(
+        classification_router, "_get_sample_for_api", lambda sample_id, user: sample
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.variant_handler, "get_variant", lambda variant_id: variant
+    )
     monkeypatch.setattr(dna_repo_module.store.oncokb_handler, "get_oncokb_gene", lambda gene: None)
-    monkeypatch.setattr(classification_router, "create_annotation_text_from_gene", lambda *args, **kwargs: "AUTO_TEXT")
+    monkeypatch.setattr(
+        classification_router,
+        "create_annotation_text_from_gene",
+        lambda *args, **kwargs: "AUTO_TEXT",
+    )
     monkeypatch.setattr(
         dna_repo_module.store.annotation_handler,
         "delete_classified_variant",
@@ -366,11 +451,20 @@ def test_set_variant_tier_bulk_remove_deletes_class_and_matching_text(monkeypatc
         "insert_annotation_bulk",
         lambda docs: pytest.fail("insert_annotation_bulk must not be called on tier remove"),
     )
-    monkeypatch.setattr(classification_router.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(
+        classification_router.util.common, "convert_to_serializable", lambda payload: payload
+    )
 
     payload = classification_router.set_resource_tier_bulk(
         "S1",
-        payload={"apply": False, "resource_ids": ["v1"], "resource_type": "small_variant", "assay_group": "solid", "subpanel": "A", "tier": 3},
+        payload={
+            "apply": False,
+            "resource_ids": ["v1"],
+            "resource_type": "small_variant",
+            "assay_group": "solid",
+            "subpanel": "A",
+            "tier": 3,
+        },
         user=fx.api_user(),
         service=classification_router.ResourceClassificationService(),
     )

@@ -7,9 +7,8 @@ from logging import Logger
 from flask import flash
 
 from coyote.errors.exceptions import AppError, from_api_request_error
-from shared.logging import emit_audit_event
-
 from coyote.services.api_client.base import ApiRequestError
+from shared.logging import emit_audit_event
 
 
 def log_api_error(

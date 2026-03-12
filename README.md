@@ -131,7 +131,7 @@ Boundary compliance is enforced by integration guardrail tests under `tests/inte
 
 ```bash
 PYTHONPATH=. .venv/bin/ruff check api coyote tests
-PYTHONPATH=. .venv/bin/ruff format --check api coyote tests
+PYTHONPATH=. .venv/bin/black --check --line-length 100 api coyote tests
 PYTHONPATH=. .venv/bin/pytest -q -m contract
 PYTHONPATH=. .venv/bin/pytest -q -m unit
 PYTHONPATH=. .venv/bin/pytest -q -m api

@@ -1,6 +1,8 @@
 from flask import g, jsonify, render_template, request
-from .exceptions import AppError
+
 from shared.logging import emit_audit_event
+
+from .exceptions import AppError
 
 
 def register_error_handlers(app):

@@ -1,4 +1,3 @@
-
 """
 Custom Jinja2 template filters for Flask apps in the Coyote3 framework.
 
@@ -7,8 +6,11 @@ for display in web-based reports.
 """
 
 from flask import current_app as app
+
 from coyote.filters.shared import (
     format_fusion_desc_badges as shared_format_fusion_desc_badges,
+)
+from coyote.filters.shared import (
     uniq_callers as shared_uniq_callers,
 )
 

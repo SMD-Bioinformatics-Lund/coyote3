@@ -6,14 +6,14 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
-from api.runtime import app
 
 from api.core.public.ports import PublicCatalogRepository
+from api.runtime import app
 
 
 class PublicCatalogService:
-    """Provide public catalog workflows.
-    """
+    """Provide public catalog workflows."""
+
     DEFAULT_ENV = "production"
     _repository: PublicCatalogRepository | None = None
 
@@ -404,7 +404,9 @@ class PublicCatalogService:
             if symbol and symbol.upper() not in have:
                 out_rows.append(PublicCatalogService._hgnc_placeholder(symbol))
 
-        return sorted(out_rows, key=lambda g: (g.get("hgnc_symbol") or g.get("symbol") or "").upper())
+        return sorted(
+            out_rows, key=lambda g: (g.get("hgnc_symbol") or g.get("symbol") or "").upper()
+        )
 
     @classmethod
     def apply_drug_info(
@@ -427,7 +429,9 @@ class PublicCatalogService:
         return genes
 
     @classmethod
-    def genelist_view_context(cls, genelist_id: str, assay: str | None = None) -> dict[str, Any] | None:
+    def genelist_view_context(
+        cls, genelist_id: str, assay: str | None = None
+    ) -> dict[str, Any] | None:
         """Handle genelist view context.
 
         Args:

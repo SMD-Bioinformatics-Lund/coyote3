@@ -1,5 +1,3 @@
-
-
 """
 This module initializes the Home blueprint for the Coyote3 project.
 
@@ -15,14 +13,13 @@ Logger:
 
 """
 
-from flask import Blueprint
-from flask import current_app as app
 import logging
 
+from flask import Blueprint
+from flask import current_app as app
+
 # Blueprint configuration
-home_bp = Blueprint(
-    "home_bp", __name__, template_folder="templates", static_folder="static"
-)
+home_bp = Blueprint("home_bp", __name__, template_folder="templates", static_folder="static")
 
 from coyote.blueprints.home import views  # noqa: F401, E402
 

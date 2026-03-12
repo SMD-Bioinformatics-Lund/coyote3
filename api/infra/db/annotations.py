@@ -1,5 +1,3 @@
-
-
 """
 AnnotationsHandler module for Coyote3
 =====================================
@@ -10,19 +8,19 @@ annotation data in MongoDB.
 It is part of the `coyote.db` package and extends the base handler functionality.
 """
 
+from collections import defaultdict
 from copy import deepcopy
+from typing import Any, Dict, List, Optional
+from urllib.parse import unquote
+
+from pymongo.results import DeleteResult
 
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
 from api.infra.db.base import BaseHandler
-from datetime import datetime
-from pymongo.results import DeleteResult
 from api.runtime import current_user_is_admin, current_username, flash
-from typing import Any, Dict, Tuple, List, Optional
-from urllib.parse import unquote
 from api.utils.common_utility import CommonUtility
-from collections import defaultdict
 
 
 # -------------------------------------------------------------------------
@@ -461,7 +459,9 @@ class AnnotationsHandler(BaseHandler):
             }
             if nomenclature != "f":
                 historic_query["transcript"] = variant_data.get("transcript", None)
-            delete_result = self.get_collection().find(historic_query)  # may be change it to delete later
+            delete_result = self.get_collection().find(
+                historic_query
+            )  # may be change it to delete later
         else:
             delete_result = self.get_collection().delete_many(scoped_query)
 

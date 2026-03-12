@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from api.routers import roles
 from tests.fixtures.api import mock_collections as fx
+
+
 def test_list_roles_read_with_fake_store(monkeypatch):
     """Handle test list roles read with fake store.
 

@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 from bson.objectid import ObjectId
+
 from api.extensions import store
 
 
 class MongoCoreStoreRepository:
-    """Provide mongo core store persistence operations.
-    """
+    """Provide mongo core store persistence operations."""
+
     def __init__(self) -> None:
-        """Handle __init__.
-        """
+        """Handle __init__."""
         self.sample_handler = store.sample_handler
         self.reported_variants_handler = store.reported_variants_handler
         self.annotation_handler = store.annotation_handler

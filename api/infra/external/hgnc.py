@@ -1,4 +1,3 @@
-
 """
 HGNCHandler module for Coyote3
 ===============================
@@ -13,7 +12,6 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # Imports
 # -------------------------------------------------------------------------
 from api.infra.db.base import BaseHandler
-from api.runtime import app
 
 
 # -------------------------------------------------------------------------

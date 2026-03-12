@@ -1,4 +1,3 @@
-
 """
 SchemaHandler module for Coyote3
 ================================
@@ -12,8 +11,9 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from api.infra.db.base import BaseHandler
 from typing import Any
+
+from api.infra.db.base import BaseHandler
 
 
 # -------------------------------------------------------------------------
@@ -141,7 +141,9 @@ class SchemaHandler(BaseHandler):
         Returns:
             Any: The result of the update operation.
         """
-        return self.get_collection().replace_one(self._schema_lookup_query(schema_id), self.ensure_schema_id(updated_doc))
+        return self.get_collection().replace_one(
+            self._schema_lookup_query(schema_id), self.ensure_schema_id(updated_doc)
+        )
 
     def toggle_schema_active(self, schema_id: str, active_status: bool) -> Any:
         """

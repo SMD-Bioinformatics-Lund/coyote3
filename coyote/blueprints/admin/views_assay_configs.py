@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 from copy import deepcopy
 
-from flask import Response, abort, current_app as app, g, redirect, render_template, request, url_for
+from flask import Response, abort, g, redirect, render_template, request, url_for
+from flask import current_app as app
 from flask_login import current_user, login_required
 
 from coyote.blueprints.admin import admin_bp
@@ -119,7 +120,9 @@ def _render_create_form(category: str) -> Response | str:
             for key, vals in request.form.to_dict(flat=False).items()
         }
         if category == "DNA":
-            form_data["verification_samples"] = json.loads(request.form.get("verification_samples", "{}"))
+            form_data["verification_samples"] = json.loads(
+                request.form.get("verification_samples", "{}")
+            )
             form_data["query"] = json.loads(request.form.get("query", "{}"))
 
         config = util.admin.process_form_to_config(form_data, context.schema)
@@ -143,7 +146,9 @@ def _render_create_form(category: str) -> Response | str:
                 headers=forward_headers(),
                 json_body={"config": config},
             )
-            flash_api_success(f"{config['assay_name']} : {config['environment']} assay config created.")
+            flash_api_success(
+                f"{config['assay_name']} : {config['environment']} assay config created."
+            )
         except ApiRequestError as exc:
             flash_api_failure("Failed to create assay configuration.", exc)
 
@@ -222,11 +227,17 @@ def edit_assay_config(assay_id: str) -> Response | str:
     context = _load_assay_context(assay_id)
 
     selected_version = request.args.get("version", type=int)
-    assay_config, delta = _apply_selected_assay_version(context.assay_config, selected_version, assay_id)
+    assay_config, delta = _apply_selected_assay_version(
+        context.assay_config, selected_version, assay_id
+    )
 
     if request.method == "POST":
         form_data = {
-            key: (request.form.getlist(key) if len(request.form.getlist(key)) > 1 else request.form[key])
+            key: (
+                request.form.getlist(key)
+                if len(request.form.getlist(key)) > 1
+                else request.form[key]
+            )
             for key in request.form
         }
         form_data["verification_samples"] = util.common.safe_json_load(
@@ -285,7 +296,9 @@ def view_assay_config(assay_id: str) -> str | Response:
     context = _load_assay_context(assay_id)
 
     selected_version = request.args.get("version", type=int)
-    assay_config, delta = _apply_selected_assay_version(context.assay_config, selected_version, assay_id)
+    assay_config, delta = _apply_selected_assay_version(
+        context.assay_config, selected_version, assay_id
+    )
 
     return render_template(
         "aspc/view_aspc.html",
@@ -344,7 +357,9 @@ def toggle_assay_config_active(assay_id: str) -> Response:
             "assay": assay_id,
             "assay_status": "Active" if new_status else "Inactive",
         }
-        flash_api_success(f"Assay config '{assay_id}' is now {'active' if new_status else 'inactive'}.")
+        flash_api_success(
+            f"Assay config '{assay_id}' is now {'active' if new_status else 'inactive'}."
+        )
     except ApiRequestError as exc:
         if exc.status_code == 404:
             return abort(404)

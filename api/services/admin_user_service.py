@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from api.extensions import util
 from api.http import api_error
 from api.repositories.admin_repository import AdminRepository
 from api.services.management_common import (
@@ -14,7 +15,6 @@ from api.services.management_common import (
     role_permission_overrides,
     utc_now,
 )
-from api.extensions import util
 
 
 class AdminUserService:
@@ -36,7 +36,9 @@ class AdminUserService:
         """
         return {"users": self.repository.list_users(), "roles": self.repository.get_role_colors()}
 
-    def create_context_payload(self, *, schema_id: str | None, actor_username: str) -> dict[str, Any]:
+    def create_context_payload(
+        self, *, schema_id: str | None, actor_username: str
+    ) -> dict[str, Any]:
         """Create context payload.
 
         Args:
@@ -163,7 +165,9 @@ class AdminUserService:
         self.repository.create_user(user_data)
         return mutation_payload(resource="user", resource_id=username, action="create")
 
-    def update_user(self, *, user_id: str, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
+    def update_user(
+        self, *, user_id: str, payload: dict[str, Any], actor_username: str
+    ) -> dict[str, Any]:
         """Update user.
 
         Args:

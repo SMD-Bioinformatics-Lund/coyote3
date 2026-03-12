@@ -15,13 +15,15 @@ from api.contracts.public import (
     PublicAssayCatalogGenesCsvPayload,
     PublicAssayCatalogMatrixPayload,
     PublicAssayCatalogPayload,
-    PublicGeneSymbolsPayload,
     PublicGenelistViewPayload,
+    PublicGeneSymbolsPayload,
 )
 from api.core.public.catalog import PublicCatalogService
 from api.extensions import util
 from api.http import api_error as _api_error
-from api.repositories.public_repository import PublicCatalogRepository as MongoPublicCatalogRepository
+from api.repositories.public_repository import (
+    PublicCatalogRepository as MongoPublicCatalogRepository,
+)
 
 router = APIRouter(tags=["public"])
 
@@ -40,7 +42,9 @@ def _catalog_service() -> type[PublicCatalogService]:
     return PublicCatalogService
 
 
-@router.get("/api/v1/public/genelists/{genelist_id}/view_context", response_model=PublicGenelistViewPayload)
+@router.get(
+    "/api/v1/public/genelists/{genelist_id}/view_context", response_model=PublicGenelistViewPayload
+)
 def public_genelist_view_context_read(genelist_id: str, assay: str | None = None):
     """Handle public genelist view context read.
 
@@ -89,7 +93,9 @@ def public_assay_catalog_isgl_genes_view_read(isgl_key: str):
     return util.common.convert_to_serializable(service.assay_catalog_gene_symbols_payload(isgl_key))
 
 
-@router.get("/api/v1/public/assay-catalog-matrix/context", response_model=PublicAssayCatalogMatrixPayload)
+@router.get(
+    "/api/v1/public/assay-catalog-matrix/context", response_model=PublicAssayCatalogMatrixPayload
+)
 def public_assay_catalog_matrix_context_read():
     """Handle public assay catalog matrix context read.
 
@@ -123,7 +129,11 @@ def public_assay_catalog_matrix_context_read():
         symbols: set[str] = set()
         for gene_obj in gene_objs or []:
             if isinstance(gene_obj, dict):
-                sym = gene_obj.get("hgnc_symbol") or gene_obj.get("symbol") or gene_obj.get("gene_symbol")
+                sym = (
+                    gene_obj.get("hgnc_symbol")
+                    or gene_obj.get("symbol")
+                    or gene_obj.get("gene_symbol")
+                )
             else:
                 sym = getattr(gene_obj, "hgnc_symbol", None) or getattr(gene_obj, "symbol", None)
             if sym:
@@ -176,7 +186,9 @@ def public_assay_catalog_matrix_context_read():
                 )
                 all_genes |= genes_here
                 for gene in genes_here:
-                    matrix.setdefault(gene, {}).setdefault(mod_key, {}).setdefault(cat_key, {})[isgl_key] = True
+                    matrix.setdefault(gene, {}).setdefault(mod_key, {}).setdefault(cat_key, {})[
+                        isgl_key
+                    ] = True
 
         if not categories and modality_total == 0:
             placeholder_key = f"__none__::{mod_key}"
@@ -199,7 +211,9 @@ def public_assay_catalog_matrix_context_read():
             mod_key = col["mod"]
             cat_key = col["cat"]
             isgl_key = col["isgl_key"]
-            matrix.setdefault(gene, {}).setdefault(mod_key, {}).setdefault(cat_key, {}).setdefault(isgl_key, False)
+            matrix.setdefault(gene, {}).setdefault(mod_key, {}).setdefault(cat_key, {}).setdefault(
+                isgl_key, False
+            )
 
     vm = {
         "modalities": modalities,
@@ -261,7 +275,9 @@ def public_assay_catalog_context_read(
         gene_mode, genes, stats = service.resolve_gene_table(right.get("asp_id"), None)
     else:
         if selected_isgl:
-            hydrated_cat = service.hydrate_category(selected_mod, selected_cat, selected_isgl, env="production")
+            hydrated_cat = service.hydrate_category(
+                selected_mod, selected_cat, selected_isgl, env="production"
+            )
         else:
             hydrated_cat = service.hydrate_category(selected_mod, selected_cat, env="production")
         if not hydrated_cat:
@@ -277,7 +293,9 @@ def public_assay_catalog_context_read(
             "asp": hydrated_cat.get("asp"),
             "gene_lists": hydrated_cat.get("gene_lists") or [],
         }
-        gene_mode, genes, stats = service.resolve_gene_table(hydrated_cat.get("asp_id"), selected_isgl)
+        gene_mode, genes, stats = service.resolve_gene_table(
+            hydrated_cat.get("asp_id"), selected_isgl
+        )
 
     genes = service.apply_drug_info(genes=deepcopy(genes), druglist_name="Drug_Addon")
     vm = {
@@ -339,7 +357,9 @@ def public_assay_catalog_genes_csv_context_read(
 
     sio = io.StringIO()
     writer = csv.writer(sio, lineterminator="\n")
-    writer.writerow(["HGNC_ID", "Gene_Symbol", "Chromosome", "Start", "End", "Gene_Type", "Drug Target"])
+    writer.writerow(
+        ["HGNC_ID", "Gene_Symbol", "Chromosome", "Start", "End", "Gene_Type", "Drug Target"]
+    )
     for gene in rows:
         writer.writerow(
             [

@@ -6,13 +6,13 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
+from api.deps.services import get_coverage_service
 from api.main import app as api_app
 from api.routers import coverage
-from api.deps.services import get_coverage_service
 from api.security import access
 from api.security.access import ApiUser
-from api.services.coverage_service import CoverageService
 from api.services import coverage_service as coverage_service_module
+from api.services.coverage_service import CoverageService
 from tests.fixtures.api import mock_collections as fx
 
 
@@ -47,7 +47,9 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
         "get_sample_effective_genes",
         lambda sample, assay_panel_doc, checked_genelists_genes_dict: (["TP53", "NPM1"], ["TP53"]),
     )
-    monkeypatch.setattr(service.repository, "get_isgl_by_ids", lambda ids: {"GL1": {"genes": ["TP53"]}})
+    monkeypatch.setattr(
+        service.repository, "get_isgl_by_ids", lambda ids: {"GL1": {"genes": ["TP53"]}}
+    )
     monkeypatch.setattr(
         service.repository,
         "get_sample_coverage",
@@ -75,7 +77,9 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
     )
     monkeypatch.setattr(coverage.util.common, "convert_to_serializable", lambda payload: payload)
 
-    payload = coverage.coverage_sample_read("S1", cov_cutoff=500, user=fx.api_user(), service=service)
+    payload = coverage.coverage_sample_read(
+        "S1", cov_cutoff=500, user=fx.api_user(), service=service
+    )
 
     assert payload["cov_cutoff"] == 500
     assert payload["smp_grp"] == "dna"
@@ -140,7 +144,9 @@ def test_coverage_sample_read_http_validates_cov_table_dict_shape(monkeypatch):
     monkeypatch.setattr(access, "_decode_session_user", lambda _request: _route_test_user())
     monkeypatch.setattr(access, "_role_levels", lambda: {"user": 9, "manager": 99, "admin": 999})
     monkeypatch.setattr(coverage, "_get_sample_for_api", lambda sample_id, user: sample)
-    monkeypatch.setattr(service.repository, "get_aspc_no_meta", lambda assay, profile: {"assay_group": "dna"})
+    monkeypatch.setattr(
+        service.repository, "get_aspc_no_meta", lambda assay, profile: {"assay_group": "dna"}
+    )
     monkeypatch.setattr(
         service.repository,
         "get_asp",
@@ -151,7 +157,9 @@ def test_coverage_sample_read_http_validates_cov_table_dict_shape(monkeypatch):
         "get_sample_effective_genes",
         lambda sample, assay_panel_doc, checked_genelists_genes_dict: (["TP53", "NPM1"], ["TP53"]),
     )
-    monkeypatch.setattr(service.repository, "get_isgl_by_ids", lambda ids: {"GL1": {"genes": ["TP53"]}})
+    monkeypatch.setattr(
+        service.repository, "get_isgl_by_ids", lambda ids: {"GL1": {"genes": ["TP53"]}}
+    )
     monkeypatch.setattr(
         service.repository,
         "get_sample_coverage",
@@ -175,7 +183,9 @@ def test_coverage_sample_read_http_validates_cov_table_dict_shape(monkeypatch):
     monkeypatch.setattr(
         coverage_service_module.CoverageProcessingService,
         "organize_data_for_d3",
-        lambda filtered_dict: {"genes": {"TP53": {"CDS": [{"cov": "700"}], "probes": [], "exons": []}}},
+        lambda filtered_dict: {
+            "genes": {"TP53": {"CDS": [{"cov": "700"}], "probes": [], "exons": []}}
+        },
     )
 
     api_app.dependency_overrides[get_coverage_service] = lambda: service

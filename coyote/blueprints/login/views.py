@@ -1,18 +1,18 @@
-
 """
 This module defines authentication views for the Coyote3 application.
 """
 
 from flask import (
     Response,
-    current_app as app,
-    flash,
     has_request_context,
     redirect,
     render_template,
     request,
     session,
     url_for,
+)
+from flask import (
+    current_app as app,
 )
 from flask_login import current_user, login_required, login_user, logout_user
 

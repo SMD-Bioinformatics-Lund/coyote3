@@ -36,9 +36,7 @@ def load_file(path, delimiter="\t", skip_header_lines=0):
 
 
 # === Load HGNC main file (TSV, skip 1 metadata line) ===
-main_header, main_data = load_file(
-    "hgnc_complete_set.txt", delimiter="\t", skip_header_lines=1
-)
+main_header, main_data = load_file("hgnc_complete_set.txt", delimiter="\t", skip_header_lines=1)
 
 # === Load extra file (CSV, no header skip) ===
 extra_header, extra_data = load_file(
@@ -182,9 +180,7 @@ main_header_format_dict = {
     }
     for h in main_header
 }
-extra_header_formatted = [
-    ensembl_header_mapping[h]["name"] for h in extra_header
-]
+extra_header_formatted = [ensembl_header_mapping[h]["name"] for h in extra_header]
 extra_header_format_dict = {
     ensembl_header_mapping[h]["name"]: {
         "type": ensembl_header_mapping[h]["type"],
@@ -248,9 +244,7 @@ for ed in extra_data:
         ed_formatted[extra_header_formatted[index]] = format_value(
             ed[index],
             extra_header_format_dict[extra_header_formatted[index]]["type"],
-            extra_header_format_dict[extra_header_formatted[index]][
-                "separator"
-            ],
+            extra_header_format_dict[extra_header_formatted[index]]["separator"],
         )
 
     extra_data_dicts[hgnc_id].append(ed_formatted)
@@ -348,6 +342,7 @@ print(merged_dict["HGNC:5"])
 import json
 import os
 from datetime import datetime
+
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 

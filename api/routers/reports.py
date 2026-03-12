@@ -2,26 +2,27 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, Body, Depends, Query
 
 from api.contracts.reports import ReportPreviewPayload, ReportSavePayload
 from api.core.workflows.dna_workflow import DNAWorkflowService
 from api.core.workflows.rna_workflow import RNAWorkflowService
 from api.extensions import util
-from api.http import api_error as _api_error, get_formatted_assay_config as _get_formatted_assay_config
+from api.http import api_error as _api_error
+from api.http import get_formatted_assay_config as _get_formatted_assay_config
 from api.repositories.report_repository import ReportRepository as MongoDNAReportingRepository
 from api.repositories.rna_repository import RnaWorkflowRepository as MongoRNAWorkflowRepository
-from api.runtime import app as runtime_app, current_username
-from api.services.report_service import ReportAnalyte, ReportService
+from api.runtime import app as runtime_app
+from api.runtime import current_username
 from api.security.access import ApiUser, _get_sample_for_api, require_access
+from api.services.report_service import ReportAnalyte, ReportService
 from api.settings import to_bool
 
 router = APIRouter(tags=["reports"])
 
 if not hasattr(util, "common"):
     util.init_util()
+
 
 def _rna_workflow_service() -> type[RNAWorkflowService]:
     """Handle  rna workflow service.
@@ -105,7 +106,9 @@ def _validate_report_inputs(analyte: ReportAnalyte, sample: dict, assay_config: 
         RNAWorkflowService.validate_report_inputs(runtime_app.logger, sample, assay_config)
 
 
-def _build_preview_report(analyte: ReportAnalyte, sample: dict, assay_config: dict, *, save: bool, include_snapshot: bool):
+def _build_preview_report(
+    analyte: ReportAnalyte, sample: dict, assay_config: dict, *, save: bool, include_snapshot: bool
+):
     """Handle  build preview report.
 
     Args:
@@ -134,7 +137,9 @@ def _build_preview_report(analyte: ReportAnalyte, sample: dict, assay_config: di
     )
 
 
-def _build_report_location(analyte: ReportAnalyte, sample: dict, assay_config: dict) -> tuple[str, str, str]:
+def _build_report_location(
+    analyte: ReportAnalyte, sample: dict, assay_config: dict
+) -> tuple[str, str, str]:
     """Handle  build report location.
 
     Args:
@@ -174,10 +179,14 @@ def _prepare_report_output(analyte: ReportAnalyte, report_path: str, report_file
     """
     if analyte == "dna":
         _dna_workflow_service()
-        DNAWorkflowService.prepare_report_output(report_path, report_file, logger=runtime_app.logger)
+        DNAWorkflowService.prepare_report_output(
+            report_path, report_file, logger=runtime_app.logger
+        )
     else:
         _rna_workflow_service()
-        RNAWorkflowService.prepare_report_output(report_path, report_file, logger=runtime_app.logger)
+        RNAWorkflowService.prepare_report_output(
+            report_path, report_file, logger=runtime_app.logger
+        )
 
 
 def _persist_report(
@@ -233,13 +242,19 @@ def _persist_report(
     )
 
 
-@router.get("/api/v1/samples/{sample_id}/reports/{report_type}/preview", response_model=ReportPreviewPayload, summary="Preview sample report")
+@router.get(
+    "/api/v1/samples/{sample_id}/reports/{report_type}/preview",
+    response_model=ReportPreviewPayload,
+    summary="Preview sample report",
+)
 def preview_report(
     sample_id: str,
     report_type: ReportAnalyte,
     include_snapshot: bool = Query(default=False),
     save: bool = Query(default=False),
-    user: ApiUser = Depends(require_access(permission="preview_report", min_role="user", min_level=9)),
+    user: ApiUser = Depends(
+        require_access(permission="preview_report", min_role="user", min_level=9)
+    ),
 ):
     """Handle preview report.
 
@@ -274,7 +289,13 @@ def preview_report(
     )
     return util.common.convert_to_serializable(payload)
 
-@router.post("/api/v1/samples/{sample_id}/reports/{report_type}", response_model=ReportSavePayload, status_code=201, summary="Create sample report")
+
+@router.post(
+    "/api/v1/samples/{sample_id}/reports/{report_type}",
+    response_model=ReportSavePayload,
+    status_code=201,
+    summary="Create sample report",
+)
 def save_report(
     sample_id: str,
     report_type: ReportAnalyte,

@@ -10,7 +10,6 @@ from coyote.services.api_client.api_client import (
     forward_headers,
     get_web_api_client,
 )
-from coyote.services.api_client.web import log_api_error
 from coyote.services.api_client.web import raise_page_load_error
 
 _DEFAULT_VARIANT_STATS = {

@@ -1,4 +1,3 @@
-
 """
 ReportedVariantsHandler module for Coyote3
 =========================================
@@ -27,7 +26,8 @@ Designed for MongoDB 3.4 compatibility (and forward compatible with newer versio
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from typing import Any, Optional, List, Dict
+from typing import Any, Dict, List
+
 from pymongo import ASCENDING, DESCENDING, UpdateOne
 
 from api.infra.db.base import BaseHandler
@@ -251,7 +251,12 @@ class ReportedVariantsHandler(BaseHandler):
         ]
         by_assay_pipeline = [
             {"$match": {"tier": {"$in": [1, 2, 3, 4]}}},
-            {"$group": {"_id": {"assay": {"$ifNull": ["$assay", "Unknown"]}, "tier": "$tier"}, "count": {"$sum": 1}}},
+            {
+                "$group": {
+                    "_id": {"assay": {"$ifNull": ["$assay", "Unknown"]}, "tier": "$tier"},
+                    "count": {"$sum": 1},
+                }
+            },
         ]
 
         total = {"tier1": 0, "tier2": 0, "tier3": 0, "tier4": 0}

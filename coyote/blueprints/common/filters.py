@@ -1,14 +1,17 @@
-
 """
 This module provides a collection of Jinja2 template filters for use in Flask-based
 genomic data analysis and reporting applications. The filters support common shared
 filters, modifiers to display data in web templates.
 """
 
-from flask import current_app as app
 from datetime import datetime
+
+from flask import current_app as app
+
 from coyote.filters.shared import (
     format_comment_markdown as shared_format_comment_markdown,
+)
+from coyote.filters.shared import (
     human_date as shared_human_date,
 )
 

@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, Query
 from api.contracts.coverage import CoverageBlacklistedPayload, CoverageSamplePayload
 from api.deps.services import get_coverage_service
 from api.extensions import util
-from api.services.coverage_service import CoverageService
 from api.security.access import ApiUser, _get_sample_for_api, require_access
+from api.services.coverage_service import CoverageService
 
 router = APIRouter(tags=["coverage"])
 

@@ -1,11 +1,16 @@
-
 """DNA CNV route handlers."""
 
-from flask import Response, current_app as app, redirect, render_template, request, url_for
+from flask import Response, redirect, render_template, request, url_for
+from flask import current_app as app
 from flask_login import login_required
+
 from coyote.blueprints.dna import dna_bp
 from coyote.services.api_client import endpoints as api_endpoints
-from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.services.api_client.api_client import (
+    ApiRequestError,
+    forward_headers,
+    get_web_api_client,
+)
 
 
 @dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>")
@@ -53,7 +58,9 @@ def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
-        app.logger.error("Failed to unmark CNV interesting via API for sample %s: %s", sample_id, exc)
+        app.logger.error(
+            "Failed to unmark CNV interesting via API for sample %s: %s", sample_id, exc
+        )
     return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
@@ -97,7 +104,9 @@ def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
-        app.logger.error("Failed to mark CNV false-positive via API for sample %s: %s", sample_id, exc)
+        app.logger.error(
+            "Failed to mark CNV false-positive via API for sample %s: %s", sample_id, exc
+        )
     return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
@@ -119,7 +128,9 @@ def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
-        app.logger.error("Failed to unmark CNV false-positive via API for sample %s: %s", sample_id, exc)
+        app.logger.error(
+            "Failed to unmark CNV false-positive via API for sample %s: %s", sample_id, exc
+        )
     return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
@@ -163,7 +174,9 @@ def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
-        app.logger.error("Failed to unmark CNV noteworthy via API for sample %s: %s", sample_id, exc)
+        app.logger.error(
+            "Failed to unmark CNV noteworthy via API for sample %s: %s", sample_id, exc
+        )
     return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 

@@ -1,5 +1,3 @@
-
-
 """
 FusionsHandler module for Coyote3
 =================================
@@ -13,11 +11,12 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+from typing import Any, Dict, List
+
 from bson.objectid import ObjectId
+
 from api.infra.db.base import BaseHandler
 from api.runtime import app
-from typing import Any
-from typing import List, Dict, Any
 
 
 # -------------------------------------------------------------------------
@@ -98,7 +97,6 @@ class FusionsHandler(BaseHandler):
         bp2: str,
         limit: int = 20,
     ) -> List[Dict[str, Any]]:
-
         """Handle find fusions with matching breakpoints.
 
         Args:

@@ -1,5 +1,3 @@
-
-
 """
 BlacklistHandler module for Coyote3
 ===================================
@@ -15,7 +13,6 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 from api.infra.db.base import BaseHandler
 from api.runtime import flash
-from api.runtime import app
 from api.utils.common_utility import CommonUtility
 
 

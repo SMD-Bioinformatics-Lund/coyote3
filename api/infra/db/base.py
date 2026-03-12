@@ -1,4 +1,3 @@
-
 """
 CoverageHandler module for Coyote3
 ==================================
@@ -12,12 +11,13 @@ It is part of the `coyote.db` package and will be used as a base class for the r
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from bson.objectid import ObjectId
-from typing import Any
-from api.runtime import app
-from api.runtime import current_username, flash
 from datetime import datetime
+from typing import Any
+
 import pymongo
+from bson.objectid import ObjectId
+
+from api.runtime import app, current_username, flash
 from api.utils.common_utility import CommonUtility
 
 

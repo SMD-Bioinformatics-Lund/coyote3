@@ -18,6 +18,7 @@ from api.routers.registry import ROUTERS, auth_http_exception_handler
 from api.runtime import app as runtime_app
 from shared.logging import emit_audit_event
 
+
 def _api_error(status_code: int, message: str) -> HTTPException:
     """Handle  api error.
 
@@ -82,7 +83,11 @@ async def validation_exception_handler(_request: Request, exc: RequestValidation
     issues = []
     for err in exc.errors():
         location = ".".join(str(item) for item in err.get("loc", []) if item != "body")
-        issues.append(ApiValidationIssue(field=location or "body", message=err.get("msg", "Invalid value")).model_dump())
+        issues.append(
+            ApiValidationIssue(
+                field=location or "body", message=err.get("msg", "Invalid value")
+            ).model_dump()
+        )
     emit_audit_event(
         source="api",
         action="validation",
@@ -99,6 +104,7 @@ async def validation_exception_handler(_request: Request, exc: RequestValidation
             "details": issues,
         },
     )
+
 
 def create_api_app() -> FastAPI:
     """Build and return the canonical FastAPI application instance."""

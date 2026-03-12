@@ -1,12 +1,12 @@
-
 """
 This module defines custom Jinja2 template filters for Flask applications in the Coyote3
 framework. These filters facilitate the formatting, annotation, and transformation of
 genomic variant and clinical data for presentation in web-based reports.
 """
 
-from flask import current_app as app
 import random
+
+from flask import current_app as app
 
 
 def get_color(color_map: dict, item: str) -> str:

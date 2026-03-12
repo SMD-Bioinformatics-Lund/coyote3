@@ -61,20 +61,19 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import getpass
 import json
+import logging
 import os
 import re
-import logging
 import socket
-import getpass
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-from bson import ObjectId
 from bs4 import BeautifulSoup
+from bson import ObjectId
 from pymongo import MongoClient
 from pymongo.errors import BulkWriteError
-
 
 # ---------------------------- Constants ----------------------------
 TIER_NAME_TO_INT = {
@@ -529,8 +528,8 @@ def extjson_to_native(doc: Dict[str, Any]) -> Dict[str, Any]:
 
 @dataclass
 class ExtractedReportedVariant:
-    """Provide the extracted reported variant type.
-    """
+    """Provide the extracted reported variant type."""
+
     tier: Optional[int]
     variant_text: str
     gene: Optional[str] = None
@@ -540,8 +539,8 @@ class ExtractedReportedVariant:
 
 
 class ReportVariantExtractor:
-    """Provide the report variant extractor type.
-    """
+    """Provide the report variant extractor type."""
+
     def extract(self, html: str) -> List[ExtractedReportedVariant]:
         """Handle extract.
 
@@ -655,8 +654,8 @@ class ReportVariantExtractor:
 
 @dataclass
 class DBConfig:
-    """Provide the db config type.
-    """
+    """Provide the db config type."""
+
     samples_coll: str
     variants_coll: str
     annotations_coll: str
@@ -675,8 +674,8 @@ class DBConfig:
 
 
 class ReportedVariantsBackfiller:
-    """Provide the reported variants backfiller type.
-    """
+    """Provide the reported variants backfiller type."""
+
     def __init__(self, db, cfg: DBConfig, extractor: ReportVariantExtractor, logger):
         """Handle __init__.
 

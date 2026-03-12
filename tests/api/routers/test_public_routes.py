@@ -6,7 +6,6 @@ import pytest
 from fastapi import HTTPException
 
 from api.routers import public
-from tests.fixtures.api import mock_collections as fx
 
 
 def test_public_genelist_view_context_not_found_raises_404(monkeypatch):
@@ -18,7 +17,9 @@ def test_public_genelist_view_context_not_found_raises_404(monkeypatch):
     Returns:
         The function result.
     """
-    monkeypatch.setattr(public.PublicCatalogService, "genelist_view_context", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        public.PublicCatalogService, "genelist_view_context", lambda *_args, **_kwargs: None
+    )
 
     with pytest.raises(HTTPException) as exc:
         public.public_genelist_view_context_read("missing")

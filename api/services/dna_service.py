@@ -10,7 +10,7 @@ from api.core.dna.dna_reporting import hotspot_variant
 from api.core.dna.dna_variants import format_pon
 from api.core.dna.notation import one_letter_p
 from api.core.dna.query_builders import build_cnv_query
-from api.http import api_error, get_formatted_assay_config
+from api.http import api_error
 from api.repositories.dna_repository import DnaRouteRepository
 
 
@@ -26,7 +26,9 @@ class DnaService:
         self.repository = repository or DnaRouteRepository()
 
     @staticmethod
-    def mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict[str, Any]:
+    def mutation_payload(
+        sample_id: str, resource: str, resource_id: str, action: str
+    ) -> dict[str, Any]:
         """Handle mutation payload.
 
         Args:
@@ -47,7 +49,9 @@ class DnaService:
             "meta": {"status": "updated"},
         }
 
-    def load_cnvs_for_sample(self, *, sample: dict, sample_filters: dict, filter_genes: list[str]) -> list[dict]:
+    def load_cnvs_for_sample(
+        self, *, sample: dict, sample_filters: dict, filter_genes: list[str]
+    ) -> list[dict]:
         """Load cnvs for sample.
 
         Args:
@@ -58,7 +62,9 @@ class DnaService:
         Returns:
             list[dict]: The function result.
         """
-        cnv_query = build_cnv_query(str(sample["_id"]), filters={**sample_filters, "filter_genes": filter_genes})
+        cnv_query = build_cnv_query(
+            str(sample["_id"]), filters={**sample_filters, "filter_genes": filter_genes}
+        )
         cnvs = list(self.repository.cnv_handler.get_sample_cnvs(cnv_query))
         filter_cnveffects = create_cnveffectlist(sample_filters.get("cnveffects", []))
         if filter_cnveffects:
@@ -150,7 +156,9 @@ class DnaService:
             hgvs_g = f"{var['CHROM']}:{var['POS']}:{var['REF']}/{var['ALT']}"
             consequence = selected_csq.get("Consequence")
             gene_oncokb = self.repository.oncokb_handler.get_oncokb_gene(gene)
-            text = create_annotation_text_fn(gene, consequence, assay_group, gene_oncokb=gene_oncokb)
+            text = create_annotation_text_fn(
+                gene, consequence, assay_group, gene_oncokb=gene_oncokb
+            )
 
             nomenclature = "p"
             if hgvs_p not in {"", None}:
@@ -205,7 +213,9 @@ class DnaService:
         if bulk_docs:
             self.repository.annotation_handler.insert_annotation_bulk(bulk_docs)
 
-    def classify_variant(self, *, form_data: dict, get_tier_classification_fn, get_variant_nomenclature_fn) -> None:
+    def classify_variant(
+        self, *, form_data: dict, get_tier_classification_fn, get_variant_nomenclature_fn
+    ) -> None:
         """Handle classify variant.
 
         Args:
@@ -219,7 +229,9 @@ class DnaService:
         class_num = get_tier_classification_fn(form_data)
         nomenclature, variant = get_variant_nomenclature_fn(form_data)
         if class_num != 0:
-            self.repository.annotation_handler.insert_classified_variant(variant, nomenclature, class_num, form_data)
+            self.repository.annotation_handler.insert_classified_variant(
+                variant, nomenclature, class_num, form_data
+            )
 
     def remove_classified_variant(self, *, form_data: dict, get_variant_nomenclature_fn) -> None:
         """Remove classified variant.
@@ -232,9 +244,13 @@ class DnaService:
             None.
         """
         nomenclature, variant = get_variant_nomenclature_fn(form_data)
-        self.repository.annotation_handler.delete_classified_variant(variant, nomenclature, form_data)
+        self.repository.annotation_handler.delete_classified_variant(
+            variant, nomenclature, form_data
+        )
 
-    def add_variant_comment(self, *, form_data: dict, target_id: str, get_variant_nomenclature_fn, create_comment_doc_fn) -> str:
+    def add_variant_comment(
+        self, *, form_data: dict, target_id: str, get_variant_nomenclature_fn, create_comment_doc_fn
+    ) -> str:
         """Handle add variant comment.
 
         Args:
@@ -306,7 +322,9 @@ class DnaService:
 
         assay_panel_doc = self.repository.asp_handler.get_asp(asp_name=sample.get("assay"))
         checked_genelists = sample_filters.get("genelists", [])
-        checked_genelists_genes_dict = self.repository.isgl_handler.get_isgl_by_ids(checked_genelists)
+        checked_genelists_genes_dict = self.repository.isgl_handler.get_isgl_by_ids(
+            checked_genelists
+        )
         genes_covered_in_panel, filter_genes = util_module.common.get_sample_effective_genes(
             sample, assay_panel_doc, checked_genelists_genes_dict
         )
@@ -344,12 +362,24 @@ class DnaService:
 
         sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
         bam_id = self.repository.bam_service_handler.get_bams(sample_ids)
-        vep_variant_class_meta = self.repository.vep_meta_handler.get_variant_class_translations(sample.get("vep", 103))
-        vep_conseq_meta = self.repository.vep_meta_handler.get_conseq_translations(sample.get("vep", 103))
-        has_hidden_comments = self.repository.sample_handler.hidden_sample_comments(sample.get("_id"))
-        insilico_panel_genelists = self.repository.isgl_handler.get_isgl_by_asp(sample.get("assay"), is_active=True)
-        all_panel_genelist_names = util_module.common.get_assay_genelist_names(insilico_panel_genelists)
-        assay_config_schema = self.repository.schema_handler.get_schema(assay_config.get("schema_name"))
+        vep_variant_class_meta = self.repository.vep_meta_handler.get_variant_class_translations(
+            sample.get("vep", 103)
+        )
+        vep_conseq_meta = self.repository.vep_meta_handler.get_conseq_translations(
+            sample.get("vep", 103)
+        )
+        has_hidden_comments = self.repository.sample_handler.hidden_sample_comments(
+            sample.get("_id")
+        )
+        insilico_panel_genelists = self.repository.isgl_handler.get_isgl_by_asp(
+            sample.get("assay"), is_active=True
+        )
+        all_panel_genelist_names = util_module.common.get_assay_genelist_names(
+            insilico_panel_genelists
+        )
+        assay_config_schema = self.repository.schema_handler.get_schema(
+            assay_config.get("schema_name")
+        )
 
         oncokb_genes = []
         for variant in variants:
@@ -366,23 +396,35 @@ class DnaService:
         summary_sections_data = {"snvs": tiered_variants}
 
         if "CNV" in analysis_sections:
-            cnvs = self.load_cnvs_for_sample(sample=sample, sample_filters=sample_filters, filter_genes=filter_genes)
+            cnvs = self.load_cnvs_for_sample(
+                sample=sample, sample_filters=sample_filters, filter_genes=filter_genes
+            )
             display_sections_data["cnvs"] = deepcopy(cnvs)
             summary_sections_data["cnvs"] = [cnv for cnv in cnvs if cnv.get("interesting")]
 
         if "BIOMARKER" in analysis_sections:
-            biomarkers = list(self.repository.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"])))
+            biomarkers = list(
+                self.repository.biomarker_handler.get_sample_biomarkers(
+                    sample_id=str(sample["_id"])
+                )
+            )
             display_sections_data["biomarkers"] = biomarkers
             summary_sections_data["biomarkers"] = biomarkers
 
         if "TRANSLOCATION" in analysis_sections:
-            translocs = list(self.repository.transloc_handler.get_sample_translocations(sample_id=str(sample["_id"])))
+            translocs = list(
+                self.repository.transloc_handler.get_sample_translocations(
+                    sample_id=str(sample["_id"])
+                )
+            )
             display_sections_data["translocs"] = translocs
 
         if "FUSION" in analysis_sections:
             display_sections_data["fusions"] = []
             summary_sections_data["translocs"] = [
-                transloc for transloc in display_sections_data.get("translocs", []) if transloc.get("interesting")
+                transloc
+                for transloc in display_sections_data.get("translocs", [])
+                if transloc.get("interesting")
             ]
 
         if "cnv" in sample and str(sample["cnv"]).lower().endswith((".png", ".jpg", ".jpeg")):
@@ -399,7 +441,11 @@ class DnaService:
 
         return {
             "sample": sample,
-            "meta": {"request_path": request.url.path, "count": len(variants), "tiered": tiered_variants},
+            "meta": {
+                "request_path": request.url.path,
+                "count": len(variants),
+                "tiered": tiered_variants,
+            },
             "filters": sample_filters,
             "assay_group": assay_group,
             "subpanel": subpanel,
@@ -437,7 +483,9 @@ class DnaService:
         assay_config = assay_config_getter(sample)
         if not assay_config:
             raise api_error(404, "Assay config not found for sample")
-        assay_config_schema = self.repository.schema_handler.get_schema(assay_config.get("schema_name"))
+        assay_config_schema = self.repository.schema_handler.get_schema(
+            assay_config.get("schema_name")
+        )
         return {
             "sample": sample,
             "assay_config": assay_config,
@@ -454,7 +502,9 @@ class DnaService:
         Returns:
             dict[str, Any]: The function result.
         """
-        biomarkers = list(self.repository.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"])))
+        biomarkers = list(
+            self.repository.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"]))
+        )
         return {"sample": sample, "meta": {"count": len(biomarkers)}, "biomarkers": biomarkers}
 
     def variant_context_payload(
@@ -494,14 +544,18 @@ class DnaService:
         in_other = self.repository.variant_handler.get_variant_in_other_samples(variant)
         has_hidden_comments = self.repository.variant_handler.hidden_var_comments(var_id)
         annotations, latest_classification, other_classifications, annotations_interesting = (
-            self.repository.annotation_handler.get_global_annotations(variant, assay_group, subpanel)
+            self.repository.annotation_handler.get_global_annotations(
+                variant, assay_group, subpanel
+            )
         )
         if not latest_classification or latest_classification.get("class") == 999:
             variant = add_alt_class_fn(variant, assay_group, subpanel)
         else:
             variant["additional_classifications"] = None
 
-        expression = self.repository.expression_handler.get_expression_data(list(variant.get("transcripts", [])))
+        expression = self.repository.expression_handler.get_expression_data(
+            list(variant.get("transcripts", []))
+        )
         selected_csq = variant.get("INFO", {}).get("selected_CSQ", {})
         variant_desc = "NOTHING_IN_HERE"
         if (
@@ -570,8 +624,12 @@ class DnaService:
             "pon": format_pon(variant),
             "sample_ids": sample_ids,
             "bam_id": self.repository.bam_service_handler.get_bams(sample_ids),
-            "vep_var_class_translations": self.repository.vep_meta_handler.get_variant_class_translations(sample.get("vep", 103)),
-            "vep_conseq_translations": self.repository.vep_meta_handler.get_conseq_translations(sample.get("vep", 103)),
+            "vep_var_class_translations": self.repository.vep_meta_handler.get_variant_class_translations(
+                sample.get("vep", 103)
+            ),
+            "vep_conseq_translations": self.repository.vep_meta_handler.get_conseq_translations(
+                sample.get("vep", 103)
+            ),
             "assay_group_mappings": self.repository.asp_handler.get_asp_group_mappings(),
         }
 

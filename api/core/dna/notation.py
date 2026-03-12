@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 
-
 _AA_3_TO_1 = {
     "Cys": "C",
     "Asp": "D",
@@ -46,4 +45,3 @@ def standard_hgvs(value: str | None) -> str:
     if len(parts) == 2:
         return f"{parts[0]}.({parts[1]})"
     return value
-

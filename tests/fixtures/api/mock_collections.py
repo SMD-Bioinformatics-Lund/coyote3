@@ -10,13 +10,12 @@ are missing specific fields.
 
 from __future__ import annotations
 
+import json
 from copy import deepcopy
 from pathlib import Path
-import json
 from typing import Any
 
 from api.security.access import ApiUser
-
 
 SNAPSHOT_DIR = Path(__file__).resolve().parent / "db_snapshots"
 PROD_SNAPSHOT_PATH = SNAPSHOT_DIR / "prod_latest.json"
@@ -45,7 +44,9 @@ _PROD = _load_snapshot(PROD_SNAPSHOT_PATH)
 _DEV_RNA_WGS = _load_snapshot(DEV_RNA_WGS_SNAPSHOT_PATH)
 
 
-def _latest_doc(collection_alias: str, *, prefer_dev_rna_wgs: bool = False) -> dict[str, Any] | None:
+def _latest_doc(
+    collection_alias: str, *, prefer_dev_rna_wgs: bool = False
+) -> dict[str, Any] | None:
     """Handle  latest doc.
 
     Args:
@@ -275,9 +276,7 @@ def fusion_doc(*, prefer_dev_rna_wgs: bool = True) -> dict:
         "gene2": "ALK",
         "genes": "EML4^ALK",
         "interesting": True,
-        "calls": [
-            {"selected": 1, "breakpoint1": "2:42522694", "breakpoint2": "2:29443657"}
-        ],
+        "calls": [{"selected": 1, "breakpoint1": "2:42522694", "breakpoint2": "2:29443657"}],
         "classification": {"class": 2},
     }
     doc = _latest_doc("fusions_collection", prefer_dev_rna_wgs=prefer_dev_rna_wgs)

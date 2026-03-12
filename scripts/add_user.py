@@ -12,9 +12,9 @@
 #  the copyright holders.
 #
 
-from werkzeug.security import generate_password_hash
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
+from werkzeug.security import generate_password_hash
 
 
 def main():
@@ -36,9 +36,7 @@ def main():
 
     # Insert the user in the DB
     try:
-        collection.insert(
-            {"_id": user, "password": pass_hash, "groups": grp_arr}
-        )
+        collection.insert({"_id": user, "password": pass_hash, "groups": grp_arr})
         print("User created.")
     except DuplicateKeyError:
         print("User already present in DB.")

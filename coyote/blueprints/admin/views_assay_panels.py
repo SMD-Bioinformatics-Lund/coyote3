@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from flask import Response, abort, current_app as app, g, redirect, render_template, request, url_for
+from flask import Response, abort, g, redirect, render_template, request, url_for
+from flask import current_app as app
 from flask_login import current_user, login_required
 
 from coyote.blueprints.admin import admin_bp
@@ -135,7 +136,11 @@ def create_assay_panel():
 
     if request.method == "POST":
         form_data: dict[str, list[str] | str] = {
-            key: (request.form.getlist(key) if len(request.form.getlist(key)) > 1 else request.form[key])
+            key: (
+                request.form.getlist(key)
+                if len(request.form.getlist(key)) > 1
+                else request.form[key]
+            )
             for key in request.form
         }
         covered_genes = util.admin.extract_gene_list(
@@ -201,7 +206,11 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
 
     if request.method == "POST":
         form_data: dict[str, list[str] | str] = {
-            key: (request.form.getlist(key) if len(request.form.getlist(key)) > 1 else request.form[key])
+            key: (
+                request.form.getlist(key)
+                if len(request.form.getlist(key)) > 1
+                else request.form[key]
+            )
             for key in request.form
         }
         covered_genes = util.admin.extract_gene_list(
@@ -294,7 +303,9 @@ def print_assay_panel(panel_id: str) -> str | Response:
     context = _load_panel_context(panel_id)
 
     selected_version = request.args.get("version", type=int)
-    panel, _ = _apply_selected_panel_version(context.panel, selected_version, panel_id, keep_version=True)
+    panel, _ = _apply_selected_panel_version(
+        context.panel, selected_version, panel_id, keep_version=True
+    )
 
     return render_template(
         "asp/print_asp.html",
@@ -326,7 +337,9 @@ def toggle_assay_panel_active(assay_panel_id: str) -> Response:
             "panel": assay_panel_id,
             "panel_status": "Active" if new_status else "Inactive",
         }
-        flash_api_success(f"Panel '{assay_panel_id}' is now {'Active' if new_status else 'Inactive'}.")
+        flash_api_success(
+            f"Panel '{assay_panel_id}' is now {'Active' if new_status else 'Inactive'}."
+        )
     except ApiRequestError as exc:
         if exc.status_code == 404:
             return abort(404)

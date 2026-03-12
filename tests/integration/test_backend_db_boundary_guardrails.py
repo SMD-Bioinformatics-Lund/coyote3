@@ -7,7 +7,6 @@ import re
 from collections import Counter
 from pathlib import Path
 
-
 BASELINE_PATH = Path("tests/fixtures/backend_db_boundary_baseline.json")
 
 STORE_TARGET_DIRS = (Path("api/routers"), Path("api/core"))
@@ -76,7 +75,9 @@ def _load_baseline() -> dict:
     return json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
 
 
-def _assert_not_above_baseline(category: str, current: dict[str, int], baseline: dict[str, int]) -> None:
+def _assert_not_above_baseline(
+    category: str, current: dict[str, int], baseline: dict[str, int]
+) -> None:
     """Handle  assert not above baseline.
 
     Args:
@@ -99,8 +100,7 @@ def _assert_not_above_baseline(category: str, current: dict[str, int], baseline:
 
     assert not offenders, (
         f"{category} exceeded migration baseline. "
-        "No new direct coupling is allowed until debt is burned down.\n"
-        + "\n".join(offenders)
+        "No new direct coupling is allowed until debt is burned down.\n" + "\n".join(offenders)
     )
 
 

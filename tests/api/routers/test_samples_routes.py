@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-import pytest
-from fastapi import HTTPException
 from types import SimpleNamespace
 
+import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
+from api.deps.repositories import get_sample_repository
 from api.main import app as api_app
 from api.routers import samples
-from api.deps.repositories import get_sample_repository
 from api.security import access
 from api.security.access import ApiUser
 from tests.fixtures.api import mock_collections as fx
@@ -29,7 +29,12 @@ def _route_test_user() -> ApiUser:
         username="tester",
         role="manager",
         access_level=99,
-        permissions=["edit_sample", "add_sample_comment", "hide_sample_comment", "unhide_sample_comment"],
+        permissions=[
+            "edit_sample",
+            "add_sample_comment",
+            "hide_sample_comment",
+            "unhide_sample_comment",
+        ],
         denied_permissions=[],
         assays=["WGS"],
         assay_groups=["dna"],
@@ -123,10 +128,16 @@ def test_restful_sample_comment_route_creates_comment(monkeypatch):
     sample = fx.sample_doc()
     sample["_id"] = "S1"
     calls = {}
-    repository = SimpleNamespace(add_sample_comment=lambda sample_id, doc: calls.setdefault("sample_id", sample_id))
+    repository = SimpleNamespace(
+        add_sample_comment=lambda sample_id, doc: calls.setdefault("sample_id", sample_id)
+    )
     monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
-    monkeypatch.setattr(samples, "create_comment_doc", lambda form_data, key="sample_comment": {"key": key, **form_data})
+    monkeypatch.setattr(
+        samples,
+        "create_comment_doc",
+        lambda form_data, key="sample_comment": {"key": key, **form_data},
+    )
 
     payload = samples.create_sample_comment(
         "S1",

@@ -1,4 +1,3 @@
-
 """
 ISGLHandler module for Coyote3
 ==========================================
@@ -12,8 +11,9 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-from api.infra.db.base import BaseHandler
 from typing import Any
+
+from api.infra.db.base import BaseHandler
 
 
 # -------------------------------------------------------------------------
@@ -202,7 +202,9 @@ class ISGLHandler(BaseHandler):
         Returns:
             Any: The result of the replace operation, typically a `pymongo.results.UpdateResult` object.
         """
-        return self.get_collection().replace_one(self._isgl_lookup_query(isgl_id), self.ensure_isgl_id(dict(updated_data)))
+        return self.get_collection().replace_one(
+            self._isgl_lookup_query(isgl_id), self.ensure_isgl_id(dict(updated_data))
+        )
 
     def toggle_isgl_active(self, isgl_id: str, active_status: bool) -> bool:
         """

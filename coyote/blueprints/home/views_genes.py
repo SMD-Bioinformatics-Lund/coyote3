@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-from flask import Response, current_app as app, jsonify, request
+from flask import Response, jsonify, request
+from flask import current_app as app
 from flask_login import login_required
 
 from coyote.blueprints.home import home_bp
 from coyote.services.api_client import endpoints as api_endpoints
-from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.services.api_client.api_client import (
+    ApiRequestError,
+    forward_headers,
+    get_web_api_client,
+)
 from coyote.services.api_client.home import (
     apply_isgl as apply_isgl_api,
 )

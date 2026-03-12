@@ -8,8 +8,8 @@ from api.contracts.rna import RnaFusionContextPayload, RnaFusionListPayload
 from api.contracts.samples import SampleMutationPayload
 from api.deps.services import get_rna_service
 from api.extensions import util
-from api.services.rna_service import RnaService
 from api.security.access import ApiUser, _get_sample_for_api, require_access
+from api.services.rna_service import RnaService
 
 router = APIRouter(tags=["fusions"])
 if not hasattr(util, "common"):
@@ -35,10 +35,14 @@ def list_rna_fusions(
         The function result.
     """
     sample = _get_sample_for_api(sample_id, user)
-    return util.common.convert_to_serializable(service.list_fusions_payload(request=request, sample=sample, util_module=util))
+    return util.common.convert_to_serializable(
+        service.list_fusions_payload(request=request, sample=sample, util_module=util)
+    )
 
 
-@router.get("/api/v1/samples/{sample_id}/fusions/{fusion_id}", response_model=RnaFusionContextPayload)
+@router.get(
+    "/api/v1/samples/{sample_id}/fusions/{fusion_id}", response_model=RnaFusionContextPayload
+)
 def show_rna_fusion(
     sample_id: str,
     fusion_id: str,
@@ -57,10 +61,16 @@ def show_rna_fusion(
         The function result.
     """
     sample = _get_sample_for_api(sample_id, user)
-    return util.common.convert_to_serializable(service.show_fusion_payload(sample=sample, fusion_id=fusion_id))
+    return util.common.convert_to_serializable(
+        service.show_fusion_payload(sample=sample, fusion_id=fusion_id)
+    )
 
 
-@router.patch("/api/v1/samples/{sample_id}/fusions/{fusion_id}/flags/false-positive", response_model=SampleMutationPayload, summary="Mark fusion false-positive")
+@router.patch(
+    "/api/v1/samples/{sample_id}/fusions/{fusion_id}/flags/false-positive",
+    response_model=SampleMutationPayload,
+    summary="Mark fusion false-positive",
+)
 def mark_false_positive_fusion(
     sample_id: str,
     fusion_id: str,
@@ -81,11 +91,17 @@ def mark_false_positive_fusion(
     _get_sample_for_api(sample_id, user)
     service.repository.fusion_handler.mark_false_positive_fusion(fusion_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="fusion", resource_id=fusion_id, action="mark_false_positive")
+        service.mutation_payload(
+            sample_id, resource="fusion", resource_id=fusion_id, action="mark_false_positive"
+        )
     )
 
 
-@router.delete("/api/v1/samples/{sample_id}/fusions/{fusion_id}/flags/false-positive", response_model=SampleMutationPayload, summary="Remove false-positive flag from fusion")
+@router.delete(
+    "/api/v1/samples/{sample_id}/fusions/{fusion_id}/flags/false-positive",
+    response_model=SampleMutationPayload,
+    summary="Remove false-positive flag from fusion",
+)
 def unmark_false_positive_fusion(
     sample_id: str,
     fusion_id: str,
@@ -106,7 +122,9 @@ def unmark_false_positive_fusion(
     _get_sample_for_api(sample_id, user)
     service.repository.fusion_handler.unmark_false_positive_fusion(fusion_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="fusion", resource_id=fusion_id, action="unmark_false_positive")
+        service.mutation_payload(
+            sample_id, resource="fusion", resource_id=fusion_id, action="unmark_false_positive"
+        )
     )
 
 
@@ -139,7 +157,9 @@ def pick_fusion_call(
     _get_sample_for_api(sample_id, user)
     service.repository.fusion_handler.pick_fusion(fusion_id, callidx, num_calls)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="fusion", resource_id=fusion_id, action="pick_fusion_call")
+        service.mutation_payload(
+            sample_id, resource="fusion", resource_id=fusion_id, action="pick_fusion_call"
+        )
     )
 
 
@@ -170,7 +190,9 @@ def hide_fusion_comment(
     _get_sample_for_api(sample_id, user)
     service.repository.fusion_handler.hide_fus_comment(fusion_id, comment_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="fusion_comment", resource_id=comment_id, action="hide")
+        service.mutation_payload(
+            sample_id, resource="fusion_comment", resource_id=comment_id, action="hide"
+        )
     )
 
 
@@ -201,11 +223,17 @@ def unhide_fusion_comment(
     _get_sample_for_api(sample_id, user)
     service.repository.fusion_handler.unhide_fus_comment(fusion_id, comment_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="fusion_comment", resource_id=comment_id, action="unhide")
+        service.mutation_payload(
+            sample_id, resource="fusion_comment", resource_id=comment_id, action="unhide"
+        )
     )
 
 
-@router.patch("/api/v1/samples/{sample_id}/fusions/flags/false-positive", response_model=SampleMutationPayload, summary="Bulk false-positive fusion update")
+@router.patch(
+    "/api/v1/samples/{sample_id}/fusions/flags/false-positive",
+    response_model=SampleMutationPayload,
+    summary="Bulk false-positive fusion update",
+)
 def set_fusion_false_positive_bulk(
     sample_id: str,
     apply: bool = Query(default=True),
@@ -229,11 +257,17 @@ def set_fusion_false_positive_bulk(
     if fusion_ids:
         service.repository.fusion_handler.mark_false_positive_bulk(fusion_ids, apply)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="fusion_bulk", resource_id="bulk", action="set_false_positive_bulk")
+        service.mutation_payload(
+            sample_id, resource="fusion_bulk", resource_id="bulk", action="set_false_positive_bulk"
+        )
     )
 
 
-@router.patch("/api/v1/samples/{sample_id}/fusions/flags/irrelevant", response_model=SampleMutationPayload, summary="Bulk irrelevant fusion update")
+@router.patch(
+    "/api/v1/samples/{sample_id}/fusions/flags/irrelevant",
+    response_model=SampleMutationPayload,
+    summary="Bulk irrelevant fusion update",
+)
 def set_fusion_irrelevant_bulk(
     sample_id: str,
     apply: bool = Query(default=True),
@@ -257,5 +291,7 @@ def set_fusion_irrelevant_bulk(
     if fusion_ids:
         service.repository.fusion_handler.mark_irrelevant_bulk(fusion_ids, apply)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="fusion_bulk", resource_id="bulk", action="set_irrelevant_bulk")
+        service.mutation_payload(
+            sample_id, resource="fusion_bulk", resource_id="bulk", action="set_irrelevant_bulk"
+        )
     )

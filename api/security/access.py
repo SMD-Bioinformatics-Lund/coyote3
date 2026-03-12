@@ -11,9 +11,9 @@ from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from api.audit.access_events import emit_access_event
 from api.domain.models.user import UserModel
-from api.security.repository import get_security_repository
 from api.runtime import app as runtime_app
 from api.runtime import reset_current_user, set_current_user
+from api.security.repository import get_security_repository
 from api.settings import (
     get_api_secret_key,
     get_api_session_salt,
@@ -46,8 +46,8 @@ PUBLIC_API_PREFIX_PATHS = (
 
 @dataclass
 class ApiUser:
-    """Provide the api user type.
-    """
+    """Provide the api user type."""
+
     id: str
     email: str
     fullname: str
@@ -383,6 +383,7 @@ def require_access(
     Returns:
         The function result.
     """
+
     def dep(request: Request) -> Generator[ApiUser, None, None]:
         """Handle dep.
 

@@ -1,4 +1,3 @@
-
 """
 Coyote3 Shared Module
 =====================================
@@ -14,6 +13,7 @@ shared resources.
 # Imports
 # -------------------------------------------------------------------------
 from flask_login import LoginManager
+
 from coyote.util import Utility
 
 # -------------------------------------------------------------------------

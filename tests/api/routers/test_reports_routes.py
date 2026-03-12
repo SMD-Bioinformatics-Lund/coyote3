@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 from fastapi import HTTPException
-from api.main import app as api_app
 
-from api.security.access import ApiUser
+from api.main import app as api_app
 from api.routers import reports
+from api.security.access import ApiUser
 
 
 def _user(username: str = "tester", role: str = "admin") -> ApiUser:
@@ -85,9 +85,14 @@ def test_preview_report_success_includes_snapshot_when_requested(monkeypatch):
     monkeypatch.setattr(
         reports,
         "_load_report_context",
-        lambda sample_id, user: ({"_id": "s1", "name": "S1", "assay": "WGS", "profile": "prod"}, {"x": 1}),
+        lambda sample_id, user: (
+            {"_id": "s1", "name": "S1", "assay": "WGS", "profile": "prod"},
+            {"x": 1},
+        ),
     )
-    monkeypatch.setattr(reports, "_validate_report_inputs", lambda analyte, sample, assay_config: None)
+    monkeypatch.setattr(
+        reports, "_validate_report_inputs", lambda analyte, sample, assay_config: None
+    )
     monkeypatch.setattr(
         reports,
         "_build_preview_report",
@@ -125,9 +130,14 @@ def test_preview_report_hides_snapshot_when_not_requested(monkeypatch):
     monkeypatch.setattr(
         reports,
         "_load_report_context",
-        lambda sample_id, user: ({"_id": "s1", "name": "S1", "assay": "WGS", "profile": "prod"}, {"x": 1}),
+        lambda sample_id, user: (
+            {"_id": "s1", "name": "S1", "assay": "WGS", "profile": "prod"},
+            {"x": 1},
+        ),
     )
-    monkeypatch.setattr(reports, "_validate_report_inputs", lambda analyte, sample, assay_config: None)
+    monkeypatch.setattr(
+        reports, "_validate_report_inputs", lambda analyte, sample, assay_config: None
+    )
     monkeypatch.setattr(
         reports,
         "_build_preview_report",
@@ -168,9 +178,17 @@ def test_save_report_success(monkeypatch):
             {"x": 1},
         ),
     )
-    monkeypatch.setattr(reports, "_validate_report_inputs", lambda analyte, sample, assay_config: None)
-    monkeypatch.setattr(reports, "_build_report_location", lambda analyte, sample, assay_config: ("RID3", "/tmp", "RID3.pdf"))
-    monkeypatch.setattr(reports, "_prepare_report_output", lambda analyte, report_path, report_file: None)
+    monkeypatch.setattr(
+        reports, "_validate_report_inputs", lambda analyte, sample, assay_config: None
+    )
+    monkeypatch.setattr(
+        reports,
+        "_build_report_location",
+        lambda analyte, sample, assay_config: ("RID3", "/tmp", "RID3.pdf"),
+    )
+    monkeypatch.setattr(
+        reports, "_prepare_report_output", lambda analyte, report_path, report_file: None
+    )
     monkeypatch.setattr(
         reports,
         "_persist_report",
@@ -208,9 +226,17 @@ def test_save_dna_report_missing_html_raises_400(monkeypatch):
             {"x": 1},
         ),
     )
-    monkeypatch.setattr(reports, "_validate_report_inputs", lambda analyte, sample, assay_config: None)
-    monkeypatch.setattr(reports, "_build_report_location", lambda analyte, sample, assay_config: ("RID3", "/tmp", "RID3.pdf"))
-    monkeypatch.setattr(reports, "_prepare_report_output", lambda analyte, report_path, report_file: None)
+    monkeypatch.setattr(
+        reports, "_validate_report_inputs", lambda analyte, sample, assay_config: None
+    )
+    monkeypatch.setattr(
+        reports,
+        "_build_report_location",
+        lambda analyte, sample, assay_config: ("RID3", "/tmp", "RID3.pdf"),
+    )
+    monkeypatch.setattr(
+        reports, "_prepare_report_output", lambda analyte, report_path, report_file: None
+    )
 
     with pytest.raises(HTTPException) as exc:
         reports.save_report(
@@ -243,9 +269,17 @@ def test_save_report_calls_rna_persist_path(monkeypatch):
             {"x": 1},
         ),
     )
-    monkeypatch.setattr(reports, "_validate_report_inputs", lambda analyte, sample, assay_config: None)
-    monkeypatch.setattr(reports, "_build_report_location", lambda analyte, sample, assay_config: ("RID6", "/tmp", "RID6.pdf"))
-    monkeypatch.setattr(reports, "_prepare_report_output", lambda analyte, report_path, report_file: None)
+    monkeypatch.setattr(
+        reports, "_validate_report_inputs", lambda analyte, sample, assay_config: None
+    )
+    monkeypatch.setattr(
+        reports,
+        "_build_report_location",
+        lambda analyte, sample, assay_config: ("RID6", "/tmp", "RID6.pdf"),
+    )
+    monkeypatch.setattr(
+        reports, "_prepare_report_output", lambda analyte, report_path, report_file: None
+    )
 
     def _persist(analyte, **kwargs):
         """Handle  persist.

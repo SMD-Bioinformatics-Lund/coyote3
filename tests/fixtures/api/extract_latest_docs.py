@@ -13,10 +13,10 @@ Extraction rules:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from pathlib import Path
 import json
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 import pymongo
@@ -291,7 +291,9 @@ def _extract(config_obj, scoped_query: dict | None = None) -> dict[str, Any]:
             "count_scoped": count_scoped,
             "strategy": strategy,
             "document_count": len(docs),
-            "sampled_sample_ids": _json_safe(sampled_sample_ids) if alias != SAMPLES_ALIAS else None,
+            "sampled_sample_ids": (
+                _json_safe(sampled_sample_ids) if alias != SAMPLES_ALIAS else None
+            ),
             "latest": _json_safe(latest) if latest is not None else None,
             "docs": _json_safe(docs),
         }

@@ -22,7 +22,6 @@ from bson import json_util
 from pymongo import MongoClient
 from pymongo.errors import OperationFailure, PyMongoError
 
-
 """
 /home/ram/.virtualenvs/coyote3/bin/python scripts/restore_mongo_micro_snapshot.py \
   --snapshot-dir var/mongo/micro_snapshot \
@@ -37,8 +36,8 @@ DEFAULT_COLLECTIONS_TOML = Path("config/coyote3_collections.toml")
 
 @dataclass(frozen=True)
 class Rule:
-    """Provide the rule type.
-    """
+    """Provide the rule type."""
+
     collection_names: tuple[str, ...]
     key_field: str
 
@@ -187,7 +186,14 @@ def restore_indexes(coll, index_rows: list[dict[str, Any]]) -> None:
         key_doc = idx.get("key") or {}
         key_items = _normalize_index_keys(key_doc)
         options = {}
-        for opt in ("name", "unique", "sparse", "expireAfterSeconds", "partialFilterExpression", "collation"):
+        for opt in (
+            "name",
+            "unique",
+            "sparse",
+            "expireAfterSeconds",
+            "partialFilterExpression",
+            "collation",
+        ):
             if opt in idx:
                 options[opt] = idx[opt]
         try:

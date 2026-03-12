@@ -1,4 +1,3 @@
-
 """
 Shared reporting persistence pipeline for DNA/RNA save flows.
 """
@@ -8,7 +7,6 @@ import os
 from api.errors.exceptions import AppError
 from api.extensions import util
 from api.infra.repositories.core_store_mongo import MongoCoreStoreRepository
-
 
 _core_repo_instance: MongoCoreStoreRepository | None = None
 

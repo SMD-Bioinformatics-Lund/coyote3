@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import io
 
-from flask import abort, current_app as app, render_template, send_file
+from flask import abort, render_template, send_file
+from flask import current_app as app
 
 from coyote.blueprints.public import public_bp
 from coyote.services.api_client import endpoints as api_endpoints

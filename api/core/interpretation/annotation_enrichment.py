@@ -1,10 +1,8 @@
-
 """
 Shared annotation enrichment helpers for DNA/RNA analyte flows.
 """
 
 from api.infra.repositories.core_store_mongo import MongoCoreStoreRepository
-
 
 _core_repo_instance: MongoCoreStoreRepository | None = None
 

@@ -30,8 +30,8 @@ jobs:
       - name: Ruff check
         run: PYTHONPATH=. ruff check api/settings.py coyote/services/api_client tests/unit tests/integration tests/ui
 
-      - name: Ruff format check
-        run: PYTHONPATH=. ruff format --check api/settings.py coyote/services/api_client tests/unit tests/integration tests/ui
+      - name: Black format check
+        run: PYTHONPATH=. black --check --line-length 100 api/settings.py coyote/services/api_client tests/unit tests/integration tests/ui
 
       - name: Unit tests
         run: PYTHONPATH=. pytest -q -m unit tests/unit

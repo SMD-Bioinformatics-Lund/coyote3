@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from api.services.permission_management_service import PermissionManagementService
 from api.services.admin_resource_service import (
     AdminAspcService,
     AdminGenelistService,
@@ -15,14 +14,14 @@ from api.services.admin_resource_service import (
 )
 from api.services.admin_role_service import AdminRoleService
 from api.services.admin_user_service import AdminUserService
+from api.services.permission_management_service import PermissionManagementService
 
 
 class _AdminRepoStub:
-    """Provide  AdminRepoStub behavior.
-    """
+    """Provide  AdminRepoStub behavior."""
+
     def __init__(self) -> None:
-        """Handle __init__.
-        """
+        """Handle __init__."""
         self.created_user = None
         self.updated_user = None
         self.created_role = None
@@ -56,8 +55,38 @@ class _AdminRepoStub:
             The function result.
         """
         return (
-            [{"_id": "schema1", "schema_id": "schema1", "version": 2, "fields": {"role": {}, "permissions": {}, "deny_permissions": {}, "assay_groups": {}, "created_by": {}, "created_on": {}, "updated_by": {}, "updated_on": {}}}],
-            {"_id": "schema1", "schema_id": "schema1", "version": 2, "fields": {"role": {}, "permissions": {}, "deny_permissions": {}, "assay_groups": {}, "created_by": {}, "created_on": {}, "updated_by": {}, "updated_on": {}}},
+            [
+                {
+                    "_id": "schema1",
+                    "schema_id": "schema1",
+                    "version": 2,
+                    "fields": {
+                        "role": {},
+                        "permissions": {},
+                        "deny_permissions": {},
+                        "assay_groups": {},
+                        "created_by": {},
+                        "created_on": {},
+                        "updated_by": {},
+                        "updated_on": {},
+                    },
+                }
+            ],
+            {
+                "_id": "schema1",
+                "schema_id": "schema1",
+                "version": 2,
+                "fields": {
+                    "role": {},
+                    "permissions": {},
+                    "deny_permissions": {},
+                    "assay_groups": {},
+                    "created_by": {},
+                    "created_on": {},
+                    "updated_by": {},
+                    "updated_on": {},
+                },
+            },
         )
 
     def clone_schema(self, schema):
@@ -165,7 +194,18 @@ class _AdminRepoStub:
         """
         if not schema_name:
             return None
-        return {"_id": "schema1", "schema_id": "schema1", "version": 2, "fields": {"role": {}, "permissions": {}, "deny_permissions": {}, "assay_groups": {}, "assays": {}}}
+        return {
+            "_id": "schema1",
+            "schema_id": "schema1",
+            "version": 2,
+            "fields": {
+                "role": {},
+                "permissions": {},
+                "deny_permissions": {},
+                "assay_groups": {},
+                "assays": {},
+            },
+        }
 
     def update_user(self, user_id, user_data):
         """Update user.
@@ -213,7 +253,10 @@ class _AdminRepoStub:
             "_UserHandler",
             (),
             {
-                "user_exists": staticmethod(lambda **kwargs: kwargs.get("user_id") == "taken" or kwargs.get("email") == "taken@example.com")
+                "user_exists": staticmethod(
+                    lambda **kwargs: kwargs.get("user_id") == "taken"
+                    or kwargs.get("email") == "taken@example.com"
+                )
             },
         )()
 
@@ -301,7 +344,14 @@ class _AdminRepoStub:
         Returns:
             The function result.
         """
-        return [{"_id": "perm.read", "permission_id": "perm.read", "category": "General", "is_active": True}]
+        return [
+            {
+                "_id": "perm.read",
+                "permission_id": "perm.read",
+                "category": "General",
+                "is_active": True,
+            }
+        ]
 
     def get_permission(self, permission_id):
         """Return permission.
@@ -393,7 +443,14 @@ class _AdminRepoStub:
         """
         if panel_id == "missing":
             return None
-        return {"_id": panel_id, "asp_id": panel_id, "schema_name": "ASP-Schema", "is_active": False, "covered_genes": ["TP53"], "germline_genes": ["BRCA1"]}
+        return {
+            "_id": panel_id,
+            "asp_id": panel_id,
+            "schema_name": "ASP-Schema",
+            "is_active": False,
+            "covered_genes": ["TP53"],
+            "germline_genes": ["BRCA1"],
+        }
 
     def create_panel(self, panel):
         """Create panel.
@@ -448,7 +505,15 @@ class _AdminRepoStub:
         Returns:
             The function result.
         """
-        return [{"_id": "GL1", "isgl_id": "GL1", "schema_name": "schema1", "genes": ["TP53"], "assays": ["WGS"]}]
+        return [
+            {
+                "_id": "GL1",
+                "isgl_id": "GL1",
+                "schema_name": "schema1",
+                "genes": ["TP53"],
+                "assays": ["WGS"],
+            }
+        ]
 
     def get_genelist(self, genelist_id):
         """Return genelist.
@@ -461,7 +526,15 @@ class _AdminRepoStub:
         """
         if genelist_id == "missing":
             return None
-        return {"_id": genelist_id, "isgl_id": genelist_id, "schema_name": "schema1", "genes": ["TP53", "EGFR"], "assays": ["WGS"], "assay_groups": ["dna"], "is_active": True}
+        return {
+            "_id": genelist_id,
+            "isgl_id": genelist_id,
+            "schema_name": "schema1",
+            "genes": ["TP53", "EGFR"],
+            "assays": ["WGS"],
+            "assay_groups": ["dna"],
+            "is_active": True,
+        }
 
     def create_genelist(self, genelist):
         """Create genelist.
@@ -708,7 +781,10 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
     repo = _AdminRepoStub()
     service = AdminUserService(repository=repo)
     monkeypatch.setattr("api.services.admin_user_service.current_actor", lambda username: username)
-    monkeypatch.setattr("api.services.admin_user_service.inject_version_history", lambda **kwargs: kwargs["new_config"])
+    monkeypatch.setattr(
+        "api.services.admin_user_service.inject_version_history",
+        lambda **kwargs: kwargs["new_config"],
+    )
     monkeypatch.setattr("api.services.admin_user_service.utc_now", lambda: "NOW")
     monkeypatch.setattr(
         "api.services.admin_user_service.util.admin.process_form_to_config",
@@ -722,10 +798,19 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
             "password": "secret",
         },
     )
-    monkeypatch.setattr("api.services.admin_user_service.util.common.hash_password", lambda raw: f"H:{raw}")
+    monkeypatch.setattr(
+        "api.services.admin_user_service.util.common.hash_password", lambda raw: f"H:{raw}"
+    )
 
     payload = service.create_user(
-        payload={"form_data": {"username": "Tester", "email": "Tester@Example.com", "role": "admin", "permissions": ["perm.a", "perm.b"]}},
+        payload={
+            "form_data": {
+                "username": "Tester",
+                "email": "Tester@Example.com",
+                "role": "admin",
+                "permissions": ["perm.a", "perm.b"],
+            }
+        },
         actor_username="actor@example.com",
     )
 
@@ -764,13 +849,22 @@ def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
     repo = _AdminRepoStub()
     service = AdminRoleService(repository=repo)
     monkeypatch.setattr("api.services.admin_role_service.current_actor", lambda username: username)
-    monkeypatch.setattr("api.services.admin_role_service.inject_version_history", lambda **kwargs: kwargs["new_config"])
+    monkeypatch.setattr(
+        "api.services.admin_role_service.inject_version_history",
+        lambda **kwargs: kwargs["new_config"],
+    )
     monkeypatch.setattr(
         "api.services.admin_role_service.util.admin.process_form_to_config",
-        lambda form_data, schema: {"name": form_data["name"], "permissions": [], "deny_permissions": []},
+        lambda form_data, schema: {
+            "name": form_data["name"],
+            "permissions": [],
+            "deny_permissions": [],
+        },
     )
 
-    payload = service.create_role(payload={"form_data": {"name": "Admin"}}, actor_username="actor@example.com")
+    payload = service.create_role(
+        payload={"form_data": {"name": "Admin"}}, actor_username="actor@example.com"
+    )
 
     assert payload["resource"] == "role"
     assert repo.created_role["role_id"] == "admin"
@@ -894,10 +988,14 @@ def test_admin_schema_service_create_sets_identity(monkeypatch):
     """
     repo = _AdminRepoStub()
     service = AdminSchemaService(repository=repo)
-    monkeypatch.setattr("api.services.admin_resource_service.current_actor", lambda username: username)
+    monkeypatch.setattr(
+        "api.services.admin_resource_service.current_actor", lambda username: username
+    )
     monkeypatch.setattr("api.services.admin_resource_service.utc_now", lambda: "NOW")
 
-    payload = service.create(payload={"schema": {"schema_name": "USER-SCHEMA"}}, actor_username="actor@example.com")
+    payload = service.create(
+        payload={"schema": {"schema_name": "USER-SCHEMA"}}, actor_username="actor@example.com"
+    )
 
     assert payload["resource"] == "schema"
     assert repo.created_schema["schema_id"] == "USER-SCHEMA"
@@ -914,11 +1012,17 @@ def test_admin_sample_service_update_restores_ids(monkeypatch):
     """
     repo = _AdminRepoStub()
     service = AdminSampleService(repository=repo)
-    monkeypatch.setattr("api.services.admin_resource_service.current_actor", lambda username: username)
+    monkeypatch.setattr(
+        "api.services.admin_resource_service.current_actor", lambda username: username
+    )
     monkeypatch.setattr("api.services.admin_resource_service.utc_now", lambda: "NOW")
-    monkeypatch.setattr("api.services.admin_resource_service.util.admin.restore_objectids", lambda payload: payload)
+    monkeypatch.setattr(
+        "api.services.admin_resource_service.util.admin.restore_objectids", lambda payload: payload
+    )
 
-    payload = service.update(sample_id="S1", payload={"sample": {"field": "value"}}, actor_username="actor@example.com")
+    payload = service.update(
+        sample_id="S1", payload={"sample": {"field": "value"}}, actor_username="actor@example.com"
+    )
 
     assert payload["resource"] == "sample"
     assert repo.updated_sample_doc[0] == "S1"

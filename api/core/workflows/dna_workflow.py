@@ -1,4 +1,3 @@
-
 """
 DNA workflow service facade.
 
@@ -6,19 +5,21 @@ This module centralizes DNA workflow orchestration used by blueprint routes,
 while preserving existing behavior and route contracts.
 """
 
-from api.core.reporting.report_paths import build_report_file_location
-from api.core.reporting.pipeline import (
-    prepare_report_output as prepare_shared_report_output,
-    persist_report_and_snapshot as persist_shared_report_and_snapshot,
-)
 from api.core.dna.dna_reporting import build_dna_report_payload
 from api.core.dna.ports import DNAReportingRepository
+from api.core.reporting.pipeline import (
+    persist_report_and_snapshot as persist_shared_report_and_snapshot,
+)
+from api.core.reporting.pipeline import (
+    prepare_report_output as prepare_shared_report_output,
+)
+from api.core.reporting.report_paths import build_report_file_location
 from api.core.workflows.contracts import validate_report_inputs
 
 
 class DNAWorkflowService:
-    """Provide dna workflow workflows.
-    """
+    """Provide dna workflow workflows."""
+
     _repository: DNAReportingRepository | None = None
 
     @classmethod
@@ -61,7 +62,9 @@ class DNAWorkflowService:
         validate_report_inputs(logger, sample, assay_config, analyte="dna")
 
     @staticmethod
-    def build_report_location(sample: dict, assay_config: dict, reports_base_path: str) -> tuple[str, str, str]:
+    def build_report_location(
+        sample: dict, assay_config: dict, reports_base_path: str
+    ) -> tuple[str, str, str]:
         """
         Build report id/path/file location for DNA save flow.
         """

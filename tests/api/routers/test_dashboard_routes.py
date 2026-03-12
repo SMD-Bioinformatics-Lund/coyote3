@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 from api.routers import dashboard
 from api.services.dashboard_service import DashboardService
 from tests.fixtures.api import mock_collections as fx
@@ -30,7 +28,11 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
                 "analysed_samples": 8 if assays is None else 2,
                 "pending_samples": 2 if assays is None else 1,
                 "user_samples_stats": {
-                    "WGS": {"total": 999 if assays is None else len(assays), "analysed": 1, "pending": 0}
+                    "WGS": {
+                        "total": 999 if assays is None else len(assays),
+                        "analysed": 1,
+                        "pending": 0,
+                    }
                 },
                 "sample_stats": {
                     "profiles": {"prod": 7},
@@ -56,7 +58,9 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
         lambda: {"total": {"tier1": 1, "tier2": 2, "tier3": 3, "tier4": 4}, "by_assay": {}},
     )
     monkeypatch.setattr(service.repository, "get_all_asps_unique_gene_count", lambda: 250)
-    monkeypatch.setattr(service.repository, "get_all_asp_gene_counts", lambda: {"dna": {"WGS": 120}})
+    monkeypatch.setattr(
+        service.repository, "get_all_asp_gene_counts", lambda: {"dna": {"WGS": 120}}
+    )
     monkeypatch.setattr(
         dashboard.util.dashboard,
         "format_asp_gene_stats",
@@ -71,7 +75,13 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
     monkeypatch.setattr(
         service,
         "build_capacity_counts",
-        lambda: {"users_total": 10, "roles_total": 4, "asps_total": 6, "aspcs_total": 12, "isgl_total": 8},
+        lambda: {
+            "users_total": 10,
+            "roles_total": 4,
+            "asps_total": 6,
+            "aspcs_total": 12,
+            "isgl_total": 8,
+        },
     )
     monkeypatch.setattr(
         service,
@@ -154,7 +164,13 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
     monkeypatch.setattr(
         service,
         "build_capacity_counts",
-        lambda: {"users_total": 2, "roles_total": 1, "asps_total": 3, "aspcs_total": 4, "isgl_total": 5},
+        lambda: {
+            "users_total": 2,
+            "roles_total": 1,
+            "asps_total": 3,
+            "aspcs_total": 4,
+            "isgl_total": 5,
+        },
     )
     monkeypatch.setattr(
         service,
@@ -231,7 +247,13 @@ def test_dashboard_summary_admin_scope_is_unfiltered(monkeypatch):
     monkeypatch.setattr(
         service,
         "build_capacity_counts",
-        lambda: {"users_total": 7, "roles_total": 3, "asps_total": 2, "aspcs_total": 2, "isgl_total": 1},
+        lambda: {
+            "users_total": 7,
+            "roles_total": 3,
+            "asps_total": 2,
+            "aspcs_total": 2,
+            "isgl_total": 1,
+        },
     )
     monkeypatch.setattr(
         service,

@@ -1,6 +1,5 @@
-
+from collections import OrderedDict, defaultdict
 from hashlib import md5
-from collections import defaultdict, OrderedDict
 
 
 class DashBoardUtility:

@@ -12,8 +12,7 @@ from api.contracts.dna import (
 from api.contracts.samples import SampleMutationPayload
 from api.core.dna.dna_filters import get_filter_conseq_terms
 from api.core.dna.dna_reporting import hotspot_variant
-from api.core.dna.dna_variants import format_pon, get_variant_nomenclature
-from api.core.dna.notation import one_letter_p
+from api.core.dna.dna_variants import get_variant_nomenclature
 from api.core.dna.query_builders import build_query
 from api.core.interpretation.annotation_enrichment import add_alt_class, add_global_annotations
 from api.core.interpretation.report_summary import (
@@ -22,12 +21,14 @@ from api.core.interpretation.report_summary import (
 )
 from api.deps.services import get_dna_service, get_resource_annotation_service
 from api.extensions import util
-from api.http import api_error as _api_error, get_formatted_assay_config as _get_formatted_assay_config
+from api.http import api_error as _api_error
+from api.http import get_formatted_assay_config as _get_formatted_assay_config
+from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.services.dna_service import DnaService
 from api.services.resource_annotation_service import ResourceAnnotationService
-from api.security.access import ApiUser, _get_sample_for_api, require_access
 
 router = APIRouter(tags=["small-variants"])
+
 
 @router.get("/api/v1/samples/{sample_id}/small-variants", response_model=DnaVariantsListPayload)
 def list_dna_variants(
@@ -62,7 +63,9 @@ def list_dna_variants(
     )
 
 
-@router.get("/api/v1/samples/{sample_id}/small-variants/plot-context", response_model=DnaPlotContextPayload)
+@router.get(
+    "/api/v1/samples/{sample_id}/small-variants/plot-context", response_model=DnaPlotContextPayload
+)
 def dna_plot_context(
     sample_id: str,
     user: ApiUser = Depends(require_access(min_level=1)),
@@ -84,7 +87,9 @@ def dna_plot_context(
     )
 
 
-@router.get("/api/v1/samples/{sample_id}/small-variants/{var_id}", response_model=DnaVariantContextPayload)
+@router.get(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}", response_model=DnaVariantContextPayload
+)
 def show_dna_variant(
     sample_id: str,
     var_id: str,
@@ -114,7 +119,9 @@ def show_dna_variant(
     )
 
 
-def _require_variant_for_sample(sample_id: str, var_id: str, user: ApiUser, service: DnaService) -> tuple[dict, dict]:
+def _require_variant_for_sample(
+    sample_id: str, var_id: str, user: ApiUser, service: DnaService
+) -> tuple[dict, dict]:
     """Handle  require variant for sample.
 
     Args:
@@ -131,7 +138,11 @@ def _require_variant_for_sample(sample_id: str, var_id: str, user: ApiUser, serv
     return sample, variant
 
 
-@router.delete("/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/false-positive", response_model=SampleMutationPayload, summary="Remove false-positive flag from small variant")
+@router.delete(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/false-positive",
+    response_model=SampleMutationPayload,
+    summary="Remove false-positive flag from small variant",
+)
 def unmark_false_variant(
     sample_id: str,
     var_id: str,
@@ -152,11 +163,17 @@ def unmark_false_variant(
     _require_variant_for_sample(sample_id, var_id, user, service)
     service.repository.variant_handler.unmark_false_positive_var(var_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="variant", resource_id=var_id, action="unmark_false_positive")
+        service.mutation_payload(
+            sample_id, resource="variant", resource_id=var_id, action="unmark_false_positive"
+        )
     )
 
 
-@router.patch("/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/false-positive", response_model=SampleMutationPayload, summary="Mark small variant false-positive")
+@router.patch(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/false-positive",
+    response_model=SampleMutationPayload,
+    summary="Mark small variant false-positive",
+)
 def mark_false_variant(
     sample_id: str,
     var_id: str,
@@ -177,11 +194,17 @@ def mark_false_variant(
     _require_variant_for_sample(sample_id, var_id, user, service)
     service.repository.variant_handler.mark_false_positive_var(var_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="variant", resource_id=var_id, action="mark_false_positive")
+        service.mutation_payload(
+            sample_id, resource="variant", resource_id=var_id, action="mark_false_positive"
+        )
     )
 
 
-@router.delete("/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/interesting", response_model=SampleMutationPayload, summary="Remove interesting flag from small variant")
+@router.delete(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/interesting",
+    response_model=SampleMutationPayload,
+    summary="Remove interesting flag from small variant",
+)
 def unmark_interesting_variant(
     sample_id: str,
     var_id: str,
@@ -202,11 +225,17 @@ def unmark_interesting_variant(
     _require_variant_for_sample(sample_id, var_id, user, service)
     service.repository.variant_handler.unmark_interesting_var(var_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="variant", resource_id=var_id, action="unmark_interesting")
+        service.mutation_payload(
+            sample_id, resource="variant", resource_id=var_id, action="unmark_interesting"
+        )
     )
 
 
-@router.patch("/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/interesting", response_model=SampleMutationPayload, summary="Mark small variant interesting")
+@router.patch(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/interesting",
+    response_model=SampleMutationPayload,
+    summary="Mark small variant interesting",
+)
 def mark_interesting_variant(
     sample_id: str,
     var_id: str,
@@ -227,11 +256,17 @@ def mark_interesting_variant(
     _require_variant_for_sample(sample_id, var_id, user, service)
     service.repository.variant_handler.mark_interesting_var(var_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="variant", resource_id=var_id, action="mark_interesting")
+        service.mutation_payload(
+            sample_id, resource="variant", resource_id=var_id, action="mark_interesting"
+        )
     )
 
 
-@router.delete("/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/irrelevant", response_model=SampleMutationPayload, summary="Remove irrelevant flag from small variant")
+@router.delete(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/irrelevant",
+    response_model=SampleMutationPayload,
+    summary="Remove irrelevant flag from small variant",
+)
 def unmark_irrelevant_variant(
     sample_id: str,
     var_id: str,
@@ -252,11 +287,17 @@ def unmark_irrelevant_variant(
     _require_variant_for_sample(sample_id, var_id, user, service)
     service.repository.variant_handler.unmark_irrelevant_var(var_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="variant", resource_id=var_id, action="unmark_irrelevant")
+        service.mutation_payload(
+            sample_id, resource="variant", resource_id=var_id, action="unmark_irrelevant"
+        )
     )
 
 
-@router.patch("/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/irrelevant", response_model=SampleMutationPayload, summary="Mark small variant irrelevant")
+@router.patch(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/irrelevant",
+    response_model=SampleMutationPayload,
+    summary="Mark small variant irrelevant",
+)
 def mark_irrelevant_variant(
     sample_id: str,
     var_id: str,
@@ -277,11 +318,17 @@ def mark_irrelevant_variant(
     _require_variant_for_sample(sample_id, var_id, user, service)
     service.repository.variant_handler.mark_irrelevant_var(var_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="variant", resource_id=var_id, action="mark_irrelevant")
+        service.mutation_payload(
+            sample_id, resource="variant", resource_id=var_id, action="mark_irrelevant"
+        )
     )
 
 
-@router.post("/api/v1/samples/{sample_id}/small-variants/{var_id}/blacklist-entries", response_model=SampleMutationPayload, summary="Create blacklist entry from small variant")
+@router.post(
+    "/api/v1/samples/{sample_id}/small-variants/{var_id}/blacklist-entries",
+    response_model=SampleMutationPayload,
+    summary="Create blacklist entry from small variant",
+)
 def add_variant_to_blacklist(
     sample_id: str,
     var_id: str,
@@ -306,7 +353,9 @@ def add_variant_to_blacklist(
     assay_group = assay_config.get("asp_group", "unknown")
     service.repository.blacklist_handler.blacklist_variant(variant, assay_group)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="variant", resource_id=var_id, action="blacklist")
+        service.mutation_payload(
+            sample_id, resource="variant", resource_id=var_id, action="blacklist"
+        )
     )
 
 
@@ -339,7 +388,9 @@ def hide_variant_comment(
     _require_variant_for_sample(sample_id, var_id, user, service)
     service.repository.variant_handler.hide_var_comment(var_id, comment_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="variant_comment", resource_id=comment_id, action="hide")
+        service.mutation_payload(
+            sample_id, resource="variant_comment", resource_id=comment_id, action="hide"
+        )
     )
 
 
@@ -372,11 +423,17 @@ def unhide_variant_comment(
     _require_variant_for_sample(sample_id, var_id, user, service)
     service.repository.variant_handler.unhide_variant_comment(var_id, comment_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="variant_comment", resource_id=comment_id, action="unhide")
+        service.mutation_payload(
+            sample_id, resource="variant_comment", resource_id=comment_id, action="unhide"
+        )
     )
 
 
-@router.patch("/api/v1/samples/{sample_id}/small-variants/flags/false-positive", response_model=SampleMutationPayload, summary="Bulk false-positive small variant update")
+@router.patch(
+    "/api/v1/samples/{sample_id}/small-variants/flags/false-positive",
+    response_model=SampleMutationPayload,
+    summary="Bulk false-positive small variant update",
+)
 def set_variant_false_positive_bulk(
     sample_id: str,
     apply: bool = Query(default=True),
@@ -405,14 +462,22 @@ def set_variant_false_positive_bulk(
         resource_ids = payload_resource_ids
     elif isinstance(payload_variant_ids, list):
         resource_ids = payload_variant_ids
-    apply = service.coerce_bool(payload.get("apply") if isinstance(payload, dict) else None, default=apply)
+    apply = service.coerce_bool(
+        payload.get("apply") if isinstance(payload, dict) else None, default=apply
+    )
     service.set_variant_bulk_flag(resource_ids=resource_ids, apply=apply, flag="false_positive")
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="variant_bulk", resource_id="bulk", action="set_false_positive_bulk")
+        service.mutation_payload(
+            sample_id, resource="variant_bulk", resource_id="bulk", action="set_false_positive_bulk"
+        )
     )
 
 
-@router.patch("/api/v1/samples/{sample_id}/small-variants/flags/irrelevant", response_model=SampleMutationPayload, summary="Bulk irrelevant small variant update")
+@router.patch(
+    "/api/v1/samples/{sample_id}/small-variants/flags/irrelevant",
+    response_model=SampleMutationPayload,
+    summary="Bulk irrelevant small variant update",
+)
 def set_variant_irrelevant_bulk(
     sample_id: str,
     apply: bool = Query(default=True),
@@ -441,17 +506,29 @@ def set_variant_irrelevant_bulk(
         resource_ids = payload_resource_ids
     elif isinstance(payload_variant_ids, list):
         resource_ids = payload_variant_ids
-    apply = service.coerce_bool(payload.get("apply") if isinstance(payload, dict) else None, default=apply)
+    apply = service.coerce_bool(
+        payload.get("apply") if isinstance(payload, dict) else None, default=apply
+    )
     service.set_variant_bulk_flag(resource_ids=resource_ids, apply=apply, flag="irrelevant")
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="variant_bulk", resource_id="bulk", action="set_irrelevant_bulk")
+        service.mutation_payload(
+            sample_id, resource="variant_bulk", resource_id="bulk", action="set_irrelevant_bulk"
+        )
     )
 
-@router.post("/api/v1/samples/{sample_id}/annotations", response_model=SampleMutationPayload, status_code=201, summary="Create sample annotation")
+
+@router.post(
+    "/api/v1/samples/{sample_id}/annotations",
+    response_model=SampleMutationPayload,
+    status_code=201,
+    summary="Create sample annotation",
+)
 def add_variant_comment_mutation(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
-    user: ApiUser = Depends(require_access(permission="add_variant_comment", min_role="user", min_level=9)),
+    user: ApiUser = Depends(
+        require_access(permission="add_variant_comment", min_role="user", min_level=9)
+    ),
     service: ResourceAnnotationService = Depends(get_resource_annotation_service),
 ):
     """Handle add variant comment mutation.
@@ -475,5 +552,7 @@ def add_variant_comment_mutation(
         create_comment_doc_fn=create_comment_doc,
     )
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource=resource, resource_id=target_id, action="add_comment")
+        service.mutation_payload(
+            sample_id, resource=resource, resource_id=target_id, action="add_comment"
+        )
     )

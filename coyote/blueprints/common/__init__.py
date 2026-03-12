@@ -1,4 +1,3 @@
-
 """
 This module initializes the common blueprint for the Coyote3 Flask application.
 
@@ -9,9 +8,10 @@ This module initializes the common blueprint for the Coyote3 Flask application.
 Intended for use as part of the Coyote3 genomic data analysis framework.
 """
 
+import logging
+
 from flask import Blueprint
 from flask import current_app as app
-import logging
 
 # Blueprint configuration
 common_bp = Blueprint(

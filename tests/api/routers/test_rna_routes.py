@@ -6,19 +6,19 @@ import pytest
 from fastapi import HTTPException
 
 from api.main import app as api_app
-from api.routers import fusions as rna
 from api.repositories import rna_repository as rna_repo_module
-from api.services.rna_service import RnaService
+from api.routers import fusions as rna
 from api.services import rna_service as rna_service_module
+from api.services.rna_service import RnaService
 from tests.fixtures.api import mock_collections as fx
 
 
 class _Req:
-    """Provide  Req behavior.
-    """
+    """Provide  Req behavior."""
+
     class _URL:
-        """Provide  URL behavior.
-        """
+        """Provide  URL behavior."""
+
         path = "/api/v1/samples/S1/fusions"
 
     url = _URL()
@@ -63,25 +63,51 @@ def test_list_rna_fusions_success(monkeypatch):
         "merge_and_normalize_sample_filters",
         lambda s, a, sid, l: (merged_sample, merged_sample["filters"]),
     )
-    monkeypatch.setattr(rna_repo_module.store.schema_handler, "get_schema", lambda name: {"_id": name})
-    monkeypatch.setattr(rna_repo_module.store.asp_handler, "get_asp", lambda asp_name: {"_id": "asp1", "asp_group": "rna"})
+    monkeypatch.setattr(
+        rna_repo_module.store.schema_handler, "get_schema", lambda name: {"_id": name}
+    )
+    monkeypatch.setattr(
+        rna_repo_module.store.asp_handler,
+        "get_asp",
+        lambda asp_name: {"_id": "asp1", "asp_group": "rna"},
+    )
     monkeypatch.setattr(
         rna_repo_module.store.isgl_handler,
         "get_isgl_by_asp",
         lambda assay, is_active=True, list_type=None: [fx.isgl_doc()],
     )
-    monkeypatch.setattr(rna.util.common, "get_case_and_control_sample_ids", lambda s: {"case": "C1", "control": "C2"})
-    monkeypatch.setattr(rna_repo_module.store.sample_handler, "hidden_sample_comments", lambda oid: False)
+    monkeypatch.setattr(
+        rna.util.common,
+        "get_case_and_control_sample_ids",
+        lambda s: {"case": "C1", "control": "C2"},
+    )
+    monkeypatch.setattr(
+        rna_repo_module.store.sample_handler, "hidden_sample_comments", lambda oid: False
+    )
     monkeypatch.setattr(
         rna_service_module.RNAWorkflowService,
         "compute_filter_context",
         lambda sample, sample_filters, assay_panel_doc: filter_context,
     )
-    monkeypatch.setattr(rna_service_module.RNAWorkflowService, "build_fusion_list_query", lambda **kwargs: {"query": "ok"})
-    monkeypatch.setattr(rna_repo_module.store.fusion_handler, "get_sample_fusions", lambda query: fusions)
-    monkeypatch.setattr(rna_service_module, "add_global_annotations", lambda fusions, assay_group, subpanel: (fusions, fusions))
-    monkeypatch.setattr(rna_service_module.RNAWorkflowService, "attach_rna_analysis_sections", lambda s: s)
-    monkeypatch.setattr(rna_service_module, "generate_summary_text", lambda *args, **kwargs: "summary")
+    monkeypatch.setattr(
+        rna_service_module.RNAWorkflowService,
+        "build_fusion_list_query",
+        lambda **kwargs: {"query": "ok"},
+    )
+    monkeypatch.setattr(
+        rna_repo_module.store.fusion_handler, "get_sample_fusions", lambda query: fusions
+    )
+    monkeypatch.setattr(
+        rna_service_module,
+        "add_global_annotations",
+        lambda fusions, assay_group, subpanel: (fusions, fusions),
+    )
+    monkeypatch.setattr(
+        rna_service_module.RNAWorkflowService, "attach_rna_analysis_sections", lambda s: s
+    )
+    monkeypatch.setattr(
+        rna_service_module, "generate_summary_text", lambda *args, **kwargs: "summary"
+    )
     monkeypatch.setattr(rna.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = rna.list_rna_fusions(_Req(), "S1", user=fx.api_user(), service=service)
@@ -118,7 +144,9 @@ def test_restful_rna_mutation_routes_are_registered():
     """
     paths = {route.path for route in api_app.routes}
     assert "/api/v1/samples/{sample_id}/fusions/{fusion_id}/flags/false-positive" in paths
-    assert "/api/v1/samples/{sample_id}/fusions/{fusion_id}/selection/{callidx}/{num_calls}" in paths
+    assert (
+        "/api/v1/samples/{sample_id}/fusions/{fusion_id}/selection/{callidx}/{num_calls}" in paths
+    )
     assert "/api/v1/samples/{sample_id}/fusions/{fusion_id}/comments/{comment_id}/hidden" in paths
     assert "/api/v1/samples/{sample_id}/fusions/flags/false-positive" in paths
     assert "/api/v1/samples/{sample_id}/fusions/flags/irrelevant" in paths

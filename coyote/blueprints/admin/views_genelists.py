@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from flask import Response, abort, current_app as app, g, redirect, render_template, request, url_for
+from flask import Response, abort, g, redirect, render_template, request, url_for
+from flask import current_app as app
 from flask_login import current_user, login_required
 
 from coyote.blueprints.admin import admin_bp
@@ -132,7 +133,11 @@ def create_genelist() -> Response | str:
 
     if request.method == "POST":
         form_data: dict[str, list[str] | str] = {
-            key: (request.form.getlist(key) if len(request.form.getlist(key)) > 1 else request.form[key])
+            key: (
+                request.form.getlist(key)
+                if len(request.form.getlist(key)) > 1
+                else request.form[key]
+            )
             for key in request.form
         }
         genes = _extract_genes_from_request(form_data)
@@ -193,11 +198,17 @@ def edit_genelist(genelist_id: str) -> Response | str:
         )
 
     selected_version = request.args.get("version", type=int)
-    genelist, delta = _apply_selected_genelist_version(context.genelist, selected_version, genelist_id)
+    genelist, delta = _apply_selected_genelist_version(
+        context.genelist, selected_version, genelist_id
+    )
 
     if request.method == "POST":
         form_data = {
-            key: (request.form.getlist(key) if len(request.form.getlist(key)) > 1 else request.form[key])
+            key: (
+                request.form.getlist(key)
+                if len(request.form.getlist(key)) > 1
+                else request.form[key]
+            )
             for key in request.form
         }
         updated = util.admin.process_form_to_config(form_data, context.schema)
@@ -300,7 +311,9 @@ def toggle_genelist(genelist_id: str) -> Response:
             "genelist": genelist_id,
             "genelist_status": "Active" if new_status else "Inactive",
         }
-        flash_api_success(f"Genelist '{genelist_id}' is now {'active' if new_status else 'inactive'}.")
+        flash_api_success(
+            f"Genelist '{genelist_id}' is now {'active' if new_status else 'inactive'}."
+        )
     except ApiRequestError as exc:
         if exc.status_code == 404:
             return abort(404)

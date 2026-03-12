@@ -1,9 +1,9 @@
-
 """Coverage review routes for low-coverage inspection and blacklist actions."""
-
 
 from flask import (
     current_app as app,
+)
+from flask import (
     jsonify,
     redirect,
     render_template,
@@ -11,9 +11,14 @@ from flask import (
     url_for,
 )
 from flask_login import login_required
+
 from coyote.blueprints.coverage import cov_bp
 from coyote.services.api_client import endpoints as api_endpoints
-from coyote.services.api_client.api_client import ApiRequestError, forward_headers, get_web_api_client
+from coyote.services.api_client.api_client import (
+    ApiRequestError,
+    forward_headers,
+    get_web_api_client,
+)
 from coyote.services.api_client.web import flash_api_failure, raise_page_load_error
 
 
@@ -84,7 +89,9 @@ def show_blacklisted_regions(group):
             not_found_summary="The requested blacklist group was not found.",
         )
 
-    return render_template("show_blacklisted.html", blacklisted=payload.blacklisted, group=payload.group)
+    return render_template(
+        "show_blacklisted.html", blacklisted=payload.blacklisted, group=payload.group
+    )
 
 
 @cov_bp.route("/remove_blacklist/<string:obj_id>/<string:group>", methods=["GET"])
@@ -96,6 +103,8 @@ def remove_blacklist(obj_id, group):
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
-        app.logger.warning("Failed to remove blacklist entry %s for group %s: %s", obj_id, group, exc)
+        app.logger.warning(
+            "Failed to remove blacklist entry %s for group %s: %s", obj_id, group, exc
+        )
         flash_api_failure("Unable to remove the blacklist entry.", exc)
     return redirect(url_for("cov_bp.show_blacklisted_regions", group=group))

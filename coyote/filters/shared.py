@@ -1,4 +1,3 @@
-
 """Shared, pure helpers used by Jinja filter wrappers."""
 
 from datetime import datetime, tzinfo
@@ -7,7 +6,6 @@ import arrow
 import markdown
 from dateutil import tz
 from markupsafe import Markup, escape
-
 
 STOCKHOLM: tzinfo | None = tz.gettz("Europe/Stockholm")
 

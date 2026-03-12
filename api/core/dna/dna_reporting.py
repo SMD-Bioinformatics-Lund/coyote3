@@ -1,24 +1,24 @@
-
 """Shared DNA reporting/variant transformation helpers."""
 
-from datetime import datetime, timezone
-from copy import deepcopy
 import os
+from copy import deepcopy
+from datetime import datetime, timezone
 from pprint import pformat
 from typing import Any, Dict, List, Tuple
-from api.runtime import app
-from api.utils.common_utility import CommonUtility
-from api.utils.report.report_util import ReportUtility
-from api.core.reporting.report_paths import get_report_timestamp as shared_get_report_timestamp
-from api.core.dna.ports import DNAReportingRepository
+
+from api.core.dna.dna_filters import (
+    get_filter_conseq_terms as shared_get_filter_conseq_terms,
+)
 from api.core.dna.notation import one_letter_p, standard_hgvs
+from api.core.dna.ports import DNAReportingRepository
 from api.core.dna.query_builders import build_query
 from api.core.interpretation.annotation_enrichment import (
     add_global_annotations as shared_add_global_annotations,
 )
-from api.core.dna.dna_filters import (
-    get_filter_conseq_terms as shared_get_filter_conseq_terms,
-)
+from api.core.reporting.report_paths import get_report_timestamp as shared_get_report_timestamp
+from api.runtime import app
+from api.utils.common_utility import CommonUtility
+from api.utils.report.report_util import ReportUtility
 
 
 def hotspot_variant(variants: list) -> list[dict]:
@@ -99,7 +99,9 @@ def get_simple_variants_for_report(variants: list, assay_config: dict) -> list:
         elif var.get("INFO", {}).get("SVTYPE"):
             var_type = "sv"
             sv_type = var.get("INFO", {}).get("SVTYPE")
-            variant = cdna = f"{var.get('INFO', {}).get('SVLEN')}bp {translation.get(sv_type, sv_type)}"
+            variant = cdna = (
+                f"{var.get('INFO', {}).get('SVLEN')}bp {translation.get(sv_type, sv_type)}"
+            )
         else:
             variant = "?"
 
@@ -158,10 +160,14 @@ def get_simple_variants_for_report(variants: list, assay_config: dict) -> list:
                     break
 
         exon_raw = selected_csq.get("EXON") or ""
-        exons = [e for e in (exon_raw.split("/") if isinstance(exon_raw, str) else []) if e and e.strip()]
+        exons = [
+            e for e in (exon_raw.split("/") if isinstance(exon_raw, str) else []) if e and e.strip()
+        ]
         intron_raw = selected_csq.get("INTRON") or ""
         introns = [
-            i for i in (intron_raw.split("/") if isinstance(intron_raw, str) else []) if i and i.strip()
+            i
+            for i in (intron_raw.split("/") if isinstance(intron_raw, str) else [])
+            if i and i.strip()
         ]
 
         simple_variants.append(

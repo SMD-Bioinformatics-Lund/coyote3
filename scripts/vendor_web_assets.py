@@ -6,7 +6,6 @@ from __future__ import annotations
 from pathlib import Path
 from urllib.request import urlopen
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 STATIC_ROOT = REPO_ROOT / "coyote" / "static" / "vendor"
 

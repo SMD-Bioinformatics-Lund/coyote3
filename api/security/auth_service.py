@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from api.runtime import app
-
-from api.extensions import ldap_manager
 from api.domain.models.user import UserModel
+from api.extensions import ldap_manager
+from api.runtime import app
 from api.security.repository import get_security_repository
 
 
