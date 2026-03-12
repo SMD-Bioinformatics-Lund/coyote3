@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from api.contracts.auth import ApiAuthLoginRequest
+from api.contracts.auth import ApiAuthLoginRequest, ApiSessionDeleteResponse
 from api.contracts.system import AuthLoginEnvelope, AuthUserEnvelope, HealthPayload, WhoamiPayload
 from api.extensions import util
 from api.security.access import (
@@ -38,8 +38,7 @@ def whoami(user: ApiUser = Depends(require_access(min_level=1))):
     }
 
 
-@router.post("/api/v1/auth/login", response_model=AuthLoginEnvelope)
-def auth_login(payload: ApiAuthLoginRequest):
+def _login_response(payload: ApiAuthLoginRequest):
     username = payload.username.strip()
     password = payload.password
     user_doc = authenticate_credentials(username, password)
@@ -57,7 +56,6 @@ def auth_login(payload: ApiAuthLoginRequest):
             {
                 "status": "ok",
                 "user": build_user_session_payload(user_doc),
-                "session_token": session_token,
             }
         ),
     )
@@ -73,15 +71,26 @@ def auth_login(payload: ApiAuthLoginRequest):
     return response
 
 
-@router.post("/api/v1/auth/logout", response_model=HealthPayload)
-def auth_logout():
+@router.post("/api/v1/auth/sessions", response_model=AuthLoginEnvelope, status_code=201, summary="Create session")
+def create_auth_session(payload: ApiAuthLoginRequest):
+    response = _login_response(payload)
+    response.status_code = 201
+    return response
+
+
+def _logout_response():
     response = JSONResponse(status_code=200, content={"status": "ok"})
     response.delete_cookie(key=get_api_session_cookie_name(), path="/")
     return response
 
 
-@router.get("/api/v1/auth/me", response_model=AuthUserEnvelope)
-def auth_me(user: ApiUser = Depends(require_access(min_level=1))):
+@router.delete("/api/v1/auth/sessions/current", response_model=ApiSessionDeleteResponse, summary="Delete current session")
+def delete_auth_session():
+    return _logout_response()
+
+
+@router.get("/api/v1/auth/session", response_model=AuthUserEnvelope, summary="Get current authenticated session")
+def auth_session(user: ApiUser = Depends(require_access(min_level=1))):
     return util.common.convert_to_serializable({"status": "ok", "user": serialize_api_user(user)})
 
 

@@ -2,36 +2,15 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
-from copy import deepcopy
-
 from fastapi import APIRouter, Depends, Query
 
 from api.contracts.coverage import CoverageBlacklistedPayload, CoverageSamplePayload
-from api.core.coverage.coverage_processing import CoverageProcessingService
-from api.core.coverage.route_ports import CoverageRouteRepository
-from api.extensions import store, util
-from api.http import api_error as _api_error
-from api.repositories.coverage_repository import CoverageRepository as MongoCoverageRepository
-from api.repositories.coverage_repository import CoverageRouteRepository as MongoCoverageRouteRepository
+from api.deps.services import get_coverage_service
+from api.extensions import util
+from api.services.coverage_service import CoverageService
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 
 router = APIRouter(tags=["coverage"])
-
-_coverage_repo_instance: CoverageRouteRepository | None = None
-
-
-def _coverage_repo() -> CoverageRouteRepository:
-    global _coverage_repo_instance
-    if _coverage_repo_instance is None:
-        _coverage_repo_instance = MongoCoverageRouteRepository()
-    return _coverage_repo_instance
-
-
-def _coverage_processing_service() -> type[CoverageProcessingService]:
-    if not CoverageProcessingService.has_repository():
-        CoverageProcessingService.set_repository(MongoCoverageRepository())
-    return CoverageProcessingService
 
 
 @router.get("/api/v1/coverage/samples/{sample_id}", response_model=CoverageSamplePayload)
@@ -39,51 +18,15 @@ def coverage_sample_read(
     sample_id: str,
     cov_cutoff: int = Query(default=500, ge=1),
     user: ApiUser = Depends(require_access(min_level=1)),
+    service: CoverageService = Depends(get_coverage_service),
 ):
-    _coverage_processing_service()
     sample = _get_sample_for_api(sample_id, user)
-    sample_assay = sample.get("assay", "unknown")
-    sample_profile = sample.get("profile", "production")
-    assay_config = _coverage_repo().get_aspc_no_meta(sample_assay, sample_profile)
-    if not assay_config:
-        raise _api_error(404, "Assay config not found")
-
-    assay_group = assay_config.get("assay_group", "unknown")
-    assay_panel_doc = _coverage_repo().get_asp(asp_name=sample_assay)
-    sample_filters = sample.get("filters", {})
-    checked_genelists = sample_filters.get("genelists", [])
-
-    if checked_genelists:
-        checked_genelists_genes_dict = _coverage_repo().get_isgl_by_ids(checked_genelists)
-        _genes_covered_in_panel, filter_genes = util.common.get_sample_effective_genes(
-            sample,
-            assay_panel_doc,
-            checked_genelists_genes_dict,
-        )
-    else:
-        checked_genelists = [assay_panel_doc.get("_id")]
-        filter_genes = assay_panel_doc.get("covered_genes", [])
-
-    cov_dict = _coverage_repo().get_sample_coverage(str(sample["_id"])) or {}
-    cov_dict = deepcopy(cov_dict)
-    cov_dict.pop("_id", None)
-    sample_payload = deepcopy(sample)
-    sample_payload.pop("_id", None)
-
-    filtered_dict = CoverageProcessingService.filter_genes_from_form(cov_dict, filter_genes, assay_group)
-    filtered_dict = CoverageProcessingService.find_low_covered_genes(filtered_dict, cov_cutoff, assay_group)
-    cov_table = CoverageProcessingService.coverage_table(filtered_dict, cov_cutoff)
-    filtered_dict = CoverageProcessingService.organize_data_for_d3(filtered_dict)
-
     return util.common.convert_to_serializable(
-        {
-            "coverage": filtered_dict,
-            "cov_cutoff": cov_cutoff,
-            "sample": sample_payload,
-            "genelists": checked_genelists,
-            "smp_grp": assay_group,
-            "cov_table": cov_table,
-        }
+        service.sample_payload(
+            sample=sample,
+            cov_cutoff=cov_cutoff,
+            effective_genes_resolver=util.common.get_sample_effective_genes,
+        )
     )
 
 
@@ -91,18 +34,6 @@ def coverage_sample_read(
 def coverage_blacklisted_read(
     group: str,
     user: ApiUser = Depends(require_access(min_level=1)),
+    service: CoverageService = Depends(get_coverage_service),
 ):
-    if group not in set(user.assay_groups or []):
-        raise _api_error(403, "Access denied: You do not belong to the target assay.")
-
-    grouped_by_gene = defaultdict(dict)
-    blacklisted = _coverage_repo().get_regions_per_group(group)
-    for entry in blacklisted:
-        if entry["region"] == "gene":
-            grouped_by_gene[entry["gene"]]["gene"] = entry["_id"]
-        elif entry["region"] == "CDS":
-            grouped_by_gene[entry["gene"]]["CDS"] = entry
-        elif entry["region"] == "probe":
-            grouped_by_gene[entry["gene"]]["probe"] = entry
-
-    return util.common.convert_to_serializable({"blacklisted": grouped_by_gene, "group": group})
+    return util.common.convert_to_serializable(service.blacklisted_payload(group=group, user=user))

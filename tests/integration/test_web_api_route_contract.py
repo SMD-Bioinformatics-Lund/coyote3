@@ -87,10 +87,10 @@ def test_web_api_endpoint_builders_match_existing_api_routes():
 def test_report_action_endpoints_exist():
     templates = _api_route_templates()
     explicit_paths = {
-        api_endpoints.dna_sample("S1", "report", "preview"),
-        api_endpoints.dna_sample("S1", "report", "save"),
-        api_endpoints.rna_sample("S1", "report", "preview"),
-        api_endpoints.rna_sample("S1", "report", "save"),
+        api_endpoints.dna_sample("S1", "reports", "preview"),
+        api_endpoints.dna_sample("S1", "reports"),
+        api_endpoints.rna_sample("S1", "reports", "preview"),
+        api_endpoints.rna_sample("S1", "reports"),
     }
     missing = [
         path for path in sorted(explicit_paths) if not any(_matches_template(path, t) for t in templates)

@@ -22,6 +22,7 @@ from coyote.extensions import login_manager
 from coyote.services.api_client import endpoints as api_endpoints
 from coyote.services.api_client.api_client import (
     ApiRequestError,
+    CoyoteApiClient,
     forward_headers,
     get_web_api_client,
 )
@@ -57,6 +58,13 @@ def _clear_api_cookie(response: Response) -> None:
     response.delete_cookie(key=_api_cookie_name(), path="/")
 
 
+def _extract_session_token(client: CoyoteApiClient) -> str:
+    token = client.last_response_cookie(_api_cookie_name())
+    if token:
+        return str(token)
+    raise ApiRequestError("Authentication backend did not issue a session cookie.")
+
+
 @login_bp.route("/login", methods=["GET", "POST"])
 @login_bp.route("/", methods=["GET", "POST"])
 def login() -> str | Response:
@@ -70,11 +78,13 @@ def login() -> str | Response:
         password = form.password.data.strip()
 
         try:
-            auth_payload = get_web_api_client().post_json(
-                api_endpoints.auth("login"),
+            api_client = get_web_api_client()
+            auth_payload = api_client.post_json(
+                api_endpoints.auth("sessions"),
                 headers=forward_headers(),
                 json_body={"username": email, "password": password},
             )
+            session_token = _extract_session_token(api_client)
         except ApiRequestError as exc:
             if exc.status_code == 401:
                 flash("Invalid credentials", "red")
@@ -89,7 +99,7 @@ def login() -> str | Response:
         session[_SESSION_USER_PAYLOAD_KEY] = user.to_dict()
 
         response = redirect(url_for("dashboard_bp.dashboard"))
-        _set_api_cookie(response, auth_payload.session_token)
+        _set_api_cookie(response, session_token)
         app.logger.info("User logged in via API: %s (access_level: %s)", email, user.access_level)
         return response
 
@@ -101,8 +111,8 @@ def login() -> str | Response:
 def logout() -> Response:
     """Log out the current user and clear API + Flask sessions."""
     try:
-        get_web_api_client().post_json(
-            api_endpoints.auth("logout"),
+        get_web_api_client().delete_json(
+            api_endpoints.auth("sessions", "current"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -117,7 +127,7 @@ def logout() -> Response:
 
 @login_manager.user_loader
 def load_user(user_id: str) -> User | None:
-    """Load user session context from API `/auth/me` only."""
+    """Load user session context from the canonical API session endpoint."""
     try:
         if not has_request_context():
             return None
@@ -136,7 +146,7 @@ def load_user(user_id: str) -> User | None:
                 return User(cached_user)
 
         payload = get_web_api_client().get_json(
-            api_endpoints.auth("me"),
+            api_endpoints.auth("session"),
             headers=forward_headers(),
         )
         user_payload = payload.user or {}

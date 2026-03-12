@@ -61,9 +61,15 @@ def _to_builtin(value: Any) -> Any:
 
 
 class BaseApiClient:
-    def __init__(self, base_url: str, timeout_seconds: float = 30.0) -> None:
+    def __init__(self, base_url: str, timeout_seconds: float = 30.0, client: httpx.Client | None = None) -> None:
         self._base_url = str(base_url).rstrip("/")
         self._timeout_seconds = timeout_seconds
+        self._client = client or httpx.Client(
+            timeout=self._timeout_seconds,
+            headers={"Accept": "application/json"},
+        )
+        self._last_response_headers: dict[str, str] = {}
+        self._last_response_cookies: dict[str, str] = {}
 
     def _request(
         self,
@@ -75,16 +81,23 @@ class BaseApiClient:
     ) -> dict[str, Any]:
         url = f"{self._base_url}{path}"
         try:
-            with httpx.Client(timeout=self._timeout_seconds) as client:
-                response = client.request(
-                    method=method,
-                    url=url,
-                    headers=headers or {},
-                    params=params or None,
-                    json=json_body,
-                )
+            response = self._client.request(
+                method=method,
+                url=url,
+                headers=headers or {},
+                params=params or None,
+                json=json_body,
+            )
         except httpx.RequestError as exc:
             raise ApiRequestError(message=f"API request failed: {exc}") from exc
+
+        response_headers = getattr(response, "headers", {}) or {}
+        response_cookies = getattr(response, "cookies", {}) or {}
+        self._last_response_headers = dict(response_headers)
+        if hasattr(response_cookies, "items"):
+            self._last_response_cookies = {name: value for name, value in response_cookies.items()}
+        else:
+            self._last_response_cookies = {}
 
         try:
             payload = response.json()
@@ -136,6 +149,39 @@ class BaseApiClient:
             self._request("POST", path, headers=headers, params=params, json_body=json_body)
         )
 
+    def _put(
+        self,
+        path: str,
+        headers: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,
+        json_body: dict[str, Any] | None = None,
+    ) -> ApiPayload:
+        return _as_api_payload(
+            self._request("PUT", path, headers=headers, params=params, json_body=json_body)
+        )
+
+    def _patch(
+        self,
+        path: str,
+        headers: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,
+        json_body: dict[str, Any] | None = None,
+    ) -> ApiPayload:
+        return _as_api_payload(
+            self._request("PATCH", path, headers=headers, params=params, json_body=json_body)
+        )
+
+    def _delete(
+        self,
+        path: str,
+        headers: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,
+        json_body: dict[str, Any] | None = None,
+    ) -> ApiPayload:
+        return _as_api_payload(
+            self._request("DELETE", path, headers=headers, params=params, json_body=json_body)
+        )
+
     def get_json(
         self,
         path: str,
@@ -152,3 +198,39 @@ class BaseApiClient:
         json_body: dict[str, Any] | None = None,
     ) -> ApiPayload:
         return self._post(path, headers=headers, params=params, json_body=json_body)
+
+    def put_json(
+        self,
+        path: str,
+        headers: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,
+        json_body: dict[str, Any] | None = None,
+    ) -> ApiPayload:
+        return self._put(path, headers=headers, params=params, json_body=json_body)
+
+    def patch_json(
+        self,
+        path: str,
+        headers: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,
+        json_body: dict[str, Any] | None = None,
+    ) -> ApiPayload:
+        return self._patch(path, headers=headers, params=params, json_body=json_body)
+
+    def delete_json(
+        self,
+        path: str,
+        headers: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,
+        json_body: dict[str, Any] | None = None,
+    ) -> ApiPayload:
+        return self._delete(path, headers=headers, params=params, json_body=json_body)
+
+    def close(self) -> None:
+        self._client.close()
+
+    def last_response_cookie(self, name: str) -> str | None:
+        return self._last_response_cookies.get(name)
+
+    def last_response_header(self, name: str) -> str | None:
+        return self._last_response_headers.get(name)

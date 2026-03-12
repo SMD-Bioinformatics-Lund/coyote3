@@ -59,15 +59,15 @@ Coyote3 API includes the following route families:
 ### 4.1 Session-based authenticated access
 All `/api/v1/*` endpoints are authenticated by default. Authentication is centrally enforced before route handler execution, with explicit route exceptions for:
 - `/api/v1/health`
-- `/api/v1/auth/login`
-- `/api/v1/auth/logout`
+- `/api/v1/auth/sessions`
+- `/api/v1/auth/sessions/current`
 - `/api/v1/public/*`
 - `/api/v1/internal/*` (protected by internal token model)
 - API docs/openapi endpoints
 - `/api/v1/common/gene/{gene_id}/info` (public metadata read)
 
 The common flow is:
-1. client submits credentials to login endpoint
+1. client submits credentials to session creation endpoint
 2. API validates credentials
 3. API returns session payload and sets an HttpOnly API session cookie
 4. Flask UI forwards session context on server-side API calls as:
@@ -97,7 +97,7 @@ OpenAPI now declares both supported auth transports for protected operations:
 Public operations do not include security requirements in OpenAPI.
 
 ### 4.6 Report preview and save contract boundary
-Report preview and save flows are API-driven. The UI requests preview payloads from `/api/v1/.../report/preview`, renders the provided template/context, and submits rendered HTML to `/api/v1/.../report/save`. Report identifier generation, snapshot-row normalization, file-path resolution, and persistence validation are backend responsibilities in `api/routers/reports.py` + `api/core/reporting/*`.
+Report preview and save flows are API-driven. The canonical routes are `/api/v1/.../reports/preview` and `/api/v1/.../reports`. Report identifier generation, snapshot-row normalization, file-path resolution, and persistence validation are backend responsibilities in `api/routers/reports.py` + `api/core/reporting/*`.
 
 ### 4.7 Security behavior expectations
 - authentication failure: `401`
@@ -162,7 +162,7 @@ Preferred success structure:
 }
 ```
 
-Some route families include additional top-level keys for historical compatibility. New endpoint designs should prefer explicit `data` envelopes unless route-family conventions require otherwise.
+Some route families include additional top-level keys for historical compatibility. Canonical REST routes should prefer explicit, contract-defined envelopes and only keep legacy top-level keys for backward compatibility.
 
 ### 6.2 Error response envelope
 Preferred error structure:
@@ -442,8 +442,8 @@ Not applicable for `GET`.
 - `404` sample not found
 
 ## 13.2 Update Sample Filters
-- Endpoint: `/api/v1/samples/{sample_id}/filters/update`
-- Method: `POST`
+- Endpoint: `/api/v1/samples/{sample_id}/filters`
+- Method: `PUT`
 - Purpose: Update filter state for sample-specific workflows.
 
 ### Security notes
@@ -583,7 +583,7 @@ Not applicable.
 - `404` sample not found
 
 ## 14.2 Classify Variant
-- Endpoint: `/api/v1/dna/samples/{sample_id}/variants/classify`
+- Endpoint: `/api/v1/dna/samples/{sample_id}/variant-classifications`
 - Method: `POST`
 - Purpose: Apply classification/tier mutation for one or more variants.
 
@@ -701,8 +701,8 @@ Not applicable.
 - `404` catalog not configured
 
 ## 15.2 Admin Assay Config Update
-- Endpoint: `/api/v1/admin/aspc/{assay_id}/update`
-- Method: `POST`
+- Endpoint: `/api/v1/admin/aspc/{assay_id}`
+- Method: `PUT`
 - Purpose: Update assay configuration document.
 
 ### Security notes
@@ -766,14 +766,14 @@ None.
 
 ## 16. User Endpoint Documentation Examples
 ## 16.1 Login
-- Endpoint: `/api/v1/auth/login`
+- Endpoint: `/api/v1/auth/sessions`
 - Method: `POST`
 - Purpose: Authenticate user and initialize API session context.
 
 ### Security notes
 - Anonymous allowed only for login endpoint.
 - Credentials must be transmitted over secure channel.
-- Session token/cookie issued on success.
+- Session cookie issued on success.
 
 ### Path parameters
 None.
@@ -796,8 +796,7 @@ None.
   "user": {
     "username": "analyst1",
     "role": "analyst"
-  },
-  "session_token": "token_value"
+  }
 }
 ```
 
@@ -818,7 +817,7 @@ None.
 ```
 
 ### Status codes
-- `200` authenticated
+- `201` authenticated
 - `401` invalid credentials
 - `400` malformed payload
 
@@ -922,7 +921,7 @@ Not applicable.
 - `403` forbidden
 
 ## 17.2 Create Permission
-- Endpoint: `/api/v1/admin/permissions/create`
+- Endpoint: `/api/v1/admin/permissions`
 - Method: `POST`
 - Purpose: Create a new permission policy entry.
 

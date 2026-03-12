@@ -37,8 +37,8 @@ def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
 @login_required
 def mark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "translocations", transloc_id, "interestingtransloc"),
+        get_web_api_client().patch_json(
+            api_endpoints.dna_sample(sample_id, "translocations", transloc_id, "flags", "interesting"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -50,8 +50,8 @@ def mark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
 @login_required
 def unmark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "translocations", transloc_id, "uninterestingtransloc"),
+        get_web_api_client().delete_json(
+            api_endpoints.dna_sample(sample_id, "translocations", transloc_id, "flags", "interesting"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -65,8 +65,8 @@ def unmark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
 @login_required
 def mark_false_transloc(sample_id: str, transloc_id: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "translocations", transloc_id, "fptransloc"),
+        get_web_api_client().patch_json(
+            api_endpoints.dna_sample(sample_id, "translocations", transloc_id, "flags", "false-positive"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -80,8 +80,8 @@ def mark_false_transloc(sample_id: str, transloc_id: str) -> Response:
 @login_required
 def unmark_false_transloc(sample_id: str, transloc_id: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "translocations", transloc_id, "ptransloc"),
+        get_web_api_client().delete_json(
+            api_endpoints.dna_sample(sample_id, "translocations", transloc_id, "flags", "false-positive"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -96,9 +96,9 @@ def unmark_false_transloc(sample_id: str, transloc_id: str) -> Response:
 def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
-        get_web_api_client().post_json(
+        get_web_api_client().patch_json(
             api_endpoints.dna_sample(
-                sample_id, "translocations", transloc_id, "comments", comment_id, "hide"
+                sample_id, "translocations", transloc_id, "comments", comment_id, "hidden"
             ),
             headers=forward_headers(),
         )
@@ -112,9 +112,9 @@ def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
 def unhide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
-        get_web_api_client().post_json(
+        get_web_api_client().delete_json(
             api_endpoints.dna_sample(
-                sample_id, "translocations", transloc_id, "comments", comment_id, "unhide"
+                sample_id, "translocations", transloc_id, "comments", comment_id, "hidden"
             ),
             headers=forward_headers(),
         )

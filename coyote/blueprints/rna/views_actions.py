@@ -11,8 +11,8 @@ from coyote.services.api_client.api_client import ApiRequestError, forward_heade
 @rna_bp.route("/<string:sample_id>/fusion/fp/<string:fus_id>", methods=["POST"])
 def mark_false_fusion(sample_id: str, fus_id: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.rna_sample(sample_id, "fusions", fus_id, "fp"),
+        get_web_api_client().patch_json(
+            api_endpoints.rna_sample(sample_id, "fusions", fus_id, "flags", "false-positive"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -23,8 +23,8 @@ def mark_false_fusion(sample_id: str, fus_id: str) -> Response:
 @rna_bp.route("/<string:sample_id>/fusion/unfp/<string:fus_id>", methods=["POST"])
 def unmark_false_fusion(sample_id: str, fus_id: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.rna_sample(sample_id, "fusions", fus_id, "unfp"),
+        get_web_api_client().delete_json(
+            api_endpoints.rna_sample(sample_id, "fusions", fus_id, "flags", "false-positive"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -40,8 +40,8 @@ def unmark_false_fusion(sample_id: str, fus_id: str) -> Response:
 )
 def pick_fusioncall(sample_id: str, fus_id: str, callidx: str, num_calls: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.rna_sample(sample_id, "fusions", fus_id, "pick", callidx, num_calls),
+        get_web_api_client().patch_json(
+            api_endpoints.rna_sample(sample_id, "fusions", fus_id, "selection", callidx, num_calls),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -53,8 +53,8 @@ def pick_fusioncall(sample_id: str, fus_id: str, callidx: str, num_calls: str) -
 def hide_fusion_comment(sample_id: str, fus_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
-        get_web_api_client().post_json(
-            api_endpoints.rna_sample(sample_id, "fusions", fus_id, "comments", comment_id, "hide"),
+        get_web_api_client().patch_json(
+            api_endpoints.rna_sample(sample_id, "fusions", fus_id, "comments", comment_id, "hidden"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -66,8 +66,8 @@ def hide_fusion_comment(sample_id: str, fus_id: str) -> Response:
 def unhide_fusion_comment(sample_id: str, fus_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
-        get_web_api_client().post_json(
-            api_endpoints.rna_sample(sample_id, "fusions", fus_id, "comments", comment_id, "unhide"),
+        get_web_api_client().delete_json(
+            api_endpoints.rna_sample(sample_id, "fusions", fus_id, "comments", comment_id, "hidden"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -92,8 +92,8 @@ def classify_multi_variant(sample_id: str) -> Response:
     elif false_positive:
         if action == "apply":
             try:
-                get_web_api_client().post_json(
-                    api_endpoints.rna_sample(sample_id, "fusions", "bulk", "fp"),
+                get_web_api_client().patch_json(
+                    api_endpoints.rna_sample(sample_id, "fusions", "flags", "false-positive"),
                     headers=forward_headers(),
                     params={"apply": "true", "fusion_ids": variants_to_modify},
                 )
@@ -105,8 +105,8 @@ def classify_multi_variant(sample_id: str) -> Response:
                 )
         elif action == "remove":
             try:
-                get_web_api_client().post_json(
-                    api_endpoints.rna_sample(sample_id, "fusions", "bulk", "fp"),
+                get_web_api_client().patch_json(
+                    api_endpoints.rna_sample(sample_id, "fusions", "flags", "false-positive"),
                     headers=forward_headers(),
                     params={"apply": "false", "fusion_ids": variants_to_modify},
                 )
@@ -119,8 +119,8 @@ def classify_multi_variant(sample_id: str) -> Response:
     elif irrelevant:
         if action == "apply":
             try:
-                get_web_api_client().post_json(
-                    api_endpoints.rna_sample(sample_id, "fusions", "bulk", "irrelevant"),
+                get_web_api_client().patch_json(
+                    api_endpoints.rna_sample(sample_id, "fusions", "flags", "irrelevant"),
                     headers=forward_headers(),
                     params={"apply": "true", "fusion_ids": variants_to_modify},
                 )
@@ -132,8 +132,8 @@ def classify_multi_variant(sample_id: str) -> Response:
                 )
         elif action == "remove":
             try:
-                get_web_api_client().post_json(
-                    api_endpoints.rna_sample(sample_id, "fusions", "bulk", "irrelevant"),
+                get_web_api_client().patch_json(
+                    api_endpoints.rna_sample(sample_id, "fusions", "flags", "irrelevant"),
                     headers=forward_headers(),
                     params={"apply": "false", "fusion_ids": variants_to_modify},
                 )

@@ -15,7 +15,7 @@ This matrix links system concerns to implementation areas, controls, and verific
 | DNA workflow integrity | `api/routers/variants.py`, `api/core/workflows/dna_workflow.py` | core-layer invariants and normalized filters | DNA route/workflow tests |
 | RNA workflow integrity | `api/routers/rna.py`, `api/core/workflows/rna_workflow.py` | core-layer filter normalization and context generation | RNA route/workflow tests |
 | Report preview/save boundary | `api/routers/reports.py`, `api/core/reporting/*`, `coyote/services/api_client/reports.py` | API provides template context + save validation; Flask renders and submits save via API client | report route tests, web API integration helper tests |
-| UI->API auth transport | `coyote/services/api_client/api_client.py`, `api/security/access.py` | Flask forwards `Authorization: Bearer <api_session_token>` | web integration helper tests, auth route tests |
+| UI->API auth transport | `coyote/services/api_client/api_client.py`, `api/security/access.py` | Flask relays the API session cookie to the browser and forwards `Authorization: Bearer <api_session_token>` server-side | web integration helper tests, auth route tests |
 | Schema-driven config correctness | `api/infra/db/schemas.py`, admin schema views, admin utility modules | schema validation + version metadata | schema tests, admin flow tests |
 | Version rewind capability | admin utility version helpers | delta generation/apply behavior | unit tests for version delta and rewind |
 | Error contract consistency | `api/errors/*`, route error helpers | structured API errors and HTTP status codes | route error tests |

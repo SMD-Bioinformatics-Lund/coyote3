@@ -105,8 +105,8 @@ def edit_genelist(genelist_id: str) -> Response | str:
             is_new=False,
         )
         try:
-            get_web_api_client().post_json(
-                api_endpoints.admin("genelists", genelist_id, "update"),
+            get_web_api_client().put_json(
+                api_endpoints.admin("genelists", genelist_id),
                 headers=forward_headers(),
                 json_body={"config": updated},
             )

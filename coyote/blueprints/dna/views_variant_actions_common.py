@@ -68,7 +68,7 @@ def bulk_toggle(
     call_api(
         sample_id,
         f"Failed to bulk {verb} variants {operation_label} via API",
-        lambda: get_web_api_client().post_json(
+        lambda: get_web_api_client().patch_json(
             endpoint,
             headers=headers(),
             json_body={"apply": apply, "variant_ids": variant_ids},

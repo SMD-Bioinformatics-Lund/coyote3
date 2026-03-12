@@ -11,10 +11,10 @@ It also provides measured login/user distribution stats from the active dev snap
 ## 2. Authentication flows
 ## 2.1 UI login flow
 1. Browser submits login form to Flask (`/login`).
-2. Flask calls API `POST /api/v1/auth/login`.
+2. Flask calls API `POST /api/v1/auth/sessions`.
 3. API validates credentials.
-4. API returns session token and sets API session cookie.
-5. Flask stores lightweight user session payload and forwards API session token on server-side API calls.
+4. API returns session payload and sets API session cookie.
+5. Flask stores lightweight user session payload, relays the API session cookie to the browser, and forwards the API session token on server-side API calls.
 
 ## 2.2 API session handling
 - API session cookie: `coyote3_api_session` (default)

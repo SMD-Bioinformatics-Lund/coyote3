@@ -52,6 +52,8 @@ coyote3/
 - `api/core/` and `api/services/`: backend workflows and business logic
 - `api/repositories/`: repository-facing adapters and access seams
 - `api/db/mongo/`: Mongo runtime bootstrap and shared DB setup
+- `api/middleware.py`: request middleware assembly
+- `api/openapi.py`: OpenAPI customization
 - `api/infra/db/`: collection-specific Mongo handlers
 - `api/security/`: auth and authorization
 - `api/audit/`: audit emission
@@ -59,7 +61,7 @@ coyote3/
 ### UI
 
 - `coyote/blueprints/`: Flask routes and view orchestration
-- `coyote/services/api_client/`: all UI-to-API communication
+- `coyote/services/api_client/`: all UI-to-API communication, including session-cookie relay and request-scoped client lifecycle
 - `coyote/templates/`: HTML rendering
 - `coyote/static/`: client assets
 
@@ -145,8 +147,26 @@ These rules keep the codebase maintainable:
 3. Put backend logic behind API boundaries, not in Flask.
 4. Put raw Mongo logic only in repository and Mongo handler layers.
 5. Use explicit contracts for API request and response shapes.
-6. Extend existing domain packages before creating new generic utility modules.
-7. Update tests and docs in the same change set as code.
+6. Prefer explicit service dependencies over router-level singletons.
+7. Extend existing domain packages before creating new generic utility modules.
+8. Update tests and docs in the same change set as code.
+9. Prefer canonical REST endpoints and keep compatibility aliases explicitly deprecated.
+10. Treat the API session cookie as authoritative for login flows; do not introduce new UI code that depends on bearer tokens in JSON auth payloads.
+
+## Standard Backend Extension Pattern
+
+For new or refactored API behavior, use this sequence:
+
+1. Router validates input and enforces `require_access(...)`.
+2. Router receives a service via `Depends(get_<domain>_service)`.
+3. Service owns orchestration, normalization, and workflow branching.
+4. Repository owns persistence-facing operations and handler composition.
+5. Mongo handlers own raw collection queries.
+6. New routes should use resource nouns and HTTP semantics before introducing any alias.
+
+Practical rule: if a router needs to branch on domain state, normalize payloads, or coordinate multiple persistence calls, move that logic into a service.
+
+Practical rule: if a service starts building Mongo query documents directly, move that work into the repository or handler layer.
 
 ## How To Change Existing Behavior Safely
 
@@ -167,21 +187,52 @@ These rules keep the codebase maintainable:
 4. Update `tests/ui/`.
 5. If the UI needs new data, add the API contract first.
 
+Auth/client rule:
+
+- the API issues the session cookie
+- the Flask login flow relays that cookie to the browser
+- Flask server-side calls forward `Authorization: Bearer <api_session_token>`
+- request-scoped API clients are closed automatically at Flask teardown
+
+## Testing The Modern Router Pattern
+
+When testing a route family:
+
+1. Unit-test the service with a fake repository.
+2. Route-test the HTTP layer with FastAPI dependency overrides.
+3. Keep direct route-function tests focused on serialization and permission seams.
+4. Avoid reintroducing private module singleton patching when a dependency factory exists.
+
+Use route tests for:
+
+- auth and permission checks
+- payload shape
+- error mapping
+- dependency wiring
+
+Use service tests for:
+
+- branching logic
+- normalization
+- default handling
+- multi-repository orchestration
+
 ## How To Add A New API Resource
 
 Use this sequence:
 
 1. Add contracts in `api/contracts/<domain>.py`.
 2. Add the router in `api/routers/<domain>.py`.
-3. Register the router in the central router registry if needed.
-4. Implement workflow logic in `api/core/<domain>/` or `api/services/`.
-5. Add repository support in `api/repositories/<domain>_repository.py`.
-6. Add or extend Mongo handlers in `api/infra/db/`.
-7. Add tests:
+3. Add or extend dependency factories in `api/deps/` when the route needs a service or repository seam.
+4. Register the router in the central router registry if needed.
+5. Implement workflow logic in `api/core/<domain>/` or `api/services/`.
+6. Add repository support in `api/repositories/<domain>_repository.py`.
+7. Add or extend Mongo handlers in `api/infra/db/`.
+8. Add tests:
    - `tests/api/routers/test_<domain>_routes.py`
    - relevant `tests/unit/`
    - relevant `tests/integration/`
-8. Update API docs.
+9. Update API docs.
 
 ## How To Add A New UI Integration
 

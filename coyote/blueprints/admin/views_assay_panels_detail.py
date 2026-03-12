@@ -112,8 +112,8 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
         )
 
         try:
-            get_web_api_client().post_json(
-                api_endpoints.admin("asp", assay_panel_id, "update"),
+            get_web_api_client().put_json(
+                api_endpoints.admin("asp", assay_panel_id),
                 headers=forward_headers(),
                 json_body={"config": updated},
             )

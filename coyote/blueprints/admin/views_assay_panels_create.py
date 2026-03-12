@@ -72,7 +72,7 @@ def create_assay_panel():
 
         try:
             get_web_api_client().post_json(
-                api_endpoints.admin("asp", "create"),
+                api_endpoints.admin("asp"),
                 headers=forward_headers(),
                 json_body={"config": config},
             )

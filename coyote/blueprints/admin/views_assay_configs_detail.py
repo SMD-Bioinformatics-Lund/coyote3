@@ -95,8 +95,8 @@ def edit_assay_config(assay_id: str) -> Response | str:
         )
 
         try:
-            get_web_api_client().post_json(
-                api_endpoints.admin("aspc", assay_id, "update"),
+            get_web_api_client().put_json(
+                api_endpoints.admin("aspc", assay_id),
                 headers=forward_headers(),
                 json_body={"config": updated_config},
             )

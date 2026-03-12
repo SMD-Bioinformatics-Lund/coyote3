@@ -4,7 +4,23 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class SampleCommentCreateRequest(BaseModel):
+    form_data: dict[str, Any] = Field(default_factory=dict)
+
+
+class SampleFiltersUpdateRequest(BaseModel):
+    filters: dict[str, Any]
+
+
+class CoverageBlacklistUpdateRequest(BaseModel):
+    gene: str
+    smp_grp: str
+    region: str
+    coord: str | None = None
+    status: str | None = None
 
 
 class SampleMutationPayload(BaseModel):

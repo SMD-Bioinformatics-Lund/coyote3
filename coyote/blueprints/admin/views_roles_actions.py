@@ -16,8 +16,8 @@ from coyote.services.api_client.api_client import (
 @login_required
 def toggle_role_active(role_id: str) -> Response:
     try:
-        payload = get_web_api_client().post_json(
-            api_endpoints.admin("roles", role_id, "toggle"),
+        payload = get_web_api_client().patch_json(
+            api_endpoints.admin("roles", role_id, "status"),
             headers=forward_headers(),
         )
         new_status = bool(payload.meta.get("is_active", True))
@@ -40,8 +40,8 @@ def toggle_role_active(role_id: str) -> Response:
 @login_required
 def delete_role(role_id: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.admin("roles", role_id, "delete"),
+        get_web_api_client().delete_json(
+            api_endpoints.admin("roles", role_id),
             headers=forward_headers(),
         )
         g.audit_metadata = {"role": role_id}

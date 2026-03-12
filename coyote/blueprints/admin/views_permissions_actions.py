@@ -16,8 +16,8 @@ from coyote.services.api_client.api_client import (
 @login_required
 def toggle_permission_active(perm_id: str) -> Response:
     try:
-        payload = get_web_api_client().post_json(
-            api_endpoints.admin("permissions", perm_id, "toggle"),
+        payload = get_web_api_client().patch_json(
+            api_endpoints.admin("permissions", perm_id, "status"),
             headers=forward_headers(),
         )
         new_status = bool(payload.meta.get("is_active", True))
@@ -40,8 +40,8 @@ def toggle_permission_active(perm_id: str) -> Response:
 @login_required
 def delete_permission(perm_id: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.admin("permissions", perm_id, "delete"),
+        get_web_api_client().delete_json(
+            api_endpoints.admin("permissions", perm_id),
             headers=forward_headers(),
         )
         g.audit_metadata = {"permission": perm_id}

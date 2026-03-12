@@ -69,6 +69,7 @@ Coyote3 is developed and maintained by the bioinformaticians at **Section for Mo
 - LDAP authentication with organizational group sync
 - Role- and group-based permissions (admin, user, reviewer)
 - Audit trail of changes and logins
+- API-owned session authentication with HttpOnly cookie transport
 
 ### Dashboards & Oversight
 - Assay-level summaries and quality metrics
@@ -118,9 +119,9 @@ Backend structure:
 - `api/audit/` audit event writing
 
 UI structure:
-- `coyote/blueprints/` page controllers and template context mapping
-- `coyote/templates/` and blueprint-local templates for rendering
-- `coyote/services/api_client/` centralized HTTP transport to API
+  - `coyote/blueprints/` page controllers and template context mapping
+  - `coyote/templates/` and blueprint-local templates for rendering
+  - `coyote/services/api_client/` centralized HTTP transport to API, including request-scoped client reuse and teardown
 
 Boundary compliance is enforced by integration guardrail tests under `tests/integration/`.
 

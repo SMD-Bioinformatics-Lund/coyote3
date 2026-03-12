@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 from fastapi import HTTPException
+from api.main import app as api_app
 
 from api.security.access import ApiUser
 from api.routers import reports
@@ -195,3 +196,11 @@ def test_save_rna_report_calls_rna_persist_path(monkeypatch):
     assert calls["analyte"] == "rna"
     assert calls["report_id"] == "RID6"
     assert payload["report"]["oid"] == "oid-rna"
+
+
+def test_restful_report_routes_are_registered():
+    paths = {route.path for route in api_app.routes}
+    assert "/api/v1/dna/samples/{sample_id}/reports/preview" in paths
+    assert "/api/v1/rna/samples/{sample_id}/reports/preview" in paths
+    assert "/api/v1/dna/samples/{sample_id}/reports" in paths
+    assert "/api/v1/rna/samples/{sample_id}/reports" in paths

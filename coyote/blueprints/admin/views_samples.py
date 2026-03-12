@@ -63,8 +63,8 @@ def edit_sample(sample_id: str) -> str | Response:
             return redirect(request.url)
 
         try:
-            get_web_api_client().post_json(
-                api_endpoints.admin("samples", sample_id, "update"),
+            get_web_api_client().put_json(
+                api_endpoints.admin("samples", sample_id),
                 headers=forward_headers(),
                 json_body={"sample": updated_sample},
             )
@@ -83,8 +83,8 @@ def edit_sample(sample_id: str) -> str | Response:
 def delete_sample(sample_id: str) -> Response:
     g.audit_metadata = {"sample": sample_id}
     try:
-        payload = get_web_api_client().post_json(
-            api_endpoints.admin("samples", sample_id, "delete"),
+        payload = get_web_api_client().delete_json(
+            api_endpoints.admin("samples", sample_id),
             headers=forward_headers(),
         )
         sample_name = payload.meta.get("sample_name", sample_id)

@@ -32,8 +32,8 @@ from api.settings import (
 PUBLIC_API_EXACT_PATHS = {
     "/api/v1/health",
     "/api/vi/docs",
-    "/api/v1/auth/login",
-    "/api/v1/auth/logout",
+    "/api/v1/auth/sessions",
+    "/api/v1/auth/sessions/current",
     "/api/v1/docs",
     "/api/v1/openapi.json",
     "/api/v1/redoc",

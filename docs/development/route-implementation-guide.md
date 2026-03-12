@@ -15,7 +15,8 @@ They exist to solve three concrete problems:
 In practice:
 1. `api/core/*` depends on ports in `api/core/*/ports.py`.
 2. `api/infra/repositories/*_mongo.py` implements those ports.
-3. `api/routers/*` coordinates request/response and permissions only.
+3. `api/services/*` owns route-facing workflow composition where a bounded context needs orchestration.
+4. `api/routers/*` coordinates request/response and permissions only.
 
 If we later add a non-Mongo provider, we implement new adapters behind existing ports and avoid rewriting route/core logic.
 
@@ -44,9 +45,23 @@ If we later add a non-Mongo provider, we implement new adapters behind existing 
 1. Add request/response contract model in `api/contracts/<domain>.py`.
 2. Add route in `api/routers/<domain>.py` with explicit `response_model`.
 3. Add access checks (`require_access(...)`) and keep them near route declaration.
-4. Delegate behavior to core/service or repository facade; keep route thin.
-5. Serialize output using shared serialization helpers.
-6. Add tests for happy path, permission failure, and not-found/validation paths.
+4. Add or extend a dependency factory in `api/deps/` if the route needs a service seam.
+5. Delegate behavior to a service first; let the service call repositories.
+6. Serialize output using shared serialization helpers.
+7. Add tests for happy path, permission failure, and not-found/validation paths.
+
+Preferred implementation shape:
+
+```python
+@router.get("/api/v1/example/{item_id}", response_model=ExamplePayload)
+def read_example(
+    item_id: str,
+    user: ApiUser = Depends(require_access(permission="view_example")),
+    service: ExampleService = Depends(get_example_service),
+):
+    item = service.read_item(item_id=item_id, user=user)
+    return util.common.convert_to_serializable(item)
+```
 
 ## Standard process for adding a new UI route
 1. Add/extend Flask view in `coyote/blueprints/<domain>/views*.py`.
@@ -74,10 +89,11 @@ Reason: test modules and tooling should be able to import backend modules withou
 ## What to edit when adding/changing a route
 1. API contracts: `api/contracts/*.py`
 2. API router: `api/routers/*.py`
-3. Core/service or route facade: `api/core/*`, `api/infra/repositories/*`
-4. UI endpoint builder: `coyote/services/api_client/endpoints.py`
-5. UI view/template: `coyote/blueprints/*/views*.py`, matching templates
-6. Tests across layers: `tests/api`, `tests/ui`, `tests/integration`, `tests/unit`
+3. API dependencies: `api/deps/*.py`
+4. Core/service or repository facade: `api/core/*`, `api/services/*`, `api/repositories/*`
+5. UI endpoint builder: `coyote/services/api_client/endpoints.py`
+6. UI view/template: `coyote/blueprints/*/views*.py`, matching templates
+7. Tests across layers: `tests/api`, `tests/ui`, `tests/integration`, `tests/unit`
 
 ## Required tests by layer
 1. API route tests:
@@ -99,11 +115,21 @@ Reason: test modules and tooling should be able to import backend modules withou
 ## Minimal acceptance checklist for any new route
 1. Contract model added/updated and referenced by route.
 2. Route permissions declared and validated in tests.
-3. Route delegates to service/repository facade (no in-route query logic).
+3. Route delegates to a service or tightly scoped repository facade with no in-route query logic.
 4. UI uses endpoint builder helper (no hardcoded API path).
 5. UI action/form has route test coverage.
 6. Contract wiring test passes for new endpoint path.
 7. Boundary tests still show zero forbidden usage regressions.
+
+## Migration standard for legacy routes
+
+When refactoring an older route family:
+
+1. Preserve the route path and contract first.
+2. Introduce a service and dependency factory.
+3. Move orchestration out of the router without changing response shape.
+4. Update tests to override the new dependency instead of patching private router globals.
+5. Remove the old singleton/helper seam only after tests prove the new dependency path.
 
 ## UI button/form wiring checklist
 1. Template target uses `url_for(...)`.

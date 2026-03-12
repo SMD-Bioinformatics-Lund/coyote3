@@ -56,7 +56,7 @@ def update_gene_status():
     data = request.get_json()
     try:
         payload = get_web_api_client().post_json(
-            api_endpoints.coverage("blacklist", "update"),
+            api_endpoints.coverage("blacklist", "entries"),
             headers=forward_headers(),
             json_body=data,
         )
@@ -93,8 +93,8 @@ def remove_blacklist(obj_id, group):
     removes blacklisted region/gene
     """
     try:
-        get_web_api_client().post_json(
-            api_endpoints.coverage("blacklist", obj_id, "remove"),
+        get_web_api_client().delete_json(
+            api_endpoints.coverage("blacklist", "entries", obj_id),
             headers=forward_headers(),
         )
     except ApiRequestError:

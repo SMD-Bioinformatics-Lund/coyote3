@@ -16,8 +16,8 @@ def unmark_false_variant(sample_id: str, var_id: str) -> Response:
     call_api(
         sample_id,
         "Failed to unmark variant false-positive via API",
-        lambda: get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "variants", var_id, "unfp"),
+        lambda: get_web_api_client().delete_json(
+            api_endpoints.dna_sample(sample_id, "variants", var_id, "flags", "false-positive"),
             headers=headers(),
         ),
     )
@@ -31,7 +31,7 @@ def mark_false_variant(sample_id: str, var_id: str) -> Response:
         sample_id,
         "Failed to mark variant false-positive via API",
         lambda: get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "variants", var_id, "fp"),
+            api_endpoints.dna_sample(sample_id, "variants", var_id, "flags", "false-positive"),
             headers=headers(),
         ),
     )
@@ -44,8 +44,8 @@ def unmark_interesting_variant(sample_id: str, var_id: str) -> Response:
     call_api(
         sample_id,
         "Failed to unmark variant interesting via API",
-        lambda: get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "variants", var_id, "uninterest"),
+        lambda: get_web_api_client().delete_json(
+            api_endpoints.dna_sample(sample_id, "variants", var_id, "flags", "interesting"),
             headers=headers(),
         ),
     )
@@ -59,7 +59,7 @@ def mark_interesting_variant(sample_id: str, var_id: str) -> Response:
         sample_id,
         "Failed to mark variant interesting via API",
         lambda: get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "variants", var_id, "interest"),
+            api_endpoints.dna_sample(sample_id, "variants", var_id, "flags", "interesting"),
             headers=headers(),
         ),
     )
@@ -72,8 +72,8 @@ def unmark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
     call_api(
         sample_id,
         "Failed to unmark variant irrelevant via API",
-        lambda: get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "variants", var_id, "relevant"),
+        lambda: get_web_api_client().delete_json(
+            api_endpoints.dna_sample(sample_id, "variants", var_id, "flags", "irrelevant"),
             headers=headers(),
         ),
     )
@@ -87,7 +87,7 @@ def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
         sample_id,
         "Failed to mark variant irrelevant via API",
         lambda: get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "variants", var_id, "irrelevant"),
+            api_endpoints.dna_sample(sample_id, "variants", var_id, "flags", "irrelevant"),
             headers=headers(),
         ),
     )
@@ -101,7 +101,7 @@ def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
         sample_id,
         "Failed to blacklist variant via API",
         lambda: get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "variants", var_id, "blacklist"),
+            api_endpoints.dna_sample(sample_id, "variants", var_id, "blacklist-entries"),
             headers=headers(),
         ),
     )

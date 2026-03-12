@@ -221,7 +221,7 @@ Detailed runtime auth mode documentation (LDAP vs local allowlist, internal toke
 UI forwards necessary session context when calling backend. Current transport behavior is:
 - API issues HttpOnly session cookie on login.
 - Flask reads the API session cookie from request context.
-- Flask forwards `Authorization: Bearer <api_session_token>` to API on server-side calls.
+- Flask forwards `Authorization: Bearer <api_session_token>` to API on server-side calls after extracting the token from the API-issued session cookie.
 - Flask also forwards cookie header for compatibility with existing route-family behavior.
 
 This architecture keeps browser-side tokens non-scriptable (HttpOnly) while giving API a deterministic auth header path for policy checks.
@@ -287,7 +287,7 @@ from fastapi import Depends
 from api.main import app
 from api.security.access import require_access
 
-@app.post('/api/v1/admin/permissions/create')
+@app.post('/api/v1/admin/permissions')
 def create_permission(payload: dict, user=Depends(require_access(min_level=900, permissions=['create_permission']))):
     return permission_service.create(payload=payload, actor=user)
 ```

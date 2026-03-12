@@ -72,8 +72,8 @@ def list_fusions(sample_id: str) -> str | Response:
         if form.reset.data:
             app.logger.info(f"Resetting filters to default settings for the sample {sample_id}")
             try:
-                api_client.post_json(
-                    api_endpoints.sample(sample_id, "filters", "reset"),
+                api_client.delete_json(
+                    api_endpoints.sample(sample_id, "filters"),
                     headers=headers,
                 )
             except ApiRequestError as exc:
@@ -86,8 +86,8 @@ def list_fusions(sample_id: str) -> str | Response:
             }
             filters_from_form["fusionlist_id"] = request.form.getlist("fusionlist_id")
             try:
-                api_client.post_json(
-                    api_endpoints.sample(sample_id, "filters", "update"),
+                api_client.put_json(
+                    api_endpoints.sample(sample_id, "filters"),
                     headers=headers,
                     json_body={"filters": filters_from_form},
                 )
@@ -107,8 +107,8 @@ def list_fusions(sample_id: str) -> str | Response:
 
     if not sample_has_filters:
         try:
-            api_client.post_json(
-                api_endpoints.sample(sample_id, "filters", "reset"),
+            api_client.delete_json(
+                api_endpoints.sample(sample_id, "filters"),
                 headers=headers,
             )
             fusions_payload = _load_api_context()

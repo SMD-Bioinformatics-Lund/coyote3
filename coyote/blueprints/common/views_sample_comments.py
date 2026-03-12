@@ -37,7 +37,7 @@ def add_sample_comment(sample_id: str) -> Response:
     data = request.form.to_dict()
     try:
         get_web_api_client().post_json(
-            api_endpoints.sample(sample_id, "sample_comments", "add"),
+            api_endpoints.sample(sample_id, "comments"),
             headers=forward_headers(),
             json_body={"form_data": data},
         )
@@ -68,8 +68,8 @@ def hide_sample_comment(sample_id: str) -> Response:
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
-        payload = get_web_api_client().post_json(
-            api_endpoints.sample(sample_id, "sample_comments", comment_id, "hide"),
+        payload = get_web_api_client().patch_json(
+            api_endpoints.sample(sample_id, "comments", comment_id, "hidden"),
             headers=forward_headers(),
         )
         omics_layer = str(payload.meta.get("omics_layer", "")).lower()
@@ -98,8 +98,8 @@ def unhide_sample_comment(sample_id: str) -> Response:
     """
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
-        payload = get_web_api_client().post_json(
-            api_endpoints.sample(sample_id, "sample_comments", comment_id, "unhide"),
+        payload = get_web_api_client().delete_json(
+            api_endpoints.sample(sample_id, "comments", comment_id, "hidden"),
             headers=forward_headers(),
         )
         omics_layer = str(payload.meta.get("omics_layer", "")).lower()

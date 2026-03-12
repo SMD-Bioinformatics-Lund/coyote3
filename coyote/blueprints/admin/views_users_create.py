@@ -38,7 +38,7 @@ def create_user() -> Response | str:
         }
         try:
             payload = get_web_api_client().post_json(
-                api_endpoints.admin("users", "create"),
+                api_endpoints.admin("users"),
                 headers=forward_headers(),
                 json_body={
                     "schema_id": context.selected_schema.get("_id"),

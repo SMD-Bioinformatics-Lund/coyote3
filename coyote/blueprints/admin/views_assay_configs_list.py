@@ -31,8 +31,8 @@ def assay_configs() -> str:
 @login_required
 def toggle_assay_config_active(assay_id: str) -> Response:
     try:
-        payload = get_web_api_client().post_json(
-            api_endpoints.admin("aspc", assay_id, "toggle"),
+        payload = get_web_api_client().patch_json(
+            api_endpoints.admin("aspc", assay_id, "status"),
             headers=forward_headers(),
         )
         new_status = bool(payload.meta.get("is_active", True))
@@ -55,8 +55,8 @@ def toggle_assay_config_active(assay_id: str) -> Response:
 @login_required
 def delete_assay_config(assay_id: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.admin("aspc", assay_id, "delete"),
+        get_web_api_client().delete_json(
+            api_endpoints.admin("aspc", assay_id),
             headers=forward_headers(),
         )
         g.audit_metadata = {"assay": assay_id}

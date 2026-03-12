@@ -313,7 +313,7 @@ This pattern enforces your stated boundary: backend decides data/structure, web 
 API route:
 
 ```python
-@app.get("/api/v1/dna/samples/{sample_id}/report/preview")
+@app.get("/api/v1/dna/samples/{sample_id}/reports/preview")
 def preview_dna_report(...):
     ...
     template_name, template_context, snapshot_rows = DNAWorkflowService.build_report_payload(...)

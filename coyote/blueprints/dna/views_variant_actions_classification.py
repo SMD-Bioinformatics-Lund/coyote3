@@ -29,8 +29,8 @@ def classify_variant(sample_id: str, var_id: str | None = None, fus_id: str | No
     call_api(
         sample_id,
         "Failed to classify variant via API",
-        lambda: get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "variants", "classify"),
+        lambda: get_web_api_client().delete_json(
+            api_endpoints.dna_sample(sample_id, "variant-classifications"),
             headers=headers(),
             json_body={"id": target_id, "form_data": form_data},
         ),
@@ -58,7 +58,7 @@ def remove_classified_variant(sample_id: str, var_id: str | None = None, fus_id:
         sample_id,
         "Failed to remove classification via API",
         lambda: get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "variants", "rmclassify"),
+            api_endpoints.dna_sample(sample_id, "variant-classifications"),
             headers=headers(),
             json_body={"id": target_id, "form_data": form_data},
         ),
@@ -81,8 +81,8 @@ def classify_multi_variant(sample_id: str) -> Response:
         call_api(
             sample_id,
             "Failed to bulk update variant tier via API",
-            lambda: get_web_api_client().post_json(
-                api_endpoints.dna_sample(sample_id, "variants", "bulk", "tier"),
+            lambda: get_web_api_client().patch_json(
+                api_endpoints.dna_sample(sample_id, "variants", "tier"),
                 headers=headers(),
                 json_body={
                     "apply": action == "apply",
@@ -100,7 +100,7 @@ def classify_multi_variant(sample_id: str) -> Response:
         action=action,
         variant_ids=variants_to_modify,
         operation_label="false-positive",
-        endpoint=api_endpoints.dna_sample(sample_id, "variants", "fp", "bulk"),
+        endpoint=api_endpoints.dna_sample(sample_id, "variants", "flags", "false-positive"),
     )
     bulk_toggle(
         sample_id=sample_id,
@@ -108,7 +108,7 @@ def classify_multi_variant(sample_id: str) -> Response:
         action=action,
         variant_ids=variants_to_modify,
         operation_label="irrelevant",
-        endpoint=api_endpoints.dna_sample(sample_id, "variants", "irrelevant", "bulk"),
+        endpoint=api_endpoints.dna_sample(sample_id, "variants", "flags", "irrelevant"),
     )
 
     return redirect(url_for("dna_bp.list_variants", sample_id=sample_id))

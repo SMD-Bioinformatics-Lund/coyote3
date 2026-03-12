@@ -16,8 +16,8 @@ from coyote.services.api_client.api_client import (
 @login_required
 def delete_user(user_id: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.admin("users", user_id, "delete"),
+        get_web_api_client().delete_json(
+            api_endpoints.admin("users", user_id),
             headers=forward_headers(),
         )
         g.audit_metadata = {"user": user_id}
@@ -31,8 +31,8 @@ def delete_user(user_id: str) -> Response:
 @login_required
 def toggle_user_active(user_id: str):
     try:
-        payload = get_web_api_client().post_json(
-            api_endpoints.admin("users", user_id, "toggle"),
+        payload = get_web_api_client().patch_json(
+            api_endpoints.admin("users", user_id, "status"),
             headers=forward_headers(),
         )
         new_status = bool(payload.meta.get("is_active", True))

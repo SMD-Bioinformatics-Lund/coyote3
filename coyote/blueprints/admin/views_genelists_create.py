@@ -73,7 +73,7 @@ def create_genelist() -> Response | str:
 
         try:
             get_web_api_client().post_json(
-                api_endpoints.admin("genelists", "create"),
+                api_endpoints.admin("genelists"),
                 headers=forward_headers(),
                 json_body={"config": config},
             )

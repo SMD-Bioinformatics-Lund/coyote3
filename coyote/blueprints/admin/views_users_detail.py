@@ -76,8 +76,8 @@ def edit_user(user_id: str) -> Response | str:
             for key, vals in request.form.to_dict(flat=False).items()
         }
         try:
-            get_web_api_client().post_json(
-                api_endpoints.admin("users", user_id, "update"),
+            get_web_api_client().put_json(
+                api_endpoints.admin("users", user_id),
                 headers=forward_headers(),
                 json_body={"form_data": form_data},
             )

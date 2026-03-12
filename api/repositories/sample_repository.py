@@ -1,5 +1,10 @@
-"""Canonical sample repository."""
+"""Sample repository facade."""
 
-from api.infra.repositories.samples_mongo import MongoSamplesRepository as SampleRepository
+from api.infra.repositories.samples_mongo import MongoSamplesRepository
+
+
+class SampleRepository(MongoSamplesRepository):
+    """Concrete sample repository facade."""
+
 
 __all__ = ["SampleRepository"]

@@ -64,7 +64,7 @@ def _render_create_form(category: str) -> Response | str:
 
         try:
             get_web_api_client().post_json(
-                api_endpoints.admin("aspc", "create"),
+                api_endpoints.admin("aspc"),
                 headers=forward_headers(),
                 json_body={"config": config},
             )

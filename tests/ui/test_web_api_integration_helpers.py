@@ -17,10 +17,34 @@ def test_get_web_api_client_uses_configured_base_url():
     assert client._base_url == "http://api.local:9000"
 
 
+def test_get_web_api_client_reuses_client_within_request_context():
+    app = Flask(__name__)
+    app.config["API_BASE_URL"] = "http://api.local:9000"
+
+    with app.test_request_context():
+        first = api_client.get_web_api_client()
+        second = api_client.get_web_api_client()
+
+    assert first is second
+
+
+def test_close_web_api_client_removes_request_scoped_client():
+    app = Flask(__name__)
+    app.config["API_BASE_URL"] = "http://api.local:9000"
+
+    with app.test_request_context():
+        client = api_client.get_web_api_client()
+        api_client.close_web_api_client()
+
+        assert getattr(g, "_coyote_api_client", None) is None
+        assert getattr(client._client, "is_closed", True) is True
+
+
 def test_build_forward_headers_includes_cookie_if_present():
     headers = api_client.build_forward_headers({"Cookie": "session=abc"})
     assert headers == {
         "X-Requested-With": "XMLHttpRequest",
+        "Accept": "application/json",
         "Cookie": "session=abc",
     }
 
@@ -31,7 +55,10 @@ def test_build_forward_headers_includes_request_id_when_present():
 
 
 def test_forward_headers_without_request_context_returns_default_header():
-    assert api_client.forward_headers() == {"X-Requested-With": "XMLHttpRequest"}
+    assert api_client.forward_headers() == {
+        "X-Requested-With": "XMLHttpRequest",
+        "Accept": "application/json",
+    }
 
 
 def test_forward_headers_with_request_context_includes_cookie():
@@ -41,6 +68,7 @@ def test_forward_headers_with_request_context_includes_cookie():
         headers = api_client.forward_headers()
 
     assert headers["X-Requested-With"] == "XMLHttpRequest"
+    assert headers["Accept"] == "application/json"
     assert headers["Cookie"] == "foo=bar"
 
 
@@ -73,9 +101,10 @@ def test_build_internal_headers_uses_internal_token_or_secret_key():
         headers = api_client.build_internal_headers()
 
     assert headers["X-Coyote-Internal-Token"] == "internal-token"
+    assert headers["Accept"] == "application/json"
 
 
-def test_build_internal_headers_falls_back_to_secret_key():
+def test_build_internal_headers_falls_back_to_secret_key_in_testing():
     app = Flask(__name__)
     app.config["TESTING"] = True
     app.config["SECRET_KEY"] = "fallback-secret"
@@ -96,9 +125,21 @@ def test_build_internal_headers_does_not_fallback_to_secret_key_in_production():
     assert "X-Coyote-Internal-Token" not in headers
 
 
+def test_build_internal_headers_does_not_fallback_to_secret_key_in_development():
+    app = Flask(__name__)
+    app.config["DEVELOPMENT"] = True
+    app.config["SECRET_KEY"] = "fallback-secret"
+
+    with app.app_context():
+        headers = api_client.build_internal_headers()
+
+    assert "X-Coyote-Internal-Token" not in headers
+
+
 def test_endpoint_builders_normalize_paths_and_skip_empty_parts():
     assert endpoints.v1("dna", "/samples/", "S1", "") == "/api/v1/dna/samples/S1"
-    assert endpoints.auth("login") == "/api/v1/auth/login"
+    assert endpoints.auth("sessions") == "/api/v1/auth/sessions"
+    assert endpoints.auth("session") == "/api/v1/auth/session"
     assert endpoints.admin("users") == "/api/v1/admin/users"
     assert endpoints.common("gene", "TP53") == "/api/v1/common/gene/TP53"
     assert endpoints.coverage("plot") == "/api/v1/coverage/plot"

@@ -1,7 +1,7 @@
 
 """Shared DNA reporting/variant transformation helpers."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from copy import deepcopy
 import os
 from pprint import pformat
@@ -266,7 +266,7 @@ def build_dna_report_payload(
 
     snapshot_rows: List[Dict[str, Any]] = []
     if include_snapshot:
-        now_utc = datetime.utcnow()
+        now_utc = datetime.now(timezone.utc)
 
         for v in variants:
             annotations_interesting = v.get("annotations_interesting", {})

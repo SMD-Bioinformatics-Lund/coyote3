@@ -124,7 +124,7 @@ Changelog is a governance artifact, not a marketing summary.
 ```markdown
 ## v1.8.0 - 2026-03-03
 ### Changed
-- API: Added strict report save conflict handling for DNA/RNA save endpoints (`/api/v1/*/report/save`), returning `409` on filename collision.
+- API: Added strict report save conflict handling for DNA/RNA save endpoints (`/api/v1/*/reports`), returning `409` on filename collision.
 ### Fixed
 - UI: Normalized API integration header forwarding for session consistency.
 ### Security

@@ -13,7 +13,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # Imports
 # -------------------------------------------------------------------------
 from api.infra.db.base import BaseHandler
-from datetime import datetime
+from datetime import datetime, timezone
 from api.runtime import flash
 
 
@@ -202,7 +202,7 @@ class UsersHandler(BaseHandler):
         normalized = self._normalize_user_id(user_id)
         self.get_collection().update_one(
             {"user_id": normalized},
-            {"$set": {"last_login": datetime.utcnow()}},
+            {"$set": {"last_login": datetime.now(timezone.utc)}},
         )
 
     def toggle_user_active(self, user_id: str, active_status: bool) -> bool:

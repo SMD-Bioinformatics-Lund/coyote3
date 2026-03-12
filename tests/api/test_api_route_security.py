@@ -13,8 +13,8 @@ DEF_RE = re.compile(r"^\s*def\s+")
 ALLOW_UNGUARDED_EXACT = {
     "/api/v1/health",
     "/api/vi/docs",
-    "/api/v1/auth/login",
-    "/api/v1/auth/logout",
+    "/api/v1/auth/sessions",
+    "/api/v1/auth/sessions/current",
 }
 ALLOW_UNGUARDED_PREFIX = ("/api/v1/public/",)
 

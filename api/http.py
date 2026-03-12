@@ -12,7 +12,7 @@ from api.extensions import store, util
 def api_error(status_code: int, message: str) -> HTTPException:
     return HTTPException(
         status_code=status_code,
-        detail={"status": status_code, "error": message},
+        detail={"status": status_code, "error": message, "details": None},
     )
 
 

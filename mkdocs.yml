@@ -27,6 +27,7 @@ nav:
   - API:
       - Reference: api/reference.md
       - Endpoint Catalog: api/endpoint-catalog.md
+      - REST Migration Notes: api/rest-migration-notes.md
       - Auth Login Model and Stats: AUTH_LOGIN_MODEL_AND_STATS.md
   - UI:
       - User Guide: ui/user-guide.md

@@ -53,7 +53,7 @@ def add_var_comment(sample_id: str, id: str | None = None, **kwargs: Any) -> Res
         sample_id,
         "Failed to add comment via API",
         lambda: get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "comments", "add"),
+            api_endpoints.dna_sample(sample_id, "variant-comments"),
             headers=headers(),
             json_body={"id": target_id, "form_data": form_data},
         ),
@@ -71,8 +71,8 @@ def hide_variant_comment(sample_id: str, var_id: str) -> Response:
     call_api(
         sample_id,
         "Failed to hide variant comment via API",
-        lambda: get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "variants", var_id, "comments", comment_id, "hide"),
+        lambda: get_web_api_client().patch_json(
+            api_endpoints.dna_sample(sample_id, "variants", var_id, "comments", comment_id, "hidden"),
             headers=headers(),
         ),
     )
@@ -86,9 +86,9 @@ def unhide_variant_comment(sample_id: str, var_id: str) -> Response:
     call_api(
         sample_id,
         "Failed to unhide variant comment via API",
-        lambda: get_web_api_client().post_json(
+        lambda: get_web_api_client().delete_json(
             api_endpoints.dna_sample(
-                sample_id, "variants", var_id, "comments", comment_id, "unhide"
+                sample_id, "variants", var_id, "comments", comment_id, "hidden"
             ),
             headers=headers(),
         ),

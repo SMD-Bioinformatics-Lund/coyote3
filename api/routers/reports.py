@@ -193,7 +193,7 @@ def _persist_report(
     )
 
 
-@router.get("/api/v1/dna/samples/{sample_id}/report/preview", response_model=ReportPreviewPayload)
+@router.get("/api/v1/dna/samples/{sample_id}/reports/preview", response_model=ReportPreviewPayload, summary="Preview DNA report")
 def preview_dna_report(
     sample_id: str,
     include_snapshot: bool = Query(default=False),
@@ -213,7 +213,7 @@ def preview_dna_report(
     snapshot_rows = snapshot_rows or []
     payload = _preview_response_payload(
         sample=sample,
-        request_path=f"/api/v1/dna/samples/{sample_id}/report/preview",
+        request_path=f"/api/v1/dna/samples/{sample_id}/reports/preview",
         include_snapshot=include_snapshot,
         template_name=template_name,
         template_context=template_context,
@@ -222,7 +222,7 @@ def preview_dna_report(
     return util.common.convert_to_serializable(payload)
 
 
-@router.get("/api/v1/rna/samples/{sample_id}/report/preview", response_model=ReportPreviewPayload)
+@router.get("/api/v1/rna/samples/{sample_id}/reports/preview", response_model=ReportPreviewPayload, summary="Preview RNA report")
 def preview_rna_report(
     sample_id: str,
     include_snapshot: bool = Query(default=False),
@@ -241,7 +241,7 @@ def preview_rna_report(
     )
     payload = _preview_response_payload(
         sample=sample,
-        request_path=f"/api/v1/rna/samples/{sample_id}/report/preview",
+        request_path=f"/api/v1/rna/samples/{sample_id}/reports/preview",
         include_snapshot=include_snapshot,
         template_name=template_name,
         template_context=template_context,
@@ -250,7 +250,7 @@ def preview_rna_report(
     return util.common.convert_to_serializable(payload)
 
 
-@router.post("/api/v1/dna/samples/{sample_id}/report/save", response_model=ReportSavePayload)
+@router.post("/api/v1/dna/samples/{sample_id}/reports", response_model=ReportSavePayload, status_code=201, summary="Create DNA report")
 def save_dna_report(
     sample_id: str,
     report_payload: dict | None = Body(default=None),
@@ -284,10 +284,11 @@ def save_dna_report(
         report_file=report_file,
         snapshot_rows=snapshot_rows,
     )
-    return util.common.convert_to_serializable(payload)
+    response_payload = util.common.convert_to_serializable(payload)
+    return response_payload
 
 
-@router.post("/api/v1/rna/samples/{sample_id}/report/save", response_model=ReportSavePayload)
+@router.post("/api/v1/rna/samples/{sample_id}/reports", response_model=ReportSavePayload, status_code=201, summary="Create RNA report")
 def save_rna_report(
     sample_id: str,
     report_payload: dict | None = Body(default=None),

@@ -6,6 +6,10 @@ This catalog is an implementation-oriented inventory of API route families for m
 - Module: `api/routers/health.py`, `api/routers/auth.py`
 - Scope: health, version, and system-level diagnostics endpoints.
 - Access: varies by endpoint; internal/security-sensitive paths should require explicit policy.
+- Canonical auth session routes:
+  - `POST /api/v1/auth/sessions`
+  - `DELETE /api/v1/auth/sessions/current`
+  - `GET /api/v1/auth/session`
 
 ## 2. Home and Dashboard Domains
 - Modules: `api/routers/home.py`, `api/routers/dashboard.py`
@@ -16,18 +20,31 @@ This catalog is an implementation-oriented inventory of API route families for m
 - Module: `api/routers/samples.py`
 - Scope: sample listing, detail context, and sample-centric retrieval endpoints.
 - Access: route-level policy + sample assay ownership checks.
+- Canonical mutation routes:
+  - `POST /api/v1/samples/{sample_id}/comments`
+  - `PATCH /api/v1/samples/{sample_id}/comments/{comment_id}/hidden`
+  - `DELETE /api/v1/samples/{sample_id}/comments/{comment_id}/hidden`
+  - `PUT /api/v1/samples/{sample_id}/filters`
+  - `DELETE /api/v1/samples/{sample_id}/filters`
 
 ## 4. DNA Domain
 - Modules: `api/routers/variants.py`, `api/routers/dna_structural.py`
 - Example paths:
   - `GET /api/v1/dna/samples/{sample_id}/variants`
   - `GET /api/v1/dna/samples/{sample_id}/variants/{var_id}`
-  - `POST /api/v1/dna/samples/{sample_id}/variants/fp/bulk`
-  - `POST /api/v1/dna/samples/{sample_id}/variants/irrelevant/bulk`
-  - `POST /api/v1/dna/samples/{sample_id}/variants/bulk/tier`
+  - `PATCH /api/v1/dna/samples/{sample_id}/variants/flags/false-positive`
+  - `PATCH /api/v1/dna/samples/{sample_id}/variants/flags/irrelevant`
+  - `PATCH /api/v1/dna/samples/{sample_id}/variants/tier`
   - `GET /api/v1/dna/samples/{sample_id}/biomarkers`
   - `GET /api/v1/dna/samples/{sample_id}/plot_context`
 - Scope: DNA variant context, detail views, mutation operations, and annotation enrichment flows.
+- Canonical mutation patterns now include:
+  - resource flags under `/flags/*`
+  - comment visibility under `/comments/{comment_id}/hidden`
+  - bulk flag updates under `/variants/flags/*`
+  - bulk tier updates under `/variants/tier`
+  - classification creation/removal under `/variant-classifications`
+  - comment creation under `/variant-comments`
 - Bulk mutation payload notes:
   - FP/irrelevant bulk endpoints accept JSON payload `{ "apply": <bool>, "variant_ids": [ ... ] }` (query params still supported for compatibility).
   - Tier bulk endpoint accepts `{ "apply": <bool>, "variant_ids": [ ... ], "assay_group": "...", "subpanel": "...", "tier": 3 }`.
@@ -40,13 +57,19 @@ This catalog is an implementation-oriented inventory of API route families for m
   - `GET /api/v1/rna/samples/{sample_id}/fusions/{fusion_id}`
   - bulk mutation routes for FP/irrelevant flags
 - Scope: RNA fusion listing, fusion detail, workflow mutations.
+- Canonical mutation patterns now include:
+  - fusion flags under `/flags/*`
+  - selected call updates under `/selection/{callidx}/{num_calls}`
+  - comment visibility under `/comments/{comment_id}/hidden`
+  - bulk flag updates under `/fusions/flags/*`
 
 ## 6. Reporting Domain
 - Module: `api/routers/reports.py`
 - Example paths:
-  - `GET /api/v1/dna/samples/{sample_id}/report/preview`
-  - `GET /api/v1/rna/samples/{sample_id}/report/preview`
-  - save endpoints receiving rendered HTML and snapshot payload
+  - `GET /api/v1/dna/samples/{sample_id}/reports/preview`
+  - `GET /api/v1/rna/samples/{sample_id}/reports/preview`
+  - `POST /api/v1/dna/samples/{sample_id}/reports`
+  - `POST /api/v1/rna/samples/{sample_id}/reports`
 - Scope: report preview context and report persistence orchestration.
 
 ## 7. Coverage Domain
@@ -56,13 +79,32 @@ This catalog is an implementation-oriented inventory of API route families for m
   - `GET /api/v1/coverage/blacklisted/{group}`
 - Scope: coverage sample payloads, filtered low-coverage structures, and blacklisted-region retrieval for assay/group context.
 - Related mutation endpoints (implemented in `api/routers/samples.py`):
-  - `POST /api/v1/coverage/blacklist/update`
-  - `POST /api/v1/coverage/blacklist/{obj_id}/remove`
+  - `POST /api/v1/coverage/blacklist/entries`
+  - `DELETE /api/v1/coverage/blacklist/entries/{obj_id}`
 
 ## 8. Admin Domain
 - Modules: `api/routers/users.py`, `api/routers/roles.py`, `api/routers/permissions.py`, `api/routers/admin_resources.py`
 - Scope: administrative configuration, policy objects, schema and role/permission management endpoints.
 - Access: strict role/permission controls.
+- Canonical CRUD routes now exist for:
+  - `POST /api/v1/admin/users`
+  - `PUT /api/v1/admin/users/{user_id}`
+  - `DELETE /api/v1/admin/users/{user_id}`
+  - `PATCH /api/v1/admin/users/{user_id}/status`
+  - `POST /api/v1/admin/roles`
+  - `PUT /api/v1/admin/roles/{role_id}`
+  - `DELETE /api/v1/admin/roles/{role_id}`
+  - `PATCH /api/v1/admin/roles/{role_id}/status`
+  - `POST /api/v1/admin/permissions`
+  - `PUT /api/v1/admin/permissions/{perm_id}`
+  - `DELETE /api/v1/admin/permissions/{perm_id}`
+  - `PATCH /api/v1/admin/permissions/{perm_id}/status`
+- Additional canonical CRUD/status routes now exist for:
+  - assay panels under `/api/v1/admin/asp`
+  - genelists under `/api/v1/admin/genelists`
+  - assay configs under `/api/v1/admin/aspc`
+  - admin sample updates under `/api/v1/admin/samples/{sample_id}`
+  - schemas under `/api/v1/admin/schemas`
 
 ## 9. Public Domain
 - Module: `api/routers/public.py`

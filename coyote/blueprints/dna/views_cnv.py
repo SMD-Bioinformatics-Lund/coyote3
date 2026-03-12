@@ -39,8 +39,8 @@ def show_cnv(sample_id: str, cnv_id: str) -> Response | str:
 @login_required
 def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "unmarkinteresting"),
+        get_web_api_client().delete_json(
+            api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "flags", "interesting"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -52,8 +52,8 @@ def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
 @login_required
 def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "interesting"),
+        get_web_api_client().patch_json(
+            api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "flags", "interesting"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -65,8 +65,8 @@ def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
 @login_required
 def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "fpcnv"),
+        get_web_api_client().patch_json(
+            api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "flags", "false-positive"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -78,8 +78,8 @@ def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
 @login_required
 def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "unfpcnv"),
+        get_web_api_client().delete_json(
+            api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "flags", "false-positive"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -91,8 +91,8 @@ def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
 @login_required
 def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "noteworthycnv"),
+        get_web_api_client().patch_json(
+            api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "flags", "noteworthy"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -104,8 +104,8 @@ def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
 @login_required
 def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "notnoteworthycnv"),
+        get_web_api_client().delete_json(
+            api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "flags", "noteworthy"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -118,8 +118,8 @@ def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
 def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
-        get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "comments", comment_id, "hide"),
+        get_web_api_client().patch_json(
+            api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "comments", comment_id, "hidden"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
@@ -132,8 +132,8 @@ def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
 def unhide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     comment_id = request.form.get("comment_id", "MISSING_ID")
     try:
-        get_web_api_client().post_json(
-            api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "comments", comment_id, "unhide"),
+        get_web_api_client().delete_json(
+            api_endpoints.dna_sample(sample_id, "cnvs", cnv_id, "comments", comment_id, "hidden"),
             headers=forward_headers(),
         )
     except ApiRequestError as exc:

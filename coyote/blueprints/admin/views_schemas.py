@@ -34,8 +34,8 @@ def schemas() -> str:
 @login_required
 def toggle_schema_active(schema_id: str) -> Response:
     try:
-        payload = get_web_api_client().post_json(
-            api_endpoints.admin("schemas", schema_id, "toggle"),
+        payload = get_web_api_client().patch_json(
+            api_endpoints.admin("schemas", schema_id, "status"),
             headers=forward_headers(),
         )
         new_status = bool(payload.meta.get("is_active", True))
@@ -83,8 +83,8 @@ def edit_schema(schema_id: str) -> str | Response:
             return redirect(request.url)
 
         try:
-            get_web_api_client().post_json(
-                api_endpoints.admin("schemas", schema_id, "update"),
+            get_web_api_client().put_json(
+                api_endpoints.admin("schemas", schema_id),
                 headers=forward_headers(),
                 json_body={"schema": updated_schema},
             )
@@ -113,7 +113,7 @@ def create_schema() -> str | Response:
                 return render_template("schemas/schema_create.html", initial_blob=parsed_schema)
 
             get_web_api_client().post_json(
-                api_endpoints.admin("schemas", "create"),
+                api_endpoints.admin("schemas"),
                 headers=forward_headers(),
                 json_body={"schema": parsed_schema},
             )
@@ -133,8 +133,8 @@ def create_schema() -> str | Response:
 @login_required
 def delete_schema(schema_id: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.admin("schemas", schema_id, "delete"),
+        get_web_api_client().delete_json(
+            api_endpoints.admin("schemas", schema_id),
             headers=forward_headers(),
         )
         g.audit_metadata = {"schema": schema_id}

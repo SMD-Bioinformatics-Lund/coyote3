@@ -9,8 +9,10 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
+from api.deps.repositories import get_sample_repository
 from api.main import app
 from api.routers import admin_resources as admin
+from api.routers import permissions, roles, users
 from api.routers import reports
 from api.routers import samples
 from api.security import access
@@ -44,31 +46,48 @@ def _user(
 
 
 def _setup_admin_list_users(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(admin.store.user_handler, "get_all_users", lambda: [])
-    monkeypatch.setattr(admin.store.roles_handler, "get_role_colors", lambda: {})
-    monkeypatch.setattr(admin.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setitem(
+        app.dependency_overrides,
+        users.get_admin_user_service,
+        lambda: SimpleNamespace(list_users_payload=lambda: {"users": [], "roles": {}}),
+    )
+    monkeypatch.setattr(users.util.common, "convert_to_serializable", lambda payload: payload)
 
 
 def _setup_admin_list_roles(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(admin.store.roles_handler, "get_all_roles", lambda: [])
-    monkeypatch.setattr(admin.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setitem(
+        app.dependency_overrides,
+        roles.get_admin_role_service,
+        lambda: SimpleNamespace(list_roles_payload=lambda: {"roles": []}),
+    )
+    monkeypatch.setattr(roles.util.common, "convert_to_serializable", lambda payload: payload)
 
 
 def _setup_admin_list_permissions(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(
-        admin.store.permissions_handler, "get_all_permissions", lambda is_active=False: []
+    monkeypatch.setitem(
+        app.dependency_overrides,
+        permissions.get_admin_permission_service,
+        lambda: SimpleNamespace(
+            list_permissions_payload=lambda: {"permission_policies": [], "grouped_permissions": {}}
+        ),
+    )
+    monkeypatch.setattr(permissions.util.common, "convert_to_serializable", lambda payload: payload)
+
+
+def _setup_admin_list_aspc(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(
+        app.dependency_overrides,
+        admin.get_admin_aspc_service,
+        lambda: SimpleNamespace(list_payload=lambda: {"assay_configs": []}),
     )
     monkeypatch.setattr(admin.util.common, "convert_to_serializable", lambda payload: payload)
 
 
-def _setup_admin_list_aspc(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(admin.store.aspc_handler, "get_all_aspc", lambda: [])
-    monkeypatch.setattr(admin.util.common, "convert_to_serializable", lambda payload: payload)
-
-
 def _setup_samples_blacklist_update(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(
-        samples, "_samples_repo", lambda: SimpleNamespace(blacklist_coord=lambda *args, **kwargs: None)
+    monkeypatch.setitem(
+        app.dependency_overrides,
+        get_sample_repository,
+        lambda: SimpleNamespace(blacklist_coord=lambda *args, **kwargs: None),
     )
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
@@ -89,7 +108,7 @@ def _setup_reports_preview(monkeypatch: pytest.MonkeyPatch) -> None:
         lambda **kwargs: {
             "sample": {"id": "S1", "name": "S1", "assay": "DNA", "profile": "production"},
             "meta": {
-                "request_path": "/api/v1/dna/samples/S1/report/preview",
+                "request_path": "/api/v1/dna/samples/S1/reports/preview",
                 "include_snapshot": False,
                 "snapshot_count": 0,
             },
@@ -118,7 +137,7 @@ _EndpointSetup = Callable[[pytest.MonkeyPatch], None]
         ("GET", "/api/v1/admin/aspc", None, "view_aspc", 9, _setup_admin_list_aspc),
         (
             "POST",
-            "/api/v1/coverage/blacklist/update",
+            "/api/v1/coverage/blacklist/entries",
             {
                 "gene": "TP53",
                 "coord": "17:1-2",
@@ -132,7 +151,7 @@ _EndpointSetup = Callable[[pytest.MonkeyPatch], None]
         ),
         (
             "GET",
-            "/api/v1/dna/samples/S1/report/preview",
+            "/api/v1/dna/samples/S1/reports/preview",
             None,
             "preview_report",
             9,

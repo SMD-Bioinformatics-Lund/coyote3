@@ -35,6 +35,7 @@ from coyote.services.api_client import ApiRequestError
 from coyote.services.api_client import endpoints as api_endpoints
 from coyote.services.api_client.api_client import (
     build_internal_headers,
+    close_web_api_client,
     get_web_api_client,
 )
 from coyote.util.misc import get_dynamic_assay_nav
@@ -370,6 +371,10 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
         )
         response.headers["X-Request-ID"] = request_id
         return response
+
+    @app.teardown_appcontext
+    def _close_api_client(_exc) -> None:
+        close_web_api_client()
 
     # Register shared cache backend (Redis when reachable; disabled backend otherwise).
     app.cache = create_cache_backend(

@@ -36,7 +36,7 @@ def create_permission() -> Response | str:
         }
         try:
             payload = get_web_api_client().post_json(
-                api_endpoints.admin("permissions", "create"),
+                api_endpoints.admin("permissions"),
                 headers=forward_headers(),
                 json_body={
                     "schema_id": context.selected_schema.get("_id"),

@@ -31,8 +31,8 @@ def manage_assay_panels():
 @login_required
 def toggle_assay_panel_active(assay_panel_id: str) -> Response:
     try:
-        payload = get_web_api_client().post_json(
-            api_endpoints.admin("asp", assay_panel_id, "toggle"),
+        payload = get_web_api_client().patch_json(
+            api_endpoints.admin("asp", assay_panel_id, "status"),
             headers=forward_headers(),
         )
         new_status = bool(payload.meta.get("is_active", True))
@@ -52,8 +52,8 @@ def toggle_assay_panel_active(assay_panel_id: str) -> Response:
 @login_required
 def delete_assay_panel(assay_panel_id: str) -> Response:
     try:
-        get_web_api_client().post_json(
-            api_endpoints.admin("asp", assay_panel_id, "delete"),
+        get_web_api_client().delete_json(
+            api_endpoints.admin("asp", assay_panel_id),
             headers=forward_headers(),
         )
         g.audit_metadata = {"panel": assay_panel_id}

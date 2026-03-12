@@ -65,8 +65,8 @@ def list_variants(sample_id: str) -> Response | str:
 
     if not sample_has_filters:
         try:
-            api_client.post_json(
-                api_endpoints.sample(sample_id, "filters", "reset"),
+            api_client.delete_json(
+                api_endpoints.sample(sample_id, "filters"),
                 headers=headers,
             )
             variants_payload = _load_api_context()
@@ -90,8 +90,8 @@ def list_variants(sample_id: str) -> Response | str:
         if form.reset.data:
             app.logger.info(f"Resetting filters to default settings for the sample {sample_id}")
             try:
-                api_client.post_json(
-                    api_endpoints.sample(sample_id, "filters", "reset"),
+                api_client.delete_json(
+                    api_endpoints.sample(sample_id, "filters"),
                     headers=headers,
                 )
             except ApiRequestError as exc:
@@ -103,8 +103,8 @@ def list_variants(sample_id: str) -> Response | str:
                 if key not in {"csrf_token", "reset", "submit"}
             }
             try:
-                api_client.post_json(
-                    api_endpoints.sample(sample_id, "filters", "update"),
+                api_client.put_json(
+                    api_endpoints.sample(sample_id, "filters"),
                     headers=headers,
                     json_body={"filters": filters_from_form},
                 )

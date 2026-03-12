@@ -264,14 +264,14 @@ def home_samples_read():
 
 ## 11.3 Good: explicit permission check
 ```python
-@app.post('/api/v1/admin/roles/create')
+@app.post('/api/v1/admin/roles')
 def create_role(payload: dict, user=Depends(require_access(min_level=900, permissions=['create_role']))):
     ...
 ```
 
 ## 11.4 Bad: hidden implicit access
 ```python
-@app.post('/api/v1/admin/roles/create')
+@app.post('/api/v1/admin/roles')
 def create_role(payload: dict):
     ...  # no explicit policy dependency
 ```

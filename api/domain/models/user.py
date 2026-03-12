@@ -8,9 +8,10 @@ for serializing user data and formatting timestamps. The model is designed for i
 MongoDB and supports merging user, role, and assay-specific permissions and attributes.
 """
 
-from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional, Set
 from datetime import datetime
+from typing import List, Optional, Set
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from werkzeug.security import check_password_hash
 
 
@@ -20,17 +21,23 @@ class UserModel(BaseModel):
     encapsulating user identity, roles, permissions, and access controls for genomic data analysis and diagnostics.
     """
 
+    model_config = ConfigDict(
+        validate_by_name=True,
+        populate_by_name=True,
+        json_encoders={datetime: lambda v: v.isoformat()},
+    )
+
     id: str = Field(..., alias="_id")
     email: EmailStr
     username: str
     fullname: str
     role: str
-    assay_groups: List[str] = []
-    assays: List[str] = []
-    asp_map: dict = {}
-    environments: List[str] = []
-    permissions: List[str] = []
-    denied_permissions: List[str] = []
+    assay_groups: List[str] = Field(default_factory=list)
+    assays: List[str] = Field(default_factory=list)
+    asp_map: dict = Field(default_factory=dict)
+    environments: List[str] = Field(default_factory=list)
+    permissions: List[str] = Field(default_factory=list)
+    denied_permissions: List[str] = Field(default_factory=list)
     access_level: int = 0
     job_title: Optional[str] = None
     is_active: bool = True
@@ -133,7 +140,7 @@ class UserModel(BaseModel):
         Returns:
             dict: A sanitized dictionary of the user data.
         """
-        return self.dict(
+        return self.model_dump(
             by_alias=True,
             exclude={"updated", "created", "last_login", "password"},
             exclude_none=True,
@@ -318,14 +325,3 @@ class UserModel(BaseModel):
             if self.updated
             else None
         )
-
-    class Config:
-        """
-        Pydantic configuration for UserModel.
-
-        - validate_by_name: Allows population and validation using field names as well as aliases.
-        - json_encoders: Custom encoder for `datetime` objects to ensure ISO 8601 string output during serialization.
-        """
-
-        validate_by_name = True
-        json_encoders = {datetime: lambda v: v.isoformat()}

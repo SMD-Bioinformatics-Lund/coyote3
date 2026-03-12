@@ -61,6 +61,22 @@ Layer roles:
 - `api/repositories/`: repository-facing abstraction used by routes/services
 - `api/infra/db/`: Mongo collection handlers
 - `api/db/mongo/`: Mongo client, database bootstrap, index setup
+- `api/middleware.py`: request authentication, request-id propagation, request/mutation audit wrapping
+- `api/openapi.py`: OpenAPI security schema customization
+
+Preferred extension pattern:
+
+```text
+router -> Depends(get_<domain>_service) -> service -> repository -> Mongo handler
+```
+
+Representative route families already following this pattern:
+
+- admin users, roles, and permissions
+- admin resource management flows
+- home sample context flows
+- dashboard summary flows
+- coverage read flows
 
 ## UI Request Flow
 
@@ -73,9 +89,16 @@ Flask blueprint -> UI api_client helper -> HTTP call to API -> API response -> t
 Layer roles:
 
 - `coyote/blueprints/`: page flow, form handling, redirects, view orchestration
-- `coyote/services/api_client/`: endpoint building, HTTP transport, header forwarding
+- `coyote/services/api_client/`: endpoint building, HTTP transport, cookie/header forwarding, request-scoped client lifecycle
 - `coyote/templates/`: rendering
 - `coyote/static/`: static UI assets
+
+Auth transport model:
+
+- API login creates the session and sets the HttpOnly API session cookie
+- Flask relays that cookie to the browser after successful login
+- Flask forwards `Authorization: Bearer <api_session_token>` on server-side API calls
+- the UI does not depend on bearer tokens embedded in JSON login payloads
 
 ## Ownership Rules
 
@@ -153,6 +176,7 @@ tests/
 This structure keeps maintenance practical because:
 
 - route files stay thin and predictable
+- route dependencies can be swapped in tests without monkeypatching global handler bags
 - transport contracts are explicit and reviewable
 - persistence logic is localized
 - UI cannot quietly bypass policy enforcement
@@ -166,8 +190,10 @@ When changing code, keep these maintenance rules:
 1. Change the smallest layer that actually owns the behavior.
 2. Do not solve a backend problem in Flask.
 3. Do not solve a persistence problem in a router.
-4. Add tests in the same scope as the behavior you changed.
-5. Update documentation when you change architecture, startup, boundaries, or extension patterns.
+4. Prefer route -> service -> repository over route -> handler chaining.
+5. Add tests in the same scope as the behavior you changed.
+6. Update documentation when you change architecture, startup, boundaries, or extension patterns.
+7. In tests, prefer dependency overrides and service stubs over patching private router globals.
 
 ## How To Add New Capability
 

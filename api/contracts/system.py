@@ -23,4 +23,4 @@ class AuthUserEnvelope(BaseModel):
 
 
 class AuthLoginEnvelope(AuthUserEnvelope):
-    session_token: str
+    pass

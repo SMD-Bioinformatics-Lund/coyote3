@@ -1,4 +1,4 @@
-"""Report preview/save helpers built on the shared web API client."""
+"""Report preview/create helpers built on the shared web API client."""
 
 from __future__ import annotations
 
@@ -17,13 +17,17 @@ from coyote.services.api_client.base import ApiPayload
 ReportAnalyte = Literal["dna", "rna"]
 
 
-def _report_endpoint(analyte: ReportAnalyte, sample_id: str, action: str) -> str:
+def _report_collection_endpoint(analyte: ReportAnalyte, sample_id: str) -> str:
     analyte_norm = str(analyte).strip().lower()
     if analyte_norm == "dna":
-        return api_endpoints.dna_sample(sample_id, "report", action)
+        return api_endpoints.dna_sample(sample_id, "reports")
     if analyte_norm == "rna":
-        return api_endpoints.rna_sample(sample_id, "report", action)
+        return api_endpoints.rna_sample(sample_id, "reports")
     raise ApiRequestError(f"Unsupported report analyte: {analyte}")
+
+
+def _report_preview_endpoint(analyte: ReportAnalyte, sample_id: str) -> str:
+    return f"{_report_collection_endpoint(analyte, sample_id)}/preview"
 
 
 def fetch_preview_payload(
@@ -37,7 +41,7 @@ def fetch_preview_payload(
     if include_snapshot:
         params["include_snapshot"] = 1
     return get_web_api_client().get_json(
-        _report_endpoint(analyte, sample_id, "preview"),
+        _report_preview_endpoint(analyte, sample_id),
         headers=forward_headers(),
         params=params,
     )
@@ -58,7 +62,7 @@ def save_report_from_preview(analyte: ReportAnalyte, sample_id: str) -> ApiPaylo
     html = render_preview_html(preview_payload)
     snapshot_rows = preview_payload.report.get("snapshot_rows", [])
     return get_web_api_client().post_json(
-        _report_endpoint(analyte, sample_id, "save"),
+        _report_collection_endpoint(analyte, sample_id),
         headers=forward_headers(),
         json_body={"html": html, "snapshot_rows": snapshot_rows},
     )

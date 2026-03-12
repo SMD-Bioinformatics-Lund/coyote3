@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
-
 from fastapi import APIRouter, Body, Depends, Query
 
 from api.contracts.admin import (
@@ -12,92 +10,35 @@ from api.contracts.admin import (
     AdminRoleCreateContextPayload,
     AdminRolesListPayload,
 )
+from api.deps.services import get_admin_role_service
 from api.extensions import util
-from api.http import api_error
-from api.repositories.admin_repository import AdminRepository as MongoAdminRouteRepository
-from api.runtime import current_username
 from api.security.access import ApiUser, require_access
+from api.services.admin_role_service import AdminRoleService
 
 router = APIRouter(tags=["admin-roles"])
 
-_admin_repo_instance: MongoAdminRouteRepository | None = None
 
-
-def _admin_repo() -> MongoAdminRouteRepository:
-    global _admin_repo_instance
-    if _admin_repo_instance is None:
-        _admin_repo_instance = MongoAdminRouteRepository()
-    return _admin_repo_instance
-
-
-def _as_dict_rows(items: list[dict]) -> list[dict]:
-    return [dict(item) for item in items if isinstance(item, dict)]
-
-
-def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict:
-    return {
-        "status": "ok",
-        "sample_id": str(sample_id),
-        "resource": resource,
-        "resource_id": str(resource_id),
-        "action": action,
-        "meta": {"status": "updated"},
-    }
-
-
-def _permission_policy_options() -> list[dict]:
-    permission_policies = _admin_repo().permissions_handler.get_all_permissions(is_active=True)
-    return [
-        {
-            "value": p.get("permission_id"),
-            "label": p.get("label", p.get("permission_id")),
-            "category": p.get("category", "Uncategorized"),
-        }
-        for p in permission_policies
-    ]
+def _service() -> AdminRoleService:
+    return get_admin_role_service()
 
 
 @router.get("/api/v1/admin/roles", response_model=AdminRolesListPayload)
 def list_roles_read(
     user: ApiUser = Depends(require_access(permission="view_role", min_role="admin", min_level=99999)),
+    service: AdminRoleService = Depends(get_admin_role_service),
 ):
-    roles = _as_dict_rows(_admin_repo().roles_handler.get_all_roles())
-    return util.common.convert_to_serializable({"roles": roles})
+    _ = user
+    return util.common.convert_to_serializable(service.list_roles_payload())
 
 
 @router.get("/api/v1/admin/roles/create_context", response_model=AdminRoleCreateContextPayload)
 def create_role_context_read(
     schema_id: str | None = Query(default=None),
     user: ApiUser = Depends(require_access(permission="create_role", min_role="admin", min_level=99999)),
+    service: AdminRoleService = Depends(get_admin_role_service),
 ):
-    active_schemas = _admin_repo().schema_handler.get_schemas_by_category_type(
-        schema_type="rbac_role",
-        schema_category="RBAC_role",
-        is_active=True,
-    )
-    if not active_schemas:
-        raise api_error(400, "No active role schemas found")
-
-    selected_id = schema_id or active_schemas[0]["_id"]
-    selected_schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
-    if not selected_schema:
-        raise api_error(404, "Selected schema not found")
-
-    schema = deepcopy(selected_schema)
-    options = _permission_policy_options()
-    schema["fields"]["permissions"]["options"] = options
-    schema["fields"]["deny_permissions"]["options"] = options
-    schema["fields"]["created_by"]["default"] = current_username(default=user.username)
-    schema["fields"]["created_on"]["default"] = util.common.utc_now()
-    schema["fields"]["updated_by"]["default"] = current_username(default=user.username)
-    schema["fields"]["updated_on"]["default"] = util.common.utc_now()
-
     return util.common.convert_to_serializable(
-        {
-            "schemas": active_schemas,
-            "selected_schema": selected_schema,
-            "schema": schema,
-        }
+        service.create_context_payload(schema_id=schema_id, actor_username=user.username)
     )
 
 
@@ -105,134 +46,78 @@ def create_role_context_read(
 def role_context_read(
     role_id: str,
     user: ApiUser = Depends(require_access(permission="view_role", min_role="admin", min_level=99999)),
+    service: AdminRoleService = Depends(get_admin_role_service),
 ):
-    role = _admin_repo().roles_handler.get_role(role_id)
-    if not role:
-        raise api_error(404, "Role not found")
-    schema = _admin_repo().schema_handler.get_schema(role.get("schema_name"))
-    if not schema:
-        raise api_error(404, "Schema not found for role")
-
-    schema = deepcopy(schema)
-    options = _permission_policy_options()
-    schema["fields"]["permissions"]["options"] = options
-    schema["fields"]["deny_permissions"]["options"] = options
-    schema["fields"]["permissions"]["default"] = role.get("permissions")
-    schema["fields"]["deny_permissions"]["default"] = role.get("deny_permissions")
-
-    return util.common.convert_to_serializable({"role": role, "schema": schema})
+    _ = user
+    return util.common.convert_to_serializable(service.context_payload(role_id=role_id))
 
 
-@router.post("/api/v1/admin/roles/create", response_model=AdminMutationPayload)
-def create_role_mutation(
+def _create_role(payload: dict, actor_username: str, service: AdminRoleService):
+    return util.common.convert_to_serializable(
+        service.create_role(payload=payload, actor_username=actor_username)
+    )
+
+
+@router.post("/api/v1/admin/roles", response_model=AdminMutationPayload, status_code=201, summary="Create role")
+def create_role(
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="create_role", min_role="admin", min_level=99999)),
+    service: AdminRoleService = Depends(get_admin_role_service),
 ):
-    active_schemas = _admin_repo().schema_handler.get_schemas_by_category_type(
-        schema_type="rbac_role",
-        schema_category="RBAC_role",
-        is_active=True,
-    )
-    if not active_schemas:
-        raise api_error(400, "No active role schemas found")
-    selected_id = payload.get("schema_id") or active_schemas[0]["_id"]
-    schema = next((s for s in active_schemas if s["_id"] == selected_id), None)
-    if not schema:
-        raise api_error(404, "Selected schema not found")
+    return _create_role(payload=payload, actor_username=user.username, service=service)
 
-    form_data = payload.get("form_data", {})
-    role = util.admin.process_form_to_config(form_data, schema)
-    role.setdefault("is_active", True)
-    role_id = str(role.get("name", "")).strip().lower()
-    role["role_id"] = role_id
-    role["_id"] = role_id
-    role["schema_name"] = schema.get("schema_id") or schema["_id"]
-    role["schema_version"] = schema["version"]
-    role = util.admin.inject_version_history(
-        user_email=current_username(default=user.username),
-        new_config=deepcopy(role),
-        is_new=True,
-    )
-    _admin_repo().roles_handler.create_role(role)
+
+def _update_role(role_id: str, payload: dict, actor_username: str, service: AdminRoleService):
     return util.common.convert_to_serializable(
-        _mutation_payload("admin", resource="role", resource_id=role["_id"], action="create")
+        service.update_role(role_id=role_id, payload=payload, actor_username=actor_username)
     )
 
 
-@router.post("/api/v1/admin/roles/{role_id}/update", response_model=AdminMutationPayload)
-def update_role_mutation(
+@router.put("/api/v1/admin/roles/{role_id}", response_model=AdminMutationPayload, summary="Update role")
+def update_role(
     role_id: str,
     payload: dict = Body(default_factory=dict),
     user: ApiUser = Depends(require_access(permission="edit_role", min_role="admin", min_level=99999)),
+    service: AdminRoleService = Depends(get_admin_role_service),
 ):
-    role = _admin_repo().roles_handler.get_role(role_id)
-    if not role:
-        raise api_error(404, "Role not found")
-    schema = _admin_repo().schema_handler.get_schema(role.get("schema_name"))
-    if not schema:
-        raise api_error(404, "Schema not found for role")
-
-    form_data = payload.get("form_data", {})
-    updated_role = util.admin.process_form_to_config(form_data, schema)
-    updated_role["updated_by"] = current_username(default=user.username)
-    updated_role["updated_on"] = util.common.utc_now()
-    updated_role["schema_name"] = schema.get("schema_id") or schema["_id"]
-    updated_role["schema_version"] = schema["version"]
-    updated_role["version"] = role.get("version", 1) + 1
-    updated_role["role_id"] = role.get("role_id", role_id)
-    updated_role["_id"] = role.get("_id")
-    updated_role = util.admin.inject_version_history(
-        user_email=current_username(default=user.username),
-        new_config=updated_role,
-        old_config=role,
-        is_new=False,
-    )
-    _admin_repo().roles_handler.update_role(role_id, updated_role)
-    return util.common.convert_to_serializable(
-        _mutation_payload("admin", resource="role", resource_id=role_id, action="update")
-    )
+    return _update_role(role_id=role_id, payload=payload, actor_username=user.username, service=service)
 
 
-@router.post("/api/v1/admin/roles/{role_id}/toggle", response_model=AdminMutationPayload)
-def toggle_role_mutation(
+def _toggle_role(role_id: str, service: AdminRoleService):
+    return util.common.convert_to_serializable(service.toggle_role(role_id=role_id))
+
+
+@router.patch("/api/v1/admin/roles/{role_id}/status", response_model=AdminMutationPayload, summary="Toggle role active status")
+def toggle_role_status(
     role_id: str,
     user: ApiUser = Depends(require_access(permission="edit_role", min_role="admin", min_level=99999)),
+    service: AdminRoleService = Depends(get_admin_role_service),
 ):
-    role = _admin_repo().roles_handler.get_role(role_id)
-    if not role:
-        raise api_error(404, "Role not found")
-    new_status = not bool(role.get("is_active"))
-    _admin_repo().roles_handler.toggle_role_active(role_id, new_status)
-    result = _mutation_payload("admin", resource="role", resource_id=role_id, action="toggle")
-    result["meta"]["is_active"] = new_status
-    return util.common.convert_to_serializable(result)
+    _ = user
+    return _toggle_role(role_id=role_id, service=service)
 
 
-@router.post("/api/v1/admin/roles/{role_id}/delete", response_model=AdminMutationPayload)
-def delete_role_mutation(
+def _delete_role(role_id: str, service: AdminRoleService):
+    return util.common.convert_to_serializable(service.delete_role(role_id=role_id))
+
+
+@router.delete("/api/v1/admin/roles/{role_id}", response_model=AdminMutationPayload, summary="Delete role")
+def delete_role(
     role_id: str,
     user: ApiUser = Depends(require_access(permission="delete_role", min_role="admin", min_level=99999)),
+    service: AdminRoleService = Depends(get_admin_role_service),
 ):
-    role = _admin_repo().roles_handler.get_role(role_id)
-    if not role:
-        raise api_error(404, "Role not found")
-    _admin_repo().roles_handler.delete_role(role_id)
-    return util.common.convert_to_serializable(
-        _mutation_payload("admin", resource="role", resource_id=role_id, action="delete")
-    )
+    _ = user
+    return _delete_role(role_id=role_id, service=service)
 
 
 __all__ = [
-    "_admin_repo",
-    "_admin_repo_instance",
-    "_as_dict_rows",
-    "_mutation_payload",
-    "_permission_policy_options",
+    "_service",
     "create_role_context_read",
-    "create_role_mutation",
-    "delete_role_mutation",
+    "create_role",
+    "delete_role",
     "list_roles_read",
     "role_context_read",
-    "toggle_role_mutation",
-    "update_role_mutation",
+    "toggle_role_status",
+    "update_role",
 ]
