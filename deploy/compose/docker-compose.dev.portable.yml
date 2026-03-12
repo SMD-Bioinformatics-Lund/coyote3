@@ -45,6 +45,7 @@ services:
     volumes:
       - "../../coyote:/app/coyote"
       - "../../api:/app/api"
+      - "../../shared:/app/shared"
       - "../../config:/app/config"
       - "../../docs:/app/docs"
       - "../../config.py:/app/config.py"
@@ -100,6 +101,7 @@ services:
     volumes:
       - "../../coyote:/app/coyote"
       - "../../api:/app/api"
+      - "../../shared:/app/shared"
       - "../../config:/app/config"
       - "../../docs:/app/docs"
       - "../../config.py:/app/config.py"
