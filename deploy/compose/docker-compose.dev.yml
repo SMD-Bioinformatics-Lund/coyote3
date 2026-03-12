@@ -1,4 +1,4 @@
-version: "3.9"
+name: coyote3-dev
 # usage:
 # COYOTE3_VERSION is read from coyote/__version__.py (example):
 #   export COYOTE3_VERSION="$(python3 coyote/__version__.py)"
@@ -7,7 +7,7 @@ version: "3.9"
 services:
   # UI container: Flask/Jinja presentation layer. Calls coyote3_dev_api over HTTP.
   coyote3_dev_web:
-    container_name: coyote3_dev_web
+    container_name: coyote3_dev_web_${COYOTE3_VERSION:-local}
     image: coyote3:${COYOTE3_VERSION:-local}-dev
     build:
       context: ../..
@@ -65,7 +65,7 @@ services:
 
   # API container: FastAPI business/policy/data layer.
   coyote3_dev_api:
-    container_name: coyote3_dev_api
+    container_name: coyote3_dev_api_${COYOTE3_VERSION:-local}
     image: coyote3:${COYOTE3_VERSION:-local}-dev
     build:
       context: ../..
@@ -114,11 +114,16 @@ services:
       - "/media:/media"
       - "/data:/data"
       - "/fs1:/fs1"
-    command: "python3 -m uvicorn api.app:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/coyote --reload-dir /app/api --reload-dir /app"
+    command: "python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/coyote --reload-dir /app/api --reload-dir /app"
+    depends_on:
+      coyote3_dev_mongo:
+        condition: service_started
+      redis_coyote3_dev:
+        condition: service_started
 
   # UI asset build/watch helper for development.
   coyote3_dev_tailwind:
-    container_name: coyote3_dev_tailwind
+    container_name: coyote3_dev_tailwind_${COYOTE3_VERSION:-local}
     image: node:20-alpine
     working_dir: /app
     command: >
@@ -141,7 +146,7 @@ services:
 
   # Shared infrastructure dependency.
   redis_coyote3_dev:
-    container_name: redis_coyote3_dev
+    container_name: redis_coyote3_dev_${COYOTE3_VERSION:-local}
     image: ramsainanduri/redis:7.4.3
     ports:
       - "5819:6379"
@@ -155,14 +160,10 @@ services:
     restart: unless-stopped
     privileged: true
 
-  # Optional local Mongo for dev when host Mongo is unavailable.
-  # Enable with:
-  #   ./scripts/compose-with-version.sh -f deploy/compose/docker-compose.dev.yml --profile with-mongo up -d
-  # Set FLASK_MONGO_HOST=coyote3_dev_mongo in .coyote3_dev_env when profile is used.
+  # Local Mongo for the default dev stack.
   coyote3_dev_mongo:
-    container_name: coyote3_dev_mongo
+    container_name: coyote3_dev_mongo_${COYOTE3_VERSION:-local}
     image: mongo:7.0
-    profiles: ["with-mongo"]
     command: ["--bind_ip_all"]
     ports:
       - "${COYOTE3_DEV_MONGO_PORT:-37017}:27017"
@@ -176,13 +177,8 @@ services:
 
 networks:
   coyote3-dev-net:
-    external: true
+    driver: bridge
 
 volumes:
   coyote3-node-modules:
-  # External volume prevents accidental deletion by `docker compose down -v`.
-  # Must exist before first start:
-  #   docker volume create coyote3-dev-mongo-data
   coyote3-dev-mongo-data:
-    external: true
-    name: ${COYOTE3_DEV_MONGO_VOLUME:-coyote3-dev-mongo-data}

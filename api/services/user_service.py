@@ -1,0 +1,15 @@
+"""User application service."""
+
+from __future__ import annotations
+
+from api.repositories.user_repository import UserRepository
+
+
+class UserService:
+    """Thin service layer around user lookup operations."""
+
+    def __init__(self, repository: UserRepository | None = None) -> None:
+        self.repository = repository or UserRepository()
+
+    def get_user_by_id(self, user_id: str):
+        return self.repository.get_user_by_id(user_id)

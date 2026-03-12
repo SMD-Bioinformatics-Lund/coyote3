@@ -1,0 +1,185 @@
+"""Canonical common router module."""
+
+from __future__ import annotations
+
+from copy import deepcopy
+from typing import Any
+
+from fastapi import APIRouter, Depends, Query
+
+from api.contracts.common import (
+    CommonGeneInfoPayload,
+    CommonTieredVariantContextPayload,
+    CommonTieredVariantSearchPayload,
+)
+from api.core.common.ports import CommonRepository
+from api.core.interpretation.report_summary import enrich_reported_variant_docs
+from api.extensions import store, util
+from api.http import api_error as _api_error
+from api.repositories.common_repository import CommonRepository as MongoCommonRepository
+from api.runtime import app as runtime_app
+from api.security.access import ApiUser, require_access
+
+router = APIRouter(tags=["common"])
+
+_common_repo_instance: CommonRepository | None = None
+
+if not hasattr(util, "common"):
+    util.init_util()
+
+
+def _common_repo() -> CommonRepository:
+    global _common_repo_instance
+    from api.infra.repositories import common_mongo
+
+    common_mongo.store = store
+    if _common_repo_instance is None:
+        _common_repo_instance = MongoCommonRepository()
+    return _common_repo_instance
+
+
+@router.get("/api/v1/common/gene/{gene_id}/info", response_model=CommonGeneInfoPayload)
+def common_gene_info_read(gene_id: str):
+    if gene_id.isnumeric():
+        gene = _common_repo().get_hgnc_metadata_by_id(hgnc_id=gene_id)
+    else:
+        gene = _common_repo().get_hgnc_metadata_by_symbol(symbol=gene_id)
+    return util.common.convert_to_serializable({"gene": gene})
+
+
+@router.get(
+    "/api/v1/common/reported_variants/variant/{variant_id}/{tier}",
+    response_model=CommonTieredVariantContextPayload,
+)
+def common_tiered_variant_context_read(
+    variant_id: str,
+    tier: int,
+    user: ApiUser = Depends(require_access(permission="view_gene_annotations", min_role="user", min_level=9)),
+):
+    _ = user
+    variant = _common_repo().get_variant(variant_id)
+    if not variant:
+        raise _api_error(404, "Variant not found")
+
+    csq = variant.get("INFO", {}).get("selected_CSQ", {}) or {}
+    gene = csq.get("SYMBOL")
+    simple_id = variant.get("simple_id")
+    simple_id_hash = variant.get("simple_id_hash")
+    hgvsc = csq.get("HGVSc")
+    hgvsp = csq.get("HGVSp")
+
+    or_conditions: list[dict[str, Any]] = []
+    if simple_id or simple_id_hash:
+        if simple_id_hash:
+            or_conditions.append({"simple_id_hash": simple_id_hash})
+        elif simple_id:
+            or_conditions.append({"simple_id": simple_id})
+    else:
+        if hgvsc:
+            or_conditions.append({"hgvsc": hgvsc})
+        elif hgvsp:
+            or_conditions.append({"hgvsp": hgvsp})
+
+    if not gene or not or_conditions:
+        return util.common.convert_to_serializable(
+            {
+                "variant": variant,
+                "docs": [],
+                "tier": tier,
+                "error": "Variant has insufficient identity fields",
+            }
+        )
+
+    query = {"gene": gene, "$or": or_conditions}
+    docs = _common_repo().list_reported_variants(query)
+    docs = enrich_reported_variant_docs(deepcopy(docs))
+    return util.common.convert_to_serializable({"variant": variant, "docs": docs, "tier": tier, "error": None})
+
+
+@router.get("/api/v1/common/search/tiered_variants", response_model=CommonTieredVariantSearchPayload)
+def common_tiered_variant_search_read(
+    search_str: str | None = None,
+    search_mode: str = "gene",
+    include_annotation_text: bool = False,
+    assays: list[str] | None = Query(default=None),
+    limit_entries: int | None = None,
+    user: ApiUser = Depends(require_access(permission="view_gene_annotations", min_role="user", min_level=9)),
+):
+    _ = user
+    if limit_entries is None:
+        limit_entries = runtime_app.config.get("TIERED_VARIANT_SEARCH_LIMIT", 1000)
+
+    assay_choices = _common_repo().get_all_asp_groups()
+    docs_found = _common_repo().find_variants_by_search_string(
+        search_str=search_str,
+        search_mode=search_mode,
+        include_annotation_text=include_annotation_text,
+        assays=assays,
+        limit=limit_entries,
+    )
+
+    tier_stats = {"total": {}, "by_assay": {}}
+    if search_mode != "variant" and search_str:
+        tier_stats = _common_repo().get_tier_stats_by_search(
+            search_str=search_str,
+            search_mode=search_mode,
+            include_annotation_text=include_annotation_text,
+            assays=assays,
+        )
+
+    sample_tagged_docs = []
+    associated_annotation_text_oids: set[str] = set()
+
+    for doc in docs_found:
+        merged_doc = deepcopy(doc)
+        sample_oids: dict[str, dict[str, Any]] = {}
+        reported_docs = _common_repo().list_reported_variants({"annotation_oid": doc["_id"]})
+
+        for reported_doc in reported_docs:
+            sample_oid = reported_doc.get("sample_oid")
+            report_oid = reported_doc.get("report_oid")
+            annotation_text_oid = reported_doc.get("annotation_text_oid")
+            report_id = reported_doc.get("report_id")
+            sample_doc = _common_repo().get_sample_by_oid(sample_oid)
+            sample_name = reported_doc.get("sample_name") or sample_doc.get("name") if sample_doc else None
+            report_num = next(
+                (
+                    rpt.get("report_num")
+                    for rpt in ((sample_doc.get("reports") if sample_doc else None) or [])
+                    if rpt.get("_id") == report_oid
+                ),
+                None,
+            )
+
+            if sample_oid:
+                if sample_oid not in sample_oids:
+                    sample_oids[sample_oid] = {
+                        "sample_name": sample_name if sample_name else "UNKNOWN_SAMPLE",
+                        "report_oids": {},
+                    }
+                if report_oid and report_id:
+                    report_oids = sample_oids.get(sample_oid, {}).get("report_oids", {})
+                    if report_id not in report_oids:
+                        sample_oids[sample_oid]["report_oids"][report_id] = report_num
+
+            if include_annotation_text and annotation_text_oid:
+                associated_annotation_text_oids.add(annotation_text_oid)
+                merged_doc["text"] = _common_repo().get_annotation_text_by_oid(annotation_text_oid)
+
+        merged_doc["reported_docs"] = reported_docs
+        merged_doc["samples"] = sample_oids
+
+        if merged_doc.get("_id") not in associated_annotation_text_oids:
+            sample_tagged_docs.append(merged_doc)
+
+    return util.common.convert_to_serializable(
+        {
+            "docs": sample_tagged_docs,
+            "search_str": search_str,
+            "search_mode": search_mode,
+            "include_annotation_text": include_annotation_text,
+            "tier_stats": tier_stats,
+            "assays": assays,
+            "assay_choices": assay_choices,
+        }
+    )

@@ -10,8 +10,8 @@ This manual defines the current architecture of Coyote3 as deployed and maintain
 Terminology used in this document is aligned with [GLOSSARY.md](GLOSSARY.md).
 
 ## Where To Look In Code
-- API entrypoint and wiring: `api/app.py`, `api/settings.py`, `api/extensions.py`
-- API route layer: `api/routes/`
+- API entrypoint and wiring: `api/main.py`, `api/config.py`, `api/settings.py`, `api/extensions.py`
+- API route layer: `api/routers/`
 - API contracts: `api/contracts/`
 - API domain/workflow logic: `api/core/`
 - API security: `api/security/`
@@ -101,7 +101,7 @@ The architecture intentionally avoids direct UI-to-Mongo access and direct UI-to
 ### 3.1 API layering
 The backend uses explicit layers with clear placement rules.
 
-1. `api/routes/`
+1. `api/routers/`
 - HTTP adapters only.
 - Responsibilities: parse request parameters, bind dependencies, call core functions, return typed contracts.
 - Non-responsibilities: direct workflow branching, direct Mongo queries.
@@ -174,10 +174,10 @@ Representative contract modules:
 - `api/contracts/admin.py`
 
 Representative route modules:
-- `api/routes/samples.py`
-- `api/routes/dna.py`
-- `api/routes/rna.py`
-- `api/routes/reports.py`
+- `api/routers/samples.py`
+- `api/routers/variants.py`
+- `api/routers/rna.py`
+- `api/routers/reports.py`
 
 ---
 
@@ -320,7 +320,7 @@ Route/path behavior behind reverse proxies is supported through prefix handling 
 A new domain feature should extend all relevant layers in order.
 
 1. Define/extend contract models in `api/contracts/`.
-2. Add or update route endpoint in `api/routes/`.
+2. Add or update route endpoint in `api/routers/`.
 3. Implement workflow logic in `api/core/`.
 4. Add/extend persistence handlers in `api/infra/db/`.
 5. Add audit emission if operation is security/clinical relevant.
@@ -367,10 +367,10 @@ Use this checklist before merging architecture-impacting changes:
 ---
 
 ## 15. Related Documents
-- [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)
-- [API_REFERENCE.md](API_REFERENCE.md)
+- [development/developer-guide.md](development/developer-guide.md)
+- [api/reference.md](api/reference.md)
 - [SECURITY_MODEL.md](SECURITY_MODEL.md)
 - [DATA_MODEL.md](DATA_MODEL.md)
-- [DEPLOYMENT_AND_OPERATIONS.md](DEPLOYMENT_AND_OPERATIONS.md)
-- [TESTING_STRATEGY.md](TESTING_STRATEGY.md)
-- [EXTENSION_PLAYBOOK.md](EXTENSION_PLAYBOOK.md)
+- [deployment/operations.md](deployment/operations.md)
+- [testing/strategy.md](testing/strategy.md)
+- [development/extension-playbook.md](development/extension-playbook.md)

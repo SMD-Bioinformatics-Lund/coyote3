@@ -102,7 +102,7 @@ Coyote3 is API-centric with strict ownership boundaries:
 - UI code must not import backend internals from `api/*` and must not access Mongo drivers or handlers directly.
 
 Backend structure:
-- `api/routes/` HTTP layer (FastAPI routes only)
+- `api/routers/` HTTP layer (FastAPI routers only)
 - `api/contracts/` typed request/response models
 - `api/core/` workflow and domain logic
 - `api/security/` authentication and authorization
@@ -299,7 +299,7 @@ docker compose -f deploy/compose/docker-compose.dev.yml up -d --build
 ### 9. Patient-data durability controls (mandatory)
 
 For environments storing patient data, follow:
-- [Patient Data Backup and Recovery Runbook](docs/PATIENT_DATA_BACKUP_AND_RECOVERY.md)
+- [Patient Data Backup and Recovery Runbook](docs/deployment/patient-data-backup-and-recovery.md)
 
 Bootstrap external Mongo volumes (prevents accidental deletion via compose):
 

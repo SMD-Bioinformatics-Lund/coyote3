@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import pytest
 from fastapi.testclient import TestClient
+from types import SimpleNamespace
 
 from api.app import app
-from api.routes import samples
+from api.routers import samples
 from api.security import access
 from api.security.access import ApiUser
 
@@ -32,7 +33,7 @@ def test_api_response_includes_request_id_header(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(access, "_decode_session_user", lambda _request: _user(level=9))
     monkeypatch.setattr(access, "_role_levels", lambda: {"user": 9})
     monkeypatch.setattr(
-        samples.store.groupcov_handler, "blacklist_coord", lambda *args, **kwargs: None
+        samples, "_samples_repo", lambda: SimpleNamespace(blacklist_coord=lambda *args, **kwargs: None)
     )
 
     client = TestClient(app)
@@ -55,9 +56,9 @@ def test_mutation_event_emits_request_id_user_and_target(monkeypatch: pytest.Mon
     monkeypatch.setattr(access, "_decode_session_user", lambda _request: _user(level=9))
     monkeypatch.setattr(access, "_role_levels", lambda: {"user": 9})
     monkeypatch.setattr(
-        samples.store.groupcov_handler, "blacklist_coord", lambda *args, **kwargs: None
+        samples, "_samples_repo", lambda: SimpleNamespace(blacklist_coord=lambda *args, **kwargs: None)
     )
-    monkeypatch.setattr("api.app.emit_mutation_event", _capture_mutation_event)
+    monkeypatch.setattr("api.main.emit_mutation_event", _capture_mutation_event)
 
     client = TestClient(app)
     response = client.post(

@@ -119,6 +119,7 @@ class DefaultConfig:
     API_HEALTH_PATH = os.getenv("API_HEALTH_PATH", "/api/v1/health")
     API_HEALTH_RETRIES = int(os.getenv("API_HEALTH_RETRIES", "15"))
     API_HEALTH_RETRY_INTERVAL_SECONDS = float(os.getenv("API_HEALTH_RETRY_INTERVAL_SECONDS", "1.0"))
+    INTERNAL_API_TOKEN = os.getenv("INTERNAL_API_TOKEN", "")
     API_SESSION_COOKIE_NAME = os.getenv("API_SESSION_COOKIE_NAME", "coyote3_api_session")
     API_SESSION_TTL_SECONDS = int(os.getenv("API_SESSION_TTL_SECONDS", str(12 * 60 * 60)))
     API_SESSION_SALT = os.getenv("API_SESSION_SALT", "coyote3-api-session-v1")

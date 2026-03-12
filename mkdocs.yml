@@ -16,22 +16,30 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Architecture: ARCHITECTURE_OVERVIEW.md
-  - Backend DB-Agnostic Refactor: BACKEND_DB_AGNOSTIC_REFACTOR.md
-  - Developer Guide: DEVELOPER_GUIDE.md
-  - API Reference: API_REFERENCE.md
-  - UI User Guide: UI_USER_GUIDE.md
-  - Security Model: SECURITY_MODEL.md
-  - Authentication Login Model and Stats: AUTH_LOGIN_MODEL_AND_STATS.md
-  - Patient Data Backup and Recovery: PATIENT_DATA_BACKUP_AND_RECOVERY.md
-  - Mongo Docker Dev Runtime: MONGO_DOCKER_DEV_RUNTIME.md
-  - Data Model: DATA_MODEL.md
-  - Deployment and Operations: DEPLOYMENT_AND_OPERATIONS.md
-  - Testing Strategy: TESTING_STRATEGY.md
-  - Extension Playbook: EXTENSION_PLAYBOOK.md
-  - Code Style: CODE_STYLE.md
-  - Release Process: RELEASE_PROCESS.md
-  - Troubleshooting: TROUBLESHOOTING.md
-  - API Endpoint Catalog: API_ENDPOINT_CATALOG.md
-  - Traceability Matrix: TRACEABILITY_MATRIX.md
-  - Glossary: GLOSSARY.md
+  - Architecture:
+      - Overview: ARCHITECTURE_OVERVIEW.md
+      - API Architecture: architecture/API_ARCHITECTURE.md
+      - Security Model: SECURITY_MODEL.md
+      - Data Model: DATA_MODEL.md
+      - Traceability Matrix: TRACEABILITY_MATRIX.md
+      - Glossary: GLOSSARY.md
+  - API:
+      - Reference: api/reference.md
+      - Endpoint Catalog: api/endpoint-catalog.md
+      - Auth Login Model and Stats: AUTH_LOGIN_MODEL_AND_STATS.md
+  - UI:
+      - User Guide: ui/user-guide.md
+  - Development:
+      - Developer Guide: development/developer-guide.md
+      - Route Implementation Guide: development/route-implementation-guide.md
+      - Extension Playbook: development/extension-playbook.md
+      - Code Style: development/code-style.md
+  - Deployment:
+      - Operations: deployment/operations.md
+      - Release Process: deployment/release-process.md
+      - Troubleshooting: deployment/troubleshooting.md
+      - Mongo Docker Dev Runtime: deployment/mongo-docker-dev-runtime.md
+      - Patient Data Backup and Recovery: deployment/patient-data-backup-and-recovery.md
+  - Testing:
+      - Testing Guide: testing/TESTING_GUIDE.md
+      - Testing Strategy: testing/strategy.md

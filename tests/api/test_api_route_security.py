@@ -1,4 +1,4 @@
-"""Guardrail tests for API route protection boundaries."""
+"""Guardrail tests for API router protection boundaries."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 
 
-ROUTE_RE = re.compile(r'@app\.(?:get|post|put|delete|patch)\("([^"]+)"')
+ROUTE_RE = re.compile(r'@(?:app|router)\.(?:get|post|put|delete|patch)\("([^"]+)"')
 DEF_RE = re.compile(r"^\s*def\s+")
 
 # Public and auth-bootstrap endpoints intentionally do not require user RBAC.
@@ -38,7 +38,7 @@ def _is_guarded(lines: list[str], decorator_idx: int) -> bool:
 
 
 def test_non_public_api_routes_are_guarded():
-    route_files = sorted(Path("api/routes").glob("*.py"))
+    route_files = sorted(Path("api/routers").glob("*.py"))
     unguarded: list[str] = []
 
     for py_file in route_files:

@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 from typing import Callable
+from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from api.app import app
-from api.routes import admin, reports, samples
+from api.routers import admin_resources as admin
+from api.routers import reports
+from api.routers import samples
 from api.security import access
 from api.security.access import ApiUser
 
@@ -65,7 +68,7 @@ def _setup_admin_list_aspc(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def _setup_samples_blacklist_update(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        samples.store.groupcov_handler, "blacklist_coord", lambda *args, **kwargs: None
+        samples, "_samples_repo", lambda: SimpleNamespace(blacklist_coord=lambda *args, **kwargs: None)
     )
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 

@@ -29,7 +29,7 @@
 - **Policy Category**: Grouping dimension for related permission definitions.
 
 ## 4. Architecture and Implementation Terms
-- **Route Layer**: FastAPI endpoint definitions in `api/routes/*`.
+- **Route Layer**: FastAPI endpoint definitions in `api/routers/*`.
 - **Core Layer**: Domain orchestration logic in `api/core/*`, implemented as framework-agnostic modules.
 - **Handler Layer**: MongoDB query/write interfaces in `api/infra/db/*`.
 - **Blueprint**: Flask module grouping routes and templates for a UI domain.

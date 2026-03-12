@@ -1,54 +1,69 @@
 # Coyote3 Documentation Hub
 
-## Audience
-This documentation set is intended for:
-- backend and frontend engineers
-- DevOps and platform operators
-- security and compliance reviewers
-- clinical geneticists, doctors, and bioinformatics analysts
+This documentation set is organized by concern so engineers, operators, and reviewers can start from the layer they own instead of reading a single long manual front to back.
 
-## Scope
-The documentation describes the current production design of Coyote3: architecture, API contracts, data model, UI behavior, security controls, deployment, testing policy, release governance, and extension workflows.
+## Start Here
 
-## Key Concepts
-For shared terminology, start with [GLOSSARY.md](GLOSSARY.md).
+- Architecture overview: [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md)
+- API architecture: [architecture/API_ARCHITECTURE.md](architecture/API_ARCHITECTURE.md)
+- Developer guide: [development/developer-guide.md](development/developer-guide.md)
+- Testing guide: [testing/TESTING_GUIDE.md](testing/TESTING_GUIDE.md)
+- Deployment and operations: [deployment/operations.md](deployment/operations.md)
 
-## How To Navigate
+## Architecture
+
 - System architecture and boundaries: [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md)
-- Database-agnostic backend and ports strategy: [BACKEND_DB_AGNOSTIC_REFACTOR.md](BACKEND_DB_AGNOSTIC_REFACTOR.md)
-- Developer onboarding and coding patterns: [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)
-- Route design, wiring, and test checklist: [ROUTE_IMPLEMENTATION_GUIDE.md](ROUTE_IMPLEMENTATION_GUIDE.md)
-- API usage and contracts: [API_REFERENCE.md](API_REFERENCE.md)
-- Clinical/user-facing UI behavior: [UI_USER_GUIDE.md](UI_USER_GUIDE.md)
-- Security controls and access model: [SECURITY_MODEL.md](SECURITY_MODEL.md)
-- Authentication/login runtime model and measured stats: [AUTH_LOGIN_MODEL_AND_STATS.md](AUTH_LOGIN_MODEL_AND_STATS.md)
-- Data architecture and document lifecycle: [DATA_MODEL.md](DATA_MODEL.md)
-- Deployment and operations: [DEPLOYMENT_AND_OPERATIONS.md](DEPLOYMENT_AND_OPERATIONS.md)
-- Operations verification evidence (latest): [OPERATIONS_VERIFICATION_2026-03-11.md](OPERATIONS_VERIFICATION_2026-03-11.md)
-- Dev/portable Mongo Docker runtime and snapshot workflow: [MONGO_DOCKER_DEV_RUNTIME.md](MONGO_DOCKER_DEV_RUNTIME.md)
-- Testing policy and quality gates: [TESTING_STRATEGY.md](TESTING_STRATEGY.md)
-- Safe extension workflows: [EXTENSION_PLAYBOOK.md](EXTENSION_PLAYBOOK.md)
+- API package structure and startup: [architecture/API_ARCHITECTURE.md](architecture/API_ARCHITECTURE.md)
+- Security model and RBAC: [SECURITY_MODEL.md](SECURITY_MODEL.md)
+- Data model and Mongo conventions: [DATA_MODEL.md](DATA_MODEL.md)
+- Requirement-to-control mapping: [TRACEABILITY_MATRIX.md](TRACEABILITY_MATRIX.md)
+- Shared terminology: [GLOSSARY.md](GLOSSARY.md)
 
-## Engineering Standards
-- Code and naming standards: [CODE_STYLE.md](CODE_STYLE.md)
-- Release governance: [RELEASE_PROCESS.md](RELEASE_PROCESS.md)
-- Incident diagnostics: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+## API
 
-## Supporting References
-- Route inventory: [API_ENDPOINT_CATALOG.md](API_ENDPOINT_CATALOG.md)
-- Requirement-to-test mapping: [TRACEABILITY_MATRIX.md](TRACEABILITY_MATRIX.md)
+- API reference: [api/reference.md](api/reference.md)
+- Endpoint inventory: [api/endpoint-catalog.md](api/endpoint-catalog.md)
+- Login/session model notes: [AUTH_LOGIN_MODEL_AND_STATS.md](AUTH_LOGIN_MODEL_AND_STATS.md)
 
-## Where To Look In Code
-- API HTTP layer: `api/routes/`
+## UI
+
+- User-facing workflow and page behavior: [ui/user-guide.md](ui/user-guide.md)
+
+## Development
+
+- Contributor workflow and repository map: [development/developer-guide.md](development/developer-guide.md)
+- Route and endpoint implementation rules: [development/route-implementation-guide.md](development/route-implementation-guide.md)
+- Feature extension playbook: [development/extension-playbook.md](development/extension-playbook.md)
+- Code and naming standards: [development/code-style.md](development/code-style.md)
+
+## Deployment
+
+- Operations manual: [deployment/operations.md](deployment/operations.md)
+- Release process: [deployment/release-process.md](deployment/release-process.md)
+- Troubleshooting: [deployment/troubleshooting.md](deployment/troubleshooting.md)
+- Dev and portable Mongo runtime: [deployment/mongo-docker-dev-runtime.md](deployment/mongo-docker-dev-runtime.md)
+- Backup and recovery: [deployment/patient-data-backup-and-recovery.md](deployment/patient-data-backup-and-recovery.md)
+
+## Testing
+
+- Testing command guide: [testing/TESTING_GUIDE.md](testing/TESTING_GUIDE.md)
+- Testing strategy and quality policy: [testing/strategy.md](testing/strategy.md)
+
+## Repository Map
+
+- API entrypoint: `api/main.py`
+- API HTTP layer: `api/routers/`
 - API contracts: `api/contracts/`
-- API workflows and domain logic: `api/core/`
-- API security: `api/security/`
-- API persistence and integrations: `api/infra/`
-- API audit events: `api/audit/`
-- Flask UI routes and templates: `coyote/blueprints/`
-- Flask UI API transport: `coyote/services/api_client/`
+- API services and workflows: `api/services/`, `api/core/`
+- API repositories and Mongo runtime: `api/repositories/`, `api/db/mongo/`, `api/infra/db/`
+- UI route and template layer: `coyote/blueprints/`, `coyote/templates/`
+- UI-to-API transport layer: `coyote/services/api_client/`
+- Test suites: `tests/api/`, `tests/web/`, `tests/contract/`, `tests/unit/`
 
-## Operational Implications
-- UI renders server-side templates and calls API over HTTP for business operations.
-- API is the authoritative layer for RBAC, audit logging, and MongoDB access.
-- Changes to contracts, permissions, and schema-driven configuration must be tested and documented before release.
+## Reading Order
+
+1. Read architecture docs before moving modules or changing dependency direction.
+2. Read API docs before changing endpoint behavior or response contracts.
+3. Read development docs before adding a feature or removing a layer.
+4. Read deployment docs before changing Compose files, env vars, or startup defaults.
+5. Read testing docs before removing tests or introducing new quality gates.

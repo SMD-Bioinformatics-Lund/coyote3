@@ -49,7 +49,11 @@ def forward_headers() -> dict[str, str]:
 
 
 def build_internal_headers() -> dict[str, str]:
-    token = current_app.config.get("INTERNAL_API_TOKEN") or current_app.config.get("SECRET_KEY")
+    development = str(current_app.config.get("DEVELOPMENT", "")).strip().lower() in {"1", "true", "yes", "on"}
+    testing = str(current_app.config.get("TESTING", "")).strip().lower() in {"1", "true", "yes", "on"}
+    token = current_app.config.get("INTERNAL_API_TOKEN")
+    if not token and (development or testing):
+        token = current_app.config.get("SECRET_KEY")
     headers = {"X-Requested-With": "XMLHttpRequest"}
     if token:
         headers["X-Coyote-Internal-Token"] = str(token)

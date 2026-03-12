@@ -1,3 +1,4 @@
+name: coyote3-portable
 # Portable dev stack for local/Wsl/Docker Desktop testing.
 # Usage:
 #   ./scripts/compose-with-version.sh -f deploy/compose/docker-compose.dev.portable.yml up -d --build
@@ -5,7 +6,7 @@
 
 services:
   coyote3_portable_web:
-    container_name: coyote3_portable_web
+    container_name: coyote3_portable_web_${COYOTE3_VERSION:-local}
     image: coyote3:${COYOTE3_VERSION:-local}-portable-dev
     build:
       context: ../..
@@ -14,7 +15,7 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
     ports:
-      - "6817:8000"
+      - "7817:8000"
     env_file:
       - ../../.coyote3_dev_env
     environment:
@@ -23,6 +24,9 @@ services:
       - FLASK_APP=wsgi
       - FLASK_DEBUG=1
       - REQUIRE_EXTERNAL_API=1
+      - INTERNAL_API_TOKEN=coyote3-dev-internal-token
+      - API_SESSION_SALT=coyote3-dev-session-salt
+      - API_SESSION_COOKIE_NAME=coyote3_api_session
       - API_BASE_URL=http://coyote3_portable_api:8001
       - API_BROWSER_BASE=/api
       - CACHE_ENABLED=1
@@ -61,7 +65,7 @@ services:
       - coyote3_portable_api
 
   coyote3_portable_api:
-    container_name: coyote3_portable_api
+    container_name: coyote3_portable_api_${COYOTE3_VERSION:-local}
     image: coyote3:${COYOTE3_VERSION:-local}-portable-dev
     build:
       context: ../..
@@ -70,13 +74,16 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
     ports:
-      - "6816:8001"
+      - "7816:8001"
     env_file:
       - ../../.coyote3_dev_env
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
       - REQUIRE_EXTERNAL_API=0
+      - INTERNAL_API_TOKEN=coyote3-dev-internal-token
+      - API_SESSION_SALT=coyote3-dev-session-salt
+      - API_SESSION_COOKIE_NAME=coyote3_api_session
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
       - CACHE_REDIS_URL=redis://coyote3_portable_redis:6379/0
@@ -105,7 +112,7 @@ services:
       - coyote3-portable-media:/media
       - coyote3-portable-data:/data
       - coyote3-portable-fs1:/fs1
-    command: "python3 -m uvicorn api.app:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/coyote --reload-dir /app/api --reload-dir /app"
+    command: "python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8001 --reload --reload-dir /app/coyote --reload-dir /app/api --reload-dir /app"
     depends_on:
       coyote3_portable_mongo:
         condition: service_healthy
@@ -113,11 +120,9 @@ services:
         condition: service_started
 
   coyote3_portable_mongo:
-    container_name: coyote3_portable_mongo
+    container_name: coyote3_portable_mongo_${COYOTE3_VERSION:-local}
     image: mongo:7.0
     command: ["--bind_ip_all"]
-    ports:
-      - "${COYOTE3_PORTABLE_MONGO_PORT:-37017}:27017"
     restart: unless-stopped
     networks:
       - coyote3-portable-net
@@ -135,17 +140,15 @@ services:
       start_period: 10s
 
   coyote3_portable_redis:
-    container_name: coyote3_portable_redis
+    container_name: coyote3_portable_redis_${COYOTE3_VERSION:-local}
     image: redis:7.4-alpine
-    ports:
-      - "5819:6379"
     restart: unless-stopped
     networks:
       - coyote3-portable-net
     command: ["redis-server", "--appendonly", "no"]
 
   coyote3_portable_tailwind:
-    container_name: coyote3_portable_tailwind
+    container_name: coyote3_portable_tailwind_${COYOTE3_VERSION:-local}
     image: node:20-alpine
     working_dir: /app
     command: >
@@ -171,13 +174,10 @@ services:
 
 networks:
   coyote3-portable-net:
-    name: coyote3-portable-net
     driver: bridge
 
 volumes:
   coyote3-portable-mongo-data:
-    external: true
-    name: ${COYOTE3_PORTABLE_MONGO_VOLUME:-coyote3-portable-mongo-data}
   coyote3-portable-logs:
   coyote3-portable-access:
   coyote3-portable-media:

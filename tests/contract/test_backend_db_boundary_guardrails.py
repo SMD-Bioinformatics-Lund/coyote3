@@ -10,8 +10,8 @@ from pathlib import Path
 
 BASELINE_PATH = Path("tests/contract/fixtures/backend_db_boundary_baseline.json")
 
-STORE_TARGET_DIRS = (Path("api/routes"), Path("api/core"))
-MONGO_LEAK_TARGET_DIRS = (Path("api/routes"), Path("api/core"), Path("api/domain"))
+STORE_TARGET_DIRS = (Path("api/routers"), Path("api/core"))
+MONGO_LEAK_TARGET_DIRS = (Path("api/routers"), Path("api/core"), Path("api/domain"))
 
 STORE_PATTERN = re.compile(r"\bstore\.")
 MONGO_IMPORT_PATTERN = re.compile(r"^\s*(from|import)\s+(pymongo|bson|motor|flask_pymongo)\b")
@@ -74,7 +74,7 @@ def _assert_not_above_baseline(category: str, current: dict[str, int], baseline:
 def test_store_usage_in_routes_core_does_not_increase():
     baseline = _load_baseline()["store_usage_by_file"]
     current = _count_store_usage_by_file()
-    _assert_not_above_baseline("store.* usage in api/routes+api/core", current, baseline)
+    _assert_not_above_baseline("store.* usage in api/routers+api/core", current, baseline)
 
 
 def test_mongo_specific_leaks_do_not_increase():

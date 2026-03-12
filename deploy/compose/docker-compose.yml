@@ -1,4 +1,4 @@
-version: "3.9"
+name: coyote3-prod
 # usage:
 # COYOTE3_VERSION is read from coyote/__version__.py (example):
 #   export COYOTE3_VERSION="$(python3 coyote/__version__.py)"
@@ -7,7 +7,7 @@ version: "3.9"
 services:
   # UI container: Flask/Jinja presentation layer. Calls coyote3_api over HTTP.
   coyote3_web:
-    container_name: coyote3_web
+    container_name: coyote3_web_${COYOTE3_VERSION:-local}
     image: coyote3:${COYOTE3_VERSION:-local}
     build:
       context: ../..
@@ -50,7 +50,7 @@ services:
 
   # API container: FastAPI business/policy/data layer.
   coyote3_api:
-    container_name: coyote3_api
+    container_name: coyote3_api_${COYOTE3_VERSION:-local}
     image: coyote3:${COYOTE3_VERSION:-local}
     build:
       context: ../..
@@ -83,13 +83,13 @@ services:
       - "/media:/media"
       - "/data:/data"
       - "/fs1:/fs1"
-    command: "python3 -m uvicorn api.app:app --host 0.0.0.0 --port 8001"
+    command: "python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8001"
     depends_on:
       - redis_coyote3
 
   # Shared infrastructure dependency.
   redis_coyote3:
-    container_name: redis_coyote3
+    container_name: redis_coyote3_${COYOTE3_VERSION:-local}
     image: ramsainanduri/redis:7.4.3
     ports:
       - "5817:6379"
@@ -109,7 +109,7 @@ services:
   # IMPORTANT:
   #   Set FLASK_MONGO_HOST=coyote3_mongo in .coyote3_env when using this profile.
   coyote3_mongo:
-    container_name: coyote3_mongo
+    container_name: coyote3_mongo_${COYOTE3_VERSION:-local}
     image: mongo:7.0
     profiles: ["with-mongo"]
     command: ["--bind_ip_all"]
@@ -125,12 +125,7 @@ services:
 
 networks:
   coyote3-net:
-    external: true
+    driver: bridge
 
 volumes:
-  # External volume prevents accidental deletion by `docker compose down -v`.
-  # Must exist before first start:
-  #   docker volume create coyote3-prod-mongo-data
   coyote3-prod-mongo-data:
-    external: true
-    name: ${COYOTE3_MONGO_VOLUME:-coyote3-prod-mongo-data}

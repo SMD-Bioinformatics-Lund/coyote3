@@ -319,7 +319,10 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
 
 
 def _require_internal_token(request: Request) -> None:
-    expected = get_internal_api_token(runtime_app.config)
+    try:
+        expected = get_internal_api_token(runtime_app.config)
+    except RuntimeError:
+        expected = ""
     provided = request.headers.get("X-Coyote-Internal-Token")
     if not expected or not provided or provided != expected:
         raise _api_error(403, "Forbidden")

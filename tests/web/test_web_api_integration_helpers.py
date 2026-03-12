@@ -77,12 +77,23 @@ def test_build_internal_headers_uses_internal_token_or_secret_key():
 
 def test_build_internal_headers_falls_back_to_secret_key():
     app = Flask(__name__)
+    app.config["TESTING"] = True
     app.config["SECRET_KEY"] = "fallback-secret"
 
     with app.app_context():
         headers = api_client.build_internal_headers()
 
     assert headers["X-Coyote-Internal-Token"] == "fallback-secret"
+
+
+def test_build_internal_headers_does_not_fallback_to_secret_key_in_production():
+    app = Flask(__name__)
+    app.config["SECRET_KEY"] = "fallback-secret"
+
+    with app.app_context():
+        headers = api_client.build_internal_headers()
+
+    assert "X-Coyote-Internal-Token" not in headers
 
 
 def test_endpoint_builders_normalize_paths_and_skip_empty_parts():
