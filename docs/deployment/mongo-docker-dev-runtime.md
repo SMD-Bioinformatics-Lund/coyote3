@@ -16,11 +16,12 @@ Primary goals:
 - Wrapper script: `scripts/compose-with-version.sh`
 
 ## 3. Mongo service model
-Mongo runs as a dedicated container (`mongo:7.0`) with external volume policy.
+Mongo runs as a dedicated container (`mongo:7.0`) with a stable named-volume policy.
 
-Why external volume:
-- protects data from accidental `docker compose down -v`
-- keeps data across container rebuilds/restarts
+Why stable named volumes:
+- keeps data across container rebuilds and restarts
+- avoids accidental drift to Compose-prefixed replacement volume names
+- keeps local restore and troubleshooting commands predictable
 
 Expected volume names:
 - `coyote3-dev-mongo-data`
@@ -48,8 +49,7 @@ The active container port mapping remains host-facing `37017 -> 27017` for local
 1. Ensure network/volume prerequisites.
 2. Start compose profile with Mongo.
 3. Restore approved snapshot.
-4. Run business-key migration script.
-5. Validate counts and login.
+4. Validate counts and login.
 
 Example:
 
@@ -58,29 +58,35 @@ Example:
   -f deploy/compose/docker-compose.dev.yml --profile with-mongo up -d --build
 
 /home/ram/.virtualenvs/coyote3/bin/python scripts/restore_mongo_micro_snapshot.py \
-  --mongo-uri mongodb://localhost:37017 \
-  --snapshot-dir .internal/mongo_sample_linked_snapshot \
-  --drop
-
-/home/ram/.virtualenvs/coyote3/bin/python scripts/backfill_business_keys.py \
-  --mongo-uri mongodb://localhost:37017 \
-  --db coyote_dev_3 \
-  --db coyote3
+  --snapshot-dir .internal/mongo_micro_snapshot \
+  --target dev \
+  --drop-db \
+  --db-map coyote3=coyote_dev_3
 ```
 
-Why this extra step is mandatory:
-- restored snapshots may contain older document shapes (`*_beta2`, alternate collection aliases, missing business key fields)
-- strict backend mode now expects canonical key fields for identity reads/writes in migrated bounded contexts
-- running backfill keeps dev/prod-like environments behaviorally identical
+Current restore behavior:
+- restores into the dev Docker Mongo endpoint at `mongodb://localhost:37017`
+- drops and recreates target DB contents when `--drop-db` is used
+- remaps source DB names such as `coyote3 -> coyote_dev_3`
+- remaps collection names using `config/coyote3_collections.toml`
+- backfills required business-key fields automatically after restore
+
+Why the built-in backfill matters:
+- restored snapshots may contain older document shapes such as `*_beta2` aliases or missing business-key fields
+- backend identity and authorization code expects canonical key fields to exist after restore
+- automatic backfill keeps dev restores usable without a second manual repair step
 
 ## 6. Snapshot sources
 Current restore tooling supports curated snapshot directories under `.internal/`.
 
 Common examples:
 - `.internal/mongo_micro_snapshot`
-- `.internal/mongo_sample_linked_snapshot`
 
-Use linked snapshot for realistic cross-collection test data (users, samples, variants, metadata).
+Snapshot extraction behavior for `.internal/mongo_micro_snapshot`:
+- reads collections from `config/coyote3_collections.toml`
+- exports the latest 10 samples per assay from `samples`
+- exports only docs linked by `SAMPLE_ID` for sample-dependent collections
+- exports whole collections for collections without `SAMPLE_ID`
 
 ## 7. Keeping `coyote3` and `coyote_dev_3` aligned
 When both DB names are used during migration/testing, keep data synchronized.
@@ -88,7 +94,7 @@ When both DB names are used during migration/testing, keep data synchronized.
 Recommended operator script pattern:
 - source DB: `coyote3`
 - target DB: `coyote_dev_3`
-- copy all collections after dropping target collections
+- restore with `--db-map coyote3=coyote_dev_3 --drop-db`
 
 Validation query (example):
 
@@ -129,3 +135,4 @@ After startup/restore:
 3. login succeeds for approved local user.
 4. `/api/v1/home/samples` returns expected snapshot data.
 5. dashboard/public routes render without repeated 401 loops.
+6. restored users have `user_id` populated and restored samples have `sample_id` populated.

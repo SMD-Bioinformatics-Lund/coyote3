@@ -178,6 +178,7 @@ networks:
 
 volumes:
   coyote3-portable-mongo-data:
+    name: coyote3-portable-mongo-data
   coyote3-portable-logs:
   coyote3-portable-access:
   coyote3-portable-media:

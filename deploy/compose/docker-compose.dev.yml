@@ -182,3 +182,4 @@ networks:
 volumes:
   coyote3-node-modules:
   coyote3-dev-mongo-data:
+    name: coyote3-dev-mongo-data

@@ -9,7 +9,7 @@ Output format:
     <db_name>/<collection>.indexes.ndjson
 
 Sample-driven export behavior:
-  - Select latest N sample docs from the "samples" collection (--sample-limit).
+  - Select latest N sample docs per assay from the "samples" collection (--sample-limit).
   - For any other collection that contains SAMPLE_ID, export all docs for selected sample IDs.
   - For collections without SAMPLE_ID, export full data.
 
@@ -33,6 +33,12 @@ except ModuleNotFoundError:  # pragma: no cover
 from bson import json_util
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
+
+"""
+python scripts/create_mongo_micro_snapshot.py --mongo-uri "mongodb://172.17.0.1:27017" --db coyote3 --db BAM_Service --out .internal/mongo_micro_snapshot
+"""
+
+
 
 
 DEFAULT_COLLECTIONS_TOML = Path("config/coyote3_collections.toml")
@@ -75,7 +81,7 @@ def parse_args() -> SnapshotConfig:
         "--sample-limit",
         type=int,
         default=10,
-        help="Number of latest sample docs to include from samples collection (default: 10)",
+        help="Number of latest sample docs to include per assay from samples collection (default: 10)",
     )
     parser.add_argument(
         "--full-collection",
@@ -151,6 +157,43 @@ def choose_sample_sort(coll) -> List[Tuple[str, int]]:
     return [("_id", -1)]
 
 
+def get_sample_assays(coll) -> List[Any]:
+    try:
+        values = list(coll.distinct("assay", {"assay": {"$exists": True, "$ne": None}}))
+    except Exception:
+        values = []
+    return sorted((value for value in values if value not in ("", None)), key=lambda value: str(value).lower())
+
+
+def select_latest_samples_per_assay(coll, sample_limit: int) -> Tuple[List[Dict[str, Any]], int]:
+    sample_sort = choose_sample_sort(coll)
+    assay_values = get_sample_assays(coll)
+    selected_samples: List[Dict[str, Any]] = []
+
+    if not assay_values:
+        try:
+            selected_samples = list(coll.find({}, sort=sample_sort, limit=sample_limit))
+        except Exception:
+            selected_samples = list(coll.find({}).sort(sample_sort).limit(sample_limit))
+        unique_sample_ids = {
+            str(doc.get("_id")) for doc in selected_samples if doc.get("_id") is not None
+        }
+        return selected_samples, len(unique_sample_ids)
+
+    for assay in assay_values:
+        query = {"assay": assay}
+        try:
+            docs = list(coll.find(query, sort=sample_sort, limit=sample_limit))
+        except Exception:
+            docs = list(coll.find(query).sort(sample_sort).limit(sample_limit))
+        selected_samples.extend(docs)
+
+    unique_sample_ids = {
+        str(doc.get("_id")) for doc in selected_samples if doc.get("_id") is not None
+    }
+    return selected_samples, len(unique_sample_ids)
+
+
 def has_sample_id_field(coll) -> bool:
     try:
         return coll.find_one({"SAMPLE_ID": {"$exists": True}}, {"_id": 1}) is not None
@@ -190,19 +233,17 @@ def main() -> int:
 
         if sample_collection:
             sc = db[sample_collection]
-            sample_sort = choose_sample_sort(sc)
-            try:
-                selected_samples = list(sc.find({}, sort=sample_sort, limit=cfg.sample_limit))
-            except Exception:
-                selected_samples = list(sc.find({}).sort(sample_sort).limit(cfg.sample_limit))
+            selected_samples, sample_id_count = select_latest_samples_per_assay(sc, cfg.sample_limit)
             for sample_doc in selected_samples:
                 sample_oid = sample_doc.get("_id")
                 if sample_oid is None:
                     continue
                 sample_id_values.append(sample_oid)
                 sample_id_values.append(str(sample_oid))
-            sample_id_count = len({str(doc.get("_id")) for doc in selected_samples if doc.get("_id") is not None})
-            print(f"[ok] {db_name}.{sample_collection}: selected {len(selected_samples)} latest samples")
+            print(
+                f"[ok] {db_name}.{sample_collection}: selected {len(selected_samples)} samples "
+                f"({cfg.sample_limit} per assay)"
+            )
         else:
             print(f"[warn] {db_name}: no sample collection detected, SAMPLE_ID filtering disabled", file=sys.stderr)
         for coll in collections:
@@ -211,7 +252,7 @@ def main() -> int:
             try:
                 if coll == sample_collection:
                     docs = selected_samples
-                    export_mode = f"samples_latest:{cfg.sample_limit}"
+                    export_mode = f"samples_latest_per_assay:{cfg.sample_limit}"
                 elif is_full:
                     docs = list(c.find({}, sort=[("_id", 1)]))
                     export_mode = "full:forced"
@@ -224,7 +265,7 @@ def main() -> int:
             except Exception:
                 if coll == sample_collection:
                     docs = selected_samples
-                    export_mode = f"samples_latest:{cfg.sample_limit}"
+                    export_mode = f"samples_latest_per_assay:{cfg.sample_limit}"
                 elif is_full:
                     docs = list(c.find({}))
                     export_mode = "full:forced"
@@ -259,6 +300,7 @@ def main() -> int:
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "mongo_uri": sanitize_uri(cfg.mongo_uri),
         "sample_limit": cfg.sample_limit,
+        "sample_limit_semantics": "per_assay",
         "full_collections": sorted(cfg.full_collections),
         "dbs": exported,
     }

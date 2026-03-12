@@ -8,20 +8,69 @@ for Docker Mongo containers exposed on a URI without requiring mongoimport.
 
 import argparse
 import json
+import os
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+try:
+    import tomllib  # py312
+except ModuleNotFoundError:  # pragma: no cover
+    import tomli as tomllib  # type: ignore
+
 from bson import json_util
 from pymongo import MongoClient
-from pymongo.errors import PyMongoError
+from pymongo.errors import OperationFailure, PyMongoError
+
+
+"""
+/home/ram/.virtualenvs/coyote3/bin/python scripts/restore_mongo_micro_snapshot.py \
+  --snapshot-dir .internal/mongo_micro_snapshot \
+  --target dev \
+  --drop-db \
+  --db-map coyote3=coyote_dev_3
+"""
+
+
+DEFAULT_COLLECTIONS_TOML = Path("config/coyote3_collections.toml")
+
+
+@dataclass(frozen=True)
+class Rule:
+    collection_names: tuple[str, ...]
+    key_field: str
+
+
+RULES: tuple[Rule, ...] = (
+    Rule(("users", "users_beta2"), "user_id"),
+    Rule(("roles", "roles_beta2"), "role_id"),
+    Rule(("permissions", "permissions_beta2"), "permission_id"),
+    Rule(("schemas", "schemas_beta2"), "schema_id"),
+    Rule(("assay_specific_panels",), "asp_id"),
+    Rule(("asp_configs",), "aspc_id"),
+    Rule(("insilico_genelists", "insilico_genelists_beta2", "insilico_genelist_beta2"), "isgl_id"),
+    Rule(("samples",), "sample_id"),
+    Rule(("variants",), "variant_id"),
+    Rule(("cnvs", "cnvs_wgs"), "cnv_id"),
+    Rule(("translocations", "transloc"), "transloc_id"),
+    Rule(("fusions",), "fusion_id"),
+    Rule(("annotation",), "annotation_id"),
+    Rule(("reported_variants",), "reported_variant_id"),
+    Rule(("group_coverage",), "group_region_id"),
+    Rule(("blacklist",), "blacklist_entry_id"),
+    Rule(("biomarkers",), "biomarker_id"),
+    Rule(("rna_expression",), "rna_expression_id"),
+    Rule(("rna_classification",), "rna_classification_id"),
+    Rule(("rna_qc",), "rna_qc_id"),
+)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Restore Coyote3 Mongo micro snapshot.")
     parser.add_argument(
         "--mongo-uri",
-        default="mongodb://localhost:27017",
-        help="Mongo URI to restore into (default: mongodb://localhost:27017)",
+        default=os.getenv("COYOTE3_RESTORE_MONGO_URI", "mongodb://localhost:37017"),
+        help="Mongo URI to restore into (default: env COYOTE3_RESTORE_MONGO_URI or mongodb://localhost:37017)",
     )
     parser.add_argument(
         "--snapshot-dir",
@@ -32,6 +81,28 @@ def parse_args() -> argparse.Namespace:
         "--drop",
         action="store_true",
         help="Drop target collections before restore",
+    )
+    parser.add_argument(
+        "--drop-db",
+        action="store_true",
+        help="Drop each target database before restoring collections",
+    )
+    parser.add_argument(
+        "--target",
+        choices=("dev", "portable", "custom"),
+        default="dev",
+        help="Restore target preset (default: dev)",
+    )
+    parser.add_argument(
+        "--db-map",
+        action="append",
+        default=[],
+        help="Map source DB to target DB, e.g. --db-map coyote3=coyote_dev_3",
+    )
+    parser.add_argument(
+        "--collections-toml",
+        default=str(DEFAULT_COLLECTIONS_TOML),
+        help=f"Path to collections TOML for collection-name remapping (default: {DEFAULT_COLLECTIONS_TOML})",
     )
     return parser.parse_args()
 
@@ -88,8 +159,151 @@ def restore_indexes(coll, index_rows: list[dict[str, Any]]) -> None:
             )
 
 
+def resolve_mongo_uri(args: argparse.Namespace) -> str:
+    if args.target == "portable":
+        return os.getenv("COYOTE3_PORTABLE_RESTORE_MONGO_URI", "mongodb://localhost:47017")
+    if args.target == "custom":
+        return str(args.mongo_uri)
+    return str(args.mongo_uri)
+
+
+def load_collections_map(path: Path) -> dict[str, dict[str, str]]:
+    if not path.exists():
+        raise FileNotFoundError(f"Collections config not found: {path}")
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    out: dict[str, dict[str, str]] = {}
+    for db_name, mapping in data.items():
+        if isinstance(mapping, dict):
+            out[str(db_name)] = {
+                str(alias): str(coll_name)
+                for alias, coll_name in mapping.items()
+                if str(alias).strip() and str(coll_name).strip()
+            }
+    return out
+
+
+def parse_db_map(rows: list[str]) -> dict[str, str]:
+    mapping: dict[str, str] = {}
+    for row in rows or []:
+        if "=" not in str(row):
+            raise ValueError(f"Invalid --db-map entry: {row!r}")
+        source, target = str(row).split("=", 1)
+        source = source.strip()
+        target = target.strip()
+        if not source or not target:
+            raise ValueError(f"Invalid --db-map entry: {row!r}")
+        mapping[source] = target
+    return mapping
+
+
+def reverse_collection_map(mapping: dict[str, str]) -> dict[str, str]:
+    return {collection: alias for alias, collection in mapping.items()}
+
+
+def resolve_target_collection_name(
+    *,
+    source_db: str,
+    source_collection: str,
+    target_db: str,
+    collections_by_db: dict[str, dict[str, str]],
+) -> str:
+    if source_db == target_db:
+        return source_collection
+
+    source_mapping = collections_by_db.get(source_db) or {}
+    target_mapping = collections_by_db.get(target_db) or {}
+    source_reverse = reverse_collection_map(source_mapping)
+    alias = source_reverse.get(source_collection)
+    if alias and alias in target_mapping:
+        return target_mapping[alias]
+    return source_collection
+
+
+def _normalize(value: Any, lowercase: bool = False) -> str | None:
+    if value is None:
+        return None
+    normalized = str(value).strip()
+    if lowercase:
+        normalized = normalized.lower()
+    return normalized or None
+
+
+def _resolve_business_key(doc: dict[str, Any], key_field: str) -> str | None:
+    lower = key_field in {"role_id"}
+    existing = _normalize(doc.get(key_field), lowercase=lower)
+    if existing:
+        return existing
+    for src in ("_id", "username", "email", "name", "permission_name", "schema_name", "assay_name"):
+        candidate = _normalize(doc.get(src), lowercase=lower)
+        if candidate:
+            return candidate
+    return None
+
+
+def _backfill_collection_keys(col, key_field: str) -> tuple[int, int, int]:
+    scanned = 0
+    updated = 0
+    failed = 0
+    projection = {
+        "_id": 1,
+        key_field: 1,
+        "username": 1,
+        "email": 1,
+        "name": 1,
+        "permission_name": 1,
+        "schema_name": 1,
+        "assay_name": 1,
+    }
+    for doc in col.find({}, projection):
+        scanned += 1
+        target = _resolve_business_key(doc, key_field)
+        if not target:
+            continue
+        current = _normalize(doc.get(key_field), lowercase=(key_field == "role_id"))
+        if current == target:
+            continue
+        try:
+            result = col.update_one({"_id": doc.get("_id")}, {"$set": {key_field: target}})
+            if result.modified_count:
+                updated += 1
+        except PyMongoError:
+            failed += 1
+    return scanned, updated, failed
+
+
+def _ensure_business_key_index(col, key_field: str) -> str:
+    index_name = f"{key_field}_1"
+    try:
+        col.create_index(
+            [(key_field, 1)],
+            name=index_name,
+            unique=True,
+            background=True,
+            partialFilterExpression={key_field: {"$exists": True, "$type": "string"}},
+        )
+    except OperationFailure as exc:
+        if getattr(exc, "code", None) != 85:
+            raise
+    return index_name
+
+
+def backfill_business_keys_for_db(db) -> None:
+    existing = set(db.list_collection_names())
+    for rule in RULES:
+        target_cols = [c for c in rule.collection_names if c in existing]
+        for target_col in target_cols:
+            col = db[target_col]
+            scanned, updated, failed = _backfill_collection_keys(col, rule.key_field)
+            index_name = _ensure_business_key_index(col, rule.key_field)
+            print(
+                f"[ok] backfilled {db.name}.{target_col}: key={rule.key_field} "
+                f"scanned={scanned} updated={updated} failed={failed} index={index_name}"
+            )
+
+
 def main() -> int:
     args = parse_args()
+    mongo_uri = resolve_mongo_uri(args)
     root = Path(args.snapshot_dir)
     manifest_file = root / "manifest.json"
     if not manifest_file.exists():
@@ -103,16 +317,39 @@ def main() -> int:
         return 3
 
     try:
-        client = MongoClient(args.mongo_uri, serverSelectionTimeoutMS=7000)
+        db_map = parse_db_map(args.db_map)
+        collections_by_db = load_collections_map(Path(args.collections_toml))
+    except Exception as exc:
+        print(f"[error] restore configuration failed: {exc}")
+        return 3
+
+    try:
+        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=7000)
         client.admin.command("ping")
     except PyMongoError as exc:
         print(f"[error] Mongo connection failed: {exc}")
         return 4
 
-    for db_name, collections in dbs.items():
-        db = client[db_name]
-        for coll_name, meta in (collections or {}).items():
-            coll = db[coll_name]
+    dropped_dbs: set[str] = set()
+    touched_target_dbs: set[str] = set()
+    for source_db_name, collections in dbs.items():
+        target_db_name = db_map.get(source_db_name, source_db_name)
+        db = client[target_db_name]
+        touched_target_dbs.add(target_db_name)
+        if args.drop_db:
+            if target_db_name not in dropped_dbs:
+                client.drop_database(target_db_name)
+                dropped_dbs.add(target_db_name)
+                db = client[target_db_name]
+                print(f"[ok] dropped database {target_db_name}")
+        for source_coll_name, meta in (collections or {}).items():
+            target_coll_name = resolve_target_collection_name(
+                source_db=source_db_name,
+                source_collection=source_coll_name,
+                target_db=target_db_name,
+                collections_by_db=collections_by_db,
+            )
+            coll = db[target_coll_name]
             docs_file = root / meta["docs_file"]
             idx_file = root / meta["indexes_file"]
             docs = read_ndjson(docs_file)
@@ -120,12 +357,18 @@ def main() -> int:
 
             if args.drop:
                 coll.drop()
-                coll = db[coll_name]
+                coll = db[target_coll_name]
 
             if docs:
                 coll.insert_many(docs, ordered=False)
             restore_indexes(coll, indexes)
-            print(f"[ok] restored {db_name}.{coll_name}: {len(docs)} docs")
+            print(
+                f"[ok] restored {source_db_name}.{source_coll_name} "
+                f"-> {target_db_name}.{target_coll_name}: {len(docs)} docs"
+            )
+
+    for target_db_name in sorted(touched_target_dbs):
+        backfill_business_keys_for_db(client[target_db_name])
 
     print("[done] restore complete")
     return 0

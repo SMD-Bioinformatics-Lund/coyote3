@@ -79,7 +79,12 @@ Coyote3 is developed and maintained by the bioinformaticians at **Section for Mo
 
 ## Architecture
 
-Coyote3 is built using Python’s **Flask** web framework and structured with a **modular blueprint-based architecture**.
+Coyote3 is a monorepo with two runtime applications:
+
+- `api/`: FastAPI backend
+- `coyote/`: Flask UI
+
+The API is the authoritative backend contract. The UI consumes that contract over HTTP.
 
 | Layer            | Technology / Pattern                            |
 |------------------|--------------------------------------------------|
@@ -104,7 +109,9 @@ Coyote3 is API-centric with strict ownership boundaries:
 Backend structure:
 - `api/routers/` HTTP layer (FastAPI routers only)
 - `api/contracts/` typed request/response models
-- `api/core/` workflow and domain logic
+- `api/core/` and `api/services/` workflow and domain logic
+- `api/repositories/` repository-facing adapters
+- `api/db/mongo/` Mongo runtime bootstrap and shared setup
 - `api/security/` authentication and authorization
 - `api/infra/db/` MongoDB repositories/handlers
 - `api/infra/external/` external integrations (LDAP, annotation providers)
@@ -128,11 +135,23 @@ PYTHONPATH=. .venv/bin/pytest -q -m contract
 PYTHONPATH=. .venv/bin/pytest -q -m unit
 PYTHONPATH=. .venv/bin/pytest -q -m api
 PYTHONPATH=. .venv/bin/pytest -q -m web
+PYTHONPATH=. .venv/bin/pytest -q
 ```
 
 CI parity:
 - `.github/workflows/quality.yml` runs the same lint/format checks and marker-based test suites.
 - `.pre-commit-config.yaml` runs quick `unit`, `web`, `api` smoke, and `contract` pytest hooks locally.
+
+Directory mapping:
+- `tests/ui/` carries the `web` marker.
+- `tests/integration/` carries the `contract` marker.
+
+Detailed documentation:
+- [docs/index.md](docs/index.md)
+- [docs/ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md)
+- [docs/architecture/repository-structure.md](docs/architecture/repository-structure.md)
+- [docs/development/developer-guide.md](docs/development/developer-guide.md)
+- [docs/development/maintenance-guide.md](docs/development/maintenance-guide.md)
 
 ---
 
@@ -270,10 +289,19 @@ Restore the micro snapshot into Docker Mongo:
 
 ```bash
 /home/ram/.virtualenvs/coyote3/bin/python scripts/restore_mongo_micro_snapshot.py \
-  --mongo-uri mongodb://localhost:37017 \
   --snapshot-dir .internal/mongo_micro_snapshot \
-  --drop
+  --target dev \
+  --drop-db \
+  --db-map coyote3=coyote_dev_3
 ```
+
+Current restore behavior:
+
+- restores into the dev Docker Mongo endpoint at `mongodb://localhost:37017`
+- remaps source DB names when needed, for example `coyote3 -> coyote_dev_3`
+- remaps collection names through `config/coyote3_collections.toml`
+- backfills required business-key fields automatically after restore
+- supports the stable dev Mongo volume `coyote3-dev-mongo-data`
 
 Stop portable stack:
 
