@@ -13,7 +13,7 @@ import json
 import os
 import subprocess
 from copy import deepcopy
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from hashlib import md5
 from pathlib import Path
 from typing import Any, Dict, Tuple
@@ -637,18 +637,22 @@ class CommonUtility:
         Returns:
             list | dict | str | Any: The input data structure with all `ObjectId` and `datetime` instances converted to serializable strings.
         """
-        if isinstance(data, list):
-            return [CommonUtility.convert_to_serializable(item) for item in data]
-        elif isinstance(data, dict):
-            return {
-                key: CommonUtility.convert_to_serializable(value) for key, value in data.items()
-            }
-        elif isinstance(data, ObjectId):
+        if isinstance(data, ObjectId):
             return str(data)
-        elif isinstance(data, datetime):
+
+        if isinstance(data, (datetime, date)):
             return data.isoformat()
-        else:
-            return data
+
+        if isinstance(data, dict):
+            return {
+                CommonUtility.convert_to_serializable(k): CommonUtility.convert_to_serializable(v)
+                for k, v in data.items()
+            }
+
+        if isinstance(data, (list, tuple, set)):
+            return [CommonUtility.convert_to_serializable(item) for item in data]
+
+        return data
 
     @staticmethod
     def dict_to_tuple(d: Dict) -> Tuple:
