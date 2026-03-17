@@ -59,6 +59,7 @@ The repository is built around these structural rules:
 - [Developer Guide](development/developer-guide.md)
 - [Maintenance Guide](development/maintenance-guide.md)
 - [Route Implementation Guide](development/route-implementation-guide.md)
+- [UI URL To Backend Process Flow](development/ui-api-request-flow.md)
 - [Extension Playbook](development/extension-playbook.md)
 - [Code Style](development/code-style.md)
 

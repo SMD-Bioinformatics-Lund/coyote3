@@ -36,6 +36,9 @@ If we later add a non-Mongo provider, we implement new adapters behind existing 
 6. Repository adapter calls Mongo handlers in `api/infra/db/*`.
 7. Response is serialized and returned to UI template.
 
+For concrete route-level examples (page render, mutation, CSV export, report preview/save, report file download), see:
+- `docs/development/ui-api-request-flow.md`
+
 ## Route categories
 1. UI routes: Flask endpoints that render templates or redirect.
 2. API routes: FastAPI endpoints under `/api/v1/*` that enforce contracts.
