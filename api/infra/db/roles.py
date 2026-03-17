@@ -129,7 +129,7 @@ class RolesHandler(BaseHandler):
             for role in self.get_collection().find({"is_active": True}, {"_id": 1, "role_id": 1})
         ]
 
-    def get_role_colors(self) -> list:
+    def get_role_colors(self) -> dict[str, str]:
         """
         Retrieve all role colors.
 
@@ -138,11 +138,13 @@ class RolesHandler(BaseHandler):
         Returns:
             list: A list of role colors.
         """
-        roles = self.get_collection().find({}, {"color": 1})
+        roles = self.get_collection().find({}, {"role_id": 1, "color": 1})
         roles_colors = {}
         for role in roles:
             role_key = role.get("role_id")
-            roles_colors[role_key] = role["color"]
+            if not role_key:
+                continue
+            roles_colors[str(role_key)] = str(role.get("color", "gray"))
         return roles_colors
 
     def create_role(self, role_data: dict) -> Any:

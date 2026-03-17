@@ -198,14 +198,8 @@ _ADMIN_CARDS: list[dict[str, Any]] = [
 ]
 
 
-@admin_bp.route("/")
-@login_required
-def admin_home() -> Any:
-    """Render the admin landing page and available governance cards.
-
-    Returns:
-        The rendered admin landing page response.
-    """
+def build_admin_cards() -> list[dict[str, Any]]:
+    """Build the canonical admin navigation cards with endpoint availability metadata."""
     registered = set(current_app.view_functions.keys())
     cards: list[dict[str, Any]] = []
     for item in _ADMIN_CARDS:
@@ -215,4 +209,21 @@ def admin_home() -> Any:
         card["available"] = is_available
         card["url"] = url_for(endpoint) if is_available else "#"
         cards.append(card)
-    return render_template("admin_home.html", cards=cards)
+    return cards
+
+
+@admin_bp.app_context_processor
+def inject_admin_navigation_cards() -> dict[str, Any]:
+    """Expose canonical admin navigation cards to admin templates."""
+    return {"admin_navigation_cards": build_admin_cards()}
+
+
+@admin_bp.route("/")
+@login_required
+def admin_home() -> Any:
+    """Render the admin landing page and available governance cards.
+
+    Returns:
+        The rendered admin landing page response.
+    """
+    return render_template("admin_home.html", cards=build_admin_cards())

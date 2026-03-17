@@ -1,6 +1,5 @@
 <!-- admin_sidebar.html -->
-{% set cards = [] %}
-{% include "partials/admin_links_data.jinja" %}
+{% set cards = admin_navigation_cards or [] %}
 
 <aside id="adminSidebar" class="flex-col w-56 bg-indigo-50 shadow-lg p-4 space-y-3 border-r border-indigo-300 flex shrink-0 overflow-y-auto">
 

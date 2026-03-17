@@ -61,7 +61,7 @@ def list_isgls(sample_id: str) -> Response:
             api_endpoints.home_sample(sample_id, "isgls"),
             headers=forward_headers(),
         )
-        return jsonify({"items": payload.items})
+        return jsonify({"items": payload.get("items", [])})
     except ApiRequestError as exc:
         log_api_error(
             exc,
@@ -88,8 +88,8 @@ def get_effective_genes_all(sample_id: str) -> Response:
         )
         return jsonify(
             {
-                "items": payload.items,
-                "asp_covered_genes_count": payload.asp_covered_genes_count,
+                "items": payload.get("items", []),
+                "asp_covered_genes_count": payload.get("asp_covered_genes_count", 0),
             }
         )
     except ApiRequestError as exc:

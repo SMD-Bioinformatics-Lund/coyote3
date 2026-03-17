@@ -322,7 +322,7 @@
               {% for n in isgl_names %}
                 {% if n|isgl_adhoc_status %}
                   <span class="px-2 py-1 rounded-full border bg-orange-100 border-orange-200 text-xs font-medium hover:shadow-md transition">
-                    {{ n|isgl_display_name }} <i>( Ad Hoc )</i>
+                    {{ n|isgl_display_name }} <i>(adhoc)</i>
                   </span>
                 {% else %}
                   <span class="px-2 py-1 rounded-full border bg-teal-100 border-teal-200 text-xs font-medium hover:shadow-md transition">
@@ -753,10 +753,7 @@
                         <input type="checkbox" class="selRow" value="${it._id}" ${appliedISGLs.includes(it._id) ? 'checked' : ''}>
                       </td>
                       <td class="px-3 py-2">
-                        ${it.label || it.name || 'Unnamed'}
-                        ${it.adhoc
-                          ? '<span class="ml-2 px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-800 text-xs border border-orange-200">AdHoc</span>'
-                          : ''}
+                        ${(it.label || it.name || 'Unnamed')}${it.adhoc ? ' (adhoc)' : ''}
                       </td>
                       <td class="px-3 py-2">${it.version ?? '—'}</td>
                       <td class="px-3 py-2">${it.gene_count ?? 0}</td>
