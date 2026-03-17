@@ -36,6 +36,60 @@ If baseline checks show broad service outage, prioritize recovery and rollback w
 
 ---
 
+## 3. Report Preview/Save Fails: Missing `assay_config.reporting.report_path`
+
+### 3.1 Typical symptom
+- API error log includes:
+  - `[contract:report] sample=<sample_name> Missing assay_config.reporting.report_path`
+- UI actions `Preview report` or report save fail for the sample.
+
+### 3.2 Root cause
+- Active ASPC documents in `asp_configs` are missing canonical `reporting.report_path`.
+- Legacy `report_folder` values can exist, but report workflows require explicit `reporting.report_path`.
+
+### 3.3 Verify affected configs
+```bash
+docker exec coyote3_dev_mongo_local mongosh --quiet --eval '
+const col=db.getSiblingDB("coyote_dev_3").getCollection("asp_configs");
+const bad=col.find(
+  {is_active:true,$or:[
+    {"reporting.report_path":{$exists:false}},
+    {"reporting.report_path":null},
+    {"reporting.report_path":""}
+  ]},
+  {aspc_id:1,report_folder:1,asp_group:1}
+).toArray();
+print("missing_count="+bad.length);
+bad.forEach(d=>printjson(d));
+'
+```
+
+### 3.4 Remediate ASPC records
+```bash
+docker exec coyote3_dev_mongo_local mongosh --quiet --eval '
+const col=db.getSiblingDB("coyote_dev_3").getCollection("asp_configs");
+col.updateMany(
+  {is_active:true},
+  [{
+    $set:{
+      "reporting.report_path":{
+        $ifNull:[
+          "$reporting.report_path",
+          {$ifNull:["$report_folder","$asp_group"]}
+        ]
+      }
+    }
+  }]
+);
+'
+```
+
+### 3.5 Keep admin schema aligned
+- Ensure `schemas_beta2` (`DNA-ASP-Config`, `RNA-ASP-Config`) uses `report_path` in `sections.reporting` and `fields.report_path`.
+- Remove legacy `report_folder` from reporting section definitions to prevent future drift.
+
+---
+
 ## 3. MongoDB 3.4 Compatibility Issues
 MongoDB 3.4 compatibility is an active constraint in Coyote3. Some failures occur when code or scripts assume newer Mongo features.
 
@@ -414,6 +468,19 @@ Expected healthy signature:
 - `totalDocsExamined` is bounded by sample-specific cardinality, not full collection size.
 - route latency is in sub-second to low-hundreds-millisecond range for typical samples.
 
+### 12.3.2 Coverage route slow-path checklist
+Use this path when `/api/v1/coverage/samples/{sample_id}` is slow even after basic index checks.
+
+1. confirm API timing around `CoverageService.sample_payload`.
+2. verify `coverage2` has `sample_id_1` (`{"SAMPLE_ID": 1}`).
+3. verify `groupcov` has `group_gene_region_coord_1` (`{"group": 1, "gene": 1, "region": 1, "coord": 1}`).
+4. inspect for N+1 blacklist lookups in coverage processing code paths.
+
+Expected healthy signature:
+- one blacklist fetch per assay group (not per gene/region).
+- stable latency as covered genes/regions increase.
+- no repeated Mongo `find_one` calls inside per-region loops.
+
 ### 12.4 Remediation actions
 - add/adjust indexes based on observed query path
 - enforce pagination limits
@@ -425,6 +492,30 @@ Expected healthy signature:
 ### 12.5 Prevention
 - include performance checks on high-volume routes in release validation
 - monitor route-family latency trends continuously
+
+### 12.6 Data-shape runtime errors (`selected_CSQ.Consequence`)
+Symptom example:
+- `TypeError: unhashable type: 'list'` in small-variant context route handlers.
+
+Root cause:
+- code path assumes a scalar consequence while stored documents may hold list-shaped consequences.
+
+Remediation:
+1. normalize `selected_CSQ.Consequence` to list/set form in service layer before comparisons.
+2. avoid direct set membership checks on raw untyped values from Mongo.
+3. keep compatibility with both legacy string and current list storage patterns.
+4. when needed, run the normalization utility against variants collection:
+
+```bash
+python scripts/normalize_selected_csq_consequence.py \
+  --mongo-uri "mongodb://localhost:27017" \
+  --db coyote3
+
+python scripts/normalize_selected_csq_consequence.py \
+  --mongo-uri "mongodb://localhost:27017" \
+  --db coyote3 \
+  --apply
+```
 
 ---
 

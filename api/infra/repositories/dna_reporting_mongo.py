@@ -33,16 +33,16 @@ class MongoDNAReportingRepository:
         """
         return list(store.isgl_handler.get_isgl_by_asp(assay, is_active=is_active) or [])
 
-    def get_isgl_by_ids(self, genelists: list[str]) -> list[dict[str, Any]]:
+    def get_isgl_by_ids(self, genelists: list[str]) -> dict[str, Any]:
         """Return isgl by ids.
 
         Args:
             genelists (list[str]): Value for ``genelists``.
 
         Returns:
-            list[dict[str, Any]]: The function result.
+            dict[str, Any]: The function result.
         """
-        return list(store.isgl_handler.get_isgl_by_ids(genelists) or [])
+        return store.isgl_handler.get_isgl_by_ids(genelists) or {}
 
     def get_case_variants(self, query: dict[str, Any]) -> list[dict[str, Any]]:
         """Return case variants.
@@ -121,4 +121,3 @@ class MongoDNAReportingRepository:
             dict[str, Any]: The function result.
         """
         return store.vep_meta_handler.get_variant_class_translations(vep_version)
-

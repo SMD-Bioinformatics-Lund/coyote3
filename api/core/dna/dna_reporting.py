@@ -231,7 +231,7 @@ def build_dna_report_payload(
     sample_filters = deepcopy(sample.get("filters", {}))
 
     checked_genelists = sample_filters.get("genelists", [])
-    checked_genelists_genes_dict: list[dict] = repository.get_isgl_by_ids(checked_genelists)
+    checked_genelists_genes_dict: dict[str, Any] = repository.get_isgl_by_ids(checked_genelists)
     genes_covered_in_panel, filter_genes = CommonUtility.get_sample_effective_genes(
         sample, assay_panel_doc, checked_genelists_genes_dict
     )

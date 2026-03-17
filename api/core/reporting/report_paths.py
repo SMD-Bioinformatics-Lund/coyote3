@@ -3,6 +3,7 @@
 import os
 from typing import Tuple
 
+from api.errors.exceptions import AppError
 from api.utils.common_utility import CommonUtility
 
 
@@ -31,7 +32,15 @@ def build_report_file_location(
         report_id = f"{case_id}_{clarity_case_id}.{report_timestamp}"
 
     reporting = assay_config.get("reporting", {}) or {}
-    report_subdir = reporting.get("report_path") or default_assay_group
+    report_subdir = str(reporting.get("report_path") or "").strip()
+    if not report_subdir:
+        raise AppError(
+            400,
+            (
+                "Missing assay_config.reporting.report_path "
+                f"for assay group '{default_assay_group}'"
+            ),
+        )
     report_path = os.path.join(reports_base_path, report_subdir)
     report_file = os.path.join(report_path, f"{report_id}.html")
     return report_id, report_path, report_file

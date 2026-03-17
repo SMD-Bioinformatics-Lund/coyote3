@@ -337,7 +337,7 @@ class SampleCatalogService:
 
         if not filepath and report_name:
             assay_config = get_formatted_assay_config(sample)
-            report_sub_dir = assay_config.get("reporting", {}).get("report_folder", "")
+            report_sub_dir = assay_config.get("reporting", {}).get("report_path", "")
             filepath = f"{runtime_app.config.get('REPORTS_BASE_PATH', '')}/{report_sub_dir}/{report_name}"
 
         return {

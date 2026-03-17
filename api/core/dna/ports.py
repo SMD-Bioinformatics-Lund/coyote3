@@ -31,14 +31,14 @@ class DNAReportingRepository(Protocol):
         """
         ...
 
-    def get_isgl_by_ids(self, genelists: list[str]) -> list[dict[str, Any]]:
+    def get_isgl_by_ids(self, genelists: list[str]) -> dict[str, Any]:
         """Return isgl by ids.
 
         Args:
             genelists (list[str]): Value for ``genelists``.
 
         Returns:
-            list[dict[str, Any]]: The function result.
+            dict[str, Any]: The function result.
         """
         ...
 
@@ -119,4 +119,3 @@ class DNAReportingRepository(Protocol):
             dict[str, Any]: The function result.
         """
         ...
-

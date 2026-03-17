@@ -57,7 +57,7 @@ def test_build_report_file_location_without_control_id_uses_case_only(monkeypatc
 
     report_id, report_path, report_file = report_paths.build_report_file_location(
         sample=sample,
-        assay_config={},
+        assay_config={"reporting": {"report_path": "rna"}},
         default_assay_group="rna",
         reports_base_path="/reports",
     )
@@ -65,6 +65,30 @@ def test_build_report_file_location_without_control_id_uses_case_only(monkeypatc
     assert report_id == "CASE1_CC1.260303101112"
     assert report_path == "/reports/rna"
     assert report_file == "/reports/rna/CASE1_CC1.260303101112.html"
+
+
+def test_build_report_file_location_raises_without_report_path(monkeypatch):
+    """Handle test build report file location raises without report path.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
+
+    Returns:
+        The function result.
+    """
+    monkeypatch.setattr(report_paths, "get_report_timestamp", lambda: "260303101112")
+    sample = {"case_id": "CASE1", "case": {"clarity_id": "CC1"}}
+
+    with pytest.raises(AppError) as exc:
+        report_paths.build_report_file_location(
+            sample=sample,
+            assay_config={},
+            default_assay_group="rna",
+            reports_base_path="/reports",
+        )
+
+    assert exc.value.status_code == 400
+    assert "reporting.report_path" in exc.value.message
 
 
 def test_prepare_report_output_creates_directory_when_file_missing(monkeypatch):

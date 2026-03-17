@@ -43,8 +43,8 @@ def test_validate_report_inputs_accepts_valid_payload():
     )
 
 
-def test_validate_report_inputs_raises_without_report_path():
-    """Handle test validate report inputs raises without report path.
+def test_validate_report_inputs_raises_on_missing_report_path():
+    """Handle test validate report inputs raises on missing report path.
 
     Returns:
         The function result.

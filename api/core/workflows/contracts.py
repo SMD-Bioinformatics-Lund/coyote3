@@ -56,9 +56,8 @@ def validate_report_inputs(
         _raise_contract_error(logger, "report", sample_name, "Missing sample.case.clarity_id")
     if not assay_config.get("asp_group"):
         _raise_contract_error(logger, "report", sample_name, "Missing assay_config.asp_group")
-    reporting = assay_config.get("reporting", {}) or {}
-    report_subdir = reporting.get("report_path")
-    if not report_subdir:
+    report_path = ((assay_config.get("reporting") or {}).get("report_path") or "").strip()
+    if not report_path:
         _raise_contract_error(
             logger,
             "report",
