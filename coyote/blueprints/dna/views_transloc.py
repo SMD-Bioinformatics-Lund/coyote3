@@ -24,6 +24,7 @@ def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
         app.logger.info("Loaded DNA translocation detail from API service for sample %s", sample_id)
         return render_template(
             "show_transloc.html",
+            sample_id=sample_id,
             tl=payload.translocation,
             sample=payload.sample,
             assay_group=payload.assay_group,

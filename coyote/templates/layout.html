@@ -211,10 +211,7 @@
             {% if request.args.get('panel_type') %}{% set _ = sample_nav_args.update({'panel_type': request.args.get('panel_type')}) %}{% endif %}
             {% if request.args.get('panel_tech') %}{% set _ = sample_nav_args.update({'panel_tech': request.args.get('panel_tech')}) %}{% endif %}
             {% if request.args.get('assay_group') %}{% set _ = sample_nav_args.update({'assay_group': request.args.get('assay_group')}) %}{% endif %}
-            {# Backward compatibility: if context comes from path-based routes, carry it into samples query args. #}
-            {% if not sample_nav_args.get('panel_type') and curr_parts|length > 3 %}{% set _ = sample_nav_args.update({'panel_type': curr_parts[1]}) %}{% endif %}
-            {% if not sample_nav_args.get('panel_tech') and curr_parts|length > 3 %}{% set _ = sample_nav_args.update({'panel_tech': curr_parts[2]}) %}{% endif %}
-            {% if not sample_nav_args.get('assay_group') and curr_parts|length > 3 %}{% set _ = sample_nav_args.update({'assay_group': curr_parts[3]}) %}{% endif %}
+            {# Do not infer samples filters from arbitrary path segments (for example DNA detail routes). #}
             {% set sample_status = request.view_args.get('status', 'live') if request.view_args else 'live' %}
 
             {% if current_user.is_authenticated %}

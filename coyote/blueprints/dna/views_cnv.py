@@ -25,7 +25,8 @@ def show_cnv(sample_id: str, cnv_id: str) -> Response | str:
         )
         app.logger.info("Loaded DNA CNV detail from API service for sample %s", sample_id)
         return render_template(
-            "show_cnvwgs.html",
+            "show_cnv.html",
+            sample_id=sample_id,
             cnv=payload.cnv,
             sample=payload.sample,
             assay_group=payload.assay_group,
@@ -40,7 +41,7 @@ def show_cnv(sample_id: str, cnv_id: str) -> Response | str:
         return Response(str(exc), status=exc.status_code or 502)
 
 
-@dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/unmarkinterestingcnv", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>/unmarkinterestingcnv", methods=["POST"])
 @login_required
 def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
     """Handle unmark interesting cnv.
@@ -64,7 +65,7 @@ def unmark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
     return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
-@dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/interestingcnv", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>/interestingcnv", methods=["POST"])
 @login_required
 def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
     """Handle mark interesting cnv.
@@ -86,7 +87,7 @@ def mark_interesting_cnv(sample_id: str, cnv_id: str) -> Response:
     return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
-@dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/fpcnv", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>/fpcnv", methods=["POST"])
 @login_required
 def mark_false_cnv(sample_id: str, cnv_id: str) -> Response:
     """Handle mark false cnv.
@@ -134,7 +135,7 @@ def unmark_false_cnv(sample_id: str, cnv_id: str) -> Response:
     return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
-@dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/noteworthycnv", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>/noteworthycnv", methods=["POST"])
 @login_required
 def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
     """Handle mark noteworthy cnv.
@@ -156,7 +157,7 @@ def mark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
     return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
-@dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/notnoteworthycnv", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>/notnoteworthycnv", methods=["POST"])
 @login_required
 def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
     """Handle unmark noteworthy cnv.
@@ -180,7 +181,7 @@ def unmark_noteworthy_cnv(sample_id: str, cnv_id: str) -> Response:
     return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
-@dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/hide_cnv_comment", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>/hide_cnv_comment", methods=["POST"])
 @login_required
 def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     """Handle hide cnv comment.
@@ -203,7 +204,7 @@ def hide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     return redirect(url_for("dna_bp.show_cnv", sample_id=sample_id, cnv_id=cnv_id))
 
 
-@dna_bp.route("<string:sample_id>/cnv/<string:cnv_id>/unhide_cnv_comment", methods=["POST"])
+@dna_bp.route("/<string:sample_id>/cnv/<string:cnv_id>/unhide_cnv_comment", methods=["POST"])
 @login_required
 def unhide_cnv_comment(sample_id: str, cnv_id: str) -> Response:
     """Handle unhide cnv comment.

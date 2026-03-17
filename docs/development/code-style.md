@@ -76,9 +76,9 @@ These standards are mandatory for new code unless an exception is documented in 
 
 ## 4. Blueprint Naming Rules
 - Use domain-specific blueprint package names: `dna`, `rna`, `admin`, `home`, `public`.
-- View module names should reflect responsibility: `views_reports.py`, `views_small_variants.py`.
+- View module names should reflect responsibility: `views_reports.py`, `views_dna_findings.py`.
 - Group Flask blueprint code by feature area, not by one tiny action at a time.
-- Prefer modules like `views_small_variants.py`, `views_small_variant_actions.py`, `views_users.py`, `views_assay_configs.py`, or `views_genes.py`.
+- Prefer modules like `views_dna_findings.py`, `views_small_variant_actions.py`, `views_users.py`, `views_assay_configs.py`, or `views_genes.py`.
 - Avoid shards like `views_users_list.py`, `views_users_detail.py`, `views_users_actions.py` unless a cohesive feature module has grown too large to review.
 - Blueprint variables should end with `_bp`.
 

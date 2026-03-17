@@ -231,7 +231,7 @@ def _redirect_for_omics_layer(sample_id: str, omics_layer: str) -> Response:
             The  redirect for omics layer result.
     """
     if omics_layer == "dna":
-        return redirect(url_for("dna_bp.list_small_variants", sample_id=sample_id))
+        return redirect(url_for("dna_bp.list_dna_findings", sample_id=sample_id))
     if omics_layer == "rna":
         return redirect(url_for("rna_bp.list_fusions", sample_id=sample_id))
     app.logger.info(
@@ -278,7 +278,7 @@ def add_sample_comment(sample_id: str) -> Response:
             flash_message="Failed to add sample comment",
         )
     if request.endpoint == "common_bp.add_dna_sample_comment":
-        return redirect(url_for("dna_bp.list_small_variants", sample_id=sample_id))
+        return redirect(url_for("dna_bp.list_dna_findings", sample_id=sample_id))
     return redirect(url_for("rna_bp.list_fusions", sample_id=sample_id))
 
 

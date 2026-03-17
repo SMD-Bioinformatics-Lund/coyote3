@@ -1,4 +1,4 @@
-"""DNA small-variant routes and helpers."""
+"""DNA findings list routes and helpers."""
 
 from __future__ import annotations
 
@@ -42,8 +42,8 @@ def raise_api_page_error(sample_id: str, page_name: str, exc: ApiRequestError) -
 
 
 @dna_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])
-def list_small_variants(sample_id: str) -> Response | str:
-    """Render the DNA small-variant list page for a sample."""
+def list_dna_findings(sample_id: str) -> Response | str:
+    """Render the DNA findings list page for a sample."""
     headers = forward_headers()
     api_client = get_web_api_client()
 
@@ -60,10 +60,10 @@ def list_small_variants(sample_id: str) -> Response | str:
 
     try:
         variants_payload = _load_api_context()
-        app.logger.info("Loaded DNA small-variant list from API service for sample %s", sample_id)
+        app.logger.info("Loaded DNA findings list from API service for sample %s", sample_id)
     except ApiRequestError as exc:
-        app.logger.error("DNA small-variant API fetch failed for sample %s: %s", sample_id, exc)
-        raise_api_page_error(sample_id, "DNA small variants", exc)
+        app.logger.error("DNA findings API fetch failed for sample %s: %s", sample_id, exc)
+        raise_api_page_error(sample_id, "DNA findings", exc)
 
     sample = variants_payload.sample
     assay_config = variants_payload.assay_config
@@ -98,7 +98,7 @@ def list_small_variants(sample_id: str) -> Response | str:
             verification_sample_used = variants_payload.verification_sample_used
         except ApiRequestError as exc:
             app.logger.error(
-                "Failed to reset DNA small-variant filters via API for sample %s: %s",
+                "Failed to reset DNA findings filters via API for sample %s: %s",
                 sample_id,
                 exc,
             )
@@ -118,7 +118,7 @@ def list_small_variants(sample_id: str) -> Response | str:
                 )
             except ApiRequestError as exc:
                 app.logger.error(
-                    "Failed to reset DNA small-variant filters via API for sample %s: %s",
+                    "Failed to reset DNA findings filters via API for sample %s: %s",
                     sample_id,
                     exc,
                 )
@@ -136,7 +136,7 @@ def list_small_variants(sample_id: str) -> Response | str:
                 )
             except ApiRequestError as exc:
                 app.logger.error(
-                    "Failed to update DNA small-variant filters via API for sample %s: %s",
+                    "Failed to update DNA findings filters via API for sample %s: %s",
                     sample_id,
                     exc,
                 )
@@ -158,9 +158,9 @@ def list_small_variants(sample_id: str) -> Response | str:
             verification_sample_used = variants_payload.verification_sample_used
         except ApiRequestError as exc:
             app.logger.error(
-                "DNA small-variant API refresh failed for sample %s: %s", sample_id, exc
+                "DNA findings API refresh failed for sample %s: %s", sample_id, exc
             )
-            raise_api_page_error(sample_id, "DNA small variants", exc)
+            raise_api_page_error(sample_id, "DNA findings", exc)
 
     has_hidden_comments = variants_payload.hidden_comments
 
@@ -176,7 +176,7 @@ def list_small_variants(sample_id: str) -> Response | str:
     form.process(data=form_data)
 
     return render_template(
-        "list_small_variants_vep.html",
+        "list_dna_findings.html",
         sample=sample,
         sample_ids=sample_ids,
         assay_group=assay_group,
@@ -195,6 +195,71 @@ def list_small_variants(sample_id: str) -> Response | str:
     )
 
 
+@dna_bp.route("/sample/<string:sample_id>/exports/snvs.csv")
+def download_snv_csv(sample_id: str) -> Response:
+    """Download filtered SNV rows as CSV from API export context."""
+    try:
+        payload = get_web_api_client().get_json(
+            api_endpoints.dna_sample(sample_id, "small_variants", "exports", "snvs", "context"),
+            headers=forward_headers(),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("DNA SNV export API fetch failed for sample %s: %s", sample_id, exc)
+        raise_api_page_error(sample_id, "DNA SNV export", exc)
+
+    buf = io.BytesIO(str(payload.get("content", "")).encode("utf-8"))
+    return send_file(
+        buf,
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name=str(payload.get("filename", f"{sample_id}.filtered.snvs.csv")),
+    )
+
+
+@dna_bp.route("/sample/<string:sample_id>/exports/cnvs.csv")
+def download_cnv_csv(sample_id: str) -> Response:
+    """Download filtered CNV rows as CSV from API export context."""
+    try:
+        payload = get_web_api_client().get_json(
+            api_endpoints.dna_sample(sample_id, "small_variants", "exports", "cnvs", "context"),
+            headers=forward_headers(),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("DNA CNV export API fetch failed for sample %s: %s", sample_id, exc)
+        raise_api_page_error(sample_id, "DNA CNV export", exc)
+
+    buf = io.BytesIO(str(payload.get("content", "")).encode("utf-8"))
+    return send_file(
+        buf,
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name=str(payload.get("filename", f"{sample_id}.filtered.cnvs.csv")),
+    )
+
+
+@dna_bp.route("/sample/<string:sample_id>/exports/translocs.csv")
+def download_transloc_csv(sample_id: str) -> Response:
+    """Download filtered translocation rows as CSV from API export context."""
+    try:
+        payload = get_web_api_client().get_json(
+            api_endpoints.dna_sample(
+                sample_id, "small_variants", "exports", "translocs", "context"
+            ),
+            headers=forward_headers(),
+        )
+    except ApiRequestError as exc:
+        app.logger.error("DNA translocation export API fetch failed for sample %s: %s", sample_id, exc)
+        raise_api_page_error(sample_id, "DNA translocation export", exc)
+
+    buf = io.BytesIO(str(payload.get("content", "")).encode("utf-8"))
+    return send_file(
+        buf,
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name=str(payload.get("filename", f"{sample_id}.filtered.translocs.csv")),
+    )
+
+
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>")
 def show_small_variant(sample_id: str, var_id: str) -> Response | str:
     """Render the DNA small-variant detail page for a sample resource."""
@@ -206,6 +271,7 @@ def show_small_variant(sample_id: str, var_id: str) -> Response | str:
         app.logger.info("Loaded DNA small-variant detail from API service for sample %s", sample_id)
         return render_template(
             "show_small_variant_vep.html",
+            sample_id=sample_id,
             variant=payload.variant,
             in_other=payload.in_other,
             annotations=payload.annotations,

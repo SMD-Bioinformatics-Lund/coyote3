@@ -129,3 +129,75 @@ class DnaTranslocationContextPayload(BaseModel):
     has_hidden_comments: bool
     hidden_comments: bool
     assay_group: str
+
+
+class DnaSnvExportRow(BaseModel):
+    """Represent one SNV CSV export row."""
+
+    gene: str = ""
+    hgvsp: str = ""
+    hgvsc: str = ""
+    exon: str = ""
+    intron: str = ""
+    var_type: str = ""
+    indel_size: str = ""
+    consequence: str = ""
+    pop_freq: str = ""
+    tier: str = ""
+    chr_pos: str = ""
+    flags: str = ""
+    case_gt: str = ""
+    control_gt: str = ""
+    false_positive: str = ""
+    irrelevant: str = ""
+    interesting: str = ""
+    blacklisted: str = ""
+    latest_comment: str = ""
+    latest_comment_author: str = ""
+    latest_comment_time: str = ""
+
+
+class DnaCnvExportRow(BaseModel):
+    """Represent one CNV CSV export row."""
+
+    genes: str = ""
+    region: str = ""
+    size_bp: str = ""
+    callers: str = ""
+    copy_number: str = ""
+    purity_copy_number: str = ""
+    ref_alt_reads: str = ""
+    status: str = ""
+    artefact: str = ""
+    false_positive: str = ""
+    irrelevant: str = ""
+    interesting: str = ""
+    latest_comment: str = ""
+    latest_comment_author: str = ""
+    latest_comment_time: str = ""
+
+
+class DnaTranslocExportRow(BaseModel):
+    """Represent one translocation CSV export row."""
+
+    gene_1: str = ""
+    gene_2: str = ""
+    positions: str = ""
+    var_type: str = ""
+    hgvsp: str = ""
+    hgvsc: str = ""
+    panel: str = ""
+    status: str = ""
+    false_positive: str = ""
+    interesting: str = ""
+    latest_comment: str = ""
+    latest_comment_author: str = ""
+    latest_comment_time: str = ""
+
+
+class DnaCsvExportContextPayload(BaseModel):
+    """Represent CSV download context for web proxy routes."""
+
+    filename: str
+    content: str
+    row_count: int

@@ -171,8 +171,12 @@ Variant Composition:
 - Side info cards show:
   - `Small Variants`: total small variant count.
   - `SNP Fraction in Small Variants`: `total_snps / total_variants * 100`.
-  - `Blacklist Rate`: blacklist variants as percentage of total variants.
-  - `FP Rate`: false positives as percentage of total variants.
+  - `Blacklist Rate`: `blacklisted / total_variants * 100`.
+    - `blacklisted` is the count of unique blacklist positions (`distinct("pos")` in blacklist data).
+    - denominator `total_variants` is total small variants from the variants dataset.
+  - `FP Rate`: `fps / total_variants * 100`.
+    - `fps` counts small-variant documents where `fp == true`.
+    - denominator `total_variants` is total small variants from the variants dataset.
 
 Tier Distribution (Reported):
 - Bar chart of reported variants grouped by Tier 1/2/3/4.
@@ -191,6 +195,7 @@ Quality Snapshot:
   - `Blacklist` (%)
   - `FP` (%)
 - Companion cards repeat the same values with fixed precision.
+- The dashboard uses zero-safe math: if `total_variants == 0`, both `Blacklist Rate` and `FP Rate` are shown as `0.0%`.
 
 Sample Distribution:
 - Four donut charts:
@@ -246,6 +251,7 @@ DNA review pages are available from sample context links and DNA navigation entr
     - `Apply` adds tier-3 class + default interpretation text annotation docs.
     - `Remove` removes tier-3 class docs and their matching default interpretation text docs for the same scoped context (`assay`, `subpanel`, `gene`, and transcript when available).
   - `Irrelevant` and `False Positive` support both `Apply` and `Remove` in the same bulk flow.
+- Sample-specific comments saved from SNV/CNV/translocation detail pages are persisted and rendered from each finding's own `comments` list (separate from global annotations).
 
 ### 6.3 Tiered variant interpretation in UI
 Tiered views organize findings by clinical significance and configured logic. Users should treat tier placement as review guidance tied to configured workflow rules and assay context.
@@ -345,6 +351,11 @@ Reports are opened from sample pages using report identifiers associated with th
 - correct sample identifier
 - correct report identifier/version label
 - expected assay context
+
+### 8.4 Variant Table CSV Downloads (DNA)
+- SNV, CNV, and translocation table download buttons export backend-generated CSV based on the same active filters as the list page.
+- CSV rows include review-state fields (for example false-positive/irrelevant/interesting where applicable) and latest comment metadata when present.
+- Multi-value fields are normalized with `|` separators and HGVS is split into `HGVSp` and `HGVSc` for SNV exports.
 
 If a report link fails, the UI redirects back to a safe page and logs the event for operator review.
 

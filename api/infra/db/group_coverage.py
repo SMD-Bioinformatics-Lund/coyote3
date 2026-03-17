@@ -48,6 +48,11 @@ class GroupCoverageHandler(BaseHandler):
             background=True,
             partialFilterExpression={"group_region_id": {"$exists": True, "$type": "string"}},
         )
+        col.create_index(
+            [("group", 1), ("gene", 1), ("region", 1), ("coord", 1)],
+            name="group_gene_region_coord_1",
+            background=True,
+        )
         col.create_index([("group", 1)], name="group_1", background=True)
         col.create_index([("gene", 1)], name="gene_1", background=True)
 

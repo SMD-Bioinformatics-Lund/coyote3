@@ -107,7 +107,7 @@
 
       {% if has_access('preview_report', min_role='user', min_level=9) %}
         <div class="flex border-l-8 border-teal-400  mt-1">
-          <a href="{{ url_for('dna_bp.generate_dna_report', sample_id=sample.name) }}"
+          <a href="{{ url_for('dna_bp.generate_dna_report', sample_id=sample._id) }}"
             class="relative bg-gray-500 text-white text-xs text-center py-1 px-0.5 transition-all duration-300 ease-in-out transform hover:translate-x-1">
               <span class="vertical-text">Preview Report</span>
           </a>
@@ -155,7 +155,7 @@
                     <img
                       src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}"
                       alt="Export to CSV - SNVs"
-                      onclick="exportHTMLTable({ tableId:'snvs-table', filename:'{{ sample.name }}.filtered.snvs.csv' })"
+                      onclick="window.location.href='{{ url_for('dna_bp.download_snv_csv', sample_id=sample._id) }}'"
                       class="w-6 h-6 transition-transform transform hover:scale-110"
                     />
                   {% endif %}
@@ -198,10 +198,10 @@
                     </thead>
                     <tbody>
                       {% for var in variants %}
-                        {% set csq = var.INFO.selected_CSQ %}
-                        {% set chr_pos = var.CHROM ~ ":" ~ var.POS %}
-                        {% set indel_size = var.ALT|length - var.REF|length %}
-                        {# Build the final IGV URL #}
+                      {% set csq = var.INFO.selected_CSQ %}
+                      {% set chr_pos = var.CHROM ~ ":" ~ var.POS %}
+                      {% set indel_size = var.ALT|length - var.REF|length %}
+                      {# Build the final IGV URL #}
                         {% if all_samples_bam_paths and has_access("view_igv", min_role="user", min_level=9) %}
                           {% set igv_url = app_config.IGV_URI ~ "/load?file=" ~ all_samples_bam_paths | join(',') ~ "&locus=" ~ chr_pos %}
                           {% set igv_chr_pos = '<a href="' ~ igv_url ~ '">' ~ chr_pos ~ '</a>' %}
@@ -210,9 +210,13 @@
                         {% endif %}
 
                         {% if var.fp == True or ( var.blacklist and var.override_blacklist != true ) or var.irrelevant == True %}
-                          <tr class='bg-red-200 opacity-60 hover:bg-red-200 border-t border-gray-400 text-left fp' id="snv-table-row-fp">
+                          <tr class='bg-red-200 opacity-60 hover:bg-red-200 border-t border-gray-400 text-left fp'
+                              id="snv-table-row-fp"
+                              >
                         {% else %}
-                          <tr class="border-t border-gray-400 text-left hover:bg-yellow-50" id="snv-table-row">
+                          <tr class="border-t border-gray-400 text-left hover:bg-yellow-50"
+                              id="snv-table-row"
+                              >
                         {% endif %}
 
                         <!-- Checkbox -->
@@ -581,7 +585,7 @@
                           <img
                             src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}"
                             alt="Export to CSV - CNVs"
-                            onclick="exportHTMLTable({ tableId:'cnvs-table', filename:'{{ sample.name }}.filtered.cnvs.csv' })"
+                            onclick="window.location.href='{{ url_for('dna_bp.download_cnv_csv', sample_id=sample._id) }}'"
                             class="w-6 h-6 transition-transform transform hover:scale-110"
                           />
                         {% endif %}
@@ -618,13 +622,21 @@
                             {% endif %}
 
                               {% if cnv.interesting %}
-                                <tr class="bg-green-100 hover:bg-green-200 border-t border-gray-400 text-left" id="cnv-table-row-interesting">
+                                <tr class="bg-green-100 hover:bg-green-200 border-t border-gray-400 text-left"
+                                    id="cnv-table-row-interesting"
+                                    >
                               {% elif cnv.ratio > 3 and cnv.size > (sample.filters.max_cnv_size|int) or cnv.fp %}
-                                <tr class="bg-red-100 border-t border-gray-400 text-left" id="cnv-table-row">
+                                <tr class="bg-red-100 border-t border-gray-400 text-left"
+                                    id="cnv-table-row"
+                                    >
                               {% elif cnv.noteworthy %}
-                                <tr class="bg-brown-100 hover:bg-brown-200 border-t border-gray-400 text-left" id="cnv-table-row-noteworthy">
+                                <tr class="bg-brown-100 hover:bg-brown-200 border-t border-gray-400 text-left"
+                                    id="cnv-table-row-noteworthy"
+                                    >
                               {% else %}
-                                <tr class="border-t border-gray-400 text-left hover:bg-yellow-50" id="cnv-table-row">
+                                <tr class="border-t border-gray-400 text-left hover:bg-yellow-50"
+                                    id="cnv-table-row"
+                                    >
                               {% endif %}
 
                                 <!-- Genes -->
@@ -799,7 +811,7 @@
                     <img
                       src="{{ url_for('static', filename='icons/heroicons_outline_24/document-arrow-down.svg') }}"
                       alt="Export to CSV - translocations"
-                      onclick="exportHTMLTable({ tableId:'transloc-table', filename:'{{ sample.name }}.filtered.translocs.csv' })"
+                      onclick="window.location.href='{{ url_for('dna_bp.download_transloc_csv', sample_id=sample._id) }}'"
                       class="w-6 h-6 transition-transform transform hover:scale-110"
                     />
                   {% endif %}
@@ -979,7 +991,7 @@
           <h2 class="text-base font-semibold text-black tracking-wide mt-1 uppercase px-2">Summary</h2>
         </div>
         {% set summary_add_comment_action = url_for('common_bp.add_dna_sample_comment', sample_id=sample._id) %}
-        {% set summary_preview_url = url_for('dna_bp.generate_dna_report', sample_id=sample.name) %}
+        {% set summary_preview_url = url_for('dna_bp.generate_dna_report', sample_id=sample._id) %}
         {% set summary_show_add_form = has_access('add_sample_comment', min_role='user', min_level=9) %}
         {% set summary_enforce_acl = true %}
         {% set summary_comment_cell_has_id = false %}

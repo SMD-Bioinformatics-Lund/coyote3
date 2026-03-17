@@ -203,6 +203,8 @@ class MongoAdapter:
         self._ensure_handler_indexes("translocs", self.transloc_handler)
         self._ensure_handler_indexes("fusions", self.fusion_handler)
         self._ensure_handler_indexes("blacklist", self.blacklist_handler)
+        self._ensure_handler_indexes("coverage2", self.coverage2_handler)
+        self._ensure_handler_indexes("groupcov", self.groupcov_handler)
         self._ensure_handler_indexes("reported_variants", self.reported_variants_handler)
 
     def _ensure_handler_indexes(self, handler_name: str, handler: object) -> None:

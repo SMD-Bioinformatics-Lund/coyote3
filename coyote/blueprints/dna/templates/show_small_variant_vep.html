@@ -361,7 +361,7 @@
         </h2>
         <div class="flex flex-wrap items-center justify-end">
           <!-- Tier Buttons -->
-          <form action="{{ url_for('dna_bp.classify_small_variant', sample_id=sample.name, var_id=variant._id) }}" method="post">
+          <form action="{{ url_for('dna_bp.classify_small_variant', sample_id=sample_id, var_id=variant._id) }}" method="post">
             <input type="hidden" name="assay_group" value="{{ assay_group }}">
             <input type="hidden" name="subpanel" value="{{ subpanel }}">
             <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
@@ -439,7 +439,7 @@
 
           <!-- Remove Tier Info -->
           {% if latest_classification.class != 999 %}
-            <form action="{{ url_for('dna_bp.remove_classified_small_variant', sample_id=sample.name, var_id=variant._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.remove_classified_small_variant', sample_id=sample_id, var_id=variant._id) }}" method="post">
               <input type="hidden" name="assay_group" value="{{ assay_group }}">
               <input type="hidden" name="subpanel" value="{{ subpanel }}">
               <input type="hidden" name="var_g" value="{{ variant.CHROM }}:{{ variant.POS }}:{{ variant.REF }}/{{ variant.ALT }}">
@@ -482,11 +482,11 @@
         <div class="relative">
           <div class="absolute top-0 left-0 w-full h-1 bg-yellow-400 break-all"></div>
           {% if variant.fp == true %}
-            <form action="{{ url_for('dna_bp.unmark_false_variant', sample_id=sample.name, var_id=variant._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.unmark_false_variant', sample_id=sample_id, var_id=variant._id) }}" method="post">
               <input class="relative bg-yellow-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{variant_actions_class}}" type="submit" name="mark_fp" value="Unmark False Positive" {{ variant_actions_attr }}>
             </form>
           {% else %}
-            <form action="{{ url_for('dna_bp.mark_false_variant', sample_id=sample.name, var_id=variant._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.mark_false_variant', sample_id=sample_id, var_id=variant._id) }}" method="post">
               <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-yellow-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{variant_actions_class}}" type="submit" name="mark_fp" value="Mark as False Positive" {{ variant_actions_attr }}>
             </form>
           {% endif %}
@@ -494,11 +494,11 @@
         <div class="relative">
           <div class="absolute top-0 left-0 w-full h-1 bg-green-400"></div>
           {% if variant.interesting == true %}
-            <form action="{{ url_for('dna_bp.unmark_interesting_variant', sample_id=sample.name, var_id=variant._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.unmark_interesting_variant', sample_id=sample_id, var_id=variant._id) }}" method="post">
               <input class="relative bg-green-200 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{variant_actions_class}}" type="submit" name="mark_int" value="Unmark Interesting" {{ variant_actions_attr }}>
             </form>
           {% else %}
-            <form action="{{ url_for('dna_bp.mark_interesting_variant', sample_id=sample.name, var_id=variant._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.mark_interesting_variant', sample_id=sample_id, var_id=variant._id) }}" method="post">
               <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-green-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{variant_actions_class}}" type="submit" name="mark_int" value="Mark as Interesting" {{ variant_actions_attr }}>
             </form>
           {% endif %}
@@ -506,11 +506,11 @@
         <div class="relative">
           <div class="absolute top-0 left-0 w-full h-1 bg-brown-500"></div>
           {% if variant.irrelevant == true %}
-            <form action="{{ url_for('dna_bp.unmark_irrelevant_variant', sample_id=sample.name, var_id=variant._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.unmark_irrelevant_variant', sample_id=sample_id, var_id=variant._id) }}" method="post">
               <input class="relative bg-brown-200 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{variant_actions_class}}" type="submit" name="mark_irr" value="Unmark Irrelevant" {{ variant_actions_attr }}>
             </form>
           {% else %}
-            <form action="{{ url_for('dna_bp.mark_irrelevant_variant', sample_id=sample.name, var_id=variant._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.mark_irrelevant_variant', sample_id=sample_id, var_id=variant._id) }}" method="post">
               <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-brown-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{variant_actions_class}}" type="submit" name="mark_irr" value="Mark as Irrelevant" {{ variant_actions_attr }}>
             </form>
           {% endif %}
@@ -518,7 +518,7 @@
         <div class="relative">
           <div class="absolute top-0 left-0 w-full h-1 bg-orange-500"></div>
           {% if variant.blacklist != true %}
-            <form action="{{ url_for('dna_bp.add_variant_to_blacklist', sample_id=sample.name, var_id=variant._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.add_variant_to_blacklist', sample_id=sample_id, var_id=variant._id) }}" method="post">
               <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-orange-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{variant_actions_class}}" type="submit" name="blacklist" value="Add to Blacklist" onclick="return confirm('This will affect all samples of this type. Proceed?')" {{ variant_actions_attr }}>
             </form>
           {% endif %}
@@ -526,7 +526,7 @@
         <div class="relative">
           <div class="absolute top-0 left-0 w-full h-1 bg-purple-500"></div>
           {% if variant.blacklist is defined and variant.override_blacklist != true %}
-            <form action="{{ url_for('dna_bp.add_variant_to_blacklist', sample_id=sample.name, var_id=variant._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.add_variant_to_blacklist', sample_id=sample_id, var_id=variant._id) }}" method="post">
               <input class="relative bg-purple-200 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{variant_actions_class}}" type="submit" name="blacklist" value="Override Blacklist" {{ variant_actions_attr }}>
             </form>
           {% endif %}
@@ -543,7 +543,7 @@
           <div class="bg-transparent min-w-[400px] w-full max-w-xl" id="commenting-box-card">
             <h2 class="text-sm font-semibold bg-gradient-to-b from-indigo-400 to-indigo-200 p-2 shadow-md rounded-t-lg break-all">Add new comment/annotation</h2>
             <div id="commenting_box" class="rounded-b-lg border border-gray-400 shadow-md p-2 overflow-x-auto">
-              <form action="{{ url_for('dna_bp.add_variant_comment', var_id=variant._id, sample_id=sample.name) }}" method="post">
+              <form action="{{ url_for('dna_bp.add_variant_comment', var_id=variant._id, sample_id=sample_id) }}" method="post">
                 <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="h-40 w-full p-2 border border-gray-300 rounded-lg focus:bg-yellow-50 mb-4"></textarea><br>
                 {% if sel_csq.HGVSc is defined %}
                   <input type="hidden" name="gene" value="{{ sel_csq.SYMBOL }}">
@@ -657,7 +657,7 @@
                     {% set sample_gt = doc.GT | selectattr("sample", "equalto", clean_sample) | first %}
                     <tr class="hover:bg-blue-50 border-t border-gray-400 text-left align-top">
                       <td class="p-2">
-                          <a href="{{ url_for('dna_bp.list_small_variants', sample_id=doc.sample_name) }}" class="text-blue-500 hover:underline">
+                          <a href="{{ url_for('dna_bp.list_dna_findings', sample_id=doc.sample_name) }}" class="text-blue-500 hover:underline">
                             {{ doc.sample_name }}
                           </a>
                       </td>
@@ -817,19 +817,17 @@
                   </thead>
                   <tbody id="variant-annotations-all-body" class="{% if annotations|length > 1 %}border-b border-gray-400 {% endif %}">
                     {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
-                      {% if loop.first == True %}
-                        <tr class="hover:bg-green-100 border-t border-gray-400 text-left align-top">
-                          <td class="p-2 font-medium">{{ anno.author }}<br><small>{{ anno.time_created|human_date }}</small></td>
-                          <td class="p-2" onclick="addText(event)">{{ anno.text|format_comment|safe }}</td>
-                          <td class="p-2">
-                            {% if "assay" in anno %}
-                              {{ anno.assay }}<br><small>{{ anno.subpanel }}</small>
-                            {% else %}
-                              historic
-                            {% endif %}
-                          </td>
-                        </tr>
-                      {% endif %}
+                      <tr class="hover:bg-green-100 border-t border-gray-400 text-left align-top">
+                        <td class="p-2 font-medium">{{ anno.author }}<br><small>{{ anno.time_created|human_date }}</small></td>
+                        <td class="p-2" onclick="addText(event)">{{ anno.text|format_comment|safe }}</td>
+                        <td class="p-2">
+                          {% if "assay" in anno %}
+                            {{ anno.assay }}<br><small>{{ anno.subpanel }}</small>
+                          {% else %}
+                            historic
+                          {% endif %}
+                        </td>
+                      </tr>
                     {% endfor %}
                   </tbody>
                 </table>
@@ -900,12 +898,12 @@
                       <td class="p-2" onclick="addText(event)">{{ comment.text|format_comment|safe }}</td>
                       <td class="p-2">
                         {% if comment.hidden != 1 %}
-                          <form action="{{ url_for('dna_bp.hide_variant_comment', sample_id=sample.name, var_id=variant._id) }}" method="POST">
+                          <form action="{{ url_for('dna_bp.hide_variant_comment', sample_id=sample_id, var_id=variant._id) }}" method="POST">
                             <input type="hidden" name="comment_id" value="{{ comment._id }}">
                             <input id="hide_comment" type="image" class="w-5 {% if not has_access('hide_variant_comment', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
                           </form>
                         {% else %}
-                          <form action="{{ url_for('dna_bp.unhide_variant_comment', sample_id=sample.name, var_id=variant._id) }}" method="POST">
+                          <form action="{{ url_for('dna_bp.unhide_variant_comment', sample_id=sample_id, var_id=variant._id) }}" method="POST">
                             <input type="hidden" name="comment_id" value="{{ comment._id }}">
                             <input id="unhide_comment" type="image" class="w-5 {% if not has_access('unhide_variant_comment', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
                           </form>

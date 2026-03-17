@@ -60,6 +60,24 @@ class CoverageProcessingService:
         return genes if isinstance(genes, dict) else {}
 
     @staticmethod
+    def _blacklist_index(entries: list[dict] | None) -> tuple[set[str], set[tuple[str, str, str]]]:
+        """Build in-memory blacklist lookup sets from group entries."""
+        gene_blacklist: set[str] = set()
+        region_blacklist: set[tuple[str, str, str]] = set()
+        for entry in entries or []:
+            gene = str(entry.get("gene") or "")
+            region = str(entry.get("region") or "")
+            coord = str(entry.get("coord") or "")
+            if not gene:
+                continue
+            if region == "gene":
+                gene_blacklist.add(gene)
+                continue
+            if region and coord:
+                region_blacklist.add((gene, region, coord))
+        return gene_blacklist, region_blacklist
+
+    @staticmethod
     def find_low_covered_genes(cov: dict, cutoff: float, smp_grp: str) -> dict:
         """Handle find low covered genes.
 
@@ -73,19 +91,28 @@ class CoverageProcessingService:
         """
         keep = defaultdict(dict)
         genes = CoverageProcessingService._genes_map(cov)
+        _gene_blacklist, region_blacklist = CoverageProcessingService._blacklist_index(
+            CoverageProcessingService._repo().get_regions_per_group(smp_grp)
+        )
         for gene, gene_cov in genes.items():
             has_low = False
             if "CDS" in gene_cov:
-                has_low = CoverageProcessingService.reg_low(
-                    gene_cov["CDS"], "CDS", cutoff, gene, smp_grp
+                has_low = has_low or CoverageProcessingService.reg_low(
+                    gene_cov["CDS"],
+                    "CDS",
+                    cutoff,
+                    gene,
+                    smp_grp,
+                    region_blacklist=region_blacklist,
                 )
             if "probes" in gene_cov:
-                has_low = CoverageProcessingService.reg_low(
+                has_low = has_low or CoverageProcessingService.reg_low(
                     gene_cov["probes"],
                     "probe",
                     cutoff,
                     gene,
                     smp_grp,
+                    region_blacklist=region_blacklist,
                 )
             if has_low:
                 keep["genes"][gene] = gene_cov
@@ -141,14 +168,24 @@ class CoverageProcessingService:
         """
         filtered_dict = defaultdict(dict)
         genes = CoverageProcessingService._genes_map(cov_dict)
+        filter_set = set(filter_genes or [])
+        gene_blacklist, _region_blacklist = CoverageProcessingService._blacklist_index(
+            CoverageProcessingService._repo().get_regions_per_group(smp_grp)
+        )
         for gene, gene_cov in genes.items():
-            blacklisted = CoverageProcessingService._repo().is_gene_blacklisted(gene, smp_grp)
-            if gene in filter_genes and not blacklisted:
+            if gene in filter_set and gene not in gene_blacklist:
                 filtered_dict["genes"][gene] = gene_cov
         return filtered_dict
 
     @staticmethod
-    def reg_low(region_dict: dict, region: str, cutoff: float, gene: str, smp_grp: str) -> bool:
+    def reg_low(
+        region_dict: dict,
+        region: str,
+        cutoff: float,
+        gene: str,
+        smp_grp: str,
+        region_blacklist: set[tuple[str, str, str]] | None = None,
+    ) -> bool:
         """Handle reg low.
 
         Args:
@@ -164,9 +201,13 @@ class CoverageProcessingService:
         has_low = False
         for reg in region_dict:
             if "cov" in region_dict[reg] and float(region_dict[reg]["cov"]) < cutoff:
-                blacklisted = CoverageProcessingService._repo().is_region_blacklisted(
-                    gene, region, reg, smp_grp
-                )
+                reg_key = (gene, region, str(reg))
+                if region_blacklist is not None:
+                    blacklisted = reg_key in region_blacklist
+                else:
+                    blacklisted = CoverageProcessingService._repo().is_region_blacklisted(
+                        gene, region, reg, smp_grp
+                    )
                 if not blacklisted:
                     has_low = True
         return has_low

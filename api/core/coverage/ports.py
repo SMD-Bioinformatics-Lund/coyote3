@@ -40,3 +40,13 @@ class CoverageRepository(Protocol):
         """
         ...
 
+    def get_regions_per_group(self, group: str) -> list[dict]:
+        """Return all blacklist entries for the target assay group.
+
+        Args:
+            group (str): Value for ``group``.
+
+        Returns:
+            list[dict]: The function result.
+        """
+        ...

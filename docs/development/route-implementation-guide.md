@@ -65,7 +65,7 @@ def read_example(
 
 ## Standard process for adding a new UI route
 1. Add or extend Flask view code in a feature-sized module under `coyote/blueprints/<domain>/`.
-   Prefer cohesive files like `views_small_variants.py`, `views_small_variant_actions.py`, `views_users.py`, or `views_genes.py`.
+   Prefer cohesive files like `views_dna_findings.py`, `views_small_variant_actions.py`, `views_users.py`, or `views_genes.py`.
 2. Build API path only via `api_endpoints.*` helpers.
 3. Call API through `get_web_api_client()` helpers.
 4. Render/update template under the same blueprint domain.

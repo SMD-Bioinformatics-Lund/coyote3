@@ -7,7 +7,7 @@
     <h2 class="report-heading">*** PREVIEW OF REPORT ***</h2>
 
     {% if has_access('create_report', min_role='admin') %}
-      <a href="{{ url_for('dna_bp.save_dna_report', sample_id=sample.name) }}" class="report-button">Finalize Report</a>
+      <a href="{{ url_for('dna_bp.save_dna_report', sample_id=sample._id) }}" class="report-button">Finalize Report</a>
     {% endif %}
   </div>
 {% endif %}
@@ -438,7 +438,7 @@
 <div class="analysis_description">
   {{ assay_config.reporting.report_description|safe }}
 
-  <form id="genelist-form" action="{{ url_for('common_bp.get_sample_genelists', sample_id=sample.name, sample_assay=sample_assay, _external=True) }}" method="POST" target="_blank">
+  <form id="genelist-form" action="{{ url_for('common_bp.get_sample_genelists', sample_id=sample._id, sample_assay=sample_assay, _external=True) }}" method="POST" target="_blank">
     <input type="hidden" name="enc_genelists" id="enc-genelists-input">
     <input type="hidden" name="enc_panel_doc" id="enc-panel-input">
     <input type="hidden" name="enc_sample_filters" id="enc-sample-filters-input">

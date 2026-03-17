@@ -24,7 +24,7 @@ from coyote.blueprints.dna import (
     views_cnv,  # noqa: F401, E402
     views_reports,  # noqa: F401, E402
     views_small_variant_actions,  # noqa: F401, E402
-    views_small_variants,  # noqa: F401, E402
+    views_dna_findings,  # noqa: F401, E402
     views_transloc,  # noqa: F401, E402
 )
 

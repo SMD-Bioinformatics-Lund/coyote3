@@ -110,15 +110,11 @@ def create_comment_doc(
             doc["gene2"] = data.get("gene2", None)
     else:
         doc = {
-            "$push": {
-                "comments": {
-                    "_id": _core_repo().new_object_id(),
-                    "hidden": 0,
-                    "text": data.get(key),
-                    "author": author,
-                    "time_created": CommonUtility.utc_now(),
-                }
-            }
+            "_id": _core_repo().new_object_id(),
+            "hidden": 0,
+            "text": data.get(key),
+            "author": author,
+            "time_created": CommonUtility.utc_now(),
         }
     return doc
 

@@ -21,6 +21,18 @@ class ResourceClassificationService:
         self.repository = repository or DnaRouteRepository()
 
     @staticmethod
+    def _consequence_list(value: object) -> list[str]:
+        """Normalize selected_CSQ consequence values into list form."""
+        if isinstance(value, str):
+            return [part.strip() for part in value.split("&") if part.strip()]
+        if isinstance(value, (list, tuple, set)):
+            return [str(item).strip() for item in value if str(item).strip()]
+        if value in {None, ""}:
+            return []
+        text = str(value).strip()
+        return [text] if text else []
+
+    @staticmethod
     def mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict[str, Any]:
         """Handle mutation payload.
 
@@ -99,7 +111,7 @@ class ResourceClassificationService:
             hgvs_p = selected_csq.get("HGVSp")
             hgvs_c = selected_csq.get("HGVSc")
             hgvs_g = f"{var['CHROM']}:{var['POS']}:{var['REF']}/{var['ALT']}"
-            consequence = selected_csq.get("Consequence")
+            consequence = self._consequence_list(selected_csq.get("Consequence"))
             gene_oncokb = self.repository.oncokb_handler.get_oncokb_gene(gene)
             text = create_annotation_text_fn(gene, consequence, assay_group, gene_oncokb=gene_oncokb)
 

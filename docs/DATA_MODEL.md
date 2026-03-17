@@ -395,10 +395,19 @@ Indexes should reflect actual workload, not theoretical completeness.
 
 ### Route-critical baseline indexes
 - `variants.SAMPLE_ID` is mandatory for DNA sample variant list/read paths.
+- `coverage2.SAMPLE_ID` is mandatory for coverage sample payload lookup paths.
+- `groupcov` requires `group_gene_region_coord_1` (`group`, `gene`, `region`, `coord`) for blacklist membership checks in coverage processing.
 - `reported_variants` indexes are managed via `ReportedVariantsHandler.ensure_indexes()`.
 - `variants` indexes are managed via `VariantsHandler.ensure_indexes()`.
 
 These indexes are initialized from API startup through the Mongo adapter handler bootstrap.
+
+### Variant consequence shape guardrail
+`variants.INFO.selected_CSQ.Consequence` may be stored as either:
+- a list of terms (preferred)
+- a delimiter-joined string from legacy ingestion
+
+Service-layer logic that matches consequences must normalize both forms before comparison to avoid type errors and inconsistent classification behavior.
 
 ## 8.2 Why this strategy exists
 Route-family behavior is dominated by sample/finding retrieval and policy checks. Index policy must align with these reads first.

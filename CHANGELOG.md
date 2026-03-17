@@ -4,6 +4,10 @@
 - Coming soon
 - API based backend and Flask Frontend with tailwind CSS
 - Mongo Containnnerized
+- Coverage API performance: removed N+1 blacklist lookups by batching group blacklist reads and using in-memory membership checks during coverage filtering.
+- Coverage API stability: added startup index bootstrap for `coverage2` and `groupcov` handlers with targeted indexes for `coverage2.SAMPLE_ID` and `groupcov(group,gene,region,coord)`.
+- DNA small-variant robustness: normalized `INFO.selected_CSQ.Consequence` handling for list/string values to prevent `TypeError: unhashable type: 'list'` in variant context paths and tiering flows.
+- Coverage API troubleshooting instrumentation removed after validation; hot-path improvements retained.
 - Dashboard: standardized chart visual system for bar/donut plots (legend style, label behavior, tooltip formatting, grid/typography consistency).
 - Dashboard: reworked ISGL visibility overlap into an interactive 3-set visualization with hover tooltips and non-zero region rendering.
 - Dashboard: moved ISGL overlap card to general logged-in dashboard visibility and aligned card sizing with 3-column section layout.
@@ -12,6 +16,21 @@
 - Docs: expanded dashboard user guide with metric-by-metric definitions, formulas, and panel interpretation notes.
 - DB: added targeted `ensure_indexes()` coverage for dashboard/admin hot collections (`users`, `roles`, `asp`, `aspc`, `isgl`) with a minimal-index strategy.
 - Docs: added developer + operations guidance for Mongo index lifecycle, count-query patterns, and storage-aware indexing policy.
+- DNA comments: fixed sample-specific SNV/CNV/translocation comment persistence shape so saved comments render correctly on detail pages.
+- Comment data cleanup: added `scripts/repair_malformed_comments.py` to rewrite malformed legacy nested comment entries in Mongo.
+
+## v3.1.22
+- Fixed DNA small-variant bulk `false_positive` and `irrelevant` updates by replacing deprecated Mongo legacy bulk operations with direct `update_many` writes.
+- Updated DNA SNV/CNV CSV exports to be Excel-safe and more structured:
+  - split HGVS into separate `HGVSp` and `HGVSc` columns,
+  - normalize multi-value cells to pipe-delimited text (`|`),
+  - protect date-like / numeric-like values from Excel auto-conversion.
+- Removed preview-report compatibility route aliases and kept canonical preview routes for DNA/RNA reports.
+
+## v3.1.23
+- Added typed DNA CSV export row models (`SNV`/`CNV`) and API-backed export context endpoints for stable, contract-driven CSV formatting.
+- Switched DNA list-page CSV downloads to backend-generated files via Flask proxy routes instead of DOM-derived table exports.
+- Extended backend-generated CSV downloads to translocations with typed export rows and API/UI wiring.
 
 ## v3.1.21
 - Fixed HGVS display/toggle behavior across DNA variant list, tiered search, and reported variants views (unique row IDs, stacked HGVS lines, and no blank indent when only one HGVS value exists).

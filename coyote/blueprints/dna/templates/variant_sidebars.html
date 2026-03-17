@@ -20,7 +20,7 @@
     <div class="flex justify-between items-center mb-1">
       <h2 class="text-sm font-semibold">Modify Variants</h2>
     </div>
-    <form id="snv-actions-form" action="{{ url_for('dna_bp.classify_multi_small_variant', sample_id=sample.name) }}" method="POST">
+    <form id="snv-actions-form" action="{{ url_for('dna_bp.classify_multi_small_variant', sample_id=sample._id) }}" method="POST">
       <!-- Sidebar Checkboxes -->
       <div class="flex flex-col">
         <label class="flex items-center text-xs">
@@ -186,7 +186,7 @@
         <label class="text-gray-900">Gain Ratio</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&ge;</span>
-          {{ form.cnv_gain_cutoff(size=3, step="0.001", default=sample.filters.cnv_gain_cutoff,class="border border-gray-300 rounded px-2 py-0.5 w-24 bg-gray-50") }}
+          {{ form.cnv_gain_cutoff(size=3, step="0.01", default=sample.filters.cnv_gain_cutoff,class="border border-gray-300 rounded px-2 py-0.5 w-24 bg-gray-50") }}
         </div>
       </div>
 
@@ -195,7 +195,7 @@
         <label class="text-gray-900">Loss Ratio</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&le;</span>
-          {{ form.cnv_loss_cutoff(size=3, step="0.001", default=sample.filters.cnv_loss_cutoff, class="border border-gray-300 rounded px-2 py-0.5 w-24 bg-gray-50") }}
+          {{ form.cnv_loss_cutoff(size=3, step="0.01", default=sample.filters.cnv_loss_cutoff, class="border border-gray-300 rounded px-2 py-0.5 w-24 bg-gray-50") }}
         </div>
       </div>
 

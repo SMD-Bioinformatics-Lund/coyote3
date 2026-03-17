@@ -173,23 +173,31 @@ class BaseHandler:
             flash("No variants provided for false positive update.", "yellow")
             return None
 
-        bulk = self.get_collection().initialize_unordered_bulk_op()
-
+        object_ids: list[ObjectId] = []
         for vid in var_ids:
-            bulk.find({"_id": ObjectId(vid)}).update({"$set": {"fp": fp}})
+            try:
+                object_ids.append(ObjectId(vid))
+            except Exception:
+                continue
+
+        if not object_ids:
+            flash("No valid variants provided for false positive update.", "yellow")
+            return None
 
         try:
-            result = bulk.execute()
-            modified = result.get("nModified", 0)
+            result = self.get_collection().update_many(
+                {"_id": {"$in": object_ids}},
+                {"$set": {"fp": fp}},
+            )
+            modified = result.modified_count
             flash(
                 f"{modified} variant(s) {'marked' if fp else 'unmarked'} as False Positive",
                 "green",
             )
+            return result
         except Exception as e:
             flash(f"Bulk update failed: {str(e)}", "red")
             return None
-
-        return result
 
     def mark_interesting(self, var_id: str, interesting: bool) -> Any:
         """
@@ -262,23 +270,31 @@ class BaseHandler:
             flash("No variants provided for irrelevant update.", "yellow")
             return None
 
-        bulk = self.get_collection().initialize_unordered_bulk_op()
-
+        object_ids: list[ObjectId] = []
         for vid in var_ids:
-            bulk.find({"_id": ObjectId(vid)}).update({"$set": {"irrelevant": irrelevant}})
+            try:
+                object_ids.append(ObjectId(vid))
+            except Exception:
+                continue
+
+        if not object_ids:
+            flash("No valid variants provided for irrelevant update.", "yellow")
+            return None
 
         try:
-            result = bulk.execute()
-            modified = result.get("nModified", 0)
+            result = self.get_collection().update_many(
+                {"_id": {"$in": object_ids}},
+                {"$set": {"irrelevant": irrelevant}},
+            )
+            modified = result.modified_count
             flash(
                 f"{modified} variant(s) {'marked' if irrelevant else 'unmarked'} as Irrelevant",
                 "green",
             )
+            return result
         except Exception as e:
             flash(f"Bulk update failed: {str(e)}", "red")
             return None
-
-        return result
 
     def mark_noteworthy(self, var_id: str, noteworthy: bool) -> Any:
         """
@@ -342,7 +358,10 @@ class BaseHandler:
         Returns:
             Any: The result of the update operation.
         """
-        self.get_collection().update({"_id": ObjectId(id)}, comment_doc)
+        return self.get_collection().update_one(
+            {"_id": ObjectId(id)},
+            {"$push": {"comments": comment_doc}},
+        )
 
     def hidden_comments(self, id: str) -> bool:
         """

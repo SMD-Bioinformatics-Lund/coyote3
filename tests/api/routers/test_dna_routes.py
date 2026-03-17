@@ -113,6 +113,104 @@ def test_show_dna_variant_not_found_raises_404(monkeypatch):
     assert exc.value.detail["error"] == "Variant not found"
 
 
+def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
+    """Handle test show dna variant handles list consequence for oncokb."""
+    sample = fx.sample_doc()
+    sample["_id"] = "sample-1"
+    variant = {
+        "_id": "v1",
+        "SAMPLE_ID": "sample-1",
+        "CHROM": "7",
+        "POS": 140453136,
+        "REF": "A",
+        "ALT": "T",
+        "INFO": {
+            "selected_CSQ": {
+                "SYMBOL": "TP53",
+                "Consequence": ["frameshift_variant", "splice_region_variant"],
+                "HGVSp": "",
+            }
+        },
+        "transcripts": [],
+    }
+    captured: dict = {"hgvsp": None}
+    service = DnaService()
+
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
+    monkeypatch.setattr(
+        dna, "_get_formatted_assay_config", lambda _sample: {"asp_group": "dna"}
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.variant_handler, "get_variant", lambda var_id: variant
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.blacklist_handler,
+        "add_blacklist_data",
+        lambda variants, assay_group: variants,
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.variant_handler, "get_variant_in_other_samples", lambda var: []
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.variant_handler, "hidden_var_comments", lambda var_id: False
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.annotation_handler,
+        "get_global_annotations",
+        lambda variant, assay_group, subpanel: ({}, None, [], []),
+    )
+    monkeypatch.setattr(dna, "add_alt_class", lambda var, assay_group, subpanel: var)
+    monkeypatch.setattr(
+        dna_repo_module.store.expression_handler, "get_expression_data", lambda transcripts: {}
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.civic_handler, "get_civic_data", lambda variant, desc: {}
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.civic_handler, "get_civic_gene_info", lambda symbol: {}
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.oncokb_handler,
+        "get_oncokb_anno",
+        lambda variant, oncokb_hgvsp: captured.__setitem__("hgvsp", oncokb_hgvsp) or {},
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.oncokb_handler, "get_oncokb_action", lambda variant, hgvsp: {}
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.oncokb_handler, "get_oncokb_gene", lambda symbol: {}
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.brca_handler, "get_brca_data", lambda variant, assay_group: {}
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.iarc_tp53_handler, "find_iarc_tp53", lambda variant: {}
+    )
+    monkeypatch.setattr(
+        dna.util.common,
+        "get_case_and_control_sample_ids",
+        lambda sample_doc: {"case": "sample-1"},
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.bam_service_handler, "get_bams", lambda sample_ids: {}
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.vep_meta_handler, "get_variant_class_translations", lambda vep: {}
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.vep_meta_handler, "get_conseq_translations", lambda vep: {}
+    )
+    monkeypatch.setattr(
+        dna_repo_module.store.asp_handler, "get_asp_group_mappings", lambda: {}
+    )
+    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = dna.show_dna_variant("S1", "v1", user=fx.api_user(), service=service)
+
+    assert payload["variant"]["_id"] == "v1"
+    assert captured["hgvsp"] == ["Truncating Mutations"]
+
+
 def test_list_dna_variants_does_not_require_report_path(monkeypatch):
     """Handle test list dna variants does not require report path.
 
@@ -488,6 +586,9 @@ def test_bulk_flag_routes_use_non_colliding_paths():
     assert "/api/v1/samples/{sample_id}/classifications" in paths
     assert "/api/v1/samples/{sample_id}/annotations" in paths
     assert "/api/v1/samples/{sample_id}/small-variants/{var_id}/flags/false-positive" in paths
+    assert "/api/v1/samples/{sample_id}/small-variants/exports/snvs/context" in paths
+    assert "/api/v1/samples/{sample_id}/small-variants/exports/cnvs/context" in paths
+    assert "/api/v1/samples/{sample_id}/small-variants/exports/translocs/context" in paths
 
 
 def _route_test_user() -> ApiUser:
@@ -576,3 +677,98 @@ def test_bulk_irrelevant_endpoint_dispatches_in_real_http_route(monkeypatch):
 
     assert response.status_code == 200
     assert captured["ids"] == ["V5"]
+
+
+def _download_test_user() -> ApiUser:
+    """Build a user with download permissions for export endpoints."""
+    return ApiUser(
+        id="u1",
+        email="tester@example.com",
+        fullname="Test User",
+        username="tester",
+        role="user",
+        access_level=9,
+        permissions=["download_snvs", "download_cnvs", "download_translocs"],
+        denied_permissions=[],
+        assays=["WGS"],
+        assay_groups=["dna"],
+        envs=["production"],
+        asp_map={},
+    )
+
+
+def test_snv_export_context_route_returns_typed_csv_payload(monkeypatch):
+    """SNV export context endpoint returns generated CSV content and filename."""
+    monkeypatch.setattr(access, "_decode_session_user", lambda _request: _download_test_user())
+    monkeypatch.setattr(access, "_role_levels", lambda: {"user": 9, "manager": 99, "admin": 999})
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(
+        DnaService,
+        "list_variants_payload",
+        lambda self, **kwargs: {
+            "display_sections_data": {
+                "snvs": [
+                    {
+                        "CHROM": "chr7",
+                        "POS": 140453136,
+                        "REF": "A",
+                        "ALT": "T",
+                        "INFO": {"selected_CSQ": {"SYMBOL": "BRAF", "HGVSp": "p.Val600Glu", "HGVSc": "c.1799T>A", "Consequence": ["missense_variant"], "EXON": "15/18", "INTRON": ""}},
+                        "GT": [],
+                        "FILTER": ["PASS"],
+                        "classification": {"class": 3, "transcript": ""},
+                    }
+                ]
+            }
+        },
+    )
+    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    client = TestClient(api_app, raise_server_exceptions=False)
+    response = client.get("/api/v1/samples/S1/small-variants/exports/snvs/context")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["filename"].endswith(".filtered.snvs.csv")
+    assert "hgvsp" in body["content"]
+    assert "BRAF" in body["content"]
+
+
+def test_transloc_export_context_route_returns_typed_csv_payload(monkeypatch):
+    """Translocation export context endpoint returns generated CSV content and filename."""
+    monkeypatch.setattr(access, "_decode_session_user", lambda _request: _download_test_user())
+    monkeypatch.setattr(access, "_role_levels", lambda: {"user": 9, "manager": 99, "admin": 999})
+    monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
+    monkeypatch.setattr(
+        DnaService,
+        "list_variants_payload",
+        lambda self, **kwargs: {
+            "display_sections_data": {
+                "translocs": [
+                    {
+                        "CHROM": "chr9",
+                        "POS": 133729451,
+                        "ALT": "chr22:23632628",
+                        "INFO": {
+                            "PANEL": "DNA",
+                            "MANE_ANN": {
+                                "Gene_Name": "ABL1&BCR",
+                                "Annotation": ["gene_fusion"],
+                                "HGVSp": "p.X",
+                                "HGVSc": "c.X",
+                            },
+                        },
+                        "interesting": True,
+                    }
+                ]
+            }
+        },
+    )
+    monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
+
+    client = TestClient(api_app, raise_server_exceptions=False)
+    response = client.get("/api/v1/samples/S1/small-variants/exports/translocs/context")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["filename"].endswith(".filtered.translocs.csv")
+    assert "gene_1" in body["content"]
+    assert "ABL1" in body["content"]

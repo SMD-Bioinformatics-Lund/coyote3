@@ -10,19 +10,19 @@
 {% if search_str %}{% set _ = extra_args.update({'q': search_str}) %}{% endif %}
 <div class="flex w-full h-full overflow-hidden">
   <main class="flex-1 bg-transparent overflow-y-auto p-4 flex flex-col">
-    <section class="mt-2 mb-3 ml-2 w-4/5 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+    <section class="mt-2 mb-3 ml-2 w-5/6 rounded-2xl border border-gray-200 bg-blue-50 p-4 shadow-sm">
       <div class="flex flex-wrap items-center justify-between gap-4">
-        <div class="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 p-2 text-sm font-semibold">
+        <div class="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-2 py-1 text-sm font-semibold">
           <span class="text-gray-700">Profiles:</span>
           <a
             href="{{ url_for(request.endpoint, status='live', **extra_args) }}"
-            class="rounded-lg px-3 py-1.5 transition {% if profile_scope != 'all' %}bg-blue-600 text-white{% else %}text-gray-700 hover:bg-gray-100{% endif %}"
+            class="rounded-lg px-2 py-1 mx-1 transition {% if profile_scope != 'all' %}bg-blue-600 text-white{% else %}text-gray-700 hover:bg-gray-100{% endif %}"
           >
             Production
           </a>
           <a
             href="{{ url_for(request.endpoint, status='live', scope='all', **extra_args) }}"
-            class="rounded-lg px-3 py-1.5 transition {% if profile_scope == 'all' %}bg-blue-600 text-white{% else %}text-gray-700 hover:bg-gray-100{% endif %}"
+            class="rounded-lg px-2 py-1 mx-1 transition {% if profile_scope == 'all' %}bg-blue-600 text-white{% else %}text-gray-700 hover:bg-gray-100{% endif %}"
           >
             All Profiles
           </a>
@@ -47,7 +47,7 @@
               class="w-full rounded-full border border-gray-400 bg-white py-2 pl-10 pr-4 focus:border-blue-500 focus:outline-none"
               placeholder="Search samples">
 
-            <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="Search Icon" class="absolute left-1 top-1 h-7 w-9 cursor-pointer pb-1 text-gray-700 transition-transform duration-300 hover:scale-110" onclick="document.getElementById('search-input').focus()">
+            <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="Search Icon" class="absolute left-1 top-2 h-7 w-9 cursor-pointer pb-1 text-gray-700 transition-transform duration-300 hover:scale-110" onclick="document.getElementById('search-input').focus()">
           </div>
         </form>
       </div>
@@ -57,7 +57,7 @@
     <section class="p-2 ml-2 mt-2">
       <div class="justify-start">
         {% if live_samples %}
-          <div class="w-4/5 bg-blue-50  rounded-2xl p-4 relative overflow-hidden">
+          <div class="w-5/6 bg-blue-50  rounded-2xl p-4 relative overflow-hidden">
             <div class="overflow-x-auto rounded-2xl relative">
               <span class="text-lg font-semibold">Live Samples</span>
               <table class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
@@ -110,7 +110,7 @@
                         {% if is_rna_sample %}
                           <a href="{{ url_for('rna_bp.list_fusions', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% else %}
-                          <a href="{{ url_for('dna_bp.list_small_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                          <a href="{{ url_for('dna_bp.list_dna_findings', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% endif %}
                         {% if sample.comments|selectattr('hidden', 'equalto', 0)|list|length > 0 %}
                           *
@@ -200,7 +200,7 @@
           </div>
         {% endif %}
         {% if done_samples %}
-          <div class="w-4/5 bg-blue-50  rounded-2xl p-3 mt-10 relative">
+          <div class="w-5/6 bg-blue-50  rounded-2xl p-3 mt-10 relative">
             <div class="overflow-x-auto rounded-2xl relative">
               <span class="text-lg font-semibold">Reported samples
               </span>
@@ -256,7 +256,7 @@
                         {% if is_rna_sample %}
                           <a href="{{ url_for('rna_bp.list_fusions', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% else %}
-                          <a href="{{ url_for('dna_bp.list_small_variants', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
+                          <a href="{{ url_for('dna_bp.list_dna_findings', sample_id=sample.name) }}" class="text-blue-500 hover:underline">{{ sample.name }}</a>
                         {% endif %}
                       </td>
                       <td class="p-2 font-medium">

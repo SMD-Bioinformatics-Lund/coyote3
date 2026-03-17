@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, Depends, Query, Request
 
 from api.contracts.dna import (
+    DnaCsvExportContextPayload,
     DnaPlotContextPayload,
     DnaVariantContextPayload,
     DnaVariantsListPayload,
@@ -116,6 +117,105 @@ def show_dna_variant(
             util_module=util,
             assay_config_getter=_get_formatted_assay_config,
         )
+    )
+
+
+@router.get(
+    "/api/v1/samples/{sample_id}/small-variants/exports/snvs/context",
+    response_model=DnaCsvExportContextPayload,
+    summary="Build filtered SNV CSV export context",
+)
+def export_snv_csv_context(
+    request: Request,
+    sample_id: str,
+    user: ApiUser = Depends(require_access(permission="download_snvs", min_role="user", min_level=9)),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Build SNV export payload (filename + csv content)."""
+    sample = _get_sample_for_api(sample_id, user)
+    payload = service.list_variants_payload(
+        request=request,
+        sample=sample,
+        util_module=util,
+        add_global_annotations_fn=add_global_annotations,
+        generate_summary_text_fn=generate_summary_text,
+        build_query_fn=build_query,
+        get_filter_conseq_terms_fn=get_filter_conseq_terms,
+        assay_config_getter=_get_formatted_assay_config,
+    )
+    variants = payload.get("display_sections_data", {}).get("snvs", [])
+    rows = service.build_snv_export_rows(variants=variants)
+    content = service.export_rows_to_csv(rows)
+    filename = f"{sample.get('name', sample_id)}.filtered.snvs.csv"
+    return util.common.convert_to_serializable(
+        {"filename": filename, "content": content, "row_count": len(rows)}
+    )
+
+
+@router.get(
+    "/api/v1/samples/{sample_id}/small-variants/exports/cnvs/context",
+    response_model=DnaCsvExportContextPayload,
+    summary="Build filtered CNV CSV export context",
+)
+def export_cnv_csv_context(
+    request: Request,
+    sample_id: str,
+    user: ApiUser = Depends(require_access(permission="download_cnvs", min_role="user", min_level=9)),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Build CNV export payload (filename + csv content)."""
+    sample = _get_sample_for_api(sample_id, user)
+    payload = service.list_variants_payload(
+        request=request,
+        sample=sample,
+        util_module=util,
+        add_global_annotations_fn=add_global_annotations,
+        generate_summary_text_fn=generate_summary_text,
+        build_query_fn=build_query,
+        get_filter_conseq_terms_fn=get_filter_conseq_terms,
+        assay_config_getter=_get_formatted_assay_config,
+    )
+    cnvs = payload.get("display_sections_data", {}).get("cnvs", [])
+    assay_group = payload.get("assay_group", "unknown")
+    rows = service.build_cnv_export_rows(cnvs=cnvs, sample=sample, assay_group=assay_group)
+    content = service.export_rows_to_csv(rows)
+    filename = f"{sample.get('name', sample_id)}.filtered.cnvs.csv"
+    return util.common.convert_to_serializable(
+        {"filename": filename, "content": content, "row_count": len(rows)}
+    )
+
+
+@router.get(
+    "/api/v1/samples/{sample_id}/small-variants/exports/translocs/context",
+    response_model=DnaCsvExportContextPayload,
+    summary="Build filtered translocation CSV export context",
+)
+def export_transloc_csv_context(
+    request: Request,
+    sample_id: str,
+    user: ApiUser = Depends(
+        require_access(permission="download_translocs", min_role="user", min_level=9)
+    ),
+    service: DnaService = Depends(get_dna_service),
+):
+    """Build translocation export payload (filename + csv content)."""
+    sample = _get_sample_for_api(sample_id, user)
+    payload = service.list_variants_payload(
+        request=request,
+        sample=sample,
+        util_module=util,
+        add_global_annotations_fn=add_global_annotations,
+        generate_summary_text_fn=generate_summary_text,
+        build_query_fn=build_query,
+        get_filter_conseq_terms_fn=get_filter_conseq_terms,
+        assay_config_getter=_get_formatted_assay_config,
+    )
+    translocs = payload.get("display_sections_data", {}).get("translocs", [])
+    rows = service.build_transloc_export_rows(translocs=translocs)
+    content = service.export_rows_to_csv(rows)
+    filename = f"{sample.get('name', sample_id)}.filtered.translocs.csv"
+    return util.common.convert_to_serializable(
+        {"filename": filename, "content": content, "row_count": len(rows)}
     )
 
 

@@ -191,9 +191,67 @@
   const capacityCounts = {{ capacity_counts | tojson }};
   const isglVisibility = {{ isgl_visibility | tojson }};
   const assayGeneStatsGrouped = {{ assay_gene_stats_grouped | tojson }};
+  const dynamicAssayNav = {{ dynamic_assay_nav | tojson }};
   const analysedSamples = {{ analysed_samples | int }};
   const pendingSamples = {{ pending_samples | int }};
   const samplesHomeUrl = {{ url_for("home_bp.samples_home") | tojson }};
+
+  function normalizeToken(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+
+  const samplesNavEntries = (() => {
+    const entries = [];
+    Object.entries(dynamicAssayNav || {}).forEach(([panelType, technologies]) => {
+      Object.entries(technologies || {}).forEach(([panelTech, groups]) => {
+        Object.entries(groups || {}).forEach(([groupName, panelData]) => {
+          if (!panelData || panelData.url !== "home_bp.samples_home") return;
+          const assays = (panelData.assays || []).map((assay) => normalizeToken(assay));
+          entries.push({
+            panelType,
+            panelTech,
+            groupName,
+            assays,
+          });
+        });
+      });
+    });
+    return entries;
+  })();
+
+  function resolveSamplesNavEntry(assayName, assayGroup) {
+    const assayNorm = normalizeToken(assayName);
+    const groupNorm = normalizeToken(assayGroup);
+    if (assayNorm) {
+      const directByAssay = samplesNavEntries.find((entry) => entry.assays.includes(assayNorm));
+      if (directByAssay) return directByAssay;
+    }
+    if (groupNorm) {
+      const directByGroup = samplesNavEntries.find(
+        (entry) => normalizeToken(entry.groupName) === groupNorm
+      );
+      if (directByGroup) return directByGroup;
+    }
+    return null;
+  }
+
+  function navigateToSamplesForAssay(assayName, assayGroup) {
+    const target = new URL(samplesHomeUrl, window.location.origin);
+    target.searchParams.set("status", "live");
+    target.searchParams.set("view", "all");
+
+    const navEntry = resolveSamplesNavEntry(assayName, assayGroup);
+    if (navEntry) {
+      target.searchParams.set("panel_type", navEntry.panelType);
+      target.searchParams.set("panel_tech", navEntry.panelTech);
+      target.searchParams.set("assay_group", navEntry.groupName);
+    } else if (assayGroup) {
+      // Fallback keeps navigation functional even if nav metadata is missing.
+      target.searchParams.set("assay_group", assayGroup);
+    }
+
+    window.location.href = `${target.pathname}?${target.searchParams.toString()}`;
+  }
 
   function cssVarColor(name, fallback = "currentColor") {
     const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -401,16 +459,6 @@
         if (assayName) assayToGroup[assayName] = groupName;
       });
     });
-    function resolveAssayGroup(assayName) {
-      const direct = assayToGroup[assayName];
-      if (direct) return direct;
-      const raw = String(assayName || "").toLowerCase();
-      if (raw.includes("tumwgs") || raw.includes("wgs")) return "tumwgs";
-      if (raw.includes("wts")) return "wts";
-      if (raw.includes("rna") || raw.includes("fusion")) return "wts";
-      return raw.split("_")[0].split("-")[0] || raw;
-    }
-
     const assays = Object.keys(userSamplesStats || {});
     renderUserAssaySummary(assays);
     if (!assays.length) {
@@ -445,8 +493,7 @@
         </div>
       `;
       chartEl.onclick = () => {
-        const group = resolveAssayGroup(assay);
-        window.location.href = `${samplesHomeUrl}?status=live&assay_group=${encodeURIComponent(group)}&view=all`;
+        navigateToSamplesForAssay(assay, assayToGroup[assay]);
       };
       chartEl.classList.add("cursor-pointer");
       return;
@@ -517,8 +564,7 @@
         events: {
           dataPointSelection: function(_event, _chartContext, config) {
             const assay = assays[config.dataPointIndex];
-            const group = resolveAssayGroup(assay);
-            window.location.href = `${samplesHomeUrl}?status=live&assay_group=${encodeURIComponent(group)}&view=all`;
+            navigateToSamplesForAssay(assay, assayToGroup[assay]);
           }
         }
       },

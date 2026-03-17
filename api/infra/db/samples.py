@@ -53,6 +53,7 @@ class SampleHandler(BaseHandler):
             partialFilterExpression={"sample_id": {"$exists": True, "$type": "string"}},
         )
         col.create_index([("assay", 1)], name="assay_1", background=True)
+        col.create_index([("name", 1)], name="name_1", background=True)
         col.create_index([("profile", 1)], name="profile_1", background=True)
         col.create_index([("report_num", 1)], name="report_num_1", background=True)
         col.create_index([("time_added", -1)], name="time_added_-1", background=True)

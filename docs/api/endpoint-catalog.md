@@ -44,6 +44,9 @@ This catalog is an implementation-oriented inventory of API route families for m
   - `PATCH /api/v1/samples/{sample_id}/small-variants/flags/false-positive`
   - `PATCH /api/v1/samples/{sample_id}/small-variants/flags/irrelevant`
   - `GET /api/v1/samples/{sample_id}/small-variants/plot-context`
+  - `GET /api/v1/samples/{sample_id}/small-variants/exports/snvs/context`
+  - `GET /api/v1/samples/{sample_id}/small-variants/exports/cnvs/context`
+  - `GET /api/v1/samples/{sample_id}/small-variants/exports/translocs/context`
 - Scope: SNV/indel/MNV context, detail views, mutation operations, and annotation enrichment flows.
 - Canonical mutation patterns now include:
   - resource flags under `/small-variants/{id}/flags/*`
@@ -52,6 +55,7 @@ This catalog is an implementation-oriented inventory of API route families for m
   - comment creation under `/annotations`
 - Bulk mutation payload notes:
   - FP/irrelevant bulk endpoints accept JSON payload `{ "apply": <bool>, "resource_ids": [ ... ], "resource_type": "small_variant" }`.
+  - CSV export context endpoints return `{ "filename": "...", "content": "<csv>", "row_count": <int> }` and are consumed by UI download routes.
 
 ## 5. Classification Domain
 - Module: `api/routers/classifications.py`
@@ -142,7 +146,7 @@ This catalog is an implementation-oriented inventory of API route families for m
 1. Each endpoint must be declared in exactly one route module aligned with domain ownership.
 2. Shared business behavior belongs in `api/core/*` modules, not duplicated across route modules.
 3. Route modules should remain thin and deterministic: parse input, authorize, call core workflow, return contract-defined payload.
-4. Every route decorator must declare an explicit `response_model` from `api/contracts/*` (or `response_model=None` only for non-body compatibility redirects).
+4. Every route decorator must declare an explicit `response_model` from `api/contracts/*`.
 
 ## 14. Maintenance Checklist for Endpoint Changes
 - Update router tests in `tests/api/routers/`.

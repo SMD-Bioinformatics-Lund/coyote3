@@ -42,3 +42,6 @@ class MongoCoverageRepository:
             store.groupcov_handler.is_region_blacklisted(gene, region, region_id, sample_group)
         )
 
+    def get_regions_per_group(self, group: str) -> list[dict]:
+        """Return all blacklist entries for an assay group."""
+        return list(store.groupcov_handler.get_regions_per_group(group) or [])

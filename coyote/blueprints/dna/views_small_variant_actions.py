@@ -43,6 +43,7 @@ def call_api(sample_id: str, log_message: str, api_call: Callable[[], Any]) -> b
         return True
     except ApiRequestError as exc:
         app.logger.error("%s for sample %s: %s", log_message, sample_id, exc)
+        flash(str(exc) or "Request failed", "red")
         return False
 
 
@@ -200,7 +201,7 @@ def mark_false_variant(sample_id: str, var_id: str) -> Response:
     call_api(
         sample_id,
         "Failed to mark variant false-positive via API",
-        lambda: get_web_api_client().post_json(
+        lambda: get_web_api_client().patch_json(
             api_endpoints.dna_sample(
                 sample_id, "small_variants", var_id, "flags", "false-positive"
             ),
@@ -248,7 +249,7 @@ def mark_interesting_variant(sample_id: str, var_id: str) -> Response:
     call_api(
         sample_id,
         "Failed to mark variant interesting via API",
-        lambda: get_web_api_client().post_json(
+        lambda: get_web_api_client().patch_json(
             api_endpoints.dna_sample(sample_id, "small_variants", var_id, "flags", "interesting"),
             headers=headers(),
         ),
@@ -294,7 +295,7 @@ def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
     call_api(
         sample_id,
         "Failed to mark variant irrelevant via API",
-        lambda: get_web_api_client().post_json(
+        lambda: get_web_api_client().patch_json(
             api_endpoints.dna_sample(sample_id, "small_variants", var_id, "flags", "irrelevant"),
             headers=headers(),
         ),
@@ -564,4 +565,4 @@ def classify_multi_small_variant(sample_id: str) -> Response:
         endpoint=api_endpoints.dna_sample(sample_id, "small_variants", "flags", "irrelevant"),
     )
 
-    return redirect(url_for("dna_bp.list_small_variants", sample_id=sample_id))
+    return redirect(url_for("dna_bp.list_dna_findings", sample_id=sample_id))

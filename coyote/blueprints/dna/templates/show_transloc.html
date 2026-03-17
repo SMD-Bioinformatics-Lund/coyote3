@@ -185,11 +185,11 @@
         <div class="relative">
           <div class="absolute top-0 left-0 w-full h-1 bg-yellow-400 break-all"></div>
           {% if tl.fp == true %}
-            <form action="{{ url_for('dna_bp.unmark_false_transloc', sample_id=sample.name, transloc_id=tl._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.unmark_false_transloc', sample_id=sample_id, transloc_id=tl._id) }}" method="post">
               <input class="relative bg-yellow-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{transloc_actions_class}}" type="submit" name="mark_fp" value="Unmark False Positive" {{transloc_actions_attr}}>
             </form>
           {% else %}
-            <form action="{{ url_for('dna_bp.mark_false_transloc', sample_id=sample.name, transloc_id=tl._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.mark_false_transloc', sample_id=sample_id, transloc_id=tl._id) }}" method="post">
               <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-yellow-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{transloc_actions_class}}" type="submit" name="mark_fp" value="Mark as False Positive" {{transloc_actions_attr}}>
             </form>
           {% endif %}
@@ -197,11 +197,11 @@
         <div class="relative">
           <div class="absolute top-0 left-0 w-full h-1 bg-green-400"></div>
           {% if tl.interesting == true %}
-            <form action="{{ url_for('dna_bp.unmark_interesting_transloc', sample_id=sample.name, transloc_id=tl._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.unmark_interesting_transloc', sample_id=sample_id, transloc_id=tl._id) }}" method="post">
               <input class="relative bg-green-200 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-gray-200 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{transloc_actions_class}}" type="submit" name="exclude_from_report" value="Exclude from report" {{transloc_actions_attr}}>
             </form>
           {% else %}
-            <form action="{{ url_for('dna_bp.mark_interesting_transloc', sample_id=sample.name, transloc_id=tl._id) }}" method="post">
+            <form action="{{ url_for('dna_bp.mark_interesting_transloc', sample_id=sample_id, transloc_id=tl._id) }}" method="post">
               <input class="relative bg-gray-300 text-black text-xs text-center p-2 mb-1 rounded-b-md shadow-lg cursor-pointer hover:bg-green-100 transition-all duration-300 ease-in-out transform hover:translate-y-1 block whitespace-normal break-all {{transloc_actions_class}}" type="submit" name="include_in_report" value="Include in report" {{transloc_actions_attr}}>
             </form>
           {% endif %}
@@ -219,7 +219,7 @@
           <div class="bg-transparent w-full max-w-xl" id="commenting-box-card">
             <h2 class="text-sm font-semibold bg-gradient-to-b from-indigo-400 to-indigo-200 p-2 shadow-md rounded-t-lg break-all">Add new comment/annotation</h2>
             <div id="commenting_box" class="rounded-b-lg border border-gray-400 shadow-md p-2 overflow-x-auto">
-              <form action="{{ url_for('dna_bp.add_translocation_comment', sample_id=sample.name, transloc_id=tl._id) }}" method="post">
+              <form action="{{ url_for('dna_bp.add_translocation_comment', sample_id=sample_id, transloc_id=tl._id) }}" method="post">
                 <textarea id="comment_textarea" name="text" placeholder="Enter variant comment/annotation..." class="h-40 w-full p-2 border border-gray-300 rounded-lg focus:bg-yellow-50 mb-4"></textarea><br>
                 <input type="hidden" name="gene1" value="{{ genes[0] }}">
                 <input type="hidden" name="gene2" value="{{ genes[1] }}">
@@ -333,19 +333,17 @@
                   </thead>
                   <tbody id="transloc-annotations-all-body" class="{% if annotations|length > 1 %}border-b border-gray-400 {% endif %}">
                     {% for anno in annotations|sort(attribute='time_created', reverse=True) %}
-                      {% if current_user.role != "readonly" or loop.first == True %}
-                        <tr class="hover:bg-green-100 border-t border-gray-400 text-left align-top">
-                          <td class="p-2 font-medium">{{ anno.author }}<br><small>{{ anno.time_created|human_date }}</small></td>
-                          <td class="p-2" onclick="addText(event)">{{ anno.text|format_comment|safe }}</td>
-                          <td class="p-2">
-                            {% if "assay" in anno %}
-                              {{ anno.assay }}<br><small>{{ anno.subpanel }}</small>
-                            {% else %}
-                              historic
-                            {% endif %}
-                          </td>
-                        </tr>
-                      {% endif %}
+                      <tr class="hover:bg-green-100 border-t border-gray-400 text-left align-top">
+                        <td class="p-2 font-medium">{{ anno.author }}<br><small>{{ anno.time_created|human_date }}</small></td>
+                        <td class="p-2" onclick="addText(event)">{{ anno.text|format_comment|safe }}</td>
+                        <td class="p-2">
+                          {% if "assay" in anno %}
+                            {{ anno.assay }}<br><small>{{ anno.subpanel }}</small>
+                          {% else %}
+                            historic
+                          {% endif %}
+                        </td>
+                      </tr>
                     {% endfor %}
                   </tbody>
                 </table>
@@ -447,12 +445,12 @@
                       <td class="p-2" onclick="addText(event)">{{ comment.text|format_comment|safe }}</td>
                       <td class="p-2">
                         {% if comment.hidden != 1 %}
-                          <form action="{{ url_for('dna_bp.hide_transloc_comment', sample_id=sample.name, transloc_id=tl._id) }}" method="post">
+                          <form action="{{ url_for('dna_bp.hide_transloc_comment', sample_id=sample_id, transloc_id=tl._id) }}" method="post">
                             <input type="hidden" name="comment_id" value="{{ comment._id }}">
                             <input id="hide_comment" type="image" class="w-5 {% if not has_access('hide_variant_comment', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye-slash.svg') }}">
                           </form>
                         {% else %}
-                          <form action="{{ url_for('dna_bp.unhide_transloc_comment', sample_id=sample.name, transloc_id=tl._id) }}" method="post">
+                          <form action="{{ url_for('dna_bp.unhide_transloc_comment', sample_id=sample_id, transloc_id=tl._id) }}" method="post">
                             <input type="hidden" name="comment_id" value="{{ comment._id }}">
                             <input id="unhide_comment" type="image" class="w-5 {% if not has_access('unhide_variant_comment', min_role='manager', min_level=99) %} opacity-70 select-none cursor-not-allowed pointer-events-none {% endif %}" src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}">
                           </form>

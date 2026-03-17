@@ -24,7 +24,7 @@ def test_case_frequency_column_defaults_to_descending_sort():
     Returns:
         The function result.
     """
-    template_path = "coyote/blueprints/dna/templates/list_small_variants_vep.html"
+    template_path = "coyote/blueprints/dna/templates/list_dna_findings.html"
     with open(template_path, encoding="utf-8") as handle:
         template = handle.read()
 
