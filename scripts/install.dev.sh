@@ -74,7 +74,7 @@ docker rm "$container_name" >/dev/null 2>&1
 # build redis image if it does not exist
 docker inspect redis_coyote3_dev >/dev/null 2>&1 \
     && docker start redis_coyote3_dev \
-    || docker run -d --name redis_coyote3_dev --network coyote3-dev-net --restart=unless-stopped -p 5818:6379 ramsainanduri/redis:7.4.3
+    || docker run -d --name redis_coyote3_dev --network coyote3-dev-net --restart=unless-stopped -p 8802:6379 ramsainanduri/redis:7.4.3
 
 
 # Start the Docker container

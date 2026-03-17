@@ -16,7 +16,7 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
     ports:
-      - "6815:8000"
+      - "8801:8000"
     env_file:
       - .coyote3_dev_env
     environment:
@@ -34,18 +34,18 @@ services:
     networks:
       - coyote3-dev-net
     volumes:
-      - ".git:/app/.git"
-      - "./coyote:/app/coyote"
-      - "./config:/app/config"
-      - "/data/coyote3/logs:/app/logs"
-      - "./docs:/app/docs"
-      - "./config.py:/app/config.py"
-      - "./wsgi.py:/app/wsgi.py"
-      - "./gunicorn.conf.py:/app/gunicorn.conf.py"
-      - "./logging_setup.py:/app/logging_setup.py"
-      - "./CHANGELOG.md:/app/CHANGELOG.md"
-      - "./README.md:/app/README.md"
-      - "./LICENSE.txt:/app/LICENSE.txt"
+      # - ".git:/app/.git"
+      # - "./coyote:/app/coyote"
+      # - "./config:/app/config"
+      # - "/data/coyote3/logs:/app/logs"
+      # - "./docs:/app/docs"
+      # - "./config.py:/app/config.py"
+      # - "./wsgi.py:/app/wsgi.py"
+      # - "./gunicorn.conf.py:/app/gunicorn.conf.py"
+      # - "./logging_setup.py:/app/logging_setup.py"
+      # - "./CHANGELOG.md:/app/CHANGELOG.md"
+      # - "./README.md:/app/README.md"
+      # - "./LICENSE.txt:/app/LICENSE.txt"
       - "/access:/access"
       - "/media:/media"
       - "/data:/data"
@@ -72,7 +72,7 @@ services:
     container_name: redis_coyote3_dev
     image: ramsainanduri/redis:7.4.3
     ports:
-      - "5818:6379"
+      - "8802:6379"
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
     dns:
