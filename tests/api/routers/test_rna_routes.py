@@ -69,7 +69,7 @@ def test_list_rna_fusions_success(monkeypatch):
     monkeypatch.setattr(
         rna_repo_module.store.asp_handler,
         "get_asp",
-        lambda asp_name: {"_id": "asp1", "asp_group": "rna"},
+        lambda asp_name: {"asp_id": "asp1", "asp_group": "rna"},
     )
     monkeypatch.setattr(
         rna_repo_module.store.isgl_handler,

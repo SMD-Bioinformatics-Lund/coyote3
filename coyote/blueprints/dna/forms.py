@@ -42,8 +42,16 @@ class DNAFilterForm(FlaskForm):
     )
     min_cnv_size = IntegerField("Min CNV Size", validators=[InputRequired(), NumberRange(min=1)])
     max_cnv_size = IntegerField("Max CNV Size", validators=[InputRequired(), NumberRange(min=2)])
-    cnv_loss_cutoff = FloatField("CNV Loss Cutoff", validators=[InputRequired(), NumberRange()])
-    cnv_gain_cutoff = FloatField("CNV Gain Cutoff", validators=[InputRequired(), NumberRange()])
+    cnv_loss_cutoff = FloatField(
+        "CNV Loss Cutoff",
+        validators=[InputRequired(), NumberRange()],
+        render_kw={"step": "0.01", "type": "number"},
+    )
+    cnv_gain_cutoff = FloatField(
+        "CNV Gain Cutoff",
+        validators=[InputRequired(), NumberRange()],
+        render_kw={"step": "0.01", "type": "number"},
+    )
     warn_cov = IntegerField(
         "Coverage Warning Threshold",
         validators=[InputRequired(), NumberRange(min=0)],

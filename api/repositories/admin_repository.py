@@ -685,8 +685,11 @@ class AdminRepository:
         )
         if not active_schemas:
             return [], {}
-        selected_id = schema_id or active_schemas[0].get("_id")
-        selected_schema = next((schema for schema in active_schemas if schema.get("_id") == selected_id), {})
+        selected_id = schema_id or active_schemas[0].get("schema_id")
+        selected_schema = next(
+            (schema for schema in active_schemas if schema.get("schema_id") == selected_id),
+            {},
+        )
         return active_schemas, selected_schema
 
     def get_schema(self, schema_name: str | None) -> dict[str, Any] | None:

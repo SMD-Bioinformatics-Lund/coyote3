@@ -163,7 +163,7 @@ class SampleCatalogService:
         return {
             "items": [
                 {
-                    "_id": str(gl["_id"]),
+                    "isgl_id": str(gl["isgl_id"]),
                     "name": gl["displayname"],
                     "version": gl.get("version"),
                     "adhoc": gl.get("adhoc", False),

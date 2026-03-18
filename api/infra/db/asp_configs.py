@@ -141,7 +141,7 @@ class ASPConfigHandler(BaseHandler):
         Returns:
             dict | None: The assay configuration document if found, otherwise None.
         """
-        return self.get_collection().find_one({"_id": aspc_id})
+        return self.get_collection().find_one(self._aspc_lookup_query(aspc_id))
 
     def get_aspc_no_meta(self, assay_id: str, profile: str = "production") -> dict | None:
         """
@@ -248,14 +248,14 @@ class ASPConfigHandler(BaseHandler):
         Returns:
             list: A list of environments not yet used for this assay.
         """
-        # Match _id like "Demo:production", "Demo:development", etc.
+        # Match aspc_id like "Demo:production", "Demo:development", etc.
         regex = f"^{assay_name}:"
-        assay_configs = self.get_collection().find({"_id": {"$regex": regex}}, {"_id": 1})
+        assay_configs = self.get_collection().find({"aspc_id": {"$regex": regex}}, {"aspc_id": 1})
 
         used_envs = set()
         for config in assay_configs:
             try:
-                _, env = config["_id"].split(":")
+                _, env = config["aspc_id"].split(":")
                 used_envs.add(env)
             except ValueError:
                 continue  # skip malformed _id

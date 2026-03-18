@@ -43,13 +43,19 @@ class UsersHandler(BaseHandler):
         """
         col = self.get_collection()
         col.create_index(
-            [("user_id", 1)],
-            name="user_id_1",
+            [("username", 1)],
+            name="username_1",
             unique=True,
             background=True,
-            partialFilterExpression={"user_id": {"$exists": True, "$type": "string"}},
+            partialFilterExpression={"username": {"$exists": True, "$type": "string"}},
         )
-        col.create_index([("email", 1)], name="email_1", background=True)
+        col.create_index(
+            [("email", 1)],
+            name="email_1",
+            unique=True,
+            background=True,
+            partialFilterExpression={"email": {"$exists": True, "$type": "string"}},
+        )
         col.create_index([("is_active", 1)], name="is_active_1", background=True)
         col.create_index([("firstname", 1)], name="firstname_1", background=True)
 
@@ -74,8 +80,15 @@ class UsersHandler(BaseHandler):
         """
         if value is None:
             return None
-        normalized = str(value).strip()
+        normalized = str(value).strip().lower()
         return normalized or None
+
+    def _identity_query(self, identity: str | None) -> dict:
+        """Return identity lookup query using username as canonical key."""
+        normalized = self._normalize_user_id(identity)
+        if not normalized:
+            return {"_id": None}
+        return {"$or": [{"username": normalized}, {"user_id": normalized}]}
 
     def user(self, user_mail: str) -> dict:
         """
@@ -106,20 +119,20 @@ class UsersHandler(BaseHandler):
         normalized = self._normalize_user_id(user_id)
         if not normalized:
             return None
-        doc = self.get_collection().find_one({"user_id": normalized})
+        doc = self.get_collection().find_one(self._identity_query(normalized))
         return dict(doc) if doc else None
 
-    def ensure_user_id(self, user_data: dict) -> dict:
+    def ensure_username(self, user_data: dict) -> dict:
         """
-        Ensure user payload contains explicit business key (`user_id`).
+        Ensure user payload contains explicit business key (`username`).
         """
         if not isinstance(user_data, dict):
             return user_data
-        normalized = self._normalize_user_id(user_data.get("user_id"))
+        normalized = self._normalize_user_id(user_data.get("username"))
         if normalized:
-            user_data["user_id"] = normalized
+            user_data["username"] = normalized
             return user_data
-        raise ValueError("users.user_id is required in strict business-key mode")
+        raise ValueError("users.username is required in strict business-key mode")
 
     def update_password(self, username, password_hash) -> None:
         """
@@ -132,14 +145,14 @@ class UsersHandler(BaseHandler):
         """
         normalized = self._normalize_user_id(username)
         if self.get_collection().update_one(
-            {"user_id": normalized},
+            self._identity_query(normalized),
             {"$set": {"password": password_hash}},
         ):
             flash("Password updated", "green")
         else:
             flash("Failed to update password", "red")
 
-    def user_exists(self, user_id=None, email=None) -> bool:
+    def user_exists(self, user_id=None, email=None, username=None) -> bool:
         """
         Check if a user exists in the database by user ID or email.
         Args:
@@ -151,9 +164,10 @@ class UsersHandler(BaseHandler):
         if email:
             return bool(self.get_collection().find_one({"email": email}))
 
-        if user_id:
-            normalized = self._normalize_user_id(user_id)
-            return bool(self.get_collection().find_one({"user_id": normalized}))
+        identity = username or user_id
+        if identity:
+            normalized = self._normalize_user_id(identity)
+            return bool(self.get_collection().find_one(self._identity_query(normalized)))
 
         return False
 
@@ -165,7 +179,7 @@ class UsersHandler(BaseHandler):
         Returns:
             None
         """
-        payload = self.ensure_user_id(dict(user_data))
+        payload = self.ensure_username(dict(user_data))
         return self.get_collection().insert_one(payload)
 
     def get_all_users(self) -> list:
@@ -185,7 +199,7 @@ class UsersHandler(BaseHandler):
             None
         """
         normalized = self._normalize_user_id(user_id)
-        return self.get_collection().delete_one({"user_id": normalized})
+        return self.get_collection().delete_one(self._identity_query(normalized))
 
     def update_user(self, user_id, user_data) -> None:
         """
@@ -197,8 +211,12 @@ class UsersHandler(BaseHandler):
             None
         """
         normalized = self._normalize_user_id(user_id)
-        payload = self.ensure_user_id(dict(user_data))
-        return self.get_collection().replace_one({"user_id": normalized}, payload)
+        payload = self.ensure_username(dict(user_data))
+        existing = self.get_collection().find_one(self._identity_query(normalized), {"_id": 1})
+        if not existing:
+            return None
+        payload["_id"] = existing["_id"]
+        return self.get_collection().replace_one({"_id": existing["_id"]}, payload)
 
     def update_user_last_login(self, user_id: str):
         """
@@ -209,7 +227,7 @@ class UsersHandler(BaseHandler):
         """
         normalized = self._normalize_user_id(user_id)
         self.get_collection().update_one(
-            {"user_id": normalized},
+            self._identity_query(normalized),
             {"$set": {"last_login": datetime.now(timezone.utc)}},
         )
 
@@ -224,7 +242,7 @@ class UsersHandler(BaseHandler):
         """
         normalized = self._normalize_user_id(user_id)
         result = self.get_collection().update_one(
-            {"user_id": normalized},
+            self._identity_query(normalized),
             {"$set": {"is_active": active_status}},
         )
         return bool(getattr(result, "modified_count", 0) or getattr(result, "matched_count", 0))

@@ -54,7 +54,7 @@
         <label class="text-gray-900">Spanning pairs</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&gt;</span>
-          {{ form.min_spanning_pairs(size=2, default=sample.filter_min_spanning_pairs, class="border border-gray-400 rounded px-1 py-0.5 w-16 bg-gray-50") }}
+          {{ form.min_spanning_pairs(size=2, type="number", step="1", min="0", default=sample.filter_min_spanning_pairs, class="border border-gray-400 rounded px-1 py-0.5 w-16 bg-gray-50") }}
         </div>
       </div>
 
@@ -62,7 +62,7 @@
         <label class="text-gray-900">Spanning reads</label>
         <div class="flex items-center gap-1">
           <span class="text-sm font-bold">&gt;</span>
-          {{ form.min_spanning_reads(size=1, default=sample.filter_min_spanning_reads, class="border border-gray-400 rounded px-1 py-0.5 w-16 bg-gray-50") }}
+          {{ form.min_spanning_reads(size=1, type="number", step="1", min="0", default=sample.filter_min_spanning_reads, class="border border-gray-400 rounded px-1 py-0.5 w-16 bg-gray-50") }}
         </div>
       </div>
 

@@ -43,7 +43,7 @@
               <tbody id="users-list-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
                 {% for user in users %}
                   <tr class="border-t border-gray-400 hover:bg-{{ roles[user.role] }}-100 text-left last:rounded-b-2xl">
-                    <td class="p-2 font-medium">{{ user._id }}</td>
+                    <td class="p-2 font-medium">{{ user.username or user.user_id }}</td>
                     <td class="p-2 font-medium">{{ user.fullname.title() }}</td>
                     <td class="p-2 font-medium">{{ user.email }}</td>
                     <td class="p-2 font-medium">{{ user.job_title or '-' }}</td>
@@ -91,16 +91,16 @@
                       {% endif %}
                     </td>
                     <td class="p-2 font-medium flex flex-wrap justify-left gap-2">
-                      <a href="{{ url_for('admin_bp.view_user', user_id=user._id) }}" 
+                      <a href="{{ url_for('admin_bp.view_user', user_id=(user.username or user.user_id)) }}" 
                         title="View" 
                         class="font-medium text-gray-700 hover:text-blue-600">
                         <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="View" class="w-5 cursor-pointer">
                       </a>
                       {% if has_access("edit_user", min_role="admin", min_level=99999) %}
                         <button onclick="showActionModal({
-                            url: '{{ url_for('admin_bp.edit_user', user_id=user._id) }}',
+                            url: '{{ url_for('admin_bp.edit_user', user_id=(user.username or user.user_id)) }}',
                             title: 'Edit user configuration',
-                            message: 'Are you sure you want to edit <b>{{ user._id }} </b> user configuration?',
+                            message: 'Are you sure you want to edit <b>{{ user.username or user.user_id }} </b> user configuration?',
                             confirmText: 'Edit',
                             confirmColor: 'blue'
                           })"
@@ -109,9 +109,9 @@
                           <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
                         </button>
                         <button onclick="showActionModal({
-                            url: '{{ url_for('admin_bp.toggle_user_active', user_id=user._id) }}',
+                            url: '{{ url_for('admin_bp.toggle_user_active', user_id=(user.username or user.user_id)) }}',
                             title: '{{ 'Deactivate' if user.is_active else 'Activate' }} Schema',
-                            message: 'Are you sure you want to {{ 'deactivate' if user.is_active else 'activate' }} <b>{{ user._id }}</b>?',
+                            message: 'Are you sure you want to {{ 'deactivate' if user.is_active else 'activate' }} <b>{{ user.username or user.user_id }}</b>?',
                             confirmText: '{{ 'Deactivate' if user.is_active else 'Activate' }}',
                             confirmColor: '{{ 'red' if user.is_active else 'green' }}'
                           })"
@@ -122,9 +122,9 @@
                       {% endif %}
                       {% if has_access("delete_user", min_role="admin", min_level=99999) %}
                         <button onclick="showActionModal({
-                            url: '{{ url_for('admin_bp.delete_user', user_id=user._id) }}',
+                            url: '{{ url_for('admin_bp.delete_user', user_id=(user.username or user.user_id)) }}',
                             title: 'Delete User',
-                            message: 'Are you sure you want to delete <b>{{ user._id }}</b> from the users?',
+                            message: 'Are you sure you want to delete <b>{{ user.username or user.user_id }}</b> from the users?',
                             confirmText: 'Delete',
                             confirmColor: 'red'
                           })"

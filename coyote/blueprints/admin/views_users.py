@@ -53,7 +53,7 @@ def _apply_selected_user_version(
             user_doc = util.admin.apply_version_delta(deepcopy(user_doc), delta_blob)
             delta = delta_blob
             if user_id:
-                user_doc["_id"] = user_id
+                user_doc["username"] = user_id
     return user_doc, delta
 
 
@@ -183,7 +183,7 @@ def create_user() -> Response | str:
                 api_endpoints.admin("users"),
                 headers=forward_headers(),
                 json_body={
-                    "schema_id": context.selected_schema.get("_id"),
+                    "schema_id": context.selected_schema.get("schema_id"),
                     "form_data": form_data,
                 },
             )

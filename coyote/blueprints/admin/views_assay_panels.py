@@ -158,7 +158,7 @@ def create_assay_panel():
         config["germline_genes_count"] = len(germline_genes)
         config.update(
             {
-                "schema_name": context.schema["_id"],
+                "schema_name": context.schema["schema_id"],
                 "schema_version": context.schema["version"],
                 "version": 1,
             }
@@ -234,7 +234,7 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
         updated["germline_genes_count"] = len(germline_genes)
         updated["updated_by"] = current_user.email
         updated["updated_on"] = util.common.utc_now()
-        updated["schema_name"] = context.schema["_id"]
+        updated["schema_name"] = context.schema["schema_id"]
         updated["schema_version"] = context.schema["version"]
         updated["version"] = panel.get("version", 1) + 1
         updated = util.admin.inject_version_history(

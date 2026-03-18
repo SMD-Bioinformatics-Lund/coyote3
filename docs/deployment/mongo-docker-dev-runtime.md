@@ -11,7 +11,6 @@ Primary goals:
 
 ## 2. Compose entry points
 - Dev compose: `deploy/compose/docker-compose.dev.yml`
-- Portable compose: `deploy/compose/docker-compose.dev.portable.yml`
 - Prod-style compose: `deploy/compose/docker-compose.yml`
 - Wrapper script: `scripts/compose-with-version.sh`
 
@@ -38,7 +37,7 @@ Bootstrap command:
 For dev work, configure `.coyote3_dev_env`:
 
 ```env
-COYOTE3_DB_NAME='coyote_dev_3'
+COYOTE3_DB_NAME='coyote3_dev'
 FLASK_MONGO_HOST='coyote3_dev_mongo'
 FLASK_MONGO_PORT='27017'
 ```
@@ -48,7 +47,7 @@ The active container port mapping remains host-facing `37017 -> 27017` for local
 ## 5. Fresh startup workflow
 1. Ensure network/volume prerequisites.
 2. Start compose profile with Mongo.
-3. Restore approved snapshot.
+3. Run required DB identity migration script.
 4. Validate counts and login.
 
 Example:
@@ -57,51 +56,65 @@ Example:
 ./scripts/compose-with-version.sh --env-file .coyote3_dev_env \
   -f deploy/compose/docker-compose.dev.yml --profile with-mongo up -d --build
 
-/home/ram/.virtualenvs/coyote3/bin/python scripts/restore_mongo_micro_snapshot.py \
-  --snapshot-dir var/mongo/micro_snapshot \
-  --target dev \
-  --drop-db \
-  --db-map coyote3=coyote_dev_3
+/home/ram/.virtualenvs/coyote3/bin/python scripts/migrate_db_identity.py \
+  --mongo-uri mongodb://localhost:37017 \
+  --db coyote3_dev
 ```
 
-Current restore behavior:
-- restores into the dev Docker Mongo endpoint at `mongodb://localhost:37017`
-- drops and recreates target DB contents when `--drop-db` is used
-- remaps source DB names such as `coyote3 -> coyote_dev_3`
-- remaps collection names using `config/coyote3_collections.toml`
-- backfills required business-key fields automatically after restore
+Current behavior:
+- runs directly against the dev Docker Mongo endpoint at `mongodb://localhost:37017`
+- normalizes users/roles/permissions/schemas identities and business keys
+- migrates non-ObjectId `_id` documents to ObjectId `_id` with unique business-key indexes
+- populates canonical variant identity fields (`simple_id` + `simple_id_hash`)
+- keeps variant lookups hash-index friendly without removing readable `simple_id`
 
-Why the built-in backfill matters:
-- restored snapshots may contain older document shapes such as `*_beta2` aliases or missing business-key fields
-- backend identity and authorization code expects canonical key fields to exist after restore
-- automatic backfill keeps dev restores usable without a second manual repair step
+## 6. Snapshot scripts
+Use the canonical snapshot tooling:
 
-## 6. Snapshot sources
-Current restore tooling supports curated snapshot directories in an operator-managed snapshot directory.
+Create a curated mixed-assay snapshot:
 
-Common examples:
-- `var/mongo/micro_snapshot`
+```bash
+/home/ram/.virtualenvs/coyote3/bin/python scripts/create_mongo_snapshot.py \
+  --mongo-uri mongodb://localhost:37017 \
+  --db coyote3_dev \
+  --sample-count 60 \
+  --output-dir snapshots
+```
 
-Snapshot extraction behavior for `var/mongo/micro_snapshot`:
-- reads collections from `config/coyote3_collections.toml`
-- exports the latest 10 samples per assay from `samples`
-- exports only docs linked by `SAMPLE_ID` for sample-dependent collections
-- exports whole collections for collections without `SAMPLE_ID`
+Create a snapshot from explicit sample selectors:
 
-## 7. Keeping `coyote3` and `coyote_dev_3` aligned
+```bash
+/home/ram/.virtualenvs/coyote3/bin/python scripts/create_mongo_snapshot.py \
+  --mongo-uri mongodb://localhost:37017 \
+  --db coyote3_dev \
+  --sample-list-file /tmp/sample_selectors.txt
+```
+
+One-command snapshot+restore into dev:
+
+```bash
+scripts/snapshot_restore_dev.sh \
+  --source-uri mongodb://localhost:5818 \
+  --source-db coyote3 \
+  --target-uri mongodb://localhost:37017 \
+  --target-db coyote3_dev \
+  --sample-count 60
+```
+
+## 7. Keeping `coyote3` and `coyote3_dev` aligned
 When both DB names are used during migration/testing, keep data synchronized.
 
 Recommended operator script pattern:
 - source DB: `coyote3`
-- target DB: `coyote_dev_3`
-- restore with `--db-map coyote3=coyote_dev_3 --drop-db`
+- target DB: `coyote3_dev`
+- restore with `--db-map coyote3=coyote3_dev --drop-db`
 
 Validation query (example):
 
 ```python
 from pymongo import MongoClient
 c = MongoClient("mongodb://localhost:37017")
-for dbname in ["coyote3", "coyote_dev_3"]:
+for dbname in ["coyote3", "coyote3_dev"]:
     db = c[dbname]
     print(dbname, {
         "samples": db["samples"].count_documents({}),
@@ -135,4 +148,4 @@ After startup/restore:
 3. login succeeds for approved local user.
 4. `/api/v1/samples` returns expected snapshot data.
 5. dashboard/public routes render without repeated 401 loops.
-6. restored users have `user_id` populated and restored samples have `sample_id` populated.
+6. restored users have `user_id` populated and variant docs have `simple_id_hash`.

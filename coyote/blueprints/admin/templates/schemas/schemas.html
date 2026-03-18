@@ -37,7 +37,7 @@
               <tbody id="schemas-list-body" class="text-gray-800 rounded-b-2xl overflow-hidden">
                 {% for schema in schemas %}
                 <tr class="border-t border-gray-400 hover:bg-blue-100 text-left last:rounded-b-2xl">
-                  <td class="p-2 font-medium">{{ schema._id }}</td>
+                  <td class="p-2 font-medium">{{ schema.schema_id }}</td>
                   <td class="p-2 font-medium">{{ schema.schema_type }}</td>
                   <td class="p-2 font-medium">{{ schema.schema_category }}</td>
                   <td class="p-2 font-medium">{{ schema.version }}</td>
@@ -59,9 +59,9 @@
                   <td class="p-2 font-medium flex gap-2 flex-wrap">
                     {% if has_access("edit_schema", min_role="developer", min_level=9999) %}
                       <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.edit_schema', schema_id=schema._id) }}',
+                          url: '{{ url_for('admin_bp.edit_schema', schema_id=schema.schema_id) }}',
                           title: 'Edit Schema',
-                          message: 'Are you sure you want to edit <b>{{ schema._id }}</b>?',
+                          message: 'Are you sure you want to edit <b>{{ schema.schema_id }}</b>?',
                           confirmText: 'Edit',
                           confirmColor: 'blue'
                         })"
@@ -70,9 +70,9 @@
                         <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
                       </button> 
                       <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.toggle_schema_active', schema_id=schema._id) }}',
+                          url: '{{ url_for('admin_bp.toggle_schema_active', schema_id=schema.schema_id) }}',
                           title: '{{ 'Deactivate' if schema.is_active else 'Activate' }} Schema',
-                          message: 'Are you sure you want to {{ 'deactivate' if schema.is_active else 'activate' }} <b>{{ schema._id }}</b>?',
+                          message: 'Are you sure you want to {{ 'deactivate' if schema.is_active else 'activate' }} <b>{{ schema.schema_id }}</b>?',
                           confirmText: '{{ 'Deactivate' if schema.is_active else 'Activate' }}',
                           confirmColor: '{{ 'red' if schema.is_active else 'green' }}'
                         })"
@@ -83,9 +83,9 @@
                     {% endif %}
                     {% if has_access("delete_schema", min_role="developer", min_level=9999) %}          
                       <button onclick="showActionModal({
-                          url: '{{ url_for('admin_bp.delete_schema', schema_id=schema._id) }}',
+                          url: '{{ url_for('admin_bp.delete_schema', schema_id=schema.schema_id) }}',
                           title: 'Delete Schema',
-                          message: 'Are you sure you want to delete <b>{{ schema._id }}</b>?',
+                          message: 'Are you sure you want to delete <b>{{ schema.schema_id }}</b>?',
                           confirmText: 'Delete',
                           confirmColor: 'red'
                         })" title="Delete" class="text-red-500 hover:text-red-700 font-medium">
@@ -142,4 +142,3 @@
   });
 </script>
 {% endblock %}
-

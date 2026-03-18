@@ -30,7 +30,7 @@ def test_home_isgls_read_with_fake_store(monkeypatch):
 
     payload = samples.sample_genelists_read("S1", user=fx.api_user(), service=SampleCatalogService(repository=repository))
 
-    assert payload["items"][0]["_id"] == str(fx.isgl_doc()["_id"])
+    assert payload["items"][0]["isgl_id"] == str(fx.isgl_doc()["isgl_id"])
     assert payload["items"][0]["gene_count"] == int(fx.isgl_doc().get("gene_count") or 0)
 
 

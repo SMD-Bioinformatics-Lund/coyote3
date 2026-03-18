@@ -12,6 +12,7 @@ from api.contracts.common import (
     CommonTieredVariantContextPayload,
     CommonTieredVariantSearchPayload,
 )
+from api.core.dna.variant_identity import build_simple_id_hash_from_simple_id, normalize_simple_id
 from api.core.common.ports import CommonRepository
 from api.core.interpretation.report_summary import enrich_reported_variant_docs
 from api.deps.repositories import get_common_repository
@@ -72,17 +73,18 @@ def common_tiered_variant_context_read(
 
     csq = variant.get("INFO", {}).get("selected_CSQ", {}) or {}
     gene = csq.get("SYMBOL")
-    simple_id = variant.get("simple_id")
-    simple_id_hash = variant.get("simple_id_hash")
+    simple_id = normalize_simple_id(variant.get("simple_id"))
+    simple_id_hash = variant.get("simple_id_hash") or (
+        build_simple_id_hash_from_simple_id(simple_id) if simple_id else None
+    )
     hgvsc = csq.get("HGVSc")
     hgvsp = csq.get("HGVSp")
 
     or_conditions: list[dict[str, Any]] = []
-    if simple_id or simple_id_hash:
-        if simple_id_hash:
-            or_conditions.append({"simple_id_hash": simple_id_hash})
-        elif simple_id:
-            or_conditions.append({"simple_id": simple_id})
+    if simple_id and simple_id_hash:
+        or_conditions.append({"$and": [{"simple_id_hash": simple_id_hash}, {"simple_id": simple_id}]})
+    elif simple_id:
+        or_conditions.append({"simple_id": simple_id})
     else:
         if hgvsc:
             or_conditions.append({"hgvsc": hgvsc})

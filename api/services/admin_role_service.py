@@ -120,8 +120,7 @@ class AdminRoleService:
         role_id = lower(role.get("name"))
         role.setdefault("is_active", True)
         role["role_id"] = role_id
-        role["_id"] = role_id
-        role["schema_name"] = schema.get("schema_id") or schema["_id"]
+        role["schema_name"] = schema.get("schema_id")
         role["schema_version"] = schema["version"]
         role = inject_version_history(
             actor_username=current_actor(actor_username),
@@ -154,7 +153,7 @@ class AdminRoleService:
         updated_role = util.admin.process_form_to_config(payload.get("form_data", {}) or {}, schema)
         updated_role["updated_by"] = current_actor(actor_username)
         updated_role["updated_on"] = utc_now()
-        updated_role["schema_name"] = schema.get("schema_id") or schema["_id"]
+        updated_role["schema_name"] = schema.get("schema_id")
         updated_role["schema_version"] = schema["version"]
         updated_role["version"] = role.get("version", 1) + 1
         updated_role["role_id"] = role.get("role_id", role_id)

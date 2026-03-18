@@ -147,9 +147,7 @@ class AdminUserService:
         username = lower(user_data.get("username"))
         email = lower(user_data.get("email"))
         user_data.setdefault("is_active", True)
-        user_data["_id"] = username
-        user_data["user_id"] = username
-        user_data["schema_name"] = schema.get("schema_id") or schema["_id"]
+        user_data["schema_name"] = schema.get("schema_id")
         user_data["schema_version"] = schema["version"]
         user_data["email"] = email
         user_data["username"] = username
@@ -202,10 +200,9 @@ class AdminUserService:
             updated_user["password"] = util.common.hash_password(updated_user["password"])
         else:
             updated_user["password"] = user_doc.get("password")
-        updated_user["schema_name"] = schema.get("schema_id") or schema["_id"]
+        updated_user["schema_name"] = schema.get("schema_id")
         updated_user["schema_version"] = schema["version"]
         updated_user["version"] = user_doc.get("version", 1) + 1
-        updated_user["user_id"] = user_doc.get("user_id", user_id)
         updated_user["_id"] = user_doc.get("_id")
         updated_user["email"] = lower(updated_user.get("email"))
         updated_user["username"] = lower(updated_user.get("username"))
@@ -260,7 +257,7 @@ class AdminUserService:
         Returns:
             bool: The function result.
         """
-        return bool(self.repository.user_handler.user_exists(user_id=lower(username)))
+        return bool(self.repository.user_handler.user_exists(username=lower(username)))
 
     def email_exists(self, *, email: str) -> bool:
         """Handle email exists.

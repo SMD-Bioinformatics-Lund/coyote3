@@ -312,7 +312,7 @@ class ASPHandler(BaseHandler):
                 - The second list contains genes in the `germline_genes` field.
             If the panel is not found, both lists are empty.
         """
-        doc = self.get_collection().find_one({"_id": asp_id})
+        doc = self.get_collection().find_one(self._asp_lookup_query(asp_id))
         if not doc:
             return [], []
         return doc.get("covered_genes", []), doc.get("germline_genes", [])
@@ -321,19 +321,20 @@ class ASPHandler(BaseHandler):
         """
         Retrieves a dictionary mapping assay IDs to their respective assay groups.
 
-        This method queries the collection to fetch all documents, extracting the `_id`
+        This method queries the collection to fetch all documents, extracting the `asp_id`
         and `asp_group` fields. It then constructs a dictionary where the keys are
-        assay IDs (`_id`) and the values are their corresponding assay groups.
+        assay IDs (`asp_id`) and the values are their corresponding assay groups.
 
         Returns:
             dict: A dictionary mapping assay IDs to assay groups.
         """
-        result = self.get_collection().find({}, {"_id": 1, "asp_group": 1})
+        result = self.get_collection().find({}, {"asp_id": 1, "asp_group": 1})
 
         mappings = {}
         if result:
             for assay in result:
-                if assay["_id"] not in mappings:
-                    mappings[assay["_id"]] = assay["asp_group"]
+                assay_id = assay.get("asp_id")
+                if assay_id and assay_id not in mappings:
+                    mappings[assay_id] = assay.get("asp_group")
 
         return mappings

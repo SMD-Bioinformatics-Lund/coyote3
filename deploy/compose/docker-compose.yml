@@ -46,7 +46,8 @@ services:
       - "/fs1:/fs1"
     command: "python3 -m wsgi"
     depends_on:
-      - coyote3_api
+      coyote3_api:
+        condition: service_healthy
 
   # API container: FastAPI business/policy/data layer.
   coyote3_api:
@@ -84,6 +85,12 @@ services:
       - "/data:/data"
       - "/fs1:/fs1"
     command: "python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8001"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=2).read()\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
     depends_on:
       - redis_coyote3
 
@@ -118,9 +125,9 @@ services:
     networks:
       - coyote3-net
     ports:
-      - "${COYOTE3_MONGO_PORT:-27017}:27017"
+      - "${COYOTE3_MONGO_PORT:-5818}:27017"
     volumes:
-      - coyote3-prod-mongo-data:/data/db
+      - prod-mongodb:/data/db
       - /data/coyote3/backups/mongo:/backup
 
 networks:
@@ -128,4 +135,4 @@ networks:
     driver: bridge
 
 volumes:
-  coyote3-prod-mongo-data:
+  prod-mongodb:

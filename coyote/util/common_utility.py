@@ -38,7 +38,6 @@ class CommonUtility:
                     key = (
                         item.get("key")
                         or item.get("id")
-                        or item.get("_id")
                         or item.get("name")
                         or item.get("field")
                     )

@@ -10,6 +10,7 @@ from api.core.dna.dna_filters import (
     get_filter_conseq_terms as shared_get_filter_conseq_terms,
 )
 from api.core.dna.notation import one_letter_p, standard_hgvs
+from api.core.dna.variant_identity import build_simple_id_hash_from_simple_id, normalize_simple_id
 from api.core.dna.ports import DNAReportingRepository
 from api.core.dna.query_builders import build_query
 from api.core.interpretation.annotation_enrichment import (
@@ -282,6 +283,10 @@ def build_dna_report_payload(
                 or {}
             )
             sel = (v.get("INFO", {}) or {}).get("selected_CSQ", {}) or {}
+            simple_id = normalize_simple_id(v.get("simple_id"))
+            simple_id_hash = v.get("simple_id_hash") or (
+                build_simple_id_hash_from_simple_id(simple_id) if simple_id else None
+            )
             snapshot_rows.append(
                 {
                     "var_oid": v.get("_id"),
@@ -291,8 +296,8 @@ def build_dna_report_payload(
                         latest_sample_comment.get("_id") if latest_sample_comment else None
                     ),
                     "var_type": v.get("variant_class"),
-                    "simple_id": v.get("simple_id"),
-                    "simple_id_hash": v.get("simple_id_hash"),
+                    "simple_id": simple_id,
+                    "simple_id_hash": simple_id_hash,
                     "tier": v.get("classification", {}).get("class"),
                     "gene": sel.get("SYMBOL") or (v.get("gene") or None),
                     "transcript": sel.get("Feature") or v.get("selected_csq_feature"),

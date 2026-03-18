@@ -47,13 +47,6 @@ class FusionsHandler(BaseHandler):
         Create indexes used by dashboard and sample lookup paths.
         """
         col = self.get_collection()
-        col.create_index(
-            [("fusion_id", 1)],
-            name="fusion_id_1",
-            unique=True,
-            background=True,
-            partialFilterExpression={"fusion_id": {"$exists": True, "$type": "string"}},
-        )
         col.create_index([("SAMPLE_ID", 1)], name="sample_id_1", background=True)
 
     def get_sample_fusions(self, query: dict) -> Any:

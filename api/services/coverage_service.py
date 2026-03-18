@@ -63,7 +63,10 @@ class CoverageService:
                 checked_genelists_genes_dict,
             )
         else:
-            checked_genelists = [assay_panel_doc.get("_id")]
+            asp_id = assay_panel_doc.get("asp_id")
+            if not asp_id:
+                raise api_error(500, "ASP is missing required asp_id")
+            checked_genelists = [asp_id]
             filter_genes = assay_panel_doc.get("covered_genes", [])
 
         cov_dict = self.repository.get_sample_coverage(str(sample["_id"])) or {}

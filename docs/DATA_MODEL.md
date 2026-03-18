@@ -660,6 +660,7 @@ Drift forces runtime normalization logic, increasing CPU and complexity.
   "REF": "C",
   "ALT": "T",
   "simple_id": "17_7579472_C_T",
+  "simple_id_hash": "862b46287a08e369aa99f8f3777f44b9",
   "tier": 2,
   "annotation": {
     "gene": "TP53",
@@ -705,6 +706,7 @@ Drift forces runtime normalization logic, increasing CPU and complexity.
   "report_oid": "r1",
   "report_id": "CASE001_CC1.260303101112",
   "simple_id": "17_7579472_C_T",
+  "simple_id_hash": "862b46287a08e369aa99f8f3777f44b9",
   "gene": "TP53",
   "tier": 2,
   "created_by": "analyst1",

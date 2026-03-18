@@ -22,6 +22,11 @@ from bson import ObjectId
 from cryptography.fernet import Fernet
 from werkzeug.security import generate_password_hash
 
+from api.core.dna.variant_identity import (
+    build_simple_id,
+    build_simple_id_hash_from_simple_id,
+    normalize_simple_id,
+)
 from api.runtime import app, current_username
 
 
@@ -77,10 +82,24 @@ class CommonUtility:
         Returns:
             str: The simple identifier for the variant.
         """
-        return variant.get(
-            "simple_id",
-            f"{str(variant['CHROM'])}_{str(variant['POS'])}_{variant['REF']}_{variant['ALT']}",
+        existing = variant.get("simple_id")
+        if existing:
+            return normalize_simple_id(existing)
+        return build_simple_id(
+            variant.get("CHROM"),
+            variant.get("POS"),
+            variant.get("REF"),
+            variant.get("ALT"),
         )
+
+    @staticmethod
+    def get_simple_id_hash(variant: dict) -> str:
+        """
+        Generate deterministic MD5 hex hash for variant identity.
+
+        The hash input is always the canonical normalized simple_id.
+        """
+        return build_simple_id_hash_from_simple_id(CommonUtility.get_simple_id(variant))
 
     @staticmethod
     def assay_config(assay_name: str = None) -> dict:
@@ -918,7 +937,6 @@ class CommonUtility:
                         key = (
                             item.get("key")
                             or item.get("id")
-                            or item.get("_id")
                             or item.get("name")
                             or item.get("field")
                         )
@@ -999,7 +1017,6 @@ class CommonUtility:
                     key = (
                         item.get("key")
                         or item.get("id")
-                        or item.get("_id")
                         or item.get("name")
                         or item.get("field")
                     )

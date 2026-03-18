@@ -18,7 +18,7 @@ def _lookup_user_doc(login_identifier: str) -> dict | None:
             The  lookup user doc result.
     """
     repo = get_security_repository()
-    normalized = str(login_identifier).strip()
+    normalized = str(login_identifier).strip().lower()
     if not normalized:
         return None
     user_doc = repo.get_user_by_username(normalized)
@@ -45,7 +45,6 @@ def _is_local_auth_allowlisted(login_identifier: str, user_doc: dict) -> bool:
     allow = {str(item).strip().lower() for item in allowlist if str(item).strip()}
     candidates = {
         str(login_identifier).strip().lower(),
-        str(user_doc.get("user_id") or "").strip().lower(),
         str(user_doc.get("username") or "").strip().lower(),
         str(user_doc.get("email") or "").strip().lower(),
     }
@@ -95,9 +94,9 @@ def resolve_user_identity(user_doc: dict) -> str:
         user_doc: Authenticated user document loaded from persistence.
 
     Returns:
-        The canonical ``user_id`` string for the user.
+        The canonical username string for the user.
     """
-    return str(user_doc.get("user_id") or "").strip()
+    return str(user_doc.get("username") or "").strip()
 
 
 def authenticate_credentials(username: str, password: str) -> dict | None:

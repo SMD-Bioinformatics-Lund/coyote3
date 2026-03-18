@@ -51,15 +51,15 @@ def build_fake_store() -> SimpleNamespace:
         ),
         asp_handler=FakeHandler(
             {
-                "get_asp": lambda asp_name: {"_id": "asp1", "asp_group": "dna", "covered_genes": ["TP53"]},
+                "get_asp": lambda asp_name: {"asp_id": "asp1", "asp_group": "dna", "covered_genes": ["TP53"]},
                 "get_asp_genes": lambda asp_name: (["TP53", "NPM1"], ["BRCA1"]),
-                "get_all_asps": lambda: [{"_id": "asp1", "asp_group": "dna"}],
+                "get_all_asps": lambda: [{"asp_id": "asp1", "asp_group": "dna"}],
             }
         ),
         isgl_handler=FakeHandler(
             {
                 "get_isgl": lambda _id, **kwargs: isgl,
-                "get_isgl_by_ids": lambda ids: {isgl["_id"]: isgl},
+                "get_isgl_by_ids": lambda ids: {isgl["isgl_id"]: isgl},
                 "get_isgl_by_asp": lambda asp_name=None, assay=None, **kwargs: [isgl],
             }
         ),

@@ -544,6 +544,7 @@ Not applicable.
     {
       "variant_id": "v1",
       "simple_id": "17_7579472_C_T",
+      "simple_id_hash": "862b46287a08e369aa99f8f3777f44b9",
       "gene": "TP53",
       "tier": 2
     }

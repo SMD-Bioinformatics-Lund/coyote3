@@ -41,7 +41,7 @@
               <tr class="border-t border-gray-400 hover:bg-{{ role.color }}-100 text-left last:rounded-b-2xl">
                 <td class="p-2 font-medium ">
                   <span class="inline-block px-2 py-1 rounded-2xl text-white text-xs font-semibold bg-{{ role.color }}-500 text-center">
-                    {{ role._id }}
+                    {{ role.role_id }}
                   </span>
                 </td>
                 <td class="p-2 font-medium">{{ role.label }}</td>
@@ -71,16 +71,16 @@
                 </td>
                 <td class="p-2 text-xs">{{ role.version or '-' }}</td>
                 <td class="p-2 font-medium flex gap-2 flex-wrap">
-                  <a href="{{ url_for('admin_bp.view_role', role_id=role._id) }}"
+                  <a href="{{ url_for('admin_bp.view_role', role_id=role.role_id) }}"
                     title="View"
                     class="font-medium text-gray-700 hover:text-blue-600">
                     <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="View" class="w-5 cursor-pointer">
                   </a>
                   {% if has_access("edit_role", min_role="admin", min_level=99999) %}
                     <button onclick="showActionModal({
-                        url: '{{ url_for('admin_bp.edit_role', role_id=role._id) }}',
+                        url: '{{ url_for('admin_bp.edit_role', role_id=role.role_id) }}',
                         title: 'Edit Role Policy',
-                        message: 'Are you sure you want to edit <b>{{ role._id }} </b> role policy?',
+                        message: 'Are you sure you want to edit <b>{{ role.role_id }} </b> role policy?',
                         confirmText: 'Edit',
                         confirmColor: 'blue'
                       })"
@@ -89,9 +89,9 @@
                       <img src="{{ url_for('static', filename='icons/heroicons_outline_24/pencil-square.svg') }}" alt="edit" class="w-5 cursor-pointer">
                     </button>
                     <button onclick="showActionModal({
-                        url: '{{ url_for('admin_bp.toggle_role_active', role_id=role._id) }}',
+                        url: '{{ url_for('admin_bp.toggle_role_active', role_id=role.role_id) }}',
                         title: '{{ 'Deactivate' if role.is_active else 'Activate' }} Schema',
-                        message: 'Are you sure you want to {{ 'deactivate' if role.is_active else 'activate' }} <b>{{ role._id }}</b>?',
+                        message: 'Are you sure you want to {{ 'deactivate' if role.is_active else 'activate' }} <b>{{ role.role_id }}</b>?',
                         confirmText: '{{ 'Deactivate' if role.is_active else 'Activate' }}',
                         confirmColor: '{{ 'red' if role.is_active else 'green' }}'
                       })"
@@ -102,9 +102,9 @@
                   {% endif %}
                   {% if has_access("delete_role", min_role="admin", min_level=99999) %}
                     <button onclick="showActionModal({
-                        url: '{{ url_for('admin_bp.delete_role', role_id=role._id) }}',
+                        url: '{{ url_for('admin_bp.delete_role', role_id=role.role_id) }}',
                         title: 'Delete Role Policy',
-                        message: 'Are you sure you want to delete <b>{{ role._id }}</b> role policy?',
+                        message: 'Are you sure you want to delete <b>{{ role.role_id }}</b> role policy?',
                         confirmText: 'Delete',
                         confirmColor: 'red'
                       })" title="Delete" class="text-red-500 hover:text-red-700 font-medium">

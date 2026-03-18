@@ -53,7 +53,7 @@ def _apply_selected_role_version(
             role = util.admin.apply_version_delta(deepcopy(role), delta_blob)
             delta = delta_blob
             if role_id:
-                role["_id"] = role_id
+                role["role_id"] = role_id
     return role, delta
 
 
@@ -122,7 +122,7 @@ def create_role() -> Response | str:
                 api_endpoints.admin("roles"),
                 headers=forward_headers(),
                 json_body={
-                    "schema_id": context.selected_schema.get("_id"),
+                    "schema_id": context.selected_schema.get("schema_id"),
                     "form_data": form_data,
                 },
             )

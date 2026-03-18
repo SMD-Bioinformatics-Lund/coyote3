@@ -14,6 +14,10 @@ from typing import Any
 
 from bson.objectid import ObjectId
 
+from api.core.dna.variant_identity import (
+    build_simple_id_hash_from_simple_id,
+    ensure_variant_identity_fields,
+)
 from api.infra.db.base import BaseHandler
 
 
@@ -45,11 +49,13 @@ class VariantsHandler(BaseHandler):
         """
         col = self.get_collection()
         col.create_index(
-            [("variant_id", 1)],
-            name="variant_id_1",
-            unique=True,
+            [("simple_id_hash", 1), ("simple_id", 1)],
+            name="simple_id_hash_1_simple_id_1",
             background=True,
-            partialFilterExpression={"variant_id": {"$exists": True, "$type": "string"}},
+            partialFilterExpression={
+                "simple_id_hash": {"$exists": True, "$type": "string"},
+                "simple_id": {"$exists": True, "$type": "string"},
+            },
         )
         col.create_index(
             [("SAMPLE_ID", 1)],
@@ -109,20 +115,24 @@ class VariantsHandler(BaseHandler):
                 and its associated sample, including `sample_name`, `groups`, `GT`,
                 and flags like `fp`, `interesting`, and `irrelevant`.
         """
-        current_sample_id = variant["SAMPLE_ID"]
-        simple_id = variant["simple_id"]
+        canonical_variant = ensure_variant_identity_fields(variant)
+        current_sample_id = canonical_variant["SAMPLE_ID"]
+        simple_id = canonical_variant["simple_id"]
+        simple_id_hash = canonical_variant["simple_id_hash"]
 
-        # Fetch up to 20 variants with the same simple_id but from other samples
+        # Hash-first identity prefilter plus simple_id verification.
         variants = list(
             self.get_collection()
             .find(
                 {
+                    "simple_id_hash": simple_id_hash,
                     "simple_id": simple_id,
                     "SAMPLE_ID": {"$ne": current_sample_id},
                 },
                 {
                     "_id": 1,
                     "SAMPLE_ID": 1,
+                    "simple_id_hash": 1,
                     "simple_id": 1,
                     "GT": 1,
                     "fp": 1,
@@ -160,6 +170,21 @@ class VariantsHandler(BaseHandler):
             results.append(info)
 
         return results
+
+    def get_variants_by_identity(
+        self, *, simple_id: str, sample_id: str | None = None, limit: int | None = None
+    ) -> list[dict]:
+        """
+        Find variants by exact identity using hash prefilter + simple_id verification.
+        """
+        simple_id_hash = build_simple_id_hash_from_simple_id(simple_id)
+        query: dict[str, Any] = {"simple_id_hash": simple_id_hash, "simple_id": simple_id}
+        if sample_id is not None:
+            query["SAMPLE_ID"] = sample_id
+        cursor = self.get_collection().find(query)
+        if limit is not None:
+            cursor = cursor.limit(limit)
+        return list(cursor)
 
     def get_variants_by_gene(self, gene: str) -> Any:
         """

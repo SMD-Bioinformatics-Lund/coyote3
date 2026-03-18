@@ -182,7 +182,7 @@ class DashboardService:
 
         effective_assays = set(user_assays)
         for asp in self.repository.get_all_active_asps():
-            asp_id = str(asp.get("_id") or "").strip()
+            asp_id = str(asp.get("asp_id") or "").strip()
             asp_group = str(asp.get("asp_group") or "").strip()
             assay_name = str(asp.get("assay_name") or "").strip()
             if (

@@ -30,6 +30,7 @@ from typing import Any, Dict, List
 
 from pymongo import ASCENDING, DESCENDING, UpdateOne
 
+from api.core.dna.variant_identity import build_simple_id_hash_from_simple_id
 from api.infra.db.base import BaseHandler
 
 
@@ -96,6 +97,7 @@ class ReportedVariantsHandler(BaseHandler):
             simple_id = r.get("simple_id")
             if not simple_id:
                 continue
+            simple_id_hash = r.get("simple_id_hash") or build_simple_id_hash_from_simple_id(simple_id)
 
             # Ensure core fields are always set (don’t rely on snapshot_rows to be perfect)
             doc = {
@@ -106,6 +108,7 @@ class ReportedVariantsHandler(BaseHandler):
                 "created_by": created_by,
                 **r,  # r can include var_oid, tier, gene, etc.
             }
+            doc["simple_id_hash"] = simple_id_hash
 
             # IMPORTANT: do NOT allow snapshot_rows to override report_oid/report_id/sample_oid
             doc["sample_name"] = sample_name
@@ -199,8 +202,8 @@ class ReportedVariantsHandler(BaseHandler):
 
         # Cross-sample variant queries by genomic identity + tier
         col.create_index(
-            [("simple_id", ASCENDING), ("tier", ASCENDING)],
-            name="ix_simple_id_tier",
+            [("simple_id_hash", ASCENDING), ("simple_id", ASCENDING), ("tier", ASCENDING)],
+            name="ix_simple_id_hash_simple_id_tier",
             background=True,
         )
 

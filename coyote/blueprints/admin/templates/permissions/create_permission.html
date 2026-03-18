@@ -18,7 +18,7 @@
             <label class="text-sm font-semibold text-gray-800">Schema:</label>
             <select name="schema_id" onchange="this.form.submit()" class="text-sm border border-gray-300 rounded-md shadow-sm px-2 py-1 bg-gray-50">
               {% for s in schemas %}
-                <option value="{{ s._id }}" {% if s._id == selected_schema._id %}selected{% endif %}>{{ s._id }} (v{{ s.version }})</option>
+                <option value="{{ s.schema_id }}" {% if s.schema_id == selected_schema.schema_id %}selected{% endif %}>{{ s.schema_id }} (v{{ s.version }})</option>
               {% endfor %}
             </select>
           </form>

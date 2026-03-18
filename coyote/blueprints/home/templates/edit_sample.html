@@ -748,9 +748,9 @@
                 </thead>
                 <tbody>
                   ${items.map(it => `
-                    <tr class="border-t" data-row="${it._id}">
+                    <tr class="border-t" data-row="${it.isgl_id}">
                       <td class="px-3 py-2">
-                        <input type="checkbox" class="selRow" value="${it._id}" ${appliedISGLs.includes(it._id) ? 'checked' : ''}>
+                        <input type="checkbox" class="selRow" value="${it.isgl_id}" ${appliedISGLs.includes(it.isgl_id) ? 'checked' : ''}>
                       </td>
                       <td class="px-3 py-2">
                         ${(it.label || it.name || 'Unnamed')}${it.adhoc ? ' (adhoc)' : ''}

@@ -102,49 +102,66 @@ python -m wsgi
 docker compose -f deploy/compose/docker-compose.dev.yml up --build
 ```
 
-### Run the portable Compose stack
+### DB identity migration
+
+Use the canonical DB migration script to normalize identity keys and variant identity fields:
 
 ```bash
-docker compose -f deploy/compose/docker-compose.dev.portable.yml up --build
+/home/ram/.virtualenvs/coyote3/bin/python scripts/migrate_db_identity.py \
+  --mongo-uri mongodb://localhost:37017 \
+  --db coyote3_dev
 ```
 
-### Restore a curated dev snapshot into Docker Mongo
-
-The dev Mongo container listens on `mongodb://localhost:37017` and uses the stable volume name `coyote3-dev-mongo-data`.
-
-Create a snapshot from a source Mongo environment:
+Dry-run:
 
 ```bash
-python scripts/create_mongo_micro_snapshot.py \
-  --mongo-uri "mongodb://172.17.0.1:27017" \
-  --db coyote3 \
-  --db BAM_Service \
-  --out var/mongo/micro_snapshot
+/home/ram/.virtualenvs/coyote3/bin/python scripts/migrate_db_identity.py \
+  --mongo-uri mongodb://localhost:37017 \
+  --db coyote3_dev \
+  --dry-run
 ```
 
-Snapshot rules:
+### Create sample-focused snapshot
 
-- collections come from `config/coyote3_collections.toml`
-- `samples` exports the latest 10 samples per assay
-- collections with `SAMPLE_ID` export only docs linked to the sampled `samples._id` values
-- collections without `SAMPLE_ID` export in full
-
-Restore that snapshot into the dev Docker Mongo and map the prod DB name into the dev DB name:
+Mixed-assay automatic selection (default 60):
 
 ```bash
-python scripts/restore_mongo_micro_snapshot.py \
-  --snapshot-dir var/mongo/micro_snapshot \
-  --target dev \
-  --drop-db \
-  --db-map coyote3=coyote_dev_3
+/home/ram/.virtualenvs/coyote3/bin/python scripts/create_mongo_snapshot.py \
+  --mongo-uri mongodb://localhost:37017 \
+  --db coyote3_dev \
+  --sample-count 60 \
+  --output-dir snapshots
 ```
 
-Restore behavior:
+Explicit sample selectors from file:
 
-- restores into `mongodb://localhost:37017`
-- remaps collection names through `config/coyote3_collections.toml`
-- backfills required business-key fields automatically after import
-- leaves the dev stack immediately usable for login and linked sample workflows
+```bash
+/home/ram/.virtualenvs/coyote3/bin/python scripts/create_mongo_snapshot.py \
+  --mongo-uri mongodb://localhost:37017 \
+  --db coyote3_dev \
+  --sample-list-file /tmp/sample_selectors.txt
+```
+
+Explicit sample selectors inline:
+
+```bash
+/home/ram/.virtualenvs/coyote3/bin/python scripts/create_mongo_snapshot.py \
+  --mongo-uri mongodb://localhost:37017 \
+  --db coyote3_dev \
+  --sample-name 26MD02863p \
+  --sample-id 69b69570ff5cd3d440506337
+```
+
+### Snapshot + restore into dev DB
+
+```bash
+scripts/snapshot_restore_dev.sh \
+  --source-uri mongodb://localhost:5818 \
+  --source-db coyote3 \
+  --target-uri mongodb://localhost:37017 \
+  --target-db coyote3_dev \
+  --sample-count 60
+```
 
 ## Maintenance Rules
 
@@ -325,8 +342,10 @@ Keep these rules intact when touching the snapshot or restore scripts:
 - do not hardcode collection lists in the script when they already exist in `config/coyote3_collections.toml`
 - preserve the `samples` special case as latest-per-assay, not latest-global
 - preserve `SAMPLE_ID`-based linked extraction for dependent collections
-- keep restore-to-dev behavior aligned with `coyote_dev_3`
+- keep restore-to-dev behavior aligned with `coyote3_dev`
 - if restored document shapes require identity repair, keep that repair in the restore workflow so the restored DB is usable immediately
+- use `scripts/create_mongo_snapshot.py` for curated snapshot exports
+- use `scripts/snapshot_restore_dev.sh` for one-command snapshot+restore into dev DB
 
 ## How To Review A Change
 

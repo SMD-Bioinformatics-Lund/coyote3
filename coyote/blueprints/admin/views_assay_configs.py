@@ -129,7 +129,7 @@ def _render_create_form(category: str) -> Response | str:
         config.update(
             {
                 "_id": f"{config['assay_name']}:{config['environment']}",
-                "schema_name": context.schema["_id"],
+                "schema_name": context.schema["schema_id"],
                 "schema_version": context.schema["version"],
                 "version": 1,
             }
@@ -249,7 +249,7 @@ def edit_assay_config(assay_id: str) -> Response | str:
         updated_config["_id"] = assay_config.get("_id")
         updated_config["updated_on"] = util.common.utc_now()
         updated_config["updated_by"] = current_user.email
-        updated_config["schema_name"] = context.schema["_id"]
+        updated_config["schema_name"] = context.schema["schema_id"]
         updated_config["schema_version"] = context.schema["version"]
         updated_config["version"] = assay_config.get("version", 1) + 1
         updated_config = util.admin.inject_version_history(

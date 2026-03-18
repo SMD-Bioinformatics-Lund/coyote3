@@ -42,13 +42,6 @@ class CNVsHandler(BaseHandler):
         Create indexes used by dashboard and sample lookup paths.
         """
         col = self.get_collection()
-        col.create_index(
-            [("cnv_id", 1)],
-            name="cnv_id_1",
-            unique=True,
-            background=True,
-            partialFilterExpression={"cnv_id": {"$exists": True, "$type": "string"}},
-        )
         col.create_index([("SAMPLE_ID", 1)], name="sample_id_1", background=True)
 
     def get_sample_cnvs(self, query: dict) -> list[dict | None]:

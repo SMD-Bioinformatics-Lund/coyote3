@@ -114,8 +114,7 @@ class PermissionManagementService:
         policy.setdefault("is_active", True)
         policy_id = str(policy["permission_name"]).strip()
         policy["permission_id"] = policy_id
-        policy["_id"] = policy_id
-        policy["schema_name"] = schema.get("schema_id") or schema["_id"]
+        policy["schema_name"] = schema.get("schema_id")
         policy["schema_version"] = schema["version"]
         policy = inject_version_history(
             actor_username=current_actor(actor_username),
@@ -150,7 +149,7 @@ class PermissionManagementService:
         updated_permission["updated_on"] = utc_now()
         updated_permission["updated_by"] = current_actor(actor_username)
         updated_permission["version"] = permission.get("version", 1) + 1
-        updated_permission["schema_name"] = schema.get("schema_id") or schema["_id"]
+        updated_permission["schema_name"] = schema.get("schema_id")
         updated_permission["permission_id"] = permission.get("permission_id", permission_id)
         updated_permission["_id"] = permission.get("_id")
         updated_permission["schema_version"] = schema["version"]

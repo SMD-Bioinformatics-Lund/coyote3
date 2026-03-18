@@ -31,10 +31,14 @@ class FusionFilter(FlaskForm):
     fusioncaller_starfusion = BooleanField("Star Fusion", validators=[Optional()])
 
     min_spanning_pairs = IntegerField(
-        "Min Spanning pairs", validators=[InputRequired(), NumberRange(min=0)]
+        "Min Spanning pairs",
+        validators=[InputRequired(), NumberRange(min=0)],
+        render_kw={"step": "1", "min": "0", "type": "number"},
     )
     min_spanning_reads = IntegerField(
-        "Min Spanning reads", validators=[InputRequired(), NumberRange(min=0)]
+        "Min Spanning reads",
+        validators=[InputRequired(), NumberRange(min=0)],
+        render_kw={"step": "1", "min": "0", "type": "number"},
     )
 
     fusioneffect_inframe = BooleanField("In-Frame", validators=[Optional()])

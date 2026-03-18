@@ -144,7 +144,7 @@ def create_genelist() -> Response | str:
         config = util.admin.process_form_to_config(form_data, context.schema)
         config["_id"] = config["name"]
         config["genes"] = genes
-        config["schema_name"] = context.schema["_id"]
+        config["schema_name"] = context.schema["schema_id"]
         config["schema_version"] = context.schema["version"]
         config["gene_count"] = len(genes)
         config = util.admin.inject_version_history(
@@ -217,7 +217,7 @@ def edit_genelist(genelist_id: str) -> Response | str:
         updated["gene_count"] = len(genes)
         updated["updated_by"] = current_user.email
         updated["updated_on"] = util.common.utc_now()
-        updated["schema_name"] = context.schema["_id"]
+        updated["schema_name"] = context.schema["schema_id"]
         updated["schema_version"] = context.schema["version"]
         updated["version"] = genelist.get("version", 1) + 1
         updated = util.admin.inject_version_history(

@@ -26,8 +26,9 @@ def get_role_levels_internal(request: Request, repository: InternalRepository = 
     """
     _require_internal_token(request)
     role_levels = {
-        role["_id"]: role.get("level", 0)
+        role.get("role_id"): role.get("level", 0)
         for role in repository.get_all_roles()
+        if role.get("role_id")
     }
     return util.common.convert_to_serializable({"status": "ok", "role_levels": role_levels})
 

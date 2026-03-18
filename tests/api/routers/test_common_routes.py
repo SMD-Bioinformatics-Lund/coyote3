@@ -70,3 +70,40 @@ def test_common_tiered_variant_context_insufficient_identity_returns_error_paylo
     assert payload["docs"] == []
     assert payload["tier"] == 3
     assert payload["error"] == "Variant has insufficient identity fields"
+
+
+def test_common_tiered_variant_context_uses_hash_and_simple_id(monkeypatch):
+    """Exact identity lookup must prefilter by hash and verify by simple_id."""
+    variant = {
+        "_id": "v1",
+        "simple_id": " chr17_7579472_c_t ",
+        "simple_id_hash": None,
+        "INFO": {"selected_CSQ": {"SYMBOL": "TP53"}},
+    }
+    captured: dict = {}
+    repository = CommonRepository()
+    monkeypatch.setattr(repository, "get_variant", lambda variant_id: variant)
+    monkeypatch.setattr(
+        repository,
+        "list_reported_variants",
+        lambda query: captured.setdefault("query", query) or [],
+    )
+    monkeypatch.setattr(common, "enrich_reported_variant_docs", lambda docs: docs)
+    monkeypatch.setattr(common.util.common, "convert_to_serializable", lambda payload: payload)
+
+    payload = common.common_tiered_variant_context_read(
+        "v1", 2, user=fx.api_user(), repository=repository
+    )
+
+    assert payload["error"] is None
+    assert captured["query"] == {
+        "gene": "TP53",
+        "$or": [
+            {
+                "$and": [
+                    {"simple_id_hash": "862b46287a08e369aa99f8f3777f44b9"},
+                    {"simple_id": "17_7579472_C_T"},
+                ]
+            }
+        ],
+    }

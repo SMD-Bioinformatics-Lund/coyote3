@@ -88,7 +88,9 @@ class AdminPanelService:
         if not config:
             raise api_error(400, "Missing panel config payload")
         config.setdefault("is_active", True)
-        config["asp_id"] = config.get("asp_id") or config.get("_id") or config.get("assay_name")
+        config["asp_id"] = config.get("asp_id") or config.get("assay_name")
+        if not config.get("asp_id"):
+            raise api_error(400, "Missing asp_id")
         self.repository.create_panel(config)
         return mutation_payload(resource="asp", resource_id=str(config.get("asp_id", "unknown")), action="create")
 
@@ -109,7 +111,6 @@ class AdminPanelService:
         if not updated:
             raise api_error(400, "Missing panel config payload")
         updated["asp_id"] = panel.get("asp_id", panel_id)
-        updated["_id"] = panel.get("_id")
         self.repository.update_panel(panel_id, updated)
         return mutation_payload(resource="asp", resource_id=panel_id, action="update")
 
@@ -265,7 +266,9 @@ class AdminGenelistService:
         if not config:
             raise api_error(400, "Missing genelist config payload")
         config.setdefault("is_active", True)
-        config["isgl_id"] = config.get("isgl_id") or config.get("_id") or config.get("name")
+        config["isgl_id"] = config.get("isgl_id") or config.get("name")
+        if not config.get("isgl_id"):
+            raise api_error(400, "Missing isgl_id")
         self.repository.create_genelist(config)
         return mutation_payload(resource="genelist", resource_id=str(config.get("isgl_id", "unknown")), action="create")
 
@@ -286,7 +289,6 @@ class AdminGenelistService:
         if not updated:
             raise api_error(400, "Missing genelist config payload")
         updated["isgl_id"] = genelist.get("isgl_id", genelist_id)
-        updated["_id"] = genelist.get("_id")
         self.repository.update_genelist(genelist_id, updated)
         return mutation_payload(resource="genelist", resource_id=genelist_id, action="update")
 
@@ -429,8 +431,9 @@ class AdminAspcService:
         if not config:
             raise api_error(400, "Missing assay config payload")
         config.setdefault("is_active", True)
-        config["aspc_id"] = config.get("aspc_id") or config.get("_id") or f"{str(config.get('assay_name', '')).strip()}:{str(config.get('environment', '')).strip().lower()}"
-        config["_id"] = config["aspc_id"]
+        config["aspc_id"] = config.get("aspc_id") or f"{str(config.get('assay_name', '')).strip()}:{str(config.get('environment', '')).strip().lower()}"
+        if not config.get("aspc_id"):
+            raise api_error(400, "Missing aspc_id")
         existing_config = self.repository.get_assay_config(config.get("aspc_id"))
         if existing_config:
             raise api_error(409, "Assay config already exists")
@@ -454,7 +457,6 @@ class AdminAspcService:
         if not updated_config:
             raise api_error(400, "Missing assay config payload")
         updated_config["aspc_id"] = assay_config.get("aspc_id", assay_id)
-        updated_config["_id"] = assay_config.get("_id", assay_id)
         self.repository.update_assay_config(assay_id, updated_config)
         return mutation_payload(resource="aspc", resource_id=assay_id, action="update")
 
@@ -619,7 +621,6 @@ class AdminSchemaService:
             dict[str, Any]: The function result.
         """
         schema_doc = payload.get("schema", {})
-        schema_doc["_id"] = schema_doc.get("schema_name")
         schema_doc["schema_id"] = schema_doc.get("schema_name")
         schema_doc.setdefault("is_active", True)
         schema_doc["created_on"] = utc_now()
@@ -627,7 +628,7 @@ class AdminSchemaService:
         schema_doc["updated_on"] = utc_now()
         schema_doc["updated_by"] = current_actor(actor_username)
         self.repository.create_schema(schema_doc)
-        return mutation_payload(resource="schema", resource_id=schema_doc["_id"], action="create")
+        return mutation_payload(resource="schema", resource_id=schema_doc["schema_id"], action="create")
 
     def update(self, *, schema_id: str, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
         """Handle update.

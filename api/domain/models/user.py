@@ -11,7 +11,7 @@ MongoDB and supports merging user, role, and assay-specific permissions and attr
 from datetime import datetime
 from typing import List, Optional, Set
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from werkzeug.security import check_password_hash
 
 
@@ -41,6 +41,14 @@ class UserModel(BaseModel):
     access_level: int = 0
     job_title: Optional[str] = None
     is_active: bool = True
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def _coerce_mongo_id_to_str(cls, value):
+        """Normalize Mongo-backed id values (ObjectId/UUID/int) into canonical string ids."""
+        if value is None:
+            return value
+        return str(value)
 
     # -------------------- STATIC METHODS --------------------
     @staticmethod
@@ -83,7 +91,7 @@ class UserModel(BaseModel):
         for asp in asp_docs:
             asp_category = asp.get("asp_category", "NA")
             asp_group = asp.get("asp_group", "unassigned")
-            asp_name = asp.get("_id")
+            asp_name = asp.get("asp_id")
 
             if asp_name not in user_doc.get("assays", []):
                 continue
@@ -122,7 +130,6 @@ class UserModel(BaseModel):
                 "asp_map",
             }
         }
-
         return cls(
             **safe_user_doc,
             permissions=merged_permissions,

@@ -54,7 +54,7 @@ def _apply_selected_permission_version(
             permission = util.admin.apply_version_delta(deepcopy(permission), delta_blob)
             delta = delta_blob
             if perm_id:
-                permission["_id"] = perm_id
+                permission["permission_id"] = perm_id
     return permission, delta
 
 
@@ -123,7 +123,7 @@ def create_permission() -> Response | str:
                 api_endpoints.admin("permissions"),
                 headers=forward_headers(),
                 json_body={
-                    "schema_id": context.selected_schema.get("_id"),
+                    "schema_id": context.selected_schema.get("schema_id"),
                     "form_data": form_data,
                 },
             )

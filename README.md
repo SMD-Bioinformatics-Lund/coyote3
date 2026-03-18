@@ -285,37 +285,62 @@ Option B: scripted wrapper
 ./scripts/install.dev.sh
 ```
 
-### 6b. Portable dev stack (WSL/local cross-platform test)
+### 6b. Canonical DB migration (after import/restore)
 
-This stack is self-contained (web + api + mongo + redis) and avoids server-specific
-external networks and absolute host mounts.
+Run canonical DB identity migration (users/roles/permissions/schemas + variant identity):
 
 ```bash
-./scripts/compose-with-version.sh -f deploy/compose/docker-compose.dev.portable.yml up -d --build
+/home/ram/.virtualenvs/coyote3/bin/python scripts/migrate_db_identity.py \
+  --mongo-uri mongodb://localhost:37017 \
+  --db coyote3_dev
 ```
 
-Restore the micro snapshot into Docker Mongo:
+Current behavior:
+
+- migrates non-ObjectId `_id` docs for `users`, `roles`, `permissions`, `schemas`
+- backfills business keys (`user_id`, `role_id`, `permission_id`, `schema_id`)
+- computes canonical `simple_id` + MD5 `simple_id_hash` for variants
+- supports dry-run mode before writes
+- keeps `simple_id` for readability and collision verification
+
+### 6c. Create mixed-assay snapshot (50-60 samples)
 
 ```bash
-/home/ram/.virtualenvs/coyote3/bin/python scripts/restore_mongo_micro_snapshot.py \
-  --snapshot-dir var/mongo/micro_snapshot \
-  --target dev \
-  --drop-db \
-  --db-map coyote3=coyote_dev_3
+/home/ram/.virtualenvs/coyote3/bin/python scripts/create_mongo_snapshot.py \
+  --mongo-uri mongodb://localhost:37017 \
+  --db coyote3_dev \
+  --sample-count 60 \
+  --output-dir snapshots
 ```
 
-Current restore behavior:
-
-- restores into the dev Docker Mongo endpoint at `mongodb://localhost:37017`
-- remaps source DB names when needed, for example `coyote3 -> coyote_dev_3`
-- remaps collection names through `config/coyote3_collections.toml`
-- backfills required business-key fields automatically after restore
-- supports the stable dev Mongo volume `coyote3-dev-mongo-data`
-
-Stop portable stack:
+Optional explicit sample selection:
 
 ```bash
-./scripts/compose-with-version.sh -f deploy/compose/docker-compose.dev.portable.yml down
+/home/ram/.virtualenvs/coyote3/bin/python scripts/create_mongo_snapshot.py \
+  --mongo-uri mongodb://localhost:37017 \
+  --db coyote3_dev \
+  --sample-list-file /tmp/sample_selectors.txt
+```
+
+or:
+
+```bash
+/home/ram/.virtualenvs/coyote3/bin/python scripts/create_mongo_snapshot.py \
+  --mongo-uri mongodb://localhost:37017 \
+  --db coyote3_dev \
+  --sample-name 26MD02863p \
+  --sample-id 69b69570ff5cd3d440506337
+```
+
+### 6d. One-command snapshot + restore into dev DB
+
+```bash
+scripts/snapshot_restore_dev.sh \
+  --source-uri mongodb://localhost:5818 \
+  --source-db coyote3 \
+  --target-uri mongodb://localhost:37017 \
+  --target-db coyote3_dev \
+  --sample-count 60
 ```
 
 ### 7. Direct compose (manual version export)

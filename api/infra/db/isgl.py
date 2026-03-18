@@ -421,8 +421,8 @@ class ISGLHandler(BaseHandler):
         }
         if is_active is not None:
             query["is_active"] = is_active
-        projection = {"_id": 1}
-        return [str(doc["_id"]) for doc in self.get_collection().find(query, projection)]
+        projection = {"isgl_id": 1}
+        return [str(doc["isgl_id"]) for doc in self.get_collection().find(query, projection)]
 
     def get_isgl_by_ids(self, isgl_ids: list) -> dict:
         """
@@ -445,13 +445,13 @@ class ISGLHandler(BaseHandler):
             return {}
 
         # Define the fields to include in the query result
-        projection = {"_id": 1, "is_active": 1, "displayname": 1, "genes": 1, "adhoc": 1}
+        projection = {"isgl_id": 1, "is_active": 1, "displayname": 1, "genes": 1, "adhoc": 1}
 
         # Query the database for documents with matching IDs
-        cursor = self.get_collection().find({"_id": {"$in": isgl_ids}}, projection)
+        cursor = self.get_collection().find({"isgl_id": {"$in": isgl_ids}}, projection)
 
         # Format the result as a dictionary with IDs as keys
-        return {doc.pop("_id"): doc for doc in cursor}
+        return {doc.pop("isgl_id"): doc for doc in cursor}
 
     def get_public_isgl_genes_by_diagnosis(
         self, diagnosis: str, is_public: bool = True, is_active: bool = True
@@ -489,7 +489,7 @@ class ISGLHandler(BaseHandler):
         Returns:
             bool: True if the gene list is marked as adhoc, otherwise False.
         """
-        doc = self.get_collection().find_one({"_id": isgl_id}, {"adhoc": 1})
+        doc = self.get_collection().find_one(self._isgl_lookup_query(isgl_id), {"adhoc": 1})
         return doc.get("adhoc", False) if doc else False
 
     def get_isgl_display_name(self, isgl_id: str) -> str | None:
@@ -505,5 +505,7 @@ class ISGLHandler(BaseHandler):
         Returns:
             str | None: The display name of the gene list if found, otherwise None.
         """
-        doc = self.get_collection().find_one({"_id": isgl_id}, {"displayname": 1})
+        doc = self.get_collection().find_one(
+            self._isgl_lookup_query(isgl_id), {"displayname": 1}
+        )
         return doc.get("displayname") if doc else None

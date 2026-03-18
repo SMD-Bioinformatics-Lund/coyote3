@@ -83,13 +83,15 @@ When touching a feature, use this sequence:
 - verify container names, ports, and health endpoints
 - update deployment docs
 
-### Refresh dev Mongo from a curated snapshot
+### Refresh dev Mongo after data import
 
-- use `scripts/create_mongo_micro_snapshot.py` to create the snapshot from the source Mongo environment
+- use your standard Mongo backup/restore workflow
 - keep collection selection driven by `config/coyote3_collections.toml`
-- restore into dev Docker Mongo with `scripts/restore_mongo_micro_snapshot.py --target dev --drop-db --db-map coyote3=coyote_dev_3`
-- verify the restore populated business-key fields such as `user_id`, `sample_id`, and `variant_id`
+- run `scripts/migrate_db_identity.py` for user/business-key normalization + variant identity normalization
+- use `--migrate-all-collections` only when you intentionally want to convert non-ObjectId `_id` across extra collections
 - verify login and sample-linked API routes before considering the refresh complete
+- use `scripts/create_mongo_snapshot.py` when you need a curated mixed-assay snapshot
+- use `scripts/snapshot_restore_dev.sh` when you need one-command snapshot + restore into `coyote3_dev`
 
 ## Anti-Patterns To Avoid
 

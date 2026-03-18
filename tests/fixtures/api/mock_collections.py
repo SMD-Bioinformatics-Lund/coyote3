@@ -227,7 +227,7 @@ def variant_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
         "REF": "C",
         "ALT": "T",
         "simple_id": "17_7579472_C_T",
-        "simple_id_hash": "hash_17_7579472_C_T",
+        "simple_id_hash": "862b46287a08e369aa99f8f3777f44b9",
         "transcripts": ["ENST00000269305"],
         "INFO": {
             "selected_CSQ": {
@@ -299,7 +299,7 @@ def reported_variant_doc() -> dict:
         "annotation_text_oid": "anntxt1",
         "gene": "TP53",
         "simple_id": "17_7579472_C_T",
-        "simple_id_hash": "hash_17_7579472_C_T",
+        "simple_id_hash": "862b46287a08e369aa99f8f3777f44b9",
         "tier": 2,
     }
     doc = _latest_doc("reported_variants_collection")
@@ -374,6 +374,7 @@ def isgl_doc() -> dict:
     """
     defaults = {
         "_id": "gl1",
+        "isgl_id": "gl1",
         "displayname": "Myeloid shortlist",
         "version": 1,
         "adhoc": False,

@@ -40,7 +40,7 @@ def test_coverage_sample_read_builds_payload(monkeypatch):
     monkeypatch.setattr(
         service.repository,
         "get_asp",
-        lambda asp_name: {"_id": "WGS", "covered_genes": ["TP53", "NPM1"]},
+        lambda asp_name: {"asp_id": "WGS", "covered_genes": ["TP53", "NPM1"]},
     )
     monkeypatch.setattr(
         coverage.util.common,
@@ -150,7 +150,7 @@ def test_coverage_sample_read_http_validates_cov_table_dict_shape(monkeypatch):
     monkeypatch.setattr(
         service.repository,
         "get_asp",
-        lambda asp_name: {"_id": "WGS", "covered_genes": ["TP53", "NPM1"]},
+        lambda asp_name: {"asp_id": "WGS", "covered_genes": ["TP53", "NPM1"]},
     )
     monkeypatch.setattr(
         coverage.util.common,

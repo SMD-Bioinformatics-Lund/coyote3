@@ -210,7 +210,11 @@ def _role_levels() -> dict[str, int]:
     Returns:
             The  role levels result.
     """
-    return {role["_id"]: role.get("level", 0) for role in get_security_repository().get_all_roles()}
+    return {
+        role.get("role_id"): role.get("level", 0)
+        for role in get_security_repository().get_all_roles()
+        if role.get("role_id")
+    }
 
 
 def _api_user_from_doc(user_doc: dict) -> ApiUser:

@@ -75,6 +75,8 @@ from bson import ObjectId
 from pymongo import MongoClient
 from pymongo.errors import BulkWriteError
 
+from api.core.dna.variant_identity import build_simple_id_hash_from_simple_id, normalize_simple_id
+
 # ---------------------------- Constants ----------------------------
 TIER_NAME_TO_INT = {
     "None": 0,
@@ -773,7 +775,15 @@ class ReportedVariantsBackfiller:
             ],
         }
         if extracted.simple_id:
-            q["$or"].append({"simple_id": extracted.simple_id})
+            normalized_simple_id = normalize_simple_id(extracted.simple_id)
+            q["$or"].append(
+                {
+                    "$and": [
+                        {"simple_id_hash": build_simple_id_hash_from_simple_id(normalized_simple_id)},
+                        {"simple_id": normalized_simple_id},
+                    ]
+                }
+            )
 
         return self.variants.find_one(
             q,
