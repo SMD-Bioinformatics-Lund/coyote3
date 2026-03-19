@@ -139,6 +139,16 @@ class VariantGtDoc(_DocBase):
     type: str | None = None
 
 
+class CnvGeneDoc(_DocBase):
+    gene: str
+    class_: str | None = Field(
+        validation_alias=AliasChoices("class_", "class"),
+        serialization_alias="class",
+        default=None,
+    )
+    cnv_type: str | None = None
+
+
 class SamplesDoc(_DocBase):
     name: str
     assay: str
@@ -237,7 +247,7 @@ class CnvsDoc(_DocBase):
     size: int | None = None
     ratio: float | int | str | None = None
     nprobes: int | None = None
-    genes: list[str | dict[str, Any]] | dict[str, Any] | str | None = None
+    genes: list[CnvGeneDoc] = Field(default_factory=list)
     callers: list[str] | str | None = None
 
 
