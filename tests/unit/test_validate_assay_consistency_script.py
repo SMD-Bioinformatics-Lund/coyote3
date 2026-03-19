@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 
 def _run_validator(seed_path: Path) -> subprocess.CompletedProcess[str]:
+    python_bin = sys.executable or "python3"
     return subprocess.run(
         [
-            "/home/ram/.virtualenvs/coyote3/bin/python",
+            python_bin,
             "scripts/validate_assay_consistency.py",
             "--seed-file",
             str(seed_path),
