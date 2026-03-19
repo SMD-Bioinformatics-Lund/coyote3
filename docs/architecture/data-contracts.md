@@ -32,6 +32,7 @@ Design principles:
 Use:
 
 - `tests/fixtures/db_dummy/all_collections_dummy.json`
+- `tests/fixtures/db_dummy/center_template_seed.json`
 - `tests/unit/test_db_dummy_fixture.py`
 
 to prevent drift between contracts and example documents.

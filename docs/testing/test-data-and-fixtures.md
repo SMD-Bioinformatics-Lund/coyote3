@@ -22,6 +22,9 @@ These fixtures are sanitized and safe for public repo use.
 
 `tests/fixtures/db_dummy/all_collections_dummy.json` contains representative docs for all registered collection contract models.
 
+`tests/fixtures/db_dummy/center_template_seed.json` is the recommended
+first-time onboarding seed template for external centers (neutral assay names).
+
 Validation test:
 
 ```bash

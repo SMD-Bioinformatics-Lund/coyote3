@@ -56,7 +56,7 @@ name: "DEMO_SAMPLE_001"
 case_id: "DEMO_CASE_001"
 control_id: "DEMO_CTRL_001"
 genome_build: 38
-assay: "hema_GMSv1"
+assay: "ASSAY_A"
 profile: "production"
 vcf_files: "/data/demo.vcf"
 cnv: "/data/demo.cnv.json"

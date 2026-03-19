@@ -82,9 +82,14 @@ Or run one-shot bootstrap command:
 scripts/bootstrap_center_collections.sh \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}" \
   --internal-token "${INTERNAL_API_TOKEN}" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy.json \
+  --seed-file tests/fixtures/db_dummy/center_template_seed.json \
   --with-optional
 ```
+
+`center_template_seed.json` is neutral by default (`ASSAY_A`, `GROUP_A`) and
+should be edited to your center's assay IDs and groups before first run.
+It includes ASPC (`asp_configs`) and ISGL (`insilico_genelists`) starter
+documents that should be adapted to your assay model.
 
 ## 5. Validate ingestion inputs
 

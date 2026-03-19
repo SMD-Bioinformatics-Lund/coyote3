@@ -26,9 +26,23 @@ One-shot ordered seeding (required + optional baseline collections):
 scripts/bootstrap_center_collections.sh \
   --api-base-url "${API_BASE_URL}" \
   --internal-token "${INTERNAL_TOKEN}" \
-  --seed-file tests/fixtures/db_dummy/all_collections_dummy.json \
+  --seed-file tests/fixtures/db_dummy/center_template_seed.json \
   --with-optional
 ```
+
+Validate assay consistency before ingesting sample bundles:
+
+```bash
+python scripts/validate_assay_consistency.py \
+  --seed-file tests/fixtures/db_dummy/center_template_seed.json \
+  --yaml tests/data/ingest_demo/generic_case_control.yaml
+```
+
+This validator checks:
+
+- assay references across `samples`, `blacklist`, `insilico_genelists`
+- `asp_configs` (`aspc_id` format, assay/environment consistency)
+- `insilico_genelists` (`assays` and `assay_groups` consistency)
 
 ### 1) Seed one collection document
 
@@ -207,7 +221,7 @@ Example bulk seed for `refseq_canonical`:
 {
   "spec": {
     "name": "DEMO_SAMPLE_001",
-    "assay": "hema_GMSv1",
+    "assay": "ASSAY_A",
     "profile": "test",
     "genome_build": 38,
     "vcf_files": "/data/demo.vcf",
@@ -223,7 +237,7 @@ Example bulk seed for `refseq_canonical`:
 
 ```json
 {
-  "yaml_content": "name: DEMO_SAMPLE_001\nassay: hema_GMSv1\n...",
+  "yaml_content": "name: DEMO_SAMPLE_001\nassay: ASSAY_A\n...",
   "update_existing": false
 }
 ```
@@ -273,7 +287,8 @@ Core collections typically seeded first:
 ## Test fixtures for ingestion
 
 - `tests/data/ingest_demo/*`
-- `tests/fixtures/db_dummy/all_collections_dummy.json`
+- `tests/fixtures/db_dummy/center_template_seed.json` (center onboarding seed)
+- `tests/fixtures/db_dummy/all_collections_dummy.json` (full contract coverage fixture)
 
 ## Client example (Python)
 
@@ -286,7 +301,7 @@ headers = {"X-Internal-Api-Token": "YOUR_TOKEN"}
 payload = {
     "spec": {
         "name": "DEMO_SAMPLE_001",
-        "assay": "hema_GMSv1",
+        "assay": "ASSAY_A",
         "profile": "test",
         "genome_build": 38,
         "vcf_files": "/app/tests/data/ingest_demo/generic_case_control.final.filtered.vcf",

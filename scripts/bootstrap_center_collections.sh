@@ -16,7 +16,7 @@ Options:
   --api-base-url   Base API URL, e.g. http://localhost:8006
   --internal-token INTERNAL_API_TOKEN value
   --seed-file      JSON file containing collection -> [docs] mapping
-                   default: tests/fixtures/db_dummy/all_collections_dummy.json
+                   default: tests/fixtures/db_dummy/center_template_seed.json
   --with-optional  Seed optional knowledge collections after required baseline
 
 Notes:
@@ -27,7 +27,7 @@ USAGE
 
 API_BASE_URL=""
 INTERNAL_TOKEN=""
-SEED_FILE="tests/fixtures/db_dummy/all_collections_dummy.json"
+SEED_FILE="tests/fixtures/db_dummy/center_template_seed.json"
 WITH_OPTIONAL=0
 
 while [[ $# -gt 0 ]]; do
@@ -63,6 +63,9 @@ if [[ -z "$PYTHON_BIN" ]]; then
     exit 2
   fi
 fi
+
+echo "[step] validating assay consistency in seed file"
+"$PYTHON_BIN" scripts/validate_assay_consistency.py --seed-file "$SEED_FILE"
 
 required_collections=(
   permissions
