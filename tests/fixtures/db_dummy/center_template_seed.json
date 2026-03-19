@@ -1,0 +1,134 @@
+{
+  "permissions": [
+    {
+      "permission_id": "edit_sample",
+      "permission_name": "edit_sample",
+      "category": "sample",
+      "is_active": true
+    }
+  ],
+  "roles": [
+    {
+      "role_id": "admin",
+      "name": "Administrator",
+      "level": 100,
+      "is_active": true,
+      "permissions": [
+        "edit_sample"
+      ],
+      "deny_permissions": []
+    }
+  ],
+  "users": [
+    {
+      "email": "admin@center.local",
+      "firstname": "Center",
+      "lastname": "Admin",
+      "fullname": "Center Admin",
+      "role": "admin",
+      "is_active": true,
+      "permissions": [],
+      "deny_permissions": [],
+      "assay_groups": [
+        "GROUP_A"
+      ],
+      "assays": [
+        "ASSAY_A"
+      ]
+    }
+  ],
+  "asp_configs": [
+    {
+      "aspc_id": "ASSAY_A:production",
+      "assay_name": "ASSAY_A",
+      "environment": "production",
+      "asp_group": "GROUP_A",
+      "vep_consequences": [
+        "missense_variant"
+      ],
+      "cnveffects": [
+        "gain",
+        "loss"
+      ],
+      "analysis_types": [
+        "snv",
+        "cnv"
+      ],
+      "report_sections": [
+        "snv",
+        "cnv"
+      ]
+    }
+  ],
+  "assay_specific_panels": [
+    {
+      "asp_id": "ASSAY_A",
+      "assay_name": "ASSAY_A",
+      "asp_group": "GROUP_A",
+      "asp_family": "dna",
+      "asp_category": "somatic",
+      "display_name": "Assay A",
+      "covered_genes": [
+        "EGFR",
+        "TP53"
+      ],
+      "germline_genes": [
+        "BRCA1"
+      ],
+      "is_active": true
+    }
+  ],
+  "insilico_genelists": [
+    {
+      "isgl_id": "ISGL_A",
+      "diagnosis": [
+        "DIAGNOSIS_A"
+      ],
+      "name": "List A",
+      "displayname": "List A",
+      "list_type": "diagnostic",
+      "adhoc": false,
+      "is_public": true,
+      "is_active": true,
+      "assay_groups": [
+        "GROUP_A"
+      ],
+      "genes": [
+        "EGFR",
+        "TP53"
+      ],
+      "assays": [
+        "ASSAY_A"
+      ]
+    }
+  ],
+  "refseq_canonical": [
+    {
+      "gene": "EGFR",
+      "canonical": "NM_005228"
+    },
+    {
+      "gene": "TP53",
+      "canonical": "NM_000546"
+    }
+  ],
+  "hgnc_genes": [
+    {
+      "hgnc_id": "HGNC:3236",
+      "hgnc_symbol": "EGFR",
+      "gene_name": "epidermal growth factor receptor",
+      "ensembl_gene_id": "ENSG00000146648",
+      "refseq_accession": [
+        "NM_005228"
+      ],
+      "ensembl_mane_select": "ENST00000275493",
+      "refseq_mane_select": "NM_005228.5"
+    },
+    {
+      "hgnc_id": "HGNC:11998",
+      "hgnc_symbol": "TP53",
+      "gene_name": "tumor protein p53",
+      "ensembl_gene_id": "ENSG00000141510"
+    }
+  ]
+}

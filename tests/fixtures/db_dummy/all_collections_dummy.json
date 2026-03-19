@@ -1,0 +1,573 @@
+{
+  "samples": [
+    {
+      "name": "DEMO_SAMPLE_001",
+      "assay": "ASSAY_A",
+      "subpanel": "DIAGNOSIS_A",
+      "profile": "test",
+      "genome_build": 38,
+      "case_id": "DEMO_CASE_001",
+      "control_id": "DEMO_CTRL_001",
+      "sample_no": 2,
+      "sequencing_scope": "panel",
+      "omics_layer": "DNA",
+      "sequencing_technology": "Illumina",
+      "pipeline": "SomaticPanelPipeline",
+      "pipeline_version": "0.0.1",
+      "vcf_files": "/data/demo.vcf",
+      "cnv": "/data/demo.cnv.json",
+      "cov": "/data/demo.cov.json",
+      "paired": true,
+      "case": {
+        "id": "DEMO_CASE_001",
+        "clarity_id": "GEN_DEMO_CASE_001",
+        "clarity_pool_id": "POOL_DEMO_001",
+        "ffpe": false,
+        "sequencing_run": "RUN_DEMO_001",
+        "reads": 123456,
+        "purity": null
+      },
+      "control": {
+        "id": "DEMO_CTRL_001",
+        "clarity_id": "GEN_DEMO_CTRL_001",
+        "clarity_pool_id": "POOL_DEMO_001",
+        "ffpe": false,
+        "sequencing_run": "RUN_DEMO_001",
+        "reads": 120000,
+        "purity": null
+      },
+      "filters": {
+        "min_depth": 100,
+        "max_popfreq": 0.01,
+        "vep_consequences": [
+          "missense_variant"
+        ],
+        "cnveffects": [
+          "gain",
+          "loss"
+        ],
+        "genelists": [
+          "Hem demo list"
+        ]
+      },
+      "comments": [
+        {
+          "author": "demo.user",
+          "text": "demo comment"
+        }
+      ],
+      "reports": [
+        {
+          "author": "demo.user",
+          "report_id": "RPT_DEMO_001",
+          "report_type": "final"
+        }
+      ],
+      "groups": [
+        "all_samples"
+      ]
+    }
+  ],
+  "variants": [
+    {
+      "SAMPLE_ID": "65f0c0ffee00000000000001",
+      "CHROM": "7",
+      "POS": 140453136,
+      "REF": "A",
+      "ALT": "T",
+      "FILTER": [
+        "PASS"
+      ],
+      "INFO": {
+        "variant_callers": [
+          "tnscope"
+        ],
+        "PON_NUM_tnscope": "0/20",
+        "PON_VAFS_tnscope": "0.0",
+        "selected_CSQ": {
+          "Feature": "ENST00000288602",
+          "HGNC_ID": "HGNC:3236",
+          "SYMBOL": "EGFR",
+          "Consequence": "missense_variant",
+          "IMPACT": "MODERATE",
+          "VARIANT_CLASS": "SNV",
+          "HGVSc": "c.2573T>G",
+          "HGVSp": "p.Leu858Arg"
+        },
+        "CSQ": [
+          {
+            "Feature": "ENST00000288602",
+            "HGNC_ID": "HGNC:3236",
+            "SYMBOL": "EGFR",
+            "Consequence": "missense_variant",
+            "IMPACT": "MODERATE",
+            "VARIANT_CLASS": "SNV",
+            "HGVSc": "c.2573T>G",
+            "HGVSp": "p.Leu858Arg"
+          }
+        ]
+      },
+      "GT": [
+        {
+          "AF": 0.43,
+          "DP": 510,
+          "GT": "0/1",
+          "VD": 220,
+          "sample": "CASE_DEMO",
+          "type": "case"
+        },
+        {
+          "AF": 0.0,
+          "DP": 420,
+          "GT": "0/0",
+          "VD": 0,
+          "sample": "CTRL_DEMO",
+          "type": "control"
+        }
+      ],
+      "selected_csq_feature": "ENST00000288602",
+      "genes": [
+        "EGFR"
+      ],
+      "transcripts": [
+        "ENST00000288602"
+      ],
+      "HGVSc": [
+        "c.2573T>G"
+      ],
+      "HGVSp": [
+        "p.Leu858Arg"
+      ],
+      "simple_id": "7_140453136_A_T",
+      "simple_id_hash": "demo_hash_001",
+      "variant_class": "SNV",
+      "cosmic_ids": [
+        "COSM6240"
+      ],
+      "dbsnp_id": "rs121434568",
+      "pubmed_ids": [
+        "12345678"
+      ],
+      "gnomad_frequency": 0.0,
+      "gnomad_max": 0.0,
+      "exac_frequency": 0.0,
+      "thousandG_frequency": 0.0,
+      "hotspots": [
+        {
+          "lu": [
+            "HS_DEMO_1"
+          ]
+        }
+      ]
+    }
+  ],
+  "cnvs": [
+    {
+      "SAMPLE_ID": "65f0c0ffee00000000000001",
+      "chr": "7",
+      "start": 55000000,
+      "end": 56000000,
+      "size": 1000000,
+      "ratio": 0.4,
+      "nprobes": 100,
+      "genes": [
+        {
+          "gene": "EGFR"
+        }
+      ],
+      "callers": [
+        "cnvkit"
+      ]
+    }
+  ],
+  "translocations": [
+    {
+      "SAMPLE_ID": "65f0c0ffee00000000000001",
+      "CHROM": "2",
+      "POS": 29443600,
+      "REF": "N",
+      "ALT": "<BND>",
+      "FILTER": [
+        "PASS"
+      ],
+      "INFO": {
+        "ANN": [
+          {
+            "Annotation": [
+              "gene_fusion"
+            ],
+            "Gene_ID": "ENSG00000139618"
+          }
+        ]
+      }
+    }
+  ],
+  "biomarkers": [
+    {
+      "SAMPLE_ID": "65f0c0ffee00000000000001",
+      "name": "demo-biomarker",
+      "HRD": "negative",
+      "MSIS": "stable",
+      "MSIP": "low"
+    }
+  ],
+  "coverage": [
+    {
+      "SAMPLE_ID": "65f0c0ffee00000000000001",
+      "sample": "DEMO_SAMPLE_001",
+      "chr": "7",
+      "start": 55019017,
+      "end": 55019100,
+      "avg_cov": 503.2,
+      "amplicon": "AMP_DEMO_001"
+    }
+  ],
+  "panel_cov": [
+    {
+      "SAMPLE_ID": "65f0c0ffee00000000000001",
+      "sample": "DEMO_SAMPLE_001",
+      "genes": {
+        "EGFR": {
+          "exons": {
+            "7_55019017_55019100": {
+              "chr": "7",
+              "start": "55019017",
+              "end": "55019100",
+              "nbr": "21"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "fusions": [
+    {
+      "SAMPLE_ID": "65f0c0ffee00000000000001",
+      "fusions": [
+        {
+          "geneA": "BCR",
+          "geneB": "ABL1",
+          "supporting_reads": 42
+        }
+      ]
+    }
+  ],
+  "rna_expression": [
+    {
+      "SAMPLE_ID": "65f0c0ffee00000000000001",
+      "gene_expression": {
+        "WT1": 12.5,
+        "BCR": 0.5
+      }
+    }
+  ],
+  "rna_classification": [
+    {
+      "SAMPLE_ID": "65f0c0ffee00000000000001",
+      "classification": "DEMO_CLASS",
+      "score": 0.98
+    }
+  ],
+  "rna_qc": [
+    {
+      "SAMPLE_ID": "65f0c0ffee00000000000001",
+      "mapped_reads": 1000000,
+      "pass": true
+    }
+  ],
+  "users": [
+    {
+      "email": "demo@example.org",
+      "firstname": "Demo",
+      "lastname": "User",
+      "fullname": "Demo User",
+      "role": "admin",
+      "is_active": true,
+      "permissions": [
+        "edit_sample"
+      ],
+      "deny_permissions": []
+    }
+  ],
+  "roles": [
+    {
+      "role_id": "admin",
+      "name": "Administrator",
+      "level": 100,
+      "is_active": true,
+      "permissions": [
+        "edit_sample"
+      ],
+      "deny_permissions": []
+    }
+  ],
+  "permissions": [
+    {
+      "permission_id": "edit_sample",
+      "permission_name": "edit_sample",
+      "category": "sample",
+      "is_active": true
+    }
+  ],
+  "annotation": [
+    {
+      "variant": "7_140453136_A_T",
+      "gene": "EGFR",
+      "author": "demo.user",
+      "nomenclature": "p.Leu858Arg",
+      "transcript": "ENST00000288602",
+      "class": 2,
+      "text": "Demo actionable annotation"
+    }
+  ],
+  "reported_variants": [
+    {
+      "report_id": "RPT_DEMO_001",
+      "sample_name": "DEMO_SAMPLE_001",
+      "simple_id": "7_140453136_A_T",
+      "gene": "EGFR",
+      "transcript": "ENST00000288602",
+      "hgvsc": "c.2573T>G",
+      "hgvsp": "p.Leu858Arg",
+      "variant": "EGFR p.Leu858Arg",
+      "var_type": "SNV",
+      "tier": 2,
+      "created_by": "demo.user"
+    }
+  ],
+  "asp_configs": [
+    {
+      "aspc_id": "ASSAY_A:test",
+      "assay_name": "ASSAY_A",
+      "environment": "test",
+      "asp_group": "GROUP_A",
+      "vep_consequences": [
+        "missense_variant"
+      ],
+      "cnveffects": [
+        "gain",
+        "loss"
+      ],
+      "analysis_types": [
+        "snv",
+        "cnv"
+      ],
+      "report_sections": [
+        "snv",
+        "cnv"
+      ]
+    }
+  ],
+  "assay_specific_panels": [
+    {
+      "asp_id": "ASSAY_A",
+      "assay_name": "ASSAY_A",
+      "asp_group": "GROUP_A",
+      "asp_family": "dna",
+      "asp_category": "somatic",
+      "display_name": "Hema GMS v1",
+      "covered_genes": [
+        "EGFR",
+        "TP53"
+      ],
+      "germline_genes": [
+        "BRCA1"
+      ],
+      "is_active": true
+    }
+  ],
+  "insilico_genelists": [
+    {
+      "isgl_id": "ISGL_A",
+      "diagnosis": [
+        "DIAGNOSIS_A"
+      ],
+      "name": "List A",
+      "displayname": "List A",
+      "list_type": "diagnostic",
+      "adhoc": false,
+      "is_public": true,
+      "is_active": true,
+      "assay_groups": [
+        "GROUP_A"
+      ],
+      "genes": [
+        "EGFR",
+        "TP53"
+      ],
+      "assays": [
+        "ASSAY_A"
+      ]
+    }
+  ],
+  "blacklist": [
+    {
+      "pos": "7_140453136_A_T",
+      "assay": "ASSAY_A",
+      "in_normal_perc": 0.2
+    }
+  ],
+  "brcaexchange": [
+    {
+      "id": "BRCA_DEMO_1",
+      "chr": "17",
+      "pos": 43071077,
+      "ref": "A",
+      "alt": "G",
+      "chr38": "17",
+      "pos38": 43071077,
+      "ref38": "A",
+      "alt38": "G"
+    }
+  ],
+  "civic_genes": [
+    {
+      "gene_id": 3236,
+      "name": "EGFR",
+      "description": "Epidermal growth factor receptor",
+      "entrez_id": 1956
+    }
+  ],
+  "civic_variants": [
+    {
+      "variant": "EGFR L858R",
+      "gene": "EGFR",
+      "entrez_id": 1956,
+      "chromosome": "7",
+      "start": 140453136,
+      "stop": 140453136,
+      "reference_bases": "A",
+      "variant_bases": "T"
+    }
+  ],
+  "cosmic": [
+    {
+      "id": "COSM6240",
+      "chr": "7",
+      "start": 140453136,
+      "end": 140453136,
+      "cnt": 42
+    }
+  ],
+  "dashboard_metrics": [
+    {
+      "payload": {
+        "turnaround_days": 12,
+        "samples_processed": 120
+      },
+      "updated_at": "2026-03-19T00:00:00Z"
+    }
+  ],
+  "group_coverage": [
+    {
+      "SAMPLE_ID": "65f0c0ffee00000000000001",
+      "sample": "DEMO_SAMPLE_001",
+      "genes": {
+        "EGFR": {
+          "probes": {
+            "7_55019017_55019100": {
+              "chr": "7",
+              "start": "55019017",
+              "end": "55019100",
+              "nbr": "1"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "hgnc_genes": [
+    {
+      "hgnc_id": "HGNC:3236",
+      "hgnc_symbol": "EGFR",
+      "gene_name": "epidermal growth factor receptor",
+      "ensembl_gene_id": "ENSG00000146648",
+      "entrez_id": "1956",
+      "refseq_accession": [
+        "NM_005228"
+      ],
+      "ensembl_mane_select": "ENST00000275493",
+      "refseq_mane_select": "NM_005228.5",
+      "locus": "7p11.2",
+      "alias_symbol": [
+        "ERBB"
+      ],
+      "alias_name": [
+        "ERBB proto-oncogene"
+      ],
+      "prev_symbol": [],
+      "prev_name": [],
+      "omim_id": [
+        131550
+      ],
+      "cosmic": [
+        "COSM6240"
+      ],
+      "gene_type": [
+        "protein-coding"
+      ],
+      "refseq_mane_plus_clinical": [
+        "NM_005228.5"
+      ]
+    }
+  ],
+  "hpaexpr": [
+    {
+      "tid": "ENST00000275493",
+      "expr": {
+        "tissue": "lung",
+        "level": "high"
+      }
+    }
+  ],
+  "iarc_tp53": [
+    {
+      "id": "IARC_DEMO_1",
+      "var": "p.R175H",
+      "transactivation_class": "non-functional",
+      "structure_function_class": "disruptive"
+    }
+  ],
+  "mane_select": [
+    {
+      "gene": "EGFR",
+      "ensg": "ENSG00000146648",
+      "enst": "ENST00000275493",
+      "refseq": "NM_005228"
+    }
+  ],
+  "oncokb_actionable": [
+    {
+      "Alteration": "EGFR L858R"
+    }
+  ],
+  "oncokb_genes": [
+    {
+      "name": "EGFR",
+      "description": "OncoKB demo gene"
+    }
+  ],
+  "refseq_canonical": [
+    {
+      "gene": "EGFR",
+      "canonical": "NM_005228"
+    }
+  ],
+  "vep_metadata": [
+    {
+      "source": "demo_vep_111",
+      "created_by": "demo.user",
+      "db_info": {
+        "cache": {
+          "version": "111"
+        }
+      },
+      "conseq_translations": {
+        "missense_variant": "missense"
+      },
+      "variant_class_translations": {
+        "SNV": "SNV"
+      }
+    }
+  ]
+}

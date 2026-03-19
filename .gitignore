@@ -150,7 +150,6 @@ example_dev*
 migration_scripts
 /reports/
 ./bugs
-*dummy*
 .ruff_cache
 node_modules/
 
