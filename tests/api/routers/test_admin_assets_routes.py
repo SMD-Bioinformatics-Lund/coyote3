@@ -20,7 +20,9 @@ def test_list_asp_read_returns_panels(monkeypatch):
     """
     monkeypatch.setattr(asp.util.common, "convert_to_serializable", lambda payload: payload)
     service = type(
-        "_Service", (), {"list_payload": staticmethod(lambda: {"panels": [{"_id": "WGS"}]})}
+        "_Service",
+        (),
+        {"list_payload": staticmethod(lambda **_: {"panels": [{"_id": "WGS"}]})},
     )()
 
     from tests.fixtures.api import mock_collections as fx

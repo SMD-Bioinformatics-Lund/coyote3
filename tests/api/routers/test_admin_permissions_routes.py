@@ -25,7 +25,7 @@ def test_list_permissions_read_groups_by_category(monkeypatch):
         (),
         {
             "list_permissions_payload": staticmethod(
-                lambda: {
+                lambda **_: {
                     "permission_policies": [permission],
                     "grouped_permissions": {permission["category"]: [permission]},
                 }
@@ -56,7 +56,9 @@ def test_create_permission_context_read_no_schema_raises_400(monkeypatch):
         {
             "create_context_payload": staticmethod(
                 lambda **kwargs: (_ for _ in ()).throw(
-                    HTTPException(status_code=400, detail={"error": "No active permission schemas found"})
+                    HTTPException(
+                        status_code=400, detail={"error": "No active permission schemas found"}
+                    )
                 )
             )
         },
@@ -130,6 +132,8 @@ def test_toggle_permission_status_defaults_legacy_doc_to_active(monkeypatch):
         },
     )()
 
-    payload = permissions.toggle_permission_status("perm.legacy", user=fx.api_user(), service=service)
+    payload = permissions.toggle_permission_status(
+        "perm.legacy", user=fx.api_user(), service=service
+    )
 
     assert payload["meta"]["is_active"] is False

@@ -65,7 +65,13 @@ def _setup_admin_list_users(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(
         app.dependency_overrides,
         users.get_admin_user_service,
-        lambda: SimpleNamespace(list_users_payload=lambda: {"users": [], "roles": {}}),
+        lambda: SimpleNamespace(
+            list_users_payload=lambda **_: {
+                "users": [],
+                "roles": {},
+                "pagination": {"q": "", "page": 1, "per_page": 30, "total": 0, "has_next": False},
+            }
+        ),
     )
     monkeypatch.setattr(users.util.common, "convert_to_serializable", lambda payload: payload)
 
@@ -82,7 +88,12 @@ def _setup_admin_list_roles(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(
         app.dependency_overrides,
         roles.get_admin_role_service,
-        lambda: SimpleNamespace(list_roles_payload=lambda: {"roles": []}),
+        lambda: SimpleNamespace(
+            list_roles_payload=lambda **_: {
+                "roles": [],
+                "pagination": {"q": "", "page": 1, "per_page": 30, "total": 0, "has_next": False},
+            }
+        ),
     )
     monkeypatch.setattr(roles.util.common, "convert_to_serializable", lambda payload: payload)
 
@@ -100,7 +111,11 @@ def _setup_admin_list_permissions(monkeypatch: pytest.MonkeyPatch) -> None:
         app.dependency_overrides,
         permissions.get_permission_management_service,
         lambda: SimpleNamespace(
-            list_permissions_payload=lambda: {"permission_policies": [], "grouped_permissions": {}}
+            list_permissions_payload=lambda **_: {
+                "permission_policies": [],
+                "grouped_permissions": {},
+                "pagination": {"q": "", "page": 1, "per_page": 30, "total": 0, "has_next": False},
+            }
         ),
     )
     monkeypatch.setattr(permissions.util.common, "convert_to_serializable", lambda payload: payload)
@@ -118,7 +133,12 @@ def _setup_admin_list_aspc(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(
         app.dependency_overrides,
         admin_aspc.get_admin_aspc_service,
-        lambda: SimpleNamespace(list_payload=lambda: {"assay_configs": []}),
+        lambda: SimpleNamespace(
+            list_payload=lambda **_: {
+                "assay_configs": [],
+                "pagination": {"q": "", "page": 1, "per_page": 30, "total": 0, "has_next": False},
+            }
+        ),
     )
     monkeypatch.setattr(admin_aspc.util.common, "convert_to_serializable", lambda payload: payload)
 

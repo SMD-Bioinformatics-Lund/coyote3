@@ -19,7 +19,7 @@ def test_list_roles_read_with_fake_store(monkeypatch):
     service = type(
         "_Service",
         (),
-        {"list_roles_payload": staticmethod(lambda: {"roles": [fx.role_doc()]})},
+        {"list_roles_payload": staticmethod(lambda **_: {"roles": [fx.role_doc()]})},
     )()
 
     payload = roles.list_roles_read(user=fx.api_user(), service=service)

@@ -23,7 +23,7 @@ def test_list_roles_read_success(monkeypatch):
     service = type(
         "_Service",
         (),
-        {"list_roles_payload": staticmethod(lambda: {"roles": [fx.role_doc()]})},
+        {"list_roles_payload": staticmethod(lambda **_: {"roles": [fx.role_doc()]})},
     )()
     payload = roles.list_roles_read(user=fx.api_user(), service=service)
     assert payload["roles"][0]["_id"] == fx.role_doc()["_id"]
@@ -41,7 +41,13 @@ def test_create_role_context_read_no_schema_raises_400(monkeypatch):
     service = type(
         "_Service",
         (),
-        {"create_context_payload": staticmethod(lambda **kwargs: (_ for _ in ()).throw(HTTPException(status_code=400, detail={"error": "No active role schemas found"})))},
+        {
+            "create_context_payload": staticmethod(
+                lambda **kwargs: (_ for _ in ()).throw(
+                    HTTPException(status_code=400, detail={"error": "No active role schemas found"})
+                )
+            )
+        },
     )()
 
     with pytest.raises(HTTPException) as exc:
@@ -63,7 +69,13 @@ def test_role_context_read_not_found_raises_404(monkeypatch):
     service = type(
         "_Service",
         (),
-        {"context_payload": staticmethod(lambda **kwargs: (_ for _ in ()).throw(HTTPException(status_code=404, detail={"error": "Role not found"})))},
+        {
+            "context_payload": staticmethod(
+                lambda **kwargs: (_ for _ in ()).throw(
+                    HTTPException(status_code=404, detail={"error": "Role not found"})
+                )
+            )
+        },
     )()
 
     with pytest.raises(HTTPException) as exc:
