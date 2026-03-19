@@ -106,6 +106,7 @@ scripts/snapshot_restore_dev.sh \
   --source-db coyote3 \
   --target-uri mongodb://localhost:37017 \
   --target-db coyote3_dev \
+  --fresh-snapshot \
   --sample-count 60
 ```
 

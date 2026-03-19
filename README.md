@@ -119,9 +119,9 @@ cd coyote3
 ### 3. Configure Environment Files
 
 ```bash
-cp example.prod.env .coyote3_env
-cp example.dev.env .coyote3_dev_env
-cp example.stage.env .coyote3_stage_env
+cp deploy/env/example.prod.env .coyote3_env
+cp deploy/env/example.dev.env .coyote3_dev_env
+cp deploy/env/example.stage.env .coyote3_stage_env
 ```
 
 Set real values for secrets, Mongo credentials, and URIs per environment.

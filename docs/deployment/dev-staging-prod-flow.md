@@ -16,9 +16,9 @@ It is command-first, reproducible, and aligned to the repository CI gates and co
 Create environment files from templates:
 
 ```bash
-cp example.dev.env .coyote3_dev_env
-cp example.stage.env .coyote3_stage_env
-cp example.prod.env .coyote3_env
+cp deploy/env/example.dev.env .coyote3_dev_env
+cp deploy/env/example.stage.env .coyote3_stage_env
+cp deploy/env/example.prod.env .coyote3_env
 ```
 
 Required per-environment differences:
@@ -165,6 +165,9 @@ Deploy production:
   -p coyote3-prod \
   up -d --build
 ```
+
+`compose-with-version.sh` now validates that required secrets are present and not `CHANGE_ME*`
+placeholders before `up/start` actions.
 
 Post-deploy verification:
 

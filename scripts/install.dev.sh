@@ -30,6 +30,7 @@ SCRIPT_PATH="$(realpath "$0")"
 APP_DIR="$(dirname "$(dirname "$SCRIPT_PATH")")"
 COMPOSE_FILE="$APP_DIR/deploy/compose/docker-compose.dev.yml"
 ENV_FILE="$APP_DIR/.coyote3_dev_env"
+COMPOSE_WRAPPER="$APP_DIR/scripts/compose-with-version.sh"
 
 # Source the env file if it exists so compose variable interpolation can use it
 if [[ -f "$ENV_FILE" ]]; then
@@ -45,6 +46,7 @@ else
         echo "Continuing without environment variables."
     elif [[ -f "$env_path" ]]; then
         echo "File found at $env_path. Loading environment variables..."
+        ENV_FILE="$env_path"
         set -a
         # shellcheck disable=SC1090
         source "$env_path"
@@ -73,15 +75,8 @@ if ! docker network inspect coyote3-dev-net >/dev/null 2>&1; then
     docker network create coyote3-dev-net >/dev/null
 fi
 
-# Select compose binary
-if docker compose version >/dev/null 2>&1; then
-    COMPOSE_BIN=(docker compose)
-else
-    COMPOSE_BIN=(docker-compose)
-fi
-
 echo "Starting dev compose services: coyote3_dev_web, coyote3_dev_api, coyote3_dev_tailwind, redis_coyote3_dev"
-"${COMPOSE_BIN[@]}" -f "$COMPOSE_FILE" up -d --build
+"$COMPOSE_WRAPPER" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build
 
 # Final message
 echo "Deployment Complete!"

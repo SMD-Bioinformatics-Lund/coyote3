@@ -17,14 +17,15 @@ SNAPSHOT_SCRIPT="${SNAPSHOT_SCRIPT:-scripts/create_mongo_snapshot.py}"
 
 SOURCE_URI="mongodb://localhost:27017"
 SOURCE_DB=""
-TARGET_URI="mongodb://localhost:37017"
 TARGET_DB="coyote3_dev"
+TARGET_URI=""
 SAMPLE_COUNT="60"
 SEED="42"
 OUTPUT_DIR="snapshots"
 COLLECTIONS_CONFIG="config/coyote3_collections.toml"
 CONFIG_SECTION=""
 DROP_TARGET="1"
+FRESH_SNAPSHOT="0"
 SAMPLE_LIST_FILE=""
 SAMPLE_NAMES=()
 SAMPLE_IDS=()
@@ -50,6 +51,7 @@ Optional:
   --sample-name <name>            Explicit sample name (repeatable)
   --sample-id <id>                Explicit sample _id (repeatable)
   --keep-target-data              Do not wipe target collections before insert
+  --fresh-snapshot                Remove existing snapshot artifacts in --output-dir before creating a new one
   --python-bin <path>             Python executable override
 
 Example:
@@ -77,6 +79,7 @@ while [[ $# -gt 0 ]]; do
     --sample-name) SAMPLE_NAMES+=("$2"); shift 2 ;;
     --sample-id) SAMPLE_IDS+=("$2"); shift 2 ;;
     --keep-target-data) DROP_TARGET="0"; shift ;;
+    --fresh-snapshot) FRESH_SNAPSHOT="1"; shift ;;
     --python-bin) PYTHON_BIN="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; usage; exit 2 ;;
@@ -87,6 +90,26 @@ if [[ -z "$SOURCE_DB" ]]; then
   echo "ERROR: --source-db is required" >&2
   usage
   exit 2
+fi
+
+if [[ -z "$TARGET_URI" ]]; then
+  target_port="${COYOTE3_DEV_MONGO_PORT:-37017}"
+  if [[ -n "${MONGO_APP_USER:-}" && -n "${MONGO_APP_PASSWORD:-}" ]]; then
+    TARGET_URI="mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${target_port}/${TARGET_DB}?authSource=${TARGET_DB}"
+  else
+    TARGET_URI="mongodb://localhost:${target_port}"
+  fi
+fi
+
+if [[ "$FRESH_SNAPSHOT" == "1" ]]; then
+  if [[ -z "$OUTPUT_DIR" || "$OUTPUT_DIR" == "/" || "$OUTPUT_DIR" == "." ]]; then
+    echo "ERROR: refusing to clean unsafe output dir: '$OUTPUT_DIR'" >&2
+    exit 2
+  fi
+  if [[ -d "$OUTPUT_DIR" ]]; then
+    echo "[step] removing existing snapshots under $OUTPUT_DIR"
+    rm -rf "${OUTPUT_DIR:?}/"*
+  fi
 fi
 
 SNAPSHOT_ARGS=(
