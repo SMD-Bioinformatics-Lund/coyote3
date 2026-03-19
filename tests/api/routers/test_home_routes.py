@@ -12,7 +12,7 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def test_home_samples_read_returns_live_and_done(monkeypatch):
-    """Handle test home samples read returns live and done.
+    """Test home samples read returns live and done.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -25,7 +25,7 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
     service = SampleCatalogService()
 
     def _get_samples(**kwargs):
-        """Handle  get samples.
+        """Get samples.
 
         Args:
                 **kwargs: Kwargs. Additional keyword arguments.
@@ -74,7 +74,7 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
 
 
 def test_home_samples_read_always_fetches_both_tables(monkeypatch):
-    """Handle test home samples read always fetches both tables.
+    """Test home samples read always fetches both tables.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -87,7 +87,7 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
     service = SampleCatalogService()
 
     def _get_samples(**kwargs):
-        """Handle  get samples.
+        """Get samples.
 
         Args:
                 **kwargs: Kwargs. Additional keyword arguments.
@@ -131,7 +131,7 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
 
 
 def test_home_apply_isgl_invalid_payload_raises_400(monkeypatch):
-    """Handle test home apply isgl invalid payload raises 400.
+    """Test home apply isgl invalid payload raises 400.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -151,7 +151,7 @@ def test_home_apply_isgl_invalid_payload_raises_400(monkeypatch):
 
 
 def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
-    """Handle test home save adhoc genes mutation parses and sorts.
+    """Test home save adhoc genes mutation parses and sorts.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -166,7 +166,7 @@ def test_home_save_adhoc_genes_mutation_parses_and_sorts(monkeypatch):
     monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: sample)
 
     def _update_sample_filters(sample_id, filters):
-        """Handle  update sample filters.
+        """Update sample filters.
 
         Args:
                 sample_id: Sample id.

@@ -363,7 +363,7 @@ def uniq_callers(calls: list) -> set:
 
 @app.template_filter("markdown")
 def markdown_filter(s):
-    """Handle markdown filter.
+    """Markdown filter.
 
     Args:
         s: Value for ``s``.

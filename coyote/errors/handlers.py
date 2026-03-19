@@ -22,7 +22,7 @@ def register_error_handlers(app):
         return path == "/api" or path.startswith("/api/")
 
     def error_response(status_code: int, error: str, details: str):
-        """Handle error response.
+        """Error response.
 
         Args:
             status_code (int): Value for ``status_code``.

@@ -26,7 +26,7 @@ class _AdminRepoStub:
     """Provide  AdminRepoStub behavior."""
 
     def __init__(self) -> None:
-        """Handle __init__."""
+        """__init__."""
         self.created_user = None
         self.updated_user = None
         self.created_role = None
@@ -100,7 +100,7 @@ class _AdminRepoStub:
         )
 
     def clone_schema(self, schema):
-        """Handle clone schema.
+        """Clone schema.
 
         Args:
             schema: Value for ``schema``.
@@ -254,7 +254,7 @@ class _AdminRepoStub:
 
     @property
     def user_handler(self):
-        """Handle user handler.
+        """User handler.
 
         Returns:
             The function result.
@@ -821,7 +821,7 @@ class _AdminRepoStub:
 
 
 def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
-    """Handle test admin user service create user normalizes identity.
+    """Test admin user service create user normalizes identity.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -880,7 +880,7 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
 
 
 def test_admin_user_service_toggle_user_sets_status():
-    """Handle test admin user service toggle user sets status.
+    """Test admin user service toggle user sets status.
 
     Returns:
         The function result.
@@ -895,7 +895,7 @@ def test_admin_user_service_toggle_user_sets_status():
 
 
 def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
-    """Handle test admin role service create role normalizes business key.
+    """Test admin role service create role normalizes business key.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -933,7 +933,7 @@ def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
 
 
 def test_admin_role_service_delete_role_removes_existing_role():
-    """Handle test admin role service delete role removes existing role.
+    """Test admin role service delete role removes existing role.
 
     Returns:
         The function result.
@@ -948,7 +948,7 @@ def test_admin_role_service_delete_role_removes_existing_role():
 
 
 def test_admin_permission_service_groups_permissions():
-    """Handle test admin permission service groups permissions.
+    """Test admin permission service groups permissions.
 
     Returns:
         The function result.
@@ -963,7 +963,7 @@ def test_admin_permission_service_groups_permissions():
 
 
 def test_admin_permission_service_create_context_raises_when_missing_schema():
-    """Handle test admin permission service create context raises when missing schema.
+    """Test admin permission service create context raises when missing schema.
 
     Returns:
         The function result.
@@ -979,7 +979,7 @@ def test_admin_permission_service_create_context_raises_when_missing_schema():
 
 
 def test_admin_permission_service_toggle_permission_sets_status():
-    """Handle test admin permission service toggle permission sets status.
+    """Test admin permission service toggle permission sets status.
 
     Returns:
         The function result.
@@ -994,7 +994,7 @@ def test_admin_permission_service_toggle_permission_sets_status():
 
 
 def test_admin_panel_service_toggle_panel_sets_status():
-    """Handle test admin panel service toggle panel sets status.
+    """Test admin panel service toggle panel sets status.
 
     Returns:
         The function result.
@@ -1009,7 +1009,7 @@ def test_admin_panel_service_toggle_panel_sets_status():
 
 
 def test_admin_genelist_service_view_context_filters_genes():
-    """Handle test admin genelist service view context filters genes.
+    """Test admin genelist service view context filters genes.
 
     Returns:
         The function result.
@@ -1024,7 +1024,7 @@ def test_admin_genelist_service_view_context_filters_genes():
 
 
 def test_admin_aspc_service_create_rejects_duplicate():
-    """Handle test admin aspc service create rejects duplicate.
+    """Test admin aspc service create rejects duplicate.
 
     Returns:
         The function result.
@@ -1039,7 +1039,7 @@ def test_admin_aspc_service_create_rejects_duplicate():
 
 
 def test_admin_schema_service_create_sets_identity(monkeypatch):
-    """Handle test admin schema service create sets identity.
+    """Test admin schema service create sets identity.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -1063,7 +1063,7 @@ def test_admin_schema_service_create_sets_identity(monkeypatch):
 
 
 def test_admin_sample_service_update_restores_ids(monkeypatch):
-    """Handle test admin sample service update restores ids.
+    """Test admin sample service update restores ids.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.

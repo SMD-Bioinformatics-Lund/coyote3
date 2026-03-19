@@ -22,7 +22,7 @@ class AdminUserService:
     """Own user-management workflows for admin HTTP routes."""
 
     def __init__(self, repository: AdminRepository | None = None) -> None:
-        """Handle __init__.
+        """__init__.
 
         Args:
                 repository: Repository. Optional argument.
@@ -86,7 +86,7 @@ class AdminUserService:
         }
 
     def context_payload(self, *, user_id: str) -> dict[str, Any]:
-        """Handle context payload.
+        """Context payload.
 
         Args:
             user_id (str): Value for ``user_id``.
@@ -257,7 +257,7 @@ class AdminUserService:
         return payload
 
     def username_exists(self, *, username: str) -> bool:
-        """Handle username exists.
+        """Username exists.
 
         Args:
             username (str): Value for ``username``.
@@ -268,7 +268,7 @@ class AdminUserService:
         return bool(self.repository.user_handler.user_exists(username=lower(username)))
 
     def email_exists(self, *, email: str) -> bool:
-        """Handle email exists.
+        """Email exists.
 
         Args:
             email (str): Value for ``email``.

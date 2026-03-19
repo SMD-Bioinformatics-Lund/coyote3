@@ -17,7 +17,7 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def _route_test_user() -> ApiUser:
-    """Handle  route test user.
+    """Route test user.
 
     Returns:
             The  route test user result.
@@ -44,7 +44,7 @@ def _route_test_user() -> ApiUser:
 
 
 def test_update_sample_filters_rejects_invalid_filters_payload(monkeypatch):
-    """Handle test update sample filters rejects invalid filters payload.
+    """Test update sample filters rejects invalid filters payload.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -68,7 +68,7 @@ def test_update_sample_filters_rejects_invalid_filters_payload(monkeypatch):
 
 
 def test_reset_sample_filters_requires_assay_config(monkeypatch):
-    """Handle test reset sample filters requires assay config.
+    """Test reset sample filters requires assay config.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -89,7 +89,7 @@ def test_reset_sample_filters_requires_assay_config(monkeypatch):
 
 
 def test_update_coverage_blacklist_gene_returns_status_message(monkeypatch):
-    """Handle test update coverage blacklist gene returns status message.
+    """Test update coverage blacklist gene returns status message.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -117,7 +117,7 @@ def test_update_coverage_blacklist_gene_returns_status_message(monkeypatch):
 
 
 def test_restful_sample_comment_route_creates_comment(monkeypatch):
-    """Handle test restful sample comment route creates comment.
+    """Test restful sample comment route creates comment.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.

@@ -9,7 +9,7 @@ class UserService:
     """Thin service layer around user lookup operations."""
 
     def __init__(self, repository: UserRepository | None = None) -> None:
-        """Handle __init__.
+        """__init__.
 
         Args:
                 repository: Repository. Optional argument.

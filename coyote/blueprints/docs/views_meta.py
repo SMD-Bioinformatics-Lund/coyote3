@@ -40,7 +40,7 @@ def about():
 @docs_bp.get("/changelog")
 @login_required
 def changelog():
-    """Handle changelog.
+    """Changelog.
 
     Returns:
         The function result.

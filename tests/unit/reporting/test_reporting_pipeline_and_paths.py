@@ -11,7 +11,7 @@ from api.errors.exceptions import AppError
 
 
 def test_build_report_file_location_with_control_id(monkeypatch):
-    """Handle test build report file location with control id.
+    """Test build report file location with control id.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -41,7 +41,7 @@ def test_build_report_file_location_with_control_id(monkeypatch):
 
 
 def test_build_report_file_location_without_control_id_uses_case_only(monkeypatch):
-    """Handle test build report file location without control id uses case only.
+    """Test build report file location without control id uses case only.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -68,7 +68,7 @@ def test_build_report_file_location_without_control_id_uses_case_only(monkeypatc
 
 
 def test_build_report_file_location_raises_without_report_path(monkeypatch):
-    """Handle test build report file location raises without report path.
+    """Test build report file location raises without report path.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -92,7 +92,7 @@ def test_build_report_file_location_raises_without_report_path(monkeypatch):
 
 
 def test_prepare_report_output_creates_directory_when_file_missing(monkeypatch):
-    """Handle test prepare report output creates directory when file missing.
+    """Test prepare report output creates directory when file missing.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -115,7 +115,7 @@ def test_prepare_report_output_creates_directory_when_file_missing(monkeypatch):
 
 
 def test_prepare_report_output_raises_conflict_when_file_exists(monkeypatch):
-    """Handle test prepare report output raises conflict when file exists.
+    """Test prepare report output raises conflict when file exists.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -128,11 +128,11 @@ def test_prepare_report_output_raises_conflict_when_file_exists(monkeypatch):
         """Provide  Logger behavior."""
 
         def __init__(self):
-            """Handle __init__."""
+            """__init__."""
             self.messages = []
 
         def warning(self, msg):
-            """Handle warning.
+            """Warning.
 
             Args:
                 msg: Value for ``msg``.
@@ -155,7 +155,7 @@ def test_prepare_report_output_raises_conflict_when_file_exists(monkeypatch):
 
 
 def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypatch):
-    """Handle test persist report and snapshot writes report and upserts snapshot.
+    """Test persist report and snapshot writes report and upserts snapshot.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -207,7 +207,7 @@ def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypa
 
 
 def test_persist_report_and_snapshot_raises_when_report_write_fails(monkeypatch):
-    """Handle test persist report and snapshot raises when report write fails.
+    """Test persist report and snapshot raises when report write fails.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.

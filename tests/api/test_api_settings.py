@@ -8,7 +8,7 @@ from api import settings
 
 
 def test_configure_process_env_is_noop(monkeypatch: pytest.MonkeyPatch):
-    """Handle test configure process env is noop.
+    """Test configure process env is noop.
 
     Args:
         monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
@@ -22,7 +22,7 @@ def test_configure_process_env_is_noop(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_production_requires_explicit_secret_key():
-    """Handle test production requires explicit secret key.
+    """Test production requires explicit secret key.
 
     Returns:
         The function result.
@@ -35,7 +35,7 @@ def test_production_requires_explicit_secret_key():
 
 
 def test_production_requires_explicit_internal_api_token():
-    """Handle test production requires explicit internal api token.
+    """Test production requires explicit internal api token.
 
     Returns:
         The function result.
@@ -48,7 +48,7 @@ def test_production_requires_explicit_internal_api_token():
 
 
 def test_production_requires_explicit_session_salt():
-    """Handle test production requires explicit session salt.
+    """Test production requires explicit session salt.
 
     Returns:
         The function result.
@@ -61,7 +61,7 @@ def test_production_requires_explicit_session_salt():
 
 
 def test_non_production_allows_dev_fallbacks():
-    """Handle test non production allows dev fallbacks.
+    """Test non production allows dev fallbacks.
 
     Returns:
         The function result.
@@ -75,7 +75,7 @@ def test_non_production_allows_dev_fallbacks():
 
 
 def test_production_session_cookie_secure_defaults_true():
-    """Handle test production session cookie secure defaults true.
+    """Test production session cookie secure defaults true.
 
     Returns:
         The function result.

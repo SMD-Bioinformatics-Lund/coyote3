@@ -74,7 +74,7 @@ def aspc_context_read(
     user: ApiUser = Depends(require_access(permission="view_aspc", min_role="user", min_level=9)),
     service: AdminAspcService = Depends(get_admin_aspc_service),
 ):
-    """Handle aspc context read.
+    """Aspc context read.
 
     Args:
         assay_id (str): Value for ``assay_id``.

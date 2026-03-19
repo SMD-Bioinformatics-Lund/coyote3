@@ -16,7 +16,7 @@ class FakeHandler:
     methods: dict[str, Any] = field(default_factory=dict)
 
     def __getattr__(self, name: str) -> Any:
-        """Handle __getattr__.
+        """__getattr__.
 
         Args:
                 name: Name.

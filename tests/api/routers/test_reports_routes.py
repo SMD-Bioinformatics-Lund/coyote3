@@ -11,7 +11,7 @@ from api.security.access import ApiUser
 
 
 def _user(username: str = "tester", role: str = "admin") -> ApiUser:
-    """Handle  user.
+    """User.
 
     Args:
             username: Username. Optional argument.
@@ -37,7 +37,7 @@ def _user(username: str = "tester", role: str = "admin") -> ApiUser:
 
 
 def test_normalize_rendered_report_payload_success():
-    """Handle test normalize rendered report payload success.
+    """Test normalize rendered report payload success.
 
     Returns:
         The function result.
@@ -50,7 +50,7 @@ def test_normalize_rendered_report_payload_success():
 
 
 def test_normalize_rendered_report_payload_missing_html_raises_400():
-    """Handle test normalize rendered report payload missing html raises 400.
+    """Test normalize rendered report payload missing html raises 400.
 
     Returns:
         The function result.
@@ -62,7 +62,7 @@ def test_normalize_rendered_report_payload_missing_html_raises_400():
 
 
 def test_normalize_rendered_report_payload_invalid_snapshot_rows_raises_400():
-    """Handle test normalize rendered report payload invalid snapshot rows raises 400.
+    """Test normalize rendered report payload invalid snapshot rows raises 400.
 
     Returns:
         The function result.
@@ -74,7 +74,7 @@ def test_normalize_rendered_report_payload_invalid_snapshot_rows_raises_400():
 
 
 def test_preview_report_success_includes_snapshot_when_requested(monkeypatch):
-    """Handle test preview report success includes snapshot when requested.
+    """Test preview report success includes snapshot when requested.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -119,7 +119,7 @@ def test_preview_report_success_includes_snapshot_when_requested(monkeypatch):
 
 
 def test_preview_report_hides_snapshot_when_not_requested(monkeypatch):
-    """Handle test preview report hides snapshot when not requested.
+    """Test preview report hides snapshot when not requested.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -162,7 +162,7 @@ def test_preview_report_hides_snapshot_when_not_requested(monkeypatch):
 
 
 def test_save_report_success(monkeypatch):
-    """Handle test save report success.
+    """Test save report success.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -210,7 +210,7 @@ def test_save_report_success(monkeypatch):
 
 
 def test_save_dna_report_missing_html_raises_400(monkeypatch):
-    """Handle test save dna report missing html raises 400.
+    """Test save dna report missing html raises 400.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -251,7 +251,7 @@ def test_save_dna_report_missing_html_raises_400(monkeypatch):
 
 
 def test_save_report_calls_rna_persist_path(monkeypatch):
-    """Handle test save report calls rna persist path.
+    """Test save report calls rna persist path.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -282,7 +282,7 @@ def test_save_report_calls_rna_persist_path(monkeypatch):
     )
 
     def _persist(analyte, **kwargs):
-        """Handle  persist.
+        """Persist.
 
         Args:
                 analyte: Analyte.
@@ -311,7 +311,7 @@ def test_save_report_calls_rna_persist_path(monkeypatch):
 
 
 def test_restful_report_routes_are_registered():
-    """Handle test restful report routes are registered.
+    """Test restful report routes are registered.
 
     Returns:
         The function result.

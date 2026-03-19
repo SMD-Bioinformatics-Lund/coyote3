@@ -10,7 +10,7 @@ ALLOWED_PREFIXES = ("/api/v1/", "/api/vi/")
 
 
 def _route_paths(py_file: Path) -> list[str]:
-    """Handle  route paths.
+    """Route paths.
 
     Args:
             py_file: Py file.
@@ -23,7 +23,7 @@ def _route_paths(py_file: Path) -> list[str]:
 
 
 def _canonical_http_modules() -> list[Path]:
-    """Handle  canonical http modules.
+    """Canonical http modules.
 
     Returns:
             The  canonical http modules result.
@@ -39,7 +39,7 @@ def _canonical_http_modules() -> list[Path]:
 
 
 def test_api_router_modules_have_docstrings_and_routes():
-    """Handle test api router modules have docstrings and routes.
+    """Test api router modules have docstrings and routes.
 
     Returns:
         The function result.
@@ -62,7 +62,7 @@ def test_api_router_modules_have_docstrings_and_routes():
 
 
 def test_api_routes_use_versioned_prefixes():
-    """Handle test api routes use versioned prefixes.
+    """Test api routes use versioned prefixes.
 
     Returns:
         The function result.

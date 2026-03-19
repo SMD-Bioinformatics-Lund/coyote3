@@ -8,13 +8,13 @@ class _AnnotationHandlerStub:
     """Provide  AnnotationHandlerStub behavior."""
 
     def __init__(self) -> None:
-        """Handle __init__."""
+        """__init__."""
         self.global_comments: list[dict] = []
         self.inserted_bulk: list[dict] | None = None
         self.deleted: list[dict] = []
 
     def add_anno_comment(self, comment: dict) -> None:
-        """Handle add anno comment.
+        """Add anno comment.
 
         Args:
             comment (dict): Value for ``comment``.
@@ -25,7 +25,7 @@ class _AnnotationHandlerStub:
         self.global_comments.append(comment)
 
     def insert_annotation_bulk(self, docs: list[dict]) -> None:
-        """Handle insert annotation bulk.
+        """Insert annotation bulk.
 
         Args:
             docs (list[dict]): Value for ``docs``.
@@ -51,11 +51,11 @@ class _FusionHandlerStub:
     """Provide  FusionHandlerStub behavior."""
 
     def __init__(self) -> None:
-        """Handle __init__."""
+        """__init__."""
         self.comments: list[tuple[str, dict]] = []
 
     def add_fusion_comment(self, fusion_id: str, comment: dict) -> None:
-        """Handle add fusion comment.
+        """Add fusion comment.
 
         Args:
             fusion_id (str): Value for ``fusion_id``.
@@ -99,11 +99,11 @@ class _CnvHandlerStub:
     """Provide  CnvHandlerStub behavior."""
 
     def __init__(self) -> None:
-        """Handle __init__."""
+        """__init__."""
         self.comments: list[tuple[str, dict]] = []
 
     def add_cnv_comment(self, cnv_id: str, comment: dict) -> None:
-        """Handle add cnv comment.
+        """Add cnv comment.
 
         Args:
             cnv_id (str): Value for ``cnv_id``.
@@ -137,11 +137,11 @@ class _TranslocHandlerStub:
     """Provide  TranslocHandlerStub behavior."""
 
     def __init__(self) -> None:
-        """Handle __init__."""
+        """__init__."""
         self.comments: list[tuple[str, dict]] = []
 
     def add_transloc_comment(self, transloc_id: str, comment: dict) -> None:
-        """Handle add transloc comment.
+        """Add transloc comment.
 
         Args:
             transloc_id (str): Value for ``transloc_id``.
@@ -175,7 +175,7 @@ class _VariantHandlerStub:
     """Provide  VariantHandlerStub behavior."""
 
     def add_var_comment(self, variant_id: str, comment: dict) -> None:
-        """Handle add var comment.
+        """Add var comment.
 
         Args:
             variant_id (str): Value for ``variant_id``.
@@ -191,7 +191,7 @@ class _RepoStub:
     """Provide  RepoStub behavior."""
 
     def __init__(self) -> None:
-        """Handle __init__."""
+        """__init__."""
         self.annotation_handler = _AnnotationHandlerStub()
         self.fusion_handler = _FusionHandlerStub()
         self.cnv_handler = _CnvHandlerStub()
@@ -203,7 +203,7 @@ class _RepoStub:
 
 
 def _nomenclature(form_data: dict) -> tuple[str, str]:
-    """Handle  nomenclature.
+    """Nomenclature.
 
     Args:
             form_data: Form data.
@@ -221,7 +221,7 @@ def _nomenclature(form_data: dict) -> tuple[str, str]:
 
 
 def _comment_doc(form_data: dict, *, nomenclature: str, variant: str) -> dict:
-    """Handle  comment doc.
+    """Comment doc.
 
     Args:
             form_data: Form data.
@@ -237,7 +237,7 @@ def _comment_doc(form_data: dict, *, nomenclature: str, variant: str) -> dict:
 def _classification_doc(
     *, variant: str, nomenclature: str, class_num: int, variant_data: dict, **kwargs
 ) -> dict:
-    """Handle  classification doc.
+    """Classification doc.
 
     Args:
             variant: Variant. Keyword-only argument.
@@ -260,7 +260,7 @@ def _classification_doc(
 
 
 def test_resource_annotation_service_routes_cnv_comment_to_cnv_handler():
-    """Handle test resource annotation service routes cnv comment to cnv handler.
+    """Test resource annotation service routes cnv comment to cnv handler.
 
     Returns:
         The function result.
@@ -282,7 +282,7 @@ def test_resource_annotation_service_routes_cnv_comment_to_cnv_handler():
 
 
 def test_resource_annotation_service_routes_translocation_comment_to_translocation_handler():
-    """Handle test resource annotation service routes translocation comment to translocation handler.
+    """Test resource annotation service routes translocation comment to translocation handler.
 
     Returns:
         The function result.
@@ -302,7 +302,7 @@ def test_resource_annotation_service_routes_translocation_comment_to_translocati
 
 
 def test_resource_classification_service_supports_fusion_bulk_tiering():
-    """Handle test resource classification service supports fusion bulk tiering.
+    """Test resource classification service supports fusion bulk tiering.
 
     Returns:
         The function result.
@@ -332,7 +332,7 @@ def test_resource_classification_service_supports_fusion_bulk_tiering():
 
 
 def test_resource_classification_service_supports_translocation_bulk_removal():
-    """Handle test resource classification service supports translocation bulk removal.
+    """Test resource classification service supports translocation bulk removal.
 
     Returns:
         The function result.

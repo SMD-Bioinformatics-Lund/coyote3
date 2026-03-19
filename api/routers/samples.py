@@ -40,7 +40,7 @@ if not hasattr(util, "common"):
 
 
 def _mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict:
-    """Handle  mutation payload.
+    """Mutation payload.
 
     Args:
             sample_id: Sample id.
@@ -135,7 +135,7 @@ def sample_genelists_read(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Handle sample genelists read.
+    """Sample genelists read.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -155,7 +155,7 @@ def sample_effective_genes_read(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Handle sample effective genes read.
+    """Sample effective genes read.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -175,7 +175,7 @@ def sample_edit_context_read(
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Handle sample edit context read.
+    """Sample edit context read.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -198,7 +198,7 @@ def sample_apply_genelists_mutation(
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Handle sample apply genelists mutation.
+    """Sample apply genelists mutation.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -222,7 +222,7 @@ def sample_save_adhoc_genes_mutation(
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Handle sample save adhoc genes mutation.
+    """Sample save adhoc genes mutation.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -245,7 +245,7 @@ def sample_clear_adhoc_genes_mutation(
     user: ApiUser = Depends(require_access(permission="edit_sample", min_role="user")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Handle sample clear adhoc genes mutation.
+    """Sample clear adhoc genes mutation.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -271,7 +271,7 @@ def sample_report_context_read(
     user: ApiUser = Depends(require_access(permission="view_reports", min_role="admin")),
     service: SampleCatalogService = Depends(get_sample_catalog_service),
 ):
-    """Handle sample report context read.
+    """Sample report context read.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -294,7 +294,7 @@ def _add_sample_comment(
     user: ApiUser,
     repository: SamplesRepository,
 ):
-    """Handle  add sample comment.
+    """Add sample comment.
 
     Args:
             sample_id: Sample id.
@@ -349,7 +349,7 @@ def create_sample_comment(
 def _hide_sample_comment(
     sample_id: str, comment_id: str, user: ApiUser, repository: SamplesRepository
 ):
-    """Handle  hide sample comment.
+    """Hide sample comment.
 
     Args:
             sample_id: Sample id.
@@ -382,7 +382,7 @@ def hide_sample_comment(
     ),
     repository: SamplesRepository = Depends(get_sample_repository),
 ):
-    """Handle hide sample comment.
+    """Hide sample comment.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -401,7 +401,7 @@ def hide_sample_comment(
 def _unhide_sample_comment(
     sample_id: str, comment_id: str, user: ApiUser, repository: SamplesRepository
 ):
-    """Handle  unhide sample comment.
+    """Unhide sample comment.
 
     Args:
             sample_id: Sample id.
@@ -434,7 +434,7 @@ def unhide_sample_comment(
     ),
     repository: SamplesRepository = Depends(get_sample_repository),
 ):
-    """Handle unhide sample comment.
+    """Unhide sample comment.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -456,7 +456,7 @@ def _update_sample_filters(
     user: ApiUser,
     repository: SamplesRepository,
 ):
-    """Handle  update sample filters.
+    """Update sample filters.
 
     Args:
             sample_id: Sample id.
@@ -530,7 +530,7 @@ def update_sample_filters(
 
 
 def _reset_sample_filters(sample_id: str, user: ApiUser, repository: SamplesRepository):
-    """Handle  reset sample filters.
+    """Reset sample filters.
 
     Args:
             sample_id: Sample id.
@@ -577,7 +577,7 @@ def reset_sample_filters(
 def _update_coverage_blacklist(
     payload: CoverageBlacklistUpdateRequest, repository: SamplesRepository
 ):
-    """Handle  update coverage blacklist.
+    """Update coverage blacklist.
 
     Args:
             payload: Payload.
@@ -640,7 +640,7 @@ def create_coverage_blacklist_entry(
 
 
 def _remove_coverage_blacklist(obj_id: str, repository: SamplesRepository):
-    """Handle  remove coverage blacklist.
+    """Remove coverage blacklist.
 
     Args:
             obj_id: Obj id.

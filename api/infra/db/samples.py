@@ -565,7 +565,7 @@ class SampleHandler(BaseHandler):
             }
 
         def _kv_to_dict(items: list[dict]) -> dict:
-            """Handle  kv to dict.
+            """Kv to dict.
 
             Args:
                     items: Items.

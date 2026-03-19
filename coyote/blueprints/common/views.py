@@ -60,7 +60,7 @@ def get_sample_genelists(sample_id: str, sample_assay: str) -> str:
 @common_bp.route("/public/gene/<string:id>/info", endpoint="public_gene_info", methods=["GET"])
 @common_bp.route("/gene/<string:id>/info", endpoint="gene_info", methods=["GET"])
 def gene_info(id: str) -> str:
-    """Handle gene info.
+    """Gene info.
 
     Args:
         id (str): Value for ``id``.
@@ -124,7 +124,7 @@ def list_samples_with_tiered_variant(variant_id: str, tier: int):
 @common_bp.route("/search/tiered_variants", methods=["GET", "POST"])
 @login_required
 def search_tiered_variants():
-    """Handle search tiered variants.
+    """Search tiered variants.
 
     Returns:
         The function result.
@@ -221,7 +221,7 @@ def search_tiered_variants():
 
 
 def _redirect_for_omics_layer(sample_id: str, omics_layer: str) -> Response:
-    """Handle  redirect for omics layer.
+    """Redirect for omics layer.
 
     Args:
             sample_id: Sample id.
@@ -254,7 +254,7 @@ def _redirect_for_omics_layer(sample_id: str, omics_layer: str) -> Response:
 @common_bp.route("/sample/<string:sample_id>/sample_comment", methods=["POST"])
 @login_required
 def add_sample_comment(sample_id: str) -> Response:
-    """Handle add sample comment.
+    """Add sample comment.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -285,7 +285,7 @@ def add_sample_comment(sample_id: str) -> Response:
 @common_bp.route("/sample/<string:sample_id>/hide_sample_comment", methods=["POST"])
 @login_required
 def hide_sample_comment(sample_id: str) -> Response:
-    """Handle hide sample comment.
+    """Hide sample comment.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -314,7 +314,7 @@ def hide_sample_comment(sample_id: str) -> Response:
 @common_bp.route("/sample/unhide_sample_comment/<string:sample_id>", methods=["POST"])
 @login_required
 def unhide_sample_comment(sample_id: str) -> Response:
-    """Handle unhide sample comment.
+    """Unhide sample comment.
 
     Args:
         sample_id (str): Value for ``sample_id``.

@@ -27,7 +27,7 @@ ROLE_LEVELS = {
 def _user(
     *, level: int, permissions: list[str] | None = None, denied: list[str] | None = None
 ) -> ApiUser:
-    """Handle  user.
+    """User.
 
     Args:
             level: Level. Keyword-only argument.
@@ -54,7 +54,7 @@ def _user(
 
 
 def _setup_admin_list_users(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Handle  setup admin list users.
+    """Setup admin list users.
 
     Args:
             monkeypatch: Monkeypatch.
@@ -77,7 +77,7 @@ def _setup_admin_list_users(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _setup_admin_list_roles(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Handle  setup admin list roles.
+    """Setup admin list roles.
 
     Args:
             monkeypatch: Monkeypatch.
@@ -99,7 +99,7 @@ def _setup_admin_list_roles(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _setup_admin_list_permissions(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Handle  setup admin list permissions.
+    """Setup admin list permissions.
 
     Args:
             monkeypatch: Monkeypatch.
@@ -122,7 +122,7 @@ def _setup_admin_list_permissions(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _setup_admin_list_aspc(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Handle  setup admin list aspc.
+    """Setup admin list aspc.
 
     Args:
             monkeypatch: Monkeypatch.
@@ -144,7 +144,7 @@ def _setup_admin_list_aspc(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _setup_samples_blacklist_update(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Handle  setup samples blacklist update.
+    """Setup samples blacklist update.
 
     Args:
             monkeypatch: Monkeypatch.
@@ -161,7 +161,7 @@ def _setup_samples_blacklist_update(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _setup_reports_preview(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Handle  setup reports preview.
+    """Setup reports preview.
 
     Args:
             monkeypatch: Monkeypatch.
@@ -244,7 +244,7 @@ def test_high_risk_endpoints_auth_matrix(
     required_level: int,
     setup: _EndpointSetup,
 ):
-    """Handle test high risk endpoints auth matrix.
+    """Test high risk endpoints auth matrix.
 
     Args:
         monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
@@ -263,7 +263,7 @@ def test_high_risk_endpoints_auth_matrix(
     client = TestClient(app)
 
     def _request() -> int:
-        """Handle  request.
+        """Request.
 
         Returns:
                 The  request result.
@@ -273,7 +273,7 @@ def test_high_risk_endpoints_auth_matrix(
 
     # 1) Unauthenticated -> 401
     def _raise_unauth(_request):
-        """Handle  raise unauth.
+        """Raise unauth.
 
         Args:
                 _request:  request.
@@ -299,7 +299,7 @@ def test_high_risk_endpoints_auth_matrix(
 
 
 def test_openapi_security_declares_auth_for_protected_routes():
-    """Handle test openapi security declares auth for protected routes.
+    """Test openapi security declares auth for protected routes.
 
     Returns:
         The function result.

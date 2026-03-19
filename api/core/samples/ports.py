@@ -57,7 +57,7 @@ class SamplesRepository(Protocol):
         ...
 
     def reset_sample_settings(self, sample_id: str, filters: dict) -> None:
-        """Handle reset sample settings.
+        """Reset sample settings.
 
         Args:
             sample_id (str): Value for ``sample_id``.
@@ -69,7 +69,7 @@ class SamplesRepository(Protocol):
         ...
 
     def blacklist_coord(self, gene: str, coord: str, region: str, assay_group: str) -> None:
-        """Handle blacklist coord.
+        """Blacklist coord.
 
         Args:
             gene (str): Value for ``gene``.
@@ -83,7 +83,7 @@ class SamplesRepository(Protocol):
         ...
 
     def blacklist_gene(self, gene: str, assay_group: str) -> None:
-        """Handle blacklist gene.
+        """Blacklist gene.
 
         Args:
             gene (str): Value for ``gene``.

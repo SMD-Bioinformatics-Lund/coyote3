@@ -4,7 +4,7 @@ from __future__ import annotations
 
 
 def test_sort_arrows_are_hidden_by_default_and_sized():
-    """Handle test sort arrows are hidden by default and sized.
+    """Test sort arrows are hidden by default and sized.
 
     Returns:
         The function result.
@@ -19,7 +19,7 @@ def test_sort_arrows_are_hidden_by_default_and_sized():
 
 
 def test_case_frequency_column_defaults_to_descending_sort():
-    """Handle test case frequency column defaults to descending sort.
+    """Test case frequency column defaults to descending sort.
 
     Returns:
         The function result.

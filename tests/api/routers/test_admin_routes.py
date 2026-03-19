@@ -10,7 +10,7 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def test_list_roles_read_success(monkeypatch):
-    """Handle test list roles read success.
+    """Test list roles read success.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -30,7 +30,7 @@ def test_list_roles_read_success(monkeypatch):
 
 
 def test_create_role_context_read_no_schema_raises_400(monkeypatch):
-    """Handle test create role context read no schema raises 400.
+    """Test create role context read no schema raises 400.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -58,7 +58,7 @@ def test_create_role_context_read_no_schema_raises_400(monkeypatch):
 
 
 def test_role_context_read_not_found_raises_404(monkeypatch):
-    """Handle test role context read not found raises 404.
+    """Test role context read not found raises 404.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.

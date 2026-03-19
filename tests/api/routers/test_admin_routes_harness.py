@@ -7,7 +7,7 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def test_list_roles_read_with_fake_store(monkeypatch):
-    """Handle test list roles read with fake store.
+    """Test list roles read with fake store.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -29,7 +29,7 @@ def test_list_roles_read_with_fake_store(monkeypatch):
 
 
 def test_create_role_context_read_with_fake_store(monkeypatch):
-    """Handle test create role context read with fake store.
+    """Test create role context read with fake store.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.

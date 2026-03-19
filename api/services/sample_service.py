@@ -9,7 +9,7 @@ class SampleService:
     """Thin service layer around sample persistence operations."""
 
     def __init__(self, repository: SampleRepository | None = None) -> None:
-        """Handle __init__.
+        """__init__.
 
         Args:
                 repository: Repository. Optional argument.

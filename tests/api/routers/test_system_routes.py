@@ -14,7 +14,7 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def test_health_returns_ok():
-    """Handle test health returns ok.
+    """Test health returns ok.
 
     Returns:
         The function result.
@@ -23,7 +23,7 @@ def test_health_returns_ok():
 
 
 def test_docs_alias_vi_redirects_to_v1_docs():
-    """Handle test docs alias vi redirects to v1 docs.
+    """Test docs alias vi redirects to v1 docs.
 
     Returns:
         The function result.
@@ -34,7 +34,7 @@ def test_docs_alias_vi_redirects_to_v1_docs():
 
 
 def test_whoami_sorts_permission_lists():
-    """Handle test whoami sorts permission lists.
+    """Test whoami sorts permission lists.
 
     Returns:
         The function result.
@@ -50,7 +50,7 @@ def test_whoami_sorts_permission_lists():
 
 
 def test_auth_login_rejects_invalid_credentials(monkeypatch):
-    """Handle test auth login rejects invalid credentials.
+    """Test auth login rejects invalid credentials.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -68,7 +68,7 @@ def test_auth_login_rejects_invalid_credentials(monkeypatch):
 
 
 def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
-    """Handle test auth login sets cookie and returns session payload.
+    """Test auth login sets cookie and returns session payload.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -115,7 +115,7 @@ def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
 
 
 def test_create_auth_session_returns_201(monkeypatch):
-    """Handle test create auth session returns 201.
+    """Test create auth session returns 201.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -151,7 +151,7 @@ def test_create_auth_session_returns_201(monkeypatch):
 
 
 def test_auth_login_prefers_business_user_id_for_session(monkeypatch):
-    """Handle test auth login prefers business user id for session.
+    """Test auth login prefers business user id for session.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -196,7 +196,7 @@ def test_auth_login_prefers_business_user_id_for_session(monkeypatch):
 
 
 def test_delete_auth_session_deletes_session_cookie(monkeypatch):
-    """Handle test delete auth session deletes session cookie.
+    """Test delete auth session deletes session cookie.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -213,7 +213,7 @@ def test_delete_auth_session_deletes_session_cookie(monkeypatch):
 
 
 def test_auth_session_serializes_user(monkeypatch):
-    """Handle test auth session serializes user.
+    """Test auth session serializes user.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -236,7 +236,7 @@ def test_auth_session_serializes_user(monkeypatch):
 
 
 def test_http_exception_handler_preserves_dict_detail():
-    """Handle test http exception handler preserves dict detail.
+    """Test http exception handler preserves dict detail.
 
     Returns:
         The function result.
@@ -250,7 +250,7 @@ def test_http_exception_handler_preserves_dict_detail():
 
 
 def test_http_exception_handler_wraps_string_detail():
-    """Handle test http exception handler wraps string detail.
+    """Test http exception handler wraps string detail.
 
     Returns:
         The function result.

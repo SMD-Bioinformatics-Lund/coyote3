@@ -13,7 +13,7 @@ class DashboardService:
     """Provide dashboard workflows."""
 
     def __init__(self, repository=None) -> None:
-        """Handle __init__.
+        """__init__.
 
         Args:
                 repository: Repository. Optional argument.
@@ -133,7 +133,7 @@ class DashboardService:
         }
 
     def resolve_scope_assays(self, *, user) -> list[str] | None:
-        """Handle resolve scope assays.
+        """Resolve scope assays.
 
         Args:
             user: Value for ``user``.
@@ -175,7 +175,7 @@ class DashboardService:
         return sorted(effective_assays)
 
     def summary_payload(self, *, user) -> dict[str, Any]:
-        """Handle summary payload.
+        """Summary payload.
 
         Args:
             user: Value for ``user``.
@@ -188,7 +188,7 @@ class DashboardService:
         scope_assays = self.resolve_scope_assays(user=user)
 
         def _timed(name: str, fn):
-            """Handle  timed.
+            """Timed.
 
             Args:
                     name: Name.

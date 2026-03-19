@@ -34,7 +34,7 @@ class BiomarkerHandler(BaseHandler):
         self.set_collection(self.adapter.biomarkers_collection)
 
     def ensure_indexes(self) -> None:
-        """Handle ensure indexes.
+        """Ensure indexes.
 
         Returns:
             None.

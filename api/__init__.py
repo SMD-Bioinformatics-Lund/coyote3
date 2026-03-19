@@ -10,7 +10,7 @@ __all__ = ["app", "create_api_app"]
 
 
 def __getattr__(name: str) -> Any:
-    """Handle __getattr__.
+    """__getattr__.
 
     Args:
             name: Name.

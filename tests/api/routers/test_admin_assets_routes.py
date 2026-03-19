@@ -10,7 +10,7 @@ from api.routers.resources import asp, genelists, schemas
 
 
 def test_list_asp_read_returns_panels(monkeypatch):
-    """Handle test list asp read returns panels.
+    """Test list asp read returns panels.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -33,7 +33,7 @@ def test_list_asp_read_returns_panels(monkeypatch):
 
 
 def test_create_genelist_context_missing_schema_raises_404():
-    """Handle test create genelist context missing schema raises 404.
+    """Test create genelist context missing schema raises 404.
 
     Returns:
         The function result.
@@ -62,7 +62,7 @@ def test_create_genelist_context_missing_schema_raises_404():
 
 
 def test_schema_context_read_returns_schema_payload(monkeypatch):
-    """Handle test schema context read returns schema payload.
+    """Test schema context read returns schema payload.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -87,7 +87,7 @@ def test_schema_context_read_returns_schema_payload(monkeypatch):
 
 
 def test_restful_admin_resource_routes_are_registered():
-    """Handle test restful admin resource routes are registered.
+    """Test restful admin resource routes are registered.
 
     Returns:
         The function result.

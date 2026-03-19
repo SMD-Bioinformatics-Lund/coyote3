@@ -15,7 +15,7 @@ def _u(
     permissions: list[str] | None = None,
     denied: list[str] | None = None,
 ) -> ApiUser:
-    """Handle  u.
+    """U.
 
     Args:
             role: Role. Keyword-only argument.
@@ -43,7 +43,7 @@ def _u(
 
 
 def test_enforce_access_allows_matching_permission():
-    """Handle test enforce access allows matching permission.
+    """Test enforce access allows matching permission.
 
     Returns:
         The function result.
@@ -52,7 +52,7 @@ def test_enforce_access_allows_matching_permission():
 
 
 def test_enforce_access_denies_when_permission_explicitly_denied():
-    """Handle test enforce access denies when permission explicitly denied.
+    """Test enforce access denies when permission explicitly denied.
 
     Returns:
         The function result.
@@ -66,7 +66,7 @@ def test_enforce_access_denies_when_permission_explicitly_denied():
 
 
 def test_enforce_access_allows_min_level():
-    """Handle test enforce access allows min level.
+    """Test enforce access allows min level.
 
     Returns:
         The function result.
@@ -75,7 +75,7 @@ def test_enforce_access_allows_min_level():
 
 
 def test_enforce_access_denies_insufficient_level():
-    """Handle test enforce access denies insufficient level.
+    """Test enforce access denies insufficient level.
 
     Returns:
         The function result.
@@ -87,7 +87,7 @@ def test_enforce_access_denies_insufficient_level():
 
 def test_enforce_access_allows_min_role(monkeypatch):
     # manager role threshold resolved to level 50
-    """Handle test enforce access allows min role.
+    """Test enforce access allows min role.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -100,7 +100,7 @@ def test_enforce_access_allows_min_role(monkeypatch):
 
 
 def test_enforce_access_denies_when_no_constraint_matches(monkeypatch):
-    """Handle test enforce access denies when no constraint matches.
+    """Test enforce access denies when no constraint matches.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.

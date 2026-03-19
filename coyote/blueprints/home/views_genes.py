@@ -26,7 +26,7 @@ from coyote.services.api_client.web import log_api_error
 
 
 def _mutation_error(exc: ApiRequestError, *, log_message: str) -> tuple[Response, int]:
-    """Handle  mutation error.
+    """Mutation error.
 
     Args:
             exc: Exc.
@@ -130,7 +130,7 @@ def apply_isgl(sample_id: str) -> tuple[Response, int] | Response:
 @home_bp.route("/<string:sample_id>/adhoc_genes", methods=["POST"])
 @login_required
 def save_adhoc_genes(sample_id: str) -> tuple[Response, int] | Response:
-    """Handle save adhoc genes.
+    """Save adhoc genes.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -160,7 +160,7 @@ def save_adhoc_genes(sample_id: str) -> tuple[Response, int] | Response:
 @home_bp.route("/<string:sample_id>/adhoc_genes/clear", methods=["POST"])
 @login_required
 def clear_adhoc_genes(sample_id: str) -> tuple[Response, int] | Response:
-    """Handle clear adhoc genes.
+    """Clear adhoc genes.
 
     Args:
         sample_id (str): Value for ``sample_id``.

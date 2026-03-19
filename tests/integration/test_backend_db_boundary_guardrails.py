@@ -18,7 +18,7 @@ OBJECT_ID_PATTERN = re.compile(r"\bObjectId\s*\(")
 
 
 def _iter_py_files(target_dirs: tuple[Path, ...]) -> list[Path]:
-    """Handle  iter py files.
+    """Iter py files.
 
     Args:
             target_dirs: Target dirs.
@@ -33,7 +33,7 @@ def _iter_py_files(target_dirs: tuple[Path, ...]) -> list[Path]:
 
 
 def _count_store_usage_by_file() -> dict[str, int]:
-    """Handle  count store usage by file.
+    """Count store usage by file.
 
     Returns:
             The  count store usage by file result.
@@ -48,7 +48,7 @@ def _count_store_usage_by_file() -> dict[str, int]:
 
 
 def _count_mongo_leaks_by_file() -> dict[str, int]:
-    """Handle  count mongo leaks by file.
+    """Count mongo leaks by file.
 
     Returns:
             The  count mongo leaks by file result.
@@ -67,7 +67,7 @@ def _count_mongo_leaks_by_file() -> dict[str, int]:
 
 
 def _load_baseline() -> dict:
-    """Handle  load baseline.
+    """Load baseline.
 
     Returns:
             The  load baseline result.
@@ -78,7 +78,7 @@ def _load_baseline() -> dict:
 def _assert_not_above_baseline(
     category: str, current: dict[str, int], baseline: dict[str, int]
 ) -> None:
-    """Handle  assert not above baseline.
+    """Assert not above baseline.
 
     Args:
             category: Category.
@@ -105,7 +105,7 @@ def _assert_not_above_baseline(
 
 
 def test_store_usage_in_routes_core_does_not_increase():
-    """Handle test store usage in routes core does not increase.
+    """Test store usage in routes core does not increase.
 
     Returns:
         The function result.
@@ -116,7 +116,7 @@ def test_store_usage_in_routes_core_does_not_increase():
 
 
 def test_mongo_specific_leaks_do_not_increase():
-    """Handle test mongo specific leaks do not increase.
+    """Test mongo specific leaks do not increase.
 
     Returns:
         The function result.

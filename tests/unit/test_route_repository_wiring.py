@@ -6,7 +6,7 @@ from api.infra.repositories import dna_route_mongo, rna_route_mongo
 
 
 def test_dna_route_repository_binds_expected_handlers(monkeypatch):
-    """Handle test dna route repository binds expected handlers.
+    """Test dna route repository binds expected handlers.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -45,7 +45,7 @@ def test_dna_route_repository_binds_expected_handlers(monkeypatch):
 
 
 def test_rna_route_repository_binds_expected_handlers(monkeypatch):
-    """Handle test rna route repository binds expected handlers.
+    """Test rna route repository binds expected handlers.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.

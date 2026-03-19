@@ -8,7 +8,7 @@ from api.runtime import app
 def _resolve_conseq_terms_mapper(
     conseq_terms_mapper: dict[str, Any] | None = None
 ) -> dict[str, Any]:
-    """Handle  resolve conseq terms mapper.
+    """Resolve conseq terms mapper.
 
     Args:
             conseq_terms_mapper: Conseq terms mapper. Optional argument.

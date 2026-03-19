@@ -8,7 +8,7 @@ from api.routers import internal
 
 
 def test_get_role_levels_internal_returns_id_to_level_map(monkeypatch):
-    """Handle test get role levels internal returns id to level map.
+    """Test get role levels internal returns id to level map.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -39,7 +39,7 @@ def test_get_role_levels_internal_returns_id_to_level_map(monkeypatch):
 
 
 def test_get_isgl_meta_internal_reads_adhoc_and_display_name(monkeypatch):
-    """Handle test get isgl meta internal reads adhoc and display name.
+    """Test get isgl meta internal reads adhoc and display name.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.

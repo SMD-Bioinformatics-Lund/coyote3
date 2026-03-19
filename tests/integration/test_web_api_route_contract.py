@@ -10,7 +10,7 @@ from coyote.services.api_client import endpoints as api_endpoints
 
 
 def _api_route_templates() -> set[str]:
-    """Handle  api route templates.
+    """Api route templates.
 
     Returns:
             The  api route templates result.
@@ -24,7 +24,7 @@ def _api_route_templates() -> set[str]:
 
 
 def _matches_template(path: str, template: str) -> bool:
-    """Handle  matches template.
+    """Matches template.
 
     Args:
             path: Path.
@@ -46,7 +46,7 @@ def _matches_template(path: str, template: str) -> bool:
 
 
 def _literal_or_placeholder(node: ast.AST, idx: int) -> object:
-    """Handle  literal or placeholder.
+    """Literal or placeholder.
 
     Args:
             node: Node.
@@ -61,7 +61,7 @@ def _literal_or_placeholder(node: ast.AST, idx: int) -> object:
 
 
 def _collect_endpoint_paths_from_web_layer() -> list[tuple[str, int, str, str]]:
-    """Handle  collect endpoint paths from web layer.
+    """Collect endpoint paths from web layer.
 
     Returns:
             The  collect endpoint paths from web layer result.
@@ -92,7 +92,7 @@ def _collect_endpoint_paths_from_web_layer() -> list[tuple[str, int, str, str]]:
 
 
 def test_web_api_endpoint_builders_match_existing_api_routes():
-    """Handle test web api endpoint builders match existing api routes.
+    """Test web api endpoint builders match existing api routes.
 
     Returns:
         The function result.
@@ -120,7 +120,7 @@ def test_web_api_endpoint_builders_match_existing_api_routes():
 
 
 def test_report_action_endpoints_exist():
-    """Handle test report action endpoints exist.
+    """Test report action endpoints exist.
 
     Returns:
         The function result.

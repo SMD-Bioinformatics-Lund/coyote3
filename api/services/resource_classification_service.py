@@ -13,7 +13,7 @@ class ResourceClassificationService:
     """Own cross-resource classification and tiering workflows."""
 
     def __init__(self, repository: DnaRouteRepository | None = None) -> None:
-        """Handle __init__.
+        """__init__.
 
         Args:
                 repository: Repository. Optional argument.
@@ -36,7 +36,7 @@ class ResourceClassificationService:
     def mutation_payload(
         sample_id: str, resource: str, resource_id: str, action: str
     ) -> dict[str, Any]:
-        """Handle mutation payload.
+        """Mutation payload.
 
         Args:
             sample_id (str): Value for ``sample_id``.
@@ -88,7 +88,7 @@ class ResourceClassificationService:
         subpanel: str | None,
         create_annotation_text_fn,
     ) -> dict[str, Any] | None:
-        """Handle  load resource identity.
+        """Load resource identity.
 
         Args:
                 sample: Sample. Keyword-only argument.
@@ -299,7 +299,7 @@ class ResourceClassificationService:
         get_tier_classification_fn,
         get_variant_nomenclature_fn,
     ) -> None:
-        """Handle classify resource.
+        """Classify resource.
 
         Args:
             resource_type (str): Value for ``resource_type``.

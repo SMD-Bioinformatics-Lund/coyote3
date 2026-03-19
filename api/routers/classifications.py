@@ -84,7 +84,7 @@ def classify_resource_mutation(
     ),
     service: ResourceClassificationService = Depends(get_classification_service),
 ):
-    """Handle classify resource mutation.
+    """Classify resource mutation.
 
     Args:
         sample_id (str): Value for ``sample_id``.

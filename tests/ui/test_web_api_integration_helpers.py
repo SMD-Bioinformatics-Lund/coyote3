@@ -8,7 +8,7 @@ from coyote.services.api_client import api_client, endpoints
 
 
 def test_get_web_api_client_uses_configured_base_url():
-    """Handle test get web api client uses configured base url.
+    """Test get web api client uses configured base url.
 
     Returns:
         The function result.
@@ -23,7 +23,7 @@ def test_get_web_api_client_uses_configured_base_url():
 
 
 def test_get_web_api_client_reuses_client_within_request_context():
-    """Handle test get web api client reuses client within request context.
+    """Test get web api client reuses client within request context.
 
     Returns:
         The function result.
@@ -39,7 +39,7 @@ def test_get_web_api_client_reuses_client_within_request_context():
 
 
 def test_close_web_api_client_removes_request_scoped_client():
-    """Handle test close web api client removes request scoped client.
+    """Test close web api client removes request scoped client.
 
     Returns:
         The function result.
@@ -56,7 +56,7 @@ def test_close_web_api_client_removes_request_scoped_client():
 
 
 def test_build_forward_headers_includes_cookie_if_present():
-    """Handle test build forward headers includes cookie if present.
+    """Test build forward headers includes cookie if present.
 
     Returns:
         The function result.
@@ -70,7 +70,7 @@ def test_build_forward_headers_includes_cookie_if_present():
 
 
 def test_build_forward_headers_includes_request_id_when_present():
-    """Handle test build forward headers includes request id when present.
+    """Test build forward headers includes request id when present.
 
     Returns:
         The function result.
@@ -80,7 +80,7 @@ def test_build_forward_headers_includes_request_id_when_present():
 
 
 def test_forward_headers_without_request_context_returns_default_header():
-    """Handle test forward headers without request context returns default header.
+    """Test forward headers without request context returns default header.
 
     Returns:
         The function result.
@@ -92,7 +92,7 @@ def test_forward_headers_without_request_context_returns_default_header():
 
 
 def test_forward_headers_with_request_context_includes_cookie():
-    """Handle test forward headers with request context includes cookie.
+    """Test forward headers with request context includes cookie.
 
     Returns:
         The function result.
@@ -108,7 +108,7 @@ def test_forward_headers_with_request_context_includes_cookie():
 
 
 def test_forward_headers_with_api_session_cookie_adds_bearer_auth():
-    """Handle test forward headers with api session cookie adds bearer auth.
+    """Test forward headers with api session cookie adds bearer auth.
 
     Returns:
         The function result.
@@ -123,7 +123,7 @@ def test_forward_headers_with_api_session_cookie_adds_bearer_auth():
 
 
 def test_forward_headers_falls_back_to_flask_request_id_context():
-    """Handle test forward headers falls back to flask request id context.
+    """Test forward headers falls back to flask request id context.
 
     Returns:
         The function result.
@@ -138,7 +138,7 @@ def test_forward_headers_falls_back_to_flask_request_id_context():
 
 
 def test_build_internal_headers_uses_internal_token_or_secret_key():
-    """Handle test build internal headers uses internal token or secret key.
+    """Test build internal headers uses internal token or secret key.
 
     Returns:
         The function result.
@@ -155,7 +155,7 @@ def test_build_internal_headers_uses_internal_token_or_secret_key():
 
 
 def test_build_internal_headers_falls_back_to_secret_key_in_testing():
-    """Handle test build internal headers falls back to secret key in testing.
+    """Test build internal headers falls back to secret key in testing.
 
     Returns:
         The function result.
@@ -171,7 +171,7 @@ def test_build_internal_headers_falls_back_to_secret_key_in_testing():
 
 
 def test_build_internal_headers_does_not_fallback_to_secret_key_in_production():
-    """Handle test build internal headers does not fallback to secret key in production.
+    """Test build internal headers does not fallback to secret key in production.
 
     Returns:
         The function result.
@@ -186,7 +186,7 @@ def test_build_internal_headers_does_not_fallback_to_secret_key_in_production():
 
 
 def test_build_internal_headers_does_not_fallback_to_secret_key_in_development():
-    """Handle test build internal headers does not fallback to secret key in development.
+    """Test build internal headers does not fallback to secret key in development.
 
     Returns:
         The function result.
@@ -202,7 +202,7 @@ def test_build_internal_headers_does_not_fallback_to_secret_key_in_development()
 
 
 def test_endpoint_builders_normalize_paths_and_skip_empty_parts():
-    """Handle test endpoint builders normalize paths and skip empty parts.
+    """Test endpoint builders normalize paths and skip empty parts.
 
     Returns:
         The function result.

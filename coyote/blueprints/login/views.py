@@ -33,7 +33,7 @@ _SESSION_USER_PAYLOAD_KEY = "auth_user_payload"
 
 
 def _api_cookie_name() -> str:
-    """Handle  api cookie name.
+    """Api cookie name.
 
     Returns:
             The  api cookie name result.
@@ -42,7 +42,7 @@ def _api_cookie_name() -> str:
 
 
 def _api_cookie_max_age() -> int:
-    """Handle  api cookie max age.
+    """Api cookie max age.
 
     Returns:
             The  api cookie max age result.
@@ -54,7 +54,7 @@ def _api_cookie_max_age() -> int:
 
 
 def _set_api_cookie(response: Response, token: str) -> None:
-    """Handle  set api cookie.
+    """Set api cookie.
 
     Args:
             response: Response.
@@ -75,7 +75,7 @@ def _set_api_cookie(response: Response, token: str) -> None:
 
 
 def _clear_api_cookie(response: Response) -> None:
-    """Handle  clear api cookie.
+    """Clear api cookie.
 
     Args:
             response: Response.
@@ -87,7 +87,7 @@ def _clear_api_cookie(response: Response) -> None:
 
 
 def _extract_session_token(client: CoyoteApiClient) -> str:
-    """Handle  extract session token.
+    """Extract session token.
 
     Args:
             client: Client.
@@ -104,7 +104,7 @@ def _extract_session_token(client: CoyoteApiClient) -> str:
 @login_bp.route("/login", methods=["GET", "POST"])
 @login_bp.route("/", methods=["GET", "POST"])
 def login() -> str | Response:
-    """Handle user login via API-owned authentication."""
+    """User login via API-owned authentication."""
     if current_user.is_authenticated:
         return redirect(url_for("dashboard_bp.dashboard"))
 

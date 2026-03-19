@@ -19,7 +19,7 @@ router = APIRouter(tags=["admin-permissions"])
 
 
 def _service() -> PermissionManagementService:
-    """Handle  service.
+    """Service.
 
     Returns:
             The  service result.
@@ -28,7 +28,7 @@ def _service() -> PermissionManagementService:
 
 
 def _create_permission(payload: dict, actor_username: str, service: PermissionManagementService):
-    """Handle  create permission.
+    """Create permission.
 
     Args:
             payload: Payload.
@@ -127,7 +127,7 @@ def permission_context_read(
     ),
     service: PermissionManagementService = Depends(get_permission_management_service),
 ):
-    """Handle permission context read.
+    """Permission context read.
 
     Args:
         perm_id (str): Value for ``perm_id``.
@@ -144,7 +144,7 @@ def permission_context_read(
 def _update_permission(
     permission_id: str, payload: dict, actor_username: str, service: PermissionManagementService
 ):
-    """Handle  update permission.
+    """Update permission.
 
     Args:
             permission_id: Permission id.
@@ -192,7 +192,7 @@ def update_permission(
 
 
 def _toggle_permission(permission_id: str, service: PermissionManagementService):
-    """Handle  toggle permission.
+    """Toggle permission.
 
     Args:
             permission_id: Permission id.
@@ -233,7 +233,7 @@ def toggle_permission_status(
 
 
 def _delete_permission(permission_id: str, service: PermissionManagementService):
-    """Handle  delete permission.
+    """Delete permission.
 
     Args:
             permission_id: Permission id.

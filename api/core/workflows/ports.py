@@ -105,7 +105,7 @@ class RNAWorkflowRepository(Protocol):
         ...
 
     def hidden_fusion_comments(self, fusion_id: str) -> Any:
-        """Handle hidden fusion comments.
+        """Hidden fusion comments.
 
         Args:
             fusion_id (str): Value for ``fusion_id``.

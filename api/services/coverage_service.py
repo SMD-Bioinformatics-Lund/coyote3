@@ -20,7 +20,7 @@ class CoverageService:
     """Own coverage read and blacklist-view workflows."""
 
     def __init__(self, repository=None, processing_repository=None) -> None:
-        """Handle __init__.
+        """__init__.
 
         Args:
                 repository: Repository. Optional argument.
@@ -34,7 +34,7 @@ class CoverageService:
     def sample_payload(
         self, *, sample: dict, cov_cutoff: int, effective_genes_resolver
     ) -> dict[str, Any]:
-        """Handle sample payload.
+        """Sample payload.
 
         Args:
             sample (dict): Value for ``sample``.
@@ -94,7 +94,7 @@ class CoverageService:
         }
 
     def blacklisted_payload(self, *, group: str, user) -> dict[str, Any]:
-        """Handle blacklisted payload.
+        """Blacklisted payload.
 
         Args:
             group (str): Value for ``group``.

@@ -75,7 +75,7 @@ class ASPHandler(BaseHandler):
 
     @staticmethod
     def _normalize_asp_id(asp_id: str | None) -> str | None:
-        """Handle  normalize asp id.
+        """Normalize asp id.
 
         Args:
                 asp_id: Asp id.
@@ -89,7 +89,7 @@ class ASPHandler(BaseHandler):
         return normalized or None
 
     def _asp_lookup_query(self, asp_id: str) -> dict:
-        """Handle  asp lookup query.
+        """Asp lookup query.
 
         Args:
                 asp_id: Asp id.
@@ -101,7 +101,7 @@ class ASPHandler(BaseHandler):
         return {"asp_id": normalized}
 
     def ensure_asp_id(self, data: dict) -> dict:
-        """Handle ensure asp id.
+        """Ensure asp id.
 
         Args:
             data (dict): Value for ``data``.

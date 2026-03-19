@@ -8,7 +8,7 @@ from tests.fixtures.api.fake_store import build_fake_store
 
 
 def test_common_gene_info_read_numeric_path_with_fake_store(monkeypatch):
-    """Handle test common gene info read numeric path with fake store.
+    """Test common gene info read numeric path with fake store.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -34,7 +34,7 @@ def test_common_gene_info_read_numeric_path_with_fake_store(monkeypatch):
 
 
 def test_common_tiered_variant_context_read_with_fake_store(monkeypatch):
-    """Handle test common tiered variant context read with fake store.
+    """Test common tiered variant context read with fake store.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.

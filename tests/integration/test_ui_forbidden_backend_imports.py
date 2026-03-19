@@ -12,7 +12,7 @@ FORBIDDEN_IMPORT_RE = re.compile(r"^\s*(from|import)\s+api[\.]", re.MULTILINE)
 
 @pytest.mark.contract
 def test_ui_layer_does_not_import_api_modules():
-    """Handle test ui layer does not import api modules.
+    """Test ui layer does not import api modules.
 
     Returns:
         The function result.

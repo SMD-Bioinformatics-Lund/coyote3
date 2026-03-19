@@ -35,7 +35,7 @@ class CoverageProcessingService:
 
     @classmethod
     def _repo(cls) -> CoverageRepository:
-        """Handle  repo.
+        """Repo.
 
         Returns:
                 The  repo result.
@@ -46,7 +46,7 @@ class CoverageProcessingService:
 
     @staticmethod
     def _genes_map(cov: dict | None) -> dict:
-        """Handle  genes map.
+        """Genes map.
 
         Args:
                 cov: Cov.
@@ -79,7 +79,7 @@ class CoverageProcessingService:
 
     @staticmethod
     def find_low_covered_genes(cov: dict, cutoff: float, smp_grp: str) -> dict:
-        """Handle find low covered genes.
+        """Find low covered genes.
 
         Args:
             cov (dict): Value for ``cov``.
@@ -120,7 +120,7 @@ class CoverageProcessingService:
 
     @staticmethod
     def organize_data_for_d3(filtered_dict: dict) -> dict:
-        """Handle organize data for d3.
+        """Organize data for d3.
 
         Args:
             filtered_dict (dict): Value for ``filtered_dict``.
@@ -156,7 +156,7 @@ class CoverageProcessingService:
 
     @staticmethod
     def filter_genes_from_form(cov_dict: dict, filter_genes: list, smp_grp: str) -> dict:
-        """Handle filter genes from form.
+        """Filter genes from form.
 
         Args:
             cov_dict (dict): Value for ``cov_dict``.
@@ -186,7 +186,7 @@ class CoverageProcessingService:
         smp_grp: str,
         region_blacklist: set[tuple[str, str, str]] | None = None,
     ) -> bool:
-        """Handle reg low.
+        """Reg low.
 
         Args:
             region_dict (dict): Value for ``region_dict``.
@@ -214,7 +214,7 @@ class CoverageProcessingService:
 
     @staticmethod
     def coverage_table(cov_dict: dict, cov_cutoff: float) -> defaultdict:
-        """Handle coverage table.
+        """Coverage table.
 
         Args:
             cov_dict (dict): Value for ``cov_dict``.
@@ -248,7 +248,7 @@ class CoverageProcessingService:
 
     @staticmethod
     def assign_to_exon(probe: str, gene_cov: dict) -> list:
-        """Handle assign to exon.
+        """Assign to exon.
 
         Args:
             probe (str): Value for ``probe``.

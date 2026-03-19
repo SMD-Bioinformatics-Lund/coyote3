@@ -46,7 +46,7 @@ def show_transloc(sample_id: str, transloc_id: str) -> Response | str:
 )
 @login_required
 def mark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
-    """Handle mark interesting transloc.
+    """Mark interesting transloc.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -74,7 +74,7 @@ def mark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
 )
 @login_required
 def unmark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
-    """Handle unmark interesting transloc.
+    """Unmark interesting transloc.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -100,7 +100,7 @@ def unmark_interesting_transloc(sample_id: str, transloc_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/transloc/<string:transloc_id>/fptransloc", methods=["POST"])
 @login_required
 def mark_false_transloc(sample_id: str, transloc_id: str) -> Response:
-    """Handle mark false transloc.
+    """Mark false transloc.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -126,7 +126,7 @@ def mark_false_transloc(sample_id: str, transloc_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/transloc/<string:transloc_id>/ptransloc", methods=["POST"])
 @login_required
 def unmark_false_transloc(sample_id: str, transloc_id: str) -> Response:
-    """Handle unmark false transloc.
+    """Unmark false transloc.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -156,7 +156,7 @@ def unmark_false_transloc(sample_id: str, transloc_id: str) -> Response:
 )
 @login_required
 def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
-    """Handle hide transloc comment.
+    """Hide transloc comment.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -185,7 +185,7 @@ def hide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
 )
 @login_required
 def unhide_transloc_comment(sample_id: str, transloc_id: str) -> Response:
-    """Handle unhide transloc comment.
+    """Unhide transloc comment.
 
     Args:
         sample_id (str): Value for ``sample_id``.

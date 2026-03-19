@@ -31,7 +31,7 @@ if not hasattr(util, "common"):
 def common_gene_info_read(
     gene_id: str, repository: CommonRepository = Depends(get_common_repository)
 ):
-    """Handle common gene info read.
+    """Common gene info read.
 
     Args:
         gene_id (str): Value for ``gene_id``.
@@ -59,7 +59,7 @@ def common_tiered_variant_context_read(
     ),
     repository: CommonRepository = Depends(get_common_repository),
 ):
-    """Handle common tiered variant context read.
+    """Common tiered variant context read.
 
     Args:
         variant_id (str): Value for ``variant_id``.
@@ -127,7 +127,7 @@ def common_tiered_variant_search_read(
     ),
     repository: CommonRepository = Depends(get_common_repository),
 ):
-    """Handle common tiered variant search read.
+    """Common tiered variant search read.
 
     Args:
         search_str (str | None): Value for ``search_str``.

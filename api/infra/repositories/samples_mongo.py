@@ -9,7 +9,7 @@ class MongoSamplesRepository:
     """Provide mongo samples persistence operations."""
 
     def add_sample_comment(self, sample_id: str, doc: dict) -> None:
-        """Handle add sample comment.
+        """Add sample comment.
 
         Args:
             sample_id (str): Value for ``sample_id``.
@@ -21,7 +21,7 @@ class MongoSamplesRepository:
         store.sample_handler.add_sample_comment(sample_id, doc)
 
     def hide_sample_comment(self, sample_id: str, comment_id: str) -> None:
-        """Handle hide sample comment.
+        """Hide sample comment.
 
         Args:
             sample_id (str): Value for ``sample_id``.
@@ -33,7 +33,7 @@ class MongoSamplesRepository:
         store.sample_handler.hide_sample_comment(sample_id, comment_id)
 
     def unhide_sample_comment(self, sample_id: str, comment_id: str) -> None:
-        """Handle unhide sample comment.
+        """Unhide sample comment.
 
         Args:
             sample_id (str): Value for ``sample_id``.
@@ -69,7 +69,7 @@ class MongoSamplesRepository:
         store.sample_handler.reset_sample_settings(sample_id, filters)
 
     def blacklist_coord(self, gene: str, coord: str, region: str, assay_group: str) -> None:
-        """Handle blacklist coord.
+        """Blacklist coord.
 
         Args:
             gene (str): Value for ``gene``.
@@ -83,7 +83,7 @@ class MongoSamplesRepository:
         store.groupcov_handler.blacklist_coord(gene, coord, region, assay_group)
 
     def blacklist_gene(self, gene: str, assay_group: str) -> None:
-        """Handle blacklist gene.
+        """Blacklist gene.
 
         Args:
             gene (str): Value for ``gene``.

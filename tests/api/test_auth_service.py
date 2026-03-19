@@ -11,7 +11,7 @@ class _FakeRepo:
     """Provide  FakeRepo behavior."""
 
     def __init__(self, by_username=None, by_id=None):
-        """Handle __init__.
+        """__init__.
 
         Args:
                 by_username: By username. Optional argument.
@@ -47,7 +47,7 @@ class _FakeRepo:
 
 
 def test_lookup_user_doc_tries_username_then_id(monkeypatch):
-    """Handle test lookup user doc tries username then id.
+    """Test lookup user doc tries username then id.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -65,7 +65,7 @@ def test_lookup_user_doc_tries_username_then_id(monkeypatch):
 
 
 def test_lookup_user_doc_skips_id_when_username_hit(monkeypatch):
-    """Handle test lookup user doc skips id when username hit.
+    """Test lookup user doc skips id when username hit.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -83,7 +83,7 @@ def test_lookup_user_doc_skips_id_when_username_hit(monkeypatch):
 
 
 def test_resolve_user_identity_prefers_business_key():
-    """Handle test resolve user identity prefers business key.
+    """Test resolve user identity prefers business key.
 
     Returns:
         The function result.

@@ -10,7 +10,7 @@ _core_repo_instance: MongoCoreStoreRepository | None = None
 
 
 def _core_repo() -> MongoCoreStoreRepository:
-    """Handle  core repo.
+    """Core repo.
 
     Returns:
             The  core repo result.
@@ -127,7 +127,7 @@ def generate_summary_text(
     genes_chosen: list,
     checked_genelists: list,
 ) -> str:
-    """Handle generate summary text.
+    """Generate summary text.
 
     Args:
         sample_ids (list): Value for ``sample_ids``.
@@ -192,7 +192,7 @@ def summarize_intro(
     assay_config: dict,
     assay_panel_doc: dict,
 ) -> str:
-    """Handle summarize intro.
+    """Summarize intro.
 
     Args:
         sample_ids (list): Value for ``sample_ids``.
@@ -244,7 +244,7 @@ def summarize_intro(
 
 
 def summarize_transloc(variants: list) -> str:
-    """Handle summarize transloc.
+    """Summarize transloc.
 
     Args:
         variants (list): Value for ``variants``.
@@ -327,7 +327,7 @@ def summarize_transloc(variants: list) -> str:
 
 
 def summarize_cnv(variants: list) -> str:
-    """Handle summarize cnv.
+    """Summarize cnv.
 
     Args:
         variants (list): Value for ``variants``.
@@ -418,7 +418,7 @@ def summarize_cnv(variants: list) -> str:
 
 
 def summarize_bio(variants: list) -> str:
-    """Handle summarize bio.
+    """Summarize bio.
 
     Args:
         variants (list): Value for ``variants``.
@@ -450,7 +450,7 @@ def summarize_bio(variants: list) -> str:
 
 
 def sort_tiered_variants(variants: list, genes_chosen: list) -> tuple:
-    """Handle sort tiered variants.
+    """Sort tiered variants.
 
     Args:
         variants (list): Value for ``variants``.
@@ -478,7 +478,7 @@ def sort_tiered_variants(variants: list, genes_chosen: list) -> tuple:
 
 
 def summarize_tiered_snvs(class_vars: dict, class_cnt: dict, text: str) -> str:
-    """Handle summarize tiered snvs.
+    """Summarize tiered snvs.
 
     Args:
         class_vars (dict): Value for ``class_vars``.
@@ -554,7 +554,7 @@ def get_tier_classification(data: dict) -> int:
 
 
 def enrich_reported_variant_docs(tier_docs: list) -> list:
-    """Handle enrich reported variant docs.
+    """Enrich reported variant docs.
 
     Args:
         tier_docs (list): Value for ``tier_docs``.

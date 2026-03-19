@@ -11,7 +11,7 @@ class ResourceAnnotationService:
     """Provide resource annotation workflows."""
 
     def __init__(self, repository: DnaRouteRepository | None = None) -> None:
-        """Handle __init__.
+        """__init__.
 
         Args:
                 repository: Repository. Optional argument.
@@ -22,7 +22,7 @@ class ResourceAnnotationService:
     def mutation_payload(
         sample_id: str, resource: str, resource_id: str, action: str
     ) -> dict[str, Any]:
-        """Handle mutation payload.
+        """Mutation payload.
 
         Args:
             sample_id (str): Value for ``sample_id``.

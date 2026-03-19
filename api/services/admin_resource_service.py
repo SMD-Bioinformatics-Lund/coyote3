@@ -22,7 +22,7 @@ class AdminPanelService:
     """Own assay-panel resource-management workflows."""
 
     def __init__(self, repository: AdminRepository | None = None) -> None:
-        """Handle __init__.
+        """__init__.
 
         Args:
                 repository: Repository. Optional argument.
@@ -70,7 +70,7 @@ class AdminPanelService:
         return {"schemas": schemas, "selected_schema": selected_schema, "schema": schema}
 
     def context_payload(self, *, panel_id: str) -> dict[str, Any]:
-        """Handle context payload.
+        """Context payload.
 
         Args:
             panel_id (str): Value for ``panel_id``.
@@ -87,7 +87,7 @@ class AdminPanelService:
         return {"panel": panel, "schema": schema}
 
     def create(self, *, payload: dict[str, Any]) -> dict[str, Any]:
-        """Handle create.
+        """Create.
 
         Args:
             payload (dict[str, Any]): Value for ``payload``.
@@ -108,7 +108,7 @@ class AdminPanelService:
         )
 
     def update(self, *, panel_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-        """Handle update.
+        """Update.
 
         Args:
             panel_id (str): Value for ``panel_id``.
@@ -128,7 +128,7 @@ class AdminPanelService:
         return mutation_payload(resource="asp", resource_id=panel_id, action="update")
 
     def toggle(self, *, panel_id: str) -> dict[str, Any]:
-        """Handle toggle.
+        """Toggle.
 
         Args:
             panel_id (str): Value for ``panel_id``.
@@ -146,7 +146,7 @@ class AdminPanelService:
         return payload
 
     def delete(self, *, panel_id: str) -> dict[str, Any]:
-        """Handle delete.
+        """Delete.
 
         Args:
             panel_id (str): Value for ``panel_id``.
@@ -165,7 +165,7 @@ class AdminGenelistService:
     """Own genelist resource-management workflows."""
 
     def __init__(self, repository: AdminRepository | None = None) -> None:
-        """Handle __init__.
+        """__init__.
 
         Args:
                 repository: Repository. Optional argument.
@@ -219,7 +219,7 @@ class AdminGenelistService:
         }
 
     def context_payload(self, *, genelist_id: str) -> dict[str, Any]:
-        """Handle context payload.
+        """Context payload.
 
         Args:
             genelist_id (str): Value for ``genelist_id``.
@@ -273,7 +273,7 @@ class AdminGenelistService:
         }
 
     def create(self, *, payload: dict[str, Any]) -> dict[str, Any]:
-        """Handle create.
+        """Create.
 
         Args:
             payload (dict[str, Any]): Value for ``payload``.
@@ -294,7 +294,7 @@ class AdminGenelistService:
         )
 
     def update(self, *, genelist_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-        """Handle update.
+        """Update.
 
         Args:
             genelist_id (str): Value for ``genelist_id``.
@@ -314,7 +314,7 @@ class AdminGenelistService:
         return mutation_payload(resource="genelist", resource_id=genelist_id, action="update")
 
     def toggle(self, *, genelist_id: str) -> dict[str, Any]:
-        """Handle toggle.
+        """Toggle.
 
         Args:
             genelist_id (str): Value for ``genelist_id``.
@@ -332,7 +332,7 @@ class AdminGenelistService:
         return payload
 
     def delete(self, *, genelist_id: str) -> dict[str, Any]:
-        """Handle delete.
+        """Delete.
 
         Args:
             genelist_id (str): Value for ``genelist_id``.
@@ -351,7 +351,7 @@ class AdminAspcService:
     """Own assay-configuration resource-management workflows."""
 
     def __init__(self, repository: AdminRepository | None = None) -> None:
-        """Handle __init__.
+        """__init__.
 
         Args:
                 repository: Repository. Optional argument.
@@ -432,7 +432,7 @@ class AdminAspcService:
         }
 
     def context_payload(self, *, assay_id: str) -> dict[str, Any]:
-        """Handle context payload.
+        """Context payload.
 
         Args:
             assay_id (str): Value for ``assay_id``.
@@ -454,7 +454,7 @@ class AdminAspcService:
         return {"assay_config": assay_config, "schema": schema}
 
     def create(self, *, payload: dict[str, Any]) -> dict[str, Any]:
-        """Handle create.
+        """Create.
 
         Args:
             payload (dict[str, Any]): Value for ``payload``.
@@ -481,7 +481,7 @@ class AdminAspcService:
         )
 
     def update(self, *, assay_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-        """Handle update.
+        """Update.
 
         Args:
             assay_id (str): Value for ``assay_id``.
@@ -501,7 +501,7 @@ class AdminAspcService:
         return mutation_payload(resource="aspc", resource_id=assay_id, action="update")
 
     def toggle(self, *, assay_id: str) -> dict[str, Any]:
-        """Handle toggle.
+        """Toggle.
 
         Args:
             assay_id (str): Value for ``assay_id``.
@@ -519,7 +519,7 @@ class AdminAspcService:
         return payload
 
     def delete(self, *, assay_id: str) -> dict[str, Any]:
-        """Handle delete.
+        """Delete.
 
         Args:
             assay_id (str): Value for ``assay_id``.
@@ -538,7 +538,7 @@ class AdminSampleService:
     """Own admin sample-management and deletion workflows."""
 
     def __init__(self, repository: AdminRepository | None = None) -> None:
-        """Handle __init__.
+        """__init__.
 
         Args:
                 repository: Repository. Optional argument.
@@ -576,7 +576,7 @@ class AdminSampleService:
         }
 
     def context_payload(self, *, sample_id: str) -> dict[str, Any]:
-        """Handle context payload.
+        """Context payload.
 
         Args:
             sample_id (str): Value for ``sample_id``.
@@ -592,7 +592,7 @@ class AdminSampleService:
     def update(
         self, *, sample_id: str, payload: dict[str, Any], actor_username: str
     ) -> dict[str, Any]:
-        """Handle update.
+        """Update.
 
         Args:
             sample_id (str): Value for ``sample_id``.
@@ -617,7 +617,7 @@ class AdminSampleService:
         return mutation_payload(resource="sample", resource_id=str(sample_obj), action="update")
 
     def delete(self, *, sample_id: str) -> dict[str, Any]:
-        """Handle delete.
+        """Delete.
 
         Args:
             sample_id (str): Value for ``sample_id``.
@@ -639,7 +639,7 @@ class AdminSchemaService:
     """Own schema-management workflows for admin routes."""
 
     def __init__(self, repository: AdminRepository | None = None) -> None:
-        """Handle __init__.
+        """__init__.
 
         Args:
                 repository: Repository. Optional argument.
@@ -659,7 +659,7 @@ class AdminSchemaService:
         }
 
     def context_payload(self, *, schema_id: str) -> dict[str, Any]:
-        """Handle context payload.
+        """Context payload.
 
         Args:
             schema_id (str): Value for ``schema_id``.
@@ -673,7 +673,7 @@ class AdminSchemaService:
         return {"schema": schema_doc}
 
     def create(self, *, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
-        """Handle create.
+        """Create.
 
         Args:
             payload (dict[str, Any]): Value for ``payload``.
@@ -697,7 +697,7 @@ class AdminSchemaService:
     def update(
         self, *, schema_id: str, payload: dict[str, Any], actor_username: str
     ) -> dict[str, Any]:
-        """Handle update.
+        """Update.
 
         Args:
             schema_id (str): Value for ``schema_id``.
@@ -720,7 +720,7 @@ class AdminSchemaService:
         return mutation_payload(resource="schema", resource_id=schema_id, action="update")
 
     def toggle(self, *, schema_id: str) -> dict[str, Any]:
-        """Handle toggle.
+        """Toggle.
 
         Args:
             schema_id (str): Value for ``schema_id``.
@@ -738,7 +738,7 @@ class AdminSchemaService:
         return payload
 
     def delete(self, *, schema_id: str) -> dict[str, Any]:
-        """Handle delete.
+        """Delete.
 
         Args:
             schema_id (str): Value for ``schema_id``.

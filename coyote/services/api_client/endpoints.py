@@ -8,7 +8,7 @@ _API_V1_PREFIX = "/api/v1"
 
 
 def _normalize(part: Any) -> str:
-    """Handle  normalize.
+    """Normalize.
 
     Args:
             part: Part.
@@ -217,7 +217,7 @@ def sample(sample_id: str, *parts: Any) -> str:
 
 
 def _translate_sample_parts(parts: tuple[Any, ...], *, omics: str) -> tuple[Any, ...]:
-    """Handle  translate sample parts.
+    """Translate sample parts.
 
     Args:
             parts: Parts.

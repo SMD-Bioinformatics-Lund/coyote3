@@ -23,7 +23,7 @@ DEV_RNA_WGS_SNAPSHOT_PATH = SNAPSHOT_DIR / "dev_rna_wgs_latest.json"
 
 
 def _load_snapshot(path: Path) -> dict[str, Any]:
-    """Handle  load snapshot.
+    """Load snapshot.
 
     Args:
             path: Path.
@@ -47,7 +47,7 @@ _DEV_RNA_WGS = _load_snapshot(DEV_RNA_WGS_SNAPSHOT_PATH)
 def _latest_doc(
     collection_alias: str, *, prefer_dev_rna_wgs: bool = False
 ) -> dict[str, Any] | None:
-    """Handle  latest doc.
+    """Latest doc.
 
     Args:
             collection_alias: Collection alias.
@@ -69,7 +69,7 @@ def _latest_doc(
 
 
 def _with_defaults(doc: dict[str, Any] | None, defaults: dict[str, Any]) -> dict[str, Any]:
-    """Handle  with defaults.
+    """With defaults.
 
     Args:
             doc: Doc.
@@ -83,7 +83,7 @@ def _with_defaults(doc: dict[str, Any] | None, defaults: dict[str, Any]) -> dict
         return merged
 
     def rec(dst: dict[str, Any], src: dict[str, Any]) -> None:
-        """Handle rec.
+        """Rec.
 
         Args:
             dst (dict[str, Any]): Value for ``dst``.
@@ -103,7 +103,7 @@ def _with_defaults(doc: dict[str, Any] | None, defaults: dict[str, Any]) -> dict
 
 
 def user_doc() -> dict:
-    """Handle user doc.
+    """User doc.
 
     Returns:
         dict: The function result.
@@ -128,7 +128,7 @@ def user_doc() -> dict:
 
 
 def api_user() -> ApiUser:
-    """Handle api user.
+    """Api user.
 
     Returns:
         ApiUser: The function result.
@@ -151,7 +151,7 @@ def api_user() -> ApiUser:
 
 
 def sample_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
-    """Handle sample doc.
+    """Sample doc.
 
     Args:
         prefer_dev_rna_wgs (bool): Value for ``prefer_dev_rna_wgs``.
@@ -189,7 +189,7 @@ def sample_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
 
 
 def assay_config_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
-    """Handle assay config doc.
+    """Assay config doc.
 
     Args:
         prefer_dev_rna_wgs (bool): Value for ``prefer_dev_rna_wgs``.
@@ -211,7 +211,7 @@ def assay_config_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
 
 
 def variant_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
-    """Handle variant doc.
+    """Variant doc.
 
     Args:
         prefer_dev_rna_wgs (bool): Value for ``prefer_dev_rna_wgs``.
@@ -244,7 +244,7 @@ def variant_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
 
 
 def cnv_doc() -> dict:
-    """Handle cnv doc.
+    """Cnv doc.
 
     Returns:
         dict: The function result.
@@ -261,7 +261,7 @@ def cnv_doc() -> dict:
 
 
 def fusion_doc(*, prefer_dev_rna_wgs: bool = True) -> dict:
-    """Handle fusion doc.
+    """Fusion doc.
 
     Args:
         prefer_dev_rna_wgs (bool): Value for ``prefer_dev_rna_wgs``.
@@ -284,7 +284,7 @@ def fusion_doc(*, prefer_dev_rna_wgs: bool = True) -> dict:
 
 
 def reported_variant_doc() -> dict:
-    """Handle reported variant doc.
+    """Reported variant doc.
 
     Returns:
         dict: The function result.
@@ -307,7 +307,7 @@ def reported_variant_doc() -> dict:
 
 
 def role_doc() -> dict:
-    """Handle role doc.
+    """Role doc.
 
     Returns:
         dict: The function result.
@@ -325,7 +325,7 @@ def role_doc() -> dict:
 
 
 def permission_doc() -> dict:
-    """Handle permission doc.
+    """Permission doc.
 
     Returns:
         dict: The function result.
@@ -342,7 +342,7 @@ def permission_doc() -> dict:
 
 
 def schema_doc() -> dict:
-    """Handle schema doc.
+    """Schema doc.
 
     Returns:
         dict: The function result.
@@ -367,7 +367,7 @@ def schema_doc() -> dict:
 
 
 def isgl_doc() -> dict:
-    """Handle isgl doc.
+    """Isgl doc.
 
     Returns:
         dict: The function result.

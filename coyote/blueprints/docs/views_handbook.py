@@ -17,7 +17,7 @@ from coyote.blueprints.docs.views_common import (
 @docs_bp.get("/")
 @login_required
 def docs_index():
-    """Handle docs index.
+    """Docs index.
 
     Returns:
         The function result.
@@ -35,7 +35,7 @@ def docs_index():
 @docs_bp.get("/user")
 @login_required
 def docs_user_index():
-    """Handle docs user index.
+    """Docs user index.
 
     Returns:
         The function result.
@@ -46,7 +46,7 @@ def docs_user_index():
 @docs_bp.get("/admin")
 @login_required
 def docs_admin_index():
-    """Handle docs admin index.
+    """Docs admin index.
 
     Returns:
         The function result.
@@ -57,7 +57,7 @@ def docs_admin_index():
 @docs_bp.get("/developer")
 @login_required
 def docs_developer_index():
-    """Handle docs developer index.
+    """Docs developer index.
 
     Returns:
         The function result.

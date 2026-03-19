@@ -8,7 +8,7 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def test_dashboard_summary_aggregates_counts(monkeypatch):
-    """Handle test dashboard summary aggregates counts.
+    """Test dashboard summary aggregates counts.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -115,7 +115,7 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
 
 
 def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
-    """Handle test dashboard summary scopes non admin from assays and groups.
+    """Test dashboard summary scopes non admin from assays and groups.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -214,7 +214,7 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
 
 
 def test_dashboard_summary_admin_scope_is_unfiltered(monkeypatch):
-    """Handle test dashboard summary admin scope is unfiltered.
+    """Test dashboard summary admin scope is unfiltered.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.

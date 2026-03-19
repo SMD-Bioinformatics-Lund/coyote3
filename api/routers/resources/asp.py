@@ -99,7 +99,7 @@ def asp_context_read(
     user: ApiUser = Depends(require_access(permission="view_asp", min_role="user", min_level=9)),
     service: AdminPanelService = Depends(get_admin_panel_service),
 ):
-    """Handle asp context read.
+    """Asp context read.
 
     Args:
         assay_panel_id (str): Value for ``assay_panel_id``.

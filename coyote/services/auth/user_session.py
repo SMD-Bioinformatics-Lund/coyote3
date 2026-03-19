@@ -19,7 +19,7 @@ class SessionUserModel:
     """
 
     def __init__(self, payload: dict[str, Any]):
-        """Handle __init__.
+        """__init__.
 
         Args:
                 payload: Payload.
@@ -59,7 +59,7 @@ class User(UserMixin):
     """Flask-Login user wrapper backed by :class:`SessionUserModel`."""
 
     def __init__(self, user_model: SessionUserModel | dict[str, Any]):
-        """Handle __init__.
+        """__init__.
 
         Args:
                 user_model: User model.

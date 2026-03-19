@@ -49,7 +49,7 @@ def list_fusions(sample_id: str) -> str | Response:
     api_client = get_web_api_client()
 
     def _load_api_context():
-        """Handle  load api context.
+        """Load api context.
 
         Returns:
                 The  load api context result.

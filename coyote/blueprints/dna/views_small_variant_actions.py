@@ -19,7 +19,7 @@ from coyote.services.api_client.api_client import (
 
 
 def headers() -> dict[str, str]:
-    """Handle headers.
+    """Headers.
 
     Returns:
         dict[str, str]: The function result.
@@ -28,7 +28,7 @@ def headers() -> dict[str, str]:
 
 
 def call_api(sample_id: str, log_message: str, api_call: Callable[[], Any]) -> bool:
-    """Handle call api.
+    """Call api.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -48,7 +48,7 @@ def call_api(sample_id: str, log_message: str, api_call: Callable[[], Any]) -> b
 
 
 def resolve_target_id(*keys: str) -> str:
-    """Handle resolve target id.
+    """Resolve target id.
 
     Args:
         *keys (str): Additional positional values for ``keys``.
@@ -64,7 +64,7 @@ def resolve_target_id(*keys: str) -> str:
 
 
 def derive_nomenclature(form_data: dict[str, Any]) -> str:
-    """Handle derive nomenclature.
+    """Derive nomenclature.
 
     Args:
         form_data (dict[str, Any]): Value for ``form_data``.
@@ -82,7 +82,7 @@ def derive_nomenclature(form_data: dict[str, Any]) -> str:
 
 
 def derive_resource_type(form_data: dict[str, Any]) -> str:
-    """Handle derive resource type.
+    """Derive resource type.
 
     Args:
         form_data (dict[str, Any]): Value for ``form_data``.
@@ -101,7 +101,7 @@ def derive_resource_type(form_data: dict[str, Any]) -> str:
 
 
 def redirect_target(sample_id: str, target_id: str, nomenclature: str) -> Response:
-    """Handle redirect target.
+    """Redirect target.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -128,7 +128,7 @@ def bulk_toggle(
     operation_label: str,
     endpoint: str,
 ) -> None:
-    """Handle bulk toggle.
+    """Bulk toggle.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -164,7 +164,7 @@ def bulk_toggle(
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/unfp", methods=["POST"])
 @login_required
 def unmark_false_variant(sample_id: str, var_id: str) -> Response:
-    """Handle unmark false variant.
+    """Unmark false variant.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -189,7 +189,7 @@ def unmark_false_variant(sample_id: str, var_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/fp", methods=["POST"])
 @login_required
 def mark_false_variant(sample_id: str, var_id: str) -> Response:
-    """Handle mark false variant.
+    """Mark false variant.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -214,7 +214,7 @@ def mark_false_variant(sample_id: str, var_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/uninterest", methods=["POST"])
 @login_required
 def unmark_interesting_variant(sample_id: str, var_id: str) -> Response:
-    """Handle unmark interesting variant.
+    """Unmark interesting variant.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -237,7 +237,7 @@ def unmark_interesting_variant(sample_id: str, var_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/interest", methods=["POST"])
 @login_required
 def mark_interesting_variant(sample_id: str, var_id: str) -> Response:
-    """Handle mark interesting variant.
+    """Mark interesting variant.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -260,7 +260,7 @@ def mark_interesting_variant(sample_id: str, var_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/relevant", methods=["POST"])
 @login_required
 def unmark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
-    """Handle unmark irrelevant variant.
+    """Unmark irrelevant variant.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -283,7 +283,7 @@ def unmark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/irrelevant", methods=["POST"])
 @login_required
 def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
-    """Handle mark irrelevant variant.
+    """Mark irrelevant variant.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -306,7 +306,7 @@ def mark_irrelevant_variant(sample_id: str, var_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/blacklist", methods=["POST"])
 @login_required
 def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
-    """Handle add variant to blacklist.
+    """Add variant to blacklist.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -348,7 +348,7 @@ def add_variant_to_blacklist(sample_id: str, var_id: str) -> Response:
 )
 @login_required
 def add_var_comment(sample_id: str, id: str | None = None, **kwargs: Any) -> Response:
-    """Handle add var comment.
+    """Add var comment.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -383,7 +383,7 @@ def add_var_comment(sample_id: str, id: str | None = None, **kwargs: Any) -> Res
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/hide_variant_comment", methods=["POST"])
 @login_required
 def hide_variant_comment(sample_id: str, var_id: str) -> Response:
-    """Handle hide variant comment.
+    """Hide variant comment.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -409,7 +409,7 @@ def hide_variant_comment(sample_id: str, var_id: str) -> Response:
 @dna_bp.route("/<string:sample_id>/var/<string:var_id>/unhide_variant_comment", methods=["POST"])
 @login_required
 def unhide_variant_comment(sample_id: str, var_id: str) -> Response:
-    """Handle unhide variant comment.
+    """Unhide variant comment.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -444,7 +444,7 @@ def unhide_variant_comment(sample_id: str, var_id: str) -> Response:
 def classify_small_variant(
     sample_id: str, var_id: str | None = None, fus_id: str | None = None
 ) -> Response:
-    """Handle classify small variant.
+    """Classify small variant.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -514,7 +514,7 @@ def remove_classified_small_variant(
 @dna_bp.route("/<sample_id>/multi_class", methods=["POST"], endpoint="classify_multi_small_variant")
 @login_required
 def classify_multi_small_variant(sample_id: str) -> Response:
-    """Handle classify multi small variant.
+    """Classify multi small variant.
 
     Args:
         sample_id (str): Value for ``sample_id``.

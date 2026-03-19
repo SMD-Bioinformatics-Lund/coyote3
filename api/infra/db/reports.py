@@ -12,7 +12,7 @@ class ReportHandler(BaseHandler):
     """
 
     def __init__(self, adapter):
-        """Handle __init__.
+        """__init__.
 
         Args:
                 adapter: Adapter.

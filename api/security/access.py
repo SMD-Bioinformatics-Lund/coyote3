@@ -63,7 +63,7 @@ class ApiUser:
 
 
 def _api_error(status_code: int, message: str) -> HTTPException:
-    """Handle  api error.
+    """Api error.
 
     Args:
             status_code: Status code.
@@ -95,7 +95,7 @@ def is_public_api_path(path: str) -> bool:
 
 
 def _http_exception_message(exc: HTTPException) -> str:
-    """Handle  http exception message.
+    """Http exception message.
 
     Args:
             exc: Exc.
@@ -121,7 +121,7 @@ def _audit_access_event(
     sample_id: str | None = None,
     extra: dict | None = None,
 ) -> None:
-    """Handle  audit access event.
+    """Audit access event.
 
     Args:
             status: Status. Keyword-only argument.
@@ -154,7 +154,7 @@ def _audit_access_event(
 
 @lru_cache(maxsize=1)
 def _api_session_serializer() -> URLSafeTimedSerializer:
-    """Handle  api session serializer.
+    """Api session serializer.
 
     Returns:
             The  api session serializer result.
@@ -205,7 +205,7 @@ def create_api_session_token(user_id: str) -> str:
 
 
 def _role_levels() -> dict[str, int]:
-    """Handle  role levels.
+    """Role levels.
 
     Returns:
             The  role levels result.
@@ -218,7 +218,7 @@ def _role_levels() -> dict[str, int]:
 
 
 def _api_user_from_doc(user_doc: dict) -> ApiUser:
-    """Handle  api user from doc.
+    """Api user from doc.
 
     Args:
             user_doc: User doc.
@@ -272,7 +272,7 @@ def serialize_api_user(user: ApiUser) -> dict:
 
 
 def _extract_api_session_token(request: Request) -> str | None:
-    """Handle  extract api session token.
+    """Extract api session token.
 
     Args:
             request: Request.
@@ -289,7 +289,7 @@ def _extract_api_session_token(request: Request) -> str | None:
 
 
 def _decode_session_user(request: Request) -> ApiUser:
-    """Handle  decode session user.
+    """Decode session user.
 
     Args:
             request: Request.
@@ -326,7 +326,7 @@ def _enforce_access(
     min_level: int | None = None,
     min_role: str | None = None,
 ) -> None:
-    """Handle  enforce access.
+    """Enforce access.
 
     Args:
             user: User.
@@ -377,7 +377,7 @@ def require_access(
     min_level: int | None = None,
     min_role: str | None = None,
 ):
-    """Handle require access.
+    """Require access.
 
     Args:
         permission (str | None): Value for ``permission``.
@@ -389,7 +389,7 @@ def require_access(
     """
 
     def dep(request: Request) -> Generator[ApiUser, None, None]:
-        """Handle dep.
+        """Dep.
 
         Args:
             request (Request): Value for ``request``.
@@ -431,7 +431,7 @@ def require_access(
 
 
 def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None = None):
-    """Handle  get sample for api.
+    """Get sample for api.
 
     Args:
             sample_id: Sample id.
@@ -471,7 +471,7 @@ def _get_sample_for_api(sample_id: str, user: ApiUser, request: Request | None =
 
 
 def _require_internal_token(request: Request) -> None:
-    """Handle  require internal token.
+    """Require internal token.
 
     Args:
             request: Request.

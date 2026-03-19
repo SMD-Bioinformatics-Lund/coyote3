@@ -56,7 +56,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 
 async def validation_exception_handler(_request: Request, exc: RequestValidationError):
-    """Handle validation exception handler.
+    """Validation exception handler.
 
     Args:
         _request (Request): Value for ``_request``.

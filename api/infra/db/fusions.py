@@ -110,7 +110,7 @@ class FusionsHandler(BaseHandler):
         bp2: str,
         limit: int = 20,
     ) -> List[Dict[str, Any]]:
-        """Handle find fusions with matching breakpoints.
+        """Find fusions with matching breakpoints.
 
         Args:
             current_sample_id (str): Value for ``current_sample_id``.

@@ -58,7 +58,7 @@ class MongoDNAReportingRepository:
     def add_blacklist_data(
         self, variants: list[dict[str, Any]], assay: str
     ) -> list[dict[str, Any]]:
-        """Handle add blacklist data.
+        """Add blacklist data.
 
         Args:
             variants (list[dict[str, Any]]): Value for ``variants``.

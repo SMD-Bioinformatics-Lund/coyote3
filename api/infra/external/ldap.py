@@ -31,7 +31,7 @@ class LdapManager:
     """Framework-neutral LDAP manager used by API auth service."""
 
     def __init__(self) -> None:
-        """Handle __init__."""
+        """__init__."""
         self._config: dict = {}
         self._server: Server | None = None
 
@@ -86,7 +86,7 @@ class LdapManager:
         )
 
     def _auto_bind_mode(self) -> int:
-        """Handle  auto bind mode.
+        """Auto bind mode.
 
         Returns:
                 The  auto bind mode result.
@@ -103,7 +103,7 @@ class LdapManager:
         anonymous: bool = False,
         read_only: bool = True,
     ) -> Connection:
-        """Handle  connect.
+        """Connect.
 
         Args:
                 user: User.
@@ -127,7 +127,7 @@ class LdapManager:
         )
 
     def _lookup_user_dn(self, username: str, base_dn: str, attribute: str) -> str | None:
-        """Handle  lookup user dn.
+        """Lookup user dn.
 
         Args:
                 username: Username.

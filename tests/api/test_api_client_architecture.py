@@ -18,7 +18,7 @@ class _ResponseStub:
     """Provide  ResponseStub behavior."""
 
     def __init__(self, status_code: int, json_payload, text: str = ""):
-        """Handle __init__.
+        """__init__.
 
         Args:
                 status_code: Status code.
@@ -30,7 +30,7 @@ class _ResponseStub:
         self.text = text
 
     def json(self):
-        """Handle json.
+        """Json.
 
         Returns:
             The function result.
@@ -41,7 +41,7 @@ class _ResponseStub:
 
 
 def test_api_payload_attribute_access_and_model_dump():
-    """Handle test api payload attribute access and model dump.
+    """Test api payload attribute access and model dump.
 
     Returns:
         The function result.
@@ -64,7 +64,7 @@ def test_api_payload_attribute_access_and_model_dump():
 
 
 def test_request_error_is_wrapped_as_api_request_error(monkeypatch):
-    """Handle test request error is wrapped as api request error.
+    """Test request error is wrapped as api request error.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -77,7 +77,7 @@ def test_request_error_is_wrapped_as_api_request_error(monkeypatch):
         """Provide  ClientRaises behavior."""
 
         def __init__(self, *args, **kwargs):
-            """Handle __init__.
+            """__init__.
 
             Args:
                     *args: Args. Additional positional arguments.
@@ -86,7 +86,7 @@ def test_request_error_is_wrapped_as_api_request_error(monkeypatch):
             pass
 
         def __enter__(self):
-            """Handle __enter__.
+            """__enter__.
 
             Returns:
                     The __enter__ result.
@@ -94,7 +94,7 @@ def test_request_error_is_wrapped_as_api_request_error(monkeypatch):
             return self
 
         def __exit__(self, exc_type, exc, tb):
-            """Handle __exit__.
+            """__exit__.
 
             Args:
                     exc_type: Exc type.
@@ -107,7 +107,7 @@ def test_request_error_is_wrapped_as_api_request_error(monkeypatch):
             return False
 
         def request(self, **kwargs):
-            """Handle request.
+            """Request.
 
             Args:
                 **kwargs: Additional keyword values for ``kwargs``.
@@ -127,7 +127,7 @@ def test_request_error_is_wrapped_as_api_request_error(monkeypatch):
 
 
 def test_http_error_payload_is_mapped(monkeypatch):
-    """Handle test http error payload is mapped.
+    """Test http error payload is mapped.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -140,7 +140,7 @@ def test_http_error_payload_is_mapped(monkeypatch):
         """Provide  ClientReturns403 behavior."""
 
         def __init__(self, *args, **kwargs):
-            """Handle __init__.
+            """__init__.
 
             Args:
                     *args: Args. Additional positional arguments.
@@ -149,7 +149,7 @@ def test_http_error_payload_is_mapped(monkeypatch):
             pass
 
         def __enter__(self):
-            """Handle __enter__.
+            """__enter__.
 
             Returns:
                     The __enter__ result.
@@ -157,7 +157,7 @@ def test_http_error_payload_is_mapped(monkeypatch):
             return self
 
         def __exit__(self, exc_type, exc, tb):
-            """Handle __exit__.
+            """__exit__.
 
             Args:
                     exc_type: Exc type.
@@ -170,7 +170,7 @@ def test_http_error_payload_is_mapped(monkeypatch):
             return False
 
         def request(self, **kwargs):
-            """Handle request.
+            """Request.
 
             Args:
                 **kwargs: Additional keyword values for ``kwargs``.
@@ -191,7 +191,7 @@ def test_http_error_payload_is_mapped(monkeypatch):
 
 
 def test_non_dict_payload_rejected(monkeypatch):
-    """Handle test non dict payload rejected.
+    """Test non dict payload rejected.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -204,7 +204,7 @@ def test_non_dict_payload_rejected(monkeypatch):
         """Provide  ClientReturnsList behavior."""
 
         def __init__(self, *args, **kwargs):
-            """Handle __init__.
+            """__init__.
 
             Args:
                     *args: Args. Additional positional arguments.
@@ -213,7 +213,7 @@ def test_non_dict_payload_rejected(monkeypatch):
             pass
 
         def __enter__(self):
-            """Handle __enter__.
+            """__enter__.
 
             Returns:
                     The __enter__ result.
@@ -221,7 +221,7 @@ def test_non_dict_payload_rejected(monkeypatch):
             return self
 
         def __exit__(self, exc_type, exc, tb):
-            """Handle __exit__.
+            """__exit__.
 
             Args:
                     exc_type: Exc type.
@@ -234,7 +234,7 @@ def test_non_dict_payload_rejected(monkeypatch):
             return False
 
         def request(self, **kwargs):
-            """Handle request.
+            """Request.
 
             Args:
                 **kwargs: Additional keyword values for ``kwargs``.
@@ -253,7 +253,7 @@ def test_non_dict_payload_rejected(monkeypatch):
 
 
 def test_facade_exposes_transport_methods():
-    """Handle test facade exposes transport methods.
+    """Test facade exposes transport methods.
 
     Returns:
         The function result.

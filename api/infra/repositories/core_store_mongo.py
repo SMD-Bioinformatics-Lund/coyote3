@@ -11,13 +11,13 @@ class MongoCoreStoreRepository:
     """Provide mongo core store persistence operations."""
 
     def __init__(self) -> None:
-        """Handle __init__."""
+        """__init__."""
         self.sample_handler = store.sample_handler
         self.reported_variants_handler = store.reported_variants_handler
         self.annotation_handler = store.annotation_handler
 
     def new_object_id(self) -> ObjectId:
-        """Handle new object id.
+        """New object id.
 
         Returns:
             ObjectId: The function result.

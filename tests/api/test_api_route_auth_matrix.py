@@ -28,7 +28,7 @@ _SKIP_METHODS = {"HEAD", "OPTIONS"}
 
 
 def _iter_api_routes() -> Iterable[tuple[str, str]]:
-    """Handle  iter api routes.
+    """Iter api routes.
 
     Returns:
             The  iter api routes result.
@@ -46,7 +46,7 @@ def _iter_api_routes() -> Iterable[tuple[str, str]]:
 
 
 def _materialize_path(path: str) -> str:
-    """Handle  materialize path.
+    """Materialize path.
 
     Args:
             path: Path.
@@ -68,7 +68,7 @@ def _materialize_path(path: str) -> str:
     }
 
     def repl(match: re.Match[str]) -> str:
-        """Handle repl.
+        """Repl.
 
         Args:
             match (re.Match[str]): Value for ``match``.
@@ -83,7 +83,7 @@ def _materialize_path(path: str) -> str:
 
 
 def _is_open(path: str) -> bool:
-    """Handle  is open.
+    """Is open.
 
     Args:
             path: Path.
@@ -95,7 +95,7 @@ def _is_open(path: str) -> bool:
 
 
 def test_protected_routes_fail_closed_without_auth():
-    """Handle test protected routes fail closed without auth.
+    """Test protected routes fail closed without auth.
 
     Returns:
         The function result.

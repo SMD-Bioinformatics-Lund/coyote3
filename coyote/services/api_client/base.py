@@ -27,7 +27,7 @@ class ApiRequestError(Exception):
     payload: Any | None = None
 
     def __str__(self) -> str:
-        """Handle __str__.
+        """__str__.
 
         Returns:
                 The __str__ result.
@@ -39,7 +39,7 @@ class ApiPayload(dict[str, Any]):
     """Dict with attribute access for API payloads."""
 
     def __getattr__(self, key: str) -> Any:
-        """Handle __getattr__.
+        """__getattr__.
 
         Args:
                 key: Key.
@@ -53,7 +53,7 @@ class ApiPayload(dict[str, Any]):
             raise AttributeError(key) from exc
 
     def __setattr__(self, key: str, value: Any) -> None:
-        """Handle __setattr__.
+        """__setattr__.
 
         Args:
                 key: Key.
@@ -65,7 +65,7 @@ class ApiPayload(dict[str, Any]):
         self[key] = value
 
     def model_dump(self) -> dict[str, Any]:
-        """Handle model dump.
+        """Model dump.
 
         Returns:
             dict[str, Any]: The function result.
@@ -74,7 +74,7 @@ class ApiPayload(dict[str, Any]):
 
 
 def _as_api_payload(value: Any) -> Any:
-    """Handle  as api payload.
+    """As api payload.
 
     Args:
             value: Value.
@@ -90,7 +90,7 @@ def _as_api_payload(value: Any) -> Any:
 
 
 def _to_builtin(value: Any) -> Any:
-    """Handle  to builtin.
+    """To builtin.
 
     Args:
             value: Value.
@@ -111,7 +111,7 @@ class BaseApiClient:
     def __init__(
         self, base_url: str, timeout_seconds: float = 30.0, client: httpx.Client | None = None
     ) -> None:
-        """Handle __init__.
+        """__init__.
 
         Args:
                 base_url: Base url.
@@ -135,7 +135,7 @@ class BaseApiClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Handle  request.
+        """Request.
 
         Args:
                 method: Method.
@@ -189,7 +189,7 @@ class BaseApiClient:
         return payload
 
     def _safe_error_message(self, payload: Any, status_code: int) -> str:
-        """Handle  safe error message.
+        """Safe error message.
 
         Args:
                 payload: Payload.
@@ -213,7 +213,7 @@ class BaseApiClient:
         headers: dict[str, str] | None = None,
         params: dict[str, Any] | None = None,
     ) -> ApiPayload:
-        """Handle  get.
+        """Get.
 
         Args:
                 path: Path.
@@ -232,7 +232,7 @@ class BaseApiClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> ApiPayload:
-        """Handle  post.
+        """Post.
 
         Args:
                 path: Path.
@@ -254,7 +254,7 @@ class BaseApiClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> ApiPayload:
-        """Handle  put.
+        """Put.
 
         Args:
                 path: Path.
@@ -276,7 +276,7 @@ class BaseApiClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> ApiPayload:
-        """Handle  patch.
+        """Patch.
 
         Args:
                 path: Path.
@@ -298,7 +298,7 @@ class BaseApiClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> ApiPayload:
-        """Handle  delete.
+        """Delete.
 
         Args:
                 path: Path.
@@ -338,7 +338,7 @@ class BaseApiClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> ApiPayload:
-        """Handle post json.
+        """Post json.
 
         Args:
             path (str): Value for ``path``.
@@ -358,7 +358,7 @@ class BaseApiClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> ApiPayload:
-        """Handle put json.
+        """Put json.
 
         Args:
             path (str): Value for ``path``.
@@ -378,7 +378,7 @@ class BaseApiClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
     ) -> ApiPayload:
-        """Handle patch json.
+        """Patch json.
 
         Args:
             path (str): Value for ``path``.
@@ -412,7 +412,7 @@ class BaseApiClient:
         return self._delete(path, headers=headers, params=params, json_body=json_body)
 
     def close(self) -> None:
-        """Handle close.
+        """Close.
 
         Returns:
             None.
@@ -420,7 +420,7 @@ class BaseApiClient:
         self._client.close()
 
     def last_response_cookie(self, name: str) -> str | None:
-        """Handle last response cookie.
+        """Last response cookie.
 
         Args:
             name (str): Value for ``name``.
@@ -431,7 +431,7 @@ class BaseApiClient:
         return self._last_response_cookies.get(name)
 
     def last_response_header(self, name: str) -> str | None:
-        """Handle last response header.
+        """Last response header.
 
         Args:
             name (str): Value for ``name``.

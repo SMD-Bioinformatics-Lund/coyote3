@@ -11,7 +11,7 @@ from shared.logging import emit_audit_event
 
 
 def request_ip(request: Request | None) -> str:
-    """Handle request ip.
+    """Request ip.
 
     Args:
         request (Request | None): Value for ``request``.
@@ -30,7 +30,7 @@ def request_ip(request: Request | None) -> str:
 
 
 def request_id(request: Request | None) -> str:
-    """Handle request id.
+    """Request id.
 
     Args:
         request (Request | None): Value for ``request``.

@@ -20,7 +20,7 @@ router = APIRouter(tags=["admin-users"])
 
 
 def _service() -> AdminUserService:
-    """Handle  service.
+    """Service.
 
     Returns:
             The  service result.
@@ -84,7 +84,7 @@ def user_context_read(
     ),
     service: AdminUserService = Depends(get_admin_user_service),
 ):
-    """Handle user context read.
+    """User context read.
 
     Args:
         user_id (str): Value for ``user_id``.
@@ -99,7 +99,7 @@ def user_context_read(
 
 
 def _create_user(payload: dict, actor_username: str, service: AdminUserService):
-    """Handle  create user.
+    """Create user.
 
     Args:
             payload: Payload.
@@ -138,7 +138,7 @@ def create_user(
 
 
 def _update_user(user_id: str, payload: dict, actor_username: str, service: AdminUserService):
-    """Handle  update user.
+    """Update user.
 
     Args:
             user_id: User id.
@@ -180,7 +180,7 @@ def update_user(
 
 
 def _delete_user(user_id: str, service: AdminUserService):
-    """Handle  delete user.
+    """Delete user.
 
     Args:
             user_id: User id.
@@ -217,7 +217,7 @@ def delete_user(
 
 
 def _toggle_user(user_id: str, service: AdminUserService):
-    """Handle  toggle user.
+    """Toggle user.
 
     Args:
             user_id: User id.

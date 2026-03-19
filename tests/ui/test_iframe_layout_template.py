@@ -4,7 +4,7 @@ from __future__ import annotations
 
 
 def test_contact_iframe_uses_viewport_fitting_classes():
-    """Handle test contact iframe uses viewport fitting classes.
+    """Test contact iframe uses viewport fitting classes.
 
     Returns:
         The function result.

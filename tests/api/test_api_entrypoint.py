@@ -8,7 +8,7 @@ from api.main import app
 
 
 def test_canonical_api_entrypoint_serves_health():
-    """Handle test canonical api entrypoint serves health.
+    """Test canonical api entrypoint serves health.
 
     Returns:
         The function result.

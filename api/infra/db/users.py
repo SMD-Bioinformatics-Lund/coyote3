@@ -71,7 +71,7 @@ class UsersHandler(BaseHandler):
 
     @staticmethod
     def _normalize_user_id(value: str | None) -> str | None:
-        """Handle  normalize user id.
+        """Normalize user id.
 
         Args:
                 value: Value.

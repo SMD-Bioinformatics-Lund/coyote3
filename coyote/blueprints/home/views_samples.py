@@ -14,7 +14,7 @@ from coyote.services.api_client.web import raise_page_load_error
 
 
 def _resolve_sample_view(*, status: str, submitted_view: str | None) -> str:
-    """Handle  resolve sample view.
+    """Resolve sample view.
 
     Args:
             status: Status. Keyword-only argument.
@@ -33,7 +33,7 @@ def _resolve_sample_view(*, status: str, submitted_view: str | None) -> str:
 
 
 def _sample_view_to_search_mode(sample_view: str) -> str:
-    """Handle  sample view to search mode.
+    """Sample view to search mode.
 
     Args:
             sample_view: Sample view.
@@ -45,7 +45,7 @@ def _sample_view_to_search_mode(sample_view: str) -> str:
 
 
 def _sample_view_to_status(sample_view: str) -> str:
-    """Handle  sample view to status.
+    """Sample view to status.
 
     Args:
             sample_view: Sample view.
@@ -82,7 +82,7 @@ def _resolve_per_page(
 
 
 def _resolve_page_param(short_key: str, legacy_key: str, default: int = 1) -> int:
-    """Handle  resolve page param.
+    """Resolve page param.
 
     Args:
             short_key: Short key.
@@ -102,7 +102,7 @@ def _resolve_page_param(short_key: str, legacy_key: str, default: int = 1) -> in
 
 
 def _first_non_empty_query_arg(*keys: str, default: str | None = None) -> str | None:
-    """Handle  first non empty query arg.
+    """First non empty query arg.
 
     Args:
             *keys: Keys. Additional positional arguments.
@@ -122,7 +122,7 @@ def _first_non_empty_query_arg(*keys: str, default: str | None = None) -> str | 
 
 
 def _parse_samples_home_query(status: str) -> dict:
-    """Handle  parse samples home query.
+    """Parse samples home query.
 
     Args:
             status: Status.

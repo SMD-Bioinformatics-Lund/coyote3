@@ -25,7 +25,7 @@ class _Req:
 
 
 def test_mutation_payload_shape():
-    """Handle test mutation payload shape.
+    """Test mutation payload shape.
 
     Returns:
         The function result.
@@ -37,7 +37,7 @@ def test_mutation_payload_shape():
 
 
 def test_list_rna_fusions_success(monkeypatch):
-    """Handle test list rna fusions success.
+    """Test list rna fusions success.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -117,7 +117,7 @@ def test_list_rna_fusions_success(monkeypatch):
 
 
 def test_show_rna_fusion_not_found_raises_404(monkeypatch):
-    """Handle test show rna fusion not found raises 404.
+    """Test show rna fusion not found raises 404.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -137,7 +137,7 @@ def test_show_rna_fusion_not_found_raises_404(monkeypatch):
 
 
 def test_restful_rna_mutation_routes_are_registered():
-    """Handle test restful rna mutation routes are registered.
+    """Test restful rna mutation routes are registered.
 
     Returns:
         The function result.

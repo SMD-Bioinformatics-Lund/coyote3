@@ -15,7 +15,7 @@ from api.security.access import ApiUser
 
 
 def _user(level: int = 9) -> ApiUser:
-    """Handle  user.
+    """User.
 
     Args:
             level: Level. Optional argument.
@@ -40,7 +40,7 @@ def _user(level: int = 9) -> ApiUser:
 
 
 def test_api_response_includes_request_id_header(monkeypatch: pytest.MonkeyPatch):
-    """Handle test api response includes request id header.
+    """Test api response includes request id header.
 
     Args:
         monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
@@ -68,7 +68,7 @@ def test_api_response_includes_request_id_header(monkeypatch: pytest.MonkeyPatch
 
 
 def test_mutation_event_emits_request_id_user_and_target(monkeypatch: pytest.MonkeyPatch):
-    """Handle test mutation event emits request id user and target.
+    """Test mutation event emits request id user and target.
 
     Args:
         monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
@@ -79,7 +79,7 @@ def test_mutation_event_emits_request_id_user_and_target(monkeypatch: pytest.Mon
     captured: dict = {}
 
     def _capture_mutation_event(**kwargs):
-        """Handle  capture mutation event.
+        """Capture mutation event.
 
         Args:
                 **kwargs: Kwargs. Additional keyword arguments.

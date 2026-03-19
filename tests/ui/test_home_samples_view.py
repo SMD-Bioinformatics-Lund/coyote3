@@ -8,7 +8,7 @@ from flask import Flask
 
 
 def test_samples_home_uses_table_specific_pagination_and_profile_scope(monkeypatch):
-    """Handle test samples home uses table specific pagination and profile scope.
+    """Test samples home uses table specific pagination and profile scope.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -25,7 +25,7 @@ def test_samples_home_uses_table_specific_pagination_and_profile_scope(monkeypat
         captured: dict = {}
 
         def _fetch_samples(**kwargs):
-            """Handle  fetch samples.
+            """Fetch samples.
 
             Args:
                     **kwargs: Kwargs. Additional keyword arguments.
@@ -50,7 +50,7 @@ def test_samples_home_uses_table_specific_pagination_and_profile_scope(monkeypat
             }
 
         def _render(_template_name, **context):
-            """Handle  render.
+            """Render.
 
             Args:
                     _template_name:  template name.
@@ -84,7 +84,7 @@ def test_samples_home_uses_table_specific_pagination_and_profile_scope(monkeypat
 
 
 def test_samples_template_contains_tab_filters():
-    """Handle test samples template contains tab filters.
+    """Test samples template contains tab filters.
 
     Returns:
         The function result.

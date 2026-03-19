@@ -31,7 +31,7 @@ def audit():
             logs_data.extend([line.strip() for line in f])
 
     def _parse_line(line: str) -> dict:
-        """Handle  parse line.
+        """Parse line.
 
         Args:
                 line: Line.

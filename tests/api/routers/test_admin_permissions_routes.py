@@ -10,7 +10,7 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def test_list_permissions_read_groups_by_category(monkeypatch):
-    """Handle test list permissions read groups by category.
+    """Test list permissions read groups by category.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -42,7 +42,7 @@ def test_list_permissions_read_groups_by_category(monkeypatch):
 
 
 def test_create_permission_context_read_no_schema_raises_400(monkeypatch):
-    """Handle test create permission context read no schema raises 400.
+    """Test create permission context read no schema raises 400.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -72,7 +72,7 @@ def test_create_permission_context_read_no_schema_raises_400(monkeypatch):
 
 
 def test_toggle_permission_status_sets_is_active_meta(monkeypatch):
-    """Handle test toggle permission status sets is active meta.
+    """Test toggle permission status sets is active meta.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -106,7 +106,7 @@ def test_toggle_permission_status_sets_is_active_meta(monkeypatch):
 
 
 def test_toggle_permission_status_defaults_legacy_doc_to_active(monkeypatch):
-    """Handle test toggle permission status defaults legacy doc to active.
+    """Test toggle permission status defaults legacy doc to active.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.

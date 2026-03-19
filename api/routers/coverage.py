@@ -20,7 +20,7 @@ def coverage_sample_read(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: CoverageService = Depends(get_coverage_service),
 ):
-    """Handle coverage sample read.
+    """Coverage sample read.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -47,7 +47,7 @@ def coverage_blacklisted_read(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: CoverageService = Depends(get_coverage_service),
 ):
-    """Handle coverage blacklisted read.
+    """Coverage blacklisted read.
 
     Args:
         group (str): Value for ``group``.

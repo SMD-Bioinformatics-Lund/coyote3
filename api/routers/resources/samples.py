@@ -52,7 +52,7 @@ def admin_sample_context_read(
     ),
     service: AdminSampleService = Depends(get_admin_sample_service),
 ):
-    """Handle admin sample context read.
+    """Admin sample context read.
 
     Args:
         sample_id (str): Value for ``sample_id``.

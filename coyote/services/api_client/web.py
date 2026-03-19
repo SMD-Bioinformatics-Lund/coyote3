@@ -67,7 +67,7 @@ def app_error_response(status_code: int, message: str, details: str | None = Non
 
 
 def _compose_flash_message(message: str, exc: ApiRequestError) -> str:
-    """Handle  compose flash message.
+    """Compose flash message.
 
     Args:
             message: Message.

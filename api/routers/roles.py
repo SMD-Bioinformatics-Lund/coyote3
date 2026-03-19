@@ -19,7 +19,7 @@ router = APIRouter(tags=["admin-roles"])
 
 
 def _service() -> AdminRoleService:
-    """Handle  service.
+    """Service.
 
     Returns:
             The  service result.
@@ -83,7 +83,7 @@ def role_context_read(
     ),
     service: AdminRoleService = Depends(get_admin_role_service),
 ):
-    """Handle role context read.
+    """Role context read.
 
     Args:
         role_id (str): Value for ``role_id``.
@@ -98,7 +98,7 @@ def role_context_read(
 
 
 def _create_role(payload: dict, actor_username: str, service: AdminRoleService):
-    """Handle  create role.
+    """Create role.
 
     Args:
             payload: Payload.
@@ -137,7 +137,7 @@ def create_role(
 
 
 def _update_role(role_id: str, payload: dict, actor_username: str, service: AdminRoleService):
-    """Handle  update role.
+    """Update role.
 
     Args:
             role_id: Role id.
@@ -179,7 +179,7 @@ def update_role(
 
 
 def _toggle_role(role_id: str, service: AdminRoleService):
-    """Handle  toggle role.
+    """Toggle role.
 
     Args:
             role_id: Role id.
@@ -218,7 +218,7 @@ def toggle_role_status(
 
 
 def _delete_role(role_id: str, service: AdminRoleService):
-    """Handle  delete role.
+    """Delete role.
 
     Args:
             role_id: Role id.

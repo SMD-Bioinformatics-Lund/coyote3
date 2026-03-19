@@ -21,7 +21,7 @@ def dashboard_summary(
     user: ApiUser = Depends(require_access()),
     service: DashboardService = Depends(get_dashboard_service),
 ):
-    """Handle dashboard summary.
+    """Dashboard summary.
 
     Args:
         user (ApiUser): Value for ``user``.
@@ -38,7 +38,7 @@ def dashboard_admin_insights(
     user: ApiUser = Depends(require_access(min_role="admin", min_level=99999)),
     service: DashboardService = Depends(get_dashboard_service),
 ):
-    """Handle dashboard admin insights.
+    """Dashboard admin insights.
 
     Args:
         user (ApiUser): Value for ``user``.

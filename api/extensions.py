@@ -12,7 +12,7 @@ class Utility:
     """Utility container used by API routes/services."""
 
     def init_util(self) -> None:
-        """Handle init util.
+        """Init util.
 
         Returns:
             None.
@@ -27,7 +27,7 @@ class _LazyHandlerProxy:
     """Minimal handler proxy that supports monkeypatching before runtime init."""
 
     def __getattr__(self, _name):
-        """Handle __getattr__.
+        """__getattr__.
 
         Args:
                 _name:  name.
@@ -37,7 +37,7 @@ class _LazyHandlerProxy:
         """
 
         def _missing(*_args, **_kwargs):
-            """Handle  missing.
+            """Missing.
 
             Args:
                     *_args:  args. Additional positional arguments.

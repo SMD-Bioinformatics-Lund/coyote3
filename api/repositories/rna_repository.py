@@ -11,7 +11,7 @@ class RnaRouteRepository:
 
     @property
     def schema_handler(self):
-        """Handle schema handler.
+        """Schema handler.
 
         Returns:
             The function result.
@@ -20,7 +20,7 @@ class RnaRouteRepository:
 
     @property
     def asp_handler(self):
-        """Handle asp handler.
+        """Asp handler.
 
         Returns:
             The function result.
@@ -29,7 +29,7 @@ class RnaRouteRepository:
 
     @property
     def isgl_handler(self):
-        """Handle isgl handler.
+        """Isgl handler.
 
         Returns:
             The function result.
@@ -38,7 +38,7 @@ class RnaRouteRepository:
 
     @property
     def sample_handler(self):
-        """Handle sample handler.
+        """Sample handler.
 
         Returns:
             The function result.
@@ -47,7 +47,7 @@ class RnaRouteRepository:
 
     @property
     def fusion_handler(self):
-        """Handle fusion handler.
+        """Fusion handler.
 
         Returns:
             The function result.

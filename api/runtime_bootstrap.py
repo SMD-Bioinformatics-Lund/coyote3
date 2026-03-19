@@ -24,7 +24,7 @@ class ApiRuntimeContext:
 
     @property
     def secret_key(self) -> str | None:
-        """Handle secret key.
+        """Secret key.
 
         Returns:
             str | None: The function result.
@@ -54,7 +54,7 @@ def create_runtime_context(testing: bool = False, development: bool = False) -> 
 
 
 def _select_config(testing: bool, development: bool):
-    """Handle  select config.
+    """Select config.
 
     Args:
             testing: Testing.
@@ -71,7 +71,7 @@ def _select_config(testing: bool, development: bool):
 
 
 def _config_dict(config_obj) -> dict[str, Any]:
-    """Handle  config dict.
+    """Config dict.
 
     Args:
             config_obj: Config obj.

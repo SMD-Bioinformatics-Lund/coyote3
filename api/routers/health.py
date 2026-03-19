@@ -12,7 +12,7 @@ router = APIRouter(tags=["system"])
 
 @router.get("/api/v1/health", response_model=HealthPayload)
 def health():
-    """Handle health.
+    """Health.
 
     Returns:
         The function result.
@@ -22,7 +22,7 @@ def health():
 
 @router.get("/api/vi/docs", response_model=HealthPayload, include_in_schema=False)
 def docs_alias_vi():
-    """Handle docs alias vi.
+    """Docs alias vi.
 
     Returns:
         The function result.

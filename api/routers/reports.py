@@ -25,7 +25,7 @@ if not hasattr(util, "common"):
 
 
 def _rna_workflow_service() -> type[RNAWorkflowService]:
-    """Handle  rna workflow service.
+    """Rna workflow service.
 
     Returns:
             The  rna workflow service result.
@@ -36,7 +36,7 @@ def _rna_workflow_service() -> type[RNAWorkflowService]:
 
 
 def _dna_workflow_service() -> type[DNAWorkflowService]:
-    """Handle  dna workflow service.
+    """Dna workflow service.
 
     Returns:
             The  dna workflow service result.
@@ -47,7 +47,7 @@ def _dna_workflow_service() -> type[DNAWorkflowService]:
 
 
 def _normalize_rendered_report_payload(report_payload: dict | None) -> tuple[str, list]:
-    """Handle  normalize rendered report payload.
+    """Normalize rendered report payload.
 
     Args:
             report_payload: Report payload.
@@ -71,7 +71,7 @@ report_service = ReportService()
 
 
 def _load_report_context(sample_id: str, user: ApiUser) -> tuple[dict, dict]:
-    """Handle  load report context.
+    """Load report context.
 
     Args:
             sample_id: Sample id.
@@ -88,7 +88,7 @@ def _load_report_context(sample_id: str, user: ApiUser) -> tuple[dict, dict]:
 
 
 def _validate_report_inputs(analyte: ReportAnalyte, sample: dict, assay_config: dict) -> None:
-    """Handle  validate report inputs.
+    """Validate report inputs.
 
     Args:
             analyte: Analyte.
@@ -109,7 +109,7 @@ def _validate_report_inputs(analyte: ReportAnalyte, sample: dict, assay_config: 
 def _build_preview_report(
     analyte: ReportAnalyte, sample: dict, assay_config: dict, *, save: bool, include_snapshot: bool
 ):
-    """Handle  build preview report.
+    """Build preview report.
 
     Args:
             analyte: Analyte.
@@ -140,7 +140,7 @@ def _build_preview_report(
 def _build_report_location(
     analyte: ReportAnalyte, sample: dict, assay_config: dict
 ) -> tuple[str, str, str]:
-    """Handle  build report location.
+    """Build report location.
 
     Args:
             analyte: Analyte.
@@ -167,7 +167,7 @@ def _build_report_location(
 
 
 def _prepare_report_output(analyte: ReportAnalyte, report_path: str, report_file: str) -> None:
-    """Handle  prepare report output.
+    """Prepare report output.
 
     Args:
             analyte: Analyte.
@@ -201,7 +201,7 @@ def _persist_report(
     snapshot_rows: list,
     created_by: str,
 ) -> str:
-    """Handle  persist report.
+    """Persist report.
 
     Args:
             analyte: Analyte.
@@ -256,7 +256,7 @@ def preview_report(
         require_access(permission="preview_report", min_role="user", min_level=9)
     ),
 ):
-    """Handle preview report.
+    """Preview report.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -302,7 +302,7 @@ def save_report(
     report_payload: dict | None = Body(default=None),
     user: ApiUser = Depends(require_access(permission="create_report", min_role="admin")),
 ):
-    """Handle save report.
+    """Save report.
 
     Args:
         sample_id (str): Value for ``sample_id``.

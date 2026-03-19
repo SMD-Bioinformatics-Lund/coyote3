@@ -49,7 +49,7 @@ class PrefixMiddleware:
     """
 
     def __init__(self, app, prefix: str):
-        """Handle __init__.
+        """__init__.
 
         Args:
                 app: App.
@@ -59,7 +59,7 @@ class PrefixMiddleware:
         self.prefix = prefix.rstrip("/")
 
     def __call__(self, environ, start_response):
-        """Handle __call__.
+        """__call__.
 
         Args:
                 environ: Environ.
@@ -177,7 +177,7 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
 
         @app.context_processor
         def inject_build_meta():
-            """Handle inject build meta.
+            """Inject build meta.
 
             Returns:
                     The inject build meta result.
@@ -349,7 +349,7 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
 
     @app.before_request
     def _bind_request_id() -> None:
-        """Handle  bind request id.
+        """Bind request id.
 
         Returns:
                 None.
@@ -359,7 +359,7 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
 
     @app.after_request
     def _log_request(response):
-        """Handle  log request.
+        """Log request.
 
         Args:
                 response: Response.
@@ -413,7 +413,7 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
 
     @app.teardown_appcontext
     def _close_api_client(_exc) -> None:
-        """Handle  close api client.
+        """Close api client.
 
         Args:
                 _exc:  exc.

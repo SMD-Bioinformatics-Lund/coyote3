@@ -80,7 +80,7 @@ def schema_context_read(
     ),
     service: AdminSchemaService = Depends(get_admin_schema_service),
 ):
-    """Handle schema context read.
+    """Schema context read.
 
     Args:
         schema_id (str): Value for ``schema_id``.

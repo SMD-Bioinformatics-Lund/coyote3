@@ -19,7 +19,7 @@ FORBIDDEN_PATTERNS = [
 
 @pytest.mark.contract
 def test_ui_layer_does_not_use_mongo_clients_or_drivers():
-    """Handle test ui layer does not use mongo clients or drivers.
+    """Test ui layer does not use mongo clients or drivers.
 
     Returns:
         The function result.

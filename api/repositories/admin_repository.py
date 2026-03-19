@@ -20,7 +20,7 @@ class AdminRepository:
 
     @property
     def permissions_handler(self):
-        """Handle permissions handler.
+        """Permissions handler.
 
         Returns:
             The function result.
@@ -29,7 +29,7 @@ class AdminRepository:
 
     @property
     def roles_handler(self):
-        """Handle roles handler.
+        """Roles handler.
 
         Returns:
             The function result.
@@ -38,7 +38,7 @@ class AdminRepository:
 
     @property
     def asp_handler(self):
-        """Handle asp handler.
+        """Asp handler.
 
         Returns:
             The function result.
@@ -47,7 +47,7 @@ class AdminRepository:
 
     @property
     def schema_handler(self):
-        """Handle schema handler.
+        """Schema handler.
 
         Returns:
             The function result.
@@ -56,7 +56,7 @@ class AdminRepository:
 
     @property
     def user_handler(self):
-        """Handle user handler.
+        """User handler.
 
         Returns:
             The function result.
@@ -65,7 +65,7 @@ class AdminRepository:
 
     @property
     def isgl_handler(self):
-        """Handle isgl handler.
+        """Isgl handler.
 
         Returns:
             The function result.
@@ -74,7 +74,7 @@ class AdminRepository:
 
     @property
     def aspc_handler(self):
-        """Handle aspc handler.
+        """Aspc handler.
 
         Returns:
             The function result.
@@ -83,7 +83,7 @@ class AdminRepository:
 
     @property
     def sample_handler(self):
-        """Handle sample handler.
+        """Sample handler.
 
         Returns:
             The function result.
@@ -805,7 +805,7 @@ class AdminRepository:
         return dict(schema) if isinstance(schema, dict) else schema
 
     def clone_schema(self, schema: dict[str, Any]) -> dict[str, Any]:
-        """Handle clone schema.
+        """Clone schema.
 
         Args:
             schema (dict[str, Any]): Value for ``schema``.

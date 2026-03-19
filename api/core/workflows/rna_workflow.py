@@ -63,7 +63,7 @@ class RNAWorkflowService:
 
     @classmethod
     def _repo(cls) -> RNAWorkflowRepository:
-        """Handle  repo.
+        """Repo.
 
         Returns:
                 The  repo result.

@@ -29,7 +29,7 @@ router = APIRouter(tags=["auth"])
 
 @router.get("/api/v1/auth/whoami", response_model=WhoamiPayload)
 def whoami(user: ApiUser = Depends(require_access(min_level=1))):
-    """Handle whoami.
+    """Whoami.
 
     Args:
         user (ApiUser): Value for ``user``.
@@ -47,7 +47,7 @@ def whoami(user: ApiUser = Depends(require_access(min_level=1))):
 
 
 def _login_response(payload: ApiAuthLoginRequest):
-    """Handle  login response.
+    """Login response.
 
     Args:
             payload: Payload.
@@ -110,7 +110,7 @@ def create_auth_session(payload: ApiAuthLoginRequest):
 
 
 def _logout_response():
-    """Handle  logout response.
+    """Logout response.
 
     Returns:
             The  logout response result.
@@ -140,7 +140,7 @@ def delete_auth_session():
     summary="Get current authenticated session",
 )
 def auth_session(user: ApiUser = Depends(require_access(min_level=1))):
-    """Handle auth session.
+    """Auth session.
 
     Args:
         user (ApiUser): Value for ``user``.
@@ -152,7 +152,7 @@ def auth_session(user: ApiUser = Depends(require_access(min_level=1))):
 
 
 async def http_exception_handler(_request: Request, exc: HTTPException):
-    """Handle http exception handler.
+    """Http exception handler.
 
     Args:
         _request (Request): Value for ``_request``.

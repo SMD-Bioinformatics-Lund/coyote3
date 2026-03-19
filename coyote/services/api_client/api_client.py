@@ -58,7 +58,7 @@ def close_web_api_client() -> None:
 
 
 def _api_cookie_name() -> str:
-    """Handle  api cookie name.
+    """Api cookie name.
 
     Returns:
             The  api cookie name result.

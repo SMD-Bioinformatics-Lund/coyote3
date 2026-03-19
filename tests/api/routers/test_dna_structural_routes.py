@@ -6,7 +6,7 @@ from api.main import app as api_app
 
 
 def test_restful_dna_structural_mutation_routes_are_registered():
-    """Handle test restful dna structural mutation routes are registered.
+    """Test restful dna structural mutation routes are registered.
 
     Returns:
         The function result.

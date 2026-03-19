@@ -9,7 +9,7 @@ class MongoDashboardRepository:
     """Provide mongo dashboard persistence operations."""
 
     def count_users(self) -> int:
-        """Handle count users.
+        """Count users.
 
         Returns:
             int: The function result.
@@ -17,7 +17,7 @@ class MongoDashboardRepository:
         return int(store.user_handler.count_users())
 
     def count_roles(self, is_active: bool | None = None) -> int:
-        """Handle count roles.
+        """Count roles.
 
         Args:
             is_active (bool | None): Value for ``is_active``.
@@ -28,7 +28,7 @@ class MongoDashboardRepository:
         return int(store.roles_handler.count_roles(is_active=is_active))
 
     def count_asps(self, is_active: bool | None = None) -> int:
-        """Handle count asps.
+        """Count asps.
 
         Args:
             is_active (bool | None): Value for ``is_active``.
@@ -39,7 +39,7 @@ class MongoDashboardRepository:
         return int(store.asp_handler.count_asps(is_active=is_active))
 
     def count_aspcs(self, is_active: bool | None = None) -> int:
-        """Handle count aspcs.
+        """Count aspcs.
 
         Args:
             is_active (bool | None): Value for ``is_active``.
@@ -50,7 +50,7 @@ class MongoDashboardRepository:
         return int(store.aspc_handler.count_aspcs(is_active=is_active))
 
     def count_isgls(self, is_active: bool | None = None) -> int:
-        """Handle count isgls.
+        """Count isgls.
 
         Returns:
             int: The function result.

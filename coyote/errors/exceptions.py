@@ -15,7 +15,7 @@ class AppError(Exception):
     """
 
     def __init__(self, status_code: int, message: str, details: str | None = None):
-        """Handle __init__.
+        """__init__.
 
         Args:
                 status_code: Status code.

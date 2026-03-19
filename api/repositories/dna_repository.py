@@ -10,7 +10,7 @@ class DnaRouteRepository:
 
     @property
     def cnv_handler(self):
-        """Handle cnv handler.
+        """Cnv handler.
 
         Returns:
             The function result.
@@ -19,7 +19,7 @@ class DnaRouteRepository:
 
     @property
     def asp_handler(self):
-        """Handle asp handler.
+        """Asp handler.
 
         Returns:
             The function result.
@@ -28,7 +28,7 @@ class DnaRouteRepository:
 
     @property
     def isgl_handler(self):
-        """Handle isgl handler.
+        """Isgl handler.
 
         Returns:
             The function result.
@@ -37,7 +37,7 @@ class DnaRouteRepository:
 
     @property
     def variant_handler(self):
-        """Handle variant handler.
+        """Variant handler.
 
         Returns:
             The function result.
@@ -46,7 +46,7 @@ class DnaRouteRepository:
 
     @property
     def blacklist_handler(self):
-        """Handle blacklist handler.
+        """Blacklist handler.
 
         Returns:
             The function result.
@@ -55,7 +55,7 @@ class DnaRouteRepository:
 
     @property
     def bam_service_handler(self):
-        """Handle bam service handler.
+        """Bam service handler.
 
         Returns:
             The function result.
@@ -64,7 +64,7 @@ class DnaRouteRepository:
 
     @property
     def vep_meta_handler(self):
-        """Handle vep meta handler.
+        """Vep meta handler.
 
         Returns:
             The function result.
@@ -73,7 +73,7 @@ class DnaRouteRepository:
 
     @property
     def sample_handler(self):
-        """Handle sample handler.
+        """Sample handler.
 
         Returns:
             The function result.
@@ -82,7 +82,7 @@ class DnaRouteRepository:
 
     @property
     def schema_handler(self):
-        """Handle schema handler.
+        """Schema handler.
 
         Returns:
             The function result.
@@ -91,7 +91,7 @@ class DnaRouteRepository:
 
     @property
     def oncokb_handler(self):
-        """Handle oncokb handler.
+        """Oncokb handler.
 
         Returns:
             The function result.
@@ -100,7 +100,7 @@ class DnaRouteRepository:
 
     @property
     def biomarker_handler(self):
-        """Handle biomarker handler.
+        """Biomarker handler.
 
         Returns:
             The function result.
@@ -109,7 +109,7 @@ class DnaRouteRepository:
 
     @property
     def transloc_handler(self):
-        """Handle transloc handler.
+        """Transloc handler.
 
         Returns:
             The function result.
@@ -118,7 +118,7 @@ class DnaRouteRepository:
 
     @property
     def annotation_handler(self):
-        """Handle annotation handler.
+        """Annotation handler.
 
         Returns:
             The function result.
@@ -127,7 +127,7 @@ class DnaRouteRepository:
 
     @property
     def expression_handler(self):
-        """Handle expression handler.
+        """Expression handler.
 
         Returns:
             The function result.
@@ -136,7 +136,7 @@ class DnaRouteRepository:
 
     @property
     def civic_handler(self):
-        """Handle civic handler.
+        """Civic handler.
 
         Returns:
             The function result.
@@ -145,7 +145,7 @@ class DnaRouteRepository:
 
     @property
     def brca_handler(self):
-        """Handle brca handler.
+        """Brca handler.
 
         Returns:
             The function result.
@@ -154,7 +154,7 @@ class DnaRouteRepository:
 
     @property
     def iarc_tp53_handler(self):
-        """Handle iarc tp53 handler.
+        """Iarc tp53 handler.
 
         Returns:
             The function result.
@@ -163,7 +163,7 @@ class DnaRouteRepository:
 
     @property
     def fusion_handler(self):
-        """Handle fusion handler.
+        """Fusion handler.
 
         Returns:
             The function result.

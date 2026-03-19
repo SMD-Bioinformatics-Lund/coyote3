@@ -33,7 +33,7 @@ class SampleDeletionService:
 
     @classmethod
     def _repo(cls) -> AdminSampleDeletionRepository:
-        """Handle  repo.
+        """Repo.
 
         Returns:
                 The  repo result.

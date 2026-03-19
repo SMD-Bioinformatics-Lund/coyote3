@@ -9,7 +9,7 @@ from tests.fixtures.api.fake_store import build_fake_store
 
 
 def test_home_isgls_read_with_fake_store(monkeypatch):
-    """Handle test home isgls read with fake store.
+    """Test home isgls read with fake store.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -39,7 +39,7 @@ def test_home_isgls_read_with_fake_store(monkeypatch):
 
 
 def test_home_effective_genes_read_with_fake_store(monkeypatch):
-    """Handle test home effective genes read with fake store.
+    """Test home effective genes read with fake store.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.

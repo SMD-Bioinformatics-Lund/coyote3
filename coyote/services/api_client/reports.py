@@ -18,7 +18,7 @@ ReportAnalyte = Literal["dna", "rna"]
 
 
 def _report_collection_endpoint(analyte: ReportAnalyte, sample_id: str) -> str:
-    """Handle  report collection endpoint.
+    """Report collection endpoint.
 
     Args:
             analyte: Analyte.
@@ -36,7 +36,7 @@ def _report_collection_endpoint(analyte: ReportAnalyte, sample_id: str) -> str:
 
 
 def _report_preview_endpoint(analyte: ReportAnalyte, sample_id: str) -> str:
-    """Handle  report preview endpoint.
+    """Report preview endpoint.
 
     Args:
             analyte: Analyte.
@@ -95,7 +95,7 @@ def render_preview_html(payload: ApiPayload) -> str:
 
 
 def save_report_from_preview(analyte: ReportAnalyte, sample_id: str) -> ApiPayload:
-    """Handle save report from preview.
+    """Save report from preview.
 
     Args:
         analyte (ReportAnalyte): Value for ``analyte``.

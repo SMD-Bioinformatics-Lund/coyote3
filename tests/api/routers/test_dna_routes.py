@@ -21,7 +21,7 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def test_mutation_payload_shape():
-    """Handle test mutation payload shape.
+    """Test mutation payload shape.
 
     Returns:
         The function result.
@@ -35,7 +35,7 @@ def test_mutation_payload_shape():
 
 
 def test_load_cnvs_for_sample_uses_collection_shaped_docs(monkeypatch):
-    """Handle test load cnvs for sample uses collection shaped docs.
+    """Test load cnvs for sample uses collection shaped docs.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -66,7 +66,7 @@ def test_load_cnvs_for_sample_uses_collection_shaped_docs(monkeypatch):
 
 
 def test_list_dna_biomarkers_success(monkeypatch):
-    """Handle test list dna biomarkers success.
+    """Test list dna biomarkers success.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -94,7 +94,7 @@ def test_list_dna_biomarkers_success(monkeypatch):
 
 
 def test_show_dna_variant_not_found_raises_404(monkeypatch):
-    """Handle test show dna variant not found raises 404.
+    """Test show dna variant not found raises 404.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -114,7 +114,7 @@ def test_show_dna_variant_not_found_raises_404(monkeypatch):
 
 
 def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
-    """Handle test show dna variant handles list consequence for oncokb."""
+    """Test show dna variant handles list consequence for oncokb."""
     sample = fx.sample_doc()
     sample["_id"] = "sample-1"
     variant = {
@@ -206,7 +206,7 @@ def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
 
 
 def test_list_dna_variants_does_not_require_report_path(monkeypatch):
-    """Handle test list dna variants does not require report path.
+    """Test list dna variants does not require report path.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -287,7 +287,7 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
 
 
 def test_classify_variant_mutation_calls_insert(monkeypatch):
-    """Handle test classify variant mutation calls insert.
+    """Test classify variant mutation calls insert.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -335,7 +335,7 @@ def test_classify_variant_mutation_calls_insert(monkeypatch):
 
 
 def test_set_variant_false_positive_bulk_prefers_json_payload(monkeypatch):
-    """Handle test set variant false positive bulk prefers json payload.
+    """Test set variant false positive bulk prefers json payload.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -372,7 +372,7 @@ def test_set_variant_false_positive_bulk_prefers_json_payload(monkeypatch):
 
 
 def test_set_variant_irrelevant_bulk_remove_uses_json_payload(monkeypatch):
-    """Handle test set variant irrelevant bulk remove uses json payload.
+    """Test set variant irrelevant bulk remove uses json payload.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -409,7 +409,7 @@ def test_set_variant_irrelevant_bulk_remove_uses_json_payload(monkeypatch):
 
 
 def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
-    """Handle test set variant tier bulk apply inserts class and text docs.
+    """Test set variant tier bulk apply inserts class and text docs.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -492,7 +492,7 @@ def test_set_variant_tier_bulk_apply_inserts_class_and_text_docs(monkeypatch):
 
 
 def test_set_variant_tier_bulk_remove_deletes_class_and_matching_text(monkeypatch):
-    """Handle test set variant tier bulk remove deletes class and matching text.
+    """Test set variant tier bulk remove deletes class and matching text.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -567,7 +567,7 @@ def test_set_variant_tier_bulk_remove_deletes_class_and_matching_text(monkeypatc
 
 
 def test_bulk_flag_routes_use_non_colliding_paths():
-    """Handle test bulk flag routes use non colliding paths.
+    """Test bulk flag routes use non colliding paths.
 
     Returns:
         The function result.
@@ -585,7 +585,7 @@ def test_bulk_flag_routes_use_non_colliding_paths():
 
 
 def _route_test_user() -> ApiUser:
-    """Handle  route test user.
+    """Route test user.
 
     Returns:
             The  route test user result.
@@ -607,7 +607,7 @@ def _route_test_user() -> ApiUser:
 
 
 def test_bulk_fp_endpoint_dispatches_in_real_http_route(monkeypatch):
-    """Handle test bulk fp endpoint dispatches in real http route.
+    """Test bulk fp endpoint dispatches in real http route.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -643,7 +643,7 @@ def test_bulk_fp_endpoint_dispatches_in_real_http_route(monkeypatch):
 
 
 def test_bulk_irrelevant_endpoint_dispatches_in_real_http_route(monkeypatch):
-    """Handle test bulk irrelevant endpoint dispatches in real http route.
+    """Test bulk irrelevant endpoint dispatches in real http route.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.

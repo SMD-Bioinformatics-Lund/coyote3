@@ -20,7 +20,7 @@ class PermissionManagementService:
     """Own permission-policy workflows for admin HTTP routes."""
 
     def __init__(self, repository: AdminRepository | None = None) -> None:
-        """Handle __init__.
+        """__init__.
 
         Args:
                 repository: Repository. Optional argument.
@@ -82,7 +82,7 @@ class PermissionManagementService:
         return {"schemas": schemas, "selected_schema": selected_schema, "schema": schema}
 
     def context_payload(self, *, permission_id: str) -> dict[str, Any]:
-        """Handle context payload.
+        """Context payload.
 
         Args:
             permission_id (str): Value for ``permission_id``.

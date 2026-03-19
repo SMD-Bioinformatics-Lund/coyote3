@@ -9,7 +9,7 @@ from api.security.repository import get_security_repository
 
 
 def _lookup_user_doc(login_identifier: str) -> dict | None:
-    """Handle  lookup user doc.
+    """Lookup user doc.
 
     Args:
             login_identifier: Login identifier.
@@ -29,7 +29,7 @@ def _lookup_user_doc(login_identifier: str) -> dict | None:
 
 
 def _is_local_auth_allowlisted(login_identifier: str, user_doc: dict) -> bool:
-    """Handle  is local auth allowlisted.
+    """Is local auth allowlisted.
 
     Args:
             login_identifier: Login identifier.
@@ -52,7 +52,7 @@ def _is_local_auth_allowlisted(login_identifier: str, user_doc: dict) -> bool:
 
 
 def _ldap_authenticate(username: str, password: str) -> bool:
-    """Handle  ldap authenticate.
+    """Ldap authenticate.
 
     Args:
             username: Username.

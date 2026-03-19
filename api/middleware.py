@@ -30,7 +30,7 @@ def build_authentication_middleware(
     """Build the request middleware that initializes runtime state and enforces API auth."""
 
     async def api_authentication_middleware(request: Request, call_next):
-        """Handle api authentication middleware.
+        """Api authentication middleware.
 
         Args:
             request (Request): Value for ``request``.

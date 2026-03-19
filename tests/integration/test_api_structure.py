@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 def test_canonical_api_packages_exist():
-    """Handle test canonical api packages exist.
+    """Test canonical api packages exist.
 
     Returns:
         The function result.

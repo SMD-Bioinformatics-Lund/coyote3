@@ -14,7 +14,7 @@ class ReportService:
 
     @staticmethod
     def sample_meta(sample: dict) -> dict:
-        """Handle sample meta.
+        """Sample meta.
 
         Args:
             sample (dict): Value for ``sample``.
@@ -39,7 +39,7 @@ class ReportService:
         template_context: dict[str, Any],
         snapshot_rows: list,
     ) -> ReportPreviewPayload:
-        """Handle preview payload.
+        """Preview payload.
 
         Args:
             sample (dict): Value for ``sample``.
@@ -70,7 +70,7 @@ class ReportService:
     def save_payload(
         *, sample: dict, report_id: str, report_oid: str, report_file: str, snapshot_rows: list
     ) -> ReportSavePayload:
-        """Handle save payload.
+        """Save payload.
 
         Args:
             sample (dict): Value for ``sample``.

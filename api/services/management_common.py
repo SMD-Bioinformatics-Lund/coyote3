@@ -12,7 +12,7 @@ from api.runtime import current_username
 def mutation_payload(
     *, resource: str, resource_id: str, action: str, sample_id: str = "admin"
 ) -> dict[str, Any]:
-    """Handle mutation payload.
+    """Mutation payload.
 
     Args:
         resource (str): Value for ``resource``.
@@ -34,7 +34,7 @@ def mutation_payload(
 
 
 def current_actor(default_username: str) -> str:
-    """Handle current actor.
+    """Current actor.
 
     Args:
         default_username (str): Value for ``default_username``.
@@ -46,7 +46,7 @@ def current_actor(default_username: str) -> str:
 
 
 def utc_now() -> str:
-    """Handle utc now.
+    """Utc now.
 
     Returns:
         str: The function result.
@@ -55,7 +55,7 @@ def utc_now() -> str:
 
 
 def lower(value: Any) -> str:
-    """Handle lower.
+    """Lower.
 
     Args:
         value (Any): Value for ``value``.
@@ -73,7 +73,7 @@ def role_permission_overrides(
     permissions: list[str] | None,
     deny_permissions: list[str] | None,
 ) -> tuple[list[str], list[str]]:
-    """Handle role permission overrides.
+    """Role permission overrides.
 
     Args:
         role_map (dict[str, dict[str, Any]]): Value for ``role_map``.
@@ -101,7 +101,7 @@ def inject_version_history(
     old_config: dict[str, Any] | None = None,
     is_new: bool,
 ) -> dict[str, Any]:
-    """Handle inject version history.
+    """Inject version history.
 
     Args:
         actor_username (str): Value for ``actor_username``.

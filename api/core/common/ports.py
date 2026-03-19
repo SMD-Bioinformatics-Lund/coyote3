@@ -69,7 +69,7 @@ class CommonRepository(Protocol):
         assays: list[str] | None,
         limit: int | None,
     ) -> list[dict]:
-        """Handle find variants by search string.
+        """Find variants by search string.
 
         Args:
             search_str (str | None): Value for ``search_str``.

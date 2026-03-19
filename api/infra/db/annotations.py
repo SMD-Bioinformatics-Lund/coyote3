@@ -45,7 +45,7 @@ class AnnotationsHandler(BaseHandler):
         self.set_collection(self.adapter.annotations_collection)
 
     def ensure_indexes(self) -> None:
-        """Handle ensure indexes.
+        """Ensure indexes.
 
         Returns:
             None.
@@ -724,7 +724,7 @@ class AnnotationsHandler(BaseHandler):
         }
 
         def _tier_rollup_stage():
-            """Handle  tier rollup stage.
+            """Tier rollup stage.
 
             Returns:
                     The  tier rollup stage result.

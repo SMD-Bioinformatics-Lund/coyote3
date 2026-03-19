@@ -62,7 +62,7 @@ class ISGLHandler(BaseHandler):
 
     @staticmethod
     def _normalize_isgl_id(isgl_id: str | None) -> str | None:
-        """Handle  normalize isgl id.
+        """Normalize isgl id.
 
         Args:
                 isgl_id: Isgl id.
@@ -76,7 +76,7 @@ class ISGLHandler(BaseHandler):
         return normalized or None
 
     def _isgl_lookup_query(self, isgl_id: str) -> dict:
-        """Handle  isgl lookup query.
+        """Isgl lookup query.
 
         Args:
                 isgl_id: Isgl id.
@@ -88,7 +88,7 @@ class ISGLHandler(BaseHandler):
         return {"isgl_id": normalized}
 
     def ensure_isgl_id(self, data: dict) -> dict:
-        """Handle ensure isgl id.
+        """Ensure isgl id.
 
         Args:
             data (dict): Value for ``data``.

@@ -13,11 +13,11 @@ class _FakeRedis:
     """Provide  FakeRedis behavior."""
 
     def __init__(self):
-        """Handle __init__."""
+        """__init__."""
         self._values: dict[str, bytes] = {}
 
     def ping(self) -> bool:
-        """Handle ping.
+        """Ping.
 
         Returns:
             bool: The function result.
@@ -25,7 +25,7 @@ class _FakeRedis:
         return True
 
     def get(self, key: str):
-        """Handle get.
+        """Get.
 
         Args:
             key (str): Value for ``key``.
@@ -36,7 +36,7 @@ class _FakeRedis:
         return self._values.get(key)
 
     def set(self, key: str, value: bytes):
-        """Handle set.
+        """Set.
 
         Args:
             key (str): Value for ``key``.
@@ -49,7 +49,7 @@ class _FakeRedis:
         return True
 
     def setex(self, key: str, _ttl: int, value: bytes):
-        """Handle setex.
+        """Setex.
 
         Args:
             key (str): Value for ``key``.
@@ -64,7 +64,7 @@ class _FakeRedis:
 
 
 def test_cache_backend_disabled_by_config():
-    """Handle test cache backend disabled by config.
+    """Test cache backend disabled by config.
 
     Returns:
         The function result.
@@ -80,7 +80,7 @@ def test_cache_backend_disabled_by_config():
 
 
 def test_cache_backend_falls_back_when_redis_unavailable(monkeypatch: pytest.MonkeyPatch):
-    """Handle test cache backend falls back when redis unavailable.
+    """Test cache backend falls back when redis unavailable.
 
     Args:
         monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
@@ -94,7 +94,7 @@ def test_cache_backend_falls_back_when_redis_unavailable(monkeypatch: pytest.Mon
 
         @staticmethod
         def from_url(*args, **kwargs):  # noqa: ARG004
-            """Handle from url.
+            """From url.
 
             Args:
                 *args: Additional positional values for ``args``.
@@ -119,7 +119,7 @@ def test_cache_backend_falls_back_when_redis_unavailable(monkeypatch: pytest.Mon
 
 
 def test_cache_backend_required_raises_when_redis_unavailable(monkeypatch: pytest.MonkeyPatch):
-    """Handle test cache backend required raises when redis unavailable.
+    """Test cache backend required raises when redis unavailable.
 
     Args:
         monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
@@ -133,7 +133,7 @@ def test_cache_backend_required_raises_when_redis_unavailable(monkeypatch: pytes
 
         @staticmethod
         def from_url(*args, **kwargs):  # noqa: ARG004
-            """Handle from url.
+            """From url.
 
             Args:
                 *args: Additional positional values for ``args``.
@@ -158,7 +158,7 @@ def test_cache_backend_required_raises_when_redis_unavailable(monkeypatch: pytes
 
 
 def test_redis_cache_backend_roundtrip(monkeypatch: pytest.MonkeyPatch):
-    """Handle test redis cache backend roundtrip.
+    """Test redis cache backend roundtrip.
 
     Args:
         monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
@@ -173,7 +173,7 @@ def test_redis_cache_backend_roundtrip(monkeypatch: pytest.MonkeyPatch):
 
         @staticmethod
         def from_url(*args, **kwargs):  # noqa: ARG004
-            """Handle from url.
+            """From url.
 
             Args:
                 *args: Additional positional values for ``args``.

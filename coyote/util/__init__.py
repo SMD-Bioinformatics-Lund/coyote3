@@ -18,7 +18,7 @@ class Utility:
     """
 
     def __init__(self):
-        """Handle __init__."""
+        """__init__."""
         pass
 
     def init_util(self) -> None:

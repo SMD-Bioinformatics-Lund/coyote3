@@ -13,7 +13,7 @@ from coyote.services.api_client.base import ApiPayload
 
 
 def _view_modules() -> list[Path]:
-    """Handle  view modules.
+    """View modules.
 
     Returns:
             The  view modules result.
@@ -22,7 +22,7 @@ def _view_modules() -> list[Path]:
 
 
 def _literal_url_for_endpoints_from_python() -> list[tuple[str, int, str]]:
-    """Handle  literal url for endpoints from python.
+    """Literal url for endpoints from python.
 
     Returns:
             The  literal url for endpoints from python result.
@@ -44,7 +44,7 @@ def _literal_url_for_endpoints_from_python() -> list[tuple[str, int, str]]:
 
 
 def _literal_url_for_endpoints_from_templates() -> list[tuple[str, int, str]]:
-    """Handle  literal url for endpoints from templates.
+    """Literal url for endpoints from templates.
 
     Returns:
             The  literal url for endpoints from templates result.
@@ -60,7 +60,7 @@ def _literal_url_for_endpoints_from_templates() -> list[tuple[str, int, str]]:
 
 
 def test_ui_views_do_not_import_api_core_or_infra():
-    """Handle test ui views do not import api core or infra.
+    """Test ui views do not import api core or infra.
 
     Returns:
         The function result.
@@ -83,7 +83,7 @@ def test_ui_views_do_not_import_api_core_or_infra():
 
 
 def test_ui_route_smoke_with_stubbed_api(monkeypatch):
-    """Handle test ui route smoke with stubbed api.
+    """Test ui route smoke with stubbed api.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -93,7 +93,7 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
     """
 
     def _payload(value: dict) -> ApiPayload:
-        """Handle  payload.
+        """Payload.
 
         Args:
                 value: Value.
@@ -104,7 +104,7 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
         return ApiPayload(value)
 
     def _schema(schema_id: str, field_name: str = "name") -> dict:
-        """Handle  schema.
+        """Schema.
 
         Args:
                 schema_id: Schema id.
@@ -131,7 +131,7 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
         }
 
     def _fake_get(self, path, headers=None, params=None):  # noqa: ARG001
-        """Handle  fake get.
+        """Fake get.
 
         Args:
                 path: Path.
@@ -332,7 +332,7 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
         return _payload({})
 
     def _fake_post(self, path, headers=None, params=None, json_body=None):  # noqa: ARG001
-        """Handle  fake post.
+        """Fake post.
 
         Args:
                 path: Path.
@@ -408,7 +408,7 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
 
 
 def test_admin_endpoints_restored(monkeypatch):
-    """Handle test admin endpoints restored.
+    """Test admin endpoints restored.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -440,7 +440,7 @@ def test_admin_endpoints_restored(monkeypatch):
 
 
 def test_admin_create_templates_use_correct_schema_switch_routes():
-    """Handle test admin create templates use correct schema switch routes.
+    """Test admin create templates use correct schema switch routes.
 
     Returns:
         The function result.
@@ -457,7 +457,7 @@ def test_admin_create_templates_use_correct_schema_switch_routes():
 
 
 def test_ui_literal_url_for_endpoints_exist(monkeypatch):
-    """Handle test ui literal url for endpoints exist.
+    """Test ui literal url for endpoints exist.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.

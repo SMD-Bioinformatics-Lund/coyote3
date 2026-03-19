@@ -14,7 +14,7 @@ _PROD_BLOCKED_VALUES: dict[str, set[str]] = {
 
 
 def _to_bool(value: Any, default: bool = False) -> bool:
-    """Handle  to bool.
+    """To bool.
 
     Args:
             value: Value.
@@ -42,7 +42,7 @@ def to_bool(value: Any, default: bool = False) -> bool:
 
 
 def _is_non_production(config: Mapping[str, Any] | None = None) -> bool:
-    """Handle  is non production.
+    """Is non production.
 
     Args:
             config: Config. Optional argument.
@@ -60,7 +60,7 @@ def _is_non_production(config: Mapping[str, Any] | None = None) -> bool:
 
 
 def _require_setting(config: Mapping[str, Any], key: str) -> str:
-    """Handle  require setting.
+    """Require setting.
 
     Args:
             config: Config.

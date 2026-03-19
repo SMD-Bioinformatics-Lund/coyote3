@@ -11,7 +11,7 @@ from tests.fixtures.api import mock_collections as fx
 
 
 def test_common_gene_info_read_by_symbol(monkeypatch):
-    """Handle test common gene info read by symbol.
+    """Test common gene info read by symbol.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -30,7 +30,7 @@ def test_common_gene_info_read_by_symbol(monkeypatch):
 
 
 def test_common_tiered_variant_context_not_found_raises_404(monkeypatch):
-    """Handle test common tiered variant context not found raises 404.
+    """Test common tiered variant context not found raises 404.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.
@@ -51,7 +51,7 @@ def test_common_tiered_variant_context_not_found_raises_404(monkeypatch):
 
 
 def test_common_tiered_variant_context_insufficient_identity_returns_error_payload(monkeypatch):
-    """Handle test common tiered variant context insufficient identity returns error payload.
+    """Test common tiered variant context insufficient identity returns error payload.
 
     Args:
         monkeypatch: Value for ``monkeypatch``.

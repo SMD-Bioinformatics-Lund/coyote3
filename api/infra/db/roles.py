@@ -53,7 +53,7 @@ class RolesHandler(BaseHandler):
 
     @staticmethod
     def _normalize_role_id(role_id: str | None) -> str | None:
-        """Handle  normalize role id.
+        """Normalize role id.
 
         Args:
                 role_id: Role id.
@@ -67,7 +67,7 @@ class RolesHandler(BaseHandler):
         return normalized or None
 
     def _role_lookup_query(self, role_id: str) -> dict:
-        """Handle  role lookup query.
+        """Role lookup query.
 
         Args:
                 role_id: Role id.
@@ -79,7 +79,7 @@ class RolesHandler(BaseHandler):
         return {"role_id": normalized}
 
     def ensure_role_id(self, role_data: dict) -> dict:
-        """Handle ensure role id.
+        """Ensure role id.
 
         Args:
             role_data (dict): Value for ``role_data``.

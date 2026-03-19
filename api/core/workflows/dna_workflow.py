@@ -45,7 +45,7 @@ class DNAWorkflowService:
 
     @classmethod
     def _repo(cls) -> DNAReportingRepository:
-        """Handle  repo.
+        """Repo.
 
         Returns:
                 The  repo result.

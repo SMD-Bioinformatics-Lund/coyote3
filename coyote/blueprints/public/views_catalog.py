@@ -116,7 +116,7 @@ def assay_catalog_genes_csv(mod: str, cat: str | None = None, isgl_key: str | No
 
 @public_bp.route("/assay-catalog/genes/<isgl_key>/view")
 def assay_catalog_isgl_genes_view(isgl_key: str | None = None) -> str:
-    """Handle assay catalog isgl genes view.
+    """Assay catalog isgl genes view.
 
     Args:
         isgl_key (str | None): Value for ``isgl_key``.

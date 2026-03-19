@@ -21,7 +21,7 @@ class AdminRoleService:
     """Own role-management workflows for admin HTTP routes."""
 
     def __init__(self, repository: AdminRepository | None = None) -> None:
-        """Handle __init__.
+        """__init__.
 
         Args:
                 repository: Repository. Optional argument.
@@ -80,7 +80,7 @@ class AdminRoleService:
         }
 
     def context_payload(self, *, role_id: str) -> dict[str, Any]:
-        """Handle context payload.
+        """Context payload.
 
         Args:
             role_id (str): Value for ``role_id``.

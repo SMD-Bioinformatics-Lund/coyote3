@@ -54,7 +54,7 @@ SAMPLES_PER_ASSAY = 10
 
 
 def _json_safe(value: Any) -> Any:
-    """Handle  json safe.
+    """Json safe.
 
     Args:
             value: Value.
@@ -76,7 +76,7 @@ def _json_safe(value: Any) -> Any:
 
 
 def _sorted_cursor(coll, query: dict | None = None):
-    """Handle  sorted cursor.
+    """Sorted cursor.
 
     Args:
             coll: Coll.
@@ -95,7 +95,7 @@ def _sorted_cursor(coll, query: dict | None = None):
 
 
 def _latest_doc(coll, query: dict | None = None) -> dict | None:
-    """Handle  latest doc.
+    """Latest doc.
 
     Args:
             coll: Coll.
@@ -116,7 +116,7 @@ def _latest_doc(coll, query: dict | None = None) -> dict | None:
 
 
 def _collection_counts(coll, scoped_query: dict | None = None) -> tuple[int, int | None]:
-    """Handle  collection counts.
+    """Collection counts.
 
     Args:
             coll: Coll.
@@ -137,7 +137,7 @@ def _collection_counts(coll, scoped_query: dict | None = None) -> tuple[int, int
 
 
 def _sample_assay_values(coll, scoped_query: dict | None = None) -> list[Any]:
-    """Handle  sample assay values.
+    """Sample assay values.
 
     Args:
             coll: Coll.
@@ -156,7 +156,7 @@ def _sample_assay_values(coll, scoped_query: dict | None = None) -> list[Any]:
 
 
 def _merge_query(base: dict | None, extra: dict | None) -> dict:
-    """Handle  merge query.
+    """Merge query.
 
     Args:
             base: Base.
@@ -171,7 +171,7 @@ def _merge_query(base: dict | None, extra: dict | None) -> dict:
 
 
 def _sample_documents(coll, scoped_query: dict | None = None) -> list[dict[str, Any]]:
-    """Handle  sample documents.
+    """Sample documents.
 
     Args:
             coll: Coll.
@@ -193,7 +193,7 @@ def _sample_documents(coll, scoped_query: dict | None = None) -> list[dict[str, 
 
 
 def _collection_has_sample_id(coll) -> bool:
-    """Handle  collection has sample id.
+    """Collection has sample id.
 
     Args:
             coll: Coll.
@@ -214,7 +214,7 @@ def _documents_for_collection(
     scoped_query: dict | None,
     sampled_sample_ids: list[Any],
 ) -> tuple[list[dict[str, Any]], str]:
-    """Handle  documents for collection.
+    """Documents for collection.
 
     Args:
             alias: Alias. Keyword-only argument.
@@ -238,7 +238,7 @@ def _documents_for_collection(
 
 
 def _extract(config_obj, scoped_query: dict | None = None) -> dict[str, Any]:
-    """Handle  extract.
+    """Extract.
 
     Args:
             config_obj: Config obj.
@@ -301,7 +301,7 @@ def _extract(config_obj, scoped_query: dict | None = None) -> dict[str, Any]:
 
 
 def main() -> None:
-    """Handle main.
+    """Main.
 
     Returns:
         None.

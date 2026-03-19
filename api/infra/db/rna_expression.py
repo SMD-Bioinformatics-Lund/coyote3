@@ -36,7 +36,7 @@ class RNAExpressionHandler(BaseHandler):
         self.set_collection(self.adapter.rna_expression_collection)
 
     def ensure_indexes(self) -> None:
-        """Handle ensure indexes.
+        """Ensure indexes.
 
         Returns:
             None.

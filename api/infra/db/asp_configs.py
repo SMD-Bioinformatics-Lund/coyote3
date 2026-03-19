@@ -58,7 +58,7 @@ class ASPConfigHandler(BaseHandler):
 
     @staticmethod
     def _normalize_aspc_id(aspc_id: str | None) -> str | None:
-        """Handle  normalize aspc id.
+        """Normalize aspc id.
 
         Args:
                 aspc_id: Aspc id.
@@ -72,7 +72,7 @@ class ASPConfigHandler(BaseHandler):
         return normalized or None
 
     def _aspc_lookup_query(self, aspc_id: str) -> dict:
-        """Handle  aspc lookup query.
+        """Aspc lookup query.
 
         Args:
                 aspc_id: Aspc id.
@@ -84,7 +84,7 @@ class ASPConfigHandler(BaseHandler):
         return {"aspc_id": normalized}
 
     def ensure_aspc_id(self, data: dict) -> dict:
-        """Handle ensure aspc id.
+        """Ensure aspc id.
 
         Args:
             data (dict): Value for ``data``.

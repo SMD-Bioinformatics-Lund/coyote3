@@ -9,7 +9,7 @@ class _LoggerLike(Protocol):
     """Define the minimal logger interface used by workflow contract checks."""
 
     def error(self, msg: str) -> None:
-        """Handle error.
+        """Error.
 
         Args:
             msg (str): Value for ``msg``.
@@ -21,7 +21,7 @@ class _LoggerLike(Protocol):
 
 
 def _raise_contract_error(logger: _LoggerLike, tag: str, sample_name: str, message: str) -> None:
-    """Handle  raise contract error.
+    """Raise contract error.
 
     Args:
             logger: Logger.

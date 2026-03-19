@@ -20,7 +20,7 @@ class RnaService:
         repository: RnaRouteRepository | None = None,
         workflow_repository: RnaWorkflowRepository | None = None,
     ) -> None:
-        """Handle __init__.
+        """__init__.
 
         Args:
                 repository: Repository. Optional argument.
@@ -35,7 +35,7 @@ class RnaService:
     def mutation_payload(
         sample_id: str, resource: str, resource_id: str, action: str
     ) -> dict[str, Any]:
-        """Handle mutation payload.
+        """Mutation payload.
 
         Args:
             sample_id (str): Value for ``sample_id``.

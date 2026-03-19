@@ -102,7 +102,7 @@ def genelist_context_read(
     user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
     service: AdminGenelistService = Depends(get_admin_genelist_service),
 ):
-    """Handle genelist context read.
+    """Genelist context read.
 
     Args:
         genelist_id (str): Value for ``genelist_id``.
@@ -126,7 +126,7 @@ def genelist_view_context_read(
     user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
     service: AdminGenelistService = Depends(get_admin_genelist_service),
 ):
-    """Handle genelist view context read.
+    """Genelist view context read.
 
     Args:
         genelist_id (str): Value for ``genelist_id``.

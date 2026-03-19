@@ -32,7 +32,7 @@ if not hasattr(util, "common"):
 
 
 def _catalog_service() -> type[PublicCatalogService]:
-    """Handle  catalog service.
+    """Catalog service.
 
     Returns:
             The  catalog service result.
@@ -46,7 +46,7 @@ def _catalog_service() -> type[PublicCatalogService]:
     "/api/v1/public/genelists/{genelist_id}/view_context", response_model=PublicGenelistViewPayload
 )
 def public_genelist_view_context_read(genelist_id: str, assay: str | None = None):
-    """Handle public genelist view context read.
+    """Public genelist view context read.
 
     Args:
         genelist_id (str): Value for ``genelist_id``.
@@ -64,7 +64,7 @@ def public_genelist_view_context_read(genelist_id: str, assay: str | None = None
 
 @router.get("/api/v1/public/asp/{asp_id}/genes", response_model=PublicAspGenesPayload)
 def public_asp_genes_read(asp_id: str):
-    """Handle public asp genes read.
+    """Public asp genes read.
 
     Args:
         asp_id (str): Value for ``asp_id``.
@@ -81,7 +81,7 @@ def public_asp_genes_read(asp_id: str):
     response_model=PublicGeneSymbolsPayload,
 )
 def public_assay_catalog_isgl_genes_view_read(isgl_key: str):
-    """Handle public assay catalog isgl genes view read.
+    """Public assay catalog isgl genes view read.
 
     Args:
         isgl_key (str): Value for ``isgl_key``.
@@ -97,7 +97,7 @@ def public_assay_catalog_isgl_genes_view_read(isgl_key: str):
     "/api/v1/public/assay-catalog-matrix/context", response_model=PublicAssayCatalogMatrixPayload
 )
 def public_assay_catalog_matrix_context_read():
-    """Handle public assay catalog matrix context read.
+    """Public assay catalog matrix context read.
 
     Returns:
         The function result.
@@ -233,7 +233,7 @@ def public_assay_catalog_context_read(
     cat: str | None = None,
     isgl_key: str | None = None,
 ):
-    """Handle public assay catalog context read.
+    """Public assay catalog context read.
 
     Args:
         mod (str | None): Value for ``mod``.
@@ -329,7 +329,7 @@ def public_assay_catalog_genes_csv_context_read(
     cat: str | None = None,
     isgl_key: str | None = None,
 ):
-    """Handle public assay catalog genes csv context read.
+    """Public assay catalog genes csv context read.
 
     Args:
         mod (str): Value for ``mod``.

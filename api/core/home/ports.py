@@ -84,7 +84,7 @@ class HomeRepository(Protocol):
         ...
 
     def reset_sample_settings(self, sample_id: str, filters: dict) -> None:
-        """Handle reset sample settings.
+        """Reset sample settings.
 
         Args:
             sample_id (str): Value for ``sample_id``.

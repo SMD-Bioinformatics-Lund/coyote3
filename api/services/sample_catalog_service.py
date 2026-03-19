@@ -16,7 +16,7 @@ class SampleCatalogService:
     """Own sample-list and sample-context workflows for the API."""
 
     def __init__(self, repository: HomeRepository | None = None) -> None:
-        """Handle __init__.
+        """__init__.
 
         Args:
                 repository: Repository. Optional argument.
@@ -42,7 +42,7 @@ class SampleCatalogService:
         assay_group: str | None,
         limit_done_samples: int | None,
     ) -> dict[str, Any]:
-        """Handle samples payload.
+        """Samples payload.
 
         Args:
             user: Value for ``user``.
@@ -150,7 +150,7 @@ class SampleCatalogService:
         }
 
     def genelist_items_payload(self, *, sample: dict) -> dict[str, Any]:
-        """Handle genelist items payload.
+        """Genelist items payload.
 
         Args:
             sample (dict): Value for ``sample``.
@@ -174,7 +174,7 @@ class SampleCatalogService:
         }
 
     def effective_genes_payload(self, *, sample: dict) -> dict[str, Any]:
-        """Handle effective genes payload.
+        """Effective genes payload.
 
         Args:
             sample (dict): Value for ``sample``.
@@ -208,7 +208,7 @@ class SampleCatalogService:
         return {"items": items, "asp_covered_genes_count": len(asp_covered_genes)}
 
     def edit_context_payload(self, *, sample: dict) -> dict[str, Any]:
-        """Handle edit context payload.
+        """Edit context payload.
 
         Args:
             sample (dict): Value for ``sample``.
@@ -292,7 +292,7 @@ class SampleCatalogService:
     def save_adhoc_genes(
         self, *, sample: dict, payload: dict[str, Any], sample_id: str
     ) -> dict[str, Any]:
-        """Handle save adhoc genes.
+        """Save adhoc genes.
 
         Args:
             sample (dict): Value for ``sample``.
@@ -319,7 +319,7 @@ class SampleCatalogService:
         }
 
     def clear_adhoc_genes(self, *, sample: dict, sample_id: str) -> dict[str, Any]:
-        """Handle clear adhoc genes.
+        """Clear adhoc genes.
 
         Args:
             sample (dict): Value for ``sample``.
@@ -336,7 +336,7 @@ class SampleCatalogService:
     def report_context_payload(
         self, *, sample: dict, report_id: str, sample_id: str
     ) -> dict[str, Any]:
-        """Handle report context payload.
+        """Report context payload.
 
         Args:
             sample (dict): Value for ``sample``.

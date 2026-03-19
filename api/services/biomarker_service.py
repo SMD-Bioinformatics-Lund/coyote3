@@ -10,7 +10,7 @@ class BiomarkerService:
     """Provide biomarker workflows."""
 
     def __init__(self, repository: DnaRouteRepository | None = None) -> None:
-        """Handle __init__.
+        """__init__.
 
         Args:
                 repository: Repository. Optional argument.

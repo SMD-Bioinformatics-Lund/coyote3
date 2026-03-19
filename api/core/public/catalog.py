@@ -40,7 +40,7 @@ class PublicCatalogService:
 
     @classmethod
     def _repo(cls) -> PublicCatalogRepository:
-        """Handle  repo.
+        """Repo.
 
         Returns:
                 The  repo result.
@@ -64,7 +64,7 @@ class PublicCatalogService:
 
     @staticmethod
     def modalities_order() -> List[str]:
-        """Handle modalities order.
+        """Modalities order.
 
         Returns:
             List[str]: The function result.
@@ -98,7 +98,7 @@ class PublicCatalogService:
 
     @staticmethod
     def modality_block(mod: str) -> Optional[Dict[str, Any]]:
-        """Handle modality block.
+        """Modality block.
 
         Args:
             mod (str): Value for ``mod``.
@@ -110,7 +110,7 @@ class PublicCatalogService:
 
     @staticmethod
     def categories_for(mod: str) -> List[Dict[str, Any]]:
-        """Handle categories for.
+        """Categories for.
 
         Args:
             mod (str): Value for ``mod``.
@@ -133,7 +133,7 @@ class PublicCatalogService:
 
     @staticmethod
     def category_def(mod: str, cat_id: str) -> Optional[Dict[str, Any]]:
-        """Handle category def.
+        """Category def.
 
         Args:
             mod (str): Value for ``mod``.
@@ -151,7 +151,7 @@ class PublicCatalogService:
 
     @classmethod
     def _fetch_aspc(cls, aspc_ids: Optional[Dict[str, str]], env: str) -> Optional[Dict[str, Any]]:
-        """Handle  fetch aspc.
+        """Fetch aspc.
 
         Args:
                 aspc_ids: Aspc ids.
@@ -171,7 +171,7 @@ class PublicCatalogService:
     def hydrate_category(
         cls, mod: str, cat_id: str, gl_id: str | None = None, env: str = DEFAULT_ENV
     ) -> Optional[Dict[str, Any]]:
-        """Handle hydrate category.
+        """Hydrate category.
 
         Args:
             mod (str): Value for ``mod``.
@@ -229,7 +229,7 @@ class PublicCatalogService:
 
     @staticmethod
     def hydrate_modality(mod: str) -> Dict[str, Any]:
-        """Handle hydrate modality.
+        """Hydrate modality.
 
         Args:
             mod (str): Value for ``mod``.
@@ -251,7 +251,7 @@ class PublicCatalogService:
 
     @classmethod
     def _covered_genes(cls, asp_id: Optional[str]) -> Tuple[List[str], List[str]]:
-        """Handle  covered genes.
+        """Covered genes.
 
         Args:
                 asp_id: Asp id.
@@ -268,7 +268,7 @@ class PublicCatalogService:
     def resolve_gene_table(
         cls, asp_id: Optional[str], isgl_key: Optional[str]
     ) -> Tuple[str, List[Dict[str, Any]], Dict[str, int]]:
-        """Handle resolve gene table.
+        """Resolve gene table.
 
         Args:
             asp_id (Optional[str]): Value for ``asp_id``.
@@ -331,7 +331,7 @@ class PublicCatalogService:
 
     @staticmethod
     def _hgnc_placeholder(symbol: str) -> Dict[str, Any]:
-        """Handle  hgnc placeholder.
+        """Hgnc placeholder.
 
         Args:
                 symbol: Symbol.
@@ -384,7 +384,7 @@ class PublicCatalogService:
     def _merge_with_placeholders(
         symbols: List[str], rows: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-        """Handle  merge with placeholders.
+        """Merge with placeholders.
 
         Args:
                 symbols: Symbols.
@@ -432,7 +432,7 @@ class PublicCatalogService:
     def genelist_view_context(
         cls, genelist_id: str, assay: str | None = None
     ) -> dict[str, Any] | None:
-        """Handle genelist view context.
+        """Genelist view context.
 
         Args:
             genelist_id (str): Value for ``genelist_id``.
@@ -471,7 +471,7 @@ class PublicCatalogService:
 
     @classmethod
     def asp_genes_payload(cls, asp_id: str) -> dict[str, Any]:
-        """Handle asp genes payload.
+        """Asp genes payload.
 
         Args:
             asp_id (str): Value for ``asp_id``.
@@ -489,7 +489,7 @@ class PublicCatalogService:
 
     @classmethod
     def assay_catalog_gene_symbols_payload(cls, isgl_key: str) -> dict[str, Any]:
-        """Handle assay catalog gene symbols payload.
+        """Assay catalog gene symbols payload.
 
         Args:
             isgl_key (str): Value for ``isgl_key``.
@@ -503,7 +503,7 @@ class PublicCatalogService:
 
     @classmethod
     def isgl_genes_for_matrix(cls, isgl_key: str) -> set[str]:
-        """Handle isgl genes for matrix.
+        """Isgl genes for matrix.
 
         Args:
             isgl_key (str): Value for ``isgl_key``.

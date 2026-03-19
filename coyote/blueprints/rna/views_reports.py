@@ -17,7 +17,7 @@ from coyote.services.api_client.web import flash_api_success, log_api_error
 @rna_bp.route("/sample/<string:sample_id>/preview_report", methods=["GET", "POST"])
 @login_required
 def generate_rna_report(sample_id: str, **kwargs) -> Response | str:
-    """Handle generate rna report.
+    """Generate rna report.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -44,7 +44,7 @@ def generate_rna_report(sample_id: str, **kwargs) -> Response | str:
 @rna_bp.route("/sample/<string:sample_id>/report/save")
 @login_required
 def save_rna_report(sample_id: str) -> Response:
-    """Handle save rna report.
+    """Save rna report.
 
     Args:
         sample_id (str): Value for ``sample_id``.

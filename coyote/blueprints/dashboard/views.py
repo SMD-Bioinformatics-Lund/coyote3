@@ -69,7 +69,7 @@ _DEFAULT_ISGL_ASSOCIATION = {"assay_isgl_counts": []}
 
 
 def _as_int(value: object, default: int = 0) -> int:
-    """Handle  as int.
+    """As int.
 
     Args:
             value: Value.
@@ -85,7 +85,7 @@ def _as_int(value: object, default: int = 0) -> int:
 
 
 def _normalize_variant_stats(stats: object) -> dict[str, int]:
-    """Handle  normalize variant stats.
+    """Normalize variant stats.
 
     Args:
             stats: Stats.
@@ -102,7 +102,7 @@ def _normalize_variant_stats(stats: object) -> dict[str, int]:
 
 
 def _normalize_sample_stats(stats: object) -> dict[str, dict]:
-    """Handle  normalize sample stats.
+    """Normalize sample stats.
 
     Args:
             stats: Stats.
@@ -121,7 +121,7 @@ def _normalize_sample_stats(stats: object) -> dict[str, dict]:
 
 
 def _normalize_tier_stats(stats: object) -> dict:
-    """Handle  normalize tier stats.
+    """Normalize tier stats.
 
     Args:
             stats: Stats.
@@ -145,7 +145,7 @@ def _normalize_tier_stats(stats: object) -> dict:
 
 
 def _normalize_quality_stats(stats: object) -> dict:
-    """Handle  normalize quality stats.
+    """Normalize quality stats.
 
     Args:
             stats: Stats.
@@ -163,7 +163,7 @@ def _normalize_quality_stats(stats: object) -> dict:
 
 
 def _normalize_dashboard_meta(meta: object) -> dict:
-    """Handle  normalize dashboard meta.
+    """Normalize dashboard meta.
 
     Args:
             meta: Meta.
@@ -183,7 +183,7 @@ def _normalize_dashboard_meta(meta: object) -> dict:
 
 
 def _normalize_admin_insights(insights: object) -> dict:
-    """Handle  normalize admin insights.
+    """Normalize admin insights.
 
     Args:
             insights: Insights.
@@ -201,7 +201,7 @@ def _normalize_admin_insights(insights: object) -> dict:
 
 
 def _normalize_capacity_counts(counts: object) -> dict:
-    """Handle  normalize capacity counts.
+    """Normalize capacity counts.
 
     Args:
             counts: Counts.
@@ -218,7 +218,7 @@ def _normalize_capacity_counts(counts: object) -> dict:
 
 
 def _normalize_isgl_visibility(payload: object) -> dict:
-    """Handle  normalize isgl visibility.
+    """Normalize isgl visibility.
 
     Args:
             payload: Payload.
