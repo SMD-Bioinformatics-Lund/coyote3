@@ -152,6 +152,12 @@ Alternative helper script:
 ./scripts/install.sh
 ```
 
+To include the profile-gated local Mongo container in production compose:
+
+```bash
+USE_LOCAL_MONGO=1 ./scripts/install.sh
+```
+
 ### 6. Development Deployment
 
 Recommended:
@@ -178,18 +184,25 @@ Alternative helper script:
   up -d --build
 ```
 
-### 7. Verify Runtime Health
+Alternative helper script:
+
+```bash
+./scripts/install.stage.sh
+```
+
+### 8. Verify Runtime Health
 
 ```bash
 ./scripts/compose-with-version.sh -f deploy/compose/docker-compose.yml ps
 curl -f http://localhost:${COYOTE3_API_PORT:-5816}/api/v1/health
 ```
 
-### 8. Stop Services
+### 9. Stop Services
 
 ```bash
 ./scripts/compose-with-version.sh -f deploy/compose/docker-compose.yml down
 ./scripts/compose-with-version.sh -f deploy/compose/docker-compose.dev.yml down
+./scripts/compose-with-version.sh -f deploy/compose/docker-compose.stage.yml down
 ```
 
 ## Database Migration and Snapshot Operations
@@ -199,7 +212,7 @@ Run identity migration after restore/import:
 ```bash
 /home/ram/.virtualenvs/coyote3/bin/python scripts/migrate_db_identity.py \
   --mongo-uri mongodb://localhost:37017 \
-  --db coyote3_dev
+  --db coyote3
 ```
 
 Create mixed-assay snapshot:
@@ -207,7 +220,7 @@ Create mixed-assay snapshot:
 ```bash
 /home/ram/.virtualenvs/coyote3/bin/python scripts/create_mongo_snapshot.py \
   --mongo-uri mongodb://localhost:37017 \
-  --db coyote3_dev \
+  --db coyote3 \
   --sample-count 60
 ```
 
@@ -218,7 +231,7 @@ scripts/snapshot_restore_dev.sh \
   --source-uri mongodb://localhost:5818 \
   --source-db coyote3 \
   --target-uri mongodb://localhost:37017 \
-  --target-db coyote3_dev
+  --target-db coyote3
 ```
 
 ## In-App Handbook Routes

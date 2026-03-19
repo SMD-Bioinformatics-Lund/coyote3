@@ -373,7 +373,7 @@ class ProductionConfig(DefaultConfig):
 
     LOGS = "logs/prod"
     PRODUCTION = True
-    ENV_NAME = "Production"
+    ENV_NAME = os.getenv("ENV_NAME", "Production")
     APP_VERSION: str = f"{app_version}"
     SECRET_KEY: str | None = os.getenv("SECRET_KEY")
     SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_prod")
@@ -390,7 +390,7 @@ class DevelopmentConfig(DefaultConfig):
     the development setup.
     """
 
-    COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3_dev")
+    COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3")
     BAM_DB = os.getenv("BAM_DB", "BAM_Service")
     _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
 
@@ -398,7 +398,7 @@ class DevelopmentConfig(DefaultConfig):
 
     LOGS = "logs/dev"
     PRODUCTION = False
-    ENV_NAME = "Development"
+    ENV_NAME = os.getenv("ENV_NAME", "Development")
     SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_dev")
     SECRET_KEY = os.getenv("SECRET_KEY")
     APP_VERSION: str = f"{app_version}-DEV (git: {_active_git_branch_name()})"
@@ -420,7 +420,7 @@ class TestConfig(DefaultConfig):
 
     LOGS = "logs/test"
     PRODUCTION = False
-    ENV_NAME = "Testing"
+    ENV_NAME = os.getenv("ENV_NAME", "Testing")
     SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_test")
     SECRET_KEY = os.getenv("SECRET_KEY")
 
@@ -429,3 +429,20 @@ class TestConfig(DefaultConfig):
     TESTING = True
     LOGIN_DISABLED = True
     DEBUG: bool = True
+
+
+class StageConfig(DefaultConfig):
+    """Staging configuration."""
+
+    COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3")
+    BAM_DB = os.getenv("BAM_DB", "BAM_Service")
+    _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
+
+    LOGS = "logs/stage"
+    PRODUCTION = True
+    STAGING = True
+    ENV_NAME = os.getenv("ENV_NAME", "Staging")
+    APP_VERSION: str = f"{app_version}-STAGE"
+    SECRET_KEY = os.getenv("SECRET_KEY")
+    SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "coyote3_stage")
+    DEBUG: bool = False

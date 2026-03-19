@@ -76,7 +76,7 @@ class PrefixMiddleware:
         return self.app(environ, start_response)
 
 
-def init_app(testing: bool = False, development: bool = False) -> Flask:
+def init_app(testing: bool = False, development: bool = False, staging: bool = False) -> Flask:
     """
     Creates and configures the Flask application instance.
 
@@ -87,6 +87,7 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
     Args:
         testing (bool): If True, loads testing configuration.
         development (bool): If True, loads development configuration and enables debug mode.
+        staging (bool): If True, loads staging configuration.
 
     Returns:
         Flask: The configured Flask application instance.
@@ -107,6 +108,9 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
     # /trends needs this to work.
     CORS(app)
 
+    env_name = os.getenv("ENV_NAME", "").strip().lower()
+    staging_enabled = staging or os.getenv("STAGING", "0") == "1" or env_name == "staging"
+
     if testing:
         app.logger.info("Testing mode ON.")
         app.logger.info("Loading config.TestConfig")
@@ -122,9 +126,21 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
         app.config.from_object(config.DevelopmentConfig())
         app.debug = True
 
+    elif staging_enabled:
+        app.logger.info("Loading config.StageConfig")
+        app.config.from_object(config.StageConfig())
+
     else:
         app.logger.info("Loading config.ProductionConfig")
         app.config.from_object(config.ProductionConfig())  # Note initialization of Config
+
+    app.logger.info(
+        "Runtime banner: env=%s version=%s git=%s build=%s",
+        app.config.get("ENV_NAME"),
+        app.config.get("APP_VERSION"),
+        app.config.get("GIT_COMMIT", "unknown"),
+        app.config.get("BUILD_TIME", "unknown"),
+    )
 
     app.logger.info("Initializing app extensions + blueprints:")
     with app.app_context():

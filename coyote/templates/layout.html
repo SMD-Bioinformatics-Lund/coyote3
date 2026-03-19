@@ -127,7 +127,7 @@
           <a href="{{ url_for('docs_bp.about') }}"
              title="View release notes"
              class="text-xs font-normal tracking-tight pt-2 align-baseline hover:underline">
-            v{{ config['APP_VERSION'] }}
+            v{{ config['APP_VERSION'] }} · {{ config.get('ENV_NAME', 'unknown') }}
           </a>
         </div>
 

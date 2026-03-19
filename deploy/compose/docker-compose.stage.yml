@@ -1,6 +1,6 @@
 name: coyote3-stage
 # usage:
-#   cp example.stage.env .coyote3_stage_env
+#   cp deploy/env/example.stage.env .coyote3_stage_env
 #   export COYOTE3_VERSION="$(python3 coyote/__version__.py)"
 #   docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml up -d --build
 services:
@@ -120,7 +120,7 @@ services:
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME:-coyote3_root}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-CHANGE_ME_STAGE_ROOT_PASSWORD}
-      - COYOTE3_DB=${COYOTE3_DB:-coyote3_stage}
+      - COYOTE3_DB=${COYOTE3_DB:-coyote3}
       - MONGO_APP_USER=${MONGO_APP_USER:-coyote3_app}
       - MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD:-CHANGE_ME_STAGE_APP_PASSWORD}
     volumes:

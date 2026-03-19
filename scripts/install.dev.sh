@@ -23,7 +23,7 @@ set -euo pipefail
 # deploy/compose/docker-compose.dev.yml.
 # ------------------------------------------
 
-echo "Starting Coyote3 Developmental Deployment..."
+echo "Starting Coyote3 Development Deployment..."
 
 # Resolve repository root from this script location
 SCRIPT_PATH="$(realpath "$0")"
@@ -75,7 +75,11 @@ if ! docker network inspect coyote3-dev-net >/dev/null 2>&1; then
     docker network create coyote3-dev-net >/dev/null
 fi
 
-echo "Starting dev compose services: coyote3_dev_web, coyote3_dev_api, coyote3_dev_tailwind, redis_coyote3_dev"
+SERVICES="$("$COMPOSE_WRAPPER" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" config --services | tr '\n' ' ' | sed 's/[[:space:]]*$//')"
+echo "Environment: development"
+echo "Compose file: $COMPOSE_FILE"
+echo "Env file: $ENV_FILE"
+echo "Services: $SERVICES"
 "$COMPOSE_WRAPPER" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build
 
 # Final message

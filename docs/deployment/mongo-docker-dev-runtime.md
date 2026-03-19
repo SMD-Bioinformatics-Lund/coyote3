@@ -39,10 +39,10 @@ Bootstrap command:
 For dev work, configure `.coyote3_dev_env`:
 
 ```env
-COYOTE3_DB='coyote3_dev'
+COYOTE3_DB='coyote3'
 MONGO_APP_USER='coyote3_app'
 MONGO_APP_PASSWORD='CHANGE_ME_DEV_APP_PASSWORD'
-MONGO_URI='mongodb://coyote3_app:CHANGE_ME_DEV_APP_PASSWORD@coyote3_dev_mongo:27017/coyote3_dev'
+MONGO_URI='mongodb://coyote3_app:CHANGE_ME_DEV_APP_PASSWORD@coyote3_dev_mongo:27017/coyote3'
 ```
 
 `MONGO_URI` is required.
@@ -66,7 +66,7 @@ Example:
 
 /home/ram/.virtualenvs/coyote3/bin/python scripts/migrate_db_identity.py \
   --mongo-uri mongodb://localhost:37017 \
-  --db coyote3_dev
+  --db coyote3
 ```
 
 Current behavior:
@@ -84,7 +84,7 @@ Create a curated mixed-assay snapshot:
 ```bash
 /home/ram/.virtualenvs/coyote3/bin/python scripts/create_mongo_snapshot.py \
   --mongo-uri mongodb://localhost:37017 \
-  --db coyote3_dev \
+  --db coyote3 \
   --sample-count 60 \
   --output-dir snapshots
 ```
@@ -94,7 +94,7 @@ Create a snapshot from explicit sample selectors:
 ```bash
 /home/ram/.virtualenvs/coyote3/bin/python scripts/create_mongo_snapshot.py \
   --mongo-uri mongodb://localhost:37017 \
-  --db coyote3_dev \
+  --db coyote3 \
   --sample-list-file /tmp/sample_selectors.txt
 ```
 
@@ -105,7 +105,7 @@ scripts/snapshot_restore_dev.sh \
   --source-uri mongodb://localhost:5818 \
   --source-db coyote3 \
   --target-uri mongodb://localhost:37017 \
-  --target-db coyote3_dev \
+  --target-db coyote3 \
   --fresh-snapshot \
   --sample-count 60
 ```
@@ -124,25 +124,25 @@ Create/rotate app users for existing Mongo volumes:
 ```bash
 /home/ram/.virtualenvs/coyote3/bin/python scripts/mongo_bootstrap_users.py \
   --mongo-uri "mongodb://<root-user>:<root-pass>@localhost:37017/admin" \
-  --app-db coyote3_dev \
+  --app-db coyote3 \
   --app-user coyote3_app \
   --app-password '<new-strong-password>'
 ```
 
-## 7. Keeping `coyote3` and `coyote3_dev` aligned
-When both DB names are used during migration/testing, keep data synchronized.
+## 7. Keeping isolated instances aligned
+When dev/stage/prod each use isolated Mongo instances, keep data synchronized via snapshot transfer.
 
 Recommended operator script pattern:
-- source DB: `coyote3`
-- target DB: `coyote3_dev`
-- restore with `--db-map coyote3=coyote3_dev --drop-db`
+- source DB: `coyote3` (production Mongo)
+- target DB: `coyote3` (dev/stage Mongo)
+- restore with `--drop-db` against the target instance
 
 Validation query (example):
 
 ```python
 from pymongo import MongoClient
 c = MongoClient("mongodb://localhost:37017")
-for dbname in ["coyote3", "coyote3_dev"]:
+for dbname in ["coyote3"]:
     db = c[dbname]
     print(dbname, {
         "samples": db["samples"].count_documents({}),

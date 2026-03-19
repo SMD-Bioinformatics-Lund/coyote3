@@ -23,7 +23,7 @@ cp deploy/env/example.prod.env .coyote3_env
 
 Required per-environment differences:
 
-- `MONGO_URI` and DB name (`COYOTE3_DB`)
+- `MONGO_URI` (target host/instance and credentials)
 - Mongo credentials (`MONGO_ROOT_USERNAME`, `MONGO_ROOT_PASSWORD`, `MONGO_APP_USER`, `MONGO_APP_PASSWORD`)
 - secrets (`SECRET_KEY`, `COYOTE3_FERNET_KEY`, `INTERNAL_API_TOKEN`, `API_SESSION_SALT`)
 - host ports
@@ -112,6 +112,12 @@ Deploy staging:
   up -d --build
 ```
 
+Alternative helper script:
+
+```bash
+./scripts/install.stage.sh
+```
+
 Stage dataset refresh from production snapshot (recommended):
 
 ```bash
@@ -126,7 +132,7 @@ Run identity migration on staging DB after restore/import:
 ```bash
 /home/ram/.virtualenvs/coyote3/bin/python scripts/migrate_db_identity.py \
   --mongo-uri "<staging-mongo-uri>" \
-  --db "coyote3_stage"
+  --db "coyote3"
 ```
 
 Staging verification checklist:

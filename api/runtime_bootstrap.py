@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass
 from typing import Any
 
@@ -43,6 +44,13 @@ def create_runtime_context(testing: bool = False, development: bool = False) -> 
         is_production=bool(conf.get("PRODUCTION", False)),
     )
     logger = logging.getLogger("coyote.api")
+    logger.info(
+        "Runtime banner: env=%s version=%s git=%s build=%s",
+        conf.get("ENV_NAME"),
+        conf.get("APP_VERSION"),
+        conf.get("GIT_COMMIT", "unknown"),
+        conf.get("BUILD_TIME", "unknown"),
+    )
     runtime = ApiRuntimeContext(config=conf, logger=logger)
 
     _init_cache(runtime)
@@ -67,6 +75,9 @@ def _select_config(testing: bool, development: bool):
         return config.TestConfig()
     if development:
         return config.DevelopmentConfig()
+    env_name = os.getenv("ENV_NAME", "").strip().lower()
+    if os.getenv("STAGING", "0") == "1" or env_name == "staging":
+        return config.StageConfig()
     return config.ProductionConfig()
 
 

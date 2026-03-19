@@ -10,6 +10,7 @@ from logging_setup import add_unique_handlers, custom_logging
 app = init_app(
     testing=bool(int(os.getenv("TESTING", "0"))),
     development=bool(int(os.getenv("DEVELOPMENT", "0"))),
+    staging=bool(int(os.getenv("STAGING", "0"))),
 )
 app.secret_key = app.config.get("SECRET_KEY")
 

@@ -15,37 +15,22 @@ set -euo pipefail
 #
 #
 
-# ------------------------------------------
-# Coyote3 Deployment Script
-# ------------------------------------------
-# This script deploys the Coyote3 stack using docker compose.
-# It exports version/build metadata and starts all services defined in
-# deploy/compose/docker-compose.yml.
-# ------------------------------------------
+echo "Starting Coyote3 Staging Deployment..."
 
-echo "Starting Coyote3 Production Deployment..."
-
-# Resolve repository root from this script location
 SCRIPT_PATH="$(realpath "$0")"
 APP_DIR="$(dirname "$(dirname "$SCRIPT_PATH")")"
-COMPOSE_FILE="$APP_DIR/deploy/compose/docker-compose.yml"
-ENV_FILE="$APP_DIR/.coyote3_env"
+COMPOSE_FILE="$APP_DIR/deploy/compose/docker-compose.stage.yml"
+ENV_FILE="$APP_DIR/.coyote3_stage_env"
 COMPOSE_WRAPPER="$APP_DIR/scripts/compose-with-version.sh"
-PROFILE_ARGS=()
 
-if [[ "${USE_LOCAL_MONGO:-0}" == "1" ]]; then
-    PROFILE_ARGS=(--profile with-mongo)
-fi
-
-# Source the env file if it exists so compose variable interpolation can use it
 if [[ -f "$ENV_FILE" ]]; then
-    echo ".coyote3_env file found. Loading environment variables..."
+    echo ".coyote3_stage_env file found. Loading environment variables..."
     set -a
     # shellcheck disable=SC1090
     source "$ENV_FILE"
     set +a
 else
-    echo "No .coyote3_env file found in project root."
+    echo "No .coyote3_stage_env file found in project root."
     read -p "Enter the file path to load environment variables or type N/No to continue without: " env_path
     if [[ "$env_path" =~ ^([Nn]|[Nn][Oo])$ ]]; then
         echo "Continuing without environment variables."
@@ -62,35 +47,28 @@ else
     fi
 fi
 
-# Read and export compose build/runtime metadata
 COYOTE3_VERSION="$(python3 "$APP_DIR/coyote/__version__.py")"
 export COYOTE3_VERSION
-echo "Deploying Coyote3 version: $COYOTE3_VERSION"
+echo "Deploying Coyote3 version: ${COYOTE3_VERSION}-stage"
 
-# GIT Commit and build time
 GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 export GIT_COMMIT BUILD_TIME
 echo "Git commit: $GIT_COMMIT"
 echo "Build time:  $BUILD_TIME"
 
-# Ensure external compose network exists
-if ! docker network inspect coyote3-net >/dev/null 2>&1; then
-    echo "Creating external docker network: coyote3-net"
-    docker network create coyote3-net >/dev/null
+if ! docker network inspect coyote3-stage-net >/dev/null 2>&1; then
+    echo "Creating external docker network: coyote3-stage-net"
+    docker network create coyote3-stage-net >/dev/null
 fi
 
-SERVICES="$("$COMPOSE_WRAPPER" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" config --services | tr '\n' ' ' | sed 's/[[:space:]]*$//')"
-echo "Environment: production"
+SERVICES="$("$COMPOSE_WRAPPER" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" config --services | tr '\n' ' ' | sed 's/[[:space:]]*$//')"
+echo "Environment: staging"
 echo "Compose file: $COMPOSE_FILE"
 echo "Env file: $ENV_FILE"
-if [[ "${USE_LOCAL_MONGO:-0}" == "1" ]]; then
-    echo "Profile: with-mongo (enabled)"
-fi
 echo "Services: $SERVICES"
-"$COMPOSE_WRAPPER" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" up -d --build
+"$COMPOSE_WRAPPER" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build
 
-# Final message
 echo "Deployment Complete!"
-echo "UI:  https://mtlucmds1.lund.skane.se/coyote3"
-echo "API: http://mtlucmds1.lund.skane.se:5816"
+echo "UI:  http://localhost:${COYOTE3_STAGE_WEB_PORT:-7814}${SCRIPT_NAME:-/coyote3}"
+echo "API: http://localhost:${COYOTE3_STAGE_API_PORT:-7816}"
