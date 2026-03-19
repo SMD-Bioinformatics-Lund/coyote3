@@ -29,6 +29,8 @@ nav:
       - Codebase Map: architecture/codebase-map.md
       - Data Contracts: architecture/data-contracts.md
       - Security Model: architecture/security-model.md
+      - ADR-0001 Auth Provider Resolution: architecture/adr-0001-auth-provider-resolution.md
+      - ADR-0002 Local Password Lifecycle: architecture/adr-0002-local-user-password-lifecycle-and-mail-fallback.md
   - API:
       - API Reference And Workflows: api/reference-and-workflows.md
       - Ingestion API: api/ingestion-api.md
@@ -46,3 +48,4 @@ nav:
   - Maintainers:
       - Maintainer Playbook: maintainers/maintainer-playbook.md
       - Refactor Guidelines: maintainers/refactor-guidelines.md
+      - Developer Cookbook: maintainers/developer-cookbook.md

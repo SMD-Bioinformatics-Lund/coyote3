@@ -48,6 +48,14 @@ jobs:
       - name: Black format check
         run: PYTHONPATH=. black --check --line-length 100 api coyote tests scripts
 
+      - name: Focused mypy checks (auth boundaries)
+        run: |
+          PYTHONPATH=. mypy --follow-imports=skip --ignore-missing-imports \
+            api/security/auth_service.py \
+            api/security/password_flows.py \
+            api/infra/notifications/email.py \
+            api/services/admin_user_service.py
+
       - name: Unit tests
         run: PYTHONPATH=. pytest -q -m unit tests/unit
 
@@ -104,9 +112,26 @@ jobs:
           MONGO_APP_USER=${MONGO_APP_USER}
           MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD}
           EOF
+          cat > .coyote3_test_env <<EOF
+          MONGO_URI=${MONGO_URI}
+          COYOTE3_DB=${COYOTE3_DB}
+          COYOTE3_FERNET_KEY=${COYOTE3_FERNET_KEY}
+          SECRET_KEY=${SECRET_KEY}
+          INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN}
+          MONGO_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
+          MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+          MONGO_APP_USER=${MONGO_APP_USER}
+          MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD}
+          EOF
           docker compose -f deploy/compose/docker-compose.yml config -q
           docker compose -f deploy/compose/docker-compose.dev.yml config -q
           docker compose -f deploy/compose/docker-compose.stage.yml config -q
+          docker compose -f deploy/compose/docker-compose.test.yml config -q
+
+      - name: Docs strict build
+        run: |
+          python -m pip install -r requirements-docs.txt
+          mkdocs build --strict
 
       - name: Snapshot tooling smoke
         run: |

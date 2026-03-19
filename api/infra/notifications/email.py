@@ -5,6 +5,7 @@ from __future__ import annotations
 import smtplib
 from email.message import EmailMessage
 
+from api.observability.auth_metrics import emit_mail_metric
 from api.runtime import app as runtime_app
 
 
@@ -20,6 +21,7 @@ def send_email(*, to_email: str, subject: str, text_body: str) -> bool:
     Returns ``False`` when SMTP is not configured or when sending fails.
     """
     if not smtp_configured():
+        emit_mail_metric("send_skipped", reason="smtp_not_configured")
         runtime_app.logger.info(
             "SMTP not configured. Skipping email send to=%s subject=%s", to_email, subject
         )
@@ -41,6 +43,11 @@ def send_email(*, to_email: str, subject: str, text_body: str) -> bool:
     msg.set_content(text_body)
 
     try:
+        emit_mail_metric(
+            "send_attempt",
+            host=host,
+            transport="ssl" if use_ssl else ("starttls" if use_tls else "plain"),
+        )
         if use_ssl:
             with smtplib.SMTP_SSL(host, port, timeout=15) as server:
                 if username:
@@ -53,8 +60,10 @@ def send_email(*, to_email: str, subject: str, text_body: str) -> bool:
                 if username:
                     server.login(username, password)
                 server.send_message(msg)
+        emit_mail_metric("send_result", outcome="success", host=host)
         return True
     except Exception as exc:
+        emit_mail_metric("send_result", outcome="failed", host=host, error=type(exc).__name__)
         runtime_app.logger.warning(
             "Failed to send email to=%s subject=%s err=%s", to_email, subject, exc
         )

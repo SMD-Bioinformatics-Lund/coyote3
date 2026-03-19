@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from api.domain.models.user import UserModel
 from api.extensions import ldap_manager
+from api.observability.auth_metrics import emit_auth_metric
 from api.runtime import app
 from api.security.repository import get_security_repository
 
@@ -87,7 +88,11 @@ def authenticate_credentials(username: str, password: str) -> dict | None:
         The authenticated user document, or ``None`` when authentication fails.
     """
     user_doc = _lookup_user_doc(username)
-    if not user_doc or not user_doc.get("is_active", True):
+    if not user_doc:
+        emit_auth_metric("login_attempt", outcome="failed", reason="user_not_found")
+        return None
+    if not user_doc.get("is_active", True):
+        emit_auth_metric("login_attempt", outcome="failed", reason="inactive_user")
         return None
 
     auth_type = str(user_doc.get("auth_type") or "coyote3").strip().lower()
@@ -98,7 +103,11 @@ def authenticate_credentials(username: str, password: str) -> dict | None:
         else _ldap_authenticate(username, password)
     )
     if not valid:
+        emit_auth_metric(
+            "login_attempt", outcome="failed", auth_type=auth_type, reason="invalid_credentials"
+        )
         return None
+    emit_auth_metric("login_attempt", outcome="success", auth_type=auth_type)
     return user_doc
 
 

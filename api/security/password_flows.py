@@ -11,6 +11,7 @@ from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from api.extensions import util
 from api.infra.notifications.email import send_email, smtp_configured
+from api.observability.auth_metrics import emit_auth_metric
 from api.runtime import app as runtime_app
 from api.security.auth_service import _lookup_user_doc, resolve_user_identity
 from api.security.repository import get_security_repository
@@ -71,10 +72,14 @@ def issue_password_token_for_user(
 
     user_doc = _lookup_user_doc(login_identifier)
     if not user_doc or not user_doc.get("is_active", True) or not _is_local_user(user_doc):
+        emit_auth_metric(
+            "password_token_issue", outcome="skipped", reason="user_unavailable_or_nonlocal"
+        )
         return {"status": "ok", "email_sent": False, "mail_configured": bool(smtp_configured())}
 
     user_id = resolve_user_identity(user_doc)
     if not user_id:
+        emit_auth_metric("password_token_issue", outcome="skipped", reason="missing_user_id")
         return {"status": "ok", "email_sent": False, "mail_configured": bool(smtp_configured())}
 
     token = _issue_token(user_id=user_id, purpose=purpose)
@@ -109,6 +114,13 @@ def issue_password_token_for_user(
         warning = "Mail is not configured. Share the setup URL manually."
     elif not email_sent:
         warning = "Mail send failed. Share the setup URL manually."
+    emit_auth_metric(
+        "password_token_issue",
+        outcome="success",
+        purpose=purpose,
+        mail_configured=mail_ready,
+        email_sent=bool(email_sent),
+    )
     return {
         "status": "ok",
         "email_sent": bool(email_sent),
@@ -133,16 +145,19 @@ def consume_password_token_and_set_password(*, token: str, new_password: str) ->
     """Validate/consume one-time token and set local password."""
     token_data = _decode_password_token(str(token or "").strip())
     if not token_data:
+        emit_auth_metric("password_token_consume", outcome="failed", reason="invalid_or_expired")
         return {"status": "error", "error": "Invalid or expired token"}
 
     user_id = str(token_data.get("uid") or "").strip().lower()
     purpose = str(token_data.get("purpose") or "").strip().lower()
     if not user_id or purpose not in _TOKEN_PURPOSES:
+        emit_auth_metric("password_token_consume", outcome="failed", reason="invalid_payload")
         return {"status": "error", "error": "Invalid token payload"}
 
     repo = get_security_repository()
     user_doc = repo.get_user_by_id(user_id)
     if not user_doc or not user_doc.get("is_active", True) or not _is_local_user(user_doc):
+        emit_auth_metric("password_token_consume", outcome="failed", reason="invalid_user")
         return {"status": "error", "error": "Invalid token user"}
 
     if not repo.validate_and_clear_password_token(
@@ -150,6 +165,7 @@ def consume_password_token_and_set_password(*, token: str, new_password: str) ->
         token_hash=_token_hash(token),
         purpose=purpose,
     ):
+        emit_auth_metric("password_token_consume", outcome="failed", reason="reused_or_expired")
         return {"status": "error", "error": "Token already used or expired"}
 
     repo.set_local_password(
@@ -157,6 +173,7 @@ def consume_password_token_and_set_password(*, token: str, new_password: str) ->
         password_hash=util.common.hash_password(new_password),
         require_password_change=False,
     )
+    emit_auth_metric("password_token_consume", outcome="success", purpose=purpose)
     return {"status": "ok", "username": user_id}
 
 
@@ -167,14 +184,17 @@ def change_local_password(
     repo = get_security_repository()
     user_doc = repo.get_user_by_id(user_id)
     if not user_doc or not user_doc.get("is_active", True):
+        emit_auth_metric("password_change", outcome="failed", reason="user_not_found")
         return {"status": "error", "error": "User not found"}
 
     if not _is_local_user(user_doc):
+        emit_auth_metric("password_change", outcome="failed", reason="nonlocal_user")
         return {"status": "error", "error": "Password is managed by external identity provider"}
 
     from api.domain.models.user import UserModel
 
     if not UserModel.validate_login(str(user_doc.get("password") or ""), current_password):
+        emit_auth_metric("password_change", outcome="failed", reason="invalid_current_password")
         return {"status": "error", "error": "Current password is incorrect"}
 
     repo.set_local_password(
@@ -182,4 +202,5 @@ def change_local_password(
         password_hash=util.common.hash_password(new_password),
         require_password_change=False,
     )
+    emit_auth_metric("password_change", outcome="success")
     return {"status": "ok", "username": user_id}

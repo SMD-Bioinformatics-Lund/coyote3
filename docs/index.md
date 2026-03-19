@@ -32,6 +32,8 @@ This documentation is organized as a practical flow chain:
 - Center onboarding: [Operations / Center Onboarding Pack](operations/center-onboarding-pack.md)
 - Deployment cycle: [Operations / Deployment Runbook](operations/deployment-runbook.md)
 - Testing and quality gates: [Testing / Testing And Quality](testing/testing-and-quality.md)
+- Auth ADRs: [Architecture / ADR-0001 Auth Provider Resolution](architecture/adr-0001-auth-provider-resolution.md)
+- Developer cookbook: [Maintainers / Developer Cookbook](maintainers/developer-cookbook.md)
 
 ## Runtime topology
 
