@@ -67,6 +67,7 @@ The repository is built around these structural rules:
 ### Deployment
 
 - [Operations](deployment/operations.md)
+- [Dev to Staging to Prod Flow](deployment/dev-staging-prod-flow.md)
 - [Release Process](deployment/release-process.md)
 - [Troubleshooting](deployment/troubleshooting.md)
 - [Mongo Docker Dev Runtime](deployment/mongo-docker-dev-runtime.md)

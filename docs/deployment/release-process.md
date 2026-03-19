@@ -296,3 +296,18 @@ ASSUMPTION:
 3. Add automated compatibility verification suite for MongoDB 3.4 constraints.
 4. Add signed release evidence bundles linking tag, artifacts, and approvals.
 5. Add progressive delivery controls (canary/blue-green) with automatic rollback triggers.
+
+---
+
+## 15. Execution Runbook Reference
+Use the command-level deployment runbook for daily implementation:
+
+- `docs/deployment/dev-staging-prod-flow.md`
+
+That runbook contains:
+
+- CI gate sequence tied to `.github/workflows/quality.yml`
+- exact dev/staging/prod compose commands
+- required environment file creation commands
+- migration and health-check command blocks
+- rollback command sequence

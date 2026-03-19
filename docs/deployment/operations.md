@@ -38,6 +38,7 @@ Repository deployment assets:
 - production compose: `deploy/compose/docker-compose.yml`
 - development compose: `deploy/compose/docker-compose.dev.yml`
 - Gunicorn runtime config: `deploy/gunicorn/gunicorn.conf.py`
+- command-level environment promotion runbook: `docs/deployment/dev-staging-prod-flow.md`
 
 Local Python entrypoints follow the same separation:
 - `python -m wsgi` launches Flask UI runtime only.

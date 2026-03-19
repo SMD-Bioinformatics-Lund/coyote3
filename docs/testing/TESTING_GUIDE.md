@@ -228,3 +228,19 @@ At the time this guide was last updated:
 - the canonical backend entrypoint is `api.main:app`
 - router tests live under `tests/api/routers/`
 - coverage execution is standardized via `.coveragerc` and `scripts/run_tests_with_coverage.sh`
+
+## CI Workflow Mapping
+
+Repository CI gate order is defined in `.github/workflows/quality.yml` and runs:
+
+1. `ruff` checks
+2. `black --check`
+3. unit tests
+4. web boundary tests
+5. API smoke tests
+6. contract tests
+7. family coverage gates (`scripts/run_family_coverage_gates.sh`)
+8. boundary baseline drift check
+9. web/api route contract guardrail
+10. compose config smoke checks
+11. snapshot tooling smoke checks
