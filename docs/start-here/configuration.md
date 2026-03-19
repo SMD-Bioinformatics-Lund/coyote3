@@ -14,6 +14,20 @@ Template sources:
 - `deploy/env/example.dev.env`
 - `deploy/env/example.test.env`
 
+Each template is intentionally secret-safe (`CHANGE_ME_*`) and mirrors the
+runtime env file shape, so centers can copy and fill values without guessing.
+
+## Standard host-port allocation
+
+Use these non-overlapping ranges by default:
+
+| Environment | Web | API | Redis | Mongo |
+| --- | --- | --- | --- | --- |
+| `prod` (`.coyote3_env`) | `5816` | `5818` | `5819` | `5820` |
+| `stage` (`.coyote3_stage_env`) | `8805` | `8806` | `8807` | `8808` |
+| `dev` (`.coyote3_dev_env`) | `6801` | `6802` | `6803` | `6804` |
+| `test` (`.coyote3_test_env`) | `6811` | `6812` | `6813` | `6814` |
+
 ## Critical variables
 
 Security-sensitive:
@@ -30,9 +44,35 @@ Core runtime:
 
 - `COYOTE3_DB`
 - `MONGO_URI`
-- `COYOTE3_WEB_PORT`
-- `COYOTE3_API_PORT`
-- `COYOTE3_REDIS_PORT`
+- port vars for your target profile (`COYOTE3_*_WEB_PORT`, `COYOTE3_*_API_PORT`, `COYOTE3_*_REDIS_PORT`, `COYOTE3_*_MONGO_PORT`)
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM_EMAIL`, `SMTP_USE_TLS`, `SMTP_USE_SSL`
+- `WEB_APP_BASE_URL` (required for invite/reset links)
+
+## SMTP and user lifecycle settings
+
+Coyote3 now supports provider-aware login and local-user lifecycle flows:
+
+- `auth_type=coyote3` users authenticate locally and can use:
+  - admin invite (set-password link)
+  - forgot-password reset link
+  - authenticated password change
+- `auth_type=ldap` users authenticate via LDAP.
+
+Recommended SMTP baseline for centers using the Skane relay:
+
+```env
+SMTP_HOST='mxis.skane.se'
+SMTP_PORT='25'
+SMTP_USERNAME=''
+SMTP_PASSWORD=''
+SMTP_USE_TLS='0'
+SMTP_USE_SSL='0'
+SMTP_FROM_EMAIL='CHANGE_ME_FROM_EMAIL'
+SMTP_FROM_NAME='Coyote3'
+```
+
+If relay delivery fails or SMTP is not configured, invite/reset still returns
+manual setup URL metadata and a warning (no hard crash).
 
 ## Strict behavior by profile
 

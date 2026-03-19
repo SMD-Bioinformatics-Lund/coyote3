@@ -4,6 +4,8 @@
 
 Replace external ad-hoc import flows with validated API-driven ingestion.
 
+For an end-to-end relationship map of `asp`/`aspc`/`isgl` with `samples`, `variants`, `cnvs`, and RNA collections, see [Product / DNA And RNA Workflow Chain](../product/workflow-dna-rna.md).
+
 ## Endpoints
 
 - `POST /api/v1/internal/ingest/sample-bundle`
@@ -17,7 +19,7 @@ Replace external ad-hoc import flows with validated API-driven ingestion.
 Set runtime variables once:
 
 ```bash
-export API_BASE_URL="http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}"
+export API_BASE_URL="http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}"
 # Option A: existing bearer token
 export API_BEARER_TOKEN="<YOUR_API_BEARER_TOKEN>"
 
@@ -345,7 +347,7 @@ Core collections typically seeded first:
 ```python
 import requests
 
-base = "http://localhost:6816"
+base = "http://localhost:6802"
 headers = {"Authorization": "Bearer YOUR_API_BEARER_TOKEN"}
 
 payload = {

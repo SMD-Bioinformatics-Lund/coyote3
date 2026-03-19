@@ -19,7 +19,7 @@ Main route modules under `api/routers/`:
 ## Health check
 
 ```bash
-curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_API_PORT:-5816}/api/v1/health"
+curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_API_PORT:-5818}/api/v1/health"
 ```
 
 ## Common workflow patterns

@@ -90,7 +90,7 @@ Optional UI container in test stack:
 
 ```bash
 ./scripts/compose-with-version.sh -f deploy/compose/docker-compose.dev.yml ps
-curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_DEV_API_PORT:-6816}/api/v1/health"
+curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_DEV_API_PORT:-6802}/api/v1/health"
 ```
 
 ## Stop services

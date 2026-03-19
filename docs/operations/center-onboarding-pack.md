@@ -53,7 +53,7 @@ If Mongo volume already existed before first deploy, ensure app DB user is prese
 
 ```bash
 python scripts/mongo_bootstrap_users.py \
-  --mongo-uri "mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8008}/admin?authSource=admin" \
+  --mongo-uri "mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/admin?authSource=admin" \
   --app-db "${COYOTE3_DB:-coyote3}" \
   --app-user "${MONGO_APP_USER}" \
   --app-password "${MONGO_APP_PASSWORD}"
@@ -65,7 +65,7 @@ Create the initial local API admin used for CLI/Python/API-auth flows:
 
 ```bash
 python scripts/bootstrap_local_admin.py \
-  --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8008}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
+  --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
   --db "${COYOTE3_DB:-coyote3}" \
   --email "admin@your-center.org" \
   --password "CHANGE_ME_ADMIN_PASSWORD" \
@@ -96,7 +96,7 @@ Or run one-shot bootstrap command:
 
 ```bash
 scripts/bootstrap_center_collections.sh \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}" \
+  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}" \
   --username "admin@your-center.org" \
   --password "CHANGE_ME" \
   --seed-file tests/fixtures/db_dummy/center_template_seed.json \
@@ -121,7 +121,7 @@ python scripts/validate_ingest_spec.py \
 
 ```bash
 scripts/center_smoke.sh \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}" \
+  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}" \
   --username "admin@your-center.org" \
   --password "CHANGE_ME" \
   --yaml-file tests/data/ingest_demo/generic_case_control.yaml
@@ -135,7 +135,7 @@ You can execute the full chain in one command:
 scripts/center_first_run.sh \
   --env-file .coyote3_stage_env \
   --compose-file deploy/compose/docker-compose.stage.yml \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}" \
+  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}" \
   --admin-email "admin@your-center.org" \
   --admin-password "CHANGE_ME" \
   --seed-file tests/fixtures/db_dummy/center_template_seed.json \

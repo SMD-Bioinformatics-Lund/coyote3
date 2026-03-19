@@ -44,7 +44,7 @@ export BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 ```bash
 ./scripts/compose-with-version.sh -f deploy/compose/docker-compose.yml ps
-curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_API_PORT:-5816}/api/v1/health"
+curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_API_PORT:-5818}/api/v1/health"
 ```
 
 Smoke tests:

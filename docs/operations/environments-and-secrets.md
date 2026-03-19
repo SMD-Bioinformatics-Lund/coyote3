@@ -8,6 +8,17 @@ Use isolated stacks and databases for each environment:
 - **stage**: `deploy/compose/docker-compose.stage.yml`
 - **dev**: `deploy/compose/docker-compose.dev.yml`
 
+## Default port matrix
+
+| Environment | Web | API | Redis | Mongo |
+| --- | --- | --- | --- | --- |
+| prod | 5816 | 5818 | 5819 | 5820 |
+| stage | 8805 | 8806 | 8807 | 8808 |
+| dev | 6801 | 6802 | 6803 | 6804 |
+| test | 6811 | 6812 | 6813 | 6814 |
+
+These defaults are encoded in both compose files and example env templates.
+
 ## Environment naming map
 
 Runtime profile normalization:
@@ -38,7 +49,7 @@ Example (existing volume/user rotation):
 
 ```bash
 python scripts/mongo_bootstrap_users.py \
-  --mongo-uri "mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8008}/admin?authSource=admin" \
+  --mongo-uri "mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/admin?authSource=admin" \
   --app-db "${COYOTE3_DB:-coyote3}" \
   --app-user "${MONGO_APP_USER}" \
   --app-password "${MONGO_APP_PASSWORD}"
@@ -50,3 +61,23 @@ python scripts/mongo_bootstrap_users.py \
 - Use example env files only as templates
 - Rotate secrets on team membership changes
 - Validate before deployment with `scripts/validate_env_secrets.sh`
+
+## SMTP relay strategy
+
+Preferred center-safe baseline is external SMTP relay (no host Postfix coupling):
+
+```env
+SMTP_HOST='mxis.skane.se'
+SMTP_PORT='25'
+SMTP_USE_TLS='0'
+SMTP_USE_SSL='0'
+SMTP_USERNAME=''
+SMTP_PASSWORD=''
+SMTP_FROM_EMAIL='CHANGE_ME_FROM_EMAIL'
+```
+
+Behavior guarantees:
+
+- User create/invite/reset flows do not hard-fail if mail cannot be delivered.
+- API/UI return warning + manual setup URL metadata when email send fails.
+- This keeps admin workflows functional even when SMTP is temporarily unavailable.

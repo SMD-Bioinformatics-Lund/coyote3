@@ -50,7 +50,7 @@ If Mongo volume was pre-existing, bootstrap/rotate app DB user:
 
 ```bash
 python scripts/mongo_bootstrap_users.py \
-  --mongo-uri "mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8008}/admin?authSource=admin" \
+  --mongo-uri "mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/admin?authSource=admin" \
   --app-db "${COYOTE3_DB:-coyote3}" \
   --app-user "${MONGO_APP_USER}" \
   --app-password "${MONGO_APP_PASSWORD}"
@@ -58,20 +58,20 @@ python scripts/mongo_bootstrap_users.py \
 
 ## 3. Health checks
 
-- API: `http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}/api/v1/health`
-- UI: `http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_WEB_PORT:-8005}`
+- API: `http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}/api/v1/health`
+- UI: `http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_WEB_PORT:-8805}`
 
 Command-line API check:
 
 ```bash
-curl -fsS "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}/api/v1/health"
+curl -fsS "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}/api/v1/health"
 ```
 
 ## 4. Bootstrap first API admin (one-time)
 
 ```bash
 python scripts/bootstrap_local_admin.py \
-  --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8008}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
+  --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
   --db "${COYOTE3_DB:-coyote3}" \
   --email "admin@your-center.org" \
   --password "CHANGE_ME_ADMIN_PASSWORD" \
@@ -112,7 +112,7 @@ Recommended one-shot command:
 
 ```bash
 scripts/bootstrap_center_collections.sh \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}" \
+  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}" \
   --username "admin@your-center.org" \
   --password "CHANGE_ME" \
   --seed-file tests/fixtures/db_dummy/center_template_seed.json \
@@ -134,7 +134,7 @@ python scripts/validate_ingest_spec.py \
 
 ```bash
 scripts/center_smoke.sh \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}" \
+  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}" \
   --username "admin@your-center.org" \
   --password "CHANGE_ME" \
   --yaml-file tests/data/ingest_demo/generic_case_control.yaml
@@ -178,7 +178,7 @@ For fully automated first-day run:
 scripts/center_first_run.sh \
   --env-file .coyote3_stage_env \
   --compose-file deploy/compose/docker-compose.stage.yml \
-  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}" \
+  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}" \
   --admin-email "admin@your-center.org" \
   --admin-password "CHANGE_ME" \
   --seed-file tests/fixtures/db_dummy/center_template_seed.json \
