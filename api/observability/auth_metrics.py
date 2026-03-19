@@ -19,17 +19,17 @@ def _normalize_label(value: Any) -> str:
     return text.replace(" ", "_").replace("=", ":")[:64]
 
 
-def emit_auth_metric(event: str, **labels: Any) -> None:
+def emit_auth_metric(metric: str, **labels: Any) -> None:
     """Emit a normalized authentication metric log line."""
-    parts = [f"event={_normalize_label(event)}"]
+    parts = [f"event={_normalize_label(metric)}"]
     for key, value in sorted(labels.items()):
         parts.append(f"{_normalize_label(key)}={_normalize_label(value)}")
     runtime_app.logger.info("auth_metric %s", " ".join(parts))
 
 
-def emit_mail_metric(event: str, **labels: Any) -> None:
+def emit_mail_metric(metric: str, **labels: Any) -> None:
     """Emit a normalized email-delivery metric log line."""
-    parts = [f"event={_normalize_label(event)}"]
+    parts = [f"event={_normalize_label(metric)}"]
     for key, value in sorted(labels.items()):
         parts.append(f"{_normalize_label(key)}={_normalize_label(value)}")
     runtime_app.logger.info("mail_metric %s", " ".join(parts))

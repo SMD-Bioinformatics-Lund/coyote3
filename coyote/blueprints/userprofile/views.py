@@ -24,9 +24,9 @@ def _ensure_self(user_id: str) -> None:
 @profile_bp.route("/<user_id>/view", methods=["GET"])
 @login_required
 def user_profile(user_id: str) -> str | Response:
-    """Render profile details for the authenticated user."""
+    """Render full profile details for the authenticated user."""
     _ensure_self(user_id)
-    return render_template("profile_view.html", user=current_user)
+    return redirect(url_for("admin_bp.view_user", user_id=user_id))
 
 
 @profile_bp.route("/<user_id>/password", methods=["GET", "POST"])

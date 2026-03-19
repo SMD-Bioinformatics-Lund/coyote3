@@ -45,6 +45,53 @@ def _is_local_user(user_doc: dict[str, Any]) -> bool:
     return auth_type == "coyote3"
 
 
+def notify_user_change(
+    *,
+    user_doc: dict[str, Any],
+    event: str,
+    actor_username: str | None = None,
+    changed_fields: list[str] | None = None,
+) -> dict[str, Any]:
+    """Send a best-effort account-change notification email."""
+    to_email = str(user_doc.get("email") or "").strip()
+    username = str(user_doc.get("username") or user_doc.get("_id") or "").strip() or "user"
+    actor = str(actor_username or "system").strip() or "system"
+    fields = [str(item).strip() for item in (changed_fields or []) if str(item).strip()]
+    fields_text = ", ".join(fields) if fields else "account settings"
+
+    subject_map = {
+        "password_changed": "Coyote3 password updated",
+        "password_set": "Coyote3 password set",
+        "profile_updated": "Coyote3 account updated",
+        "account_status_changed": "Coyote3 account status updated",
+    }
+    subject = subject_map.get(str(event).strip().lower(), "Coyote3 account change")
+    text_body = (
+        f"Hello {username},\n\n"
+        f"Your Coyote3 account was updated ({fields_text}).\n"
+        f"Changed by: {actor}\n\n"
+        "If you did not expect this, contact your administrator."
+    )
+    mail_ready = bool(smtp_configured())
+    email_sent = (
+        send_email(to_email=to_email, subject=subject, text_body=text_body) if to_email else False
+    )
+    warning: str | None = None
+    if not to_email:
+        warning = "User email is missing."
+    elif not mail_ready:
+        warning = "Mail is not configured."
+    elif not email_sent:
+        warning = "Mail send failed."
+    emit_auth_metric(
+        "user_change_notification",
+        change_event=event,
+        mail_configured=mail_ready,
+        email_sent=bool(email_sent),
+    )
+    return {"email_sent": bool(email_sent), "mail_configured": mail_ready, "warning": warning}
+
+
 def _build_set_password_url(token: str) -> str:
     base = str(runtime_app.config.get("WEB_APP_BASE_URL") or "").strip().rstrip("/")
     path = f"/reset-password?token={token}"
@@ -173,8 +220,18 @@ def consume_password_token_and_set_password(*, token: str, new_password: str) ->
         password_hash=util.common.hash_password(new_password),
         require_password_change=False,
     )
+    notification = notify_user_change(
+        user_doc=user_doc,
+        event="password_set",
+        actor_username="self-service-token",
+        changed_fields=["password"],
+    )
     emit_auth_metric("password_token_consume", outcome="success", purpose=purpose)
-    return {"status": "ok", "username": user_id}
+    return {
+        "status": "ok",
+        "username": user_id,
+        "notification_email_sent": bool(notification.get("email_sent", False)),
+    }
 
 
 def change_local_password(
@@ -202,5 +259,15 @@ def change_local_password(
         password_hash=util.common.hash_password(new_password),
         require_password_change=False,
     )
+    notification = notify_user_change(
+        user_doc=user_doc,
+        event="password_changed",
+        actor_username=user_id,
+        changed_fields=["password"],
+    )
     emit_auth_metric("password_change", outcome="success")
-    return {"status": "ok", "username": user_id}
+    return {
+        "status": "ok",
+        "username": user_id,
+        "notification_email_sent": bool(notification.get("email_sent", False)),
+    }

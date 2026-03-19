@@ -7,7 +7,7 @@ from typing import Any
 from api.extensions import util
 from api.http import api_error
 from api.repositories.admin_repository import AdminRepository
-from api.security.password_flows import issue_password_token_for_user
+from api.security.password_flows import issue_password_token_for_user, notify_user_change
 from api.services.management_common import (
     admin_list_pagination,
     current_actor,
@@ -120,6 +120,25 @@ class AdminUserService:
             "role_map": self.repository.get_roles_policy_map(),
             "assay_group_map": self.repository.get_assay_group_map(),
         }
+
+    @staticmethod
+    def _changed_user_fields(old_doc: dict[str, Any], new_doc: dict[str, Any]) -> list[str]:
+        tracked_keys = [
+            "email",
+            "role",
+            "is_active",
+            "permissions",
+            "deny_permissions",
+            "assay_groups",
+            "assays",
+            "auth_type",
+            "must_change_password",
+        ]
+        changed: list[str] = []
+        for key in tracked_keys:
+            if old_doc.get(key) != new_doc.get(key):
+                changed.append(key)
+        return changed
 
     def create_user(self, *, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
         """Create user.
@@ -246,7 +265,20 @@ class AdminUserService:
             is_new=False,
         )
         self.repository.update_user(user_id, updated_user)
-        return mutation_payload(resource="user", resource_id=user_id, action="update")
+        payload = mutation_payload(resource="user", resource_id=user_id, action="update")
+        changed_fields = self._changed_user_fields(user_doc, updated_user)
+        if form_data.get("password"):
+            changed_fields.append("password")
+        notification = notify_user_change(
+            user_doc=updated_user,
+            event="profile_updated",
+            actor_username=current_actor(actor_username),
+            changed_fields=changed_fields or ["profile"],
+        )
+        payload["meta"]["change_email_sent"] = bool(notification.get("email_sent", False))
+        if notification.get("warning"):
+            payload["meta"]["warning"] = str(notification["warning"])
+        return payload
 
     def send_local_user_invite(self, *, user_id: str, actor_username: str) -> dict[str, Any]:
         """Issue and email a local-user set-password invite."""
@@ -301,6 +333,15 @@ class AdminUserService:
         self.repository.set_user_active(user_id, new_status)
         payload = mutation_payload(resource="user", resource_id=user_id, action="toggle")
         payload["meta"]["is_active"] = new_status
+        notification = notify_user_change(
+            user_doc={**user_doc, "is_active": new_status},
+            event="account_status_changed",
+            actor_username="admin-ui",
+            changed_fields=["is_active"],
+        )
+        payload["meta"]["change_email_sent"] = bool(notification.get("email_sent", False))
+        if notification.get("warning"):
+            payload["meta"]["warning"] = str(notification["warning"])
         return payload
 
     def username_exists(self, *, username: str) -> bool:
