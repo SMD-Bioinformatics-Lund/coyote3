@@ -72,3 +72,15 @@ def test_production_session_cookie_secure_defaults_true():
         The function result.
     """
     assert settings.get_api_session_cookie_secure({}) is True
+
+
+def test_production_rejects_placeholder_secret_and_token_and_salt():
+    """Production mode rejects known CI/dev placeholder values."""
+    with pytest.raises(RuntimeError, match="Insecure production setting for SECRET_KEY"):
+        settings.get_api_secret_key({"SECRET_KEY": "ci-test-secret-key"})
+
+    with pytest.raises(RuntimeError, match="Insecure production setting for INTERNAL_API_TOKEN"):
+        settings.get_internal_api_token({"INTERNAL_API_TOKEN": "ci-test-internal-token"})
+
+    with pytest.raises(RuntimeError, match="Insecure production setting for API_SESSION_SALT"):
+        settings.get_api_session_salt({"API_SESSION_SALT": "coyote3-api-session-v1-dev-only"})

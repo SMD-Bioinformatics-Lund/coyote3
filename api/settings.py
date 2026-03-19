@@ -6,6 +6,12 @@ import os
 from collections.abc import Mapping
 from typing import Any
 
+_PROD_BLOCKED_VALUES: dict[str, set[str]] = {
+    "SECRET_KEY": {"ci-test-secret-key", "coyote3-api-dev-only"},
+    "INTERNAL_API_TOKEN": {"ci-test-internal-token"},
+    "API_SESSION_SALT": {"coyote3-api-session-v1-dev-only"},
+}
+
 
 def _to_bool(value: Any, default: bool = False) -> bool:
     """Handle  to bool.
@@ -69,6 +75,16 @@ def _require_setting(config: Mapping[str, Any], key: str) -> str:
     raise RuntimeError(f"Missing required API setting: {key}")
 
 
+def _require_production_safe_setting(config: Mapping[str, Any], key: str) -> str:
+    """Return required setting and block known test/dev placeholder values in production."""
+    value = _require_setting(config, key)
+    if value in _PROD_BLOCKED_VALUES.get(key, set()):
+        raise RuntimeError(
+            f"Insecure production setting for {key}: test/development placeholder values are not allowed."
+        )
+    return value
+
+
 def configure_process_env() -> None:
     """Ensure API runtime process defaults are always set.
 
@@ -102,7 +118,7 @@ def get_api_secret_key(config: Mapping[str, Any]) -> str:
     """
     if _is_non_production(config):
         return str(config.get("SECRET_KEY") or "coyote3-api-dev-only")
-    return _require_setting(config, "SECRET_KEY")
+    return _require_production_safe_setting(config, "SECRET_KEY")
 
 
 def get_internal_api_token(config: Mapping[str, Any]) -> str:
@@ -116,7 +132,7 @@ def get_internal_api_token(config: Mapping[str, Any]) -> str:
     """
     if _is_non_production(config):
         return str(config.get("INTERNAL_API_TOKEN") or config.get("SECRET_KEY") or "")
-    return _require_setting(config, "INTERNAL_API_TOKEN")
+    return _require_production_safe_setting(config, "INTERNAL_API_TOKEN")
 
 
 def get_api_session_salt(config: Mapping[str, Any]) -> str:
@@ -130,7 +146,7 @@ def get_api_session_salt(config: Mapping[str, Any]) -> str:
     """
     if _is_non_production(config):
         return str(config.get("API_SESSION_SALT", "coyote3-api-session-v1-dev-only"))
-    return _require_setting(config, "API_SESSION_SALT")
+    return _require_production_safe_setting(config, "API_SESSION_SALT")
 
 
 def get_api_session_cookie_name(config: Mapping[str, Any]) -> str:

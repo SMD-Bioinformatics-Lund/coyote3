@@ -53,6 +53,21 @@ def _active_git_branch_name() -> str:
     return "unknown branch"
 
 
+def _load_fernet() -> Fernet:
+    """
+    Return a configured Fernet instance.
+
+    `COYOTE3_FERNET_KEY` is required in all runtime environments.
+    """
+    key = os.getenv("COYOTE3_FERNET_KEY")
+    if not key:
+        raise RuntimeError("COYOTE3_FERNET_KEY must be set to a valid Fernet key.")
+    try:
+        return Fernet(key)
+    except Exception as exc:
+        raise RuntimeError("Invalid COYOTE3_FERNET_KEY; expected a valid Fernet key.") from exc
+
+
 # -------------------------------------------------------------------------
 # Class Definition
 # -------------------------------------------------------------------------
@@ -109,8 +124,8 @@ class DefaultConfig:
     CACHE_REDIS_CONNECT_TIMEOUT = float(os.getenv("CACHE_REDIS_CONNECT_TIMEOUT", "1.0"))
     CACHE_REDIS_SOCKET_TIMEOUT = float(os.getenv("CACHE_REDIS_SOCKET_TIMEOUT", "1.0"))
 
-    # Fernet key for encrypting sensitive data in the report
-    FERNET = Fernet(os.getenv("COYOTE3_FERNET_KEY"))
+    # Fernet key for encrypting sensitive data in reports.
+    FERNET = _load_fernet()
 
     WTF_CSRF_ENABLED = True
     API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8001")

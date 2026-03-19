@@ -10,6 +10,14 @@ on:
 jobs:
   quality-gates:
     runs-on: ubuntu-latest
+    env:
+      TESTING: "1"
+      DEVELOPMENT: "0"
+      COYOTE3_DB: coyote3_test
+      MONGO_URI: mongodb://localhost:27017
+      COYOTE3_FERNET_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      SECRET_KEY: ci-test-secret-key
+      INTERNAL_API_TOKEN: ci-test-internal-token
 
     steps:
       - name: Checkout
