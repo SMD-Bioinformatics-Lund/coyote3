@@ -70,6 +70,18 @@ Run all tests with coverage:
 ./scripts/run_tests_with_coverage.sh
 ```
 
+Run per-family coverage gates:
+
+```bash
+./scripts/run_family_coverage_gates.sh
+```
+
+If your shell is not already inside the project virtualenv, set the interpreter explicitly:
+
+```bash
+PYTHON_BIN=/home/ram/.virtualenvs/coyote3/bin/python ./scripts/run_family_coverage_gates.sh
+```
+
 Run by suite:
 
 ```bash
@@ -168,8 +180,28 @@ Use this order for deterministic verification:
 1. targeted module tests (`tests/unit/...` or `tests/api/...`)
 2. full suite (`python -m pytest -q tests`)
 3. full suite with coverage (`./scripts/run_tests_with_coverage.sh`)
+4. per-family coverage gates (`./scripts/run_family_coverage_gates.sh`)
 
 Coverage is generated from `.coveragerc` and includes both `api` and `coyote` packages.
+
+## Phase 2 Family Rollout
+
+Phase 2 test expansion is executed family-by-family:
+
+1. `api/core`
+2. `api/services`
+3. `api/routers`
+4. `coyote/blueprints`
+
+Each family is expanded with deterministic tests, then enforced by coverage gates in
+`scripts/run_family_coverage_gates.sh`.
+
+Current enforced minimums:
+
+- `api/core >= 30%`
+- `api/services >= 55%`
+- `api/routers >= 60%`
+- `coyote/blueprints >= 52%`
 
 ## Guardrail Tests That Should Stay
 
