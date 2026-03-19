@@ -78,7 +78,6 @@ def test_ingest_sample_bundle_internal_accepts_spec(monkeypatch):
     """Test sample-bundle ingest route forwards structured spec payload."""
     calls: dict[str, object] = {}
 
-    monkeypatch.setattr(internal, "_require_internal_token", lambda _request: None)
     monkeypatch.setattr(
         internal.util,
         "common",
@@ -102,7 +101,7 @@ def test_ingest_sample_bundle_internal_accepts_spec(monkeypatch):
     payload = internal.InternalIngestSampleBundleRequest(
         spec={"name": "S1", "genome_build": 38, "vcf_files": "/tmp/a.vcf"}
     )
-    response = internal.ingest_sample_bundle_internal(payload=payload, request=object())
+    response = internal.ingest_sample_bundle_internal(payload=payload)
 
     assert calls["payload"] == {
         "name": "S1",
@@ -115,7 +114,6 @@ def test_ingest_sample_bundle_internal_accepts_spec(monkeypatch):
 
 def test_ingest_sample_bundle_internal_accepts_yaml(monkeypatch):
     """Test sample-bundle ingest route accepts YAML request body."""
-    monkeypatch.setattr(internal, "_require_internal_token", lambda _request: None)
     monkeypatch.setattr(
         internal.util,
         "common",
@@ -140,18 +138,16 @@ def test_ingest_sample_bundle_internal_accepts_yaml(monkeypatch):
     )
 
     payload = internal.InternalIngestSampleBundleRequest(yaml_content="name: S2")
-    response = internal.ingest_sample_bundle_internal(payload=payload, request=object())
+    response = internal.ingest_sample_bundle_internal(payload=payload)
 
     assert response["sample_name"] == "S2"
 
 
 def test_ingest_sample_bundle_internal_rejects_invalid_shape(monkeypatch):
     """Test sample-bundle ingest route rejects missing/duplicate body forms."""
-    monkeypatch.setattr(internal, "_require_internal_token", lambda _request: None)
-
     empty_payload = internal.InternalIngestSampleBundleRequest()
     try:
-        internal.ingest_sample_bundle_internal(payload=empty_payload, request=object())
+        internal.ingest_sample_bundle_internal(payload=empty_payload)
         assert False, "Expected ValueError for empty payload"
     except ValueError as exc:
         assert "spec" in str(exc)
@@ -161,7 +157,7 @@ def test_ingest_sample_bundle_internal_rejects_invalid_shape(monkeypatch):
         yaml_content="name: X",
     )
     try:
-        internal.ingest_sample_bundle_internal(payload=dual_payload, request=object())
+        internal.ingest_sample_bundle_internal(payload=dual_payload)
         assert False, "Expected ValueError for duplicate payload forms"
     except ValueError as exc:
         assert "only one" in str(exc)
@@ -169,13 +165,7 @@ def test_ingest_sample_bundle_internal_rejects_invalid_shape(monkeypatch):
 
 def test_ingest_sample_bundle_internal_requires_edit_sample_permission_for_update(monkeypatch):
     """Test update mode requires authenticated user with edit_sample permission."""
-    calls = {"authenticated": 0, "enforced": 0, "allow_update": None}
-    monkeypatch.setattr(internal, "_require_internal_token", lambda _request: None)
-    monkeypatch.setattr(
-        internal,
-        "require_authenticated",
-        lambda _request: calls.__setitem__("authenticated", 1) or object(),
-    )
+    calls = {"enforced": 0, "allow_update": None}
     monkeypatch.setattr(
         internal,
         "_enforce_access",
@@ -205,8 +195,7 @@ def test_ingest_sample_bundle_internal_requires_edit_sample_permission_for_updat
         spec={"name": "S3", "vcf_files": "/tmp/s3.vcf"},
         update_existing=True,
     )
-    response = internal.ingest_sample_bundle_internal(payload=payload, request=object())
-    assert calls["authenticated"] == 1
+    response = internal.ingest_sample_bundle_internal(payload=payload, user=object())
     assert calls["enforced"] == 1
     assert calls["allow_update"] is True
     assert response["sample_id"] == "upd-1"
@@ -214,7 +203,6 @@ def test_ingest_sample_bundle_internal_requires_edit_sample_permission_for_updat
 
 def test_ingest_collection_document_internal_forwards_payload(monkeypatch):
     """Single collection ingest route should forward request payload."""
-    monkeypatch.setattr(internal, "_require_internal_token", lambda _request: None)
     monkeypatch.setattr(
         internal.util,
         "common",
@@ -224,7 +212,7 @@ def test_ingest_collection_document_internal_forwards_payload(monkeypatch):
     monkeypatch.setattr(
         internal.InternalIngestService,
         "insert_collection_document",
-        lambda *, collection, document: {
+        lambda *, collection, document, ignore_duplicate=False: {
             "status": "ok",
             "collection": collection,
             "inserted_count": 1,
@@ -235,14 +223,13 @@ def test_ingest_collection_document_internal_forwards_payload(monkeypatch):
         collection="hgnc_genes",
         document={"hgnc_id": "HGNC:5", "hgnc_symbol": "A1BG"},
     )
-    response = internal.ingest_collection_document_internal(payload=payload, request=object())
+    response = internal.ingest_collection_document_internal(payload=payload)
     assert response["collection"] == "hgnc_genes"
     assert response["inserted_count"] == 1
 
 
 def test_ingest_collection_documents_internal_forwards_payload(monkeypatch):
     """Bulk collection ingest route should forward request payload."""
-    monkeypatch.setattr(internal, "_require_internal_token", lambda _request: None)
     monkeypatch.setattr(
         internal.util,
         "common",
@@ -252,7 +239,7 @@ def test_ingest_collection_documents_internal_forwards_payload(monkeypatch):
     monkeypatch.setattr(
         internal.InternalIngestService,
         "insert_collection_documents",
-        lambda *, collection, documents: {
+        lambda *, collection, documents, ignore_duplicates=False: {
             "status": "ok",
             "collection": collection,
             "inserted_count": len(documents),
@@ -266,6 +253,6 @@ def test_ingest_collection_documents_internal_forwards_payload(monkeypatch):
             {"hgnc_id": "HGNC:6", "hgnc_symbol": "A1CF"},
         ],
     )
-    response = internal.ingest_collection_documents_internal(payload=payload, request=object())
+    response = internal.ingest_collection_documents_internal(payload=payload)
     assert response["collection"] == "hgnc_genes"
     assert response["inserted_count"] == 2

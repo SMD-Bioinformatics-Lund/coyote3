@@ -1,4 +1,4 @@
-"""Internal token-protected router."""
+"""Internal API routes for metadata and ingestion operations."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from api.contracts.internal import (
 from api.core.internal.ports import InternalRepository
 from api.deps.repositories import get_internal_repository
 from api.extensions import util
-from api.security.access import _enforce_access, _require_internal_token, require_authenticated
+from api.security.access import ApiUser, _enforce_access, _require_internal_token, require_access
 from api.services.internal_ingest_service import InternalIngestService
 
 router = APIRouter(tags=["internal"])
@@ -79,10 +79,9 @@ def get_isgl_meta_internal(
 )
 def ingest_dependents_internal(
     payload: InternalIngestDependentsRequest,
-    request: Request,
+    _user: ApiUser = Depends(require_access(min_role="admin")),
 ):
     """Write parsed dependent ingestion payload into Mongo collections."""
-    _require_internal_token(request)
 
     written = InternalIngestService.ingest_dependents(
         sample_id=str(payload.sample_id),
@@ -102,10 +101,9 @@ def ingest_dependents_internal(
 )
 def ingest_sample_bundle_internal(
     payload: InternalIngestSampleBundleRequest,
-    request: Request,
+    user: ApiUser = Depends(require_access(min_role="admin")),
 ):
     """Create a fresh sample and all dependent analysis documents atomically."""
-    _require_internal_token(request)
     if not payload.spec and not payload.yaml_content:
         raise ValueError("Provide either `spec` or `yaml_content`")
     if payload.spec and payload.yaml_content:
@@ -117,7 +115,6 @@ def ingest_sample_bundle_internal(
         else payload.spec.model_dump(exclude_none=True)
     )
     if payload.update_existing:
-        user = require_authenticated(request)
         _enforce_access(user, permission="edit_sample")
     result = InternalIngestService.ingest_sample_bundle(
         source_payload,
@@ -132,13 +129,13 @@ def ingest_sample_bundle_internal(
 )
 def ingest_collection_document_internal(
     payload: InternalCollectionInsertRequest,
-    request: Request,
+    _user: ApiUser = Depends(require_access(min_role="admin")),
 ):
     """Insert one validated document into a supported collection."""
-    _require_internal_token(request)
     result = InternalIngestService.insert_collection_document(
         collection=payload.collection,
         document=payload.document,
+        ignore_duplicate=payload.ignore_duplicate,
     )
     return util.common.convert_to_serializable(result)
 
@@ -149,12 +146,12 @@ def ingest_collection_document_internal(
 )
 def ingest_collection_documents_internal(
     payload: InternalCollectionBulkInsertRequest,
-    request: Request,
+    _user: ApiUser = Depends(require_access(min_role="admin")),
 ):
     """Insert many validated documents into a supported collection."""
-    _require_internal_token(request)
     result = InternalIngestService.insert_collection_documents(
         collection=payload.collection,
         documents=payload.documents,
+        ignore_duplicates=payload.ignore_duplicates,
     )
     return util.common.convert_to_serializable(result)

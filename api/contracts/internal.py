@@ -26,6 +26,17 @@ class IsglMetaPayload(BaseModel):
 class InternalIngestDependentsRequest(BaseModel):
     """Represent internal dependent-data ingest request payload."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "sample_id": "65f0c0ffee00000000000001",
+                "sample_name": "DEMO_SAMPLE_001",
+                "delete_existing": True,
+                "preload": {"cnvs": [{"chr": "7", "start": 1, "end": 2}]},
+            }
+        }
+    )
+
     sample_id: str
     sample_name: str
     delete_existing: bool = False
@@ -66,6 +77,27 @@ class InternalSampleIngestSpec(BaseModel):
 class InternalIngestSampleBundleRequest(BaseModel):
     """Represent internal sample+analysis bundle ingest request payload."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "spec": {
+                        "name": "DEMO_SAMPLE_001",
+                        "assay": "ASSAY_A",
+                        "profile": "test",
+                        "genome_build": 38,
+                        "vcf_files": "/data/demo.vcf",
+                    },
+                    "update_existing": False,
+                },
+                {
+                    "yaml_content": "name: DEMO_SAMPLE_001\nassay: ASSAY_A\nprofile: test\n",
+                    "update_existing": False,
+                },
+            ]
+        }
+    )
+
     spec: InternalSampleIngestSpec | None = None
     yaml_content: str | None = None
     update_existing: bool = False
@@ -84,15 +116,45 @@ class InternalIngestSampleBundlePayload(BaseModel):
 class InternalCollectionInsertRequest(BaseModel):
     """Represent request body for single document insert."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "collection": "users",
+                "document": {
+                    "email": "admin@center.local",
+                    "fullname": "Center Admin",
+                    "role": "admin",
+                    "is_active": True,
+                },
+                "ignore_duplicate": True,
+            }
+        }
+    )
+
     collection: str
     document: dict[str, Any]
+    ignore_duplicate: bool = False
 
 
 class InternalCollectionBulkInsertRequest(BaseModel):
     """Represent request body for bulk document insert."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "collection": "refseq_canonical",
+                "documents": [
+                    {"gene": "EGFR", "canonical": "NM_005228"},
+                    {"gene": "TP53", "canonical": "NM_000546"},
+                ],
+                "ignore_duplicates": True,
+            }
+        }
+    )
+
     collection: str
     documents: list[dict[str, Any]]
+    ignore_duplicates: bool = False
 
 
 class InternalCollectionInsertPayload(BaseModel):

@@ -12,6 +12,7 @@ from typing import Any
 
 import yaml
 from bson.objectid import ObjectId
+from pymongo.errors import BulkWriteError, DuplicateKeyError
 from pysam import VariantFile
 
 import config
@@ -953,11 +954,20 @@ class InternalIngestService:
 
     @classmethod
     def insert_collection_document(
-        cls, *, collection: str, document: dict[str, Any]
+        cls, *, collection: str, document: dict[str, Any], ignore_duplicate: bool = False
     ) -> dict[str, Any]:
         """Validate and insert one document into a supported collection."""
         validate_collection_document(collection, document)
-        result = cls._resolve_collection(collection).insert_one(dict(document))
+        try:
+            result = cls._resolve_collection(collection).insert_one(dict(document))
+        except DuplicateKeyError:
+            if ignore_duplicate:
+                return {
+                    "status": "ok",
+                    "collection": collection,
+                    "inserted_count": 0,
+                }
+            raise
         return {
             "status": "ok",
             "collection": collection,
@@ -967,17 +977,29 @@ class InternalIngestService:
 
     @classmethod
     def insert_collection_documents(
-        cls, *, collection: str, documents: list[dict[str, Any]]
+        cls, *, collection: str, documents: list[dict[str, Any]], ignore_duplicates: bool = False
     ) -> dict[str, Any]:
         """Validate and insert many documents into a supported collection."""
         if not documents:
             return {"status": "ok", "collection": collection, "inserted_count": 0}
         cls._validate_collection_docs(collection, documents)
-        result = cls._resolve_collection(collection).insert_many(
-            [dict(doc) for doc in documents], ordered=False
-        )
+        inserted_count = 0
+        try:
+            result = cls._resolve_collection(collection).insert_many(
+                [dict(doc) for doc in documents], ordered=False
+            )
+            inserted_count = len(result.inserted_ids)
+        except BulkWriteError as exc:
+            if not ignore_duplicates:
+                raise
+            details = exc.details or {}
+            inserted_count = int(details.get("nInserted", 0))
+            write_errors = details.get("writeErrors", []) or []
+            non_duplicate_errors = [w for w in write_errors if w.get("code") != 11000]
+            if non_duplicate_errors:
+                raise
         return {
             "status": "ok",
             "collection": collection,
-            "inserted_count": len(result.inserted_ids),
+            "inserted_count": inserted_count,
         }
