@@ -8,35 +8,78 @@ Run an end-to-end center smoke check against a running Coyote3 API.
 Usage:
   scripts/center_smoke.sh \
     --api-base-url <url> \
-    --internal-token <token> \
+    (--bearer-token <token> | --username <user> --password <pass>) \
     --yaml-file <path>
 
 Example:
   scripts/center_smoke.sh \
     --api-base-url http://localhost:6816 \
-    --internal-token "$INTERNAL_API_TOKEN" \
+    --username "admin@center.local" \
+    --password "CHANGE_ME" \
     --yaml-file tests/data/ingest_demo/generic_case_control.yaml
 USAGE
 }
 
 API_BASE_URL=""
-INTERNAL_TOKEN=""
+BEARER_TOKEN=""
+USERNAME=""
+PASSWORD=""
 YAML_FILE=""
+PYTHON_BIN="${PYTHON_BIN:-}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --api-base-url) API_BASE_URL="$2"; shift 2 ;;
-    --internal-token) INTERNAL_TOKEN="$2"; shift 2 ;;
+    --bearer-token) BEARER_TOKEN="$2"; shift 2 ;;
+    --username) USERNAME="$2"; shift 2 ;;
+    --password) PASSWORD="$2"; shift 2 ;;
     --yaml-file) YAML_FILE="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; usage; exit 2 ;;
   esac
 done
 
-if [[ -z "$API_BASE_URL" || -z "$INTERNAL_TOKEN" || -z "$YAML_FILE" ]]; then
-  echo "ERROR: --api-base-url, --internal-token, and --yaml-file are required" >&2
+if [[ -z "$API_BASE_URL" || -z "$YAML_FILE" ]]; then
+  echo "ERROR: --api-base-url and --yaml-file are required" >&2
   usage
   exit 2
+fi
+
+if [[ -z "$PYTHON_BIN" ]]; then
+  if command -v python >/dev/null 2>&1; then
+    PYTHON_BIN="$(command -v python)"
+  elif command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="$(command -v python3)"
+  else
+    echo "ERROR: python/python3 not found in PATH. Set PYTHON_BIN." >&2
+    exit 2
+  fi
+fi
+
+if [[ -z "$BEARER_TOKEN" ]]; then
+  if [[ -z "$USERNAME" || -z "$PASSWORD" ]]; then
+    echo "ERROR: provide either --bearer-token or --username/--password" >&2
+    usage
+    exit 2
+  fi
+  echo "[step] login and resolve bearer token"
+  AUTH_JSON="$("$PYTHON_BIN" scripts/api_login.py \
+    --base-url "$API_BASE_URL" \
+    --mode password \
+    --username "$USERNAME" \
+    --password "$PASSWORD" \
+    --print-token)"
+  BEARER_TOKEN="$("$PYTHON_BIN" - <<'PY' "$AUTH_JSON"
+import json
+import sys
+print(json.loads(sys.argv[1]).get("session_token", ""))
+PY
+  )"
+fi
+
+if [[ -z "$BEARER_TOKEN" ]]; then
+  echo "ERROR: could not resolve bearer token" >&2
+  exit 1
 fi
 
 if [[ ! -f "$YAML_FILE" ]]; then
@@ -48,11 +91,11 @@ echo "[step] health check"
 curl -fsS "${API_BASE_URL%/}/api/v1/health" >/dev/null
 
 echo "[step] local ingest spec validation"
-python scripts/validate_ingest_spec.py --yaml "$YAML_FILE" --check-files >/dev/null
+"$PYTHON_BIN" scripts/validate_ingest_spec.py --yaml "$YAML_FILE" --check-files >/dev/null
 
 echo "[step] submit ingest sample-bundle"
 PY_PAYLOAD="$({
-python - <<'PY' "$YAML_FILE"
+"$PYTHON_BIN" - <<'PY' "$YAML_FILE"
 import json
 import sys
 from pathlib import Path
@@ -67,7 +110,7 @@ RESP_FILE="$(mktemp)"
 HTTP_CODE=$(curl -sS -o "$RESP_FILE" -w "%{http_code}" \
   -X POST "${API_BASE_URL%/}/api/v1/internal/ingest/sample-bundle" \
   -H "Content-Type: application/json" \
-  -H "X-Internal-Api-Token: ${INTERNAL_TOKEN}" \
+  -H "Authorization: Bearer ${BEARER_TOKEN}" \
   --data "$PY_PAYLOAD")
 
 if [[ "$HTTP_CODE" -lt 200 || "$HTTP_CODE" -ge 300 ]]; then

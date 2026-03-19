@@ -8,41 +8,53 @@ Seed baseline center collections through internal bulk-ingest API in strict orde
 Usage:
   scripts/bootstrap_center_collections.sh \
     --api-base-url <url> \
-    --internal-token <token> \
+    (--bearer-token <token> | --username <user> --password <pass>) \
     [--seed-file <path>] \
-    [--with-optional]
+    [--with-optional] \
+    [--skip-existing]
 
 Options:
   --api-base-url   Base API URL, e.g. http://localhost:8006
-  --internal-token INTERNAL_API_TOKEN value
+  --bearer-token   Existing API bearer token
+  --username       API username/email (password mode)
+  --password       API password (password mode)
   --seed-file      JSON file containing collection -> [docs] mapping
                    default: tests/fixtures/db_dummy/center_template_seed.json
   --with-optional  Seed optional knowledge collections after required baseline
+  --skip-existing  Ignore duplicate key conflicts while seeding
 
 Notes:
   - This is intended for first-time center bootstrap.
-  - Inserts are not upserts. Re-running may fail on unique indexes.
+  - Inserts are not upserts.
+  - Use --skip-existing for idempotent reruns.
 USAGE
 }
 
 API_BASE_URL=""
-INTERNAL_TOKEN=""
+BEARER_TOKEN=""
+USERNAME=""
+PASSWORD=""
 SEED_FILE="tests/fixtures/db_dummy/center_template_seed.json"
 WITH_OPTIONAL=0
+SKIP_EXISTING=0
+PYTHON_BIN="${PYTHON_BIN:-}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --api-base-url) API_BASE_URL="$2"; shift 2 ;;
-    --internal-token) INTERNAL_TOKEN="$2"; shift 2 ;;
+    --bearer-token) BEARER_TOKEN="$2"; shift 2 ;;
+    --username) USERNAME="$2"; shift 2 ;;
+    --password) PASSWORD="$2"; shift 2 ;;
     --seed-file) SEED_FILE="$2"; shift 2 ;;
     --with-optional) WITH_OPTIONAL=1; shift ;;
+    --skip-existing) SKIP_EXISTING=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; usage; exit 2 ;;
   esac
 done
 
-if [[ -z "$API_BASE_URL" || -z "$INTERNAL_TOKEN" ]]; then
-  echo "ERROR: --api-base-url and --internal-token are required" >&2
+if [[ -z "$API_BASE_URL" ]]; then
+  echo "ERROR: --api-base-url is required" >&2
   usage
   exit 2
 fi
@@ -52,7 +64,6 @@ if [[ ! -f "$SEED_FILE" ]]; then
   exit 2
 fi
 
-PYTHON_BIN="${PYTHON_BIN:-}"
 if [[ -z "$PYTHON_BIN" ]]; then
   if command -v python >/dev/null 2>&1; then
     PYTHON_BIN="$(command -v python)"
@@ -62,6 +73,32 @@ if [[ -z "$PYTHON_BIN" ]]; then
     echo "ERROR: python/python3 not found in PATH. Set PYTHON_BIN." >&2
     exit 2
   fi
+fi
+
+if [[ -z "$BEARER_TOKEN" ]]; then
+  if [[ -z "$USERNAME" || -z "$PASSWORD" ]]; then
+    echo "ERROR: provide either --bearer-token or --username/--password" >&2
+    usage
+    exit 2
+  fi
+  echo "[step] login and resolve bearer token"
+  AUTH_JSON="$("$PYTHON_BIN" scripts/api_login.py \
+    --base-url "$API_BASE_URL" \
+    --mode password \
+    --username "$USERNAME" \
+    --password "$PASSWORD" \
+    --print-token)"
+  BEARER_TOKEN="$("$PYTHON_BIN" - <<'PY' "$AUTH_JSON"
+import json
+import sys
+print(json.loads(sys.argv[1]).get("session_token", ""))
+PY
+  )"
+fi
+
+if [[ -z "$BEARER_TOKEN" ]]; then
+  echo "ERROR: could not resolve bearer token" >&2
+  exit 1
 fi
 
 echo "[step] validating assay consistency in seed file"
@@ -124,7 +161,7 @@ post_bulk() {
   status="$(curl -sS -o "$resp_file" -w "%{http_code}" \
     -X POST "${API_BASE_URL%/}/api/v1/internal/ingest/collection/bulk" \
     -H "Content-Type: application/json" \
-    -H "X-Internal-Api-Token: ${INTERNAL_TOKEN}" \
+    -H "Authorization: Bearer ${BEARER_TOKEN}" \
     --data "$payload")"
 
   if [[ "$status" -lt 200 || "$status" -ge 300 ]]; then
@@ -142,13 +179,25 @@ post_bulk() {
 seed_one() {
   local collection="$1"
   local count
+  local payload
   count="$(collection_count "$collection")"
   if [[ "$count" -eq 0 ]]; then
     echo "[skip] ${collection}: no docs in ${SEED_FILE}"
     return 0
   fi
   echo "[step] seeding ${collection} (${count} docs)"
-  post_bulk "$collection" "$(make_payload "$collection")"
+  payload="$(make_payload "$collection")"
+  if [[ "$SKIP_EXISTING" -eq 1 ]]; then
+    payload="$("$PYTHON_BIN" - <<'PY' "$payload"
+import json
+import sys
+p = json.loads(sys.argv[1])
+p["ignore_duplicates"] = True
+print(json.dumps(p, separators=(",", ":")))
+PY
+    )"
+  fi
+  post_bulk "$collection" "$payload"
 }
 
 echo "[step] API health check"
