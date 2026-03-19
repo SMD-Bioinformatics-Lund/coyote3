@@ -7,6 +7,7 @@ from typing import Any
 from api.extensions import util
 from api.http import api_error
 from api.repositories.admin_repository import AdminRepository
+from api.security.password_flows import issue_password_token_for_user
 from api.services.management_common import (
     admin_list_pagination,
     current_actor,
@@ -161,15 +162,39 @@ class AdminUserService:
         user_data["username"] = username
         if user_data["auth_type"] == "coyote3" and user_data.get("password"):
             user_data["password"] = util.common.hash_password(user_data["password"])
+            user_data["must_change_password"] = bool(form_data.get("must_change_password", True))
         else:
             user_data["password"] = None
+            if user_data.get("auth_type") == "coyote3":
+                user_data["must_change_password"] = True
         user_data = inject_version_history(
             actor_username=current_actor(actor_username),
             new_config=user_data,
             is_new=True,
         )
         self.repository.create_user(user_data)
-        return mutation_payload(resource="user", resource_id=username, action="create")
+        response = mutation_payload(resource="user", resource_id=username, action="create")
+        if user_data.get("auth_type") == "coyote3":
+            try:
+                invite = issue_password_token_for_user(
+                    login_identifier=username,
+                    purpose="invite",
+                    actor_username=current_actor(actor_username),
+                )
+                response["meta"]["invite_email_sent"] = bool(invite.get("email_sent", False))
+                response["meta"]["mail_configured"] = bool(invite.get("mail_configured", False))
+                if invite.get("setup_url"):
+                    response["meta"]["invite_setup_url"] = str(invite["setup_url"])
+                if invite.get("warning"):
+                    response["meta"]["warning"] = str(invite["warning"])
+            except RuntimeError:
+                # Non-request/unit-test contexts may not have full API runtime bound.
+                response["meta"]["invite_email_sent"] = False
+                response["meta"]["mail_configured"] = False
+                response["meta"][
+                    "warning"
+                ] = "Invite token/email issuance skipped: API runtime not initialized."
+        return response
 
     def update_user(
         self, *, user_id: str, payload: dict[str, Any], actor_username: str
@@ -222,6 +247,28 @@ class AdminUserService:
         )
         self.repository.update_user(user_id, updated_user)
         return mutation_payload(resource="user", resource_id=user_id, action="update")
+
+    def send_local_user_invite(self, *, user_id: str, actor_username: str) -> dict[str, Any]:
+        """Issue and email a local-user set-password invite."""
+        user_doc = self.repository.get_user(user_id)
+        if not user_doc:
+            raise api_error(404, "User not found")
+        if str(user_doc.get("auth_type") or "coyote3").lower() != "coyote3":
+            raise api_error(400, "Invite is only available for local users")
+
+        invite = issue_password_token_for_user(
+            login_identifier=str(user_doc.get("username") or user_id),
+            purpose="invite",
+            actor_username=current_actor(actor_username),
+        )
+        payload = mutation_payload(resource="user", resource_id=user_id, action="invite")
+        payload["meta"]["invite_email_sent"] = bool(invite.get("email_sent", False))
+        payload["meta"]["mail_configured"] = bool(invite.get("mail_configured", False))
+        if invite.get("setup_url"):
+            payload["meta"]["invite_setup_url"] = str(invite["setup_url"])
+        if invite.get("warning"):
+            payload["meta"]["warning"] = str(invite["warning"])
+        return payload
 
     def delete_user(self, *, user_id: str) -> dict[str, Any]:
         """Delete user.

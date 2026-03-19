@@ -420,3 +420,87 @@ class UsersHandler(BaseHandler):
             {"$set": {"is_active": active_status}},
         )
         return bool(getattr(result, "modified_count", 0) or getattr(result, "matched_count", 0))
+
+    def set_password_action_token(
+        self,
+        *,
+        user_id: str,
+        token_hash: str,
+        purpose: str,
+        expires_at: datetime,
+        issued_by: str | None = None,
+    ) -> None:
+        """Persist one-time password token metadata."""
+        normalized = self._normalize_user_id(user_id)
+        payload = {
+            "password_action_token_hash": str(token_hash),
+            "password_action_purpose": str(purpose),
+            "password_action_expires_at": expires_at,
+            "password_action_issued_at": datetime.now(timezone.utc),
+            "must_change_password": True,
+        }
+        if issued_by:
+            payload["password_action_issued_by"] = str(issued_by)
+        self.get_collection().update_one(
+            self._identity_query(normalized),
+            {"$set": payload},
+        )
+
+    def validate_and_clear_password_action_token(
+        self, *, user_id: str, token_hash: str, purpose: str
+    ) -> bool:
+        """Validate token metadata and clear it when valid."""
+        normalized = self._normalize_user_id(user_id)
+        now = datetime.now(timezone.utc)
+        user = self.get_collection().find_one(self._identity_query(normalized))
+        if not user:
+            return False
+
+        expected_hash = str(user.get("password_action_token_hash") or "")
+        expected_purpose = str(user.get("password_action_purpose") or "")
+        expires_at = user.get("password_action_expires_at")
+        if (
+            expected_hash != str(token_hash)
+            or expected_purpose != str(purpose)
+            or not expires_at
+            or now > expires_at
+        ):
+            return False
+
+        self.get_collection().update_one(
+            self._identity_query(normalized),
+            {
+                "$unset": {
+                    "password_action_token_hash": "",
+                    "password_action_purpose": "",
+                    "password_action_expires_at": "",
+                    "password_action_issued_at": "",
+                    "password_action_issued_by": "",
+                }
+            },
+        )
+        return True
+
+    def set_local_password(
+        self, *, user_id: str, password_hash: str, require_password_change: bool = False
+    ) -> None:
+        """Update local password hash and auth metadata."""
+        normalized = self._normalize_user_id(user_id)
+        self.get_collection().update_one(
+            self._identity_query(normalized),
+            {
+                "$set": {
+                    "password": str(password_hash),
+                    "auth_type": "coyote3",
+                    "must_change_password": bool(require_password_change),
+                    "password_updated_on": datetime.now(timezone.utc),
+                },
+                "$unset": {
+                    "password_action_token_hash": "",
+                    "password_action_purpose": "",
+                    "password_action_expires_at": "",
+                    "password_action_issued_at": "",
+                    "password_action_issued_by": "",
+                },
+            },
+        )

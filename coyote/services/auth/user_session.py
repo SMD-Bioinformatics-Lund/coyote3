@@ -36,6 +36,8 @@ class SessionUserModel:
         self.assay_groups = list(payload.get("assay_groups") or [])
         self.envs = list(payload.get("envs") or [])
         self.asp_map = dict(payload.get("asp_map") or {})
+        self.auth_type = str(payload.get("auth_type") or "coyote3")
+        self.must_change_password = bool(payload.get("must_change_password") or False)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize user fields into a JSON-safe dict for session storage."""
@@ -52,6 +54,8 @@ class SessionUserModel:
             "assay_groups": list(self.assay_groups),
             "envs": list(self.envs),
             "asp_map": dict(self.asp_map),
+            "auth_type": self.auth_type,
+            "must_change_password": bool(self.must_change_password),
         }
 
 

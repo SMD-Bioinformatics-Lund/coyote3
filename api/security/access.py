@@ -34,6 +34,8 @@ PUBLIC_API_EXACT_PATHS = {
     "/api/vi/docs",
     "/api/v1/auth/sessions",
     "/api/v1/auth/sessions/current",
+    "/api/v1/auth/password/reset/request",
+    "/api/v1/auth/password/reset/confirm",
     "/api/v1/docs",
     "/api/v1/openapi.json",
     "/api/v1/redoc",
@@ -60,6 +62,8 @@ class ApiUser:
     assay_groups: list[str]
     envs: list[str]
     asp_map: dict
+    auth_type: str = "coyote3"
+    must_change_password: bool = False
 
 
 def _api_error(status_code: int, message: str) -> HTTPException:
@@ -243,6 +247,8 @@ def _api_user_from_doc(user_doc: dict) -> ApiUser:
         assay_groups=list(user_model.assay_groups),
         envs=list(user_model.envs),
         asp_map=dict(user_model.asp_map),
+        auth_type=str(getattr(user_model, "auth_type", "coyote3") or "coyote3"),
+        must_change_password=bool(getattr(user_model, "must_change_password", False)),
     )
 
 
@@ -268,6 +274,8 @@ def serialize_api_user(user: ApiUser) -> dict:
         "assay_groups": sorted(user.assay_groups),
         "envs": sorted(user.envs),
         "asp_map": user.asp_map,
+        "auth_type": user.auth_type,
+        "must_change_password": bool(user.must_change_password),
     }
 
 

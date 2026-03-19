@@ -414,7 +414,6 @@ class FusionsHandler(BaseHandler):
         # Attach GT to each sample_info
         results = []
         for f in fusions:
-            print(f"fusion in other samples: {f["calls"][0]}")
             sid = f["SAMPLE_ID"]
             info = sample_map.get(sid, {"sample_name": "unknown", "assay": "unknown"})
             info["fp"] = f.get("fp", False)  # Add fp status if available

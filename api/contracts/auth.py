@@ -32,3 +32,23 @@ class ApiAuthWhoAmIResponse(BaseModel):
     access_level: int
     permissions: list[str]
     denied_permissions: list[str]
+
+
+class ApiPasswordChangeRequest(BaseModel):
+    """Represent an authenticated local password change request."""
+
+    current_password: str
+    new_password: str
+
+
+class ApiPasswordResetRequest(BaseModel):
+    """Represent a password reset request payload."""
+
+    username: str
+
+
+class ApiPasswordResetConfirmRequest(BaseModel):
+    """Represent a password reset confirm payload."""
+
+    token: str
+    new_password: str

@@ -137,24 +137,17 @@ class DefaultConfig:
     API_SESSION_COOKIE_NAME = os.getenv("API_SESSION_COOKIE_NAME", "coyote3_api_session")
     API_SESSION_TTL_SECONDS = int(os.getenv("API_SESSION_TTL_SECONDS", str(12 * 60 * 60)))
     API_SESSION_SALT = os.getenv("API_SESSION_SALT", "coyote3-api-session-v1")
-    LOCAL_AUTH_USER_IDENTIFIERS = tuple(
-        item.strip().lower()
-        for item in os.getenv(
-            "LOCAL_AUTH_USER_IDENTIFIERS",
-            (
-                "coyote3.admin,coyote3.admin@skane.se,"
-                "coyote3.demo,coyote3.demo@skane.se,"
-                "coyote3.developer,coyote3.developer@skane.se,"
-                "coyote3.external,coyote3.external@skane.se,"
-                "coyote3.intern,coyote3.intern@skane.se,"
-                "coyote3.manager,coyote3.manager@skane.se,"
-                "coyote3.tester,coyote3.tester@skane.se,"
-                "coyote3.user,coyote3.user@skane.se,"
-                "coyote3.viewer,coyote3.viewer@skane.se"
-            ),
-        ).split(",")
-        if item.strip()
-    )
+    PASSWORD_TOKEN_SALT = os.getenv("PASSWORD_TOKEN_SALT", "coyote3-password-token-v1")
+    PASSWORD_TOKEN_TTL_SECONDS = int(os.getenv("PASSWORD_TOKEN_TTL_SECONDS", str(60 * 60)))
+    WEB_APP_BASE_URL = os.getenv("WEB_APP_BASE_URL", "")
+    SMTP_HOST = os.getenv("SMTP_HOST", "")
+    SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
+    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+    SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "1") == "1"
+    SMTP_USE_SSL = os.getenv("SMTP_USE_SSL", "0") == "1"
+    SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "noreply@coyote3.local")
+    SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Coyote3")
 
     _MONGO_URI_ENV: str = os.getenv("MONGO_URI", "").strip()
     COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3")

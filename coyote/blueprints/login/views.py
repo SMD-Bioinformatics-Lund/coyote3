@@ -26,7 +26,7 @@ from coyote.services.api_client.api_client import (
     forward_headers,
     get_web_api_client,
 )
-from coyote.services.api_client.web import flash_api_failure
+from coyote.services.api_client.web import flash_api_failure, flash_api_success
 from coyote.services.auth.user_session import User
 
 _SESSION_USER_PAYLOAD_KEY = "auth_user_payload"
@@ -133,8 +133,12 @@ def login() -> str | Response:
         user = User(auth_payload.user)
         login_user(user)
         session[_SESSION_USER_PAYLOAD_KEY] = user.to_dict()
-
-        response = redirect(url_for("dashboard_bp.dashboard"))
+        must_change_password = bool(getattr(user, "must_change_password", False))
+        response = redirect(
+            url_for("profile_bp.change_password", user_id=user.username)
+            if must_change_password
+            else url_for("dashboard_bp.dashboard")
+        )
         _set_api_cookie(response, session_token)
         app.logger.info("User logged in via API: %s (access_level: %s)", email, user.access_level)
         return response
@@ -159,6 +163,48 @@ def logout() -> Response:
     response = redirect(url_for("login_bp.login"))
     _clear_api_cookie(response)
     return response
+
+
+@login_bp.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password() -> str | Response:
+    """Start password reset flow."""
+    if request.method == "POST":
+        username = str(request.form.get("username") or "").strip()
+        try:
+            get_web_api_client().post_json(
+                api_endpoints.auth("password", "reset", "request"),
+                headers=forward_headers(),
+                json_body={"username": username},
+            )
+        except ApiRequestError as exc:
+            app.logger.warning("Forgot-password request failed for %s: %s", username, exc)
+        flash_api_success("If eligible, a password reset email has been sent.")
+        return redirect(url_for("login_bp.login"))
+    return render_template("forgot_password.html")
+
+
+@login_bp.route("/reset-password", methods=["GET", "POST"])
+def reset_password() -> str | Response:
+    """Complete password reset using token."""
+    token = str(request.args.get("token") or request.form.get("token") or "").strip()
+    if request.method == "POST":
+        new_password = str(request.form.get("new_password") or "")
+        confirm_password = str(request.form.get("confirm_password") or "")
+        if new_password != confirm_password:
+            flash_api_failure("Passwords do not match.", ApiRequestError("mismatch"))
+            return redirect(url_for("login_bp.reset_password", token=token))
+        try:
+            get_web_api_client().post_json(
+                api_endpoints.auth("password", "reset", "confirm"),
+                headers=forward_headers(),
+                json_body={"token": token, "new_password": new_password},
+            )
+            flash_api_success("Password set successfully. Please sign in.")
+            return redirect(url_for("login_bp.login"))
+        except ApiRequestError as exc:
+            flash_api_failure("Unable to set password.", exc)
+            return redirect(url_for("login_bp.reset_password", token=token))
+    return render_template("reset_password.html", token=token)
 
 
 @login_manager.user_loader

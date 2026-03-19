@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Protocol
 
 
@@ -88,4 +89,28 @@ class SecurityRepository(Protocol):
         Returns:
             None.
         """
+        ...
+
+    def set_user_password_token(
+        self,
+        *,
+        user_id: str,
+        token_hash: str,
+        purpose: str,
+        expires_at: datetime,
+        issued_by: str | None = None,
+    ) -> None:
+        """Persist one-time password token metadata for a local user."""
+        ...
+
+    def validate_and_clear_password_token(
+        self, *, user_id: str, token_hash: str, purpose: str
+    ) -> bool:
+        """Validate and atomically clear one-time password token metadata."""
+        ...
+
+    def set_local_password(
+        self, *, user_id: str, password_hash: str, require_password_change: bool = False
+    ) -> None:
+        """Update local password hash and password-change requirement state."""
         ...

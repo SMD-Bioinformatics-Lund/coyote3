@@ -40,6 +40,8 @@ class UserModel(BaseModel):
     access_level: int = 0
     job_title: Optional[str] = None
     is_active: bool = True
+    auth_type: Optional[str] = "coyote3"
+    must_change_password: bool = False
 
     @field_validator("id", mode="before")
     @classmethod

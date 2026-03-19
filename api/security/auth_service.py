@@ -28,29 +28,6 @@ def _lookup_user_doc(login_identifier: str) -> dict | None:
     return repo.get_user_by_id(normalized)
 
 
-def _is_local_auth_allowlisted(login_identifier: str, user_doc: dict) -> bool:
-    """Is local auth allowlisted.
-
-    Args:
-            login_identifier: Login identifier.
-            user_doc: User doc.
-
-    Returns:
-            The  is local auth allowlisted result.
-    """
-    allowlist = app.config.get("LOCAL_AUTH_USER_IDENTIFIERS") or ()
-    if not allowlist:
-        return False
-
-    allow = {str(item).strip().lower() for item in allowlist if str(item).strip()}
-    candidates = {
-        str(login_identifier).strip().lower(),
-        str(user_doc.get("username") or "").strip().lower(),
-        str(user_doc.get("email") or "").strip().lower(),
-    }
-    return bool(candidates & allow)
-
-
 def _ldap_authenticate(username: str, password: str) -> bool:
     """Ldap authenticate.
 
@@ -113,9 +90,8 @@ def authenticate_credentials(username: str, password: str) -> dict | None:
     if not user_doc or not user_doc.get("is_active", True):
         return None
 
-    use_internal = user_doc.get("auth_type") == "coyote3" or _is_local_auth_allowlisted(
-        username, user_doc
-    )
+    auth_type = str(user_doc.get("auth_type") or "coyote3").strip().lower()
+    use_internal = auth_type == "coyote3"
     valid = (
         UserModel.validate_login(user_doc.get("password", ""), password)
         if use_internal

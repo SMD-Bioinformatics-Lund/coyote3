@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from api.extensions import store
@@ -93,3 +94,40 @@ class MongoSecurityRepository:
             None.
         """
         store.user_handler.update_user_last_login(user_id)
+
+    def set_user_password_token(
+        self,
+        *,
+        user_id: str,
+        token_hash: str,
+        purpose: str,
+        expires_at: datetime,
+        issued_by: str | None = None,
+    ) -> None:
+        store.user_handler.set_password_action_token(
+            user_id=user_id,
+            token_hash=token_hash,
+            purpose=purpose,
+            expires_at=expires_at,
+            issued_by=issued_by,
+        )
+
+    def validate_and_clear_password_token(
+        self, *, user_id: str, token_hash: str, purpose: str
+    ) -> bool:
+        return bool(
+            store.user_handler.validate_and_clear_password_action_token(
+                user_id=user_id,
+                token_hash=token_hash,
+                purpose=purpose,
+            )
+        )
+
+    def set_local_password(
+        self, *, user_id: str, password_hash: str, require_password_change: bool = False
+    ) -> None:
+        store.user_handler.set_local_password(
+            user_id=user_id,
+            password_hash=password_hash,
+            require_password_change=require_password_change,
+        )

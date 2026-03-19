@@ -255,6 +255,24 @@ def toggle_user_status(
     return _toggle_user(user_id=user_id, service=service)
 
 
+@router.post(
+    "/api/v1/users/{user_id}/invite",
+    response_model=AdminMutationPayload,
+    summary="Send local user invite",
+)
+def invite_local_user(
+    user_id: str,
+    user: ApiUser = Depends(
+        require_access(permission="edit_user", min_role="admin", min_level=99999)
+    ),
+    service: AdminUserService = Depends(get_admin_user_service),
+):
+    """Issue a set-password invite link for local users."""
+    return util.common.convert_to_serializable(
+        service.send_local_user_invite(user_id=user_id, actor_username=user.username)
+    )
+
+
 @router.post("/api/v1/users/validate_username", response_model=AdminExistsPayload)
 def validate_username_mutation(
     payload: dict = Body(default_factory=dict),
@@ -310,6 +328,7 @@ __all__ = [
     "delete_user",
     "list_users_read",
     "toggle_user_status",
+    "invite_local_user",
     "update_user",
     "user_context_read",
     "validate_email_mutation",

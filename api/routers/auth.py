@@ -2,10 +2,18 @@
 
 from __future__ import annotations
 
+import re
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from api.contracts.auth import ApiAuthLoginRequest, ApiSessionDeleteResponse
+from api.contracts.auth import (
+    ApiAuthLoginRequest,
+    ApiPasswordChangeRequest,
+    ApiPasswordResetConfirmRequest,
+    ApiPasswordResetRequest,
+    ApiSessionDeleteResponse,
+)
 from api.contracts.system import AuthLoginEnvelope, AuthUserEnvelope, WhoamiPayload
 from api.extensions import util
 from api.security.access import (
@@ -22,6 +30,11 @@ from api.security.auth_service import (
     build_user_session_payload,
     resolve_user_identity,
     update_user_last_login,
+)
+from api.security.password_flows import (
+    change_local_password,
+    consume_password_token_and_set_password,
+    issue_password_token_for_user,
 )
 
 router = APIRouter(tags=["auth"])
@@ -89,6 +102,35 @@ def _login_response(payload: ApiAuthLoginRequest):
     return response
 
 
+def _validate_new_password(new_password: str) -> None:
+    password = str(new_password or "")
+    if len(password) < 10:
+        raise HTTPException(
+            status_code=400,
+            detail={"status": 400, "error": "Password must be at least 10 characters"},
+        )
+    if not re.search(r"[a-z]", password):
+        raise HTTPException(
+            status_code=400,
+            detail={"status": 400, "error": "Password must include a lowercase letter"},
+        )
+    if not re.search(r"[A-Z]", password):
+        raise HTTPException(
+            status_code=400,
+            detail={"status": 400, "error": "Password must include an uppercase letter"},
+        )
+    if not re.search(r"\d", password):
+        raise HTTPException(
+            status_code=400,
+            detail={"status": 400, "error": "Password must include a number"},
+        )
+    if not re.search(r"[\W_]", password):
+        raise HTTPException(
+            status_code=400,
+            detail={"status": 400, "error": "Password must include a symbol"},
+        )
+
+
 @router.post(
     "/api/v1/auth/sessions",
     response_model=AuthLoginEnvelope,
@@ -149,6 +191,53 @@ def auth_session(user: ApiUser = Depends(require_access(min_level=1))):
         The function result.
     """
     return util.common.convert_to_serializable({"status": "ok", "user": serialize_api_user(user)})
+
+
+@router.post("/api/v1/auth/password/change")
+def change_password(payload: ApiPasswordChangeRequest, user: ApiUser = Depends(require_access())):
+    """Change local password for the authenticated user."""
+    _validate_new_password(payload.new_password)
+    out = change_local_password(
+        user_id=user.username,
+        current_password=payload.current_password,
+        new_password=payload.new_password,
+    )
+    if out.get("status") != "ok":
+        raise HTTPException(
+            status_code=400,
+            detail={"status": 400, "error": str(out.get("error") or "Unable to change password")},
+        )
+    return {"status": "ok", "username": user.username}
+
+
+@router.post("/api/v1/auth/password/reset/request")
+def request_password_reset(payload: ApiPasswordResetRequest):
+    """Issue a password reset link for a local user.
+
+    Always returns status=ok to avoid account enumeration.
+    """
+    issue_password_token_for_user(
+        login_identifier=payload.username,
+        purpose="reset",
+        actor_username=None,
+    )
+    return {"status": "ok"}
+
+
+@router.post("/api/v1/auth/password/reset/confirm")
+def confirm_password_reset(payload: ApiPasswordResetConfirmRequest):
+    """Consume one-time token and set a new password."""
+    _validate_new_password(payload.new_password)
+    out = consume_password_token_and_set_password(
+        token=payload.token,
+        new_password=payload.new_password,
+    )
+    if out.get("status") != "ok":
+        raise HTTPException(
+            status_code=400,
+            detail={"status": 400, "error": str(out.get("error") or "Password reset failed")},
+        )
+    return {"status": "ok"}
 
 
 async def http_exception_handler(_request: Request, exc: HTTPException):

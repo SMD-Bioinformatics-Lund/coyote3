@@ -203,6 +203,20 @@ def create_user() -> Response | str:
             )
             g.audit_metadata = {"user": payload.resource_id}
             flash_api_success("User created successfully.")
+            if payload.meta.get("warning"):
+                flash_api_failure(
+                    str(payload.meta.get("warning")),
+                    ApiRequestError("mail-warning"),
+                    category="yellow",
+                )
+            elif payload.meta.get("invite_email_sent") is False and payload.meta.get(
+                "invite_setup_url"
+            ):
+                flash_api_failure(
+                    f"Invite email not sent. Share setup URL manually: {payload.meta.get('invite_setup_url')}",
+                    ApiRequestError("mail-warning"),
+                    category="yellow",
+                )
         except ApiRequestError as exc:
             flash_api_failure("Unable to create the user.", exc)
         return redirect(url_for("admin_bp.manage_users"))
@@ -384,4 +398,47 @@ def toggle_user_active(user_id: str):
         if exc.status_code == 404:
             return abort(404)
         flash_api_failure(f"Unable to change the status for user '{user_id}'.", exc)
+    return redirect(url_for("admin_bp.manage_users"))
+
+
+@admin_bp.route("/users/<user_id>/invite", methods=["POST", "GET"])
+@login_required
+def invite_user(user_id: str) -> Response:
+    """Issue and (if configured) email a local-user invite link."""
+    try:
+        payload = get_web_api_client().post_json(
+            api_endpoints.admin("users", user_id, "invite"),
+            headers=forward_headers(),
+        )
+        g.audit_metadata = {"user": user_id, "action": "invite"}
+        if payload.meta.get("invite_email_sent"):
+            flash_api_success(f"Invite sent to '{user_id}'.")
+        else:
+            setup_url = str(payload.meta.get("invite_setup_url") or "")
+            warning = str(payload.meta.get("warning") or "").strip()
+            if warning:
+                if setup_url:
+                    flash_api_failure(
+                        f"{warning} Setup URL: {setup_url}",
+                        ApiRequestError("mail-warning"),
+                        category="yellow",
+                    )
+                else:
+                    flash_api_failure(warning, ApiRequestError("mail-warning"), category="yellow")
+            elif setup_url:
+                flash_api_failure(
+                    f"Invite generated but email was not sent. Setup URL: {setup_url}",
+                    ApiRequestError("mail-warning"),
+                    category="yellow",
+                )
+            else:
+                flash_api_failure(
+                    "Invite generated but email was not sent.",
+                    ApiRequestError("mail-warning"),
+                    category="yellow",
+                )
+    except ApiRequestError as exc:
+        if exc.status_code == 404:
+            return abort(404)
+        flash_api_failure(f"Unable to invite user '{user_id}'.", exc)
     return redirect(url_for("admin_bp.manage_users"))

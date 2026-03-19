@@ -204,6 +204,14 @@ def init_app(testing: bool = False, development: bool = False, staging: bool = F
                 "CURRENT_YEAR": datetime.now(timezone.utc).year,
             }
 
+        @app.context_processor
+        def inject_password_flags() -> dict:
+            """Inject password-related UI flags."""
+            if not current_user.is_authenticated:
+                return {"password_changed_enabled": False}
+            auth_type = str(getattr(current_user, "auth_type", "coyote3") or "coyote3").lower()
+            return {"password_changed_enabled": auth_type == "coyote3"}
+
     @app.context_processor
     def inject_permission_helpers():
         """

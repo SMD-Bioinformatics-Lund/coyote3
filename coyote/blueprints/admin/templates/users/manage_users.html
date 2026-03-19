@@ -96,6 +96,19 @@
                         <img src="{{ url_for('static', filename='icons/heroicons_outline_24/eye.svg') }}" alt="View" class="w-5 cursor-pointer">
                       </a>
                       {% if has_access("edit_user", min_role="admin", min_level=99999) %}
+                        {% if user.auth_type == 'coyote3' %}
+                          <button onclick="showActionModal({
+                              url: '{{ url_for('admin_bp.invite_user', user_id=(user.username or user.user_id)) }}',
+                              title: 'Send Invite',
+                              message: 'Send password setup invite to <b>{{ user.username or user.user_id }}</b>?',
+                              confirmText: 'Send Invite',
+                              confirmColor: 'green'
+                            })"
+                            title="Send Invite"
+                            class="font-medium text-green-600 hover:text-green-800">
+                            <img src="{{ url_for('static', filename='icons/heroicons_outline_24/envelope.svg') }}" alt="invite" class="w-5 cursor-pointer">
+                          </button>
+                        {% endif %}
                         <button onclick="showActionModal({
                             url: '{{ url_for('admin_bp.edit_user', user_id=(user.username or user.user_id)) }}',
                             title: 'Edit user configuration',

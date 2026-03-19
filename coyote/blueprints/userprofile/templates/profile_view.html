@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block title %}Profile{% endblock %}
+{% block body %}
+<div class="max-w-3xl mx-auto mt-10 bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+  <h1 class="text-xl font-semibold text-gray-900 mb-4">Profile</h1>
+  <div class="grid grid-cols-2 gap-3 text-sm">
+    <div class="text-gray-600">Name</div><div class="text-gray-900">{{ user.fullname }}</div>
+    <div class="text-gray-600">Username</div><div class="text-gray-900">{{ user.username }}</div>
+    <div class="text-gray-600">Email</div><div class="text-gray-900">{{ user.email }}</div>
+    <div class="text-gray-600">Role</div><div class="text-gray-900">{{ user.role }}</div>
+    <div class="text-gray-600">Auth Provider</div><div class="text-gray-900">{{ user.auth_type|default("coyote3") }}</div>
+  </div>
+  {% if user.auth_type|default("coyote3") == "coyote3" %}
+    <div class="mt-6">
+      <a href="{{ url_for('profile_bp.change_password', user_id=user.username) }}"
+         class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg">
+        Change Password
+      </a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

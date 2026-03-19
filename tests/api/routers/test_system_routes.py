@@ -235,6 +235,76 @@ def test_auth_session_serializes_user(monkeypatch):
     assert payload["user"]["username"] == "tester"
 
 
+def test_change_password_rejects_weak_password():
+    """Weak new password should fail validation."""
+    user = fx.api_user()
+    with pytest.raises(HTTPException) as exc:
+        auth_router.change_password(
+            auth_router.ApiPasswordChangeRequest(
+                current_password="old",
+                new_password="weak",
+            ),
+            user=user,
+        )
+    assert exc.value.status_code == 400
+
+
+def test_change_password_calls_local_change_flow(monkeypatch):
+    """Route delegates to password flow helper."""
+    user = fx.api_user()
+    calls = {}
+
+    def _change_local_password(**kwargs):
+        calls["kwargs"] = kwargs
+        return {"status": "ok"}
+
+    monkeypatch.setattr(auth_router, "change_local_password", _change_local_password)
+    payload = auth_router.change_password(
+        auth_router.ApiPasswordChangeRequest(
+            current_password="OldGood!123",
+            new_password="NewGood!123",
+        ),
+        user=user,
+    )
+    assert payload["status"] == "ok"
+    assert calls["kwargs"]["user_id"] == user.username
+
+
+def test_password_reset_request_always_ok(monkeypatch):
+    """Request endpoint should always return ok."""
+    calls = {}
+
+    def _issue_password_token_for_user(**kwargs):
+        calls["kwargs"] = kwargs
+        return {"status": "ok"}
+
+    monkeypatch.setattr(
+        auth_router, "issue_password_token_for_user", _issue_password_token_for_user
+    )
+    payload = auth_router.request_password_reset(
+        auth_router.ApiPasswordResetRequest(username="tester")
+    )
+    assert payload["status"] == "ok"
+    assert calls["kwargs"]["purpose"] == "reset"
+
+
+def test_password_reset_confirm_raises_on_invalid_token(monkeypatch):
+    """Confirm endpoint maps flow errors to HTTP 400."""
+    monkeypatch.setattr(
+        auth_router,
+        "consume_password_token_and_set_password",
+        lambda **_: {"status": "error", "error": "bad token"},
+    )
+    with pytest.raises(HTTPException) as exc:
+        auth_router.confirm_password_reset(
+            auth_router.ApiPasswordResetConfirmRequest(
+                token="bad",
+                new_password="NewGood!123",
+            )
+        )
+    assert exc.value.status_code == 400
+
+
 def test_http_exception_handler_preserves_dict_detail():
     """Test http exception handler preserves dict detail.
 

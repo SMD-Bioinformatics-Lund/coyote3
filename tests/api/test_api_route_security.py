@@ -14,6 +14,8 @@ ALLOW_UNGUARDED_EXACT = {
     "/api/vi/docs",
     "/api/v1/auth/sessions",
     "/api/v1/auth/sessions/current",
+    "/api/v1/auth/password/reset/request",
+    "/api/v1/auth/password/reset/confirm",
 }
 ALLOW_UNGUARDED_PREFIX = ("/api/v1/public/",)
 

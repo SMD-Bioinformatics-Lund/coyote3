@@ -320,6 +320,13 @@ class UsersDoc(_DocBase):
     job_title: str | None = None
     auth_type: Literal["coyote3", "ldap", "sso"] | None = "coyote3"
     password: str | None = None
+    must_change_password: bool = False
+    password_updated_on: Any | None = None
+    password_action_token_hash: str | None = None
+    password_action_purpose: str | None = None
+    password_action_expires_at: Any | None = None
+    password_action_issued_at: Any | None = None
+    password_action_issued_by: str | None = None
     role: str
     environments: list[Literal["production", "development", "test", "validation"]] = Field(
         default_factory=list

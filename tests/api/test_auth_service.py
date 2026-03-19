@@ -95,35 +95,6 @@ def test_resolve_user_identity_prefers_business_key():
     assert auth_service.resolve_user_identity({"_id": "legacy"}) == ""
 
 
-def test_local_auth_allowlist_matches_identifier_username_or_email(monkeypatch):
-    """Allowlist matching uses login id, username, and email candidates."""
-    monkeypatch.setattr(
-        auth_service,
-        "app",
-        SimpleNamespace(config={"LOCAL_AUTH_USER_IDENTIFIERS": ("admin", "admin@example.com")}),
-    )
-
-    assert auth_service._is_local_auth_allowlisted("admin", {"username": "u", "email": "x"}) is True
-    assert (
-        auth_service._is_local_auth_allowlisted(
-            "ignored", {"username": "admin", "email": "not-matching@example.com"}
-        )
-        is True
-    )
-    assert (
-        auth_service._is_local_auth_allowlisted(
-            "ignored", {"username": "not-matching", "email": "admin@example.com"}
-        )
-        is True
-    )
-    assert (
-        auth_service._is_local_auth_allowlisted(
-            "ignored", {"username": "nope", "email": "nope@example.com"}
-        )
-        is False
-    )
-
-
 def test_ldap_authenticate_uses_configured_base_dn_and_attr(monkeypatch):
     """LDAP auth forwards app config values to ldap manager."""
     calls = {}
@@ -176,7 +147,6 @@ def test_authenticate_credentials_internal_auth_path(monkeypatch):
     """Internal auth validates password hash and returns user doc."""
     user_doc = {"username": "tester", "auth_type": "coyote3", "password": "HASH", "is_active": True}
     monkeypatch.setattr(auth_service, "_lookup_user_doc", lambda _username: user_doc)
-    monkeypatch.setattr(auth_service, "_is_local_auth_allowlisted", lambda *_: False)
     monkeypatch.setattr(
         auth_service.UserModel,
         "validate_login",
@@ -189,10 +159,9 @@ def test_authenticate_credentials_internal_auth_path(monkeypatch):
 
 
 def test_authenticate_credentials_external_ldap_path(monkeypatch):
-    """External auth uses LDAP when user is not internal/allowlisted."""
+    """LDAP auth_type routes authentication to LDAP validation."""
     user_doc = {"username": "tester", "auth_type": "ldap", "password": "HASH", "is_active": True}
     monkeypatch.setattr(auth_service, "_lookup_user_doc", lambda _username: user_doc)
-    monkeypatch.setattr(auth_service, "_is_local_auth_allowlisted", lambda *_: False)
     monkeypatch.setattr(auth_service.UserModel, "validate_login", lambda *_: False)
     monkeypatch.setattr(
         auth_service,
@@ -204,11 +173,20 @@ def test_authenticate_credentials_external_ldap_path(monkeypatch):
     assert auth_service.authenticate_credentials("tester", "wrong") is None
 
 
-def test_authenticate_credentials_uses_internal_path_when_allowlisted(monkeypatch):
-    """Allowlisted users always follow internal auth path."""
+def test_authenticate_credentials_ldap_user_uses_ldap_path(monkeypatch):
+    """LDAP users should not use local password validation."""
     user_doc = {"username": "tester", "auth_type": "ldap", "password": "HASH", "is_active": True}
     monkeypatch.setattr(auth_service, "_lookup_user_doc", lambda _username: user_doc)
-    monkeypatch.setattr(auth_service, "_is_local_auth_allowlisted", lambda *_: True)
+    monkeypatch.setattr(auth_service.UserModel, "validate_login", lambda *_: False)
+    monkeypatch.setattr(auth_service, "_ldap_authenticate", lambda *_: True)
+
+    assert auth_service.authenticate_credentials("tester", "secret") == user_doc
+
+
+def test_authenticate_credentials_defaults_missing_auth_type_to_local(monkeypatch):
+    """Users without explicit auth_type should use local auth."""
+    user_doc = {"username": "tester", "password": "HASH", "is_active": True}
+    monkeypatch.setattr(auth_service, "_lookup_user_doc", lambda _username: user_doc)
     monkeypatch.setattr(auth_service.UserModel, "validate_login", lambda *_: True)
     monkeypatch.setattr(auth_service, "_ldap_authenticate", lambda *_: False)
 

@@ -3,7 +3,7 @@ import logging
 import logging.config
 import os
 import queue
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from logging.handlers import QueueHandler, QueueListener, TimedRotatingFileHandler
 from pathlib import Path
 from typing import Any, Dict, Literal
@@ -162,11 +162,11 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
         If a file's last modification time is older than the UTC cutoff date (`days_to_keep` days ago),
         it attempts to delete the file. Errors during deletion are logged to the `coyote` logger.
         """
-        cutoff = datetime.now(UTC) - timedelta(days=self.days_to_keep)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=self.days_to_keep)
         log_root = Path(self.log_dir)
         for file in log_root.rglob("*.log"):
             try:
-                if datetime.fromtimestamp(file.stat().st_mtime, UTC) < cutoff:
+                if datetime.fromtimestamp(file.stat().st_mtime, timezone.utc) < cutoff:
                     file.unlink()
             except Exception as e:
                 logging.getLogger("coyote").error(f"Failed to delete log file {file}: {e}")
@@ -194,7 +194,7 @@ def get_utc_log_path(
         str: Full file path
     """
     if now is None:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
 
     base_path = Path(log_dir)
     if subdir:
