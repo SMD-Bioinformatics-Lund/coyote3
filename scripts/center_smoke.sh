@@ -9,7 +9,8 @@ Usage:
   scripts/center_smoke.sh \
     --api-base-url <url> \
     (--bearer-token <token> | --username <user> --password <pass>) \
-    --yaml-file <path>
+    --yaml-file <path> \
+    [--skip-file-check]
 
 Example:
   scripts/center_smoke.sh \
@@ -25,6 +26,7 @@ BEARER_TOKEN=""
 USERNAME=""
 PASSWORD=""
 YAML_FILE=""
+SKIP_FILE_CHECK=0
 PYTHON_BIN="${PYTHON_BIN:-}"
 
 while [[ $# -gt 0 ]]; do
@@ -34,6 +36,7 @@ while [[ $# -gt 0 ]]; do
     --username) USERNAME="$2"; shift 2 ;;
     --password) PASSWORD="$2"; shift 2 ;;
     --yaml-file) YAML_FILE="$2"; shift 2 ;;
+    --skip-file-check) SKIP_FILE_CHECK=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; usage; exit 2 ;;
   esac
@@ -91,7 +94,11 @@ echo "[step] health check"
 curl -fsS "${API_BASE_URL%/}/api/v1/health" >/dev/null
 
 echo "[step] local ingest spec validation"
-"$PYTHON_BIN" scripts/validate_ingest_spec.py --yaml "$YAML_FILE" --check-files >/dev/null
+if [[ "$SKIP_FILE_CHECK" -eq 1 ]]; then
+  PYTHONPATH=. "$PYTHON_BIN" scripts/validate_ingest_spec.py --yaml "$YAML_FILE" >/dev/null
+else
+  PYTHONPATH=. "$PYTHON_BIN" scripts/validate_ingest_spec.py --yaml "$YAML_FILE" --check-files >/dev/null
+fi
 
 echo "[step] submit ingest sample-bundle"
 PY_PAYLOAD="$({

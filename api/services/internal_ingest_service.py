@@ -42,6 +42,19 @@ _CASE_CONTROL_KEYS = [
     "control_purity",
 ]
 
+_INGEST_DATA_TYPES: dict[str, str] = {
+    "vcf_files": "DNA",
+    "cnv": "DNA",
+    "biomarkers": "DNA",
+    "transloc": "DNA",
+    "lowcov": "DNA",
+    "cov": "DNA",
+    "fusion_files": "RNA",
+    "expression_path": "RNA",
+    "classification_path": "RNA",
+    "qc": "RNA",
+}
+
 
 def _exists(path: str | None) -> bool:
     return bool(path) and os.path.exists(path)
@@ -100,8 +113,8 @@ def build_sample_meta_dict(args: dict[str, Any]) -> dict[str, Any]:
 def _data_typer(args: dict[str, Any]) -> str | None:
     dtype = None
     for key in args:
-        if key in config.data_types:
-            mapped = config.data_types[key]
+        if key in _INGEST_DATA_TYPES:
+            mapped = _INGEST_DATA_TYPES[key]
             if dtype is None:
                 dtype = mapped
             elif mapped != dtype:

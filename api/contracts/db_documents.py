@@ -235,9 +235,9 @@ class CnvsDoc(_DocBase):
     start: int
     end: int
     size: int | None = None
-    ratio: float | int | None = None
+    ratio: float | int | str | None = None
     nprobes: int | None = None
-    genes: list[str] | str | None = None
+    genes: list[str | dict[str, Any]] | dict[str, Any] | str | None = None
     callers: list[str] | str | None = None
 
 

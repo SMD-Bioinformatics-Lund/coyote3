@@ -33,6 +33,7 @@ WITH_OPTIONAL=0
 SKIP_EXISTING=0
 TEARDOWN=0
 PYTHON_BIN="${PYTHON_BIN:-}"
+STAGED_YAML_FILE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -74,6 +75,62 @@ extract_env() {
   (grep -E "^${key}=" "$ENV_FILE" || true) | tail -n1 | cut -d'=' -f2- | tr -d "'\""
 }
 
+detect_api_container_id() {
+  local candidates=("coyote3_stage_api" "coyote3_dev_api" "coyote3_api" "api")
+  for svc in "${candidates[@]}"; do
+    local cid
+    cid="$(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps -q "$svc" 2>/dev/null || true)"
+    if [[ -n "$cid" ]]; then
+      echo "$cid"
+      return 0
+    fi
+  done
+  return 1
+}
+
+stage_yaml_files_into_api_container() {
+  local api_cid="$1"
+  local yaml_src="$2"
+  STAGED_YAML_FILE="$(mktemp)"
+  local map_file
+  map_file="$(mktemp)"
+
+  "$PYTHON_BIN" - "$yaml_src" "$STAGED_YAML_FILE" "$map_file" <<'PY'
+import sys
+from pathlib import Path
+import yaml
+
+src = Path(sys.argv[1])
+dst = Path(sys.argv[2])
+map_file = Path(sys.argv[3])
+data = yaml.safe_load(src.read_text(encoding="utf-8")) or {}
+
+path_keys = [
+    "vcf_files", "cnv", "cnvprofile", "cov", "fusion_files",
+    "expression_path", "classification_path", "qc",
+    "biomarkers", "transloc", "lowcov",
+]
+
+lines = []
+for key in path_keys:
+    value = data.get(key)
+    if isinstance(value, str) and value and Path(value).exists():
+        container_path = f"/tmp/coyote3_ingest/{Path(value).name}"
+        lines.append(f"{value}\t{container_path}")
+        data[key] = container_path
+
+dst.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+map_file.write_text(("\n".join(lines) + "\n") if lines else "", encoding="utf-8")
+PY
+
+  docker exec "$api_cid" mkdir -p /tmp/coyote3_ingest
+  while IFS=$'\t' read -r host_path container_path; do
+    [[ -z "$host_path" || -z "$container_path" ]] && continue
+    docker cp "$host_path" "${api_cid}:${container_path}"
+  done <"$map_file"
+  rm -f "$map_file"
+}
+
 MONGO_URI="$(extract_env MONGO_URI)"
 COYOTE3_DB="$(extract_env COYOTE3_DB)"
 
@@ -106,6 +163,9 @@ echo "[step] starting compose stack"
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build
 
 cleanup() {
+  if [[ -n "$STAGED_YAML_FILE" && -f "$STAGED_YAML_FILE" ]]; then
+    rm -f "$STAGED_YAML_FILE" || true
+  fi
   if [[ "$TEARDOWN" -eq 1 ]]; then
     echo "[step] teardown compose stack"
     docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" down -v || true
@@ -147,11 +207,24 @@ fi
 echo "[step] seed baseline collections"
 bash scripts/bootstrap_center_collections.sh "${seed_args[@]}"
 
+API_CID="$(detect_api_container_id || true)"
+if [[ -n "$API_CID" ]]; then
+  echo "[step] stage ingest demo files into API container"
+  stage_yaml_files_into_api_container "$API_CID" "$YAML_FILE"
+fi
+
+YAML_FOR_SMOKE="${STAGED_YAML_FILE:-$YAML_FILE}"
+SMOKE_ARGS=(
+  --api-base-url "$API_BASE_URL"
+  --username "$ADMIN_EMAIL"
+  --password "$ADMIN_PASSWORD"
+  --yaml-file "$YAML_FOR_SMOKE"
+)
+if [[ -n "$STAGED_YAML_FILE" ]]; then
+  SMOKE_ARGS+=(--skip-file-check)
+fi
+
 echo "[step] ingest smoke"
-bash scripts/center_smoke.sh \
-  --api-base-url "$API_BASE_URL" \
-  --username "$ADMIN_EMAIL" \
-  --password "$ADMIN_PASSWORD" \
-  --yaml-file "$YAML_FILE"
+bash scripts/center_smoke.sh "${SMOKE_ARGS[@]}"
 
 echo "[ok] first-time center bootstrap completed"
