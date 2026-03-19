@@ -5,14 +5,15 @@ set -euo pipefail
 # Required arg is still passed through: --source-db <name>
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-stage_port="${COYOTE3_STAGE_MONGO_PORT:-47017}"
+stage_port="${COYOTE3_STAGE_MONGO_PORT:-8008}"
+stage_db="${COYOTE3_DB:-coyote3}"
 if [[ -n "${MONGO_APP_USER:-}" && -n "${MONGO_APP_PASSWORD:-}" ]]; then
-  default_stage_uri="mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${stage_port}/coyote3_stage?authSource=coyote3_stage"
+  default_stage_uri="mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${stage_port}/${stage_db}?authSource=${stage_db}"
 else
   default_stage_uri="mongodb://localhost:${stage_port}"
 fi
 
 exec "$SCRIPT_DIR/snapshot_restore_dev.sh" \
   --target-uri "${TARGET_URI:-$default_stage_uri}" \
-  --target-db "${TARGET_DB:-coyote3_stage}" \
+  --target-db "${TARGET_DB:-$stage_db}" \
   "$@"

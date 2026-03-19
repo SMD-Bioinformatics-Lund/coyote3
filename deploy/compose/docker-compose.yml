@@ -124,6 +124,8 @@ services:
       - coyote3-net
     ports:
       - "${COYOTE3_MONGO_PORT:-5818}:27017"
+    env_file:
+      - ../../.coyote3_env
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME:-coyote3_root}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-CHANGE_ME_PROD_ROOT_PASSWORD}

@@ -70,5 +70,6 @@ echo "Services: $SERVICES"
 "$COMPOSE_WRAPPER" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build
 
 echo "Deployment Complete!"
-echo "UI:  http://localhost:${COYOTE3_STAGE_WEB_PORT:-7814}${SCRIPT_NAME:-/coyote3}"
-echo "API: http://localhost:${COYOTE3_STAGE_API_PORT:-7816}"
+stage_host="${COYOTE3_STAGE_HOST:-localhost}"
+echo "UI:  http://${stage_host}:${COYOTE3_STAGE_WEB_PORT:-8005}${SCRIPT_NAME:-/coyote3}"
+echo "API: http://${stage_host}:${COYOTE3_STAGE_API_PORT:-8006}"
