@@ -121,7 +121,7 @@ class InternalCollectionInsertRequest(BaseModel):
             "example": {
                 "collection": "users",
                 "document": {
-                    "email": "admin@coyote3-center.org",
+                    "email": "admin@your-center.org",
                     "fullname": "Center Admin",
                     "role": "admin",
                     "is_active": True,

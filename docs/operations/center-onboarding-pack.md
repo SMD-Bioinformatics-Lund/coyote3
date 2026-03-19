@@ -67,7 +67,7 @@ Create the initial local API admin used for CLI/Python/API-auth flows:
 python scripts/bootstrap_local_admin.py \
   --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8008}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
   --db "${COYOTE3_DB:-coyote3}" \
-  --email "admin@coyote3-center.org" \
+  --email "admin@your-center.org" \
   --password "CHANGE_ME_ADMIN_PASSWORD" \
   --assay-group "GROUP_A" \
   --assay "ASSAY_A"
@@ -97,7 +97,7 @@ Or run one-shot bootstrap command:
 ```bash
 scripts/bootstrap_center_collections.sh \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}" \
-  --username "admin@coyote3-center.org" \
+  --username "admin@your-center.org" \
   --password "CHANGE_ME" \
   --seed-file tests/fixtures/db_dummy/center_template_seed.json \
   --with-optional \
@@ -122,7 +122,7 @@ python scripts/validate_ingest_spec.py \
 ```bash
 scripts/center_smoke.sh \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}" \
-  --username "admin@coyote3-center.org" \
+  --username "admin@your-center.org" \
   --password "CHANGE_ME" \
   --yaml-file tests/data/ingest_demo/generic_case_control.yaml
 ```
@@ -136,7 +136,7 @@ scripts/center_first_run.sh \
   --env-file .coyote3_stage_env \
   --compose-file deploy/compose/docker-compose.stage.yml \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}" \
-  --admin-email "admin@coyote3-center.org" \
+  --admin-email "admin@your-center.org" \
   --admin-password "CHANGE_ME" \
   --seed-file tests/fixtures/db_dummy/center_template_seed.json \
   --yaml-file tests/data/ingest_demo/generic_case_control.yaml \

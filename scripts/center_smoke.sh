@@ -14,7 +14,7 @@ Usage:
 Example:
   scripts/center_smoke.sh \
     --api-base-url http://localhost:6816 \
-    --username "admin@coyote3-center.org" \
+    --username "admin@your-center.org" \
     --password "CHANGE_ME" \
     --yaml-file tests/data/ingest_demo/generic_case_control.yaml
 USAGE

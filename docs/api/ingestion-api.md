@@ -25,7 +25,7 @@ export API_BEARER_TOKEN="<YOUR_API_BEARER_TOKEN>"
 python scripts/api_login.py \
   --base-url "${API_BASE_URL}" \
   --mode password \
-  --username "admin@coyote3-center.org" \
+  --username "admin@your-center.org" \
   --password "CHANGE_ME" \
   --print-token
 ```
@@ -78,7 +78,7 @@ curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection" \
 {
   "collection": "users",
   "document": {
-    "email": "admin@coyote3-center.org",
+    "email": "admin@your-center.org",
     "firstname": "Center",
     "lastname": "Admin",
     "fullname": "Center Admin",

@@ -152,7 +152,7 @@ def test_collection_validator_rejects_user_without_role():
         validate_collection_document(
             "users",
             {
-                "email": "admin@center.local",
+                "email": "admin@your-center.org",
                 "environments": ["prod"],
             },
         )

@@ -40,7 +40,7 @@ def test_internal_ingest_collection_requires_auth_and_admin(monkeypatch):
     payload = {
         "collection": "users",
         "document": {
-            "email": "admin@center.local",
+            "email": "admin@your-center.org",
             "role": "admin",
             "environments": ["production"],
         },
