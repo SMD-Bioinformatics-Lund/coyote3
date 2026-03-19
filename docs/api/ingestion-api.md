@@ -10,6 +10,7 @@ Replace external ad-hoc import flows with validated API-driven ingestion.
 - `POST /api/v1/internal/ingest/dependents`
 - `POST /api/v1/internal/ingest/collection`
 - `POST /api/v1/internal/ingest/collection/bulk`
+- `GET /api/v1/internal/ingest/collections`
 
 ## Route commands (full examples)
 
@@ -24,7 +25,7 @@ export API_BEARER_TOKEN="<YOUR_API_BEARER_TOKEN>"
 python scripts/api_login.py \
   --base-url "${API_BASE_URL}" \
   --mode password \
-  --username "admin@center.local" \
+  --username "admin@coyote3-center.org" \
   --password "CHANGE_ME" \
   --print-token
 ```
@@ -53,6 +54,14 @@ This validator checks:
 - assay references across `samples`, `blacklist`, `insilico_genelists`
 - `asp_configs` (`aspc_id` format, assay/environment consistency)
 - `insilico_genelists` (`assays` and `assay_groups` consistency)
+- bootstrap dependencies (`roles -> permissions`, `users -> roles`, `refseq_canonical -> hgnc_genes`)
+
+Discover supported collection-ingest contracts:
+
+```bash
+curl -sS "${API_BASE_URL}/api/v1/internal/ingest/collections" \
+  -H "Authorization: Bearer ${API_BEARER_TOKEN}"
+```
 
 ### 1) Seed one collection document
 
@@ -69,7 +78,7 @@ curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection" \
 {
   "collection": "users",
   "document": {
-    "email": "admin@center.local",
+    "email": "admin@coyote3-center.org",
     "firstname": "Center",
     "lastname": "Admin",
     "fullname": "Center Admin",
@@ -239,6 +248,21 @@ Example bulk seed for `refseq_canonical`:
 }
 ```
 
+## Minimum required dataset (baseline)
+
+Use this as the minimum center onboarding contract:
+
+| Collection | Minimum required keys | Why required |
+| --- | --- | --- |
+| `permissions` | `permission_id`, `permission_name` | RBAC policy definitions |
+| `roles` | `role_id`, `level`, `permissions[]` | RBAC role resolution |
+| `users` | `email`, `role`, `environments[]` | Login + authorization subject |
+| `asp_configs` | `aspc_id`, `assay_name`, `environment`, `asp_group` | Assay+environment runtime config |
+| `assay_specific_panels` | `asp_id`, `assay_name`, `asp_group` | Assay metadata/UI wiring |
+| `insilico_genelists` | `isgl_id`, `diagnosis`, `assays[]`, `assay_groups[]`, `genes[]` | Panel/list filtering logic |
+| `refseq_canonical` | `gene`, `canonical` | DNA transcript canonicalization |
+| `hgnc_genes` | `hgnc_id`, `hgnc_symbol` | Gene metadata and symbol mapping |
+
 ## Sample bundle request modes
 
 ### Mode 1: structured spec
@@ -341,3 +365,14 @@ r = requests.post(f"{base}/api/v1/internal/ingest/sample-bundle", json=payload, 
 r.raise_for_status()
 print(r.json())
 ```
+
+## Troubleshooting by error
+
+| Error fragment | Likely cause | Fix |
+| --- | --- | --- |
+| `Unknown assay references in seed` | Seed collections use assay IDs not present in ASPC/panel/ISGL docs | Align assay IDs across `asp_configs`, `assay_specific_panels`, `insilico_genelists` |
+| `Bootstrap dependency errors` | Missing required baseline collection docs or broken refs | Populate required collections in onboarding order |
+| `No DB document model registered` | Unsupported collection name in ingest request | Use `/api/v1/internal/ingest/collections` and correct `collection` |
+| `diagnosis must include at least one value` | ISGL payload missing diagnosis | Provide non-empty `diagnosis` list/string |
+| `aspc_id environment segment must match environment` | `aspc_id` and `environment` mismatch | Keep `aspc_id` as `assay:environment` and matching fields |
+| `403 Forbidden` on update mode | User missing `edit_sample` permission | Add `edit_sample` to role or user permissions |

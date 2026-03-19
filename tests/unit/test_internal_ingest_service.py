@@ -355,6 +355,7 @@ def test_service_canonical_and_parse_preload(monkeypatch):
     stub = _store_stub()
     monkeypatch.setattr(ingest, "store", stub)
     assert ingest.InternalIngestService._canonical_map() == {"EGFR": "NM_005228"}
+    assert "samples" in ingest.InternalIngestService.list_supported_collections()
 
     monkeypatch.setattr(ingest, "_data_typer", lambda _: "DNA")
     monkeypatch.setattr(ingest.DnaIngestParser, "parse", lambda self, args: {"snvs": [args]})

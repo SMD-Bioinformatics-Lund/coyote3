@@ -6,7 +6,7 @@ usage() {
 Validate a center deployment setup before first run.
 
 Usage:
-  scripts/center_preflight.sh --env-file <path> --compose-file <path>
+  scripts/center_preflight.sh --env-file <path> --compose-file <path> [--seed-file <path>] [--yaml-file <path>]
 
 Example:
   scripts/center_preflight.sh \
@@ -17,11 +17,15 @@ USAGE
 
 ENV_FILE=""
 COMPOSE_FILE=""
+SEED_FILE=""
+YAML_FILE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --env-file) ENV_FILE="$2"; shift 2 ;;
     --compose-file) COMPOSE_FILE="$2"; shift 2 ;;
+    --seed-file) SEED_FILE="$2"; shift 2 ;;
+    --yaml-file) YAML_FILE="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; usage; exit 2 ;;
   esac
@@ -77,5 +81,33 @@ for key in COYOTE3_WEB_PORT COYOTE3_API_PORT COYOTE3_STAGE_WEB_PORT COYOTE3_STAG
     fi
   fi
 done
+
+if [[ -n "$SEED_FILE" ]]; then
+  if [[ ! -f "$SEED_FILE" ]]; then
+    echo "ERROR: seed file not found: $SEED_FILE" >&2
+    exit 2
+  fi
+  echo "[check] seed dependency and assay consistency"
+  PYTHON_BIN="${PYTHON_BIN:-}"
+  if [[ -z "$PYTHON_BIN" ]]; then
+    if command -v python >/dev/null 2>&1; then
+      PYTHON_BIN="$(command -v python)"
+    elif command -v python3 >/dev/null 2>&1; then
+      PYTHON_BIN="$(command -v python3)"
+    else
+      echo "ERROR: python/python3 not found in PATH. Set PYTHON_BIN." >&2
+      exit 2
+    fi
+  fi
+  cmd=("$PYTHON_BIN" scripts/validate_assay_consistency.py --seed-file "$SEED_FILE")
+  if [[ -n "$YAML_FILE" ]]; then
+    if [[ ! -f "$YAML_FILE" ]]; then
+      echo "ERROR: yaml file not found: $YAML_FILE" >&2
+      exit 2
+    fi
+    cmd+=(--yaml "$YAML_FILE")
+  fi
+  "${cmd[@]}"
+fi
 
 echo "[ok] preflight passed"

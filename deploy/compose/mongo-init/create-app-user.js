@@ -2,6 +2,7 @@
  * Runs only on first initialization of an empty /data/db volume.
  */
 const appDbName = process.env.COYOTE3_DB || "coyote3";
+const bamDbName = process.env.BAM_DB || "BAM_Service";
 const appUser = process.env.MONGO_APP_USER;
 const appPassword = process.env.MONGO_APP_PASSWORD;
 
@@ -16,8 +17,13 @@ if (!appUser || !appPassword) {
     appDb.createUser({
       user: appUser,
       pwd: appPassword,
-      roles: [{ role: "readWrite", db: appDbName }],
+      roles: [
+        { role: "readWrite", db: appDbName },
+        { role: "readWrite", db: bamDbName },
+      ],
     });
-    print(`[mongo-init] created app user '${appUser}' in db '${appDbName}'`);
+    print(
+      `[mongo-init] created app user '${appUser}' in db '${appDbName}' with readWrite on '${bamDbName}'`
+    );
   }
 }

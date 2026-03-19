@@ -8,7 +8,15 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, TypeAdapter, field_validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    TypeAdapter,
+    field_validator,
+    model_validator,
+)
 
 
 class _DocBase(BaseModel):
@@ -300,15 +308,50 @@ class UsersDoc(_DocBase):
     lastname: str | None = None
     fullname: str | None = None
     job_title: str | None = None
-    auth_type: str | None = None
+    auth_type: Literal["coyote3", "ldap", "sso"] | None = "coyote3"
     password: str | None = None
-    role: str | None = None
-    environments: list[str] | None = None
-    assays: list[str] | None = None
-    assay_groups: list[str] | None = None
-    is_active: bool | None = None
-    permissions: list[str] | None = None
-    deny_permissions: list[str] | None = None
+    role: str
+    environments: list[Literal["production", "development", "test", "validation"]] = Field(
+        default_factory=list
+    )
+    assays: list[str] = Field(default_factory=list)
+    assay_groups: list[str] = Field(default_factory=list)
+    is_active: bool = True
+    permissions: list[str] = Field(default_factory=list)
+    deny_permissions: list[str] = Field(default_factory=list)
+
+    @field_validator("email")
+    @classmethod
+    def _validate_email(cls, value: str) -> str:
+        if "@" not in value:
+            raise ValueError("email must contain '@'")
+        return value.strip().lower()
+
+    @field_validator("environments", mode="before")
+    @classmethod
+    def _normalize_environments(cls, value: Any) -> Any:
+        if value is None:
+            return []
+        aliases = {
+            "prod": "production",
+            "production": "production",
+            "dev": "development",
+            "development": "development",
+            "test": "test",
+            "testing": "test",
+            "validation": "validation",
+            "stage": "validation",
+            "staging": "validation",
+        }
+        normalized: list[str] = []
+        for item in value:
+            key = str(item).strip().lower()
+            if key not in aliases:
+                raise ValueError(
+                    "environments must be in: production, development, test, validation"
+                )
+            normalized.append(aliases[key])
+        return normalized
 
 
 class RolesDoc(_DocBase):
@@ -317,10 +360,10 @@ class RolesDoc(_DocBase):
     label: str | None = None
     description: str | None = None
     color: str | None = None
-    level: int | float | None = None
-    is_active: bool | None = None
-    permissions: list[str] | None = None
-    deny_permissions: list[str] | None = None
+    level: int | float
+    is_active: bool = True
+    permissions: list[str] = Field(default_factory=list)
+    deny_permissions: list[str] = Field(default_factory=list)
     version_history: list[VersionHistoryEntryDoc] | None = None
 
 
@@ -331,7 +374,7 @@ class PermissionsDoc(_DocBase):
     category: str | None = None
     description: str | None = None
     tags: list[str] | None = None
-    is_active: bool | None = None
+    is_active: bool = True
     version_history: list[VersionHistoryEntryDoc] | None = None
 
 
@@ -370,43 +413,108 @@ class ReportedVariantsDoc(_DocBase):
 
 class AspConfigDoc(_DocBase):
     aspc_id: str
-    assay_name: str | None = None
-    environment: str | None = None
-    asp_group: str | None = None
+    assay_name: str
+    environment: Literal["production", "development", "test", "validation"]
+    asp_group: str
     vep_consequences: list[str] | None = None
     cnveffects: list[str] | None = None
     analysis_types: list[str] | None = None
     report_sections: list[str] | None = None
     version_history: list[VersionHistoryEntryDoc] | None = None
 
+    @field_validator("environment", mode="before")
+    @classmethod
+    def _normalize_environment(cls, value: Any) -> str:
+        aliases = {
+            "prod": "production",
+            "production": "production",
+            "dev": "development",
+            "development": "development",
+            "test": "test",
+            "testing": "test",
+            "validation": "validation",
+            "stage": "validation",
+            "staging": "validation",
+        }
+        key = str(value).strip().lower()
+        if key not in aliases:
+            raise ValueError("environment must be in: production, development, test, validation")
+        return aliases[key]
+
+    @field_validator("aspc_id")
+    @classmethod
+    def _validate_aspc_id(cls, value: str) -> str:
+        if ":" not in value:
+            raise ValueError("aspc_id must use assay:environment format")
+        return value
+
+    @field_validator("assay_name")
+    @classmethod
+    def _validate_assay_name(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("assay_name must be non-empty")
+        return value.strip()
+
+    @model_validator(mode="after")
+    def _validate_aspc_match(self) -> "AspConfigDoc":
+        assay, environment = self.aspc_id.split(":", 1)
+        if assay != self.assay_name:
+            raise ValueError("aspc_id assay segment must match assay_name")
+        if environment != self.environment:
+            raise ValueError("aspc_id environment segment must match environment")
+        return self
+
 
 class AssaySpecificPanelsDoc(_DocBase):
     asp_id: str
-    assay_name: str | None = None
-    asp_group: str | None = None
+    assay_name: str
+    asp_group: str
     asp_family: str | None = None
     asp_category: str | None = None
     display_name: str | None = None
     description: str | None = None
     covered_genes: list[str] | None = None
     germline_genes: list[str] | None = None
-    is_active: bool | None = None
+    is_active: bool = True
     version_history: list[VersionHistoryEntryDoc] | None = None
 
 
 class InsilicoGenelistsDoc(_DocBase):
     isgl_id: str
-    diagnosis: list[str] | str | None = None
+    diagnosis: list[str] | str
     name: str | None = None
     displayname: str | None = None
     list_type: str | None = None
-    adhoc: bool | None = None
-    is_public: bool | None = None
-    is_active: bool | None = None
-    assay_groups: list[str] | None = None
-    genes: list[str] | None = None
-    assays: list[str] | None = None
+    adhoc: bool = False
+    is_public: bool = False
+    is_active: bool = True
+    assay_groups: list[str] = Field(default_factory=list)
+    genes: list[str] = Field(default_factory=list)
+    assays: list[str] = Field(default_factory=list)
     version_history: list[VersionHistoryEntryDoc] | None = None
+
+    @field_validator("diagnosis", mode="before")
+    @classmethod
+    def _normalize_diagnosis(cls, value: Any) -> list[str]:
+        if isinstance(value, str):
+            value = [value]
+        if not value:
+            raise ValueError("diagnosis must include at least one value")
+        return [str(item).strip() for item in value if str(item).strip()]
+
+    @field_validator("assays")
+    @classmethod
+    def _validate_assays(cls, value: list[str]) -> list[str]:
+        if not value:
+            raise ValueError("assays must include at least one assay id")
+        return value
+
+    @field_validator("assay_groups")
+    @classmethod
+    def _validate_assay_groups(cls, value: list[str]) -> list[str]:
+        if not value:
+            raise ValueError("assay_groups must include at least one assay group")
+        return value
 
 
 class BlacklistDoc(_DocBase):
@@ -571,3 +679,8 @@ def validate_collection_document(collection: str, payload: dict[str, Any]) -> No
     if not adapter:
         raise ValueError(f"No DB document model registered for collection '{collection}'")
     adapter.validate_python(payload)
+
+
+def supported_collections() -> list[str]:
+    """Return sorted collection names with registered document contracts."""
+    return sorted(COLLECTION_MODEL_ADAPTERS)

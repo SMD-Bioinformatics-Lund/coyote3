@@ -14,7 +14,7 @@ Usage:
 Example:
   scripts/center_smoke.sh \
     --api-base-url http://localhost:6816 \
-    --username "admin@center.local" \
+    --username "admin@coyote3-center.org" \
     --password "CHANGE_ME" \
     --yaml-file tests/data/ingest_demo/generic_case_control.yaml
 USAGE
@@ -63,7 +63,7 @@ if [[ -z "$BEARER_TOKEN" ]]; then
     exit 2
   fi
   echo "[step] login and resolve bearer token"
-  AUTH_JSON="$("$PYTHON_BIN" scripts/api_login.py \
+  AUTH_JSON="$(PYTHONPATH=. "$PYTHON_BIN" scripts/api_login.py \
     --base-url "$API_BASE_URL" \
     --mode password \
     --username "$USERNAME" \

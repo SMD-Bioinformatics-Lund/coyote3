@@ -23,7 +23,9 @@ Use this runbook on day 1 when bringing up Coyote3 at a new center.
 ```bash
 scripts/center_preflight.sh \
   --env-file .coyote3_stage_env \
-  --compose-file deploy/compose/docker-compose.stage.yml
+  --compose-file deploy/compose/docker-compose.stage.yml \
+  --seed-file tests/fixtures/db_dummy/center_template_seed.json \
+  --yaml-file tests/data/ingest_demo/generic_case_control.yaml
 ```
 
 Expected: `[ok] preflight passed`.
@@ -71,7 +73,7 @@ curl -fsS "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}/api
 python scripts/bootstrap_local_admin.py \
   --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8008}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
   --db "${COYOTE3_DB:-coyote3}" \
-  --email "admin@center.local" \
+  --email "admin@coyote3-center.org" \
   --password "CHANGE_ME_ADMIN_PASSWORD" \
   --assay-group "GROUP_A" \
   --assay "ASSAY_A"
@@ -103,13 +105,15 @@ Optional but recommended:
 
 Seed through internal collection insert endpoints documented in
 [API / Ingestion API](../api/ingestion-api.md).
+Use `GET /api/v1/internal/ingest/collections` to list the currently supported
+validated collection names.
 
 Recommended one-shot command:
 
 ```bash
 scripts/bootstrap_center_collections.sh \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}" \
-  --username "admin@center.local" \
+  --username "admin@coyote3-center.org" \
   --password "CHANGE_ME" \
   --seed-file tests/fixtures/db_dummy/center_template_seed.json \
   --with-optional \
@@ -131,7 +135,7 @@ python scripts/validate_ingest_spec.py \
 ```bash
 scripts/center_smoke.sh \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}" \
-  --username "admin@center.local" \
+  --username "admin@coyote3-center.org" \
   --password "CHANGE_ME" \
   --yaml-file tests/data/ingest_demo/generic_case_control.yaml
 ```
@@ -165,3 +169,20 @@ docker compose --env-file .coyote3_stage_env \
 
 If data reset is required, follow backup/restore procedures in
 [Backup Restore And Snapshots](backup-restore-and-snapshots.md).
+
+## 10. One-command equivalent
+
+For fully automated first-day run:
+
+```bash
+scripts/center_first_run.sh \
+  --env-file .coyote3_stage_env \
+  --compose-file deploy/compose/docker-compose.stage.yml \
+  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}" \
+  --admin-email "admin@coyote3-center.org" \
+  --admin-password "CHANGE_ME" \
+  --seed-file tests/fixtures/db_dummy/center_template_seed.json \
+  --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
+  --with-optional \
+  --skip-existing
+```

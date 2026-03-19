@@ -82,7 +82,7 @@ if [[ -z "$BEARER_TOKEN" ]]; then
     exit 2
   fi
   echo "[step] login and resolve bearer token"
-  AUTH_JSON="$("$PYTHON_BIN" scripts/api_login.py \
+  AUTH_JSON="$(PYTHONPATH=. "$PYTHON_BIN" scripts/api_login.py \
     --base-url "$API_BASE_URL" \
     --mode password \
     --username "$USERNAME" \

@@ -22,6 +22,16 @@ ENV_ALIASES = {
     "stage": "validation",
     "staging": "validation",
 }
+REQUIRED_BASELINE_COLLECTIONS = (
+    "permissions",
+    "roles",
+    "users",
+    "asp_configs",
+    "assay_specific_panels",
+    "insilico_genelists",
+    "refseq_canonical",
+    "hgnc_genes",
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -231,6 +241,68 @@ def _validate_yaml_assay(yaml_path: str, known_assays: set[str]) -> None:
         )
 
 
+def _validate_bootstrap_dependencies(seed: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    for collection in REQUIRED_BASELINE_COLLECTIONS:
+        value = seed.get(collection)
+        if not isinstance(value, list) or not value:
+            errors.append(
+                f"Required collection '{collection}' must be present with at least one document"
+            )
+
+    permission_ids = {
+        _norm(doc.get("permission_id", ""))
+        for doc in seed.get("permissions", [])
+        if isinstance(doc, dict) and _norm(doc.get("permission_id", ""))
+    }
+    role_ids = {
+        _norm(doc.get("role_id", ""))
+        for doc in seed.get("roles", [])
+        if isinstance(doc, dict) and _norm(doc.get("role_id", ""))
+    }
+    assay_groups = _known_assay_groups(seed)
+    assays = _known_assays(seed)
+
+    for idx, role_doc in enumerate(seed.get("roles", [])):
+        if not isinstance(role_doc, dict):
+            continue
+        for perm in role_doc.get("permissions", []) or []:
+            if _norm(perm) and _norm(perm) not in permission_ids:
+                errors.append(f"roles[{idx}] references unknown permission '{_norm(perm)}'")
+
+    for idx, user_doc in enumerate(seed.get("users", [])):
+        if not isinstance(user_doc, dict):
+            continue
+        role = _norm(user_doc.get("role", ""))
+        if role and role not in role_ids:
+            errors.append(f"users[{idx}] references unknown role '{role}'")
+        for group in user_doc.get("assay_groups", []) or []:
+            if _norm(group) and _norm(group) not in assay_groups:
+                errors.append(f"users[{idx}] references unknown assay_group '{_norm(group)}'")
+        for assay in user_doc.get("assays", []) or []:
+            if _norm(assay) and _norm(assay) not in assays:
+                errors.append(f"users[{idx}] references unknown assay '{_norm(assay)}'")
+
+    refseq_genes = {
+        _norm(doc.get("gene", ""))
+        for doc in seed.get("refseq_canonical", [])
+        if isinstance(doc, dict) and _norm(doc.get("gene", ""))
+    }
+    hgnc_symbols = {
+        _norm(doc.get("hgnc_symbol", ""))
+        for doc in seed.get("hgnc_genes", [])
+        if isinstance(doc, dict) and _norm(doc.get("hgnc_symbol", ""))
+    }
+    missing_symbols = sorted(refseq_genes - hgnc_symbols)
+    if missing_symbols:
+        errors.append(
+            "refseq_canonical contains genes missing in hgnc_genes.hgnc_symbol: "
+            + ", ".join(missing_symbols)
+        )
+
+    return errors
+
+
 def main() -> int:
     args = parse_args()
     seed = _load_seed(args.seed_file)
@@ -266,6 +338,10 @@ def main() -> int:
     isgl_errors = _validate_isgl(seed, known_assays, known_groups)
     if isgl_errors:
         raise SystemExit("ISGL consistency errors:\n- " + "\n- ".join(isgl_errors))
+
+    dependency_errors = _validate_bootstrap_dependencies(seed)
+    if dependency_errors:
+        raise SystemExit("Bootstrap dependency errors:\n- " + "\n- ".join(dependency_errors))
 
     if args.yaml:
         _validate_yaml_assay(args.yaml, known_assays)

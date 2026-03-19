@@ -21,6 +21,11 @@ def parse_args() -> argparse.Namespace:
         default="readWrite",
         help="Comma-separated roles granted on --app-db (default: readWrite)",
     )
+    parser.add_argument(
+        "--bam-db",
+        default="BAM_Service",
+        help="Secondary BAM database to also grant readWrite (default: BAM_Service)",
+    )
     return parser.parse_args()
 
 
@@ -29,6 +34,15 @@ def main() -> int:
     roles = [
         {"role": role.strip(), "db": args.app_db} for role in args.roles.split(",") if role.strip()
     ]
+    roles.append({"role": "readWrite", "db": args.bam_db})
+    deduped: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for role_entry in roles:
+        key = (str(role_entry["role"]), str(role_entry["db"]))
+        if key not in seen:
+            seen.add(key)
+            deduped.append(role_entry)
+    roles = deduped
     if not roles:
         raise SystemExit("At least one role is required")
 

@@ -256,3 +256,22 @@ def test_ingest_collection_documents_internal_forwards_payload(monkeypatch):
     response = internal.ingest_collection_documents_internal(payload=payload)
     assert response["collection"] == "hgnc_genes"
     assert response["inserted_count"] == 2
+
+
+def test_list_supported_ingest_collections_internal(monkeypatch):
+    """List supported ingest collections route should expose registered collection names."""
+    monkeypatch.setattr(
+        internal.util,
+        "common",
+        SimpleNamespace(convert_to_serializable=lambda payload: payload),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        internal.InternalIngestService,
+        "list_supported_collections",
+        lambda: ["asp_configs", "hgnc_genes", "samples"],
+    )
+
+    response = internal.list_supported_ingest_collections_internal()
+    assert response["status"] == "ok"
+    assert response["collections"] == ["asp_configs", "hgnc_genes", "samples"]

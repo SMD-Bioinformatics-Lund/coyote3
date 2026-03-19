@@ -18,6 +18,7 @@ from pysam import VariantFile
 import config
 from api.contracts.db_documents import (
     SamplesDoc,
+    supported_collections,
     validate_collection_document,
 )
 from api.core.dna.variant_identity import ensure_variant_identity_fields
@@ -610,6 +611,11 @@ class InternalIngestService:
         "rna_class": "rna_classification",
         "rna_qc": "rna_qc",
     }
+
+    @staticmethod
+    def list_supported_collections() -> list[str]:
+        """List collection names that can be validated/inserted via ingest APIs."""
+        return supported_collections()
 
     @staticmethod
     def _resolve_collection(name: str):

@@ -8,6 +8,7 @@ from api.contracts.internal import (
     InternalCollectionBulkInsertRequest,
     InternalCollectionInsertPayload,
     InternalCollectionInsertRequest,
+    InternalCollectionSupportPayload,
     InternalIngestDependentsPayload,
     InternalIngestDependentsRequest,
     InternalIngestSampleBundlePayload,
@@ -155,3 +156,16 @@ def ingest_collection_documents_internal(
         ignore_duplicates=payload.ignore_duplicates,
     )
     return util.common.convert_to_serializable(result)
+
+
+@router.get(
+    "/api/v1/internal/ingest/collections",
+    response_model=InternalCollectionSupportPayload,
+)
+def list_supported_ingest_collections_internal(
+    _user: ApiUser = Depends(require_access(min_role="admin")),
+):
+    """List supported collection names for validated collection-ingest endpoints."""
+    return util.common.convert_to_serializable(
+        {"status": "ok", "collections": InternalIngestService.list_supported_collections()}
+    )

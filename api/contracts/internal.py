@@ -121,7 +121,7 @@ class InternalCollectionInsertRequest(BaseModel):
             "example": {
                 "collection": "users",
                 "document": {
-                    "email": "admin@center.local",
+                    "email": "admin@coyote3-center.org",
                     "fullname": "Center Admin",
                     "role": "admin",
                     "is_active": True,
@@ -164,3 +164,10 @@ class InternalCollectionInsertPayload(BaseModel):
     collection: str
     inserted_count: int
     inserted_id: str | None = None
+
+
+class InternalCollectionSupportPayload(BaseModel):
+    """Represent supported collection list response payload."""
+
+    status: str
+    collections: list[str]

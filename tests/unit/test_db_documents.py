@@ -2,7 +2,16 @@
 
 from __future__ import annotations
 
-from api.contracts.db_documents import VariantsDoc, validate_collection_document
+import json
+from pathlib import Path
+
+import pytest
+
+from api.contracts.db_documents import (
+    VariantsDoc,
+    supported_collections,
+    validate_collection_document,
+)
 
 
 def test_variant_info_accepts_selected_csq_aliases():
@@ -105,3 +114,55 @@ def test_collection_validator_accepts_nested_panel_cov_shape():
             },
         },
     )
+
+
+def test_supported_collections_exposes_expected_core_names():
+    """Supported ingest collection list should include core center-seeded collections."""
+    names = supported_collections()
+    for required in (
+        "permissions",
+        "roles",
+        "users",
+        "asp_configs",
+        "assay_specific_panels",
+        "insilico_genelists",
+        "refseq_canonical",
+        "hgnc_genes",
+    ):
+        assert required in names
+
+
+def test_collection_validator_rejects_invalid_aspc_id_environment_mismatch():
+    """asp_configs must keep aspc_id aligned with assay_name/environment fields."""
+    with pytest.raises(ValueError):
+        validate_collection_document(
+            "asp_configs",
+            {
+                "aspc_id": "ASSAY_A:production",
+                "assay_name": "ASSAY_A",
+                "environment": "development",
+                "asp_group": "GROUP_A",
+            },
+        )
+
+
+def test_collection_validator_rejects_user_without_role():
+    """users contract requires role and normalized environment values."""
+    with pytest.raises(ValueError):
+        validate_collection_document(
+            "users",
+            {
+                "email": "admin@center.local",
+                "environments": ["prod"],
+            },
+        )
+
+
+def test_collection_validator_accepts_all_collections_dummy_fixture():
+    """Every collection document in all_collections_dummy should pass validation."""
+    payload = json.loads(
+        Path("tests/fixtures/db_dummy/all_collections_dummy.json").read_text(encoding="utf-8")
+    )
+    for collection, docs in payload.items():
+        for doc in docs:
+            validate_collection_document(collection, doc)
