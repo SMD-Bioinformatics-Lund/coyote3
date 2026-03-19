@@ -11,10 +11,193 @@ Replace external ad-hoc import flows with validated API-driven ingestion.
 - `POST /api/v1/internal/ingest/collection`
 - `POST /api/v1/internal/ingest/collection/bulk`
 
+## Route commands (full examples)
+
+Set runtime variables once:
+
+```bash
+export API_BASE_URL="http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}"
+export INTERNAL_TOKEN="${INTERNAL_API_TOKEN}"
+```
+
+One-shot ordered seeding (required + optional baseline collections):
+
+```bash
+scripts/bootstrap_center_collections.sh \
+  --api-base-url "${API_BASE_URL}" \
+  --internal-token "${INTERNAL_TOKEN}" \
+  --seed-file tests/fixtures/db_dummy/all_collections_dummy.json \
+  --with-optional
+```
+
+### 1) Seed one collection document
+
+Route:
+- `POST /api/v1/internal/ingest/collection`
+
+Command:
+
+```bash
+curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection" \
+  -H "Content-Type: application/json" \
+  -H "X-Internal-Api-Token: ${INTERNAL_TOKEN}" \
+  --data @- <<'JSON'
+{
+  "collection": "users",
+  "document": {
+    "email": "admin@center.local",
+    "firstname": "Center",
+    "lastname": "Admin",
+    "fullname": "Center Admin",
+    "role": "admin",
+    "is_active": true,
+    "permissions": [],
+    "deny_permissions": [],
+    "assay_groups": [],
+    "assays": []
+  }
+}
+JSON
+```
+
+### 2) Seed many documents (bulk)
+
+Route:
+- `POST /api/v1/internal/ingest/collection/bulk`
+
+Command:
+
+```bash
+curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection/bulk" \
+  -H "Content-Type: application/json" \
+  -H "X-Internal-Api-Token: ${INTERNAL_TOKEN}" \
+  --data @- <<'JSON'
+{
+  "collection": "refseq_canonical",
+  "documents": [
+    {"gene": "EGFR", "canonical": "ENST00000275493"},
+    {"gene": "TP53", "canonical": "ENST00000269305"}
+  ]
+}
+JSON
+```
+
+### 3) Ingest fresh sample + analysis bundle
+
+Route:
+- `POST /api/v1/internal/ingest/sample-bundle`
+
+Command (YAML content mode):
+
+```bash
+curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/sample-bundle" \
+  -H "Content-Type: application/json" \
+  -H "X-Internal-Api-Token: ${INTERNAL_TOKEN}" \
+  --data @- <<JSON
+{
+  "yaml_content": $(python - <<'PY'
+import json
+from pathlib import Path
+print(json.dumps(Path("tests/data/ingest_demo/generic_case_control.yaml").read_text(encoding="utf-8")))
+PY
+  ),
+  "update_existing": false
+}
+JSON
+```
+
+### 4) Replace dependent analysis payload for existing sample
+
+Route:
+- `POST /api/v1/internal/ingest/dependents`
+
+Command:
+
+```bash
+curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/dependents" \
+  -H "Content-Type: application/json" \
+  -H "X-Internal-Api-Token: ${INTERNAL_TOKEN}" \
+  --data @- <<'JSON'
+{
+  "sample_id": "65f0c0ffee00000000000001",
+  "sample_name": "DEMO_SAMPLE_001",
+  "delete_existing": true,
+  "preload": {
+    "cnvs": [
+      {
+        "chr": "7",
+        "start": 55000000,
+        "end": 56000000,
+        "size": 1000000,
+        "ratio": 0.4,
+        "nprobes": 100,
+        "genes": ["EGFR"],
+        "callers": ["cnvkit"]
+      }
+    ]
+  }
+}
+JSON
+```
+
 ## Authentication and authorization
 
 - Internal endpoints require `INTERNAL_API_TOKEN`.
 - `update_existing=true` on sample-bundle requires authenticated user with `edit_sample` permission.
+
+## First-time center bootstrap order
+
+Use this order for a clean deployment at a new center.
+
+1. Create Mongo infrastructure users.
+   - Root/admin user (`MONGO_ROOT_*`) and app user (`MONGO_APP_*`).
+   - Compose init scripts create app user only on first boot of an empty Mongo volume.
+   - For existing volumes, run `scripts/mongo_bootstrap_users.py`.
+2. Seed core access/config collections.
+   - `permissions`
+   - `roles`
+   - `users`
+   - `asp_configs`
+   - `assay_specific_panels`
+   - `insilico_genelists`
+3. Seed reference collections required for predictable interpretation behavior.
+   - `refseq_canonical` (required for canonical transcript selection in DNA ingest)
+   - `hgnc_genes` (required for gene metadata routes/UI)
+4. Optionally seed external knowledge collections (recommended for full UX).
+   - `civic_genes`, `civic_variants`, `oncokb_genes`, `oncokb_actionable`, `brcaexchange`, `iarc_tp53`, `cosmic`, `vep_metadata`
+5. Ingest sample data.
+   - `POST /api/v1/internal/ingest/sample-bundle` for fresh sample + analysis data
+   - `POST /api/v1/internal/ingest/dependents` for dependent-data refresh on existing sample
+
+## Collection bootstrapping via API
+
+Use collection endpoints to seed reference/config data with schema validation.
+
+- Single: `POST /api/v1/internal/ingest/collection`
+- Bulk: `POST /api/v1/internal/ingest/collection/bulk`
+
+Recommended ordered commands for first-time center bootstrap:
+
+1. `permissions` via `/collection` or `/collection/bulk`
+2. `roles` via `/collection` or `/collection/bulk`
+3. `users` via `/collection` or `/collection/bulk`
+4. `asp_configs` via `/collection` or `/collection/bulk`
+5. `assay_specific_panels` via `/collection` or `/collection/bulk`
+6. `insilico_genelists` via `/collection` or `/collection/bulk`
+7. `refseq_canonical` via `/collection/bulk`
+8. `hgnc_genes` via `/collection/bulk`
+
+Example bulk seed for `refseq_canonical`:
+
+```json
+{
+  "collection": "refseq_canonical",
+  "documents": [
+    {"gene": "EGFR", "canonical": "ENST00000275493"},
+    {"gene": "TP53", "canonical": "ENST00000269305"}
+  ]
+}
+```
 
 ## Sample bundle request modes
 
@@ -75,6 +258,17 @@ Replace external ad-hoc import flows with validated API-driven ingestion.
   ]
 }
 ```
+
+Core collections typically seeded first:
+
+- `permissions`
+- `roles`
+- `users`
+- `asp_configs`
+- `assay_specific_panels`
+- `insilico_genelists`
+- `refseq_canonical`
+- `hgnc_genes`
 
 ## Test fixtures for ingestion
 

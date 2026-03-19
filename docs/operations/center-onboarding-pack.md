@@ -47,7 +47,46 @@ This validates:
   up -d --build
 ```
 
-## 4. Validate ingestion inputs
+If Mongo volume already existed before first deploy, ensure app DB user is present:
+
+```bash
+python scripts/mongo_bootstrap_users.py \
+  --mongo-uri "mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8008}/admin?authSource=admin" \
+  --app-db "${COYOTE3_DB:-coyote3}" \
+  --app-user "${MONGO_APP_USER}" \
+  --app-password "${MONGO_APP_PASSWORD}"
+```
+
+## 4. Seed baseline collections in order
+
+Seed using `POST /api/v1/internal/ingest/collection` or `/bulk` in this order:
+
+1. `permissions`
+2. `roles`
+3. `users` (local application users; include at least one admin-capable account)
+4. `asp_configs`
+5. `assay_specific_panels`
+6. `insilico_genelists`
+7. `refseq_canonical` (required before DNA sample-bundle ingest)
+8. `hgnc_genes` (required for gene metadata/UI endpoints)
+
+Optional but recommended next:
+
+- `civic_genes`, `civic_variants`, `oncokb_genes`, `oncokb_actionable`, `brcaexchange`, `iarc_tp53`, `cosmic`, `vep_metadata`
+
+See payload examples in [API / Ingestion API](../api/ingestion-api.md).
+
+Or run one-shot bootstrap command:
+
+```bash
+scripts/bootstrap_center_collections.sh \
+  --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}" \
+  --internal-token "${INTERNAL_API_TOKEN}" \
+  --seed-file tests/fixtures/db_dummy/all_collections_dummy.json \
+  --with-optional
+```
+
+## 5. Validate ingestion inputs
 
 ```bash
 python scripts/validate_ingest_spec.py \
@@ -55,7 +94,7 @@ python scripts/validate_ingest_spec.py \
   --check-files --json
 ```
 
-## 5. Run end-to-end smoke ingest
+## 6. Run end-to-end smoke ingest
 
 ```bash
 scripts/center_smoke.sh \
@@ -64,15 +103,16 @@ scripts/center_smoke.sh \
   --yaml-file tests/data/ingest_demo/generic_case_control.yaml
 ```
 
-## 6. Verify UI/API
+## 7. Verify UI/API
 
 - API health: `GET /api/v1/health`
 - Open UI and login using provisioned user
 - Verify sample appears and related findings pages load
 
-## 7. Next hardening steps
+## 8. Next hardening steps
 
 Use:
 
 - [Minimum Production Baseline](minimum-production-baseline.md)
 - [First Day Runbook](first-day-runbook.md)
+- [Deployment Runbook (Subsequent Updates)](deployment-runbook.md)

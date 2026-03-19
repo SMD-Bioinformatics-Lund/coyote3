@@ -1,5 +1,10 @@
 # Deployment Runbook
 
+## Scope
+
+- First-time center bootstrap: use [Center Onboarding Pack](center-onboarding-pack.md)
+- Day-2+ deployments and upgrades: use this runbook
+
 ## Release metadata
 
 ```bash
@@ -47,6 +52,34 @@ Smoke tests:
 ```bash
 PYTHONPATH=. python -m pytest -q -m api tests/api/routers/test_system_routes.py tests/api/routers/test_reports_routes.py
 ```
+
+## Subsequent updates (day-2+)
+
+Use this flow for regular upgrades after initial bootstrap is complete.
+
+1. Pull latest code/tag and review changelog.
+2. Update environment file only if new variables were introduced.
+3. Validate secrets and compose:
+
+```bash
+scripts/validate_env_secrets.sh --env-file .coyote3_stage_env
+docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml config -q
+```
+
+4. Deploy updated containers:
+
+```bash
+./scripts/compose-with-version.sh \
+  --env-file .coyote3_stage_env \
+  -f deploy/compose/docker-compose.stage.yml \
+  up -d --build
+```
+
+5. Run post-deploy health + API smoke checks.
+6. If ingest contract/schema changed, run collection update/seed calls via:
+   - `POST /api/v1/internal/ingest/collection`
+   - `POST /api/v1/internal/ingest/collection/bulk`
+7. For sample reprocessing, use `update_existing=true` on sample-bundle only with an authenticated user that has `edit_sample`.
 
 ## Rollback approach
 

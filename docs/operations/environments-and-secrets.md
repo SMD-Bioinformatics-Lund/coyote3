@@ -20,6 +20,18 @@ Recommended:
 
 - `MONGO_ROOT_*`: bootstrap/admin operations
 - `MONGO_APP_*`: application runtime access (least privilege)
+- Compose mongo-init creates `MONGO_APP_*` only on first startup of an empty Mongo volume
+- If volume already exists, create/rotate app user with `scripts/mongo_bootstrap_users.py`
+
+Example (existing volume/user rotation):
+
+```bash
+python scripts/mongo_bootstrap_users.py \
+  --mongo-uri "mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8008}/admin?authSource=admin" \
+  --app-db "${COYOTE3_DB:-coyote3}" \
+  --app-user "${MONGO_APP_USER}" \
+  --app-password "${MONGO_APP_PASSWORD}"
+```
 
 ## Secrets handling
 
