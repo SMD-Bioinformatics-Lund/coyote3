@@ -14,11 +14,23 @@ if [[ -z "${PYTHON_BIN:-}" ]]; then
   fi
 fi
 
-# Baseline thresholds; ratchet upward as coverage improves.
+# Threshold strategy:
+# - Current defaults preserve existing CI behavior.
+# - Set UNIFORM_MIN=60 (or another value) to enforce the same threshold for all families.
+#   Example:
+#     UNIFORM_MIN=60 PYTHONPATH=. bash scripts/run_family_coverage_gates.sh
 CORE_MIN="${CORE_MIN:-30}"
 SERVICES_MIN="${SERVICES_MIN:-55}"
 ROUTERS_MIN="${ROUTERS_MIN:-60}"
 BLUEPRINTS_MIN="${BLUEPRINTS_MIN:-52}"
+UNIFORM_MIN="${UNIFORM_MIN:-}"
+
+if [[ -n "${UNIFORM_MIN}" ]]; then
+  CORE_MIN="${UNIFORM_MIN}"
+  SERVICES_MIN="${UNIFORM_MIN}"
+  ROUTERS_MIN="${UNIFORM_MIN}"
+  BLUEPRINTS_MIN="${UNIFORM_MIN}"
+fi
 
 echo "[coverage-gates] api/core >= ${CORE_MIN}%"
 "${PYTHON_BIN}" -m pytest -q tests/unit tests/api tests/integration \
