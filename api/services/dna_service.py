@@ -42,7 +42,7 @@ class DnaService:
     """Own shared DNA, CNV, and small-variant support workflows."""
 
     def __init__(self, repository: DnaRouteRepository | None = None) -> None:
-        """Handle __init__.
+        """Initialize the service with repository dependencies.
 
         Args:
                 repository: Repository. Optional argument.
@@ -72,7 +72,7 @@ class DnaService:
     def mutation_payload(
         sample_id: str, resource: str, resource_id: str, action: str
     ) -> dict[str, Any]:
-        """Handle mutation payload.
+        """Build a standard mutation response payload.
 
         Args:
             sample_id (str): Value for ``sample_id``.
@@ -115,7 +115,7 @@ class DnaService:
         return cnv_organizegenes(cnvs)
 
     def require_variant_for_sample(self, *, sample: dict, var_id: str) -> dict:
-        """Handle require variant for sample.
+        """Load a variant and assert it belongs to the provided sample.
 
         Args:
             sample (dict): Value for ``sample``.
@@ -259,7 +259,7 @@ class DnaService:
     def classify_variant(
         self, *, form_data: dict, get_tier_classification_fn, get_variant_nomenclature_fn
     ) -> None:
-        """Handle classify variant.
+        """Classify a variant and persist classification documents.
 
         Args:
             form_data (dict): Value for ``form_data``.
@@ -294,7 +294,7 @@ class DnaService:
     def add_variant_comment(
         self, *, form_data: dict, target_id: str, get_variant_nomenclature_fn, create_comment_doc_fn
     ) -> str:
-        """Handle add variant comment.
+        """Create a variant/fusion/translocation/CNV comment and return its resource type.
 
         Args:
             form_data (dict): Value for ``form_data``.
@@ -366,7 +366,7 @@ class DnaService:
         )
 
     def plot_context_payload(self, *, sample: dict, assay_config_getter) -> dict[str, Any]:
-        """Handle plot context payload.
+        """Build plot context payload for DNA routes.
 
         Args:
             sample (dict): Value for ``sample``.
@@ -382,7 +382,7 @@ class DnaService:
         )
 
     def biomarkers_payload(self, *, sample: dict) -> dict[str, Any]:
-        """Handle biomarkers payload.
+        """Build biomarker payload for DNA routes.
 
         Args:
             sample (dict): Value for ``sample``.
@@ -401,7 +401,7 @@ class DnaService:
         util_module,
         assay_config_getter,
     ) -> dict[str, Any]:
-        """Handle variant context payload.
+        """Build single-variant context payload for DNA routes.
 
         Args:
             sample (dict): Value for ``sample``.
@@ -424,7 +424,7 @@ class DnaService:
 
     @staticmethod
     def coerce_bool(value: object, default: bool = True) -> bool:
-        """Handle coerce bool.
+        """Convert arbitrary input into a boolean.
 
         Args:
             value (object): Value for ``value``.

@@ -18,6 +18,9 @@ jobs:
       COYOTE3_FERNET_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
       SECRET_KEY: ci-test-secret-key
       INTERNAL_API_TOKEN: ci-test-internal-token
+      # Optional future policy toggle:
+      # set repository variable UNIFORM_MIN=60 to enforce 60% for each family gate.
+      UNIFORM_MIN: ${{ vars.UNIFORM_MIN }}
 
     steps:
       - name: Checkout

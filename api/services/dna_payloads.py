@@ -12,6 +12,67 @@ from api.http import api_error
 from api.services.dna_export import consequence_terms
 
 
+def _collect_oncokb_genes(service, variants: list[dict]) -> list[str]:
+    """Collect unique OncoKB gene symbols present in the variant list."""
+    oncokb_genes: list[str] = []
+    for variant in variants:
+        symbol = variant.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL")
+        if not symbol:
+            continue
+        oncokb_gene = service.repository.oncokb_handler.get_oncokb_action_gene(symbol)
+        if oncokb_gene and "Hugo Symbol" in oncokb_gene:
+            hugo_symbol = oncokb_gene["Hugo Symbol"]
+            if hugo_symbol not in oncokb_genes:
+                oncokb_genes.append(hugo_symbol)
+    return oncokb_genes
+
+
+def _build_display_and_summary_sections(
+    service,
+    *,
+    variants: list[dict],
+    tiered_variants: list[dict],
+    analysis_sections: list[str],
+    sample: dict,
+    sample_filters: dict,
+    filter_genes: list[str],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Build display and summary section dictionaries for report payloads."""
+    display_sections_data: dict[str, Any] = {"snvs": deepcopy(variants)}
+    summary_sections_data: dict[str, Any] = {"snvs": tiered_variants}
+
+    if "CNV" in analysis_sections:
+        cnvs = service.load_cnvs_for_sample(
+            sample=sample, sample_filters=sample_filters, filter_genes=filter_genes
+        )
+        display_sections_data["cnvs"] = deepcopy(cnvs)
+        summary_sections_data["cnvs"] = [cnv for cnv in cnvs if cnv.get("interesting")]
+
+    if "BIOMARKER" in analysis_sections:
+        biomarkers = list(
+            service.repository.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"]))
+        )
+        display_sections_data["biomarkers"] = biomarkers
+        summary_sections_data["biomarkers"] = biomarkers
+
+    if "TRANSLOCATION" in analysis_sections:
+        display_sections_data["translocs"] = list(
+            service.repository.transloc_handler.get_sample_translocations(
+                sample_id=str(sample["_id"])
+            )
+        )
+
+    if "FUSION" in analysis_sections:
+        display_sections_data["fusions"] = []
+        summary_sections_data["translocs"] = [
+            transloc
+            for transloc in display_sections_data.get("translocs", [])
+            if transloc.get("interesting")
+        ]
+
+    return display_sections_data, summary_sections_data
+
+
 def list_variants_payload(
     *,
     service,
@@ -94,49 +155,16 @@ def list_variants_payload(
         assay_config.get("schema_name")
     )
 
-    oncokb_genes = []
-    for variant in variants:
-        symbol = variant.get("INFO", {}).get("selected_CSQ", {}).get("SYMBOL")
-        if not symbol:
-            continue
-        oncokb_gene = service.repository.oncokb_handler.get_oncokb_action_gene(symbol)
-        if oncokb_gene and "Hugo Symbol" in oncokb_gene:
-            hugo_symbol = oncokb_gene["Hugo Symbol"]
-            if hugo_symbol not in oncokb_genes:
-                oncokb_genes.append(hugo_symbol)
-
-    display_sections_data = {"snvs": deepcopy(variants)}
-    summary_sections_data = {"snvs": tiered_variants}
-
-    if "CNV" in analysis_sections:
-        cnvs = service.load_cnvs_for_sample(
-            sample=sample, sample_filters=sample_filters, filter_genes=filter_genes
-        )
-        display_sections_data["cnvs"] = deepcopy(cnvs)
-        summary_sections_data["cnvs"] = [cnv for cnv in cnvs if cnv.get("interesting")]
-
-    if "BIOMARKER" in analysis_sections:
-        biomarkers = list(
-            service.repository.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"]))
-        )
-        display_sections_data["biomarkers"] = biomarkers
-        summary_sections_data["biomarkers"] = biomarkers
-
-    if "TRANSLOCATION" in analysis_sections:
-        translocs = list(
-            service.repository.transloc_handler.get_sample_translocations(
-                sample_id=str(sample["_id"])
-            )
-        )
-        display_sections_data["translocs"] = translocs
-
-    if "FUSION" in analysis_sections:
-        display_sections_data["fusions"] = []
-        summary_sections_data["translocs"] = [
-            transloc
-            for transloc in display_sections_data.get("translocs", [])
-            if transloc.get("interesting")
-        ]
+    oncokb_genes = _collect_oncokb_genes(service, variants)
+    display_sections_data, summary_sections_data = _build_display_and_summary_sections(
+        service,
+        variants=variants,
+        tiered_variants=tiered_variants,
+        analysis_sections=analysis_sections,
+        sample=sample,
+        sample_filters=sample_filters,
+        filter_genes=filter_genes,
+    )
 
     if "cnv" in sample and str(sample["cnv"]).lower().endswith((".png", ".jpg", ".jpeg")):
         sample["cnvprofile"] = sample["cnv"]

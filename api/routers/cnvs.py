@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from fastapi import APIRouter, Depends, Request
 
 from api.contracts.dna import DnaCnvContextPayload, DnaCnvListPayload
 from api.contracts.samples import SampleMutationPayload
 from api.deps.services import get_cnv_service
 from api.extensions import util
+from api.routers.mutation_helpers import run_serialized_mutation
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.services.cnv_service import CnvService
 
@@ -17,6 +20,57 @@ if not hasattr(util, "common"):
     util.init_util()
 
 
+def _cnv_mutation(
+    sample_id: str,
+    cnv_id: str,
+    user: ApiUser,
+    service: CnvService,
+    *,
+    action: str,
+    mutate: Callable[[], None],
+):
+    """Execute a CNV mutation and return the canonical mutation payload."""
+    return run_serialized_mutation(
+        sample_id=sample_id,
+        user=user,
+        validate=lambda: _get_sample_for_api(sample_id, user),
+        mutate=mutate,
+        payload=lambda: service.mutation_payload(
+            sample_id,
+            resource="cnv",
+            resource_id=cnv_id,
+            action=action,
+        ),
+        util_module=util,
+    )
+
+
+def _cnv_comment_mutation(
+    sample_id: str,
+    cnv_id: str,
+    comment_id: str,
+    user: ApiUser,
+    service: CnvService,
+    *,
+    action: str,
+    mutate: Callable[[], None],
+):
+    """Execute a CNV comment visibility mutation."""
+    return run_serialized_mutation(
+        sample_id=sample_id,
+        user=user,
+        validate=lambda: _get_sample_for_api(sample_id, user),
+        mutate=mutate,
+        payload=lambda: service.mutation_payload(
+            sample_id,
+            resource="cnv_comment",
+            resource_id=comment_id,
+            action=action,
+        ),
+        util_module=util,
+    )
+
+
 @router.get("/api/v1/samples/{sample_id}/cnvs", response_model=DnaCnvListPayload)
 def list_dna_cnvs(
     request: Request,
@@ -24,17 +78,7 @@ def list_dna_cnvs(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: CnvService = Depends(get_cnv_service),
 ):
-    """List dna cnvs.
-
-    Args:
-        request (Request): Value for ``request``.
-        sample_id (str): Value for ``sample_id``.
-        user (ApiUser): Value for ``user``.
-        service (CnvService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Return CNVs for a sample."""
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
         service.list_cnvs_payload(request=request, sample=sample, util_module=util)
@@ -48,17 +92,7 @@ def show_dna_cnv(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: CnvService = Depends(get_cnv_service),
 ):
-    """Show dna cnv.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        cnv_id (str): Value for ``cnv_id``.
-        user (ApiUser): Value for ``user``.
-        service (CnvService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Return CNV detail payload."""
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
         service.show_cnv_payload(sample=sample, cnv_id=cnv_id, util_module=util)
@@ -76,23 +110,14 @@ def unmark_interesting_cnv(
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
     service: CnvService = Depends(get_cnv_service),
 ):
-    """Handle unmark interesting cnv.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        cnv_id (str): Value for ``cnv_id``.
-        user (ApiUser): Value for ``user``.
-        service (CnvService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _get_sample_for_api(sample_id, user)
-    service.repository.cnv_handler.unmark_interesting_cnv(cnv_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="cnv", resource_id=cnv_id, action="unmark_interesting"
-        )
+    """Remove the interesting flag from a CNV."""
+    return _cnv_mutation(
+        sample_id,
+        cnv_id,
+        user,
+        service,
+        action="unmark_interesting",
+        mutate=lambda: service.repository.cnv_handler.unmark_interesting_cnv(cnv_id),
     )
 
 
@@ -107,23 +132,14 @@ def mark_interesting_cnv(
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
     service: CnvService = Depends(get_cnv_service),
 ):
-    """Handle mark interesting cnv.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        cnv_id (str): Value for ``cnv_id``.
-        user (ApiUser): Value for ``user``.
-        service (CnvService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _get_sample_for_api(sample_id, user)
-    service.repository.cnv_handler.mark_interesting_cnv(cnv_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="cnv", resource_id=cnv_id, action="mark_interesting"
-        )
+    """Mark a CNV as interesting."""
+    return _cnv_mutation(
+        sample_id,
+        cnv_id,
+        user,
+        service,
+        action="mark_interesting",
+        mutate=lambda: service.repository.cnv_handler.mark_interesting_cnv(cnv_id),
     )
 
 
@@ -138,23 +154,14 @@ def mark_false_positive_cnv(
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
     service: CnvService = Depends(get_cnv_service),
 ):
-    """Handle mark false positive cnv.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        cnv_id (str): Value for ``cnv_id``.
-        user (ApiUser): Value for ``user``.
-        service (CnvService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _get_sample_for_api(sample_id, user)
-    service.repository.cnv_handler.mark_false_positive_cnv(cnv_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="cnv", resource_id=cnv_id, action="mark_false_positive"
-        )
+    """Mark a CNV as false positive."""
+    return _cnv_mutation(
+        sample_id,
+        cnv_id,
+        user,
+        service,
+        action="mark_false_positive",
+        mutate=lambda: service.repository.cnv_handler.mark_false_positive_cnv(cnv_id),
     )
 
 
@@ -169,23 +176,14 @@ def unmark_false_positive_cnv(
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
     service: CnvService = Depends(get_cnv_service),
 ):
-    """Handle unmark false positive cnv.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        cnv_id (str): Value for ``cnv_id``.
-        user (ApiUser): Value for ``user``.
-        service (CnvService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _get_sample_for_api(sample_id, user)
-    service.repository.cnv_handler.unmark_false_positive_cnv(cnv_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="cnv", resource_id=cnv_id, action="unmark_false_positive"
-        )
+    """Remove the false-positive flag from a CNV."""
+    return _cnv_mutation(
+        sample_id,
+        cnv_id,
+        user,
+        service,
+        action="unmark_false_positive",
+        mutate=lambda: service.repository.cnv_handler.unmark_false_positive_cnv(cnv_id),
     )
 
 
@@ -200,23 +198,14 @@ def mark_noteworthy_cnv(
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
     service: CnvService = Depends(get_cnv_service),
 ):
-    """Handle mark noteworthy cnv.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        cnv_id (str): Value for ``cnv_id``.
-        user (ApiUser): Value for ``user``.
-        service (CnvService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _get_sample_for_api(sample_id, user)
-    service.repository.cnv_handler.noteworthy_cnv(cnv_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="cnv", resource_id=cnv_id, action="mark_noteworthy"
-        )
+    """Mark a CNV as noteworthy."""
+    return _cnv_mutation(
+        sample_id,
+        cnv_id,
+        user,
+        service,
+        action="mark_noteworthy",
+        mutate=lambda: service.repository.cnv_handler.noteworthy_cnv(cnv_id),
     )
 
 
@@ -231,23 +220,14 @@ def unmark_noteworthy_cnv(
     user: ApiUser = Depends(require_access(permission="manage_cnvs", min_role="user", min_level=9)),
     service: CnvService = Depends(get_cnv_service),
 ):
-    """Handle unmark noteworthy cnv.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        cnv_id (str): Value for ``cnv_id``.
-        user (ApiUser): Value for ``user``.
-        service (CnvService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _get_sample_for_api(sample_id, user)
-    service.repository.cnv_handler.unnoteworthy_cnv(cnv_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="cnv", resource_id=cnv_id, action="unmark_noteworthy"
-        )
+    """Remove the noteworthy flag from a CNV."""
+    return _cnv_mutation(
+        sample_id,
+        cnv_id,
+        user,
+        service,
+        action="unmark_noteworthy",
+        mutate=lambda: service.repository.cnv_handler.unnoteworthy_cnv(cnv_id),
     )
 
 
@@ -265,24 +245,15 @@ def hide_cnv_comment(
     ),
     service: CnvService = Depends(get_cnv_service),
 ):
-    """Handle hide cnv comment.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        cnv_id (str): Value for ``cnv_id``.
-        comment_id (str): Value for ``comment_id``.
-        user (ApiUser): Value for ``user``.
-        service (CnvService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _get_sample_for_api(sample_id, user)
-    service.repository.cnv_handler.hide_cnvs_comment(cnv_id, comment_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="cnv_comment", resource_id=comment_id, action="hide"
-        )
+    """Hide a CNV comment."""
+    return _cnv_comment_mutation(
+        sample_id,
+        cnv_id,
+        comment_id,
+        user,
+        service,
+        action="hide",
+        mutate=lambda: service.repository.cnv_handler.hide_cnvs_comment(cnv_id, comment_id),
     )
 
 
@@ -300,22 +271,13 @@ def unhide_cnv_comment(
     ),
     service: CnvService = Depends(get_cnv_service),
 ):
-    """Handle unhide cnv comment.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        cnv_id (str): Value for ``cnv_id``.
-        comment_id (str): Value for ``comment_id``.
-        user (ApiUser): Value for ``user``.
-        service (CnvService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _get_sample_for_api(sample_id, user)
-    service.repository.cnv_handler.unhide_cnvs_comment(cnv_id, comment_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="cnv_comment", resource_id=comment_id, action="unhide"
-        )
+    """Unhide a CNV comment."""
+    return _cnv_comment_mutation(
+        sample_id,
+        cnv_id,
+        comment_id,
+        user,
+        service,
+        action="unhide",
+        mutate=lambda: service.repository.cnv_handler.unhide_cnvs_comment(cnv_id, comment_id),
     )

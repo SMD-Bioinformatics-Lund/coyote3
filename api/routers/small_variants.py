@@ -23,6 +23,7 @@ from api.deps.services import get_dna_service, get_resource_annotation_service
 from api.extensions import util
 from api.http import api_error as _api_error
 from api.http import get_formatted_assay_config as _get_formatted_assay_config
+from api.routers.mutation_helpers import run_serialized_mutation
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.services.dna_service import DnaService
 from api.services.resource_annotation_service import ResourceAnnotationService
@@ -71,7 +72,7 @@ def dna_plot_context(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: DnaService = Depends(get_dna_service),
 ):
-    """Handle dna plot context.
+    """Return plot context for DNA variant visualizations.
 
     Args:
         sample_id (str): Value for ``sample_id``.
@@ -225,20 +226,61 @@ def export_transloc_csv_context(
 def _require_variant_for_sample(
     sample_id: str, var_id: str, user: ApiUser, service: DnaService
 ) -> tuple[dict, dict]:
-    """Handle  require variant for sample.
-
-    Args:
-            sample_id: Sample id.
-            var_id: Var id.
-            user: User.
-            service: Service.
-
-    Returns:
-            The  require variant for sample result.
-    """
+    """Load and validate the target variant for a sample."""
     sample = _get_sample_for_api(sample_id, user)
     variant = service.require_variant_for_sample(sample=sample, var_id=var_id)
     return sample, variant
+
+
+def _variant_mutation(
+    sample_id: str,
+    var_id: str,
+    user: ApiUser,
+    service: DnaService,
+    *,
+    action: str,
+    mutate,
+):
+    """Execute a small-variant mutation and return the canonical payload."""
+    return run_serialized_mutation(
+        sample_id=sample_id,
+        user=user,
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
+        mutate=mutate,
+        payload=lambda: service.mutation_payload(
+            sample_id,
+            resource="variant",
+            resource_id=var_id,
+            action=action,
+        ),
+        util_module=util,
+    )
+
+
+def _variant_comment_mutation(
+    sample_id: str,
+    var_id: str,
+    comment_id: str,
+    user: ApiUser,
+    service: DnaService,
+    *,
+    action: str,
+    mutate,
+):
+    """Execute a small-variant comment visibility mutation."""
+    return run_serialized_mutation(
+        sample_id=sample_id,
+        user=user,
+        validate=lambda: _require_variant_for_sample(sample_id, var_id, user, service),
+        mutate=mutate,
+        payload=lambda: service.mutation_payload(
+            sample_id,
+            resource="variant_comment",
+            resource_id=comment_id,
+            action=action,
+        ),
+        util_module=util,
+    )
 
 
 @router.delete(
@@ -252,23 +294,14 @@ def unmark_false_variant(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
-    """Handle unmark false variant.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
-        user (ApiUser): Value for ``user``.
-        service (DnaService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _require_variant_for_sample(sample_id, var_id, user, service)
-    service.repository.variant_handler.unmark_false_positive_var(var_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="variant", resource_id=var_id, action="unmark_false_positive"
-        )
+    """Remove the false-positive flag from a small variant."""
+    return _variant_mutation(
+        sample_id,
+        var_id,
+        user,
+        service,
+        action="unmark_false_positive",
+        mutate=lambda: service.repository.variant_handler.unmark_false_positive_var(var_id),
     )
 
 
@@ -283,23 +316,14 @@ def mark_false_variant(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
-    """Handle mark false variant.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
-        user (ApiUser): Value for ``user``.
-        service (DnaService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _require_variant_for_sample(sample_id, var_id, user, service)
-    service.repository.variant_handler.mark_false_positive_var(var_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="variant", resource_id=var_id, action="mark_false_positive"
-        )
+    """Mark a small variant as false positive."""
+    return _variant_mutation(
+        sample_id,
+        var_id,
+        user,
+        service,
+        action="mark_false_positive",
+        mutate=lambda: service.repository.variant_handler.mark_false_positive_var(var_id),
     )
 
 
@@ -314,23 +338,14 @@ def unmark_interesting_variant(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
-    """Handle unmark interesting variant.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
-        user (ApiUser): Value for ``user``.
-        service (DnaService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _require_variant_for_sample(sample_id, var_id, user, service)
-    service.repository.variant_handler.unmark_interesting_var(var_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="variant", resource_id=var_id, action="unmark_interesting"
-        )
+    """Remove the interesting flag from a small variant."""
+    return _variant_mutation(
+        sample_id,
+        var_id,
+        user,
+        service,
+        action="unmark_interesting",
+        mutate=lambda: service.repository.variant_handler.unmark_interesting_var(var_id),
     )
 
 
@@ -345,23 +360,14 @@ def mark_interesting_variant(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
-    """Handle mark interesting variant.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
-        user (ApiUser): Value for ``user``.
-        service (DnaService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _require_variant_for_sample(sample_id, var_id, user, service)
-    service.repository.variant_handler.mark_interesting_var(var_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="variant", resource_id=var_id, action="mark_interesting"
-        )
+    """Mark a small variant as interesting."""
+    return _variant_mutation(
+        sample_id,
+        var_id,
+        user,
+        service,
+        action="mark_interesting",
+        mutate=lambda: service.repository.variant_handler.mark_interesting_var(var_id),
     )
 
 
@@ -376,23 +382,14 @@ def unmark_irrelevant_variant(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
-    """Handle unmark irrelevant variant.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
-        user (ApiUser): Value for ``user``.
-        service (DnaService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _require_variant_for_sample(sample_id, var_id, user, service)
-    service.repository.variant_handler.unmark_irrelevant_var(var_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="variant", resource_id=var_id, action="unmark_irrelevant"
-        )
+    """Remove the irrelevant flag from a small variant."""
+    return _variant_mutation(
+        sample_id,
+        var_id,
+        user,
+        service,
+        action="unmark_irrelevant",
+        mutate=lambda: service.repository.variant_handler.unmark_irrelevant_var(var_id),
     )
 
 
@@ -407,23 +404,14 @@ def mark_irrelevant_variant(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
-    """Handle mark irrelevant variant.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
-        user (ApiUser): Value for ``user``.
-        service (DnaService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _require_variant_for_sample(sample_id, var_id, user, service)
-    service.repository.variant_handler.mark_irrelevant_var(var_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="variant", resource_id=var_id, action="mark_irrelevant"
-        )
+    """Mark a small variant as irrelevant."""
+    return _variant_mutation(
+        sample_id,
+        var_id,
+        user,
+        service,
+        action="mark_irrelevant",
+        mutate=lambda: service.repository.variant_handler.mark_irrelevant_var(var_id),
     )
 
 
@@ -438,17 +426,7 @@ def add_variant_to_blacklist(
     user: ApiUser = Depends(require_access(permission="manage_snvs", min_role="admin")),
     service: DnaService = Depends(get_dna_service),
 ):
-    """Handle add variant to blacklist.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
-        user (ApiUser): Value for ``user``.
-        service (DnaService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Create a blacklist entry from the selected small variant."""
     sample, variant = _require_variant_for_sample(sample_id, var_id, user, service)
     assay_config = _get_formatted_assay_config(sample)
     if not assay_config:
@@ -476,24 +454,15 @@ def hide_variant_comment(
     ),
     service: DnaService = Depends(get_dna_service),
 ):
-    """Handle hide variant comment.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
-        comment_id (str): Value for ``comment_id``.
-        user (ApiUser): Value for ``user``.
-        service (DnaService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _require_variant_for_sample(sample_id, var_id, user, service)
-    service.repository.variant_handler.hide_var_comment(var_id, comment_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="variant_comment", resource_id=comment_id, action="hide"
-        )
+    """Hide a comment on a small variant."""
+    return _variant_comment_mutation(
+        sample_id,
+        var_id,
+        comment_id,
+        user,
+        service,
+        action="hide",
+        mutate=lambda: service.repository.variant_handler.hide_var_comment(var_id, comment_id),
     )
 
 
@@ -511,24 +480,17 @@ def unhide_variant_comment(
     ),
     service: DnaService = Depends(get_dna_service),
 ):
-    """Handle unhide variant comment.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        var_id (str): Value for ``var_id``.
-        comment_id (str): Value for ``comment_id``.
-        user (ApiUser): Value for ``user``.
-        service (DnaService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _require_variant_for_sample(sample_id, var_id, user, service)
-    service.repository.variant_handler.unhide_variant_comment(var_id, comment_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="variant_comment", resource_id=comment_id, action="unhide"
-        )
+    """Unhide a comment on a small variant."""
+    return _variant_comment_mutation(
+        sample_id,
+        var_id,
+        comment_id,
+        user,
+        service,
+        action="unhide",
+        mutate=lambda: service.repository.variant_handler.unhide_variant_comment(
+            var_id, comment_id
+        ),
     )
 
 
@@ -634,7 +596,7 @@ def add_variant_comment_mutation(
     ),
     service: ResourceAnnotationService = Depends(get_resource_annotation_service),
 ):
-    """Handle add variant comment mutation.
+    """Create a sample annotation on a variant-like resource.
 
     Args:
         sample_id (str): Value for ``sample_id``.

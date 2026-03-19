@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from fastapi import APIRouter, Depends, Request
 
 from api.contracts.dna import DnaTranslocationContextPayload, DnaTranslocationsPayload
 from api.contracts.samples import SampleMutationPayload
 from api.deps.services import get_translocation_service
 from api.extensions import util
+from api.routers.mutation_helpers import run_serialized_mutation
 from api.security.access import ApiUser, _get_sample_for_api, require_access
 from api.services.translocation_service import TranslocationService
 
@@ -17,6 +20,57 @@ if not hasattr(util, "common"):
     util.init_util()
 
 
+def _translocation_mutation(
+    sample_id: str,
+    transloc_id: str,
+    user: ApiUser,
+    service: TranslocationService,
+    *,
+    action: str,
+    mutate: Callable[[], None],
+):
+    """Execute a translocation mutation and return the canonical payload."""
+    return run_serialized_mutation(
+        sample_id=sample_id,
+        user=user,
+        validate=lambda: _get_sample_for_api(sample_id, user),
+        mutate=mutate,
+        payload=lambda: service.mutation_payload(
+            sample_id,
+            resource="translocation",
+            resource_id=transloc_id,
+            action=action,
+        ),
+        util_module=util,
+    )
+
+
+def _translocation_comment_mutation(
+    sample_id: str,
+    transloc_id: str,
+    comment_id: str,
+    user: ApiUser,
+    service: TranslocationService,
+    *,
+    action: str,
+    mutate: Callable[[], None],
+):
+    """Execute a translocation comment visibility mutation."""
+    return run_serialized_mutation(
+        sample_id=sample_id,
+        user=user,
+        validate=lambda: _get_sample_for_api(sample_id, user),
+        mutate=mutate,
+        payload=lambda: service.mutation_payload(
+            sample_id,
+            resource="translocation_comment",
+            resource_id=comment_id,
+            action=action,
+        ),
+        util_module=util,
+    )
+
+
 @router.get("/api/v1/samples/{sample_id}/translocations", response_model=DnaTranslocationsPayload)
 def list_dna_translocations(
     request: Request,
@@ -24,17 +78,7 @@ def list_dna_translocations(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: TranslocationService = Depends(get_translocation_service),
 ):
-    """List dna translocations.
-
-    Args:
-        request (Request): Value for ``request``.
-        sample_id (str): Value for ``sample_id``.
-        user (ApiUser): Value for ``user``.
-        service (TranslocationService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Return translocations for a sample."""
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
         service.list_translocations_payload(request=request, sample=sample)
@@ -51,17 +95,7 @@ def show_dna_translocation(
     user: ApiUser = Depends(require_access(min_level=1)),
     service: TranslocationService = Depends(get_translocation_service),
 ):
-    """Show dna translocation.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        transloc_id (str): Value for ``transloc_id``.
-        user (ApiUser): Value for ``user``.
-        service (TranslocationService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
+    """Return translocation detail payload."""
     sample = _get_sample_for_api(sample_id, user)
     return util.common.convert_to_serializable(
         service.show_translocation_payload(sample=sample, transloc_id=transloc_id, util_module=util)
@@ -81,23 +115,14 @@ def mark_interesting_translocation(
     ),
     service: TranslocationService = Depends(get_translocation_service),
 ):
-    """Handle mark interesting translocation.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        transloc_id (str): Value for ``transloc_id``.
-        user (ApiUser): Value for ``user``.
-        service (TranslocationService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _get_sample_for_api(sample_id, user)
-    service.repository.transloc_handler.mark_interesting_transloc(transloc_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="translocation", resource_id=transloc_id, action="mark_interesting"
-        )
+    """Mark a translocation as interesting."""
+    return _translocation_mutation(
+        sample_id,
+        transloc_id,
+        user,
+        service,
+        action="mark_interesting",
+        mutate=lambda: service.repository.transloc_handler.mark_interesting_transloc(transloc_id),
     )
 
 
@@ -114,26 +139,14 @@ def unmark_interesting_translocation(
     ),
     service: TranslocationService = Depends(get_translocation_service),
 ):
-    """Handle unmark interesting translocation.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        transloc_id (str): Value for ``transloc_id``.
-        user (ApiUser): Value for ``user``.
-        service (TranslocationService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _get_sample_for_api(sample_id, user)
-    service.repository.transloc_handler.unmark_interesting_transloc(transloc_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id,
-            resource="translocation",
-            resource_id=transloc_id,
-            action="unmark_interesting",
-        )
+    """Remove the interesting flag from a translocation."""
+    return _translocation_mutation(
+        sample_id,
+        transloc_id,
+        user,
+        service,
+        action="unmark_interesting",
+        mutate=lambda: service.repository.transloc_handler.unmark_interesting_transloc(transloc_id),
     )
 
 
@@ -150,26 +163,16 @@ def mark_false_positive_translocation(
     ),
     service: TranslocationService = Depends(get_translocation_service),
 ):
-    """Handle mark false positive translocation.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        transloc_id (str): Value for ``transloc_id``.
-        user (ApiUser): Value for ``user``.
-        service (TranslocationService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _get_sample_for_api(sample_id, user)
-    service.repository.transloc_handler.mark_false_positive_transloc(transloc_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id,
-            resource="translocation",
-            resource_id=transloc_id,
-            action="mark_false_positive",
-        )
+    """Mark a translocation as false positive."""
+    return _translocation_mutation(
+        sample_id,
+        transloc_id,
+        user,
+        service,
+        action="mark_false_positive",
+        mutate=lambda: service.repository.transloc_handler.mark_false_positive_transloc(
+            transloc_id
+        ),
     )
 
 
@@ -186,26 +189,16 @@ def unmark_false_positive_translocation(
     ),
     service: TranslocationService = Depends(get_translocation_service),
 ):
-    """Handle unmark false positive translocation.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        transloc_id (str): Value for ``transloc_id``.
-        user (ApiUser): Value for ``user``.
-        service (TranslocationService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _get_sample_for_api(sample_id, user)
-    service.repository.transloc_handler.unmark_false_positive_transloc(transloc_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id,
-            resource="translocation",
-            resource_id=transloc_id,
-            action="unmark_false_positive",
-        )
+    """Remove the false-positive flag from a translocation."""
+    return _translocation_mutation(
+        sample_id,
+        transloc_id,
+        user,
+        service,
+        action="unmark_false_positive",
+        mutate=lambda: service.repository.transloc_handler.unmark_false_positive_transloc(
+            transloc_id
+        ),
     )
 
 
@@ -223,24 +216,17 @@ def hide_translocation_comment(
     ),
     service: TranslocationService = Depends(get_translocation_service),
 ):
-    """Handle hide translocation comment.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        transloc_id (str): Value for ``transloc_id``.
-        comment_id (str): Value for ``comment_id``.
-        user (ApiUser): Value for ``user``.
-        service (TranslocationService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _get_sample_for_api(sample_id, user)
-    service.repository.transloc_handler.hide_transloc_comment(transloc_id, comment_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="translocation_comment", resource_id=comment_id, action="hide"
-        )
+    """Hide a translocation comment."""
+    return _translocation_comment_mutation(
+        sample_id,
+        transloc_id,
+        comment_id,
+        user,
+        service,
+        action="hide",
+        mutate=lambda: service.repository.transloc_handler.hide_transloc_comment(
+            transloc_id, comment_id
+        ),
     )
 
 
@@ -258,22 +244,15 @@ def unhide_translocation_comment(
     ),
     service: TranslocationService = Depends(get_translocation_service),
 ):
-    """Handle unhide translocation comment.
-
-    Args:
-        sample_id (str): Value for ``sample_id``.
-        transloc_id (str): Value for ``transloc_id``.
-        comment_id (str): Value for ``comment_id``.
-        user (ApiUser): Value for ``user``.
-        service (TranslocationService): Value for ``service``.
-
-    Returns:
-        The function result.
-    """
-    _get_sample_for_api(sample_id, user)
-    service.repository.transloc_handler.unhide_transloc_comment(transloc_id, comment_id)
-    return util.common.convert_to_serializable(
-        service.mutation_payload(
-            sample_id, resource="translocation_comment", resource_id=comment_id, action="unhide"
-        )
+    """Unhide a translocation comment."""
+    return _translocation_comment_mutation(
+        sample_id,
+        transloc_id,
+        comment_id,
+        user,
+        service,
+        action="unhide",
+        mutate=lambda: service.repository.transloc_handler.unhide_transloc_comment(
+            transloc_id, comment_id
+        ),
     )
