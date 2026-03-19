@@ -109,6 +109,10 @@ celerybeat.pid
 
 # Environments
 .*env
+.coyote3_dev_env
+.coyote3_stage_env
+.coyote3_test_env
+.coyote3_env
 .venv
 env/
 venv/
