@@ -8,6 +8,17 @@ Use isolated stacks and databases for each environment:
 - **stage**: `deploy/compose/docker-compose.stage.yml`
 - **dev**: `deploy/compose/docker-compose.dev.yml`
 
+## Environment naming map
+
+Runtime profile normalization:
+
+- `production` -> `production`
+- `development` / `dev` -> `development`
+- `test` / `testing` -> `test`
+- `validation` / `stage` / `staging` -> `validation`
+
+Use `validation` in persisted profile fields for stage/staging environments.
+
 ## Database isolation
 
 Recommended:

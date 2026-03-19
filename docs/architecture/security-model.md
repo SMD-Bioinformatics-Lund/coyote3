@@ -4,7 +4,7 @@
 
 1. Authentication (session/login)
 2. Authorization (role + permission checks)
-3. Internal token gate for system-to-system routes
+3. Internal token gate for selected system-to-system routes
 4. Environment secret hardening (prod/dev strict behavior)
 
 ## User permissions
@@ -13,7 +13,9 @@ Permission checks are enforced in API route/service flow for data-mutating opera
 
 ## Internal routes
 
-`/api/v1/internal/*` routes require internal token and must not be exposed publicly without network/policy controls.
+- Ingest routes under `/api/v1/internal/ingest/*` use authenticated user session + RBAC (admin-level for collection/bootstrap operations).
+- Selected infrastructure/internal metadata routes still use internal token gate.
+- All internal routes should remain network-restricted.
 
 ## Secrets and credentials
 

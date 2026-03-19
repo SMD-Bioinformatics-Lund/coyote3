@@ -65,7 +65,19 @@ Command-line API check:
 curl -fsS "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}/api/v1/health"
 ```
 
-## 4. Seed baseline collections (strict order)
+## 4. Bootstrap first API admin (one-time)
+
+```bash
+python scripts/bootstrap_local_admin.py \
+  --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8008}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
+  --db "${COYOTE3_DB:-coyote3}" \
+  --email "admin@center.local" \
+  --password "CHANGE_ME_ADMIN_PASSWORD" \
+  --assay-group "GROUP_A" \
+  --assay "ASSAY_A"
+```
+
+## 5. Seed baseline collections (strict order)
 
 Required order before first DNA/RNA sample ingest:
 
@@ -97,16 +109,18 @@ Recommended one-shot command:
 ```bash
 scripts/bootstrap_center_collections.sh \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}" \
-  --internal-token "${INTERNAL_API_TOKEN}" \
+  --username "admin@center.local" \
+  --password "CHANGE_ME" \
   --seed-file tests/fixtures/db_dummy/center_template_seed.json \
-  --with-optional
+  --with-optional \
+  --skip-existing
 ```
 
 Before running, adapt `tests/fixtures/db_dummy/center_template_seed.json` to
 your local assay names/groups. The bootstrap flow validates ASPC and ISGL
 consistency before writing collections.
 
-## 5. Validate and ingest demo sample
+## 6. Validate and ingest demo sample
 
 ```bash
 python scripts/validate_ingest_spec.py \
@@ -117,18 +131,19 @@ python scripts/validate_ingest_spec.py \
 ```bash
 scripts/center_smoke.sh \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}" \
-  --internal-token "$INTERNAL_API_TOKEN" \
+  --username "admin@center.local" \
+  --password "CHANGE_ME" \
   --yaml-file tests/data/ingest_demo/generic_case_control.yaml
 ```
 
-## 6. Functional verification
+## 7. Functional verification
 
 - Login via UI using center-provisioned account
 - Find ingested sample in sample listing
 - Open variant/CNV/fusion views
 - Open report pages and verify render succeeds
 
-## 7. Handoff artifacts
+## 8. Handoff artifacts
 
 Record and store:
 
@@ -139,7 +154,7 @@ Record and store:
 - Smoke ingest result and seeded-collection order execution record
 - Known follow-up items
 
-## 8. Rollback and cleanup
+## 9. Rollback and cleanup
 
 Stop services:
 

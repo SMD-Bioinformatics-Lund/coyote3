@@ -17,7 +17,16 @@ Set runtime variables once:
 
 ```bash
 export API_BASE_URL="http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}"
-export INTERNAL_TOKEN="${INTERNAL_API_TOKEN}"
+# Option A: existing bearer token
+export API_BEARER_TOKEN="<YOUR_API_BEARER_TOKEN>"
+
+# Option B: login via CLI helper
+python scripts/api_login.py \
+  --base-url "${API_BASE_URL}" \
+  --mode password \
+  --username "admin@center.local" \
+  --password "CHANGE_ME" \
+  --print-token
 ```
 
 One-shot ordered seeding (required + optional baseline collections):
@@ -25,9 +34,10 @@ One-shot ordered seeding (required + optional baseline collections):
 ```bash
 scripts/bootstrap_center_collections.sh \
   --api-base-url "${API_BASE_URL}" \
-  --internal-token "${INTERNAL_TOKEN}" \
+  --bearer-token "${API_BEARER_TOKEN}" \
   --seed-file tests/fixtures/db_dummy/center_template_seed.json \
-  --with-optional
+  --with-optional \
+  --skip-existing
 ```
 
 Validate assay consistency before ingesting sample bundles:
@@ -54,7 +64,7 @@ Command:
 ```bash
 curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection" \
   -H "Content-Type: application/json" \
-  -H "X-Internal-Api-Token: ${INTERNAL_TOKEN}" \
+  -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'
 {
   "collection": "users",
@@ -84,7 +94,7 @@ Command:
 ```bash
 curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection/bulk" \
   -H "Content-Type: application/json" \
-  -H "X-Internal-Api-Token: ${INTERNAL_TOKEN}" \
+  -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'
 {
   "collection": "refseq_canonical",
@@ -106,7 +116,7 @@ Command (YAML content mode):
 ```bash
 curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/sample-bundle" \
   -H "Content-Type: application/json" \
-  -H "X-Internal-Api-Token: ${INTERNAL_TOKEN}" \
+  -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<JSON
 {
   "yaml_content": $(python - <<'PY'
@@ -130,7 +140,7 @@ Command:
 ```bash
 curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/dependents" \
   -H "Content-Type: application/json" \
-  -H "X-Internal-Api-Token: ${INTERNAL_TOKEN}" \
+  -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'
 {
   "sample_id": "65f0c0ffee00000000000001",
@@ -156,7 +166,8 @@ JSON
 
 ## Authentication and authorization
 
-- Internal endpoints require `INTERNAL_API_TOKEN`.
+- Ingest/collection internal endpoints require authenticated API user session and RBAC.
+- Recommended RBAC: admin-level role for collection bootstrap and dependent ingest.
 - `update_existing=true` on sample-bundle requires authenticated user with `edit_sample` permission.
 
 ## First-time center bootstrap order
@@ -182,6 +193,21 @@ Use this order for a clean deployment at a new center.
 5. Ingest sample data.
    - `POST /api/v1/internal/ingest/sample-bundle` for fresh sample + analysis data
    - `POST /api/v1/internal/ingest/dependents` for dependent-data refresh on existing sample
+
+## Canonical transcript baseline (`refseq_canonical`)
+
+Minimum expected document shape:
+
+```json
+{"gene": "EGFR", "canonical": "NM_005228"}
+```
+
+Guidance:
+
+- `gene`: HGNC symbol used in variant `CSQ.SYMBOL`.
+- `canonical`: canonical transcript accession used by your center's reporting policy.
+- Keep this collection versioned externally (source/version/date) and update via bulk endpoint.
+- Re-validate assay and ingest flows after canonical map changes.
 
 ## Collection bootstrapping via API
 
@@ -296,7 +322,7 @@ Core collections typically seeded first:
 import requests
 
 base = "http://localhost:6816"
-headers = {"X-Internal-Api-Token": "YOUR_TOKEN"}
+headers = {"Authorization": "Bearer YOUR_API_BEARER_TOKEN"}
 
 payload = {
     "spec": {

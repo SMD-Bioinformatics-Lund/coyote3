@@ -79,6 +79,7 @@ docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.st
 6. If ingest contract/schema changed, run collection update/seed calls via:
    - `POST /api/v1/internal/ingest/collection`
    - `POST /api/v1/internal/ingest/collection/bulk`
+   - Use authenticated admin user (session/bearer token) and `ignore_duplicates=true` for safe reruns.
 7. For sample reprocessing, use `update_existing=true` on sample-bundle only with an authenticated user that has `edit_sample`.
 
 ## Rollback approach

@@ -57,7 +57,21 @@ python scripts/mongo_bootstrap_users.py \
   --app-password "${MONGO_APP_PASSWORD}"
 ```
 
-## 4. Seed baseline collections in order
+## 4. Bootstrap first API admin (one-time)
+
+Create the initial local API admin used for CLI/Python/API-auth flows:
+
+```bash
+python scripts/bootstrap_local_admin.py \
+  --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8008}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
+  --db "${COYOTE3_DB:-coyote3}" \
+  --email "admin@center.local" \
+  --password "CHANGE_ME_ADMIN_PASSWORD" \
+  --assay-group "GROUP_A" \
+  --assay "ASSAY_A"
+```
+
+## 5. Seed baseline collections in order
 
 Seed using `POST /api/v1/internal/ingest/collection` or `/bulk` in this order:
 
@@ -81,9 +95,11 @@ Or run one-shot bootstrap command:
 ```bash
 scripts/bootstrap_center_collections.sh \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}" \
-  --internal-token "${INTERNAL_API_TOKEN}" \
+  --username "admin@center.local" \
+  --password "CHANGE_ME" \
   --seed-file tests/fixtures/db_dummy/center_template_seed.json \
-  --with-optional
+  --with-optional \
+  --skip-existing
 ```
 
 `center_template_seed.json` is neutral by default (`ASSAY_A`, `GROUP_A`) and
@@ -91,7 +107,7 @@ should be edited to your center's assay IDs and groups before first run.
 It includes ASPC (`asp_configs`) and ISGL (`insilico_genelists`) starter
 documents that should be adapted to your assay model.
 
-## 5. Validate ingestion inputs
+## 6. Validate ingestion inputs
 
 ```bash
 python scripts/validate_ingest_spec.py \
@@ -99,22 +115,23 @@ python scripts/validate_ingest_spec.py \
   --check-files --json
 ```
 
-## 6. Run end-to-end smoke ingest
+## 7. Run end-to-end smoke ingest
 
 ```bash
 scripts/center_smoke.sh \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8006}" \
-  --internal-token "$INTERNAL_API_TOKEN" \
+  --username "admin@center.local" \
+  --password "CHANGE_ME" \
   --yaml-file tests/data/ingest_demo/generic_case_control.yaml
 ```
 
-## 7. Verify UI/API
+## 8. Verify UI/API
 
 - API health: `GET /api/v1/health`
 - Open UI and login using provisioned user
 - Verify sample appears and related findings pages load
 
-## 8. Next hardening steps
+## 9. Next hardening steps
 
 Use:
 
