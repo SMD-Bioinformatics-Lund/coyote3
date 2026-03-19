@@ -49,6 +49,7 @@ class HomeRepository(Protocol):
             list[dict]: The function result.
         """
         ...
+
     def get_isgl_by_ids(self, ids: list[str]) -> dict:
         """Return isgl by ids.
 
@@ -59,6 +60,7 @@ class HomeRepository(Protocol):
             dict: The function result.
         """
         ...
+
     def get_asp(self, assay: str) -> dict:
         """Return asp.
 
@@ -69,6 +71,7 @@ class HomeRepository(Protocol):
             dict: The function result.
         """
         ...
+
     def get_asp_genes(self, assay: str) -> tuple[list, list]:
         """Return asp genes.
 
@@ -79,6 +82,7 @@ class HomeRepository(Protocol):
             tuple[list, list]: The function result.
         """
         ...
+
     def reset_sample_settings(self, sample_id: str, filters: dict) -> None:
         """Handle reset sample settings.
 
@@ -90,6 +94,7 @@ class HomeRepository(Protocol):
             None.
         """
         ...
+
     def get_sample(self, sample_id: str) -> dict | None:
         """Return sample.
 
@@ -100,6 +105,7 @@ class HomeRepository(Protocol):
             dict | None: The function result.
         """
         ...
+
     def get_variant_stats(self, sample_id: str, genes: list[str] | None = None) -> dict:
         """Return variant stats.
 
@@ -111,6 +117,7 @@ class HomeRepository(Protocol):
             dict: The function result.
         """
         ...
+
     def update_sample_filters(self, sample_id: str, filters: dict) -> None:
         """Update sample filters.
 
@@ -122,6 +129,7 @@ class HomeRepository(Protocol):
             None.
         """
         ...
+
     def get_report(self, sample_id: str, report_id: str) -> dict:
         """Return report.
 

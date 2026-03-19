@@ -8,8 +8,8 @@ from api.extensions import store
 
 
 class MongoPublicCatalogRepository:
-    """Provide mongo public catalog persistence operations.
-    """
+    """Provide mongo public catalog persistence operations."""
+
     def get_aspc_with_id(self, aspc_id: str) -> dict[str, Any] | None:
         """Return aspc with id.
 

@@ -142,9 +142,13 @@ class VariantsHandler(BaseHandler):
             {"_id": {"$in": ["variant_rollup_v1", "variant_unique_quality_v1"]}}
         )
 
-    def _read_persisted_metric(self, metric_key: str, max_age_seconds: int | None = None) -> dict | None:
+    def _read_persisted_metric(
+        self, metric_key: str, max_age_seconds: int | None = None
+    ) -> dict | None:
         """Read a persisted dashboard metric payload if present and fresh enough."""
-        doc = self._dashboard_metrics_collection().find_one({"_id": metric_key}, {"payload": 1, "updated_at": 1})
+        doc = self._dashboard_metrics_collection().find_one(
+            {"_id": metric_key}, {"payload": 1, "updated_at": 1}
+        )
         if not isinstance(doc, dict):
             return None
         payload = doc.get("payload")
@@ -623,12 +627,17 @@ class VariantsHandler(BaseHandler):
                 }
         persisted_metric = self._read_persisted_metric(
             "variant_unique_quality_v1",
-            max_age_seconds=int(app_obj.config.get("DASHBOARD_UNIQUE_VARIANT_METRIC_MAX_AGE", 86400)),
+            max_age_seconds=int(
+                app_obj.config.get("DASHBOARD_UNIQUE_VARIANT_METRIC_MAX_AGE", 86400)
+            ),
         )
         if isinstance(persisted_metric, dict):
             current_estimated_total = int(self.get_collection().estimated_document_count() or 0)
             metric_estimated_total = int(
-                persisted_metric.get("source_total_variants", persisted_metric.get("unique_total_variants", 0)) or 0
+                persisted_metric.get(
+                    "source_total_variants", persisted_metric.get("unique_total_variants", 0)
+                )
+                or 0
             )
             if current_estimated_total != metric_estimated_total:
                 persisted_metric = None
@@ -723,7 +732,9 @@ class VariantsHandler(BaseHandler):
 
         persisted_metric = self._read_persisted_metric(
             "variant_rollup_v1",
-            max_age_seconds=int(app_obj.config.get("DASHBOARD_VARIANT_ROLLUP_METRIC_MAX_AGE", 86400)),
+            max_age_seconds=int(
+                app_obj.config.get("DASHBOARD_VARIANT_ROLLUP_METRIC_MAX_AGE", 86400)
+            ),
         )
         if isinstance(persisted_metric, dict):
             current_estimated_total = int(self.get_collection().estimated_document_count() or 0)

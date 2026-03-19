@@ -389,8 +389,16 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
         emit_audit_event(
             source="web",
             action="request",
-            status="success" if 200 <= int(response.status_code) < 400 else ("error" if int(response.status_code) >= 500 else "failed"),
-            severity="error" if int(response.status_code) >= 500 else ("warning" if int(response.status_code) >= 400 else "info"),
+            status=(
+                "success"
+                if 200 <= int(response.status_code) < 400
+                else ("error" if int(response.status_code) >= 500 else "failed")
+            ),
+            severity=(
+                "error"
+                if int(response.status_code) >= 500
+                else ("warning" if int(response.status_code) >= 400 else "info")
+            ),
             status_code=int(response.status_code),
             duration_ms=round(float(duration_ms), 2),
             method=request.method,

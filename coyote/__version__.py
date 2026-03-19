@@ -1,4 +1,3 @@
-
 """
 Version Information for Coyote3
 ===============================

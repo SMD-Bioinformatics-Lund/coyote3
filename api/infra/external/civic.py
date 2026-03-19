@@ -1,4 +1,3 @@
-
 """
 CivicHandler module for Coyote3
 ===============================

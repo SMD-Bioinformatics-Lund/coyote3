@@ -8,8 +8,8 @@ from pydantic import BaseModel
 
 
 class RnaFusionListPayload(BaseModel):
-    """Represent the rna fusion list payload.
-    """
+    """Represent the rna fusion list payload."""
+
     sample: dict[str, Any]
     meta: dict[str, Any]
     assay_group: str
@@ -30,8 +30,8 @@ class RnaFusionListPayload(BaseModel):
 
 
 class RnaFusionContextPayload(BaseModel):
-    """Represent the rna fusion context payload.
-    """
+    """Represent the rna fusion context payload."""
+
     sample: dict[str, Any]
     sample_summary: dict[str, Any]
     fusion: dict[str, Any]

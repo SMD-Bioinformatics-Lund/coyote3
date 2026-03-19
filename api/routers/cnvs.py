@@ -36,7 +36,9 @@ def list_dna_cnvs(
         The function result.
     """
     sample = _get_sample_for_api(sample_id, user)
-    return util.common.convert_to_serializable(service.list_cnvs_payload(request=request, sample=sample, util_module=util))
+    return util.common.convert_to_serializable(
+        service.list_cnvs_payload(request=request, sample=sample, util_module=util)
+    )
 
 
 @router.get("/api/v1/samples/{sample_id}/cnvs/{cnv_id}", response_model=DnaCnvContextPayload)
@@ -58,10 +60,16 @@ def show_dna_cnv(
         The function result.
     """
     sample = _get_sample_for_api(sample_id, user)
-    return util.common.convert_to_serializable(service.show_cnv_payload(sample=sample, cnv_id=cnv_id, util_module=util))
+    return util.common.convert_to_serializable(
+        service.show_cnv_payload(sample=sample, cnv_id=cnv_id, util_module=util)
+    )
 
 
-@router.delete("/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/interesting", response_model=SampleMutationPayload, summary="Remove interesting flag from CNV")
+@router.delete(
+    "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/interesting",
+    response_model=SampleMutationPayload,
+    summary="Remove interesting flag from CNV",
+)
 def unmark_interesting_cnv(
     sample_id: str,
     cnv_id: str,
@@ -82,11 +90,17 @@ def unmark_interesting_cnv(
     _get_sample_for_api(sample_id, user)
     service.repository.cnv_handler.unmark_interesting_cnv(cnv_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="unmark_interesting")
+        service.mutation_payload(
+            sample_id, resource="cnv", resource_id=cnv_id, action="unmark_interesting"
+        )
     )
 
 
-@router.patch("/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/interesting", response_model=SampleMutationPayload, summary="Mark CNV interesting")
+@router.patch(
+    "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/interesting",
+    response_model=SampleMutationPayload,
+    summary="Mark CNV interesting",
+)
 def mark_interesting_cnv(
     sample_id: str,
     cnv_id: str,
@@ -107,11 +121,17 @@ def mark_interesting_cnv(
     _get_sample_for_api(sample_id, user)
     service.repository.cnv_handler.mark_interesting_cnv(cnv_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="mark_interesting")
+        service.mutation_payload(
+            sample_id, resource="cnv", resource_id=cnv_id, action="mark_interesting"
+        )
     )
 
 
-@router.patch("/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/false-positive", response_model=SampleMutationPayload, summary="Mark CNV false-positive")
+@router.patch(
+    "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/false-positive",
+    response_model=SampleMutationPayload,
+    summary="Mark CNV false-positive",
+)
 def mark_false_positive_cnv(
     sample_id: str,
     cnv_id: str,
@@ -132,11 +152,17 @@ def mark_false_positive_cnv(
     _get_sample_for_api(sample_id, user)
     service.repository.cnv_handler.mark_false_positive_cnv(cnv_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="mark_false_positive")
+        service.mutation_payload(
+            sample_id, resource="cnv", resource_id=cnv_id, action="mark_false_positive"
+        )
     )
 
 
-@router.delete("/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/false-positive", response_model=SampleMutationPayload, summary="Remove false-positive flag from CNV")
+@router.delete(
+    "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/false-positive",
+    response_model=SampleMutationPayload,
+    summary="Remove false-positive flag from CNV",
+)
 def unmark_false_positive_cnv(
     sample_id: str,
     cnv_id: str,
@@ -157,11 +183,17 @@ def unmark_false_positive_cnv(
     _get_sample_for_api(sample_id, user)
     service.repository.cnv_handler.unmark_false_positive_cnv(cnv_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="unmark_false_positive")
+        service.mutation_payload(
+            sample_id, resource="cnv", resource_id=cnv_id, action="unmark_false_positive"
+        )
     )
 
 
-@router.patch("/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/noteworthy", response_model=SampleMutationPayload, summary="Mark CNV noteworthy")
+@router.patch(
+    "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/noteworthy",
+    response_model=SampleMutationPayload,
+    summary="Mark CNV noteworthy",
+)
 def mark_noteworthy_cnv(
     sample_id: str,
     cnv_id: str,
@@ -182,11 +214,17 @@ def mark_noteworthy_cnv(
     _get_sample_for_api(sample_id, user)
     service.repository.cnv_handler.noteworthy_cnv(cnv_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="mark_noteworthy")
+        service.mutation_payload(
+            sample_id, resource="cnv", resource_id=cnv_id, action="mark_noteworthy"
+        )
     )
 
 
-@router.delete("/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/noteworthy", response_model=SampleMutationPayload, summary="Remove noteworthy flag from CNV")
+@router.delete(
+    "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/flags/noteworthy",
+    response_model=SampleMutationPayload,
+    summary="Remove noteworthy flag from CNV",
+)
 def unmark_noteworthy_cnv(
     sample_id: str,
     cnv_id: str,
@@ -207,16 +245,24 @@ def unmark_noteworthy_cnv(
     _get_sample_for_api(sample_id, user)
     service.repository.cnv_handler.unnoteworthy_cnv(cnv_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="cnv", resource_id=cnv_id, action="unmark_noteworthy")
+        service.mutation_payload(
+            sample_id, resource="cnv", resource_id=cnv_id, action="unmark_noteworthy"
+        )
     )
 
 
-@router.patch("/api/v1/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/hidden", response_model=SampleMutationPayload, summary="Hide CNV comment")
+@router.patch(
+    "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/hidden",
+    response_model=SampleMutationPayload,
+    summary="Hide CNV comment",
+)
 def hide_cnv_comment(
     sample_id: str,
     cnv_id: str,
     comment_id: str,
-    user: ApiUser = Depends(require_access(permission="hide_variant_comment", min_role="manager", min_level=99)),
+    user: ApiUser = Depends(
+        require_access(permission="hide_variant_comment", min_role="manager", min_level=99)
+    ),
     service: CnvService = Depends(get_cnv_service),
 ):
     """Handle hide cnv comment.
@@ -234,16 +280,24 @@ def hide_cnv_comment(
     _get_sample_for_api(sample_id, user)
     service.repository.cnv_handler.hide_cnvs_comment(cnv_id, comment_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="cnv_comment", resource_id=comment_id, action="hide")
+        service.mutation_payload(
+            sample_id, resource="cnv_comment", resource_id=comment_id, action="hide"
+        )
     )
 
 
-@router.delete("/api/v1/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/hidden", response_model=SampleMutationPayload, summary="Unhide CNV comment")
+@router.delete(
+    "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/hidden",
+    response_model=SampleMutationPayload,
+    summary="Unhide CNV comment",
+)
 def unhide_cnv_comment(
     sample_id: str,
     cnv_id: str,
     comment_id: str,
-    user: ApiUser = Depends(require_access(permission="unhide_variant_comment", min_role="manager", min_level=99)),
+    user: ApiUser = Depends(
+        require_access(permission="unhide_variant_comment", min_role="manager", min_level=99)
+    ),
     service: CnvService = Depends(get_cnv_service),
 ):
     """Handle unhide cnv comment.
@@ -261,5 +315,7 @@ def unhide_cnv_comment(
     _get_sample_for_api(sample_id, user)
     service.repository.cnv_handler.unhide_cnvs_comment(cnv_id, comment_id)
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="cnv_comment", resource_id=comment_id, action="unhide")
+        service.mutation_payload(
+            sample_id, resource="cnv_comment", resource_id=comment_id, action="unhide"
+        )
     )

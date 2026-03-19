@@ -8,8 +8,8 @@ from api.extensions import store
 
 
 class MongoRNAWorkflowRepository:
-    """Provide mongo rna workflow persistence operations.
-    """
+    """Provide mongo rna workflow persistence operations."""
+
     def update_sample_filters(self, sample_id: str, filters: dict[str, Any]) -> None:
         """Update sample filters.
 
@@ -148,4 +148,3 @@ class MongoRNAWorkflowRepository:
             tuple[Any, Any]: The function result.
         """
         return store.fusion_handler.get_fusion_annotations(fusion)
-

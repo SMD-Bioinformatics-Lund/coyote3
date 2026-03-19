@@ -1,4 +1,3 @@
-
 """Strict workflow input contracts shared by DNA/RNA services."""
 
 from typing import Protocol

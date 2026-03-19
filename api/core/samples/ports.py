@@ -19,6 +19,7 @@ class SamplesRepository(Protocol):
             None.
         """
         ...
+
     def hide_sample_comment(self, sample_id: str, comment_id: str) -> None:
         """Hide sample comment.
 
@@ -30,6 +31,7 @@ class SamplesRepository(Protocol):
             None.
         """
         ...
+
     def unhide_sample_comment(self, sample_id: str, comment_id: str) -> None:
         """Unhide sample comment.
 
@@ -41,6 +43,7 @@ class SamplesRepository(Protocol):
             None.
         """
         ...
+
     def update_sample_filters(self, sample_id: str, filters: dict) -> None:
         """Update sample filters.
 
@@ -52,6 +55,7 @@ class SamplesRepository(Protocol):
             None.
         """
         ...
+
     def reset_sample_settings(self, sample_id: str, filters: dict) -> None:
         """Handle reset sample settings.
 
@@ -63,6 +67,7 @@ class SamplesRepository(Protocol):
             None.
         """
         ...
+
     def blacklist_coord(self, gene: str, coord: str, region: str, assay_group: str) -> None:
         """Handle blacklist coord.
 
@@ -76,6 +81,7 @@ class SamplesRepository(Protocol):
             None.
         """
         ...
+
     def blacklist_gene(self, gene: str, assay_group: str) -> None:
         """Handle blacklist gene.
 
@@ -87,6 +93,7 @@ class SamplesRepository(Protocol):
             None.
         """
         ...
+
     def remove_blacklist(self, obj_id: str) -> None:
         """Remove blacklist.
 

@@ -32,7 +32,9 @@ def get_web_api_client() -> CoyoteApiClient:
                 timeout=timeout_seconds,
                 headers={"Accept": "application/json"},
             )
-            client = CoyoteApiClient(base_url=base_url, timeout_seconds=timeout_seconds, client=transport)
+            client = CoyoteApiClient(
+                base_url=base_url, timeout_seconds=timeout_seconds, client=transport
+            )
             g._coyote_api_client = client
         return client
     return CoyoteApiClient(base_url=base_url, timeout_seconds=timeout_seconds)
@@ -108,7 +110,12 @@ def build_internal_headers() -> dict[str, str]:
     Returns:
         Header values containing the internal API token when configured.
     """
-    testing = str(current_app.config.get("TESTING", "")).strip().lower() in {"1", "true", "yes", "on"}
+    testing = str(current_app.config.get("TESTING", "")).strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
     token = current_app.config.get("INTERNAL_API_TOKEN")
     if not token and testing:
         token = current_app.config.get("SECRET_KEY")

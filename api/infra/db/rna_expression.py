@@ -1,5 +1,3 @@
-
-
 """
 RNAExpressionHandler module for Coyote3
 ====================================

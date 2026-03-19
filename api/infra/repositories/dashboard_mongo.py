@@ -106,7 +106,9 @@ class MongoDashboardRepository:
 
     def resolve_active_asp_ids_for_scope(self, assays: list[str], groups: list[str]) -> list[str]:
         """Resolve active ASP ids for assay/group scope values."""
-        return list(store.asp_handler.resolve_active_asp_ids_for_scope(assays=assays, groups=groups) or [])
+        return list(
+            store.asp_handler.resolve_active_asp_ids_for_scope(assays=assays, groups=groups) or []
+        )
 
     def get_dashboard_sample_rollup(self, assays: list[str] | None) -> dict:
         """Return dashboard sample rollup.

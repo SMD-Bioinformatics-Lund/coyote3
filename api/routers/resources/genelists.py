@@ -19,10 +19,17 @@ from api.services.admin_resource_service import AdminGenelistService
 router = APIRouter(tags=["resource-genelists"])
 
 
-@router.post("/api/v1/resources/genelists", response_model=AdminMutationPayload, status_code=201, summary="Create genelist")
+@router.post(
+    "/api/v1/resources/genelists",
+    response_model=AdminMutationPayload,
+    status_code=201,
+    summary="Create genelist",
+)
 def create_genelist_mutation(
     payload: dict = Body(default_factory=dict),
-    user: ApiUser = Depends(require_access(permission="create_isgl", min_role="manager", min_level=99)),
+    user: ApiUser = Depends(
+        require_access(permission="create_isgl", min_role="manager", min_level=99)
+    ),
     service: AdminGenelistService = Depends(get_admin_genelist_service),
 ):
     """Create genelist mutation.
@@ -41,6 +48,9 @@ def create_genelist_mutation(
 
 @router.get("/api/v1/resources/genelists", response_model=AdminGenelistsListPayload)
 def list_genelists_read(
+    q: str = Query(default=""),
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=30, ge=1, le=200),
     user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
     service: AdminGenelistService = Depends(get_admin_genelist_service),
 ):
@@ -54,13 +64,19 @@ def list_genelists_read(
         The function result.
     """
     _ = user
-    return util.common.convert_to_serializable(service.list_payload())
+    return util.common.convert_to_serializable(
+        service.list_payload(q=q, page=page, per_page=per_page)
+    )
 
 
-@router.get("/api/v1/resources/genelists/create_context", response_model=AdminGenelistCreateContextPayload)
+@router.get(
+    "/api/v1/resources/genelists/create_context", response_model=AdminGenelistCreateContextPayload
+)
 def create_genelist_context_read(
     schema_id: str | None = Query(default=None),
-    user: ApiUser = Depends(require_access(permission="create_isgl", min_role="manager", min_level=99)),
+    user: ApiUser = Depends(
+        require_access(permission="create_isgl", min_role="manager", min_level=99)
+    ),
     service: AdminGenelistService = Depends(get_admin_genelist_service),
 ):
     """Create genelist context read.
@@ -78,7 +94,9 @@ def create_genelist_context_read(
     )
 
 
-@router.get("/api/v1/resources/genelists/{genelist_id}/context", response_model=AdminGenelistContextPayload)
+@router.get(
+    "/api/v1/resources/genelists/{genelist_id}/context", response_model=AdminGenelistContextPayload
+)
 def genelist_context_read(
     genelist_id: str,
     user: ApiUser = Depends(require_access(permission="view_isgl", min_role="user", min_level=9)),
@@ -98,7 +116,10 @@ def genelist_context_read(
     return util.common.convert_to_serializable(service.context_payload(genelist_id=genelist_id))
 
 
-@router.get("/api/v1/resources/genelists/{genelist_id}/view_context", response_model=AdminGenelistViewContextPayload)
+@router.get(
+    "/api/v1/resources/genelists/{genelist_id}/view_context",
+    response_model=AdminGenelistViewContextPayload,
+)
 def genelist_view_context_read(
     genelist_id: str,
     assay: str | None = Query(default=None),
@@ -117,14 +138,22 @@ def genelist_view_context_read(
         The function result.
     """
     _ = user
-    return util.common.convert_to_serializable(service.view_context_payload(genelist_id=genelist_id, assay=assay))
+    return util.common.convert_to_serializable(
+        service.view_context_payload(genelist_id=genelist_id, assay=assay)
+    )
 
 
-@router.put("/api/v1/resources/genelists/{genelist_id}", response_model=AdminMutationPayload, summary="Update genelist")
+@router.put(
+    "/api/v1/resources/genelists/{genelist_id}",
+    response_model=AdminMutationPayload,
+    summary="Update genelist",
+)
 def update_genelist_mutation(
     genelist_id: str,
     payload: dict = Body(default_factory=dict),
-    user: ApiUser = Depends(require_access(permission="edit_isgl", min_role="manager", min_level=99)),
+    user: ApiUser = Depends(
+        require_access(permission="edit_isgl", min_role="manager", min_level=99)
+    ),
     service: AdminGenelistService = Depends(get_admin_genelist_service),
 ):
     """Update genelist mutation.
@@ -139,13 +168,21 @@ def update_genelist_mutation(
         The function result.
     """
     _ = user
-    return util.common.convert_to_serializable(service.update(genelist_id=genelist_id, payload=payload))
+    return util.common.convert_to_serializable(
+        service.update(genelist_id=genelist_id, payload=payload)
+    )
 
 
-@router.patch("/api/v1/resources/genelists/{genelist_id}/status", response_model=AdminMutationPayload, summary="Toggle genelist status")
+@router.patch(
+    "/api/v1/resources/genelists/{genelist_id}/status",
+    response_model=AdminMutationPayload,
+    summary="Toggle genelist status",
+)
 def toggle_genelist_mutation(
     genelist_id: str,
-    user: ApiUser = Depends(require_access(permission="edit_isgl", min_role="manager", min_level=99)),
+    user: ApiUser = Depends(
+        require_access(permission="edit_isgl", min_role="manager", min_level=99)
+    ),
     service: AdminGenelistService = Depends(get_admin_genelist_service),
 ):
     """Toggle genelist mutation.
@@ -162,10 +199,16 @@ def toggle_genelist_mutation(
     return util.common.convert_to_serializable(service.toggle(genelist_id=genelist_id))
 
 
-@router.delete("/api/v1/resources/genelists/{genelist_id}", response_model=AdminMutationPayload, summary="Delete genelist")
+@router.delete(
+    "/api/v1/resources/genelists/{genelist_id}",
+    response_model=AdminMutationPayload,
+    summary="Delete genelist",
+)
 def delete_genelist_mutation(
     genelist_id: str,
-    user: ApiUser = Depends(require_access(permission="delete_isgl", min_role="admin", min_level=99999)),
+    user: ApiUser = Depends(
+        require_access(permission="delete_isgl", min_role="admin", min_level=99999)
+    ),
     service: AdminGenelistService = Depends(get_admin_genelist_service),
 ):
     """Delete genelist mutation.

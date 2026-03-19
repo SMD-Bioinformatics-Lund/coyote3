@@ -1,4 +1,3 @@
-
 """Public blueprint miscellaneous routes."""
 
 from flask import current_app as app

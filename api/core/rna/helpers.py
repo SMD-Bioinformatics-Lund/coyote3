@@ -1,4 +1,3 @@
-
 """Shared RNA helper functions for fusion filter/call normalization."""
 
 

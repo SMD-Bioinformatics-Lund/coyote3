@@ -26,9 +26,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Normalize variants.INFO.selected_CSQ.Consequence to list[str]."
     )
-    parser.add_argument("--mongo-uri", required=True, help="Mongo URI, e.g. mongodb://localhost:27017")
+    parser.add_argument(
+        "--mongo-uri", required=True, help="Mongo URI, e.g. mongodb://localhost:27017"
+    )
     parser.add_argument("--db", required=True, help="Database name")
-    parser.add_argument("--collection", default="variants", help="Collection name (default: variants)")
+    parser.add_argument(
+        "--collection", default="variants", help="Collection name (default: variants)"
+    )
     parser.add_argument(
         "--apply",
         action="store_true",
@@ -52,7 +56,7 @@ def main() -> int:
     try:
         for doc in cursor:
             scanned += 1
-            selected_csq = ((doc.get("INFO") or {}).get("selected_CSQ") or {})
+            selected_csq = (doc.get("INFO") or {}).get("selected_CSQ") or {}
             original = selected_csq.get("Consequence")
             normalized = _normalize_consequence(original)
             if original == normalized:

@@ -84,13 +84,18 @@ def manage_users() -> str | Response:
     Returns:
         The rendered management page response.
     """
+    q = (request.args.get("q") or "").strip()
+    page = max(1, request.args.get("page", default=1, type=int) or 1)
+    per_page = max(1, min(request.args.get("per_page", default=30, type=int) or 30, 200))
     try:
         payload = get_web_api_client().get_json(
             api_endpoints.admin("users"),
             headers=forward_headers(),
+            params={"q": q, "page": page, "per_page": per_page},
         )
         users = payload.get("users", [])
         roles = payload.get("roles", {})
+        pagination = payload.get("pagination", {})
     except AttributeError as exc:
         raise_page_load_error(
             ApiRequestError(f"Invalid user payload: {exc}", status_code=502),
@@ -105,7 +110,16 @@ def manage_users() -> str | Response:
             log_message="Failed to fetch users via API",
             summary="Unable to load the user list.",
         )
-    return render_template("users/manage_users.html", users=users, roles=roles)
+    return render_template(
+        "users/manage_users.html",
+        users=users,
+        roles=roles,
+        q=q,
+        page=pagination.get("page", page),
+        per_page=pagination.get("per_page", per_page),
+        total=pagination.get("total", 0),
+        has_next=pagination.get("has_next", False),
+    )
 
 
 @admin_bp.route("/users/validate_username", methods=["POST"])

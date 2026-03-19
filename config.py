@@ -331,9 +331,7 @@ class DefaultConfig:
         db_config: dict[str, Any] = toml.load(self._PATH_DB_COLLECTIONS_CONFIG)
 
         if not all(db in db_config for db in [self.COYOTE3_DB, self.BAM_DB]):
-            missing_dbs = [
-                db for db in [self.COYOTE3_DB, self.BAM_DB] if db not in db_config
-            ]
+            missing_dbs = [db for db in [self.COYOTE3_DB, self.BAM_DB] if db not in db_config]
             raise ValueError(
                 f"Database(s) {', '.join(missing_dbs)} not found in the database configuration. Check the config file. ({self._PATH_DB_COLLECTIONS_CONFIG})"
             )

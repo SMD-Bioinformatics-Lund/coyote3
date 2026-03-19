@@ -1,4 +1,3 @@
-
 """Shared DNA filter helpers used by workflow/view layers."""
 
 from typing import Any
@@ -6,7 +5,9 @@ from typing import Any
 from api.runtime import app
 
 
-def _resolve_conseq_terms_mapper(conseq_terms_mapper: dict[str, Any] | None = None) -> dict[str, Any]:
+def _resolve_conseq_terms_mapper(
+    conseq_terms_mapper: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Handle  resolve conseq terms mapper.
 
     Args:
@@ -38,7 +39,9 @@ def _resolve_conseq_terms_mapper(conseq_terms_mapper: dict[str, Any] | None = No
     return {}
 
 
-def get_filter_conseq_terms(checked: list, conseq_terms_mapper: dict[str, Any] | None = None) -> list:
+def get_filter_conseq_terms(
+    checked: list, conseq_terms_mapper: dict[str, Any] | None = None
+) -> list:
     """
     Return mapped consequence terms from checked form fields.
     """

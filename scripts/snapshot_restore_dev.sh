@@ -1,7 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PYTHON_BIN="${PYTHON_BIN:-/home/ram/.virtualenvs/coyote3/bin/python}"
+if [[ -z "${PYTHON_BIN:-}" ]]; then
+  if [[ -n "${VIRTUAL_ENV:-}" && -x "${VIRTUAL_ENV}/bin/python" ]]; then
+    PYTHON_BIN="${VIRTUAL_ENV}/bin/python"
+  elif command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="$(command -v python3)"
+  elif command -v python >/dev/null 2>&1; then
+    PYTHON_BIN="$(command -v python)"
+  else
+    echo "ERROR: Could not find a Python interpreter. Set PYTHON_BIN explicitly." >&2
+    exit 1
+  fi
+fi
 SNAPSHOT_SCRIPT="${SNAPSHOT_SCRIPT:-scripts/create_mongo_snapshot.py}"
 
 SOURCE_URI="mongodb://localhost:27017"

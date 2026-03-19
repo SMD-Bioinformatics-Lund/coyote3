@@ -1,4 +1,3 @@
-
 """DNA report route handlers."""
 
 from flask import Response, redirect, url_for

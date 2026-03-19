@@ -8,8 +8,8 @@ from api.core.coverage.ports import CoverageRepository
 
 
 class CoverageProcessingService:
-    """Provide coverage processing workflows.
-    """
+    """Provide coverage processing workflows."""
+
     _repository: CoverageRepository | None = None
 
     @classmethod
@@ -232,7 +232,10 @@ class CoverageProcessingService:
                     gene_cov["probes"][probe]["exon_nr"] = exons
                     if len(exons) > 0:
                         for exon in exons:
-                            if float(exon["cov"]) < cov_cutoff or float(gene_cov["probes"][probe]["cov"]) < cov_cutoff:
+                            if (
+                                float(exon["cov"]) < cov_cutoff
+                                or float(gene_cov["probes"][probe]["cov"]) < cov_cutoff
+                            ):
                                 cov_table[gene][exon["nbr"]] = exon
                     elif float(gene_cov["probes"][probe]["cov"]) < cov_cutoff:
                         cov_table[gene][probe] = gene_cov["probes"][probe]

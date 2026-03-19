@@ -12,7 +12,6 @@ from api.contracts.dna import (
 )
 from api.contracts.samples import SampleMutationPayload
 from api.core.dna.dna_filters import get_filter_conseq_terms
-from api.core.dna.dna_reporting import hotspot_variant
 from api.core.dna.dna_variants import get_variant_nomenclature
 from api.core.dna.query_builders import build_query
 from api.core.interpretation.annotation_enrichment import add_alt_class, add_global_annotations
@@ -128,7 +127,9 @@ def show_dna_variant(
 def export_snv_csv_context(
     request: Request,
     sample_id: str,
-    user: ApiUser = Depends(require_access(permission="download_snvs", min_role="user", min_level=9)),
+    user: ApiUser = Depends(
+        require_access(permission="download_snvs", min_role="user", min_level=9)
+    ),
     service: DnaService = Depends(get_dna_service),
 ):
     """Build SNV export payload (filename + csv content)."""
@@ -160,7 +161,9 @@ def export_snv_csv_context(
 def export_cnv_csv_context(
     request: Request,
     sample_id: str,
-    user: ApiUser = Depends(require_access(permission="download_cnvs", min_role="user", min_level=9)),
+    user: ApiUser = Depends(
+        require_access(permission="download_cnvs", min_role="user", min_level=9)
+    ),
     service: DnaService = Depends(get_dna_service),
 ):
     """Build CNV export payload (filename + csv content)."""

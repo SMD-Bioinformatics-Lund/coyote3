@@ -1,4 +1,3 @@
-
 """Docs blueprint handbook routes."""
 
 from __future__ import annotations

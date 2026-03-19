@@ -67,7 +67,9 @@ class ReportService:
         }
 
     @staticmethod
-    def save_payload(*, sample: dict, report_id: str, report_oid: str, report_file: str, snapshot_rows: list) -> ReportSavePayload:
+    def save_payload(
+        *, sample: dict, report_id: str, report_oid: str, report_file: str, snapshot_rows: list
+    ) -> ReportSavePayload:
         """Handle save payload.
 
         Args:

@@ -8,8 +8,8 @@ from api.extensions import store
 
 
 class MongoDNAReportingRepository:
-    """Provide mongo dna reporting persistence operations.
-    """
+    """Provide mongo dna reporting persistence operations."""
+
     def get_asp(self, asp_name: str) -> dict[str, Any] | None:
         """Return asp.
 
@@ -55,7 +55,9 @@ class MongoDNAReportingRepository:
         """
         return list(store.variant_handler.get_case_variants(query) or [])
 
-    def add_blacklist_data(self, variants: list[dict[str, Any]], assay: str) -> list[dict[str, Any]]:
+    def add_blacklist_data(
+        self, variants: list[dict[str, Any]], assay: str
+    ) -> list[dict[str, Any]]:
         """Handle add blacklist data.
 
         Args:
@@ -109,7 +111,9 @@ class MongoDNAReportingRepository:
         Returns:
             list[dict[str, Any]]: The function result.
         """
-        return list(store.transloc_handler.get_interesting_sample_translocations(sample_id=sample_id) or [])
+        return list(
+            store.transloc_handler.get_interesting_sample_translocations(sample_id=sample_id) or []
+        )
 
     def get_variant_class_translations(self, vep_version: int) -> dict[str, Any]:
         """Return variant class translations.

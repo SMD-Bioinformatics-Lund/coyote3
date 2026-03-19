@@ -78,11 +78,17 @@ def build_query(assay_group: str, settings: dict) -> dict:
                                 },
                                 {
                                     "$or": [
-                                        {"INFO.selected_CSQ.Consequence": {"$in": settings["filter_conseq"]}},
+                                        {
+                                            "INFO.selected_CSQ.Consequence": {
+                                                "$in": settings["filter_conseq"]
+                                            }
+                                        },
                                         {
                                             "INFO.CSQ": {
                                                 "$elemMatch": {
-                                                    "Consequence": {"$in": settings["filter_conseq"]}
+                                                    "Consequence": {
+                                                        "$in": settings["filter_conseq"]
+                                                    }
                                                 }
                                             }
                                         },
@@ -182,11 +188,17 @@ def build_query(assay_group: str, settings: dict) -> dict:
                                 },
                                 {
                                     "$or": [
-                                        {"INFO.selected_CSQ.Consequence": {"$in": settings["filter_conseq"]}},
+                                        {
+                                            "INFO.selected_CSQ.Consequence": {
+                                                "$in": settings["filter_conseq"]
+                                            }
+                                        },
                                         {
                                             "INFO.CSQ": {
                                                 "$elemMatch": {
-                                                    "Consequence": {"$in": settings["filter_conseq"]}
+                                                    "Consequence": {
+                                                        "$in": settings["filter_conseq"]
+                                                    }
                                                 }
                                             }
                                         },

@@ -12,6 +12,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+import re
 from typing import Any
 
 from api.infra.db.base import BaseHandler
@@ -194,6 +195,39 @@ class ASPHandler(BaseHandler):
             .sort("created_on", -1)
         )
         return list(cursor)
+
+    def search_asps(
+        self,
+        *,
+        q: str = "",
+        page: int = 1,
+        per_page: int = 30,
+        is_active: bool | None = None,
+    ) -> tuple[list[dict], int]:
+        """Search assay panels directly in MongoDB and return paged results."""
+        query: dict = {}
+        if is_active is not None:
+            query["is_active"] = is_active
+        normalized_q = str(q or "").strip()
+        if normalized_q:
+            pattern = re.escape(normalized_q)
+            query["$or"] = [
+                {"asp_id": {"$regex": pattern, "$options": "i"}},
+                {"assay_name": {"$regex": pattern, "$options": "i"}},
+                {"display_name": {"$regex": pattern, "$options": "i"}},
+                {"asp_group": {"$regex": pattern, "$options": "i"}},
+                {"asp_family": {"$regex": pattern, "$options": "i"}},
+                {"asp_category": {"$regex": pattern, "$options": "i"}},
+                {"platform": {"$regex": pattern, "$options": "i"}},
+            ]
+        page = max(1, int(page or 1))
+        per_page = max(1, min(int(per_page or 30), 200))
+        skip = (page - 1) * per_page
+        projection = {"covered_genes": 0, "version_history": 0}
+        col = self.get_collection()
+        total = int(col.count_documents(query))
+        docs = list(col.find(query, projection).sort("created_on", -1).skip(skip).limit(per_page))
+        return docs, total
 
     def create_asp(self, data: dict) -> Any:
         """

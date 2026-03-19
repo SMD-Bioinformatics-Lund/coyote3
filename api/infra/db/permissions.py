@@ -11,6 +11,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+import re
 from typing import Any, List, Optional
 
 from api.infra.db.base import BaseHandler
@@ -119,6 +120,37 @@ class PermissionsHandler(BaseHandler):
         )
         return list(self.get_collection().find(query).sort("category"))
 
+    def search_permissions(
+        self, *, q: str = "", page: int = 1, per_page: int = 30, is_active: bool = False
+    ) -> tuple[list[dict], int]:
+        """Search permission policies directly in MongoDB and return paged results."""
+        query: dict = (
+            {"$or": [{"is_active": True}, {"is_active": {"$exists": False}}]} if is_active else {}
+        )
+        normalized_q = str(q or "").strip()
+        if normalized_q:
+            pattern = re.escape(normalized_q)
+            query["$and"] = [
+                {
+                    "$or": [
+                        {"permission_id": {"$regex": pattern, "$options": "i"}},
+                        {"label": {"$regex": pattern, "$options": "i"}},
+                        {"category": {"$regex": pattern, "$options": "i"}},
+                        {"description": {"$regex": pattern, "$options": "i"}},
+                        {"schema_name": {"$regex": pattern, "$options": "i"}},
+                    ]
+                }
+            ]
+        page = max(1, int(page or 1))
+        per_page = max(1, min(int(per_page or 30), 200))
+        skip = (page - 1) * per_page
+        col = self.get_collection()
+        total = int(col.count_documents(query))
+        docs = list(
+            col.find(query).sort([("category", 1), ("permission_id", 1)]).skip(skip).limit(per_page)
+        )
+        return docs, total
+
     def get_categories(self) -> List[str]:
         """
         Retrieve all unique permission categories.
@@ -217,7 +249,9 @@ class PermissionsHandler(BaseHandler):
         Returns:
             Any: The result of the update operation.
         """
-        return self.get_collection().update_one(self._permission_lookup_query(permission_id), {"$set": data})
+        return self.get_collection().update_one(
+            self._permission_lookup_query(permission_id), {"$set": data}
+        )
 
     def toggle_policy_active(self, permission_id: str, active_status: bool) -> Any:
         """

@@ -77,7 +77,9 @@ def ensure_variant_identity_fields(doc: dict[str, Any]) -> dict[str, Any]:
     """Populate/normalize simple_id and simple_id_hash on a variant-like document."""
     normalized_simple = normalize_simple_id(doc.get("simple_id"))
     if not normalized_simple:
-        normalized_simple = build_simple_id(doc.get("CHROM"), doc.get("POS"), doc.get("REF"), doc.get("ALT"))
+        normalized_simple = build_simple_id(
+            doc.get("CHROM"), doc.get("POS"), doc.get("REF"), doc.get("ALT")
+        )
 
     out = dict(doc)
     out["simple_id"] = normalized_simple

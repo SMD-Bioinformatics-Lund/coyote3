@@ -15,7 +15,11 @@ from api.services.resource_classification_service import ResourceClassificationS
 router = APIRouter(tags=["classifications"])
 
 
-@router.patch("/api/v1/samples/{sample_id}/classifications/tier", response_model=SampleMutationPayload, summary="Bulk tier classification update")
+@router.patch(
+    "/api/v1/samples/{sample_id}/classifications/tier",
+    response_model=SampleMutationPayload,
+    summary="Bulk tier classification update",
+)
 def set_resource_tier_bulk(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
@@ -60,15 +64,24 @@ def set_resource_tier_bulk(
         )
 
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="classifications", resource_id="bulk", action="set_tier_bulk")
+        service.mutation_payload(
+            sample_id, resource="classifications", resource_id="bulk", action="set_tier_bulk"
+        )
     )
 
 
-@router.post("/api/v1/samples/{sample_id}/classifications", response_model=SampleMutationPayload, status_code=201, summary="Create classification")
+@router.post(
+    "/api/v1/samples/{sample_id}/classifications",
+    response_model=SampleMutationPayload,
+    status_code=201,
+    summary="Create classification",
+)
 def classify_resource_mutation(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
-    user: ApiUser = Depends(require_access(permission="assign_tier", min_role="manager", min_level=99)),
+    user: ApiUser = Depends(
+        require_access(permission="assign_tier", min_role="manager", min_level=99)
+    ),
     service: ResourceClassificationService = Depends(get_classification_service),
 ):
     """Handle classify resource mutation.
@@ -93,11 +106,17 @@ def classify_resource_mutation(
         get_variant_nomenclature_fn=get_variant_nomenclature,
     )
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="classification", resource_id=target_id, action="classify")
+        service.mutation_payload(
+            sample_id, resource="classification", resource_id=target_id, action="classify"
+        )
     )
 
 
-@router.delete("/api/v1/samples/{sample_id}/classifications", response_model=SampleMutationPayload, summary="Delete classification")
+@router.delete(
+    "/api/v1/samples/{sample_id}/classifications",
+    response_model=SampleMutationPayload,
+    summary="Delete classification",
+)
 def remove_classified_resource_mutation(
     sample_id: str,
     payload: dict = Body(default_factory=dict),
@@ -125,7 +144,9 @@ def remove_classified_resource_mutation(
         get_variant_nomenclature_fn=get_variant_nomenclature,
     )
     return util.common.convert_to_serializable(
-        service.mutation_payload(sample_id, resource="classification", resource_id=target_id, action="remove_classified")
+        service.mutation_payload(
+            sample_id, resource="classification", resource_id=target_id, action="remove_classified"
+        )
     )
 
 

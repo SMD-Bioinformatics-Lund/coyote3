@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, Query
 
 from api.contracts.admin import (
     AdminMutationPayload,
@@ -47,6 +47,9 @@ def create_schema_mutation(
 
 @router.get("/api/v1/resources/schemas", response_model=AdminSchemasListPayload)
 def list_schemas_read(
+    q: str = Query(default=""),
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=30, ge=1, le=200),
     user: ApiUser = Depends(
         require_access(permission="view_schema", min_role="developer", min_level=9999)
     ),
@@ -62,7 +65,9 @@ def list_schemas_read(
         The function result.
     """
     _ = user
-    return util.common.convert_to_serializable(service.list_payload())
+    return util.common.convert_to_serializable(
+        service.list_payload(q=q, page=page, per_page=per_page)
+    )
 
 
 @router.get(

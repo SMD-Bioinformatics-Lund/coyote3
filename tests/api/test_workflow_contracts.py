@@ -9,8 +9,8 @@ from api.core.workflows.contracts import validate_report_inputs, validate_rna_fi
 
 
 class _LoggerStub:
-    """Provide  LoggerStub behavior.
-    """
+    """Provide  LoggerStub behavior."""
+
     def error(self, msg: str) -> None:
         """Handle error.
 
@@ -38,7 +38,10 @@ def test_validate_report_inputs_accepts_valid_payload():
             "case_id": "C1",
             "case": {"clarity_id": "CL1"},
         },
-        assay_config={"asp_group": "dna", "reporting": {"report_path": "templates/dna_report.html"}},
+        assay_config={
+            "asp_group": "dna",
+            "reporting": {"report_path": "templates/dna_report.html"},
+        },
         analyte="dna",
     )
 
@@ -77,7 +80,10 @@ def test_validate_report_inputs_raises_on_missing_assay():
         validate_report_inputs(
             logger,
             sample={"name": "S1", "case_id": "C1", "case": {"clarity_id": "CL1"}},
-            assay_config={"asp_group": "dna", "reporting": {"report_path": "templates/dna_report.html"}},
+            assay_config={
+                "asp_group": "dna",
+                "reporting": {"report_path": "templates/dna_report.html"},
+            },
             analyte="dna",
         )
     assert exc.value.status_code == 400

@@ -91,6 +91,7 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
     Returns:
         The function result.
     """
+
     def _payload(value: dict) -> ApiPayload:
         """Handle  payload.
 
@@ -163,9 +164,7 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
             )
         if "/resources/asp/" in path and path.endswith("/context"):
             schema = _schema("schema-asp", "assay_name")
-            return _payload(
-                {"panel": {"_id": "asp1", "assay_name": "asp1"}, "schema": schema}
-            )
+            return _payload({"panel": {"_id": "asp1", "assay_name": "asp1"}, "schema": schema})
         if "/resources/aspc/" in path and path.endswith("/context"):
             schema = _schema("schema-aspc", "assay_name")
             return _payload(

@@ -7,8 +7,8 @@ from api.repositories.dna_repository import DnaRouteRepository
 
 
 class BiomarkerService:
-    """Provide biomarker workflows.
-    """
+    """Provide biomarker workflows."""
+
     def __init__(self, repository: DnaRouteRepository | None = None) -> None:
         """Handle __init__.
 
@@ -28,7 +28,9 @@ class BiomarkerService:
         """
         if not sample:
             raise api_error(404, "Sample not found")
-        biomarkers = list(self.repository.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"])))
+        biomarkers = list(
+            self.repository.biomarker_handler.get_sample_biomarkers(sample_id=str(sample["_id"]))
+        )
         return {"sample": sample, "meta": {"count": len(biomarkers)}, "biomarkers": biomarkers}
 
 

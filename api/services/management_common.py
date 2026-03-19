@@ -9,7 +9,9 @@ from api.extensions import util
 from api.runtime import current_username
 
 
-def mutation_payload(*, resource: str, resource_id: str, action: str, sample_id: str = "admin") -> dict[str, Any]:
+def mutation_payload(
+    *, resource: str, resource_id: str, action: str, sample_id: str = "admin"
+) -> dict[str, Any]:
     """Handle mutation payload.
 
     Args:
@@ -83,7 +85,9 @@ def role_permission_overrides(
         tuple[list[str], list[str]]: The function result.
     """
     role_permissions = role_map.get(role_name or "", {})
-    explicit_permissions = list(set(permissions or []) - set(role_permissions.get("permissions", [])))
+    explicit_permissions = list(
+        set(permissions or []) - set(role_permissions.get("permissions", []))
+    )
     explicit_deny_permissions = list(
         set(deny_permissions or []) - set(role_permissions.get("deny_permissions", []))
     )
@@ -114,3 +118,14 @@ def inject_version_history(
         old_config=old_config,
         is_new=is_new,
     )
+
+
+def admin_list_pagination(*, q: str, page: int, per_page: int, total: int) -> dict[str, Any]:
+    """Build normalized pagination metadata for admin list payloads."""
+    return {
+        "q": str(q or ""),
+        "page": max(1, int(page or 1)),
+        "per_page": max(1, int(per_page or 1)),
+        "total": max(0, int(total or 0)),
+        "has_next": (max(1, int(page or 1)) * max(1, int(per_page or 1))) < max(0, int(total or 0)),
+    }

@@ -8,8 +8,8 @@ from api.repositories.dna_repository import DnaRouteRepository
 
 
 class ResourceAnnotationService:
-    """Provide resource annotation workflows.
-    """
+    """Provide resource annotation workflows."""
+
     def __init__(self, repository: DnaRouteRepository | None = None) -> None:
         """Handle __init__.
 
@@ -19,7 +19,9 @@ class ResourceAnnotationService:
         self.repository = repository or DnaRouteRepository()
 
     @staticmethod
-    def mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict[str, Any]:
+    def mutation_payload(
+        sample_id: str, resource: str, resource_id: str, action: str
+    ) -> dict[str, Any]:
         """Handle mutation payload.
 
         Args:

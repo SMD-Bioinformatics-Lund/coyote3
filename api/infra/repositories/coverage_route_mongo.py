@@ -6,8 +6,8 @@ from api.extensions import store
 
 
 class MongoCoverageRouteRepository:
-    """Provide mongo coverage route persistence operations.
-    """
+    """Provide mongo coverage route persistence operations."""
+
     def get_aspc_no_meta(self, assay: str, profile: str) -> dict | None:
         """Return aspc no meta.
 

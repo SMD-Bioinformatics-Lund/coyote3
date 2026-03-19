@@ -1,4 +1,3 @@
-
 """
 VEPMetaHandler module for managing VEP metadata
 ===============================================
@@ -8,7 +7,6 @@ in MongoDB, including translations and database information.
 
 It is part of the `coyote.db` package and extends the base handler functionality.
 """
-
 
 # -------------------------------------------------------------------------
 # Imports
@@ -58,9 +56,7 @@ class VEPMetaHandler(BaseHandler):
         """
         doc = self.get_collection().find_one({"vep_id": str(vep_version)})
         if not doc:
-            app.logger.warning(
-                f"VEP version {vep_version} not found in metadata."
-            )
+            app.logger.warning(f"VEP version {vep_version} not found in metadata.")
         return doc or {}
 
     def get_variant_class_translations(self, vep_version: str):
@@ -88,9 +84,7 @@ class VEPMetaHandler(BaseHandler):
         doc = self._get_metadata(vep_version)
         return doc.get("conseq_translations", {})
 
-    def get_db_info(
-        self, vep_version: str, genome_build: str = "GRCh38"
-    ) -> dict:
+    def get_db_info(self, vep_version: str, genome_build: str = "GRCh38") -> dict:
         """
         Retrieve the database information for a specific VEP version and genome build.
 

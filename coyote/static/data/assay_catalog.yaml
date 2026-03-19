@@ -239,4 +239,3 @@ modalities:
           - key: "RNA-fusion"               # (ISGL) Key must match ISGL _id
             label: "RNA Fusion Panel"
             description: "Gene fusion panel for solid tumors"
-

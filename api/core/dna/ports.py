@@ -53,7 +53,9 @@ class DNAReportingRepository(Protocol):
         """
         ...
 
-    def add_blacklist_data(self, variants: list[dict[str, Any]], assay: str) -> list[dict[str, Any]]:
+    def add_blacklist_data(
+        self, variants: list[dict[str, Any]], assay: str
+    ) -> list[dict[str, Any]]:
         """Add blacklist data.
 
         Args:

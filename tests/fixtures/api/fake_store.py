@@ -51,7 +51,11 @@ def build_fake_store() -> SimpleNamespace:
         ),
         asp_handler=FakeHandler(
             {
-                "get_asp": lambda asp_name: {"asp_id": "asp1", "asp_group": "dna", "covered_genes": ["TP53"]},
+                "get_asp": lambda asp_name: {
+                    "asp_id": "asp1",
+                    "asp_group": "dna",
+                    "covered_genes": ["TP53"],
+                },
                 "get_asp_genes": lambda asp_name: (["TP53", "NPM1"], ["BRCA1"]),
                 "get_all_asps": lambda: [{"asp_id": "asp1", "asp_group": "dna"}],
             }
@@ -104,18 +108,29 @@ def build_fake_store() -> SimpleNamespace:
             }
         ),
         cnv_handler=FakeHandler({"get_sample_cnvs": lambda query: [fx.cnv_doc()]}),
-        biomarker_handler=FakeHandler({"get_sample_biomarkers": lambda sample_id: [{"_id": "b1", "name": "TMB"}]}),
+        biomarker_handler=FakeHandler(
+            {"get_sample_biomarkers": lambda sample_id: [{"_id": "b1", "name": "TMB"}]}
+        ),
         transloc_handler=FakeHandler({"get_sample_translocations": lambda sample_id: []}),
-        blacklist_handler=FakeHandler({"add_blacklist_data": lambda variants, assay_group: variants}),
+        blacklist_handler=FakeHandler(
+            {"add_blacklist_data": lambda variants, assay_group: variants}
+        ),
         annotation_handler=FakeHandler(
             {
-                "get_global_annotations": lambda variant, assay_group, subpanel: ([], {"class": 2}, [], []),
+                "get_global_annotations": lambda variant, assay_group, subpanel: (
+                    [],
+                    {"class": 2},
+                    [],
+                    [],
+                ),
                 "find_variants_by_search_string": lambda **kwargs: [],
                 "get_tier_stats_by_search": lambda **kwargs: {"total": {}, "by_assay": {}},
                 "get_annotation_text_by_oid": lambda oid: {"_id": oid, "text": "note"},
             }
         ),
-        reported_variants_handler=FakeHandler({"list_reported_variants": lambda query: [fx.reported_variant_doc()]}),
+        reported_variants_handler=FakeHandler(
+            {"list_reported_variants": lambda query: [fx.reported_variant_doc()]}
+        ),
         hgnc_handler=FakeHandler(
             {
                 "get_metadata_by_symbol": lambda symbol: {"symbol": symbol},
@@ -130,7 +145,9 @@ def build_fake_store() -> SimpleNamespace:
             }
         ),
         bam_service_handler=FakeHandler({"get_bams": lambda sample_ids: []}),
-        oncokb_handler=FakeHandler({"get_oncokb_action_gene": lambda symbol: {"Hugo Symbol": symbol}}),
+        oncokb_handler=FakeHandler(
+            {"get_oncokb_action_gene": lambda symbol: {"Hugo Symbol": symbol}}
+        ),
         expression_handler=FakeHandler({"get_expression_data": lambda tx: []}),
         rna_expression_handler=FakeHandler({"get_rna_expression": lambda sid: {}}),
         rna_classification_handler=FakeHandler({"get_rna_classification": lambda sid: {}}),

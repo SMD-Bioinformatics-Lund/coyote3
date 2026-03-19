@@ -1,4 +1,3 @@
-
 """
 HomeUtility provides helper methods for the Main blueprint in the Coyote3 framework.
 

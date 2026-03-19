@@ -38,7 +38,11 @@ def test_home_samples_read_returns_live_and_done(monkeypatch):
             return [{"_id": "d1", "reports": [{"time_created": 123}]}, {"_id": "d2"}]
         return [{"_id": "l1"}, {"_id": "l2"}]
 
-    monkeypatch.setattr(sample_catalog_service_module, "runtime_app", type("_App", (), {"config": {"REPORTED_SAMPLES_SEARCH_LIMIT": 50}})())
+    monkeypatch.setattr(
+        sample_catalog_service_module,
+        "runtime_app",
+        type("_App", (), {"config": {"REPORTED_SAMPLES_SEARCH_LIMIT": 50}})(),
+    )
     monkeypatch.setattr(service.repository, "get_samples", _get_samples)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
@@ -94,7 +98,11 @@ def test_home_samples_read_always_fetches_both_tables(monkeypatch):
         calls.append(kwargs)
         return [{"_id": "d1", "reports": [{"time_created": 123}]}]
 
-    monkeypatch.setattr(sample_catalog_service_module, "runtime_app", type("_App", (), {"config": {"REPORTED_SAMPLES_SEARCH_LIMIT": 50}})())
+    monkeypatch.setattr(
+        sample_catalog_service_module,
+        "runtime_app",
+        type("_App", (), {"config": {"REPORTED_SAMPLES_SEARCH_LIMIT": 50}})(),
+    )
     monkeypatch.setattr(service.repository, "get_samples", _get_samples)
     monkeypatch.setattr(samples.util.common, "convert_to_serializable", lambda payload: payload)
 
@@ -134,7 +142,9 @@ def test_home_apply_isgl_invalid_payload_raises_400(monkeypatch):
     monkeypatch.setattr(samples, "_get_sample_for_api", lambda sample_id, user: fx.sample_doc())
 
     with pytest.raises(HTTPException) as exc:
-        samples.sample_apply_genelists_mutation("S1", payload={"isgl_ids": "bad"}, user=fx.api_user(), service=SampleCatalogService())
+        samples.sample_apply_genelists_mutation(
+            "S1", payload={"isgl_ids": "bad"}, user=fx.api_user(), service=SampleCatalogService()
+        )
 
     assert exc.value.status_code == 400
     assert exc.value.detail["error"] == "Invalid isgl_ids payload"

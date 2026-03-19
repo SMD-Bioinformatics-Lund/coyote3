@@ -96,7 +96,18 @@ class AdminRepository:
         Returns:
             list[dict[str, Any]]: The function result.
         """
-        return [dict(item) for item in (self.user_handler.get_all_users() or []) if isinstance(item, dict)]
+        return [
+            dict(item)
+            for item in (self.user_handler.get_all_users() or [])
+            if isinstance(item, dict)
+        ]
+
+    def search_users(
+        self, *, q: str = "", page: int = 1, per_page: int = 30
+    ) -> tuple[list[dict[str, Any]], int]:
+        """Search users in MongoDB with pagination."""
+        rows, total = self.user_handler.search_users(q=q, page=page, per_page=per_page)
+        return [dict(item) for item in rows if isinstance(item, dict)], int(total or 0)
 
     def get_user(self, user_id: str) -> dict[str, Any] | None:
         """Return user.
@@ -161,7 +172,18 @@ class AdminRepository:
         Returns:
             list[dict[str, Any]]: The function result.
         """
-        return [dict(item) for item in (self.roles_handler.get_all_roles() or []) if isinstance(item, dict)]
+        return [
+            dict(item)
+            for item in (self.roles_handler.get_all_roles() or [])
+            if isinstance(item, dict)
+        ]
+
+    def search_roles(
+        self, *, q: str = "", page: int = 1, per_page: int = 30
+    ) -> tuple[list[dict[str, Any]], int]:
+        """Search roles in MongoDB with pagination."""
+        rows, total = self.roles_handler.search_roles(q=q, page=page, per_page=per_page)
+        return [dict(item) for item in rows if isinstance(item, dict)], int(total or 0)
 
     def get_role(self, role_id: str) -> dict[str, Any] | None:
         """Return role.
@@ -283,6 +305,18 @@ class AdminRepository:
             if isinstance(item, dict)
         ]
 
+    def search_permissions(
+        self, *, q: str = "", page: int = 1, per_page: int = 30, is_active: bool = False
+    ) -> tuple[list[dict[str, Any]], int]:
+        """Search permissions in MongoDB with pagination."""
+        rows, total = self.permissions_handler.search_permissions(
+            q=q,
+            page=page,
+            per_page=per_page,
+            is_active=is_active,
+        )
+        return [dict(item) for item in rows if isinstance(item, dict)], int(total or 0)
+
     def get_permission(self, permission_id: str) -> dict[str, Any] | None:
         """Return permission.
 
@@ -366,7 +400,28 @@ class AdminRepository:
         Returns:
             list[dict[str, Any]]: The function result.
         """
-        return [dict(item) for item in (self.asp_handler.get_all_asps(is_active=is_active) or []) if isinstance(item, dict)]
+        return [
+            dict(item)
+            for item in (self.asp_handler.get_all_asps(is_active=is_active) or [])
+            if isinstance(item, dict)
+        ]
+
+    def search_panels(
+        self,
+        *,
+        q: str = "",
+        page: int = 1,
+        per_page: int = 30,
+        is_active: bool | None = None,
+    ) -> tuple[list[dict[str, Any]], int]:
+        """Search assay panels in MongoDB with pagination."""
+        rows, total = self.asp_handler.search_asps(
+            q=q,
+            page=page,
+            per_page=per_page,
+            is_active=is_active,
+        )
+        return [dict(item) for item in rows if isinstance(item, dict)], int(total or 0)
 
     def get_panel(self, panel_id: str) -> dict[str, Any] | None:
         """Return panel.
@@ -431,7 +486,18 @@ class AdminRepository:
         Returns:
             list[dict[str, Any]]: The function result.
         """
-        return [dict(item) for item in (self.isgl_handler.get_all_isgl() or []) if isinstance(item, dict)]
+        return [
+            dict(item)
+            for item in (self.isgl_handler.get_all_isgl() or [])
+            if isinstance(item, dict)
+        ]
+
+    def search_genelists(
+        self, *, q: str = "", page: int = 1, per_page: int = 30
+    ) -> tuple[list[dict[str, Any]], int]:
+        """Search genelists in MongoDB with pagination."""
+        rows, total = self.isgl_handler.search_isgls(q=q, page=page, per_page=per_page)
+        return [dict(item) for item in rows if isinstance(item, dict)], int(total or 0)
 
     def get_genelist(self, genelist_id: str) -> dict[str, Any] | None:
         """Return genelist.
@@ -496,7 +562,18 @@ class AdminRepository:
         Returns:
             list[dict[str, Any]]: The function result.
         """
-        return [dict(item) for item in (self.aspc_handler.get_all_aspc() or []) if isinstance(item, dict)]
+        return [
+            dict(item)
+            for item in (self.aspc_handler.get_all_aspc() or [])
+            if isinstance(item, dict)
+        ]
+
+    def search_assay_configs(
+        self, *, q: str = "", page: int = 1, per_page: int = 30
+    ) -> tuple[list[dict[str, Any]], int]:
+        """Search assay configs in MongoDB with pagination."""
+        rows, total = self.aspc_handler.search_aspcs(q=q, page=page, per_page=per_page)
+        return [dict(item) for item in rows if isinstance(item, dict)], int(total or 0)
 
     def get_assay_config(self, assay_id: str) -> dict[str, Any] | None:
         """Return assay config.
@@ -567,7 +644,9 @@ class AdminRepository:
         """
         return list(self.aspc_handler.get_available_assay_envs(assay_id, allowed_envs) or [])
 
-    def list_samples_for_admin(self, *, assays: list[str], search: str) -> list[dict[str, Any]]:
+    def list_samples_for_admin(
+        self, *, assays: list[str], search: str, page: int = 1, per_page: int = 30
+    ) -> tuple[list[dict[str, Any]], int]:
         """List samples for admin.
 
         Args:
@@ -575,9 +654,15 @@ class AdminRepository:
             search (str): Value for ``search``.
 
         Returns:
-            list[dict[str, Any]]: The function result.
+            tuple[list[dict[str, Any]], int]: The function result.
         """
-        return [dict(item) for item in (self.sample_handler.get_all_samples(assays, None, search) or []) if isinstance(item, dict)]
+        rows, total = self.sample_handler.search_samples_for_admin(
+            assays=assays,
+            search_str=search,
+            page=page,
+            per_page=per_page,
+        )
+        return [dict(item) for item in rows if isinstance(item, dict)], int(total or 0)
 
     def get_sample(self, sample_id: str) -> dict[str, Any] | None:
         """Return sample.
@@ -619,7 +704,18 @@ class AdminRepository:
         Returns:
             list[dict[str, Any]]: The function result.
         """
-        return [dict(item) for item in (self.schema_handler.get_all_schemas() or []) if isinstance(item, dict)]
+        return [
+            dict(item)
+            for item in (self.schema_handler.get_all_schemas() or [])
+            if isinstance(item, dict)
+        ]
+
+    def search_schemas(
+        self, *, q: str = "", page: int = 1, per_page: int = 30
+    ) -> tuple[list[dict[str, Any]], int]:
+        """Search schemas in MongoDB with pagination."""
+        rows, total = self.schema_handler.search_schemas(q=q, page=page, per_page=per_page)
+        return [dict(item) for item in rows if isinstance(item, dict)], int(total or 0)
 
     def create_schema(self, schema_doc: dict[str, Any]) -> None:
         """Create schema.
@@ -667,7 +763,9 @@ class AdminRepository:
         """
         self.schema_handler.delete_schema(schema_id)
 
-    def get_active_schema(self, *, schema_type: str, schema_category: str, schema_id: str | None) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    def get_active_schema(
+        self, *, schema_type: str, schema_category: str, schema_id: str | None
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         """Return active schema.
 
         Args:

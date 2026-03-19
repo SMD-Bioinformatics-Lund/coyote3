@@ -8,8 +8,8 @@ from api.extensions import store
 
 
 class MongoAdminSampleDeletionRepository:
-    """Provide mongo admin sample deletion persistence operations.
-    """
+    """Provide mongo admin sample deletion persistence operations."""
+
     def get_sample_by_id(self, sample_id: str) -> dict[str, Any] | None:
         """Return sample by id.
 

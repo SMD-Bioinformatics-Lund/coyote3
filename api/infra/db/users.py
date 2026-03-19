@@ -11,6 +11,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+import re
 from datetime import datetime, timezone
 
 from api.infra.db.base import BaseHandler
@@ -190,6 +191,33 @@ class UsersHandler(BaseHandler):
         """
         return list(self.get_collection().find().sort("firstname", 1))
 
+    def search_users(
+        self, *, q: str = "", page: int = 1, per_page: int = 30
+    ) -> tuple[list[dict], int]:
+        """Search users directly in MongoDB and return paged results."""
+        normalized_q = str(q or "").strip()
+        query: dict = {}
+        if normalized_q:
+            pattern = re.escape(normalized_q)
+            query["$or"] = [
+                {"username": {"$regex": pattern, "$options": "i"}},
+                {"email": {"$regex": pattern, "$options": "i"}},
+                {"fullname": {"$regex": pattern, "$options": "i"}},
+                {"firstname": {"$regex": pattern, "$options": "i"}},
+                {"lastname": {"$regex": pattern, "$options": "i"}},
+                {"role": {"$regex": pattern, "$options": "i"}},
+                {"job_title": {"$regex": pattern, "$options": "i"}},
+            ]
+        page = max(1, int(page or 1))
+        per_page = max(1, min(int(per_page or 30), 200))
+        skip = (page - 1) * per_page
+        col = self.get_collection()
+        total = int(col.count_documents(query))
+        docs = list(
+            col.find(query).sort([("firstname", 1), ("username", 1)]).skip(skip).limit(per_page)
+        )
+        return docs, total
+
     def get_dashboard_user_rollup(self) -> dict:
         """
         Aggregate user counts/role breakdowns for dashboard payloads.
@@ -267,7 +295,12 @@ class UsersHandler(BaseHandler):
                                             "resolved": {
                                                 "$ifNull": [
                                                     "$job_title",
-                                                    {"$ifNull": ["$profession", {"$ifNull": ["$title", "Unknown"]}]},
+                                                    {
+                                                        "$ifNull": [
+                                                            "$profession",
+                                                            {"$ifNull": ["$title", "Unknown"]},
+                                                        ]
+                                                    },
                                                 ]
                                             }
                                         },
@@ -275,12 +308,24 @@ class UsersHandler(BaseHandler):
                                             "$cond": [
                                                 {
                                                     "$eq": [
-                                                        {"$trim": {"input": {"$toString": "$$resolved"}, "chars": " "}},
+                                                        {
+                                                            "$trim": {
+                                                                "input": {
+                                                                    "$toString": "$$resolved"
+                                                                },
+                                                                "chars": " ",
+                                                            }
+                                                        },
                                                         "",
                                                     ]
                                                 },
                                                 "Unknown",
-                                                {"$trim": {"input": {"$toString": "$$resolved"}, "chars": " "}},
+                                                {
+                                                    "$trim": {
+                                                        "input": {"$toString": "$$resolved"},
+                                                        "chars": " ",
+                                                    }
+                                                },
                                             ]
                                         },
                                     }

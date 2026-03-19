@@ -114,7 +114,7 @@ class DnaService:
 
     @staticmethod
     def export_rows_to_csv(
-        rows: list[DnaSnvExportRow] | list[DnaCnvExportRow] | list[DnaTranslocExportRow]
+        rows: list[DnaSnvExportRow] | list[DnaCnvExportRow] | list[DnaTranslocExportRow],
     ) -> str:
         """Serialize typed export rows into CSV text with stable column ordering."""
         output = StringIO()
@@ -158,7 +158,9 @@ class DnaService:
                 and classification.get("transcript") == selected.get("Feature")
             ):
                 tier_value = str(classification.get("class"))
-            elif var.get("additional_classification") and var["additional_classification"].get("tier"):
+            elif var.get("additional_classification") and var["additional_classification"].get(
+                "tier"
+            ):
                 tier_value = str(var["additional_classification"].get("tier"))
             elif var.get("other_classification"):
                 tier_value = "?"
@@ -182,7 +184,9 @@ class DnaService:
                 var_type=self._safe_text(var.get("variant_class")),
                 indel_size=indel_size,
                 consequence=consequence,
-                pop_freq=self._safe_text(var.get("gnomad_frequency") if var.get("gnomad_frequency") else "-"),
+                pop_freq=self._safe_text(
+                    var.get("gnomad_frequency") if var.get("gnomad_frequency") else "-"
+                ),
                 tier=tier_value,
                 chr_pos=f"{self._safe_text(var.get('CHROM'))}:{self._safe_text(var.get('POS'))}",
                 flags=flags,
@@ -217,7 +221,11 @@ class DnaService:
                     other_genes += 1
             genes_value = self._join_tokens(genes)
             if other_genes > 0:
-                genes_value = f"{genes_value} | + {other_genes} other genes" if genes_value else f"+ {other_genes} other genes"
+                genes_value = (
+                    f"{genes_value} | + {other_genes} other genes"
+                    if genes_value
+                    else f"+ {other_genes} other genes"
+                )
 
             callers_value = self._safe_text(cnv.get("callers", ""))
             ratio = cnv.get("ratio")
@@ -230,9 +238,13 @@ class DnaService:
                 if sample_purity not in {None, "", 0}:
                     purity_float = float(sample_purity)
                     if ratio_num > 0:
-                        purity_cn_value = self._safe_text(round((2 * (2**ratio_num)) * 1 / purity_float, 2))
+                        purity_cn_value = self._safe_text(
+                            round((2 * (2**ratio_num)) * 1 / purity_float, 2)
+                        )
                     else:
-                        purity_cn_value = self._safe_text(round((2 * (2**ratio_num)) * purity_float, 2))
+                        purity_cn_value = self._safe_text(
+                            round((2 * (2**ratio_num)) * purity_float, 2)
+                        )
             except Exception:
                 copy_number_value = self._safe_text(ratio)
 
@@ -267,7 +279,9 @@ class DnaService:
             row = DnaCnvExportRow(
                 genes=genes_value,
                 region=f"{self._safe_text(cnv.get('chr'))}:{self._safe_text(cnv.get('start'))}-{self._safe_text(cnv.get('end'))}",
-                size_bp=self._safe_text(abs(int(cnv.get("size", 0))) if cnv.get("size") is not None else ""),
+                size_bp=self._safe_text(
+                    abs(int(cnv.get("size", 0))) if cnv.get("size") is not None else ""
+                ),
                 callers=callers_value,
                 copy_number=copy_number_value,
                 purity_copy_number=purity_cn_value,
@@ -284,7 +298,9 @@ class DnaService:
             rows.append(row)
         return rows
 
-    def build_transloc_export_rows(self, translocs: list[dict[str, Any]]) -> list[DnaTranslocExportRow]:
+    def build_transloc_export_rows(
+        self, translocs: list[dict[str, Any]]
+    ) -> list[DnaTranslocExportRow]:
         """Build typed translocation export rows from filtered translocation documents."""
         rows: list[DnaTranslocExportRow] = []
         for tl in translocs:
@@ -872,10 +888,10 @@ class DnaService:
             oncokb_hgvsp.append(hgvsp)
         if consequence_terms.intersection(
             {
-            "frameshift_variant",
-            "stop_gained",
-            "frameshift_deletion",
-            "frameshift_insertion",
+                "frameshift_variant",
+                "stop_gained",
+                "frameshift_deletion",
+                "frameshift_insertion",
             }
         ):
             oncokb_hgvsp.append("Truncating Mutations")

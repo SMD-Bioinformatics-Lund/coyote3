@@ -47,7 +47,7 @@
             "gnomad_genomes": "v4.1"
         }
     },
-    "variant_class_translations": { 
+    "variant_class_translations": {
         "SNV": {
             "short": "SNV",
             "desc": "SNVs are single nucleotide positions in genomic DNA at which different sequence alternatives exist.",

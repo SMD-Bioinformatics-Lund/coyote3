@@ -20,6 +20,8 @@ router = APIRouter(tags=["resource-samples"])
 @router.get("/api/v1/resources/samples", response_model=AdminSamplesListPayload)
 def list_admin_samples_read(
     search: str = Query(default=""),
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=30, ge=1, le=200),
     user: ApiUser = Depends(
         require_access(permission="view_sample_global", min_role="developer", min_level=9999)
     ),
@@ -36,7 +38,7 @@ def list_admin_samples_read(
         The function result.
     """
     return util.common.convert_to_serializable(
-        service.list_payload(assays=user.assays, search=search)
+        service.list_payload(assays=user.assays, search=search, page=page, per_page=per_page)
     )
 
 

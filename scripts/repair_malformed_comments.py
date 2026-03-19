@@ -14,7 +14,6 @@ Default scan mode:
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from typing import Any
 
@@ -83,7 +82,10 @@ def main() -> int:
         try:
             collections_map = toml.load(args.collections_toml).get(args.db, {})
         except Exception as exc:
-            print(f"[error] Failed to read collections TOML {args.collections_toml}: {exc}", file=sys.stderr)
+            print(
+                f"[error] Failed to read collections TOML {args.collections_toml}: {exc}",
+                file=sys.stderr,
+            )
             return 2
         keys = [
             "samples_collection",

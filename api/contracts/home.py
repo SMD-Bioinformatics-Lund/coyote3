@@ -8,8 +8,8 @@ from pydantic import BaseModel
 
 
 class HomeSamplesPayload(BaseModel):
-    """Represent the home samples payload.
-    """
+    """Represent the home samples payload."""
+
     live_samples: list[dict[str, Any]]
     done_samples: list[dict[str, Any]]
     status: str
@@ -32,20 +32,20 @@ class HomeSamplesPayload(BaseModel):
 
 
 class HomeItemsPayload(BaseModel):
-    """Represent the home items payload.
-    """
+    """Represent the home items payload."""
+
     items: list[Any]
 
 
 class HomeEffectiveGenesPayload(HomeItemsPayload):
-    """Represent the home effective genes payload.
-    """
+    """Represent the home effective genes payload."""
+
     asp_covered_genes_count: int
 
 
 class HomeEditContextPayload(BaseModel):
-    """Represent the home edit context payload.
-    """
+    """Represent the home edit context payload."""
+
     sample: dict[str, Any]
     asp: dict[str, Any]
     variant_stats_raw: Any = None
@@ -53,8 +53,8 @@ class HomeEditContextPayload(BaseModel):
 
 
 class HomeMutationStatusPayload(BaseModel):
-    """Represent the home mutation status payload.
-    """
+    """Represent the home mutation status payload."""
+
     status: str
     sample_id: str
     action: str
@@ -64,8 +64,8 @@ class HomeMutationStatusPayload(BaseModel):
 
 
 class HomeReportContextPayload(BaseModel):
-    """Represent the home report context payload.
-    """
+    """Represent the home report context payload."""
+
     sample_id: str
     report_id: str
     report_name: str | None = None

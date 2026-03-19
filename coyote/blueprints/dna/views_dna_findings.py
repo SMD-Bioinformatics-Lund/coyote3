@@ -157,9 +157,7 @@ def list_dna_findings(sample_id: str) -> Response | str:
             genes_covered_in_panel = variants_payload.checked_genelists_dict
             verification_sample_used = variants_payload.verification_sample_used
         except ApiRequestError as exc:
-            app.logger.error(
-                "DNA findings API refresh failed for sample %s: %s", sample_id, exc
-            )
+            app.logger.error("DNA findings API refresh failed for sample %s: %s", sample_id, exc)
             raise_api_page_error(sample_id, "DNA findings", exc)
 
     has_hidden_comments = variants_payload.hidden_comments
@@ -248,7 +246,9 @@ def download_transloc_csv(sample_id: str) -> Response:
             headers=forward_headers(),
         )
     except ApiRequestError as exc:
-        app.logger.error("DNA translocation export API fetch failed for sample %s: %s", sample_id, exc)
+        app.logger.error(
+            "DNA translocation export API fetch failed for sample %s: %s", sample_id, exc
+        )
         raise_api_page_error(sample_id, "DNA translocation export", exc)
 
     buf = io.BytesIO(str(payload.get("content", "")).encode("utf-8"))

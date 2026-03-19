@@ -103,7 +103,9 @@ def test_web_api_endpoint_builders_match_existing_api_routes():
     missing: list[str] = []
     for source, line, builder_name, path in _collect_endpoint_paths_from_web_layer():
         if not path.startswith("/api/v1/"):
-            missing.append(f"{source}:{line} via api_endpoints.{builder_name} -> {path} (bad prefix)")
+            missing.append(
+                f"{source}:{line} via api_endpoints.{builder_name} -> {path} (bad prefix)"
+            )
             continue
         if "/report/arg" in path:
             # Dynamic action in reports helper is asserted explicitly in
@@ -112,8 +114,8 @@ def test_web_api_endpoint_builders_match_existing_api_routes():
         if not any(_matches_template(path, template) for template in templates):
             missing.append(f"{source}:{line} via api_endpoints.{builder_name} -> {path}")
 
-    assert not missing, (
-        "Web layer endpoint builder calls do not match API routes:\n" + "\n".join(sorted(missing))
+    assert not missing, "Web layer endpoint builder calls do not match API routes:\n" + "\n".join(
+        sorted(missing)
     )
 
 
@@ -131,6 +133,8 @@ def test_report_action_endpoints_exist():
         api_endpoints.rna_sample("S1", "reports"),
     }
     missing = [
-        path for path in sorted(explicit_paths) if not any(_matches_template(path, t) for t in templates)
+        path
+        for path in sorted(explicit_paths)
+        if not any(_matches_template(path, t) for t in templates)
     ]
     assert not missing, "Missing report API route template(s):\n" + "\n".join(missing)

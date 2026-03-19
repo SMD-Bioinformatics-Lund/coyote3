@@ -1,4 +1,3 @@
-
 """Shared DNA variant helper utilities."""
 
 from collections import defaultdict

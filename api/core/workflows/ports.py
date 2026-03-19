@@ -144,4 +144,3 @@ class RNAWorkflowRepository(Protocol):
             tuple[Any, Any]: The function result.
         """
         ...
-

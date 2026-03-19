@@ -12,8 +12,8 @@ from api.contracts.common import (
     CommonTieredVariantContextPayload,
     CommonTieredVariantSearchPayload,
 )
-from api.core.dna.variant_identity import build_simple_id_hash_from_simple_id, normalize_simple_id
 from api.core.common.ports import CommonRepository
+from api.core.dna.variant_identity import build_simple_id_hash_from_simple_id, normalize_simple_id
 from api.core.interpretation.report_summary import enrich_reported_variant_docs
 from api.deps.repositories import get_common_repository
 from api.extensions import util
@@ -28,7 +28,9 @@ if not hasattr(util, "common"):
 
 
 @router.get("/api/v1/common/gene/{gene_id}/info", response_model=CommonGeneInfoPayload)
-def common_gene_info_read(gene_id: str, repository: CommonRepository = Depends(get_common_repository)):
+def common_gene_info_read(
+    gene_id: str, repository: CommonRepository = Depends(get_common_repository)
+):
     """Handle common gene info read.
 
     Args:
@@ -52,7 +54,9 @@ def common_gene_info_read(gene_id: str, repository: CommonRepository = Depends(g
 def common_tiered_variant_context_read(
     variant_id: str,
     tier: int,
-    user: ApiUser = Depends(require_access(permission="view_gene_annotations", min_role="user", min_level=9)),
+    user: ApiUser = Depends(
+        require_access(permission="view_gene_annotations", min_role="user", min_level=9)
+    ),
     repository: CommonRepository = Depends(get_common_repository),
 ):
     """Handle common tiered variant context read.
@@ -82,7 +86,9 @@ def common_tiered_variant_context_read(
 
     or_conditions: list[dict[str, Any]] = []
     if simple_id and simple_id_hash:
-        or_conditions.append({"$and": [{"simple_id_hash": simple_id_hash}, {"simple_id": simple_id}]})
+        or_conditions.append(
+            {"$and": [{"simple_id_hash": simple_id_hash}, {"simple_id": simple_id}]}
+        )
     else:
         if hgvsc:
             or_conditions.append({"hgvsc": hgvsc})
@@ -102,17 +108,23 @@ def common_tiered_variant_context_read(
     query = {"gene": gene, "$or": or_conditions}
     docs = repository.list_reported_variants(query)
     docs = enrich_reported_variant_docs(deepcopy(docs))
-    return util.common.convert_to_serializable({"variant": variant, "docs": docs, "tier": tier, "error": None})
+    return util.common.convert_to_serializable(
+        {"variant": variant, "docs": docs, "tier": tier, "error": None}
+    )
 
 
-@router.get("/api/v1/common/search/tiered_variants", response_model=CommonTieredVariantSearchPayload)
+@router.get(
+    "/api/v1/common/search/tiered_variants", response_model=CommonTieredVariantSearchPayload
+)
 def common_tiered_variant_search_read(
     search_str: str | None = None,
     search_mode: str = "gene",
     include_annotation_text: bool = False,
     assays: list[str] | None = Query(default=None),
     limit_entries: int | None = None,
-    user: ApiUser = Depends(require_access(permission="view_gene_annotations", min_role="user", min_level=9)),
+    user: ApiUser = Depends(
+        require_access(permission="view_gene_annotations", min_role="user", min_level=9)
+    ),
     repository: CommonRepository = Depends(get_common_repository),
 ):
     """Handle common tiered variant search read.
@@ -165,7 +177,9 @@ def common_tiered_variant_search_read(
             annotation_text_oid = reported_doc.get("annotation_text_oid")
             report_id = reported_doc.get("report_id")
             sample_doc = repository.get_sample_by_oid(sample_oid)
-            sample_name = reported_doc.get("sample_name") or sample_doc.get("name") if sample_doc else None
+            sample_name = (
+                reported_doc.get("sample_name") or sample_doc.get("name") if sample_doc else None
+            )
             report_num = next(
                 (
                     rpt.get("report_num")

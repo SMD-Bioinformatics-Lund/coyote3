@@ -66,12 +66,17 @@ def list_permissions() -> str:
     Returns:
         The rendered permission-management page response.
     """
+    q = (request.args.get("q") or "").strip()
+    page = max(1, request.args.get("page", default=1, type=int) or 1)
+    per_page = max(1, min(request.args.get("per_page", default=30, type=int) or 30, 200))
     try:
         payload = get_web_api_client().get_json(
             api_endpoints.admin("permissions"),
             headers=forward_headers(),
+            params={"q": q, "page": page, "per_page": per_page},
         )
         grouped_permissions = payload.get("grouped_permissions", {})
+        pagination = payload.get("pagination", {})
     except AttributeError as exc:
         app.logger.error("Failed to parse permissions payload: %s", exc)
         raise_page_load_error(
@@ -87,7 +92,15 @@ def list_permissions() -> str:
             log_message="Failed to fetch permissions",
             summary="Unable to load permissions.",
         )
-    return render_template("permissions/permissions.html", grouped_permissions=grouped_permissions)
+    return render_template(
+        "permissions/permissions.html",
+        grouped_permissions=grouped_permissions,
+        q=q,
+        page=pagination.get("page", page),
+        per_page=pagination.get("per_page", per_page),
+        total=pagination.get("total", 0),
+        has_next=pagination.get("has_next", False),
+    )
 
 
 @admin_bp.route("/permissions/new", methods=["GET", "POST"])

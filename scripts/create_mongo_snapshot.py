@@ -12,12 +12,12 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import tomllib
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import tomllib
 from bson import ObjectId, json_util
 from pymongo import MongoClient
 
@@ -59,7 +59,9 @@ def parse_args() -> argparse.Namespace:
         default="",
         help="Path to newline-delimited explicit sample selectors (name or _id).",
     )
-    parser.add_argument("--seed", type=int, default=42, help="Random seed for deterministic selection")
+    parser.add_argument(
+        "--seed", type=int, default=42, help="Random seed for deterministic selection"
+    )
     parser.add_argument(
         "--output-dir",
         default="snapshots",
@@ -89,7 +91,9 @@ def load_collection_names(config_path: Path, section: str) -> list[str]:
     return names
 
 
-def select_mixed_samples(samples: list[dict[str, Any]], target_count: int, seed: int) -> list[dict[str, Any]]:
+def select_mixed_samples(
+    samples: list[dict[str, Any]], target_count: int, seed: int
+) -> list[dict[str, Any]]:
     if target_count <= 0 or not samples:
         return []
 

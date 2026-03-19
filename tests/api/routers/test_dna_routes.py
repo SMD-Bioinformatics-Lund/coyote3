@@ -137,9 +137,7 @@ def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
     service = DnaService()
 
     monkeypatch.setattr(dna, "_get_sample_for_api", lambda sample_id, user: sample)
-    monkeypatch.setattr(
-        dna, "_get_formatted_assay_config", lambda _sample: {"asp_group": "dna"}
-    )
+    monkeypatch.setattr(dna, "_get_formatted_assay_config", lambda _sample: {"asp_group": "dna"})
     monkeypatch.setattr(
         dna_repo_module.store.variant_handler, "get_variant", lambda var_id: variant
     )
@@ -177,9 +175,7 @@ def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
     monkeypatch.setattr(
         dna_repo_module.store.oncokb_handler, "get_oncokb_action", lambda variant, hgvsp: {}
     )
-    monkeypatch.setattr(
-        dna_repo_module.store.oncokb_handler, "get_oncokb_gene", lambda symbol: {}
-    )
+    monkeypatch.setattr(dna_repo_module.store.oncokb_handler, "get_oncokb_gene", lambda symbol: {})
     monkeypatch.setattr(
         dna_repo_module.store.brca_handler, "get_brca_data", lambda variant, assay_group: {}
     )
@@ -200,9 +196,7 @@ def test_show_dna_variant_handles_list_consequence_for_oncokb(monkeypatch):
     monkeypatch.setattr(
         dna_repo_module.store.vep_meta_handler, "get_conseq_translations", lambda vep: {}
     )
-    monkeypatch.setattr(
-        dna_repo_module.store.asp_handler, "get_asp_group_mappings", lambda: {}
-    )
+    monkeypatch.setattr(dna_repo_module.store.asp_handler, "get_asp_group_mappings", lambda: {})
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 
     payload = dna.show_dna_variant("S1", "v1", user=fx.api_user(), service=service)
@@ -262,7 +256,6 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
     monkeypatch.setattr(
         dna, "add_global_annotations", lambda variants, assay_group, subpanel: (variants, [])
     )
-    monkeypatch.setattr(dna, "hotspot_variant", lambda variants: variants)
     monkeypatch.setattr(
         dna.util.common, "get_case_and_control_sample_ids", lambda s: {"case": "C1"}
     )
@@ -713,7 +706,16 @@ def test_snv_export_context_route_returns_typed_csv_payload(monkeypatch):
                         "POS": 140453136,
                         "REF": "A",
                         "ALT": "T",
-                        "INFO": {"selected_CSQ": {"SYMBOL": "BRAF", "HGVSp": "p.Val600Glu", "HGVSc": "c.1799T>A", "Consequence": ["missense_variant"], "EXON": "15/18", "INTRON": ""}},
+                        "INFO": {
+                            "selected_CSQ": {
+                                "SYMBOL": "BRAF",
+                                "HGVSp": "p.Val600Glu",
+                                "HGVSc": "c.1799T>A",
+                                "Consequence": ["missense_variant"],
+                                "EXON": "15/18",
+                                "INTRON": "",
+                            }
+                        },
                         "GT": [],
                         "FILTER": ["PASS"],
                         "classification": {"class": 3, "transcript": ""},

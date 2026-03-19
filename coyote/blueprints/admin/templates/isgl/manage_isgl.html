@@ -15,16 +15,15 @@
         <!-- Header -->
         <div class="flex flex-row justify-between items-center gap-4 px-2 py-2">
           <h2 class="text-base font-semibold text-black tracking-wide uppercase">Manage In-Silico Genelists</h2>
-          <div class="relative w-64">
-            <input type="text" id="search-genelist" class="w-full border border-gray-300 rounded-lg py-2 pl-4 pr-10 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="Search Genelists">
-            <div class="absolute inset-y-0 right-0 flex items-center pr-3">
-              <img src="{{ url_for('static', filename='icons/heroicons_outline_24/magnifying-glass.svg') }}" alt="search genelist" class="h-5 w-5 text-gray-500 cursor-pointer" onclick="document.getElementById('search-genelist').focus()">
-            </div>
-          </div>
+          <form method="get" action="{{ url_for('admin_bp.manage_genelists') }}" class="flex items-center gap-2">
+            <input type="text" name="q" value="{{ q or '' }}" class="w-64 border border-gray-300 rounded-lg py-2 px-3 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="Search Genelists">
+            <input type="hidden" name="per_page" value="{{ per_page }}">
+            <button type="submit" class="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm">Search</button>
+          </form>
         </div>
 
         <!-- Table -->
-        <div class="overflow-x-auto rounded-2xl  relative pagination" id="genelists-div" data-rows-per-page="20" pagination-button-color="blue" pagination-button-text-color="black">
+        <div class="overflow-x-auto rounded-2xl relative">
           <table id="genelists-table" class="min-w-full bg-transparent shadow-md rounded-2xl text-xs my-2 overflow-hidden">
             <thead class="rounded-t-2xl overflow-hidden border-gray-800">
               <tr class="border-b text-left border-gray-800 bg-blue-200 uppercase tracking-wider shadow-xl rounded-t-2xl">
@@ -148,6 +147,20 @@
             </tbody>
           </table>
         </div>
+        <div class="mt-3 flex items-center justify-end gap-2 text-xs">
+          <span class="text-gray-600">Total: {{ total }}</span>
+          {% if page > 1 %}
+            <a class="px-2 py-1 rounded border border-gray-300 bg-white" href="{{ url_for('admin_bp.manage_genelists', q=q, page=page-1, per_page=per_page) }}">Prev</a>
+          {% else %}
+            <span class="px-2 py-1 rounded border border-gray-200 text-gray-400">Prev</span>
+          {% endif %}
+          <span class="px-2 py-1 rounded border border-gray-300 bg-gray-50">Page {{ page }}</span>
+          {% if has_next %}
+            <a class="px-2 py-1 rounded border border-gray-300 bg-white" href="{{ url_for('admin_bp.manage_genelists', q=q, page=page+1, per_page=per_page) }}">Next</a>
+          {% else %}
+            <span class="px-2 py-1 rounded border border-gray-200 text-gray-400">Next</span>
+          {% endif %}
+        </div>
 
       </div>
     </section>
@@ -155,36 +168,4 @@
   </main>
 </div>
 
-<script>
-
-  const input = document.getElementById('search-genelist');
-  const body = document.getElementById('genelists-body');
-  const container = document.getElementById('genelists-div');
-  const rowsPerPage = parseInt(container.dataset.rowsPerPage) || 20;
-  const originalRows = [...body.querySelectorAll('tr')].map(r => r.cloneNode(true));
-  const id = body.id;
-
-  input.addEventListener('input', () => {
-    const term = input.value.toLowerCase().trim();
-
-    // Remove any existing pagination controls
-    container.querySelectorAll('[data-prev], [data-next], [data-page-info]').forEach(el => el.parentElement?.remove());
-
-    // Filter rows or reset
-    const filtered = term
-      ? originalRows.filter(row =>
-          [...row.querySelectorAll('td')].slice(0, 4).some(td =>
-            td.textContent.toLowerCase().includes(term)
-          )
-        )
-      : originalRows;
-
-    // Replace table body with filtered or full rows
-    body.innerHTML = '';
-    filtered.forEach(row => body.appendChild(row));
-
-    // Trigger pagination if needed
-    filtered.length > rowsPerPage ? initializePagination() : displayPage(1, id, rowsPerPage);
-  });
-</script>
 {% endblock %}

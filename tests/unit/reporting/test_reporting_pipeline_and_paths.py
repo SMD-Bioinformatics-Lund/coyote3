@@ -123,12 +123,12 @@ def test_prepare_report_output_raises_conflict_when_file_exists(monkeypatch):
     Returns:
         The function result.
     """
+
     class _Logger:
-        """Provide  Logger behavior.
-        """
+        """Provide  Logger behavior."""
+
         def __init__(self):
-            """Handle __init__.
-            """
+            """Handle __init__."""
             self.messages = []
 
         def warning(self, msg):
@@ -182,7 +182,9 @@ def test_persist_report_and_snapshot_writes_report_and_upserts_snapshot(monkeypa
                 save_report=lambda **kwargs: (calls.setdefault("save_report", kwargs), "oid1")[1]
             ),
             reported_variants_handler=SimpleNamespace(
-                bulk_upsert_from_snapshot_rows=lambda **kwargs: calls.setdefault("bulk_upsert", kwargs)
+                bulk_upsert_from_snapshot_rows=lambda **kwargs: calls.setdefault(
+                    "bulk_upsert", kwargs
+                )
             ),
         ),
     )

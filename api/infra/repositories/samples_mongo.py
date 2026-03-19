@@ -6,8 +6,8 @@ from api.extensions import store
 
 
 class MongoSamplesRepository:
-    """Provide mongo samples persistence operations.
-    """
+    """Provide mongo samples persistence operations."""
+
     def add_sample_comment(self, sample_id: str, doc: dict) -> None:
         """Handle add sample comment.
 

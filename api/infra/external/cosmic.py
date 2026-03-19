@@ -1,5 +1,3 @@
-
-
 """
 CosmicHandler module for Coyote3
 ================================

@@ -42,6 +42,11 @@ class _AdminRepoStub:
         """
         return [{"_id": "tester", "user_id": "tester"}]
 
+    def search_users(self, *, q="", page=1, per_page=30):
+        """Search users."""
+        _ = (q, page, per_page)
+        return ([{"_id": "tester", "user_id": "tester"}], 1)
+
     def get_role_colors(self):
         """Return role colors.
 
@@ -273,6 +278,11 @@ class _AdminRepoStub:
         """
         return [{"_id": "admin", "role_id": "admin", "level": 99}]
 
+    def search_roles(self, *, q="", page=1, per_page=30):
+        """Search roles."""
+        _ = (q, page, per_page)
+        return ([{"_id": "admin", "role_id": "admin", "level": 99}], 1)
+
     def get_role(self, role_id):
         """Return role.
 
@@ -357,6 +367,21 @@ class _AdminRepoStub:
                 "is_active": True,
             }
         ]
+
+    def search_permissions(self, *, q="", page=1, per_page=30, is_active=False):
+        """Search permissions."""
+        _ = (q, page, per_page, is_active)
+        return (
+            [
+                {
+                    "_id": "perm.read",
+                    "permission_id": "perm.read",
+                    "category": "General",
+                    "is_active": True,
+                }
+            ],
+            1,
+        )
 
     def get_permission(self, permission_id):
         """Return permission.
@@ -668,7 +693,7 @@ class _AdminRepoStub:
         """
         return ["production"]
 
-    def list_samples_for_admin(self, *, assays, search):
+    def list_samples_for_admin(self, *, assays, search, page=1, per_page=30):
         """List samples for admin.
 
         Args:
@@ -678,7 +703,28 @@ class _AdminRepoStub:
         Returns:
             The function result.
         """
-        return [{"_id": "S1"}]
+        _ = (assays, search, page, per_page)
+        return ([{"_id": "S1"}], 1)
+
+    def search_panels(self, *, q="", page=1, per_page=30, is_active=None):
+        """Search panels."""
+        _ = (q, page, per_page, is_active)
+        return ([{"_id": "asp1"}], 1)
+
+    def search_genelists(self, *, q="", page=1, per_page=30):
+        """Search genelists."""
+        _ = (q, page, per_page)
+        return ([{"_id": "isgl1"}], 1)
+
+    def search_assay_configs(self, *, q="", page=1, per_page=30):
+        """Search assay configs."""
+        _ = (q, page, per_page)
+        return ([{"_id": "aspc1"}], 1)
+
+    def search_schemas(self, *, q="", page=1, per_page=30):
+        """Search schemas."""
+        _ = (q, page, per_page)
+        return ([{"_id": "schema1"}], 1)
 
     def get_sample(self, sample_id):
         """Return sample.

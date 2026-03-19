@@ -681,6 +681,34 @@ class SampleHandler(BaseHandler):
 
         return samples
 
+    def search_samples_for_admin(
+        self,
+        *,
+        assays: list[str] | None = None,
+        search_str: str = "",
+        page: int = 1,
+        per_page: int = 30,
+    ) -> tuple[list[dict], int]:
+        """Search samples in MongoDB for admin listings with pagination."""
+        query: dict[str, Any] = {}
+        if assays:
+            query["assay"] = {"$in": assays}
+        normalized_q = str(search_str or "").strip()
+        if normalized_q:
+            pattern = re.escape(normalized_q)
+            query["$or"] = [
+                {"name": {"$regex": pattern, "$options": "i"}},
+                {"assay": {"$regex": pattern, "$options": "i"}},
+                {"profile": {"$regex": pattern, "$options": "i"}},
+            ]
+        page = max(1, int(page or 1))
+        per_page = max(1, min(int(per_page or 30), 200))
+        skip = (page - 1) * per_page
+        col = self.get_collection()
+        total = int(col.count_documents(query))
+        docs = list(col.find(query).sort("time_added", -1).skip(skip).limit(per_page))
+        return docs, total
+
     def delete_sample(self, sample_oid: str) -> None:
         """
         Delete a sample from the database.

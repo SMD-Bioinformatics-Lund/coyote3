@@ -1,4 +1,3 @@
-
 """Shared schema validation constants for admin config flows."""
 
 REQUIRED_SCHEMA_KEYS = [
@@ -12,4 +11,3 @@ REQUIRED_SCHEMA_KEYS = [
     "fields",
     "subschemas",
 ]
-

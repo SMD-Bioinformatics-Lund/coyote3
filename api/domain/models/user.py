@@ -1,4 +1,3 @@
-
 """
 Coyote3 User Model
 
@@ -111,8 +110,7 @@ class UserModel(BaseModel):
             asp_map[asp_category][asp_technology][asp_group].append(asp_name)
 
         merged_permissions = list(
-            set(user_doc.get("permissions", []))
-            | set(role_doc.get("permissions", []))
+            set(user_doc.get("permissions", [])) | set(role_doc.get("permissions", []))
         )
         merged_denied = list(
             set(user_doc.get("denied_permissions", []))
@@ -301,11 +299,7 @@ class UserModel(BaseModel):
         Returns:
             Optional[str]: The last login timestamp in '%Y-%m-%d %H:%M:%S' format, or None if not set.
         """
-        return (
-            self.last_login.strftime("%Y-%m-%d %H:%M:%S")
-            if self.last_login
-            else None
-        )
+        return self.last_login.strftime("%Y-%m-%d %H:%M:%S") if self.last_login else None
 
     def formatted_created(self) -> Optional[str]:
         """
@@ -314,11 +308,7 @@ class UserModel(BaseModel):
         Returns:
             Optional[str]: The creation timestamp in '%Y-%m-%d %H:%M:%S' format, or None if not set.
         """
-        return (
-            self.created.strftime("%Y-%m-%d %H:%M:%S")
-            if self.created
-            else None
-        )
+        return self.created.strftime("%Y-%m-%d %H:%M:%S") if self.created else None
 
     def formatted_updated(self) -> Optional[str]:
         """
@@ -327,8 +317,4 @@ class UserModel(BaseModel):
         Returns:
             Optional[str]: The updated timestamp in '%Y-%m-%d %H:%M:%S' format, or None if not set.
         """
-        return (
-            self.updated.strftime("%Y-%m-%d %H:%M:%S")
-            if self.updated
-            else None
-        )
+        return self.updated.strftime("%Y-%m-%d %H:%M:%S") if self.updated else None

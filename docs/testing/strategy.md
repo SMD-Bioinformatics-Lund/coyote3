@@ -259,12 +259,21 @@ Coverage is required as a quality signal and prioritization tool.
 ```bash
 PYTHONPATH=. .venv/bin/pytest -q tests
 ./scripts/run_tests_with_coverage.sh
+./scripts/run_family_coverage_gates.sh
 ```
 
 Coverage execution is standardized through `.coveragerc` and the project script.
 This command is the release gate for coverage evidence and produces:
 - terminal missing-lines coverage output
 - HTML report at `.coverage_html/index.html`
+
+The family gate command enforces independent minimum coverage thresholds for:
+- `api/core`
+- `api/services`
+- `api/routers`
+- `coyote/blueprints`
+
+Thresholds are configured via environment variables and default to project baselines.
 
 ## 9.2 Coverage policy guidance
 - use coverage to prioritize high-risk untested code

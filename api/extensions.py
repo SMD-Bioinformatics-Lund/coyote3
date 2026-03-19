@@ -35,6 +35,7 @@ class _LazyHandlerProxy:
         Returns:
                 The __getattr__ result.
         """
+
         def _missing(*_args, **_kwargs):
             """Handle  missing.
 

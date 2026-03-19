@@ -1,4 +1,3 @@
-
 """RNA report preview/save routes."""
 
 from flask import Response, redirect, url_for

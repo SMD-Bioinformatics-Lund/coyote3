@@ -95,12 +95,17 @@ def manage_assay_panels():
     Returns:
         The rendered management page response.
     """
+    q = (request.args.get("q") or "").strip()
+    page = max(1, request.args.get("page", default=1, type=int) or 1)
+    per_page = max(1, min(request.args.get("per_page", default=30, type=int) or 30, 200))
     try:
         payload = get_web_api_client().get_json(
             api_endpoints.admin("asp"),
             headers=forward_headers(),
+            params={"q": q, "page": page, "per_page": per_page},
         )
         panels = payload.panels
+        pagination = payload.get("pagination", {})
     except ApiRequestError as exc:
         raise_page_load_error(
             exc,
@@ -108,7 +113,15 @@ def manage_assay_panels():
             log_message="Failed to fetch assay panels",
             summary="Unable to load assay panels.",
         )
-    return render_template("asp/manage_asp.html", panels=panels)
+    return render_template(
+        "asp/manage_asp.html",
+        panels=panels,
+        q=q,
+        page=pagination.get("page", page),
+        per_page=pagination.get("per_page", per_page),
+        total=pagination.get("total", 0),
+        has_next=pagination.get("has_next", False),
+    )
 
 
 @admin_bp.route("/asp/new", methods=["GET", "POST"])

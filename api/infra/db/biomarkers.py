@@ -1,5 +1,3 @@
-
-
 """
 BiomarkerHandler module for Coyote3
 ===================================

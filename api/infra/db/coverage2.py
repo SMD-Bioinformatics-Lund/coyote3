@@ -1,4 +1,3 @@
-
 """
 CoverageHandler2 module for Coyote3
 ===================================

@@ -18,10 +18,17 @@ from api.services.admin_resource_service import AdminPanelService
 router = APIRouter(tags=["resource-asp"])
 
 
-@router.post("/api/v1/resources/asp", response_model=AdminMutationPayload, status_code=201, summary="Create assay panel")
+@router.post(
+    "/api/v1/resources/asp",
+    response_model=AdminMutationPayload,
+    status_code=201,
+    summary="Create assay panel",
+)
 def create_asp_mutation(
     payload: dict = Body(default_factory=dict),
-    user: ApiUser = Depends(require_access(permission="create_asp", min_role="manager", min_level=99)),
+    user: ApiUser = Depends(
+        require_access(permission="create_asp", min_role="manager", min_level=99)
+    ),
     service: AdminPanelService = Depends(get_admin_panel_service),
 ):
     """Create asp mutation.
@@ -40,6 +47,9 @@ def create_asp_mutation(
 
 @router.get("/api/v1/resources/asp", response_model=AdminPanelsListPayload)
 def list_asp_read(
+    q: str = Query(default=""),
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=30, ge=1, le=200),
     user: ApiUser = Depends(require_access(permission="view_asp", min_role="user", min_level=9)),
     service: AdminPanelService = Depends(get_admin_panel_service),
 ):
@@ -53,13 +63,17 @@ def list_asp_read(
         The function result.
     """
     _ = user
-    return util.common.convert_to_serializable(service.list_payload())
+    return util.common.convert_to_serializable(
+        service.list_payload(q=q, page=page, per_page=per_page)
+    )
 
 
 @router.get("/api/v1/resources/asp/create_context", response_model=AdminPanelCreateContextPayload)
 def create_asp_context_read(
     schema_id: str | None = Query(default=None),
-    user: ApiUser = Depends(require_access(permission="create_asp", min_role="manager", min_level=99)),
+    user: ApiUser = Depends(
+        require_access(permission="create_asp", min_role="manager", min_level=99)
+    ),
     service: AdminPanelService = Depends(get_admin_panel_service),
 ):
     """Create asp context read.
@@ -77,7 +91,9 @@ def create_asp_context_read(
     )
 
 
-@router.get("/api/v1/resources/asp/{assay_panel_id}/context", response_model=AdminPanelContextPayload)
+@router.get(
+    "/api/v1/resources/asp/{assay_panel_id}/context", response_model=AdminPanelContextPayload
+)
 def asp_context_read(
     assay_panel_id: str,
     user: ApiUser = Depends(require_access(permission="view_asp", min_role="user", min_level=9)),
@@ -97,11 +113,17 @@ def asp_context_read(
     return util.common.convert_to_serializable(service.context_payload(panel_id=assay_panel_id))
 
 
-@router.put("/api/v1/resources/asp/{assay_panel_id}", response_model=AdminMutationPayload, summary="Update assay panel")
+@router.put(
+    "/api/v1/resources/asp/{assay_panel_id}",
+    response_model=AdminMutationPayload,
+    summary="Update assay panel",
+)
 def update_asp_mutation(
     assay_panel_id: str,
     payload: dict = Body(default_factory=dict),
-    user: ApiUser = Depends(require_access(permission="edit_asp", min_role="manager", min_level=99)),
+    user: ApiUser = Depends(
+        require_access(permission="edit_asp", min_role="manager", min_level=99)
+    ),
     service: AdminPanelService = Depends(get_admin_panel_service),
 ):
     """Update asp mutation.
@@ -116,13 +138,21 @@ def update_asp_mutation(
         The function result.
     """
     _ = user
-    return util.common.convert_to_serializable(service.update(panel_id=assay_panel_id, payload=payload))
+    return util.common.convert_to_serializable(
+        service.update(panel_id=assay_panel_id, payload=payload)
+    )
 
 
-@router.patch("/api/v1/resources/asp/{assay_panel_id}/status", response_model=AdminMutationPayload, summary="Toggle assay panel status")
+@router.patch(
+    "/api/v1/resources/asp/{assay_panel_id}/status",
+    response_model=AdminMutationPayload,
+    summary="Toggle assay panel status",
+)
 def toggle_asp_mutation(
     assay_panel_id: str,
-    user: ApiUser = Depends(require_access(permission="edit_asp", min_role="manager", min_level=99)),
+    user: ApiUser = Depends(
+        require_access(permission="edit_asp", min_role="manager", min_level=99)
+    ),
     service: AdminPanelService = Depends(get_admin_panel_service),
 ):
     """Toggle asp mutation.
@@ -139,10 +169,16 @@ def toggle_asp_mutation(
     return util.common.convert_to_serializable(service.toggle(panel_id=assay_panel_id))
 
 
-@router.delete("/api/v1/resources/asp/{assay_panel_id}", response_model=AdminMutationPayload, summary="Delete assay panel")
+@router.delete(
+    "/api/v1/resources/asp/{assay_panel_id}",
+    response_model=AdminMutationPayload,
+    summary="Delete assay panel",
+)
 def delete_asp_mutation(
     assay_panel_id: str,
-    user: ApiUser = Depends(require_access(permission="delete_asp", min_role="admin", min_level=99999)),
+    user: ApiUser = Depends(
+        require_access(permission="delete_asp", min_role="admin", min_level=99999)
+    ),
     service: AdminPanelService = Depends(get_admin_panel_service),
 ):
     """Delete asp mutation.

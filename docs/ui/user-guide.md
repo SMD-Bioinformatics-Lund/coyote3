@@ -151,7 +151,7 @@ This keeps behavior stable now and allows user-configurable defaults later witho
 Selecting a sample opens a detail/edit context page where report access, gene-related actions, and workflow-specific links are available based on assay and permissions.
 
 ### 5.6 Dashboard visualization behavior
-The operational dashboard is a summary of throughput, quality, assay load, and catalog/system capacity.  
+The operational dashboard is a summary of throughput, quality, assay load, and catalog/system capacity.
 All values are derived from `/api/v1/dashboard/summary` and rendered as cards + charts.
 
 Primary KPI cards:

@@ -6,8 +6,8 @@ from api.extensions import store
 
 
 class MongoCommonRepository:
-    """Provide mongo common persistence operations.
-    """
+    """Provide mongo common persistence operations."""
+
     def get_hgnc_metadata_by_id(self, hgnc_id: str) -> dict | None:
         """Return hgnc metadata by id.
 

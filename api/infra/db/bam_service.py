@@ -1,5 +1,3 @@
-
-
 """
 BamServiceHandler module for Coyote3
 ====================================
@@ -9,7 +7,6 @@ BAM service data in MongoDB.
 
 It is part of the `coyote.db` package and extends the base handler functionality.
 """
-
 
 # -------------------------------------------------------------------------
 # Imports
@@ -60,9 +57,7 @@ class BamServiceHandler(BaseHandler):
         """
         bam_id = {}
         for sample in sample_ids:
-            bams = list(
-                self.get_collection().find({"id": str(sample_ids[sample])})
-            )
+            bams = list(self.get_collection().find({"id": str(sample_ids[sample])}))
             for bam in bams:
                 if sample_ids[sample] == bam["id"]:
                     if bam["id"] in bam_id:

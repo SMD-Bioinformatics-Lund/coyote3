@@ -6,8 +6,8 @@ from api.core.admin.ports import AdminSampleDeletionRepository
 
 
 class SampleDeletionService:
-    """Provide sample deletion workflows.
-    """
+    """Provide sample deletion workflows."""
+
     _repository: AdminSampleDeletionRepository | None = None
 
     @classmethod

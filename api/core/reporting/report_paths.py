@@ -27,7 +27,9 @@ def build_report_file_location(
     report_timestamp = get_report_timestamp()
 
     if control_id:
-        report_id = f"{case_id}_{clarity_case_id}-{control_id}_{clarity_control_id}.{report_timestamp}"
+        report_id = (
+            f"{case_id}_{clarity_case_id}-{control_id}_{clarity_control_id}.{report_timestamp}"
+        )
     else:
         report_id = f"{case_id}_{clarity_case_id}.{report_timestamp}"
 

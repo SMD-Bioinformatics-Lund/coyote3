@@ -1,5 +1,3 @@
-
-
 """
 ExpressionHandler module for Coyote3
 ====================================
@@ -63,8 +61,6 @@ class ExpressionHandler(BaseHandler):
 
         expression_dict = {}
         for transcript_expression in expression:
-            expression_dict[transcript_expression["tid"]] = (
-                transcript_expression["expr"]
-            )
+            expression_dict[transcript_expression["tid"]] = transcript_expression["expr"]
 
         return expression_dict

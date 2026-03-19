@@ -35,12 +35,7 @@ class CommonUtility:
                 if isinstance(item, str):
                     fields.append(item)
                 elif isinstance(item, dict):
-                    key = (
-                        item.get("key")
-                        or item.get("id")
-                        or item.get("name")
-                        or item.get("field")
-                    )
+                    key = item.get("key") or item.get("id") or item.get("name") or item.get("field")
                     if key:
                         fields.append(str(key))
 

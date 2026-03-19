@@ -1,4 +1,3 @@
-
 """
 This module defines form classes for filtering and processing gene fusion events in genomic data analysis.
 It provides Flask-WTF forms to customize filtering criteria, including fusion lists, caller tools, read thresholds, and effect types.

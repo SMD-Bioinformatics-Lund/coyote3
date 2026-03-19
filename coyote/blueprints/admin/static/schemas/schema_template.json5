@@ -1,6 +1,6 @@
 {
   // This is an example schema format
-  // Remove all the comment lines before submitting 
+  // Remove all the comment lines before submitting
 
 
   // Unique ID used as MongoDB _id (same as schema_name)

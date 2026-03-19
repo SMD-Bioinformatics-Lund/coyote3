@@ -10,8 +10,8 @@ from api.repositories.dashboard_repository import DashboardRepository as MongoDa
 
 
 class DashboardService:
-    """Provide dashboard workflows.
-    """
+    """Provide dashboard workflows."""
+
     def __init__(self, repository=None) -> None:
         """Handle __init__.
 
@@ -150,7 +150,11 @@ class DashboardService:
         if effective_role == "admin":
             return None
 
-        scoped_assays = fresh_user_doc.get("assays") if isinstance(fresh_user_doc.get("assays"), list) else user.assays
+        scoped_assays = (
+            fresh_user_doc.get("assays")
+            if isinstance(fresh_user_doc.get("assays"), list)
+            else user.assays
+        )
         scoped_groups = (
             fresh_user_doc.get("assay_groups")
             if isinstance(fresh_user_doc.get("assay_groups"), list)
@@ -198,7 +202,9 @@ class DashboardService:
             timings_ms[name] = round((perf_counter() - t0) * 1000, 2)
             return value
 
-        sample_rollup_global = _timed("sample_rollup_global", lambda: self.repository.get_dashboard_sample_rollup(assays=None))
+        sample_rollup_global = _timed(
+            "sample_rollup_global", lambda: self.repository.get_dashboard_sample_rollup(assays=None)
+        )
         sample_rollup_scoped = _timed(
             "sample_rollup_scoped",
             lambda: self.repository.get_dashboard_sample_rollup(assays=scope_assays),
@@ -233,14 +239,20 @@ class DashboardService:
             "fps": int(variant_rollup.get("fps", 0) or 0),
         }
 
-        analysed_rate = round((analysed_samples_count / total_samples_count) * 100, 2) if total_samples_count else 0.0
+        analysed_rate = (
+            round((analysed_samples_count / total_samples_count) * 100, 2)
+            if total_samples_count
+            else 0.0
+        )
         fp_rate = (
             round((int(unique_fp_variants or 0) / int(unique_total_variants or 0)) * 100, 2)
             if unique_total_variants
             else 0.0
         )
         blacklist_rate = (
-            round((int(unique_blacklisted_variants or 0) / int(unique_total_variants or 0)) * 100, 2)
+            round(
+                (int(unique_blacklisted_variants or 0) / int(unique_total_variants or 0)) * 100, 2
+            )
             if unique_total_variants
             else 0.0
         )
@@ -274,4 +286,3 @@ class DashboardService:
         if str(user.role or "").strip().lower() == "admin":
             payload["admin_insights"] = _timed("admin_insights", self.build_admin_insights)
         return payload
-

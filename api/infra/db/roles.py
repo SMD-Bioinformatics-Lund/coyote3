@@ -11,6 +11,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+import re
 from typing import Any
 
 from api.infra.db.base import BaseHandler
@@ -114,6 +115,28 @@ class RolesHandler(BaseHandler):
             list: A list of role documents sorted by their `level` field in descending order.
         """
         return list(self.get_collection().find({}).sort("level", -1))
+
+    def search_roles(
+        self, *, q: str = "", page: int = 1, per_page: int = 30
+    ) -> tuple[list[dict], int]:
+        """Search roles directly in MongoDB and return paged results."""
+        normalized_q = str(q or "").strip()
+        query: dict = {}
+        if normalized_q:
+            pattern = re.escape(normalized_q)
+            query["$or"] = [
+                {"role_id": {"$regex": pattern, "$options": "i"}},
+                {"label": {"$regex": pattern, "$options": "i"}},
+                {"description": {"$regex": pattern, "$options": "i"}},
+                {"color": {"$regex": pattern, "$options": "i"}},
+            ]
+        page = max(1, int(page or 1))
+        per_page = max(1, min(int(per_page or 30), 200))
+        skip = (page - 1) * per_page
+        col = self.get_collection()
+        total = int(col.count_documents(query))
+        docs = list(col.find(query).sort("level", -1).skip(skip).limit(per_page))
+        return docs, total
 
     def get_all_role_names(self) -> list:
         """

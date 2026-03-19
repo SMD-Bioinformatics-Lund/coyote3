@@ -11,6 +11,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+import re
 from typing import Any
 
 from pymongo import cursor
@@ -116,6 +117,31 @@ class ASPConfigHandler(BaseHandler):
             pymongo.cursor.Cursor: A cursor to iterate over all assay configuration documents.
         """
         return self.get_collection().find({})
+
+    def search_aspcs(
+        self, *, q: str = "", page: int = 1, per_page: int = 30
+    ) -> tuple[list[dict], int]:
+        """Search assay configs directly in MongoDB and return paged results."""
+        query: dict = {}
+        normalized_q = str(q or "").strip()
+        if normalized_q:
+            pattern = re.escape(normalized_q)
+            query["$or"] = [
+                {"aspc_id": {"$regex": pattern, "$options": "i"}},
+                {"assay_name": {"$regex": pattern, "$options": "i"}},
+                {"environment": {"$regex": pattern, "$options": "i"}},
+                {"assay_type": {"$regex": pattern, "$options": "i"}},
+                {"category": {"$regex": pattern, "$options": "i"}},
+            ]
+        page = max(1, int(page or 1))
+        per_page = max(1, min(int(per_page or 30), 200))
+        skip = (page - 1) * per_page
+        col = self.get_collection()
+        total = int(col.count_documents(query))
+        docs = list(
+            col.find(query).sort([("assay_name", 1), ("environment", 1)]).skip(skip).limit(per_page)
+        )
+        return docs, total
 
     def get_aspc(self, assay: str, profile: str = "production") -> dict | None:
         """

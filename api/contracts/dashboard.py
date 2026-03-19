@@ -8,8 +8,8 @@ from pydantic import BaseModel
 
 
 class DashboardSummaryPayload(BaseModel):
-    """Represent the dashboard summary payload.
-    """
+    """Represent the dashboard summary payload."""
+
     total_samples: int
     analysed_samples: int
     pending_samples: int

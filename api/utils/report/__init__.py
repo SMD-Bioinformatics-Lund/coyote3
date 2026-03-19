@@ -3,4 +3,3 @@
 from api.utils.report.report_util import ReportUtility
 
 __all__ = ["ReportUtility"]
-

@@ -6,8 +6,8 @@ from api.extensions import store
 
 
 class MongoHomeRepository:
-    """Provide mongo home persistence operations.
-    """
+    """Provide mongo home persistence operations."""
+
     def get_samples(
         self,
         *,

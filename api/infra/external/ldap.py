@@ -31,8 +31,7 @@ class LdapManager:
     """Framework-neutral LDAP manager used by API auth service."""
 
     def __init__(self) -> None:
-        """Handle __init__.
-        """
+        """Handle __init__."""
         self._config: dict = {}
         self._server: Server | None = None
 
@@ -127,9 +126,7 @@ class LdapManager:
             read_only=read_only,
         )
 
-    def _lookup_user_dn(
-        self, username: str, base_dn: str, attribute: str
-    ) -> str | None:
+    def _lookup_user_dn(self, username: str, base_dn: str, attribute: str) -> str | None:
         """Handle  lookup user dn.
 
         Args:
@@ -151,9 +148,7 @@ class LdapManager:
                 read_only=True,
             )
         except LDAPSocketOpenError:
-            LOG.error(
-                "LDAP socket open failed during DN lookup (host unreachable or invalid)"
-            )
+            LOG.error("LDAP socket open failed during DN lookup (host unreachable or invalid)")
             return None
         try:
             user_filter = f"({attribute}={username})"

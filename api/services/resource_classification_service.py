@@ -33,7 +33,9 @@ class ResourceClassificationService:
         return [text] if text else []
 
     @staticmethod
-    def mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict[str, Any]:
+    def mutation_payload(
+        sample_id: str, resource: str, resource_id: str, action: str
+    ) -> dict[str, Any]:
         """Handle mutation payload.
 
         Args:
@@ -113,7 +115,9 @@ class ResourceClassificationService:
             hgvs_g = f"{var['CHROM']}:{var['POS']}:{var['REF']}/{var['ALT']}"
             consequence = self._consequence_list(selected_csq.get("Consequence"))
             gene_oncokb = self.repository.oncokb_handler.get_oncokb_gene(gene)
-            text = create_annotation_text_fn(gene, consequence, assay_group, gene_oncokb=gene_oncokb)
+            text = create_annotation_text_fn(
+                gene, consequence, assay_group, gene_oncokb=gene_oncokb
+            )
 
             nomenclature = "p"
             if hgvs_p not in {"", None}:
@@ -168,7 +172,9 @@ class ResourceClassificationService:
             gene_label = None
             if genes:
                 first_gene = genes[0]
-                gene_label = first_gene.get("gene") if isinstance(first_gene, dict) else str(first_gene)
+                gene_label = (
+                    first_gene.get("gene") if isinstance(first_gene, dict) else str(first_gene)
+                )
             return {
                 "variant": f"{cnv.get('chr')}:{cnv.get('start')}-{cnv.get('end')}",
                 "nomenclature": "cn",
@@ -185,7 +191,9 @@ class ResourceClassificationService:
             transloc = self.repository.transloc_handler.get_transloc(str(resource_id))
             if not transloc or str(transloc.get("SAMPLE_ID")) != str(sample.get("_id")):
                 return None
-            annotations = transloc.get("INFO", {}).get("MANE_ANN") or transloc.get("INFO", {}).get("ANN", [])
+            annotations = transloc.get("INFO", {}).get("MANE_ANN") or transloc.get("INFO", {}).get(
+                "ANN", []
+            )
             gene_label = None
             if annotations:
                 first_annotation = annotations[0]
@@ -307,7 +315,9 @@ class ResourceClassificationService:
         if class_num != 0:
             enriched_form = dict(form_data)
             enriched_form.setdefault("resource_type", self.normalize_resource_type(resource_type))
-            self.repository.annotation_handler.insert_classified_variant(variant, nomenclature, class_num, enriched_form)
+            self.repository.annotation_handler.insert_classified_variant(
+                variant, nomenclature, class_num, enriched_form
+            )
 
     def remove_resource(
         self,
@@ -329,7 +339,9 @@ class ResourceClassificationService:
         nomenclature, variant = get_variant_nomenclature_fn(form_data)
         enriched_form = dict(form_data)
         enriched_form.setdefault("resource_type", self.normalize_resource_type(resource_type))
-        self.repository.annotation_handler.delete_classified_variant(variant, nomenclature, enriched_form)
+        self.repository.annotation_handler.delete_classified_variant(
+            variant, nomenclature, enriched_form
+        )
 
 
 __all__ = ["ResourceClassificationService"]

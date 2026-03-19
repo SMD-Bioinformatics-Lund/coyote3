@@ -20,8 +20,8 @@ _SENSITIVE_KEYS = {
 
 @dataclass
 class ApiRequestError(Exception):
-    """Represent the api request error type.
-    """
+    """Represent the api request error type."""
+
     message: str
     status_code: int | None = None
     payload: Any | None = None
@@ -106,9 +106,11 @@ def _to_builtin(value: Any) -> Any:
 
 
 class BaseApiClient:
-    """Provide the base api client type.
-    """
-    def __init__(self, base_url: str, timeout_seconds: float = 30.0, client: httpx.Client | None = None) -> None:
+    """Provide the base api client type."""
+
+    def __init__(
+        self, base_url: str, timeout_seconds: float = 30.0, client: httpx.Client | None = None
+    ) -> None:
         """Handle __init__.
 
         Args:

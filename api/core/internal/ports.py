@@ -15,6 +15,7 @@ class InternalRepository(Protocol):
             list[dict]: The function result.
         """
         ...
+
     def is_isgl_adhoc(self, isgl_id: str) -> bool:
         """Return whether isgl adhoc is true.
 
@@ -25,6 +26,7 @@ class InternalRepository(Protocol):
             bool: The function result.
         """
         ...
+
     def get_isgl_display_name(self, isgl_id: str) -> str | None:
         """Return isgl display name.
 

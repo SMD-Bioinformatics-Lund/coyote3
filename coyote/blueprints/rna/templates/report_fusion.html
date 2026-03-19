@@ -16,7 +16,7 @@
 <span class="report_header">{{ report_header }} - {{ sample.name }}</span>
 
 <!--  Report Patient/Analysis Information -->
-<div class="report_div"> 
+<div class="report_div">
   <table class='report_general'>
     <tr>
       <td class="top_report_key">Patientnamn</td>
@@ -86,7 +86,7 @@
     <tr><th>Fusion/exon skipping</th><th>Klassificering</th></tr>
   {% endif %}
 
-  {% for var in fusions|sort( attribute='classification.class' ) 
+  {% for var in fusions|sort( attribute='classification.class' )
     if (not var.blacklist and var.classification.class != 999 and var.classification.class != 4) %}
       {% set sel_fus = fusion %}
       <tr>
@@ -97,7 +97,7 @@
       <tr>
         <td>Inga detekterade fusioner</td>
         <td></td>
-      </tr>  
+      </tr>
   {% endfor %}
 </table>
 
@@ -127,7 +127,7 @@
 {% elif assay== "fusionrna" %}
   <span class="report_header">Detekterade fusioner och exon skipping</span>
 {% endif %}
-{% for var in fusions|sort( attribute='classification.class' ) 
+{% for var in fusions|sort( attribute='classification.class' )
      if not var.blacklist and var.classification.class != 999 and var.classification.class != 4 %}
       {% set sel_fus = (var.calls|selectattr('selected', 'equalto', 1) |list)[0] %}
       <div class=report_div style="page-break-inside:avoid;">
@@ -138,7 +138,7 @@
           <tr>
             <td class="report_key">Gener</td>
             <td class="var_report_val">{{ var.gene1 }} - {{ var.gene2}}</td>
-            
+
             <td class="report_key">Effekt</td>
             <td class="var_report_val">
               {% if sel_fus.spanpairs|int > 0 %}
@@ -147,7 +147,7 @@
                 NA
               {% endif %}
             </td>
-      
+
             <td class="report_key">Fusionspunkter</td>
             <td class="var_report_val">
               {% if sel_fus.spanpairs|int > 0 %}
@@ -155,15 +155,15 @@
               {% else %}
                 NA
               {% endif %}
-            </td>       
+            </td>
           </tr>
           <tr>
             <td class="report_key">Antal läsningar</td>
             <td class="var_report_val">{{ sel_fus.spanreads }}</td>
-      
+
             <td class="report_key">Antal läs-par</td>
             <td class="var_report_val">{{sel_fus.spanpairs }}</td>
-           
+
             <td class="report_key">Längsta ankarsekvens</td>
             <td class="var_report_val">
               {% if sel_fus.longestanchor %}
@@ -177,17 +177,17 @@
           <tr>
             <td class="report_key">Klassificering</td>
             <td class="report_annotation" colspan=5> {{ var.classification.class|format_tier }} - {{ class_desc[var.classification.class] }}<br></td>
-          </tr>  
+          </tr>
           {% endif %}
-          
-          {% if var.global_annotations|length > 0 %}    
+
+          {% if var.global_annotations|length > 0 %}
           <tr>
             <td class="report_key">Kommentar</td>
             {% set sorted_annos = var.global_annotations|sort(attribute="time_created", reverse=True) %}
             <td class="report_annotation" colspan=5>{{ sorted_annos[0].text|format_comment|safe }}</td>
           </tr>
           {% endif %}
-      
+
           {% if var.comments|length > 0 and 1==2 %} {# DO NOT SHOW COMMENTS EVER #}
           <tr>
             <td class="report_key">Kommentar</td>
@@ -204,7 +204,7 @@
       <tr>
         <td>Inga detekterade fusioner</td>
         <td></td>
-      </tr> 
+      </tr>
 {% endfor %}
 
 <!-- Quality control parameters in the sample -->
@@ -232,7 +232,7 @@
   <p>
     <b>Tabell: Förklaring av klassificering</b><p>
     <table class="info">
-      <tr><td>Tier I</td> 
+      <tr><td>Tier I</td>
           <td>Variant av stark klinisk signifikans (innefattar varianter i gener som finns med i internationella/nationella riktlinjer)</td>
         </tr>
       <tr>
@@ -247,12 +247,12 @@
         <td>Tier IV</td>
         <td>Variant bedömd som benign eller sannolikt benign</td>
       </tr>
-    </table>    
-    
+    </table>
+
     <p>
     <b>Referenser</b>
     <p>
-    [1] Standards and guidelines for the interpretation and reporting of sequence variants in cancer. Li et al, Journal of Molecular Diagnostics, 2017.   
+    [1] Standards and guidelines for the interpretation and reporting of sequence variants in cancer. Li et al, Journal of Molecular Diagnostics, 2017.
 </div>
 
 <script>

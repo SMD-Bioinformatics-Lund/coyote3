@@ -77,7 +77,9 @@ def emit_access_event(
     Returns:
         None.
     """
-    normalized_status = "failed" if status == "denied" else ("success" if status in {"allowed", "ok"} else status)
+    normalized_status = (
+        "failed" if status == "denied" else ("success" if status in {"allowed", "ok"} else status)
+    )
     event = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "reason": reason,
@@ -128,7 +130,9 @@ def emit_mutation_event(
     Returns:
         None.
     """
-    derived_status = "error" if int(status_code) >= 500 else ("failed" if int(status_code) >= 400 else "success")
+    derived_status = (
+        "error" if int(status_code) >= 500 else ("failed" if int(status_code) >= 400 else "success")
+    )
     event = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "status_code": int(status_code),
@@ -146,7 +150,11 @@ def emit_mutation_event(
         source="api",
         action="mutation",
         status=derived_status,
-        severity="error" if derived_status == "error" else ("warning" if derived_status == "failed" else "info"),
+        severity=(
+            "error"
+            if derived_status == "error"
+            else ("warning" if derived_status == "failed" else "info")
+        ),
         **event,
     )
 
@@ -171,7 +179,9 @@ def emit_request_event(
     Returns:
         None.
     """
-    derived_status = "error" if int(status_code) >= 500 else ("failed" if int(status_code) >= 400 else "success")
+    derived_status = (
+        "error" if int(status_code) >= 500 else ("failed" if int(status_code) >= 400 else "success")
+    )
     event = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "status_code": int(status_code),
@@ -188,6 +198,10 @@ def emit_request_event(
         source="api",
         action="request",
         status=derived_status,
-        severity="error" if derived_status == "error" else ("warning" if derived_status == "failed" else "info"),
+        severity=(
+            "error"
+            if derived_status == "error"
+            else ("warning" if derived_status == "failed" else "info")
+        ),
         **event,
     )

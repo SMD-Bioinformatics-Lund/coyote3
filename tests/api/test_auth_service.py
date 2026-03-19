@@ -8,8 +8,8 @@ from api.security import auth_service
 
 
 class _FakeRepo:
-    """Provide  FakeRepo behavior.
-    """
+    """Provide  FakeRepo behavior."""
+
     def __init__(self, by_username=None, by_id=None):
         """Handle __init__.
 
@@ -88,7 +88,10 @@ def test_resolve_user_identity_prefers_business_key():
     Returns:
         The function result.
     """
-    assert auth_service.resolve_user_identity({"username": "coyote3.admin", "_id": "legacy"}) == "coyote3.admin"
+    assert (
+        auth_service.resolve_user_identity({"username": "coyote3.admin", "_id": "legacy"})
+        == "coyote3.admin"
+    )
     assert auth_service.resolve_user_identity({"_id": "legacy"}) == ""
 
 
@@ -174,7 +177,11 @@ def test_authenticate_credentials_internal_auth_path(monkeypatch):
     user_doc = {"username": "tester", "auth_type": "coyote3", "password": "HASH", "is_active": True}
     monkeypatch.setattr(auth_service, "_lookup_user_doc", lambda _username: user_doc)
     monkeypatch.setattr(auth_service, "_is_local_auth_allowlisted", lambda *_: False)
-    monkeypatch.setattr(auth_service.UserModel, "validate_login", lambda hashed, raw: hashed == "HASH" and raw == "secret")
+    monkeypatch.setattr(
+        auth_service.UserModel,
+        "validate_login",
+        lambda hashed, raw: hashed == "HASH" and raw == "secret",
+    )
     monkeypatch.setattr(auth_service, "_ldap_authenticate", lambda *_: False)
 
     assert auth_service.authenticate_credentials("tester", "secret") == user_doc
@@ -187,7 +194,11 @@ def test_authenticate_credentials_external_ldap_path(monkeypatch):
     monkeypatch.setattr(auth_service, "_lookup_user_doc", lambda _username: user_doc)
     monkeypatch.setattr(auth_service, "_is_local_auth_allowlisted", lambda *_: False)
     monkeypatch.setattr(auth_service.UserModel, "validate_login", lambda *_: False)
-    monkeypatch.setattr(auth_service, "_ldap_authenticate", lambda username, password: username == "tester" and password == "secret")
+    monkeypatch.setattr(
+        auth_service,
+        "_ldap_authenticate",
+        lambda username, password: username == "tester" and password == "secret",
+    )
 
     assert auth_service.authenticate_credentials("tester", "secret") == user_doc
     assert auth_service.authenticate_credentials("tester", "wrong") is None
@@ -209,14 +220,20 @@ def test_authenticate_credentials_rejects_missing_or_inactive_user(monkeypatch):
     monkeypatch.setattr(auth_service, "_lookup_user_doc", lambda _username: None)
     assert auth_service.authenticate_credentials("tester", "secret") is None
 
-    monkeypatch.setattr(auth_service, "_lookup_user_doc", lambda _username: {"username": "tester", "is_active": False})
+    monkeypatch.setattr(
+        auth_service,
+        "_lookup_user_doc",
+        lambda _username: {"username": "tester", "is_active": False},
+    )
     assert auth_service.authenticate_credentials("tester", "secret") is None
 
 
 def test_update_user_last_login_calls_repository(monkeypatch):
     """Last login update delegates to security repository."""
     calls = {}
-    repo = SimpleNamespace(update_user_last_login=lambda user_id: calls.setdefault("user_id", user_id))
+    repo = SimpleNamespace(
+        update_user_last_login=lambda user_id: calls.setdefault("user_id", user_id)
+    )
     monkeypatch.setattr(auth_service, "get_security_repository", lambda: repo)
 
     auth_service.update_user_last_login("tester")

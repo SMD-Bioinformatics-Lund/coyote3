@@ -1,4 +1,3 @@
-
 """
 Shared filter coercion/normalization helpers for workflow services.
 """

@@ -64,5 +64,7 @@ def audit():
             pass
         return entry
 
-    parsed_logs = sorted((_parse_line(line) for line in logs_data), key=lambda item: item["timestamp"], reverse=True)
+    parsed_logs = sorted(
+        (_parse_line(line) for line in logs_data), key=lambda item: item["timestamp"], reverse=True
+    )
     return render_template("audit/audit.html", logs=parsed_logs)

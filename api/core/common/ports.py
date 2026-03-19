@@ -18,6 +18,7 @@ class CommonRepository(Protocol):
             dict | None: The function result.
         """
         ...
+
     def get_hgnc_metadata_by_symbol(self, symbol: str) -> dict | None:
         """Return hgnc metadata by symbol.
 
@@ -28,6 +29,7 @@ class CommonRepository(Protocol):
             dict | None: The function result.
         """
         ...
+
     def get_variant(self, variant_id: str) -> dict | None:
         """Return variant.
 
@@ -38,6 +40,7 @@ class CommonRepository(Protocol):
             dict | None: The function result.
         """
         ...
+
     def list_reported_variants(self, query: dict) -> list[dict]:
         """List reported variants.
 
@@ -48,6 +51,7 @@ class CommonRepository(Protocol):
             list[dict]: The function result.
         """
         ...
+
     def get_all_asp_groups(self) -> list[str]:
         """Return all asp groups.
 
@@ -55,6 +59,7 @@ class CommonRepository(Protocol):
             list[str]: The function result.
         """
         ...
+
     def find_variants_by_search_string(
         self,
         *,
@@ -77,6 +82,7 @@ class CommonRepository(Protocol):
             list[dict]: The function result.
         """
         ...
+
     def get_tier_stats_by_search(
         self,
         *,
@@ -97,6 +103,7 @@ class CommonRepository(Protocol):
             dict: The function result.
         """
         ...
+
     def get_sample_by_oid(self, sample_oid: str) -> dict | None:
         """Return sample by oid.
 
@@ -107,6 +114,7 @@ class CommonRepository(Protocol):
             dict | None: The function result.
         """
         ...
+
     def get_annotation_text_by_oid(self, annotation_text_oid: str) -> str | None:
         """Return annotation text by oid.
 

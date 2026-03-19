@@ -10,7 +10,12 @@ from api.extensions import util
 from api.http import api_error
 from api.repositories.admin_repository import AdminRepository, AdminSampleDeletionRepository
 from api.runtime import app as runtime_app
-from api.services.management_common import current_actor, mutation_payload, utc_now
+from api.services.management_common import (
+    admin_list_pagination,
+    current_actor,
+    mutation_payload,
+    utc_now,
+)
 
 
 class AdminPanelService:
@@ -24,15 +29,21 @@ class AdminPanelService:
         """
         self.repository = repository or AdminRepository()
 
-    def list_payload(self) -> dict[str, Any]:
+    def list_payload(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:
         """List payload.
 
         Returns:
             dict[str, Any]: The function result.
         """
-        return {"panels": self.repository.list_panels()}
+        panels, total = self.repository.search_panels(q=q, page=page, per_page=per_page)
+        return {
+            "panels": panels,
+            "pagination": admin_list_pagination(q=q, page=page, per_page=per_page, total=total),
+        }
 
-    def create_context_payload(self, *, schema_id: str | None, actor_username: str) -> dict[str, Any]:
+    def create_context_payload(
+        self, *, schema_id: str | None, actor_username: str
+    ) -> dict[str, Any]:
         """Create context payload.
 
         Args:
@@ -92,7 +103,9 @@ class AdminPanelService:
         if not config.get("asp_id"):
             raise api_error(400, "Missing asp_id")
         self.repository.create_panel(config)
-        return mutation_payload(resource="asp", resource_id=str(config.get("asp_id", "unknown")), action="create")
+        return mutation_payload(
+            resource="asp", resource_id=str(config.get("asp_id", "unknown")), action="create"
+        )
 
     def update(self, *, panel_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         """Handle update.
@@ -159,15 +172,21 @@ class AdminGenelistService:
         """
         self.repository = repository or AdminRepository()
 
-    def list_payload(self) -> dict[str, Any]:
+    def list_payload(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:
         """List payload.
 
         Returns:
             dict[str, Any]: The function result.
         """
-        return {"genelists": self.repository.list_genelists()}
+        genelists, total = self.repository.search_genelists(q=q, page=page, per_page=per_page)
+        return {
+            "genelists": genelists,
+            "pagination": admin_list_pagination(q=q, page=page, per_page=per_page, total=total),
+        }
 
-    def create_context_payload(self, *, schema_id: str | None, actor_username: str) -> dict[str, Any]:
+    def create_context_payload(
+        self, *, schema_id: str | None, actor_username: str
+    ) -> dict[str, Any]:
         """Create context payload.
 
         Args:
@@ -270,7 +289,9 @@ class AdminGenelistService:
         if not config.get("isgl_id"):
             raise api_error(400, "Missing isgl_id")
         self.repository.create_genelist(config)
-        return mutation_payload(resource="genelist", resource_id=str(config.get("isgl_id", "unknown")), action="create")
+        return mutation_payload(
+            resource="genelist", resource_id=str(config.get("isgl_id", "unknown")), action="create"
+        )
 
     def update(self, *, genelist_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         """Handle update.
@@ -337,15 +358,25 @@ class AdminAspcService:
         """
         self.repository = repository or AdminRepository()
 
-    def list_payload(self) -> dict[str, Any]:
+    def list_payload(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:
         """List payload.
 
         Returns:
             dict[str, Any]: The function result.
         """
-        return {"assay_configs": self.repository.list_assay_configs()}
+        assay_configs, total = self.repository.search_assay_configs(
+            q=q,
+            page=page,
+            per_page=per_page,
+        )
+        return {
+            "assay_configs": assay_configs,
+            "pagination": admin_list_pagination(q=q, page=page, per_page=per_page, total=total),
+        }
 
-    def create_context_payload(self, *, category: str, schema_id: str | None, actor_username: str) -> dict[str, Any]:
+    def create_context_payload(
+        self, *, category: str, schema_id: str | None, actor_username: str
+    ) -> dict[str, Any]:
         """Create context payload.
 
         Args:
@@ -385,7 +416,9 @@ class AdminAspcService:
                     }
         schema["fields"]["assay_name"]["options"] = valid_assay_ids
         if schema_category == "DNA" and "vep_consequences" in schema.get("fields", {}):
-            schema["fields"]["vep_consequences"]["options"] = list(runtime_app.config.get("CONSEQ_TERMS_MAPPER", {}).keys())
+            schema["fields"]["vep_consequences"]["options"] = list(
+                runtime_app.config.get("CONSEQ_TERMS_MAPPER", {}).keys()
+            )
         schema["fields"]["created_by"]["default"] = current_actor(actor_username)
         schema["fields"]["created_on"]["default"] = utc_now()
         schema["fields"]["updated_by"]["default"] = current_actor(actor_username)
@@ -415,7 +448,9 @@ class AdminAspcService:
             raise api_error(404, "Schema for this assay config is missing")
         schema = self.repository.clone_schema(schema)
         if "vep_consequences" in schema.get("fields", {}):
-            schema["fields"]["vep_consequences"]["options"] = list(runtime_app.config.get("CONSEQ_TERMS_MAPPER", {}).keys())
+            schema["fields"]["vep_consequences"]["options"] = list(
+                runtime_app.config.get("CONSEQ_TERMS_MAPPER", {}).keys()
+            )
         return {"assay_config": assay_config, "schema": schema}
 
     def create(self, *, payload: dict[str, Any]) -> dict[str, Any]:
@@ -431,14 +466,19 @@ class AdminAspcService:
         if not config:
             raise api_error(400, "Missing assay config payload")
         config.setdefault("is_active", True)
-        config["aspc_id"] = config.get("aspc_id") or f"{str(config.get('assay_name', '')).strip()}:{str(config.get('environment', '')).strip().lower()}"
+        config["aspc_id"] = (
+            config.get("aspc_id")
+            or f"{str(config.get('assay_name', '')).strip()}:{str(config.get('environment', '')).strip().lower()}"
+        )
         if not config.get("aspc_id"):
             raise api_error(400, "Missing aspc_id")
         existing_config = self.repository.get_assay_config(config.get("aspc_id"))
         if existing_config:
             raise api_error(409, "Assay config already exists")
         self.repository.create_assay_config(config)
-        return mutation_payload(resource="aspc", resource_id=str(config.get("aspc_id", "unknown")), action="create")
+        return mutation_payload(
+            resource="aspc", resource_id=str(config.get("aspc_id", "unknown")), action="create"
+        )
 
     def update(self, *, assay_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         """Handle update.
@@ -507,7 +547,9 @@ class AdminSampleService:
         if not SampleDeletionService.has_repository():
             SampleDeletionService.set_repository(AdminSampleDeletionRepository())
 
-    def list_payload(self, *, assays: list[str], search: str) -> dict[str, Any]:
+    def list_payload(
+        self, *, assays: list[str], search: str, page: int = 1, per_page: int = 30
+    ) -> dict[str, Any]:
         """List payload.
 
         Args:
@@ -517,7 +559,21 @@ class AdminSampleService:
         Returns:
             dict[str, Any]: The function result.
         """
-        return {"samples": self.repository.list_samples_for_admin(assays=assays, search=search)}
+        samples, total = self.repository.list_samples_for_admin(
+            assays=assays,
+            search=search,
+            page=page,
+            per_page=per_page,
+        )
+        return {
+            "samples": samples,
+            "pagination": admin_list_pagination(
+                q=search,
+                page=page,
+                per_page=per_page,
+                total=total,
+            ),
+        }
 
     def context_payload(self, *, sample_id: str) -> dict[str, Any]:
         """Handle context payload.
@@ -533,7 +589,9 @@ class AdminSampleService:
             raise api_error(404, "Sample not found")
         return {"sample": sample_doc}
 
-    def update(self, *, sample_id: str, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
+    def update(
+        self, *, sample_id: str, payload: dict[str, Any], actor_username: str
+    ) -> dict[str, Any]:
         """Handle update.
 
         Args:
@@ -588,13 +646,17 @@ class AdminSchemaService:
         """
         self.repository = repository or AdminRepository()
 
-    def list_payload(self) -> dict[str, Any]:
+    def list_payload(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:
         """List payload.
 
         Returns:
             dict[str, Any]: The function result.
         """
-        return {"schemas": self.repository.list_schemas()}
+        schemas, total = self.repository.search_schemas(q=q, page=page, per_page=per_page)
+        return {
+            "schemas": schemas,
+            "pagination": admin_list_pagination(q=q, page=page, per_page=per_page, total=total),
+        }
 
     def context_payload(self, *, schema_id: str) -> dict[str, Any]:
         """Handle context payload.
@@ -628,9 +690,13 @@ class AdminSchemaService:
         schema_doc["updated_on"] = utc_now()
         schema_doc["updated_by"] = current_actor(actor_username)
         self.repository.create_schema(schema_doc)
-        return mutation_payload(resource="schema", resource_id=schema_doc["schema_id"], action="create")
+        return mutation_payload(
+            resource="schema", resource_id=schema_doc["schema_id"], action="create"
+        )
 
-    def update(self, *, schema_id: str, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
+    def update(
+        self, *, schema_id: str, payload: dict[str, Any], actor_username: str
+    ) -> dict[str, Any]:
         """Handle update.
 
         Args:

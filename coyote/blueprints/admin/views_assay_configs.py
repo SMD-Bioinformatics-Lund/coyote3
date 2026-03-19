@@ -175,12 +175,17 @@ def assay_configs() -> str:
     Returns:
         The rendered management page response.
     """
+    q = (request.args.get("q") or "").strip()
+    page = max(1, request.args.get("page", default=1, type=int) or 1)
+    per_page = max(1, min(request.args.get("per_page", default=30, type=int) or 30, 200))
     try:
         payload = get_web_api_client().get_json(
             api_endpoints.admin("aspc"),
             headers=forward_headers(),
+            params={"q": q, "page": page, "per_page": per_page},
         )
         assay_configs = payload.assay_configs
+        pagination = payload.get("pagination", {})
     except ApiRequestError as exc:
         raise_page_load_error(
             exc,
@@ -188,7 +193,15 @@ def assay_configs() -> str:
             log_message="Failed to fetch assay configs",
             summary="Unable to load assay configurations.",
         )
-    return render_template("aspc/manage_aspc.html", assay_configs=assay_configs)
+    return render_template(
+        "aspc/manage_aspc.html",
+        assay_configs=assay_configs,
+        q=q,
+        page=pagination.get("page", page),
+        per_page=pagination.get("per_page", per_page),
+        total=pagination.get("total", 0),
+        has_next=pagination.get("has_next", False),
+    )
 
 
 @admin_bp.route("/aspc/dna/new", methods=["GET", "POST"])

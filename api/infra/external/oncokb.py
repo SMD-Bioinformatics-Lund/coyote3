@@ -1,5 +1,3 @@
-
-
 """
 OnkoKBHandler module for Coyote3
 ================================
@@ -129,6 +127,4 @@ class OnkoKBHandler(BaseHandler):
         Returns:
             dict: A cursor object containing actionable OncoKB documents matching the query.
         """
-        return self.adapter.oncokb_actionable_collection.find_one(
-            {"Hugo Symbol": gene}
-        )
+        return self.adapter.oncokb_actionable_collection.find_one({"Hugo Symbol": gene})

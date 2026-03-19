@@ -1,4 +1,3 @@
-
 from typing import Any, Dict
 
 from api.core.workflows.filter_normalization import coerce_nonnegative_int

@@ -8,6 +8,7 @@ from api.extensions import util
 from api.http import api_error
 from api.repositories.admin_repository import AdminRepository
 from api.services.management_common import (
+    admin_list_pagination,
     current_actor,
     inject_version_history,
     mutation_payload,
@@ -26,13 +27,20 @@ class PermissionManagementService:
         """
         self.repository = repository or AdminRepository()
 
-    def list_permissions_payload(self) -> dict[str, Any]:
+    def list_permissions_payload(
+        self, *, q: str = "", page: int = 1, per_page: int = 30
+    ) -> dict[str, Any]:
         """List permissions payload.
 
         Returns:
             dict[str, Any]: The function result.
         """
-        permission_policies = self.repository.list_permissions(is_active=False)
+        permission_policies, total = self.repository.search_permissions(
+            q=q,
+            page=page,
+            per_page=per_page,
+            is_active=False,
+        )
         grouped_permissions: dict[str, list[dict[str, Any]]] = {}
         for policy in permission_policies:
             grouped_permissions.setdefault(policy.get("category", "Uncategorized"), []).append(
@@ -41,6 +49,7 @@ class PermissionManagementService:
         return {
             "permission_policies": permission_policies,
             "grouped_permissions": grouped_permissions,
+            "pagination": admin_list_pagination(q=q, page=page, per_page=per_page, total=total),
         }
 
     def create_context_payload(

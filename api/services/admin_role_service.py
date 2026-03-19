@@ -8,6 +8,7 @@ from api.extensions import util
 from api.http import api_error
 from api.repositories.admin_repository import AdminRepository
 from api.services.management_common import (
+    admin_list_pagination,
     current_actor,
     inject_version_history,
     lower,
@@ -27,13 +28,19 @@ class AdminRoleService:
         """
         self.repository = repository or AdminRepository()
 
-    def list_roles_payload(self) -> dict[str, Any]:
+    def list_roles_payload(
+        self, *, q: str = "", page: int = 1, per_page: int = 30
+    ) -> dict[str, Any]:
         """List roles payload.
 
         Returns:
             dict[str, Any]: The function result.
         """
-        return {"roles": self.repository.list_roles()}
+        roles, total = self.repository.search_roles(q=q, page=page, per_page=per_page)
+        return {
+            "roles": roles,
+            "pagination": admin_list_pagination(q=q, page=page, per_page=per_page, total=total),
+        }
 
     def create_context_payload(
         self, *, schema_id: str | None, actor_username: str

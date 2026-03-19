@@ -1,4 +1,3 @@
-
 """
 This module defines form classes for user authentication in the Coyote3 project.
 

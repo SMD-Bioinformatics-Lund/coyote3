@@ -63,7 +63,7 @@
                   {% if value is none %}
                     {% set value = '' %}
                   {% endif %}
-                  
+
                   {% set is_changed = delta and key in delta.changed %}
                   {% set fullspan = field.display_type in ['textarea', 'jsoneditor-or-upload'] or field.data_type in ['json', 'dict'] %}
 

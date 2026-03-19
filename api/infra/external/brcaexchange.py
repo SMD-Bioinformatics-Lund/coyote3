@@ -1,5 +1,3 @@
-
-
 """
 BRCAHandler module for Coyote3
 ==============================

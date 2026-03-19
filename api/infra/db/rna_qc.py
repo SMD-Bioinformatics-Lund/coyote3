@@ -1,5 +1,3 @@
-
-
 """
 RNAQCHandler module for Coyote3
 ====================================

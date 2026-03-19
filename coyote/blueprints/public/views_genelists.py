@@ -1,4 +1,3 @@
-
 """Public blueprint genelist routes."""
 
 from __future__ import annotations

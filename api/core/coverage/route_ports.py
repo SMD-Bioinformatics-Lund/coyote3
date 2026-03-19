@@ -19,6 +19,7 @@ class CoverageRouteRepository(Protocol):
             dict | None: The function result.
         """
         ...
+
     def get_asp(self, asp_name: str) -> dict | None:
         """Return asp.
 
@@ -29,6 +30,7 @@ class CoverageRouteRepository(Protocol):
             dict | None: The function result.
         """
         ...
+
     def get_isgl_by_ids(self, ids: list[str]) -> dict:
         """Return isgl by ids.
 
@@ -39,6 +41,7 @@ class CoverageRouteRepository(Protocol):
             dict: The function result.
         """
         ...
+
     def get_sample_coverage(self, sample_id: str) -> dict | None:
         """Return sample coverage.
 
@@ -49,6 +52,7 @@ class CoverageRouteRepository(Protocol):
             dict | None: The function result.
         """
         ...
+
     def get_regions_per_group(self, group: str) -> list[dict]:
         """Return regions per group.
 

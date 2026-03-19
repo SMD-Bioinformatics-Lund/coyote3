@@ -245,10 +245,14 @@ class SampleCatalogService:
         effective_genes = sorted(effective_genes)
 
         variant_stats_raw = self.repository.get_variant_stats(str(sample.get("_id")))
-        if effective_genes and variant_stats_raw and (
-            len(effective_genes) < len(asp_covered_genes) or asp_group in ["tumwgs", "wts"]
+        if (
+            effective_genes
+            and variant_stats_raw
+            and (len(effective_genes) < len(asp_covered_genes) or asp_group in ["tumwgs", "wts"])
         ):
-            variant_stats_filtered = self.repository.get_variant_stats(str(sample.get("_id")), genes=effective_genes)
+            variant_stats_filtered = self.repository.get_variant_stats(
+                str(sample.get("_id")), genes=effective_genes
+            )
         else:
             variant_stats_filtered = deepcopy(variant_stats_raw)
 
@@ -259,7 +263,9 @@ class SampleCatalogService:
             "variant_stats_filtered": variant_stats_filtered,
         }
 
-    def apply_genelists(self, *, sample: dict, payload: dict[str, Any], sample_id: str) -> dict[str, Any]:
+    def apply_genelists(
+        self, *, sample: dict, payload: dict[str, Any], sample_id: str
+    ) -> dict[str, Any]:
         """Apply genelists.
 
         Args:
@@ -276,9 +282,16 @@ class SampleCatalogService:
             raise api_error(400, "Invalid isgl_ids payload")
         filters["genelists"] = list(deepcopy(genelist_ids))
         self.repository.update_sample_filters(sample.get("_id"), filters)
-        return {"status": "ok", "sample_id": sample_id, "action": "apply_genelists", "genelist_ids": genelist_ids}
+        return {
+            "status": "ok",
+            "sample_id": sample_id,
+            "action": "apply_genelists",
+            "genelist_ids": genelist_ids,
+        }
 
-    def save_adhoc_genes(self, *, sample: dict, payload: dict[str, Any], sample_id: str) -> dict[str, Any]:
+    def save_adhoc_genes(
+        self, *, sample: dict, payload: dict[str, Any], sample_id: str
+    ) -> dict[str, Any]:
         """Handle save adhoc genes.
 
         Args:
@@ -320,7 +333,9 @@ class SampleCatalogService:
         self.repository.update_sample_filters(sample.get("_id"), filters)
         return {"status": "ok", "sample_id": sample_id, "action": "clear_adhoc_genes"}
 
-    def report_context_payload(self, *, sample: dict, report_id: str, sample_id: str) -> dict[str, Any]:
+    def report_context_payload(
+        self, *, sample: dict, report_id: str, sample_id: str
+    ) -> dict[str, Any]:
         """Handle report context payload.
 
         Args:
@@ -338,7 +353,9 @@ class SampleCatalogService:
         if not filepath and report_name:
             assay_config = get_formatted_assay_config(sample)
             report_sub_dir = assay_config.get("reporting", {}).get("report_path", "")
-            filepath = f"{runtime_app.config.get('REPORTS_BASE_PATH', '')}/{report_sub_dir}/{report_name}"
+            filepath = (
+                f"{runtime_app.config.get('REPORTS_BASE_PATH', '')}/{report_sub_dir}/{report_name}"
+            )
 
         return {
             "sample_id": sample_id,

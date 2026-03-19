@@ -85,8 +85,12 @@ def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
         "update_user_last_login",
         lambda user_id: calls.setdefault("updated_user", user_id),
     )
-    monkeypatch.setattr(auth_router, "create_api_session_token", lambda user_id: f"session-{user_id}")
-    monkeypatch.setattr(auth_router, "build_user_session_payload", lambda _doc: {"username": "tester"})
+    monkeypatch.setattr(
+        auth_router, "create_api_session_token", lambda user_id: f"session-{user_id}"
+    )
+    monkeypatch.setattr(
+        auth_router, "build_user_session_payload", lambda _doc: {"username": "tester"}
+    )
     monkeypatch.setattr(
         auth_router.util,
         "common",
@@ -97,7 +101,9 @@ def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
     monkeypatch.setattr(auth_router, "get_api_session_cookie_secure", lambda: True)
     monkeypatch.setattr(auth_router, "get_api_session_ttl_seconds", lambda: 600)
 
-    response = auth_router.create_auth_session(auth_router.ApiAuthLoginRequest(username=" tester ", password="p"))
+    response = auth_router.create_auth_session(
+        auth_router.ApiAuthLoginRequest(username=" tester ", password="p")
+    )
 
     assert response.status_code == 201
     assert calls["updated_user"] == str(user_doc["username"])
@@ -121,8 +127,12 @@ def test_create_auth_session_returns_201(monkeypatch):
 
     monkeypatch.setattr(auth_router, "authenticate_credentials", lambda _u, _p: user_doc)
     monkeypatch.setattr(auth_router, "update_user_last_login", lambda user_id: None)
-    monkeypatch.setattr(auth_router, "create_api_session_token", lambda user_id: f"session-{user_id}")
-    monkeypatch.setattr(auth_router, "build_user_session_payload", lambda _doc: {"username": "tester"})
+    monkeypatch.setattr(
+        auth_router, "create_api_session_token", lambda user_id: f"session-{user_id}"
+    )
+    monkeypatch.setattr(
+        auth_router, "build_user_session_payload", lambda _doc: {"username": "tester"}
+    )
     monkeypatch.setattr(
         auth_router.util,
         "common",
@@ -133,7 +143,9 @@ def test_create_auth_session_returns_201(monkeypatch):
     monkeypatch.setattr(auth_router, "get_api_session_cookie_secure", lambda: True)
     monkeypatch.setattr(auth_router, "get_api_session_ttl_seconds", lambda: 600)
 
-    response = auth_router.create_auth_session(auth_router.ApiAuthLoginRequest(username=" tester ", password="p"))
+    response = auth_router.create_auth_session(
+        auth_router.ApiAuthLoginRequest(username=" tester ", password="p")
+    )
 
     assert response.status_code == 201
 
@@ -157,8 +169,12 @@ def test_auth_login_prefers_business_user_id_for_session(monkeypatch):
         "update_user_last_login",
         lambda user_id: calls.setdefault("updated_user", user_id),
     )
-    monkeypatch.setattr(auth_router, "create_api_session_token", lambda user_id: f"session-{user_id}")
-    monkeypatch.setattr(auth_router, "build_user_session_payload", lambda _doc: {"username": "tester"})
+    monkeypatch.setattr(
+        auth_router, "create_api_session_token", lambda user_id: f"session-{user_id}"
+    )
+    monkeypatch.setattr(
+        auth_router, "build_user_session_payload", lambda _doc: {"username": "tester"}
+    )
     monkeypatch.setattr(
         auth_router.util,
         "common",
@@ -169,7 +185,9 @@ def test_auth_login_prefers_business_user_id_for_session(monkeypatch):
     monkeypatch.setattr(auth_router, "get_api_session_cookie_secure", lambda: True)
     monkeypatch.setattr(auth_router, "get_api_session_ttl_seconds", lambda: 600)
 
-    response = auth_router.create_auth_session(auth_router.ApiAuthLoginRequest(username="tester", password="p"))
+    response = auth_router.create_auth_session(
+        auth_router.ApiAuthLoginRequest(username="tester", password="p")
+    )
 
     assert response.status_code == 201
     assert calls["updated_user"] == str(user_doc["username"])

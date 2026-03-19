@@ -97,7 +97,9 @@ class ReportedVariantsHandler(BaseHandler):
             simple_id = r.get("simple_id")
             if not simple_id:
                 continue
-            simple_id_hash = r.get("simple_id_hash") or build_simple_id_hash_from_simple_id(simple_id)
+            simple_id_hash = r.get("simple_id_hash") or build_simple_id_hash_from_simple_id(
+                simple_id
+            )
 
             # Ensure core fields are always set (don’t rely on snapshot_rows to be perfect)
             doc = {
@@ -279,7 +281,10 @@ class ReportedVariantsHandler(BaseHandler):
                     "by_assay": [
                         {
                             "$group": {
-                                "_id": {"assay": {"$ifNull": ["$assay", "Unknown"]}, "tier": "$tier"},
+                                "_id": {
+                                    "assay": {"$ifNull": ["$assay", "Unknown"]},
+                                    "tier": "$tier",
+                                },
                                 "count": {"$sum": 1},
                             }
                         }

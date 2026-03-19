@@ -73,7 +73,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Function to detect column data type
     function detectDataType(value) {
         if (!value) return "mixed";
-    
+
         if (!isNaN(parseFloat(value)) && value.match(/^-?\d+(\.\d+)?$/)) return "number";
         if (Date.parse(value)) return "date";
         if (value.toLowerCase().match(/^(\d+|a|an)\s+(second|minute|hour|day|week|month|year)s?\s+ago$/)) {
@@ -87,24 +87,24 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         return "mixed";
     }
-    
-    
+
+
 
     // Function to parse mixed values (separating numbers & text)
     function parseMixedValue(value) {
         const lower = value.trim().toLowerCase();
-    
+
         // Relative time
         if (lower.match(/^(\d+|a|an)\s+(second|minute|hour|day|week|month|year)s?\s+ago$/)) {
             return { relative: parseRelativeTime(lower), text: lower };
         }
-    
+
         // Chromosome:position
         if (lower.match(/^\d+:\d+$/)) {
             const [chr, pos] = lower.split(":").map(Number);
             return { chr, pos };
         }
-    
+
         // Chromosome:start-end
         if (lower.match(/^\d+:\d+-\d+$/)) {
             const [chrPart, range] = lower.split(":");
@@ -115,12 +115,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 end
             };
         }
-    
+
         // Natural alphanumeric fallback
         let match = lower.match(/^(\d+(?:\.\d+)?)(.*)$/);
         let numberPart = match ? parseFloat(match[1]) : null;
         let textPart = match ? match[2] : lower;
-    
+
         return {
             number: isNaN(numberPart) ? null : numberPart,
             text: textPart.trim()
@@ -133,36 +133,36 @@ document.addEventListener("DOMContentLoaded", function () {
             if (a.chr !== b.chr) return a.chr - b.chr;
             if (a.start !== b.start) return a.start - b.start;
             return a.end - b.end;
-        }        
+        }
         if ("chr" in a && "pos" in a && "chr" in b && "pos" in b) {
             if (a.chr !== b.chr) return a.chr - b.chr;
             return a.pos - b.pos;
-        }        
+        }
         if ("relative" in a && "relative" in b) {
             return a.relative - b.relative;
         }
-    
+
         if (a.number !== null && b.number !== null) {
             return a.number - b.number;
         }
-    
+
         if (a.number !== null) return -1;
         if (b.number !== null) return 1;
-    
+
         return a.text.localeCompare(b.text);
     }
-    
+
 
     // Function to parse relative time strings
     function parseRelativeTime(value) {
         const match = value.match(/^(\d+|a|an)\s+(second|minute|hour|day|week|month|year)s?\s+ago$/i);
         if (!match) return Infinity;
-    
+
         let amount = match[1];
         const unit = match[2];
-    
+
         amount = (amount === "a" || amount === "an") ? 1 : parseInt(amount);
-    
+
         const msPerUnit = {
             second: 1000,
             minute: 60 * 1000,
@@ -172,7 +172,7 @@ document.addEventListener("DOMContentLoaded", function () {
             month: 30 * 24 * 60 * 60 * 1000,
             year: 365 * 24 * 60 * 60 * 1000,
         };
-    
+
         return Date.now() - amount * msPerUnit[unit];
     }
 });

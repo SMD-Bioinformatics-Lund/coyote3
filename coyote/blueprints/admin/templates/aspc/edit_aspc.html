@@ -32,7 +32,7 @@
               </div>
             {% endif %}
           </div>
-        
+
           <!-- Right: Schema info -->
           <div class="text-sm text-gray-700 flex items-center">
             <span class="inline-flex items-center px-2 py-1 bg-blue-200 text-blue-700 font-semibold rounded-l-full">
@@ -43,7 +43,7 @@
             </span>
           </div>
         </div>
-        
+
 
         {% if selected_version and selected_version != assay_config.version and delta %}
         <div class="mb-4 text-sm text-yellow-800 bg-yellow-50 border border-yellow-300 rounded-md p-3">
@@ -62,7 +62,7 @@
                   {% if value is none %}
                     {% set value = '' %}
                   {% endif %}
-                  
+
                   {% set is_changed = delta and key in delta.changed %}
                   {% set fullspan = field.display_type in ['textarea', 'jsoneditor-or-upload'] or field.data_type in ['json', 'dict'] %}
 
@@ -114,7 +114,7 @@
 
                     {% elif field.display_type == 'textarea' %}
                       <textarea name="{{ key }}" rows="4" placeholder="{{ field.placeholder }}" class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-sm">{{ value }}</textarea>
-                    
+
                     {% elif field.display_type in ['json', 'jsoneditor'] %}
                       <textarea name="{{ key }}" id="{{ key }}" rows="6" placeholder="{{ field.placeholder }}"
                                 class="w-full bg-gray-100 border border-gray-400 rounded-md p-2 text-xs font-mono resize-y">{{ value | tojson(indent=2) if value else '' }}

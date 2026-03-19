@@ -57,7 +57,9 @@ def test_enrich_reported_variant_docs_batches_samples_and_annotations(monkeypatc
         }
     ]
     annotation_docs = [{"_id": annotation_oid, "assay": "hematology", "subpanel": "Hem"}]
-    monkeypatch.setattr(report_summary, "_core_repo", lambda: _FakeRepo(sample_docs, annotation_docs))
+    monkeypatch.setattr(
+        report_summary, "_core_repo", lambda: _FakeRepo(sample_docs, annotation_docs)
+    )
 
     enriched = report_summary.enrich_reported_variant_docs(docs)
 

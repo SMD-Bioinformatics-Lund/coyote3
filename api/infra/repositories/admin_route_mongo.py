@@ -6,11 +6,10 @@ from api.extensions import store
 
 
 class MongoAdminRouteRepository:
-    """Provide mongo admin route persistence operations.
-    """
+    """Provide mongo admin route persistence operations."""
+
     def __init__(self) -> None:
-        """Handle __init__.
-        """
+        """Handle __init__."""
         self.permissions_handler = store.permissions_handler
         self.roles_handler = store.roles_handler
         self.asp_handler = store.asp_handler

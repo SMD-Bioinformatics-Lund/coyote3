@@ -68,9 +68,7 @@ def collect_targets(page) -> tuple[list[str], list[tuple[str, str]]]:
     urls: set[str] = set()
     actions: list[tuple[str, str]] = []
 
-    hrefs = page.eval_on_selector_all(
-        "a[href]", "els => els.map(e => e.getAttribute('href'))"
-    )
+    hrefs = page.eval_on_selector_all("a[href]", "els => els.map(e => e.getAttribute('href'))")
     for href in hrefs:
         target = normalize_href(page.url, href)
         if target:
@@ -93,7 +91,9 @@ def collect_targets(page) -> tuple[list[str], list[tuple[str, str]]]:
         if target:
             actions.append(("POST", target))
 
-    onclicks = page.eval_on_selector_all("[onclick]", "els => els.map(e => e.getAttribute('onclick'))")
+    onclicks = page.eval_on_selector_all(
+        "[onclick]", "els => els.map(e => e.getAttribute('onclick'))"
+    )
     for js in onclicks:
         if not js:
             continue
@@ -139,7 +139,11 @@ def main() -> None:
             page.click("button[type='submit']")
             page.wait_for_timeout(1200)
             current_url = page.url
-            if "/dashboard" in current_url or "/samples" in current_url or "/?next=" not in current_url:
+            if (
+                "/dashboard" in current_url
+                or "/samples" in current_url
+                or "/?next=" not in current_url
+            ):
                 content = page.content().lower()
                 if "invalid credentials" not in content and "login failed" not in content:
                     results["login_success"] = True
@@ -154,7 +158,9 @@ def main() -> None:
         to_visit = [urljoin(BASE, path) for path in SEED_PATHS]
         # Pull sample-specific DNA/RNA paths from the samples page so we can validate deep links too.
         try:
-            page.goto(urljoin(BASE, f"{PREFIX}/samples"), wait_until="domcontentloaded", timeout=30000)
+            page.goto(
+                urljoin(BASE, f"{PREFIX}/samples"), wait_until="domcontentloaded", timeout=30000
+            )
             sample_links, _ = collect_targets(page)
             sample_specific = [
                 link
@@ -246,7 +252,9 @@ def main() -> None:
                             {"method": method, "url": target, "status": probe_status}
                         )
             except Exception as exc:  # noqa: BLE001
-                results["broken"].append({"method": "GET", "url": url, "status": f"EXCEPTION: {exc}"})
+                results["broken"].append(
+                    {"method": "GET", "url": url, "status": f"EXCEPTION: {exc}"}
+                )
 
         browser.close()
 

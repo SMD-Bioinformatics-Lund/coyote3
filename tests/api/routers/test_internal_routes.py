@@ -18,7 +18,9 @@ def test_get_role_levels_internal_returns_id_to_level_map(monkeypatch):
     """
     calls = {"token": 0}
 
-    monkeypatch.setattr(internal, "_require_internal_token", lambda _request: calls.__setitem__("token", 1))
+    monkeypatch.setattr(
+        internal, "_require_internal_token", lambda _request: calls.__setitem__("token", 1)
+    )
     monkeypatch.setattr(
         internal.util,
         "common",
@@ -47,7 +49,9 @@ def test_get_isgl_meta_internal_reads_adhoc_and_display_name(monkeypatch):
     """
     calls = {"token": 0}
 
-    monkeypatch.setattr(internal, "_require_internal_token", lambda _request: calls.__setitem__("token", 1))
+    monkeypatch.setattr(
+        internal, "_require_internal_token", lambda _request: calls.__setitem__("token", 1)
+    )
     monkeypatch.setattr(
         internal.util,
         "common",

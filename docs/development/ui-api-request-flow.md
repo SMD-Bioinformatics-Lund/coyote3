@@ -36,7 +36,7 @@ How it maps to API:
 
 Process flow:
 ```text
-Browser GET /dna/sample/69... 
+Browser GET /dna/sample/69...
  -> Flask dna_bp.list_dna_findings
  -> API GET /api/v1/samples/69.../small-variants
  -> FastAPI small_variants.list_dna_variants
@@ -160,4 +160,3 @@ How it maps:
 Notes:
 - API is source of truth for report metadata.
 - UI does the final disk streaming response to browser.
-

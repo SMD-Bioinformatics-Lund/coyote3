@@ -1,4 +1,3 @@
-
 """
 Coyote3 Report Utility Module
 =====================================

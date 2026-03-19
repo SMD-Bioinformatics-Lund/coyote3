@@ -10,11 +10,10 @@ from cache_backend import DisabledCacheBackend, RedisCacheBackend, create_cache_
 
 
 class _FakeRedis:
-    """Provide  FakeRedis behavior.
-    """
+    """Provide  FakeRedis behavior."""
+
     def __init__(self):
-        """Handle __init__.
-        """
+        """Handle __init__."""
         self._values: dict[str, bytes] = {}
 
     def ping(self) -> bool:
@@ -89,9 +88,10 @@ def test_cache_backend_falls_back_when_redis_unavailable(monkeypatch: pytest.Mon
     Returns:
         The function result.
     """
+
     class _NoRedis:
-        """Provide  NoRedis behavior.
-        """
+        """Provide  NoRedis behavior."""
+
         @staticmethod
         def from_url(*args, **kwargs):  # noqa: ARG004
             """Handle from url.
@@ -127,9 +127,10 @@ def test_cache_backend_required_raises_when_redis_unavailable(monkeypatch: pytes
     Returns:
         The function result.
     """
+
     class _NoRedis:
-        """Provide  NoRedis behavior.
-        """
+        """Provide  NoRedis behavior."""
+
         @staticmethod
         def from_url(*args, **kwargs):  # noqa: ARG004
             """Handle from url.
@@ -168,8 +169,8 @@ def test_redis_cache_backend_roundtrip(monkeypatch: pytest.MonkeyPatch):
     fake = _FakeRedis()
 
     class _RedisFactory:
-        """Provide  RedisFactory behavior.
-        """
+        """Provide  RedisFactory behavior."""
+
         @staticmethod
         def from_url(*args, **kwargs):  # noqa: ARG004
             """Handle from url.

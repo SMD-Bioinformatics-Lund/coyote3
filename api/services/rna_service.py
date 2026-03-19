@@ -32,7 +32,9 @@ class RnaService:
             RNAWorkflowService.set_repository(self.workflow_repository)
 
     @staticmethod
-    def mutation_payload(sample_id: str, resource: str, resource_id: str, action: str) -> dict[str, Any]:
+    def mutation_payload(
+        sample_id: str, resource: str, resource_id: str, action: str
+    ) -> dict[str, Any]:
         """Handle mutation payload.
 
         Args:
@@ -73,13 +75,17 @@ class RnaService:
         )
         assay_group = assay_config.get("asp_group", "unknown")
         subpanel = sample.get("subpanel")
-        assay_config_schema = self.repository.schema_handler.get_schema(assay_config.get("schema_name"))
+        assay_config_schema = self.repository.schema_handler.get_schema(
+            assay_config.get("schema_name")
+        )
         assay_panel_doc = self.repository.asp_handler.get_asp(asp_name=sample.get("assay"))
         fusionlist_options = self.repository.isgl_handler.get_isgl_by_asp(
             sample.get("assay"), is_active=True, list_type="fusionlist"
         )
         sample_ids = util_module.common.get_case_and_control_sample_ids(sample)
-        has_hidden_comments = self.repository.sample_handler.hidden_sample_comments(sample.get("_id"))
+        has_hidden_comments = self.repository.sample_handler.hidden_sample_comments(
+            sample.get("_id")
+        )
         filter_context = RNAWorkflowService.compute_filter_context(
             sample=sample,
             sample_filters=sample_filters,
@@ -104,7 +110,11 @@ class RnaService:
         )
         return {
             "sample": sample,
-            "meta": {"request_path": request.url.path, "count": len(fusions), "tiered": tiered_fusions},
+            "meta": {
+                "request_path": request.url.path,
+                "count": len(fusions),
+                "tiered": tiered_fusions,
+            },
             "assay_group": assay_group,
             "subpanel": subpanel,
             "analysis_sections": assay_config.get("analysis_types", []),

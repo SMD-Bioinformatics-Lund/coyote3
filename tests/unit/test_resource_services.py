@@ -5,11 +5,10 @@ from api.services.resource_classification_service import ResourceClassificationS
 
 
 class _AnnotationHandlerStub:
-    """Provide  AnnotationHandlerStub behavior.
-    """
+    """Provide  AnnotationHandlerStub behavior."""
+
     def __init__(self) -> None:
-        """Handle __init__.
-        """
+        """Handle __init__."""
         self.global_comments: list[dict] = []
         self.inserted_bulk: list[dict] | None = None
         self.deleted: list[dict] = []
@@ -49,11 +48,10 @@ class _AnnotationHandlerStub:
 
 
 class _FusionHandlerStub:
-    """Provide  FusionHandlerStub behavior.
-    """
+    """Provide  FusionHandlerStub behavior."""
+
     def __init__(self) -> None:
-        """Handle __init__.
-        """
+        """Handle __init__."""
         self.comments: list[tuple[str, dict]] = []
 
     def add_fusion_comment(self, fusion_id: str, comment: dict) -> None:
@@ -98,11 +96,10 @@ class _FusionHandlerStub:
 
 
 class _CnvHandlerStub:
-    """Provide  CnvHandlerStub behavior.
-    """
+    """Provide  CnvHandlerStub behavior."""
+
     def __init__(self) -> None:
-        """Handle __init__.
-        """
+        """Handle __init__."""
         self.comments: list[tuple[str, dict]] = []
 
     def add_cnv_comment(self, cnv_id: str, comment: dict) -> None:
@@ -137,11 +134,10 @@ class _CnvHandlerStub:
 
 
 class _TranslocHandlerStub:
-    """Provide  TranslocHandlerStub behavior.
-    """
+    """Provide  TranslocHandlerStub behavior."""
+
     def __init__(self) -> None:
-        """Handle __init__.
-        """
+        """Handle __init__."""
         self.comments: list[tuple[str, dict]] = []
 
     def add_transloc_comment(self, transloc_id: str, comment: dict) -> None:
@@ -176,8 +172,8 @@ class _TranslocHandlerStub:
 
 
 class _VariantHandlerStub:
-    """Provide  VariantHandlerStub behavior.
-    """
+    """Provide  VariantHandlerStub behavior."""
+
     def add_var_comment(self, variant_id: str, comment: dict) -> None:
         """Handle add var comment.
 
@@ -192,17 +188,18 @@ class _VariantHandlerStub:
 
 
 class _RepoStub:
-    """Provide  RepoStub behavior.
-    """
+    """Provide  RepoStub behavior."""
+
     def __init__(self) -> None:
-        """Handle __init__.
-        """
+        """Handle __init__."""
         self.annotation_handler = _AnnotationHandlerStub()
         self.fusion_handler = _FusionHandlerStub()
         self.cnv_handler = _CnvHandlerStub()
         self.transloc_handler = _TranslocHandlerStub()
         self.variant_handler = _VariantHandlerStub()
-        self.oncokb_handler = type("_OncoKB", (), {"get_oncokb_gene": staticmethod(lambda gene: None)})()
+        self.oncokb_handler = type(
+            "_OncoKB", (), {"get_oncokb_gene": staticmethod(lambda gene: None)}
+        )()
 
 
 def _nomenclature(form_data: dict) -> tuple[str, str]:
@@ -237,7 +234,9 @@ def _comment_doc(form_data: dict, *, nomenclature: str, variant: str) -> dict:
     return {"text": form_data["text"], "nomenclature": nomenclature, "variant": variant}
 
 
-def _classification_doc(*, variant: str, nomenclature: str, class_num: int, variant_data: dict, **kwargs) -> dict:
+def _classification_doc(
+    *, variant: str, nomenclature: str, class_num: int, variant_data: dict, **kwargs
+) -> dict:
     """Handle  classification doc.
 
     Args:
@@ -277,7 +276,9 @@ def test_resource_annotation_service_routes_cnv_comment_to_cnv_handler():
     )
 
     assert resource == "cnv_comment"
-    assert repo.cnv_handler.comments == [("cnv-1", {"text": "note", "nomenclature": "cn", "variant": "7:10-20"})]
+    assert repo.cnv_handler.comments == [
+        ("cnv-1", {"text": "note", "nomenclature": "cn", "variant": "7:10-20"})
+    ]
 
 
 def test_resource_annotation_service_routes_translocation_comment_to_translocation_handler():

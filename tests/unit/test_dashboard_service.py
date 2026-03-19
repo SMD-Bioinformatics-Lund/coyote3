@@ -141,7 +141,9 @@ def test_summary_payload_calculates_quality_rates(monkeypatch):
     monkeypatch.setattr(service, "build_admin_insights", lambda: {"counts": {"users_total": 12}})
     monkeypatch.setattr(
         "api.services.dashboard_service.util",
-        SimpleNamespace(dashboard=SimpleNamespace(format_asp_gene_stats=lambda rows: {"formatted": rows})),
+        SimpleNamespace(
+            dashboard=SimpleNamespace(format_asp_gene_stats=lambda rows: {"formatted": rows})
+        ),
         raising=False,
     )
 

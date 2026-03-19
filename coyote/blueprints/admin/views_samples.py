@@ -30,18 +30,19 @@ def all_samples() -> str | Response:
         The rendered management page response.
     """
     form = SampleSearchForm()
-    search_str = ""
-
-    if request.method == "POST" and form.validate_on_submit():
-        search_str = form.sample_search.data
+    search_str = (request.args.get("q") or "").strip()
+    page = max(1, request.args.get("page", default=1, type=int) or 1)
+    per_page = max(1, min(request.args.get("per_page", default=30, type=int) or 30, 200))
+    form.sample_search.data = search_str
 
     try:
         payload = get_web_api_client().get_json(
             api_endpoints.admin("samples"),
             headers=forward_headers(),
-            params={"search": search_str} if search_str else None,
+            params={"search": search_str, "page": page, "per_page": per_page},
         )
         samples = payload.samples
+        pagination = payload.get("pagination", {})
     except ApiRequestError as exc:
         raise_page_load_error(
             exc,
@@ -49,7 +50,16 @@ def all_samples() -> str | Response:
             log_message="Failed to fetch admin sample list",
             summary="Unable to load samples.",
         )
-    return render_template("samples/all_samples.html", all_samples=samples, form=form)
+    return render_template(
+        "samples/all_samples.html",
+        all_samples=samples,
+        form=form,
+        q=search_str,
+        page=pagination.get("page", page),
+        per_page=pagination.get("per_page", per_page),
+        total=pagination.get("total", 0),
+        has_next=pagination.get("has_next", False),
+    )
 
 
 @admin_bp.route("/samples/<sample_id>/edit", methods=["GET", "POST"])

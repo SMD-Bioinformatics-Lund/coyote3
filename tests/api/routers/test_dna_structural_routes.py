@@ -18,4 +18,7 @@ def test_restful_dna_structural_mutation_routes_are_registered():
     assert "/api/v1/samples/{sample_id}/cnvs/{cnv_id}/comments/{comment_id}/hidden" in paths
     assert "/api/v1/samples/{sample_id}/translocations/{transloc_id}/flags/interesting" in paths
     assert "/api/v1/samples/{sample_id}/translocations/{transloc_id}/flags/false-positive" in paths
-    assert "/api/v1/samples/{sample_id}/translocations/{transloc_id}/comments/{comment_id}/hidden" in paths
+    assert (
+        "/api/v1/samples/{sample_id}/translocations/{transloc_id}/comments/{comment_id}/hidden"
+        in paths
+    )

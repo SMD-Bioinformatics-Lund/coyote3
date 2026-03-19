@@ -32,7 +32,9 @@ def get_audit_logger() -> logging.Logger:
     return logging.getLogger("audit")
 
 
-def ensure_logging_configured(log_dir: str, *, is_production: bool, gunicorn_logging: bool = False) -> None:
+def ensure_logging_configured(
+    log_dir: str, *, is_production: bool, gunicorn_logging: bool = False
+) -> None:
     """Configure repository logging once for the requested runtime mode.
 
     Args:

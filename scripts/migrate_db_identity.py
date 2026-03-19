@@ -20,9 +20,9 @@ It is idempotent and supports dry-run.
 from __future__ import annotations
 
 import argparse
+import sys
 from dataclasses import dataclass
 from pathlib import Path
-import sys
 from typing import Any, Callable
 
 from bson import ObjectId
@@ -60,9 +60,7 @@ EXPLICIT_KEY_RULES: tuple[tuple[str, str], ...] = (
 EXPLICIT_KEY_FIELDS = {collection: key_field for collection, key_field in EXPLICIT_KEY_RULES}
 
 # Legacy collection names that should be normalized to canonical names.
-LEGACY_COLLECTION_ALIASES: tuple[tuple[str, str], ...] = (
-    ("transloc", "translocations"),
-)
+LEGACY_COLLECTION_ALIASES: tuple[tuple[str, str], ...] = (("transloc", "translocations"),)
 
 # By default scan all non-system collections with non-ObjectId `_id`.
 DEFAULT_EXCLUDED_STRING_ID_COLLECTIONS: set[str] = set()
@@ -71,10 +69,16 @@ DEFAULT_EXCLUDED_STRING_ID_COLLECTIONS: set[str] = set()
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Canonical Coyote3 DB identity migration.")
     parser.add_argument("--mongo-uri", default="mongodb://localhost:27017")
-    parser.add_argument("--db", action="append", dest="dbs", required=True, help="Target DB; repeatable")
+    parser.add_argument(
+        "--db", action="append", dest="dbs", required=True, help="Target DB; repeatable"
+    )
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--fill-fullname", action="store_true", help="Fill users.fullname from username if missing")
-    parser.add_argument("--default-role", default="", help="Default role to set on users when missing")
+    parser.add_argument(
+        "--fill-fullname", action="store_true", help="Fill users.fullname from username if missing"
+    )
+    parser.add_argument(
+        "--default-role", default="", help="Default role to set on users when missing"
+    )
     parser.add_argument("--batch-size", type=int, default=1000)
     parser.add_argument(
         "--explicit-only",
@@ -538,7 +542,9 @@ def normalize_collection_aliases(db, *, dry_run: bool) -> int:
                     legacy.rename(canonical_name, dropTarget=True)
                 except PyMongoError as exc:
                     failed += 1
-                    print(f"[error] alias rename with dropTarget failed {legacy_name}->{canonical_name}: {exc}")
+                    print(
+                        f"[error] alias rename with dropTarget failed {legacy_name}->{canonical_name}: {exc}"
+                    )
             continue
         print(
             f"[warn] alias not auto-merged for {legacy_name}->{canonical_name}; "

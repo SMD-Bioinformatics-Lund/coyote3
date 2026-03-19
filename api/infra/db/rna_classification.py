@@ -1,5 +1,3 @@
-
-
 """
 RNAClassificationHandler module for Coyote3
 ====================================

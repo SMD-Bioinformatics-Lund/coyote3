@@ -8,8 +8,8 @@ from pydantic import BaseModel
 
 
 class DnaVariantsListPayload(BaseModel):
-    """Represent the dna variants list payload.
-    """
+    """Represent the dna variants list payload."""
+
     sample: dict[str, Any]
     meta: dict[str, Any]
     filters: dict[str, Any]
@@ -37,8 +37,8 @@ class DnaVariantsListPayload(BaseModel):
 
 
 class DnaPlotContextPayload(BaseModel):
-    """Represent the dna plot context payload.
-    """
+    """Represent the dna plot context payload."""
+
     sample: dict[str, Any]
     assay_config: dict[str, Any]
     assay_config_schema: dict[str, Any] | None = None
@@ -46,16 +46,16 @@ class DnaPlotContextPayload(BaseModel):
 
 
 class DnaBiomarkersPayload(BaseModel):
-    """Represent the dna biomarkers payload.
-    """
+    """Represent the dna biomarkers payload."""
+
     sample: dict[str, Any]
     meta: dict[str, Any]
     biomarkers: list[dict[str, Any]]
 
 
 class DnaVariantContextPayload(BaseModel):
-    """Represent the dna variant context payload.
-    """
+    """Represent the dna variant context payload."""
+
     sample: dict[str, Any]
     sample_summary: dict[str, Any]
     variant: dict[str, Any]
@@ -86,8 +86,8 @@ class DnaVariantContextPayload(BaseModel):
 
 
 class DnaCnvListPayload(BaseModel):
-    """Represent the dna cnv list payload.
-    """
+    """Represent the dna cnv list payload."""
+
     sample: dict[str, Any]
     meta: dict[str, Any]
     filters: dict[str, Any]
@@ -95,8 +95,8 @@ class DnaCnvListPayload(BaseModel):
 
 
 class DnaCnvContextPayload(BaseModel):
-    """Represent the dna cnv context payload.
-    """
+    """Represent the dna cnv context payload."""
+
     sample: dict[str, Any]
     sample_summary: dict[str, Any]
     cnv: dict[str, Any]
@@ -109,16 +109,16 @@ class DnaCnvContextPayload(BaseModel):
 
 
 class DnaTranslocationsPayload(BaseModel):
-    """Represent the dna translocations payload.
-    """
+    """Represent the dna translocations payload."""
+
     sample: dict[str, Any]
     meta: dict[str, Any]
     translocations: list[dict[str, Any]]
 
 
 class DnaTranslocationContextPayload(BaseModel):
-    """Represent the dna translocation context payload.
-    """
+    """Represent the dna translocation context payload."""
+
     sample: dict[str, Any]
     sample_summary: dict[str, Any]
     translocation: dict[str, Any]

@@ -1,4 +1,3 @@
-
 """Docs blueprint metadata routes (`about/changelog/license`)."""
 
 from __future__ import annotations

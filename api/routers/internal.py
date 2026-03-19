@@ -14,7 +14,9 @@ router = APIRouter(tags=["internal"])
 
 
 @router.get("/api/v1/internal/roles/levels", response_model=RoleLevelsPayload)
-def get_role_levels_internal(request: Request, repository: InternalRepository = Depends(get_internal_repository)):
+def get_role_levels_internal(
+    request: Request, repository: InternalRepository = Depends(get_internal_repository)
+):
     """Return role levels internal.
 
     Args:

@@ -1,4 +1,3 @@
-
 class AppError(Exception):
     """Custom application error for centralized error handling."""
 

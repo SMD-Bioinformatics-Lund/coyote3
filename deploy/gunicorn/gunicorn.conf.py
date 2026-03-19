@@ -18,8 +18,9 @@ License: Copyright (c) 2025 Coyote3 authors. All rights reserved.
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
-import logging_setup
 import os
+
+import logging_setup
 
 log_dir = os.getenv("LOG_DIR", "logs/prod")
 
@@ -66,4 +67,3 @@ def post_worker_stop(worker, worker_pid, exit_code) -> None:
     setting in a Gunicorn configuration file.
     """
     logging_setup.stop_async_logging()
-

@@ -6,8 +6,8 @@ from api.extensions import store
 
 
 class MongoInternalRepository:
-    """Provide mongo internal persistence operations.
-    """
+    """Provide mongo internal persistence operations."""
+
     def get_all_roles(self) -> list[dict]:
         """Return all roles.
 

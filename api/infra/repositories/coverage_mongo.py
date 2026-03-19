@@ -6,8 +6,8 @@ from api.extensions import store
 
 
 class MongoCoverageRepository:
-    """Provide mongo coverage persistence operations.
-    """
+    """Provide mongo coverage persistence operations."""
+
     def is_gene_blacklisted(self, gene: str, sample_group: str) -> bool:
         """Return whether gene blacklisted is true.
 

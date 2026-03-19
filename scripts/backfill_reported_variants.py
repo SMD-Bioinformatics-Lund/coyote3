@@ -779,7 +779,11 @@ class ReportedVariantsBackfiller:
             q["$or"].append(
                 {
                     "$and": [
-                        {"simple_id_hash": build_simple_id_hash_from_simple_id(normalized_simple_id)},
+                        {
+                            "simple_id_hash": build_simple_id_hash_from_simple_id(
+                                normalized_simple_id
+                            )
+                        },
                         {"simple_id": normalized_simple_id},
                     ]
                 }

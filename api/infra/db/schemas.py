@@ -11,6 +11,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+import re
 from typing import Any
 
 from api.infra.db.base import BaseHandler
@@ -104,6 +105,31 @@ class SchemaHandler(BaseHandler):
             Any: A cursor or iterable containing all schema documents.
         """
         return self.get_collection().find({})
+
+    def search_schemas(
+        self, *, q: str = "", page: int = 1, per_page: int = 30
+    ) -> tuple[list[dict], int]:
+        """Search schemas directly in MongoDB and return paged results."""
+        query: dict = {}
+        normalized_q = str(q or "").strip()
+        if normalized_q:
+            pattern = re.escape(normalized_q)
+            query["$or"] = [
+                {"schema_id": {"$regex": pattern, "$options": "i"}},
+                {"schema_name": {"$regex": pattern, "$options": "i"}},
+                {"schema_type": {"$regex": pattern, "$options": "i"}},
+                {"schema_category": {"$regex": pattern, "$options": "i"}},
+                {"description": {"$regex": pattern, "$options": "i"}},
+            ]
+        page = max(1, int(page or 1))
+        per_page = max(1, min(int(per_page or 30), 200))
+        skip = (page - 1) * per_page
+        col = self.get_collection()
+        total = int(col.count_documents(query))
+        docs = list(
+            col.find(query).sort([("schema_type", 1), ("schema_id", 1)]).skip(skip).limit(per_page)
+        )
+        return docs, total
 
     def get_schema(self, schema_id: str) -> dict:
         """

@@ -11,6 +11,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+import re
 from typing import Any
 
 from api.infra.db.base import BaseHandler
@@ -171,6 +172,33 @@ class ISGLHandler(BaseHandler):
         if adhoc is not None:
             query["adhoc"] = adhoc
         return list(self.get_collection().find(query, {"genes": 0}).sort([("created_on", -1)]))
+
+    def search_isgls(
+        self, *, q: str = "", page: int = 1, per_page: int = 30
+    ) -> tuple[list[dict], int]:
+        """Search genelists directly in MongoDB and return paged results."""
+        query: dict = {}
+        normalized_q = str(q or "").strip()
+        if normalized_q:
+            pattern = re.escape(normalized_q)
+            query["$or"] = [
+                {"isgl_id": {"$regex": pattern, "$options": "i"}},
+                {"name": {"$regex": pattern, "$options": "i"}},
+                {"description": {"$regex": pattern, "$options": "i"}},
+                {"list_type": {"$regex": pattern, "$options": "i"}},
+                {"diagnosis": {"$regex": pattern, "$options": "i"}},
+                {"assays": {"$regex": pattern, "$options": "i"}},
+                {"assay_groups": {"$regex": pattern, "$options": "i"}},
+            ]
+        page = max(1, int(page or 1))
+        per_page = max(1, min(int(per_page or 30), 200))
+        skip = (page - 1) * per_page
+        col = self.get_collection()
+        total = int(col.count_documents(query))
+        docs = list(
+            col.find(query, {"genes": 0}).sort([("created_on", -1)]).skip(skip).limit(per_page)
+        )
+        return docs, total
 
     def get_dashboard_visibility_rollup(self) -> dict:
         """
@@ -336,7 +364,9 @@ class ISGLHandler(BaseHandler):
         assay_ids = [str(row.get("_id")) for row in rows if row.get("_id")]
         asp_map = {
             str(doc.get("asp_id")): {
-                "display_name": str(doc.get("display_name") or doc.get("assay_name") or doc.get("asp_id") or ""),
+                "display_name": str(
+                    doc.get("display_name") or doc.get("assay_name") or doc.get("asp_id") or ""
+                ),
                 "asp_group": str(doc.get("asp_group") or ""),
             }
             for doc in self.adapter.asp_collection.find(
@@ -696,7 +726,5 @@ class ISGLHandler(BaseHandler):
         Returns:
             str | None: The display name of the gene list if found, otherwise None.
         """
-        doc = self.get_collection().find_one(
-            self._isgl_lookup_query(isgl_id), {"displayname": 1}
-        )
+        doc = self.get_collection().find_one(self._isgl_lookup_query(isgl_id), {"displayname": 1})
         return doc.get("displayname") if doc else None
