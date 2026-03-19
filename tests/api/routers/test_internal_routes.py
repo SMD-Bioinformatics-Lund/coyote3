@@ -210,3 +210,62 @@ def test_ingest_sample_bundle_internal_requires_edit_sample_permission_for_updat
     assert calls["enforced"] == 1
     assert calls["allow_update"] is True
     assert response["sample_id"] == "upd-1"
+
+
+def test_ingest_collection_document_internal_forwards_payload(monkeypatch):
+    """Single collection ingest route should forward request payload."""
+    monkeypatch.setattr(internal, "_require_internal_token", lambda _request: None)
+    monkeypatch.setattr(
+        internal.util,
+        "common",
+        SimpleNamespace(convert_to_serializable=lambda payload: payload),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        internal.InternalIngestService,
+        "insert_collection_document",
+        lambda *, collection, document: {
+            "status": "ok",
+            "collection": collection,
+            "inserted_count": 1,
+            "inserted_id": "abc123",
+        },
+    )
+    payload = internal.InternalCollectionInsertRequest(
+        collection="hgnc_genes",
+        document={"hgnc_id": "HGNC:5", "hgnc_symbol": "A1BG"},
+    )
+    response = internal.ingest_collection_document_internal(payload=payload, request=object())
+    assert response["collection"] == "hgnc_genes"
+    assert response["inserted_count"] == 1
+
+
+def test_ingest_collection_documents_internal_forwards_payload(monkeypatch):
+    """Bulk collection ingest route should forward request payload."""
+    monkeypatch.setattr(internal, "_require_internal_token", lambda _request: None)
+    monkeypatch.setattr(
+        internal.util,
+        "common",
+        SimpleNamespace(convert_to_serializable=lambda payload: payload),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        internal.InternalIngestService,
+        "insert_collection_documents",
+        lambda *, collection, documents: {
+            "status": "ok",
+            "collection": collection,
+            "inserted_count": len(documents),
+            "inserted_id": None,
+        },
+    )
+    payload = internal.InternalCollectionBulkInsertRequest(
+        collection="hgnc_genes",
+        documents=[
+            {"hgnc_id": "HGNC:5", "hgnc_symbol": "A1BG"},
+            {"hgnc_id": "HGNC:6", "hgnc_symbol": "A1CF"},
+        ],
+    )
+    response = internal.ingest_collection_documents_internal(payload=payload, request=object())
+    assert response["collection"] == "hgnc_genes"
+    assert response["inserted_count"] == 2

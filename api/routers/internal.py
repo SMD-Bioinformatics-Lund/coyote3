@@ -5,6 +5,9 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Request
 
 from api.contracts.internal import (
+    InternalCollectionBulkInsertRequest,
+    InternalCollectionInsertPayload,
+    InternalCollectionInsertRequest,
     InternalIngestDependentsPayload,
     InternalIngestDependentsRequest,
     InternalIngestSampleBundlePayload,
@@ -119,5 +122,39 @@ def ingest_sample_bundle_internal(
     result = InternalIngestService.ingest_sample_bundle(
         source_payload,
         allow_update=payload.update_existing,
+    )
+    return util.common.convert_to_serializable(result)
+
+
+@router.post(
+    "/api/v1/internal/ingest/collection",
+    response_model=InternalCollectionInsertPayload,
+)
+def ingest_collection_document_internal(
+    payload: InternalCollectionInsertRequest,
+    request: Request,
+):
+    """Insert one validated document into a supported collection."""
+    _require_internal_token(request)
+    result = InternalIngestService.insert_collection_document(
+        collection=payload.collection,
+        document=payload.document,
+    )
+    return util.common.convert_to_serializable(result)
+
+
+@router.post(
+    "/api/v1/internal/ingest/collection/bulk",
+    response_model=InternalCollectionInsertPayload,
+)
+def ingest_collection_documents_internal(
+    payload: InternalCollectionBulkInsertRequest,
+    request: Request,
+):
+    """Insert many validated documents into a supported collection."""
+    _require_internal_token(request)
+    result = InternalIngestService.insert_collection_documents(
+        collection=payload.collection,
+        documents=payload.documents,
     )
     return util.common.convert_to_serializable(result)

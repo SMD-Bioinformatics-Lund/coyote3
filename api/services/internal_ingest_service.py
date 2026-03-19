@@ -15,6 +15,10 @@ from bson.objectid import ObjectId
 from pysam import VariantFile
 
 import config
+from api.contracts.db_documents import (
+    SamplesDoc,
+    validate_collection_document,
+)
 from api.core.dna.variant_identity import ensure_variant_identity_fields
 from api.extensions import store
 from api.parsers import cmdvcf
@@ -653,6 +657,11 @@ class InternalIngestService:
         raise ValueError("Could not determine data type (DNA/RNA) from payload")
 
     @classmethod
+    def _validate_collection_docs(cls, collection: str, docs: list[dict[str, Any]]) -> None:
+        for doc in docs:
+            validate_collection_document(collection, doc)
+
+    @classmethod
     def _write_dependents(
         cls,
         *,
@@ -675,6 +684,7 @@ class InternalIngestService:
                 doc["SAMPLE_ID"] = sid
                 if key == "cov":
                     doc["sample"] = sample_name
+                cls._validate_collection_docs(col_name, [doc])
                 col.insert_one(doc)
                 written[key] = 1
                 continue
@@ -690,6 +700,7 @@ class InternalIngestService:
                 if key == "snvs":
                     doc = ensure_variant_identity_fields(doc)
                 docs.append(doc)
+            cls._validate_collection_docs(col_name, docs)
             if docs:
                 col.insert_many(docs)
             written[key] = len(docs)
@@ -723,6 +734,7 @@ class InternalIngestService:
                 doc["SAMPLE_ID"] = sid
                 if key == "cov":
                     doc["sample"] = sample_name
+                cls._validate_collection_docs(col_name, [doc])
                 col.insert_one(doc)
                 written[key] = 1
                 continue
@@ -738,6 +750,7 @@ class InternalIngestService:
                 if key == "snvs":
                     doc = ensure_variant_identity_fields(doc)
                 docs.append(doc)
+            cls._validate_collection_docs(col_name, docs)
             if docs:
                 col.insert_many(docs)
             written[key] = len(docs)
@@ -924,7 +937,8 @@ class InternalIngestService:
                     "ingest_status": "ready",
                 }
             )
-            store.sample_handler.get_collection().insert_one(meta)
+            validated_meta = SamplesDoc.model_validate(meta)
+            store.sample_handler.get_collection().insert_one(validated_meta.model_dump())
         except Exception:
             cls._cleanup(sample_id)
             raise
@@ -935,4 +949,35 @@ class InternalIngestService:
             "sample_name": sample_name,
             "written": written,
             "data_counts": cls._data_counts(preload),
+        }
+
+    @classmethod
+    def insert_collection_document(
+        cls, *, collection: str, document: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Validate and insert one document into a supported collection."""
+        validate_collection_document(collection, document)
+        result = cls._resolve_collection(collection).insert_one(dict(document))
+        return {
+            "status": "ok",
+            "collection": collection,
+            "inserted_count": 1,
+            "inserted_id": str(result.inserted_id),
+        }
+
+    @classmethod
+    def insert_collection_documents(
+        cls, *, collection: str, documents: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        """Validate and insert many documents into a supported collection."""
+        if not documents:
+            return {"status": "ok", "collection": collection, "inserted_count": 0}
+        cls._validate_collection_docs(collection, documents)
+        result = cls._resolve_collection(collection).insert_many(
+            [dict(doc) for doc in documents], ordered=False
+        )
+        return {
+            "status": "ok",
+            "collection": collection,
+            "inserted_count": len(result.inserted_ids),
         }

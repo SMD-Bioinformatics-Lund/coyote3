@@ -79,3 +79,26 @@ class InternalIngestSampleBundlePayload(BaseModel):
     sample_name: str
     written: dict[str, int]
     data_counts: dict[str, int | bool]
+
+
+class InternalCollectionInsertRequest(BaseModel):
+    """Represent request body for single document insert."""
+
+    collection: str
+    document: dict[str, Any]
+
+
+class InternalCollectionBulkInsertRequest(BaseModel):
+    """Represent request body for bulk document insert."""
+
+    collection: str
+    documents: list[dict[str, Any]]
+
+
+class InternalCollectionInsertPayload(BaseModel):
+    """Represent collection insert response payload."""
+
+    status: str
+    collection: str
+    inserted_count: int
+    inserted_id: str | None = None
