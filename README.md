@@ -119,12 +119,13 @@ cd coyote3
 ### 3. Configure Environment Files
 
 ```bash
-cp example.env .coyote3_env
-cp example.env .coyote3_dev_env
+cp example.prod.env .coyote3_env
+cp example.dev.env .coyote3_dev_env
 cp example.stage.env .coyote3_stage_env
 ```
 
-Set real values for secrets/tokens/DB URIs per environment.
+Set real values for secrets, Mongo credentials, and URIs per environment.
+Use dedicated Mongo instances/users per environment (`prod`, `stage`, `dev`).
 
 ### 4. Build Metadata (Recommended)
 
@@ -166,6 +167,15 @@ Alternative helper script:
 
 ```bash
 ./scripts/install.dev.sh
+```
+
+### 7. Staging Deployment
+
+```bash
+./scripts/compose-with-version.sh \
+  --env-file .coyote3_stage_env \
+  -f deploy/compose/docker-compose.stage.yml \
+  up -d --build
 ```
 
 ### 7. Verify Runtime Health

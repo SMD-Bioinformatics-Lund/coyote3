@@ -8,10 +8,12 @@ Primary goals:
 - no host Mongo dependency
 - persistent volume-backed data
 - controlled restore from curated snapshots
+- authenticated database access via dedicated Mongo users
 
 ## 2. Compose entry points
 - Dev compose: `deploy/compose/docker-compose.dev.yml`
-- Prod-style compose: `deploy/compose/docker-compose.yml`
+- Stage compose: `deploy/compose/docker-compose.stage.yml`
+- Prod compose: `deploy/compose/docker-compose.yml`
 - Wrapper script: `scripts/compose-with-version.sh`
 
 ## 3. Mongo service model
@@ -38,7 +40,9 @@ For dev work, configure `.coyote3_dev_env`:
 
 ```env
 COYOTE3_DB='coyote3_dev'
-MONGO_URI='mongodb://coyote3_dev_mongo:27017/coyote3_dev'
+MONGO_APP_USER='coyote3_app'
+MONGO_APP_PASSWORD='CHANGE_ME_DEV_APP_PASSWORD'
+MONGO_URI='mongodb://coyote3_app:CHANGE_ME_DEV_APP_PASSWORD@coyote3_dev_mongo:27017/coyote3_dev'
 ```
 
 `MONGO_URI` is required.
@@ -103,6 +107,25 @@ scripts/snapshot_restore_dev.sh \
   --target-uri mongodb://localhost:37017 \
   --target-db coyote3_dev \
   --sample-count 60
+```
+
+One-command snapshot+restore into stage:
+
+```bash
+scripts/snapshot_restore_stage.sh \
+  --source-uri "mongodb://<prod-app-user>:<prod-app-pass>@<prod-mongo-host>:27017/coyote3" \
+  --source-db coyote3 \
+  --sample-count 60
+```
+
+Create/rotate app users for existing Mongo volumes:
+
+```bash
+/home/ram/.virtualenvs/coyote3/bin/python scripts/mongo_bootstrap_users.py \
+  --mongo-uri "mongodb://<root-user>:<root-pass>@localhost:37017/admin" \
+  --app-db coyote3_dev \
+  --app-user coyote3_app \
+  --app-password '<new-strong-password>'
 ```
 
 ## 7. Keeping `coyote3` and `coyote3_dev` aligned

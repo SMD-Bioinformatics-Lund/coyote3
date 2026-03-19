@@ -1,13 +1,11 @@
-name: coyote3-prod
+name: coyote3-stage
 # usage:
-# COYOTE3_VERSION is read from coyote/__version__.py (example):
+#   cp example.stage.env .coyote3_stage_env
 #   export COYOTE3_VERSION="$(python3 coyote/__version__.py)"
-# docker compose -f deploy/compose/docker-compose.yml up -d
-# docker compose -f deploy/compose/docker-compose.yml down
+#   docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml up -d --build
 services:
-  # UI container: Flask/Jinja presentation layer. Calls coyote3_api over HTTP.
-  coyote3_web:
-    container_name: coyote3_web_${COYOTE3_VERSION:-local}
+  coyote3_stage_web:
+    container_name: coyote3_stage_web_${COYOTE3_VERSION:-local}
     image: coyote3:${COYOTE3_VERSION:-local}
     build:
       context: ../..
@@ -17,9 +15,9 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
     ports:
-      - "${COYOTE3_WEB_PORT:-5814}:8000"
+      - "${COYOTE3_STAGE_WEB_PORT:-7814}:8000"
     env_file:
-      - ../../.coyote3_env
+      - ../../.coyote3_stage_env
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
@@ -27,7 +25,7 @@ services:
       - FLASK_DEBUG=0
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
-      - API_BASE_URL=http://coyote3_api:8001
+      - API_BASE_URL=http://coyote3_stage_api:8001
       - API_BROWSER_BASE=/api
       - TZ=Europe/Stockholm
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
@@ -37,7 +35,7 @@ services:
       - ${APP_DNS:-1.1.1.1}
       - 8.8.8.8
     networks:
-      - coyote3-net
+      - coyote3-stage-net
     volumes:
       - "/access:/access"
       - "/media:/media"
@@ -45,12 +43,11 @@ services:
       - "/fs1:/fs1"
     command: "gunicorn --config gunicorn.conf.py --bind 0.0.0.0:8000 wsgi:app"
     depends_on:
-      coyote3_api:
+      coyote3_stage_api:
         condition: service_healthy
 
-  # API container: FastAPI business/policy/data layer.
-  coyote3_api:
-    container_name: coyote3_api_${COYOTE3_VERSION:-local}
+  coyote3_stage_api:
+    container_name: coyote3_stage_api_${COYOTE3_VERSION:-local}
     image: coyote3:${COYOTE3_VERSION:-local}
     build:
       context: ../..
@@ -60,9 +57,9 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
     ports:
-      - "${COYOTE3_API_PORT:-5816}:8001"
+      - "${COYOTE3_STAGE_API_PORT:-7816}:8001"
     env_file:
-      - ../../.coyote3_env
+      - ../../.coyote3_stage_env
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
@@ -76,7 +73,7 @@ services:
       - ${APP_DNS:-1.1.1.1}
       - 8.8.8.8
     networks:
-      - coyote3-net
+      - coyote3-stage-net
     volumes:
       - "/access:/access"
       - "/media:/media"
@@ -90,54 +87,50 @@ services:
       retries: 20
       start_period: 10s
     depends_on:
-      - redis_coyote3
+      coyote3_stage_mongo:
+        condition: service_started
+      redis_coyote3_stage:
+        condition: service_started
 
-  # Shared infrastructure dependency.
-  redis_coyote3:
-    container_name: redis_coyote3_${COYOTE3_VERSION:-local}
+  redis_coyote3_stage:
+    container_name: redis_coyote3_stage_${COYOTE3_VERSION:-local}
     image: ramsainanduri/redis:7.4.3
     ports:
-      - "${COYOTE3_REDIS_PORT:-5817}:6379"
+      - "${COYOTE3_STAGE_REDIS_PORT:-7817}:6379"
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
     dns:
       - ${APP_DNS:-1.1.1.1}
       - 8.8.8.8
     networks:
-      - coyote3-net
+      - coyote3-stage-net
     restart: unless-stopped
     privileged: true
 
-  # Optional self-hosted Mongo service for environments that do not use managed/external Mongo.
-  # Enable with:
-  #   ./scripts/compose-with-version.sh -f deploy/compose/docker-compose.yml --profile with-mongo up -d
-  # IMPORTANT:
-  #   Set MONGO_URI=mongodb://coyote3_mongo:27017/coyote3 in .coyote3_env when using this profile.
-  coyote3_mongo:
-    container_name: coyote3_mongo_${COYOTE3_VERSION:-local}
+  coyote3_stage_mongo:
+    container_name: coyote3_stage_mongo_${COYOTE3_VERSION:-local}
     image: mongo:7.0
-    profiles: ["with-mongo"]
     command: ["--bind_ip_all"]
+    ports:
+      - "${COYOTE3_STAGE_MONGO_PORT:-47017}:27017"
     restart: unless-stopped
     stop_grace_period: 120s
     networks:
-      - coyote3-net
-    ports:
-      - "${COYOTE3_MONGO_PORT:-5818}:27017"
+      - coyote3-stage-net
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME:-coyote3_root}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-CHANGE_ME_PROD_ROOT_PASSWORD}
-      - COYOTE3_DB=${COYOTE3_DB:-coyote3}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-CHANGE_ME_STAGE_ROOT_PASSWORD}
+      - COYOTE3_DB=${COYOTE3_DB:-coyote3_stage}
       - MONGO_APP_USER=${MONGO_APP_USER:-coyote3_app}
-      - MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD:-CHANGE_ME_PROD_APP_PASSWORD}
+      - MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD:-CHANGE_ME_STAGE_APP_PASSWORD}
     volumes:
-      - prod-mongodb:/data/db
-      - /data/coyote3/backups/mongo:/backup
+      - stage-mongodb:/data/db
+      - /data/coyote3/stage/backups/mongo:/backup
       - ./mongo-init/create-app-user.js:/docker-entrypoint-initdb.d/01-create-app-user.js:ro
 
 networks:
-  coyote3-net:
+  coyote3-stage-net:
     driver: bridge
 
 volumes:
-  prod-mongodb:
+  stage-mongodb:

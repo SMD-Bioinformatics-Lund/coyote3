@@ -6,7 +6,7 @@ usage() {
 Create required external Docker volumes for Mongo persistence.
 
 Usage:
-  scripts/create_external_mongo_volumes.sh [all|prod|dev|portable]
+  scripts/create_external_mongo_volumes.sh [all|prod|dev|stage|portable]
 
 Defaults to: all
 EOF
@@ -32,6 +32,7 @@ case "$target" in
   all)
     create_volume "${COYOTE3_MONGO_VOLUME:-coyote3-prod-mongo-data}"
     create_volume "${COYOTE3_DEV_MONGO_VOLUME:-coyote3-dev-mongo-data}"
+    create_volume "${COYOTE3_STAGE_MONGO_VOLUME:-coyote3-stage-mongo-data}"
     create_volume "${COYOTE3_PORTABLE_MONGO_VOLUME:-coyote3-portable-mongo-data}"
     ;;
   prod)
@@ -39,6 +40,9 @@ case "$target" in
     ;;
   dev)
     create_volume "${COYOTE3_DEV_MONGO_VOLUME:-coyote3-dev-mongo-data}"
+    ;;
+  stage)
+    create_volume "${COYOTE3_STAGE_MONGO_VOLUME:-coyote3-stage-mongo-data}"
     ;;
   portable)
     create_volume "${COYOTE3_PORTABLE_MONGO_VOLUME:-coyote3-portable-mongo-data}"

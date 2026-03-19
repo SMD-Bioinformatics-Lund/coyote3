@@ -145,7 +145,7 @@ APP_VERSION=2026.03.03
 API_BASE_URL=http://api:8001
 
 # database
-MONGO_URI=mongodb://mongo:27017/coyote3
+MONGO_URI=mongodb://coyote3_app:<strong-password>@mongo:27017/coyote3
 
 # security
 SECRET_KEY=<redacted>
@@ -179,7 +179,7 @@ Secrets include credentials and tokens that must never be stored in source-contr
 ## 5.1 Secret classes
 - session/signing keys
 - internal API token
-- database credentials
+- database credentials (separate root/admin and app users)
 - optional integration service credentials
 
 ## 5.2 Secret handling expectations
@@ -526,7 +526,7 @@ ENV_NAME=production
 APP_VERSION=2026.03.03
 
 API_BASE_URL=http://api:8001
-MONGO_URI=mongodb://mongo:27017/coyote3
+MONGO_URI=mongodb://coyote3_app:<strong-password>@mongo:27017/coyote3
 
 SECRET_KEY=<set-via-secret-store>
 INTERNAL_API_TOKEN=<set-via-secret-store>

@@ -16,14 +16,15 @@ It is command-first, reproducible, and aligned to the repository CI gates and co
 Create environment files from templates:
 
 ```bash
-cp example.env .coyote3_dev_env
+cp example.dev.env .coyote3_dev_env
 cp example.stage.env .coyote3_stage_env
-cp example.env .coyote3_env
+cp example.prod.env .coyote3_env
 ```
 
 Required per-environment differences:
 
 - `MONGO_URI` and DB name (`COYOTE3_DB`)
+- Mongo credentials (`MONGO_ROOT_USERNAME`, `MONGO_ROOT_PASSWORD`, `MONGO_APP_USER`, `MONGO_APP_PASSWORD`)
 - secrets (`SECRET_KEY`, `COYOTE3_FERNET_KEY`, `INTERNAL_API_TOKEN`, `API_SESSION_SALT`)
 - host ports
 - session cookie names
@@ -98,7 +99,7 @@ PYTHON_BIN=/home/ram/.virtualenvs/coyote3/bin/python bash scripts/run_tests_with
 Validate compose before deploy:
 
 ```bash
-docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.yml config -q
+docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml config -q
 ```
 
 Deploy staging:
@@ -106,20 +107,18 @@ Deploy staging:
 ```bash
 ./scripts/compose-with-version.sh \
   --env-file .coyote3_stage_env \
-  -f deploy/compose/docker-compose.yml \
+  -f deploy/compose/docker-compose.stage.yml \
   -p coyote3-stage \
   up -d --build
 ```
 
-If staging uses compose-managed Mongo:
+Stage dataset refresh from production snapshot (recommended):
 
 ```bash
-./scripts/compose-with-version.sh \
-  --env-file .coyote3_stage_env \
-  -f deploy/compose/docker-compose.yml \
-  -p coyote3-stage \
-  --profile with-mongo \
-  up -d --build
+scripts/snapshot_restore_stage.sh \
+  --source-uri "mongodb://<prod-app-user>:<prod-app-pass>@<prod-mongo-host>:27017/coyote3" \
+  --source-db coyote3 \
+  --sample-count 60
 ```
 
 Run identity migration on staging DB after restore/import:
@@ -133,10 +132,10 @@ Run identity migration on staging DB after restore/import:
 Staging verification checklist:
 
 ```bash
-docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.yml -p coyote3-stage ps
-curl -f http://localhost:${COYOTE3_API_PORT:-7816}/api/v1/health
-curl -f http://localhost:${COYOTE3_WEB_PORT:-7814}/coyote3/
-docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.yml -p coyote3-stage logs --tail=200 coyote3_api coyote3_web
+docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml -p coyote3-stage ps
+curl -f http://localhost:${COYOTE3_STAGE_API_PORT:-7816}/api/v1/health
+curl -f http://localhost:${COYOTE3_STAGE_WEB_PORT:-7814}/coyote3/
+docker compose --env-file .coyote3_stage_env -f deploy/compose/docker-compose.stage.yml -p coyote3-stage logs --tail=200 coyote3_stage_api coyote3_stage_web
 ```
 
 Functional staging checks (minimum):
@@ -199,6 +198,8 @@ curl -f http://localhost:${COYOTE3_WEB_PORT:-5814}/coyote3/
 ## 8. Important Runtime Notes
 
 - Do not share production Mongo URI or secrets with staging/dev.
+- Production Mongo must be dedicated to production only (no dev/stage applications against prod DB).
+- Use per-environment Mongo app users; avoid using root user for application traffic.
 - Keep staging and prod ports distinct when on same host.
 - This repository uses explicit `container_name`; avoid running multiple same-compose deployments on one host unless names/versioning are intentionally separated.
 - Run migrations with explicit `--mongo-uri` and `--db` to prevent cross-environment mistakes.
