@@ -16,36 +16,30 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Start Here:
+      - Quickstart: start-here/quickstart.md
+      - Local Development: start-here/local-development.md
+      - Configuration Model: start-here/configuration.md
+  - Product:
+      - UI Map And User Flows: product/ui-map-and-user-flows.md
+      - DNA And RNA Workflow Chain: product/workflow-dna-rna.md
   - Architecture:
-      - Overview: ARCHITECTURE_OVERVIEW.md
-      - Repository Structure: architecture/repository-structure.md
-      - API Architecture: architecture/API_ARCHITECTURE.md
-      - Security Model: SECURITY_MODEL.md
-      - Data Model: DATA_MODEL.md
-      - Traceability Matrix: TRACEABILITY_MATRIX.md
-      - Glossary: GLOSSARY.md
+      - System Overview: architecture/system-overview.md
+      - Request Lifecycle: architecture/request-lifecycle.md
+      - Codebase Map: architecture/codebase-map.md
+      - Data Contracts: architecture/data-contracts.md
+      - Security Model: architecture/security-model.md
   - API:
-      - Concepts And Layering: api/concepts-and-layering.md
-      - Reference: api/reference.md
-      - Endpoint Catalog: api/endpoint-catalog.md
-      - REST Migration Notes: api/rest-migration-notes.md
-      - Auth Login Model and Stats: AUTH_LOGIN_MODEL_AND_STATS.md
-  - UI:
-      - User Guide: ui/user-guide.md
-      - UI Surface And Permissions: ui/ui-surface-and-permissions.md
-  - Development:
-      - Developer Guide: development/developer-guide.md
-      - Maintenance Guide: development/maintenance-guide.md
-      - Route Implementation Guide: development/route-implementation-guide.md
-      - Extension Playbook: development/extension-playbook.md
-      - Code Style: development/code-style.md
-  - Deployment:
-      - Operations: deployment/operations.md
-      - Release Process: deployment/release-process.md
-      - Troubleshooting: deployment/troubleshooting.md
-      - Mongo Docker Dev Runtime: deployment/mongo-docker-dev-runtime.md
-      - External Center Onboarding: deployment/external-center-onboarding.md
-      - Patient Data Backup and Recovery: deployment/patient-data-backup-and-recovery.md
+      - API Reference And Workflows: api/reference-and-workflows.md
+      - Ingestion API: api/ingestion-api.md
   - Testing:
-      - Testing Guide: testing/TESTING_GUIDE.md
-      - Testing Strategy: testing/strategy.md
+      - Testing And Quality: testing/testing-and-quality.md
+      - Test Data And Fixtures: testing/test-data-and-fixtures.md
+  - Operations:
+      - Environments And Secrets: operations/environments-and-secrets.md
+      - Deployment Runbook: operations/deployment-runbook.md
+      - Backup Restore And Snapshots: operations/backup-restore-and-snapshots.md
+      - Troubleshooting: operations/troubleshooting.md
+  - Maintainers:
+      - Maintainer Playbook: maintainers/maintainer-playbook.md
+      - Refactor Guidelines: maintainers/refactor-guidelines.md
