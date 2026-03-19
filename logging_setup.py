@@ -1,19 +1,15 @@
-#  Copyright (c) 2025 Coyote3 Project Authors All rights reserved. \n
-#  This source file is part of the Coyote3 codebase. The Coyote3 project provides a framework for genomic data analysis, interpretation, reporting, and clinical diagnostics. \n
-#  Unauthorized use, distribution, or modification of this software or its components is strictly prohibited without prior written permission from the copyright holders.
-#
-
+import atexit
 import logging
 import logging.config
-from logging.handlers import TimedRotatingFileHandler, QueueHandler, QueueListener
-from datetime import UTC, datetime, timedelta
-from typing import Any, Dict, Literal
-from flask import request, has_request_context, session
-from pathlib import Path
-from gunicorn import glogging
-import queue
-import atexit
 import os
+import queue
+from datetime import UTC, datetime, timedelta
+from logging.handlers import QueueHandler, QueueListener, TimedRotatingFileHandler
+from pathlib import Path
+from typing import Any, Dict, Literal
+
+from flask import has_request_context, request, session
+from gunicorn import glogging
 
 # Global queue for asynchronous logging
 log_queue = queue.Queue(-1)  # Infinite size
@@ -23,6 +19,7 @@ listener = None
 
 
 #### CLASS DEFINITIONS ####
+
 
 class RequestFilter(logging.Filter):
     """
@@ -35,6 +32,7 @@ class RequestFilter(logging.Filter):
 
     This filter enables enhanced log traceability for Flask applications by including user and request metadata.
     """
+
     def filter(self, record) -> Literal[True]:
         if has_request_context():
             record.remote_addr = request.remote_addr or "N/A"
@@ -48,6 +46,7 @@ class RequestFilter(logging.Filter):
             record.user = "-"
         return True
 
+
 class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
     """
     CustomTimedRotatingFileHandler is a logging handler that rotates log files based on time intervals
@@ -56,8 +55,18 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
     or flat folders).This handler is useful for applications requiring organized, time-based log rotation
     and retention management in UTC.
     """
-    def __init__(self, *args, level_name=None, days_to_keep=0, log_dir="logs",
-                 delete_old=False, subdir=None, flat=False, **kwargs):
+
+    def __init__(
+        self,
+        *args,
+        level_name=None,
+        days_to_keep=0,
+        log_dir="logs",
+        delete_old=False,
+        subdir=None,
+        flat=False,
+        **kwargs,
+    ):
 
         kwargs.setdefault("encoding", "utf-8")
         kwargs.setdefault("utc", True)
@@ -69,7 +78,9 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
         self.days_to_keep = days_to_keep
         self.delete_old = delete_old
 
-        filename = get_utc_log_path(self.log_dir, self.level_name, subdir=self.subdir, flat=self.flat)
+        filename = get_utc_log_path(
+            self.log_dir, self.level_name, subdir=self.subdir, flat=self.flat
+        )
         kwargs["filename"] = filename
         super().__init__(*args, **kwargs)
 
@@ -91,10 +102,8 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
         """
         try:
             Path(self.baseFilename).parent.mkdir(parents=True, exist_ok=True)
-            if not os.path.exists(self.baseFilename):
+            if self.stream is None or self.stream.closed or not os.path.exists(self.baseFilename):
                 self._reopen_stream()
-            if self.shouldRollover(record):
-                self.doRollover()
         except Exception as e:
             print(f"[Logging Warning] Failed during emit: {e}")
         super().emit(record)
@@ -111,7 +120,9 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
 
         It ensures the target directory exists before updating the handler's base filename.
         """
-        self.baseFilename = get_utc_log_path(self.log_dir, self.level_name, subdir=self.subdir, flat=self.flat)
+        self.baseFilename = get_utc_log_path(
+            self.log_dir, self.level_name, subdir=self.subdir, flat=self.flat
+        )
         Path(self.baseFilename).parent.mkdir(parents=True, exist_ok=True)
 
     def _reopen_stream(self) -> None:
@@ -139,7 +150,7 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
             None
         """
         super().doRollover()
-        self.baseFilename = get_utc_log_path(self.log_dir, self.level_name, subdir=self.subdir, flat=self.flat)
+        self._reopen_stream()
         if self.delete_old and self.days_to_keep > 0:
             self.clean_old_log_files()
 
@@ -162,7 +173,13 @@ class CustomTimedRotatingFileHandler(TimedRotatingFileHandler):
 
 
 #### FUNCTION DEFINITIONS ####
-def get_utc_log_path(log_dir: str, level: str, now: datetime | None = None, subdir: str | None = None, flat: bool = False) -> str:
+def get_utc_log_path(
+    log_dir: str,
+    level: str,
+    now: datetime | None = None,
+    subdir: str | None = None,
+    flat: bool = False,
+) -> str:
     """
     Generate a UTC-timestamped log file path.
 
@@ -192,6 +209,7 @@ def get_utc_log_path(log_dir: str, level: str, now: datetime | None = None, subd
     filename = now.strftime(f"%Y-%m-%d.{level}.log")
     return str(folder / filename)
 
+
 def stop_async_logging() -> None:
     """
     Stops the asynchronous logging listener and cleans up resources.
@@ -205,6 +223,7 @@ def stop_async_logging() -> None:
     global listener
     if listener:
         listener.stop()
+
 
 def setup_async_logging(log_dir: str, is_production: bool = False) -> None:
     """
@@ -251,6 +270,7 @@ def setup_async_logging(log_dir: str, is_production: bool = False) -> None:
     # Register cleanup to stop listener on exit
     atexit.register(stop_async_logging)
 
+
 def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
     """
     Generates and returns a custom logging configuration dictionary for the application.
@@ -265,6 +285,9 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: A dictionary suitable for use with logging.config.dictConfig.
     """
+    Path(log_dir).mkdir(parents=True, exist_ok=True)
+    Path(log_dir, "fallback").mkdir(parents=True, exist_ok=True)
+
     handlers = {
         "console": {
             "class": "colorlog.StreamHandler",
@@ -279,9 +302,11 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
             "filters": ["request_filter"],
             "level_name": "info",
             "log_dir": log_dir,
+            "subdir": "app/info",
+            "flat": False,
             "when": "midnight",
             "interval": 1,
-            "backupCount": 0,
+            "backupCount": 5,
             "days_to_keep": 0,
             "delete_old": False,
         },
@@ -292,9 +317,11 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
             "filters": ["request_filter"],
             "level_name": "error",
             "log_dir": log_dir,
+            "subdir": "app/error",
+            "flat": False,
             "when": "midnight",
             "interval": 1,
-            "backupCount": 0,
+            "backupCount": 5,
             "days_to_keep": 0,
             "delete_old": False,
         },
@@ -309,6 +336,7 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
             "flat": True,
             "when": "midnight",
             "interval": 1,
+            "backupCount": 5,
             "days_to_keep": 180,
             "delete_old": True,
         },
@@ -322,6 +350,7 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
             "flat": True,
             "when": "midnight",
             "interval": 1,
+            "backupCount": 5,
             "days_to_keep": 180,
             "delete_old": True,
         },
@@ -335,6 +364,7 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
             "flat": True,
             "when": "midnight",
             "interval": 1,
+            "backupCount": 5,
             "days_to_keep": 180,
             "delete_old": True,
         },
@@ -348,6 +378,7 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
             "flat": True,
             "when": "midnight",
             "interval": 1,
+            "backupCount": 5,
             "days_to_keep": 180,
             "delete_old": True,
         },
@@ -355,9 +386,9 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
             "level": "INFO",
             "class": "logging.handlers.RotatingFileHandler",
             "formatter": "standard",
-            "filename": str(Path(log_dir) / "fallback.log"),
+            "filename": str(Path(log_dir) / "fallback" / "fallback.log"),
             "maxBytes": 5 * 1024 * 1024,  # 5 MB
-            "backupCount": 2,
+            "backupCount": 5,
             "encoding": "utf-8",
         },
     }
@@ -370,9 +401,11 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
             "filters": ["request_filter"],
             "level_name": "debug",
             "log_dir": log_dir,
+            "subdir": "app/debug",
+            "flat": False,
             "when": "midnight",
             "interval": 1,
-            "backupCount": 0,
+            "backupCount": 5,
             "days_to_keep": 0,
             "delete_old": False,
         }
@@ -380,7 +413,8 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
     loggers = {
         "coyote": {
             "level": "DEBUG" if not is_production else "INFO",
-            "handlers": ["console", "file_info", "file_error"] + (["file_debug"] if not is_production else []),
+            "handlers": ["console", "file_info", "file_error"]
+            + (["file_debug"] if not is_production else []),
             "propagate": False,
         },
         "werkzeug": {
@@ -422,7 +456,8 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
         "handlers": handlers,
         "root": {
             "level": "DEBUG" if not is_production else "INFO",
-            "handlers": ["console", "file_info", "file_error", "fallback_file"] + (["file_debug"] if not is_production else []),
+            "handlers": ["console", "file_info", "file_error", "fallback_file"]
+            + (["file_debug"] if not is_production else []),
         },
         "formatters": {
             "standard": {
@@ -450,6 +485,7 @@ def get_custom_config(log_dir: str, is_production: bool) -> Dict[str, Any]:
         },
     }
 
+
 def setup_app_logging(log_dir: str, is_production: bool = False) -> None:
     """
     Initializes application logging using a custom configuration.
@@ -468,6 +504,7 @@ def setup_app_logging(log_dir: str, is_production: bool = False) -> None:
     """
     logging.config.dictConfig(get_custom_config(log_dir, is_production))
 
+
 def setup_gunicorn_logging(log_dir: str, is_production: bool = False) -> None:
     """
     Initializes Gunicorn logging using a custom configuration.
@@ -483,7 +520,9 @@ def setup_gunicorn_logging(log_dir: str, is_production: bool = False) -> None:
     glogging.dictConfig(get_custom_config(log_dir, is_production))
 
 
-def custom_logging(log_dir: str, is_production: bool = False, gunicorn_logging: bool = False) -> None:
+def custom_logging(
+    log_dir: str, is_production: bool = False, gunicorn_logging: bool = False
+) -> None:
     """
     Initializes custom logging for the application.
 
@@ -503,7 +542,9 @@ def custom_logging(log_dir: str, is_production: bool = False, gunicorn_logging: 
         setup_app_logging(log_dir, is_production)
 
     logging.getLogger("coyote").info(
-        f"Logging initialized [Production: {is_production}] [Gunicorn: {gunicorn_logging}]")
+        f"Logging initialized [Production: {is_production}] [Gunicorn: {gunicorn_logging}]"
+    )
+
 
 def add_unique_handlers(logger, handlers) -> None:
     """

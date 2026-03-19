@@ -179,3 +179,6 @@ MIGRATION_PLAN_DNA_RNA_SHARED_SERVICE.md
 .internal/*.log
 .internal/*.task.md
 .internal/*.plan.md
+
+# Coverage HTML artifact folder used by local scripts
+.coverage_html/
