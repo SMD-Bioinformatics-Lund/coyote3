@@ -37,6 +37,9 @@ nav:
       - Test Data And Fixtures: testing/test-data-and-fixtures.md
   - Operations:
       - Environments And Secrets: operations/environments-and-secrets.md
+      - Center Onboarding Pack: operations/center-onboarding-pack.md
+      - Minimum Production Baseline: operations/minimum-production-baseline.md
+      - First Day Runbook: operations/first-day-runbook.md
       - Deployment Runbook: operations/deployment-runbook.md
       - Backup Restore And Snapshots: operations/backup-restore-and-snapshots.md
       - Troubleshooting: operations/troubleshooting.md

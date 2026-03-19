@@ -29,6 +29,7 @@ This documentation is organized as a practical flow chain:
 - Local development: [Start Here / Local Development](start-here/local-development.md)
 - UI map and workflows: [Product / UI Map And User Flows](product/ui-map-and-user-flows.md)
 - API ingestion: [API / Ingestion API](api/ingestion-api.md)
+- Center onboarding: [Operations / Center Onboarding Pack](operations/center-onboarding-pack.md)
 - Deployment cycle: [Operations / Deployment Runbook](operations/deployment-runbook.md)
 - Testing and quality gates: [Testing / Testing And Quality](testing/testing-and-quality.md)
 
