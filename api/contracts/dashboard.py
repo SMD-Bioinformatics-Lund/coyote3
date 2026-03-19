@@ -24,3 +24,4 @@ class DashboardSummaryPayload(BaseModel):
     admin_insights: dict[str, Any] = {}
     capacity_counts: dict[str, Any] = {}
     isgl_visibility: dict[str, Any] = {}
+    isgl_association: dict[str, Any] = {}

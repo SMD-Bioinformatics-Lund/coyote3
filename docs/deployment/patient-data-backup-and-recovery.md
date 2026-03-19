@@ -149,7 +149,7 @@ Examples:
 ```
 
 When using these profiles, ensure env files set:
-- `FLASK_MONGO_HOST` to the matching service name (`coyote3_mongo` / `coyote3_dev_mongo`)
+- `MONGO_URI` to the matching service/database endpoint
 
 ## 9. Platform Failure Scenarios and Expected Outcome
 ### 9.1 Container restart

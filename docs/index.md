@@ -59,6 +59,7 @@ The repository is built around these structural rules:
 - [Developer Guide](development/developer-guide.md)
 - [Maintenance Guide](development/maintenance-guide.md)
 - [Route Implementation Guide](development/route-implementation-guide.md)
+- [Performance Implementation Guide](development/performance-implementation.md)
 - [UI URL To Backend Process Flow](development/ui-api-request-flow.md)
 - [Extension Playbook](development/extension-playbook.md)
 - [Code Style](development/code-style.md)
@@ -102,3 +103,9 @@ If a new engineer does not understand what a contract, service, or repository me
 - [api/concepts-and-layering.md](api/concepts-and-layering.md)
 - [architecture/API_ARCHITECTURE.md](architecture/API_ARCHITECTURE.md)
 - [development/developer-guide.md](development/developer-guide.md)
+
+## Legal Notice
+
+This documentation is part of the proprietary Coyote3 codebase.
+Copyright (c) 2026 Coyote3 Project Authors and Section for Molecular Diagnostics (SMD), Lund.
+All rights reserved.

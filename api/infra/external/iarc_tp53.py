@@ -38,6 +38,14 @@ class IARCTP53Handler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.iarc_tp53_collection)
 
+    def ensure_indexes(self) -> None:
+        """Create index used by TP53 variant lookup."""
+        self.get_collection().create_index(
+            [("var", 1)],
+            name="var_1",
+            background=True,
+        )
+
     def find_iarc_tp53(self, variant: dict) -> dict | None:
         """
         Find IARC TP53 data for a given variant.

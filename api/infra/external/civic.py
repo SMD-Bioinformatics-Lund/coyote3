@@ -34,7 +34,26 @@ class CivicHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.civic_variants_collection)
 
-    def get_civic_data(self, variant: dict, variant_desc: str) -> dict:
+    def ensure_indexes(self) -> None:
+        """Create indexes used by CIViC variant lookups in variant detail view."""
+        col = self.get_collection()
+        col.create_index(
+            [("chromosome", 1), ("start", 1), ("variant_bases", 1)],
+            name="chromosome_start_variant_bases",
+            background=True,
+        )
+        col.create_index(
+            [("gene", 1), ("hgvs_expressions", 1)],
+            name="gene_hgvs_expressions",
+            background=True,
+        )
+        col.create_index(
+            [("gene", 1), ("variant", 1)],
+            name="gene_variant",
+            background=True,
+        )
+
+    def get_civic_data(self, variant: dict, variant_desc: str) -> list[dict]:
         """
         Retrieve CIViC variant data for a given variant or gene.
 
@@ -48,32 +67,29 @@ class CivicHandler(BaseHandler):
             variant_desc (str): A string describing the variant.
 
         Returns:
-            dict: A dictionary containing the CIViC variant data that matches
-                  the query criteria.
+            list[dict]: CIViC variant documents matching the query criteria.
         """
-        civic = self.get_collection().find(
-            {
-                "$or": [
-                    {
-                        "chromosome": str(variant["CHROM"]),
-                        "start": str(variant["POS"]),
-                        "variant_bases": variant["ALT"],
-                    },
-                    {
-                        "gene": variant["INFO"]["selected_CSQ"]["SYMBOL"],
-                        "hgvs_expressions": variant["INFO"]["selected_CSQ"][
-                            "HGVSc"
-                        ],
-                    },
-                    {
-                        "gene": variant["INFO"]["selected_CSQ"]["SYMBOL"],
-                        "variant": variant_desc,
-                    },
-                ]
-            }
+        return list(
+            self.get_collection().find(
+                {
+                    "$or": [
+                        {
+                            "chromosome": str(variant["CHROM"]),
+                            "start": str(variant["POS"]),
+                            "variant_bases": variant["ALT"],
+                        },
+                        {
+                            "gene": variant["INFO"]["selected_CSQ"]["SYMBOL"],
+                            "hgvs_expressions": variant["INFO"]["selected_CSQ"]["HGVSc"],
+                        },
+                        {
+                            "gene": variant["INFO"]["selected_CSQ"]["SYMBOL"],
+                            "variant": variant_desc,
+                        },
+                    ]
+                }
+            )
         )
-
-        return civic
 
     def get_civic_gene_info(self, gene_smbl: str) -> dict:
         """

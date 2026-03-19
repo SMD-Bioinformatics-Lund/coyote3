@@ -132,5 +132,15 @@ class BlacklistHandler(BaseHandler):
             int: The count of unique blacklist entries. Returns 0 if no entries are found
                  or if an error occurs during the aggregation.
         """
-        # Use distinct for compatibility with older MongoDB versions (no $count stage support).
-        return len(self.get_collection().distinct("pos")) or 0
+        result = list(
+            self.get_collection().aggregate(
+                [
+                    {"$group": {"_id": "$pos"}},
+                    {"$count": "count"},
+                ],
+                allowDiskUse=True,
+            )
+        )
+        if not result:
+            return 0
+        return int(result[0].get("count", 0) or 0)

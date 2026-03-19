@@ -172,8 +172,17 @@
       {% endif %}
 
       <section class="rounded-xl border border-slate-200 border-t-4 border-t-panel bg-white p-4 shadow-sm">
-        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-700">Gene Coverage per Assay</h2>
-        <div id="geneChart"></div>
+        <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-700">Gene Coverage per Assay</h2>
+          <div id="geneChartToggle" class="inline-flex items-center rounded-lg border border-slate-200 bg-white p-1">
+            <button type="button" data-mode="asp" class="rounded-md px-3 py-1 text-xs font-semibold bg-mist-50 text-slate-900">ASP Genes</button>
+            <button type="button" data-mode="isgl" class="rounded-md px-3 py-1 text-xs font-semibold text-slate-600">ISGL Count</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 gap-3 xl:grid-cols-2">
+          <div id="geneChart"></div>
+          <div id="isglAssociationChart"></div>
+        </div>
       </section>
 
     </div>
@@ -190,6 +199,7 @@
   const adminInsights = {{ admin_insights | tojson }};
   const capacityCounts = {{ capacity_counts | tojson }};
   const isglVisibility = {{ isgl_visibility | tojson }};
+  const isglAssociation = {{ isgl_association | tojson }};
   const assayGeneStatsGrouped = {{ assay_gene_stats_grouped | tojson }};
   const dynamicAssayNav = {{ dynamic_assay_nav | tojson }};
   const analysedSamples = {{ analysed_samples | int }};
@@ -804,26 +814,24 @@
           track: { strokeWidth: "95%" },
           dataLabels: {
             name: { show: true, fontSize: "12px", color: chartTextColor },
-            value: {
-              show: true,
-              fontSize: "16px",
-              fontWeight: 700,
-              color: chartTextColor,
-              formatter: (v, opts) => {
-                const idx = Number(opts?.seriesIndex ?? 0);
-                const raw = Number(ringValuesRaw[idx] || 0);
+              value: {
+                show: true,
+                fontSize: "16px",
+                fontWeight: 700,
+                color: chartTextColor,
+              formatter: (v) => {
+                const raw = Math.round((Number(v || 0) / 100) * maxValue);
                 return raw.toLocaleString();
               },
-            },
+              },
             total: { show: false },
           },
         },
       },
       tooltip: {
         y: {
-          formatter: (_value, opts) => {
-            const idx = Number(opts?.seriesIndex ?? 0);
-            const raw = Number(ringValuesRaw[idx] || 0);
+          formatter: (value) => {
+            const raw = Math.round((Number(value || 0) / 100) * maxValue);
             return raw.toLocaleString();
           },
         },
@@ -905,7 +913,7 @@
       return `
         <g class="venn-region cursor-pointer" data-label="${label}" data-value="${count}" data-sets="${sets}">
           <circle cx="${x}" cy="${y - 5}" r="18" fill="transparent"></circle>
-          <text x="${x}" y="${y}" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">${count.toLocaleString()}</text>
+          <text x="${x}" y="${y}" text-anchor="middle" font-size="18" font-weight="800" fill="#0f172a">${count.toLocaleString()}</text>
         </g>
       `;
     };
@@ -1050,27 +1058,33 @@
       }
     }
 
-    if (labels.length === 0) {
-      chartEl.innerHTML = '<p class="py-8 text-center text-sm text-slate-500">No panel assay gene data available.</p>';
+    const isglRows = Array.isArray((isglAssociation || {}).assay_isgl_counts)
+      ? (isglAssociation || {}).assay_isgl_counts
+      : [];
+    const isglLabels = isglRows.map((row) => row.display_name || row.assay_id || "Unknown");
+    const isglTotals = isglRows.map((row) => Number(row.isgl_total || 0));
+    const mode = chartEl.getAttribute("data-mode") || "asp";
+
+    if (mode === "isgl") {
+      if (!isglLabels.length) {
+        chartEl.innerHTML = '<p class="py-8 text-center text-sm text-slate-500">No ISGL-to-assay counts available.</p>';
+        return;
+      }
+      new ApexCharts(chartEl, {
+        ...barStyle(360),
+        series: [{ name: "ISGL Count", data: isglTotals }],
+        xaxis: { categories: isglLabels, labels: { rotate: -20 } },
+        colors: [cssVarColor("--color-rna")],
+        plotOptions: { bar: { borderRadius: 6, columnWidth: "48%" } },
+        legend: { ...donutStyle().legend, position: "top" },
+        dataLabels: { enabled: true, formatter: (v) => compactNumber(v) },
+        tooltip: { y: { formatter: (v) => `${Number(v).toLocaleString()} ISGLs` } }
+      }).render();
       return;
     }
-    if (labels.length === 1) {
-      chartEl.innerHTML = `
-        <div class="grid grid-cols-2 gap-3">
-          <div class="rounded-lg border border-slate-200 bg-mist-50 p-3 col-span-2">
-            <p class="text-xs text-slate-500">Assay</p>
-            <p class="text-base font-semibold text-slate-900">${labels[0]}</p>
-          </div>
-          <div class="rounded-lg border border-slate-200 bg-mist-50 p-3">
-            <p class="text-xs text-blue-700">Covered Genes</p>
-            <p class="text-xl font-semibold text-slate-900">${Number(coveredGenes[0] || 0).toLocaleString()}</p>
-          </div>
-          <div class="rounded-lg border border-slate-200 bg-sand-50 p-3">
-            <p class="text-xs text-orange-700">Germline Genes</p>
-            <p class="text-xl font-semibold text-slate-900">${Number(germlineGenes[0] || 0).toLocaleString()}</p>
-          </div>
-        </div>
-      `;
+
+    if (!labels.length) {
+      chartEl.innerHTML = '<p class="py-8 text-center text-sm text-slate-500">No panel assay gene data available.</p>';
       return;
     }
 
@@ -1089,6 +1103,60 @@
     }).render();
   }
 
+  function renderIsglAssociationChart() {
+    const chartEl = document.querySelector("#isglAssociationChart");
+    if (!chartEl) return;
+    const rows = Array.isArray((isglAssociation || {}).assay_isgl_counts)
+      ? (isglAssociation || {}).assay_isgl_counts.slice(0, 15)
+      : [];
+    if (!rows.length) {
+      chartEl.innerHTML = '<p class="py-8 text-center text-sm text-slate-500">No ISGL association data available.</p>';
+      return;
+    }
+    const labels = rows.map((row) => row.display_name || row.assay_id || "Unknown");
+    new ApexCharts(chartEl, {
+      ...barStyle(360),
+      chart: { ...barStyle().chart, type: "bar", stacked: true, height: 360 },
+      series: [
+        { name: "Public", data: rows.map((row) => Number(row.public_count || 0)) },
+        { name: "Private", data: rows.map((row) => Number(row.private_count || 0)) },
+        { name: "Adhoc", data: rows.map((row) => Number(row.adhoc_count || 0)) },
+      ],
+      xaxis: { categories: labels, labels: { rotate: -20 } },
+      colors: [cssVarColor("--color-panel"), cssVarColor("--color-dna"), cssVarColor("--color-rna")],
+      plotOptions: { bar: { borderRadius: 5, columnWidth: "50%" } },
+      legend: { ...donutStyle().legend, position: "top" },
+      dataLabels: { enabled: false },
+      tooltip: { y: { formatter: (v) => `${Number(v).toLocaleString()} ISGLs` } }
+    }).render();
+  }
+
+  function wireGeneChartToggle() {
+    const wrap = document.querySelector("#geneChartToggle");
+    const chartEl = document.querySelector("#geneChart");
+    if (!wrap || !chartEl) return;
+    const buttons = Array.from(wrap.querySelectorAll("button[data-mode]"));
+    const applyActive = (mode) => {
+      buttons.forEach((btn) => {
+        const isActive = String(btn.getAttribute("data-mode")) === mode;
+        btn.classList.toggle("bg-mist-50", isActive);
+        btn.classList.toggle("text-slate-900", isActive);
+        btn.classList.toggle("text-slate-600", !isActive);
+      });
+    };
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const mode = String(btn.getAttribute("data-mode") || "asp");
+        chartEl.setAttribute("data-mode", mode);
+        chartEl.innerHTML = "";
+        applyActive(mode);
+        renderAssayGeneChart();
+      });
+    });
+    const initialMode = chartEl.getAttribute("data-mode") || "asp";
+    applyActive(initialMode);
+  }
+
   renderSampleProgress();
   renderVariantMix();
   renderTierChart();
@@ -1096,7 +1164,9 @@
   renderDistributionCharts();
   renderQualityChart();
   renderScopeSummaryCards();
+  wireGeneChartToggle();
   renderAssayGeneChart();
+  renderIsglAssociationChart();
   renderQualitySummaryCards();
   renderCapacityRings();
   renderAdminUserRoleChart();

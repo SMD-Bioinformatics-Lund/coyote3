@@ -200,6 +200,24 @@ class ReportedVariantsHandler(BaseHandler):
             background=True,
         )
 
+        # Fast reported-variant detail lookup:
+        # query = {"gene": gene, "$or": [{"simple_id_hash": ..., "simple_id": ...}]}
+        col.create_index(
+            [("gene", ASCENDING), ("simple_id_hash", ASCENDING), ("simple_id", ASCENDING)],
+            name="ix_gene_simple_id_hash_simple_id",
+            background=True,
+            partialFilterExpression={
+                "gene": {"$exists": True, "$type": "string"},
+                "simple_id_hash": {"$exists": True, "$type": "string"},
+                "simple_id": {"$exists": True, "$type": "string"},
+            },
+        )
+        col.create_index(
+            [("gene", ASCENDING), ("simple_id_hash", ASCENDING), ("simple_id", ASCENDING)],
+            name="ix_gene_simple_id_hash_simple_id_lookup",
+            background=True,
+        )
+
         # Cross-sample variant queries by genomic identity + tier
         col.create_index(
             [("simple_id_hash", ASCENDING), ("simple_id", ASCENDING), ("tier", ASCENDING)],
@@ -225,6 +243,11 @@ class ReportedVariantsHandler(BaseHandler):
             name="ix_created_on_desc",
             background=True,
         )
+        col.create_index(
+            [("time_created", DESCENDING)],
+            name="ix_time_created_desc",
+            background=True,
+        )
 
         col.create_index(
             [("tier", ASCENDING)],
@@ -248,29 +271,33 @@ class ReportedVariantsHandler(BaseHandler):
         }
         """
         col = self.get_collection()
-        totals_pipeline = [
-            {"$match": {"tier": {"$in": [1, 2, 3, 4]}}},
-            {"$group": {"_id": "$tier", "count": {"$sum": 1}}},
-        ]
-        by_assay_pipeline = [
+        pipeline = [
             {"$match": {"tier": {"$in": [1, 2, 3, 4]}}},
             {
-                "$group": {
-                    "_id": {"assay": {"$ifNull": ["$assay", "Unknown"]}, "tier": "$tier"},
-                    "count": {"$sum": 1},
+                "$facet": {
+                    "totals": [{"$group": {"_id": "$tier", "count": {"$sum": 1}}}],
+                    "by_assay": [
+                        {
+                            "$group": {
+                                "_id": {"assay": {"$ifNull": ["$assay", "Unknown"]}, "tier": "$tier"},
+                                "count": {"$sum": 1},
+                            }
+                        }
+                    ],
                 }
             },
         ]
+        doc = (list(col.aggregate(pipeline, allowDiskUse=True)) or [{}])[0]
 
         total = {"tier1": 0, "tier2": 0, "tier3": 0, "tier4": 0}
-        for row in list(col.aggregate(totals_pipeline)):
+        for row in doc.get("totals", []) or []:
             tier = row.get("_id")
             key = f"tier{tier}"
             if key in total:
                 total[key] = int(row.get("count", 0) or 0)
 
         by_assay: dict[str, dict[str, int]] = {}
-        for row in list(col.aggregate(by_assay_pipeline)):
+        for row in doc.get("by_assay", []) or []:
             key = row.get("_id") or {}
             assay = str(key.get("assay") or "Unknown")
             tier = key.get("tier")

@@ -37,12 +37,16 @@ Bootstrap command:
 For dev work, configure `.coyote3_dev_env`:
 
 ```env
-COYOTE3_DB_NAME='coyote3_dev'
-FLASK_MONGO_HOST='coyote3_dev_mongo'
-FLASK_MONGO_PORT='27017'
+COYOTE3_DB='coyote3_dev'
+MONGO_URI='mongodb://coyote3_dev_mongo:27017/coyote3_dev'
 ```
 
+`MONGO_URI` is required.
+
 The active container port mapping remains host-facing `37017 -> 27017` for local tooling.
+All host ports are environment-driven. Common keys:
+- `COYOTE3_WEB_PORT`, `COYOTE3_API_PORT`, `COYOTE3_REDIS_PORT`, `COYOTE3_MONGO_PORT`
+- `COYOTE3_DEV_WEB_PORT`, `COYOTE3_DEV_API_PORT`, `COYOTE3_DEV_REDIS_PORT`, `COYOTE3_DEV_MONGO_PORT`
 
 ## 5. Fresh startup workflow
 1. Ensure network/volume prerequisites.

@@ -49,13 +49,13 @@ class MongoDashboardRepository:
         """
         return int(store.aspc_handler.count_aspcs(is_active=is_active))
 
-    def count_isgls(self) -> int:
+    def count_isgls(self, is_active: bool | None = None) -> int:
         """Handle count isgls.
 
         Returns:
             int: The function result.
         """
-        return int(store.isgl_handler.count_isgls())
+        return int(store.isgl_handler.count_isgls(is_active=is_active))
 
     def get_all_isgl(self) -> list[dict]:
         """Return all isgl.
@@ -72,6 +72,18 @@ class MongoDashboardRepository:
             list[dict]: The function result.
         """
         return list(store.user_handler.get_all_users() or [])
+
+    def get_dashboard_user_rollup(self) -> dict:
+        """Return dashboard user role/profession rollup."""
+        return dict(store.user_handler.get_dashboard_user_rollup() or {})
+
+    def get_dashboard_isgl_visibility(self) -> dict:
+        """Return dashboard ISGL visibility rollup."""
+        return dict(store.isgl_handler.get_dashboard_visibility_rollup() or {})
+
+    def get_dashboard_isgl_association(self) -> dict:
+        """Return dashboard ISGL association rollup by ASP."""
+        return dict(store.isgl_handler.get_dashboard_assay_association_rollup() or {})
 
     def get_user_by_id(self, user_id: str) -> dict | None:
         """Return user by id.
@@ -92,6 +104,10 @@ class MongoDashboardRepository:
         """
         return list(store.asp_handler.get_all_asps(is_active=True) or [])
 
+    def resolve_active_asp_ids_for_scope(self, assays: list[str], groups: list[str]) -> list[str]:
+        """Resolve active ASP ids for assay/group scope values."""
+        return list(store.asp_handler.resolve_active_asp_ids_for_scope(assays=assays, groups=groups) or [])
+
     def get_dashboard_sample_rollup(self, assays: list[str] | None) -> dict:
         """Return dashboard sample rollup.
 
@@ -110,6 +126,18 @@ class MongoDashboardRepository:
             dict: The function result.
         """
         return store.variant_handler.get_dashboard_variant_counts()
+
+    def get_unique_total_variant_count(self) -> int:
+        """Return unique total variant count."""
+        return int(store.variant_handler.get_unique_total_variant_counts())
+
+    def get_unique_fp_count(self) -> int:
+        """Return unique false-positive variant count."""
+        return int(store.variant_handler.get_unique_fp_count())
+
+    def get_unique_variant_quality_counts(self) -> dict:
+        """Return unique variant quality counts in a single query."""
+        return dict(store.variant_handler.get_unique_variant_quality_counts() or {})
 
     def get_total_cnv_count(self) -> int:
         """Return total cnv count.

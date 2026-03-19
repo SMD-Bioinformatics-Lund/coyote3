@@ -10,6 +10,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 # -------------------------------------------------------------------------
 # Imports
 # -------------------------------------------------------------------------
+from datetime import datetime, timezone
 from typing import Any
 
 from bson.objectid import ObjectId
@@ -17,6 +18,7 @@ from bson.objectid import ObjectId
 from api.core.dna.variant_identity import (
     build_simple_id_hash_from_simple_id,
     ensure_variant_identity_fields,
+    normalize_simple_id,
 )
 from api.infra.db.base import BaseHandler
 
@@ -57,6 +59,27 @@ class VariantsHandler(BaseHandler):
                 "simple_id": {"$exists": True, "$type": "string"},
             },
         )
+        # Non-partial lookup index for Mongo planner reliability on equality predicates.
+        col.create_index(
+            [("simple_id_hash", 1), ("simple_id", 1)],
+            name="ix_simple_id_hash_simple_id_lookup",
+            background=True,
+        )
+        col.create_index(
+            [("simple_id_hash", 1), ("simple_id", 1), ("SAMPLE_ID", 1)],
+            name="simple_id_hash_1_simple_id_1_sample_id_1",
+            background=True,
+            partialFilterExpression={
+                "simple_id_hash": {"$exists": True, "$type": "string"},
+                "simple_id": {"$exists": True, "$type": "string"},
+                "SAMPLE_ID": {"$exists": True, "$type": "string"},
+            },
+        )
+        col.create_index(
+            [("simple_id_hash", 1), ("simple_id", 1), ("SAMPLE_ID", 1)],
+            name="ix_simple_id_hash_simple_id_sample_lookup",
+            background=True,
+        )
         col.create_index(
             [("SAMPLE_ID", 1)],
             name="sample_id_1",
@@ -72,6 +95,15 @@ class VariantsHandler(BaseHandler):
             name="fp_1",
             background=True,
         )
+        col.create_index(
+            [("fp", 1), ("simple_id_hash", 1), ("simple_id", 1)],
+            name="fp_1_simple_id_hash_1_simple_id_1",
+            background=True,
+            partialFilterExpression={
+                "simple_id_hash": {"$exists": True, "$type": "string"},
+                "simple_id": {"$exists": True, "$type": "string"},
+            },
+        )
 
     def get_case_variants(self, query: dict):
         """
@@ -86,6 +118,57 @@ class VariantsHandler(BaseHandler):
             pymongo.cursor.Cursor: A cursor to the documents that match the query.
         """
         return self.get_collection().find(query)
+
+    @staticmethod
+    def _simple_id_identity_query(simple_id: str) -> dict[str, str]:
+        """Build exact identity query using hash prefilter + simple_id verification."""
+        normalized = normalize_simple_id(simple_id)
+        return {
+            "simple_id_hash": build_simple_id_hash_from_simple_id(normalized),
+            "simple_id": normalized,
+        }
+
+    def _dashboard_metrics_collection(self):
+        """Return persistent metrics collection used for cold-start fast reads."""
+        return self.adapter.coyote_db["dashboard_metrics"]
+
+    def invalidate_dashboard_metrics_cache(self) -> None:
+        """Invalidate variant dashboard counters in redis + persisted metrics."""
+        cache = getattr(self.adapter.app, "cache", None)
+        if cache is not None:
+            cache.set("dashboard:variant_rollup:v1", None, timeout=1)
+            cache.set("dashboard:variant_unique_quality:v1", None, timeout=1)
+        self._dashboard_metrics_collection().delete_many(
+            {"_id": {"$in": ["variant_rollup_v1", "variant_unique_quality_v1"]}}
+        )
+
+    def _read_persisted_metric(self, metric_key: str, max_age_seconds: int | None = None) -> dict | None:
+        """Read a persisted dashboard metric payload if present and fresh enough."""
+        doc = self._dashboard_metrics_collection().find_one({"_id": metric_key}, {"payload": 1, "updated_at": 1})
+        if not isinstance(doc, dict):
+            return None
+        payload = doc.get("payload")
+        if not isinstance(payload, dict):
+            return None
+        if max_age_seconds is None:
+            return payload
+        updated_at = doc.get("updated_at")
+        if not isinstance(updated_at, datetime):
+            return None
+        if updated_at.tzinfo is None:
+            updated_at = updated_at.replace(tzinfo=timezone.utc)
+        age_seconds = (datetime.now(timezone.utc) - updated_at).total_seconds()
+        if age_seconds > max_age_seconds:
+            return None
+        return payload
+
+    def _write_persisted_metric(self, metric_key: str, payload: dict[str, Any]) -> None:
+        """Upsert a persisted dashboard metric payload."""
+        self._dashboard_metrics_collection().update_one(
+            {"_id": metric_key},
+            {"$set": {"payload": dict(payload), "updated_at": datetime.now(timezone.utc)}},
+            upsert=True,
+        )
 
     def get_variant(self, id: str) -> dict:
         """
@@ -120,14 +203,14 @@ class VariantsHandler(BaseHandler):
         simple_id = canonical_variant["simple_id"]
         simple_id_hash = canonical_variant["simple_id_hash"]
 
-        # Hash-first identity prefilter plus simple_id verification.
-        variants = list(
+        # Hash-first identity prefilter. Filter current sample in-memory to avoid
+        # poor plans on SAMPLE_ID != value (which can trigger near full-index scans).
+        variants_cursor = (
             self.get_collection()
             .find(
                 {
                     "simple_id_hash": simple_id_hash,
                     "simple_id": simple_id,
-                    "SAMPLE_ID": {"$ne": current_sample_id},
                 },
                 {
                     "_id": 1,
@@ -140,8 +223,13 @@ class VariantsHandler(BaseHandler):
                     "irrelevant": 1,
                 },
             )
-            .limit(20)
+            .limit(100)
         )
+        variants = [
+            row
+            for row in variants_cursor
+            if str(row.get("SAMPLE_ID", "")) != str(current_sample_id)
+        ][:20]
 
         # Collect only the sample ObjectIds we need
         sample_ids = {ObjectId(v["SAMPLE_ID"]) for v in variants}
@@ -177,8 +265,7 @@ class VariantsHandler(BaseHandler):
         """
         Find variants by exact identity using hash prefilter + simple_id verification.
         """
-        simple_id_hash = build_simple_id_hash_from_simple_id(simple_id)
-        query: dict[str, Any] = {"simple_id_hash": simple_id_hash, "simple_id": simple_id}
+        query: dict[str, Any] = self._simple_id_identity_query(simple_id)
         if sample_id is not None:
             query["SAMPLE_ID"] = sample_id
         cursor = self.get_collection().find(query)
@@ -215,14 +302,25 @@ class VariantsHandler(BaseHandler):
         Returns:
             pymongo.cursor.Cursor: Cursor over matching variant documents.
         """
+        identity_conditions: list[dict] = []
+        for value in variant_list:
+            raw = str(value or "").strip()
+            if not raw:
+                continue
+            # simple_id format is CHROM_POS_REF_ALT (ALT may contain underscores).
+            if len(raw.split("_", 3)) == 4:
+                identity_conditions.append(self._simple_id_identity_query(raw))
+
+        query_or: list[dict] = [
+            {"HGVSp": {"$in": variant_list}},
+            {"HGVSc": {"$in": variant_list}},
+        ]
+        query_or.extend(identity_conditions)
+
         return self.get_collection().find(
             {
                 "genes": gene,
-                "$or": [
-                    {"HGVSp": {"$in": variant_list}},
-                    {"HGVSc": {"$in": variant_list}},
-                    {"simple_id": {"$in": variant_list}},
-                ],
+                "$or": query_or,
             },
             {
                 "_id": 1,
@@ -267,7 +365,13 @@ class VariantsHandler(BaseHandler):
         Returns:
             Any: The result of the update operation.
         """
-        self.mark_false_positive(variant_id, fp)
+        result = self.get_collection().update_one(
+            {"_id": ObjectId(variant_id)},
+            {"$set": {"fp": fp}},
+        )
+        if result.matched_count:
+            self.invalidate_dashboard_metrics_cache()
+        return result
 
     def unmark_false_positive_var(self, variant_id: str, fp: bool = False) -> Any:
         """
@@ -283,7 +387,7 @@ class VariantsHandler(BaseHandler):
         Returns:
             Any: The result of the update operation.
         """
-        self.mark_false_positive(variant_id, fp)
+        return self.mark_false_positive_var(variant_id, fp)
 
     def mark_false_positive_var_bulk(self, variant_ids: list[str], fp: bool = True) -> Any:
         """
@@ -296,7 +400,10 @@ class VariantsHandler(BaseHandler):
         Returns:
             Any: The result of the bulk update operation.
         """
-        return self.mark_false_positive_bulk(variant_ids, fp)
+        result = self.mark_false_positive_bulk(variant_ids, fp)
+        if result is not None and getattr(result, "matched_count", 0):
+            self.invalidate_dashboard_metrics_cache()
+        return result
 
     def unmark_false_positive_var_bulk(self, variant_ids: list[str], fp: bool = False) -> Any:
         """
@@ -309,7 +416,7 @@ class VariantsHandler(BaseHandler):
         Returns:
             Any: The result of the bulk update operation.
         """
-        return self.mark_false_positive_bulk(variant_ids, fp)
+        return self.mark_false_positive_var_bulk(variant_ids, fp)
 
     def mark_interesting_var(self, variant_id: str, interesting: bool = True) -> Any:
         """
@@ -477,7 +584,97 @@ class VariantsHandler(BaseHandler):
         Returns:
             int: The total count of unique variants in the collection.
         """
-        return len(self.get_collection().distinct("simple_id")) or 0
+        result = list(
+            self.get_collection().aggregate(
+                [
+                    {
+                        "$match": {
+                            "simple_id_hash": {"$exists": True, "$type": "string"},
+                            "simple_id": {"$exists": True, "$type": "string"},
+                        }
+                    },
+                    {"$group": {"_id": {"hash": "$simple_id_hash", "simple_id": "$simple_id"}}},
+                    {"$count": "count"},
+                ],
+                allowDiskUse=True,
+            )
+        )
+        if not result:
+            return 0
+        return int(result[0].get("count", 0) or 0)
+
+    def get_unique_variant_quality_counts(self) -> dict[str, int]:
+        """
+        Return unique identity counts for dashboard quality metrics.
+
+        Uses one pass to compute:
+          - unique_total_variants
+          - unique_fp_variants (identity had at least one document with fp=True)
+        """
+        app_obj = self.adapter.app
+        cache = getattr(app_obj, "cache", None)
+        cache_key = "dashboard:variant_unique_quality:v1"
+        if cache is not None:
+            cached = cache.get(cache_key)
+            if isinstance(cached, dict):
+                return {
+                    "unique_total_variants": int(cached.get("unique_total_variants", 0) or 0),
+                    "unique_fp_variants": int(cached.get("unique_fp_variants", 0) or 0),
+                }
+        persisted_metric = self._read_persisted_metric(
+            "variant_unique_quality_v1",
+            max_age_seconds=int(app_obj.config.get("DASHBOARD_UNIQUE_VARIANT_METRIC_MAX_AGE", 86400)),
+        )
+        if isinstance(persisted_metric, dict):
+            current_estimated_total = int(self.get_collection().estimated_document_count() or 0)
+            metric_estimated_total = int(
+                persisted_metric.get("source_total_variants", persisted_metric.get("unique_total_variants", 0)) or 0
+            )
+            if current_estimated_total != metric_estimated_total:
+                persisted_metric = None
+        if isinstance(persisted_metric, dict):
+            payload = {
+                "unique_total_variants": int(persisted_metric.get("unique_total_variants", 0) or 0),
+                "unique_fp_variants": int(persisted_metric.get("unique_fp_variants", 0) or 0),
+            }
+            if cache is not None:
+                timeout = int(app_obj.config.get("DASHBOARD_UNIQUE_VARIANT_CACHE_TTL", 1800))
+                cache.set(cache_key, payload, timeout=timeout)
+            return payload
+
+        pipeline = [
+            {
+                "$match": {
+                    "simple_id_hash": {"$exists": True, "$type": "string"},
+                    "simple_id": {"$exists": True, "$type": "string"},
+                }
+            },
+            {
+                "$group": {
+                    "_id": {"hash": "$simple_id_hash", "simple_id": "$simple_id"},
+                    "fp_any": {"$max": {"$cond": [{"$eq": ["$fp", True]}, 1, 0]}},
+                }
+            },
+            {
+                "$group": {
+                    "_id": None,
+                    "unique_total_variants": {"$sum": 1},
+                    "unique_fp_variants": {"$sum": "$fp_any"},
+                }
+            },
+            {"$project": {"_id": 0, "unique_total_variants": 1, "unique_fp_variants": 1}},
+        ]
+        row = (list(self.get_collection().aggregate(pipeline, allowDiskUse=True)) or [{}])[0]
+        payload = {
+            "unique_total_variants": int(row.get("unique_total_variants", 0) or 0),
+            "unique_fp_variants": int(row.get("unique_fp_variants", 0) or 0),
+            "source_total_variants": int(self.get_collection().estimated_document_count() or 0),
+        }
+        self._write_persisted_metric("variant_unique_quality_v1", payload)
+        if cache is not None:
+            timeout = int(app_obj.config.get("DASHBOARD_UNIQUE_VARIANT_CACHE_TTL", 1800))
+            cache.set(cache_key, payload, timeout=timeout)
+        return payload
 
     def get_total_snp_counts(self) -> int:
         """
@@ -505,33 +702,56 @@ class VariantsHandler(BaseHandler):
 
     def get_dashboard_variant_counts(self) -> dict[str, int]:
         """
-        Return variant summary counters for dashboard in a single aggregation.
+        Return variant summary counters for dashboard.
 
         Output keys:
           - total_variants
           - total_snps
           - fps
         """
-        pipeline = [
-            {
-                "$group": {
-                    "_id": None,
-                    "total_variants": {"$sum": 1},
-                    "total_snps": {"$sum": {"$cond": [{"$eq": ["$variant_class", "SNV"]}, 1, 0]}},
-                    "fps": {"$sum": {"$cond": [{"$eq": ["$fp", True]}, 1, 0]}},
+        app_obj = self.adapter.app
+        cache = getattr(app_obj, "cache", None)
+        cache_key = "dashboard:variant_rollup:v1"
+        if cache is not None:
+            cached = cache.get(cache_key)
+            if isinstance(cached, dict):
+                return {
+                    "total_variants": int(cached.get("total_variants", 0) or 0),
+                    "total_snps": int(cached.get("total_snps", 0) or 0),
+                    "fps": int(cached.get("fps", 0) or 0),
                 }
-            },
-            {"$project": {"_id": 0, "total_variants": 1, "total_snps": 1, "fps": 1}},
-        ]
-        result = list(self.get_collection().aggregate(pipeline))
-        if not result:
-            return {"total_variants": 0, "total_snps": 0, "fps": 0}
-        row = result[0]
-        return {
-            "total_variants": int(row.get("total_variants", 0) or 0),
-            "total_snps": int(row.get("total_snps", 0) or 0),
-            "fps": int(row.get("fps", 0) or 0),
+
+        persisted_metric = self._read_persisted_metric(
+            "variant_rollup_v1",
+            max_age_seconds=int(app_obj.config.get("DASHBOARD_VARIANT_ROLLUP_METRIC_MAX_AGE", 86400)),
+        )
+        if isinstance(persisted_metric, dict):
+            current_estimated_total = int(self.get_collection().estimated_document_count() or 0)
+            persisted_total = int(persisted_metric.get("total_variants", 0) or 0)
+            if current_estimated_total != persisted_total:
+                persisted_metric = None
+        if isinstance(persisted_metric, dict):
+            payload = {
+                "total_variants": int(persisted_metric.get("total_variants", 0) or 0),
+                "total_snps": int(persisted_metric.get("total_snps", 0) or 0),
+                "fps": int(persisted_metric.get("fps", 0) or 0),
+            }
+            if cache is not None:
+                timeout = int(app_obj.config.get("DASHBOARD_VARIANT_ROLLUP_CACHE_TTL", 1800))
+                cache.set(cache_key, payload, timeout=timeout)
+            return payload
+
+        col = self.get_collection()
+        payload = {
+            "total_variants": int(col.estimated_document_count() or 0),
+            "total_snps": int(col.count_documents({"variant_class": "SNV"}) or 0),
+            "fps": int(col.count_documents({"fp": True}) or 0),
         }
+        self._write_persisted_metric("variant_rollup_v1", payload)
+        if cache is not None:
+            timeout = int(app_obj.config.get("DASHBOARD_VARIANT_ROLLUP_CACHE_TTL", 1800))
+            cache.set(cache_key, payload, timeout=timeout)
+        return payload
 
     def get_unique_snp_count(self) -> int:
         """
@@ -543,8 +763,25 @@ class VariantsHandler(BaseHandler):
         Returns:
             int: The number of unique SNP variants in the collection.
         """
-        snp_ids = self.get_collection().distinct("simple_id", {"variant_class": "SNV"})
-        return len(snp_ids) or 0
+        result = list(
+            self.get_collection().aggregate(
+                [
+                    {
+                        "$match": {
+                            "variant_class": "SNV",
+                            "simple_id_hash": {"$exists": True, "$type": "string"},
+                            "simple_id": {"$exists": True, "$type": "string"},
+                        }
+                    },
+                    {"$group": {"_id": {"hash": "$simple_id_hash", "simple_id": "$simple_id"}}},
+                    {"$count": "count"},
+                ],
+                allowDiskUse=True,
+            )
+        )
+        if not result:
+            return 0
+        return int(result[0].get("count", 0) or 0)
 
     def get_unique_fp_count(self) -> int:
         """
@@ -553,8 +790,25 @@ class VariantsHandler(BaseHandler):
         Returns:
             int: The number of unique variants marked as false positive in the collection.
         """
-        fps = self.get_collection().distinct("simple_id", {"fp": True})
-        return len(fps) or 0
+        result = list(
+            self.get_collection().aggregate(
+                [
+                    {
+                        "$match": {
+                            "fp": True,
+                            "simple_id_hash": {"$exists": True, "$type": "string"},
+                            "simple_id": {"$exists": True, "$type": "string"},
+                        }
+                    },
+                    {"$group": {"_id": {"hash": "$simple_id_hash", "simple_id": "$simple_id"}}},
+                    {"$count": "count"},
+                ],
+                allowDiskUse=True,
+            )
+        )
+        if not result:
+            return 0
+        return int(result[0].get("count", 0) or 0)
 
     def delete_sample_variants(self, sample_oid: str) -> Any:
         """
@@ -569,7 +823,10 @@ class VariantsHandler(BaseHandler):
         Returns:
             Any: The result of the delete operation, typically a DeleteResult object containing details about the operation.
         """
-        return self.get_collection().delete_many({"SAMPLE_ID": sample_oid})
+        result = self.get_collection().delete_many({"SAMPLE_ID": sample_oid})
+        if getattr(result, "deleted_count", 0):
+            self.invalidate_dashboard_metrics_cache()
+        return result
 
     def get_variant_stats(self, sample_id: str, genes: list | None = None) -> dict:
         """

@@ -360,6 +360,37 @@ def ensure_variants_identity_index(db, dry_run: bool) -> str | None:
     return "simple_id_hash_1_simple_id_1"
 
 
+def cleanup_legacy_variant_simple_id_indexes(db, dry_run: bool) -> list[str]:
+    """Drop legacy variants indexes that rely on `simple_id` without hash prefilter.
+
+    This keeps identity lookups hash-first (`simple_id_hash` + `simple_id`) and
+    avoids carrying oversized simple_id-only index structures.
+    """
+    if "variants" not in set(db.list_collection_names()):
+        return []
+
+    col = db["variants"]
+    dropped: list[str] = []
+    keep_names = {
+        "_id_",
+        "simple_id_hash_1_simple_id_1",
+        "fp_1_simple_id_hash_1_simple_id_1",
+    }
+    for idx in col.list_indexes():
+        name = str(idx.get("name") or "")
+        if not name or name in keep_names:
+            continue
+        key_doc = idx.get("key") or {}
+        key_fields = list(dict(key_doc).keys())
+        has_simple_id = "simple_id" in key_fields
+        has_hash = "simple_id_hash" in key_fields
+        if has_simple_id and not has_hash:
+            dropped.append(name)
+            if not dry_run:
+                col.drop_index(name)
+    return dropped
+
+
 def backfill_variant_identity(db, *, batch_size: int, dry_run: bool) -> Counters:
     counters = Counters()
     if "variants" not in set(db.list_collection_names()):
@@ -584,6 +615,15 @@ def run_for_db(db, args: argparse.Namespace) -> int:
     variant_idx = ensure_variants_identity_index(db, args.dry_run)
     if variant_idx:
         print(f"[variants] identity index ensured: {variant_idx} dry_run={args.dry_run}")
+    dropped_legacy_variant_indexes = cleanup_legacy_variant_simple_id_indexes(db, args.dry_run)
+    if dropped_legacy_variant_indexes:
+        print(
+            "[variants] dropped legacy simple_id indexes: "
+            + ", ".join(dropped_legacy_variant_indexes)
+            + f" dry_run={args.dry_run}"
+        )
+    else:
+        print(f"[variants] no legacy simple_id-only indexes found dry_run={args.dry_run}")
 
     variant_counts = backfill_variant_identity(db, batch_size=args.batch_size, dry_run=args.dry_run)
     print(

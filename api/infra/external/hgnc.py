@@ -34,6 +34,14 @@ class HGNCHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.hgnc_collection)
 
+    def ensure_indexes(self) -> None:
+        """Create indexes used by HGNC symbol lookups."""
+        self.get_collection().create_index(
+            [("hgnc_symbol", 1)],
+            name="hgnc_symbol_1",
+            background=True,
+        )
+
     def get_metadata_by_hgnc_id(self, hgnc_id: str) -> dict:
         """
         Retrieve metadata for a gene using its HGNC ID.

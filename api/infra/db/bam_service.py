@@ -35,6 +35,14 @@ class BamServiceHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.bam_samples)
 
+    def ensure_indexes(self) -> None:
+        """Create index used by BAM id lookup."""
+        self.get_collection().create_index(
+            [("id", 1)],
+            name="id_1",
+            background=True,
+        )
+
     def get_bams(self, sample_ids):
         """
         Retrieve BAM file paths for a list of sample IDs.

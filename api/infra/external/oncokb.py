@@ -35,6 +35,24 @@ class OnkoKBHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.oncokb_collection)
 
+    def ensure_indexes(self) -> None:
+        """Create indexes used by OncoKB lookups in variant detail view."""
+        self.get_collection().create_index(
+            [("Gene", 1), ("Alteration", 1)],
+            name="Gene_Alteration",
+            background=True,
+        )
+        self.adapter.oncokb_actionable_collection.create_index(
+            [("Gene", 1), ("Alteration", 1)],
+            name="Gene_Alteration",
+            background=True,
+        )
+        self.adapter.oncokb_genes_collection.create_index(
+            [("name", 1)],
+            name="name_1",
+            background=True,
+        )
+
     def get_oncokb_anno(self, variant: dict, oncokb_hgvsp: str) -> dict:
         """
         Get OncoKB annotation for a variant.
@@ -55,7 +73,7 @@ class OnkoKBHandler(BaseHandler):
             }
         )
 
-    def get_oncokb_action(self, variant: dict, oncokb_hgvsp: str) -> dict:
+    def get_oncokb_action(self, variant: dict, oncokb_hgvsp: list[str] | str) -> list[dict]:
         """
         Get OncoKB actionable for a variant.
 
@@ -63,16 +81,25 @@ class OnkoKBHandler(BaseHandler):
 
         Args:
             variant (dict): A dictionary containing variant information, including the gene symbol.
-            oncokb_hgvsp (str): The alteration (HGVSp) to search for in the actionable OncoKB database.
+            oncokb_hgvsp (list[str] | str): HGVSp alteration candidate(s) to search for.
 
         Returns:
-            dict: A cursor object containing actionable OncoKB documents matching the query.
+            list[dict]: Matching actionable OncoKB documents.
         """
-        return self.adapter.oncokb_actionable_collection.find(
-            {
-                "Gene": variant["INFO"]["selected_CSQ"]["SYMBOL"],
-                "Alteration": {"$in": [oncokb_hgvsp, "Oncogenic Mutations"]},
-            }
+        if isinstance(oncokb_hgvsp, str):
+            alterations = [oncokb_hgvsp]
+        else:
+            alterations = [value for value in oncokb_hgvsp if value]
+        if "Oncogenic Mutations" not in alterations:
+            alterations.append("Oncogenic Mutations")
+
+        return list(
+            self.adapter.oncokb_actionable_collection.find(
+                {
+                    "Gene": variant["INFO"]["selected_CSQ"]["SYMBOL"],
+                    "Alteration": {"$in": alterations},
+                }
+            )
         )
 
     def get_oncokb_gene(self, gene: str) -> dict:

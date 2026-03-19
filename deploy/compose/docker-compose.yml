@@ -17,7 +17,7 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
     ports:
-      - "5814:8000"
+      - "${COYOTE3_WEB_PORT:-5814}:8000"
     env_file:
       - ../../.coyote3_env
     environment:
@@ -25,7 +25,6 @@ services:
       - PYTHONUNBUFFERED=1
       - FLASK_APP=wsgi
       - FLASK_DEBUG=0
-      - REQUIRE_EXTERNAL_API=1
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
       - API_BASE_URL=http://coyote3_api:8001
@@ -44,7 +43,7 @@ services:
       - "/media:/media"
       - "/data:/data"
       - "/fs1:/fs1"
-    command: "python3 -m wsgi"
+    command: "gunicorn --config gunicorn.conf.py --bind 0.0.0.0:8000 wsgi:app"
     depends_on:
       coyote3_api:
         condition: service_healthy
@@ -61,13 +60,12 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
     ports:
-      - "5816:8001"
+      - "${COYOTE3_API_PORT:-5816}:8001"
     env_file:
       - ../../.coyote3_env
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
-      - REQUIRE_EXTERNAL_API=0
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
       - TZ=Europe/Stockholm
@@ -99,7 +97,7 @@ services:
     container_name: redis_coyote3_${COYOTE3_VERSION:-local}
     image: ramsainanduri/redis:7.4.3
     ports:
-      - "5817:6379"
+      - "${COYOTE3_REDIS_PORT:-5817}:6379"
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
     dns:
@@ -114,7 +112,7 @@ services:
   # Enable with:
   #   ./scripts/compose-with-version.sh -f deploy/compose/docker-compose.yml --profile with-mongo up -d
   # IMPORTANT:
-  #   Set FLASK_MONGO_HOST=coyote3_mongo in .coyote3_env when using this profile.
+  #   Set MONGO_URI=mongodb://coyote3_mongo:27017/coyote3 in .coyote3_env when using this profile.
   coyote3_mongo:
     container_name: coyote3_mongo_${COYOTE3_VERSION:-local}
     image: mongo:7.0

@@ -106,7 +106,7 @@ API is authoritative for auth and access decisions. Login failures, denies, and 
 
 ## 7. Troubleshooting login quickly
 1. Verify API health (`/api/v1/health`).
-2. Verify active DB name in `.coyote3_dev_env` (`COYOTE3_DB_NAME`).
+2. Verify active DB name in `.coyote3_dev_env` (`COYOTE3_DB`).
 3. Confirm user exists in active DB (`users` and, when used, `users_beta2`).
 4. Validate local-auth hash and `auth_type` for allowlisted users.
 5. Confirm API session cookie presence after login.

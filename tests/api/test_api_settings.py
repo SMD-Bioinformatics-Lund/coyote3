@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import os
-
 import pytest
 
 from api import settings
 
 
-def test_configure_process_env_defaults_external_api_off_in_non_production(monkeypatch: pytest.MonkeyPatch):
-    """Handle test configure process env defaults external api off in non production.
+def test_configure_process_env_is_noop(monkeypatch: pytest.MonkeyPatch):
+    """Handle test configure process env is noop.
 
     Args:
         monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
@@ -18,30 +16,9 @@ def test_configure_process_env_defaults_external_api_off_in_non_production(monke
     Returns:
         The function result.
     """
-    monkeypatch.delenv("REQUIRE_EXTERNAL_API", raising=False)
     monkeypatch.setenv("TESTING", "1")
 
     settings.configure_process_env()
-
-    assert os.environ["REQUIRE_EXTERNAL_API"] == "0"
-
-
-def test_configure_process_env_defaults_external_api_on_in_production(monkeypatch: pytest.MonkeyPatch):
-    """Handle test configure process env defaults external api on in production.
-
-    Args:
-        monkeypatch (pytest.MonkeyPatch): Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
-    monkeypatch.delenv("REQUIRE_EXTERNAL_API", raising=False)
-    monkeypatch.delenv("TESTING", raising=False)
-    monkeypatch.delenv("DEVELOPMENT", raising=False)
-
-    settings.configure_process_env()
-
-    assert os.environ["REQUIRE_EXTERNAL_API"] == "1"
 
 
 def test_production_requires_explicit_secret_key():

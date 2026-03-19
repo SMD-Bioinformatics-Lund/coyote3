@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
 from time import perf_counter
 from typing import Any
 
@@ -44,7 +43,9 @@ class DashboardService:
         Returns:
             dict[str, Any]: The function result.
         """
-        rows = isgls if isinstance(isgls, list) else (self.repository.get_all_isgl() or [])
+        if isgls is None:
+            return self.repository.get_dashboard_isgl_visibility()
+        rows = isgls
         public_total = private_total = adhoc_total = 0
         public_only = private_only = adhoc_only = 0
         public_private = public_adhoc = private_adhoc = public_private_adhoc = 0
@@ -111,43 +112,24 @@ class DashboardService:
         Returns:
             dict[str, Any]: The function result.
         """
-        users = self.repository.get_all_users() or []
-        isgls = self.repository.get_all_isgl() or []
-
-        role_user_counts: dict[str, int] = {}
-        profession_role_matrix: dict[str, dict[str, int]] = {}
-        active_users = 0
-
-        for user_doc in users:
-            role = str(user_doc.get("role") or "unknown").strip().lower() or "unknown"
-            if bool(user_doc.get("is_active", True)):
-                active_users += 1
-            role_user_counts[role] = role_user_counts.get(role, 0) + 1
-
-            profession = str(
-                user_doc.get("job_title") or user_doc.get("profession") or user_doc.get("title") or "Unknown"
-            ).strip() or "Unknown"
-            profession_role_matrix.setdefault(profession, {})
-            profession_role_matrix[profession][role] = profession_role_matrix[profession].get(role, 0) + 1
-
-        isgl_total = len(isgls)
-        isgl_active = sum(1 for isgl_doc in isgls if bool(isgl_doc.get("is_active", True)))
+        users_rollup = self.repository.get_dashboard_user_rollup() or {}
+        isgl_rollup = self.repository.get_dashboard_isgl_visibility() or {}
         return {
             "counts": {
-                "users_total": len(users),
-                "users_active": active_users,
+                "users_total": int(users_rollup.get("users_total", 0) or 0),
+                "users_active": int(users_rollup.get("users_active", 0) or 0),
                 "roles_total": self.repository.count_roles(),
                 "roles_active": self.repository.count_roles(is_active=True),
                 "asps_total": self.repository.count_asps(),
                 "asps_active": self.repository.count_asps(is_active=True),
                 "aspcs_total": self.repository.count_aspcs(),
                 "aspcs_active": self.repository.count_aspcs(is_active=True),
-                "isgl_total": isgl_total,
-                "isgl_active": isgl_active,
+                "isgl_total": self.repository.count_isgls(),
+                "isgl_active": self.repository.count_isgls(is_active=True),
             },
-            "role_user_counts": role_user_counts,
-            "profession_role_matrix": profession_role_matrix,
-            "isgl_venn": self.build_isgl_visibility(isgls),
+            "role_user_counts": users_rollup.get("role_user_counts", {}),
+            "profession_role_matrix": users_rollup.get("profession_role_matrix", {}),
+            "isgl_venn": isgl_rollup,
         }
 
     def resolve_scope_assays(self, *, user) -> list[str] | None:
@@ -181,19 +163,11 @@ class DashboardService:
             return []
 
         effective_assays = set(user_assays)
-        for asp in self.repository.get_all_active_asps():
-            asp_id = str(asp.get("asp_id") or "").strip()
-            asp_group = str(asp.get("asp_group") or "").strip()
-            assay_name = str(asp.get("assay_name") or "").strip()
-            if (
-                asp_group in user_groups
-                or asp_group in user_assays
-                or assay_name in user_groups
-                or assay_name in user_assays
-                or asp_id in user_assays
-            ):
-                if asp_id:
-                    effective_assays.add(asp_id)
+        for asp_id in self.repository.resolve_active_asp_ids_for_scope(
+            assays=sorted(user_assays), groups=sorted(user_groups)
+        ):
+            if asp_id:
+                effective_assays.add(str(asp_id).strip())
         return sorted(effective_assays)
 
     def summary_payload(self, *, user) -> dict[str, Any]:
@@ -230,10 +204,17 @@ class DashboardService:
             lambda: self.repository.get_dashboard_sample_rollup(assays=scope_assays),
         )
         variant_rollup = _timed("variant_rollup", self.repository.get_dashboard_variant_counts)
+        unique_quality_counts = _timed(
+            "variant_unique_quality", self.repository.get_unique_variant_quality_counts
+        )
+        unique_total_variants = int(unique_quality_counts.get("unique_total_variants", 0) or 0)
+        unique_fp_variants = int(unique_quality_counts.get("unique_fp_variants", 0) or 0)
         total_cnvs = _timed("cnv_total", self.repository.get_total_cnv_count)
         total_translocs = _timed("transloc_total", self.repository.get_total_transloc_count)
         total_fusions = _timed("fusion_total", self.repository.get_total_fusion_count)
-        total_blacklisted = _timed("blacklist_unique", self.repository.get_unique_blacklist_count)
+        unique_blacklisted_variants = _timed(
+            "blacklist_unique", self.repository.get_unique_blacklist_count
+        )
         tier_stats = _timed("reported_tier_stats", self.repository.get_dashboard_tier_stats)
 
         total_samples_count = int(sample_rollup_global.get("total_samples", 0) or 0)
@@ -248,15 +229,19 @@ class DashboardService:
             "total_cnvs": int(total_cnvs or 0),
             "total_translocs": int(total_translocs or 0),
             "total_fusions": int(total_fusions or 0),
-            "blacklisted": int(total_blacklisted or 0),
+            "blacklisted": int(unique_blacklisted_variants or 0),
             "fps": int(variant_rollup.get("fps", 0) or 0),
         }
 
         analysed_rate = round((analysed_samples_count / total_samples_count) * 100, 2) if total_samples_count else 0.0
-        fp_rate = round((variant_stats["fps"] / variant_stats["total_variants"]) * 100, 2) if variant_stats["total_variants"] else 0.0
+        fp_rate = (
+            round((int(unique_fp_variants or 0) / int(unique_total_variants or 0)) * 100, 2)
+            if unique_total_variants
+            else 0.0
+        )
         blacklist_rate = (
-            round((variant_stats["blacklisted"] / variant_stats["total_variants"]) * 100, 2)
-            if variant_stats["total_variants"]
+            round((int(unique_blacklisted_variants or 0) / int(unique_total_variants or 0)) * 100, 2)
+            if unique_total_variants
             else 0.0
         )
 
@@ -269,7 +254,7 @@ class DashboardService:
             "variant_stats": variant_stats,
             "unique_gene_count_all_panels": self.repository.get_all_asps_unique_gene_count(),
             "assay_gene_stats_grouped": util.dashboard.format_asp_gene_stats(
-                deepcopy(self.repository.get_all_asp_gene_counts())
+                self.repository.get_all_asp_gene_counts()
             ),
             "sample_stats": sample_stats,
             "tier_stats": tier_stats,
@@ -282,6 +267,9 @@ class DashboardService:
             "admin_insights": {},
             "capacity_counts": _timed("capacity_counts", self.build_capacity_counts),
             "isgl_visibility": _timed("isgl_visibility", self.build_isgl_visibility),
+            "isgl_association": _timed(
+                "isgl_association", self.repository.get_dashboard_isgl_association
+            ),
         }
         if str(user.role or "").strip().lower() == "admin":
             payload["admin_insights"] = _timed("admin_insights", self.build_admin_insights)

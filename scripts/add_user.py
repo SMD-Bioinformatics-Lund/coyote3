@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 #  Copyright (c) 2025 Coyote3 Project Authors
 #  All rights reserved.
@@ -12,6 +12,8 @@
 #  the copyright holders.
 #
 
+import os
+
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 from werkzeug.security import generate_password_hash
@@ -24,19 +26,33 @@ def main():
     Returns:
         The function result.
     """
-    collection = MongoClient("dev-cdm-mongo:27017")["coyote"]["users"]
+    mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:5818/coyote3")
+    db_name = os.getenv("COYOTE3_DB", "coyote3")
+    collection = MongoClient(mongo_uri)[db_name]["users"]
 
     # Ask for data to store
-    user = input("Enter your username: ")
+    user = input("Enter your username: ").strip().lower()
+    email = input("Enter email (optional): ").strip().lower()
     password = input("Enter your password: ")
-    grp_string = input("Enter groups: ")
+    grp_string = input("Enter assays/groups (comma separated, optional): ").strip()
+    role = input("Enter role (default: viewer): ").strip().lower() or "viewer"
     pass_hash = generate_password_hash(password, method="pbkdf2:sha256")
 
-    grp_arr = grp_string.split(",")
+    grp_arr = [g.strip() for g in grp_string.split(",") if g.strip()]
 
     # Insert the user in the DB
     try:
-        collection.insert({"_id": user, "password": pass_hash, "groups": grp_arr})
+        collection.insert_one(
+            {
+                "username": user,
+                "email": email,
+                "password": pass_hash,
+                "assays": grp_arr,
+                "role": role,
+                "is_active": True,
+                "auth_type": "coyote3",
+            }
+        )
         print("User created.")
     except DuplicateKeyError:
         print("User already present in DB.")

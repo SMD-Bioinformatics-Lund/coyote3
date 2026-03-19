@@ -1,4 +1,4 @@
-#  Copyright (c) 2025 Coyote3 Project Authors
+#  Copyright (c) 2026 Coyote3 Project Authors
 #  All rights reserved.
 #
 #  This source file is part of the Coyote3 codebase.
@@ -27,7 +27,8 @@ across different environments.
 # -------------------------------------------------------------------------
 import os
 from os import path
-from typing import Any, Literal
+from typing import Any
+from urllib.parse import urlparse, urlunparse
 
 import toml
 from cryptography.fernet import Fernet
@@ -104,7 +105,6 @@ class DefaultConfig:
     CACHE_TYPE = "RedisCache"
     CACHE_ENABLED = os.getenv("CACHE_ENABLED", "1") == "1"
     CACHE_REQUIRED = os.getenv("CACHE_REQUIRED", "0") == "1"
-    CACHE_REDIS_HOST = os.getenv("CACHE_REDIS_HOST", "localhost")
     CACHE_REDIS_URL = os.getenv("CACHE_REDIS_URL", "redis://localhost:6379/0")
     CACHE_REDIS_CONNECT_TIMEOUT = float(os.getenv("CACHE_REDIS_CONNECT_TIMEOUT", "1.0"))
     CACHE_REDIS_SOCKET_TIMEOUT = float(os.getenv("CACHE_REDIS_SOCKET_TIMEOUT", "1.0"))
@@ -113,7 +113,6 @@ class DefaultConfig:
     FERNET = Fernet(os.getenv("COYOTE3_FERNET_KEY"))
 
     WTF_CSRF_ENABLED = True
-    REQUIRE_EXTERNAL_API = os.getenv("REQUIRE_EXTERNAL_API", "1") == "1"
     API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8001")
     API_BROWSER_BASE = os.getenv("API_BROWSER_BASE", "/api")
     API_HEALTH_PATH = os.getenv("API_HEALTH_PATH", "/api/v1/health")
@@ -142,10 +141,9 @@ class DefaultConfig:
         if item.strip()
     )
 
-    MONGO_HOST: str = os.getenv("FLASK_MONGO_HOST") or "localhost"
-    MONGO_PORT: str | Literal[27017] = os.getenv("FLASK_MONGO_PORT") or 27017
-    MONGO_DB_NAME = os.getenv("COYOTE3_DB_NAME", "coyote3")
-    BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
+    _MONGO_URI_ENV: str = os.getenv("MONGO_URI", "").strip()
+    COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3")
+    BAM_DB = os.getenv("BAM_DB", "BAM_Service")
     _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
 
     LDAP_HOST = "ldap://mtlucmds1.lund.skane.se"
@@ -299,13 +297,21 @@ class DefaultConfig:
         """
         Construct a MongoDB URI for connecting to the database.
 
-        This property dynamically generates the MongoDB connection URI
-        using the configured host, port, and database name.
+        This property requires MONGO_URI.
+        If MONGO_URI is provided without a database path, the current
+        configured COYOTE3_DB is appended.
 
         Returns:
             str: The MongoDB connection URI.
         """
-        return f"mongodb://{self.MONGO_HOST}:{self.MONGO_PORT}/{self.MONGO_DB_NAME}"
+        if not self._MONGO_URI_ENV:
+            raise ValueError("MONGO_URI must be set.")
+
+        parsed = urlparse(self._MONGO_URI_ENV)
+        has_db_path = bool((parsed.path or "").strip("/"))
+        if has_db_path:
+            return self._MONGO_URI_ENV
+        return urlunparse(parsed._replace(path=f"/{self.COYOTE3_DB}"))
 
     @property
     def DB_COLLECTIONS_CONFIG(self) -> dict[str, Any]:
@@ -324,9 +330,9 @@ class DefaultConfig:
         """
         db_config: dict[str, Any] = toml.load(self._PATH_DB_COLLECTIONS_CONFIG)
 
-        if not all(db in db_config for db in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME]):
+        if not all(db in db_config for db in [self.COYOTE3_DB, self.BAM_DB]):
             missing_dbs = [
-                db for db in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME] if db not in db_config
+                db for db in [self.COYOTE3_DB, self.BAM_DB] if db not in db_config
             ]
             raise ValueError(
                 f"Database(s) {', '.join(missing_dbs)} not found in the database configuration. Check the config file. ({self._PATH_DB_COLLECTIONS_CONFIG})"
@@ -336,7 +342,7 @@ class DefaultConfig:
         custom_db_config: dict[str, Any] = {
             db_name: collections
             for db_name, collections in db_config.items()
-            if db_name in [self.MONGO_DB_NAME, self.BAM_SERVICE_DB_NAME]
+            if db_name in [self.COYOTE3_DB, self.BAM_DB]
         }
 
         return custom_db_config
@@ -371,8 +377,8 @@ class DevelopmentConfig(DefaultConfig):
     the development setup.
     """
 
-    MONGO_DB_NAME = os.getenv("COYOTE3_DB_NAME", "coyote_dev_3")
-    BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
+    COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3_dev")
+    BAM_DB = os.getenv("BAM_DB", "BAM_Service")
     _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
 
     CACHE_DEFAULT_TIMEOUT = 1  # 300 secs, 5 minutes
@@ -395,8 +401,8 @@ class TestConfig(DefaultConfig):
     in the future.
     """
 
-    MONGO_DB_NAME = os.getenv("COYOTE3_DB_NAME", "coyote3_test")
-    BAM_SERVICE_DB_NAME = os.getenv("BAM_DB", "BAM_Service")
+    COYOTE3_DB = os.getenv("COYOTE3_DB", "coyote3_test")
+    BAM_DB = os.getenv("BAM_DB", "BAM_Service")
     _PATH_DB_COLLECTIONS_CONFIG = "config/coyote3_collections.toml"
 
     LOGS = "logs/test"

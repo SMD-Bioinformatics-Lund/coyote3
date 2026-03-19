@@ -60,6 +60,21 @@ class AnnotationsHandler(BaseHandler):
         )
         col.create_index([("gene", 1)], name="gene_1", background=True)
         col.create_index([("variant", 1)], name="variant_1", background=True)
+        col.create_index(
+            [("variant", 1), ("time_created", 1)],
+            name="variant_time_created_1",
+            background=True,
+        )
+        col.create_index(
+            [("gene", 1), ("nomenclature", 1), ("variant", 1), ("time_created", 1)],
+            name="gene_nomenclature_variant_time_created",
+            background=True,
+        )
+        col.create_index(
+            [("nomenclature", 1), ("variant", 1), ("time_created", 1)],
+            name="nomenclature_variant_time_created",
+            background=True,
+        )
 
     def get_annotation_by_oid(self, oid: str) -> dict | None:
         """

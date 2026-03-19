@@ -250,7 +250,7 @@ def _extract(config_obj, scoped_query: dict | None = None) -> dict[str, Any]:
             The  extract result.
     """
     mongo_uri = config_obj.MONGO_URI
-    db_name = config_obj.MONGO_DB_NAME
+    db_name = config_obj.COYOTE3_DB
     mapping = config_obj.DB_COLLECTIONS_CONFIG.get(db_name, {})
 
     client = pymongo.MongoClient(mongo_uri)

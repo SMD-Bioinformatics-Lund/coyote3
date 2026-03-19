@@ -12,6 +12,7 @@ import base64
 import json
 import os
 import subprocess
+from collections.abc import Mapping
 from copy import deepcopy
 from datetime import date, datetime, timedelta, timezone
 from hashlib import md5
@@ -20,6 +21,7 @@ from typing import Any, Dict, Tuple
 
 from bson import ObjectId
 from cryptography.fernet import Fernet
+from pydantic import BaseModel
 from werkzeug.security import generate_password_hash
 
 from api.core.dna.variant_identity import (
@@ -662,7 +664,14 @@ class CommonUtility:
         if isinstance(data, (datetime, date)):
             return data.isoformat()
 
-        if isinstance(data, dict):
+        if isinstance(data, BaseModel):
+            return CommonUtility.convert_to_serializable(data.model_dump())
+
+        dict_method = getattr(type(data), "dict", None)
+        if callable(dict_method):
+            return CommonUtility.convert_to_serializable(data.dict())
+
+        if isinstance(data, Mapping):
             return {
                 CommonUtility.convert_to_serializable(k): CommonUtility.convert_to_serializable(v)
                 for k, v in data.items()

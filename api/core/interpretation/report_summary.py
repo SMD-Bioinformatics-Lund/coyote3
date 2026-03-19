@@ -2,6 +2,8 @@
 
 from collections import defaultdict
 
+from bson import ObjectId
+
 from api.infra.repositories.core_store_mongo import MongoCoreStoreRepository
 from api.runtime import app, current_username
 from api.utils.common_utility import CommonUtility
@@ -562,22 +564,67 @@ def enrich_reported_variant_docs(tier_docs: list) -> list:
     Returns:
         list: The function result.
     """
+    if not tier_docs:
+        return []
+
+    repo = _core_repo()
+    sample_ids: list[ObjectId] = []
+    annotation_ids: list[ObjectId] = []
+
+    for doc in tier_docs:
+        sample_oid = doc.get("sample_oid")
+        if isinstance(sample_oid, ObjectId):
+            sample_ids.append(sample_oid)
+        elif isinstance(sample_oid, str) and ObjectId.is_valid(sample_oid):
+            sample_ids.append(ObjectId(sample_oid))
+
+        annotation_oid = doc.get("annotation_oid")
+        if isinstance(annotation_oid, ObjectId):
+            annotation_ids.append(annotation_oid)
+        elif isinstance(annotation_oid, str) and ObjectId.is_valid(annotation_oid):
+            annotation_ids.append(ObjectId(annotation_oid))
+
+    sample_map: dict[ObjectId, dict] = {}
+    if sample_ids:
+        for sample in repo.sample_handler.get_samples_by_oids(list(set(sample_ids))) or []:
+            if isinstance(sample, dict):
+                sample_map[sample.get("_id")] = sample
+
+    annotation_map: dict[ObjectId, dict] = {}
+    if annotation_ids:
+        annotations = repo.annotation_handler.get_collection().find(
+            {"_id": {"$in": list(set(annotation_ids))}}
+        )
+        for annotation in annotations:
+            if isinstance(annotation, dict):
+                annotation_map[annotation.get("_id")] = annotation
+
     enriched_docs = []
     for doc in tier_docs:
         enriched_doc = doc.copy()
-        sample = _core_repo().sample_handler.get_sample_by_oid(doc.get("sample_oid", None)) or {}
-        enriched_doc["sample"] = {}
-        enriched_doc["sample"]["sample_name"] = sample.get("name")
-        enriched_doc["sample"]["case_id"] = sample.get("case_id")
-        enriched_doc["sample"]["control_id"] = sample.get("control_id")
-        enriched_doc["sample"]["profile"] = sample.get("profile")
-        enriched_doc["sample"]["paired"] = sample.get("paired")
-        enriched_doc["sample"]["assay"] = sample.get("assay")
-        enriched_doc["sample"]["subpanel"] = sample.get("subpanel")
 
-        annotation = _core_repo().annotation_handler.get_annotation_by_oid(
-            doc.get("annotation_oid", None)
-        )
+        sample_oid = doc.get("sample_oid")
+        sample_key = sample_oid
+        if isinstance(sample_oid, str) and ObjectId.is_valid(sample_oid):
+            sample_key = ObjectId(sample_oid)
+        sample = sample_map.get(sample_key, {})
+
+        enriched_doc["sample"] = {
+            "sample_name": sample.get("name"),
+            "case_id": sample.get("case_id"),
+            "control_id": sample.get("control_id"),
+            "profile": sample.get("profile"),
+            "paired": sample.get("paired"),
+            "assay": sample.get("assay"),
+            "subpanel": sample.get("subpanel"),
+        }
+
+        annotation_oid = doc.get("annotation_oid")
+        annotation_key = annotation_oid
+        if isinstance(annotation_oid, str) and ObjectId.is_valid(annotation_oid):
+            annotation_key = ObjectId(annotation_oid)
+        annotation = annotation_map.get(annotation_key) or {}
         enriched_doc["annotation"] = {**annotation}
         enriched_docs.append(enriched_doc)
+
     return enriched_docs

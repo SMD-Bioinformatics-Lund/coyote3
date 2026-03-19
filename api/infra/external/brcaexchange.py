@@ -34,6 +34,20 @@ class BRCAHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.brcaexchange_collection)
 
+    def ensure_indexes(self) -> None:
+        """Create indexes used by BRCA exchange coordinate lookups."""
+        col = self.get_collection()
+        col.create_index(
+            [("chr", 1), ("pos", 1), ("ref", 1), ("alt", 1)],
+            name="chr_pos_ref_alt",
+            background=True,
+        )
+        col.create_index(
+            [("chr38", 1), ("pos38", 1), ("ref38", 1), ("alt38", 1)],
+            name="chr38_pos38_ref38_alt38",
+            background=True,
+        )
+
     def get_brca_data(self, variant: dict, assay: str) -> dict:
         """
         Retrieve BRCA data for a specific variant.

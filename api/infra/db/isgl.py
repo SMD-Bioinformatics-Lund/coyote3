@@ -172,6 +172,197 @@ class ISGLHandler(BaseHandler):
             query["adhoc"] = adhoc
         return list(self.get_collection().find(query, {"genes": 0}).sort([("created_on", -1)]))
 
+    def get_dashboard_visibility_rollup(self) -> dict:
+        """
+        Aggregate ISGL visibility stats for dashboard payloads.
+        """
+        pipeline = [
+            {
+                "$facet": {
+                    "totals": [
+                        {
+                            "$group": {
+                                "_id": None,
+                                "public_total": {
+                                    "$sum": {"$cond": [{"$eq": ["$is_public", True]}, 1, 0]}
+                                },
+                                "private_total": {
+                                    "$sum": {
+                                        "$cond": [
+                                            {
+                                                "$eq": [
+                                                    "$is_private",
+                                                    True,
+                                                ]
+                                            },
+                                            1,
+                                            {
+                                                "$cond": [
+                                                    {"$eq": ["$is_public", True]},
+                                                    0,
+                                                    1,
+                                                ]
+                                            },
+                                        ]
+                                    }
+                                },
+                                "adhoc_total": {
+                                    "$sum": {"$cond": [{"$eq": ["$adhoc", True]}, 1, 0]}
+                                },
+                            }
+                        },
+                        {"$project": {"_id": 0}},
+                    ],
+                    "combos": [
+                        {
+                            "$project": {
+                                "is_public": {"$eq": ["$is_public", True]},
+                                "is_private": {
+                                    "$cond": [
+                                        {"$eq": ["$is_private", True]},
+                                        True,
+                                        {"$not": [{"$eq": ["$is_public", True]}]},
+                                    ]
+                                },
+                                "is_adhoc": {"$eq": ["$adhoc", True]},
+                            }
+                        },
+                        {
+                            "$group": {
+                                "_id": {
+                                    "is_public": "$is_public",
+                                    "is_private": "$is_private",
+                                    "is_adhoc": "$is_adhoc",
+                                },
+                                "count": {"$sum": 1},
+                            }
+                        },
+                    ],
+                    "extra_visibility": [
+                        {"$project": {"entries": {"$objectToArray": "$$ROOT"}}},
+                        {"$unwind": "$entries"},
+                        {"$match": {"entries.v": True}},
+                        {
+                            "$match": {
+                                "$expr": {
+                                    "$and": [
+                                        {"$regexMatch": {"input": "$entries.k", "regex": "^is_"}},
+                                        {
+                                            "$not": [
+                                                {
+                                                    "$in": [
+                                                        "$entries.k",
+                                                        ["is_public", "is_private", "is_active"],
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                    ]
+                                }
+                            }
+                        },
+                        {"$group": {"_id": "$entries.k", "count": {"$sum": 1}}},
+                    ],
+                }
+            }
+        ]
+        doc = (list(self.get_collection().aggregate(pipeline, allowDiskUse=True)) or [{}])[0]
+        totals = (doc.get("totals") or [{}])[0]
+        counts_map: dict[tuple[bool, bool, bool], int] = {}
+        for row in doc.get("combos", []) or []:
+            combo = row.get("_id") or {}
+            key = (
+                bool(combo.get("is_public")),
+                bool(combo.get("is_private")),
+                bool(combo.get("is_adhoc")),
+            )
+            counts_map[key] = int(row.get("count", 0) or 0)
+
+        extra_visibility_counts = {
+            str(row.get("_id") or ""): int(row.get("count", 0) or 0)
+            for row in (doc.get("extra_visibility") or [])
+            if row.get("_id")
+        }
+        return {
+            "public_total": int(totals.get("public_total", 0) or 0),
+            "private_total": int(totals.get("private_total", 0) or 0),
+            "adhoc_total": int(totals.get("adhoc_total", 0) or 0),
+            "public_only": counts_map.get((True, False, False), 0),
+            "private_only": counts_map.get((False, True, False), 0),
+            "adhoc_only": counts_map.get((False, False, True), 0),
+            "public_private": counts_map.get((True, True, False), 0),
+            "public_adhoc": counts_map.get((True, False, True), 0),
+            "private_adhoc": counts_map.get((False, True, True), 0),
+            "public_private_adhoc": counts_map.get((True, True, True), 0),
+            "overlap_total": (
+                counts_map.get((True, True, False), 0)
+                + counts_map.get((True, False, True), 0)
+                + counts_map.get((False, True, True), 0)
+                + counts_map.get((True, True, True), 0)
+            ),
+            "extra_visibility_counts": extra_visibility_counts,
+        }
+
+    def get_dashboard_assay_association_rollup(self) -> dict:
+        """
+        Aggregate ISGL association counts by ASP id for dashboard charts.
+        """
+        pipeline = [
+            {"$match": {"assays": {"$exists": True, "$type": "array", "$ne": []}}},
+            {"$unwind": "$assays"},
+            {"$match": {"assays": {"$type": "string", "$ne": ""}}},
+            {
+                "$group": {
+                    "_id": "$assays",
+                    "isgl_total": {"$sum": 1},
+                    "public_count": {"$sum": {"$cond": [{"$eq": ["$is_public", True]}, 1, 0]}},
+                    "private_count": {
+                        "$sum": {
+                            "$cond": [
+                                {
+                                    "$eq": ["$is_private", True],
+                                },
+                                1,
+                                {"$cond": [{"$eq": ["$is_public", True]}, 0, 1]},
+                            ]
+                        }
+                    },
+                    "adhoc_count": {"$sum": {"$cond": [{"$eq": ["$adhoc", True]}, 1, 0]}},
+                }
+            },
+            {"$sort": {"isgl_total": -1, "_id": 1}},
+        ]
+        rows = list(self.get_collection().aggregate(pipeline, allowDiskUse=True))
+        assay_ids = [str(row.get("_id")) for row in rows if row.get("_id")]
+        asp_map = {
+            str(doc.get("asp_id")): {
+                "display_name": str(doc.get("display_name") or doc.get("assay_name") or doc.get("asp_id") or ""),
+                "asp_group": str(doc.get("asp_group") or ""),
+            }
+            for doc in self.adapter.asp_collection.find(
+                {"asp_id": {"$in": assay_ids}},
+                {"_id": 0, "asp_id": 1, "display_name": 1, "assay_name": 1, "asp_group": 1},
+            )
+        }
+        assay_rows = []
+        for row in rows:
+            assay_id = str(row.get("_id") or "")
+            if not assay_id:
+                continue
+            meta = asp_map.get(assay_id, {})
+            assay_rows.append(
+                {
+                    "assay_id": assay_id,
+                    "display_name": meta.get("display_name") or assay_id,
+                    "asp_group": meta.get("asp_group") or "",
+                    "isgl_total": int(row.get("isgl_total", 0) or 0),
+                    "public_count": int(row.get("public_count", 0) or 0),
+                    "private_count": int(row.get("private_count", 0) or 0),
+                    "adhoc_count": int(row.get("adhoc_count", 0) or 0),
+                }
+            )
+        return {"assay_isgl_counts": assay_rows}
+
     def create_isgl(self, data: dict) -> Any:
         """
         Insert a new gene list into the database.

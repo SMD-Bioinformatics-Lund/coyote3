@@ -17,7 +17,7 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
     ports:
-      - "6817:8000"
+      - "${COYOTE3_DEV_WEB_PORT:-6817}:8000"
     env_file:
       - ../../.coyote3_dev_env
     environment:
@@ -25,7 +25,6 @@ services:
       - PYTHONUNBUFFERED=1
       - FLASK_APP=wsgi
       - FLASK_DEBUG=1
-      - REQUIRE_EXTERNAL_API=1
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
       - API_BASE_URL=http://coyote3_dev_api:8001
@@ -77,13 +76,12 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
     ports:
-      - "6816:8001"
+      - "${COYOTE3_DEV_API_PORT:-6816}:8001"
     env_file:
       - ../../.coyote3_dev_env
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
-      - REQUIRE_EXTERNAL_API=0
       - CACHE_ENABLED=1
       - CACHE_REQUIRED=1
       - TZ=Europe/Stockholm
@@ -158,7 +156,7 @@ services:
     container_name: redis_coyote3_dev_${COYOTE3_VERSION:-local}
     image: ramsainanduri/redis:7.4.3
     ports:
-      - "5819:6379"
+      - "${COYOTE3_DEV_REDIS_PORT:-5819}:6379"
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
     dns:

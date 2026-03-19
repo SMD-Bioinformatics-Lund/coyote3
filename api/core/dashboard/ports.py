@@ -45,12 +45,21 @@ class DashboardRepository(Protocol):
             int: The function result.
         """
         ...
-    def count_isgls(self) -> int:
+    def count_isgls(self, is_active: bool | None = None) -> int:
         """Count isgls.
 
         Returns:
             int: The function result.
         """
+        ...
+    def get_dashboard_user_rollup(self) -> dict:
+        """Return dashboard user rollup."""
+        ...
+    def get_dashboard_isgl_visibility(self) -> dict:
+        """Return dashboard ISGL visibility rollup."""
+        ...
+    def get_dashboard_isgl_association(self) -> dict:
+        """Return dashboard ISGL association rollup."""
         ...
 
     def get_all_isgl(self) -> list[dict]:
@@ -84,6 +93,9 @@ class DashboardRepository(Protocol):
             list[dict]: The function result.
         """
         ...
+    def resolve_active_asp_ids_for_scope(self, assays: list[str], groups: list[str]) -> list[str]:
+        """Resolve active ASP ids for assay/group scope values."""
+        ...
 
     def get_dashboard_sample_rollup(self, assays: list[str] | None) -> dict:
         """Return dashboard sample rollup.
@@ -101,6 +113,9 @@ class DashboardRepository(Protocol):
         Returns:
             dict: The function result.
         """
+        ...
+    def get_unique_variant_quality_counts(self) -> dict:
+        """Return unique variant quality counts."""
         ...
     def get_total_cnv_count(self) -> int:
         """Return total cnv count.

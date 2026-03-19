@@ -66,6 +66,11 @@ class ASPHandler(BaseHandler):
             name="is_active_assay_name",
             background=True,
         )
+        col.create_index(
+            [("is_active", 1), ("asp_group", 1)],
+            name="is_active_asp_group",
+            background=True,
+        )
 
     @staticmethod
     def _normalize_asp_id(asp_id: str | None) -> str | None:
@@ -135,6 +140,34 @@ class ASPHandler(BaseHandler):
             document is found.
         """
         return self.get_collection().find_one({"asp_id": asp_name})
+
+    def resolve_active_asp_ids_for_scope(self, assays: list[str], groups: list[str]) -> list[str]:
+        """
+        Resolve active ASP ids that match assay/group scope values.
+        """
+        assay_values = [str(value).strip() for value in (assays or []) if str(value).strip()]
+        group_values = [str(value).strip() for value in (groups or []) if str(value).strip()]
+        if not assay_values and not group_values:
+            return []
+
+        matchers: list[dict] = []
+        if group_values:
+            matchers.append({"asp_group": {"$in": group_values}})
+            matchers.append({"assay_name": {"$in": group_values}})
+        if assay_values:
+            matchers.append({"asp_group": {"$in": assay_values}})
+            matchers.append({"assay_name": {"$in": assay_values}})
+            matchers.append({"asp_id": {"$in": assay_values}})
+
+        query: dict = {"is_active": True}
+        if matchers:
+            query["$or"] = matchers
+
+        return [
+            str(doc.get("asp_id"))
+            for doc in self.get_collection().find(query, {"_id": 0, "asp_id": 1})
+            if doc.get("asp_id")
+        ]
 
     def get_all_asps(self, is_active: bool | None = None) -> list:
         """

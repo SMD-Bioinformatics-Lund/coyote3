@@ -186,6 +186,7 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
             return {
                 "APP_VERSION": app.config.get("APP_VERSION"),
                 "ENV_NAME": app.config.get("ENV_NAME"),
+                "CURRENT_YEAR": datetime.now(timezone.utc).year,
             }
 
     @app.context_processor
@@ -427,11 +428,8 @@ def init_app(testing: bool = False, development: bool = False) -> Flask:
 
 def verify_external_api_dependency(app: Flask) -> None:
     """
-    Optionally require an external API runtime before serving web traffic.
+    Require external API runtime before serving web traffic.
     """
-    if not app.config.get("REQUIRE_EXTERNAL_API", False):
-        return
-
     api_base = str(app.config.get("API_BASE_URL", "")).rstrip("/")
     api_health_path = app.config.get("API_HEALTH_PATH", "/api/v1/health")
     health_url = f"{api_base}{api_health_path}"
@@ -468,19 +466,6 @@ def verify_external_api_dependency(app: Flask) -> None:
                 time.sleep(retry_interval)
             else:
                 app.logger.error("External API dependency check failed: %s (%s)", health_url, exc)
-
-    # In debug/development, allow the web UI to boot even if API is unavailable.
-    is_dev_mode = (
-        bool(getattr(app, "debug", False))
-        or str(app.config.get("ENV_NAME", "")).strip().lower() == "development"
-        or str(os.getenv("DEVELOPMENT", "0")).strip().lower() in {"1", "true", "yes", "on"}
-    )
-    if is_dev_mode:
-        app.logger.warning(
-            "External API unavailable in development mode; continuing without strict startup dependency: %s",
-            health_url,
-        )
-        return
 
     raise RuntimeError(f"External API is required but unavailable: {health_url}") from last_error
 

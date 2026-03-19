@@ -190,6 +190,135 @@ class UsersHandler(BaseHandler):
         """
         return list(self.get_collection().find().sort("firstname", 1))
 
+    def get_dashboard_user_rollup(self) -> dict:
+        """
+        Aggregate user counts/role breakdowns for dashboard payloads.
+        """
+        pipeline = [
+            {
+                "$facet": {
+                    "counts": [
+                        {
+                            "$group": {
+                                "_id": None,
+                                "users_total": {"$sum": 1},
+                                "users_active": {
+                                    "$sum": {"$cond": [{"$eq": ["$is_active", True]}, 1, 0]}
+                                },
+                            }
+                        },
+                        {"$project": {"_id": 0, "users_total": 1, "users_active": 1}},
+                    ],
+                    "role_counts": [
+                        {
+                            "$project": {
+                                "role": {
+                                    "$let": {
+                                        "vars": {
+                                            "normalized": {
+                                                "$toLower": {
+                                                    "$trim": {
+                                                        "input": {"$ifNull": ["$role", "unknown"]},
+                                                        "chars": " ",
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "in": {
+                                            "$cond": [
+                                                {"$eq": ["$$normalized", ""]},
+                                                "unknown",
+                                                "$$normalized",
+                                            ]
+                                        },
+                                    }
+                                }
+                            }
+                        },
+                        {"$group": {"_id": "$role", "count": {"$sum": 1}}},
+                    ],
+                    "profession_role": [
+                        {
+                            "$project": {
+                                "role": {
+                                    "$let": {
+                                        "vars": {
+                                            "normalized": {
+                                                "$toLower": {
+                                                    "$trim": {
+                                                        "input": {"$ifNull": ["$role", "unknown"]},
+                                                        "chars": " ",
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "in": {
+                                            "$cond": [
+                                                {"$eq": ["$$normalized", ""]},
+                                                "unknown",
+                                                "$$normalized",
+                                            ]
+                                        },
+                                    }
+                                },
+                                "profession": {
+                                    "$let": {
+                                        "vars": {
+                                            "resolved": {
+                                                "$ifNull": [
+                                                    "$job_title",
+                                                    {"$ifNull": ["$profession", {"$ifNull": ["$title", "Unknown"]}]},
+                                                ]
+                                            }
+                                        },
+                                        "in": {
+                                            "$cond": [
+                                                {
+                                                    "$eq": [
+                                                        {"$trim": {"input": {"$toString": "$$resolved"}, "chars": " "}},
+                                                        "",
+                                                    ]
+                                                },
+                                                "Unknown",
+                                                {"$trim": {"input": {"$toString": "$$resolved"}, "chars": " "}},
+                                            ]
+                                        },
+                                    }
+                                },
+                            }
+                        },
+                        {
+                            "$group": {
+                                "_id": {"profession": "$profession", "role": "$role"},
+                                "count": {"$sum": 1},
+                            }
+                        },
+                    ],
+                }
+            }
+        ]
+
+        doc = (list(self.get_collection().aggregate(pipeline, allowDiskUse=True)) or [{}])[0]
+        counts_doc = (doc.get("counts") or [{}])[0]
+        role_counts: dict[str, int] = {}
+        for row in doc.get("role_counts", []) or []:
+            role_counts[str(row.get("_id") or "unknown")] = int(row.get("count", 0) or 0)
+
+        profession_role_matrix: dict[str, dict[str, int]] = {}
+        for row in doc.get("profession_role", []) or []:
+            key = row.get("_id") or {}
+            profession = str(key.get("profession") or "Unknown")
+            role = str(key.get("role") or "unknown")
+            profession_role_matrix.setdefault(profession, {})
+            profession_role_matrix[profession][role] = int(row.get("count", 0) or 0)
+
+        return {
+            "users_total": int(counts_doc.get("users_total", 0) or 0),
+            "users_active": int(counts_doc.get("users_active", 0) or 0),
+            "role_user_counts": role_counts,
+            "profession_role_matrix": profession_role_matrix,
+        }
+
     def delete_user(self, user_id) -> None:
         """
         Deletes a user from the database by their unique ID.

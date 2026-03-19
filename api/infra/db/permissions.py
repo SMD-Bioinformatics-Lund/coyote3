@@ -51,6 +51,11 @@ class PermissionsHandler(BaseHandler):
         )
         col.create_index([("category", 1)], name="category_1", background=True)
         col.create_index([("is_active", 1)], name="is_active_1", background=True)
+        col.create_index(
+            [("category", 1), ("is_active", 1)],
+            name="category_1_is_active_1",
+            background=True,
+        )
 
     @staticmethod
     def _normalize_permission_id(permission_id: str | None) -> str | None:

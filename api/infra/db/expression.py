@@ -37,6 +37,14 @@ class ExpressionHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.expression_collection)
 
+    def ensure_indexes(self) -> None:
+        """Create index used by transcript expression lookup."""
+        self.get_collection().create_index(
+            [("tid", 1)],
+            name="tid_1",
+            background=True,
+        )
+
     def get_expression_data(self, transcripts: list) -> dict:
         """
         Retrieve expression data for a list of transcripts.

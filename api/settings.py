@@ -75,7 +75,7 @@ def configure_process_env() -> None:
     Returns:
         ``None``. Process environment values are updated as a side effect.
     """
-    os.environ.setdefault("REQUIRE_EXTERNAL_API", "0" if _is_non_production() else "1")
+    return None
 
 
 def get_runtime_mode_flags() -> dict[str, bool]:

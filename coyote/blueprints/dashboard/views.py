@@ -65,6 +65,7 @@ _DEFAULT_ADMIN_INSIGHTS = {
     "profession_role_matrix": {},
     "isgl_venn": {},
 }
+_DEFAULT_ISGL_ASSOCIATION = {"assay_isgl_counts": []}
 
 
 def _as_int(value: object, default: int = 0) -> int:
@@ -237,6 +238,31 @@ def _normalize_isgl_visibility(payload: object) -> dict:
     return normalized
 
 
+def _normalize_isgl_association(payload: object) -> dict:
+    """Normalize ISGL association payload."""
+    if not isinstance(payload, dict):
+        return dict(_DEFAULT_ISGL_ASSOCIATION)
+    rows = payload.get("assay_isgl_counts", [])
+    if not isinstance(rows, list):
+        rows = []
+    normalized_rows = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        normalized_rows.append(
+            {
+                "assay_id": str(row.get("assay_id") or ""),
+                "display_name": str(row.get("display_name") or row.get("assay_id") or ""),
+                "asp_group": str(row.get("asp_group") or ""),
+                "isgl_total": _as_int(row.get("isgl_total"), 0),
+                "public_count": _as_int(row.get("public_count"), 0),
+                "private_count": _as_int(row.get("private_count"), 0),
+                "adhoc_count": _as_int(row.get("adhoc_count"), 0),
+            }
+        )
+    return {"assay_isgl_counts": normalized_rows}
+
+
 @dashboard_bp.route("/", methods=["GET", "POST"])
 @login_required
 def dashboard() -> str:
@@ -286,6 +312,7 @@ def dashboard() -> str:
         admin_insights = cache_payload.get("admin_insights", {})
         capacity_counts = cache_payload.get("capacity_counts", {})
         isgl_visibility = cache_payload.get("isgl_visibility", {})
+        isgl_association = cache_payload.get("isgl_association", {})
     else:
         app.logger.info(f"Dashboard cache miss for {cache_key}")
         payload = None
@@ -330,6 +357,7 @@ def dashboard() -> str:
             admin_insights = payload.get("admin_insights", {})
             capacity_counts = payload.get("capacity_counts", {})
             isgl_visibility = payload.get("isgl_visibility", {})
+            isgl_association = payload.get("isgl_association", {})
         except ApiRequestError as exc:
             raise_page_load_error(
                 exc,
@@ -346,6 +374,7 @@ def dashboard() -> str:
     admin_insights = _normalize_admin_insights(admin_insights)
     capacity_counts = _normalize_capacity_counts(capacity_counts)
     isgl_visibility = _normalize_isgl_visibility(isgl_visibility)
+    isgl_association = _normalize_isgl_association(isgl_association)
 
     # Only cache successful API payloads to avoid poisoning cache with fallback zeros.
     if fetched_from_api_ok:
@@ -367,6 +396,7 @@ def dashboard() -> str:
                     "admin_insights": admin_insights,
                     "capacity_counts": capacity_counts,
                     "isgl_visibility": isgl_visibility,
+                    "isgl_association": isgl_association,
                 },
                 timeout=cache_timeout,
             )
@@ -389,4 +419,5 @@ def dashboard() -> str:
         admin_insights=admin_insights,
         capacity_counts=capacity_counts,
         isgl_visibility=isgl_visibility,
+        isgl_association=isgl_association,
     )

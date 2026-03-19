@@ -35,6 +35,6 @@ def get_mongo_settings(config: Mapping[str, Any]) -> dict[str, str]:
     """Extract the Mongo settings needed by the API runtime."""
     return {
         "uri": str(config.get("MONGO_URI") or ""),
-        "db_name": str(config.get("MONGO_DB_NAME") or ""),
-        "bam_db_name": str(config.get("BAM_SERVICE_DB_NAME") or ""),
+        "db_name": str(config.get("COYOTE3_DB") or ""),
+        "bam_db_name": str(config.get("BAM_DB") or ""),
     }

@@ -62,6 +62,11 @@ class SampleHandler(BaseHandler):
             name="assay_1_profile_1_report_num_1",
             background=True,
         )
+        col.create_index(
+            [("assay", 1), ("profile", 1), ("time_added", -1)],
+            name="assay_1_profile_1_time_added_-1",
+            background=True,
+        )
 
     def _query_samples(
         self,
@@ -328,7 +333,7 @@ class SampleHandler(BaseHandler):
         # Remove unnecessary keys from default_filters
         default_filters.pop("use_diagnosis_genelist", None)
 
-        self.get_collection().update(
+        self.get_collection().update_one(
             {"_id": ObjectId(sample_id)},
             {"$set": {"filters": default_filters}},
         )
@@ -481,47 +486,82 @@ class SampleHandler(BaseHandler):
         base_match = {"assay": {"$in": assays}} if assays is not None else {}
         collection = self.get_collection()
 
-        total_samples = int(collection.count_documents(base_match))
-        analysed_match = dict(base_match)
-        analysed_match["report_num"] = {"$gt": 0}
-        analysed_samples = int(collection.count_documents(analysed_match))
+        pipeline: list[dict] = []
+        if base_match:
+            pipeline.append({"$match": base_match})
+        pipeline.append(
+            {
+                "$facet": {
+                    "totals": [
+                        {
+                            "$group": {
+                                "_id": None,
+                                "total_samples": {"$sum": 1},
+                                "analysed_samples": {
+                                    "$sum": {"$cond": [{"$gt": ["$report_num", 0]}, 1, 0]}
+                                },
+                            }
+                        },
+                        {"$project": {"_id": 0, "total_samples": 1, "analysed_samples": 1}},
+                    ],
+                    "by_assay": [
+                        {
+                            "$group": {
+                                "_id": "$assay",
+                                "total": {"$sum": 1},
+                                "analysed": {
+                                    "$sum": {"$cond": [{"$gt": ["$report_num", 0]}, 1, 0]}
+                                },
+                            }
+                        },
+                        {
+                            "$project": {
+                                "_id": 0,
+                                "assay": "$_id",
+                                "total": 1,
+                                "analysed": 1,
+                                "pending": {"$subtract": ["$total", "$analysed"]},
+                            }
+                        },
+                    ],
+                    "profiles": [
+                        {"$group": {"_id": "$profile", "count": {"$sum": 1}}},
+                        {"$project": {"_id": 0, "key": "$_id", "count": 1}},
+                    ],
+                    "omics_layers": [
+                        {"$group": {"_id": "$omics_layer", "count": {"$sum": 1}}},
+                        {"$project": {"_id": 0, "key": "$_id", "count": 1}},
+                    ],
+                    "sequencing_scopes": [
+                        {"$group": {"_id": "$sequencing_scope", "count": {"$sum": 1}}},
+                        {"$project": {"_id": 0, "key": "$_id", "count": 1}},
+                    ],
+                    "pair_counts": [
+                        {"$group": {"_id": "$paired", "count": {"$sum": 1}}},
+                        {"$project": {"_id": 0, "key": "$_id", "count": 1}},
+                    ],
+                }
+            }
+        )
 
-        def _group_counts(field: str, project_alias: str = "key") -> list[dict]:
-            """Handle  group counts.
+        facet_result = list(collection.aggregate(pipeline, allowDiskUse=True))
+        facet_doc = facet_result[0] if facet_result else {}
+        totals = (facet_doc.get("totals") or [{}])[0]
 
-            Args:
-                    field: Field.
-                    project_alias: Project alias. Optional argument.
-
-            Returns:
-                    The  group counts result.
-            """
-            pipeline = []
-            if base_match:
-                pipeline.append({"$match": base_match})
-            pipeline.extend(
-                [
-                    {"$group": {"_id": f"${field}", "count": {"$sum": 1}}},
-                    {"$project": {"_id": 0, project_alias: "$_id", "count": 1}},
-                ]
-            )
-            return list(collection.aggregate(pipeline))
+        total_samples = int(totals.get("total_samples", 0) or 0)
+        analysed_samples = int(totals.get("analysed_samples", 0) or 0)
 
         user_samples_stats: dict[str, dict[str, int]] = {}
-        for row in _group_counts("assay", project_alias="assay"):
+        for row in facet_doc.get("by_assay", []) or []:
             assay = row.get("assay")
             if not assay:
                 continue
-            assay_match = dict(base_match)
-            assay_match["assay"] = assay
-            assay_total = int(collection.count_documents(assay_match))
-            assay_analysed_match = dict(assay_match)
-            assay_analysed_match["report_num"] = {"$gt": 0}
-            assay_analysed = int(collection.count_documents(assay_analysed_match))
-            user_samples_stats[assay] = {
+            assay_total = int(row.get("total", 0) or 0)
+            assay_analysed = int(row.get("analysed", 0) or 0)
+            user_samples_stats[str(assay)] = {
                 "total": assay_total,
                 "analysed": assay_analysed,
-                "pending": max(assay_total - assay_analysed, 0),
+                "pending": max(int(row.get("pending", 0) or 0), 0),
             }
 
         def _kv_to_dict(items: list[dict]) -> dict:
@@ -542,7 +582,7 @@ class SampleHandler(BaseHandler):
             return out
 
         pair_counts = {"paired": 0, "unpaired": 0, "unknown": 0}
-        for row in _group_counts("paired") or []:
+        for row in facet_doc.get("pair_counts", []) or []:
             key = row.get("key")
             count = int(row.get("count", 0) or 0)
             if key is True:
@@ -558,9 +598,9 @@ class SampleHandler(BaseHandler):
             "pending_samples": max(total_samples - analysed_samples, 0),
             "user_samples_stats": user_samples_stats,
             "sample_stats": {
-                "profiles": _kv_to_dict(_group_counts("profile") or []),
-                "omics_layers": _kv_to_dict(_group_counts("omics_layer") or []),
-                "sequencing_scopes": _kv_to_dict(_group_counts("sequencing_scope") or []),
+                "profiles": _kv_to_dict(facet_doc.get("profiles", []) or []),
+                "omics_layers": _kv_to_dict(facet_doc.get("omics_layers", []) or []),
+                "sequencing_scopes": _kv_to_dict(facet_doc.get("sequencing_scopes", []) or []),
                 "pair_count": pair_counts,
             },
         }
@@ -669,7 +709,7 @@ class SampleHandler(BaseHandler):
             bool | None: Returns the result of the database update operation.
         """
         report_oid = ObjectId()
-        result = self.get_collection().update(
+        result = self.get_collection().update_one(
             {"name": sample_id},
             {
                 "$push": {
@@ -687,7 +727,7 @@ class SampleHandler(BaseHandler):
                 "$set": {"report_num": report_num},
             },
         )
-        if result.get("ok"):
+        if result.acknowledged and result.matched_count > 0:
             return report_oid
         return None
 

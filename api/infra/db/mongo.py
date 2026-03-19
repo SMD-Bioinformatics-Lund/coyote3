@@ -93,7 +93,7 @@ class MongoAdapter:
         Returns:
          str: The name of the primary database as specified in the application's configuration.
         """
-        return self.app.config["MONGO_DB_NAME"]
+        return self.app.config["COYOTE3_DB"]
 
     def _get_mongoclient(self, mongo_uri: str) -> pymongo.MongoClient:
         """
@@ -115,12 +115,12 @@ class MongoAdapter:
         using the database names specified in the application's configuration.
 
         Attributes:
-            coyote_db: The primary database for the application, initialized using the `MONGO_DB_NAME` from the app's config.
-            bam_db: The BAM service database, initialized using the `BAM_SERVICE_DB_NAME` from the app's config.
+            coyote_db: The primary database for the application, initialized using the `COYOTE3_DB` from the app's config.
+            bam_db: The BAM service database, initialized using the `BAM_DB` from the app's config.
         """
         # No, set the db names from config:
-        self.coyote_db = client[self.app.config["MONGO_DB_NAME"]]
-        self.bam_db = client[self.app.config["BAM_SERVICE_DB_NAME"]]
+        self.coyote_db = client[self.app.config["COYOTE3_DB"]]
+        self.bam_db = client[self.app.config["BAM_DB"]]
 
     def setup(self) -> None:
         """
@@ -131,8 +131,8 @@ class MongoAdapter:
         on the `MongoAdapter` instance for easy access.
 
         Collections for `coyote_db` are configured using the `DB_COLLECTIONS_CONFIG` dictionary with the key
-        matching the `MONGO_DB_NAME` from the app's configuration. Similarly, collections for `bam_db` are
-        configured using the `BAM_SERVICE_DB_NAME` key.
+        matching the `COYOTE3_DB` from the app's configuration. Similarly, collections for `bam_db` are
+        configured using the `BAM_DB` key.
 
         Attributes:
             coyote_db: The primary database for the application.
@@ -141,7 +141,7 @@ class MongoAdapter:
         # Coyote DB
         for collection_name, collection_value in (
             self.app.config.get("DB_COLLECTIONS_CONFIG", {})
-            .get(self.app.config["MONGO_DB_NAME"], {})
+            .get(self.app.config["COYOTE3_DB"], {})
             .items()
         ):
             setattr(self, collection_name, self.coyote_db[collection_value])
@@ -149,7 +149,7 @@ class MongoAdapter:
         # BAM Service DB
         for bam_collection_name, bam_collection_value in (
             self.app.config.get("DB_COLLECTIONS_CONFIG", {})
-            .get(self.app.config["BAM_SERVICE_DB_NAME"], {})
+            .get(self.app.config["BAM_DB"], {})
             .items()
         ):
             setattr(self, bam_collection_name, self.bam_db[bam_collection_value])
@@ -194,18 +194,35 @@ class MongoAdapter:
         self.reported_variants_handler = ReportedVariantsHandler(self)
         self._ensure_handler_indexes("users", self.user_handler)
         self._ensure_handler_indexes("roles", self.roles_handler)
+        self._ensure_handler_indexes("permissions", self.permissions_handler)
         self._ensure_handler_indexes("asp", self.asp_handler)
         self._ensure_handler_indexes("aspc", self.aspc_handler)
+        self._ensure_handler_indexes("schemas", self.schema_handler)
         self._ensure_handler_indexes("isgl", self.isgl_handler)
         self._ensure_handler_indexes("samples", self.sample_handler)
+        self._ensure_handler_indexes("annotations", self.annotation_handler)
         self._ensure_handler_indexes("variants", self.variant_handler)
+        self._ensure_handler_indexes("biomarkers", self.biomarker_handler)
         self._ensure_handler_indexes("cnvs", self.cnv_handler)
         self._ensure_handler_indexes("translocs", self.transloc_handler)
         self._ensure_handler_indexes("fusions", self.fusion_handler)
         self._ensure_handler_indexes("blacklist", self.blacklist_handler)
+        self._ensure_handler_indexes("coverage", self.coverage_handler)
         self._ensure_handler_indexes("coverage2", self.coverage2_handler)
         self._ensure_handler_indexes("groupcov", self.groupcov_handler)
         self._ensure_handler_indexes("reported_variants", self.reported_variants_handler)
+        self._ensure_handler_indexes("vep_meta", self.vep_meta_handler)
+        self._ensure_handler_indexes("hgnc", self.hgnc_handler)
+        self._ensure_handler_indexes("cosmic", self.cosmic_handler)
+        self._ensure_handler_indexes("bam_service", self.bam_service_handler)
+        self._ensure_handler_indexes("rna_expression", self.rna_expression_handler)
+        self._ensure_handler_indexes("rna_classification", self.rna_classification_handler)
+        self._ensure_handler_indexes("rna_qc", self.rna_qc_handler)
+        self._ensure_handler_indexes("expression", self.expression_handler)
+        self._ensure_handler_indexes("civic", self.civic_handler)
+        self._ensure_handler_indexes("oncokb", self.oncokb_handler)
+        self._ensure_handler_indexes("brca", self.brca_handler)
+        self._ensure_handler_indexes("iarc_tp53", self.iarc_tp53_handler)
 
     def _ensure_handler_indexes(self, handler_name: str, handler: object) -> None:
         """Create indexes for a handler while tolerating legacy index-name conflicts."""

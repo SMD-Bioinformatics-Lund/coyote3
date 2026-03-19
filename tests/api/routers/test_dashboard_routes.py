@@ -48,6 +48,11 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
         "get_dashboard_variant_counts",
         lambda: {"total_variants": 100, "total_snps": 60, "fps": 1},
     )
+    monkeypatch.setattr(
+        service.repository,
+        "get_unique_variant_quality_counts",
+        lambda: {"unique_total_variants": 50, "unique_fp_variants": 5},
+    )
     monkeypatch.setattr(service.repository, "get_total_cnv_count", lambda: 5)
     monkeypatch.setattr(service.repository, "get_total_transloc_count", lambda: 2)
     monkeypatch.setattr(service.repository, "get_total_fusion_count", lambda: 3)
@@ -87,6 +92,11 @@ def test_dashboard_summary_aggregates_counts(monkeypatch):
         service,
         "build_isgl_visibility",
         lambda isgls=None: {"public_only": 1, "private_only": 2, "adhoc_only": 3},
+    )
+    monkeypatch.setattr(
+        service.repository,
+        "get_dashboard_isgl_association",
+        lambda: {"assay_isgl_counts": []},
     )
 
     payload = dashboard.dashboard_summary(user=fx.api_user(), service=service)
@@ -132,16 +142,18 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
     )
     monkeypatch.setattr(
         service.repository,
-        "get_all_active_asps",
-        lambda is_active=True: [
-            {"_id": "myeloid_GMSv1", "asp_group": "myeloid", "assay_name": "myeloid"},
-            {"_id": "solid_GMSv3", "asp_group": "solid", "assay_name": "solid"},
-        ],
+        "resolve_active_asp_ids_for_scope",
+        lambda assays, groups: ["myeloid_GMSv1"] if "myeloid" in groups else [],
     )
     monkeypatch.setattr(
         service.repository,
         "get_dashboard_variant_counts",
         lambda: {"total_variants": 0, "total_snps": 0, "fps": 0},
+    )
+    monkeypatch.setattr(
+        service.repository,
+        "get_unique_variant_quality_counts",
+        lambda: {"unique_total_variants": 0, "unique_fp_variants": 0},
     )
     monkeypatch.setattr(service.repository, "get_total_cnv_count", lambda: 0)
     monkeypatch.setattr(service.repository, "get_total_transloc_count", lambda: 0)
@@ -176,6 +188,11 @@ def test_dashboard_summary_scopes_non_admin_from_assays_and_groups(monkeypatch):
         service,
         "build_isgl_visibility",
         lambda isgls=None: {"public_only": 5},
+    )
+    monkeypatch.setattr(
+        service.repository,
+        "get_dashboard_isgl_association",
+        lambda: {"assay_isgl_counts": []},
     )
 
     user = fx.api_user()
@@ -226,6 +243,11 @@ def test_dashboard_summary_admin_scope_is_unfiltered(monkeypatch):
         "get_dashboard_variant_counts",
         lambda: {"total_variants": 0, "total_snps": 0, "fps": 0},
     )
+    monkeypatch.setattr(
+        service.repository,
+        "get_unique_variant_quality_counts",
+        lambda: {"unique_total_variants": 0, "unique_fp_variants": 0},
+    )
     monkeypatch.setattr(service.repository, "get_total_cnv_count", lambda: 0)
     monkeypatch.setattr(service.repository, "get_total_transloc_count", lambda: 0)
     monkeypatch.setattr(service.repository, "get_total_fusion_count", lambda: 0)
@@ -259,6 +281,11 @@ def test_dashboard_summary_admin_scope_is_unfiltered(monkeypatch):
         service,
         "build_isgl_visibility",
         lambda isgls=None: {"public_private_adhoc": 9},
+    )
+    monkeypatch.setattr(
+        service.repository,
+        "get_dashboard_isgl_association",
+        lambda: {"assay_isgl_counts": []},
     )
 
     user = fx.api_user()

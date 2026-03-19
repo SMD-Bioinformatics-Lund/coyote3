@@ -37,6 +37,14 @@ class CoverageHandler(BaseHandler):
         super().__init__(adapter)
         self.set_collection(self.adapter.coverage_collection)
 
+    def ensure_indexes(self) -> None:
+        """Create indexes used by legacy coverage lookup/delete paths."""
+        self.get_collection().create_index(
+            [("sample", 1)],
+            name="sample_1",
+            background=True,
+        )
+
     def get_sample_coverage(self, sample_name: str) -> list[dict]:
         """
         Retrieve coverage data for a specific sample.

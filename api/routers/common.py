@@ -83,8 +83,6 @@ def common_tiered_variant_context_read(
     or_conditions: list[dict[str, Any]] = []
     if simple_id and simple_id_hash:
         or_conditions.append({"$and": [{"simple_id_hash": simple_id_hash}, {"simple_id": simple_id}]})
-    elif simple_id:
-        or_conditions.append({"simple_id": simple_id})
     else:
         if hgvsc:
             or_conditions.append({"hgvsc": hgvsc})

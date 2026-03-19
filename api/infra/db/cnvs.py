@@ -43,6 +43,21 @@ class CNVsHandler(BaseHandler):
         """
         col = self.get_collection()
         col.create_index([("SAMPLE_ID", 1)], name="sample_id_1", background=True)
+        col.create_index(
+            [("SAMPLE_ID", 1), ("interesting", 1)],
+            name="sample_id_1_interesting_1",
+            background=True,
+        )
+        col.create_index(
+            [("SAMPLE_ID", 1), ("fp", 1)],
+            name="sample_id_1_fp_1",
+            background=True,
+        )
+        col.create_index(
+            [("SAMPLE_ID", 1), ("irrelevant", 1)],
+            name="sample_id_1_irrelevant_1",
+            background=True,
+        )
 
     def get_sample_cnvs(self, query: dict) -> list[dict | None]:
         """
@@ -264,15 +279,14 @@ class CNVsHandler(BaseHandler):
         """
         query = [
             {"$group": {"_id": {"chr": "$chr", "start": "$start", "end": "$end"}}},
-            {"$group": {"_id": None, "uniqueCnvCount": {"$sum": 1}}},
+            {"$count": "uniqueCnvCount"},
         ]
 
         try:
-            result = list(self.get_collection().aggregate(query))
+            result = list(self.get_collection().aggregate(query, allowDiskUse=True))
             if result:
-                return result[0].get("uniqueCnvCount", 0)
-            else:
-                return 0
+                return int(result[0].get("uniqueCnvCount", 0) or 0)
+            return 0
         except Exception as e:
             app.logger.error(f"An error occurred: {e}")
             return 0

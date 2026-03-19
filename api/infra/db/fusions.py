@@ -48,6 +48,26 @@ class FusionsHandler(BaseHandler):
         """
         col = self.get_collection()
         col.create_index([("SAMPLE_ID", 1)], name="sample_id_1", background=True)
+        col.create_index(
+            [("SAMPLE_ID", 1), ("interesting", 1)],
+            name="sample_id_1_interesting_1",
+            background=True,
+        )
+        col.create_index(
+            [("SAMPLE_ID", 1), ("fp", 1)],
+            name="sample_id_1_fp_1",
+            background=True,
+        )
+        col.create_index(
+            [("SAMPLE_ID", 1), ("irrelevant", 1)],
+            name="sample_id_1_irrelevant_1",
+            background=True,
+        )
+        col.create_index(
+            [("calls.breakpoint1", 1), ("calls.breakpoint2", 1), ("SAMPLE_ID", 1)],
+            name="calls_breakpoint1_1_calls_breakpoint2_1_sample_id_1",
+            background=True,
+        )
 
     def get_sample_fusions(self, query: dict) -> Any:
         """
@@ -201,15 +221,14 @@ class FusionsHandler(BaseHandler):
         """
         query = [
             {"$group": {"_id": {"genes": "$genes"}}},
-            {"$group": {"_id": None, "uniqueFusionCount": {"$sum": 1}}},
+            {"$count": "uniqueFusionCount"},
         ]
 
         try:
-            result = list(self.get_collection().aggregate(query))
+            result = list(self.get_collection().aggregate(query, allowDiskUse=True))
             if result:
-                return result[0].get("uniqueFusionCount", 0)
-            else:
-                return 0
+                return int(result[0].get("uniqueFusionCount", 0) or 0)
+            return 0
         except Exception as e:
             app.logger.error(f"An error occurred: {e}")
             return 0
@@ -261,15 +280,13 @@ class FusionsHandler(BaseHandler):
         Returns:
             None
         """
+        updates: dict[str, int] = {}
         for i in range(int(num_calls)):
-            self.get_collection().update(
-                {"_id": ObjectId(id)},
-                {"$set": {"calls." + str(i) + ".selected": 0}},
-            )
-
-        self.get_collection().update(
+            updates[f"calls.{i}.selected"] = 0
+        updates[f"calls.{int(callidx) - 1}.selected"] = 1
+        self.get_collection().update_one(
             {"_id": ObjectId(id)},
-            {"$set": {"calls." + str(int(callidx) - 1) + ".selected": 1}},
+            {"$set": updates},
         )
 
     def hide_fus_comment(self, id: str, comment_id: str) -> None:

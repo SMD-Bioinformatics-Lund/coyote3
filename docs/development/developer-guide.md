@@ -102,6 +102,17 @@ python -m wsgi
 docker compose -f deploy/compose/docker-compose.dev.yml up --build
 ```
 
+Override ports/version/build metadata from command line when needed:
+
+```bash
+COYOTE3_VERSION=local \
+GIT_COMMIT=$(git rev-parse --short HEAD) \
+BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+COYOTE3_DEV_WEB_PORT=7817 \
+COYOTE3_DEV_API_PORT=7816 \
+docker compose -f deploy/compose/docker-compose.dev.yml up --build
+```
+
 ### DB identity migration
 
 Use the canonical DB migration script to normalize identity keys and variant identity fields:
@@ -120,6 +131,10 @@ Dry-run:
   --db coyote3_dev \
   --dry-run
 ```
+
+Performance implementation details and runtime behavior are defined in:
+
+- [Performance Implementation Guide](performance-implementation.md)
 
 ### Create sample-focused snapshot
 
