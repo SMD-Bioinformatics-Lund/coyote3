@@ -136,6 +136,33 @@ Performance implementation details and runtime behavior are defined in:
 
 - [Performance Implementation Guide](performance-implementation.md)
 
+### Historically Slow Routes and Current Fixes
+
+These routes were the primary latency hotspots and are now covered by explicit query/index contracts:
+
+1. `GET /api/v1/samples/{sample_id}/small-variants/{var_id}`
+- Root cause: cross-sample lookup used `SAMPLE_ID != current` with identity predicates, which could trigger broad scans.
+- Current rule: query by exact identity (`simple_id_hash`, `simple_id`) and exclude current sample after bounded fetch.
+- Required indexes: `ix_simple_id_hash_simple_id_lookup`, `simple_id_hash_1_simple_id_1_sample_id_1`.
+
+2. `GET /api/v1/common/reported_variants/variant/{variant_id}/{tier}`
+- Root cause: N+1 enrichment reads (sample + annotation fetch per row).
+- Current rule: batch sample and annotation fetches with `$in` and map in-memory.
+- Required indexes: `ix_gene_simple_id_hash_simple_id`, `ix_time_created_desc`, plus annotation compound indexes.
+
+3. Annotation timeline and classification lookups (`annotation` collection)
+- Root cause: filter + sort on `time_created` without aligned compound indexes.
+- Current rule: always support sorted lookup with compound indexes for gene/nomenclature/variant.
+- Required indexes: `gene_nomenclature_variant_time_created`, `nomenclature_variant_time_created`, `variant_time_created_1`.
+
+4. Structural variant sample filtering (CNV/Translocation/Fusion)
+- Root cause: sample filter combined with classification flags (`interesting`, `fp`, `irrelevant`) without compound indexes.
+- Current rule: keep sample+flag compound indexes in place for these collections.
+- Required indexes:
+  - `sample_id_1_interesting_1`
+  - `sample_id_1_fp_1`
+  - `sample_id_1_irrelevant_1`
+
 ### Create sample-focused snapshot
 
 Mixed-assay automatic selection (default 60):
