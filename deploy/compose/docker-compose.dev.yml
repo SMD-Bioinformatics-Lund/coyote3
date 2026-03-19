@@ -17,7 +17,7 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
     ports:
-      - "${COYOTE3_DEV_WEB_PORT:-6817}:8000"
+      - "${COYOTE3_DEV_WEB_PORT:-6801}:8000"
     env_file:
       - ../../.coyote3_dev_env
     environment:
@@ -76,7 +76,7 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
     ports:
-      - "${COYOTE3_DEV_API_PORT:-6816}:8001"
+      - "${COYOTE3_DEV_API_PORT:-6802}:8001"
     env_file:
       - ../../.coyote3_dev_env
     environment:
@@ -93,6 +93,7 @@ services:
       - 8.8.8.8
     extra_hosts:
       - "mtlucmds1.lund.skane.se:172.17.0.1"
+      - "host.docker.internal:host-gateway"
     networks:
       - coyote3-dev-net
     volumes:
@@ -156,7 +157,7 @@ services:
     container_name: redis_coyote3_dev_${COYOTE3_VERSION:-local}
     image: ramsainanduri/redis:7.4.3
     ports:
-      - "${COYOTE3_DEV_REDIS_PORT:-5819}:6379"
+      - "${COYOTE3_DEV_REDIS_PORT:-6803}:6379"
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
     dns:
@@ -173,7 +174,7 @@ services:
     image: mongo:7.0
     command: ["--bind_ip_all"]
     ports:
-      - "${COYOTE3_DEV_MONGO_PORT:-37017}:27017"
+      - "${COYOTE3_DEV_MONGO_PORT:-6804}:27017"
     env_file:
       - ../../.coyote3_dev_env
     restart: unless-stopped

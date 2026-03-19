@@ -15,7 +15,7 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
     ports:
-      - "${COYOTE3_STAGE_WEB_PORT:-8005}:8000"
+      - "${COYOTE3_STAGE_WEB_PORT:-8805}:8000"
     env_file:
       - ../../.coyote3_stage_env
     environment:
@@ -57,7 +57,7 @@ services:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
     ports:
-      - "${COYOTE3_STAGE_API_PORT:-8006}:8001"
+      - "${COYOTE3_STAGE_API_PORT:-8806}:8001"
     env_file:
       - ../../.coyote3_stage_env
     environment:
@@ -72,6 +72,8 @@ services:
     dns:
       - ${APP_DNS:-1.1.1.1}
       - 8.8.8.8
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - coyote3-stage-net
     volumes:
@@ -96,7 +98,7 @@ services:
     container_name: redis_coyote3_stage_${COYOTE3_VERSION:-local}
     image: ramsainanduri/redis:7.4.3
     ports:
-      - "${COYOTE3_STAGE_REDIS_PORT:-8007}:6379"
+      - "${COYOTE3_STAGE_REDIS_PORT:-8807}:6379"
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
     dns:
@@ -112,7 +114,7 @@ services:
     image: mongo:7.0
     command: ["--bind_ip_all"]
     ports:
-      - "${COYOTE3_STAGE_MONGO_PORT:-8008}:27017"
+      - "${COYOTE3_STAGE_MONGO_PORT:-8808}:27017"
     env_file:
       - ../../.coyote3_stage_env
     restart: unless-stopped
