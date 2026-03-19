@@ -258,8 +258,13 @@ Coverage is required as a quality signal and prioritization tool.
 
 ```bash
 PYTHONPATH=. .venv/bin/pytest -q tests
-PYTHONPATH=. .venv/bin/pytest -q tests --cov=api --cov=coyote --cov-report=term-missing --cov-report=xml
+./scripts/run_tests_with_coverage.sh
 ```
+
+Coverage execution is standardized through `.coveragerc` and the project script.
+This command is the release gate for coverage evidence and produces:
+- terminal missing-lines coverage output
+- HTML report at `.coverage_html/index.html`
 
 ## 9.2 Coverage policy guidance
 - use coverage to prioritize high-risk untested code

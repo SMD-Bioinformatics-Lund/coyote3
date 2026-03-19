@@ -64,6 +64,12 @@ Run all tests:
 python -m pytest -q
 ```
 
+Run all tests with coverage:
+
+```bash
+./scripts/run_tests_with_coverage.sh
+```
+
 Run by suite:
 
 ```bash
@@ -77,6 +83,15 @@ Run router-focused backend tests:
 
 ```bash
 python -m pytest -q tests/api/routers
+```
+
+Run suite-specific coverage snapshots:
+
+```bash
+python -m pytest tests/unit --cov=api --cov=coyote --cov-config=.coveragerc --cov-report=term-missing
+python -m pytest tests/api --cov=api --cov=coyote --cov-config=.coveragerc --cov-report=term-missing
+python -m pytest tests/ui --cov=api --cov=coyote --cov-config=.coveragerc --cov-report=term-missing
+python -m pytest tests/integration --cov=api --cov=coyote --cov-config=.coveragerc --cov-report=term-missing
 ```
 
 Run the local pre-commit pipeline:
@@ -146,6 +161,16 @@ When adding a new UI integration, add:
 2. API helper usage coverage where practical
 3. failure-state coverage for API errors if the page handles them
 
+## Standardized Test Execution
+
+Use this order for deterministic verification:
+
+1. targeted module tests (`tests/unit/...` or `tests/api/...`)
+2. full suite (`python -m pytest -q tests`)
+3. full suite with coverage (`./scripts/run_tests_with_coverage.sh`)
+
+Coverage is generated from `.coveragerc` and includes both `api` and `coyote` packages.
+
 ## Guardrail Tests That Should Stay
 
 These tests protect the architecture and should not be removed casually:
@@ -170,3 +195,4 @@ At the time this guide was last updated:
 - the full suite passes
 - the canonical backend entrypoint is `api.main:app`
 - router tests live under `tests/api/routers/`
+- coverage execution is standardized via `.coveragerc` and `scripts/run_tests_with_coverage.sh`

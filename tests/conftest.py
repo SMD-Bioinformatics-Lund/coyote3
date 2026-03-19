@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -11,6 +12,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 repo_root_str = str(REPO_ROOT)
 if repo_root_str not in sys.path:
     sys.path.insert(0, repo_root_str)
+
+# Keep test config deterministic regardless of caller shell environment.
+os.environ.setdefault("MONGO_URI", "mongodb://localhost:27017")
+os.environ.setdefault("COYOTE3_DB", "coyote3_test")
 
 
 def pytest_collection_modifyitems(config, items):  # noqa: ARG001

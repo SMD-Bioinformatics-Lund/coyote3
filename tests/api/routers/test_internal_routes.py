@@ -19,8 +19,15 @@ def test_get_role_levels_internal_returns_id_to_level_map(monkeypatch):
     calls = {"token": 0}
 
     monkeypatch.setattr(internal, "_require_internal_token", lambda _request: calls.__setitem__("token", 1))
-    monkeypatch.setattr(internal.util.common, "convert_to_serializable", lambda payload: payload)
-    repository = SimpleNamespace(get_all_roles=lambda: [{"_id": "admin", "level": 99}, {"_id": "viewer"}])
+    monkeypatch.setattr(
+        internal.util,
+        "common",
+        SimpleNamespace(convert_to_serializable=lambda payload: payload),
+        raising=False,
+    )
+    repository = SimpleNamespace(
+        get_all_roles=lambda: [{"role_id": "admin", "level": 99}, {"role_id": "viewer"}]
+    )
 
     payload = internal.get_role_levels_internal(request=object(), repository=repository)
 
@@ -41,7 +48,12 @@ def test_get_isgl_meta_internal_reads_adhoc_and_display_name(monkeypatch):
     calls = {"token": 0}
 
     monkeypatch.setattr(internal, "_require_internal_token", lambda _request: calls.__setitem__("token", 1))
-    monkeypatch.setattr(internal.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(
+        internal.util,
+        "common",
+        SimpleNamespace(convert_to_serializable=lambda payload: payload),
+        raising=False,
+    )
     repository = SimpleNamespace(
         is_isgl_adhoc=lambda _isgl_id: True,
         get_isgl_display_name=lambda _isgl_id: "Focus Panel",

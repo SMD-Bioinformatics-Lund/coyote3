@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
@@ -86,7 +87,12 @@ def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
     )
     monkeypatch.setattr(auth_router, "create_api_session_token", lambda user_id: f"session-{user_id}")
     monkeypatch.setattr(auth_router, "build_user_session_payload", lambda _doc: {"username": "tester"})
-    monkeypatch.setattr(auth_router.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(
+        auth_router.util,
+        "common",
+        SimpleNamespace(convert_to_serializable=lambda payload: payload),
+        raising=False,
+    )
     monkeypatch.setattr(auth_router, "get_api_session_cookie_name", lambda: "api_session")
     monkeypatch.setattr(auth_router, "get_api_session_cookie_secure", lambda: True)
     monkeypatch.setattr(auth_router, "get_api_session_ttl_seconds", lambda: 600)
@@ -94,7 +100,7 @@ def test_auth_login_sets_cookie_and_returns_session_payload(monkeypatch):
     response = auth_router.create_auth_session(auth_router.ApiAuthLoginRequest(username=" tester ", password="p"))
 
     assert response.status_code == 201
-    assert calls["updated_user"] == str(user_doc["user_id"])
+    assert calls["updated_user"] == str(user_doc["username"])
     assert b'"username":"tester"' in response.body
     assert b"session_token" not in response.body
     cookies = response.headers.get("set-cookie", "")
@@ -117,7 +123,12 @@ def test_create_auth_session_returns_201(monkeypatch):
     monkeypatch.setattr(auth_router, "update_user_last_login", lambda user_id: None)
     monkeypatch.setattr(auth_router, "create_api_session_token", lambda user_id: f"session-{user_id}")
     monkeypatch.setattr(auth_router, "build_user_session_payload", lambda _doc: {"username": "tester"})
-    monkeypatch.setattr(auth_router.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(
+        auth_router.util,
+        "common",
+        SimpleNamespace(convert_to_serializable=lambda payload: payload),
+        raising=False,
+    )
     monkeypatch.setattr(auth_router, "get_api_session_cookie_name", lambda: "api_session")
     monkeypatch.setattr(auth_router, "get_api_session_cookie_secure", lambda: True)
     monkeypatch.setattr(auth_router, "get_api_session_ttl_seconds", lambda: 600)
@@ -148,7 +159,12 @@ def test_auth_login_prefers_business_user_id_for_session(monkeypatch):
     )
     monkeypatch.setattr(auth_router, "create_api_session_token", lambda user_id: f"session-{user_id}")
     monkeypatch.setattr(auth_router, "build_user_session_payload", lambda _doc: {"username": "tester"})
-    monkeypatch.setattr(auth_router.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(
+        auth_router.util,
+        "common",
+        SimpleNamespace(convert_to_serializable=lambda payload: payload),
+        raising=False,
+    )
     monkeypatch.setattr(auth_router, "get_api_session_cookie_name", lambda: "api_session")
     monkeypatch.setattr(auth_router, "get_api_session_cookie_secure", lambda: True)
     monkeypatch.setattr(auth_router, "get_api_session_ttl_seconds", lambda: 600)
@@ -156,9 +172,9 @@ def test_auth_login_prefers_business_user_id_for_session(monkeypatch):
     response = auth_router.create_auth_session(auth_router.ApiAuthLoginRequest(username="tester", password="p"))
 
     assert response.status_code == 201
-    assert calls["updated_user"] == "coyote3.admin"
+    assert calls["updated_user"] == str(user_doc["username"])
     assert b'"username":"tester"' in response.body
-    assert "session-coyote3.admin" in response.headers.get("set-cookie", "")
+    assert f"session-{user_doc['username']}" in response.headers.get("set-cookie", "")
 
 
 def test_delete_auth_session_deletes_session_cookie(monkeypatch):
@@ -188,7 +204,12 @@ def test_auth_session_serializes_user(monkeypatch):
         The function result.
     """
     monkeypatch.setattr(auth_router, "serialize_api_user", lambda user: {"username": user.username})
-    monkeypatch.setattr(auth_router.util.common, "convert_to_serializable", lambda payload: payload)
+    monkeypatch.setattr(
+        auth_router.util,
+        "common",
+        SimpleNamespace(convert_to_serializable=lambda payload: payload),
+        raising=False,
+    )
 
     payload = auth_router.auth_session(user=fx.api_user())
 

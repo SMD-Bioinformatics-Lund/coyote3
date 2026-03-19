@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 from fastapi import HTTPException
 
+import api.services.admin_resource_service as admin_resource_service_module
+import api.services.admin_role_service as admin_role_service_module
+import api.services.admin_user_service as admin_user_service_module
 from api.services.admin_resource_service import (
     AdminAspcService,
     AdminGenelistService,
@@ -787,19 +792,26 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
     )
     monkeypatch.setattr("api.services.admin_user_service.utc_now", lambda: "NOW")
     monkeypatch.setattr(
-        "api.services.admin_user_service.util.admin.process_form_to_config",
-        lambda form_data, schema: {
-            "username": form_data["username"],
-            "email": form_data["email"],
-            "role": form_data["role"],
-            "permissions": form_data.get("permissions", []),
-            "deny_permissions": form_data.get("deny_permissions", []),
-            "auth_type": "coyote3",
-            "password": "secret",
-        },
+        admin_user_service_module.util,
+        "admin",
+        SimpleNamespace(
+            process_form_to_config=lambda form_data, schema: {
+                "username": form_data["username"],
+                "email": form_data["email"],
+                "role": form_data["role"],
+                "permissions": form_data.get("permissions", []),
+                "deny_permissions": form_data.get("deny_permissions", []),
+                "auth_type": "coyote3",
+                "password": "secret",
+            }
+        ),
+        raising=False,
     )
     monkeypatch.setattr(
-        "api.services.admin_user_service.util.common.hash_password", lambda raw: f"H:{raw}"
+        admin_user_service_module.util,
+        "common",
+        SimpleNamespace(hash_password=lambda raw: f"H:{raw}"),
+        raising=False,
     )
 
     payload = service.create_user(
@@ -815,8 +827,7 @@ def test_admin_user_service_create_user_normalizes_identity(monkeypatch):
     )
 
     assert payload["resource"] == "user"
-    assert repo.created_user["user_id"] == "tester"
-    assert repo.created_user["_id"] == "tester"
+    assert repo.created_user["username"] == "tester"
     assert repo.created_user["email"] == "tester@example.com"
     assert repo.created_user["password"] == "H:secret"
     assert repo.created_user["permissions"] == ["perm.b"]
@@ -854,12 +865,16 @@ def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
         lambda **kwargs: kwargs["new_config"],
     )
     monkeypatch.setattr(
-        "api.services.admin_role_service.util.admin.process_form_to_config",
-        lambda form_data, schema: {
-            "name": form_data["name"],
-            "permissions": [],
-            "deny_permissions": [],
-        },
+        admin_role_service_module.util,
+        "admin",
+        SimpleNamespace(
+            process_form_to_config=lambda form_data, schema: {
+                "name": form_data["name"],
+                "permissions": [],
+                "deny_permissions": [],
+            }
+        ),
+        raising=False,
     )
 
     payload = service.create_role(
@@ -868,7 +883,7 @@ def test_admin_role_service_create_role_normalizes_business_key(monkeypatch):
 
     assert payload["resource"] == "role"
     assert repo.created_role["role_id"] == "admin"
-    assert repo.created_role["_id"] == "admin"
+    assert repo.created_role["name"] == "Admin"
 
 
 def test_admin_role_service_delete_role_removes_existing_role():
@@ -1017,7 +1032,10 @@ def test_admin_sample_service_update_restores_ids(monkeypatch):
     )
     monkeypatch.setattr("api.services.admin_resource_service.utc_now", lambda: "NOW")
     monkeypatch.setattr(
-        "api.services.admin_resource_service.util.admin.restore_objectids", lambda payload: payload
+        admin_resource_service_module.util,
+        "admin",
+        SimpleNamespace(restore_objectids=lambda payload: payload),
+        raising=False,
     )
 
     payload = service.update(

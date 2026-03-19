@@ -457,12 +457,16 @@ def test_admin_create_templates_use_correct_schema_switch_routes():
     ).read_text(encoding="utf-8")
 
 
-def test_ui_literal_url_for_endpoints_exist():
+def test_ui_literal_url_for_endpoints_exist(monkeypatch):
     """Handle test ui literal url for endpoints exist.
+
+    Args:
+        monkeypatch: Value for ``monkeypatch``.
 
     Returns:
         The function result.
     """
+    monkeypatch.setattr(coyote, "verify_external_api_dependency", lambda _app: None)
     app = init_app(testing=True)
     with app.app_context():
         existing_endpoints = set(app.view_functions.keys())
