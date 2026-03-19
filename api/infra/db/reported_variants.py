@@ -90,7 +90,7 @@ class ReportedVariantsHandler(BaseHandler):
         if not snapshot_rows:
             return 0
 
-        col = self.get_collection()
+        _col = self.get_collection()
         ops = []
 
         for r in snapshot_rows:

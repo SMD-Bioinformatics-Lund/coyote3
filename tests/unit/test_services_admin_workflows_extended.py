@@ -129,7 +129,13 @@ class _Repo:
             "_id": "schema1",
             "schema_id": "schema1",
             "version": 2,
-            "fields": {"permissions": {}, "deny_permissions": {}, "role": {}, "assay_groups": {}, "assays": {}},
+            "fields": {
+                "permissions": {},
+                "deny_permissions": {},
+                "role": {},
+                "assay_groups": {},
+                "assays": {},
+            },
         }
 
     def update_user(self, user_id, doc):
@@ -192,7 +198,9 @@ def test_admin_user_update_preserves_password_when_blank(monkeypatch):
     service = AdminUserService(repository=repo)
     monkeypatch.setattr(user_module, "current_actor", lambda u: u)
     monkeypatch.setattr(user_module, "utc_now", lambda: "NOW")
-    monkeypatch.setattr(user_module, "inject_version_history", lambda **kwargs: kwargs["new_config"])
+    monkeypatch.setattr(
+        user_module, "inject_version_history", lambda **kwargs: kwargs["new_config"]
+    )
     monkeypatch.setattr(
         user_module.util,
         "admin",
@@ -241,15 +249,21 @@ def test_admin_role_update_success(monkeypatch):
     service = AdminRoleService(repository=repo)
     monkeypatch.setattr(role_module, "current_actor", lambda u: u)
     monkeypatch.setattr(role_module, "utc_now", lambda: "NOW")
-    monkeypatch.setattr(role_module, "inject_version_history", lambda **kwargs: kwargs["new_config"])
+    monkeypatch.setattr(
+        role_module, "inject_version_history", lambda **kwargs: kwargs["new_config"]
+    )
     monkeypatch.setattr(
         role_module.util,
         "admin",
-        SimpleNamespace(process_form_to_config=lambda _form, _schema: {"name": "Admin", "permissions": []}),
+        SimpleNamespace(
+            process_form_to_config=lambda _form, _schema: {"name": "Admin", "permissions": []}
+        ),
         raising=False,
     )
 
-    payload = service.update_role(role_id="admin", payload={"form_data": {}}, actor_username="actor")
+    payload = service.update_role(
+        role_id="admin", payload={"form_data": {}}, actor_username="actor"
+    )
 
     assert payload["action"] == "update"
     assert repo.updated_role[1]["role_id"] == "admin"
@@ -269,12 +283,16 @@ def test_permission_create_and_update_success(monkeypatch):
     service = PermissionManagementService(repository=repo)
     monkeypatch.setattr(perm_module, "current_actor", lambda u: u)
     monkeypatch.setattr(perm_module, "utc_now", lambda: "NOW")
-    monkeypatch.setattr(perm_module, "inject_version_history", lambda **kwargs: kwargs["new_config"])
+    monkeypatch.setattr(
+        perm_module, "inject_version_history", lambda **kwargs: kwargs["new_config"]
+    )
     monkeypatch.setattr(
         perm_module.util,
         "admin",
         SimpleNamespace(
-            process_form_to_config=lambda form_data, _schema: {"permission_name": form_data["permission_name"]}
+            process_form_to_config=lambda form_data, _schema: {
+                "permission_name": form_data["permission_name"]
+            }
         ),
         raising=False,
     )

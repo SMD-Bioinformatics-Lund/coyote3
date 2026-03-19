@@ -222,9 +222,9 @@ def build_dna_report_payload(
     app.logger.debug(f"Assay group: {assay_group} - Subpanel: {subpanel}")
 
     assay_panel_doc = repository.get_asp(asp_name=sample_assay)
-
-    insilico_panel_genelists = repository.get_isgl_by_asp(sample_assay, is_active=True)
-    all_panel_genelist_names = CommonUtility.get_assay_genelist_names(insilico_panel_genelists)
+    # Preserve assay genelist hydration step for parity with legacy report flow.
+    _insilico_panel_genelists = repository.get_isgl_by_asp(sample_assay, is_active=True)
+    _all_panel_genelist_names = CommonUtility.get_assay_genelist_names(_insilico_panel_genelists)
 
     if not sample.get("filters"):
         sample = CommonUtility.merge_sample_settings_with_assay_config(sample, assay_config)

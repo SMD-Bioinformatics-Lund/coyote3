@@ -6,8 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from api.core.workflows import dna_workflow
-from api.core.workflows import rna_workflow
+from api.core.workflows import dna_workflow, rna_workflow
 
 
 @pytest.fixture(autouse=True)
@@ -44,11 +43,13 @@ def test_dna_workflow_forwards_build_and_persist_calls(monkeypatch):
             "prepare", (report_path, report_file, logger)
         ),
     )
+
     def _persist_payload(**kwargs):
         calls["persist"] = kwargs
         return "rid-1"
 
     monkeypatch.setattr(dna_workflow, "persist_shared_report_and_snapshot", _persist_payload)
+
     def _build_location(**kwargs):
         calls["location"] = kwargs
         return ("id", "/tmp", "/tmp/report.html")
@@ -64,7 +65,10 @@ def test_dna_workflow_forwards_build_and_persist_calls(monkeypatch):
 
     assert dna_workflow.DNAWorkflowService.has_repository() is True
     assert dna_workflow.DNAWorkflowService.build_report_payload({}, {}, 1, True)[0] == "tpl.html"
-    assert dna_workflow.DNAWorkflowService.build_report_location({}, {"asp_group": "dna"}, "/base")[0] == "id"
+    assert (
+        dna_workflow.DNAWorkflowService.build_report_location({}, {"asp_group": "dna"}, "/base")[0]
+        == "id"
+    )
     dna_workflow.DNAWorkflowService.prepare_report_output("/tmp", "/tmp/report.html", logger="L")
     assert (
         dna_workflow.DNAWorkflowService.persist_report(
@@ -79,7 +83,9 @@ def test_dna_workflow_forwards_build_and_persist_calls(monkeypatch):
         )
         == "rid-1"
     )
-    dna_workflow.DNAWorkflowService.validate_report_inputs("LOG", {"name": "S1"}, {"asp_group": "dna"})
+    dna_workflow.DNAWorkflowService.validate_report_inputs(
+        "LOG", {"name": "S1"}, {"asp_group": "dna"}
+    )
 
     assert calls["build"]["repository"] is repo
     assert calls["validate"][3] == "dna"
@@ -91,7 +97,9 @@ def test_rna_workflow_merge_and_persist_filters(monkeypatch):
     """RNA workflow normalizes and persists form filters."""
     repo = SimpleNamespace(
         update_sample_filters=lambda _id, filters: None,
-        get_sample_by_id=lambda _id: {"filters": {"min_spanning_reads": 2, "min_spanning_pairs": 3}},
+        get_sample_by_id=lambda _id: {
+            "filters": {"min_spanning_reads": 2, "min_spanning_pairs": 3}
+        },
     )
     rna_workflow.RNAWorkflowService.set_repository(repo)
     calls = {}
@@ -100,8 +108,14 @@ def test_rna_workflow_merge_and_persist_filters(monkeypatch):
         rna_workflow.util,
         "common",
         SimpleNamespace(
-            merge_sample_settings_with_assay_config=lambda sample, assay: {"name": "S1", "filters": {}},
-            format_filters_from_form=lambda form, schema: {"fusion_effects": [], "fusion_callers": []},
+            merge_sample_settings_with_assay_config=lambda sample, assay: {
+                "name": "S1",
+                "filters": {},
+            },
+            format_filters_from_form=lambda form, schema: {
+                "fusion_effects": [],
+                "fusion_callers": [],
+            },
         ),
         raising=False,
     )
@@ -151,6 +165,7 @@ def test_rna_workflow_build_context_and_query(monkeypatch):
         SimpleNamespace(get_sample_effective_genes=lambda *_args: ({"TP53": True}, ["TP53"])),
         raising=False,
     )
+
     def _build_query(assay_group, settings):
         calls["query"] = (assay_group, settings)
         return {"ok": True}

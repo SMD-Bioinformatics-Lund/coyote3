@@ -71,7 +71,6 @@ def list_dna_findings(sample_id: str) -> Response | str:
     sample_filters = deepcopy(variants_payload.filters)
     sample_ids = variants_payload.sample_ids
     assay_group = variants_payload.assay_group or assay_config.get("asp_group", "unknown")
-    subpanel = variants_payload.subpanel
     analysis_sections = variants_payload.analysis_sections
     display_sections_data = deepcopy(variants_payload.display_sections_data)
     ai_text = variants_payload.ai_text
@@ -148,7 +147,6 @@ def list_dna_findings(sample_id: str) -> Response | str:
             sample_filters = deepcopy(variants_payload.filters)
             sample_ids = variants_payload.sample_ids
             assay_group = variants_payload.assay_group or assay_config.get("asp_group", "unknown")
-            subpanel = variants_payload.subpanel
             analysis_sections = variants_payload.analysis_sections
             display_sections_data = deepcopy(variants_payload.display_sections_data)
             ai_text = variants_payload.ai_text

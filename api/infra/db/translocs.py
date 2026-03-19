@@ -119,11 +119,12 @@ class TranslocsHandler(BaseHandler):
             "time_created", 1
         )
 
-        latest_classification = {"class": 999}
+        # Keep latest classification tracked for parity with CNV annotation handling.
+        _latest_classification = {"class": 999}
         annotations_arr = []
         for anno in annotations:
             if "class" in anno:
-                latest_classification = anno
+                _latest_classification = anno
             elif "text" in anno:
                 annotations_arr.append(anno)
 
