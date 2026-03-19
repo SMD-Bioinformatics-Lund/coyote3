@@ -168,17 +168,7 @@ coyote3_dir_structure.txt
 MIGRATION_PLAN_DNA_RNA_SHARED_SERVICE.md
 
 # Private refactor tracker and scratch files
-.internal/REFACTOR_TASKS.md
 .internal/
-.internal/*.scratch
-.internal/*.scratch.md
-.internal/*.scratch.txt
-.internal/*.tmp
-.internal/*.local
-.internal/*.local.md
-.internal/*.log
-.internal/*.task.md
-.internal/*.plan.md
 
 # Coverage HTML artifact folder used by local scripts
 .coverage_html/
