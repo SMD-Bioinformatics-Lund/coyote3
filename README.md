@@ -234,6 +234,55 @@ scripts/snapshot_restore_dev.sh \
   --target-db coyote3
 ```
 
+## External Center Ingestion
+
+Use API-native ingestion for fresh sample + analysis bundle inserts:
+
+- `POST /api/v1/internal/ingest/sample-bundle`
+
+Optional lower-level route (when loading dependents separately):
+
+- `POST /api/v1/internal/ingest/dependents`
+
+Required environment for internal API ingestion:
+
+- `API_BASE_URL`
+- `INTERNAL_API_TOKEN`
+
+When `update_existing=true`, caller must also be an authenticated user with `edit_sample` permission.
+
+See onboarding guide: `docs/deployment/external-center-onboarding.md`.
+
+## API Login Helpers
+
+Programmatic login in Python:
+
+```python
+from api.client import login_with_password, login_with_token
+
+session = login_with_password(
+    base_url="http://127.0.0.1:8001",
+    username="user@example.org",
+    password="secret",
+)
+
+validated = login_with_token(
+    base_url="http://127.0.0.1:8001",
+    token=session.session_token or "",
+)
+```
+
+CLI login helper:
+
+```bash
+/home/ram/.virtualenvs/coyote3/bin/python scripts/api_login.py \
+  --base-url http://127.0.0.1:8001 \
+  --mode password \
+  --username user@example.org \
+  --password 'secret' \
+  --print-token
+```
+
 ## In-App Handbook Routes
 
 Handbook blueprint routes:

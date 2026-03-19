@@ -141,6 +141,11 @@ This catalog is an implementation-oriented inventory of API route families for m
 - Module: `api/routers/internal.py`
 - Scope: internal-only endpoints for trusted system interactions.
 - Access: internal token/header validation and restricted network posture.
+- Canonical internal support routes:
+  - `GET /api/v1/internal/roles/levels`
+  - `GET /api/v1/internal/isgl/{isgl_id}/meta`
+  - `POST /api/v1/internal/ingest/sample-bundle` (atomic fresh insert; `update_existing=true` requires authenticated user with `edit_sample` permission)
+  - `POST /api/v1/internal/ingest/dependents` (dependent collection ingest helper)
 
 ## 13. Route Ownership Rules
 1. Each endpoint must be declared in exactly one route module aligned with domain ownership.

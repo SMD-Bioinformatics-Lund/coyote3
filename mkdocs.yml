@@ -44,6 +44,7 @@ nav:
       - Release Process: deployment/release-process.md
       - Troubleshooting: deployment/troubleshooting.md
       - Mongo Docker Dev Runtime: deployment/mongo-docker-dev-runtime.md
+      - External Center Onboarding: deployment/external-center-onboarding.md
       - Patient Data Backup and Recovery: deployment/patient-data-backup-and-recovery.md
   - Testing:
       - Testing Guide: testing/TESTING_GUIDE.md

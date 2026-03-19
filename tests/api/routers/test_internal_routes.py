@@ -72,3 +72,141 @@ def test_get_isgl_meta_internal_reads_adhoc_and_display_name(monkeypatch):
         "is_adhoc": True,
         "display_name": "Focus Panel",
     }
+
+
+def test_ingest_sample_bundle_internal_accepts_spec(monkeypatch):
+    """Test sample-bundle ingest route forwards structured spec payload."""
+    calls: dict[str, object] = {}
+
+    monkeypatch.setattr(internal, "_require_internal_token", lambda _request: None)
+    monkeypatch.setattr(
+        internal.util,
+        "common",
+        SimpleNamespace(convert_to_serializable=lambda payload: payload),
+        raising=False,
+    )
+
+    def _ingest(payload, *, allow_update=False):
+        calls["payload"] = payload
+        calls["allow_update"] = allow_update
+        return {
+            "status": "ok",
+            "sample_id": "abc",
+            "sample_name": "S1",
+            "written": {"snvs": 1},
+            "data_counts": {"snvs": 1},
+        }
+
+    monkeypatch.setattr(internal.InternalIngestService, "ingest_sample_bundle", _ingest)
+
+    payload = internal.InternalIngestSampleBundleRequest(
+        spec={"name": "S1", "genome_build": 38, "vcf_files": "/tmp/a.vcf"}
+    )
+    response = internal.ingest_sample_bundle_internal(payload=payload, request=object())
+
+    assert calls["payload"] == {
+        "name": "S1",
+        "genome_build": 38,
+        "vcf_files": "/tmp/a.vcf",
+        "increment": False,
+    }
+    assert response["status"] == "ok"
+
+
+def test_ingest_sample_bundle_internal_accepts_yaml(monkeypatch):
+    """Test sample-bundle ingest route accepts YAML request body."""
+    monkeypatch.setattr(internal, "_require_internal_token", lambda _request: None)
+    monkeypatch.setattr(
+        internal.util,
+        "common",
+        SimpleNamespace(convert_to_serializable=lambda payload: payload),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        internal.InternalIngestService,
+        "parse_yaml_payload",
+        lambda text: {"name": "S2", "vcf_files": "/tmp/s2.vcf", "from_yaml": text},
+    )
+    monkeypatch.setattr(
+        internal.InternalIngestService,
+        "ingest_sample_bundle",
+        lambda payload, *, allow_update=False: {
+            "status": "ok",
+            "sample_id": "def",
+            "sample_name": payload["name"],
+            "written": {},
+            "data_counts": {},
+        },
+    )
+
+    payload = internal.InternalIngestSampleBundleRequest(yaml_content="name: S2")
+    response = internal.ingest_sample_bundle_internal(payload=payload, request=object())
+
+    assert response["sample_name"] == "S2"
+
+
+def test_ingest_sample_bundle_internal_rejects_invalid_shape(monkeypatch):
+    """Test sample-bundle ingest route rejects missing/duplicate body forms."""
+    monkeypatch.setattr(internal, "_require_internal_token", lambda _request: None)
+
+    empty_payload = internal.InternalIngestSampleBundleRequest()
+    try:
+        internal.ingest_sample_bundle_internal(payload=empty_payload, request=object())
+        assert False, "Expected ValueError for empty payload"
+    except ValueError as exc:
+        assert "spec" in str(exc)
+
+    dual_payload = internal.InternalIngestSampleBundleRequest(
+        spec={"name": "X"},
+        yaml_content="name: X",
+    )
+    try:
+        internal.ingest_sample_bundle_internal(payload=dual_payload, request=object())
+        assert False, "Expected ValueError for duplicate payload forms"
+    except ValueError as exc:
+        assert "only one" in str(exc)
+
+
+def test_ingest_sample_bundle_internal_requires_edit_sample_permission_for_update(monkeypatch):
+    """Test update mode requires authenticated user with edit_sample permission."""
+    calls = {"authenticated": 0, "enforced": 0, "allow_update": None}
+    monkeypatch.setattr(internal, "_require_internal_token", lambda _request: None)
+    monkeypatch.setattr(
+        internal,
+        "require_authenticated",
+        lambda _request: calls.__setitem__("authenticated", 1) or object(),
+    )
+    monkeypatch.setattr(
+        internal,
+        "_enforce_access",
+        lambda _user, permission=None, min_level=None, min_role=None: calls.__setitem__(
+            "enforced", 1
+        ),
+    )
+    monkeypatch.setattr(
+        internal.util,
+        "common",
+        SimpleNamespace(convert_to_serializable=lambda payload: payload),
+        raising=False,
+    )
+
+    def _ingest(payload, *, allow_update=False):
+        calls["allow_update"] = allow_update
+        return {
+            "status": "ok",
+            "sample_id": "upd-1",
+            "sample_name": payload["name"],
+            "written": {},
+            "data_counts": {},
+        }
+
+    monkeypatch.setattr(internal.InternalIngestService, "ingest_sample_bundle", _ingest)
+    payload = internal.InternalIngestSampleBundleRequest(
+        spec={"name": "S3", "vcf_files": "/tmp/s3.vcf"},
+        update_existing=True,
+    )
+    response = internal.ingest_sample_bundle_internal(payload=payload, request=object())
+    assert calls["authenticated"] == 1
+    assert calls["enforced"] == 1
+    assert calls["allow_update"] is True
+    assert response["sample_id"] == "upd-1"
