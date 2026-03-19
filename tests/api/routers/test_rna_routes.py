@@ -61,7 +61,7 @@ def test_list_rna_fusions_success(monkeypatch):
     monkeypatch.setattr(
         rna_service_module.RNAWorkflowService,
         "merge_and_normalize_sample_filters",
-        lambda s, a, sid, l: (merged_sample, merged_sample["filters"]),
+        lambda s, a, sid, lists: (merged_sample, merged_sample["filters"]),
     )
     monkeypatch.setattr(
         rna_repo_module.store.schema_handler, "get_schema", lambda name: {"_id": name}

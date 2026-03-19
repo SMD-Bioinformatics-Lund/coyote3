@@ -27,8 +27,6 @@ root_str = str(ROOT)
 if root_str not in sys.path:
     sys.path.insert(0, root_str)
 
-import config
-
 OUT_DIR = ROOT / "tests" / "fixtures" / "api" / "db_snapshots"
 
 SORT_CANDIDATES = [
@@ -308,6 +306,8 @@ def main() -> None:
     Returns:
         None.
     """
+    import config
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     prod = config.ProductionConfig()

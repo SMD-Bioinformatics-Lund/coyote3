@@ -74,14 +74,7 @@ def create_lifespan(*, testing: bool, development: bool):
 
     @asynccontextmanager
     async def _lifespan(_app):
-        """Handle  lifespan.
-
-        Args:
-                _app:  app.
-
-        Returns:
-                The  lifespan result.
-        """
+        """Initialize process-wide runtime dependencies on application startup."""
         ensure_runtime_initialized(testing=testing, development=development)
         yield
 

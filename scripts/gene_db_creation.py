@@ -11,8 +11,13 @@
 #
 
 import csv
+import json
+import os
 from copy import deepcopy
 from datetime import datetime
+
+from pymongo import MongoClient
+from pymongo.errors import ConnectionFailure
 
 
 def load_file(path, delimiter="\t", skip_header_lines=0):
@@ -337,14 +342,6 @@ for md in main_data_formatted:
 
 print("Merged dictionaries created")
 print(merged_dict["HGNC:5"])
-
-# write this merged dictionary to a json file for mongoDB import
-import json
-import os
-from datetime import datetime
-
-from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure
 
 # MongoDB connection details
 MONGO_URI = "mongodb://172.17.0.1:27017/"  # Replace with your MongoDB URI

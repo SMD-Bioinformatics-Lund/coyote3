@@ -30,6 +30,24 @@ from coyote.filters.shared import (
     uniq_callers as shared_uniq_callers,
 )
 
+_HOTSPOT_NOTE_BADGES: tuple[tuple[str, str, str], ...] = (
+    ("MM", "Malignt Melanom", "bg-melanoma"),
+    ("CNS", "Centrala Nervsystemet", "bg-cns"),
+    ("LU", "Lunga", "bg-lung"),
+    ("CO", "Kolorektal", "bg-colon"),
+    ("GI", "Gastro-Intestinal", "bg-gi"),
+    ("D", "Generell Solid", "bg-dna"),
+)
+
+_HOTSPOT_BADGES: tuple[tuple[str, str, str, str], ...] = (
+    ("mm", "mm", "Present in Melanoma hotspot list", "bg-melanoma"),
+    ("cns", "cns", "Present in CNS hotspot list", "bg-cns"),
+    ("lu", "lu", "Present in Lung hotspot list", "bg-lung"),
+    ("co", "co", "Present in Colon hotspot list", "bg-colon"),
+    ("gi", "gi", "Present in Gastro Intestinal hotspot list", "bg-gi"),
+    ("d", "d", "Present in DNA-panel hotspot list", "bg-dna"),
+)
+
 
 @app.template_filter("has_hotspot")
 def has_hotspot_filter(variants: list) -> bool:
@@ -400,12 +418,11 @@ def format_hotspot_note(_unused) -> str:
         str: HTML string with colored badges and their corresponding cancer type descriptions.
     """
     html = ""
-    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-melanoma rounded-full'>MM: Malignt Melanom</span>&nbsp;"
-    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-cns rounded-full'>CNS: Centrala Nervsystemet</span>&nbsp;"
-    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-lung rounded-full'>LU: Lunga</span>&nbsp;"
-    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-colon rounded-full'>CO: Kolorektal</span>&nbsp;"
-    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-gi rounded-full'>GI: Gastro-Intestinal</span>&nbsp;"
-    html += "<span class='inline-block p-1 m-1 text-xs text-white bg-dna rounded-full'>D: Generell Solid</span>&nbsp;"
+    for code, description, color_class in _HOTSPOT_NOTE_BADGES:
+        html += (
+            "<span class='inline-block p-1 m-1 text-xs text-white "
+            f"{color_class} rounded-full'>{code}: {description}</span>&nbsp;"
+        )
     return html
 
 
@@ -417,18 +434,13 @@ def format_hotspot(filters: list) -> str:
     """
     html = ""
     for f in filters:
-        if "mm" in f:
-            html += "<span data-export-value='mm' title='Present in Melanoma hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-melanoma rounded-full'>MM</span>"
-        if "cns" in f:
-            html += "<span data-export-value='cns' title='Present in CNS hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-cns rounded-full'>CNS</span>"
-        if "lu" in f:
-            html += "<span data-export-value='lu' title='Present in Lung hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-lung rounded-full'>LU</span>"
-        if "co" in f:
-            html += "<span data-export-value='co' title='Present in Colon hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-colon rounded-full'>CO</span>"
-        if "gi" in f:
-            html += "<span data-export-value='gi' title='Present in Gastro Intestinal hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-gi rounded-full'>GI</span>"
-        if "d" in f:
-            html += "<span data-export-value='d' title='Present in DNA-panel hotspot list' class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white bg-dna rounded-full'>D</span>"
+        for marker, export_value, title, color_class in _HOTSPOT_BADGES:
+            if marker in f:
+                html += (
+                    f"<span data-export-value='{export_value}' title='{title}' "
+                    "class='inline-block px-1 py-1 mx-1 my-1 text-xs font-semibold text-white "
+                    f"{color_class} rounded-full'>{export_value.upper()}</span>"
+                )
 
     return html
 
@@ -479,21 +491,21 @@ def one_letter_p(st: str) -> str | None:
 
 
 @app.template_filter()
-def ellipsify(st: str, l: int) -> str:
+def ellipsify(st: str, max_len: int) -> str:
     """
     Truncates a string to a specified length and adds an ellipsis with a tooltip showing the full string.
 
     Args:
         st (str): The input string to truncate.
-        l (int): The maximum length of the truncated string.
+        max_len (int): The maximum length of the truncated string.
 
     Returns:
         str: The truncated string with an ellipsis and a tooltip containing the full string if it exceeds the specified length.
     """
-    if len(st) <= l:
+    if len(st) <= max_len:
         return st
     else:
-        return "<span title='" + st + "'>" + st[0:l] + "...</span>"
+        return "<span title='" + st + "'>" + st[0:max_len] + "...</span>"
 
 
 @app.template_filter()
@@ -664,9 +676,9 @@ def format_oncokbtext(st: str) -> str:
         str: The formatted string with newlines replaced by <br /> and PubMed references as links.
     """
     st = st.replace("\n", "<br />")
-    l = re.findall(r"\(PMID:.*?\)", st)
+    references = re.findall(r"\(PMID:.*?\)", st)
     i = 0
-    for a in l:
+    for a in references:
         b = a.replace(")", "")
         b = b.replace("(PMID:", "")
         b = b.replace(" ", "")

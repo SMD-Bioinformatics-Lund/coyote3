@@ -249,7 +249,6 @@ def setup_async_logging(log_dir: str, is_production: bool = False) -> None:
     # Gather handlers from config
     handlers = []
     for name in handler_names:
-        handler = logging.getLogger().handlers[0]  # fallback if name not found
         for hname, hconf in config["handlers"].items():
             if hname == name:
                 try:

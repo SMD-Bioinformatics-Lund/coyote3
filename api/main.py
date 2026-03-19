@@ -20,27 +20,12 @@ from shared.logging import emit_audit_event
 
 
 def _api_error(status_code: int, message: str) -> HTTPException:
-    """Handle  api error.
-
-    Args:
-            status_code: Status code.
-            message: Message.
-
-    Returns:
-            The  api error result.
-    """
+    """Build a standardized FastAPI ``HTTPException``."""
     return api_error(status_code, message)
 
 
 def _get_formatted_assay_config(sample: dict):
-    """Handle  get formatted assay config.
-
-    Args:
-            sample: Sample.
-
-    Returns:
-            The  get formatted assay config result.
-    """
+    """Resolve assay configuration for a sample payload."""
     return get_formatted_assay_config(sample)
 
 

@@ -20,12 +20,26 @@ from flask import current_app as app
 # Blueprint configuration
 dna_bp = Blueprint("dna_bp", __name__, template_folder="templates", static_folder="static")
 
-from coyote.blueprints.dna import (
-    views_cnv,  # noqa: F401, E402
-    views_dna_findings,  # noqa: F401, E402
-    views_reports,  # noqa: F401, E402
-    views_small_variant_actions,  # noqa: F401, E402
-    views_transloc,  # noqa: F401, E402
-)
+
+def _register_dna_views() -> None:
+    """Import DNA view modules for blueprint route registration side effects."""
+    from coyote.blueprints.dna import (
+        views_cnv,  # noqa: F401
+        views_dna_findings,  # noqa: F401
+        views_reports,  # noqa: F401
+        views_small_variant_actions,  # noqa: F401
+        views_transloc,  # noqa: F401
+    )
+
+    _ = (
+        views_cnv,
+        views_dna_findings,
+        views_reports,
+        views_small_variant_actions,
+        views_transloc,
+    )
+
+
+_register_dna_views()
 
 app.dna_logger = logging.getLogger("coyote.dna")

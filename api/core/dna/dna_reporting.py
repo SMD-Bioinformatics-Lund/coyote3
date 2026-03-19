@@ -202,6 +202,108 @@ def get_simple_variants_for_report(variants: list, assay_config: dict) -> list:
     return simple_variants
 
 
+def _ensure_sample_filters(sample: dict, assay_config: dict) -> tuple[dict, dict]:
+    """Return sample with populated filters and a defensive filters copy."""
+    if not sample.get("filters"):
+        sample = CommonUtility.merge_sample_settings_with_assay_config(sample, assay_config)
+    return sample, deepcopy(sample.get("filters", {}))
+
+
+def _resolve_filter_genes(
+    sample: dict,
+    sample_filters: dict,
+    assay_panel_doc: dict,
+    repository: DNAReportingRepository,
+) -> tuple[dict, list]:
+    """Resolve gene coverage map and effective report filter genes."""
+    checked_genelists = sample_filters.get("genelists", [])
+    checked_genelists_genes_dict: dict[str, Any] = repository.get_isgl_by_ids(checked_genelists)
+    return CommonUtility.get_sample_effective_genes(
+        sample, assay_panel_doc, checked_genelists_genes_dict
+    )
+
+
+def _resolve_disp_positions(sample: dict, assay_config: dict) -> list:
+    """Resolve optional verification display coordinates for the current sample."""
+    disp_pos = []
+    verification_samples = assay_config.get("verification_samples")
+    if verification_samples and sample["name"] in verification_samples:
+        disp_pos = verification_samples[sample["name"]]
+    return disp_pos
+
+
+def _build_variant_query(
+    assay_group: str,
+    sample: dict,
+    sample_filters: dict,
+    filter_conseq: list,
+    filter_genes: list,
+    disp_pos: list,
+) -> dict:
+    """Build variant lookup query payload for report preparation."""
+    return build_query(
+        assay_group,
+        {
+            "id": str(sample["_id"]),
+            "max_freq": sample_filters["max_freq"],
+            "min_freq": sample_filters["min_freq"],
+            "max_control_freq": sample_filters["max_control_freq"],
+            "min_depth": sample_filters["min_depth"],
+            "min_alt_reads": sample_filters["min_alt_reads"],
+            "max_popfreq": sample_filters["max_popfreq"],
+            "filter_conseq": filter_conseq,
+            "filter_genes": filter_genes,
+            "disp_pos": disp_pos,
+            "fp": {"$ne": True},
+            "irrelevant": {"$ne": True},
+        },
+    )
+
+
+def _build_snapshot_rows(
+    variants: list[dict],
+    assay_group: str,
+    subpanel: str | None,
+    latest_sample_comment: dict | None,
+) -> list[dict[str, Any]]:
+    """Build snapshot rows for reported-variant persistence."""
+    now_utc = datetime.now(timezone.utc)
+    snapshot_rows: list[dict[str, Any]] = []
+    for v in variants:
+        annotations_interesting = v.get("annotations_interesting", {})
+        annotations_interesting_assay_specific = (
+            annotations_interesting.get(assay_group)
+            or annotations_interesting.get(f"{assay_group}:{subpanel}")
+            or {}
+        )
+        sel = (v.get("INFO", {}) or {}).get("selected_CSQ", {}) or {}
+        simple_id = normalize_simple_id(v.get("simple_id"))
+        simple_id_hash = v.get("simple_id_hash") or (
+            build_simple_id_hash_from_simple_id(simple_id) if simple_id else None
+        )
+        snapshot_rows.append(
+            {
+                "var_oid": v.get("_id"),
+                "annotation_oid": v.get("classification", {}).get("_id", None),
+                "annotation_text_oid": annotations_interesting_assay_specific.get("_id", None),
+                "sample_comment_oid": (
+                    latest_sample_comment.get("_id") if latest_sample_comment else None
+                ),
+                "var_type": v.get("variant_class"),
+                "simple_id": simple_id,
+                "simple_id_hash": simple_id_hash,
+                "tier": v.get("classification", {}).get("class"),
+                "gene": sel.get("SYMBOL") or (v.get("gene") or None),
+                "transcript": sel.get("Feature") or v.get("selected_csq_feature"),
+                "hgvsp": sel.get("HGVSp") or v.get("hgvsp"),
+                "hgvsc": sel.get("HGVSc") or v.get("hgvsc"),
+                "variant": v.get("classification", {}).get("variant"),
+                "created_on": now_utc,
+            }
+        )
+    return snapshot_rows
+
+
 def build_dna_report_payload(
     sample: dict,
     assay_config: dict,
@@ -226,40 +328,23 @@ def build_dna_report_payload(
     _insilico_panel_genelists = repository.get_isgl_by_asp(sample_assay, is_active=True)
     _all_panel_genelist_names = CommonUtility.get_assay_genelist_names(_insilico_panel_genelists)
 
-    if not sample.get("filters"):
-        sample = CommonUtility.merge_sample_settings_with_assay_config(sample, assay_config)
-
-    sample_filters = deepcopy(sample.get("filters", {}))
-
-    checked_genelists = sample_filters.get("genelists", [])
-    checked_genelists_genes_dict: dict[str, Any] = repository.get_isgl_by_ids(checked_genelists)
-    genes_covered_in_panel, filter_genes = CommonUtility.get_sample_effective_genes(
-        sample, assay_panel_doc, checked_genelists_genes_dict
+    sample, sample_filters = _ensure_sample_filters(sample, assay_config)
+    genes_covered_in_panel, filter_genes = _resolve_filter_genes(
+        sample=sample,
+        sample_filters=sample_filters,
+        assay_panel_doc=assay_panel_doc,
+        repository=repository,
     )
-
     filter_conseq = shared_get_filter_conseq_terms(sample_filters.get("vep_consequences", []))
+    disp_pos = _resolve_disp_positions(sample, assay_config)
 
-    disp_pos = []
-    if assay_config.get("verification_samples"):
-        if sample["name"] in assay_config["verification_samples"]:
-            disp_pos = assay_config["verification_samples"][sample["name"]]
-
-    query = build_query(
-        assay_group,
-        {
-            "id": str(sample["_id"]),
-            "max_freq": sample_filters["max_freq"],
-            "min_freq": sample_filters["min_freq"],
-            "max_control_freq": sample_filters["max_control_freq"],
-            "min_depth": sample_filters["min_depth"],
-            "min_alt_reads": sample_filters["min_alt_reads"],
-            "max_popfreq": sample_filters["max_popfreq"],
-            "filter_conseq": filter_conseq,
-            "filter_genes": filter_genes,
-            "disp_pos": disp_pos,
-            "fp": {"$ne": True},
-            "irrelevant": {"$ne": True},
-        },
+    query = _build_variant_query(
+        assay_group=assay_group,
+        sample=sample,
+        sample_filters=sample_filters,
+        filter_conseq=filter_conseq,
+        filter_genes=filter_genes,
+        disp_pos=disp_pos,
     )
 
     variants = repository.get_case_variants(query)
@@ -273,40 +358,12 @@ def build_dna_report_payload(
 
     snapshot_rows: List[Dict[str, Any]] = []
     if include_snapshot:
-        now_utc = datetime.now(timezone.utc)
-
-        for v in variants:
-            annotations_interesting = v.get("annotations_interesting", {})
-            annotations_interesting_assay_specific = (
-                annotations_interesting.get(assay_group)
-                or annotations_interesting.get(f"{assay_group}:{subpanel}")
-                or {}
-            )
-            sel = (v.get("INFO", {}) or {}).get("selected_CSQ", {}) or {}
-            simple_id = normalize_simple_id(v.get("simple_id"))
-            simple_id_hash = v.get("simple_id_hash") or (
-                build_simple_id_hash_from_simple_id(simple_id) if simple_id else None
-            )
-            snapshot_rows.append(
-                {
-                    "var_oid": v.get("_id"),
-                    "annotation_oid": v.get("classification", {}).get("_id", None),
-                    "annotation_text_oid": annotations_interesting_assay_specific.get("_id", None),
-                    "sample_comment_oid": (
-                        latest_sample_comment.get("_id") if latest_sample_comment else None
-                    ),
-                    "var_type": v.get("variant_class"),
-                    "simple_id": simple_id,
-                    "simple_id_hash": simple_id_hash,
-                    "tier": v.get("classification", {}).get("class"),
-                    "gene": sel.get("SYMBOL") or (v.get("gene") or None),
-                    "transcript": sel.get("Feature") or v.get("selected_csq_feature"),
-                    "hgvsp": sel.get("HGVSp") or v.get("hgvsp"),
-                    "hgvsc": sel.get("HGVSc") or v.get("hgvsc"),
-                    "variant": v.get("classification", {}).get("variant"),
-                    "created_on": now_utc,
-                }
-            )
+        snapshot_rows = _build_snapshot_rows(
+            variants=variants,
+            assay_group=assay_group,
+            subpanel=subpanel,
+            latest_sample_comment=latest_sample_comment,
+        )
 
     variants_simple = get_simple_variants_for_report(variants, assay_config)
     report_sections_data["snvs"] = sort_by_class_and_af(variants_simple)

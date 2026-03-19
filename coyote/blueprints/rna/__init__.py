@@ -20,9 +20,17 @@ from flask import current_app as app
 # Blueprint configuration
 rna_bp = Blueprint("rna_bp", __name__, template_folder="templates", static_folder="static")
 
-from coyote.blueprints.rna import (
-    views_fusions,  # noqa: F401, E402
-    views_reports,  # noqa: F401, E402
-)
+
+def _register_rna_views() -> None:
+    """Import RNA view modules for blueprint route registration side effects."""
+    from coyote.blueprints.rna import (
+        views_fusions,  # noqa: F401
+        views_reports,  # noqa: F401
+    )
+
+    _ = (views_fusions, views_reports)
+
+
+_register_rna_views()
 
 app.rna_logger = logging.getLogger("coyote.rna")

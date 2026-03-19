@@ -33,7 +33,14 @@ from pymongo.errors import DuplicateKeyError, OperationFailure, PyMongoError
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from api.core.dna.variant_identity import ensure_variant_identity_fields
+
+def ensure_variant_identity_fields(doc: dict[str, Any]) -> dict[str, Any]:
+    """Lazy-import variant identity normalizer after project path bootstrap."""
+    from api.core.dna.variant_identity import (
+        ensure_variant_identity_fields as _ensure_variant_identity_fields,
+    )
+
+    return _ensure_variant_identity_fields(doc)
 
 
 @dataclass

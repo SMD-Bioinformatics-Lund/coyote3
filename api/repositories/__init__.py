@@ -1,5 +1,3 @@
-"""Canonical API repositories package."""
-
 """Canonical repository package exports."""
 
 from api.repositories.admin_repository import AdminRepository, AdminSampleDeletionRepository
