@@ -26,7 +26,7 @@ services:
       - BUILD_TIME=${BUILD_TIME:-unknown}
     ports:
       - "${COYOTE3_TEST_API_PORT:-6812}:8001"
-    command: "python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8001"
+    command: "python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8001 --workers ${API_WORKERS:-2}"
     healthcheck:
       test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=2).read()\""]
       interval: 5s
@@ -103,7 +103,7 @@ services:
 
   redis_coyote3_test:
     container_name: redis_coyote3_test_${COYOTE3_VERSION:-local}
-    image: ramsainanduri/redis:7.4.3
+    image: redis:latest
     ports:
       - "${COYOTE3_TEST_REDIS_PORT:-6813}:6379"
     environment:

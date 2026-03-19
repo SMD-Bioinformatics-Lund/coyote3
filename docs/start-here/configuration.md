@@ -45,6 +45,7 @@ Core runtime:
 - `COYOTE3_DB`
 - `MONGO_URI`
 - port vars for your target profile (`COYOTE3_*_WEB_PORT`, `COYOTE3_*_API_PORT`, `COYOTE3_*_REDIS_PORT`, `COYOTE3_*_MONGO_PORT`)
+- `API_WORKERS` (non-dev API worker count for uvicorn)
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM_EMAIL`, `SMTP_USE_TLS`, `SMTP_USE_SSL`
 - `WEB_APP_BASE_URL` (required for invite/reset links)
 

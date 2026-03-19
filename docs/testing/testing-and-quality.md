@@ -55,6 +55,7 @@ Quality workflow should execute:
 3. coverage gates
 4. contract/boundary smoke checks
 5. compose config validation
+6. API concurrency/latency smoke (`tests/api/test_api_latency_concurrency.py`)
 
 ## Writing tests for new code
 

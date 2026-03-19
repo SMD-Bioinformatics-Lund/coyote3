@@ -155,7 +155,7 @@ services:
   # Shared infrastructure dependency.
   redis_coyote3_dev:
     container_name: redis_coyote3_dev_${COYOTE3_VERSION:-local}
-    image: ramsainanduri/redis:7.4.3
+    image: redis:latest
     ports:
       - "${COYOTE3_DEV_REDIS_PORT:-6803}:6379"
     environment:
