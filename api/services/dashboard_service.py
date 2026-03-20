@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-from time import perf_counter
 from typing import Any
 
 from api.extensions import util
@@ -231,8 +230,6 @@ class DashboardService:
         Returns:
             dict[str, Any]: The function result.
         """
-        timings_ms: dict[str, float] = {}
-        api_start = perf_counter()
         scope_assays = self.resolve_scope_assays(user=user)
         scope_key = self._summary_scope_key(user=user, scope_assays=scope_assays)
         cache_key = f"dashboard:summary:v2:{self._cache_version_token()}:{scope_key}"
@@ -256,41 +253,17 @@ class DashboardService:
                 cache.set(cache_key, snapshot_payload, timeout=cache_ttl)
             return self._set_cache_meta(dict(snapshot_payload), source="mongo_snapshot", hit=False)
 
-        def _timed(name: str, fn):
-            """Timed.
-
-            Args:
-                    name: Name.
-                    fn: Fn.
-
-            Returns:
-                    The  timed result.
-            """
-            t0 = perf_counter()
-            value = fn()
-            timings_ms[name] = round((perf_counter() - t0) * 1000, 2)
-            return value
-
-        sample_rollup_global = _timed(
-            "sample_rollup_global", lambda: self.repository.get_dashboard_sample_rollup(assays=None)
-        )
-        sample_rollup_scoped = _timed(
-            "sample_rollup_scoped",
-            lambda: self.repository.get_dashboard_sample_rollup(assays=scope_assays),
-        )
-        variant_rollup = _timed("variant_rollup", self.repository.get_dashboard_variant_counts)
-        unique_quality_counts = _timed(
-            "variant_unique_quality", self.repository.get_unique_variant_quality_counts
-        )
+        sample_rollup_global = self.repository.get_dashboard_sample_rollup(assays=None)
+        sample_rollup_scoped = self.repository.get_dashboard_sample_rollup(assays=scope_assays)
+        variant_rollup = self.repository.get_dashboard_variant_counts()
+        unique_quality_counts = self.repository.get_unique_variant_quality_counts()
         unique_total_variants = int(unique_quality_counts.get("unique_total_variants", 0) or 0)
         unique_fp_variants = int(unique_quality_counts.get("unique_fp_variants", 0) or 0)
-        total_cnvs = _timed("cnv_total", self.repository.get_total_cnv_count)
-        total_translocs = _timed("transloc_total", self.repository.get_total_transloc_count)
-        total_fusions = _timed("fusion_total", self.repository.get_total_fusion_count)
-        unique_blacklisted_variants = _timed(
-            "blacklist_unique", self.repository.get_unique_blacklist_count
-        )
-        tier_stats = _timed("reported_tier_stats", self.repository.get_dashboard_tier_stats)
+        total_cnvs = self.repository.get_total_cnv_count()
+        total_translocs = self.repository.get_total_transloc_count()
+        total_fusions = self.repository.get_total_fusion_count()
+        unique_blacklisted_variants = self.repository.get_unique_blacklist_count()
+        tier_stats = self.repository.get_dashboard_tier_stats()
 
         total_samples_count = int(sample_rollup_global.get("total_samples", 0) or 0)
         analysed_samples_count = int(sample_rollup_global.get("analysed_samples", 0) or 0)
@@ -325,8 +298,6 @@ class DashboardService:
             if unique_total_variants
             else 0.0
         )
-
-        timings_ms["total"] = round((perf_counter() - api_start) * 1000, 2)
         payload = {
             "total_samples": total_samples_count,
             "analysed_samples": analysed_samples_count,
@@ -344,16 +315,14 @@ class DashboardService:
                 "fp_rate_percent": fp_rate,
                 "blacklist_rate_percent": blacklist_rate,
             },
-            "dashboard_meta": {"timings_ms": timings_ms, "scope_assays": scope_assays},
+            "dashboard_meta": {"scope_assays": scope_assays},
             "admin_insights": {},
-            "capacity_counts": _timed("capacity_counts", self.build_capacity_counts),
-            "isgl_visibility": _timed("isgl_visibility", self.build_isgl_visibility),
-            "isgl_association": _timed(
-                "isgl_association", self.repository.get_dashboard_isgl_association
-            ),
+            "capacity_counts": self.build_capacity_counts(),
+            "isgl_visibility": self.build_isgl_visibility(),
+            "isgl_association": self.repository.get_dashboard_isgl_association(),
         }
         if str(user.role or "").strip().lower() == "admin":
-            payload["admin_insights"] = _timed("admin_insights", self.build_admin_insights)
+            payload["admin_insights"] = self.build_admin_insights()
         self._set_cache_meta(payload, source="recomputed", hit=False)
         if cache is not None:
             cache.set(cache_key, payload, timeout=cache_ttl)

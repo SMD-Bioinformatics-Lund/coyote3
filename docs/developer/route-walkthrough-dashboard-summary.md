@@ -63,33 +63,27 @@ What this does:
 - Resolves service dependency from `api/deps/services.py`
 - Serializes service result to contract-compatible response
 
-## Step 4: Service orchestration + timings
+## Step 4: Service orchestration
 
 File: `api/services/dashboard_service.py`
 
 ```python
-def _timed(name: str, fn):
-    t0 = perf_counter()
-    value = fn()
-    timings_ms[name] = round((perf_counter() - t0) * 1000, 2)
-    return value
-
-sample_rollup_global = _timed("sample_rollup_global", lambda: self.repository.get_dashboard_sample_rollup(assays=None))
-variant_rollup = _timed("variant_rollup", self.repository.get_dashboard_variant_counts)
+sample_rollup_global = self.repository.get_dashboard_sample_rollup(assays=None)
+variant_rollup = self.repository.get_dashboard_variant_counts()
 ```
 
 ```python
 payload["dashboard_meta"] = {
-    "timings_ms": timings_ms,
     "scope_assays": scope_assays,
+    "cache_source": "recomputed",
+    "cache_hit": False,
 }
 ```
 
 What this does:
 
 - Orchestrates cross-collection reads
-- Measures operation timing for diagnostics
-- Returns timing map to UI/API consumers
+- Returns scope/cache metadata for UI/API consumers
 
 ## Step 5: Repository + DB access
 
@@ -155,7 +149,7 @@ return render_template(
 What this does:
 
 - Binds API payload fields to dashboard cards
-- Exposes metadata/timings for diagnostics in UI if needed
+- Exposes scope/cache metadata for diagnostics in UI if needed
 
 ## End-to-end call chain summary
 
@@ -165,7 +159,7 @@ GET /dashboard/ (Flask)
   -> GET /api/v1/dashboard/summary (FastAPI)
   -> DashboardService.summary_payload()
   -> MongoDashboardRepository + db handlers
-  -> payload + timings
+  -> payload + metadata
   -> Flask render_template("dashboard.html")
 ```
 

@@ -37,7 +37,7 @@ _DEFAULT_QUALITY_STATS = {
     "fp_rate_percent": 0.0,
     "blacklist_rate_percent": 0.0,
 }
-_DEFAULT_DASHBOARD_META = {"timings_ms": {}, "scope_assays": None}
+_DEFAULT_DASHBOARD_META = {"scope_assays": None, "cache_source": None, "cache_hit": False}
 _DEFAULT_CAPACITY_COUNTS = {
     "users_total": 0,
     "roles_total": 0,
@@ -173,13 +173,17 @@ def _normalize_dashboard_meta(meta: object) -> dict:
     """
     if not isinstance(meta, dict):
         return dict(_DEFAULT_DASHBOARD_META)
-    timings = meta.get("timings_ms", {})
-    if not isinstance(timings, dict):
-        timings = {}
     scope_assays = meta.get("scope_assays")
     if scope_assays is not None and not isinstance(scope_assays, list):
         scope_assays = []
-    return {"timings_ms": timings, "scope_assays": scope_assays}
+    cache_source = meta.get("cache_source")
+    if cache_source is not None:
+        cache_source = str(cache_source)
+    return {
+        "scope_assays": scope_assays,
+        "cache_source": cache_source,
+        "cache_hit": bool(meta.get("cache_hit", False)),
+    }
 
 
 def _normalize_admin_insights(insights: object) -> dict:

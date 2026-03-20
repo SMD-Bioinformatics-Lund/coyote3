@@ -139,14 +139,16 @@ from api.infra.dashboard_cache import invalidate_dashboard_cache
 invalidate_dashboard_cache(center=center)
 ```
 
-### 6) Request metrics and timings
+### 6) Request metrics and observability
 
-Expose timing details in service payload metadata and rely on middleware request events.
+Keep service payload metadata functional (scope/cache metadata), and rely on middleware request events for latency observability.
 
 ```python
-# service timing map
-timings_ms[name] = round((perf_counter() - t0) * 1000, 2)
-payload["dashboard_meta"] = {"timings_ms": timings_ms, "scope_assays": scope_assays}
+payload["dashboard_meta"] = {
+    "scope_assays": scope_assays,
+    "cache_source": "recomputed",
+    "cache_hit": False,
+}
 ```
 
 ```python

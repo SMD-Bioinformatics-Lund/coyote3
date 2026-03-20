@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import time
+import uuid
 
 
 def invalidate_dashboard_summary_cache(adapter) -> None:
@@ -24,7 +24,7 @@ def invalidate_dashboard_summary_cache(adapter) -> None:
     try:
         cache.set(
             "dashboard:summary:version",
-            str(int(time.time())),
+            uuid.uuid4().hex,
             timeout=60 * 60 * 24 * 30,
         )
     except Exception as exc:  # pragma: no cover - defensive fallback
