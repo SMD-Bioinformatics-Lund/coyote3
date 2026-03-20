@@ -223,6 +223,7 @@ class MongoAdapter:
         self._ensure_handler_indexes("oncokb", self.oncokb_handler)
         self._ensure_handler_indexes("brca", self.brca_handler)
         self._ensure_handler_indexes("iarc_tp53", self.iarc_tp53_handler)
+        self._ensure_dashboard_metrics_indexes()
 
     def _ensure_handler_indexes(self, handler_name: str, handler: object) -> None:
         """Create indexes for a handler while tolerating legacy index-name conflicts."""
@@ -235,6 +236,36 @@ class MongoAdapter:
                 self.app.logger.warning(
                     "Skipping index-name conflict for handler=%s: %s",
                     handler_name,
+                    exc,
+                )
+                return
+            raise
+
+    def _ensure_dashboard_metrics_indexes(self) -> None:
+        """Ensure dashboard snapshot retention indexes."""
+        ttl_seconds = int(
+            self.app.config.get("DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS", 604800) or 0
+        )
+        if ttl_seconds <= 0:
+            self.app.logger.info(
+                "Dashboard snapshot TTL disabled (DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS=%s).",
+                ttl_seconds,
+            )
+            return
+
+        collection = self.coyote_db["dashboard_metrics"]
+        try:
+            collection.create_index(
+                [("updated_at", pymongo.ASCENDING)],
+                name="updated_at_ttl_1",
+                expireAfterSeconds=ttl_seconds,
+                background=True,
+            )
+        except OperationFailure as exc:
+            code = getattr(exc, "code", None)
+            if code == 85:
+                self.app.logger.warning(
+                    "Skipping dashboard_metrics TTL index conflict: %s",
                     exc,
                 )
                 return

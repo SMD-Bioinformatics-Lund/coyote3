@@ -129,6 +129,9 @@ class DefaultConfig:
     DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS = int(
         os.getenv("DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS", "300")
     )
+    DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS = int(
+        os.getenv("DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS", "604800")
+    )
 
     # Fernet key for encrypting sensitive data in reports.
     FERNET = _load_fernet()

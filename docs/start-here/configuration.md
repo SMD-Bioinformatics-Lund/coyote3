@@ -53,6 +53,7 @@ Core runtime:
 - `CACHE_REDIS_CONNECT_TIMEOUT`, `CACHE_REDIS_SOCKET_TIMEOUT` (seconds)
 - `DASHBOARD_SUMMARY_CACHE_TTL_SECONDS` (Redis summary cache TTL)
 - `DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS` (max age for persisted dashboard snapshot reuse)
+- `DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS` (Mongo TTL retention for snapshot documents)
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM_EMAIL`, `SMTP_USE_TLS`, `SMTP_USE_SSL`
 - `WEB_APP_BASE_URL` (required for invite/reset links)
 
@@ -74,6 +75,7 @@ Operational behavior:
 - `CACHE_REQUIRED=0`: startup continues with disabled/no-op cache (degraded mode).
 - Cache backend is not an in-process memory cache replacement for production.
 - Dashboard summary uses a two-layer cache: Redis (hot) + Mongo `dashboard_metrics` snapshot (warm).
+- Snapshot retention is enforced by a Mongo TTL index on `dashboard_metrics.updated_at`.
 
 Image/version policy:
 
