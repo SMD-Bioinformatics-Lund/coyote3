@@ -16,10 +16,20 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Project Standards:
+      - Governance Overview: project/governance.md
+      - Code of Conduct: project/code-of-conduct.md
+      - Contributing: project/contributing.md
+      - License: project/license.md
   - Start Here:
       - Quickstart: start-here/quickstart.md
       - Local Development: start-here/local-development.md
       - Configuration Model: start-here/configuration.md
+  - Developer:
+      - Add New Feature: developer/adding-features.md
+      - URL And Request Flow: developer/url-routing-and-request-flow.md
+      - Route Walkthrough (Dashboard): developer/route-walkthrough-dashboard-summary.md
+      - Troubleshooting Guide: developer/troubleshooting-guide.md
   - Product:
       - UI Map And User Flows: product/ui-map-and-user-flows.md
       - DNA And RNA Workflow Chain: product/workflow-dna-rna.md
@@ -41,11 +51,12 @@ nav:
       - Environments And Secrets: operations/environments-and-secrets.md
       - Center Onboarding Pack: operations/center-onboarding-pack.md
       - Minimum Production Baseline: operations/minimum-production-baseline.md
+      - Observability SLOs And Alerts: operations/observability-slos-and-alerts.md
       - First Day Runbook: operations/first-day-runbook.md
       - Deployment Runbook: operations/deployment-runbook.md
       - Backup Restore And Snapshots: operations/backup-restore-and-snapshots.md
       - Troubleshooting: operations/troubleshooting.md
-  - Maintainers:
-      - Maintainer Playbook: maintainers/maintainer-playbook.md
+  - Engineering:
+      - Maintainer Guide: maintainers/maintainer-playbook.md
       - Refactor Guidelines: maintainers/refactor-guidelines.md
-      - Developer Cookbook: maintainers/developer-cookbook.md
+      - Developer Task Reference: maintainers/developer-cookbook.md

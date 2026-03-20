@@ -1,6 +1,6 @@
-# Developer Cookbook
+# Developer Task Reference
 
-Short, repeatable recipes for common maintenance tasks.
+Short, repeatable workflows for common maintenance tasks.
 
 ## Run core quality checks locally
 
@@ -48,6 +48,16 @@ Examples:
 - login outcomes by provider
 - invite/reset token issuance outcomes
 - SMTP send attempts/failures
+
+Quick local log probes:
+
+```bash
+docker logs coyote3_api_${COYOTE3_VERSION:-local} 2>&1 | rg "auth_metric|mail_metric"
+```
+
+Follow-up operations guide:
+
+- [Operations / Observability SLOs And Alerts](../operations/observability-slos-and-alerts.md)
 
 ## Common release checklist
 

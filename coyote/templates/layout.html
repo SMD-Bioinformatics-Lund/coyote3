@@ -124,7 +124,7 @@
           </a>
 
           <!-- Version link -->
-          <a href="{{ url_for('docs_bp.about') }}"
+          <a href="{{ url_for('docs_bp.changelog') }}"
              title="View release notes"
              class="text-xs font-normal tracking-tight pt-2 align-baseline hover:underline">
             v{{ config['APP_VERSION'] }} · {{ config.get('ENV_NAME', 'unknown') }}
@@ -162,6 +162,10 @@
                 target="_blank"
                 class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">
                 Support
+              </a>
+              <a href="{{ url_for('docs_bp.about') }}"
+                class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">
+                Help
               </a>
               <a href="{{ url_for('docs_bp.about') }}"
                 class="block px-4 py-2 text-gray-800 hover:bg-indigo-100">
@@ -323,20 +327,13 @@
             {% endfor %}
           </div>
 
-          <!-- Right-aligned Help / Docs / License -->
+          <!-- Right-aligned Help / License -->
           <div class="ml-auto flex items-center gap-2">
             <!-- HELP -->
-            <a href="{{ url_for('docs_bp.docs_index') }}"
-               class="px-3 py-0.5 rounded-xl text-xs font-semibold tracking-wide transition
-                      hover:bg-indigo-200
-                      {% if request.path.startswith('/handbook') and not request.path.endswith('/license') %}
-                        bg-orange-300 text-black font-bold
-                      {% else %}
-                        text-gray-800
-                      {% endif %}">
+            <a href="{{ url_for('docs_bp.about') }}"
+               class="px-3 py-0.5 rounded-xl text-xs font-semibold tracking-wide transition hover:bg-indigo-200 text-gray-800">
               HELP
             </a>
-
             <!-- LICENSE -->
             <a href="{{ url_for('docs_bp.license') }}"
                class="px-3 py-0.5 rounded-xl text-xs font-semibold tracking-wide transition

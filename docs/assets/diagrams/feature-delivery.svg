@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="220" viewBox="0 0 1200 220" role="img" aria-labelledby="title desc">
+  <title id="title">Feature Delivery Flow</title>
+  <desc id="desc">Steps from requirement to release for adding a feature.</desc>
+  <defs>
+    <style>
+      .canvas { fill: #f8fafc; }
+      .title-band { fill: #e2e8f0; }
+      .title { font: 700 22px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .label { font: 700 13px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .box { stroke: #334155; stroke-width: 1.8; rx: 12; ry: 12; }
+      .arrow { stroke: #334155; stroke-width: 2.4; fill: none; marker-end: url(#arrow); }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <polygon points="0,0 10,4 0,8" fill="#334155"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="220" class="canvas"/>
+  <rect x="20" y="16" width="1160" height="36" rx="10" class="title-band"/>
+  <text x="24" y="40" class="title">Feature Delivery Flow</text>
+
+  <rect x="24" y="96" width="128" height="62" class="box" fill="#dbeafe"/>
+  <text x="88" y="132" text-anchor="middle" class="label">Requirement</text>
+
+  <rect x="172" y="96" width="128" height="62" class="box" fill="#e0f2fe"/>
+  <text x="236" y="132" text-anchor="middle" class="label">Contract</text>
+
+  <rect x="320" y="96" width="148" height="62" class="box" fill="#dcfce7"/>
+  <text x="394" y="132" text-anchor="middle" class="label">Service/Core</text>
+
+  <rect x="488" y="96" width="128" height="62" class="box" fill="#fef3c7"/>
+  <text x="552" y="132" text-anchor="middle" class="label">Router</text>
+
+  <rect x="636" y="96" width="128" height="62" class="box" fill="#fde68a"/>
+  <text x="700" y="132" text-anchor="middle" class="label">UI Wiring</text>
+
+  <rect x="784" y="96" width="128" height="62" class="box" fill="#fbcfe8"/>
+  <text x="848" y="132" text-anchor="middle" class="label">Tests</text>
+
+  <rect x="932" y="96" width="128" height="62" class="box" fill="#ddd6fe"/>
+  <text x="996" y="132" text-anchor="middle" class="label">Docs</text>
+
+  <rect x="1080" y="96" width="96" height="62" class="box" fill="#bfdbfe"/>
+  <text x="1128" y="132" text-anchor="middle" class="label">Release</text>
+
+  <path d="M152 127 L172 127" class="arrow"/>
+  <path d="M300 127 L320 127" class="arrow"/>
+  <path d="M468 127 L488 127" class="arrow"/>
+  <path d="M616 127 L636 127" class="arrow"/>
+  <path d="M764 127 L784 127" class="arrow"/>
+  <path d="M912 127 L932 127" class="arrow"/>
+  <path d="M1060 127 L1080 127" class="arrow"/>
+</svg>

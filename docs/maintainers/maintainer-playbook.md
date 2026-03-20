@@ -1,4 +1,4 @@
-# Maintainer Playbook
+# Maintainer Guide
 
 ## Change management policy
 

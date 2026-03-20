@@ -25,21 +25,24 @@ This documentation is organized as a practical flow chain:
 
 ## Fast links
 
+- Governance and project standards: [Project Standards / Governance Overview](project/governance.md)
 - Quick start: [Start Here / Quickstart](start-here/quickstart.md)
 - Local development: [Start Here / Local Development](start-here/local-development.md)
+- Add new feature: [Developer / Add New Feature](developer/adding-features.md)
+- URL and request flow: [Developer / URL And Request Flow](developer/url-routing-and-request-flow.md)
+- End-to-end route example: [Developer / Route Walkthrough (Dashboard)](developer/route-walkthrough-dashboard-summary.md)
+- Developer troubleshooting: [Developer / Troubleshooting Guide](developer/troubleshooting-guide.md)
 - UI map and workflows: [Product / UI Map And User Flows](product/ui-map-and-user-flows.md)
 - API ingestion: [API / Ingestion API](api/ingestion-api.md)
 - Center onboarding: [Operations / Center Onboarding Pack](operations/center-onboarding-pack.md)
 - Deployment cycle: [Operations / Deployment Runbook](operations/deployment-runbook.md)
+- Auth/mail observability SLOs: [Operations / Observability SLOs And Alerts](operations/observability-slos-and-alerts.md)
 - Testing and quality gates: [Testing / Testing And Quality](testing/testing-and-quality.md)
 - Auth ADRs: [Architecture / ADR-0001 Auth Provider Resolution](architecture/adr-0001-auth-provider-resolution.md)
-- Developer cookbook: [Maintainers / Developer Cookbook](maintainers/developer-cookbook.md)
+- Developer task reference: [Engineering / Developer Task Reference](maintainers/developer-cookbook.md)
 
 ## Runtime topology
 
-```text
-Browser -> Flask UI (coyote) -> FastAPI (api) -> MongoDB
-                                  -> Redis
-```
+![Coyote3 runtime topology](assets/diagrams/runtime-topology.svg)
 
 The UI calls API endpoints for all core operations. Business rules live in API services/core layers, not in templates.

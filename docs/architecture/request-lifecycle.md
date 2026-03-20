@@ -1,5 +1,9 @@
 # Request Lifecycle
 
+## High-level diagram
+
+![Request lifecycle](../assets/diagrams/request-lifecycle.svg)
+
 ## UI request path
 
 1. User hits Flask route (`coyote/blueprints/...`)
