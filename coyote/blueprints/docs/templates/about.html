@@ -89,7 +89,22 @@
       <div class="rounded-3xl border-t-4 border-pink-400 bg-white shadow-2xl p-5 hover:shadow-lg hover:bg-pink-50 transition duration-500">
         <h2 class="text-sm font-semibold">Links</h2>
         <p class="mt-1 text-sm">Quick access</p>
-        {% set docs_root = app_config.get('HELP_CENTER_URL', '#') %}
+        {% set docs_root = (app_config.get('HELP_CENTER_URL') or '')|trim %}
+        {% if not docs_root %}
+          {% set docs_root = '#' %}
+        {% endif %}
+        {% if docs_root != '#' %}
+          {% set req_host = request.host.split(':')[0] %}
+          {% if docs_root.startswith('http://localhost') %}
+            {% set docs_root = docs_root|replace('http://localhost', 'http://' ~ req_host, 1) %}
+          {% elif docs_root.startswith('https://localhost') %}
+            {% set docs_root = docs_root|replace('https://localhost', 'https://' ~ req_host, 1) %}
+          {% elif docs_root.startswith('http://127.0.0.1') %}
+            {% set docs_root = docs_root|replace('http://127.0.0.1', 'http://' ~ req_host, 1) %}
+          {% elif docs_root.startswith('https://127.0.0.1') %}
+            {% set docs_root = docs_root|replace('https://127.0.0.1', 'https://' ~ req_host, 1) %}
+          {% endif %}
+        {% endif %}
         {% set docs_base = (docs_root.rstrip('/') ~ '/') if docs_root != '#' else '#' %}
         <div class="mt-3 space-y-2 text-sm">
           <a href="{{ docs_root }}"
