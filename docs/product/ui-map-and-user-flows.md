@@ -1,5 +1,9 @@
 # UI Map And User Flows
 
+Detailed capability inventory:
+
+- See `Product -> UI Functionality Matrix` for page-by-page actions users can perform.
+
 ## UI surface overview
 
 Flask blueprints define the UI domains under `coyote/blueprints/`:

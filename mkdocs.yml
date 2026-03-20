@@ -32,6 +32,10 @@ nav:
       - Troubleshooting Guide: developer/troubleshooting-guide.md
   - Product:
       - UI Map And User Flows: product/ui-map-and-user-flows.md
+      - UI Functionality Matrix: product/ui-functionality-matrix.md
+      - UI Action Effects Reference: product/ui-action-effects-reference.md
+      - Clinical Terms And Flags: product/clinical-semantics-reference.md
+      - Application Reference By Domain: product/application-reference-by-domain.md
       - DNA And RNA Workflow Chain: product/workflow-dna-rna.md
   - Architecture:
       - System Overview: architecture/system-overview.md
