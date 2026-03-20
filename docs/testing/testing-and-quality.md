@@ -57,6 +57,18 @@ Quality workflow should execute:
 5. compose config validation
 6. API concurrency/latency smoke (`tests/api/test_api_latency_concurrency.py`)
 
+## API latency and concurrency smoke
+
+`tests/api/test_api_latency_concurrency.py` validates:
+
+- concurrent request handling for `/api/v1/health`
+- stable average request latency under moderate parallel load
+- bounded total wall-time after warm-up
+
+It is a guardrail test, not a full performance benchmark. For true capacity
+planning, run dedicated load tooling (for example k6/Locust) against deployed
+stage/prod-like infrastructure.
+
 ## Writing tests for new code
 
 - add unit tests for pure logic in `api/core`/`api/services`

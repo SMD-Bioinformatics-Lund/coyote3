@@ -46,8 +46,29 @@ Core runtime:
 - `MONGO_URI`
 - port vars for your target profile (`COYOTE3_*_WEB_PORT`, `COYOTE3_*_API_PORT`, `COYOTE3_*_REDIS_PORT`, `COYOTE3_*_MONGO_PORT`)
 - `API_WORKERS` (non-dev API worker count for uvicorn)
+- `CACHE_REDIS_URL` (Redis endpoint for API/UI cache backends)
+- `CACHE_ENABLED` (`1` enables cache backend initialization)
+- `CACHE_REQUIRED` (`1` fail-fast if Redis is unavailable; `0` degrade to no-op cache)
+- `CACHE_REDIS_CONNECT_TIMEOUT`, `CACHE_REDIS_SOCKET_TIMEOUT` (seconds)
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM_EMAIL`, `SMTP_USE_TLS`, `SMTP_USE_SSL`
 - `WEB_APP_BASE_URL` (required for invite/reset links)
+
+## Redis cache model
+
+Redis is the shared cache backend for both runtimes:
+
+- API runtime cache namespace: `coyote3_cache:api:*`
+- UI runtime cache namespace: `coyote3_cache:web:*`
+
+Operational behavior:
+
+- `CACHE_REQUIRED=1`: startup fails when Redis cannot be reached (strict mode).
+- `CACHE_REQUIRED=0`: startup continues with disabled/no-op cache (degraded mode).
+- Cache backend is not an in-process memory cache replacement for production.
+
+Image/version policy:
+
+- Compose stacks pin Redis to `redis:7.4.3` (no floating `latest` tag).
 
 ## SMTP and user lifecycle settings
 

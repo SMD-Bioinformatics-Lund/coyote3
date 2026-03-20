@@ -96,7 +96,7 @@ services:
 
   redis_coyote3_stage:
     container_name: redis_coyote3_stage_${COYOTE3_VERSION:-local}
-    image: redis:latest
+    image: redis:7.4.3
     ports:
       - "${COYOTE3_STAGE_REDIS_PORT:-8807}:6379"
     environment:

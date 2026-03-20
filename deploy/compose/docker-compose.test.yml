@@ -103,7 +103,7 @@ services:
 
   redis_coyote3_test:
     container_name: redis_coyote3_test_${COYOTE3_VERSION:-local}
-    image: redis:latest
+    image: redis:7.4.3
     ports:
       - "${COYOTE3_TEST_REDIS_PORT:-6813}:6379"
     environment:

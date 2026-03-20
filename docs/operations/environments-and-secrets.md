@@ -19,6 +19,15 @@ Use isolated stacks and databases for each environment:
 
 These defaults are encoded in both compose files and example env templates.
 
+## Redis runtime policy
+
+- All compose stacks pin Redis to `redis:7.4.3`.
+- Redis is a shared cache dependency for API/UI and should be treated as required
+  in production-grade deployments (`CACHE_REQUIRED=1`).
+- If a center intentionally runs in degraded mode (`CACHE_REQUIRED=0`), cache
+  operations become no-op on Redis outages; functionality should still work but
+  with lower performance.
+
 ## Environment naming map
 
 Runtime profile normalization:

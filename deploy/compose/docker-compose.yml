@@ -97,7 +97,7 @@ services:
   # Shared infrastructure dependency.
   redis_coyote3:
     container_name: redis_coyote3_${COYOTE3_VERSION:-local}
-    image: redis:latest
+    image: redis:7.4.3
     ports:
       - "${COYOTE3_REDIS_PORT:-5819}:6379"
     environment:
