@@ -14,6 +14,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 import re
 from typing import Any
 
+from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.db.base import BaseHandler
 
 
@@ -407,7 +408,9 @@ class ISGLHandler(BaseHandler):
             pymongo.results.InsertOneResult: The result of the insert operation,
             including the ID of the inserted document.
         """
-        return self.get_collection().insert_one(self.ensure_isgl_id(dict(data)))
+        result = self.get_collection().insert_one(self.ensure_isgl_id(dict(data)))
+        invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def update_isgl(self, isgl_id: str, updated_data: dict) -> Any:
         """
@@ -423,9 +426,11 @@ class ISGLHandler(BaseHandler):
         Returns:
             Any: The result of the replace operation, typically a `pymongo.results.UpdateResult` object.
         """
-        return self.get_collection().replace_one(
+        result = self.get_collection().replace_one(
             self._isgl_lookup_query(isgl_id), self.ensure_isgl_id(dict(updated_data))
         )
+        invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def toggle_isgl_active(self, isgl_id: str, active_status: bool) -> bool:
         """
@@ -441,10 +446,12 @@ class ISGLHandler(BaseHandler):
         Returns:
             bool: True if the update operation was acknowledged, otherwise False.
         """
-        return self.get_collection().update_one(
+        result = self.get_collection().update_one(
             self._isgl_lookup_query(isgl_id),
             {"$set": {"is_active": active_status}},
         )
+        invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def delete_isgl(self, isgl_id: str) -> Any:
         """
@@ -460,7 +467,9 @@ class ISGLHandler(BaseHandler):
             pymongo.results.DeleteResult: The result of the delete operation,
             including information about the deletion.
         """
-        return self.get_collection().delete_one(self._isgl_lookup_query(isgl_id))
+        result = self.get_collection().delete_one(self._isgl_lookup_query(isgl_id))
+        invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def get_subpanels_for_asp(
         self, asp_names: list[str], is_public: bool | None = None, adhoc: bool | None = None

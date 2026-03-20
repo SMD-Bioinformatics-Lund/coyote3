@@ -14,6 +14,7 @@ class _RuntimeApp:
 
     config: dict[str, Any]
     logger: logging.Logger
+    cache: Any | None = None
 
 
 app = _RuntimeApp(config={}, logger=logging.getLogger("api.runtime"))
@@ -25,6 +26,7 @@ def bind_runtime_context(runtime_context) -> None:
     """Bind runtime config/logger from API bootstrap context."""
     app.config = dict(runtime_context.config)
     app.logger = runtime_context.logger
+    app.cache = getattr(runtime_context, "cache", None)
 
 
 def flash(message: str, category: str = "info") -> None:

@@ -2,11 +2,61 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from api.extensions import store
 
 
 class MongoDashboardRepository:
     """Provide mongo dashboard persistence operations."""
+
+    @staticmethod
+    def _dashboard_metrics_collection():
+        """Return collection used for persisted dashboard snapshots."""
+        coyote_db = getattr(store, "coyote_db", None)
+        if coyote_db is None:
+            return None
+        return coyote_db["dashboard_metrics"]
+
+    def read_dashboard_summary_snapshot(
+        self, *, scope_key: str, max_age_seconds: int
+    ) -> dict | None:
+        """Read persisted summary snapshot when fresh enough."""
+        collection = self._dashboard_metrics_collection()
+        if collection is None:
+            return None
+        doc = collection.find_one(
+            {"_id": f"dashboard_summary_v2:{scope_key}"},
+            {"payload": 1, "updated_at": 1},
+        )
+        if not isinstance(doc, dict):
+            return None
+        payload = doc.get("payload")
+        updated_at = doc.get("updated_at")
+        if not isinstance(payload, dict) or not isinstance(updated_at, datetime):
+            return None
+        if updated_at.tzinfo is None:
+            updated_at = updated_at.replace(tzinfo=timezone.utc)
+        age_seconds = (datetime.now(timezone.utc) - updated_at).total_seconds()
+        if age_seconds > int(max_age_seconds):
+            return None
+        return dict(payload)
+
+    def write_dashboard_summary_snapshot(self, *, scope_key: str, payload: dict) -> None:
+        """Persist summary snapshot payload."""
+        collection = self._dashboard_metrics_collection()
+        if collection is None:
+            return
+        collection.update_one(
+            {"_id": f"dashboard_summary_v2:{scope_key}"},
+            {
+                "$set": {
+                    "payload": dict(payload),
+                    "updated_at": datetime.now(timezone.utc),
+                }
+            },
+            upsert=True,
+        )
 
     def count_users(self) -> int:
         """Count users.

@@ -14,6 +14,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 import re
 from datetime import datetime, timezone
 
+from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.db.base import BaseHandler
 from api.runtime import flash
 
@@ -149,6 +150,7 @@ class UsersHandler(BaseHandler):
             self._identity_query(normalized),
             {"$set": {"password": password_hash}},
         ):
+            invalidate_dashboard_summary_cache(self.adapter)
             flash("Password updated", "green")
         else:
             flash("Failed to update password", "red")
@@ -181,7 +183,9 @@ class UsersHandler(BaseHandler):
             None
         """
         payload = self.ensure_username(dict(user_data))
-        return self.get_collection().insert_one(payload)
+        result = self.get_collection().insert_one(payload)
+        invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def get_all_users(self) -> list:
         """
@@ -373,7 +377,9 @@ class UsersHandler(BaseHandler):
             None
         """
         normalized = self._normalize_user_id(user_id)
-        return self.get_collection().delete_one(self._identity_query(normalized))
+        result = self.get_collection().delete_one(self._identity_query(normalized))
+        invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def update_user(self, user_id, user_data) -> None:
         """
@@ -390,7 +396,9 @@ class UsersHandler(BaseHandler):
         if not existing:
             return None
         payload["_id"] = existing["_id"]
-        return self.get_collection().replace_one({"_id": existing["_id"]}, payload)
+        result = self.get_collection().replace_one({"_id": existing["_id"]}, payload)
+        invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def update_user_last_login(self, user_id: str):
         """
@@ -419,6 +427,7 @@ class UsersHandler(BaseHandler):
             self._identity_query(normalized),
             {"$set": {"is_active": active_status}},
         )
+        invalidate_dashboard_summary_cache(self.adapter)
         return bool(getattr(result, "modified_count", 0) or getattr(result, "matched_count", 0))
 
     def set_password_action_token(

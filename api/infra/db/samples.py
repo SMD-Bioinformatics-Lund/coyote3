@@ -16,6 +16,7 @@ from typing import Any
 
 from bson.objectid import ObjectId
 
+from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.db.base import BaseHandler
 from api.runtime import current_username
 from api.utils.common_utility import CommonUtility
@@ -337,6 +338,7 @@ class SampleHandler(BaseHandler):
             {"_id": ObjectId(sample_id)},
             {"$set": {"filters": default_filters}},
         )
+        invalidate_dashboard_summary_cache(self.adapter)
 
     def update_sample_filters(self, sample_id: str, filters: dict) -> None:
         """
@@ -355,12 +357,15 @@ class SampleHandler(BaseHandler):
             {"_id": ObjectId(sample_id)},
             {"$set": {"filters": filters}},
         )
+        invalidate_dashboard_summary_cache(self.adapter)
 
     def update_sample(self, sample_id: ObjectId, sample_doc: dict) -> None:
         """
         Update sample document
         """
-        return self.get_collection().replace_one({"_id": sample_id}, sample_doc)
+        result = self.get_collection().replace_one({"_id": sample_id}, sample_doc)
+        invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def add_sample_comment(self, sample_id: str, comment_doc: dict) -> None:
         """
@@ -719,7 +724,9 @@ class SampleHandler(BaseHandler):
         Returns:
             None
         """
-        return self.get_collection().delete_one({"_id": ObjectId(sample_oid)})
+        result = self.get_collection().delete_one({"_id": ObjectId(sample_oid)})
+        invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def save_report(
         self, sample_id: str, report_num: int, report_id: str, filepath: str
@@ -756,6 +763,7 @@ class SampleHandler(BaseHandler):
             },
         )
         if result.acknowledged and result.matched_count > 0:
+            invalidate_dashboard_summary_cache(self.adapter)
             return report_oid
         return None
 

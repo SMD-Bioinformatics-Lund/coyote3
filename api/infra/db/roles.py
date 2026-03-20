@@ -14,6 +14,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 import re
 from typing import Any
 
+from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.db.base import BaseHandler
 
 
@@ -184,6 +185,7 @@ class RolesHandler(BaseHandler):
         """
         payload = self.ensure_role_id(dict(role_data))
         self.get_collection().insert_one(payload)
+        invalidate_dashboard_summary_cache(self.adapter)
 
     def update_role(self, role_id: str, role_data: dict) -> dict:
         """
@@ -200,6 +202,7 @@ class RolesHandler(BaseHandler):
         """
         payload = self.ensure_role_id(dict(role_data))
         self.get_collection().update_one(self._role_lookup_query(role_id), {"$set": payload})
+        invalidate_dashboard_summary_cache(self.adapter)
         return self.get_role(role_id)
 
     def get_role(self, role_id: str) -> dict:
@@ -232,6 +235,7 @@ class RolesHandler(BaseHandler):
             Any: The result of the delete operation.
         """
         self.get_collection().delete_one(self._role_lookup_query(role_id))
+        invalidate_dashboard_summary_cache(self.adapter)
 
     def toggle_role_active(self, role_id: str, active_status: bool) -> Any:
         """
@@ -246,10 +250,12 @@ class RolesHandler(BaseHandler):
         Returns:
             Any: The result of the update operation.
         """
-        return self.get_collection().update_one(
+        result = self.get_collection().update_one(
             self._role_lookup_query(role_id),
             {"$set": {"is_active": active_status}},
         )
+        invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def get_all_roles_plus_permissions(self) -> list:
         """

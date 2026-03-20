@@ -15,6 +15,7 @@ It is part of the `coyote.db` package and extends the base handler functionality
 import re
 from typing import Any
 
+from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.db.base import BaseHandler
 
 
@@ -242,7 +243,9 @@ class ASPHandler(BaseHandler):
             Any: The result of the insert operation, typically an instance of
             `pymongo.results.InsertOneResult` that includes the ID of the inserted document.
         """
-        return self.get_collection().insert_one(self.ensure_asp_id(dict(data)))
+        result = self.get_collection().insert_one(self.ensure_asp_id(dict(data)))
+        invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def update_asp(self, asp_id, asp_data) -> None:
         """
@@ -253,9 +256,11 @@ class ASPHandler(BaseHandler):
         Returns:
             None
         """
-        return self.get_collection().replace_one(
+        result = self.get_collection().replace_one(
             self._asp_lookup_query(asp_id), self.ensure_asp_id(dict(asp_data))
         )
+        invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def toggle_asp_active(self, asp_id: str, active_status: bool) -> bool:
         """
@@ -271,9 +276,11 @@ class ASPHandler(BaseHandler):
         Returns:
             bool: True if the update was successful, False otherwise.
         """
-        return self.get_collection().update_one(
+        result = self.get_collection().update_one(
             self._asp_lookup_query(asp_id), {"$set": {"is_active": active_status}}
         )
+        invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def delete_asp(self, asp_id: str) -> None:
         """
@@ -289,6 +296,7 @@ class ASPHandler(BaseHandler):
             None
         """
         self.get_collection().delete_one(self._asp_lookup_query(asp_id))
+        invalidate_dashboard_summary_cache(self.adapter)
 
     def get_all_asps_unique_gene_count(self) -> int:
         """

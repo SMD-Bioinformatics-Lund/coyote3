@@ -20,6 +20,7 @@ from api.core.dna.variant_identity import (
     ensure_variant_identity_fields,
     normalize_simple_id,
 )
+from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.db.base import BaseHandler
 
 
@@ -141,6 +142,7 @@ class VariantsHandler(BaseHandler):
         self._dashboard_metrics_collection().delete_many(
             {"_id": {"$in": ["variant_rollup_v1", "variant_unique_quality_v1"]}}
         )
+        invalidate_dashboard_summary_cache(self.adapter)
 
     def _read_persisted_metric(
         self, metric_key: str, max_age_seconds: int | None = None

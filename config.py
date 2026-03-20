@@ -123,6 +123,12 @@ class DefaultConfig:
     CACHE_REDIS_URL = os.getenv("CACHE_REDIS_URL", "redis://localhost:6379/0")
     CACHE_REDIS_CONNECT_TIMEOUT = float(os.getenv("CACHE_REDIS_CONNECT_TIMEOUT", "1.0"))
     CACHE_REDIS_SOCKET_TIMEOUT = float(os.getenv("CACHE_REDIS_SOCKET_TIMEOUT", "1.0"))
+    DASHBOARD_SUMMARY_CACHE_TTL_SECONDS = int(
+        os.getenv("DASHBOARD_SUMMARY_CACHE_TTL_SECONDS", "60")
+    )
+    DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS = int(
+        os.getenv("DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS", "300")
+    )
 
     # Fernet key for encrypting sensitive data in reports.
     FERNET = _load_fernet()
@@ -140,6 +146,7 @@ class DefaultConfig:
     PASSWORD_TOKEN_SALT = os.getenv("PASSWORD_TOKEN_SALT", "coyote3-password-token-v1")
     PASSWORD_TOKEN_TTL_SECONDS = int(os.getenv("PASSWORD_TOKEN_TTL_SECONDS", str(60 * 60)))
     WEB_APP_BASE_URL = os.getenv("WEB_APP_BASE_URL", "")
+    HELP_CENTER_URL = os.getenv("HELP_CENTER_URL", "")
     SMTP_HOST = os.getenv("SMTP_HOST", "")
     SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
     SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")

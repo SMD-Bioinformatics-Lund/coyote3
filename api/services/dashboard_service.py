@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from time import perf_counter
 from typing import Any
 
 from api.extensions import util
 from api.repositories.dashboard_repository import DashboardRepository as MongoDashboardRepository
+from api.runtime import app as runtime_app
 
 
 class DashboardService:
@@ -19,6 +22,51 @@ class DashboardService:
                 repository: Repository. Optional argument.
         """
         self.repository = repository or MongoDashboardRepository()
+
+    @staticmethod
+    def _cache_backend():
+        """Return runtime cache backend when available."""
+        return getattr(runtime_app, "cache", None)
+
+    @staticmethod
+    def _cache_version_token() -> str:
+        """Resolve dashboard cache version token."""
+        cache = DashboardService._cache_backend()
+        if cache is None:
+            return "0"
+        token = cache.get("dashboard:summary:version")
+        if token is None:
+            return "0"
+        return str(token)
+
+    @staticmethod
+    def _summary_scope_key(*, user, scope_assays: list[str] | None) -> str:
+        """Build stable scope key for dashboard summary cache/snapshots."""
+        payload = {
+            "username": str(getattr(user, "username", "") or ""),
+            "role": str(getattr(user, "role", "") or ""),
+            "assays": sorted(scope_assays) if isinstance(scope_assays, list) else None,
+        }
+        raw = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha1(raw.encode("utf-8")).hexdigest()  # noqa: S324
+
+    @staticmethod
+    def _cache_ttl_seconds() -> int:
+        """Return Redis summary TTL."""
+        return int(runtime_app.config.get("DASHBOARD_SUMMARY_CACHE_TTL_SECONDS", 60) or 60)
+
+    @staticmethod
+    def _snapshot_max_age_seconds() -> int:
+        """Return persisted summary staleness threshold."""
+        return int(runtime_app.config.get("DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS", 300) or 300)
+
+    @staticmethod
+    def _set_cache_meta(payload: dict[str, Any], *, source: str, hit: bool) -> dict[str, Any]:
+        """Annotate payload meta with cache source info."""
+        meta = payload.setdefault("dashboard_meta", {})
+        meta["cache_source"] = source
+        meta["cache_hit"] = bool(hit)
+        return payload
 
     def build_capacity_counts(self) -> dict[str, int]:
         """Build capacity counts.
@@ -186,6 +234,27 @@ class DashboardService:
         timings_ms: dict[str, float] = {}
         api_start = perf_counter()
         scope_assays = self.resolve_scope_assays(user=user)
+        scope_key = self._summary_scope_key(user=user, scope_assays=scope_assays)
+        cache_key = f"dashboard:summary:v2:{self._cache_version_token()}:{scope_key}"
+        cache_ttl = self._cache_ttl_seconds()
+        snapshot_max_age = self._snapshot_max_age_seconds()
+
+        cache = self._cache_backend()
+        if cache is not None:
+            cached_payload = cache.get(cache_key)
+            if isinstance(cached_payload, dict):
+                return self._set_cache_meta(dict(cached_payload), source="redis", hit=True)
+
+        snapshot_reader = getattr(self.repository, "read_dashboard_summary_snapshot", None)
+        snapshot_payload = (
+            snapshot_reader(scope_key=scope_key, max_age_seconds=snapshot_max_age)
+            if callable(snapshot_reader)
+            else None
+        )
+        if isinstance(snapshot_payload, dict):
+            if cache is not None:
+                cache.set(cache_key, snapshot_payload, timeout=cache_ttl)
+            return self._set_cache_meta(dict(snapshot_payload), source="mongo_snapshot", hit=False)
 
         def _timed(name: str, fn):
             """Timed.
@@ -285,4 +354,10 @@ class DashboardService:
         }
         if str(user.role or "").strip().lower() == "admin":
             payload["admin_insights"] = _timed("admin_insights", self.build_admin_insights)
+        self._set_cache_meta(payload, source="recomputed", hit=False)
+        if cache is not None:
+            cache.set(cache_key, payload, timeout=cache_ttl)
+        snapshot_writer = getattr(self.repository, "write_dashboard_summary_snapshot", None)
+        if callable(snapshot_writer):
+            snapshot_writer(scope_key=scope_key, payload=payload)
         return payload

@@ -186,3 +186,13 @@ class DashboardRepository(Protocol):
             dict: The function result.
         """
         ...
+
+    def read_dashboard_summary_snapshot(
+        self, *, scope_key: str, max_age_seconds: int
+    ) -> dict | None:
+        """Read persisted dashboard summary snapshot when fresh enough."""
+        ...
+
+    def write_dashboard_summary_snapshot(self, *, scope_key: str, payload: dict) -> None:
+        """Persist dashboard summary snapshot payload."""
+        ...

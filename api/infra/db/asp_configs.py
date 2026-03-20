@@ -16,6 +16,7 @@ from typing import Any
 
 from pymongo import cursor
 
+from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.infra.db.base import BaseHandler
 
 
@@ -207,9 +208,11 @@ class ASPConfigHandler(BaseHandler):
         Returns:
             Any: The result of the update operation, typically a `pymongo.results.UpdateResult` object.
         """
-        return self.get_collection().update_one(
+        result = self.get_collection().update_one(
             self._aspc_lookup_query(aspc_id), {"$set": self.ensure_aspc_id(data)}
         )
+        invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def create_aspc(self, data: dict) -> Any:
         """
@@ -221,7 +224,9 @@ class ASPConfigHandler(BaseHandler):
         Returns:
             Any: The result of the insert operation, typically a `pymongo.results.InsertOneResult` object.
         """
-        return self.get_collection().insert_one(self.ensure_aspc_id(dict(data)))
+        result = self.get_collection().insert_one(self.ensure_aspc_id(dict(data)))
+        invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def delete_aspc(self, assay_id: str) -> Any:
         """
@@ -233,7 +238,9 @@ class ASPConfigHandler(BaseHandler):
         Returns:
             Any: The result of the delete operation, typically a `pymongo.results.DeleteResult` object.
         """
-        return self.get_collection().delete_one(self._aspc_lookup_query(assay_id))
+        result = self.get_collection().delete_one(self._aspc_lookup_query(assay_id))
+        invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def toggle_aspc_active(self, aspc_id: str, active_status: bool) -> bool:
         """
@@ -246,10 +253,12 @@ class ASPConfigHandler(BaseHandler):
         Returns:
             bool: True if the update was successful, False otherwise.
         """
-        return self.get_collection().update_one(
+        result = self.get_collection().update_one(
             self._aspc_lookup_query(aspc_id),
             {"$set": {"is_active": active_status}},
         )
+        invalidate_dashboard_summary_cache(self.adapter)
+        return result
 
     def get_all_assay_names(self, is_active: bool | None = None) -> dict:
         """
