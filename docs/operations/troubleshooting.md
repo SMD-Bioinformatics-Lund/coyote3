@@ -59,3 +59,26 @@ Action:
 
 - ensure workflow creates or templates required env files before `docker compose config -q`
 - keep `deploy/env/example.*.env` synchronized with actual required keys
+
+## Dashboard metrics collection growth
+
+Symptom:
+
+- `dashboard_metrics` collection grows continuously
+
+Checks:
+
+1. Confirm `DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS` is set to a positive value.
+2. Verify TTL index exists on `updated_at`:
+
+```javascript
+db.dashboard_metrics.getIndexes().filter(i => i.name === "updated_at_ttl_1")
+```
+
+3. Confirm `updated_at` is being set on snapshot writes.
+4. Remember Mongo TTL cleanup runs asynchronously (not immediate at exact second).
+
+Action:
+
+- If index missing, restart API once after config update so index bootstrap runs.
+- If retention should be longer/shorter, tune `DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS`.

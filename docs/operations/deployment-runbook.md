@@ -64,7 +64,7 @@ docker compose --env-file .coyote3_env -f deploy/compose/docker-compose.yml ps r
 grep -E '^API_WORKERS=' .coyote3_env
 
 # Verify dashboard cache tuning values
-grep -E '^DASHBOARD_SUMMARY_(CACHE_TTL_SECONDS|SNAPSHOT_MAX_AGE_SECONDS)=' .coyote3_env
+grep -E '^DASHBOARD_SUMMARY_(CACHE_TTL_SECONDS|SNAPSHOT_MAX_AGE_SECONDS|SNAPSHOT_TTL_SECONDS)=' .coyote3_env
 ```
 
 Notes:
@@ -72,6 +72,17 @@ Notes:
 - Redis image is pinned (`redis:7.4.3`) across compose stacks.
 - API process concurrency is controlled by `API_WORKERS` in non-dev stacks.
 - MkDocs is rebuilt at image build time and served by a dedicated docs container.
+- Dashboard snapshot retention is enforced by Mongo TTL on `dashboard_metrics.updated_at`.
+
+Mongo TTL verification (run in Mongo shell):
+
+```javascript
+db.dashboard_metrics.getIndexes().filter(i => i.name === "updated_at_ttl_1")
+```
+
+Expected:
+
+- `expireAfterSeconds` equals `DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS`.
 
 Smoke tests:
 

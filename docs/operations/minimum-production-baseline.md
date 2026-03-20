@@ -19,6 +19,7 @@ This is the minimum baseline for a production-grade Coyote3 deployment.
 - Dedicated Mongo instance for prod
 - Auth enabled with least-privilege app user
 - Daily backup and restore rehearsal
+- TTL retention configured for transient operational collections (for example `dashboard_metrics`)
 
 ## Observability
 
