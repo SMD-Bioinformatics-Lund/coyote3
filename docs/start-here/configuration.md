@@ -77,6 +77,27 @@ Operational behavior:
 - Dashboard summary uses a two-layer cache: Redis (hot) + Mongo `dashboard_metrics` snapshot (warm).
 - Snapshot retention is enforced by a Mongo TTL index on `dashboard_metrics.updated_at`.
 
+Dashboard summary cache controls (different purposes):
+
+- `DASHBOARD_SUMMARY_CACHE_TTL_SECONDS`
+  Fast Redis cache lifetime for summary payload reuse.
+- `DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS`
+  Freshness threshold for reusing Mongo snapshot payloads before recomputing.
+- `DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS`
+  Mongo TTL retention window for physical deletion of old snapshot documents.
+
+Recommended relationship:
+
+- `DASHBOARD_SUMMARY_CACHE_TTL_SECONDS < DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS <= DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS`
+
+Example (valid dev profile):
+
+```env
+DASHBOARD_SUMMARY_CACHE_TTL_SECONDS='30'
+DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS='120'
+DASHBOARD_SUMMARY_SNAPSHOT_TTL_SECONDS='300'
+```
+
 Image/version policy:
 
 - Compose stacks pin Redis to `redis:7.4.3` (no floating `latest` tag).
