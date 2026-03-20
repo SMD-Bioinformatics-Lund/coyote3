@@ -604,7 +604,7 @@ def register_blueprints(app) -> None:
 
     app.register_blueprint(public_bp, url_prefix="/public")
 
-    # register docs bp
+    # register docs metadata bp (about/changelog/license)
     bp_debug_msg("docs_bp")
     from coyote.blueprints.docs import docs_bp
 
