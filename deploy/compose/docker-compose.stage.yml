@@ -27,6 +27,7 @@ services:
       - CACHE_REQUIRED=1
       - API_BASE_URL=http://coyote3_stage_api:8001
       - API_BROWSER_BASE=/api
+      - HELP_CENTER_URL=${HELP_CENTER_URL:-}
       - TZ=Europe/Stockholm
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
@@ -45,6 +46,22 @@ services:
     depends_on:
       coyote3_stage_api:
         condition: service_healthy
+
+  coyote3_stage_docs:
+    container_name: coyote3_stage_docs_${COYOTE3_VERSION:-local}
+    image: coyote3-docs:${COYOTE3_VERSION:-local}
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.docs
+      network: host
+    ports:
+      - "${COYOTE3_STAGE_DOCS_PORT:-8809}:8080"
+    restart: always
+    dns:
+      - ${APP_DNS:-1.1.1.1}
+      - 8.8.8.8
+    networks:
+      - coyote3-stage-net
 
   coyote3_stage_api:
     container_name: coyote3_stage_api_${COYOTE3_VERSION:-local}

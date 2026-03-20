@@ -9,9 +9,13 @@ Flask blueprints define the UI domains under `coyote/blueprints/`:
 - `rna`: fusion views and RNA reports
 - `coverage`: coverage pages
 - `admin`: users, roles, permissions, schemas, assay configs, audit
-- `docs`: in-app documentation pages
 - `public`: public/catalog views
 - `userprofile`: current-user profile pages
+
+Help surface:
+
+- Primary user Help: `HELP_CENTER_URL` (standalone docs container)
+- UI links do not serve docs internally; they open the standalone docs endpoint
 
 ## Typical user journey (DNA case)
 

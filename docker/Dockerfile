@@ -14,7 +14,18 @@ COPY coyote/blueprints ./coyote/blueprints
 
 RUN npm install && npm run build:css
 
-# Stage 2: App Build
+# Stage 2: MkDocs static site build
+FROM python:3.12.0-slim-bullseye AS mkdocs_builder
+
+WORKDIR /app
+
+COPY requirements-docs.txt mkdocs.yml ./
+RUN pip install --no-cache-dir -r requirements-docs.txt
+
+COPY docs/ ./docs/
+RUN mkdocs build --strict
+
+# Stage 3: App Build
 FROM python:3.12.0-slim-bullseye as coyote3_app
 
 LABEL base_image="python:3.12-slim"
@@ -62,6 +73,7 @@ COPY api/ ./api/
 COPY shared/ ./shared/
 COPY docs/ ./docs/
 COPY CHANGELOG.md README.md LICENSE.txt ./
+COPY --from=mkdocs_builder /app/site/ /app/site/
 
 # Copy pre-built Tailwind output into runtime image
 COPY --from=tailwind_builder /app/coyote/static/css/tailwind.css /app/coyote/static/css/tailwind.css

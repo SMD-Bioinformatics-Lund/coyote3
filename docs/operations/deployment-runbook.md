@@ -47,6 +47,32 @@ export BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 curl -f "http://${COYOTE3_HOST:-localhost}:${COYOTE3_API_PORT:-5818}/api/v1/health"
 ```
 
+Docs/help checks (standalone docs container):
+
+```bash
+curl -f "${HELP_CENTER_URL:-http://localhost:5821/}"
+curl -f "${HELP_CENTER_URL:-http://localhost:5821/}operations/deployment-runbook/"
+```
+
+Cache/runtime checks:
+
+```bash
+# Verify Redis service is running (compose-managed stacks)
+docker compose --env-file .coyote3_env -f deploy/compose/docker-compose.yml ps redis_coyote3
+
+# Verify API worker count setting (from env)
+grep -E '^API_WORKERS=' .coyote3_env
+
+# Verify dashboard cache tuning values
+grep -E '^DASHBOARD_SUMMARY_(CACHE_TTL_SECONDS|SNAPSHOT_MAX_AGE_SECONDS)=' .coyote3_env
+```
+
+Notes:
+
+- Redis image is pinned (`redis:7.4.3`) across compose stacks.
+- API process concurrency is controlled by `API_WORKERS` in non-dev stacks.
+- MkDocs is rebuilt at image build time and served by a dedicated docs container.
+
 Smoke tests:
 
 ```bash

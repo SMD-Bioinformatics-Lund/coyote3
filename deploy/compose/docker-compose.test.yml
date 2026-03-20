@@ -65,6 +65,7 @@ services:
       - CACHE_REQUIRED=1
       - API_BASE_URL=http://coyote3_test_api:8001
       - API_BROWSER_BASE=/api
+      - HELP_CENTER_URL=${HELP_CENTER_URL:-}
       - TZ=Europe/Stockholm
       - GIT_COMMIT=${GIT_COMMIT:-unknown}
       - BUILD_TIME=${BUILD_TIME:-unknown}
@@ -76,6 +77,23 @@ services:
     depends_on:
       coyote3_test_api:
         condition: service_healthy
+
+  coyote3_test_docs:
+    container_name: coyote3_test_docs_${COYOTE3_VERSION:-local}
+    image: coyote3-docs:${COYOTE3_VERSION:-local}-test
+    profiles: ["with-ui"]
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.docs
+      network: host
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+    ports:
+      - "${COYOTE3_TEST_DOCS_PORT:-6815}:8080"
+    restart: always
+    networks:
+      - coyote3-test-net
 
   coyote3_test_runner:
     container_name: coyote3_test_runner_${COYOTE3_VERSION:-local}

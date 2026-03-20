@@ -25,12 +25,15 @@ This is the minimum baseline for a production-grade Coyote3 deployment.
 - Centralized logs for web/api containers
 - Health check and alerting for API endpoint and container restarts
 - Track ingestion failures and auth/permission errors
+- Dashboard coverage for `auth_metric` and `mail_metric` signals
+- SLO alerting for login success and mail delivery health
 
 ## Release safety
 
 - Run preflight and compose render before deploy
 - Run smoke tests after deploy
 - Keep rollback path to previous image/version
+- Keep standalone docs endpoint available for troubleshooting during app outages
 
 ## Data governance
 

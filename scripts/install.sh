@@ -93,4 +93,5 @@ echo "Services: $SERVICES"
 # Final message
 echo "Deployment Complete!"
 echo "UI:  https://mtlucmds1.lund.skane.se/coyote3"
-echo "API: http://mtlucmds1.lund.skane.se:5816"
+echo "DOC: http://mtlucmds1.lund.skane.se:5821"
+echo "API: http://mtlucmds1.lund.skane.se:5818"

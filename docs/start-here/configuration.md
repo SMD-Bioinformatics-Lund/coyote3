@@ -21,12 +21,12 @@ runtime env file shape, so centers can copy and fill values without guessing.
 
 Use these non-overlapping ranges by default:
 
-| Environment | Web | API | Redis | Mongo |
-| --- | --- | --- | --- | --- |
-| `prod` (`.coyote3_env`) | `5816` | `5818` | `5819` | `5820` |
-| `stage` (`.coyote3_stage_env`) | `8805` | `8806` | `8807` | `8808` |
-| `dev` (`.coyote3_dev_env`) | `6801` | `6802` | `6803` | `6804` |
-| `test` (`.coyote3_test_env`) | `6811` | `6812` | `6813` | `6814` |
+| Environment | Web | Docs | API | Redis | Mongo |
+| --- | --- | --- | --- | --- | --- |
+| `prod` (`.coyote3_env`) | `5816` | `5821` | `5818` | `5819` | `5820` |
+| `stage` (`.coyote3_stage_env`) | `8805` | `8809` | `8806` | `8807` | `8808` |
+| `dev` (`.coyote3_dev_env`) | `6801` | `6805` | `6802` | `6803` | `6804` |
+| `test` (`.coyote3_test_env`) | `6811` | `6815` | `6812` | `6813` | `6814` |
 
 ## Critical variables
 
@@ -45,13 +45,21 @@ Core runtime:
 - `COYOTE3_DB`
 - `MONGO_URI`
 - port vars for your target profile (`COYOTE3_*_WEB_PORT`, `COYOTE3_*_API_PORT`, `COYOTE3_*_REDIS_PORT`, `COYOTE3_*_MONGO_PORT`)
+- docs endpoint vars (`COYOTE3_*_DOCS_PORT`, `HELP_CENTER_URL`)
 - `API_WORKERS` (non-dev API worker count for uvicorn)
 - `CACHE_REDIS_URL` (Redis endpoint for API/UI cache backends)
 - `CACHE_ENABLED` (`1` enables cache backend initialization)
 - `CACHE_REQUIRED` (`1` fail-fast if Redis is unavailable; `0` degrade to no-op cache)
 - `CACHE_REDIS_CONNECT_TIMEOUT`, `CACHE_REDIS_SOCKET_TIMEOUT` (seconds)
+- `DASHBOARD_SUMMARY_CACHE_TTL_SECONDS` (Redis summary cache TTL)
+- `DASHBOARD_SUMMARY_SNAPSHOT_MAX_AGE_SECONDS` (max age for persisted dashboard snapshot reuse)
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM_EMAIL`, `SMTP_USE_TLS`, `SMTP_USE_SSL`
 - `WEB_APP_BASE_URL` (required for invite/reset links)
+
+Help/docs URL model:
+
+- `HELP_CENTER_URL`: primary URL for standalone docs container.
+- UI does not serve docs pages directly; all help/docs links should point to `HELP_CENTER_URL`.
 
 ## Redis cache model
 
@@ -65,6 +73,7 @@ Operational behavior:
 - `CACHE_REQUIRED=1`: startup fails when Redis cannot be reached (strict mode).
 - `CACHE_REQUIRED=0`: startup continues with disabled/no-op cache (degraded mode).
 - Cache backend is not an in-process memory cache replacement for production.
+- Dashboard summary uses a two-layer cache: Redis (hot) + Mongo `dashboard_metrics` snapshot (warm).
 
 Image/version policy:
 
