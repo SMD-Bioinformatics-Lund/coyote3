@@ -43,7 +43,7 @@ class MongoAdminSampleDeletionRepository:
         """
         return store.cnv_handler.delete_sample_cnvs(sample_id)
 
-    def delete_sample_coverage(self, sample_id: str) -> Any:
+    def delete_sample_panel_coverage(self, sample_id: str) -> Any:
         """Delete sample coverage.
 
         Args:
@@ -53,17 +53,6 @@ class MongoAdminSampleDeletionRepository:
             Any: The function result.
         """
         return store.coverage_handler.delete_sample_coverage(sample_id)
-
-    def delete_sample_panel_coverage(self, sample_id: str) -> Any:
-        """Delete sample panel coverage.
-
-        Args:
-            sample_id (str): Value for ``sample_id``.
-
-        Returns:
-            Any: The function result.
-        """
-        return store.coverage2_handler.delete_sample_coverage(sample_id)
 
     def delete_sample_translocs(self, sample_id: str) -> Any:
         """Delete sample translocs.

@@ -1322,8 +1322,7 @@ class DependentWriter:
             "cnvs": "cnvs",
             "biomarkers": "biomarkers",
             "transloc": "transloc",
-            "lowcov": "coverage",
-            "cov": "panel_cov",
+            "cov": "panel_coverage",
             "fusions": "fusions",
             "rna_expr": "rna_expression",
             "rna_class": "rna_classification",
@@ -1493,7 +1492,7 @@ def cleanup_on_error(repos: Repos, sample_id: ObjectId) -> Generator[None, Any, 
         - Logs an error message indicating the failure of ingestion and the initiation
         of cleanup.
         - Iterates through a predefined list of database collections (`variants`, `cnvs`,
-        `biomarkers`, `transloc`, `coverage`, `panel_cov`, `fusions`) and deletes all
+        `biomarkers`, `transloc`, `panel_coverage`, `fusions`) and deletes all
         entries associated with the `sample_id`.
         - Deletes the sample entry from the `samples` collection.
         - Suppresses any exceptions that occur during the cleanup process to ensure
@@ -1509,8 +1508,7 @@ def cleanup_on_error(repos: Repos, sample_id: ObjectId) -> Generator[None, Any, 
             "cnvs",
             "biomarkers",
             "transloc",
-            "coverage",
-            "panel_cov",
+            "panel_coverage",
             "fusions",
             "rna_expression",
             "rna_classification",

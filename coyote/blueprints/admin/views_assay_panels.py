@@ -133,11 +133,9 @@ def create_assay_panel():
         The rendered form on ``GET`` or a redirect response after ``POST``.
     """
     try:
-        selected_schema_id = request.args.get("schema_id")
         context = get_web_api_client().get_json(
             api_endpoints.admin("asp", "create_context"),
             headers=forward_headers(),
-            params={"schema_id": selected_schema_id} if selected_schema_id else None,
         )
     except ApiRequestError as exc:
         raise_page_load_error(
@@ -184,8 +182,6 @@ def create_assay_panel():
     return render_template(
         "asp/create_asp.html",
         schema=context.schema,
-        schemas=context.schemas,
-        selected_schema=context.selected_schema,
     )
 
 

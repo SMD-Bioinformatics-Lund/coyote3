@@ -21,7 +21,7 @@ assay_specific_panels (asp) ----+
 asp_configs (aspc) ------------ +              \-> cnvs
                                                \-> translocations
 insilico_genelists (isgl) ----> sample.filters \-> fusions
-                                               \-> panel_cov / coverage
+                                               \-> panel_coverage
                                                \-> rna_expression / rna_classification / rna_qc
 ```
 

@@ -18,7 +18,7 @@ If these layers are aligned, users get correct gene scopes, filters, report sect
 - `variants` -> `variants` (DNA SNVs/indels)
 - `cnvs` -> `cnvs` (DNA CNV findings)
 - `fusions` -> `fusions` (RNA fusion findings)
-- `cov` / panel coverage -> `panel_cov` (and `coverage` where used)
+- `cov` / panel coverage -> `panel_coverage`
 
 ## Core relationship model
 
@@ -48,7 +48,7 @@ ISGL (insilico_genelists)
 sample-bundle ingest
   -> create samples document (primary anchor)
   -> write dependents with SAMPLE_ID = samples._id:
-       variants, cnvs, panel_cov, fusions, rna_expression, rna_classification, rna_qc, ...
+       variants, cnvs, panel_coverage, fusions, rna_expression, rna_classification, rna_qc, ...
 
 UI/API read path
   sample.assay + sample.profile -> ASPC
@@ -96,7 +96,7 @@ Input files/YAML
 | `variants` | DNA SNV/indel findings with normalized identity | Linked by `SAMPLE_ID` |
 | `cnvs` | DNA CNV findings | Linked by `SAMPLE_ID` |
 | `fusions` | RNA fusion findings | Linked by `SAMPLE_ID` |
-| `panel_cov` / `coverage` | Coverage data for low coverage and gene-level coverage views | Linked by `SAMPLE_ID` |
+| `panel_coverage` | Coverage data for low coverage and gene-level coverage views | Linked by `SAMPLE_ID` |
 | `rna_expression` / `rna_classification` / `rna_qc` | RNA side analysis sections shown with RNA workflows | Linked by `SAMPLE_ID` |
 | `reported_variants` | Snapshot rows of report output for traceability and fast report reopen | Linked to sample/report lifecycle |
 

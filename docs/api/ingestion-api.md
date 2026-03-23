@@ -25,7 +25,7 @@ export API_BASE_URL="http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:
 export API_BEARER_TOKEN="<YOUR_API_BEARER_TOKEN>"
 
 # Option B: login via CLI helper
-.venv/bin/python scripts/api_login.py \
+${PYTHON_BIN:-python} scripts/api_login.py \
   --base-url "${API_BASE_URL}" \
   --mode password \
   --username "admin@your-center.org" \
@@ -58,7 +58,7 @@ Seed source policy for first-time center bootstrap:
 Validate assay consistency before ingesting sample bundles:
 
 ```bash
-.venv/bin/python scripts/validate_assay_consistency.py \
+${PYTHON_BIN:-python} scripts/validate_assay_consistency.py \
   --seed-file tests/fixtures/db_dummy/all_collections_dummy \
   --yaml tests/data/ingest_demo/generic_case_control.yaml
 ```
@@ -142,7 +142,7 @@ curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/sample-bundle" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<JSON
 {
-  "yaml_content": $(.venv/bin/python - <<'PY'
+  "yaml_content": $(${PYTHON_BIN:-python} - <<'PY'
 import json
 from pathlib import Path
 print(json.dumps(Path("tests/data/ingest_demo/generic_case_control.yaml").read_text(encoding="utf-8")))

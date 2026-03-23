@@ -51,7 +51,7 @@ class MongoCoverageRouteRepository:
         Returns:
             dict | None: The function result.
         """
-        return store.coverage2_handler.get_sample_coverage(sample_id)
+        return store.coverage_handler.get_sample_coverage(sample_id)
 
     def get_regions_per_group(self, group: str) -> list[dict]:
         """Return regions per group.

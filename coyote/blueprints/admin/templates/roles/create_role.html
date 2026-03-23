@@ -15,14 +15,6 @@
             <img src="{{ url_for('static', filename='icons/heroicons_outline_24/shield-check.svg') }}" class="h-6 w-6">
             Create New Role
           </h1>
-          <form method="GET" action="{{ url_for('admin_bp.create_role') }}">
-            <label class="text-sm font-semibold text-gray-800">Schema:</label>
-            <select name="schema_id" onchange="this.form.submit()" class="text-sm border border-gray-300 rounded-md shadow-sm px-2 py-1 bg-gray-50">
-              {% for s in schemas %}
-                <option value="{{ s.schema_id }}" {% if s.schema_id == selected_schema.schema_id %}selected{% endif %}>{{ s.schema_id }} (v{{ s.version }})</option>
-              {% endfor %}
-            </select>
-          </form>
         </div>
 
         <form method="POST" class="space-y-6 text-sm text-gray-700">

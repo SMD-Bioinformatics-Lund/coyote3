@@ -28,4 +28,4 @@ Contract rules:
   not Mongo Extended JSON wrappers such as `$date` / `$oid`.
 - Per-collection required/optional keys are generated from Pydantic contracts into
   `docs/api/collection-contracts.md` via:
-  - `PYTHONPATH=. .venv/bin/python scripts/export_collection_contracts_doc.py`
+  - `PYTHONPATH=. ${PYTHON_BIN:-python} scripts/export_collection_contracts_doc.py`

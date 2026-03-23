@@ -31,6 +31,15 @@ Validation test:
 PYTHONPATH=. python -m pytest -q tests/unit/test_db_dummy_fixture.py
 ```
 
+Contract integrity gate:
+
+```bash
+PYTHON_BIN="$(command -v python)" bash scripts/check_contract_integrity.sh
+```
+
+This gate validates seed shape, assay/ASP/ASPC/ISGL consistency, and
+regenerates contract documentation from backend models.
+
 ## Fixture maintenance rules
 
 1. Keep fixtures small

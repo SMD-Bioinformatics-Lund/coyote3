@@ -5,6 +5,8 @@
     "POS": 140453136,
     "REF": "A",
     "ALT": "T",
+    "ID": "VAR_DEMO_001",
+    "QUAL": 99.0,
     "FILTER": [
       "PASS"
     ],
@@ -18,18 +20,23 @@
         "Feature": "ENST00000288602",
         "HGNC_ID": "HGNC:3236",
         "SYMBOL": "EGFR",
-        "Consequence": "missense_variant",
+        "Consequence": [
+          "missense_variant"
+        ],
         "IMPACT": "MODERATE",
         "VARIANT_CLASS": "SNV",
         "HGVSc": "c.2573T>G",
         "HGVSp": "p.Leu858Arg"
       },
+      "selected_CSQ_criteria": "canonical+mane",
       "CSQ": [
         {
           "Feature": "ENST00000288602",
           "HGNC_ID": "HGNC:3236",
           "SYMBOL": "EGFR",
-          "Consequence": "missense_variant",
+          "Consequence": [
+            "missense_variant"
+          ],
           "IMPACT": "MODERATE",
           "VARIANT_CLASS": "SNV",
           "HGVSc": "c.2573T>G",
@@ -69,7 +76,7 @@
       "p.Leu858Arg"
     ],
     "simple_id": "7_140453136_A_T",
-    "simple_id_hash": "demo_hash_001",
+    "simple_id_hash": "4aa9ac62e43950e3daaa4a54c1a6bd4e",
     "variant_class": "SNV",
     "cosmic_ids": [
       "COSM6240"

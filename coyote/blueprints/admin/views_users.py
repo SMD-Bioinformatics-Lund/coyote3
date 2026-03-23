@@ -173,11 +173,9 @@ def create_user() -> Response | str:
         The rendered form on ``GET`` or a redirect response after ``POST``.
     """
     try:
-        selected_schema_id = request.args.get("schema_id")
         context = get_web_api_client().get_json(
             api_endpoints.admin("users", "create_context"),
             headers=forward_headers(),
-            params={"schema_id": selected_schema_id} if selected_schema_id else None,
         )
     except ApiRequestError as exc:
         raise_page_load_error(
@@ -196,10 +194,7 @@ def create_user() -> Response | str:
             payload = get_web_api_client().post_json(
                 api_endpoints.admin("users"),
                 headers=forward_headers(),
-                json_body={
-                    "schema_id": context.selected_schema.get("schema_id"),
-                    "form_data": form_data,
-                },
+                json_body={"form_data": form_data},
             )
             g.audit_metadata = {"user": payload.resource_id}
             flash_api_success("User created successfully.")
@@ -224,8 +219,6 @@ def create_user() -> Response | str:
     return render_template(
         "users/user_create.html",
         schema=context.schema,
-        schemas=context.schemas,
-        selected_schema=context.selected_schema,
         assay_group_map=context.assay_group_map,
         role_map=context.role_map,
     )

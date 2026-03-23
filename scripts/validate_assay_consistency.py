@@ -11,11 +11,17 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from pydantic import ValidationError
 
 # Ensure repo root is importable when running as `python scripts/...`.
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
+
+from api.contracts.schemas.registry import (  # noqa: E402
+    supported_collections,
+    validate_collection_document,
+)
 
 VALID_ENVIRONMENTS = {"production", "development", "testing", "validation"}
 ENV_ALIASES = {
@@ -51,6 +57,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--yaml", help="Optional sample ingest YAML to validate assay against seeds"
+    )
+    parser.add_argument(
+        "--validate-all-contracts",
+        action="store_true",
+        help="Validate every registered collection contract found in seed directory.",
     )
     return parser.parse_args()
 
@@ -142,6 +153,32 @@ def _validate_contract_shaping(seed: dict[str, Any]) -> list[str]:
                             f"{collection}[{idx}].version_history[{hidx}].updated_on "
                             "must be an ISO-8601 datetime string"
                         )
+    return errors
+
+
+def _validate_registered_contracts(
+    seed: dict[str, Any], *, validate_all_contracts: bool = False
+) -> list[str]:
+    errors: list[str] = []
+    registered = set(supported_collections())
+    if validate_all_contracts:
+        collections_to_validate = {name for name in seed if name in registered}
+    else:
+        collections_to_validate = {
+            name for name in REQUIRED_BASELINE_COLLECTIONS if name in seed and name in registered
+        }
+    for collection, docs in sorted(seed.items()):
+        if collection not in collections_to_validate:
+            continue
+        for idx, doc in enumerate(docs):
+            try:
+                validate_collection_document(collection, doc)
+            except ValidationError as exc:
+                errors.append(f"{collection}[{idx}] fails contract validation: {exc}")
+            except (
+                Exception
+            ) as exc:  # pragma: no cover - defensive guard for unexpected model errors
+                errors.append(f"{collection}[{idx}] fails contract validation: {exc}")
     return errors
 
 
@@ -409,6 +446,13 @@ def main() -> int:
     shape_errors = _validate_contract_shaping(seed)
     if shape_errors:
         raise SystemExit("Seed contract-shape errors:\n- " + "\n- ".join(shape_errors))
+
+    contract_errors = _validate_registered_contracts(
+        seed,
+        validate_all_contracts=bool(args.validate_all_contracts),
+    )
+    if contract_errors:
+        raise SystemExit("Seed contract model errors:\n- " + "\n- ".join(contract_errors))
 
     known_assays = _known_assays(seed)
     known_groups = _known_assay_groups(seed)

@@ -5,6 +5,7 @@
     "firstname": "Demo",
     "lastname": "User",
     "fullname": "Demo User",
+    "job_title": "Clinical Scientist",
     "auth_type": "coyote3",
     "must_change_password": false,
     "role": "admin",
@@ -12,7 +13,7 @@
     "environments": [
       "production",
       "development",
-      "test",
+      "testing",
       "validation"
     ],
     "assays": [

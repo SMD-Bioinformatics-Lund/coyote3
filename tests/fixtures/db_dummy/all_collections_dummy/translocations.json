@@ -8,15 +8,37 @@
     "FILTER": [
       "PASS"
     ],
-    "INFO": {
-      "ANN": [
-        {
-          "Annotation": [
-            "gene_fusion"
-          ],
-          "Gene_ID": "ENSG00000139618"
-        }
-      ]
-    }
+    "FORMAT": [
+      "GT",
+      "PR",
+      "SR"
+    ],
+    "ID": "BND_DEMO_001",
+    "QUAL": 60.0,
+    "GT": [
+      {
+        "UR": 10.0,
+        "sample": "CASE_DEMO",
+        "PR": "8,12",
+        "SR": "6,9"
+      }
+    ],
+    "INFO": [
+      {
+        "SOMATIC": true,
+        "ANN": [
+          {
+            "Allele": "N",
+            "Annotation": [
+              "gene_fusion"
+            ],
+            "Gene_Name": "BCR&ABL1",
+            "Gene_ID": "ENSG00000186716&ENSG00000097007",
+            "Feature_Type": "CUSTOM",
+            "Feature_ID": "BCR_ENSG00000186716&ABL1_ENSG00000097007"
+          }
+        ]
+      }
+    ]
   }
 ]

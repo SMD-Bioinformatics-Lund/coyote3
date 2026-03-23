@@ -55,7 +55,7 @@ docker compose --env-file .coyote3_stage_env \
 If Mongo volume was pre-existing, bootstrap/rotate app DB user:
 
 ```bash
-.venv/bin/python scripts/mongo_bootstrap_users.py \
+${PYTHON_BIN:-python} scripts/mongo_bootstrap_users.py \
   --mongo-uri "mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/admin?authSource=admin" \
   --app-db "${COYOTE3_DB:-coyote3}" \
   --app-user "${MONGO_APP_USER}" \
@@ -94,7 +94,7 @@ Role level note for bootstrap and seeds:
   - `admin=99999`
 
 ```bash
-.venv/bin/python scripts/bootstrap_local_admin.py \
+${PYTHON_BIN:-python} scripts/bootstrap_local_admin.py \
   --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
   --db "${COYOTE3_DB:-coyote3}" \
   --email "admin@your-center.org" \
@@ -175,7 +175,7 @@ and ISGL consistency before writing collections.
 ## 6. Validate and ingest demo sample
 
 ```bash
-.venv/bin/python scripts/validate_ingest_spec.py \
+${PYTHON_BIN:-python} scripts/validate_ingest_spec.py \
   --yaml tests/data/ingest_demo/generic_case_control.yaml \
   --check-files
 ```
@@ -198,7 +198,7 @@ If you are upgrading an older deployment,
 run one-time repair before smoke:
 
 ```bash
-.venv/bin/python scripts/repair_center_seed_baseline.py \
+${PYTHON_BIN:-python} scripts/repair_center_seed_baseline.py \
   --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
   --db "${COYOTE3_DB:-coyote3}"
 ```
@@ -209,6 +209,30 @@ run one-time repair before smoke:
 - Find ingested sample in sample listing
 - Open variant/CNV/fusion views
 - Open report pages and verify render succeeds
+
+Admin verification matrix:
+
+1. Users:
+   - Create user (role dropdown populated from seeded `roles`)
+   - Confirm role-derived permissions are shown
+   - Confirm explicit user allow/deny overrides are saved
+2. Roles:
+   - Create role with allow/deny permissions
+   - Verify role appears in user-create role dropdown
+3. Permissions:
+   - Create permission and confirm it appears in role/user permission lists
+4. ASP:
+   - Create assay panel and verify it appears in ASP list
+5. ASPC (DNA/RNA):
+   - Create config and verify `assay_name` dropdown is populated from ASP
+6. ISGL:
+   - Create genelist and verify assay-group and assay assignment behavior
+
+Automated verification baseline:
+
+```bash
+PYTHONPATH=. python -m pytest -q tests/unit/test_admin_services.py tests/unit/test_services_admin_workflows_extended.py
+```
 
 ## 8. Handoff artifacts
 

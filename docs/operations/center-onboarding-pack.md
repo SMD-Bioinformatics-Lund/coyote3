@@ -55,7 +55,7 @@ Use the bundled seed directory and adapt assay/group values to your center befor
 If Mongo volume already existed before first deploy, ensure app DB user is present:
 
 ```bash
-.venv/bin/python scripts/mongo_bootstrap_users.py \
+${PYTHON_BIN:-python} scripts/mongo_bootstrap_users.py \
   --mongo-uri "mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/admin?authSource=admin" \
   --app-db "${COYOTE3_DB:-coyote3}" \
   --app-user "${MONGO_APP_USER}" \
@@ -67,7 +67,7 @@ If Mongo volume already existed before first deploy, ensure app DB user is prese
 Create the initial local API admin used for CLI/Python/API-auth flows:
 
 ```bash
-.venv/bin/python scripts/bootstrap_local_admin.py \
+${PYTHON_BIN:-python} scripts/bootstrap_local_admin.py \
   --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
   --db "${COYOTE3_DB:-coyote3}" \
   --email "admin@your-center.org" \
@@ -127,7 +127,7 @@ should be edited to your center's assay IDs and groups before first run.
 ## 6. Validate ingestion inputs
 
 ```bash
-.venv/bin/python scripts/validate_ingest_spec.py \
+${PYTHON_BIN:-python} scripts/validate_ingest_spec.py \
   --yaml tests/data/ingest_demo/generic_case_control.yaml \
   --check-files --json
 ```
@@ -152,7 +152,7 @@ If this center started on an older baseline,
 run one-time repair before smoke/bootstrap reruns:
 
 ```bash
-.venv/bin/python scripts/repair_center_seed_baseline.py \
+${PYTHON_BIN:-python} scripts/repair_center_seed_baseline.py \
   --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
   --db "${COYOTE3_DB:-coyote3}"
 ```

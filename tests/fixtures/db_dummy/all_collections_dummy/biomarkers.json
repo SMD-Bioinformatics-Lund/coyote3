@@ -2,8 +2,21 @@
   {
     "SAMPLE_ID": "65f0c0ffee00000000000001",
     "name": "demo-biomarker",
-    "HRD": "negative",
-    "MSIS": "stable",
-    "MSIP": "low"
+    "MSIS": {
+      "tot": 120,
+      "som": 6,
+      "per": 5.0
+    },
+    "MSIP": {
+      "tot": 80,
+      "som": 2,
+      "per": 2.5
+    },
+    "HRD": {
+      "tai": 10,
+      "hrd": 12,
+      "lst": 8,
+      "sum": 30
+    }
   }
 ]

@@ -1,7 +1,7 @@
 [
   {
     "pos": "7_140453136_A_T",
-    "assay": "ASSAY_A",
+    "assay_group": "GROUP_A",
     "in_normal_perc": 0.2
   }
 ]

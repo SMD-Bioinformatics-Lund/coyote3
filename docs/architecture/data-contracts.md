@@ -22,6 +22,10 @@ contract models (not read from DB schema documents):
 - `api/contracts/managed_resources.py`
 - `api/contracts/managed_ui_schemas.py`
 
+Admin create/edit pages use one canonical contract per resource and render
+fields directly from backend-provided schema payloads. The UI does not provide
+runtime schema switching.
+
 Design principles:
 
 - keep critical keys typed and validated

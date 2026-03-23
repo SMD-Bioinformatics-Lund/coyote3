@@ -6,7 +6,11 @@
     ],
     "name": "List A",
     "displayname": "List A",
-    "list_type": "diagnostic",
+    "list_type": [
+      "small_variants_genelist",
+      "cnv_genelist",
+      "fusion_genelist"
+    ],
     "adhoc": false,
     "is_public": true,
     "is_active": true,

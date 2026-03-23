@@ -76,7 +76,6 @@ def _seed_adapter_slots(adapter: MongoAdapter) -> MongoAdapter:
         "civic_handler",
         "cnv_handler",
         "cosmic_handler",
-        "coverage2_handler",
         "coverage_handler",
         "expression_handler",
         "fusion_handler",

@@ -97,10 +97,7 @@ def _render_create_form(category: str) -> Response | str:
         The rendered form on ``GET`` or a redirect response after ``POST``.
     """
     try:
-        selected_schema_id = request.args.get("schema_id")
         params = {"category": category}
-        if selected_schema_id:
-            params["schema_id"] = selected_schema_id
         context = get_web_api_client().get_json(
             api_endpoints.admin("aspc", "create_context"),
             headers=forward_headers(),
@@ -153,8 +150,7 @@ def _render_create_form(category: str) -> Response | str:
     return render_template(
         "aspc/create_aspc.html",
         schema=context.schema,
-        schemas=context.schemas,
-        selected_schema=context.selected_schema,
+        category=category,
         prefill_map_json=json.dumps(context.prefill_map),
     )
 

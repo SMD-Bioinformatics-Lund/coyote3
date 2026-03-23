@@ -74,8 +74,8 @@ def _store_stub(sample_docs=None):
         "cnvs": _Col(),
         "biomarkers": _Col(),
         "transloc": _Col(),
-        "coverage": _Col(),
-        "panel_cov": _Col(),
+        "panel_coverage": _Col(),
+        "group_coverage": _Col(),
         "fusions": _Col(),
         "rna_expression": _Col(),
         "rna_classification": _Col(),
@@ -87,8 +87,8 @@ def _store_stub(sample_docs=None):
         cnv_handler=_Handler(db["cnvs"]),
         biomarker_handler=_Handler(db["biomarkers"]),
         transloc_handler=_Handler(db["transloc"]),
-        coverage_handler=_Handler(db["coverage"]),
-        groupcov_handler=_Handler(db["panel_cov"]),
+        coverage_handler=_Handler(db["panel_coverage"]),
+        groupcov_handler=_Handler(db["group_coverage"]),
         fusion_handler=_Handler(db["fusions"]),
         rna_expression_handler=_Handler(db["rna_expression"]),
         rna_classification_handler=_Handler(db["rna_classification"]),
@@ -409,7 +409,7 @@ def test_snapshot_restore_replace_and_counts(monkeypatch):
     sid = ingest.ObjectId()
     cov_col = _Col([{"_id": "x", "SAMPLE_ID": str(sid), "a": 1}])
     stub = _store_stub()
-    stub.coyote_db["panel_cov"] = cov_col
+    stub.coyote_db["panel_coverage"] = cov_col
     monkeypatch.setattr(ingest, "store", stub)
 
     snap = ingest.InternalIngestService._snapshot_dependents(sample_id=sid, keys={"cov"})

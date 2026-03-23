@@ -1,8 +1,9 @@
 [
   {
     "payload": {
-      "turnaround_days": 12,
-      "samples_processed": 120
+      "total_variants": 1200,
+      "total_snps": 1150,
+      "fps": 12
     },
     "updated_at": "2026-03-19T00:00:00+00:00"
   }

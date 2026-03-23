@@ -48,6 +48,11 @@ jobs:
       - name: Black format check
         run: PYTHONPATH=. black --check --line-length 100 api coyote tests scripts
 
+      - name: Contract integrity checks
+        env:
+          PYTHON_BIN: python
+        run: bash scripts/check_contract_integrity.sh
+
       - name: Focused mypy checks (auth boundaries)
         run: |
           PYTHONPATH=. mypy --follow-imports=skip --ignore-missing-imports \

@@ -2,8 +2,8 @@
   {
     "tid": "ENST00000275493",
     "expr": {
-      "tissue": "lung",
-      "level": "high"
+      "lung": 10.5,
+      "blood": 6.2
     }
   }
 ]

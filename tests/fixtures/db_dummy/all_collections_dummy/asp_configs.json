@@ -4,53 +4,17 @@
     "assay_name": "ASSAY_A",
     "display_name": "Hema GMS v1",
     "asp_group": "GROUP_A",
-    "asp_category": "DNA",
+    "asp_category": "dna",
     "description": "Demo ASP config for first-run DNA sample workflows",
     "reference_genome": "GRCh38",
     "platform": "Illumina",
     "environment": "production",
     "version": 1,
     "is_active": true,
-    "max_freq": 1.0,
-    "min_freq": 0.03,
-    "max_control_freq": 0.05,
-    "max_popfreq": 0.01,
-    "min_depth": 100,
-    "min_alt_reads": 5,
-    "min_cnv_size": 100,
-    "max_cnv_size": 1000000,
-    "cnv_loss_cutoff": -0.3,
-    "cnv_gain_cutoff": 0.3,
-    "warn_cov": 500,
-    "error_cov": 100,
-    "vep_consequences": [
-      "splicing",
-      "stop_gained",
-      "stop_lost",
-      "start_lost",
-      "frameshift",
-      "inframe_indel",
-      "missense",
-      "other_coding"
-    ],
-    "cnveffects": [
-      "gain",
-      "loss"
-    ],
     "analysis_types": [
       "SNV",
       "CNV"
     ],
-    "report_sections": [
-      "SNV",
-      "CNV"
-    ],
-    "report_header": "Demo report header",
-    "report_method": "Demo method",
-    "report_description": null,
-    "general_report_summary": null,
-    "plots_path": "/tmp",
-    "report_folder": "demo",
     "filters": {
       "max_freq": 1.0,
       "min_freq": 0.03,
@@ -81,66 +45,35 @@
       "genelists": []
     },
     "reporting": {
+      "report_sections": [
+        "SNV",
+        "CNV"
+      ],
       "report_header": "Demo report header",
       "report_method": "Demo method",
+      "report_description": "DNA panel summary report for ASSAY_A",
+      "general_report_summary": "Automated summary generated from curated panel filters.",
       "plots_path": "/tmp",
       "report_folder": "demo"
     },
-    "query": null,
-    "verification_samples": null
+    "verification_samples": {}
   },
   {
-    "aspc_id": "ASSAY_A:test",
+    "aspc_id": "ASSAY_A:testing",
     "assay_name": "ASSAY_A",
     "display_name": "Hema GMS v1",
     "asp_group": "GROUP_A",
-    "asp_category": "DNA",
+    "asp_category": "dna",
     "description": "Demo ASP config for test profile",
     "reference_genome": "GRCh38",
     "platform": "Illumina",
-    "environment": "test",
+    "environment": "testing",
     "version": 1,
     "is_active": true,
-    "max_freq": 1.0,
-    "min_freq": 0.03,
-    "max_control_freq": 0.05,
-    "max_popfreq": 0.01,
-    "min_depth": 100,
-    "min_alt_reads": 5,
-    "min_cnv_size": 100,
-    "max_cnv_size": 1000000,
-    "cnv_loss_cutoff": -0.3,
-    "cnv_gain_cutoff": 0.3,
-    "warn_cov": 500,
-    "error_cov": 100,
-    "vep_consequences": [
-      "splicing",
-      "stop_gained",
-      "stop_lost",
-      "start_lost",
-      "frameshift",
-      "inframe_indel",
-      "missense",
-      "other_coding"
-    ],
-    "cnveffects": [
-      "gain",
-      "loss"
-    ],
     "analysis_types": [
       "SNV",
       "CNV"
     ],
-    "report_sections": [
-      "SNV",
-      "CNV"
-    ],
-    "report_header": "Demo report header",
-    "report_method": "Demo method",
-    "report_description": null,
-    "general_report_summary": null,
-    "plots_path": "/tmp",
-    "report_folder": "demo",
     "filters": {
       "max_freq": 1.0,
       "min_freq": 0.03,
@@ -171,12 +104,17 @@
       "genelists": []
     },
     "reporting": {
+      "report_sections": [
+        "SNV",
+        "CNV"
+      ],
       "report_header": "Demo report header",
       "report_method": "Demo method",
+      "report_description": "DNA panel summary report for ASSAY_A",
+      "general_report_summary": "Automated summary generated from curated panel filters.",
       "plots_path": "/tmp",
       "report_folder": "demo"
     },
-    "query": null,
-    "verification_samples": null
+    "verification_samples": {}
   }
 ]

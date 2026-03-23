@@ -1,5 +1,14 @@
 [
   {
-    "Alteration": "EGFR L858R"
+    "RefSeq": "NM_005228.5",
+    "Alteration": "L858R",
+    "Isoform": "ENST00000275493",
+    "Drugs(s)": "Erlotinib",
+    "Level": "1",
+    "Cancer Type": "Lung Adenocarcinoma",
+    "Entrez Gene ID": 1956,
+    "Hugo Symbol": "EGFR",
+    "Protein Change": "p.L858R",
+    "PMIDs for drug": "12345678"
   }
 ]

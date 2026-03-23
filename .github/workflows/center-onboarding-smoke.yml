@@ -96,7 +96,7 @@ jobs:
             --api-base-url "http://localhost:${COYOTE3_STAGE_API_PORT}" \
             --username "${ADMIN_EMAIL}" \
             --password "${ADMIN_PASSWORD}" \
-            --seed-file tests/fixtures/db_dummy/center_template_seed.json \
+            --seed-file tests/fixtures/db_dummy/all_collections_dummy \
             --with-optional \
             --skip-existing
 

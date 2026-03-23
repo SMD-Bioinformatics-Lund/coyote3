@@ -48,7 +48,7 @@ COLLECTION_MODEL_ADAPTERS: dict[str, TypeAdapter[Any]] = {
     "cnvs": TypeAdapter(CnvsDoc),
     "translocations": TypeAdapter(TranslocationsDoc),
     "biomarkers": TypeAdapter(BiomarkersDoc),
-    "panel_cov": TypeAdapter(PanelCovDoc),
+    "panel_coverage": TypeAdapter(PanelCovDoc),
     "fusions": TypeAdapter(FusionsDoc),
     "rna_expression": TypeAdapter(RnaExpressionDoc),
     "rna_classification": TypeAdapter(RnaClassificationDoc),

@@ -36,7 +36,7 @@ Rule of thumb:
 - Run coverage regularly and add tests based on uncovered lines:
 
 ```bash
-PYTHONPATH=. .venv/bin/pytest -q tests --cov=api --cov=coyote --cov-report=term-missing --cov-report=xml
+PYTHONPATH=. ${PYTEST_BIN:-pytest} -q tests --cov=api --cov=coyote --cov-report=term-missing --cov-report=xml
 ```
 
 - Mutation testing should run in an isolated virtualenv to avoid dependency conflicts with the main test environment.
@@ -44,7 +44,7 @@ PYTHONPATH=. .venv/bin/pytest -q tests --cov=api --cov=coyote --cov-report=term-
 - Refresh DB-backed snapshots only in read-only mode:
 
 ```bash
-PYTHONPATH=. PYTHONPYCACHEPREFIX=/tmp/coyote3_pycache PYTHONDONTWRITEBYTECODE=1 .venv/bin/python tests/fixtures/api/extract_latest_docs.py
+PYTHONPATH=. PYTHONPYCACHEPREFIX=/tmp/coyote3_pycache PYTHONDONTWRITEBYTECODE=1 ${PYTHON_BIN:-python} tests/fixtures/api/extract_latest_docs.py
 ```
 
 `tests_internal` is legacy and intentionally excluded from default pytest discovery.
@@ -52,10 +52,10 @@ PYTHONPATH=. PYTHONPYCACHEPREFIX=/tmp/coyote3_pycache PYTHONDONTWRITEBYTECODE=1 
 Run by suite marker:
 
 ```bash
-PYTHONPATH=. .venv/bin/pytest -q -m unit
-PYTHONPATH=. .venv/bin/pytest -q -m api
-PYTHONPATH=. .venv/bin/pytest -q -m web
-PYTHONPATH=. .venv/bin/pytest -q -m contract
+PYTHONPATH=. ${PYTEST_BIN:-pytest} -q -m unit
+PYTHONPATH=. ${PYTEST_BIN:-pytest} -q -m api
+PYTHONPATH=. ${PYTEST_BIN:-pytest} -q -m web
+PYTHONPATH=. ${PYTEST_BIN:-pytest} -q -m contract
 ```
 
 Marker-to-directory mapping:
@@ -68,9 +68,9 @@ Marker-to-directory mapping:
 Run by directory:
 
 ```bash
-PYTHONPATH=. .venv/bin/pytest -q tests/unit
-PYTHONPATH=. .venv/bin/pytest -q tests/api
-PYTHONPATH=. .venv/bin/pytest -q tests/ui
-PYTHONPATH=. .venv/bin/pytest -q tests/integration
-PYTHONPATH=. .venv/bin/pytest -q tests/fixtures
+PYTHONPATH=. ${PYTEST_BIN:-pytest} -q tests/unit
+PYTHONPATH=. ${PYTEST_BIN:-pytest} -q tests/api
+PYTHONPATH=. ${PYTEST_BIN:-pytest} -q tests/ui
+PYTHONPATH=. ${PYTEST_BIN:-pytest} -q tests/integration
+PYTHONPATH=. ${PYTEST_BIN:-pytest} -q tests/fixtures
 ```

@@ -1,8 +1,10 @@
 [
   {
     "gene_id": 3236,
+    "entrez_id": 1956,
     "name": "EGFR",
     "description": "Epidermal growth factor receptor",
-    "entrez_id": 1956
+    "gene_civic_url": "https://civicdb.org/genes/3236",
+    "last_review_date": "2017-03-06 00:00:15 UTC"
   }
 ]

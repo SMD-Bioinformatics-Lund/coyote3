@@ -3,9 +3,10 @@
     "asp_id": "ASSAY_A",
     "assay_name": "ASSAY_A",
     "asp_group": "GROUP_A",
-    "asp_family": "dna",
-    "asp_category": "somatic",
+    "asp_family": "panel-dna",
+    "asp_category": "dna",
     "display_name": "Hema GMS v1",
+    "description": "Demo DNA assay panel for first-run validation",
     "covered_genes": [
       "EGFR",
       "TP53"

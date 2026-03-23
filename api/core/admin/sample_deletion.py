@@ -49,7 +49,6 @@ def delete_all_sample_traces(sample_id: str) -> dict[str, object]:
     actions = [
         SampleDeletionService._repo().delete_sample_variants,
         SampleDeletionService._repo().delete_sample_cnvs,
-        SampleDeletionService._repo().delete_sample_coverage,
         SampleDeletionService._repo().delete_sample_panel_coverage,
         SampleDeletionService._repo().delete_sample_translocs,
         SampleDeletionService._repo().delete_sample_fusions,

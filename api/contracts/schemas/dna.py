@@ -178,6 +178,19 @@ class VariantsDoc(_DocBase):
     pubmed_ids: list[str] = Field(default_factory=list)
     hotspots: list[dict[str, list[str]]] = Field(default_factory=list)
 
+    @field_validator(
+        "gnomad_frequency",
+        "gnomad_max",
+        "exac_frequency",
+        "thousandG_frequency",
+        mode="before",
+    )
+    @classmethod
+    def _normalize_optional_frequency(cls, value: Any) -> Any:
+        if value in ("", " ", "NA", "N/A", None):
+            return None
+        return value
+
     @model_validator(mode="after")
     def _validate_simple_id_and_hash(self) -> "VariantsDoc":
         if not self.simple_id:

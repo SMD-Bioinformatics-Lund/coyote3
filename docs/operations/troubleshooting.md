@@ -42,7 +42,7 @@ Action:
 PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/run_family_coverage_gates.sh
 ```
 
-## Pre-commit failing with `.venv/bin/pytest not found`
+## Pre-commit failing with `pytest not found`
 
 Action:
 

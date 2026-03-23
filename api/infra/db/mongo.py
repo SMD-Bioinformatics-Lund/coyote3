@@ -22,7 +22,6 @@ from api.infra.db.biomarkers import BiomarkerHandler
 from api.infra.db.blacklist import BlacklistHandler
 from api.infra.db.cnvs import CNVsHandler
 from api.infra.db.coverage import CoverageHandler
-from api.infra.db.coverage2 import CoverageHandler2
 from api.infra.db.expression import ExpressionHandler
 from api.infra.db.fusions import FusionsHandler
 from api.infra.db.group_coverage import GroupCoverageHandler
@@ -178,7 +177,6 @@ class MongoAdapter:
         self.biomarker_handler = BiomarkerHandler(self)
         self.coverage_handler = CoverageHandler(self)
         self.cosmic_handler = CosmicHandler(self)
-        self.coverage2_handler = CoverageHandler2(self)
         self.groupcov_handler = GroupCoverageHandler(self)
         self.aspc_handler = ASPConfigHandler(self)
         self.roles_handler = RolesHandler(self)
@@ -205,7 +203,6 @@ class MongoAdapter:
         self._ensure_handler_indexes("fusions", self.fusion_handler)
         self._ensure_handler_indexes("blacklist", self.blacklist_handler)
         self._ensure_handler_indexes("coverage", self.coverage_handler)
-        self._ensure_handler_indexes("coverage2", self.coverage2_handler)
         self._ensure_handler_indexes("groupcov", self.groupcov_handler)
         self._ensure_handler_indexes("reported_variants", self.reported_variants_handler)
         self._ensure_handler_indexes("vep_meta", self.vep_meta_handler)

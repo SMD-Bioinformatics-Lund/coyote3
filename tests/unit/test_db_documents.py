@@ -63,19 +63,17 @@ def test_variant_info_normalizes_variant_callers_string():
 
 
 def test_collection_validator_accepts_hgnc_genes_shape():
-    """hgnc_genes strict model should reject incomplete fixture docs."""
+    """hgnc_genes strict model should accept the curated fixture shape."""
     fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/hgnc_genes.json")
     payload = json.loads(fixture.read_text(encoding="utf-8"))[0]
-    with pytest.raises(Exception):
-        validate_collection_document("hgnc_genes", payload)
+    validate_collection_document("hgnc_genes", payload)
 
 
 def test_collection_validator_accepts_oncokb_actionable_shape():
-    """OncoKB actionable strict model should reject incomplete fixture docs."""
+    """OncoKB actionable strict model should accept curated fixture docs."""
     fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/oncokb_actionable.json")
     payload = json.loads(fixture.read_text(encoding="utf-8"))[0]
-    with pytest.raises(Exception):
-        validate_collection_document("oncokb_actionable", payload)
+    validate_collection_document("oncokb_actionable", payload)
 
 
 def test_collection_validator_accepts_nested_sample_shape():
@@ -121,12 +119,11 @@ def test_collection_validator_rejects_rna_sample_with_dna_keys():
         )
 
 
-def test_collection_validator_accepts_nested_panel_cov_shape():
-    """panel_cov strict model should reject incomplete fixture docs."""
-    fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/panel_cov.json")
+def test_collection_validator_accepts_nested_panel_coverage_shape():
+    """panel_coverage strict model should accept curated fixture docs."""
+    fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/panel_coverage.json")
     payload = json.loads(fixture.read_text(encoding="utf-8"))[0]
-    with pytest.raises(Exception):
-        validate_collection_document("panel_cov", payload)
+    validate_collection_document("panel_coverage", payload)
 
 
 def test_supported_collections_exposes_expected_core_names():
