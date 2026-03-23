@@ -116,7 +116,7 @@
                       </button>
                       <button onclick="showActionModal({
                           url: '{{ url_for('admin_bp.toggle_genelist', genelist_id=genelist._id) }}',
-                          title: '{{ 'Deactivate' if genelist.is_active else 'Activate' }} Schema',
+                          title: '{{ 'Deactivate' if genelist.is_active else 'Activate' }} Configuration',
                           message: 'Are you sure you want to {{ 'deactivate' if genelist.is_active else 'activate' }} <b>{{ genelist._id }}</b>?',
                           confirmText: '{{ 'Deactivate' if genelist.is_active else 'Activate' }}',
                           confirmColor: '{{ 'red' if genelist.is_active else 'green' }}'

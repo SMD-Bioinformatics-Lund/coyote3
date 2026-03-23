@@ -81,15 +81,6 @@ class DnaRouteRepository:
         return store.sample_handler
 
     @property
-    def schema_handler(self):
-        """Schema handler.
-
-        Returns:
-            The function result.
-        """
-        return store.schema_handler
-
-    @property
     def oncokb_handler(self):
         """Oncokb handler.
 

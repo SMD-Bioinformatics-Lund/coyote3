@@ -10,23 +10,31 @@ Usage:
     --api-base-url <url> \
     (--bearer-token <token> | --username <user> --password <pass>) \
     [--seed-file <path>] \
+    [--seed-actor <email>] \
     [--with-optional] \
-    [--skip-existing]
+    [--skip-existing] \
+    [--strict-no-retry]
 
 Options:
   --api-base-url   Base API URL, e.g. http://localhost:8006
   --bearer-token   Existing API bearer token
   --username       API username/email (password mode)
   --password       API password (password mode)
-  --seed-file      JSON file containing collection -> [docs] mapping
-                   default: tests/fixtures/db_dummy/center_template_seed.json
+  --seed-file      Seed directory path containing one <collection>.json file per collection
+                   default: tests/fixtures/db_dummy/all_collections_dummy
+  --seed-actor     Value used for created_by/updated_by seed metadata.
+                   default: --username value, otherwise admin@coyote3.local
   --with-optional  Seed optional knowledge collections after required baseline
   --skip-existing  Ignore duplicate key conflicts while seeding
+  --strict-no-retry  Fail immediately on first collection seed error (no auto retry)
 
 Notes:
   - This is intended for first-time center bootstrap.
   - Inserts are not upserts.
+  - By default, first failed write is retried once with ignore_duplicates=true.
   - Use --skip-existing for idempotent reruns.
+  - Use --strict-no-retry to disable retry and fail immediately.
+  - `users` collection is intentionally skipped; bootstrap first admin/user separately.
 USAGE
 }
 
@@ -34,10 +42,13 @@ API_BASE_URL=""
 BEARER_TOKEN=""
 USERNAME=""
 PASSWORD=""
-SEED_FILE="tests/fixtures/db_dummy/center_template_seed.json"
+SEED_FILE="tests/fixtures/db_dummy/all_collections_dummy"
+SEED_ACTOR=""
 WITH_OPTIONAL=0
 SKIP_EXISTING=0
+STRICT_NO_RETRY=0
 PYTHON_BIN="${PYTHON_BIN:-}"
+SEED_BUNDLE_DIR=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -46,8 +57,10 @@ while [[ $# -gt 0 ]]; do
     --username) USERNAME="$2"; shift 2 ;;
     --password) PASSWORD="$2"; shift 2 ;;
     --seed-file) SEED_FILE="$2"; shift 2 ;;
+    --seed-actor) SEED_ACTOR="$2"; shift 2 ;;
     --with-optional) WITH_OPTIONAL=1; shift ;;
     --skip-existing) SKIP_EXISTING=1; shift ;;
+    --strict-no-retry) STRICT_NO_RETRY=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; usage; exit 2 ;;
   esac
@@ -59,8 +72,8 @@ if [[ -z "$API_BASE_URL" ]]; then
   exit 2
 fi
 
-if [[ ! -f "$SEED_FILE" ]]; then
-  echo "ERROR: seed file not found: $SEED_FILE" >&2
+if [[ ! -d "$SEED_FILE" ]]; then
+  echo "ERROR: seed source not found: $SEED_FILE" >&2
   exit 2
 fi
 
@@ -101,13 +114,80 @@ if [[ -z "$BEARER_TOKEN" ]]; then
   exit 1
 fi
 
-echo "[step] validating assay consistency in seed file"
-"$PYTHON_BIN" scripts/validate_assay_consistency.py --seed-file "$SEED_FILE"
+if [[ -z "$SEED_ACTOR" ]]; then
+  if [[ -n "$USERNAME" ]]; then
+    SEED_ACTOR="$USERNAME"
+  else
+    SEED_ACTOR="admin@coyote3.local"
+  fi
+fi
+SEED_NOW="$("$PYTHON_BIN" - <<'PY'
+from datetime import datetime, timezone
+print(datetime.now(timezone.utc).isoformat())
+PY
+)"
+SEED_BUNDLE_DIR="$(mktemp -d)"
+trap 'rm -rf "$SEED_BUNDLE_DIR"' EXIT
+echo "[step] preparing seed bundle from ${SEED_FILE}"
+"$PYTHON_BIN" - "$SEED_FILE" "$SEED_BUNDLE_DIR" "$SEED_ACTOR" "$SEED_NOW" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+source = Path(sys.argv[1])
+dest_dir = Path(sys.argv[2])
+seed_actor = sys.argv[3]
+seed_time = sys.argv[4]
+
+def load_seed(path: Path) -> dict[str, list[dict]]:
+    payload: dict[str, list[dict]] = {}
+    for file in sorted(path.glob("*.json")):
+        value = json.loads(file.read_text(encoding="utf-8"))
+        if not isinstance(value, list):
+            raise SystemExit(f"Collection seed file must contain a JSON list: {file}")
+        payload[file.stem] = value
+    return payload
+
+def normalize_extended_json(value):
+    if isinstance(value, dict):
+        if set(value.keys()) == {"$date"}:
+            return value.get("$date")
+        if set(value.keys()) == {"$oid"}:
+            return value.get("$oid")
+        return {k: normalize_extended_json(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [normalize_extended_json(v) for v in value]
+    return value
+
+def stamp_docs(seed: dict[str, list[dict]]) -> None:
+    for docs in seed.values():
+        if not isinstance(docs, list):
+            continue
+        for i, doc in enumerate(docs):
+            if isinstance(doc, dict):
+                normalized_doc = normalize_extended_json(doc)
+                docs[i] = normalized_doc
+                doc = normalized_doc
+                doc["created_by"] = seed_actor
+                doc["updated_by"] = seed_actor
+                doc["created_on"] = seed_time
+                doc["updated_on"] = seed_time
+
+seed = load_seed(source)
+stamp_docs(seed)
+for collection, docs in seed.items():
+    (dest_dir / f"{collection}.json").write_text(
+        json.dumps(docs, ensure_ascii=False), encoding="utf-8"
+    )
+print(f"[ok] normalized seed bundle: {dest_dir}")
+PY
+
+echo "[step] validating assay consistency in seed directory"
+"$PYTHON_BIN" scripts/validate_assay_consistency.py --seed-file "$SEED_BUNDLE_DIR"
 
 required_collections=(
   permissions
   roles
-  users
   asp_configs
   assay_specific_panels
   insilico_genelists
@@ -127,26 +207,29 @@ optional_collections=(
 )
 
 collection_count() {
-  "$PYTHON_BIN" - "$SEED_FILE" "$1" <<'PY'
+  "$PYTHON_BIN" - "$SEED_BUNDLE_DIR" "$1" <<'PY'
 import json
 import sys
 from pathlib import Path
 
-seed = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-value = seed.get(sys.argv[2], [])
+seed_dir = Path(sys.argv[1])
+collection = sys.argv[2]
+path = seed_dir / f"{collection}.json"
+value = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
 print(len(value) if isinstance(value, list) else 0)
 PY
 }
 
 make_payload() {
-  "$PYTHON_BIN" - "$SEED_FILE" "$1" <<'PY'
+  "$PYTHON_BIN" - "$SEED_BUNDLE_DIR" "$1" <<'PY'
 import json
 import sys
 from pathlib import Path
 
-seed = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+seed_dir = Path(sys.argv[1])
 collection = sys.argv[2]
-docs = seed.get(collection, [])
+path = seed_dir / f"{collection}.json"
+docs = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
 print(json.dumps({"collection": collection, "documents": docs}, separators=(",", ":")))
 PY
 }
@@ -163,6 +246,28 @@ post_bulk() {
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer ${BEARER_TOKEN}" \
     --data "$payload")"
+
+  # When caller did not request skip-existing, retry once with duplicate-tolerant
+  # mode. Internal API may return generic 500 payloads, so duplicate details are
+  # not always visible at this layer.
+  if [[ "$status" -lt 200 || "$status" -ge 300 ]]; then
+    if [[ "$SKIP_EXISTING" -eq 0 && "$STRICT_NO_RETRY" -eq 0 ]]; then
+      echo "[warn] ${collection}: initial seed attempt failed; retrying with ignore_duplicates=true"
+      payload="$("$PYTHON_BIN" - <<'PY' "$payload"
+import json
+import sys
+p = json.loads(sys.argv[1])
+p["ignore_duplicates"] = True
+print(json.dumps(p, separators=(",", ":")))
+PY
+      )"
+      status="$(curl -sS -o "$resp_file" -w "%{http_code}" \
+        -X POST "${API_BASE_URL%/}/api/v1/internal/ingest/collection/bulk" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer ${BEARER_TOKEN}" \
+        --data "$payload")"
+    fi
+  fi
 
   if [[ "$status" -lt 200 || "$status" -ge 300 ]]; then
     echo "[fail] ${collection} seed failed (HTTP ${status})" >&2
@@ -207,6 +312,12 @@ echo "[step] seeding required baseline collections"
 for collection in "${required_collections[@]}"; do
   seed_one "$collection"
 done
+
+users_count="$(collection_count "users")"
+if [[ "$users_count" -gt 0 ]]; then
+  echo "[info] users collection present in seed directory (${users_count} docs) but intentionally skipped."
+  echo "[info] first admin/user bootstrap is handled separately via scripts/bootstrap_local_admin.py or admin UI."
+fi
 
 if [[ "$WITH_OPTIONAL" -eq 1 ]]; then
   echo "[step] seeding optional knowledge collections"

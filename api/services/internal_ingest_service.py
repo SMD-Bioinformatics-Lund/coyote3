@@ -5,9 +5,10 @@ from __future__ import annotations
 import csv
 import gzip
 import json
+import logging
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import yaml
@@ -16,14 +17,14 @@ from pymongo.errors import BulkWriteError, DuplicateKeyError
 from pysam import VariantFile
 
 import config
-from api.contracts.db_documents import (
-    SamplesDoc,
-    supported_collections,
-    validate_collection_document,
-)
+from api.contracts.schemas.registry import supported_collections, validate_collection_document
+from api.contracts.schemas.samples import SamplesDoc
 from api.core.dna.variant_identity import ensure_variant_identity_fields
 from api.extensions import store
+from api.infra.dashboard_cache import invalidate_dashboard_summary_cache
 from api.parsers import cmdvcf
+
+logger = logging.getLogger(__name__)
 
 _CASE_CONTROL_KEYS = [
     "case_id",
@@ -67,6 +68,17 @@ def _require_exists(label: str, path: str | None) -> None:
 
 def _is_no_update(value: Any) -> bool:
     return isinstance(value, str) and value.strip().lower() == "no_update"
+
+
+def _validate_yaml_payload_like_import_script(payload: dict[str, Any]) -> None:
+    """Mirror `scripts/import_coyote_sample.py::validate_yaml` mandatory-field guard."""
+    if (
+        ("vcf_files" not in payload or "fusion_files" not in payload)
+        and "groups" not in payload
+        and "name" not in payload
+        and "genome_build" not in payload
+    ):
+        raise ValueError("YAML is missing mandatory fields: vcf, groups, name or build")
 
 
 def _normalize_case_control(args: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -626,6 +638,18 @@ class InternalIngestService:
     }
 
     @staticmethod
+    def _invalidate_dashboard_cache_after_ingest() -> None:
+        """Refresh dashboard caches after ingest writes into sample/variant collections."""
+        try:
+            store.variant_handler.invalidate_dashboard_metrics_cache()
+        except Exception as exc:
+            logger.warning("ingest_dashboard_variant_cache_invalidate_failed error=%s", exc)
+        try:
+            invalidate_dashboard_summary_cache(store)
+        except Exception as exc:
+            logger.warning("ingest_dashboard_summary_cache_invalidate_failed error=%s", exc)
+
+    @staticmethod
     def list_supported_collections() -> list[str]:
         """List collection names that can be validated/inserted via ingest APIs."""
         return supported_collections()
@@ -655,6 +679,7 @@ class InternalIngestService:
         parsed = yaml.safe_load(yaml_content)
         if not isinstance(parsed, dict):
             raise ValueError("YAML body must decode to an object")
+        _validate_yaml_payload_like_import_script(parsed)
         return parsed
 
     @staticmethod
@@ -847,7 +872,7 @@ class InternalIngestService:
             raise
 
     @classmethod
-    def _ensure_update_compatibility(
+    def _prepare_update_payload(
         cls, *, sample_doc: dict[str, Any], payload: dict[str, Any]
     ) -> dict[str, Any]:
         normalized = dict(payload)
@@ -898,14 +923,11 @@ class InternalIngestService:
             raise ValueError("Sample not found for update")
 
         sample_id = current_doc["_id"]
-        parsed_payload = cls._ensure_update_compatibility(sample_doc=current_doc, payload=payload)
+        parsed_payload = cls._prepare_update_payload(sample_doc=current_doc, payload=payload)
         preload = cls._parse_preload(parsed_payload)
-        written = cls._replace_dependents(
-            preload=preload,
-            sample_id=sample_id,
-            sample_name=current_doc["name"],
-        )
 
+        # Keep the same update flow ordering as scripts/import_coyote_sample.py:
+        # update sample metadata + counts/status first, then rewrite dependents.
         meta_update = build_sample_meta_dict(parsed_payload)
         cls._update_meta_fields(
             sample_id=sample_id,
@@ -918,6 +940,12 @@ class InternalIngestService:
             {"$set": {"ingest_status": "ready", "data_counts": data_counts}},
             upsert=False,
         )
+        written = cls._replace_dependents(
+            preload=preload,
+            sample_id=sample_id,
+            sample_name=current_doc["name"],
+        )
+        cls._invalidate_dashboard_cache_after_ingest()
         return {
             "status": "ok",
             "sample_id": str(sample_id),
@@ -953,12 +981,13 @@ class InternalIngestService:
                     "_id": sample_id,
                     "name": sample_name,
                     "data_counts": cls._data_counts(preload),
-                    "time_added": datetime.utcnow(),
+                    "time_added": datetime.now(timezone.utc),
                     "ingest_status": "ready",
                 }
             )
             validated_meta = SamplesDoc.model_validate(meta)
             store.sample_handler.get_collection().insert_one(validated_meta.model_dump())
+            cls._invalidate_dashboard_cache_after_ingest()
         except Exception:
             cls._cleanup(sample_id)
             raise

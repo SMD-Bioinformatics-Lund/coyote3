@@ -1,0 +1,15 @@
+[
+  {
+    "report_id": "RPT_DEMO_001",
+    "sample_name": "DEMO_SAMPLE_001",
+    "simple_id": "7_140453136_A_T",
+    "gene": "EGFR",
+    "transcript": "ENST00000288602",
+    "hgvsc": "c.2573T>G",
+    "hgvsp": "p.Leu858Arg",
+    "variant": "EGFR p.Leu858Arg",
+    "var_type": "SNV",
+    "tier": 2,
+    "created_by": "demo.user"
+  }
+]

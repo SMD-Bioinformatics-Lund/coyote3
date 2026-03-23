@@ -29,7 +29,7 @@ Set real values for all `CHANGE_ME_*` keys.
 scripts/center_preflight.sh \
   --env-file .coyote3_stage_env \
   --compose-file deploy/compose/docker-compose.stage.yml \
-  --seed-file tests/fixtures/db_dummy/center_template_seed.json \
+  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
   --yaml-file tests/data/ingest_demo/generic_case_control.yaml
 ```
 
@@ -39,6 +39,9 @@ This validates:
 - compose renders successfully
 - mandatory runtime keys exist
 - numeric port values are valid
+
+For first-time center deployment, do not depend on a production DB export.
+Use the bundled seed directory and adapt assay/group values to your center before bootstrap.
 
 ## 3. Start stack
 
@@ -52,7 +55,7 @@ This validates:
 If Mongo volume already existed before first deploy, ensure app DB user is present:
 
 ```bash
-python scripts/mongo_bootstrap_users.py \
+.venv/bin/python scripts/mongo_bootstrap_users.py \
   --mongo-uri "mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/admin?authSource=admin" \
   --app-db "${COYOTE3_DB:-coyote3}" \
   --app-user "${MONGO_APP_USER}" \
@@ -64,7 +67,7 @@ python scripts/mongo_bootstrap_users.py \
 Create the initial local API admin used for CLI/Python/API-auth flows:
 
 ```bash
-python scripts/bootstrap_local_admin.py \
+.venv/bin/python scripts/bootstrap_local_admin.py \
   --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
   --db "${COYOTE3_DB:-coyote3}" \
   --email "admin@your-center.org" \
@@ -79,12 +82,19 @@ Seed using `POST /api/v1/internal/ingest/collection` or `/bulk` in this order:
 
 1. `permissions`
 2. `roles`
-3. `users` (local application users; include at least one admin-capable account)
-4. `asp_configs`
-5. `assay_specific_panels`
-6. `insilico_genelists`
-7. `refseq_canonical` (required before DNA sample-bundle ingest)
-8. `hgnc_genes` (required for gene metadata/UI endpoints)
+3. `asp_configs`
+4. `assay_specific_panels`
+5. `insilico_genelists`
+6. `refseq_canonical` (required before DNA sample-bundle ingest)
+7. `hgnc_genes` (required for gene metadata/UI endpoints)
+
+Notes:
+
+- `users` is intentionally not seeded by `bootstrap_center_collections.sh`.
+- First admin/user is created in step 4 via `bootstrap_local_admin.py` (or later via admin UI/API).
+- `bootstrap_local_admin.py` now writes user audit metadata (`created_by`, `created_on`, `updated_by`, `updated_on`).
+- `asp_configs` must include `is_active=true`; missing this causes sample pages to fail with "Assay config not found for sample".
+- Managed admin forms (ASP/ASPC/ISGL/users/roles/permissions) are backend-generated from contracts rather than DB schema JSON.
 
 Optional but recommended next:
 
@@ -99,20 +109,25 @@ scripts/bootstrap_center_collections.sh \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}" \
   --username "admin@your-center.org" \
   --password "CHANGE_ME" \
-  --seed-file tests/fixtures/db_dummy/center_template_seed.json \
-  --with-optional \
-  --skip-existing
+  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
+  --with-optional
 ```
 
-`center_template_seed.json` is neutral by default (`ASSAY_A`, `GROUP_A`) and
+Behavior notes:
+
+- By default, `bootstrap_center_collections.sh` retries one failed collection insert once with `ignore_duplicates=true`.
+- Use `--skip-existing` to run duplicate-tolerant mode from the start for every collection.
+- Use `--strict-no-retry` if you want first error to fail immediately (CI/strict rollout mode).
+- For `center_first_run.sh`, if you use `--strict-no-retry`, also pass `--skip-existing`
+  because admin bootstrap runs before collection seeding and pre-creates RBAC docs.
+
+`all_collections_dummy/` is neutral by default (`ASSAY_A`, `GROUP_A`) and
 should be edited to your center's assay IDs and groups before first run.
-It includes ASPC (`asp_configs`) and ISGL (`insilico_genelists`) starter
-documents that should be adapted to your assay model.
 
 ## 6. Validate ingestion inputs
 
 ```bash
-python scripts/validate_ingest_spec.py \
+.venv/bin/python scripts/validate_ingest_spec.py \
   --yaml tests/data/ingest_demo/generic_case_control.yaml \
   --check-files --json
 ```
@@ -127,6 +142,21 @@ scripts/center_smoke.sh \
   --yaml-file tests/data/ingest_demo/generic_case_control.yaml
 ```
 
+Notes:
+
+- `center_smoke.sh` auto-enables `increment=true` in the submitted YAML payload, so repeated runs are idempotent (`CASE_DEMO`, `CASE_DEMO-1`, ...).
+- For local Docker stacks (`localhost` API), the script stages referenced ingest files and copies them into the API container automatically.
+- YAML ingest file paths must be API-runtime-visible paths (container/host where API process runs).
+
+If this center started on an older baseline,
+run one-time repair before smoke/bootstrap reruns:
+
+```bash
+.venv/bin/python scripts/repair_center_seed_baseline.py \
+  --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
+  --db "${COYOTE3_DB:-coyote3}"
+```
+
 ## One-command first-time bootstrap (recommended)
 
 You can execute the full chain in one command:
@@ -138,10 +168,11 @@ scripts/center_first_run.sh \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}" \
   --admin-email "admin@your-center.org" \
   --admin-password "CHANGE_ME" \
-  --seed-file tests/fixtures/db_dummy/center_template_seed.json \
+  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
   --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
   --with-optional \
-  --skip-existing
+  --skip-existing \
+  --strict-no-retry
 ```
 
 ## 8. Verify UI/API

@@ -5,6 +5,7 @@
 Replace external ad-hoc import flows with validated API-driven ingestion.
 
 For an end-to-end relationship map of `asp`/`aspc`/`isgl` with `samples`, `variants`, `cnvs`, and RNA collections, see [Product / DNA And RNA Workflow Chain](../product/workflow-dna-rna.md).
+For full per-collection key contracts (required and optional), see [API / Collection Contracts](collection-contracts.md).
 
 ## Endpoints
 
@@ -24,7 +25,7 @@ export API_BASE_URL="http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:
 export API_BEARER_TOKEN="<YOUR_API_BEARER_TOKEN>"
 
 # Option B: login via CLI helper
-python scripts/api_login.py \
+.venv/bin/python scripts/api_login.py \
   --base-url "${API_BASE_URL}" \
   --mode password \
   --username "admin@your-center.org" \
@@ -38,22 +39,38 @@ One-shot ordered seeding (required + optional baseline collections):
 scripts/bootstrap_center_collections.sh \
   --api-base-url "${API_BASE_URL}" \
   --bearer-token "${API_BEARER_TOKEN}" \
-  --seed-file tests/fixtures/db_dummy/center_template_seed.json \
-  --with-optional \
-  --skip-existing
+  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
+  --with-optional
 ```
+
+Behavior:
+
+- Default mode retries a failed collection seed once with `ignore_duplicates=true`.
+- Add `--skip-existing` to always seed in duplicate-tolerant mode.
+- Add `--strict-no-retry` to fail immediately on first error.
+
+Seed source policy for first-time center bootstrap:
+
+- Use the repository baseline seed: `tests/fixtures/db_dummy/all_collections_dummy`.
+- Update assay/group identifiers (`ASSAY_A`, `GROUP_A`) to your center values before bootstrap.
+- Keep bootstrap deterministic by versioning those seed changes in git for your center deployment repo.
 
 Validate assay consistency before ingesting sample bundles:
 
 ```bash
-python scripts/validate_assay_consistency.py \
-  --seed-file tests/fixtures/db_dummy/center_template_seed.json \
+.venv/bin/python scripts/validate_assay_consistency.py \
+  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
   --yaml tests/data/ingest_demo/generic_case_control.yaml
 ```
 
 This validator checks:
 
 - assay references across `samples`, `blacklist`, `insilico_genelists`
+- seed document contract shape (`*.json` arrays of objects only)
+- metadata field typing (`created_on`/`updated_on` ISO-8601 strings, numeric `version`)
+- `version_history` structure and timestamp typing
+- rejection of Mongo Extended JSON wrappers (`$date`, `$oid`) in seed files
+- required baseline governance/config presence (`roles`, `permissions`, optional `users`)
 - `asp_configs` (`aspc_id` format, assay/environment consistency)
 - `insilico_genelists` (`assays` and `assay_groups` consistency)
 - bootstrap dependencies (`roles -> permissions`, `users -> roles`, `refseq_canonical -> hgnc_genes`)
@@ -78,18 +95,13 @@ curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/collection" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<'JSON'
 {
-  "collection": "users",
+  "collection": "asp_configs",
   "document": {
-    "email": "admin@your-center.org",
-    "firstname": "Center",
-    "lastname": "Admin",
-    "fullname": "Center Admin",
-    "role": "admin",
-    "is_active": true,
-    "permissions": [],
-    "deny_permissions": [],
-    "assay_groups": [],
-    "assays": []
+    "aspc_id": "ASSAY_A:prod",
+    "assay_name": "ASSAY_A",
+    "environment": "prod",
+    "asp_group": "GROUP_A",
+    "is_active": true
   }
 }
 JSON
@@ -130,7 +142,7 @@ curl -sS -X POST "${API_BASE_URL}/api/v1/internal/ingest/sample-bundle" \
   -H "Authorization: Bearer ${API_BEARER_TOKEN}" \
   --data @- <<JSON
 {
-  "yaml_content": $(python - <<'PY'
+  "yaml_content": $(.venv/bin/python - <<'PY'
 import json
 from pathlib import Path
 print(json.dumps(Path("tests/data/ingest_demo/generic_case_control.yaml").read_text(encoding="utf-8")))
@@ -192,7 +204,8 @@ Use this order for a clean deployment at a new center.
 2. Seed core access/config collections.
    - `permissions`
    - `roles`
-   - `users`
+   - first admin/user via `scripts/bootstrap_local_admin.py` (writes user audit metadata)
+   - additional `users` via admin UI/API after first-login is established
    - `asp_configs`
    - `assay_specific_panels`
    - `insilico_genelists`
@@ -231,12 +244,17 @@ Recommended ordered commands for first-time center bootstrap:
 
 1. `permissions` via `/collection` or `/collection/bulk`
 2. `roles` via `/collection` or `/collection/bulk`
-3. `users` via `/collection` or `/collection/bulk`
+3. first admin/user via `scripts/bootstrap_local_admin.py`
 4. `asp_configs` via `/collection` or `/collection/bulk`
 5. `assay_specific_panels` via `/collection` or `/collection/bulk`
 6. `insilico_genelists` via `/collection` or `/collection/bulk`
 7. `refseq_canonical` via `/collection/bulk`
 8. `hgnc_genes` via `/collection/bulk`
+
+Note:
+
+- `scripts/bootstrap_center_collections.sh` intentionally skips `users`.
+- If needed, seed additional `users` later via collection endpoints or admin user management UI/API.
 
 Example bulk seed for `refseq_canonical`:
 
@@ -258,12 +276,17 @@ Use this as the minimum center onboarding contract:
 | --- | --- | --- |
 | `permissions` | `permission_id`, `permission_name` | RBAC policy definitions |
 | `roles` | `role_id`, `level`, `permissions[]` | RBAC role resolution |
-| `users` | `email`, `role`, `environments[]` | Login + authorization subject |
-| `asp_configs` | `aspc_id`, `assay_name`, `environment`, `asp_group` | Assay+environment runtime config |
-| `assay_specific_panels` | `asp_id`, `assay_name`, `asp_group` | Assay metadata/UI wiring |
-| `insilico_genelists` | `isgl_id`, `diagnosis`, `assays[]`, `assay_groups[]`, `genes[]` | Panel/list filtering logic |
+| `users` | `email`, `role`, `environments[]` | Login + authorization subject (first user should be created by `bootstrap_local_admin.py`) |
+| `asp_configs` | `aspc_id`, `assay_name`, `environment`, `asp_group`, `is_active` | Assay+environment runtime config |
+| `assay_specific_panels` | `asp_id`, `assay_name`, `asp_group`, `is_active` | Assay metadata/UI wiring |
+| `insilico_genelists` | `isgl_id`, `diagnosis`, `assays[]`, `assay_groups[]`, `genes[]`, `is_active` | Panel/list filtering logic |
 | `refseq_canonical` | `gene`, `canonical` | DNA transcript canonicalization |
 | `hgnc_genes` | `hgnc_id`, `hgnc_symbol` | Gene metadata and symbol mapping |
+
+Managed-admin form source:
+
+- For ASP/ASPC/ISGL/users/roles/permissions, admin UI forms use backend-generated schemas from contracts (`api/contracts/managed_ui_schemas.py`).
+- Version and history are tracked via `version` and `version_history`.
 
 ## Sample bundle request modes
 
@@ -329,7 +352,7 @@ Core collections typically seeded first:
 
 - `permissions`
 - `roles`
-- `users`
+- first local admin user via `scripts/bootstrap_local_admin.py`
 - `asp_configs`
 - `assay_specific_panels`
 - `insilico_genelists`
@@ -339,8 +362,7 @@ Core collections typically seeded first:
 ## Test fixtures for ingestion
 
 - `tests/data/ingest_demo/*`
-- `tests/fixtures/db_dummy/center_template_seed.json` (center onboarding seed)
-- `tests/fixtures/db_dummy/all_collections_dummy.json` (full contract coverage fixture)
+- `tests/fixtures/db_dummy/all_collections_dummy` (center onboarding seed)
 
 ## Client example (Python)
 
@@ -372,8 +394,10 @@ print(r.json())
 
 | Error fragment | Likely cause | Fix |
 | --- | --- | --- |
+| `Seed contract-shape errors` | Seed files contain invalid document shape/metadata typing | Keep each collection file as `list[object]`, use ISO-8601 datetimes, numeric `version`, and plain JSON scalar values |
 | `Unknown assay references in seed` | Seed collections use assay IDs not present in ASPC/panel/ISGL docs | Align assay IDs across `asp_configs`, `assay_specific_panels`, `insilico_genelists` |
 | `Bootstrap dependency errors` | Missing required baseline collection docs or broken refs | Populate required collections in onboarding order |
+| `Assay config not found for sample` | `asp_configs` doc missing, inactive, or mismatched `aspc_id`/profile | Ensure `aspc_id=assay:profile`, set `is_active=true`, and keep `sample.profile` aligned |
 | `No DB document model registered` | Unsupported collection name in ingest request | Use `/api/v1/internal/ingest/collections` and correct `collection` |
 | `diagnosis must include at least one value` | ISGL payload missing diagnosis | Provide non-empty `diagnosis` list/string |
 | `aspc_id environment segment must match environment` | `aspc_id` and `environment` mismatch | Keep `aspc_id` as `assay:environment` and matching fields |

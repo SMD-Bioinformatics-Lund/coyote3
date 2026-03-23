@@ -193,8 +193,6 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
             )
         if "/resources/samples/" in path and path.endswith("/context"):
             return _payload({"sample": {"_id": "sample1"}})
-        if "/resources/schemas/" in path and path.endswith("/context"):
-            return _payload({"schema": {"_id": "schema1"}})
         if path.endswith("/internal/roles/levels"):
             return _payload({"role_levels": {}})
         if path.endswith("/dashboard/summary"):
@@ -327,8 +325,6 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
                     "assay_group_map": {},
                 }
             )
-        if path.endswith("/resources/schemas"):
-            return _payload({"schemas": []})
         return _payload({})
 
     def _fake_post(self, path, headers=None, params=None, json_body=None):  # noqa: ARG001
@@ -390,10 +386,6 @@ def test_ui_route_smoke_with_stubbed_api(monkeypatch):
         "/admin/genelists/gl1/view",
         "/admin/genelists/gl1/edit",
         "/admin/genelists/gl1/toggle",
-        "/admin/schemas",
-        "/admin/schemas/new",
-        "/admin/schemas/schema1/edit",
-        "/admin/schemas/schema1/toggle",
         "/public/assay-catalog",
         "/search/tiered_variants",
         "/samples",
@@ -432,8 +424,6 @@ def test_admin_endpoints_restored(monkeypatch):
         "admin_bp.create_rna_assay_config",
         "admin_bp.manage_genelists",
         "admin_bp.create_genelist",
-        "admin_bp.schemas",
-        "admin_bp.create_schema",
     }
     missing = sorted(expected - endpoints)
     assert not missing, "Expected admin endpoints missing:\n" + "\n".join(missing)

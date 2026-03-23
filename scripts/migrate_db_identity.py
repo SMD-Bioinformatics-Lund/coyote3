@@ -10,7 +10,6 @@ This script performs:
    - users.username
    - roles.role_id
    - permissions.permission_id
-   - schemas.schema_id
 3) samples.name unique index enforcement
 4) variants simple_id/simple_id_hash backfill + identity index enforcement
 
@@ -56,7 +55,6 @@ EXPLICIT_KEY_RULES: tuple[tuple[str, str], ...] = (
     ("users", "username"),
     ("roles", "role_id"),
     ("permissions", "permission_id"),
-    ("schemas", "schema_id"),
     ("asp_configs", "aspc_id"),
     ("assay_specific_panels", "asp_id"),
     ("hgnc_genes", "hgnc_id"),

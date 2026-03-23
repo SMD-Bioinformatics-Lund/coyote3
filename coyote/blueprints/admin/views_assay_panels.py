@@ -6,7 +6,7 @@ from copy import deepcopy
 
 from flask import Response, abort, g, redirect, render_template, request, url_for
 from flask import current_app as app
-from flask_login import current_user, login_required
+from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
@@ -169,18 +169,6 @@ def create_assay_panel():
         config["covered_genes_count"] = len(covered_genes)
         config["germline_genes"] = germline_genes
         config["germline_genes_count"] = len(germline_genes)
-        config.update(
-            {
-                "schema_name": context.schema["schema_id"],
-                "schema_version": context.schema["version"],
-                "version": 1,
-            }
-        )
-        config = util.admin.inject_version_history(
-            user_email=current_user.email,
-            new_config=deepcopy(config),
-            is_new=True,
-        )
         try:
             get_web_api_client().post_json(
                 api_endpoints.admin("asp"),
@@ -245,17 +233,6 @@ def edit_assay_panel(assay_panel_id: str) -> str | Response:
         updated["covered_genes_count"] = len(covered_genes)
         updated["germline_genes"] = germline_genes
         updated["germline_genes_count"] = len(germline_genes)
-        updated["updated_by"] = current_user.email
-        updated["updated_on"] = util.common.utc_now()
-        updated["schema_name"] = context.schema["schema_id"]
-        updated["schema_version"] = context.schema["version"]
-        updated["version"] = panel.get("version", 1) + 1
-        updated = util.admin.inject_version_history(
-            user_email=current_user.email,
-            new_config=updated,
-            old_config=panel,
-            is_new=False,
-        )
         try:
             get_web_api_client().put_json(
                 api_endpoints.admin("asp", assay_panel_id),

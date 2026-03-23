@@ -6,6 +6,8 @@ from copy import deepcopy
 
 from fastapi import HTTPException
 
+from api.contracts.managed_resources import aspc_spec_for_category
+from api.contracts.managed_ui_schemas import build_managed_schema
 from api.extensions import store, util
 
 
@@ -40,6 +42,8 @@ def get_formatted_assay_config(sample: dict):
     )
     if not assay_config:
         return None
-    schema_name = assay_config.get("schema_name")
-    assay_config_schema = store.schema_handler.get_schema(schema_name)
+    omics = str(sample.get("omics_layer") or "").upper()
+    if not omics:
+        omics = "RNA" if sample.get("fusion_files") else "DNA"
+    assay_config_schema = build_managed_schema(aspc_spec_for_category(omics))
     return util.common.format_assay_config(deepcopy(assay_config), assay_config_schema)

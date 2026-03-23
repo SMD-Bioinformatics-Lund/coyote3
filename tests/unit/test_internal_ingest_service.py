@@ -460,14 +460,14 @@ def test_replace_dependents_restores_on_failure(monkeypatch):
 
 def test_update_compatibility_and_meta_update(monkeypatch):
     monkeypatch.setattr(ingest, "_data_typer", lambda _: "RNA")
-    out = ingest.InternalIngestService._ensure_update_compatibility(
+    out = ingest.InternalIngestService._prepare_update_payload(
         sample_doc={"fusion_files": "x"}, payload={"name": "S1"}
     )
     assert out["fusion_files"] == "no_update" and out["update"] is True
 
     monkeypatch.setattr(ingest, "_data_typer", lambda _: "DNA")
     with pytest.raises(ValueError):
-        ingest.InternalIngestService._ensure_update_compatibility(
+        ingest.InternalIngestService._prepare_update_payload(
             sample_doc={"fusion_files": "x"}, payload={"name": "S1"}
         )
 
@@ -499,7 +499,7 @@ def test_ingest_update_and_ingest_sample_bundle(monkeypatch):
     monkeypatch.setattr(ingest, "store", stub)
     monkeypatch.setattr(
         ingest.InternalIngestService,
-        "_ensure_update_compatibility",
+        "_prepare_update_payload",
         lambda sample_doc, payload: payload,
     )
     monkeypatch.setattr(

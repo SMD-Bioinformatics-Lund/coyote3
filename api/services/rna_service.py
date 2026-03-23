@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from api.contracts.managed_resources import aspc_spec_for_category
+from api.contracts.managed_ui_schemas import build_managed_schema
 from api.core.interpretation.annotation_enrichment import add_global_annotations
 from api.core.interpretation.report_summary import generate_summary_text
 from api.core.workflows.rna_workflow import RNAWorkflowService
@@ -75,9 +77,7 @@ class RnaService:
         )
         assay_group = assay_config.get("asp_group", "unknown")
         subpanel = sample.get("subpanel")
-        assay_config_schema = self.repository.schema_handler.get_schema(
-            assay_config.get("schema_name")
-        )
+        assay_config_schema = build_managed_schema(aspc_spec_for_category("RNA"))
         assay_panel_doc = self.repository.asp_handler.get_asp(asp_name=sample.get("assay"))
         fusionlist_options = self.repository.isgl_handler.get_isgl_by_asp(
             sample.get("assay"), is_active=True, list_type="fusionlist"

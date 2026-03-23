@@ -34,7 +34,6 @@ def build_fake_store() -> SimpleNamespace:
 
     sample = fx.sample_doc()
     role = fx.role_doc()
-    schema = fx.schema_doc()
     isgl = fx.isgl_doc()
     variant = fx.variant_doc()
     fusion = fx.fusion_doc()
@@ -71,12 +70,6 @@ def build_fake_store() -> SimpleNamespace:
             {
                 "get_all_roles": lambda: [role],
                 "get_role": lambda role_id: role if role_id == role["_id"] else None,
-            }
-        ),
-        schema_handler=FakeHandler(
-            {
-                "get_schemas_by_category_type": lambda **kwargs: [schema],
-                "get_schema": lambda name: schema,
             }
         ),
         permissions_handler=FakeHandler(

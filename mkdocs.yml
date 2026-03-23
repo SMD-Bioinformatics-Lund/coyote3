@@ -27,6 +27,7 @@ nav:
       - Configuration Model: start-here/configuration.md
   - Developer:
       - Add New Feature: developer/adding-features.md
+      - Schema Contracts And Versioning: developer/schema-contracts-and-versioning.md
       - URL And Request Flow: developer/url-routing-and-request-flow.md
       - Route Walkthrough (Dashboard): developer/route-walkthrough-dashboard-summary.md
       - Troubleshooting Guide: developer/troubleshooting-guide.md
@@ -48,6 +49,7 @@ nav:
   - API:
       - API Reference And Workflows: api/reference-and-workflows.md
       - Ingestion API: api/ingestion-api.md
+      - Collection Contracts: api/collection-contracts.md
   - Testing:
       - Testing And Quality: testing/testing-and-quality.md
       - Test Data And Fixtures: testing/test-data-and-fixtures.md

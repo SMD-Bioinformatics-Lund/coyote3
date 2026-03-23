@@ -21,7 +21,7 @@ from flask import current_app as app
 from markupsafe import Markup
 
 from coyote.filters.shared import (
-    format_fusion_desc_legacy as shared_format_fusion_desc_legacy,
+    format_fusion_desc_spans as shared_format_fusion_desc_spans,
 )
 from coyote.filters.shared import (
     render_markdown_basic as shared_render_markdown_basic,
@@ -344,7 +344,7 @@ def format_fusion_desc(st: str | None) -> str:
     Returns:
         str: HTML string with each term wrapped in a span with a class indicating its category.
     """
-    return shared_format_fusion_desc_legacy(st)
+    return shared_format_fusion_desc_spans(st)
 
 
 @app.template_filter()

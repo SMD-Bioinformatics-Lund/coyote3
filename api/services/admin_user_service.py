@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from api.contracts.managed_resources import managed_resource_spec
+from api.contracts.managed_ui_schemas import build_managed_schema, build_managed_schema_bundle
+from api.contracts.schemas import normalize_collection_document
 from api.extensions import util
 from api.http import api_error
 from api.repositories.admin_repository import AdminRepository
@@ -29,6 +32,7 @@ class AdminUserService:
                 repository: Repository. Optional argument.
         """
         self.repository = repository or AdminRepository()
+        self._spec = managed_resource_spec("user")
 
     def list_users_payload(
         self, *, q: str = "", page: int = 1, per_page: int = 30
@@ -57,14 +61,8 @@ class AdminUserService:
         Returns:
             dict[str, Any]: The function result.
         """
-        schemas, selected_schema = self.repository.get_active_schema(
-            schema_type="rbac_user",
-            schema_category="RBAC_user",
-            schema_id=schema_id,
-        )
-        if not schemas:
-            raise api_error(400, "No active user schemas found")
-        if not selected_schema:
+        schemas, selected_schema = build_managed_schema_bundle(self._spec)
+        if schema_id and schema_id != selected_schema.get("schema_id"):
             raise api_error(404, "User schema not found")
 
         schema = self.repository.clone_schema(selected_schema)
@@ -99,11 +97,7 @@ class AdminUserService:
         if not user_doc:
             raise api_error(404, "User not found")
 
-        schema = self.repository.get_schema(user_doc.get("schema_name"))
-        if not schema:
-            raise api_error(404, "Schema not found for user")
-
-        schema = self.repository.clone_schema(schema)
+        schema = self.repository.clone_schema(build_managed_schema(self._spec))
         options = self.repository.list_permission_policy_options()
         schema["fields"]["role"]["options"] = self.repository.get_role_names()
         schema["fields"]["permissions"]["options"] = options
@@ -150,14 +144,9 @@ class AdminUserService:
         Returns:
             dict[str, Any]: The function result.
         """
-        schemas, schema = self.repository.get_active_schema(
-            schema_type="rbac_user",
-            schema_category="RBAC_user",
-            schema_id=payload.get("schema_id"),
-        )
-        if not schemas:
-            raise api_error(400, "No active user schemas found")
-        if not schema:
+        schema = build_managed_schema(self._spec)
+        selected_schema_id = payload.get("schema_id")
+        if selected_schema_id and selected_schema_id != schema.get("schema_id"):
             raise api_error(404, "User schema not found")
 
         form_data = dict(payload.get("form_data", {}) or {})
@@ -175,8 +164,6 @@ class AdminUserService:
         username = lower(user_data.get("username"))
         email = lower(user_data.get("email"))
         user_data.setdefault("is_active", True)
-        user_data["schema_name"] = schema.get("schema_id")
-        user_data["schema_version"] = schema["version"]
         user_data["email"] = email
         user_data["username"] = username
         if user_data["auth_type"] == "coyote3" and user_data.get("password"):
@@ -191,6 +178,10 @@ class AdminUserService:
             new_config=user_data,
             is_new=True,
         )
+        try:
+            user_data = normalize_collection_document(self._spec.collection, user_data)
+        except Exception as exc:
+            raise api_error(400, f"Invalid user payload: {exc}") from exc
         self.repository.create_user(user_data)
         response = mutation_payload(resource="user", resource_id=username, action="create")
         if user_data.get("auth_type") == "coyote3":
@@ -231,9 +222,7 @@ class AdminUserService:
         user_doc = self.repository.get_user(user_id)
         if not user_doc:
             raise api_error(404, "User not found")
-        schema = self.repository.get_schema(user_doc.get("schema_name"))
-        if not schema:
-            raise api_error(404, "Schema not found for user")
+        schema = build_managed_schema(self._spec)
 
         form_data = dict(payload.get("form_data", {}) or {})
         updated_user = util.admin.process_form_to_config(form_data, schema)
@@ -252,8 +241,6 @@ class AdminUserService:
             updated_user["password"] = util.common.hash_password(updated_user["password"])
         else:
             updated_user["password"] = user_doc.get("password")
-        updated_user["schema_name"] = schema.get("schema_id")
-        updated_user["schema_version"] = schema["version"]
         updated_user["version"] = user_doc.get("version", 1) + 1
         updated_user["_id"] = user_doc.get("_id")
         updated_user["email"] = lower(updated_user.get("email"))
@@ -264,6 +251,10 @@ class AdminUserService:
             old_config=user_doc,
             is_new=False,
         )
+        try:
+            updated_user = normalize_collection_document(self._spec.collection, updated_user)
+        except Exception as exc:
+            raise api_error(400, f"Invalid user payload: {exc}") from exc
         self.repository.update_user(user_id, updated_user)
         payload = mutation_payload(resource="user", resource_id=user_id, action="update")
         changed_fields = self._changed_user_fields(user_doc, updated_user)

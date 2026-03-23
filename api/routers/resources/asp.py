@@ -41,8 +41,9 @@ def create_asp_mutation(
     Returns:
         The function result.
     """
-    _ = user
-    return util.common.convert_to_serializable(service.create(payload=payload))
+    return util.common.convert_to_serializable(
+        service.create(payload=payload, actor_username=user.username)
+    )
 
 
 @router.get("/api/v1/resources/asp", response_model=AdminPanelsListPayload)
@@ -137,9 +138,8 @@ def update_asp_mutation(
     Returns:
         The function result.
     """
-    _ = user
     return util.common.convert_to_serializable(
-        service.update(panel_id=assay_panel_id, payload=payload)
+        service.update(panel_id=assay_panel_id, payload=payload, actor_username=user.username)
     )
 
 

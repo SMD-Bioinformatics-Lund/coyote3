@@ -1,0 +1,35 @@
+[
+  {
+    "hgnc_id": "HGNC:3236",
+    "hgnc_symbol": "EGFR",
+    "gene_name": "epidermal growth factor receptor",
+    "ensembl_gene_id": "ENSG00000146648",
+    "entrez_id": "1956",
+    "refseq_accession": [
+      "NM_005228"
+    ],
+    "ensembl_mane_select": "ENST00000275493",
+    "refseq_mane_select": "NM_005228.5",
+    "locus": "7p11.2",
+    "alias_symbol": [
+      "ERBB"
+    ],
+    "alias_name": [
+      "ERBB proto-oncogene"
+    ],
+    "prev_symbol": [],
+    "prev_name": [],
+    "omim_id": [
+      131550
+    ],
+    "cosmic": [
+      "COSM6240"
+    ],
+    "gene_type": [
+      "protein-coding"
+    ],
+    "refseq_mane_plus_clinical": [
+      "NM_005228.5"
+    ]
+  }
+]

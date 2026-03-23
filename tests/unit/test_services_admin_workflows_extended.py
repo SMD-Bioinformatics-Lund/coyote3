@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -86,7 +87,10 @@ class _Repo:
             "user_id": user_id,
             "username": user_id,
             "email": f"{user_id}@example.com",
-            "schema_name": "schema1",
+            "firstname": "Test",
+            "lastname": "User",
+            "fullname": "Test User",
+            "job_title": "Analyst",
             "auth_type": "coyote3",
             "password": "hashed",
             "version": 1,
@@ -103,7 +107,10 @@ class _Repo:
         return {
             "_id": "oid-role",
             "role_id": role_id,
-            "schema_name": "schema1",
+            "name": role_id.title(),
+            "label": role_id.title(),
+            "color": "#1f2937",
+            "level": 100,
             "version": 1,
             "permissions": [],
             "deny_permissions": [],
@@ -117,25 +124,11 @@ class _Repo:
             "_id": "oid-perm",
             "permission_id": permission_id,
             "permission_name": permission_id,
-            "schema_name": "schema1",
+            "label": permission_id,
+            "category": "General",
+            "tags": [],
             "version": 1,
             "is_active": True,
-        }
-
-    def get_schema(self, schema_name):
-        if schema_name == "missing":
-            return None
-        return {
-            "_id": "schema1",
-            "schema_id": "schema1",
-            "version": 2,
-            "fields": {
-                "permissions": {},
-                "deny_permissions": {},
-                "role": {},
-                "assay_groups": {},
-                "assays": {},
-            },
         }
 
     def update_user(self, user_id, doc):
@@ -197,7 +190,7 @@ def test_admin_user_update_preserves_password_when_blank(monkeypatch):
     repo = _Repo()
     service = AdminUserService(repository=repo)
     monkeypatch.setattr(user_module, "current_actor", lambda u: u)
-    monkeypatch.setattr(user_module, "utc_now", lambda: "NOW")
+    monkeypatch.setattr(user_module, "utc_now", lambda: datetime.now(timezone.utc))
     monkeypatch.setattr(
         user_module, "inject_version_history", lambda **kwargs: kwargs["new_config"]
     )
@@ -208,6 +201,10 @@ def test_admin_user_update_preserves_password_when_blank(monkeypatch):
             process_form_to_config=lambda _form, _schema: {
                 "username": "TESTER",
                 "email": "TESTER@EXAMPLE.COM",
+                "firstname": "Test",
+                "lastname": "User",
+                "fullname": "Test User",
+                "job_title": "Analyst",
                 "auth_type": "coyote3",
                 "password": "",
                 "role": "admin",
@@ -235,20 +232,18 @@ def test_admin_user_update_raises_when_user_missing():
     assert exc.value.status_code == 404
 
 
-def test_admin_user_context_raises_when_schema_missing():
+def test_admin_user_context_uses_backend_contract_schema():
     repo = _Repo()
-    repo.get_user = lambda _user_id: {"schema_name": "missing"}
     service = AdminUserService(repository=repo)
-    with pytest.raises(HTTPException) as exc:
-        service.context_payload(user_id="u1")
-    assert exc.value.status_code == 404
+    payload = service.context_payload(user_id="u1")
+    assert payload["schema"]["schema_id"] == "user_schema_contract_v1"
 
 
 def test_admin_role_update_success(monkeypatch):
     repo = _Repo()
     service = AdminRoleService(repository=repo)
     monkeypatch.setattr(role_module, "current_actor", lambda u: u)
-    monkeypatch.setattr(role_module, "utc_now", lambda: "NOW")
+    monkeypatch.setattr(role_module, "utc_now", lambda: datetime.now(timezone.utc))
     monkeypatch.setattr(
         role_module, "inject_version_history", lambda **kwargs: kwargs["new_config"]
     )
@@ -256,7 +251,12 @@ def test_admin_role_update_success(monkeypatch):
         role_module.util,
         "admin",
         SimpleNamespace(
-            process_form_to_config=lambda _form, _schema: {"name": "Admin", "permissions": []}
+            process_form_to_config=lambda _form, _schema: {
+                "name": "Admin",
+                "label": "Admin",
+                "color": "#1f2937",
+                "permissions": [],
+            }
         ),
         raising=False,
     )
@@ -267,22 +267,41 @@ def test_admin_role_update_success(monkeypatch):
 
     assert payload["action"] == "update"
     assert repo.updated_role[1]["role_id"] == "admin"
+    assert repo.updated_role[1]["level"] == 99999
 
 
-def test_admin_role_update_raises_when_schema_missing():
+def test_admin_role_update_works_without_db_schema_dependency(monkeypatch):
     repo = _Repo()
-    repo.get_schema = lambda _name: None
     service = AdminRoleService(repository=repo)
-    with pytest.raises(HTTPException) as exc:
-        service.update_role(role_id="admin", payload={"form_data": {}}, actor_username="actor")
-    assert exc.value.status_code == 404
+    monkeypatch.setattr(role_module, "current_actor", lambda u: u)
+    monkeypatch.setattr(role_module, "utc_now", lambda: datetime.now(timezone.utc))
+    monkeypatch.setattr(
+        role_module, "inject_version_history", lambda **kwargs: kwargs["new_config"]
+    )
+    monkeypatch.setattr(
+        role_module.util,
+        "admin",
+        SimpleNamespace(
+            process_form_to_config=lambda _form, _schema: {
+                "name": "Admin",
+                "label": "Admin",
+                "color": "#1f2937",
+                "permissions": [],
+            }
+        ),
+        raising=False,
+    )
+    payload = service.update_role(
+        role_id="admin", payload={"form_data": {}}, actor_username="actor"
+    )
+    assert payload["action"] == "update"
 
 
 def test_permission_create_and_update_success(monkeypatch):
     repo = _Repo()
     service = PermissionManagementService(repository=repo)
     monkeypatch.setattr(perm_module, "current_actor", lambda u: u)
-    monkeypatch.setattr(perm_module, "utc_now", lambda: "NOW")
+    monkeypatch.setattr(perm_module, "utc_now", lambda: datetime.now(timezone.utc))
     monkeypatch.setattr(
         perm_module, "inject_version_history", lambda **kwargs: kwargs["new_config"]
     )
@@ -291,7 +310,10 @@ def test_permission_create_and_update_success(monkeypatch):
         "admin",
         SimpleNamespace(
             process_form_to_config=lambda form_data, _schema: {
-                "permission_name": form_data["permission_name"]
+                "permission_name": form_data["permission_name"],
+                "label": form_data["permission_name"],
+                "category": "General",
+                "tags": [],
             }
         ),
         raising=False,

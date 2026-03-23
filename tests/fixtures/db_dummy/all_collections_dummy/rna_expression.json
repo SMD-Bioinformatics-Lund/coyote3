@@ -1,0 +1,9 @@
+[
+  {
+    "SAMPLE_ID": "65f0c0ffee00000000000001",
+    "gene_expression": {
+      "WT1": 12.5,
+      "BCR": 0.5
+    }
+  }
+]

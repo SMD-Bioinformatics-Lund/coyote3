@@ -1,0 +1,24 @@
+[
+  {
+    "isgl_id": "ISGL_A",
+    "diagnosis": [
+      "DIAGNOSIS_A"
+    ],
+    "name": "List A",
+    "displayname": "List A",
+    "list_type": "diagnostic",
+    "adhoc": false,
+    "is_public": true,
+    "is_active": true,
+    "assay_groups": [
+      "GROUP_A"
+    ],
+    "genes": [
+      "EGFR",
+      "TP53"
+    ],
+    "assays": [
+      "ASSAY_A"
+    ]
+  }
+]

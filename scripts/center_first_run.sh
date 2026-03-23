@@ -17,6 +17,7 @@ Usage:
     [--yaml-file <path>] \
     [--with-optional] \
     [--skip-existing] \
+    [--strict-no-retry] \
     [--teardown]
 USAGE
 }
@@ -27,10 +28,11 @@ API_BASE_URL=""
 ADMIN_EMAIL=""
 ADMIN_PASSWORD=""
 MONGO_URI_OVERRIDE=""
-SEED_FILE="tests/fixtures/db_dummy/center_template_seed.json"
+SEED_FILE="tests/fixtures/db_dummy/all_collections_dummy"
 YAML_FILE="tests/data/ingest_demo/generic_case_control.yaml"
 WITH_OPTIONAL=0
 SKIP_EXISTING=0
+STRICT_NO_RETRY=0
 TEARDOWN=0
 PYTHON_BIN="${PYTHON_BIN:-}"
 STAGED_YAML_FILE=""
@@ -47,6 +49,7 @@ while [[ $# -gt 0 ]]; do
     --yaml-file) YAML_FILE="$2"; shift 2 ;;
     --with-optional) WITH_OPTIONAL=1; shift ;;
     --skip-existing) SKIP_EXISTING=1; shift ;;
+    --strict-no-retry) STRICT_NO_RETRY=1; shift ;;
     --teardown) TEARDOWN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; usage; exit 2 ;;
@@ -56,6 +59,16 @@ done
 if [[ -z "$ENV_FILE" || -z "$COMPOSE_FILE" || -z "$API_BASE_URL" || -z "$ADMIN_EMAIL" || -z "$ADMIN_PASSWORD" ]]; then
   echo "ERROR: required arguments are missing" >&2
   usage
+  exit 2
+fi
+
+if [[ "$STRICT_NO_RETRY" -eq 1 && "$SKIP_EXISTING" -eq 0 ]]; then
+  echo "ERROR: --strict-no-retry is incompatible with default center_first_run ordering." >&2
+  echo "Reason: bootstrap_local_admin runs before collection seeding and pre-creates RBAC docs" >&2
+  echo "(permissions/roles), so strict seeding fails on duplicate keys." >&2
+  echo "Use one of:" >&2
+  echo "  1) remove --strict-no-retry (default single retry behavior), or" >&2
+  echo "  2) keep --strict-no-retry and add --skip-existing." >&2
   exit 2
 fi
 
@@ -202,6 +215,9 @@ if [[ "$WITH_OPTIONAL" -eq 1 ]]; then
 fi
 if [[ "$SKIP_EXISTING" -eq 1 ]]; then
   seed_args+=(--skip-existing)
+fi
+if [[ "$STRICT_NO_RETRY" -eq 1 ]]; then
+  seed_args+=(--strict-no-retry)
 fi
 
 echo "[step] seed baseline collections"

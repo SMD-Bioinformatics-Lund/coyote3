@@ -158,7 +158,7 @@ Users can:
 
 Users with admin access can:
 
-1. Open admin navigation cards for all managed resources.
+1. Open admin navigation cards for users, roles, permissions, assay resources, samples, and audit.
 2. Review audit entries and operation history.
 
 ## Users management
@@ -190,13 +190,12 @@ Admins can:
 2. Manage ASPC (assay configs): create DNA/RNA config, edit/view/print/toggle/delete.
 3. Manage ISGL (genelists): create/edit/view/toggle/delete and manage gene content/versions.
 
-## Schemas and sample administration
+## Sample administration
 
 Admins can:
 
-1. Create/edit/toggle/delete dynamic schemas.
-2. Search and edit sample documents in admin mode.
-3. Delete samples from admin sample management.
+1. Search and edit sample documents in admin mode.
+2. Delete samples from admin sample management.
 
 ## Public/catalog UI
 

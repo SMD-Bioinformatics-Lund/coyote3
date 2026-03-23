@@ -1,0 +1,19 @@
+[
+  {
+    "SAMPLE_ID": "65f0c0ffee00000000000001",
+    "chr": "7",
+    "start": 55000000,
+    "end": 56000000,
+    "size": 1000000,
+    "ratio": 0.4,
+    "nprobes": 100,
+    "genes": [
+      {
+        "gene": "EGFR"
+      }
+    ],
+    "callers": [
+      "cnvkit"
+    ]
+  }
+]

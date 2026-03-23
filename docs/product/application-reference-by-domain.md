@@ -152,19 +152,19 @@ API request keys:
 
 - `live_page`, `live_per_page`
 - `done_page`, `done_per_page`
-- plus compatibility keys `page`, `per_page`
+- `page`, `per_page`
 
 API response includes:
 
 - `has_next_live`
 - `has_next_done`
 
-UI query params support both short and legacy names:
+UI query params:
 
-- `lp` / `live_page`
-- `dp` / `done_page`
-- `lpp` / `live_per_page`
-- `dpp` / `done_per_page`
+- `lp`
+- `dp`
+- `lpp`
+- `dpp`
 
 ## In-page table pagination (client-side)
 
@@ -184,3 +184,8 @@ Use server-side pagination for large datasets and client-side pagination for alr
 2. Selected ISGL and adhoc genes directly change the effective analysis scope.
 3. Tier badges and filter badges are visual shortcuts backed by stable DB/API fields.
 4. Live and reported samples paginate independently, so moving in one list does not reset the other.
+
+## Time handling
+
+- API and database timestamps are stored in UTC (ISO-8601).
+- UI renders timestamps in the viewer's local timezone.

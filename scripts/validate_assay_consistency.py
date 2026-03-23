@@ -5,19 +5,26 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-VALID_ENVIRONMENTS = {"production", "development", "test", "validation"}
+# Ensure repo root is importable when running as `python scripts/...`.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+VALID_ENVIRONMENTS = {"production", "development", "testing", "validation"}
 ENV_ALIASES = {
     "prod": "production",
     "production": "production",
     "dev": "development",
     "development": "development",
-    "test": "test",
-    "testing": "test",
+    "test": "testing",
+    "testing": "testing",
     "validation": "validation",
     "stage": "validation",
     "staging": "validation",
@@ -25,7 +32,6 @@ ENV_ALIASES = {
 REQUIRED_BASELINE_COLLECTIONS = (
     "permissions",
     "roles",
-    "users",
     "asp_configs",
     "assay_specific_panels",
     "insilico_genelists",
@@ -38,7 +44,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Validate assay references in center seed JSON and optional sample YAML."
     )
-    parser.add_argument("--seed-file", required=True, help="Path to seed JSON file")
+    parser.add_argument(
+        "--seed-file",
+        required=True,
+        help="Seed directory path containing <collection>.json files",
+    )
     parser.add_argument(
         "--yaml", help="Optional sample ingest YAML to validate assay against seeds"
     )
@@ -51,12 +61,88 @@ def _norm(value: Any) -> str:
 
 def _load_seed(path: str) -> dict[str, Any]:
     seed_path = Path(path)
-    if not seed_path.exists():
-        raise SystemExit(f"Seed file not found: {seed_path}")
-    payload = json.loads(seed_path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise SystemExit("Seed JSON must be a top-level object")
+    if not seed_path.is_dir():
+        raise SystemExit(f"Seed directory not found: {seed_path}")
+    payload: dict[str, Any] = {}
+    for file in sorted(seed_path.glob("*.json")):
+        value = json.loads(file.read_text(encoding="utf-8"))
+        if not isinstance(value, list):
+            raise SystemExit(f"Collection seed file must contain a JSON list: {file}")
+        payload[file.stem] = value
     return payload
+
+
+def _is_iso_datetime(value: str) -> bool:
+    text = value.strip()
+    if not text:
+        return False
+    # Accept UTC "Z" form in addition to datetime.fromisoformat native forms.
+    if text.endswith("Z"):
+        text = f"{text[:-1]}+00:00"
+    try:
+        datetime.fromisoformat(text)
+        return True
+    except ValueError:
+        return False
+
+
+def _contains_extended_json_dates(value: Any) -> bool:
+    if isinstance(value, dict):
+        if set(value.keys()) == {"$date"}:
+            return True
+        if set(value.keys()) == {"$oid"}:
+            return True
+        return any(_contains_extended_json_dates(v) for v in value.values())
+    if isinstance(value, list):
+        return any(_contains_extended_json_dates(v) for v in value)
+    return False
+
+
+def _validate_contract_shaping(seed: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    for collection, docs in sorted(seed.items()):
+        if not isinstance(docs, list):
+            errors.append(f"{collection} must be a JSON array of objects")
+            continue
+        for idx, doc in enumerate(docs):
+            if not isinstance(doc, dict):
+                errors.append(f"{collection}[{idx}] must be a JSON object")
+                continue
+            if _contains_extended_json_dates(doc):
+                errors.append(
+                    f"{collection}[{idx}] contains Extended JSON wrappers ($date/$oid); "
+                    "use plain JSON scalar values in seed files"
+                )
+            for dt_key in ("created_on", "updated_on"):
+                if dt_key in doc and doc[dt_key] is not None:
+                    if not isinstance(doc[dt_key], str) or not _is_iso_datetime(doc[dt_key]):
+                        errors.append(
+                            f"{collection}[{idx}].{dt_key} must be an ISO-8601 datetime string"
+                        )
+            if (
+                "version" in doc
+                and doc["version"] is not None
+                and not isinstance(doc["version"], (int, float))
+            ):
+                errors.append(f"{collection}[{idx}].version must be numeric")
+            history = doc.get("version_history")
+            if history is not None:
+                if not isinstance(history, list):
+                    errors.append(f"{collection}[{idx}].version_history must be a list")
+                    continue
+                for hidx, entry in enumerate(history):
+                    if not isinstance(entry, dict):
+                        errors.append(
+                            f"{collection}[{idx}].version_history[{hidx}] must be an object"
+                        )
+                        continue
+                    ts = entry.get("updated_on")
+                    if ts is not None and (not isinstance(ts, str) or not _is_iso_datetime(ts)):
+                        errors.append(
+                            f"{collection}[{idx}].version_history[{hidx}].updated_on "
+                            "must be an ISO-8601 datetime string"
+                        )
+    return errors
 
 
 def _known_assays(seed: dict[str, Any]) -> set[str]:
@@ -190,6 +276,19 @@ def _validate_aspc(seed: dict[str, Any]) -> list[str]:
             )
         if environment and environment not in VALID_ENVIRONMENTS:
             errors.append(f"asp_configs[{idx}] invalid environment '{environment}'")
+        if "is_active" not in doc or not isinstance(doc.get("is_active"), bool):
+            errors.append(f"asp_configs[{idx}] must include boolean is_active")
+    return errors
+
+
+def _validate_panels(seed: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    for idx, doc in enumerate(seed.get("assay_specific_panels", [])):
+        if not isinstance(doc, dict):
+            errors.append(f"assay_specific_panels[{idx}] must be an object")
+            continue
+        if "is_active" not in doc or not isinstance(doc.get("is_active"), bool):
+            errors.append(f"assay_specific_panels[{idx}] must include boolean is_active")
     return errors
 
 
@@ -204,6 +303,8 @@ def _validate_isgl(
             continue
         assays = [_norm(a) for a in (doc.get("assays", []) or []) if _norm(a)]
         groups = [_norm(g) for g in (doc.get("assay_groups", []) or []) if _norm(g)]
+        if "is_active" not in doc or not isinstance(doc.get("is_active"), bool):
+            errors.append(f"insilico_genelists[{idx}] must include boolean is_active")
 
         if not assays:
             errors.append(f"insilico_genelists[{idx}] has empty assays list")
@@ -262,7 +363,6 @@ def _validate_bootstrap_dependencies(seed: dict[str, Any]) -> list[str]:
     }
     assay_groups = _known_assay_groups(seed)
     assays = _known_assays(seed)
-
     for idx, role_doc in enumerate(seed.get("roles", [])):
         if not isinstance(role_doc, dict):
             continue
@@ -306,6 +406,10 @@ def _validate_bootstrap_dependencies(seed: dict[str, Any]) -> list[str]:
 def main() -> int:
     args = parse_args()
     seed = _load_seed(args.seed_file)
+    shape_errors = _validate_contract_shaping(seed)
+    if shape_errors:
+        raise SystemExit("Seed contract-shape errors:\n- " + "\n- ".join(shape_errors))
+
     known_assays = _known_assays(seed)
     known_groups = _known_assay_groups(seed)
     referenced_assays, referenced_groups = _collect_references(seed)
@@ -334,6 +438,10 @@ def main() -> int:
     aspc_errors = _validate_aspc(seed)
     if aspc_errors:
         raise SystemExit("ASPC consistency errors:\n- " + "\n- ".join(aspc_errors))
+
+    panel_errors = _validate_panels(seed)
+    if panel_errors:
+        raise SystemExit("ASP consistency errors:\n- " + "\n- ".join(panel_errors))
 
     isgl_errors = _validate_isgl(seed, known_assays, known_groups)
     if isgl_errors:

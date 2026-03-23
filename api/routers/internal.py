@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from api.contracts.internal import (
     InternalCollectionBulkInsertRequest,
@@ -106,21 +106,33 @@ def ingest_sample_bundle_internal(
 ):
     """Create a fresh sample and all dependent analysis documents atomically."""
     if not payload.spec and not payload.yaml_content:
-        raise ValueError("Provide either `spec` or `yaml_content`")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Provide either `spec` or `yaml_content`",
+        )
     if payload.spec and payload.yaml_content:
-        raise ValueError("Provide only one of `spec` or `yaml_content`")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Provide only one of `spec` or `yaml_content`",
+        )
 
-    source_payload = (
-        InternalIngestService.parse_yaml_payload(payload.yaml_content)
-        if payload.yaml_content
-        else payload.spec.model_dump(exclude_none=True)
-    )
-    if payload.update_existing:
-        _enforce_access(user, permission="edit_sample")
-    result = InternalIngestService.ingest_sample_bundle(
-        source_payload,
-        allow_update=payload.update_existing,
-    )
+    try:
+        source_payload = (
+            InternalIngestService.parse_yaml_payload(payload.yaml_content)
+            if payload.yaml_content
+            else payload.spec.model_dump(exclude_none=True)
+        )
+        if payload.update_existing:
+            _enforce_access(user, permission="edit_sample")
+        result = InternalIngestService.ingest_sample_bundle(
+            source_payload,
+            allow_update=payload.update_existing,
+        )
+    except (ValueError, FileNotFoundError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
     return util.common.convert_to_serializable(result)
 
 

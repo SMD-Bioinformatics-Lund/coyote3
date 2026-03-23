@@ -64,9 +64,6 @@ def test_list_rna_fusions_success(monkeypatch):
         lambda s, a, sid, lists: (merged_sample, merged_sample["filters"]),
     )
     monkeypatch.setattr(
-        rna_repo_module.store.schema_handler, "get_schema", lambda name: {"_id": name}
-    )
-    monkeypatch.setattr(
         rna_repo_module.store.asp_handler,
         "get_asp",
         lambda asp_name: {"asp_id": "asp1", "asp_group": "rna"},

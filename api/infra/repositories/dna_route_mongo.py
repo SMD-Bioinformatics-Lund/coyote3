@@ -18,7 +18,6 @@ class MongoDNARouteRepository:
         self.bam_service_handler = store.bam_service_handler
         self.vep_meta_handler = store.vep_meta_handler
         self.sample_handler = store.sample_handler
-        self.schema_handler = store.schema_handler
         self.oncokb_handler = store.oncokb_handler
         self.biomarker_handler = store.biomarker_handler
         self.transloc_handler = store.transloc_handler

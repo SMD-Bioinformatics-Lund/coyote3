@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from api.contracts.managed_resources import managed_resource_spec
+from api.contracts.managed_ui_schemas import build_managed_schema, build_managed_schema_bundle
+from api.contracts.schemas import normalize_collection_document
 from api.extensions import util
 from api.http import api_error
 from api.repositories.admin_repository import AdminRepository
@@ -26,6 +29,7 @@ class PermissionManagementService:
                 repository: Repository. Optional argument.
         """
         self.repository = repository or AdminRepository()
+        self._spec = managed_resource_spec("permission")
 
     def list_permissions_payload(
         self, *, q: str = "", page: int = 1, per_page: int = 30
@@ -64,14 +68,8 @@ class PermissionManagementService:
         Returns:
             dict[str, Any]: The function result.
         """
-        schemas, selected_schema = self.repository.get_active_schema(
-            schema_type="acl_config",
-            schema_category="RBAC",
-            schema_id=schema_id,
-        )
-        if not schemas:
-            raise api_error(400, "No active permission schemas found")
-        if not selected_schema:
+        schemas, selected_schema = build_managed_schema_bundle(self._spec)
+        if schema_id and schema_id != selected_schema.get("schema_id"):
             raise api_error(404, "Selected schema not found")
 
         schema = self.repository.clone_schema(selected_schema)
@@ -93,9 +91,7 @@ class PermissionManagementService:
         permission = self.repository.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
-        schema = self.repository.get_schema(permission.get("schema_name"))
-        if not schema:
-            raise api_error(404, "Schema not found for permission policy")
+        schema = build_managed_schema(self._spec)
         return {"permission": permission, "schema": schema}
 
     def create_permission(self, *, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
@@ -108,14 +104,9 @@ class PermissionManagementService:
         Returns:
             dict[str, Any]: The function result.
         """
-        schemas, schema = self.repository.get_active_schema(
-            schema_type="acl_config",
-            schema_category="RBAC",
-            schema_id=payload.get("schema_id"),
-        )
-        if not schemas:
-            raise api_error(400, "No active permission schemas found")
-        if not schema:
+        schema = build_managed_schema(self._spec)
+        selected_schema_id = payload.get("schema_id")
+        if selected_schema_id and selected_schema_id != schema.get("schema_id"):
             raise api_error(404, "Selected schema not found")
 
         form_data = payload.get("form_data", {}) or {}
@@ -123,13 +114,15 @@ class PermissionManagementService:
         policy.setdefault("is_active", True)
         policy_id = str(policy["permission_name"]).strip()
         policy["permission_id"] = policy_id
-        policy["schema_name"] = schema.get("schema_id")
-        policy["schema_version"] = schema["version"]
         policy = inject_version_history(
             actor_username=current_actor(actor_username),
             new_config=policy,
             is_new=True,
         )
+        try:
+            policy = normalize_collection_document(self._spec.collection, policy)
+        except Exception as exc:
+            raise api_error(400, f"Invalid permission payload: {exc}") from exc
         self.repository.create_permission(policy)
         return mutation_payload(resource="permission", resource_id=policy_id, action="create")
 
@@ -149,25 +142,27 @@ class PermissionManagementService:
         permission = self.repository.get_permission(permission_id)
         if not permission:
             raise api_error(404, "Permission policy not found")
-        schema = self.repository.get_schema(permission.get("schema_name"))
-        if not schema:
-            raise api_error(404, "Schema not found for permission policy")
+        schema = build_managed_schema(self._spec)
 
         form_data = payload.get("form_data", {}) or {}
         updated_permission = util.admin.process_form_to_config(form_data, schema)
         updated_permission["updated_on"] = utc_now()
         updated_permission["updated_by"] = current_actor(actor_username)
         updated_permission["version"] = permission.get("version", 1) + 1
-        updated_permission["schema_name"] = schema.get("schema_id")
         updated_permission["permission_id"] = permission.get("permission_id", permission_id)
         updated_permission["_id"] = permission.get("_id")
-        updated_permission["schema_version"] = schema["version"]
         updated_permission = inject_version_history(
             actor_username=current_actor(actor_username),
             new_config=updated_permission,
             old_config=permission,
             is_new=False,
         )
+        try:
+            updated_permission = normalize_collection_document(
+                self._spec.collection, updated_permission
+            )
+        except Exception as exc:
+            raise api_error(400, f"Invalid permission payload: {exc}") from exc
         self.repository.update_permission(permission_id, updated_permission)
         return mutation_payload(resource="permission", resource_id=permission_id, action="update")
 

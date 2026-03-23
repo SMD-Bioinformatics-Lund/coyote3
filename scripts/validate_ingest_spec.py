@@ -5,12 +5,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import yaml
 from pydantic import ValidationError
 
-from api.contracts.internal import InternalSampleIngestSpec
+# Ensure repo root is importable when running as `python scripts/...`.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 REQUIRED_ONE_OF = (("vcf_files", "fusion_files"),)
 
@@ -44,6 +48,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    from api.contracts.internal import InternalSampleIngestSpec
+
     args = parse_args()
     spec_path = Path(args.yaml)
     if not spec_path.exists():

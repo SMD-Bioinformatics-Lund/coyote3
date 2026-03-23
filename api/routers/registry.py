@@ -20,7 +20,6 @@ from api.routers.resources.asp import router as resource_asp_router
 from api.routers.resources.aspc import router as resource_aspc_router
 from api.routers.resources.genelists import router as resource_genelists_router
 from api.routers.resources.samples import router as resource_samples_router
-from api.routers.resources.schemas import router as resource_schemas_router
 from api.routers.roles import router as roles_router
 from api.routers.samples import router as samples_router
 from api.routers.small_variants import router as small_variants_router
@@ -34,7 +33,6 @@ ROUTERS = (
     resource_aspc_router,
     resource_genelists_router,
     resource_samples_router,
-    resource_schemas_router,
     biomarkers_router,
     classifications_router,
     common_router,

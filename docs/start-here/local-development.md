@@ -46,6 +46,7 @@ PYTHONPATH=. python -m wsgi
 PYTHONPATH=. python -m pytest -q tests/unit/test_db_documents.py
 PYTHONPATH=. python -m ruff check api tests scripts
 PYTHON_BIN="$(command -v python)" PYTHONPATH=. bash scripts/run_family_coverage_gates.sh
+PYTHON_BIN="$(command -v python)" bash scripts/check_contract_integrity.sh
 ```
 
 ## Pre-commit

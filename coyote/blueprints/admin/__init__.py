@@ -21,7 +21,6 @@ from coyote.blueprints.admin import (  # noqa: E402,F401
     views_permissions,  # noqa: F401, E402
     views_roles,  # noqa: F401, E402
     views_samples,  # noqa: F401, E402
-    views_schemas,  # noqa: F401, E402
     views_users,  # noqa: F401, E402
 )
 

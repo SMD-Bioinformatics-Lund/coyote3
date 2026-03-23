@@ -96,8 +96,8 @@ It is intended for users, QA, and developers.
 | `Delete` user | Admin users list | `DELETE /admin/users/{id}` | Removes user doc | User removed from list |
 | `Send Invite` | Admin users list | `POST /admin/users/{id}/invite` | Generates invite token; attempts email | Success/warning flash; manual URL fallback if mail unavailable |
 | `Save Role` / `Save Permission` | Admin roles/permissions | `POST/PUT` role/permission endpoints | Creates/updates policy docs | Lists and detail pages update |
-| `Toggle` role/permission/schema | Admin pages | patch status endpoints | Flips `is_active` | Active status updates |
-| `Delete` role/permission/schema | Admin pages | delete endpoints | Removes selected document | Removed from listing |
+| `Toggle` role/permission | Admin pages | patch status endpoints | Flips `is_active` | Active status updates |
+| `Delete` role/permission | Admin pages | delete endpoints | Removes selected document | Removed from listing |
 | `Save Panel` (`ASP`) | Admin assay panel page | create/update ASP endpoints | Updates assay panel doc | Panel catalog and config context update |
 | `Save Assay Config` (`ASPC`) | Admin assay config page | create/update ASPC endpoints | Updates assay+environment config doc | Runtime filter/report config updates |
 | `Save ISGL` | Admin genelists page | create/update ISGL endpoints | Updates curated gene list docs | ISGL options and gene coverage context update |

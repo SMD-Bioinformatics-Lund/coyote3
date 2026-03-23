@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import datetime
 from typing import Any
 
 from api.extensions import util
@@ -45,7 +46,7 @@ def current_actor(default_username: str) -> str:
     return current_username(default=default_username)
 
 
-def utc_now() -> str:
+def utc_now() -> datetime:
     """Utc now.
 
     Returns:

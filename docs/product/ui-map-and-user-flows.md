@@ -12,7 +12,7 @@ Flask blueprints define the UI domains under `coyote/blueprints/`:
 - `dna`: small variants, CNVs, translocations, DNA reports
 - `rna`: fusion views and RNA reports
 - `coverage`: coverage pages
-- `admin`: users, roles, permissions, schemas, assay configs, audit
+- `admin`: users, roles, permissions, assay resources (ASP/ASPC/ISGL), samples, audit
 - `public`: public/catalog views
 - `userprofile`: current-user profile pages
 
@@ -55,7 +55,7 @@ Main API families:
 
 1. Open admin home
 2. Manage users / roles / permissions
-3. Update schemas and assay configs
+3. Manage assay resources (ASP/ASPC/ISGL)
 4. Audit operational logs
 
 Main API families:

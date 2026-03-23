@@ -617,6 +617,54 @@
         $('[data-autoclick="true"]').click();
       };
 
+      // Render UTC timestamps in browser-local time.
+      function renderLocalTimestamps() {
+        const nodes = document.querySelectorAll('time.js-local-datetime[datetime]');
+        for (const node of nodes) {
+          const raw = node.getAttribute('datetime');
+          if (!raw) {
+            continue;
+          }
+          const dt = new Date(raw);
+          if (Number.isNaN(dt.getTime())) {
+            continue;
+          }
+
+          const mode = (node.dataset.localTime || 'relative').toLowerCase();
+          if (mode === 'absolute') {
+            node.textContent = dt.toLocaleString();
+          } else {
+            const seconds = Math.round((dt.getTime() - Date.now()) / 1000);
+            const absSeconds = Math.abs(seconds);
+            let value = seconds;
+            let unit = 'second';
+            if (absSeconds >= 31536000) {
+              value = Math.round(seconds / 31536000);
+              unit = 'year';
+            } else if (absSeconds >= 2592000) {
+              value = Math.round(seconds / 2592000);
+              unit = 'month';
+            } else if (absSeconds >= 86400) {
+              value = Math.round(seconds / 86400);
+              unit = 'day';
+            } else if (absSeconds >= 3600) {
+              value = Math.round(seconds / 3600);
+              unit = 'hour';
+            } else if (absSeconds >= 60) {
+              value = Math.round(seconds / 60);
+              unit = 'minute';
+            }
+            node.textContent = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' }).format(
+              value,
+              unit
+            );
+          }
+          node.setAttribute('title', dt.toLocaleString());
+        }
+      }
+
+      window.addEventListener('DOMContentLoaded', renderLocalTimestamps);
+
     </script>
     {% block script %}{% endblock %}
     {% block footer %}{% endblock %}

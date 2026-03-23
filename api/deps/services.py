@@ -17,7 +17,6 @@ from api.services.admin_resource_service import (
     AdminGenelistService,
     AdminPanelService,
     AdminSampleService,
-    AdminSchemaService,
 )
 from api.services.admin_role_service import AdminRoleService
 from api.services.admin_user_service import AdminUserService
@@ -108,16 +107,6 @@ def get_admin_sample_service() -> AdminSampleService:
         The service used by admin sample routes.
     """
     return AdminSampleService(repository=get_admin_repository())
-
-
-@lru_cache
-def get_admin_schema_service() -> AdminSchemaService:
-    """Return the shared schema-management service.
-
-    Returns:
-        The service used by schema resource routes.
-    """
-    return AdminSchemaService(repository=get_admin_repository())
 
 
 @lru_cache

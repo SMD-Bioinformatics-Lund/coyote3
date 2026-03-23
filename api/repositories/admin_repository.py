@@ -46,15 +46,6 @@ class AdminRepository:
         return store.asp_handler
 
     @property
-    def schema_handler(self):
-        """Schema handler.
-
-        Returns:
-            The function result.
-        """
-        return store.schema_handler
-
-    @property
     def user_handler(self):
         """User handler.
 
@@ -697,112 +688,6 @@ class AdminRepository:
             str | None: The function result.
         """
         return self.sample_handler.get_sample_name(sample_id)
-
-    def list_schemas(self) -> list[dict[str, Any]]:
-        """List schemas.
-
-        Returns:
-            list[dict[str, Any]]: The function result.
-        """
-        return [
-            dict(item)
-            for item in (self.schema_handler.get_all_schemas() or [])
-            if isinstance(item, dict)
-        ]
-
-    def search_schemas(
-        self, *, q: str = "", page: int = 1, per_page: int = 30
-    ) -> tuple[list[dict[str, Any]], int]:
-        """Search schemas in MongoDB with pagination."""
-        rows, total = self.schema_handler.search_schemas(q=q, page=page, per_page=per_page)
-        return [dict(item) for item in rows if isinstance(item, dict)], int(total or 0)
-
-    def create_schema(self, schema_doc: dict[str, Any]) -> None:
-        """Create schema.
-
-        Args:
-            schema_doc (dict[str, Any]): Value for ``schema_doc``.
-
-        Returns:
-            None.
-        """
-        self.schema_handler.create_schema(schema_doc)
-
-    def update_schema(self, schema_id: str, schema_doc: dict[str, Any]) -> None:
-        """Update schema.
-
-        Args:
-            schema_id (str): Value for ``schema_id``.
-            schema_doc (dict[str, Any]): Value for ``schema_doc``.
-
-        Returns:
-            None.
-        """
-        self.schema_handler.update_schema(schema_id, schema_doc)
-
-    def set_schema_active(self, schema_id: str, is_active: bool) -> None:
-        """Set schema active.
-
-        Args:
-            schema_id (str): Value for ``schema_id``.
-            is_active (bool): Value for ``is_active``.
-
-        Returns:
-            None.
-        """
-        self.schema_handler.toggle_schema_active(schema_id, is_active)
-
-    def delete_schema(self, schema_id: str) -> None:
-        """Delete schema.
-
-        Args:
-            schema_id (str): Value for ``schema_id``.
-
-        Returns:
-            None.
-        """
-        self.schema_handler.delete_schema(schema_id)
-
-    def get_active_schema(
-        self, *, schema_type: str, schema_category: str, schema_id: str | None
-    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-        """Return active schema.
-
-        Args:
-            schema_type (str): Value for ``schema_type``.
-            schema_category (str): Value for ``schema_category``.
-            schema_id (str | None): Value for ``schema_id``.
-
-        Returns:
-            tuple[list[dict[str, Any]], dict[str, Any]]: The function result.
-        """
-        active_schemas = self.schema_handler.get_schemas_by_category_type(
-            schema_type=schema_type,
-            schema_category=schema_category,
-            is_active=True,
-        )
-        if not active_schemas:
-            return [], {}
-        selected_id = schema_id or active_schemas[0].get("schema_id")
-        selected_schema = next(
-            (schema for schema in active_schemas if schema.get("schema_id") == selected_id),
-            {},
-        )
-        return active_schemas, selected_schema
-
-    def get_schema(self, schema_name: str | None) -> dict[str, Any] | None:
-        """Return schema.
-
-        Args:
-            schema_name (str | None): Value for ``schema_name``.
-
-        Returns:
-            dict[str, Any] | None: The function result.
-        """
-        if not schema_name:
-            return None
-        schema = self.schema_handler.get_schema(schema_name)
-        return dict(schema) if isinstance(schema, dict) else schema
 
     def clone_schema(self, schema: dict[str, Any]) -> dict[str, Any]:
         """Clone schema.

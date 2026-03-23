@@ -59,7 +59,6 @@ def _sample_view_to_status(sample_view: str) -> str:
 def _resolve_per_page(
     *,
     query_key: str,
-    legacy_query_key: str,
     user_settings_key: str,
     default_value: int,
     user_settings: dict | None = None,
@@ -67,11 +66,8 @@ def _resolve_per_page(
     """
     Resolve per-page value with precedence:
     query param -> user settings -> hardcoded default.
-    This is intentionally generic for future user-configurable preferences.
     """
     query_value = request.args.get(query_key, type=int)
-    if not query_value:
-        query_value = request.args.get(legacy_query_key, type=int)
     if query_value:
         return max(1, min(query_value, 200))
     if user_settings:
@@ -81,24 +77,17 @@ def _resolve_per_page(
     return max(1, min(default_value, 200))
 
 
-def _resolve_page_param(short_key: str, legacy_key: str, default: int = 1) -> int:
+def _resolve_page_param(short_key: str, default: int = 1) -> int:
     """Resolve page param.
 
     Args:
             short_key: Short key.
-            legacy_key: Legacy key.
             default: Default. Optional argument.
 
     Returns:
             The  resolve page param result.
     """
-    return max(
-        1,
-        request.args.get(
-            short_key, default=request.args.get(legacy_key, default=default, type=int), type=int
-        )
-        or default,
-    )
+    return max(1, request.args.get(short_key, default=default, type=int) or default)
 
 
 def _first_non_empty_query_arg(*keys: str, default: str | None = None) -> str | None:
@@ -133,15 +122,11 @@ def _parse_samples_home_query(status: str) -> dict:
     panel_type = _first_non_empty_query_arg("panel_type")
     panel_tech = _first_non_empty_query_arg("panel_tech")
     assay_group = _first_non_empty_query_arg("assay_group")
-    sample_search = _first_non_empty_query_arg("q", "sample_search", default="") or ""
+    sample_search = _first_non_empty_query_arg("q", default="") or ""
     sample_view = _resolve_sample_view(status=status, submitted_view=request.args.get("view"))
 
-    # Placeholder for future persisted user preferences.
-    # When user settings are implemented, populate this from current user profile.
     user_settings: dict | None = None
-    profile_scope = (
-        _first_non_empty_query_arg("scope", "profile_scope", default="production") or ""
-    ).lower()
+    profile_scope = (_first_non_empty_query_arg("scope", default="production") or "").lower()
     if profile_scope not in {"production", "all"}:
         profile_scope = "production"
 
@@ -155,18 +140,16 @@ def _parse_samples_home_query(status: str) -> dict:
         "status_for_api": _sample_view_to_status(sample_view),
         "page": max(1, request.args.get("page", default=1, type=int) or 1),
         "per_page": max(1, min(request.args.get("per_page", default=30, type=int) or 30, 200)),
-        "live_page": _resolve_page_param("lp", "live_page", default=1),
-        "done_page": _resolve_page_param("dp", "done_page", default=1),
+        "live_page": _resolve_page_param("lp", default=1),
+        "done_page": _resolve_page_param("dp", default=1),
         "live_per_page": _resolve_per_page(
             query_key="lpp",
-            legacy_query_key="live_per_page",
             user_settings_key="home_live_per_page",
             default_value=30,
             user_settings=user_settings,
         ),
         "done_per_page": _resolve_per_page(
             query_key="dpp",
-            legacy_query_key="done_per_page",
             user_settings_key="home_done_per_page",
             default_value=30,
             user_settings=user_settings,

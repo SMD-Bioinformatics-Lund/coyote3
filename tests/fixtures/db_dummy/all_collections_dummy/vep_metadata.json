@@ -1,0 +1,17 @@
+[
+  {
+    "source": "demo_vep_111",
+    "created_by": "demo.user",
+    "db_info": {
+      "cache": {
+        "version": "111"
+      }
+    },
+    "conseq_translations": {
+      "missense_variant": "missense"
+    },
+    "variant_class_translations": {
+      "SNV": "SNV"
+    }
+  }
+]

@@ -4,7 +4,7 @@
 
 The smooth user experience in Coyote3 depends on two connected data layers:
 
-1. Configuration layer (`asp`, `aspc`, `isgl`, schemas): defines what should be shown and how filtering/reporting should behave.
+1. Configuration layer (`asp`, `aspc`, `isgl`, roles, permissions): defines what should be shown and how filtering/reporting should behave.
 2. Sample runtime layer (`samples`, `variants`, `cnvs`, `fusions`, coverage, RNA analysis): contains per-sample findings and interpretation state.
 
 If these layers are aligned, users get correct gene scopes, filters, report sections, and stable workflows. If they drift, users see missing findings, wrong filters, or report errors.

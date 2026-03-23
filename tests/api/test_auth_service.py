@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from api.domain.models.user import UserModel
 from api.security import auth_service
 
 
@@ -141,6 +142,22 @@ def test_build_user_session_payload_maps_user_model(monkeypatch):
     payload = auth_service.build_user_session_payload({"username": "tester", "role": "admin"})
 
     assert payload == {"username": "tester", "role": "admin", "asp_count": 1}
+
+
+def test_user_model_from_mongo_accepts_local_email_domain():
+    """Local center domains like .local should not break auth session serialization."""
+    user_doc = {
+        "_id": "u1",
+        "email": "ADMIN@COYOTE3.LOCAL",
+        "username": "admin",
+        "fullname": "Admin User",
+        "role": "admin",
+        "is_active": True,
+    }
+
+    model = UserModel.from_mongo(user_doc, {"level": 99}, [])
+
+    assert model.email == "admin@coyote3.local"
 
 
 def test_authenticate_credentials_internal_auth_path(monkeypatch):

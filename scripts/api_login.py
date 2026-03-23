@@ -6,8 +6,12 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 
-from api.client.auth import login_with_password, login_with_token
+# Ensure repo root is importable when running as `python scripts/...`.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -31,6 +35,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str]) -> int:
+    from api.client.auth import login_with_password, login_with_token
+
     args = build_parser().parse_args(argv)
     if args.mode == "password":
         if not args.username or not args.password:

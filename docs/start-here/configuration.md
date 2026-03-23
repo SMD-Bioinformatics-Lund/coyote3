@@ -112,6 +112,49 @@ Coyote3 now supports provider-aware login and local-user lifecycle flows:
   - authenticated password change
 - `auth_type=ldap` users authenticate via LDAP.
 
+### Login identifier and email format rules
+
+For local users, Coyote3 accepts center-local addresses and normal internet-style addresses.
+
+Accepted:
+
+- `admin@your-center.org`
+- `admin@coyote3.local`
+- uppercase input is normalized to lowercase (for example `ADMIN@COYOTE3.LOCAL` -> `admin@coyote3.local`)
+
+Minimum validation enforced:
+
+- must contain `@`
+- local part must be non-empty
+- domain part must be non-empty
+
+Rejected:
+
+- `admin` (missing `@`)
+- `@coyote3.local` (missing local part)
+- `admin@` (missing domain part)
+
+Note:
+
+- This validation is intentionally basic to support private/reserved center domains (for example `.local`) in isolated deployments.
+
+### Role level baseline
+
+Use this RBAC level baseline in role seed/bootstrap documents:
+
+| Role | Level |
+| --- | --- |
+| `external` | `1` |
+| `viewer` | `5` |
+| `intern` | `7` |
+| `user` | `9` |
+| `manager` | `99` |
+| `developer` | `9999` |
+| `admin` | `99999` |
+
+If role levels drift from this baseline, permission gates that rely on
+`min_level` checks can deny valid users unexpectedly.
+
 Recommended SMTP baseline for centers using the Skane relay:
 
 ```env

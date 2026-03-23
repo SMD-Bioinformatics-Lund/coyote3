@@ -137,7 +137,6 @@ class PermissionsHandler(BaseHandler):
                         {"label": {"$regex": pattern, "$options": "i"}},
                         {"category": {"$regex": pattern, "$options": "i"}},
                         {"description": {"$regex": pattern, "$options": "i"}},
-                        {"schema_name": {"$regex": pattern, "$options": "i"}},
                     ]
                 }
             ]

@@ -122,7 +122,7 @@
                         </button>
                         <button onclick="showActionModal({
                             url: '{{ url_for('admin_bp.toggle_user_active', user_id=(user.username or user.user_id)) }}',
-                            title: '{{ 'Deactivate' if user.is_active else 'Activate' }} Schema',
+                            title: '{{ 'Deactivate' if user.is_active else 'Activate' }} Configuration',
                             message: 'Are you sure you want to {{ 'deactivate' if user.is_active else 'activate' }} <b>{{ user.username or user.user_id }}</b>?',
                             confirmText: '{{ 'Deactivate' if user.is_active else 'Activate' }}',
                             confirmColor: '{{ 'red' if user.is_active else 'green' }}'

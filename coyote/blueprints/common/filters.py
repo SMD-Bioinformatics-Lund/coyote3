@@ -19,14 +19,13 @@ from coyote.filters.shared import (
 @app.template_filter(name="human_date")
 def human_date(value: datetime | str) -> str:
     """
-    Converts a date or datetime value to a human-readable relative time string
-    (e.g., '3 days ago') in Central European Time (CET).
+    Converts UTC timestamps to browser-local display using a `<time>` wrapper.
 
     Args:
         value (datetime | str): The input date or datetime string.
 
     Returns:
-        str: A human-readable relative time string in CET timezone.
+        str: A safe HTML `<time>` element with localizable datetime metadata.
     """
     return shared_human_date(value)
 

@@ -1,0 +1,18 @@
+[
+  {
+    "asp_id": "ASSAY_A",
+    "assay_name": "ASSAY_A",
+    "asp_group": "GROUP_A",
+    "asp_family": "dna",
+    "asp_category": "somatic",
+    "display_name": "Hema GMS v1",
+    "covered_genes": [
+      "EGFR",
+      "TP53"
+    ],
+    "germline_genes": [
+      "BRCA1"
+    ],
+    "is_active": true
+  }
+]

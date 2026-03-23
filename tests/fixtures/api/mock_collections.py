@@ -199,7 +199,6 @@ def assay_config_doc(*, prefer_dev_rna_wgs: bool = False) -> dict:
     """
     defaults = {
         "_id": "aspc1",
-        "schema_name": "aspc_schema_v1",
         "asp_group": "dna",
         "analysis_types": ["SNV", "CNV", "BIOMARKER"],
         "filters": deepcopy(sample_doc(prefer_dev_rna_wgs=prefer_dev_rna_wgs).get("filters", {})),

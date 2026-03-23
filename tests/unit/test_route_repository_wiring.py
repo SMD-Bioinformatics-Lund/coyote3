@@ -23,7 +23,6 @@ def test_dna_route_repository_binds_expected_handlers(monkeypatch):
         bam_service_handler=object(),
         vep_meta_handler=object(),
         sample_handler=object(),
-        schema_handler=object(),
         oncokb_handler=object(),
         biomarker_handler=object(),
         transloc_handler=object(),
@@ -54,7 +53,6 @@ def test_rna_route_repository_binds_expected_handlers(monkeypatch):
         The function result.
     """
     fake_store = SimpleNamespace(
-        schema_handler=object(),
         asp_handler=object(),
         isgl_handler=object(),
         sample_handler=object(),
@@ -63,7 +61,6 @@ def test_rna_route_repository_binds_expected_handlers(monkeypatch):
     monkeypatch.setattr(rna_route_mongo, "store", fake_store)
     repo = rna_route_mongo.MongoRNARouteRepository()
 
-    assert repo.schema_handler is fake_store.schema_handler
     assert repo.isgl_handler is fake_store.isgl_handler
     assert repo.sample_handler is fake_store.sample_handler
     assert repo.fusion_handler is fake_store.fusion_handler

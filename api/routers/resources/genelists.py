@@ -42,8 +42,9 @@ def create_genelist_mutation(
     Returns:
         The function result.
     """
-    _ = user
-    return util.common.convert_to_serializable(service.create(payload=payload))
+    return util.common.convert_to_serializable(
+        service.create(payload=payload, actor_username=user.username)
+    )
 
 
 @router.get("/api/v1/resources/genelists", response_model=AdminGenelistsListPayload)
@@ -167,9 +168,12 @@ def update_genelist_mutation(
     Returns:
         The function result.
     """
-    _ = user
     return util.common.convert_to_serializable(
-        service.update(genelist_id=genelist_id, payload=payload)
+        service.update(
+            genelist_id=genelist_id,
+            payload=payload,
+            actor_username=user.username,
+        )
     )
 
 

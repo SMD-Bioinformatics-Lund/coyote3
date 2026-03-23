@@ -1,0 +1,1915 @@
+[
+  {
+    "permission_name": "add_global_variant_comment",
+    "label": "Add Global Variant Comment",
+    "category": "Analysis Actions",
+    "description": "The user is allowed to add a new comment for the variant in global scope",
+    "tags": [
+      "add",
+      "variant",
+      "comment",
+      "global"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:07:46.583283",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:07:46.583299",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:07:46.583Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "49e5ada815c6b4b4aa9eba6c16efa073974889f4f51ea7654c2d6342494ca7c5"
+      }
+    ],
+    "permission_id": "add_global_variant_comment"
+  },
+  {
+    "permission_name": "add_sample_comment",
+    "label": "Add Sample Comment",
+    "category": "Analysis Actions",
+    "description": "The user is allowed to add a new comment for the report/sample in sample view",
+    "tags": [
+      "sample",
+      "report",
+      "comment",
+      "add"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:05:43.009422",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:05:43.009439",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:05:43.009Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "192413846bce75cd909f1490a1ef3069483eee718ba215bfe9f52eb78a9b8704"
+      }
+    ],
+    "permission_id": "add_sample_comment"
+  },
+  {
+    "permission_name": "add_variant_comment",
+    "label": "Add Variant Comment",
+    "category": "Analysis Actions",
+    "description": "The user is allowed to add a new comment for the variant",
+    "tags": [
+      "add",
+      "variant",
+      "comment"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:15:56.297058",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:15:56.297076",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:15:56.297Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "fdb3d6cc30585de3561a23d537c620aaf6f05b004a3551c776601c04d355efcd"
+      }
+    ],
+    "permission_id": "add_variant_comment"
+  },
+  {
+    "permission_name": "apply_variant_filters",
+    "label": "Apply Variant Filters",
+    "category": "Analysis Actions",
+    "description": "Can apply variant filters within assigned groups. ",
+    "tags": [
+      "apply",
+      "variants",
+      "filters"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T13:46:43.935315",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T13:46:43.935335",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T13:46:43.935Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "05d5ee798a39b76efd70277e26742fcd6094022d8081ec752d35fffcb43d8f17"
+      }
+    ],
+    "permission_id": "apply_variant_filters"
+  },
+  {
+    "permission_name": "assign_tier",
+    "label": "Assign Variant Tier",
+    "category": "Variant Curation",
+    "description": "Allows assigning or modifying the tier classification of variants for prioritization and reporting.",
+    "tags": [
+      "tier",
+      "variant",
+      "curation",
+      "classify"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-19T15:04:29.209016",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-19T15:04:29.209026",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-19T15:04:29.209Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "81731a4c5b80a70258afd3a56fe600f603060ca7f761b1fef2b56aab6befdd8c"
+      }
+    ],
+    "permission_id": "assign_tier"
+  },
+  {
+    "permission_name": "create_asp",
+    "label": "Create ASP",
+    "category": "ASP Management",
+    "description": "Allows creation of a new assay specific panel.",
+    "tags": [
+      "asp",
+      "create",
+      "assay",
+      "panel"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:31:37.496155",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:31:37.496184",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:31:37.496Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "854a15ae4c498089102f841f22cb46314495a42a210634a4d23c1a8c407787e0"
+      }
+    ],
+    "permission_id": "create_asp"
+  },
+  {
+    "permission_name": "create_aspc",
+    "label": "Create ASP Configurations",
+    "category": "ASPC",
+    "description": "Allows creating new assay configurations.",
+    "tags": [
+      "assay",
+      "configuration",
+      "create",
+      "aspc"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:38:44.404526",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:38:44.404546",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:38:44.404Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "04a7570801493933e3dd123da4b449dcad71f57fb8238633e024cd21b1aaccb2"
+      }
+    ],
+    "permission_id": "create_aspc"
+  },
+  {
+    "permission_name": "create_isgl",
+    "label": "Create ISGL",
+    "category": "ISGL Management",
+    "description": "Allows creation of new in-silico genelists.",
+    "tags": [
+      "create",
+      "isgl",
+      "genelist",
+      "insilico"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:58:13.561205",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:58:13.561223",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:58:13.561Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "f78ae20e3aea111fdd18c8e0ea578c1829a7e171755d7a3302cebf101b1416c8"
+      }
+    ],
+    "permission_id": "create_isgl"
+  },
+  {
+    "permission_name": "create_permission_policy",
+    "label": "Create Permission Policy",
+    "category": "RBAC Management",
+    "description": "Allows creation of new permission policies in the system.",
+    "tags": [
+      "create",
+      "rbac",
+      "acl",
+      "permission",
+      "policy"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T15:04:35.343702",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T15:04:35.343720",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T15:04:35.343Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "ce345436d32dec9cddbca20bf47dd3b7f684f91efebf4124661b6f1c655ab936"
+      }
+    ],
+    "permission_id": "create_permission_policy"
+  },
+  {
+    "permission_name": "create_report",
+    "label": "Create Report",
+    "category": "Reports",
+    "description": "Allows user to create report and save it.",
+    "tags": [
+      "report",
+      "create"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T15:14:19.003155",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T15:14:19.003172",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T15:14:19.003Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "fa00797a0ea0f418924276e92816b85893ab997d3bfd484a5fe5070196bb3537"
+      }
+    ],
+    "permission_id": "create_report"
+  },
+  {
+    "permission_name": "create_role",
+    "label": "Create Role",
+    "category": "Role Management",
+    "description": "Allows createing of user roles.",
+    "tags": [
+      "role",
+      "rbac",
+      "create"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:43:24.454227",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:43:24.454246",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:43:24.454Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "188310be6370df5ce6d124e2f73cfba3b21ec6a3a0685a7b8536ec3b9c2bdcde"
+      }
+    ],
+    "permission_id": "create_role"
+  },
+  {
+    "permission_name": "create_schema",
+    "label": "Create Schema",
+    "category": "Schema Management",
+    "description": "Allows creating new schemas",
+    "tags": [
+      "schema",
+      "create",
+      "new"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T15:26:35.738797",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T15:26:35.738817",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T15:26:35.738Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "b208f11e444cb9366365a086dc112948dd3c89dd402493e6194e7cb9205999c4"
+      }
+    ],
+    "permission_id": "create_schema"
+  },
+  {
+    "permission_name": "create_user",
+    "label": "Create User",
+    "category": "User Management",
+    "description": "Allows adding new users.",
+    "tags": [
+      "user",
+      "create"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:50:01.332937",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:50:01.332951",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:50:01.332Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "210ba254fc187c7f03e42bef1b1c3cdd21bf8f3ae824a5dcee4d114a381eca3e"
+      }
+    ],
+    "permission_id": "create_user"
+  },
+  {
+    "permission_name": "delete_asp",
+    "label": "Delete ASP",
+    "category": "ASP Management",
+    "description": "Allows deletion of any assay specific panel.",
+    "tags": [
+      "asp",
+      "delete",
+      "assay",
+      "panel"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:33:25.043740",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:33:25.043756",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:33:25.043Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "b20ee78f7acdc7a58a22adac3e1cd5c3bebd17711bd37b9bc2a9322cedb2e7a1"
+      }
+    ],
+    "permission_id": "delete_asp"
+  },
+  {
+    "permission_name": "delete_aspc",
+    "label": "Delete ASP Configurations",
+    "category": "ASPC",
+    "description": "Delete Assay Configurations",
+    "tags": [
+      "assay",
+      "configuration",
+      "delete",
+      "aspc"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:36:43.807150",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:36:43.807177",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:36:43.807Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "ce8604b582effe8f39812e43e53fc9751e43dde5b1cde4ea8d6e4a7c26f80b9e"
+      }
+    ],
+    "permission_id": "delete_aspc"
+  },
+  {
+    "permission_name": "delete_isgl",
+    "label": "Delete ISGL",
+    "category": "ISGL Management",
+    "description": "Allows deletion of any in-silico genelist.",
+    "tags": [
+      "delete",
+      "isgl",
+      "genelist",
+      "insilico"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:59:25.249752",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:59:25.249766",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:59:25.249Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "8aab4a9a429cb4514189fa9b9fb18b5f0ecccb85beadb71dcaa40d62572461bd"
+      }
+    ],
+    "permission_id": "delete_isgl"
+  },
+  {
+    "permission_name": "delete_permission_policy",
+    "label": "Delete Permission Policy",
+    "category": "RBAC Management",
+    "description": "Allows deletion of permission policies from the system",
+    "tags": [
+      "delete",
+      "rbac",
+      "acl",
+      "permission",
+      "policy"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T15:09:20.555128",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T15:09:20.555148",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T15:09:20.555Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "30993ed5ce11eb938fab68972f604c3048fdc381c823a0c7eea53272caf3199e"
+      }
+    ],
+    "permission_id": "delete_permission_policy"
+  },
+  {
+    "permission_name": "delete_role",
+    "label": "Delete Role",
+    "category": "Role Management",
+    "description": "Allows deleteing of user roles",
+    "tags": [
+      "role",
+      "rbac",
+      "delete"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:46:55.140355",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:46:55.140363",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:46:55.140Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "33ab2767da3a2d8bb8abb179b041e9c05ec566743f56581728f35d2ad503fac6"
+      }
+    ],
+    "permission_id": "delete_role"
+  },
+  {
+    "permission_name": "delete_sample_global",
+    "label": "Delete Any Sample",
+    "category": "Sample Management",
+    "description": "Allows deletion of any sample in the system.",
+    "tags": [
+      "sample",
+      "delete",
+      "global"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T15:16:27.506612",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T15:16:27.506631",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T15:16:27.506Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "758943678a2862e876c804837479996877065364e6e7d0388e2734dbb337673c"
+      }
+    ],
+    "permission_id": "delete_sample_global"
+  },
+  {
+    "permission_name": "delete_schema",
+    "label": "Delete Schema",
+    "category": "Schema Management",
+    "description": "Allows deleting schemas",
+    "tags": [
+      "schema",
+      "delete"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T15:27:50.575891",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T15:27:50.575908",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T15:27:50.575Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "03b389265d74f4a67fbd08f6769de83c83276adbed41823ffa092a5a6c9b6342"
+      }
+    ],
+    "permission_id": "delete_schema"
+  },
+  {
+    "permission_name": "delete_user",
+    "label": "Delete User",
+    "category": "User Management",
+    "description": "Allows removing users from the system.",
+    "tags": [
+      "user",
+      "delete"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:51:02.399017",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:51:02.399034",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:51:02.399Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "9b9bdb9ec8df0a59e65d238dc9eb40d5d6a96540b076382c29841902d354d859"
+      }
+    ],
+    "permission_id": "delete_user"
+  },
+  {
+    "permission_name": "download_cnvs",
+    "label": "Download CNVs",
+    "category": "Data Downloads",
+    "description": "Allows the user to download CNV data.",
+    "tags": [
+      "cnvs",
+      "download",
+      "data"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T13:54:58.530173",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T13:54:58.530190",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T13:54:58.530Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "3b10d8cd2e6623473ffb39e5e43f73048be024734da7c3087183c2fe1a5ded25"
+      }
+    ],
+    "permission_id": "download_cnvs"
+  },
+  {
+    "permission_name": "download_fusions",
+    "label": "Download Fusions",
+    "category": "Data Downloads",
+    "description": "Allows the user to download fusion event data",
+    "tags": [
+      "fusions",
+      "download",
+      "data"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T13:57:16.846403",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T13:57:16.846434",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T13:57:16.846Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "8937d43267c5bb899e84b26a96bd989036656b4ef6733d307c72b50eedc402d7"
+      }
+    ],
+    "permission_id": "download_fusions"
+  },
+  {
+    "permission_name": "download_lowcov",
+    "label": "Download Low Cov",
+    "category": "Data Downloads",
+    "description": "Allows the user to download Low Coverage data.",
+    "tags": [
+      "lowcov",
+      "download",
+      "data"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T13:59:48.466778",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T13:59:48.466794",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T13:59:48.466Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "2705e9a95590785a1e1ceeaafafc58515cd1d202160b74bad3fc6f830582dfd1"
+      }
+    ],
+    "permission_id": "download_lowcov"
+  },
+  {
+    "permission_name": "download_pgx",
+    "label": "Download PGx",
+    "category": "Data Downloads",
+    "description": "Allows the user to download pharmacogenomics results.",
+    "tags": [
+      "pgx",
+      "download",
+      "data"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T13:59:14.528466",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T13:59:14.528485",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T13:59:14.528Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "d1da1b74d943a5497c54ce825bfbec94ebca0e69056ced2b0a2e7dcf652809f8"
+      }
+    ],
+    "permission_id": "download_pgx"
+  },
+  {
+    "permission_name": "download_snvs",
+    "label": "Download SNVs",
+    "category": "Data Downloads",
+    "description": "Allows the user to download snv data.",
+    "tags": [
+      "snvs",
+      "download",
+      "data"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T13:56:09.438290",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T13:56:09.438309",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T13:56:09.438Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "cc47525c41501bd60885137b81e69f34dfe425650f459b5cf411c10a583b012f"
+      }
+    ],
+    "permission_id": "download_snvs"
+  },
+  {
+    "permission_name": "download_translocs",
+    "label": "Download Translocations",
+    "category": "Data Downloads",
+    "description": "Allows the user to download translocation variant data.",
+    "tags": [
+      "translocations",
+      "translocs",
+      "download",
+      "data"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T13:58:12.339255",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T13:58:12.339279",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T13:58:12.339Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "059a0880be7fd73875bf84367fd3b66862caf0a52ae5d8ee6bcdbf55a47aef45"
+      }
+    ],
+    "permission_id": "download_translocs"
+  },
+  {
+    "permission_name": "edit_asp",
+    "label": "Edit ASP",
+    "category": "ASP Management",
+    "description": "Allows editing existing assay specific panels.",
+    "tags": [
+      "asp",
+      "edit",
+      "modify",
+      "assay",
+      "panel"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:32:27.690894",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:32:27.690912",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:32:27.690Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "8dd2ff432c44e1a2af69aedc400040c0752e42ef39e55a58deb1350f09e72eed"
+      }
+    ],
+    "permission_id": "edit_asp"
+  },
+  {
+    "permission_name": "edit_aspc",
+    "label": "Edit ASP Configurations",
+    "category": "ASPC",
+    "description": "Allows modifying existing assay configurations.",
+    "tags": [
+      "aspc",
+      "edit",
+      "modify",
+      "assay",
+      "configuration"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:35:32.425398",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:35:32.425413",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:35:32.425Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "fafbbb9d9804a3543a63b2b9abf2019da6a8be82d1d9e51fe72bc9bcc2983b06"
+      }
+    ],
+    "permission_id": "edit_aspc"
+  },
+  {
+    "permission_name": "edit_isgl",
+    "label": "Edit ISGL",
+    "category": "ISGL Management",
+    "description": "Allows editing of existing in-silico genelists.",
+    "tags": [
+      "edit",
+      "modify",
+      "isgl",
+      "genelist",
+      "insilico"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:58:49.660074",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:58:49.660093",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:58:49.660Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "6bbd771d2e8da1b3086183a7b2dadb6f497ce50b09a1d4a163b2c24ccdd8db4e"
+      }
+    ],
+    "permission_id": "edit_isgl"
+  },
+  {
+    "permission_name": "edit_permission_policy",
+    "label": "Edit Permission Policy",
+    "category": "RBAC Management",
+    "description": "Allows editing of existing permission policy definitions",
+    "tags": [
+      "edit",
+      "modify",
+      "rbac",
+      "acl",
+      "permission",
+      "policy"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T15:08:48.427364",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T15:08:48.427382",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T15:08:48.427Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "d44499da144bd8e91bf4337c80231c61384123a1bcfeefb1b0a7ffb9b264bc2b"
+      }
+    ],
+    "permission_id": "edit_permission_policy"
+  },
+  {
+    "permission_name": "edit_role",
+    "label": "Edit Role",
+    "category": "Role Management",
+    "description": "Allows editing of user roles.",
+    "tags": [
+      "role",
+      "rbac",
+      "edit",
+      "modify"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:45:22.318899",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:45:22.318916",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:45:22.318Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "4458486ed503289ef7d0072c65e8bfb22852986edd31731c4af95cd70042ddba"
+      }
+    ],
+    "permission_id": "edit_role"
+  },
+  {
+    "permission_name": "edit_sample",
+    "label": "Edit Sample",
+    "category": "Sample Management",
+    "description": "Person can edit the sample",
+    "tags": [
+      "edit",
+      "sample"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2026-02-18T10:47:14.794023+00:00",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2026-02-18T10:47:14.794040+00:00",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2026-02-18T10:47:14.794Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "a7970c9b408530c4f25bea00a41faafa3e2f61a81f34c32a18ea924e35751dac"
+      }
+    ],
+    "permission_id": "edit_sample"
+  },
+  {
+    "permission_name": "edit_sample_global",
+    "label": "Edit All Samples",
+    "category": "Sample Management",
+    "description": "Allows editing any sample regardless of group",
+    "tags": [
+      "sample",
+      "edit",
+      "global"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T15:24:29.892084",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T15:24:29.892101",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T15:24:29.892Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "cbb336ef53691bfc7d793dd867695ed6935dcd03d7f17df44e7fa85fab1979b7"
+      }
+    ],
+    "permission_id": "edit_sample_global"
+  },
+  {
+    "permission_name": "edit_schema",
+    "label": "Edit Schema",
+    "category": "Schema Management",
+    "description": "Allows editing existing schemas",
+    "tags": [
+      "schema",
+      "edit",
+      "modify"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T15:27:10.878277",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T15:27:10.878307",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T15:27:10.878Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "e93a26faefdc1ff182464bc3f6e4ccc5823b40bdf051d3e9b79a3fff3f4132b4"
+      }
+    ],
+    "permission_id": "edit_schema"
+  },
+  {
+    "permission_name": "edit_user",
+    "label": "Edit User",
+    "category": "User Management",
+    "description": "Allows editing user information.",
+    "tags": [
+      "user",
+      "edit",
+      "modify"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:50:28.802003",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:50:28.802021",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:50:28.802Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "5bec23cf138311b9b984bc59fc1a911f793a903729eebfdc61154380db9fdbaa"
+      }
+    ],
+    "permission_id": "edit_user"
+  },
+  {
+    "permission_name": "edit_user_groups",
+    "label": "Edit User Groups",
+    "category": "User Management",
+    "description": "Allows, modifying the user groups limited to the operator groups",
+    "tags": [
+      "user",
+      "modify",
+      "groups",
+      "operator",
+      "limited",
+      "edit"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:54:58.057419",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:54:58.057439",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:54:58.057Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "69648a75beff1ce44ba77cee7b5ba79ff8a04ce015d3eb5edb50f70cdc89d118"
+      }
+    ],
+    "permission_id": "edit_user_groups"
+  },
+  {
+    "permission_name": "edit_user_role",
+    "label": "Edit User Roles",
+    "category": "User Management",
+    "description": "Allows updating the role of any user upto the operator's role.",
+    "tags": [
+      "edit",
+      "user",
+      "role",
+      "limited",
+      "operator"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:55:23.716798",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:55:23.716816",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:55:23.716Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "a53872bd25ea624583aa7f6d81358606554cd7ee634de2a31ae7d2dc73f3d6a5"
+      }
+    ],
+    "permission_id": "edit_user_role"
+  },
+  {
+    "permission_name": "hide_sample_comment",
+    "label": "Hide Sample Comment",
+    "category": "Analysis Actions",
+    "description": "The user is allowed to hide a sample comment from the sample view.",
+    "tags": [
+      "sample",
+      "comment",
+      "hide"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:16:40.766560",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:16:40.766579",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:16:40.766Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "cd9bb5e5eec13135b3517758d85663d4a8c6567478e75c2b64fdd17dab41d37d"
+      }
+    ],
+    "permission_id": "hide_sample_comment"
+  },
+  {
+    "permission_name": "hide_variant_comment",
+    "label": "Hide Variant Comment",
+    "category": "Analysis Actions",
+    "description": "The user is allowed to hide a variant comment which could be for a variant, cnv, fusion, or any other variant type.",
+    "tags": [
+      "variant",
+      "comment",
+      "hide"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:09:07.966659",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:09:07.966678",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:09:07.966Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "5409ab577b487c7288583be6b73ab877e9b1b587fffb683feaa4445a637efec1"
+      }
+    ],
+    "permission_id": "hide_variant_comment"
+  },
+  {
+    "permission_name": "manage_cnvs",
+    "label": "Manage CNVs",
+    "category": "Analysis Actions",
+    "description": "Allows the user to view and modify CNV data for analysis.",
+    "tags": [
+      "cnvs",
+      "variants",
+      "analysis",
+      "edit",
+      "modify",
+      "view"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T13:51:15.620230",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T13:51:15.620247",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T13:51:15.620Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "4daff53a4c610c69168e73f28c078e32e0b0056f80f53709c06f97fb3a58c376"
+      }
+    ],
+    "permission_id": "manage_cnvs"
+  },
+  {
+    "permission_name": "manage_fusions",
+    "label": "Manage Fusions",
+    "category": "Analysis Actions",
+    "description": "Allows the user to view and annotate fusion events for analysis.",
+    "tags": [
+      "fusions",
+      "variants",
+      "analysis",
+      "edit",
+      "modify",
+      "view"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T13:52:01.921302",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T13:52:01.921320",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T13:52:01.921Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "b2117db2c9e777341954794522833ef16df53eaf226a329cea604cc1c166fa96"
+      }
+    ],
+    "permission_id": "manage_fusions"
+  },
+  {
+    "permission_name": "manage_pgx",
+    "label": "Manage PGx",
+    "category": "Analysis Actions",
+    "description": "Allows the user to view and manage pharmacogenomics results.",
+    "tags": [
+      "pgx",
+      "variants",
+      "analysis",
+      "edit",
+      "modify",
+      "view"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T13:53:25.275197",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T13:53:25.275214",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T13:53:25.275Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "f8c318b674ba80447a414daa8fc3e396615210d484a2adea9659f62f80cb7a83"
+      }
+    ],
+    "permission_id": "manage_pgx"
+  },
+  {
+    "permission_name": "manage_snvs",
+    "label": "Manage SNVs",
+    "category": "Analysis Actions",
+    "description": "Allows user to view and modify SNV variant data for analysis.",
+    "tags": [
+      "snvs",
+      "variants",
+      "analysis",
+      "edit",
+      "modify",
+      "view"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T13:51:00.140378",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T13:51:00.140395",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T13:51:00.140Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "c8d4feaed02af792f1ec31e99209b35fb72751b3bd9916f6730ff56e1e464743"
+      }
+    ],
+    "permission_id": "manage_snvs"
+  },
+  {
+    "permission_name": "manage_translocs",
+    "label": "Manage Translocations",
+    "category": "Analysis Actions",
+    "description": "Allows the user to view and annotate structural translocations.",
+    "tags": [
+      "translocs",
+      "variants",
+      "analysis",
+      "edit",
+      "modify",
+      "view"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T13:52:44.517253",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T13:52:44.517271",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T13:52:44.517Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "870f80362e21c77134fb79cdb64df7052ac3ce0c43914df37220bd8f5aaa9d2b"
+      }
+    ],
+    "permission_id": "manage_translocs"
+  },
+  {
+    "permission_name": "manage_user",
+    "label": "Manage User",
+    "category": "User Management",
+    "description": "Full control over user creation, editing, and deletion.",
+    "tags": [
+      "manage",
+      "create",
+      "edit",
+      "modify",
+      "view",
+      "delete",
+      "user"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:52:04.567124",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:52:04.567143",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:52:04.567Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "043d10b1a4ff599bc3cd8698d6aaa6fefa48814f00df5821355148b490bc4c4a"
+      }
+    ],
+    "permission_id": "manage_user"
+  },
+  {
+    "permission_name": "modify_tier",
+    "label": "Modify Assigned Tier",
+    "category": "Variant Curation",
+    "description": "Allows editing or changing the assigned tier of a variant within the user's group or assigned samples.",
+    "tags": [
+      "tier",
+      "variant",
+      "curation",
+      "classify",
+      "modify"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-19T15:12:57.330500",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-19T15:12:57.330516",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-19T15:12:57.330Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "da86e5eb5a2a68646a632983f9ef3e1dfa853df30536878b25a31bb2e943d21a"
+      }
+    ],
+    "permission_id": "modify_tier"
+  },
+  {
+    "permission_name": "preview_report",
+    "label": "Preview Report",
+    "category": "Reports",
+    "description": "Allows user to preview report before saving it.",
+    "tags": [
+      "report",
+      "preview",
+      "view"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T15:13:33.146618",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T15:13:33.146637",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T15:13:33.146Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "ea00e54b4bc8d907abacbcb6eb3aeb6c356e64b914f4c21dfec0a009bc2f6737"
+      }
+    ],
+    "permission_id": "preview_report"
+  },
+  {
+    "permission_name": "remove_tier",
+    "label": "Remove Assigned Tier",
+    "category": "Variant Curation",
+    "description": "Allows removal of tier classification from variants within the user's accessible group or samples.",
+    "tags": [
+      "tier",
+      "variant",
+      "curation",
+      "classify",
+      "remove"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-19T15:14:46.119111",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-19T15:14:46.119126",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-19T15:14:46.119Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "14ac6c9c83622a2f31dbf765bb2bcdd602b84c3a106d6bf82b13768b4534d0a4"
+      }
+    ],
+    "permission_id": "remove_tier"
+  },
+  {
+    "permission_name": "remove_tier_global",
+    "label": "Remove Any Tier (Global)",
+    "category": "Variant Curation",
+    "description": "Grants permission to remove tier classifications from any variant across all samples and groups.",
+    "tags": [
+      "tier",
+      "variant",
+      "curation",
+      "classify",
+      "remove",
+      "global"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-19T15:15:25.233524",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-19T15:15:25.233547",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-19T15:15:25.233Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "bff542473987c050c898143c01676b4c530f3e1d2d0733ce67e16346b50c51dc"
+      }
+    ],
+    "permission_id": "remove_tier_global"
+  },
+  {
+    "permission_name": "unhide_sample_comment",
+    "label": "Unhide Sample Comment",
+    "category": "Analysis Actions",
+    "description": "The user is allowed to unhide a sample comment from the sample view.",
+    "tags": [
+      "sample",
+      "comment",
+      "unhide"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:19:13.898380",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:19:13.898398",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:19:13.898Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "01d46fe82f8ad99f4f148855e3f55a3d111a64a90857ad4b2f3715f24032f0d4"
+      }
+    ],
+    "permission_id": "unhide_sample_comment"
+  },
+  {
+    "permission_name": "unhide_variant_comment",
+    "label": "Unhide Variant Comment",
+    "category": "Analysis Actions",
+    "description": "The user is allowed to unhide a variant comment which could be for a variant, cnv, fusion, or any other variant type.",
+    "tags": [
+      "variant",
+      "comment",
+      "unhide"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:09:17.417763",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:09:17.417781",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:09:17.417Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "8e45156a3a9c1930c6d9548d44bcd14f152982c9c8cc0261f6b89c980fcbd00a"
+      }
+    ],
+    "permission_id": "unhide_variant_comment"
+  },
+  {
+    "permission_name": "view_asp",
+    "label": "View ASP",
+    "category": "ASP Management",
+    "description": "Allows viewing any assay specific panel in the system.",
+    "tags": [
+      "asp",
+      "view",
+      "assay",
+      "panel"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:27:24.375827",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:27:24.375843",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:27:24.375Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "08e2cdec8f1c99650f2febd1524d31fcfc090e2bb9af54f8b857d6ed652cdbe3"
+      }
+    ],
+    "permission_id": "view_asp"
+  },
+  {
+    "permission_name": "view_aspc",
+    "label": "View ASP Configurations",
+    "category": "ASPC",
+    "description": "Allows viewing assay configurations.",
+    "tags": [
+      "assay",
+      "configurations",
+      "view",
+      "print",
+      "aspc"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:39:26.967330",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:39:26.967346",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:39:26.967Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "5af2081867d613e9d1da2f8b8384de327ff947672535d5b62e32efafd618f125"
+      }
+    ],
+    "permission_id": "view_aspc"
+  },
+  {
+    "permission_name": "view_audit_logs",
+    "label": "View Audit Logs",
+    "category": "App Monitoring",
+    "description": "Allows viewing application-wide audit logs.",
+    "tags": [
+      "app",
+      "audit",
+      "logs",
+      "view"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T15:30:59.917497",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T15:30:59.917515",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T15:30:59.917Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "84f398de5b279c419441b4a819808626b76aab9a587d95d331fb1ca2193b9827"
+      }
+    ],
+    "permission_id": "view_audit_logs"
+  },
+  {
+    "permission_name": "view_gene_annotations",
+    "label": "View Gene Annotations",
+    "category": "Analysis Actions",
+    "description": "Allows the user to view all the variants that were tired for a specific gene.",
+    "tags": [
+      "gene",
+      "annotations",
+      "view"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:06:48.702519",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:06:48.702537",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:06:48.702Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "b5063fd8d82b83de5ce9037bcf32f89398b319e69328370a4e756d5483807d3e"
+      }
+    ],
+    "permission_id": "view_gene_annotations"
+  },
+  {
+    "permission_name": "view_igv",
+    "label": "Access IGV Viewer",
+    "category": "Visualization",
+    "description": "Allows launching and accessing IGV genome viewer.",
+    "tags": [
+      "view",
+      "igv"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T15:32:04.249181",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T15:32:04.249198",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T15:32:04.249Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "3894e80c9978fc39ba29e74881d042639c0997d6abe80ffa6be00feeb1b4899b"
+      }
+    ],
+    "permission_id": "view_igv"
+  },
+  {
+    "permission_name": "view_isgl",
+    "label": "View ISGL",
+    "category": "ISGL Management",
+    "description": "Allows viewing of any in-silico genelist.",
+    "tags": [
+      "view",
+      "print",
+      "isgl",
+      "genelist",
+      "insilico"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:57:13.686577",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:57:13.686606",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:57:13.686Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "298e300ada149a2af8abd7b374331e7807446348ea9f5233cff740470a5ab735"
+      }
+    ],
+    "permission_id": "view_isgl"
+  },
+  {
+    "permission_name": "view_permission_policy",
+    "label": "View Permission Policy",
+    "category": "RBAC Management",
+    "description": "Allows viewing of permission policies from the system.",
+    "tags": [
+      "view",
+      "print",
+      "rbac",
+      "acl",
+      "permission",
+      "policy"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T15:09:42.818899",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T15:09:42.818917",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T15:09:42.818Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "1739ecb9553b3ff3fdacae30da6690a23dad6f23648a79c1a5585a5b3f92f72a"
+      }
+    ],
+    "permission_id": "view_permission_policy"
+  },
+  {
+    "permission_name": "view_reports",
+    "label": "View Reports",
+    "category": "Reports",
+    "description": "Can view Reports but not edit or download",
+    "tags": [
+      "report",
+      "view"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:00:47.841523",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:00:47.841542",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:00:47.841Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "cab5aad0351069389a6f4e7d8bdca1b50bdc8dfa42513b949b0fbf50e01cd2ad"
+      }
+    ],
+    "permission_id": "view_reports"
+  },
+  {
+    "permission_name": "view_role",
+    "label": "View Role",
+    "category": "Role Management",
+    "description": "Allows viewing of user roles.",
+    "tags": [
+      "role",
+      "rbac",
+      "view",
+      "print"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:44:48.964028",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:44:48.964047",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:44:48.964Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "5ed10b04a73850ea7ab119ddcaba129bf3ba1333d3229a050d1eb958d3d4fa0f"
+      }
+    ],
+    "permission_id": "view_role"
+  },
+  {
+    "permission_name": "view_sample_global",
+    "label": "View All Samples",
+    "category": "Sample Management",
+    "description": "Allows viewing all samples regardless of group.",
+    "tags": [
+      "sample",
+      "view",
+      "gobal"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T15:22:40.438819",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T15:22:40.438839",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T15:22:40.438Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "82a712a93ef522e186b87c41b64c239cf999425167776355184d81b7c7062ac3"
+      }
+    ],
+    "permission_id": "view_sample_global"
+  },
+  {
+    "permission_name": "view_schema",
+    "label": "View Schema",
+    "category": "Schema Management",
+    "description": "Allows viewing of configuration schemas.",
+    "tags": [
+      "schema",
+      "create",
+      "view"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T15:29:24.722845",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T15:29:24.722863",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T15:29:24.722Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "f07b6f46eacbc4a71c2bbf6c53532667b7a107c4736067a242457d0951b904b5"
+      }
+    ],
+    "permission_id": "view_schema"
+  },
+  {
+    "permission_name": "view_user",
+    "label": "View User",
+    "category": "User Management",
+    "description": "Allows viewing the list of users.",
+    "tags": [
+      "user",
+      "view"
+    ],
+    "version": 1,
+    "is_active": true,
+    "created_by": "ram.nanduri@skane.se",
+    "created_on": "2025-05-20T14:49:18.137819",
+    "updated_by": "ram.nanduri@skane.se",
+    "updated_on": "2025-05-20T14:49:18.137839",
+    "version_history": [
+      {
+        "version": 1,
+        "timestamp": "2025-05-20T14:49:18.137Z",
+        "user": "ram.nanduri@skane.se",
+        "delta": {
+          "initial": true
+        },
+        "hash": "716d5c29bb7e11c480d5cdd630c6ece2aeda24ccf23b53ede253beb538ba270a"
+      }
+    ],
+    "permission_id": "view_user"
+  }
+]

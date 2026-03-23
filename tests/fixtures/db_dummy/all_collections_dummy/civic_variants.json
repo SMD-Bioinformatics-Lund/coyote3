@@ -1,0 +1,12 @@
+[
+  {
+    "variant": "EGFR L858R",
+    "gene": "EGFR",
+    "entrez_id": 1956,
+    "chromosome": "7",
+    "start": 140453136,
+    "stop": 140453136,
+    "reference_bases": "A",
+    "variant_bases": "T"
+  }
+]

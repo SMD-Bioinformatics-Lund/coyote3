@@ -203,21 +203,6 @@ class AdminAspcContextPayload(BaseModel):
     schema_payload: dict[str, Any] = Field(alias="schema")
 
 
-class AdminSchemasListPayload(BaseModel):
-    """Represent the admin schemas list payload."""
-
-    schemas: list[dict[str, Any]]
-    pagination: AdminListPagePayload
-
-
-class AdminSchemaContextPayload(BaseModel):
-    """Represent the admin schema context payload."""
-
-    model_config = ConfigDict(populate_by_name=True)
-
-    schema_payload: dict[str, Any] = Field(alias="schema")
-
-
 class AdminExistsPayload(BaseModel):
     """Represent the admin exists payload."""
 

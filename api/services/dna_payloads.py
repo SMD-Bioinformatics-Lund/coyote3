@@ -5,6 +5,8 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from api.contracts.managed_resources import aspc_spec_for_category
+from api.contracts.managed_ui_schemas import build_managed_schema
 from api.core.dna.dna_reporting import hotspot_variant
 from api.core.dna.dna_variants import format_pon
 from api.core.dna.notation import one_letter_p
@@ -151,9 +153,7 @@ def list_variants_payload(
         sample.get("assay"), is_active=True
     )
     all_panel_genelist_names = util_module.common.get_assay_genelist_names(insilico_panel_genelists)
-    assay_config_schema = service.repository.schema_handler.get_schema(
-        assay_config.get("schema_name")
-    )
+    assay_config_schema = build_managed_schema(aspc_spec_for_category("DNA"))
 
     oncokb_genes = _collect_oncokb_genes(service, variants)
     display_sections_data, summary_sections_data = _build_display_and_summary_sections(
@@ -215,9 +215,7 @@ def plot_context_payload(*, service, sample: dict, assay_config_getter) -> dict[
     assay_config = assay_config_getter(sample)
     if not assay_config:
         raise api_error(404, "Assay config not found for sample")
-    assay_config_schema = service.repository.schema_handler.get_schema(
-        assay_config.get("schema_name")
-    )
+    assay_config_schema = build_managed_schema(aspc_spec_for_category("DNA"))
     return {
         "sample": sample,
         "assay_config": assay_config,

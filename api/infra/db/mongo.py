@@ -34,7 +34,6 @@ from api.infra.db.rna_expression import RNAExpressionHandler
 from api.infra.db.rna_qc import RNAQCHandler
 from api.infra.db.roles import RolesHandler
 from api.infra.db.samples import SampleHandler
-from api.infra.db.schemas import SchemaHandler
 from api.infra.db.translocs import TranslocsHandler
 from api.infra.db.users import UsersHandler
 from api.infra.db.variants import VariantsHandler
@@ -182,7 +181,6 @@ class MongoAdapter:
         self.coverage2_handler = CoverageHandler2(self)
         self.groupcov_handler = GroupCoverageHandler(self)
         self.aspc_handler = ASPConfigHandler(self)
-        self.schema_handler = SchemaHandler(self)
         self.roles_handler = RolesHandler(self)
         self.permissions_handler = PermissionsHandler(self)
         self.vep_meta_handler = VEPMetaHandler(self)
@@ -197,7 +195,6 @@ class MongoAdapter:
         self._ensure_handler_indexes("permissions", self.permissions_handler)
         self._ensure_handler_indexes("asp", self.asp_handler)
         self._ensure_handler_indexes("aspc", self.aspc_handler)
-        self._ensure_handler_indexes("schemas", self.schema_handler)
         self._ensure_handler_indexes("isgl", self.isgl_handler)
         self._ensure_handler_indexes("samples", self.sample_handler)
         self._ensure_handler_indexes("annotations", self.annotation_handler)

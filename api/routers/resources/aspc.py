@@ -111,8 +111,9 @@ def create_aspc_mutation(
     Returns:
         The function result.
     """
-    _ = user
-    return util.common.convert_to_serializable(service.create(payload=payload))
+    return util.common.convert_to_serializable(
+        service.create(payload=payload, actor_username=user.username)
+    )
 
 
 @router.put(
@@ -139,8 +140,9 @@ def update_aspc_mutation(
     Returns:
         The function result.
     """
-    _ = user
-    return util.common.convert_to_serializable(service.update(assay_id=assay_id, payload=payload))
+    return util.common.convert_to_serializable(
+        service.update(assay_id=assay_id, payload=payload, actor_username=user.username)
+    )
 
 
 @router.patch(

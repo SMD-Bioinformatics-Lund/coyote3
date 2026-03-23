@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from api.contracts.managed_resources import managed_resource_spec
+from api.contracts.managed_ui_schemas import build_managed_schema, build_managed_schema_bundle
+from api.contracts.schemas import normalize_collection_document
 from api.extensions import util
 from api.http import api_error
 from api.repositories.admin_repository import AdminRepository
@@ -16,6 +19,16 @@ from api.services.management_common import (
     utc_now,
 )
 
+CANONICAL_ROLE_LEVELS: dict[str, int] = {
+    "external": 1,
+    "viewer": 5,
+    "intern": 7,
+    "user": 9,
+    "manager": 99,
+    "developer": 9999,
+    "admin": 99999,
+}
+
 
 class AdminRoleService:
     """Own role-management workflows for admin HTTP routes."""
@@ -27,6 +40,7 @@ class AdminRoleService:
                 repository: Repository. Optional argument.
         """
         self.repository = repository or AdminRepository()
+        self._spec = managed_resource_spec("role")
 
     def list_roles_payload(
         self, *, q: str = "", page: int = 1, per_page: int = 30
@@ -54,16 +68,9 @@ class AdminRoleService:
         Returns:
             dict[str, Any]: The function result.
         """
-        schemas, selected_schema = self.repository.get_active_schema(
-            schema_type="rbac_role",
-            schema_category="RBAC_role",
-            schema_id=schema_id,
-        )
-        if not schemas:
-            raise api_error(400, "No active role schemas found")
-        if not selected_schema:
+        schemas, selected_schema = build_managed_schema_bundle(self._spec)
+        if schema_id and schema_id != selected_schema.get("schema_id"):
             raise api_error(404, "Selected schema not found")
-
         schema = self.repository.clone_schema(selected_schema)
         options = self.repository.list_permission_policy_options()
         schema["fields"]["permissions"]["options"] = options
@@ -91,11 +98,7 @@ class AdminRoleService:
         role = self.repository.get_role(role_id)
         if not role:
             raise api_error(404, "Role not found")
-        schema = self.repository.get_schema(role.get("schema_name"))
-        if not schema:
-            raise api_error(404, "Schema not found for role")
-
-        schema = self.repository.clone_schema(schema)
+        schema = self.repository.clone_schema(build_managed_schema(self._spec))
         options = self.repository.list_permission_policy_options()
         schema["fields"]["permissions"]["options"] = options
         schema["fields"]["deny_permissions"]["options"] = options
@@ -113,27 +116,26 @@ class AdminRoleService:
         Returns:
             dict[str, Any]: The function result.
         """
-        schemas, schema = self.repository.get_active_schema(
-            schema_type="rbac_role",
-            schema_category="RBAC_role",
-            schema_id=payload.get("schema_id"),
-        )
-        if not schemas:
-            raise api_error(400, "No active role schemas found")
-        if not schema:
+        schema = build_managed_schema(self._spec)
+        selected_schema_id = payload.get("schema_id")
+        if selected_schema_id and selected_schema_id != schema.get("schema_id"):
             raise api_error(404, "Selected schema not found")
 
         role = util.admin.process_form_to_config(payload.get("form_data", {}) or {}, schema)
         role_id = lower(role.get("name"))
         role.setdefault("is_active", True)
         role["role_id"] = role_id
-        role["schema_name"] = schema.get("schema_id")
-        role["schema_version"] = schema["version"]
+        if role_id in CANONICAL_ROLE_LEVELS:
+            role["level"] = CANONICAL_ROLE_LEVELS[role_id]
         role = inject_version_history(
             actor_username=current_actor(actor_username),
             new_config=role,
             is_new=True,
         )
+        try:
+            role = normalize_collection_document(self._spec.collection, role)
+        except Exception as exc:
+            raise api_error(400, f"Invalid role payload: {exc}") from exc
         self.repository.create_role(role)
         return mutation_payload(resource="role", resource_id=role_id, action="create")
 
@@ -153,17 +155,16 @@ class AdminRoleService:
         role = self.repository.get_role(role_id)
         if not role:
             raise api_error(404, "Role not found")
-        schema = self.repository.get_schema(role.get("schema_name"))
-        if not schema:
-            raise api_error(404, "Schema not found for role")
+        schema = build_managed_schema(self._spec)
 
         updated_role = util.admin.process_form_to_config(payload.get("form_data", {}) or {}, schema)
         updated_role["updated_by"] = current_actor(actor_username)
         updated_role["updated_on"] = utc_now()
-        updated_role["schema_name"] = schema.get("schema_id")
-        updated_role["schema_version"] = schema["version"]
         updated_role["version"] = role.get("version", 1) + 1
         updated_role["role_id"] = role.get("role_id", role_id)
+        canonical_level = CANONICAL_ROLE_LEVELS.get(updated_role["role_id"])
+        if canonical_level is not None:
+            updated_role["level"] = canonical_level
         updated_role["_id"] = role.get("_id")
         updated_role = inject_version_history(
             actor_username=current_actor(actor_username),
@@ -171,6 +172,10 @@ class AdminRoleService:
             old_config=role,
             is_new=False,
         )
+        try:
+            updated_role = normalize_collection_document(self._spec.collection, updated_role)
+        except Exception as exc:
+            raise api_error(400, f"Invalid role payload: {exc}") from exc
         self.repository.update_role(role_id, updated_role)
         return mutation_payload(resource="role", resource_id=role_id, action="update")
 

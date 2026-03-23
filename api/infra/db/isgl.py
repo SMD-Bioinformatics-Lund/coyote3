@@ -612,8 +612,6 @@ class ISGLHandler(BaseHandler):
             "created_on": 0,
             "created_by": 0,
             "version_history": 0,
-            "schema_version": 0,
-            "schema_name": 0,
             "is_active": 0,
         }
 

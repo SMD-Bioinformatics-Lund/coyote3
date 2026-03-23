@@ -1,0 +1,22 @@
+[
+  {
+    "SAMPLE_ID": "65f0c0ffee00000000000001",
+    "CHROM": "2",
+    "POS": 29443600,
+    "REF": "N",
+    "ALT": "<BND>",
+    "FILTER": [
+      "PASS"
+    ],
+    "INFO": {
+      "ANN": [
+        {
+          "Annotation": [
+            "gene_fusion"
+          ],
+          "Gene_ID": "ENSG00000139618"
+        }
+      ]
+    }
+  }
+]

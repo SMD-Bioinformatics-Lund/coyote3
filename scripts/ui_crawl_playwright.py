@@ -25,7 +25,6 @@ SEED_PATHS = [
     f"{PREFIX}/admin/asp/manage",
     f"{PREFIX}/admin/aspc",
     f"{PREFIX}/admin/genelists",
-    f"{PREFIX}/admin/schemas",
 ]
 
 

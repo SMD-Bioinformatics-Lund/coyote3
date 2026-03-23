@@ -7,7 +7,7 @@ from copy import deepcopy
 
 from flask import Response, abort, g, redirect, render_template, request, url_for
 from flask import current_app as app
-from flask_login import current_user, login_required
+from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
@@ -129,15 +129,7 @@ def _render_create_form(category: str) -> Response | str:
         config.update(
             {
                 "_id": f"{config['assay_name']}:{config['environment']}",
-                "schema_name": context.schema["schema_id"],
-                "schema_version": context.schema["version"],
-                "version": 1,
             }
-        )
-        config = util.admin.inject_version_history(
-            user_email=current_user.email,
-            new_config=deepcopy(config),
-            is_new=True,
         )
 
         try:
@@ -260,17 +252,6 @@ def edit_assay_config(assay_id: str) -> Response | str:
 
         updated_config = util.admin.process_form_to_config(form_data, context.schema)
         updated_config["_id"] = assay_config.get("_id")
-        updated_config["updated_on"] = util.common.utc_now()
-        updated_config["updated_by"] = current_user.email
-        updated_config["schema_name"] = context.schema["schema_id"]
-        updated_config["schema_version"] = context.schema["version"]
-        updated_config["version"] = assay_config.get("version", 1) + 1
-        updated_config = util.admin.inject_version_history(
-            user_email=current_user.email,
-            new_config=updated_config,
-            old_config=assay_config,
-            is_new=False,
-        )
         try:
             get_web_api_client().put_json(
                 api_endpoints.admin("aspc", assay_id),

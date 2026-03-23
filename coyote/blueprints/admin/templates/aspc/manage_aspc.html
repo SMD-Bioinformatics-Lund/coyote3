@@ -28,7 +28,6 @@
                   <th class="p-2 font-normal">Group</th>
                   <th class="p-2 font-normal">Category</th>
                   <th class="p-2 font-normal">Platform</th>
-                  <th class="p-2 font-normal">Schema Name</th>
                   <th class="p-2 font-normal">Created</th>
                   <th class="p-2 font-normal">Updated</th>
                   <th class="p-2 font-normal">Current Version</th>
@@ -53,7 +52,6 @@
                     </span>
                   </td>
                   <td class="p-2 font-medium">{{ assay.platform }}</td>
-                  <td class="p-2 font-medium">{{ assay.schema_name }} - v{{ assay.schema_version|int }}</td>
                   <td class="p-2 font-medium">
                     <span class="block">{{ assay.created_by }}</span>
                     <span class="text-gray-500 font-thin"><small>{{ assay.created_on | human_date }}</small></span>
@@ -90,7 +88,7 @@
                       </button>
                       <button onclick="showActionModal({
                           url: '{{ url_for('admin_bp.toggle_assay_config_active', assay_id=assay._id) }}',
-                          title: '{{ 'Deactivate' if assay.is_active else 'Activate' }} Schema',
+                          title: '{{ 'Deactivate' if assay.is_active else 'Activate' }} Configuration',
                           message: 'Are you sure you want to {{ 'deactivate' if assay.is_active else 'activate' }} <b>{{ assay._id }}</b>?',
                           confirmText: '{{ 'Deactivate' if assay.is_active else 'Activate' }}',
                           confirmColor: '{{ 'red' if assay.is_active else 'green' }}'
@@ -115,7 +113,7 @@
                 </tr>
                 {% else %}
                   <tr class="border-b border-gray-300">
-                    <td colspan="9" class="p-2 font-medium text-center">No assays found.</td>
+                    <td colspan="11" class="p-2 font-medium text-center">No assays found.</td>
                   </tr>
                 {% endfor %}
               </tbody>

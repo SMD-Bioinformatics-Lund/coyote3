@@ -156,6 +156,7 @@ migration_scripts
 ./bugs
 .ruff_cache
 node_modules/
+.clinerules.local
 
 # coyote
 redis_data

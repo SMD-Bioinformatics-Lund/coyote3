@@ -6,7 +6,7 @@ from copy import deepcopy
 
 from flask import Response, abort, g, redirect, render_template, request, url_for
 from flask import current_app as app
-from flask_login import current_user, login_required
+from flask_login import login_required
 
 from coyote.blueprints.admin import admin_bp
 from coyote.extensions import util
@@ -158,14 +158,7 @@ def create_genelist() -> Response | str:
         config = util.admin.process_form_to_config(form_data, context.schema)
         config["_id"] = config["name"]
         config["genes"] = genes
-        config["schema_name"] = context.schema["schema_id"]
-        config["schema_version"] = context.schema["version"]
         config["gene_count"] = len(genes)
-        config = util.admin.inject_version_history(
-            user_email=current_user.email,
-            new_config=deepcopy(config),
-            is_new=True,
-        )
         try:
             get_web_api_client().post_json(
                 api_endpoints.admin("genelists"),
@@ -229,17 +222,6 @@ def edit_genelist(genelist_id: str) -> Response | str:
         genes = _extract_genes_from_request(form_data, genelist.get("genes", []))
         updated["genes"] = genes
         updated["gene_count"] = len(genes)
-        updated["updated_by"] = current_user.email
-        updated["updated_on"] = util.common.utc_now()
-        updated["schema_name"] = context.schema["schema_id"]
-        updated["schema_version"] = context.schema["version"]
-        updated["version"] = genelist.get("version", 1) + 1
-        updated = util.admin.inject_version_history(
-            user_email=current_user.email,
-            new_config=updated,
-            old_config=genelist,
-            is_new=False,
-        )
         try:
             get_web_api_client().put_json(
                 api_endpoints.admin("genelists", genelist_id),

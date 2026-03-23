@@ -83,8 +83,8 @@ for key in COYOTE3_WEB_PORT COYOTE3_API_PORT COYOTE3_STAGE_WEB_PORT COYOTE3_STAG
 done
 
 if [[ -n "$SEED_FILE" ]]; then
-  if [[ ! -f "$SEED_FILE" ]]; then
-    echo "ERROR: seed file not found: $SEED_FILE" >&2
+  if [[ ! -e "$SEED_FILE" ]]; then
+    echo "ERROR: seed source not found: $SEED_FILE" >&2
     exit 2
   fi
   echo "[check] seed dependency and assay consistency"

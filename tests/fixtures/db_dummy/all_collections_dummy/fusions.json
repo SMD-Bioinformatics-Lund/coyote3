@@ -1,0 +1,12 @@
+[
+  {
+    "SAMPLE_ID": "65f0c0ffee00000000000001",
+    "fusions": [
+      {
+        "geneA": "BCR",
+        "geneB": "ABL1",
+        "supporting_reads": 42
+      }
+    ]
+  }
+]

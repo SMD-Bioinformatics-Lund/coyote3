@@ -18,13 +18,19 @@ Use this runbook on day 1 when bringing up Coyote3 at a new center.
 - Environment file prepared from `deploy/env/example.*.env`
 - Real values set for all `CHANGE_ME_*` entries
 
+Use the repository seed as the first-run baseline:
+
+- `tests/fixtures/db_dummy/all_collections_dummy`
+- Replace neutral placeholders (`ASSAY_A`, `GROUP_A`) with your center values
+- Keep those edited seed values under version control in your deployment repo
+
 ## 1. Preflight
 
 ```bash
 scripts/center_preflight.sh \
   --env-file .coyote3_stage_env \
   --compose-file deploy/compose/docker-compose.stage.yml \
-  --seed-file tests/fixtures/db_dummy/center_template_seed.json \
+  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
   --yaml-file tests/data/ingest_demo/generic_case_control.yaml
 ```
 
@@ -49,7 +55,7 @@ docker compose --env-file .coyote3_stage_env \
 If Mongo volume was pre-existing, bootstrap/rotate app DB user:
 
 ```bash
-python scripts/mongo_bootstrap_users.py \
+.venv/bin/python scripts/mongo_bootstrap_users.py \
   --mongo-uri "mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/admin?authSource=admin" \
   --app-db "${COYOTE3_DB:-coyote3}" \
   --app-user "${MONGO_APP_USER}" \
@@ -69,8 +75,26 @@ curl -fsS "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}/api
 
 ## 4. Bootstrap first API admin (one-time)
 
+Email format note for bootstrap:
+
+- Local/private domains are supported (for example `admin@coyote3.local`).
+- Minimum requirement is valid `local@domain` shape.
+- Invalid examples: `admin`, `@domain`, `admin@`.
+
+Role level note for bootstrap and seeds:
+
+- `admin` role must be level `99999` (not `100`).
+- Recommended full baseline:
+  - `external=1`
+  - `viewer=5`
+  - `intern=7`
+  - `user=9`
+  - `manager=99`
+  - `developer=9999`
+  - `admin=99999`
+
 ```bash
-python scripts/bootstrap_local_admin.py \
+.venv/bin/python scripts/bootstrap_local_admin.py \
   --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
   --db "${COYOTE3_DB:-coyote3}" \
   --email "admin@your-center.org" \
@@ -79,18 +103,35 @@ python scripts/bootstrap_local_admin.py \
   --assay "ASSAY_A"
 ```
 
+Guardrail:
+
+- `bootstrap_local_admin.py` now fails fast if any CLI value still contains `CHANGE_ME`.
+- This prevents accidental first-user creation with placeholder secrets.
+
 ## 5. Seed baseline collections (strict order)
 
 Required order before first DNA/RNA sample ingest:
 
 1. `permissions`
 2. `roles`
-3. `users`
-4. `asp_configs`
-5. `assay_specific_panels`
-6. `insilico_genelists`
-7. `refseq_canonical` (required for DNA canonical transcript selection)
-8. `hgnc_genes` (required for gene metadata endpoints/UI)
+3. `asp_configs`
+4. `assay_specific_panels`
+5. `insilico_genelists`
+6. `refseq_canonical` (required for DNA canonical transcript selection)
+7. `hgnc_genes` (required for gene metadata endpoints/UI)
+
+Notes:
+
+- `bootstrap_center_collections.sh` intentionally skips `users`.
+- First user bootstrap is handled in step 4 (`bootstrap_local_admin.py`).
+- Local-admin bootstrap writes user audit metadata: `created_by`, `created_on`, `updated_by`, `updated_on`.
+- Collection bootstrap also stamps all seeded documents with runtime audit metadata:
+  - `created_by`/`updated_by` = bootstrap admin user
+  - `created_on`/`updated_on` = current UTC timestamp at seed execution
+- `asp_configs` must include `is_active=true` (otherwise sample views can return "Assay config not found for sample").
+- Managed admin forms (ASP/ASPC/ISGL/users/roles/permissions) are rendered from backend contracts, not DB `schemas` JSON.
+- Baseline seed includes a complete out-of-the-box RBAC baseline (`permissions` + `roles`) so user creation dropdowns and role policy mapping are immediately available on first bootstrap.
+- Non-RBAC admin baseline collections (`asp_configs`, `assay_specific_panels`, `insilico_genelists`) intentionally remain demo-safe first-run data (`ASSAY_A`, `GROUP_A`) and should be replaced with center-specific values during onboarding.
 
 Optional but recommended:
 
@@ -115,19 +156,26 @@ scripts/bootstrap_center_collections.sh \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}" \
   --username "admin@your-center.org" \
   --password "CHANGE_ME" \
-  --seed-file tests/fixtures/db_dummy/center_template_seed.json \
-  --with-optional \
-  --skip-existing
+  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
+  --with-optional
 ```
 
-Before running, adapt `tests/fixtures/db_dummy/center_template_seed.json` to
-your local assay names/groups. The bootstrap flow validates ASPC and ISGL
-consistency before writing collections.
+Execution mode notes:
+
+- Default mode retries one failed collection seed once with `ignore_duplicates=true`.
+- `--skip-existing` enables duplicate-tolerant seeding from the first attempt.
+- `--strict-no-retry` disables retry and fails immediately on first collection error.
+- In `center_first_run.sh`, combine `--strict-no-retry` with `--skip-existing`
+  because first-admin bootstrap pre-creates RBAC documents before seeding.
+
+Before running, adapt `tests/fixtures/db_dummy/all_collections_dummy` to
+your local assay names/groups. The bootstrap flow validates schema, ASPC, ASP,
+and ISGL consistency before writing collections.
 
 ## 6. Validate and ingest demo sample
 
 ```bash
-python scripts/validate_ingest_spec.py \
+.venv/bin/python scripts/validate_ingest_spec.py \
   --yaml tests/data/ingest_demo/generic_case_control.yaml \
   --check-files
 ```
@@ -138,6 +186,21 @@ scripts/center_smoke.sh \
   --username "admin@your-center.org" \
   --password "CHANGE_ME" \
   --yaml-file tests/data/ingest_demo/generic_case_control.yaml
+```
+
+Notes:
+
+- `center_smoke.sh` sets `increment=true` in the submitted YAML payload to avoid duplicate-sample failures on reruns.
+- On local Docker deployments (`localhost` API), the script auto-stages ingest input files into the API container when needed.
+- In general, ingest file paths in YAML must be readable from inside the API runtime (container/host where API runs), not only from your shell machine.
+
+If you are upgrading an older deployment,
+run one-time repair before smoke:
+
+```bash
+.venv/bin/python scripts/repair_center_seed_baseline.py \
+  --mongo-uri "mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@localhost:${COYOTE3_STAGE_MONGO_PORT:-8808}/${COYOTE3_DB:-coyote3}?authSource=${COYOTE3_DB:-coyote3}" \
+  --db "${COYOTE3_DB:-coyote3}"
 ```
 
 ## 7. Functional verification
@@ -181,8 +244,9 @@ scripts/center_first_run.sh \
   --api-base-url "http://${COYOTE3_HOST:-localhost}:${COYOTE3_STAGE_API_PORT:-8806}" \
   --admin-email "admin@your-center.org" \
   --admin-password "CHANGE_ME" \
-  --seed-file tests/fixtures/db_dummy/center_template_seed.json \
+  --seed-file tests/fixtures/db_dummy/all_collections_dummy \
   --yaml-file tests/data/ingest_demo/generic_case_control.yaml \
   --with-optional \
-  --skip-existing
+  --skip-existing \
+  --strict-no-retry
 ```

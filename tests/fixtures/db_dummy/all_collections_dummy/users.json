@@ -1,0 +1,29 @@
+[
+  {
+    "email": "demo@example.org",
+    "username": "demo@example.org",
+    "firstname": "Demo",
+    "lastname": "User",
+    "fullname": "Demo User",
+    "auth_type": "coyote3",
+    "must_change_password": false,
+    "role": "admin",
+    "is_active": true,
+    "environments": [
+      "production",
+      "development",
+      "test",
+      "validation"
+    ],
+    "assays": [
+      "ASSAY_A"
+    ],
+    "assay_groups": [
+      "GROUP_A"
+    ],
+    "permissions": [
+      "edit_sample"
+    ],
+    "deny_permissions": []
+  }
+]

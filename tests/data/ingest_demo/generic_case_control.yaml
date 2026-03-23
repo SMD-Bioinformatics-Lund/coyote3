@@ -6,7 +6,7 @@ clarity_control_id: 'GEN_DEMO_CTRL'
 clarity_case_pool_id: 'POOL_DEMO_001'
 clarity_control_pool_id: 'POOL_DEMO_001'
 genome_build: 38
-vcf_files: /home/ram/dev/projects/coyote3/tests/data/ingest_demo/generic_case_control.final.filtered.vcf
+vcf_files: tests/data/ingest_demo/generic_case_control.final.filtered.vcf
 sample_no: 2
 case_id: 'CASE_DEMO'
 control_id: 'CTRL_DEMO'
@@ -26,6 +26,6 @@ control_sequencing_run: 'RUN_DEMO_001'
 control_reads: 45889968
 control_purity: null
 paired: true
-cnv: /home/ram/dev/projects/coyote3/tests/data/ingest_demo/generic_case_control.cnvs.merged.json
-cnvprofile: /home/ram/dev/projects/coyote3/tests/data/ingest_demo/generic_case_control.modeled.png
-cov: /home/ram/dev/projects/coyote3/tests/data/ingest_demo/generic_case_control.cov.json
+cnv: tests/data/ingest_demo/generic_case_control.cnvs.merged.json
+cnvprofile: tests/data/ingest_demo/generic_case_control.modeled.png
+cov: tests/data/ingest_demo/generic_case_control.cov.json

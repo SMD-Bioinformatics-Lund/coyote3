@@ -13,7 +13,6 @@ class MongoAdminRouteRepository:
         self.permissions_handler = store.permissions_handler
         self.roles_handler = store.roles_handler
         self.asp_handler = store.asp_handler
-        self.schema_handler = store.schema_handler
         self.user_handler = store.user_handler
         self.isgl_handler = store.isgl_handler
         self.aspc_handler = store.aspc_handler

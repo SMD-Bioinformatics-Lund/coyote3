@@ -6,13 +6,10 @@ This module provides static methods for configuration management, form processin
 
 import hashlib
 import json
-import os
 from typing import Any, Union
 
 from dateutil.parser import parse as parse_datetime
-from flask import current_app as app
 
-from coyote.util.admin_validators import REQUIRED_SCHEMA_KEYS
 from coyote.util.common_utility import CommonUtility
 
 
@@ -82,6 +79,13 @@ class AdminUtility:
                 return None
         elif field_type == "bool":
             return str(value).lower() in ["true", "1", "yes", "on"]
+        elif field_type == "datetime":
+            if isinstance(value, str):
+                try:
+                    return parse_datetime(value)
+                except (ValueError, TypeError):
+                    return None
+            return value
         elif field_type in [
             "list",
             "multi-select",
@@ -385,80 +389,6 @@ class AdminUtility:
         ]:
             cfg.pop(meta_key, None)
         return cfg
-
-    @staticmethod
-    def load_json5_template() -> str:
-        """
-        Loads the JSON5 schema template from the static directory.
-
-        Returns:
-            str: The contents of the JSON5 schema template file as a string.
-
-        Raises:
-            FileNotFoundError: If the schema template file does not exist.
-            OSError: If there is an error reading the file.
-        """
-        path = os.path.join(
-            app.root_path,
-            "blueprints",
-            "admin",
-            "static",
-            "schemas",
-            "schema_template.json5",
-        )
-        with open(path, encoding="utf-8") as f:
-            return f.read()
-
-    @staticmethod
-    def validate_schema_structure(schema: dict) -> list[str]:
-        """
-        Validates the structure of the provided schema dictionary.
-
-        - Checks for required top-level keys as defined in `REQUIRED_SCHEMA_KEYS`.
-        - Ensures the `sections` key is a dictionary, and each section contains a list of field names.
-        - Verifies that every field listed in sections is defined in either `fields` or `subschemas`.
-        - Supports dot notation for referencing subschema fields.
-
-        Returns:
-            list[str]: A list of error messages describing any structural issues found in the schema.
-        """
-        errors = []
-
-        # Check for required top-level keys
-        for key in REQUIRED_SCHEMA_KEYS:
-            if key not in schema:
-                errors.append(f"Missing required key: '{key}'")
-
-        # Ensure `sections` is a dict with lists of field names
-        if "sections" in schema and not isinstance(schema["sections"], dict):
-            errors.append("'sections' must be a dictionary")
-        else:
-            for section, keys in schema.get("sections", {}).items():
-                if not isinstance(keys, list):
-                    errors.append(f"Section '{section}' should contain a list of field keys")
-
-        # Ensure each field listed in sections is defined in fields or subschemas
-        defined_fields = set(schema.get("fields", {}).keys())
-        defined_subschemas = schema.get("subschemas", {})
-        for section, keys in schema.get("sections", {}).items():
-            for field in keys:
-                # Direct field match
-                if field in defined_fields or field in defined_subschemas:
-                    continue
-
-                # Dot notation match
-                if "." in field:
-                    parent, child = field.split(".", 1)
-                    if parent in defined_subschemas:
-                        subschema_fields = defined_subschemas[parent].get("fields", {})
-                        if child in subschema_fields:
-                            continue
-
-                errors.append(
-                    f"Field '{field}' in section '{section}' is not defined in 'fields' or in any valid subschema"
-                )
-
-        return errors
 
     @staticmethod
     def restore_objectids(obj) -> dict | list | Any:

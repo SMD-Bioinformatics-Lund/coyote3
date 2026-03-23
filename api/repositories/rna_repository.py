@@ -10,15 +10,6 @@ class RnaRouteRepository:
     """Repository facade for RNA route handlers with dynamic handler resolution."""
 
     @property
-    def schema_handler(self):
-        """Schema handler.
-
-        Returns:
-            The function result.
-        """
-        return store.schema_handler
-
-    @property
     def asp_handler(self):
         """Asp handler.
 

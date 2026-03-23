@@ -28,6 +28,7 @@ Symptoms:
 
 - valid LDAP user cannot login
 - local user hits LDAP path by mistake
+- UI says `Authentication backend unavailable` even when credentials look correct
 
 Checks:
 
@@ -35,6 +36,10 @@ Checks:
 2. Confirm `login_type` value is correct (`coyote3` or `ldap`).
 3. Verify LDAP connectivity for LDAP users.
 4. Verify password hash and local auth flow for local users.
+5. Verify local-user email/username shape:
+   - accepted: `local@domain` including private domains like `.local`
+   - rejected: missing `@`, empty local part, or empty domain part
+6. If this error appears, check API logs for auth session serialization/validation errors.
 
 ## Mail not configured
 

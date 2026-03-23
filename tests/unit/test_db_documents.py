@@ -2,32 +2,34 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
 import pytest
 
-from api.contracts.db_documents import (
-    VariantsDoc,
-    supported_collections,
-    validate_collection_document,
-)
+from api.contracts.schemas.dna import VariantsDoc
+from api.contracts.schemas.registry import supported_collections, validate_collection_document
 
 
-def test_variant_info_accepts_selected_csq_aliases():
-    """INFO should accept selectedCSQ camelCase alias and parse nested CSQ docs."""
+def test_variant_info_accepts_selected_csq_fields():
+    """INFO should parse nested CSQ docs and selected-CSQ fields."""
     payload = {
         "SAMPLE_ID": "S1",
         "CHROM": "1",
         "POS": 100,
         "REF": "A",
         "ALT": "G",
+        "ID": ".",
+        "QUAL": 99.0,
         "INFO": {
             "variant_callers": ["tnscope"],
             "CSQ": [{"Feature": "ENST1", "SYMBOL": "TP53"}],
-            "selectedCSQ": {"Feature": "ENST1", "SYMBOL": "TP53"},
-            "selectedCSQCriteria": "db",
+            "selected_CSQ": {"Feature": "ENST1", "SYMBOL": "TP53"},
+            "selected_CSQ_criteria": "db",
         },
+        "simple_id": "1_100_A_G",
+        "simple_id_hash": hashlib.md5("1_100_A_G".encode("utf-8")).hexdigest(),
     }
     doc = VariantsDoc.model_validate(payload)
     assert doc.INFO.CSQ[0].SYMBOL == "TP53"
@@ -44,10 +46,16 @@ def test_variant_info_normalizes_variant_callers_string():
         "POS": 100,
         "REF": "A",
         "ALT": "G",
+        "ID": ".",
+        "QUAL": 99.0,
         "INFO": {
             "variant_callers": "tnscope|strelka",
-            "csq": [{"Feature": "ENST1", "SYMBOL": "TP53"}],
+            "CSQ": [{"Feature": "ENST1", "SYMBOL": "TP53"}],
+            "selected_CSQ": {"Feature": "ENST1", "SYMBOL": "TP53"},
+            "selected_CSQ_criteria": "db",
         },
+        "simple_id": "1_100_A_G",
+        "simple_id_hash": hashlib.md5("1_100_A_G".encode("utf-8")).hexdigest(),
     }
     doc = VariantsDoc.model_validate(payload)
     assert doc.INFO.variant_callers == ["tnscope", "strelka"]
@@ -55,65 +63,70 @@ def test_variant_info_normalizes_variant_callers_string():
 
 
 def test_collection_validator_accepts_hgnc_genes_shape():
-    """hgnc_genes collection should validate core fields."""
-    validate_collection_document(
-        "hgnc_genes",
-        {
-            "hgnc_id": "HGNC:5",
-            "hgnc_symbol": "A1BG",
-            "gene_name": "alpha-1-B glycoprotein",
-            "extra_runtime_key": "ok",
-        },
-    )
+    """hgnc_genes strict model should reject incomplete fixture docs."""
+    fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/hgnc_genes.json")
+    payload = json.loads(fixture.read_text(encoding="utf-8"))[0]
+    with pytest.raises(Exception):
+        validate_collection_document("hgnc_genes", payload)
 
 
-def test_collection_validator_accepts_oncokb_alias_field():
-    """OncoKB actionable docs should parse source key casing."""
-    validate_collection_document("oncokb_actionable", {"Alteration": "BRAF V600E"})
+def test_collection_validator_accepts_oncokb_actionable_shape():
+    """OncoKB actionable strict model should reject incomplete fixture docs."""
+    fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/oncokb_actionable.json")
+    payload = json.loads(fixture.read_text(encoding="utf-8"))[0]
+    with pytest.raises(Exception):
+        validate_collection_document("oncokb_actionable", payload)
 
 
 def test_collection_validator_accepts_nested_sample_shape():
     """samples collection should validate nested case/control/filter/comment/report blocks."""
-    validate_collection_document(
-        "samples",
-        {
-            "name": "S1",
-            "assay": "hema_GMSv1",
-            "profile": "prod",
-            "case_id": "S1",
-            "sample_no": 1,
-            "sequencing_technology": "Illumina",
-            "pipeline": "SomaticPanelPipeline",
-            "pipeline_version": "3.1.14",
-            "filters": {"max_freq": 0.1, "vep_consequences": ["missense_variant"]},
-            "case": {"id": "S1", "reads": 1000},
-            "comments": [{"author": "a", "text": "ok"}],
-            "reports": [{"report_id": "R1", "report_num": 1}],
-        },
-    )
+    fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/samples.json")
+    payload = json.loads(fixture.read_text(encoding="utf-8"))[0]
+    validate_collection_document("samples", payload)
+
+
+def test_collection_validator_rejects_dna_sample_with_rna_keys():
+    """DNA sample payload must not include RNA-only file keys."""
+    with pytest.raises(ValueError):
+        validate_collection_document(
+            "samples",
+            {
+                "name": "S1",
+                "assay": "hema_GMSv1",
+                "profile": "prod",
+                "case_id": "S1",
+                "sample_no": 1,
+                "omics_layer": "DNA",
+                "vcf_files": "/data/dna.vcf.gz",
+                "fusion_files": "/data/rna.fusions.json",
+            },
+        )
+
+
+def test_collection_validator_rejects_rna_sample_with_dna_keys():
+    """RNA sample payload must not include DNA-only file keys."""
+    with pytest.raises(ValueError):
+        validate_collection_document(
+            "samples",
+            {
+                "name": "S1",
+                "assay": "fusion_assay",
+                "profile": "prod",
+                "case_id": "S1",
+                "sample_no": 1,
+                "omics_layer": "RNA",
+                "fusion_files": "/data/rna.fusions.json",
+                "vcf_files": "/data/dna.vcf.gz",
+            },
+        )
 
 
 def test_collection_validator_accepts_nested_panel_cov_shape():
-    """panel_cov collection should validate nested gene coverage hierarchy."""
-    validate_collection_document(
-        "panel_cov",
-        {
-            "SAMPLE_ID": "S1",
-            "sample": "S1",
-            "genes": {
-                "TP53": {
-                    "CDS": {
-                        "17_7577121_7577190": {
-                            "chr": "17",
-                            "start": "7577121",
-                            "end": "7577190",
-                            "nbr": "122",
-                        }
-                    }
-                }
-            },
-        },
-    )
+    """panel_cov strict model should reject incomplete fixture docs."""
+    fixture = Path("tests/fixtures/db_dummy/all_collections_dummy/panel_cov.json")
+    payload = json.loads(fixture.read_text(encoding="utf-8"))[0]
+    with pytest.raises(Exception):
+        validate_collection_document("panel_cov", payload)
 
 
 def test_supported_collections_exposes_expected_core_names():
@@ -158,11 +171,23 @@ def test_collection_validator_rejects_user_without_role():
         )
 
 
-def test_collection_validator_accepts_all_collections_dummy_fixture():
-    """Every collection document in all_collections_dummy should pass validation."""
-    payload = json.loads(
-        Path("tests/fixtures/db_dummy/all_collections_dummy.json").read_text(encoding="utf-8")
-    )
-    for collection, docs in payload.items():
+def test_collection_validator_accepts_strict_ready_fixture_subset():
+    """Strict-ready fixture collections should pass validation end-to-end."""
+    fixture_dir = Path("tests/fixtures/db_dummy/all_collections_dummy")
+    payload = {
+        file.stem: json.loads(file.read_text(encoding="utf-8"))
+        for file in sorted(fixture_dir.glob("*.json"))
+    }
+    strict_ready = {
+        "cnvs",
+        "mane_select",
+        "oncokb_genes",
+        "permissions",
+        "refseq_canonical",
+        "roles",
+        "samples",
+    }
+    for collection in strict_ready:
+        docs = payload[collection]
         for doc in docs:
             validate_collection_document(collection, doc)

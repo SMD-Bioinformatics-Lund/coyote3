@@ -1,0 +1,11 @@
+[
+  {
+    "variant": "7_140453136_A_T",
+    "gene": "EGFR",
+    "author": "demo.user",
+    "nomenclature": "p",
+    "transcript": "ENST00000288602",
+    "class": 2,
+    "text": "Demo actionable annotation"
+  }
+]

@@ -1,13 +1,10 @@
 """Shared, pure helpers used by Jinja filter wrappers."""
 
-from datetime import datetime, tzinfo
+from datetime import datetime, timezone
 
 import arrow
 import markdown
-from dateutil import tz
 from markupsafe import Markup, escape
-
-STOCKHOLM: tzinfo | None = tz.gettz("Europe/Stockholm")
 
 GOOD_FUSION_TERMS = {
     "mitelman",
@@ -81,7 +78,7 @@ FUSION_TERM_CLASS = {
     **{term: "bg-pink-500 text-white" for term in BAD_FUSION_TERMS},
 }
 
-LEGACY_GOOD_FUSION_TERMS = {
+FUSION_SPAN_GOOD_TERMS = {
     "mitelman",
     "18cancers",
     "known",
@@ -98,7 +95,7 @@ LEGACY_GOOD_FUSION_TERMS = {
     "ticdb",
 }
 
-LEGACY_VERY_BAD_FUSION_TERMS = {
+FUSION_SPAN_VERY_BAD_TERMS = {
     "1000genomes",
     "banned",
     "bodymap2",
@@ -131,7 +128,7 @@ LEGACY_VERY_BAD_FUSION_TERMS = {
     "ucsc_same_strand_overlapping",
 }
 
-LEGACY_BAD_FUSION_TERMS = {
+FUSION_SPAN_BAD_TERMS = {
     "distance100kbp",
     "distance10kbp",
     "duplicates",
@@ -147,18 +144,35 @@ LEGACY_BAD_FUSION_TERMS = {
 }
 
 
+def _coerce_utc_datetime(value: datetime | str) -> datetime:
+    dt = arrow.get(value).datetime
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _format_relative_utc(dt_utc: datetime) -> str:
+    now_utc = datetime.now(timezone.utc)
+    dt_arrow = arrow.get(dt_utc)
+    now_arrow = arrow.get(now_utc)
+    return dt_arrow.humanize(now_arrow)
+
+
 def human_date(value: datetime | str) -> str:
-    """Return a humanized relative date in Stockholm timezone."""
+    """Return a browser-localized timestamp wrapper with UTC datetime payload."""
     if not value:
         return "N/A"
 
     try:
-        dt = arrow.get(value)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=STOCKHOLM)
-        dt = dt.to(STOCKHOLM)
-        now = arrow.now(STOCKHOLM)
-        return dt.humanize(now)
+        dt_utc = _coerce_utc_datetime(value)
+        iso_utc = dt_utc.isoformat()
+        fallback = _format_relative_utc(dt_utc)
+        return Markup(
+            "<time class='js-local-datetime' "
+            f"datetime='{escape(iso_utc)}' "
+            "data-local-time='relative' "
+            f"title='UTC {escape(iso_utc)}'>{escape(fallback)}</time>"
+        )
     except Exception:
         return "Invalid date"
 
@@ -206,19 +220,19 @@ def format_fusion_desc_badges(st: str | None, preview_count: int | None = None) 
     return Markup("".join(html_parts))
 
 
-def format_fusion_desc_legacy(st: str | None) -> str:
-    """Render legacy fusion spans (`fusion-*` classes) used by DNA templates."""
+def format_fusion_desc_spans(st: str | None) -> str:
+    """Render fusion spans (`fusion-*` classes) used by DNA templates."""
     if not st:
         return ""
 
     html_parts = []
     for value in st.split(","):
         token = value.replace("<", "&lt;").replace(">", "&gt;")
-        if value in LEGACY_GOOD_FUSION_TERMS:
+        if value in FUSION_SPAN_GOOD_TERMS:
             klass = "fusion fusion-good"
-        elif value in LEGACY_VERY_BAD_FUSION_TERMS:
+        elif value in FUSION_SPAN_VERY_BAD_TERMS:
             klass = "fusion fusion-verybad"
-        elif value in LEGACY_BAD_FUSION_TERMS:
+        elif value in FUSION_SPAN_BAD_TERMS:
             klass = "fusion fusion-bad"
         else:
             klass = "fusion fusion-neutral"

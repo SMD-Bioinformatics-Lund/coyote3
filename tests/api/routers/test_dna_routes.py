@@ -228,7 +228,6 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
     assay_config = {
         "asp_group": "tumwgs",
         "analysis_types": [],
-        "schema_name": "schema-dna",
         "reporting": {},  # intentionally missing report_path
     }
 
@@ -275,7 +274,6 @@ def test_list_dna_variants_does_not_require_report_path(monkeypatch):
         dna_repo_module.store.isgl_handler, "get_isgl_by_asp", lambda assay, is_active=True: []
     )
     monkeypatch.setattr(dna.util.common, "get_assay_genelist_names", lambda docs: [])
-    monkeypatch.setattr(dna_repo_module.store.schema_handler, "get_schema", lambda schema_name: {})
     monkeypatch.setattr(dna, "generate_summary_text", lambda *args, **kwargs: "")
     monkeypatch.setattr(dna.util.common, "convert_to_serializable", lambda payload: payload)
 

@@ -88,7 +88,7 @@
                     </button>
                     <button onclick="showActionModal({
                         url: '{{ url_for('admin_bp.toggle_role_active', role_id=role.role_id) }}',
-                        title: '{{ 'Deactivate' if role.is_active else 'Activate' }} Schema',
+                        title: '{{ 'Deactivate' if role.is_active else 'Activate' }} Configuration',
                         message: 'Are you sure you want to {{ 'deactivate' if role.is_active else 'activate' }} <b>{{ role.role_id }}</b>?',
                         confirmText: '{{ 'Deactivate' if role.is_active else 'Activate' }}',
                         confirmColor: '{{ 'red' if role.is_active else 'green' }}'

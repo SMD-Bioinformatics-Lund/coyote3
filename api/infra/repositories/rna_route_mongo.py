@@ -10,7 +10,6 @@ class MongoRNARouteRepository:
 
     def __init__(self) -> None:
         """__init__."""
-        self.schema_handler = store.schema_handler
         self.asp_handler = store.asp_handler
         self.isgl_handler = store.isgl_handler
         self.sample_handler = store.sample_handler

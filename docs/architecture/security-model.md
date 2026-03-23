@@ -11,6 +11,23 @@
 
 Permission checks are enforced in API route/service flow for data-mutating operations.
 
+### Canonical role levels
+
+Default role hierarchy used across API access checks:
+
+- `external` -> `1`
+- `viewer` -> `5`
+- `intern` -> `7`
+- `user` -> `9`
+- `manager` -> `99`
+- `developer` -> `9999`
+- `admin` -> `99999`
+
+Notes:
+
+- Admin-only APIs and global destructive operations are guarded at `99999`.
+- Bootstrap/seed role documents should use the same values to avoid unexpected authorization failures.
+
 ## Authentication providers
 
 - User documents carry `auth_type` (for example `coyote3` local vs `ldap`).

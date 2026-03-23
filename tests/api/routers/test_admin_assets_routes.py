@@ -1,4 +1,4 @@
-"""Behavior tests for split admin assay/genelist/aspc/schema route handlers."""
+"""Behavior tests for split admin assay/genelist/aspc route handlers."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import pytest
 from fastapi import HTTPException
 
 from api.main import app as api_app
-from api.routers.resources import asp, genelists, schemas
+from api.routers.resources import asp, genelists
 
 
 def test_list_asp_read_returns_panels(monkeypatch):
@@ -61,31 +61,6 @@ def test_create_genelist_context_missing_schema_raises_404():
     assert exc.value.detail["error"] == "Genelist schema not found"
 
 
-def test_schema_context_read_returns_schema_payload(monkeypatch):
-    """Test schema context read returns schema payload.
-
-    Args:
-        monkeypatch: Value for ``monkeypatch``.
-
-    Returns:
-        The function result.
-    """
-    monkeypatch.setattr(schemas.util.common, "convert_to_serializable", lambda payload: payload)
-    service = type(
-        "_Service",
-        (),
-        {
-            "context_payload": staticmethod(
-                lambda **kwargs: {"schema": {"_id": kwargs["schema_id"]}}
-            )
-        },
-    )()
-
-    payload = schemas.schema_context_read("USER-SCHEMA", user=None, service=service)
-
-    assert payload["schema"]["_id"] == "USER-SCHEMA"
-
-
 def test_restful_admin_resource_routes_are_registered():
     """Test restful admin resource routes are registered.
 
@@ -102,6 +77,3 @@ def test_restful_admin_resource_routes_are_registered():
     assert "/api/v1/resources/aspc" in paths
     assert "/api/v1/resources/aspc/{assay_id}" in paths
     assert "/api/v1/resources/aspc/{assay_id}/status" in paths
-    assert "/api/v1/resources/schemas" in paths
-    assert "/api/v1/resources/schemas/{schema_id}" in paths
-    assert "/api/v1/resources/schemas/{schema_id}/status" in paths

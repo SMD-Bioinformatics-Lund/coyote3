@@ -10,7 +10,8 @@ Usage:
     --api-base-url <url> \
     (--bearer-token <token> | --username <user> --password <pass>) \
     --yaml-file <path> \
-    [--skip-file-check]
+    [--skip-file-check] \
+    [--no-stage-files]
 
 Example:
   scripts/center_smoke.sh \
@@ -27,6 +28,7 @@ USERNAME=""
 PASSWORD=""
 YAML_FILE=""
 SKIP_FILE_CHECK=0
+STAGE_FILES=1
 PYTHON_BIN="${PYTHON_BIN:-}"
 
 while [[ $# -gt 0 ]]; do
@@ -37,6 +39,7 @@ while [[ $# -gt 0 ]]; do
     --password) PASSWORD="$2"; shift 2 ;;
     --yaml-file) YAML_FILE="$2"; shift 2 ;;
     --skip-file-check) SKIP_FILE_CHECK=1; shift ;;
+    --no-stage-files) STAGE_FILES=0; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; usage; exit 2 ;;
   esac
@@ -90,6 +93,24 @@ if [[ ! -f "$YAML_FILE" ]]; then
   exit 2
 fi
 
+if [[ "$STAGE_FILES" -eq 1 ]]; then
+  API_TARGET="$("$PYTHON_BIN" - <<'PY' "$API_BASE_URL"
+from urllib.parse import urlparse
+import sys
+u = urlparse(sys.argv[1])
+host = (u.hostname or "").lower()
+port = u.port or (443 if u.scheme == "https" else 80)
+print(f"{host}:{port}")
+PY
+  )"
+  API_HOST="${API_TARGET%%:*}"
+  API_PORT="${API_TARGET##*:}"
+  if [[ "$API_HOST" == "localhost" || "$API_HOST" == "127.0.0.1" ]] && command -v docker >/dev/null 2>&1; then
+    SMOKE_DOCKER_API_CONTAINER="$(docker ps --filter "publish=${API_PORT}" --format '{{.Names}}' | head -n 1 || true)"
+    export SMOKE_DOCKER_API_CONTAINER
+  fi
+fi
+
 echo "[step] health check"
 curl -fsS "${API_BASE_URL%/}/api/v1/health" >/dev/null
 
@@ -102,14 +123,105 @@ fi
 
 echo "[step] submit ingest sample-bundle"
 PY_PAYLOAD="$({
-"$PYTHON_BIN" - <<'PY' "$YAML_FILE"
+"$PYTHON_BIN" - <<'PY' "$YAML_FILE" "$STAGE_FILES"
 import json
+import os
+import shutil
+import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 import yaml
-p = Path(sys.argv[1])
-y = yaml.safe_load(p.read_text(encoding='utf-8'))
-print(json.dumps({"yaml_content": p.read_text(encoding='utf-8'), "update_existing": False}))
+
+yaml_path = Path(sys.argv[1]).resolve()
+stage_files = sys.argv[2] == "1"
+payload = yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
+
+if stage_files:
+    candidates = [
+        Path("/data/coyote3/smoke_ingest"),
+        Path("/access/coyote3/smoke_ingest"),
+        Path("/media/coyote3/smoke_ingest"),
+        Path("/fs1/coyote3/smoke_ingest"),
+        Path("/tmp/coyote3/smoke_ingest"),
+    ]
+    stage_root = None
+    for candidate in candidates:
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            stage_root = candidate
+            break
+        except OSError:
+            continue
+    if stage_root is None:
+        raise SystemExit(
+            "No writable staging root found. Set --no-stage-files and provide API-visible paths."
+        )
+
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stage_dir = stage_root / run_id
+    stage_dir.mkdir(parents=True, exist_ok=True)
+
+    file_fields = (
+        "vcf_files",
+        "cnv",
+        "cov",
+        "transloc",
+        "biomarkers",
+        "fusion_files",
+        "expression_path",
+        "classification_path",
+        "qc",
+        "cnvprofile",
+    )
+    sentinels = {"", "no_update", "NO_UPDATE"}
+
+    for field in file_fields:
+        value = payload.get(field)
+        if value is None:
+            continue
+        value_str = str(value).strip()
+        if value_str in sentinels:
+            continue
+
+        src = Path(value_str)
+        if not src.is_absolute():
+            rel_candidates = [
+                (yaml_path.parent / src).resolve(),
+                (Path.cwd() / src).resolve(),
+            ]
+            found = next((p for p in rel_candidates if p.exists()), None)
+            src = found or rel_candidates[0]
+
+        if not src.exists():
+            continue
+
+        dst_name = src.name
+        dst = stage_dir / dst_name
+        if dst.exists():
+            dst = stage_dir / f"{field}_{dst_name}"
+        shutil.copy2(src, dst)
+        payload[field] = str(dst)
+
+    container = os.environ.get("SMOKE_DOCKER_API_CONTAINER", "").strip()
+    if container:
+        subprocess.run(
+            ["docker", "exec", container, "mkdir", "-p", str(stage_dir)],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        subprocess.run(
+            ["docker", "cp", f"{stage_dir}/.", f"{container}:{stage_dir}"],
+            check=True,
+            stdout=subprocess.DEVNULL,
+        )
+
+# Smoke should be repeatable across runs; enable auto-suffix when sample name exists.
+payload["increment"] = True
+
+yaml_content = yaml.safe_dump(payload, sort_keys=False)
+print(json.dumps({"yaml_content": yaml_content, "update_existing": False}))
 PY
 })"
 

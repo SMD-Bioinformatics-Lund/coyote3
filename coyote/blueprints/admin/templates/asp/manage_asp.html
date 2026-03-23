@@ -92,7 +92,7 @@
                       </button>
                       <button onclick="showActionModal({
                           url: '{{ url_for('admin_bp.toggle_assay_panel_active', assay_panel_id=panel._id) }}',
-                          title: '{{ 'Deactivate' if panel.is_active else 'Activate' }} Schema',
+                          title: '{{ 'Deactivate' if panel.is_active else 'Activate' }} Configuration',
                           message: 'Are you sure you want to {{ 'deactivate' if panel.is_active else 'activate' }} <b>{{ panel._id }}</b>?',
                           confirmText: '{{ 'Deactivate' if panel.is_active else 'Activate' }}',
                           confirmColor: '{{ 'red' if panel.is_active else 'green' }}'

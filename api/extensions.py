@@ -11,16 +11,28 @@ from api.utils.report.report_util import ReportUtility
 class Utility:
     """Utility container used by API routes/services."""
 
+    _initialized: bool = False
+
     def init_util(self) -> None:
         """Init util.
 
         Returns:
             None.
         """
+        if self._initialized:
+            return
         self.common = CommonUtility()
         self.dashboard = DashBoardUtility()
         self.admin = AdminUtility()
         self.report = ReportUtility()
+        self._initialized = True
+
+    def __getattr__(self, name: str):
+        """Lazy-init utility groups on first access."""
+        if name in {"common", "dashboard", "admin", "report"}:
+            self.init_util()
+            return object.__getattribute__(self, name)
+        raise AttributeError(name)
 
 
 class _LazyHandlerProxy:
@@ -80,7 +92,6 @@ def _seed_adapter_slots(adapter: MongoAdapter) -> MongoAdapter:
         "rna_qc_handler",
         "roles_handler",
         "sample_handler",
-        "schema_handler",
         "transloc_handler",
         "user_handler",
         "variant_handler",

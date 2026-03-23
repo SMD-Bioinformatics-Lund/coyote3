@@ -42,7 +42,6 @@
                     <td class="p-2 font-medium">{{ perm.label }}</td>
                     <td class="p-2 font-medium">{{ perm.category }}</td>
                     <td class="p-2 font-medium">{{ perm.description or '-' }}</td>
-                    <td class="p-2 font-medium">{{ perm.schema_name or '-' }}</td>
                     <td class="p-2 font-medium">
                       {% if perm.is_active %}
                         <span class="text-green-600 font-semibold">Enabled</span>
@@ -78,7 +77,7 @@
                         </button>
                         <button onclick="showActionModal({
                             url: '{{ url_for('admin_bp.toggle_permission_active', perm_id=perm._id) }}',
-                            title: '{{ 'Disable' if perm.is_active else 'Enable' }} Schema',
+                            title: '{{ 'Disable' if perm.is_active else 'Enable' }} Permission',
                             message: 'Are you sure you want to {{ 'Disable' if perm.is_active else 'Enable' }} <b>{{ perm._id }}</b>?',
                             confirmText: '{{ 'Disable' if perm.is_active else 'Enable' }}',
                             confirmColor: '{{ 'red' if perm.is_active else 'green' }}'

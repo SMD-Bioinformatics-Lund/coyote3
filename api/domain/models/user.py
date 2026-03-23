@@ -10,7 +10,7 @@ MongoDB and supports merging user, role, and assay-specific permissions and attr
 from datetime import datetime
 from typing import List, Optional, Set
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from werkzeug.security import check_password_hash
 
 
@@ -27,7 +27,7 @@ class UserModel(BaseModel):
     )
 
     id: str = Field(..., alias="_id")
-    email: EmailStr
+    email: str
     username: str
     fullname: str
     role: str
@@ -50,6 +50,18 @@ class UserModel(BaseModel):
         if value is None:
             return value
         return str(value)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _normalize_email(cls, value):
+        """Accept center-local addresses while enforcing basic email structure."""
+        email = str(value or "").strip().lower()
+        if not email or "@" not in email:
+            raise ValueError("email must contain '@'")
+        local, domain = email.split("@", 1)
+        if not local or not domain:
+            raise ValueError("email must include local and domain parts")
+        return email
 
     # -------------------- STATIC METHODS --------------------
     @staticmethod

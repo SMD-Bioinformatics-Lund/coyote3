@@ -5,6 +5,9 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from api.contracts.managed_resources import aspc_spec_for_category, managed_resource_spec
+from api.contracts.managed_ui_schemas import build_managed_schema, build_managed_schema_bundle
+from api.contracts.schemas import normalize_collection_document
 from api.core.admin.sample_deletion import SampleDeletionService, delete_all_sample_traces
 from api.extensions import util
 from api.http import api_error
@@ -13,9 +16,29 @@ from api.runtime import app as runtime_app
 from api.services.management_common import (
     admin_list_pagination,
     current_actor,
+    inject_version_history,
     mutation_payload,
     utc_now,
 )
+
+
+def _normalize_asp_category(value: Any) -> str:
+    """Normalize ASP category labels to managed DNA/RNA categories."""
+    raw = str(value or "").strip().lower()
+    mapping = {
+        "dna": "DNA",
+        "somatic": "DNA",
+        "rna": "RNA",
+    }
+    return mapping.get(raw, str(value or "").strip().upper() or "DNA")
+
+
+def _validated_doc(collection: str, payload: dict[str, Any]) -> dict[str, Any]:
+    """Validate + normalize payload using collection Pydantic contract."""
+    try:
+        return normalize_collection_document(collection, payload)
+    except Exception as exc:
+        raise api_error(400, f"Invalid {collection} payload: {exc}") from exc
 
 
 class AdminPanelService:
@@ -28,6 +51,7 @@ class AdminPanelService:
                 repository: Repository. Optional argument.
         """
         self.repository = repository or AdminRepository()
+        self._spec = managed_resource_spec("asp")
 
     def list_payload(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:
         """List payload.
@@ -53,14 +77,8 @@ class AdminPanelService:
         Returns:
             dict[str, Any]: The function result.
         """
-        schemas, selected_schema = self.repository.get_active_schema(
-            schema_type="asp_schema",
-            schema_category="ASP",
-            schema_id=schema_id,
-        )
-        if not schemas:
-            raise api_error(400, "No active panel schemas found")
-        if not selected_schema:
+        schemas, selected_schema = build_managed_schema_bundle(self._spec)
+        if schema_id and schema_id != selected_schema.get("schema_id"):
             raise api_error(404, "Selected schema not found")
         schema = self.repository.clone_schema(selected_schema)
         schema["fields"]["created_by"]["default"] = current_actor(actor_username)
@@ -81,12 +99,12 @@ class AdminPanelService:
         panel = self.repository.get_panel(panel_id)
         if not panel:
             raise api_error(404, "Panel not found")
-        schema = self.repository.get_schema(panel.get("schema_name", "ASP-Schema"))
-        if not schema:
-            raise api_error(404, "Schema not found for panel")
+        schema = build_managed_schema(self._spec)
         return {"panel": panel, "schema": schema}
 
-    def create(self, *, payload: dict[str, Any]) -> dict[str, Any]:
+    def create(
+        self, *, payload: dict[str, Any], actor_username: str = "admin-ui"
+    ) -> dict[str, Any]:
         """Create.
 
         Args:
@@ -102,12 +120,28 @@ class AdminPanelService:
         config["asp_id"] = config.get("asp_id") or config.get("assay_name")
         if not config.get("asp_id"):
             raise api_error(400, "Missing asp_id")
+        selected_schema_id = payload.get("schema_id")
+        if selected_schema_id and selected_schema_id != self._spec.schema_id:
+            raise api_error(404, "Selected schema not found")
+        now = utc_now()
+        config.setdefault("created_by", current_actor(actor_username))
+        config.setdefault("created_on", now)
+        config["updated_by"] = current_actor(actor_username)
+        config["updated_on"] = now
+        config = inject_version_history(
+            actor_username=current_actor(actor_username),
+            new_config=config,
+            is_new=True,
+        )
+        config = _validated_doc(self._spec.collection, config)
         self.repository.create_panel(config)
         return mutation_payload(
             resource="asp", resource_id=str(config.get("asp_id", "unknown")), action="create"
         )
 
-    def update(self, *, panel_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    def update(
+        self, *, panel_id: str, payload: dict[str, Any], actor_username: str = "admin-ui"
+    ) -> dict[str, Any]:
         """Update.
 
         Args:
@@ -123,8 +157,20 @@ class AdminPanelService:
         updated = payload.get("config", {})
         if not updated:
             raise api_error(400, "Missing panel config payload")
-        updated["asp_id"] = panel.get("asp_id", panel_id)
-        self.repository.update_panel(panel_id, updated)
+        updated_doc = {**panel, **updated}
+        updated_doc["asp_id"] = panel.get("asp_id", panel_id)
+        updated_doc["_id"] = panel.get("_id")
+        updated_doc["updated_by"] = current_actor(actor_username)
+        updated_doc["updated_on"] = utc_now()
+        updated_doc["version"] = int(panel.get("version", 1) or 1) + 1
+        updated_doc = inject_version_history(
+            actor_username=current_actor(actor_username),
+            new_config=updated_doc,
+            old_config=panel,
+            is_new=False,
+        )
+        updated_doc = _validated_doc(self._spec.collection, updated_doc)
+        self.repository.update_panel(panel_id, updated_doc)
         return mutation_payload(resource="asp", resource_id=panel_id, action="update")
 
     def toggle(self, *, panel_id: str) -> dict[str, Any]:
@@ -171,6 +217,7 @@ class AdminGenelistService:
                 repository: Repository. Optional argument.
         """
         self.repository = repository or AdminRepository()
+        self._spec = managed_resource_spec("isgl")
 
     def list_payload(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:
         """List payload.
@@ -196,14 +243,8 @@ class AdminGenelistService:
         Returns:
             dict[str, Any]: The function result.
         """
-        schemas, selected_schema = self.repository.get_active_schema(
-            schema_type="isgl_config",
-            schema_category="ISGL",
-            schema_id=schema_id,
-        )
-        if not schemas:
-            raise api_error(400, "No active genelist schemas found")
-        if not selected_schema:
+        schemas, selected_schema = build_managed_schema_bundle(self._spec)
+        if schema_id and schema_id != selected_schema.get("schema_id"):
             raise api_error(404, "Genelist schema not found")
         schema = self.repository.clone_schema(selected_schema)
         schema["fields"]["assay_groups"]["options"] = self.repository.get_asp_groups()
@@ -230,10 +271,7 @@ class AdminGenelistService:
         genelist = self.repository.get_genelist(genelist_id)
         if not genelist:
             raise api_error(404, "Genelist not found")
-        schema = self.repository.get_schema(genelist.get("schema_name"))
-        if not schema:
-            raise api_error(404, "Schema not found for genelist")
-        schema = self.repository.clone_schema(schema)
+        schema = self.repository.clone_schema(build_managed_schema(self._spec))
         schema["fields"]["assay_groups"]["options"] = self.repository.get_asp_groups()
         schema["fields"]["assay_groups"]["default"] = genelist.get("assay_groups", [])
         schema["fields"]["assays"]["default"] = genelist.get("assays", [])
@@ -272,7 +310,9 @@ class AdminGenelistService:
             "panel_germline_genes": panel_germline_genes,
         }
 
-    def create(self, *, payload: dict[str, Any]) -> dict[str, Any]:
+    def create(
+        self, *, payload: dict[str, Any], actor_username: str = "admin-ui"
+    ) -> dict[str, Any]:
         """Create.
 
         Args:
@@ -288,12 +328,28 @@ class AdminGenelistService:
         config["isgl_id"] = config.get("isgl_id") or config.get("name")
         if not config.get("isgl_id"):
             raise api_error(400, "Missing isgl_id")
+        selected_schema_id = payload.get("schema_id")
+        if selected_schema_id and selected_schema_id != self._spec.schema_id:
+            raise api_error(404, "Genelist schema not found")
+        now = utc_now()
+        config.setdefault("created_by", current_actor(actor_username))
+        config.setdefault("created_on", now)
+        config["updated_by"] = current_actor(actor_username)
+        config["updated_on"] = now
+        config = inject_version_history(
+            actor_username=current_actor(actor_username),
+            new_config=config,
+            is_new=True,
+        )
+        config = _validated_doc(self._spec.collection, config)
         self.repository.create_genelist(config)
         return mutation_payload(
             resource="genelist", resource_id=str(config.get("isgl_id", "unknown")), action="create"
         )
 
-    def update(self, *, genelist_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    def update(
+        self, *, genelist_id: str, payload: dict[str, Any], actor_username: str = "admin-ui"
+    ) -> dict[str, Any]:
         """Update.
 
         Args:
@@ -309,8 +365,20 @@ class AdminGenelistService:
         updated = payload.get("config", {})
         if not updated:
             raise api_error(400, "Missing genelist config payload")
-        updated["isgl_id"] = genelist.get("isgl_id", genelist_id)
-        self.repository.update_genelist(genelist_id, updated)
+        updated_doc = {**genelist, **updated}
+        updated_doc["isgl_id"] = genelist.get("isgl_id", genelist_id)
+        updated_doc["_id"] = genelist.get("_id")
+        updated_doc["updated_by"] = current_actor(actor_username)
+        updated_doc["updated_on"] = utc_now()
+        updated_doc["version"] = int(genelist.get("version", 1) or 1) + 1
+        updated_doc = inject_version_history(
+            actor_username=current_actor(actor_username),
+            new_config=updated_doc,
+            old_config=genelist,
+            is_new=False,
+        )
+        updated_doc = _validated_doc(self._spec.collection, updated_doc)
+        self.repository.update_genelist(genelist_id, updated_doc)
         return mutation_payload(resource="genelist", resource_id=genelist_id, action="update")
 
     def toggle(self, *, genelist_id: str) -> dict[str, Any]:
@@ -388,14 +456,9 @@ class AdminAspcService:
             dict[str, Any]: The function result.
         """
         schema_category = str(category or "DNA").upper()
-        schemas, selected_schema = self.repository.get_active_schema(
-            schema_type="asp_config",
-            schema_category=schema_category,
-            schema_id=schema_id,
-        )
-        if not schemas:
-            raise api_error(400, f"No active {schema_category} schemas found")
-        if not selected_schema:
+        spec = aspc_spec_for_category(schema_category)
+        schemas, selected_schema = build_managed_schema_bundle(spec)
+        if schema_id and schema_id != selected_schema.get("schema_id"):
             raise api_error(404, "Selected schema not found")
         schema = self.repository.clone_schema(selected_schema)
         assay_panels = self.repository.list_panels(is_active=True)
@@ -403,14 +466,20 @@ class AdminAspcService:
         valid_assay_ids: list[str] = []
         env_options = schema.get("fields", {}).get("environment", {}).get("options", [])
         for panel in assay_panels:
-            if panel.get("asp_category") == schema_category:
-                envs = self.repository.get_available_assay_envs(str(panel["_id"]), env_options)
+            panel_category = _normalize_asp_category(panel.get("asp_category"))
+            if panel_category == schema_category:
+                assay_id = str(
+                    panel.get("asp_id") or panel.get("assay_name") or panel.get("_id") or ""
+                )
+                if not assay_id:
+                    continue
+                envs = self.repository.get_available_assay_envs(assay_id, env_options)
                 if envs:
-                    valid_assay_ids.append(panel["_id"])
-                    prefill_map[panel["_id"]] = {
+                    valid_assay_ids.append(assay_id)
+                    prefill_map[assay_id] = {
                         "display_name": panel.get("display_name"),
                         "asp_group": panel.get("asp_group"),
-                        "asp_category": panel.get("asp_category"),
+                        "asp_category": panel_category,
                         "platform": panel.get("platform"),
                         "environment": envs,
                     }
@@ -443,17 +512,19 @@ class AdminAspcService:
         assay_config = self.repository.get_assay_config(assay_id)
         if not assay_config:
             raise api_error(404, "Assay config not found")
-        schema = self.repository.get_schema(assay_config.get("schema_name"))
-        if not schema:
-            raise api_error(404, "Schema for this assay config is missing")
-        schema = self.repository.clone_schema(schema)
+        panel = self.repository.get_panel(str(assay_config.get("assay_name", "")))
+        category = _normalize_asp_category((panel or {}).get("asp_category"))
+        spec = aspc_spec_for_category(category)
+        schema = self.repository.clone_schema(build_managed_schema(spec))
         if "vep_consequences" in schema.get("fields", {}):
             schema["fields"]["vep_consequences"]["options"] = list(
                 runtime_app.config.get("CONSEQ_TERMS_MAPPER", {}).keys()
             )
         return {"assay_config": assay_config, "schema": schema}
 
-    def create(self, *, payload: dict[str, Any]) -> dict[str, Any]:
+    def create(
+        self, *, payload: dict[str, Any], actor_username: str = "admin-ui"
+    ) -> dict[str, Any]:
         """Create.
 
         Args:
@@ -475,12 +546,31 @@ class AdminAspcService:
         existing_config = self.repository.get_assay_config(config.get("aspc_id"))
         if existing_config:
             raise api_error(409, "Assay config already exists")
+        panel = self.repository.get_panel(str(config.get("assay_name", "")))
+        category = _normalize_asp_category((panel or {}).get("asp_category"))
+        spec = aspc_spec_for_category(category)
+        selected_schema_id = payload.get("schema_id")
+        if selected_schema_id and selected_schema_id != spec.schema_id:
+            raise api_error(404, "Selected schema not found")
+        now = utc_now()
+        config.setdefault("created_by", current_actor(actor_username))
+        config.setdefault("created_on", now)
+        config["updated_by"] = current_actor(actor_username)
+        config["updated_on"] = now
+        config = inject_version_history(
+            actor_username=current_actor(actor_username),
+            new_config=config,
+            is_new=True,
+        )
+        config = _validated_doc(spec.collection, config)
         self.repository.create_assay_config(config)
         return mutation_payload(
             resource="aspc", resource_id=str(config.get("aspc_id", "unknown")), action="create"
         )
 
-    def update(self, *, assay_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    def update(
+        self, *, assay_id: str, payload: dict[str, Any], actor_username: str = "admin-ui"
+    ) -> dict[str, Any]:
         """Update.
 
         Args:
@@ -496,8 +586,23 @@ class AdminAspcService:
         updated_config = payload.get("config", {})
         if not updated_config:
             raise api_error(400, "Missing assay config payload")
-        updated_config["aspc_id"] = assay_config.get("aspc_id", assay_id)
-        self.repository.update_assay_config(assay_id, updated_config)
+        updated_doc = {**assay_config, **updated_config}
+        updated_doc["aspc_id"] = assay_config.get("aspc_id", assay_id)
+        updated_doc["_id"] = assay_config.get("_id")
+        updated_doc["updated_by"] = current_actor(actor_username)
+        updated_doc["updated_on"] = utc_now()
+        updated_doc["version"] = int(assay_config.get("version", 1) or 1) + 1
+        panel = self.repository.get_panel(str(updated_doc.get("assay_name", "")))
+        category = _normalize_asp_category((panel or {}).get("asp_category"))
+        spec = aspc_spec_for_category(category)
+        updated_doc = inject_version_history(
+            actor_username=current_actor(actor_username),
+            new_config=updated_doc,
+            old_config=assay_config,
+            is_new=False,
+        )
+        updated_doc = _validated_doc(spec.collection, updated_doc)
+        self.repository.update_assay_config(assay_id, updated_doc)
         return mutation_payload(resource="aspc", resource_id=assay_id, action="update")
 
     def toggle(self, *, assay_id: str) -> dict[str, Any]:
@@ -633,121 +738,3 @@ class AdminSampleService:
         payload["meta"]["sample_name"] = deletion_summary.get("sample_name") or sample_name
         payload["meta"]["results"] = deletion_summary.get("results", [])
         return payload
-
-
-class AdminSchemaService:
-    """Own schema-management workflows for admin routes."""
-
-    def __init__(self, repository: AdminRepository | None = None) -> None:
-        """__init__.
-
-        Args:
-                repository: Repository. Optional argument.
-        """
-        self.repository = repository or AdminRepository()
-
-    def list_payload(self, *, q: str = "", page: int = 1, per_page: int = 30) -> dict[str, Any]:
-        """List payload.
-
-        Returns:
-            dict[str, Any]: The function result.
-        """
-        schemas, total = self.repository.search_schemas(q=q, page=page, per_page=per_page)
-        return {
-            "schemas": schemas,
-            "pagination": admin_list_pagination(q=q, page=page, per_page=per_page, total=total),
-        }
-
-    def context_payload(self, *, schema_id: str) -> dict[str, Any]:
-        """Context payload.
-
-        Args:
-            schema_id (str): Value for ``schema_id``.
-
-        Returns:
-            dict[str, Any]: The function result.
-        """
-        schema_doc = self.repository.get_schema(schema_id)
-        if not schema_doc:
-            raise api_error(404, "Schema not found")
-        return {"schema": schema_doc}
-
-    def create(self, *, payload: dict[str, Any], actor_username: str) -> dict[str, Any]:
-        """Create.
-
-        Args:
-            payload (dict[str, Any]): Value for ``payload``.
-            actor_username (str): Value for ``actor_username``.
-
-        Returns:
-            dict[str, Any]: The function result.
-        """
-        schema_doc = payload.get("schema", {})
-        schema_doc["schema_id"] = schema_doc.get("schema_name")
-        schema_doc.setdefault("is_active", True)
-        schema_doc["created_on"] = utc_now()
-        schema_doc["created_by"] = current_actor(actor_username)
-        schema_doc["updated_on"] = utc_now()
-        schema_doc["updated_by"] = current_actor(actor_username)
-        self.repository.create_schema(schema_doc)
-        return mutation_payload(
-            resource="schema", resource_id=schema_doc["schema_id"], action="create"
-        )
-
-    def update(
-        self, *, schema_id: str, payload: dict[str, Any], actor_username: str
-    ) -> dict[str, Any]:
-        """Update.
-
-        Args:
-            schema_id (str): Value for ``schema_id``.
-            payload (dict[str, Any]): Value for ``payload``.
-            actor_username (str): Value for ``actor_username``.
-
-        Returns:
-            dict[str, Any]: The function result.
-        """
-        schema_doc = self.repository.get_schema(schema_id)
-        if not schema_doc:
-            raise api_error(404, "Schema not found")
-        updated_schema = payload.get("schema", {})
-        updated_schema["_id"] = schema_doc["_id"]
-        updated_schema["schema_id"] = schema_doc.get("schema_id", schema_id)
-        updated_schema["updated_on"] = utc_now()
-        updated_schema["updated_by"] = current_actor(actor_username)
-        updated_schema["version"] = schema_doc.get("version", 1) + 1
-        self.repository.update_schema(schema_id, updated_schema)
-        return mutation_payload(resource="schema", resource_id=schema_id, action="update")
-
-    def toggle(self, *, schema_id: str) -> dict[str, Any]:
-        """Toggle.
-
-        Args:
-            schema_id (str): Value for ``schema_id``.
-
-        Returns:
-            dict[str, Any]: The function result.
-        """
-        schema_doc = self.repository.get_schema(schema_id)
-        if not schema_doc:
-            raise api_error(404, "Schema not found")
-        new_status = not bool(schema_doc.get("is_active"))
-        self.repository.set_schema_active(schema_id, new_status)
-        payload = mutation_payload(resource="schema", resource_id=schema_id, action="toggle")
-        payload["meta"]["is_active"] = new_status
-        return payload
-
-    def delete(self, *, schema_id: str) -> dict[str, Any]:
-        """Delete.
-
-        Args:
-            schema_id (str): Value for ``schema_id``.
-
-        Returns:
-            dict[str, Any]: The function result.
-        """
-        schema_doc = self.repository.get_schema(schema_id)
-        if not schema_doc:
-            raise api_error(404, "Schema not found")
-        self.repository.delete_schema(schema_id)
-        return mutation_payload(resource="schema", resource_id=schema_id, action="delete")

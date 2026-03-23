@@ -16,7 +16,7 @@
 - `api/settings.py`: runtime settings behavior
 - `api/lifecycle.py`: startup/shutdown lifecycle
 - `api/services/internal_ingest_service.py`: sample bundle ingestion
-- `api/contracts/db_documents.py`: DB document contracts
+- `api/contracts/schemas/registry.py`: collection contract registry
 
 ## Important UI files
 

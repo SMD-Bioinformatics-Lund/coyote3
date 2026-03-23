@@ -45,7 +45,6 @@ RNA_WGS_PATTERN = {
         {"assay": {"$regex": "rna|wgs|wts|tumwgs", "$options": "i"}},
         {"asp_group": {"$regex": "rna|wgs|wts|tumwgs", "$options": "i"}},
         {"analysis_types": {"$elemMatch": {"$regex": "rna|wgs|wts|fusion", "$options": "i"}}},
-        {"schema_name": {"$regex": "rna|wgs|wts|tumwgs", "$options": "i"}},
     ]
 }
 
