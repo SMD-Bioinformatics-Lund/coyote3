@@ -138,6 +138,7 @@ fi
 
 bootstrap_mongo_app_user() {
   local stage_port dev_port test_port prod_port target_port admin_uri
+  local attempt max_attempts
   stage_port="$(extract_env COYOTE3_STAGE_MONGO_PORT)"
   dev_port="$(extract_env COYOTE3_DEV_MONGO_PORT)"
   test_port="$(extract_env COYOTE3_TEST_MONGO_PORT)"
@@ -145,19 +146,33 @@ bootstrap_mongo_app_user() {
   target_port="${stage_port:-${dev_port:-${test_port:-${prod_port:-8008}}}}"
 
   if [[ -z "$MONGO_ROOT_USERNAME" || -z "$MONGO_ROOT_PASSWORD" || -z "$MONGO_APP_USER" || -z "$MONGO_APP_PASSWORD" ]]; then
-    echo "[warn] skipping mongo app-user bootstrap; missing root/app mongo credentials in env file."
-    return 0
+    echo "ERROR: missing mongo root/app credentials in env file; cannot guarantee app-user authentication." >&2
+    echo "Required: MONGO_ROOT_USERNAME, MONGO_ROOT_PASSWORD, MONGO_APP_USER, MONGO_APP_PASSWORD" >&2
+    return 2
+  fi
+
+  if [[ "$MONGO_ROOT_PASSWORD" == CHANGE_ME* || "$MONGO_APP_PASSWORD" == CHANGE_ME* ]]; then
+    echo "ERROR: placeholder Mongo credentials detected (CHANGE_ME*). Set real values in env file." >&2
+    return 2
   fi
 
   admin_uri="mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@localhost:${target_port}/admin?authSource=admin"
-  echo "[step] ensure mongo app user exists and password matches env"
-  if ! PYTHONPATH=. "$PYTHON_BIN" scripts/mongo_bootstrap_users.py \
-    --mongo-uri "$admin_uri" \
-    --app-db "$COYOTE3_DB" \
-    --app-user "$MONGO_APP_USER" \
-    --app-password "$MONGO_APP_PASSWORD"; then
-    echo "[warn] mongo app-user bootstrap failed; API may fail if app credentials do not match existing volume."
-  fi
+  echo "[step] ensure mongo app user exists and password matches env (with retry)"
+  max_attempts=45
+  for attempt in $(seq 1 "$max_attempts"); do
+    if PYTHONPATH=. "$PYTHON_BIN" scripts/mongo_bootstrap_users.py \
+      --mongo-uri "$admin_uri" \
+      --app-db "$COYOTE3_DB" \
+      --app-user "$MONGO_APP_USER" \
+      --app-password "$MONGO_APP_PASSWORD"; then
+      return 0
+    fi
+    sleep 2
+  done
+
+  echo "ERROR: failed to bootstrap Mongo app user after ${max_attempts} attempts." >&2
+  echo "Check Mongo root credentials and port (${target_port}) in env file." >&2
+  return 2
 }
 
 if [[ -n "$SEED_DATA_PACK" ]]; then
