@@ -99,6 +99,10 @@ extract_env() {
 
 MONGO_URI="$(extract_env MONGO_URI)"
 COYOTE3_DB="$(extract_env COYOTE3_DB)"
+MONGO_ROOT_USERNAME="$(extract_env MONGO_ROOT_USERNAME)"
+MONGO_ROOT_PASSWORD="$(extract_env MONGO_ROOT_PASSWORD)"
+MONGO_APP_USER="$(extract_env MONGO_APP_USER)"
+MONGO_APP_PASSWORD="$(extract_env MONGO_APP_PASSWORD)"
 
 if [[ -z "$MONGO_URI" || -z "$COYOTE3_DB" ]]; then
   echo "ERROR: ENV file must contain MONGO_URI and COYOTE3_DB" >&2
@@ -114,10 +118,35 @@ fi
 if [[ "$MONGO_URI" =~ @coyote3_.*_mongo:27017/ ]]; then
   STAGE_MONGO_PORT="$(extract_env COYOTE3_STAGE_MONGO_PORT)"
   DEV_MONGO_PORT="$(extract_env COYOTE3_DEV_MONGO_PORT)"
+  TEST_MONGO_PORT="$(extract_env COYOTE3_TEST_MONGO_PORT)"
   PROD_MONGO_PORT="$(extract_env COYOTE3_MONGO_PORT)"
-  TARGET_PORT="${STAGE_MONGO_PORT:-${DEV_MONGO_PORT:-${PROD_MONGO_PORT:-8008}}}"
+  TARGET_PORT="${STAGE_MONGO_PORT:-${DEV_MONGO_PORT:-${TEST_MONGO_PORT:-${PROD_MONGO_PORT:-8008}}}}"
   MONGO_URI="$(echo "$MONGO_URI" | sed -E "s#@[^/]+:27017/#@localhost:${TARGET_PORT}/#")"
 fi
+
+bootstrap_mongo_app_user() {
+  local stage_port dev_port test_port prod_port target_port admin_uri
+  stage_port="$(extract_env COYOTE3_STAGE_MONGO_PORT)"
+  dev_port="$(extract_env COYOTE3_DEV_MONGO_PORT)"
+  test_port="$(extract_env COYOTE3_TEST_MONGO_PORT)"
+  prod_port="$(extract_env COYOTE3_MONGO_PORT)"
+  target_port="${stage_port:-${dev_port:-${test_port:-${prod_port:-8008}}}}"
+
+  if [[ -z "$MONGO_ROOT_USERNAME" || -z "$MONGO_ROOT_PASSWORD" || -z "$MONGO_APP_USER" || -z "$MONGO_APP_PASSWORD" ]]; then
+    echo "[warn] skipping mongo app-user bootstrap; missing root/app mongo credentials in env file."
+    return 0
+  fi
+
+  admin_uri="mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@localhost:${target_port}/admin?authSource=admin"
+  echo "[step] ensure mongo app user exists and password matches env"
+  if ! PYTHONPATH=. "$PYTHON_BIN" scripts/mongo_bootstrap_users.py \
+    --mongo-uri "$admin_uri" \
+    --app-db "$COYOTE3_DB" \
+    --app-user "$MONGO_APP_USER" \
+    --app-password "$MONGO_APP_PASSWORD"; then
+    echo "[warn] mongo app-user bootstrap failed; API may fail if app credentials do not match existing volume."
+  fi
+}
 
 if [[ -n "$SEED_DATA_PACK" ]]; then
   bash scripts/center_preflight.sh \
@@ -135,6 +164,8 @@ else
 fi
 echo "[step] starting compose stack"
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build
+
+bootstrap_mongo_app_user
 
 cleanup() {
   if [[ "$TEARDOWN" -eq 1 ]]; then

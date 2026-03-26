@@ -67,7 +67,6 @@ RUN mkdir ./redis_data
 COPY config/ ./config/
 COPY config.py wsgi.py asgi.py run_api.py logging_setup.py cache_backend.py ./
 COPY deploy/gunicorn/gunicorn.conf.py ./gunicorn.conf.py
-COPY .coyote3_env ./.env
 COPY coyote/ ./coyote/
 COPY api/ ./api/
 COPY shared/ ./shared/
