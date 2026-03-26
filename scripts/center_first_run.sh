@@ -92,6 +92,18 @@ if [[ -z "$PYTHON_BIN" ]]; then
   fi
 fi
 
+if [[ -z "${COYOTE3_VERSION:-}" ]]; then
+  if [[ -f "coyote/__version__.py" ]]; then
+    if resolved_version="$("$PYTHON_BIN" coyote/__version__.py 2>/dev/null)"; then
+      resolved_version="$(echo "$resolved_version" | tr -d "[:space:]")"
+      if [[ -n "$resolved_version" ]]; then
+        export COYOTE3_VERSION="$resolved_version"
+        echo "[info] COYOTE3_VERSION not set; using detected version: $COYOTE3_VERSION"
+      fi
+    fi
+  fi
+fi
+
 extract_env() {
   local key="$1"
   (grep -E "^${key}=" "$ENV_FILE" || true) | tail -n1 | cut -d'=' -f2- | tr -d "'\""

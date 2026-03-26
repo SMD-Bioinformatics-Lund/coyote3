@@ -8,10 +8,11 @@ services:
   # UI container: Flask/Jinja presentation layer. Calls coyote3_dev_api over HTTP.
   coyote3_dev_web:
     container_name: coyote3_dev_web_${COYOTE3_VERSION:-local}
-    image: coyote3:${COYOTE3_VERSION:-local}-dev
+    image: coyote3-web:${COYOTE3_VERSION:-local}-dev
     build:
       context: ../..
       dockerfile: docker/Dockerfile.dev
+      target: coyote3_dev_web
       network: host
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
@@ -86,10 +87,11 @@ services:
   # API container: FastAPI business/policy/data layer.
   coyote3_dev_api:
     container_name: coyote3_dev_api_${COYOTE3_VERSION:-local}
-    image: coyote3:${COYOTE3_VERSION:-local}-dev
+    image: coyote3-api:${COYOTE3_VERSION:-local}-dev
     build:
       context: ../..
       dockerfile: docker/Dockerfile.dev
+      target: coyote3_dev_api
       network: host
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
@@ -150,7 +152,7 @@ services:
 
   coyote3_dev_first_run:
     container_name: coyote3_dev_first_run_${COYOTE3_VERSION:-local}
-    image: coyote3:${COYOTE3_VERSION:-local}-dev
+    image: coyote3-api:${COYOTE3_VERSION:-local}-dev
     profiles: ["first-run"]
     env_file:
       - ../../.coyote3_dev_env

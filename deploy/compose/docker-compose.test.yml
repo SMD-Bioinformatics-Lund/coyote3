@@ -6,10 +6,11 @@ name: coyote3-test
 services:
   coyote3_test_api:
     container_name: coyote3_test_api_${COYOTE3_VERSION:-local}
-    image: coyote3:${COYOTE3_VERSION:-local}-test
+    image: coyote3-api:${COYOTE3_VERSION:-local}-test
     build:
       context: ../..
       dockerfile: docker/Dockerfile.dev
+      target: coyote3_dev_api
       network: host
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
@@ -45,11 +46,12 @@ services:
 
   coyote3_test_web:
     container_name: coyote3_test_web_${COYOTE3_VERSION:-local}
-    image: coyote3:${COYOTE3_VERSION:-local}-test
+    image: coyote3-web:${COYOTE3_VERSION:-local}-test
     profiles: ["with-ui"]
     build:
       context: ../..
       dockerfile: docker/Dockerfile.dev
+      target: coyote3_dev_web
       network: host
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
@@ -97,11 +99,12 @@ services:
 
   coyote3_test_runner:
     container_name: coyote3_test_runner_${COYOTE3_VERSION:-local}
-    image: coyote3:${COYOTE3_VERSION:-local}-test
+    image: coyote3-all:${COYOTE3_VERSION:-local}-test
     profiles: ["tests"]
     build:
       context: ../..
       dockerfile: docker/Dockerfile.dev
+      target: coyote3_dev_all
       network: host
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
@@ -121,7 +124,7 @@ services:
 
   coyote3_test_first_run:
     container_name: coyote3_test_first_run_${COYOTE3_VERSION:-local}
-    image: coyote3:${COYOTE3_VERSION:-local}-test
+    image: coyote3-api:${COYOTE3_VERSION:-local}-test
     profiles: ["first-run"]
     env_file:
       - ../../.coyote3_test_env
